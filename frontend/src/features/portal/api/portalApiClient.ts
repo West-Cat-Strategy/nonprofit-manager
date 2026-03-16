@@ -8,6 +8,7 @@ import type {
   PortalCaseSummary,
   PortalCaseTimelinePage,
   PortalCaseTimelineQuery,
+  PortalDashboardData,
   PortalDocument,
   PortalDocumentsQuery,
   PortalEvent,
@@ -21,6 +22,11 @@ import type {
 } from '../types/contracts';
 
 export class PortalV2ApiClient implements PortalApiClient {
+  async getDashboard(): Promise<PortalDashboardData> {
+    const response = await portalApi.get<ApiEnvelope<PortalDashboardData>>('/v2/portal/dashboard');
+    return unwrapApiData(response.data);
+  }
+
   async listEvents(query: PortalEventsQuery = {}): Promise<PortalPagedResult<PortalEvent>> {
     const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalEvent>>>('/v2/portal/events', {
       params: {
@@ -123,6 +129,17 @@ export class PortalV2ApiClient implements PortalApiClient {
   async listCaseDocuments(caseId: string): Promise<PortalCaseDocument[]> {
     const response = await portalApi.get<ApiEnvelope<PortalCaseDocument[]>>(
       `/v2/portal/cases/${caseId}/documents`
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async uploadCaseDocument(caseId: string, formData: FormData): Promise<PortalCaseDocument> {
+    const response = await portalApi.post<ApiEnvelope<PortalCaseDocument>>(
+      `/v2/portal/cases/${caseId}/documents`,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
     );
     return unwrapApiData(response.data);
   }

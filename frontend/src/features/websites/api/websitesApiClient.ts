@@ -9,6 +9,7 @@ import type {
   WebsiteFormDefinition,
   WebsiteFormOperationalConfig,
   WebsiteIntegrationStatus,
+  WebsiteFacebookSettings,
   WebsiteMailchimpSettings,
   WebsiteOverviewSummary,
   WebsiteSearchParams,
@@ -76,6 +77,15 @@ export class WebsitesApiClient {
   ): Promise<WebsiteIntegrationStatus> {
     return api
       .put<WebsiteIntegrationStatus>(`/sites/${siteId}/integrations/stripe`, payload)
+      .then((response) => response.data);
+  }
+
+  updateFacebook(
+    siteId: string,
+    payload: Partial<WebsiteFacebookSettings>
+  ): Promise<WebsiteIntegrationStatus> {
+    return api
+      .put<WebsiteIntegrationStatus>(`/sites/${siteId}/integrations/facebook`, payload)
       .then((response) => response.data);
   }
 

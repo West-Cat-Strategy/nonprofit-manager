@@ -1,5 +1,7 @@
 import type {
   Contact,
+  ContactCommunicationFilters,
+  ContactCommunicationsResult,
   ContactDocument,
   ContactEmailAddress,
   ContactNote,
@@ -56,6 +58,8 @@ export interface ContactsLookupQuery {
   isActive?: boolean;
 }
 
+export type ContactCommunicationQuery = ContactCommunicationFilters;
+
 export interface ContactMutationPayload {
   [key: string]: unknown;
 }
@@ -81,6 +85,7 @@ export interface ContactsApiClientPort {
       replace?: string[];
     };
   }): Promise<{ updated: number; contact_ids: string[] }>;
+  listCommunications(contactId: string, query?: ContactCommunicationQuery): Promise<ContactCommunicationsResult>;
   listNotes(contactId: string): Promise<{ notes: ContactNote[]; total: number }>;
   getNote(noteId: string): Promise<ContactNote>;
   createNote(contactId: string, payload: CreateContactNoteDTO): Promise<ContactNote>;

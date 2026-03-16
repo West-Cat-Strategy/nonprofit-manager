@@ -20,6 +20,7 @@ import { createBuilderRoutes } from './builderRoutes';
 import { createWebsiteRoutes } from './websiteRoutes';
 import { createPortalProtectedRoutes, createPortalPublicRoutes } from './portalRoutes';
 import { createWorkflowRoutes } from './workflowRoutes';
+import { RecurringDonationCheckoutResult } from './financeRouteComponents';
 
 // Lazy load auth pages
 const Setup = lazy(() => import('../features/auth/pages/SetupPage'));
@@ -87,6 +88,10 @@ const AppRoutes = () => {
         <Route path="/public/reports/:token" element={<PublicReportSnapshot />} />
         <Route path="/public/events/:site" element={<PublicEventsPage />} />
         <Route path="/event-check-in/:id" element={<PublicEventCheckInPage />} />
+        <Route
+          path="/recurring-donations/checkout-result"
+          element={<RecurringDonationCheckoutResult />}
+        />
         {createPortalPublicRoutes()}
       </Route>
 

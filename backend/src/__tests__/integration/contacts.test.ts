@@ -8,6 +8,8 @@ describe('Contact API Integration Tests', () => {
   let testAccountId: string;
   let creatorUserId: string;
   let staffUserId: string;
+  const createdEventIds: string[] = [];
+  const createdAppointmentIds: string[] = [];
   const sharedPassword = 'Test123!Strong';
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const tokenFromResponse = (body: unknown): string | undefined => {
@@ -115,6 +117,12 @@ describe('Contact API Integration Tests', () => {
 
   afterAll(async () => {
     // Clean up - delete contacts first due to foreign key constraint
+    if (createdAppointmentIds.length > 0) {
+      await pool.query('DELETE FROM appointments WHERE id = ANY($1::uuid[])', [createdAppointmentIds]);
+    }
+    if (createdEventIds.length > 0) {
+      await pool.query('DELETE FROM events WHERE id = ANY($1::uuid[])', [createdEventIds]);
+    }
     if (testAccountId) {
       await pool.query('DELETE FROM contacts WHERE account_id = $1', [testAccountId]);
       await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [testAccountId]);
@@ -545,6 +553,189 @@ describe('Contact API Integration Tests', () => {
         .expect(200);
       const nonStaffPayload = payloadFromResponse<{ phn: string | null }>(nonStaffViewResponse.body);
       expect(nonStaffPayload.phn).toBe('******4321');
+    });
+  });
+
+  describe('GET /api/v2/contacts/:id/communications', () => {
+    it('returns aggregated appointment and event reminder history for the contact', async () => {
+      const suffix = unique();
+      const contactCreateResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Communications',
+          last_name: 'History',
+          email: `communications-${suffix}@example.com`,
+          phone: '555-020-1234',
+        }))
+        .expect(201);
+
+      const contactId = payloadFromResponse<{ contact_id: string }>(contactCreateResponse.body).contact_id;
+
+      const appointmentResult = await pool.query<{ id: string }>(
+        `INSERT INTO appointments (
+           contact_id,
+           title,
+           start_time,
+           status,
+           created_by
+         ) VALUES ($1, $2, NOW() + interval '2 days', 'confirmed', $3)
+         RETURNING id`,
+        [contactId, 'Reminder-ready appointment', staffUserId]
+      );
+      const appointmentId = appointmentResult.rows[0].id;
+      createdAppointmentIds.push(appointmentId);
+
+      const eventResult = await pool.query<{ id: string }>(
+        `INSERT INTO events (
+           name,
+           event_type,
+           start_date,
+           end_date,
+           location_name,
+           created_by,
+           modified_by
+         ) VALUES ($1, 'community', NOW() + interval '4 days', NOW() + interval '4 days 2 hours', 'Town Hall', $2, $2)
+         RETURNING id`,
+        [`Reminder Event ${suffix}`, staffUserId]
+      );
+      const eventId = eventResult.rows[0].id;
+      createdEventIds.push(eventId);
+
+      const registrationResult = await pool.query<{ id: string }>(
+        `INSERT INTO event_registrations (event_id, contact_id, registration_status)
+         VALUES ($1, $2, 'registered')
+         RETURNING id`,
+        [eventId, contactId]
+      );
+      const registrationId = registrationResult.rows[0].id;
+
+      await pool.query(
+        `INSERT INTO appointment_reminder_deliveries (
+           appointment_id,
+           channel,
+           trigger_type,
+           recipient,
+           delivery_status,
+           message_preview,
+           sent_by,
+           sent_at
+         ) VALUES ($1, 'email', 'manual', $2, 'sent', 'Appointment reminder preview', $3, NOW() - interval '1 hour')`,
+        [appointmentId, `communications-${suffix}@example.com`, staffUserId]
+      );
+
+      await pool.query(
+        `INSERT INTO event_reminder_deliveries (
+           event_id,
+           registration_id,
+           channel,
+           recipient,
+           delivery_status,
+           error_message,
+           message_preview,
+           sent_by,
+           trigger_type,
+           sent_at
+         ) VALUES ($1, $2, 'sms', $3, 'failed', 'Carrier rejected message', 'Event reminder preview', $4, 'automated', NOW() - interval '2 hours')`,
+        [eventId, registrationId, '+15550201234', staffUserId]
+      );
+
+      const response = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${contactId}/communications`)
+      )
+        .expect(200);
+
+      const payload = payloadFromResponse<{
+        items: Array<{
+          source_type: string;
+          channel: string;
+          delivery_status: string;
+          source_label: string;
+          action: { type: string; appointment_id?: string; event_id?: string };
+        }>;
+        total: number;
+      }>(response.body);
+
+      expect(payload.total).toBe(2);
+      expect(payload.items).toHaveLength(2);
+      expect(payload.items[0]).toEqual(
+        expect.objectContaining({
+          source_type: 'appointment_reminder',
+          channel: 'email',
+          delivery_status: 'sent',
+          action: expect.objectContaining({
+            type: 'send_appointment_reminder',
+            appointment_id: appointmentId,
+          }),
+        })
+      );
+      expect(payload.items[1]).toEqual(
+        expect.objectContaining({
+          source_type: 'event_reminder',
+          channel: 'sms',
+          delivery_status: 'failed',
+          source_label: `Reminder Event ${suffix}`,
+          action: expect.objectContaining({
+            type: 'open_event',
+            event_id: eventId,
+          }),
+        })
+      );
+    });
+
+    it('supports filtering by channel', async () => {
+      const contactResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Communications',
+          last_name: 'Filter',
+        }))
+        .expect(201);
+      const contactId = payloadFromResponse<{ contact_id: string }>(contactResponse.body).contact_id;
+
+      const appointmentResult = await pool.query<{ id: string }>(
+        `INSERT INTO appointments (
+           contact_id,
+           title,
+           start_time,
+           status,
+           created_by
+         ) VALUES ($1, 'SMS reminder appointment', NOW() + interval '3 days', 'confirmed', $2)
+         RETURNING id`,
+        [contactId, staffUserId]
+      );
+      const appointmentId = appointmentResult.rows[0].id;
+      createdAppointmentIds.push(appointmentId);
+
+      await pool.query(
+        `INSERT INTO appointment_reminder_deliveries (
+           appointment_id,
+           channel,
+           trigger_type,
+           recipient,
+           delivery_status,
+           message_preview,
+           sent_by
+         ) VALUES ($1, 'sms', 'manual', '+15550209999', 'sent', 'SMS appointment reminder', $2)`,
+        [appointmentId, staffUserId]
+      );
+
+      const response = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${contactId}/communications`)
+        .query({ channel: 'sms' })
+      )
+        .expect(200);
+
+      const payload = payloadFromResponse<{
+        items: Array<{ channel: string }>;
+        total: number;
+        filters: { channel?: string };
+      }>(response.body);
+
+      expect(payload.total).toBe(1);
+      expect(payload.items).toEqual([expect.objectContaining({ channel: 'sms' })]);
+      expect(payload.filters.channel).toBe('sms');
     });
   });
 

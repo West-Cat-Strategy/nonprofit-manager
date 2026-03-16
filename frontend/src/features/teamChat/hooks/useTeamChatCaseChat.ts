@@ -1,16 +1,46 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { createClientMessageId } from '../../messaging/composer';
+import { pickPreferredMessageVersion } from '../../messaging/messageMerge';
+import type { MessageSendState } from '../../messaging/types';
 import { teamChatApiClient } from '../api/teamChatApi';
+import { useTeamChatRealtimeStream } from './useTeamChatRealtimeStream';
 import type {
   TeamChatMember,
   TeamChatMessage,
   TeamChatMessageCreateDTO,
   TeamChatRoomDetail,
 } from '../types';
+import type {
+  TeamChatCaseMemberEventPayload,
+  TeamChatCaseMessageCreatedEventPayload,
+  TeamChatCaseReadEventPayload,
+} from '../messenger/types';
 import { useVisibilityPolling } from './useVisibilityPolling';
 
 const TEMP_PREFIX = 'temp-message-';
+const CASE_STREAM_EVENT_NAMES = [
+  'team_chat.message.created',
+  'team_chat.room.read',
+  'team_chat.member.added',
+  'team_chat.member.removed',
+] as const;
+const CASE_STREAM_CHANNELS = ['messages', 'read', 'members'] as const;
 
-const sortByCreatedAt = (left: TeamChatMessage, right: TeamChatMessage): number => {
+export type TeamChatCaseMessage = TeamChatMessage & {
+  optimistic?: boolean;
+  send_state?: MessageSendState;
+  send_error?: string | null;
+};
+
+const sortByCreatedAt = (
+  left: TeamChatCaseMessage,
+  right: TeamChatCaseMessage
+): number => {
   const leftTime = new Date(left.created_at).getTime();
   const rightTime = new Date(right.created_at).getTime();
 
@@ -21,55 +51,150 @@ const sortByCreatedAt = (left: TeamChatMessage, right: TeamChatMessage): number 
   return leftTime - rightTime;
 };
 
-const mergeMessages = (messages: TeamChatMessage[]): TeamChatMessage[] => {
-  const byId = new Map<string, TeamChatMessage>();
+const toStableMessage = (message: TeamChatMessage): TeamChatCaseMessage => ({
+  ...message,
+  optimistic: false,
+  send_state: 'sent',
+  send_error: null,
+});
+
+const mergeMessages = (messages: TeamChatCaseMessage[]): TeamChatCaseMessage[] => {
+  const byKey = new Map<string, TeamChatCaseMessage>();
 
   for (const message of messages) {
-    byId.set(message.id, message);
+    const key =
+      message.id.startsWith(TEMP_PREFIX) && message.client_message_id
+        ? `client:${message.client_message_id}`
+        : `id:${message.id}`;
+    const existing = byKey.get(key);
+
+    if (!existing) {
+      byKey.set(key, message);
+      continue;
+    }
+
+    byKey.set(key, pickPreferredMessageVersion(existing, message));
   }
 
-  return Array.from(byId.values()).sort(sortByCreatedAt);
+  return Array.from(byKey.values()).sort(sortByCreatedAt);
 };
 
 const buildOptimisticMessage = (
+  roomId: string | null,
   payload: TeamChatMessageCreateDTO,
   sender: { id: string; firstName?: string | null; lastName?: string | null }
-): TeamChatMessage => ({
+): TeamChatCaseMessage => ({
   id: `${TEMP_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-  room_id: '',
+  room_id: roomId || '',
   sender_user_id: sender.id,
   sender_first_name: sender.firstName || null,
   sender_last_name: sender.lastName || null,
   body: payload.body,
   parent_message_id: payload.parent_message_id || null,
-  metadata: {
-    optimistic: true,
-  },
+  client_message_id: payload.client_message_id || null,
+  metadata: null,
   created_at: new Date().toISOString(),
   edited_at: null,
   deleted_at: null,
   mention_user_ids: payload.mention_user_ids || [],
+  optimistic: true,
+  send_state: 'sending',
+  send_error: null,
 });
 
-const isRealMessage = (message: TeamChatMessage): boolean => !message.id.startsWith(TEMP_PREFIX);
+const isRealMessage = (message: TeamChatCaseMessage): boolean =>
+  !message.id.startsWith(TEMP_PREFIX) && message.send_state === 'sent';
+
+const reconcileCanonicalMessage = (
+  current: TeamChatCaseMessage[],
+  canonical: TeamChatMessage
+): TeamChatCaseMessage[] => {
+  const nextCanonical = toStableMessage(canonical);
+  return mergeMessages(
+    current.map((message) => {
+      if (message.id === canonical.id) {
+        return nextCanonical;
+      }
+
+      if (
+        canonical.client_message_id &&
+        message.client_message_id === canonical.client_message_id
+      ) {
+        return nextCanonical;
+      }
+
+      return message;
+    }).concat(
+      current.some(
+        (message) =>
+          message.id === canonical.id ||
+          (canonical.client_message_id &&
+            message.client_message_id === canonical.client_message_id)
+      )
+        ? []
+        : [nextCanonical]
+    )
+  );
+};
+
+const markMessageFailed = (
+  messages: TeamChatCaseMessage[],
+  clientMessageId: string,
+  error: string
+): TeamChatCaseMessage[] =>
+  mergeMessages(
+    messages.map((message) =>
+      message.client_message_id === clientMessageId
+        ? {
+            ...message,
+            send_state: 'failed',
+            send_error: error,
+            optimistic: true,
+          }
+        : message
+    )
+  );
+
+const markMessageSending = (
+  messages: TeamChatCaseMessage[],
+  clientMessageId: string
+): TeamChatCaseMessage[] =>
+  mergeMessages(
+    messages.map((message) =>
+      message.client_message_id === clientMessageId
+        ? {
+            ...message,
+            send_state: 'sending',
+            send_error: null,
+            optimistic: true,
+          }
+        : message
+    )
+  );
 
 export interface UseTeamChatCaseChatOptions {
   caseId: string;
   enabled: boolean;
+  currentUserId?: string | null;
 }
 
 export interface UseTeamChatCaseChatResult {
   room: TeamChatRoomDetail['room'] | null;
   members: TeamChatMember[];
-  messages: TeamChatMessage[];
+  messages: TeamChatCaseMessage[];
   loading: boolean;
   sending: boolean;
   error: string | null;
+  streamStatus: 'disabled' | 'connecting' | 'connected' | 'error';
   refresh: () => Promise<void>;
   pollLatestMessages: () => Promise<void>;
   loadOlderMessages: () => Promise<number>;
   sendMessage: (
     payload: TeamChatMessageCreateDTO,
+    sender: { id: string; firstName?: string | null; lastName?: string | null }
+  ) => Promise<void>;
+  retryMessage: (
+    messageId: string,
     sender: { id: string; firstName?: string | null; lastName?: string | null }
   ) => Promise<void>;
   markRead: (messageId?: string) => Promise<void>;
@@ -80,12 +205,16 @@ export interface UseTeamChatCaseChatResult {
 export function useTeamChatCaseChat(
   options: UseTeamChatCaseChatOptions
 ): UseTeamChatCaseChatResult {
-  const { caseId, enabled } = options;
+  const {
+    caseId,
+    enabled,
+    currentUserId,
+  } = options;
   const [room, setRoom] = useState<TeamChatRoomDetail['room'] | null>(null);
   const [members, setMembers] = useState<TeamChatMember[]>([]);
-  const [messages, setMessages] = useState<TeamChatMessage[]>([]);
+  const [messages, setMessages] = useState<TeamChatCaseMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
+  const [sendingCount, setSendingCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -102,7 +231,10 @@ export function useTeamChatCaseChat(
       const detail = await teamChatApiClient.getCaseRoom(caseId);
       setRoom(detail.room);
       setMembers(detail.members);
-      setMessages(mergeMessages(detail.messages));
+      setMessages((current) => mergeMessages([
+        ...current.filter((message) => message.send_state === 'failed'),
+        ...detail.messages.map((message) => toStableMessage(message)),
+      ]));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load case chat');
@@ -129,7 +261,12 @@ export function useTeamChatCaseChat(
       });
 
       if (result.messages.length > 0) {
-        setMessages((current) => mergeMessages([...current, ...result.messages]));
+        setMessages((current) =>
+          mergeMessages([
+            ...current,
+            ...result.messages.map((message) => toStableMessage(message)),
+          ])
+        );
       }
       setError(null);
     } catch (err) {
@@ -154,7 +291,12 @@ export function useTeamChatCaseChat(
       });
 
       if (result.messages.length > 0) {
-        setMessages((current) => mergeMessages([...result.messages, ...current]));
+        setMessages((current) =>
+          mergeMessages([
+            ...result.messages.map((message) => toStableMessage(message)),
+            ...current,
+          ])
+        );
       }
 
       setError(null);
@@ -177,7 +319,7 @@ export function useTeamChatCaseChat(
           messageId ? { message_id: messageId } : {}
         );
 
-        setRoom((current) =>
+        setRoom((current) => result.room || (
           current
             ? {
                 ...current,
@@ -185,7 +327,7 @@ export function useTeamChatCaseChat(
                 unread_mentions_count: result.unread_mentions_count,
               }
             : current
-        );
+        ));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to update read cursor');
       }
@@ -207,38 +349,30 @@ export function useTeamChatCaseChat(
         return;
       }
 
-      setSending(true);
-      setError(null);
+      const clientMessageId = payload.client_message_id || createClientMessageId();
       const optimisticMessage = buildOptimisticMessage(
+        room?.room_id || null,
         {
           ...payload,
           body: trimmedBody,
+          client_message_id: clientMessageId,
         },
         sender
       );
 
+      setSendingCount((current) => current + 1);
+      setError(null);
       setMessages((current) => mergeMessages([...current, optimisticMessage]));
 
       try {
         const created = await teamChatApiClient.sendCaseMessage(caseId, {
           ...payload,
           body: trimmedBody,
+          client_message_id: clientMessageId,
         });
 
-        setMessages((current) =>
-          mergeMessages(
-            current.map((message) =>
-              message.id === optimisticMessage.id
-                ? {
-                    ...created.message,
-                    room_id: created.room_id,
-                  }
-                : message
-            )
-          )
-        );
-
-        setRoom((current) =>
+        setMessages((current) => reconcileCanonicalMessage(current, created.message));
+        setRoom((current) => created.room || (
           current
             ? {
                 ...current,
@@ -248,17 +382,42 @@ export function useTeamChatCaseChat(
                 message_count: current.message_count + 1,
               }
             : current
-        );
-
+        ));
         await markRead(created.message.id);
       } catch (err) {
-        setMessages((current) => current.filter((message) => message.id !== optimisticMessage.id));
-        setError(err instanceof Error ? err.message : 'Failed to send message');
+        const message = err instanceof Error ? err.message : 'Failed to send message';
+        setMessages((current) => markMessageFailed(current, clientMessageId, message));
+        setError(message);
+        throw err instanceof Error ? err : new Error(message);
       } finally {
-        setSending(false);
+        setSendingCount((current) => Math.max(0, current - 1));
       }
     },
-    [caseId, enabled, markRead]
+    [caseId, enabled, markRead, room?.room_id]
+  );
+
+  const retryMessage = useCallback(
+    async (
+      messageId: string,
+      sender: { id: string; firstName?: string | null; lastName?: string | null }
+    ) => {
+      const target = messages.find((message) => message.id === messageId);
+      if (!target?.client_message_id) {
+        return;
+      }
+
+      setMessages((current) => markMessageSending(current, target.client_message_id!));
+      await sendMessage(
+        {
+          body: target.body,
+          parent_message_id: target.parent_message_id,
+          mention_user_ids: target.mention_user_ids,
+          client_message_id: target.client_message_id,
+        },
+        sender
+      );
+    },
+    [messages, sendMessage]
   );
 
   const addMember = useCallback(
@@ -303,11 +462,52 @@ export function useTeamChatCaseChat(
     void refresh();
   }, [refresh]);
 
-  useVisibilityPolling(pollLatestMessages, {
+  const streamStatus = useTeamChatRealtimeStream<
+    | TeamChatCaseMessageCreatedEventPayload
+    | TeamChatCaseReadEventPayload
+    | TeamChatCaseMemberEventPayload
+  >({
+    endpointPath: `/v2/team-chat/cases/${caseId}/stream`,
+    channels: CASE_STREAM_CHANNELS,
+    eventNames: CASE_STREAM_EVENT_NAMES,
     enabled,
+    onEvent: (eventName, payload) => {
+      if (eventName === 'team_chat.message.created') {
+        const messagePayload = payload as TeamChatCaseMessageCreatedEventPayload;
+        setMessages((current) => reconcileCanonicalMessage(current, messagePayload.message));
+        setRoom(messagePayload.room);
+        return;
+      }
+
+      if (eventName === 'team_chat.room.read') {
+        const readPayload = payload as TeamChatCaseReadEventPayload;
+        setRoom(readPayload.room);
+        return;
+      }
+
+      const memberPayload = payload as TeamChatCaseMemberEventPayload;
+      setMembers(memberPayload.members);
+    },
+  });
+
+  useVisibilityPolling(pollLatestMessages, {
+    enabled: enabled && streamStatus !== 'connected',
     intervalMs: 15000,
     runImmediately: false,
   });
+
+  useEffect(() => {
+    if (!currentUserId) {
+      return;
+    }
+
+    const latestMessage = messages[messages.length - 1];
+    if (!latestMessage || latestMessage.sender_user_id === currentUserId) {
+      return;
+    }
+
+    void markRead(latestMessage.id);
+  }, [currentUserId, markRead, messages]);
 
   const stableMessages = useMemo(() => mergeMessages(messages), [messages]);
 
@@ -316,12 +516,14 @@ export function useTeamChatCaseChat(
     members,
     messages: stableMessages,
     loading,
-    sending,
+    sending: sendingCount > 0,
     error,
+    streamStatus,
     refresh,
     pollLatestMessages,
     loadOlderMessages,
     sendMessage,
+    retryMessage,
     markRead,
     addMember,
     removeMember,

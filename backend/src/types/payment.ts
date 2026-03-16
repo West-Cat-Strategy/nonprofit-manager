@@ -14,6 +14,7 @@ export type PaymentIntentStatus =
   | 'succeeded';
 
 export type WebhookEventType =
+  | 'checkout.session.completed'
   | 'payment_intent.succeeded'
   | 'payment_intent.payment_failed'
   | 'payment_intent.canceled'
@@ -172,6 +173,41 @@ export interface CreateSubscriptionRequest {
   priceId: string;
   paymentMethodId?: string;
   metadata?: Record<string, string>;
+}
+
+export interface CreateCheckoutSessionRequest {
+  customerId: string;
+  priceId: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+}
+
+export interface CheckoutSessionResponse {
+  id: string;
+  url: string;
+  customerId: string | null;
+  subscriptionId: string | null;
+  status: string;
+}
+
+export interface CreateMonthlyPriceRequest {
+  amount: number;
+  currency: string;
+  productId?: string;
+  productName: string;
+  metadata?: Record<string, string>;
+}
+
+export interface StripePriceResponse {
+  id: string;
+  productId: string;
+  unitAmount: number;
+  currency: string;
+}
+
+export interface BillingPortalSessionResponse {
+  url: string;
 }
 
 /**

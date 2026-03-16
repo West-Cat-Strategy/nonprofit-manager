@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { PortalSectionProps } from '../../../adminSettings/sections/PortalSection';
 import PortalSection from '../../../adminSettings/sections/PortalSection';
@@ -60,6 +61,7 @@ const createBaseProps = (): Omit<PortalSectionProps, 'visiblePanels'> => ({
   onPortalConversationReplyChange: vi.fn(),
   onPortalConversationReplyInternalChange: vi.fn(),
   onSendPortalConversationReply: vi.fn(),
+  onRetryPortalConversationReply: vi.fn(),
   onUpdatePortalConversationStatus: vi.fn(),
   portalSlotFilters: {
     status: 'all',
@@ -148,5 +150,45 @@ describe('portal admin panels', () => {
     expect(
       screen.queryByRole('heading', { name: 'Appointment Inbox' })
     ).not.toBeInTheDocument();
+  });
+
+  it('exposes retry actions for failed portal replies', async () => {
+    const user = userEvent.setup();
+    const props = createBaseProps();
+    props.selectedPortalConversation = {
+      thread: {
+        id: 'thread-1',
+        subject: 'Portal help',
+        status: 'open',
+        case_id: null,
+        case_number: null,
+        case_title: null,
+        pointperson_user_id: null,
+        pointperson_first_name: null,
+        pointperson_last_name: null,
+        portal_email: 'client@example.com',
+        unread_count: 0,
+        last_message_at: '2026-03-15T10:00:00.000Z',
+      },
+      messages: [
+        {
+          id: 'message-1',
+          sender_type: 'staff',
+          sender_display_name: 'Staff',
+          message_text: 'Retry me',
+          is_internal: false,
+          created_at: '2026-03-15T10:00:00.000Z',
+          send_state: 'failed',
+          send_error: 'Network error',
+          optimistic: true,
+        },
+      ],
+    };
+
+    render(<ConversationsPanel {...props} />);
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(props.onRetryPortalConversationReply).toHaveBeenCalledWith('message-1');
   });
 });

@@ -23,16 +23,20 @@ export interface Donation {
   donation_number: string;
   account_id: string | null;
   contact_id: string | null;
+  recurring_plan_id?: string | null;
   amount: number;
   currency: string;
   donation_date: string;
   payment_method: PaymentMethod | null;
   payment_status: PaymentStatus;
   transaction_id: string | null;
+  stripe_subscription_id?: string | null;
+  stripe_invoice_id?: string | null;
   campaign_name: string | null;
   designation: string | null;
   is_recurring: boolean;
   recurring_frequency: RecurringFrequency | null;
+  recurring_plan_status?: string | null;
   notes: string | null;
   receipt_sent: boolean;
   receipt_sent_date: string | null;
@@ -42,17 +46,24 @@ export interface Donation {
   modified_by: string;
   account_name?: string;
   contact_name?: string;
+  official_tax_receipt_id?: string | null;
+  official_tax_receipt_number?: string | null;
+  official_tax_receipt_kind?: 'single_official' | 'annual_official' | null;
+  official_tax_receipt_issued_at?: string | null;
 }
 
 export interface CreateDonationDTO {
   account_id?: string;
   contact_id?: string;
+  recurring_plan_id?: string;
   amount: number;
   currency?: string;
   donation_date: string;
   payment_method?: PaymentMethod;
   payment_status?: PaymentStatus;
   transaction_id?: string;
+  stripe_subscription_id?: string;
+  stripe_invoice_id?: string;
   campaign_name?: string;
   designation?: string;
   is_recurring?: boolean;
@@ -63,12 +74,15 @@ export interface CreateDonationDTO {
 export interface UpdateDonationDTO {
   account_id?: string;
   contact_id?: string;
+  recurring_plan_id?: string | null;
   amount?: number;
   currency?: string;
   donation_date?: string;
   payment_method?: PaymentMethod;
   payment_status?: PaymentStatus;
   transaction_id?: string;
+  stripe_subscription_id?: string | null;
+  stripe_invoice_id?: string | null;
   campaign_name?: string;
   designation?: string;
   is_recurring?: boolean;

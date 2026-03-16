@@ -158,11 +158,21 @@ export interface WebsiteStripeSettings {
   campaignId?: string | null;
 }
 
+export interface WebsiteFacebookSettings {
+  trackedPageId?: string | null;
+  syncEnabled?: boolean;
+}
+
+export interface WebsiteSocialSettings {
+  facebook: WebsiteFacebookSettings;
+}
+
 export interface WebsiteSiteSettings {
   siteId: string;
   organizationId: string | null;
   mailchimp: WebsiteMailchimpSettings;
   stripe: WebsiteStripeSettings;
+  social: WebsiteSocialSettings;
   formDefaults: WebsiteFormOperationalConfig;
   formOverrides: Record<string, WebsiteFormOperationalConfig>;
   conversionTracking: {
@@ -194,6 +204,13 @@ export interface WebsiteIntegrationStatus {
   stripe: WebsiteStripeSettings & {
     configured: boolean;
     publishableKeyConfigured: boolean;
+  };
+  social: {
+    facebook: WebsiteFacebookSettings & {
+      trackedPageName?: string | null;
+      lastSyncAt: string | null;
+      lastSyncError?: string | null;
+    };
   };
 }
 

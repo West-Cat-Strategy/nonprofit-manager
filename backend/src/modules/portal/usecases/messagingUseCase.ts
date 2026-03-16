@@ -56,6 +56,7 @@ export class PortalMessagingUseCase {
     portalUserId: string;
     threadId: string;
     message: string;
+    clientMessageId?: string;
     ipAddress?: string;
     userAgent?: string | string[];
   }): Promise<unknown> {
@@ -63,6 +64,7 @@ export class PortalMessagingUseCase {
       portalUserId: input.portalUserId,
       threadId: input.threadId,
       messageText: input.message,
+      clientMessageId: input.clientMessageId,
     });
 
     await logPortalActivity({

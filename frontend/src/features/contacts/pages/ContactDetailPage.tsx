@@ -9,20 +9,29 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchContactById, clearCurrentContact, fetchContactNotes } from '../state';
 import { fetchCasesByContact, selectCasesByContact } from '../../cases/state';
 import { BrutalBadge, BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
-import PaymentHistory from '../../../components/PaymentHistory';
 import ContactPhoneNumbers from '../../../components/ContactPhoneNumbers';
 import ContactEmailAddresses from '../../../components/ContactEmailAddresses';
 import ContactRelationships from '../../../components/ContactRelationships';
 import ContactNotes from '../components/ContactNotesPanel';
-import ContactDocuments from '../../../components/ContactDocuments';
 import ContactTags from '../../../components/ContactTags';
-import ContactTasks from '../../../components/ContactTasks';
-import ContactActivityTimeline from '../../../components/ContactActivityTimeline';
-import FollowUpList from '../../../components/FollowUpList';
+import ContactTasksPanel from '../components/ContactTasksPanel';
+import ContactActivityPanel from '../components/ContactActivityPanel';
+import ContactCommunicationsPanel from '../components/ContactCommunicationsPanel';
+import ContactFollowUpsPanel from '../components/ContactFollowUpsPanel';
+import ContactDocumentsPanel from '../components/ContactDocumentsPanel';
+import ContactPaymentsPanel from '../components/ContactPaymentsPanel';
 import { formatDate, formatDateOnly, getAgeFromDateOnly } from '../../../utils/format';
 import { isUuid } from '../../../utils/uuid';
 
-type TabType = 'overview' | 'notes' | 'tasks' | 'activity' | 'followups' | 'documents' | 'payments';
+type TabType =
+  | 'overview'
+  | 'notes'
+  | 'tasks'
+  | 'activity'
+  | 'communications'
+  | 'followups'
+  | 'documents'
+  | 'payments';
 
 const ContactDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -138,6 +147,7 @@ const ContactDetail = () => {
     { id: 'notes', label: 'Notes', count: currentContact.note_count || 0 },
     { id: 'tasks', label: 'Tasks' },
     { id: 'activity', label: 'Activity' },
+    { id: 'communications', label: 'Communications' },
     { id: 'followups', label: 'Follow-ups' },
     { id: 'documents', label: 'Documents' },
     { id: 'payments', label: 'Payments' },
@@ -217,6 +227,9 @@ const ContactDetail = () => {
             </BrutalButton>
             <BrutalButton onClick={() => setActiveTab('followups')} variant="secondary">
               Schedule Follow-up
+            </BrutalButton>
+            <BrutalButton onClick={() => setActiveTab('communications')} variant="secondary">
+              Communications
             </BrutalButton>
             <BrutalButton onClick={() => navigate(`/contacts/${id}/edit`)} variant="primary">
               Edit Contact
@@ -512,7 +525,10 @@ const ContactDetail = () => {
 
         {activeTab === 'tasks' && (
           <BrutalCard color="white" className="p-6">
-            {id && <ContactTasks contactId={id} />}
+            <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+              Tasks
+            </h2>
+            {id && <ContactTasksPanel contactId={id} />}
           </BrutalCard>
         )}
 
@@ -521,7 +537,16 @@ const ContactDetail = () => {
             <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
               Activity Timeline
             </h2>
-            {id && <ContactActivityTimeline contactId={id} />}
+            {id && <ContactActivityPanel contactId={id} />}
+          </BrutalCard>
+        )}
+
+        {activeTab === 'communications' && (
+          <BrutalCard color="white" className="p-6">
+            <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
+              Communications
+            </h2>
+            {id && <ContactCommunicationsPanel contactId={id} />}
           </BrutalCard>
         )}
 
@@ -530,7 +555,7 @@ const ContactDetail = () => {
             <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
               Follow-ups
             </h2>
-            {id && <FollowUpList entityType="contact" entityId={id} />}
+            {id && <ContactFollowUpsPanel contactId={id} />}
           </BrutalCard>
         )}
 
@@ -539,7 +564,7 @@ const ContactDetail = () => {
             <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
               Documents
             </h2>
-            {id && <ContactDocuments contactId={id} />}
+            {id && <ContactDocumentsPanel contactId={id} />}
           </BrutalCard>
         )}
 
@@ -548,7 +573,7 @@ const ContactDetail = () => {
             <h2 className="text-lg font-black uppercase text-black mb-4 border-b-2 border-black pb-2">
               Payment History
             </h2>
-            {id && <PaymentHistory contactId={id} limit={20} showViewAll={false} />}
+            {id && <ContactPaymentsPanel contactId={id} />}
           </BrutalCard>
         )}
       </div>

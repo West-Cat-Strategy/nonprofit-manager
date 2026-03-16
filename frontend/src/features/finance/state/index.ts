@@ -7,9 +7,23 @@ export {
   fetchDonationById,
   fetchDonations,
   fetchDonationSummary,
+  issueAnnualTaxReceipt,
+  issueTaxReceipt,
+  downloadTaxReceiptPdf,
   markReceiptSent,
   updateDonation,
 } from './donationsCore';
+export {
+  cancelRecurringDonationPlan,
+  clearRecurringDonationError,
+  clearSelectedRecurringDonation,
+  fetchRecurringDonationPlanById,
+  fetchRecurringDonationPlans,
+  generateRecurringDonationManagementLink,
+  reactivateRecurringDonationPlan,
+  default as recurringDonationsReducer,
+  updateRecurringDonationPlan,
+} from './recurringDonationsCore';
 export {
   cancelPaymentIntent,
   clearCurrentIntent,

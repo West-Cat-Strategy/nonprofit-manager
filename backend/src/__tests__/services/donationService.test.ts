@@ -272,6 +272,18 @@ describe('DonationService', () => {
     it('should throw error when no fields to update', async () => {
       await expect(donationService.updateDonation('123', {}, 'user-123')).rejects.toThrow('No fields to update');
     });
+
+    it('blocks refunded status changes when an official tax receipt already covers the donation', async () => {
+      mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ receipt_id: 'receipt-1' }] });
+
+      await expect(
+        donationService.updateDonation('123', { payment_status: 'refunded' }, 'user-123')
+      ).rejects.toThrow(
+        'Receipted donations cannot be marked refunded or cancelled until receipt reversal is supported'
+      );
+
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('deleteDonation', () => {

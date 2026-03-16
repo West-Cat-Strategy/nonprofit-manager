@@ -153,7 +153,12 @@ export class TeamChatUseCase {
     caseId: string,
     actor: TeamChatActor,
     payload: TeamChatMessageCreateDTO
-  ): Promise<{ room_id: string; message: TeamChatMessage }> {
+  ): Promise<{
+    room_id: string;
+    message: TeamChatMessage;
+    room: TeamChatInboxItem;
+    participant_user_ids: string[];
+  }> {
     const access = await this.ensureRoomAccess(caseId, actor);
 
     if (payload.parent_message_id) {
@@ -204,9 +209,16 @@ export class TeamChatUseCase {
       messageId: message.id,
     });
 
+    const [room, members] = await Promise.all([
+      this.repository.getRoomInboxItem(access.room.room_id, actor.userId),
+      this.repository.listMembers(access.room.room_id),
+    ]);
+
     return {
       room_id: access.room.room_id,
       message,
+      room,
+      participant_user_ids: members.map((member) => member.user_id),
     };
   }
 
@@ -220,6 +232,8 @@ export class TeamChatUseCase {
     last_read_message_id: string | null;
     unread_count: number;
     unread_mentions_count: number;
+    room: TeamChatInboxItem;
+    participant_user_ids: string[];
   }> {
     const access = await this.ensureRoomAccess(caseId, actor);
 
@@ -230,7 +244,10 @@ export class TeamChatUseCase {
         messageId: payload.message_id,
       });
 
-      const room = await this.repository.getRoomInboxItem(access.room.room_id, actor.userId);
+      const [room, members] = await Promise.all([
+        this.repository.getRoomInboxItem(access.room.room_id, actor.userId),
+        this.repository.listMembers(access.room.room_id),
+      ]);
 
       return {
         room_id: access.room.room_id,
@@ -238,6 +255,8 @@ export class TeamChatUseCase {
         last_read_message_id: cursor.last_read_message_id,
         unread_count: room.unread_count,
         unread_mentions_count: room.unread_mentions_count,
+        room,
+        participant_user_ids: members.map((member) => member.user_id),
       };
     } catch (error) {
       const message = error instanceof Error ? error.message.toLowerCase() : '';
@@ -257,6 +276,18 @@ export class TeamChatUseCase {
   async listMembers(caseId: string, actor: TeamChatActor): Promise<TeamChatMember[]> {
     const access = await this.ensureRoomAccess(caseId, actor);
     return this.repository.listMembers(access.room.room_id);
+  }
+
+  async getCaseStreamContext(
+    caseId: string,
+    actor: TeamChatActor
+  ): Promise<{ room_id: string; participant_user_ids: string[] }> {
+    const access = await this.ensureRoomAccess(caseId, actor);
+    const members = await this.repository.listMembers(access.room.room_id);
+    return {
+      room_id: access.room.room_id,
+      participant_user_ids: members.map((member) => member.user_id),
+    };
   }
 
   async addMember(

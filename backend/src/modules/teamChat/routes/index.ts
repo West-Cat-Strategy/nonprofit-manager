@@ -14,10 +14,20 @@ import {
   teamChatMarkReadSchema,
   teamChatMessageCreateSchema,
   teamChatMessagesQuerySchema,
+  teamChatStreamQuerySchema,
+  teamMessengerConversationUpdateSchema,
+  teamMessengerDirectConversationCreateSchema,
+  teamMessengerGroupConversationCreateSchema,
+  teamMessengerRoomMemberParamsSchema,
+  teamMessengerRoomParamsSchema,
+  teamMessengerStreamQuerySchema,
+  teamMessengerTypingSchema,
 } from '@validations/teamChat';
 import { createTeamChatController } from '../controllers/teamChat.controller';
+import { createTeamMessengerController } from '../controllers/teamMessenger.controller';
 import { TeamChatRepository } from '../repositories/teamChat.repository';
 import { TeamChatUseCase } from '../usecases/teamChat.usecase';
+import { TeamMessengerUseCase } from '../usecases/teamMessenger.usecase';
 
 const isTeamChatEnabled = (): boolean => process.env.TEAM_CHAT_ENABLED !== 'false';
 
@@ -33,6 +43,7 @@ const enforceFeatureFlag = (req: AuthRequest, res: Response, next: NextFunction)
 export const createTeamChatV2Routes = (): Router => {
   const repository = new TeamChatRepository();
   const controller = createTeamChatController(new TeamChatUseCase(repository));
+  const messengerController = createTeamMessengerController(new TeamMessengerUseCase(repository));
   const router = Router();
 
   router.use(authenticate);
@@ -44,6 +55,81 @@ export const createTeamChatV2Routes = (): Router => {
     '/unread-summary',
     requirePermission(Permission.TEAM_CHAT_VIEW),
     controller.getUnreadSummary
+  );
+  router.get(
+    '/messenger/stream',
+    requirePermission(Permission.TEAM_CHAT_VIEW),
+    validateQuery(teamMessengerStreamQuerySchema),
+    messengerController.stream
+  );
+  router.get(
+    '/messenger/contacts',
+    requirePermission(Permission.TEAM_CHAT_VIEW),
+    messengerController.listContacts
+  );
+  router.get(
+    '/messenger/conversations',
+    requirePermission(Permission.TEAM_CHAT_VIEW),
+    messengerController.listConversations
+  );
+  router.post(
+    '/messenger/conversations/direct',
+    requirePermission(Permission.TEAM_CHAT_POST),
+    validateBody(teamMessengerDirectConversationCreateSchema),
+    messengerController.startDirectConversation
+  );
+  router.post(
+    '/messenger/conversations/group',
+    requirePermission(Permission.TEAM_CHAT_POST),
+    validateBody(teamMessengerGroupConversationCreateSchema),
+    messengerController.createGroupConversation
+  );
+  router.get(
+    '/messenger/conversations/:roomId',
+    requirePermission(Permission.TEAM_CHAT_VIEW),
+    validateParams(teamMessengerRoomParamsSchema),
+    messengerController.getConversation
+  );
+  router.patch(
+    '/messenger/conversations/:roomId',
+    requirePermission(Permission.TEAM_CHAT_POST),
+    validateParams(teamMessengerRoomParamsSchema),
+    validateBody(teamMessengerConversationUpdateSchema),
+    messengerController.updateConversation
+  );
+  router.post(
+    '/messenger/conversations/:roomId/messages',
+    requirePermission(Permission.TEAM_CHAT_POST),
+    validateParams(teamMessengerRoomParamsSchema),
+    validateBody(teamChatMessageCreateSchema),
+    messengerController.sendMessage
+  );
+  router.post(
+    '/messenger/conversations/:roomId/read',
+    requirePermission(Permission.TEAM_CHAT_VIEW),
+    validateParams(teamMessengerRoomParamsSchema),
+    validateBody(teamChatMarkReadSchema),
+    messengerController.markRead
+  );
+  router.post(
+    '/messenger/conversations/:roomId/typing',
+    requirePermission(Permission.TEAM_CHAT_POST),
+    validateParams(teamMessengerRoomParamsSchema),
+    validateBody(teamMessengerTypingSchema),
+    messengerController.updateTyping
+  );
+  router.post(
+    '/messenger/conversations/:roomId/members',
+    requirePermission(Permission.TEAM_CHAT_POST),
+    validateParams(teamMessengerRoomParamsSchema),
+    validateBody(teamChatAddMemberSchema),
+    messengerController.addMember
+  );
+  router.delete(
+    '/messenger/conversations/:roomId/members/:userId',
+    requirePermission(Permission.TEAM_CHAT_POST),
+    validateParams(teamMessengerRoomMemberParamsSchema),
+    messengerController.removeMember
   );
 
   router.get(
@@ -59,6 +145,14 @@ export const createTeamChatV2Routes = (): Router => {
     validateParams(teamChatCaseParamsSchema),
     validateQuery(teamChatMessagesQuerySchema),
     controller.listMessages
+  );
+
+  router.get(
+    '/cases/:caseId/stream',
+    requirePermission(Permission.TEAM_CHAT_VIEW),
+    validateParams(teamChatCaseParamsSchema),
+    validateQuery(teamChatStreamQuerySchema),
+    controller.stream
   );
 
   router.post(

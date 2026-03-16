@@ -5,7 +5,18 @@
 
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
-import { DonationList, DonationDetail, DonationCreate, DonationEdit, DonationPayment, PaymentResult, ReconciliationDashboard } from './financeRouteComponents';
+import {
+  DonationList,
+  DonationDetail,
+  DonationCreate,
+  DonationEdit,
+  RecurringDonationList,
+  RecurringDonationDetail,
+  RecurringDonationEdit,
+  DonationPayment,
+  PaymentResult,
+  ReconciliationDashboard,
+} from './financeRouteComponents';
 
 // Lazy load donation pages
 
@@ -34,6 +45,18 @@ export function createFinanceRoutes(ProtectedRoute: React.ComponentType<RouteWra
       <Route
         path="/donations/:id"
         element={<ProtectedRoute><DonationDetail /></ProtectedRoute>}
+      />
+      <Route
+        path="/recurring-donations"
+        element={<ProtectedRoute><RecurringDonationList /></ProtectedRoute>}
+      />
+      <Route
+        path="/recurring-donations/:id"
+        element={<ProtectedRoute><RecurringDonationDetail /></ProtectedRoute>}
+      />
+      <Route
+        path="/recurring-donations/:id/edit"
+        element={<ProtectedRoute><RecurringDonationEdit /></ProtectedRoute>}
       />
       <Route
         path="/donations/payment"

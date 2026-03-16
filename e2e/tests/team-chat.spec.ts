@@ -4,33 +4,41 @@ import { expectCriticalSection, isTeamChatEnabled, waitForPageReady } from '../h
 const TEAM_CHAT_ROUTE = '/team-chat';
 test.skip(!isTeamChatEnabled(), 'Team chat is disabled in this environment');
 
-test.describe('Team Chat', () => {
-  test('team chat route requires authentication', async ({ page }) => {
+test.describe('Team Messenger', () => {
+  test('team messenger route requires authentication', async ({ page }) => {
     await page.goto(TEAM_CHAT_ROUTE, { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/login(?:\?|$)/);
   });
 
-  test('loads team chat inbox and supports refresh action', async ({ authenticatedPage }) => {
+  test('shows the staff messenger dock on authenticated pages', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(authenticatedPage, {
+      url: /\/dashboard(?:\?|$)/,
+      selectors: ['button:has-text("Team Messenger")'],
+      timeoutMs: 25000,
+    });
+
+    await expectCriticalSection(authenticatedPage, ['button:has-text("Team Messenger")']);
+  });
+
+  test('loads the Team Messenger page and keeps messaging surfaces distinct', async ({ authenticatedPage }) => {
     await authenticatedPage.goto(TEAM_CHAT_ROUTE, { waitUntil: 'domcontentloaded' });
     await waitForPageReady(authenticatedPage, {
       url: /\/team-chat(?:\?|$)/,
       selectors: [
-        'h2:has-text("Case Chat Inbox")',
-        'button:has-text("Refresh")',
+        'h1:has-text("Team Messenger")',
+        'text=Start a direct message',
+        'text=Create a group',
       ],
       timeoutMs: 25000,
     });
 
     await expectCriticalSection(authenticatedPage, [
-      'button:has-text("Refresh")',
-      'h2:has-text("Case Chat Inbox")',
+      'h1:has-text("Team Messenger")',
+      'text=Portal Conversations',
+      'text=Case Chat',
     ]);
 
-    await expect(
-      authenticatedPage.getByText(/Loading rooms...|No case chat rooms yet\./)
-    ).toBeVisible({ timeout: 15000 });
-
-    await authenticatedPage.getByRole('button', { name: 'Refresh' }).click();
-    await expect(authenticatedPage.getByRole('button', { name: 'Refresh' })).toBeVisible();
+    await expect(authenticatedPage.getByRole('button', { name: 'Create group chat' })).toBeVisible();
   });
 });

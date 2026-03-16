@@ -1,6 +1,8 @@
+export type TeamChatRoomType = 'case' | 'direct' | 'group';
 export type TeamChatRoomStatus = 'active' | 'archived';
 export type TeamChatMembershipRole = 'owner' | 'member' | 'observer';
 export type TeamChatMembershipSource = 'manual' | 'case_assignee' | 'system';
+export type TeamMessengerPresenceStatus = 'online' | 'offline';
 
 export interface TeamChatCaseContext {
   case_id: string;
@@ -12,7 +14,10 @@ export interface TeamChatCaseContext {
 export interface TeamChatRoomRecord {
   room_id: string;
   organization_id: string;
-  case_id: string;
+  room_type: TeamChatRoomType;
+  case_id: string | null;
+  title: string | null;
+  direct_key: string | null;
   status: TeamChatRoomStatus;
   created_by: string | null;
   last_message_at: string;
@@ -20,8 +25,8 @@ export interface TeamChatRoomRecord {
   message_count: number;
   created_at: string;
   updated_at: string;
-  case_number: string;
-  case_title: string;
+  case_number: string | null;
+  case_title: string | null;
 }
 
 export interface TeamChatMember {
@@ -46,6 +51,7 @@ export interface TeamChatMessage {
   sender_last_name: string | null;
   body: string;
   parent_message_id: string | null;
+  client_message_id: string | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
   edited_at: string | null;
@@ -76,6 +82,7 @@ export interface TeamChatUnreadSummary {
 export interface TeamChatMessageCreateDTO {
   body: string;
   parent_message_id?: string | null;
+  client_message_id?: string;
   mention_user_ids?: string[];
 }
 
@@ -104,4 +111,67 @@ export interface TeamChatMessageListResult {
   room_id: string;
   messages: TeamChatMessage[];
   limit: number;
+}
+
+export interface TeamMessengerConversationSummary {
+  room_id: string;
+  room_type: 'direct' | 'group';
+  title: string;
+  status: TeamChatRoomStatus;
+  last_message_at: string;
+  last_message_preview: string | null;
+  message_count: number;
+  member_count: number;
+  unread_count: number;
+  unread_mentions_count: number;
+  counterpart_user_id: string | null;
+  counterpart_first_name: string | null;
+  counterpart_last_name: string | null;
+  counterpart_email: string | null;
+}
+
+export interface TeamMessengerConversationDetail {
+  room: TeamMessengerConversationSummary;
+  members: TeamChatMember[];
+  messages: TeamChatMessage[];
+}
+
+export interface TeamMessengerContact {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string;
+  role: string;
+  presence_status: TeamMessengerPresenceStatus;
+}
+
+export interface TeamMessengerPresenceState {
+  user_id: string;
+  status: TeamMessengerPresenceStatus;
+  occurred_at: string;
+}
+
+export interface TeamMessengerTypingEvent {
+  room_id: string;
+  user_id: string;
+  is_typing: boolean;
+  occurred_at: string;
+  expires_at: string | null;
+}
+
+export interface TeamMessengerDirectConversationCreateDTO {
+  participant_user_id: string;
+}
+
+export interface TeamMessengerGroupConversationCreateDTO {
+  title: string;
+  participant_user_ids: string[];
+}
+
+export interface TeamMessengerConversationUpdateDTO {
+  title: string;
+}
+
+export interface TeamMessengerTypingDTO {
+  is_typing: boolean;
 }

@@ -11,6 +11,7 @@ import {
   NavigationSettings,
   DataBackup,
   EmailMarketing,
+  SocialMedia,
   PortalAdminPage,
 } from './adminRouteComponents';
 import {
@@ -37,6 +38,10 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       <Route
         path="/settings/email-marketing"
         element={<ProtectedRoute><EmailMarketing /></ProtectedRoute>}
+      />
+      <Route
+        path="/settings/social-media"
+        element={<AdminRoute><SocialMedia /></AdminRoute>}
       />
       <Route
         path="/email-marketing"

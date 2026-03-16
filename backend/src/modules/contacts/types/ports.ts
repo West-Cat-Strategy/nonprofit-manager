@@ -3,6 +3,8 @@ import type {
   ContactDocument,
   ContactEmailAddress,
   ContactFilters,
+  ContactCommunicationFilters,
+  ContactCommunicationsResult,
   ContactLookupItem,
   ContactNote,
   ContactRelationship,
@@ -128,4 +130,11 @@ export interface ContactDocumentsPort {
   update(documentId: string, payload: UpdateContactDocumentDTO, userId?: string): Promise<ContactDocument | null>;
   delete(documentId: string): Promise<boolean>;
   resolveFilePath(document: ContactDocument): Promise<string | null>;
+}
+
+export interface ContactCommunicationsPort {
+  list(
+    contactId: string,
+    filters?: ContactCommunicationFilters
+  ): Promise<ContactCommunicationsResult>;
 }

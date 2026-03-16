@@ -424,7 +424,7 @@ const CaseDetail = () => {
     { key: 'milestones', label: 'Milestones', count: caseMilestones.length },
     { key: 'relationships', label: 'Relationships' },
     { key: 'services', label: 'Services', count: currentCase.services_count || 0 },
-    ...(teamChatEnabled ? [{ key: 'team_chat' as TabType, label: 'Team Chat' }] : []),
+    ...(teamChatEnabled ? [{ key: 'team_chat' as TabType, label: 'Case Chat' }] : []),
     { key: 'portal', label: 'Portal' },
     { key: 'appointments', label: 'Appointments' },
     { key: 'followups', label: 'Follow-ups' },

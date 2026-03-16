@@ -7,9 +7,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchDonations } from '../state';
-import type { PaymentMethod, PaymentStatus } from '../../../types/donation';
+import {
+  fetchDonations,
+  issueTaxReceipt,
+  issueAnnualTaxReceipt,
+  downloadTaxReceiptPdf,
+} from '../state';
+import type { Donation, PaymentMethod, PaymentStatus } from '../../../types/donation';
+import type {
+  IssueAnnualTaxReceiptRequest,
+  IssueTaxReceiptRequest,
+  IssueTaxReceiptResult,
+  TaxReceiptDeliveryMode,
+} from '../../../types/taxReceipt';
 import { formatDate, formatCurrency } from '../../../utils/format';
+import { triggerFileDownload } from '../../../services/fileDownload';
+import { useToast } from '../../../contexts/useToast';
 import {
   EmptyState,
   ErrorState,
@@ -24,6 +37,11 @@ import {
   parsePositiveInteger,
   safeParseStoredObject,
 } from '../../../utils/persistedFilters';
+import TaxReceiptModal from '../components/TaxReceiptModal';
+import {
+  getAnnualReceiptDisabledReason,
+  getSingleReceiptDisabledReason,
+} from '../utils/taxReceipts';
 
 const DONATION_FILTERS_STORAGE_KEY = 'donations_list_filters_v1';
 const PAYMENT_STATUS_VALUES = [
@@ -49,9 +67,15 @@ const DonationList: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
+  const { showError, showSuccess } = useToast();
   const { donations, pagination, totalAmount, averageAmount, loading, error } = useAppSelector(
     (state) => state.donations
   );
+  const [receiptModalDonation, setReceiptModalDonation] = useState<Donation | null>(null);
+  const [receiptModalMode, setReceiptModalMode] = useState<'single' | 'annual' | null>(null);
+  const [defaultDeliveryMode, setDefaultDeliveryMode] =
+    useState<TaxReceiptDeliveryMode>('download');
+  const [isReceiptSubmitting, setIsReceiptSubmitting] = useState(false);
 
   const [search, setSearch] = useState(() => {
     const fromUrl = searchParams.get('search') || '';
@@ -77,11 +101,13 @@ const DonationList: React.FC = () => {
     );
     return parseAllowedValueOrEmpty(saved?.paymentMethod, PAYMENT_METHOD_VALUES);
   });
-  const [currentPage, setCurrentPage] = useState(() => parsePositiveInteger(searchParams.get('page'), 1));
+  const [currentPage, setCurrentPage] = useState(() =>
+    parsePositiveInteger(searchParams.get('page'), 1)
+  );
   const hasActiveFilters = Boolean(search || paymentStatus || paymentMethod);
 
   const loadDonations = useCallback(() => {
-    dispatch(
+    return dispatch(
       fetchDonations({
         filters: {
           search: search || undefined,
@@ -146,6 +172,102 @@ const DonationList: React.FC = () => {
     setCurrentPage(1);
   };
 
+  const downloadReceipt = async (receiptId: string, fallbackFilename: string) => {
+    const file = await dispatch(
+      downloadTaxReceiptPdf({
+        receiptId,
+        fallbackFilename,
+      })
+    ).unwrap();
+
+    triggerFileDownload(file);
+  };
+
+  const handleReceiptResult = async (
+    result: IssueTaxReceiptResult,
+    deliveryMode?: TaxReceiptDeliveryMode
+  ) => {
+    if (deliveryMode !== 'email') {
+      await downloadReceipt(result.receipt.id, `${result.receipt.receipt_number}.pdf`);
+    }
+
+    showSuccess(
+      result.receipt.kind === 'annual_summary_reprint'
+        ? 'Donation summary generated.'
+        : 'Tax receipt processed successfully.'
+    );
+
+    if (result.delivery.warning) {
+      showError(result.delivery.warning);
+    } else if (result.delivery.requested && result.delivery.sent) {
+      showSuccess(`Receipt emailed to ${result.delivery.recipientEmail || 'the payee on file'}.`);
+    }
+  };
+
+  const handleModalSubmit = async (
+    payload:
+      | { mode: 'single'; request: IssueTaxReceiptRequest }
+      | { mode: 'annual'; request: IssueAnnualTaxReceiptRequest }
+  ) => {
+    if (!receiptModalDonation) {
+      return;
+    }
+
+    setIsReceiptSubmitting(true);
+    try {
+      const result =
+        payload.mode === 'single'
+          ? await dispatch(
+              issueTaxReceipt({
+                donationId: receiptModalDonation.donation_id,
+                request: payload.request,
+              })
+            ).unwrap()
+          : await dispatch(issueAnnualTaxReceipt(payload.request)).unwrap();
+
+      await handleReceiptResult(result, payload.request.deliveryMode);
+      await loadDonations().unwrap();
+      setReceiptModalDonation(null);
+      setReceiptModalMode(null);
+    } catch (submitError) {
+      showError(
+        submitError instanceof Error ? submitError.message : 'Failed to process tax receipt'
+      );
+    } finally {
+      setIsReceiptSubmitting(false);
+    }
+  };
+
+  const openReceiptModal = (
+    donation: Donation,
+    mode: 'single' | 'annual',
+    deliveryMode: TaxReceiptDeliveryMode = 'download'
+  ) => {
+    setReceiptModalDonation(donation);
+    setReceiptModalMode(mode);
+    setDefaultDeliveryMode(deliveryMode);
+  };
+
+  const handleDownloadExistingReceipt = async (donation: Donation) => {
+    if (!donation.official_tax_receipt_id) {
+      return;
+    }
+
+    try {
+      await downloadReceipt(
+        donation.official_tax_receipt_id,
+        `${donation.official_tax_receipt_number || 'tax-receipt'}.pdf`
+      );
+      showSuccess('Receipt download started.');
+    } catch (downloadError) {
+      showError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : 'Failed to download tax receipt'
+      );
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
       pending: 'bg-app-accent-soft text-app-accent-text',
@@ -159,254 +281,387 @@ const DonationList: React.FC = () => {
 
   const getPaymentMethodLabel = (method: string | null) => {
     if (!method) return 'N/A';
-    return method.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    return method.replace('_', ' ').replace(/\b\w/g, (value) => value.toUpperCase());
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
-      <PageHeader
-        title="Donations"
-        description="Track donor contributions, payment status, and receipt history."
-        actions={
-          <PrimaryButton onClick={() => navigate('/donations/new')}>Record Donation</PrimaryButton>
-        }
-      />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <StatCard label="Total Donations" value={formatCurrency(totalAmount)} />
-        <StatCard label="Average Donation" value={formatCurrency(averageAmount)} />
-        <StatCard label="Total Count" value={pagination.total} />
-      </div>
-
-      {/* Filters */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold uppercase text-app-text-muted">Quick filters:</span>
-        <button
-          type="button"
-          onClick={() => applyPreset('completed')}
-          className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
-        >
-          Completed
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset('pending')}
-          className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
-        >
-          Pending
-        </button>
-        <button
-          type="button"
-          onClick={() => applyPreset('card')}
-          className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
-        >
-          Credit Card
-        </button>
-      </div>
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <input
-          type="text"
-          placeholder="Search donations..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="px-4 py-2 border rounded-md"
-          aria-label="Search donations"
-        />
-
-        <select
-          value={paymentStatus}
-          onChange={(e) => {
-            setPaymentStatus(e.target.value as PaymentStatus | '');
-            setCurrentPage(1);
-          }}
-          className="px-4 py-2 border rounded-md"
-          aria-label="Filter by payment status"
-        >
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
-          <option value="failed">Failed</option>
-          <option value="refunded">Refunded</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-
-        <select
-          value={paymentMethod}
-          onChange={(e) => {
-            setPaymentMethod(e.target.value as PaymentMethod | '');
-            setCurrentPage(1);
-          }}
-          className="px-4 py-2 border rounded-md"
-          aria-label="Filter by payment method"
-        >
-          <option value="">All Payment Methods</option>
-          <option value="cash">Cash</option>
-          <option value="check">Check</option>
-          <option value="credit_card">Credit Card</option>
-          <option value="debit_card">Debit Card</option>
-          <option value="bank_transfer">Bank Transfer</option>
-          <option value="paypal">PayPal</option>
-          <option value="stock">Stock</option>
-          <option value="in_kind">In-Kind</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      {hasActiveFilters && (
-        <div className="mb-6 flex flex-wrap gap-2">
-          {search && <button onClick={() => { setSearch(''); setCurrentPage(1); }} className="px-2 py-1 text-xs border rounded-md">Search: {search} ×</button>}
-          {paymentStatus && <button onClick={() => { setPaymentStatus(''); setCurrentPage(1); }} className="px-2 py-1 text-xs border rounded-md">Status: {paymentStatus} ×</button>}
-          {paymentMethod && <button onClick={() => { setPaymentMethod(''); setCurrentPage(1); }} className="px-2 py-1 text-xs border rounded-md">Type: {paymentMethod} ×</button>}
-          <button onClick={clearFilters} className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-surface-muted">
-            Clear all
-          </button>
-        </div>
-      )}
-
-      {error && <ErrorState message={error} />}
-
-      {loading ? (
-        <LoadingState label="Loading donations..." />
-      ) : donations.length === 0 ? (
-        <EmptyState
-          title="No donations match your current filters."
-          description="Adjust filters or add a new donation record."
-          action={
-            <div className="flex flex-wrap gap-2">
-              {hasActiveFilters && <SecondaryButton onClick={clearFilters}>Clear Filters</SecondaryButton>}
-              <PrimaryButton onClick={() => navigate('/donations/new')}>Record Donation</PrimaryButton>
-            </div>
+    <>
+      <div className="space-y-6 p-4 sm:p-6">
+        <PageHeader
+          title="Donations"
+          description="Track donor contributions, payment status, and official receipt history."
+          actions={
+            <PrimaryButton onClick={() => navigate('/donations/new')}>Record Donation</PrimaryButton>
           }
         />
-      ) : (
-        <>
-          <div className="bg-app-surface shadow-md rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-app-border">
-              <thead className="bg-app-surface-muted">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
-                    Donation #
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
-                    Donor
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
-                    Payment
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
-                    Receipt
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-app-surface divide-y divide-app-border">
-                {donations.map((donation) => (
-                  <tr key={donation.donation_id} className="hover:bg-app-surface-muted">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-app-text">
-                      {donation.donation_number}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-app-text">
-                        {donation.account_name || donation.contact_name || 'Anonymous'}
-                      </div>
-                      {donation.campaign_name && (
-                        <div className="text-xs text-app-text-muted">{donation.campaign_name}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-app-text">
-                        {formatCurrency(donation.amount, donation.currency)}
-                      </div>
-                      {donation.is_recurring && (
-                        <div className="text-xs text-app-accent">
-                          Recurring ({donation.recurring_frequency})
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-app-text">
-                      {formatDate(donation.donation_date)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-app-text">
-                      {getPaymentMethodLabel(donation.payment_method)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(donation.payment_status)}`}
-                      >
-                        {donation.payment_status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {donation.receipt_sent ? (
-                        <span className="text-app-accent">✓ Sent</span>
-                      ) : (
-                        <span className="text-app-text-subtle">Not Sent</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => navigate(`/donations/${donation.donation_id}`)}
-                        className="text-app-accent hover:text-app-accent-text mr-4"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => navigate(`/donations/${donation.donation_id}/edit`)}
-                        className="text-app-accent hover:text-app-accent-text"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          </div>
 
-          {/* Pagination */}
-          {pagination.total_pages > 1 && (
-            <div className="mt-6 flex justify-between items-center">
-              <div className="text-sm text-app-text-muted">
-                Showing page {pagination.page} of {pagination.total_pages} ({pagination.total} total
-                donations)
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <StatCard label="Total Donations" value={formatCurrency(totalAmount)} />
+          <StatCard label="Average Donation" value={formatCurrency(averageAmount)} />
+          <StatCard label="Total Count" value={pagination.total} />
+        </div>
+
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase text-app-text-muted">
+            Quick filters:
+          </span>
+          <button
+            type="button"
+            onClick={() => applyPreset('completed')}
+            className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
+          >
+            Completed
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('pending')}
+            className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
+          >
+            Pending
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('card')}
+            className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
+          >
+            Credit Card
+          </button>
+        </div>
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input
+            type="text"
+            placeholder="Search donations..."
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-4 py-2 border rounded-md"
+            aria-label="Search donations"
+          />
+
+          <select
+            value={paymentStatus}
+            onChange={(event) => {
+              setPaymentStatus(event.target.value as PaymentStatus | '');
+              setCurrentPage(1);
+            }}
+            className="px-4 py-2 border rounded-md"
+            aria-label="Filter by payment status"
+          >
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+            <option value="refunded">Refunded</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+
+          <select
+            value={paymentMethod}
+            onChange={(event) => {
+              setPaymentMethod(event.target.value as PaymentMethod | '');
+              setCurrentPage(1);
+            }}
+            className="px-4 py-2 border rounded-md"
+            aria-label="Filter by payment method"
+          >
+            <option value="">All Payment Methods</option>
+            <option value="cash">Cash</option>
+            <option value="check">Check</option>
+            <option value="credit_card">Credit Card</option>
+            <option value="debit_card">Debit Card</option>
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="paypal">PayPal</option>
+            <option value="stock">Stock</option>
+            <option value="in_kind">In-Kind</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        {hasActiveFilters && (
+          <div className="mb-6 flex flex-wrap gap-2">
+            {search && (
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setCurrentPage(1);
+                }}
+                className="px-2 py-1 text-xs border rounded-md"
+              >
+                Search: {search} ×
+              </button>
+            )}
+            {paymentStatus && (
+              <button
+                onClick={() => {
+                  setPaymentStatus('');
+                  setCurrentPage(1);
+                }}
+                className="px-2 py-1 text-xs border rounded-md"
+              >
+                Status: {paymentStatus} ×
+              </button>
+            )}
+            {paymentMethod && (
+              <button
+                onClick={() => {
+                  setPaymentMethod('');
+                  setCurrentPage(1);
+                }}
+                className="px-2 py-1 text-xs border rounded-md"
+              >
+                Type: {paymentMethod} ×
+              </button>
+            )}
+            <button
+              onClick={clearFilters}
+              className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-surface-muted"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+
+        {error && <ErrorState message={error} />}
+
+        {loading ? (
+          <LoadingState label="Loading donations..." />
+        ) : donations.length === 0 ? (
+          <EmptyState
+            title="No donations match your current filters."
+            description="Adjust filters or add a new donation record."
+            action={
+              <div className="flex flex-wrap gap-2">
+                {hasActiveFilters && (
+                  <SecondaryButton onClick={clearFilters}>Clear Filters</SecondaryButton>
+                )}
+                <PrimaryButton onClick={() => navigate('/donations/new')}>
+                  Record Donation
+                </PrimaryButton>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border border-app-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(pagination.total_pages, p + 1))}
-                  disabled={currentPage === pagination.total_pages}
-                  className="px-4 py-2 border border-app-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
-                >
-                  Next
-                </button>
+            }
+          />
+        ) : (
+          <>
+            <div className="bg-app-surface shadow-md rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-app-border">
+                  <thead className="bg-app-surface-muted">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
+                        Donation #
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
+                        Donor
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
+                        Payment
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
+                        Receipt
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-app-text-muted uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-app-surface divide-y divide-app-border">
+                    {donations.map((donation) => {
+                      const singleReceiptDisabledReason =
+                        getSingleReceiptDisabledReason(donation);
+                      const annualReceiptDisabledReason =
+                        getAnnualReceiptDisabledReason(donation);
+
+                      return (
+                        <tr
+                          key={donation.donation_id}
+                          className="hover:bg-app-surface-muted"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-app-text">
+                            {donation.donation_number}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-app-text">
+                              {donation.account_name || donation.contact_name || 'Anonymous'}
+                            </div>
+                            {donation.campaign_name && (
+                              <div className="text-xs text-app-text-muted">
+                                {donation.campaign_name}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-semibold text-app-text">
+                              {formatCurrency(donation.amount, donation.currency)}
+                            </div>
+                            {donation.is_recurring && (
+                              <div className="text-xs text-app-accent">
+                                Recurring ({donation.recurring_frequency})
+                              </div>
+                            )}
+                            {donation.recurring_plan_id ? (
+                              <div className="text-xs text-app-text-muted">
+                                Plan status:{' '}
+                                {donation.recurring_plan_status?.replace(/_/g, ' ') || 'linked'}
+                              </div>
+                            ) : null}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-app-text">
+                            {formatDate(donation.donation_date)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-app-text">
+                            {getPaymentMethodLabel(donation.payment_method)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(
+                                donation.payment_status
+                              )}`}
+                            >
+                              {donation.payment_status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            {donation.official_tax_receipt_number ? (
+                              <div className="space-y-1">
+                                <div className="font-semibold text-app-text">
+                                  {donation.official_tax_receipt_number}
+                                </div>
+                                {donation.official_tax_receipt_issued_at ? (
+                                  <div className="text-xs text-app-text-muted">
+                                    {formatDate(donation.official_tax_receipt_issued_at)}
+                                  </div>
+                                ) : null}
+                              </div>
+                            ) : donation.receipt_sent ? (
+                              <span className="text-app-accent">Legacy sent</span>
+                            ) : (
+                              <span className="text-app-text-subtle">Not issued</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium">
+                            <div className="flex flex-wrap gap-3">
+                              <button
+                                onClick={() => navigate(`/donations/${donation.donation_id}`)}
+                                className="text-app-accent hover:text-app-accent-text"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={() =>
+                                  navigate(`/donations/${donation.donation_id}/edit`)
+                                }
+                                className="text-app-accent hover:text-app-accent-text"
+                              >
+                                Edit
+                              </button>
+                              {donation.official_tax_receipt_id ? (
+                                <button
+                                  onClick={() => void handleDownloadExistingReceipt(donation)}
+                                  className="text-app-accent hover:text-app-accent-text"
+                                >
+                                  Download Receipt
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    openReceiptModal(donation, 'single', 'download')
+                                  }
+                                  disabled={Boolean(singleReceiptDisabledReason)}
+                                  title={
+                                    singleReceiptDisabledReason ||
+                                    'Issue official tax receipt'
+                                  }
+                                  className="text-app-accent hover:text-app-accent-text disabled:cursor-not-allowed disabled:text-app-text-muted"
+                                >
+                                  Issue Receipt
+                                </button>
+                              )}
+                              <button
+                                onClick={() => openReceiptModal(donation, 'annual', 'download')}
+                                disabled={Boolean(annualReceiptDisabledReason)}
+                                title={
+                                  annualReceiptDisabledReason ||
+                                  'Generate annual receipt for this donor'
+                                }
+                                className="text-app-accent hover:text-app-accent-text disabled:cursor-not-allowed disabled:text-app-text-muted"
+                              >
+                                Annual Receipt
+                              </button>
+                              {donation.recurring_plan_id ? (
+                                <button
+                                  onClick={() =>
+                                    navigate(
+                                      `/recurring-donations/${donation.recurring_plan_id}`
+                                    )
+                                  }
+                                  className="text-app-accent hover:text-app-accent-text"
+                                >
+                                  View Plan
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
-          )}
-        </>
-      )}
-    </div>
+
+            {pagination.total_pages > 1 && (
+              <div className="mt-6 flex justify-between items-center">
+                <div className="text-sm text-app-text-muted">
+                  Showing page {pagination.page} of {pagination.total_pages} ({pagination.total}{' '}
+                  total donations)
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 border border-app-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((page) => Math.min(pagination.total_pages, page + 1))
+                    }
+                    disabled={currentPage === pagination.total_pages}
+                    className="px-4 py-2 border border-app-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <TaxReceiptModal
+        isOpen={receiptModalMode !== null}
+        mode={receiptModalMode ?? 'single'}
+        donation={receiptModalDonation}
+        onClose={() => {
+          setReceiptModalDonation(null);
+          setReceiptModalMode(null);
+        }}
+        onSubmit={handleModalSubmit}
+        isSubmitting={isReceiptSubmitting}
+        defaultDeliveryMode={defaultDeliveryMode}
+      />
+    </>
   );
 };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { teamChatMessagesQuerySchema } from '@validations/teamChat';
+import { teamChatMessageCreateSchema, teamChatMessagesQuerySchema } from '@validations/teamChat';
 
 describe('teamChatMessagesQuerySchema', () => {
   it('accepts initial history query without a cursor', () => {
@@ -29,5 +29,14 @@ describe('teamChatMessagesQuerySchema', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('accepts optional client_message_id on message creation', () => {
+    const result = teamChatMessageCreateSchema.safeParse({
+      body: 'Hello team',
+      client_message_id: '33333333-3333-4333-8333-333333333333',
+    });
+
+    expect(result.success).toBe(true);
   });
 });

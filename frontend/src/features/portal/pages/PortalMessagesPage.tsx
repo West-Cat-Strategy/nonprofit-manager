@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createClientMessageId, shouldSubmitComposer } from '../../messaging/composer';
+import { usePersistedMessageDraft } from '../../messaging/drafts';
+import { pickPreferredMessageVersion } from '../../messaging/messageMerge';
 import portalApi from '../../../services/portalApi';
 import { unwrapApiData } from '../../../services/apiEnvelope';
 import { useToast } from '../../../contexts/useToast';
@@ -46,7 +49,11 @@ interface MessageEntry {
   sender_type: 'portal' | 'staff' | 'system';
   message_text: string;
   sender_display_name: string | null;
+  client_message_id?: string | null;
   created_at: string;
+  send_state?: 'sending' | 'failed' | 'sent';
+  send_error?: string | null;
+  optimistic?: boolean;
 }
 
 interface ThreadDetailResponse {
@@ -56,6 +63,30 @@ interface ThreadDetailResponse {
 
 type ThreadStatusFilter = 'all' | 'open' | 'closed' | 'archived';
 type ThreadCaseFilter = 'all' | 'selected';
+const TEMP_PREFIX = 'temp-portal-client-message-';
+
+const mergeThreadMessages = (messages: MessageEntry[]): MessageEntry[] => {
+  const byKey = new Map<string, MessageEntry>();
+
+  for (const message of messages) {
+    const key =
+      message.id.startsWith(TEMP_PREFIX) && message.client_message_id
+        ? `client:${message.client_message_id}`
+        : `id:${message.id}`;
+    const existing = byKey.get(key);
+
+    if (!existing) {
+      byKey.set(key, message);
+      continue;
+    }
+
+    byKey.set(key, pickPreferredMessageVersion(existing, message));
+  }
+
+  return Array.from(byKey.values()).sort(
+    (left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
+  );
+};
 
 const formatTimestamp = (value: string): string => {
   const date = new Date(value);
@@ -112,6 +143,24 @@ export default function PortalMessages() {
     setSelectedCaseId,
     clearSelectedCaseId,
   } = usePersistentPortalCaseContext();
+  const {
+    draft: newMessageDraft,
+    setDraft: setNewMessageDraft,
+    clearDraft: clearNewMessageDraft,
+  } = usePersistedMessageDraft('portal-client', `new-thread:${selectedCaseId || 'none'}`);
+  const {
+    draft: replyMessageDraft,
+    setDraft: setReplyMessageDraft,
+    clearDraft: clearReplyMessageDraft,
+  } = usePersistedMessageDraft('portal-client', activeThreadId ? `reply:${activeThreadId}` : null);
+
+  useEffect(() => {
+    setNewMessage(newMessageDraft);
+  }, [newMessageDraft]);
+
+  useEffect(() => {
+    setReplyMessage(replyMessageDraft);
+  }, [replyMessageDraft]);
 
   const selectedCase = useMemo(
     () => context?.cases.find((entry) => entry.case_id === selectedCaseId) || null,
@@ -120,7 +169,17 @@ export default function PortalMessages() {
 
   const loadThreadDetail = useCallback(async (threadId: string, markRead = true) => {
     const response = await portalApi.get<ThreadDetailResponse>(`/v2/portal/messages/threads/${threadId}`);
-    setActiveThread(unwrapApiData(response.data));
+    setActiveThread((current) => {
+      const next = unwrapApiData(response.data);
+      const failedMessages =
+        current?.thread.id === threadId
+          ? current.messages.filter((message) => message.send_state === 'failed')
+          : [];
+      return {
+        ...next,
+        messages: mergeThreadMessages([...failedMessages, ...next.messages]),
+      };
+    });
     setActiveThreadId(threadId);
 
     if (markRead) {
@@ -142,11 +201,40 @@ export default function PortalMessages() {
     search: threadSearch,
     selectedCaseId,
     caseFilter: threadCaseFilter,
-    onRealtimeEvent: () => {
-      if (!activeThreadId) {
+    onRealtimeEvent: (_eventName, payload) => {
+      if (!activeThreadId || payload.entity_id !== activeThreadId || !payload.thread) {
         return;
       }
-      void loadThreadDetail(activeThreadId, false);
+
+      setActiveThread((current) =>
+        current
+          ? {
+              thread: {
+                ...current.thread,
+                subject: payload.thread.subject,
+                status: payload.thread.status as ThreadSummary['status'],
+                case_number: payload.thread.case_number,
+                case_title: payload.thread.case_title,
+                pointperson_first_name: payload.thread.pointperson_first_name,
+                pointperson_last_name: payload.thread.pointperson_last_name,
+                unread_count: payload.thread.portal_unread_count,
+                last_message_at: payload.thread.last_message_at,
+                last_message_preview: payload.thread.last_message_preview,
+              },
+              messages: payload.message
+                ? mergeThreadMessages([
+                    ...current.messages,
+                    {
+                      ...payload.message,
+                      send_state: 'sent',
+                      send_error: null,
+                      optimistic: false,
+                    },
+                  ])
+                : current.messages,
+            }
+          : current
+      );
     },
   });
 
@@ -231,6 +319,7 @@ export default function PortalMessages() {
       const created = unwrapApiData(response.data);
       setNewSubject('');
       setNewMessage('');
+      clearNewMessageDraft();
       setActiveThread(created);
       setActiveThreadId(created.thread.id);
       showSuccess('Message sent to your pointperson.');
@@ -253,27 +342,104 @@ export default function PortalMessages() {
     }
   };
 
+  const submitReply = useCallback(
+    async (input: {
+      body: string;
+      clientMessageId?: string;
+      preserveDraft?: boolean;
+    } = { body: replyMessage }): Promise<void> => {
+      if (!activeThreadId || !input.body.trim()) {
+        return;
+      }
+
+      const clientMessageId = input.clientMessageId || createClientMessageId();
+      const optimisticMessage: MessageEntry = {
+        id: `${TEMP_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+        sender_type: 'portal',
+        message_text: input.body.trim(),
+        sender_display_name: 'You',
+        client_message_id: clientMessageId,
+        created_at: new Date().toISOString(),
+        send_state: 'sending',
+        send_error: null,
+        optimistic: true,
+      };
+
+      setReplying(true);
+      try {
+        setActiveThread((current) =>
+          current
+            ? {
+                ...current,
+                messages: mergeThreadMessages([...current.messages, optimisticMessage]),
+              }
+            : current
+        );
+
+        const response = await portalApi.post<{ message: MessageEntry }>(
+          `/v2/portal/messages/threads/${activeThreadId}/messages`,
+          {
+            message: input.body.trim(),
+            client_message_id: clientMessageId,
+          }
+        );
+        const createdMessage = unwrapApiData(response.data).message;
+        setReplyMessage('');
+        if (!input.preserveDraft) {
+          clearReplyMessageDraft();
+        }
+        setActiveThread((current) =>
+          current
+            ? {
+                ...current,
+                messages: mergeThreadMessages(
+                  current.messages.map((message) =>
+                    message.client_message_id === clientMessageId
+                      ? {
+                          ...createdMessage,
+                          send_state: 'sent',
+                          send_error: null,
+                          optimistic: false,
+                        }
+                      : message
+                  )
+                ),
+              }
+            : current
+        );
+        await refreshThreads();
+      } catch (replyError) {
+        setActiveThread((current) =>
+          current
+            ? {
+                ...current,
+                messages: mergeThreadMessages(
+                  current.messages.map((message) =>
+                    message.client_message_id === clientMessageId
+                      ? {
+                          ...message,
+                          send_state: 'failed',
+                          send_error: replyError instanceof Error ? replyError.message : 'Could not send reply.',
+                          optimistic: true,
+                        }
+                      : message
+                  )
+                ),
+              }
+            : current
+        );
+        console.error('Failed to reply in thread', replyError);
+        showError('Could not send reply.');
+      } finally {
+        setReplying(false);
+      }
+    },
+    [activeThreadId, clearReplyMessageDraft, refreshThreads, replyMessage, showError]
+  );
+
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!activeThreadId || !replyMessage.trim()) {
-      return;
-    }
-
-    setReplying(true);
-    try {
-      await portalApi.post(`/v2/portal/messages/threads/${activeThreadId}/messages`, {
-        message: replyMessage.trim(),
-      });
-      setReplyMessage('');
-      await loadThreadDetail(activeThreadId, false);
-      await refreshThreads();
-    } catch (replyError) {
-      console.error('Failed to reply in thread', replyError);
-      showError('Could not send reply.');
-    } finally {
-      setReplying(false);
-    }
+    await submitReply();
   };
 
   const handleToggleThreadStatus = async () => {
@@ -363,7 +529,10 @@ export default function PortalMessages() {
                 <textarea
                   id="portal-message-body"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    setNewMessageDraft(e.target.value);
+                  }}
                   rows={4}
                   className="w-full rounded-md border border-app-input-border px-3 py-2"
                   placeholder="Type your message"
@@ -539,6 +708,26 @@ export default function PortalMessages() {
                             • {formatTimestamp(message.created_at)}
                           </div>
                           <div className="mt-1 whitespace-pre-wrap">{message.message_text}</div>
+                          {(message.send_state === 'sending' || message.send_state === 'failed') && (
+                            <div className="mt-2 text-[11px] opacity-80">
+                              {message.send_state === 'sending' ? 'Sending...' : 'Failed to send'}
+                            </div>
+                          )}
+                          {message.send_state === 'failed' && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void submitReply({
+                                  body: message.message_text,
+                                  clientMessageId: message.client_message_id || undefined,
+                                  preserveDraft: true,
+                                })
+                              }
+                              className="mt-2 rounded border border-current px-2 py-1 text-[11px] font-semibold"
+                            >
+                              Retry
+                            </button>
+                          )}
                         </div>
                       ))
                     )}
@@ -548,7 +737,16 @@ export default function PortalMessages() {
                     <textarea
                       aria-label="Reply to conversation"
                       value={replyMessage}
-                      onChange={(e) => setReplyMessage(e.target.value)}
+                      onChange={(e) => {
+                        setReplyMessage(e.target.value);
+                        setReplyMessageDraft(e.target.value);
+                      }}
+                      onKeyDown={(event) => {
+                        if (shouldSubmitComposer(event)) {
+                          event.preventDefault();
+                          void submitReply();
+                        }
+                      }}
                       rows={3}
                       placeholder={
                         activeThread.thread.status === 'open'

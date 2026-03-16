@@ -148,6 +148,10 @@ export const buildPublicFormRuntimeScript = (): string => `
           if (statusNode) {
             statusNode.textContent = result.message || 'Submitted successfully.';
           }
+          if (result.redirectUrl) {
+            window.location.assign(result.redirectUrl);
+            return;
+          }
           form.reset();
         } catch (error) {
           if (statusNode) {

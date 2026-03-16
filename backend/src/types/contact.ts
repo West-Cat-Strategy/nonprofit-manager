@@ -350,6 +350,56 @@ export interface ContactRole {
   is_system: boolean;
 }
 
+export type ContactCommunicationChannel = 'email' | 'sms';
+export type ContactCommunicationSourceType = 'appointment_reminder' | 'event_reminder';
+export type ContactCommunicationDeliveryStatus = 'sent' | 'failed' | 'skipped';
+export type ContactCommunicationTriggerType = 'manual' | 'automated';
+export type ContactCommunicationActionType =
+  | 'send_appointment_reminder'
+  | 'open_event'
+  | 'none';
+
+export interface ContactCommunicationAction {
+  type: ContactCommunicationActionType;
+  label: string;
+  appointment_id?: string | null;
+  case_id?: string | null;
+  event_id?: string | null;
+  disabled_reason?: string | null;
+}
+
+export interface ContactCommunication {
+  id: string;
+  channel: ContactCommunicationChannel;
+  source_type: ContactCommunicationSourceType;
+  delivery_status: ContactCommunicationDeliveryStatus;
+  recipient: string;
+  error_message: string | null;
+  message_preview: string | null;
+  trigger_type: ContactCommunicationTriggerType;
+  sent_at: Date;
+  appointment_id: string | null;
+  case_id: string | null;
+  event_id: string | null;
+  registration_id: string | null;
+  source_label: string;
+  source_subtitle: string | null;
+  action: ContactCommunicationAction;
+}
+
+export interface ContactCommunicationFilters {
+  channel?: ContactCommunicationChannel;
+  source_type?: ContactCommunicationSourceType;
+  delivery_status?: ContactCommunicationDeliveryStatus;
+  limit?: number;
+}
+
+export interface ContactCommunicationsResult {
+  items: ContactCommunication[];
+  total: number;
+  filters: ContactCommunicationFilters;
+}
+
 export const CONTACT_ROLE_FILTER_VALUES = [
   'client',
   'donor',

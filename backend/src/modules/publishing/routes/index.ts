@@ -191,6 +191,13 @@ const updateSiteStripeSettingsSchema = z
   })
   .strict();
 
+const updateSiteFacebookSettingsSchema = z
+  .object({
+    trackedPageId: z.union([uuidSchema, z.null()]).optional(),
+    syncEnabled: optionalStrictBooleanSchema,
+  })
+  .strict();
+
 const websiteEntryStatusSchema = z.enum(['draft', 'published', 'archived']);
 const websiteEntrySourceSchema = z.enum(['native', 'mailchimp']);
 const websiteEntryKindSchema = z.enum(['newsletter']);
@@ -325,6 +332,14 @@ router.put(
   validateParams(siteIdParamsSchema),
   validateBody(updateSiteStripeSettingsSchema),
   publishingController.updateSiteStripeIntegration
+);
+
+router.put(
+  '/:siteId/integrations/facebook',
+  ...withOrganizationContext,
+  validateParams(siteIdParamsSchema),
+  validateBody(updateSiteFacebookSettingsSchema),
+  publishingController.updateSiteFacebookIntegration
 );
 
 router.get(

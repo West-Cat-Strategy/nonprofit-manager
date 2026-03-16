@@ -11,12 +11,19 @@ import {
   PaymentStatus,
   UpdateDonationDTO,
 } from '@app-types/donation';
+import type {
+  IssueAnnualTaxReceiptRequest,
+  IssueTaxReceiptRequest,
+} from '@app-types/taxReceipt';
 import { AuthRequest } from '@middleware/auth';
 import { extractPagination, getString, getNumber, getBoolean } from '@utils/queryHelpers';
 import { notFound } from '@utils/responseHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import { sendError } from '@modules/shared/http/envelope';
+import { requireActiveOrganizationSafe } from '@services/authGuardService';
 
 const donationService = services.donation;
+const taxReceiptService = services.taxReceipt;
 
 export class DonationController {
   /**
@@ -149,6 +156,99 @@ export class DonationController {
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const summary = await donationService.getDonationSummary(filters, scope);
       res.json(summary);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async issueTaxReceipt(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const orgResult = await requireActiveOrganizationSafe(req);
+      if (!orgResult.ok) {
+        sendError(
+          res,
+          orgResult.error.code.toUpperCase(),
+          orgResult.error.message,
+          orgResult.error.statusCode,
+          undefined,
+          req.correlationId
+        );
+        return;
+      }
+
+      const result = await taxReceiptService.issueSingleReceipt({
+        organizationId: orgResult.data.organizationId,
+        userId: req.user!.id,
+        donationId: req.params.id,
+        request: req.body as IssueTaxReceiptRequest,
+        scope: req.dataScope?.filter as DataScopeFilter | undefined,
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async issueAnnualTaxReceipt(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const orgResult = await requireActiveOrganizationSafe(req);
+      if (!orgResult.ok) {
+        sendError(
+          res,
+          orgResult.error.code.toUpperCase(),
+          orgResult.error.message,
+          orgResult.error.statusCode,
+          undefined,
+          req.correlationId
+        );
+        return;
+      }
+
+      const result = await taxReceiptService.issueAnnualReceipt({
+        organizationId: orgResult.data.organizationId,
+        userId: req.user!.id,
+        request: req.body as IssueAnnualTaxReceiptRequest,
+        scope: req.dataScope?.filter as DataScopeFilter | undefined,
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async downloadTaxReceiptPdf(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const orgResult = await requireActiveOrganizationSafe(req);
+      if (!orgResult.ok) {
+        sendError(
+          res,
+          orgResult.error.code.toUpperCase(),
+          orgResult.error.message,
+          orgResult.error.statusCode,
+          undefined,
+          req.correlationId
+        );
+        return;
+      }
+
+      const result = await taxReceiptService.downloadReceiptPdf({
+        organizationId: orgResult.data.organizationId,
+        receiptId: req.params.receiptId,
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.send(result.pdfContent);
     } catch (error) {
       next(error);
     }

@@ -47,6 +47,18 @@ interface UsePortalMessageThreadsResult {
 const PAGE_SIZE = 20;
 const POLL_INTERVAL_MS = 30_000;
 
+const mergeThread = (
+  threads: PortalThreadSummary[],
+  thread: PortalThreadSummary
+): PortalThreadSummary[] => {
+  const next = [thread, ...threads.filter((entry) => entry.id !== thread.id)];
+  next.sort(
+    (left, right) =>
+      new Date(right.last_message_at).getTime() - new Date(left.last_message_at).getTime()
+  );
+  return next;
+};
+
 export function usePortalMessageThreads({
   statusFilter,
   search,
@@ -153,7 +165,41 @@ export function usePortalMessageThreads({
     channels: ['messages'],
     onEvent: (eventName, payload) => {
       onRealtimeEvent?.(eventName, payload);
-      void fetchThreads({ append: false, quiet: true, offsetValue: 0 });
+
+      if (search.trim()) {
+        void fetchThreads({ append: false, quiet: true, offsetValue: 0 });
+        return;
+      }
+
+      if (!payload.thread) {
+        void fetchThreads({ append: false, quiet: true, offsetValue: 0 });
+        return;
+      }
+
+      if (caseFilter === 'selected' && selectedCaseId && payload.case_id !== selectedCaseId) {
+        return;
+      }
+
+      const thread: PortalThreadSummary = {
+        id: payload.thread.id,
+        subject: payload.thread.subject,
+        status: payload.thread.status as PortalThreadSummary['status'],
+        case_number: payload.thread.case_number,
+        case_title: payload.thread.case_title,
+        pointperson_first_name: payload.thread.pointperson_first_name,
+        pointperson_last_name: payload.thread.pointperson_last_name,
+        unread_count: payload.thread.portal_unread_count,
+        last_message_at: payload.thread.last_message_at,
+        last_message_preview: payload.thread.last_message_preview,
+      };
+
+      setThreads((current) => {
+        if (statusFilter !== 'all' && thread.status !== statusFilter) {
+          return current.filter((entry) => entry.id !== thread.id);
+        }
+
+        return mergeThread(current, thread);
+      });
     },
   });
 

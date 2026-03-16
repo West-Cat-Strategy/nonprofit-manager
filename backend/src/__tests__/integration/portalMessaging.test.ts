@@ -233,6 +233,62 @@ describe('Portal Messaging Integration', () => {
     expect(thread.messages.some((entry) => entry.sender_type === 'staff')).toBe(true);
   });
 
+  it('deduplicates repeated staff replies that reuse the same client_message_id', async () => {
+    const portalToken = buildPortalToken();
+    const adminToken = buildAdminToken();
+    const clientMessageId = '11111111-1111-4111-8111-111111111111';
+
+    const createResponse = await request(app)
+      .post('/api/v2/portal/messages/threads')
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .send({
+        case_id: assignedCaseId,
+        subject: 'Retry-safe reply thread',
+        message: 'Opening the thread',
+      })
+      .expect(201);
+
+    const threadId = unwrap<{ thread: { id: string } }>(createResponse.body).thread.id;
+
+    const firstReply = await request(app)
+      .post(`/api/v2/portal/admin/conversations/${threadId}/messages`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        message: 'This should only be created once.',
+        client_message_id: clientMessageId,
+      })
+      .expect(201);
+
+    const secondReply = await request(app)
+      .post(`/api/v2/portal/admin/conversations/${threadId}/messages`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        message: 'This should only be created once.',
+        client_message_id: clientMessageId,
+      })
+      .expect(201);
+
+    const firstMessage = unwrap<{ message: { id: string } }>(firstReply.body).message;
+    const secondMessage = unwrap<{ message: { id: string } }>(secondReply.body).message;
+    expect(secondMessage.id).toBe(firstMessage.id);
+
+    const threadResponse = await request(app)
+      .get(`/api/v2/portal/messages/threads/${threadId}`)
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .expect(200);
+
+    const thread = unwrap<{
+      messages: Array<{ id: string; sender_type: string; client_message_id?: string | null }>;
+    }>(threadResponse.body);
+    const matchingReplies = thread.messages.filter(
+      (entry) =>
+        entry.sender_type === 'staff' && entry.client_message_id === clientMessageId
+    );
+
+    expect(matchingReplies).toHaveLength(1);
+    expect(matchingReplies[0]?.id).toBe(firstMessage.id);
+  });
+
   it('rejects thread creation for a case that has no assigned pointperson', async () => {
     const portalToken = buildPortalToken();
 

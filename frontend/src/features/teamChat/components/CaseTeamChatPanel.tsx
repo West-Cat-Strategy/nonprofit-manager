@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAppSelector } from '../../../store/hooks';
 import { BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import { useToast } from '../../../contexts/useToast';
+import { shouldSubmitComposer } from '../../messaging/composer';
+import { usePersistedMessageDraft } from '../../messaging/drafts';
 import type { TeamChatMember } from '../types';
 import { useTeamChatCaseChat } from '../hooks/useTeamChatCaseChat';
 
@@ -49,16 +51,28 @@ const CaseTeamChatPanel = ({ caseId }: CaseTeamChatPanelProps) => {
     loading,
     sending,
     error,
+    streamStatus,
     refresh,
     loadOlderMessages,
     sendMessage,
+    retryMessage,
     markRead,
     addMember,
     removeMember,
   } = useTeamChatCaseChat({
     caseId,
     enabled: isTeamChatEnabled,
+    currentUserId: user?.id,
   });
+  const {
+    draft: persistedDraft,
+    setDraft: setPersistedDraft,
+    clearDraft,
+  } = usePersistedMessageDraft('case-chat', caseId);
+
+  useEffect(() => {
+    setMessageBody(persistedDraft);
+  }, [persistedDraft]);
 
   useEffect(() => {
     const latestMessage = messages[messages.length - 1];
@@ -99,6 +113,7 @@ const CaseTeamChatPanel = ({ caseId }: CaseTeamChatPanelProps) => {
         }
       );
       setMessageBody('');
+      clearDraft();
       setMentionInput('');
     } catch {
       // Hook already manages optimistic rollback and error state.
@@ -148,9 +163,10 @@ const CaseTeamChatPanel = ({ caseId }: CaseTeamChatPanelProps) => {
       <BrutalCard color="white" className="p-4 xl:col-span-2 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-black uppercase text-black">Team Chat</h3>
+            <h3 className="text-lg font-black uppercase text-black">Case Chat</h3>
             <p className="text-xs font-bold text-black/60">
-              {room?.unread_count || 0} unread · {room?.unread_mentions_count || 0} mentions
+              {room?.unread_count || 0} unread · {room?.unread_mentions_count || 0} mentions ·{' '}
+              {streamStatus === 'connected' ? 'live' : 'polling'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -191,7 +207,26 @@ const CaseTeamChatPanel = ({ caseId }: CaseTeamChatPanelProps) => {
                     <div className="text-sm font-bold text-black whitespace-pre-wrap">{message.body}</div>
                     <div className="text-[11px] font-bold text-black/50 mt-2">
                       {new Date(message.created_at).toLocaleString()}
+                      {message.send_state === 'sending' && ' · Sending'}
+                      {message.send_state === 'failed' && ' · Failed'}
                     </div>
+                    {message.send_state === 'failed' && user?.id && (
+                      <div className="mt-2">
+                        <BrutalButton
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            void retryMessage(message.id, {
+                              id: user.id,
+                              firstName: user.firstName,
+                              lastName: user.lastName,
+                            })
+                          }
+                        >
+                          Retry
+                        </BrutalButton>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -202,7 +237,16 @@ const CaseTeamChatPanel = ({ caseId }: CaseTeamChatPanelProps) => {
         <div className="space-y-2">
           <textarea
             value={messageBody}
-            onChange={(event) => setMessageBody(event.target.value)}
+            onChange={(event) => {
+              setMessageBody(event.target.value);
+              setPersistedDraft(event.target.value);
+            }}
+            onKeyDown={(event) => {
+              if (shouldSubmitComposer(event)) {
+                event.preventDefault();
+                void handleSendMessage();
+              }
+            }}
             rows={3}
             className="w-full border-2 border-black px-3 py-2 text-sm font-bold bg-app-surface text-black"
             placeholder="Write a message..."

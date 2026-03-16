@@ -123,9 +123,13 @@ export class CasesApiClient implements CasesApiClientPort {
   async replyCasePortalConversation(
     caseId: string,
     threadId: string,
-    payload: { message: string; is_internal?: boolean }
-  ): Promise<void> {
-    await api.post(`/v2/cases/${caseId}/portal/conversations/${threadId}/messages`, payload);
+    payload: { message: string; is_internal?: boolean; client_message_id?: string }
+  ): Promise<{ message: CasePortalConversation['messages'][number] }> {
+    const response = await api.post<{ message: CasePortalConversation['messages'][number] }>(
+      `/v2/cases/${caseId}/portal/conversations/${threadId}/messages`,
+      payload
+    );
+    return response.data;
   }
 
   async resolveCasePortalConversation(

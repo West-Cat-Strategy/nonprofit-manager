@@ -6,6 +6,7 @@
 import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { logger } from '@config/logger';
+import { recurringDonationService } from '@modules/recurringDonations/services/recurringDonationService';
 import { stripeService } from '@services/domains/operations';
 import { appendAuditLog } from '@services/auditService';
 import type { AuthRequest } from '@middleware/auth';
@@ -386,6 +387,29 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
 
     // Handle different event types.
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as {
+          id: string;
+          customer?: string | null;
+          subscription?: string | null;
+          metadata?: Record<string, string | undefined>;
+        };
+
+        await recurringDonationService.handleCheckoutSessionCompleted(session);
+        break;
+      }
+
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as {
+          id: string;
+          customer?: string | null;
+          metadata?: Record<string, string | undefined>;
+        };
+
+        await recurringDonationService.handleSubscriptionUpdated(subscription);
+        break;
+      }
+
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as { id: string; amount: number; metadata?: { donationId?: string } };
         logger.info('Payment succeeded', {
@@ -421,6 +445,54 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
             [paymentIntent.metadata.donationId]
           ).catch((err) => logger.error('Failed to update donation status', { err }));
         }
+        break;
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as {
+          id: string;
+          customer?: string | null;
+          metadata?: Record<string, string | undefined>;
+        };
+
+        await recurringDonationService.handleSubscriptionUpdated(subscription);
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as {
+          id: string;
+          customer?: string | null;
+          metadata?: Record<string, string | undefined>;
+        };
+
+        await recurringDonationService.handleSubscriptionDeleted(subscription);
+        break;
+      }
+
+      case 'invoice.paid': {
+        const invoice = event.data.object as {
+          id: string;
+          subscription?: string | null;
+          customer?: string | null;
+          amount_paid: number;
+          currency: string;
+          payment_intent?: string | null;
+          created: number;
+          status_transitions?: { paid_at?: number | null };
+        };
+
+        await recurringDonationService.handleInvoicePaid(invoice);
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as {
+          subscription?: string | null;
+          customer?: string | null;
+        };
+
+        await recurringDonationService.handleInvoicePaymentFailed(invoice);
         break;
       }
 

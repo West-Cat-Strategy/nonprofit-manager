@@ -1,9 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 
-// Load environment variables from local overrides first, then the shared test template copy.
-dotenv.config({ path: '.env.test.local', quiet: true });
-dotenv.config({ path: '.env.test', quiet: true });
+// Load the shared test defaults first, then let local overrides win explicitly.
+dotenv.config({ path: '.env.test', quiet: true, override: true });
+dotenv.config({ path: '.env.test.local', quiet: true, override: true });
 
 /**
  * Playwright Configuration for Nonprofit Manager E2E Tests

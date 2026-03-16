@@ -16,8 +16,8 @@ Default addresses from `playwright.config.ts`:
 
 Local overrides load in this order:
 
-1. `.env.test.local`
-2. `.env.test`
+1. `.env.test`
+2. `.env.test.local`
 
 ## Setup
 
