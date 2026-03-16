@@ -3,7 +3,7 @@
  * Displays a list of tasks with filtering and summary statistics
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTasks, deleteTask, completeTask } from '../state';
@@ -85,16 +85,21 @@ const TaskList: React.FC = () => {
     priority: current.priority || undefined,
   });
 
+  const requestFilters = useMemo(
+    () =>
+      buildRequestFilters({
+        overdue: filters.overdue,
+        page: filters.page,
+        priority: filters.priority,
+        search: debouncedSearch,
+        status: filters.status,
+      }),
+    [debouncedSearch, filters.overdue, filters.page, filters.priority, filters.status]
+  );
+
   useEffect(() => {
-    dispatch(
-      fetchTasks(
-        buildRequestFilters({
-          ...filters,
-          search: debouncedSearch,
-        })
-      )
-    );
-  }, [dispatch, debouncedSearch, filters.overdue, filters.page, filters.priority, filters.status]);
+    dispatch(fetchTasks(requestFilters));
+  }, [dispatch, requestFilters]);
 
   useEffect(() => {
     const params = new URLSearchParams();

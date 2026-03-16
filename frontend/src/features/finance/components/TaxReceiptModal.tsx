@@ -101,16 +101,17 @@ export default function TaxReceiptModal({
           : 'Issue Official Tax Receipt';
 
   const handleSubmit = async () => {
-    if (!selectedPayee && mode === 'annual') {
-      return;
-    }
-
     if (mode === 'annual') {
+      if (!selectedPayee) {
+        return;
+      }
+
+      const annualPayee = selectedPayee;
       await onSubmit({
         mode: 'annual',
         request: {
-          payeeType: selectedPayee!.type,
-          payeeId: selectedPayee!.id,
+          payeeType: annualPayee.type,
+          payeeId: annualPayee.id,
           dateFrom,
           dateTo,
           includeAlreadyReceipted,

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import {
@@ -10,60 +9,15 @@ import {
   SectionCard,
   SelectField,
 } from '../../../components/ui';
-import { reportsApiClient } from '../api/reportsApiClient';
-import type {
-  WorkflowCoverageFilters,
-  WorkflowCoverageMissingFilter,
-  WorkflowCoverageReportResult,
-} from '../types/contracts';
+import type { WorkflowCoverageFilters } from '../types/contracts';
+import useWorkflowCoverageReportController from '../hooks/useWorkflowCoverageReportController';
 
 const summaryCardClass =
   'rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-surface p-4';
 
 export default function WorkflowCoverageReportPage() {
-  const [filters, setFilters] = useState<WorkflowCoverageFilters>({});
-  const [report, setReport] = useState<WorkflowCoverageReportResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    const loadReport = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const nextReport = await reportsApiClient.fetchWorkflowCoverageReport(filters);
-        if (active) {
-          setReport(nextReport);
-        }
-      } catch (loadError) {
-        console.error('Failed to load workflow coverage report', loadError);
-        if (active) {
-          setError('Failed to load workflow coverage report');
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadReport();
-    return () => {
-      active = false;
-    };
-  }, [filters]);
-
-  const handleFilterChange = <K extends keyof WorkflowCoverageFilters>(
-    key: K,
-    value: WorkflowCoverageFilters[K]
-  ) => {
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-    }));
-  };
+  const { error, filters, handleFilterChange, handleMissingFilterChange, handleRetry, loading, report } =
+    useWorkflowCoverageReportController();
 
   return (
     <NeoBrutalistLayout pageTitle="WORKFLOW COVERAGE REPORT">
@@ -102,12 +56,7 @@ export default function WorkflowCoverageReportPage() {
             <SelectField
               label="Missing"
               value={filters.missing || ''}
-              onChange={(event) =>
-                handleFilterChange(
-                  'missing',
-                  (event.target.value || undefined) as WorkflowCoverageMissingFilter | undefined
-                )
-              }
+              onChange={(event) => handleMissingFilterChange(event.target.value)}
             >
               <option value="">All gaps</option>
               <option value="note">Notes</option>
@@ -123,7 +72,7 @@ export default function WorkflowCoverageReportPage() {
         {!loading && error && (
           <ErrorState
             message={error}
-            onRetry={() => setFilters((current) => ({ ...current }))}
+            onRetry={handleRetry}
             retryLabel="Retry"
           />
         )}

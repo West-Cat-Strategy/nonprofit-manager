@@ -5,6 +5,7 @@ import { sendSuccess } from '@modules/shared/http/envelope';
 import { serverError } from '@utils/responseHelpers';
 import { getOrganizationBrandingConfig } from '@modules/admin/lib/brandingStore';
 import { findOrganizationSettings } from '@modules/admin/lib/organizationSettingsStore';
+import { createDefaultWorkspaceModulesConfig } from '@app-types/workspaceModules';
 import {
   getCurrentAuthUserById,
   getUserPreferences,
@@ -97,6 +98,8 @@ export const getBootstrap = async (
       organizationId: organizationId ?? null,
       branding,
       preferences: pickStartupPreferences(preferences, organizationSettings?.config.timezone ?? null),
+      workspaceModules:
+        organizationSettings?.config.workspaceModules ?? createDefaultWorkspaceModulesConfig(),
     });
   } catch (error) {
     logger.error('Failed to fetch auth bootstrap payload', { error });

@@ -14,6 +14,10 @@ import {
   __resetUserPreferencesCacheForTests,
   setUserPreferencesCached,
 } from '../../services/userPreferencesService';
+import {
+  clearWorkspaceModuleAccessCache,
+  setWorkspaceModuleAccessCached,
+} from '../../services/workspaceModuleAccessService';
 
 const renderNavigationPreferencesHook = () => {
   const store = configureStore({
@@ -45,6 +49,7 @@ describe('useNavigationPreferences', () => {
     window.localStorage.clear();
     __resetNavigationPreferencesCacheForTests();
     __resetUserPreferencesCacheForTests();
+    clearWorkspaceModuleAccessCache();
     vi.mocked(api.get).mockResolvedValue({ data: { preferences: {} } });
     vi.mocked(api.patch).mockResolvedValue({ data: { success: true } });
   });
@@ -177,5 +182,21 @@ describe('useNavigationPreferences', () => {
 
     expect(vi.mocked(api.get)).not.toHaveBeenCalled();
     expect(result.current.allItems.find((item) => item.id === 'dashboard')?.enabled).toBe(true);
+  });
+
+  it('removes workspace-disabled modules from the visible navigation model', async () => {
+    setWorkspaceModuleAccessCached({
+      cases: false,
+    });
+
+    const { result } = renderNavigationPreferencesHook();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const casesItem = result.current.allItems.find((item) => item.id === 'cases');
+    expect(casesItem).toBeUndefined();
+    expect(result.current.enabledRouteIds).not.toContain('cases');
   });
 });

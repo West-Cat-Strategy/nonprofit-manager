@@ -12,7 +12,7 @@ Usage: scripts/select-checks.sh [--base <ref>] [--files "a,b,c"] [--mode <fast|s
 
 Examples:
   scripts/select-checks.sh --base HEAD~1 --mode fast
-  scripts/select-checks.sh --files "backend/src/routes/accounts.ts,frontend/src/features/events/state/index.ts" --mode strict
+  scripts/select-checks.sh --files "backend/src/modules/accounts/routes/index.ts,frontend/src/features/events/state/index.ts" --mode strict
 
 Environment:
   UI_AUDIT_ENFORCE=true  # run ui-audit in enforce mode (default: report mode)
@@ -101,7 +101,7 @@ for raw in "${CHANGED_FILES[@]}"; do
     database/migrations/*|database/initdb/*|scripts/db-migrate.sh|scripts/verify-migrations.sh|scripts/check-migration-manifest-policy.ts)
       needs_db_verify=true
       ;;
-    docs/security/*|backend/src/middleware/*rate*|backend/src/middleware/*auth*|backend/src/routes/auth.ts)
+    docs/security/*|backend/src/middleware/*rate*|backend/src/middleware/*auth*|backend/src/modules/auth/*)
       needs_security=true
       ;;
   esac

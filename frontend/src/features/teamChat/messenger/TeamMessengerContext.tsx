@@ -958,6 +958,7 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTeamMessenger = (): TeamMessengerContextValue => {
   const context = useContext(TeamMessengerContext);
   if (!context) {

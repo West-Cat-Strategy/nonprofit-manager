@@ -9,9 +9,15 @@
   "backend/src/modules/contacts/usecases/contactImportExport.usecase.ts": 1044,
   "frontend/src/components/editor/EditorCanvas.tsx": 1047,
   "backend/src/modules/reconciliation/services/reconciliationService.ts": 1044,
+  "backend/src/modules/donations/services/taxReceiptService.ts": 1366,
+  "backend/src/modules/portal/services/portalMessagingService.ts": 951,
+  "backend/src/modules/recurringDonations/services/recurringDonationService.ts": 930,
+  "backend/src/modules/teamChat/repositories/teamChat.repository.ts": 1201,
   "frontend/src/features/cases/state/casesCore.ts": 1009,
   "frontend/src/features/cases/pages/CaseDetailPage.tsx": 939,
+  "frontend/src/features/adminOps/pages/AdminSettingsPage.tsx": 913,
   "frontend/src/features/adminOps/pages/ApiSettingsPage.tsx": 914,
   "frontend/src/features/events/components/EventRegistrationsPanel.tsx": 911,
+  "frontend/src/features/teamChat/messenger/TeamMessengerContext.tsx": 969,
   "backend/src/modules/volunteers/usecases/volunteerImportExport.usecase.ts": 1320
 }

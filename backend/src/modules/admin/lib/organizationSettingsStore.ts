@@ -7,6 +7,10 @@ import {
   createDefaultOrganizationAddress,
   createDefaultOrganizationSettingsConfig,
 } from '@app-types/organizationSettings';
+import {
+  normalizeWorkspaceModulesConfig,
+  type WorkspaceModuleKey,
+} from '@app-types/workspaceModules';
 
 type SettingsRow = {
   organization_id: string;
@@ -99,6 +103,9 @@ const normalizeOrganizationSettingsConfig = (
           ? taxReceiptInput.advantageAmount
           : defaults.taxReceipt.advantageAmount,
     },
+    workspaceModules: normalizeWorkspaceModulesConfig(
+      input.workspaceModules as Partial<OrganizationSettingsConfig['workspaceModules']>
+    ),
   };
 };
 
@@ -204,6 +211,14 @@ export const findOrganizationSettings = async (
     }
     throw error;
   }
+};
+
+export const getOrganizationWorkspaceModuleEnabled = async (
+  organizationId: string,
+  moduleKey: WorkspaceModuleKey
+): Promise<boolean> => {
+  const settings = await findOrganizationSettings(organizationId);
+  return settings?.config.workspaceModules[moduleKey] ?? true;
 };
 
 export const getOrganizationSettings = async (

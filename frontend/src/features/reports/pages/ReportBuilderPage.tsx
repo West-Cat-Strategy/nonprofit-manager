@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import FieldSelector from '../../../components/FieldSelector';
 import FilterBuilder from '../../../components/FilterBuilder';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
@@ -15,24 +14,11 @@ import {
   SelectField,
   TextareaField,
 } from '../../../components/ui';
-import { reportsApiClient } from '../api/reportsApiClient';
-import { triggerFileDownload } from '../../../services/fileDownload';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import {
-  createReportExportJob,
-  fetchReportExportJob,
-  fetchReportExportJobs,
-  generateReport,
-} from '../state';
-import { createSavedReport, fetchSavedReportById } from '../../savedReports/state';
+import useReportBuilderController from '../hooks/useReportBuilderController';
 import type {
   AggregateFunction,
-  ReportAggregation,
-  ReportDefinition,
   ReportEntity,
   ReportExportJob,
-  ReportFilter,
-  ReportSort,
 } from '../../../types/report';
 
 const ENTITIES: { value: ReportEntity; label: string }[] = [
@@ -51,19 +37,6 @@ const ENTITIES: { value: ReportEntity; label: string }[] = [
   { value: 'grants', label: 'Grants' },
   { value: 'programs', label: 'Programs' },
 ];
-
-const EXPORT_POLL_INTERVAL_MS = 2000;
-
-const createExportIdempotencyKey = (entity: ReportEntity, format: 'csv' | 'xlsx'): string => {
-  const suffix =
-    globalThis.crypto?.randomUUID?.() ||
-    `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-  return `report-builder:${entity}:${format}:${suffix}`;
-};
-
-const getExportFallbackFilename = (job: ReportExportJob): string =>
-  job.artifactFileName || `${job.entity}_report_${new Date().toISOString().split('T')[0]}.${job.format}`;
-
 const statusStyles: Record<ReportExportJob['status'], string> = {
   pending: 'bg-app-surface-muted text-app-text-muted',
   processing: 'bg-app-accent-soft text-app-accent-text',
@@ -72,287 +45,54 @@ const statusStyles: Record<ReportExportJob['status'], string> = {
 };
 
 function ReportBuilder() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   const {
-    currentReport,
-    loading,
+    aggregations,
+    allOutputFields,
     availableFields,
-    exportJobs,
-    exportJobsLoading,
-    activeExportJobId,
+    chartType,
+    currentReport,
+    downloadingJobId,
+    entity,
     exportJobError,
-  } = useAppSelector((state) => state.reports);
-  const reportRows = currentReport?.data ?? [];
-  const { currentSavedReport } = useAppSelector((state) => state.savedReports);
-
-  const [entity, setEntity] = useState<ReportEntity>('contacts');
-  const [selectedFields, setSelectedFields] = useState<string[]>([]);
-  const [filters, setFilters] = useState<ReportFilter[]>([]);
-  const [sorts, setSorts] = useState<ReportSort[]>([]);
-  const [groupBy, setGroupBy] = useState<string[]>([]);
-  const [aggregations, setAggregations] = useState<ReportAggregation[]>([]);
-  const [rowLimit, setRowLimit] = useState('500');
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [savedReportName, setSavedReportName] = useState('');
-  const [savedReportDescription, setSavedReportDescription] = useState('');
-
-  const [showChart, setShowChart] = useState(false);
-  const [chartType, setChartType] = useState<'bar' | 'pie' | 'line'>('bar');
-  const [xAxisField, setXAxisField] = useState('');
-  const [yAxisField, setYAxisField] = useState('');
-  const [downloadingJobId, setDownloadingJobId] = useState<string | null>(null);
-  const [autoDownloadedJobId, setAutoDownloadedJobId] = useState<string | null>(null);
-  const [failedJobAlertId, setFailedJobAlertId] = useState<string | null>(null);
-
-  const allOutputFields = useMemo(
-    () => [
-      ...groupBy,
-      ...selectedFields,
-      ...aggregations.map((aggregation) => aggregation.alias || `${aggregation.function}_${aggregation.field}`),
-    ],
-    [groupBy, selectedFields, aggregations]
-  );
-
-  const manualExportJobs = useMemo(
-    () => exportJobs.filter((job) => job.source === 'manual'),
-    [exportJobs]
-  );
-
-  const activeExportJob = activeExportJobId
-    ? exportJobs.find((job) => job.id === activeExportJobId) || null
-    : null;
-
-  useEffect(() => {
-    const loadId = searchParams.get('load');
-    const templateId = searchParams.get('template');
-
-    if (loadId) {
-      dispatch(fetchSavedReportById(loadId));
-    } else if (templateId) {
-      void loadTemplate(templateId);
-    }
-  }, [searchParams, dispatch]);
-
-  useEffect(() => {
-    void dispatch(fetchReportExportJobs({ limit: 10 }));
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (!activeExportJobId) return;
-    if (!activeExportJob || ['pending', 'processing'].includes(activeExportJob.status)) {
-      const timer = window.setTimeout(() => {
-        void dispatch(fetchReportExportJob(activeExportJobId));
-      }, EXPORT_POLL_INTERVAL_MS);
-      return () => window.clearTimeout(timer);
-    }
-    return undefined;
-  }, [activeExportJob, activeExportJobId, dispatch]);
-
-  useEffect(() => {
-    if (
-      activeExportJob?.status === 'completed' &&
-      activeExportJob.source === 'manual' &&
-      autoDownloadedJobId !== activeExportJob.id
-    ) {
-      setAutoDownloadedJobId(activeExportJob.id);
-      void handleDownloadExportJob(activeExportJob);
-    }
-  }, [activeExportJob, autoDownloadedJobId]);
-
-  useEffect(() => {
-    if (activeExportJob?.status !== 'failed') return;
-    if (failedJobAlertId === activeExportJob.id) return;
-
-    setFailedJobAlertId(activeExportJob.id);
-    alert(activeExportJob.failureMessage || 'Report export failed');
-  }, [activeExportJob, failedJobAlertId]);
-
-  const loadTemplate = async (templateId: string) => {
-    try {
-      const definition = await reportsApiClient.instantiateTemplate(templateId);
-
-      setEntity(definition.entity);
-      setSelectedFields(definition.fields || []);
-      setFilters(definition.filters || []);
-      setSorts(definition.sort || []);
-      setGroupBy(definition.groupBy || []);
-      setAggregations(definition.aggregations || []);
-      setRowLimit(definition.limit ? String(definition.limit) : '500');
-      setSavedReportName(definition.name);
-    } catch (error) {
-      console.error('Error loading template:', error);
-      alert('Failed to load template');
-    }
-  };
-
-  useEffect(() => {
-    if (currentSavedReport) {
-      setEntity(currentSavedReport.entity);
-      setSelectedFields(currentSavedReport.report_definition.fields || []);
-      setFilters(currentSavedReport.report_definition.filters || []);
-      setSorts(currentSavedReport.report_definition.sort || []);
-      setGroupBy(currentSavedReport.report_definition.groupBy || []);
-      setAggregations(currentSavedReport.report_definition.aggregations || []);
-      setRowLimit(currentSavedReport.report_definition.limit ? String(currentSavedReport.report_definition.limit) : '500');
-      setSavedReportName(currentSavedReport.name);
-      setSavedReportDescription(currentSavedReport.description || '');
-    }
-  }, [currentSavedReport]);
-
-  const buildDefinition = (): ReportDefinition => {
-    const parsedLimit = Number.parseInt(rowLimit, 10);
-    const safeLimit =
-      Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 10000) : undefined;
-
-    return {
-      name: savedReportName || `${entity}_report_${new Date().toISOString().split('T')[0]}`,
-      entity,
-      fields: selectedFields.length > 0 ? selectedFields : undefined,
-      filters,
-      sort: sorts,
-      groupBy: groupBy.length > 0 ? groupBy : undefined,
-      aggregations: aggregations.length > 0 ? aggregations : undefined,
-      limit: safeLimit,
-    };
-  };
-
-  const handleGenerateReport = async () => {
-    if (selectedFields.length === 0 && aggregations.length === 0) {
-      alert('Please select at least one field or aggregation');
-      return;
-    }
-
-    await dispatch(generateReport(buildDefinition()));
-  };
-
-  const handleStartExport = async (format: 'csv' | 'xlsx') => {
-    if (!currentReport || currentReport.data.length === 0) {
-      alert('No report data to export');
-      return;
-    }
-
-    const action = await dispatch(
-      createReportExportJob({
-        definition: buildDefinition(),
-        format,
-        savedReportId: currentSavedReport?.id,
-        idempotencyKey: createExportIdempotencyKey(entity, format),
-      })
-    );
-
-    if (
-      typeof action === 'object' &&
-      action !== null &&
-      'type' in action &&
-      String(action.type).endsWith('/rejected')
-    ) {
-      alert('Failed to start report export');
-    }
-  };
-
-  const handleDownloadExportJob = async (job: ReportExportJob) => {
-    setDownloadingJobId(job.id);
-
-    try {
-      const file = await reportsApiClient.downloadExportJob(job.id, getExportFallbackFilename(job));
-      triggerFileDownload(file);
-    } catch (error) {
-      console.error('Report export download failed', error);
-      alert('Failed to download export artifact');
-    } finally {
-      setDownloadingJobId((current) => (current === job.id ? null : current));
-    }
-  };
-
-  const handleRetryExportJob = async (job: ReportExportJob) => {
-    const action = await dispatch(
-      createReportExportJob({
-        definition: job.definition,
-        format: job.format,
-        savedReportId: job.savedReportId || undefined,
-        scheduledReportId: job.scheduledReportId || undefined,
-        idempotencyKey: createExportIdempotencyKey(job.entity, job.format),
-      })
-    );
-
-    if (
-      typeof action === 'object' &&
-      action !== null &&
-      'type' in action &&
-      String(action.type).endsWith('/rejected')
-    ) {
-      alert('Failed to retry report export');
-    }
-  };
-
-  const handleExportPDF = async () => {
-    const { jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
-
-    const doc = new jsPDF();
-    doc.text(`${entity.toUpperCase()} REPORT`, 14, 15);
-
-    const body = currentReport?.data.map((row) => allOutputFields.map((field) => String(row[field] ?? ''))) || [];
-
-    autoTable(doc, {
-      head: [allOutputFields.map((field) => field.replace(/_/g, ' ').toUpperCase())],
-      body,
-      startY: 20,
-    });
-
-    doc.save(`${entity}_report_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
-  const handleSaveReport = async () => {
-    if (!savedReportName.trim()) {
-      alert('Please enter a report name');
-      return;
-    }
-
-    if (selectedFields.length === 0 && aggregations.length === 0) {
-      alert('Please select at least one field or aggregation before saving');
-      return;
-    }
-
-    await dispatch(
-      createSavedReport({
-        name: savedReportName,
-        description: savedReportDescription || undefined,
-        entity,
-        report_definition: {
-          name: savedReportName,
-          entity,
-          fields: selectedFields.length > 0 ? selectedFields : undefined,
-          filters,
-          sort: sorts,
-          groupBy: groupBy.length > 0 ? groupBy : undefined,
-          aggregations: aggregations.length > 0 ? aggregations : undefined,
-          limit:
-            Number.isFinite(Number.parseInt(rowLimit, 10)) && Number.parseInt(rowLimit, 10) > 0
-              ? Math.min(Number.parseInt(rowLimit, 10), 10000)
-              : undefined,
-        },
-      })
-    );
-
-    setShowSaveDialog(false);
-    setSavedReportName('');
-    setSavedReportDescription('');
-    alert('Report saved successfully!');
-  };
-
-  const handleEntityChange = (newEntity: ReportEntity) => {
-    setEntity(newEntity);
-    setSelectedFields([]);
-    setFilters([]);
-    setSorts([]);
-    setGroupBy([]);
-    setAggregations([]);
-    setRowLimit('500');
-    setShowChart(false);
-  };
+    exportJobsLoading,
+    fieldsLoading,
+    filters,
+    groupBy,
+    loading,
+    manualExportJobs,
+    reportRows,
+    rowLimit,
+    savedReportDescription,
+    savedReportName,
+    selectedFields,
+    showChart,
+    showSaveDialog,
+    sorts,
+    xAxisField,
+    yAxisField,
+    setAggregations,
+    setChartType,
+    setFilters,
+    setGroupBy,
+    setRowLimit,
+    setSavedReportDescription,
+    setSavedReportName,
+    setSelectedFields,
+    setShowChart,
+    setShowSaveDialog,
+    setSorts,
+    setXAxisField,
+    setYAxisField,
+    handleDownloadExportJob,
+    handleEntityChange,
+    handleExportPDF,
+    handleGenerateReport,
+    handleRetryExportJob,
+    handleSaveReport,
+    handleStartExport,
+    resetSaveDialog,
+  } = useReportBuilderController();
 
   return (
     <NeoBrutalistLayout pageTitle="REPORTS">
@@ -391,12 +131,17 @@ function ReportBuilder() {
         </SectionCard>
 
         <SectionCard title="2. Select Fields">
-          <FieldSelector entity={entity} selectedFields={selectedFields} onChange={setSelectedFields} />
+          <FieldSelector
+            availableFields={availableFields}
+            fieldsLoading={fieldsLoading}
+            selectedFields={selectedFields}
+            onChange={setSelectedFields}
+          />
         </SectionCard>
 
         <SectionCard title="3. Group By (Optional)">
           <div className="flex flex-wrap gap-2">
-            {(availableFields[entity] || [])
+            {availableFields
               .filter((field) => field.type === 'string' || field.type === 'date')
               .map((field) => {
                 const isActive = groupBy.includes(field.field);
@@ -426,7 +171,7 @@ function ReportBuilder() {
 
         <SectionCard title="4. Aggregations (Optional)">
           <div className="space-y-4">
-            {(availableFields[entity] || [])
+            {availableFields
               .filter((field) => ['number', 'currency'].includes(field.type))
               .map((field) => (
                 <div key={field.field} className="flex flex-wrap items-center gap-3">
@@ -470,7 +215,7 @@ function ReportBuilder() {
         </SectionCard>
 
         <SectionCard title="5. Add Filters (Optional)">
-          <FilterBuilder entity={entity} filters={filters} onChange={setFilters} />
+          <FilterBuilder availableFields={availableFields} filters={filters} onChange={setFilters} />
         </SectionCard>
 
         <SectionCard title="6. Add Sorting (Optional)">
@@ -719,11 +464,7 @@ function ReportBuilder() {
 
               <div className="mt-5 flex justify-end gap-2">
                 <SecondaryButton
-                  onClick={() => {
-                    setShowSaveDialog(false);
-                    setSavedReportName('');
-                    setSavedReportDescription('');
-                  }}
+                  onClick={resetSaveDialog}
                 >
                   Cancel
                 </SecondaryButton>

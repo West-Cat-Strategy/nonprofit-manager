@@ -4,20 +4,15 @@
  */
 
 import type { ReactNode } from 'react';
-import { Route, Navigate } from 'react-router-dom';
+import { Route } from 'react-router-dom';
 import {
   AlertHistory,
   AlertInstances,
   AlertsOverview,
   Analytics,
   CustomDashboard,
-  OutcomesReport,
-  ReportBuilder,
-  ReportTemplates,
-  ScheduledReports,
-  SavedReports,
-  WorkflowCoverageReport,
 } from './analyticsRouteComponents';
+import { createReportRoutes } from '../features/reports/routes/createReportRoutes';
 
 // Lazy load analytics pages
 
@@ -48,34 +43,7 @@ export function createAnalyticsRoutes(ProtectedRoute: React.ComponentType<RouteW
         path="/alerts/history"
         element={<ProtectedRoute><AlertHistory /></ProtectedRoute>}
       />
-      <Route
-        path="/reports/builder"
-        element={<ProtectedRoute><ReportBuilder /></ProtectedRoute>}
-      />
-      <Route
-        path="/reports/templates"
-        element={<ProtectedRoute><ReportTemplates /></ProtectedRoute>}
-      />
-      <Route
-        path="/reports/saved"
-        element={<ProtectedRoute><SavedReports /></ProtectedRoute>}
-      />
-      <Route
-        path="/reports/scheduled"
-        element={<ProtectedRoute><ScheduledReports /></ProtectedRoute>}
-      />
-      <Route
-        path="/reports/outcomes"
-        element={<ProtectedRoute><OutcomesReport /></ProtectedRoute>}
-      />
-      <Route
-        path="/reports/workflow-coverage"
-        element={<ProtectedRoute><WorkflowCoverageReport /></ProtectedRoute>}
-      />
-      <Route
-        path="/reports"
-        element={<ProtectedRoute><Navigate to="/reports/builder" replace /></ProtectedRoute>}
-      />
+      {createReportRoutes(ProtectedRoute)}
     </>
   );
 }

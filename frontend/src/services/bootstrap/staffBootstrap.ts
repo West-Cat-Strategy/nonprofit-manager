@@ -3,8 +3,16 @@ import { unwrapApiData, type ApiEnvelope } from '../apiEnvelope';
 import type { User } from '../../features/auth/state';
 import type { CurrentUserResponse } from '../authService';
 import type { BrandingConfig } from '../../types/branding';
+import {
+  createDefaultWorkspaceModuleSettings,
+  normalizeWorkspaceModuleSettings,
+  type WorkspaceModuleSettings,
+} from '../../features/workspaceModules/catalog';
 import { setBrandingCached } from '../brandingService';
 import { setUserPreferencesCached, type UserPreferences } from '../userPreferencesService';
+import {
+  setWorkspaceModuleAccessCached,
+} from '../workspaceModuleAccessService';
 
 export type BootstrapStatus = 'authenticated' | 'anonymous';
 
@@ -14,6 +22,7 @@ export interface StaffBootstrapSnapshot {
   organizationId: string | null;
   branding: BrandingConfig | null;
   preferences: UserPreferences | null;
+  workspaceModules: WorkspaceModuleSettings;
   fetchedAt: number;
 }
 
@@ -22,6 +31,7 @@ type StaffBootstrapResponse = {
   organizationId: string | null;
   branding?: BrandingConfig | null;
   preferences?: UserPreferences | null;
+  workspaceModules?: WorkspaceModuleSettings | null;
 };
 
 const STAFF_BOOTSTRAP_TTL_MS = 60_000;
@@ -74,6 +84,9 @@ const normalizeStartupPreferences = (value: unknown): UserPreferences | null => 
   return Object.keys(preferences).length > 0 ? preferences : {};
 };
 
+const normalizeStartupWorkspaceModules = (value: unknown): WorkspaceModuleSettings =>
+  normalizeWorkspaceModuleSettings(value as Partial<WorkspaceModuleSettings> | null | undefined);
+
 const seedStartupLocalStorage = (preferences: UserPreferences | null): void => {
   if (!preferences || typeof window === 'undefined') {
     return;
@@ -109,12 +122,15 @@ const buildAuthenticatedSnapshot = (input: {
   organizationId?: string | null;
   branding?: BrandingConfig | null;
   preferences?: UserPreferences | null;
+  workspaceModules?: WorkspaceModuleSettings | null;
 }): StaffBootstrapSnapshot => {
   const current =
     cachedSnapshot?.user?.id === input.user.id && cachedSnapshot.status === 'authenticated'
       ? cachedSnapshot
       : null;
   const nextPreferences = input.preferences ?? current?.preferences ?? {};
+  const nextWorkspaceModules =
+    input.workspaceModules ?? current?.workspaceModules ?? createDefaultWorkspaceModuleSettings();
 
   const snapshot: StaffBootstrapSnapshot = {
     status: 'authenticated',
@@ -122,6 +138,7 @@ const buildAuthenticatedSnapshot = (input: {
     organizationId: input.organizationId ?? null,
     branding: input.branding ?? current?.branding ?? null,
     preferences: nextPreferences,
+    workspaceModules: nextWorkspaceModules,
     fetchedAt: Date.now(),
   };
 
@@ -130,6 +147,7 @@ const buildAuthenticatedSnapshot = (input: {
   }
 
   setUserPreferencesCached(snapshot.preferences);
+  setWorkspaceModuleAccessCached(snapshot.workspaceModules);
   seedStartupLocalStorage(snapshot.preferences);
 
   return snapshot;
@@ -143,6 +161,7 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
       organizationId: null,
       branding: null,
       preferences: null,
+      workspaceModules: createDefaultWorkspaceModuleSettings(),
       fetchedAt: Date.now(),
     };
   }
@@ -153,6 +172,7 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
       organizationId: null,
       branding: null,
       preferences: null,
+      workspaceModules: createDefaultWorkspaceModuleSettings(),
     });
   }
 
@@ -164,6 +184,7 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
       organizationId: payload.organizationId ?? payload.user.organizationId ?? null,
       branding: payload.branding ?? null,
       preferences: normalizeStartupPreferences(payload.preferences),
+      workspaceModules: normalizeStartupWorkspaceModules(payload.workspaceModules),
     });
   } catch {
     return {
@@ -172,6 +193,7 @@ const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> =>
       organizationId: null,
       branding: null,
       preferences: null,
+      workspaceModules: createDefaultWorkspaceModuleSettings(),
       fetchedAt: Date.now(),
     };
   }
@@ -220,6 +242,7 @@ export const setStaffBootstrapSnapshot = (input: {
   organizationId?: string | null;
   branding?: BrandingConfig | null;
   preferences?: UserPreferences | null;
+  workspaceModules?: WorkspaceModuleSettings | null;
 }): StaffBootstrapSnapshot => {
   cachedSnapshot = input.user
     ? buildAuthenticatedSnapshot(input as {
@@ -227,6 +250,7 @@ export const setStaffBootstrapSnapshot = (input: {
         organizationId?: string | null;
         branding?: BrandingConfig | null;
         preferences?: UserPreferences | null;
+        workspaceModules?: WorkspaceModuleSettings | null;
       })
     : {
         status: 'anonymous',
@@ -234,6 +258,7 @@ export const setStaffBootstrapSnapshot = (input: {
         organizationId: null,
         branding: null,
         preferences: null,
+        workspaceModules: createDefaultWorkspaceModuleSettings(),
         fetchedAt: Date.now(),
       };
   return cachedSnapshot;

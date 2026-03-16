@@ -3,140 +3,71 @@ import { vi } from 'vitest';
 import Navigation from '../Navigation';
 import { renderWithProviders } from '../../test/testUtils';
 
-const { mockSetBranding, mockTogglePinned } = vi.hoisted(() => ({
-  mockSetBranding: vi.fn(),
-  mockTogglePinned: vi.fn(),
+const {
+  handleLogoutMock,
+  setThemeMock,
+  toggleDarkModeMock,
+  viewModelRef,
+} = vi.hoisted(() => ({
+  handleLogoutMock: vi.fn(),
+  setThemeMock: vi.fn(),
+  toggleDarkModeMock: vi.fn(),
+  viewModelRef: { current: null } as NavigationViewModelRef,
 }));
 
-const mockNavigationPreferences = {
-  pinnedItems: [
-    {
-      id: 'cases',
-      name: 'Cases',
-      path: '/cases',
-      icon: '📋',
-      area: 'Service',
-      section: 'Engagement',
-      navKind: 'hub',
-      parentId: undefined,
-      breadcrumbLabel: 'Cases',
-      enabled: true,
-      pinned: true,
-      isCore: false,
-      shortLabel: 'Cases',
-      ariaLabel: 'Cases',
-    },
-  ],
-  primaryItems: [
-    {
-      id: 'dashboard',
-      name: 'Dashboard',
-      path: '/dashboard',
-      icon: '📊',
-      area: 'Home',
-      section: 'Core',
-      navKind: 'hub',
-      parentId: undefined,
-      breadcrumbLabel: 'Dashboard',
-      enabled: true,
-      isCore: true,
-      shortLabel: 'Home',
-      ariaLabel: 'Go to dashboard',
-    },
-  ],
-  secondaryItems: [
-    {
-      id: 'contacts',
-      name: 'People',
-      path: '/contacts',
-      icon: '👤',
-      area: 'People',
-      section: 'People',
-      navKind: 'hub',
-      parentId: undefined,
-      breadcrumbLabel: 'People',
-      enabled: true,
-      isCore: false,
-      shortLabel: 'People',
-      ariaLabel: 'Go to contacts',
-    },
-  ],
-  enabledItems: [
-    {
-      id: 'dashboard',
-      name: 'Dashboard',
-      path: '/dashboard',
-      icon: '📊',
-      area: 'Home',
-      section: 'Core',
-      navKind: 'hub',
-      parentId: undefined,
-      breadcrumbLabel: 'Dashboard',
-      enabled: true,
-      isCore: true,
-      shortLabel: 'Home',
-      ariaLabel: 'Go to dashboard',
-    },
-    {
-      id: 'cases',
-      name: 'Cases',
-      path: '/cases',
-      icon: '📋',
-      area: 'Service',
-      section: 'Engagement',
-      navKind: 'hub',
-      parentId: undefined,
-      breadcrumbLabel: 'Cases',
-      enabled: true,
-      pinned: true,
-      isCore: false,
-      shortLabel: 'Cases',
-      ariaLabel: 'Cases',
-    },
-  ],
-  favoriteItems: [
-    {
-      id: 'cases',
-      name: 'Cases',
-      path: '/cases',
-      icon: '📋',
-      area: 'Service',
-      section: 'Engagement',
-      navKind: 'hub',
-      parentId: undefined,
-      breadcrumbLabel: 'Cases',
-      enabled: true,
-      pinned: true,
-      isCore: false,
-      shortLabel: 'Cases',
-      ariaLabel: 'Cases',
-    },
-  ],
-  enabledRouteIds: ['dashboard', 'cases', 'contacts'],
-  togglePinned: mockTogglePinned,
-  isLoading: false,
-  isSynced: true,
-  isSaving: false,
-  syncStatus: 'synced' as const,
-  maxPinnedItems: 3,
-};
+const primaryItems = [
+  {
+    id: 'dashboard',
+    name: 'Dashboard',
+    path: '/dashboard',
+    shortLabel: 'Home',
+  },
+];
 
-vi.mock('../../hooks/useNavigationPreferences', () => ({
-  useNavigationPreferences: () => mockNavigationPreferences,
+const secondaryItems = [
+  {
+    id: 'contacts',
+    name: 'People',
+    path: '/contacts',
+    icon: '👤',
+    shortLabel: 'People',
+  },
+];
+
+const utilityNavLinks = [
+  {
+    id: 'analytics',
+    path: '/analytics',
+    label: 'Analytics',
+    shortLabel: 'Analytics',
+    icon: '📈',
+    ariaLabel: 'Analytics',
+  },
+  {
+    id: 'reports-builder',
+    path: '/reports/builder',
+    label: 'Reports',
+    shortLabel: 'Reports',
+    icon: '📄',
+    ariaLabel: 'Reports',
+  },
+];
+
+vi.mock('../navigation/preloadNavigationQuickLookupDialog', () => ({
+  preloadNavigationQuickLookupDialog: () =>
+    Promise.resolve({
+      default: ({ onClose }: { onClose: () => void }) => (
+        <div role="dialog" aria-label="Search people">
+          <button type="button" onClick={onClose} aria-label="Close search dialog">
+            Close
+          </button>
+        </div>
+      ),
+    }),
 }));
 
-vi.mock('../../contexts/BrandingContext', () => ({
-  useBranding: () => ({
-    branding: {
-      appName: 'Nonprofit Manager',
-      appIcon: null,
-      favicon: null,
-      logoUrl: null,
-      colorScheme: 'default',
-      customColors: {},
-    },
-    setBranding: mockSetBranding,
-  }),
+vi.mock('../../routes/peopleRoutePreload', () => ({
+  preloadContactsPeopleRoute: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock('../dashboard', () => ({
@@ -149,210 +80,121 @@ vi.mock('../dashboard', () => ({
   }),
 }));
 
-vi.mock('../../routes/peopleRoutePreload', () => ({
-  preloadContactsPeopleRoute: vi.fn(() => Promise.resolve([])),
+vi.mock('../../features/navigation/hooks/useStaffNavigationViewModel', () => ({
+  default: () => viewModelRef.current,
 }));
+
+const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
+  adminSettingsPath: '/settings/admin/dashboard',
+  alertsLink: {
+    id: 'alerts-overview',
+    path: '/alerts',
+    label: 'Alerts',
+    shortLabel: 'Alerts',
+    icon: '🚨',
+  },
+  branding: {
+    appName: 'Nonprofit Manager',
+    appIcon: null,
+  },
+  canOpenAdminSettings: true,
+  currentLocation: '/dashboard',
+  handleLogout: handleLogoutMock,
+  hasActiveSecondaryItem: false,
+  hasActiveUtilityItem: false,
+  isNavItemActive: (id: string, path: string) =>
+    path === '/dashboard' || id === 'dashboard' || path === '/alerts',
+  navigationPreferences: {
+    favoriteItems: [],
+    primaryItems,
+    secondaryItems,
+  },
+  themeLabels: {
+    neobrutalist: 'NB',
+    'clean-modern': 'CM',
+  },
+  themeState: {
+    availableThemes: ['neobrutalist', 'clean-modern'],
+    isDarkMode: false,
+    setTheme: setThemeMock,
+    theme: 'neobrutalist',
+    toggleDarkMode: toggleDarkModeMock,
+  },
+  utilityNavLinks,
+  user: {
+    firstName: 'Admin',
+    lastName: 'User',
+    email: 'admin@example.com',
+    role: 'admin',
+  },
+  ...overrides,
+});
+
+type NavigationViewModelRef = {
+  current: ReturnType<typeof buildViewModel> | null;
+};
 
 describe('Navigation', () => {
   beforeEach(() => {
-    mockTogglePinned.mockClear();
+    vi.clearAllMocks();
+    viewModelRef.current = buildViewModel();
   });
 
-  it('renders preference-driven primary navigation and the desktop search trigger', async () => {
-    renderWithProviders(<Navigation />, {
-      route: '/dashboard',
-      preloadedState: {
-        auth: {
-          user: {
-            id: 'user-1',
-            email: 'admin@example.com',
-            firstName: 'Admin',
-            lastName: 'User',
-            role: 'admin',
-          },
-          isAuthenticated: true,
-          authLoading: false,
-          loading: false,
-        },
-      },
-    });
+  it('renders the view-model-driven primary navigation and utilities', async () => {
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     expect(screen.getByRole('navigation', { name: /global navigation/i })).toHaveClass(
       'bg-[var(--app-shell-surface)]'
     );
     expect(screen.getByRole('link', { name: /^home$/i })).toHaveAttribute('href', '/dashboard');
     expect(screen.queryByRole('link', { name: /^people$/i })).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('button', { name: /more navigation/i }));
-    expect(await screen.findByRole('menuitem', { name: /^people$/i })).toHaveAttribute(
+    expect(screen.getByRole('menuitem', { name: /^people$/i })).toHaveAttribute(
       'href',
       '/contacts'
     );
-    expect(screen.getByRole('button', { name: /^search$/i })).toBeInTheDocument();
+
+    expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
+
+    fireEvent.click(screen.getByRole('button', { name: /^utilities$/i }));
+    expect(screen.getByRole('menuitem', { name: /^analytics$/i })).toHaveAttribute(
+      'href',
+      '/analytics'
+    );
+    expect(screen.getByRole('menuitem', { name: /^reports$/i })).toHaveAttribute(
+      'href',
+      '/reports/builder'
+    );
   });
 
-  it('shows admin quick actions for admins and hides for non-admins', async () => {
-    const { unmount } = renderWithProviders(<Navigation />, {
-      route: '/dashboard',
-      preloadedState: {
-        auth: {
-          user: {
-            id: 'admin-1',
-            email: 'admin@example.com',
-            firstName: 'Admin',
-            lastName: 'User',
-            role: 'admin',
-          },
-          isAuthenticated: true,
-          authLoading: false,
-          loading: false,
-        },
-      },
-    });
+  it('shows admin settings links only when the view model allows them', async () => {
+    const { unmount } = renderWithProviders(<Navigation />, { route: '/dashboard' });
 
-    expect(await screen.findByRole('button', { name: /admin quick actions/i })).toBeInTheDocument();
-    unmount();
-
-    renderWithProviders(<Navigation />, {
-      route: '/dashboard',
-      preloadedState: {
-        auth: {
-          user: {
-            id: 'manager-1',
-            email: 'manager@example.com',
-            firstName: 'Manager',
-            lastName: 'User',
-            role: 'manager',
-          },
-          isAuthenticated: true,
-          authLoading: false,
-          loading: false,
-        },
-      },
-    });
-
-    expect(screen.queryByRole('button', { name: /admin quick actions/i })).not.toBeInTheDocument();
-  });
-
-  it('uses the canonical dashboard route for generic admin settings links', async () => {
-    renderWithProviders(<Navigation />, {
-      route: '/dashboard',
-      preloadedState: {
-        auth: {
-          user: {
-            id: 'admin-1',
-            email: 'admin@example.com',
-            firstName: 'Admin',
-            lastName: 'User',
-            role: 'admin',
-          },
-          isAuthenticated: true,
-          authLoading: false,
-          loading: false,
-        },
-      },
-    });
-
-    const userMenuButton = await screen.findByRole('button', { name: /user menu/i });
-    fireEvent.click(userMenuButton);
-
+    fireEvent.click(await screen.findByRole('button', { name: /user menu/i }));
     expect(screen.getByRole('menuitem', { name: /admin settings/i })).toHaveAttribute(
       'href',
       '/settings/admin/dashboard'
     );
-  });
 
-  it('hides the admin settings link from the desktop user menu for non-admins', async () => {
-    renderWithProviders(<Navigation />, {
-      route: '/dashboard',
-      preloadedState: {
-        auth: {
-          user: {
-            id: 'manager-1',
-            email: 'manager@example.com',
-            firstName: 'Manager',
-            lastName: 'User',
-            role: 'manager',
-          },
-          isAuthenticated: true,
-          authLoading: false,
-          loading: false,
-        },
+    unmount();
+    viewModelRef.current = buildViewModel({
+      canOpenAdminSettings: false,
+      user: {
+        firstName: 'Manager',
+        lastName: 'User',
+        email: 'manager@example.com',
+        role: 'manager',
       },
     });
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
 
-    const userMenuButton = await screen.findByRole('button', { name: /user menu/i });
-    fireEvent.click(userMenuButton);
-
+    fireEvent.click(screen.getByRole('button', { name: /user menu/i }));
     expect(screen.queryByRole('menuitem', { name: /admin settings/i })).not.toBeInTheDocument();
   });
 
-  it('shows the admin settings link in the mobile account menu for admins only', async () => {
-    const { unmount } = renderWithProviders(<Navigation />, {
-      route: '/dashboard',
-      preloadedState: {
-        auth: {
-          user: {
-            id: 'admin-1',
-            email: 'admin@example.com',
-            firstName: 'Admin',
-            lastName: 'User',
-            role: 'admin',
-          },
-          isAuthenticated: true,
-          authLoading: false,
-          loading: false,
-        },
-      },
-    });
-
-    fireEvent.click(await screen.findByRole('button', { name: /main menu/i }));
-    expect(await screen.findByRole('link', { name: /admin settings/i })).toHaveAttribute(
-      'href',
-      '/settings/admin/dashboard'
-    );
-
-    unmount();
-
-    renderWithProviders(<Navigation />, {
-      route: '/dashboard',
-      preloadedState: {
-        auth: {
-          user: {
-            id: 'manager-1',
-            email: 'manager@example.com',
-            firstName: 'Manager',
-            lastName: 'User',
-            role: 'manager',
-          },
-          isAuthenticated: true,
-          authLoading: false,
-          loading: false,
-        },
-      },
-    });
-
-    fireEvent.click(await screen.findByRole('button', { name: /main menu/i }));
-    expect(screen.queryByRole('link', { name: /admin settings/i })).not.toBeInTheDocument();
-  });
-
-  it('maintains user menu aria-expanded and closes on escape', async () => {
-    renderWithProviders(<Navigation />, {
-      route: '/dashboard',
-      preloadedState: {
-        auth: {
-          user: {
-            id: 'user-1',
-            email: 'admin@example.com',
-            firstName: 'Admin',
-            lastName: 'User',
-            role: 'admin',
-          },
-          isAuthenticated: true,
-          authLoading: false,
-          loading: false,
-        },
-      },
-    });
+  it('maintains user menu state and delegates logout', async () => {
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     const userMenuButton = await screen.findByRole('button', { name: /user menu/i });
     expect(userMenuButton).toHaveAttribute('aria-expanded', 'false');
@@ -360,30 +202,17 @@ describe('Navigation', () => {
     fireEvent.click(userMenuButton);
     expect(userMenuButton).toHaveAttribute('aria-expanded', 'true');
 
+    fireEvent.click(screen.getByRole('menuitem', { name: /logout/i }));
+    expect(handleLogoutMock).toHaveBeenCalled();
+
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() => {
       expect(userMenuButton).toHaveAttribute('aria-expanded', 'false');
     });
   });
 
-  it('returns focus to search button after closing search dialog', async () => {
-    renderWithProviders(<Navigation />, {
-      route: '/dashboard',
-      preloadedState: {
-        auth: {
-          user: {
-            id: 'user-1',
-            email: 'admin@example.com',
-            firstName: 'Admin',
-            lastName: 'User',
-            role: 'admin',
-          },
-          isAuthenticated: true,
-          authLoading: false,
-          loading: false,
-        },
-      },
-    });
+  it('opens and closes the search dialog while restoring focus', async () => {
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     const searchButton = await screen.findByRole('button', { name: /^search$/i });
     fireEvent.click(searchButton);
@@ -393,41 +222,5 @@ describe('Navigation', () => {
     await waitFor(() => {
       expect(searchButton).toHaveFocus();
     });
-  });
-
-  it('keeps alerts direct and groups utility links under the utilities menu', async () => {
-    renderWithProviders(<Navigation />, {
-      route: '/dashboard',
-      preloadedState: {
-        auth: {
-          user: {
-            id: 'user-1',
-            email: 'admin@example.com',
-            firstName: 'Admin',
-            lastName: 'User',
-            role: 'admin',
-          },
-          isAuthenticated: true,
-          authLoading: false,
-          loading: false,
-        },
-      },
-    });
-
-    expect(await screen.findByRole('link', { name: /^alerts$/i })).toHaveAttribute(
-      'href',
-      '/alerts'
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /^utilities$/i }));
-
-    expect(await screen.findByRole('menuitem', { name: /^analytics$/i })).toHaveAttribute(
-      'href',
-      '/analytics'
-    );
-    expect(screen.getByRole('menuitem', { name: /^reports$/i })).toHaveAttribute(
-      'href',
-      '/reports/builder'
-    );
   });
 });

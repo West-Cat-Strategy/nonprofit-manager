@@ -1,3 +1,8 @@
+import {
+  createDefaultWorkspaceModulesConfig,
+  type WorkspaceModulesConfig,
+} from './workspaceModules';
+
 export interface OrganizationAddress {
   line1: string;
   line2: string;
@@ -32,6 +37,7 @@ export interface OrganizationSettingsConfig {
   measurementSystem: 'metric' | 'imperial';
   phoneFormat: 'canadian' | 'us' | 'international';
   taxReceipt: OrganizationTaxReceiptSettings;
+  workspaceModules: WorkspaceModulesConfig;
 }
 
 export interface OrganizationSettings {
@@ -75,4 +81,5 @@ export const createDefaultOrganizationSettingsConfig = (): OrganizationSettingsC
   measurementSystem: 'metric',
   phoneFormat: 'canadian',
   taxReceipt: createDefaultOrganizationTaxReceiptSettings(),
+  workspaceModules: createDefaultWorkspaceModulesConfig(),
 });

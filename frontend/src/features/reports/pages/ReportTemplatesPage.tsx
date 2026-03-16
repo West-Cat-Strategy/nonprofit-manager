@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ReportTemplate, TemplateCategory } from '../../../types/reportTemplate';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
-import { reportsApiClient } from '../api/reportsApiClient';
+import useReportTemplatesController from '../hooks/useReportTemplatesController';
 import {
   PageHeader,
   PrimaryButton,
@@ -24,37 +24,13 @@ const CATEGORIES: { value: TemplateCategory; label: string; icon: string }[] = [
 
 function ReportTemplates() {
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState<ReportTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<TemplateCategory | ''>('');
-
-  const fetchTemplates = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const params = selectedCategory ? { category: selectedCategory } : {};
-      const data = await reportsApiClient.listTemplates(params);
-      setTemplates(data as ReportTemplate[]);
-    } catch (err) {
-      console.error('Error fetching templates:', err);
-      setError('Unable to load report templates right now.');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCategory]);
-
-  useEffect(() => {
-    void fetchTemplates();
-  }, [fetchTemplates]);
+  const { error, fetchTemplates, filteredTemplates, loading } =
+    useReportTemplatesController(selectedCategory);
 
   const handleUseTemplate = (template: ReportTemplate) => {
     navigate(`/reports/builder?template=${template.id}`);
   };
-
-  const filteredTemplates = selectedCategory
-    ? templates.filter((template) => template.category === selectedCategory)
-    : templates;
 
   return (
     <NeoBrutalistLayout pageTitle="REPORT TEMPLATES">

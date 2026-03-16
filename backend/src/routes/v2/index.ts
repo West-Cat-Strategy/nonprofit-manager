@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { authenticate } from '@middleware/domains/auth';
+import { requireWorkspaceModuleEnabled } from '@middleware/requireWorkspaceModuleEnabled';
 import { portalV2Routes } from '@modules/portal';
 import { eventsV2Routes, publicEventsV2Routes } from '@modules/events';
 import { casesV2Routes } from '@modules/cases';
@@ -42,8 +44,22 @@ import { usersV2Routes } from '@modules/users';
 import { webhooksV2Routes } from '@modules/webhooks';
 import { portalAuthV2Routes } from '@modules/portalAuth';
 import { portalAdminV2Routes } from '@modules/portalAdmin';
+import type { WorkspaceModuleKey } from '@app-types/workspaceModules';
 
 export const apiV2Routes = Router();
+
+const mountWorkspaceModuleRoutes = (
+  path: string,
+  moduleKey: WorkspaceModuleKey,
+  router: Router
+): void => {
+  apiV2Routes.use(
+    path,
+    authenticate,
+    requireWorkspaceModuleEnabled(moduleKey),
+    router
+  );
+};
 
 apiV2Routes.use('/auth', authV2Routes);
 apiV2Routes.use('/users', usersV2Routes);
@@ -52,20 +68,15 @@ apiV2Routes.use('/admin', adminV2Routes);
 apiV2Routes.use('/backup', backupV2Routes);
 apiV2Routes.use('/plausible', plausibleProxyV2Routes);
 apiV2Routes.use('/activities', activitiesV2Routes);
-apiV2Routes.use('/alerts', alertsV2Routes);
-apiV2Routes.use('/donations', donationsV2Routes);
 apiV2Routes.use('/export', exportV2Routes);
-apiV2Routes.use('/external-service-providers', externalServiceProvidersV2Routes);
 apiV2Routes.use('/invitations', invitationsV2Routes);
 apiV2Routes.use('/mailchimp', mailchimpV2Routes);
 apiV2Routes.use('/meetings', meetingsV2Routes);
 apiV2Routes.use('/payments', paymentsV2Routes);
-apiV2Routes.use('/recurring-donations', recurringDonationsV2Routes);
 apiV2Routes.use('/public/events', publicEventsV2Routes);
 apiV2Routes.use('/public/newsletters', publicPublishingV2Routes);
 apiV2Routes.use('/public/forms', publicWebsiteFormsV2Routes);
 apiV2Routes.use('/public/reports', publicReportsV2Routes);
-apiV2Routes.use('/reconciliation', reconciliationV2Routes);
 apiV2Routes.use('/social-media', socialMediaV2Routes);
 apiV2Routes.use('/sites', publishingV2Routes);
 apiV2Routes.use('/templates', templatesV2Routes);
@@ -73,17 +84,30 @@ apiV2Routes.use('/webhooks', webhooksV2Routes);
 apiV2Routes.use('/portal/auth', portalAuthV2Routes);
 apiV2Routes.use('/portal/admin', portalAdminV2Routes);
 apiV2Routes.use('/portal', portalV2Routes);
-apiV2Routes.use('/events', eventsV2Routes);
-apiV2Routes.use('/accounts', accountsV2Routes);
-apiV2Routes.use('/volunteers', volunteersV2Routes);
-apiV2Routes.use('/tasks', tasksV2Routes);
-apiV2Routes.use('/analytics', analyticsV2Routes);
-apiV2Routes.use('/reports', reportsV2Routes);
-apiV2Routes.use('/saved-reports', savedReportsV2Routes);
-apiV2Routes.use('/scheduled-reports', scheduledReportsV2Routes);
+mountWorkspaceModuleRoutes('/events', 'events', eventsV2Routes);
+mountWorkspaceModuleRoutes('/accounts', 'accounts', accountsV2Routes);
+mountWorkspaceModuleRoutes('/volunteers', 'volunteers', volunteersV2Routes);
+mountWorkspaceModuleRoutes('/tasks', 'tasks', tasksV2Routes);
+mountWorkspaceModuleRoutes('/analytics', 'analytics', analyticsV2Routes);
+mountWorkspaceModuleRoutes('/reports', 'reports', reportsV2Routes);
+mountWorkspaceModuleRoutes('/saved-reports', 'reports', savedReportsV2Routes);
+mountWorkspaceModuleRoutes('/scheduled-reports', 'scheduledReports', scheduledReportsV2Routes);
 apiV2Routes.use('/dashboard', dashboardV2Routes);
-apiV2Routes.use('/follow-ups', followUpsV2Routes);
-apiV2Routes.use('/cases', casesV2Routes);
-apiV2Routes.use('/contacts', contactsV2Routes);
-apiV2Routes.use('/opportunities', opportunitiesV2Routes);
-apiV2Routes.use('/team-chat', teamChatV2Routes);
+mountWorkspaceModuleRoutes('/follow-ups', 'followUps', followUpsV2Routes);
+mountWorkspaceModuleRoutes('/cases', 'cases', casesV2Routes);
+mountWorkspaceModuleRoutes('/contacts', 'contacts', contactsV2Routes);
+mountWorkspaceModuleRoutes('/opportunities', 'opportunities', opportunitiesV2Routes);
+mountWorkspaceModuleRoutes('/team-chat', 'teamChat', teamChatV2Routes);
+mountWorkspaceModuleRoutes(
+  '/external-service-providers',
+  'externalServiceProviders',
+  externalServiceProvidersV2Routes
+);
+mountWorkspaceModuleRoutes('/donations', 'donations', donationsV2Routes);
+mountWorkspaceModuleRoutes(
+  '/recurring-donations',
+  'recurringDonations',
+  recurringDonationsV2Routes
+);
+mountWorkspaceModuleRoutes('/reconciliation', 'reconciliation', reconciliationV2Routes);
+mountWorkspaceModuleRoutes('/alerts', 'alerts', alertsV2Routes);

@@ -491,7 +491,7 @@ When adding a new route:
 - **Services**: `backend/src/services/authGuardService.ts` - Authorization
 - **Middleware**: `backend/src/middleware/permissions.ts` - Permission enforcement
 - **Utils**: `backend/src/utils/permissions.ts` - Permission matrix
-- **Routes**: `backend/src/routes/auth.ts` - Migration example (12 endpoints)
+- **Routes**: `backend/src/modules/auth/routes/index.ts` - Canonical auth-route validation surface
 - **Tests**: `backend/src/__tests__/unit/validations/schemas.test.ts` - Test patterns
 
 ---

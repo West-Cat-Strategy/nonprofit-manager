@@ -462,6 +462,17 @@ describe('Route Guardrails Integration', () => {
   beforeEach(async () => {
     await ensureGuardrailUserExists();
     await upsertGuardrailOrgs();
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS organization_settings (
+        organization_id UUID PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+        config JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        modified_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`
+    );
+    await pool.query('DELETE FROM organization_settings WHERE organization_id = $1', [activeOrgId]);
     refreshAuthTokens();
   });
 
@@ -549,6 +560,231 @@ describe('Route Guardrails Integration', () => {
         .expect(400);
 
       expectCanonicalError(response, 'validation_error');
+    });
+  });
+
+  describe('workspace module controls', () => {
+    it('allows admin users to read and update organization workspace modules', async () => {
+      const readResponse = await request(app)
+        .get('/api/v2/admin/organization-settings')
+        .set('Authorization', `Bearer ${authTokenAdmin}`)
+        .set('x-organization-id', activeOrgId)
+        .expect(200);
+
+      expect(readResponse.body.data.config.workspaceModules.cases).toBe(true);
+
+      const updateResponse = await request(app)
+        .put('/api/v2/admin/organization-settings')
+        .set('Authorization', `Bearer ${authTokenAdmin}`)
+        .set('x-organization-id', activeOrgId)
+        .send({
+          config: {
+            ...readResponse.body.data.config,
+            workspaceModules: {
+              ...readResponse.body.data.config.workspaceModules,
+              cases: false,
+              reports: false,
+            },
+          },
+        })
+        .expect(200);
+
+      expect(updateResponse.body.data.config.workspaceModules.cases).toBe(false);
+      expect(updateResponse.body.data.config.workspaceModules.reports).toBe(false);
+      expect(updateResponse.body.data.config.name).toBe(readResponse.body.data.config.name);
+    });
+
+    it('rejects non-admin users updating organization workspace modules', async () => {
+      const response = await request(app)
+        .put('/api/v2/admin/organization-settings')
+        .set('Authorization', `Bearer ${authToken}`)
+        .set('x-organization-id', activeOrgId)
+        .send({
+          config: {
+            name: '',
+            email: '',
+            phone: '',
+            website: '',
+            address: {
+              line1: '',
+              line2: '',
+              city: '',
+              province: '',
+              postalCode: '',
+              country: 'Canada',
+            },
+            timezone: 'America/Vancouver',
+            dateFormat: 'YYYY-MM-DD',
+            currency: 'CAD',
+            fiscalYearStart: '04',
+            measurementSystem: 'metric',
+            phoneFormat: 'canadian',
+            taxReceipt: {
+              legalName: '',
+              charitableRegistrationNumber: '',
+              receiptingAddress: {
+                line1: '',
+                line2: '',
+                city: '',
+                province: '',
+                postalCode: '',
+                country: 'Canada',
+              },
+              receiptIssueLocation: '',
+              authorizedSignerName: '',
+              authorizedSignerTitle: '',
+              contactEmail: '',
+              contactPhone: '',
+              advantageAmount: 0,
+            },
+            workspaceModules: {
+              cases: false,
+            },
+          },
+        })
+        .expect(403);
+
+      expectCanonicalError(response, 'forbidden');
+    });
+
+    it('blocks disabled workspace module routes with a canonical disabled response', async () => {
+      await request(app)
+        .put('/api/v2/admin/organization-settings')
+        .set('Authorization', `Bearer ${authTokenAdmin}`)
+        .set('x-organization-id', activeOrgId)
+        .send({
+          config: {
+            name: '',
+            email: '',
+            phone: '',
+            website: '',
+            address: {
+              line1: '',
+              line2: '',
+              city: '',
+              province: '',
+              postalCode: '',
+              country: 'Canada',
+            },
+            timezone: 'America/Vancouver',
+            dateFormat: 'YYYY-MM-DD',
+            currency: 'CAD',
+            fiscalYearStart: '04',
+            measurementSystem: 'metric',
+            phoneFormat: 'canadian',
+            taxReceipt: {
+              legalName: '',
+              charitableRegistrationNumber: '',
+              receiptingAddress: {
+                line1: '',
+                line2: '',
+                city: '',
+                province: '',
+                postalCode: '',
+                country: 'Canada',
+              },
+              receiptIssueLocation: '',
+              authorizedSignerName: '',
+              authorizedSignerTitle: '',
+              contactEmail: '',
+              contactPhone: '',
+              advantageAmount: 0,
+            },
+            workspaceModules: {
+              cases: false,
+              teamChat: true,
+            },
+          },
+        })
+        .expect(200);
+
+      const disabledResponse = await request(app)
+        .get('/api/v2/cases')
+        .set('Authorization', `Bearer ${authToken}`)
+        .set('x-organization-id', activeOrgId)
+        .expect(404);
+
+      expectCanonicalError(disabledResponse, 'MODULE_DISABLED');
+      expect(disabledResponse.body.error.details).toMatchObject({ module: 'cases' });
+    });
+
+    it('preserves route-level validation behavior when no org context is selected', async () => {
+      const response = await request(app)
+        .get('/api/v2/alerts/instances?limit=500')
+        .set('Authorization', `Bearer ${authTokenNoOrgContext}`)
+        .expect(400);
+
+      expectCanonicalError(response, 'validation_error');
+    });
+
+    it('still honors the global team-chat flag when org settings enable the module', async () => {
+      await request(app)
+        .put('/api/v2/admin/organization-settings')
+        .set('Authorization', `Bearer ${authTokenAdmin}`)
+        .set('x-organization-id', activeOrgId)
+        .send({
+          config: {
+            name: '',
+            email: '',
+            phone: '',
+            website: '',
+            address: {
+              line1: '',
+              line2: '',
+              city: '',
+              province: '',
+              postalCode: '',
+              country: 'Canada',
+            },
+            timezone: 'America/Vancouver',
+            dateFormat: 'YYYY-MM-DD',
+            currency: 'CAD',
+            fiscalYearStart: '04',
+            measurementSystem: 'metric',
+            phoneFormat: 'canadian',
+            taxReceipt: {
+              legalName: '',
+              charitableRegistrationNumber: '',
+              receiptingAddress: {
+                line1: '',
+                line2: '',
+                city: '',
+                province: '',
+                postalCode: '',
+                country: 'Canada',
+              },
+              receiptIssueLocation: '',
+              authorizedSignerName: '',
+              authorizedSignerTitle: '',
+              contactEmail: '',
+              contactPhone: '',
+              advantageAmount: 0,
+            },
+            workspaceModules: {
+              teamChat: true,
+            },
+          },
+        })
+        .expect(200);
+
+      const originalTeamChatEnabled = process.env.TEAM_CHAT_ENABLED;
+      process.env.TEAM_CHAT_ENABLED = 'false';
+
+      try {
+        const response = await request(app)
+          .get('/api/v2/team-chat/inbox')
+          .set('Authorization', `Bearer ${authToken}`)
+          .set('x-organization-id', activeOrgId)
+          .expect(404);
+
+        expectCanonicalError(response, 'TEAM_CHAT_DISABLED');
+      } finally {
+        if (originalTeamChatEnabled === undefined) {
+          delete process.env.TEAM_CHAT_ENABLED;
+        } else {
+          process.env.TEAM_CHAT_ENABLED = originalTeamChatEnabled;
+        }
+      }
     });
   });
 
