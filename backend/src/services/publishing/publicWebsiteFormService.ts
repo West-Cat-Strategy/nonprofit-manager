@@ -4,6 +4,7 @@ import { services } from '@container/services';
 import type { PublishedComponent, PublishedSite } from '@app-types/publishing';
 import { AvailabilityStatus } from '@app-types/volunteer';
 import type { Activity } from '@app-types/activity';
+import type { RecurringDonationPlanStatus } from '@app-types/recurringDonation';
 import { stripeService } from '@services/domains/operations';
 import { addOrUpdateMember, isMailchimpConfigured } from '@services/mailchimpService';
 import { activityEventService, type CreateActivityEventInput } from '@services/activityEventService';
@@ -23,6 +24,10 @@ export interface PublicWebsiteFormResult {
   message: string;
   contactId?: string;
   donationId?: string;
+  recurringPlanId?: string;
+  recurringPlanStatus?: RecurringDonationPlanStatus;
+  redirectUrl?: string;
+  returnUrl?: string;
   paymentIntent?: Awaited<ReturnType<typeof stripeService.createPaymentIntent>>;
   mailchimpSynced?: boolean;
   idempotentReplay?: boolean;
@@ -466,9 +471,9 @@ export class PublicWebsiteFormService {
     component: PublishedComponent,
     identity: ContactIdentity,
     payload: Record<string, unknown>,
-    formKey: string
+    formKey: string,
+    context: PublicWebsiteFormRequestContext
   ): Promise<PublicWebsiteFormSubmissionOutcome> {
-    const { contactId } = await this.ensureContact(site, identity, ['donor']);
     const amountValue =
       typeof payload.amount === 'number'
         ? payload.amount
@@ -487,19 +492,89 @@ export class PublicWebsiteFormService {
     const recurringDefault =
       payload.recurring === true ||
       (payload.recurring === undefined && component.recurringDefault === true);
+    const normalizedAmount = Number(amountValue.toFixed(2));
+    const campaignName =
+      typeof component.campaignId === 'string' ? component.campaignId : undefined;
+
+    if (recurringDefault) {
+      if (!identity.email) {
+        throw new Error('Email is required for monthly donations');
+      }
+
+      if (!stripeService.isStripeConfigured()) {
+        throw new Error('Monthly donations require Stripe to be configured');
+      }
+
+      const { contactId } = await this.ensureContact(site, identity, ['donor']);
+
+      const checkoutPlan = await services.recurringDonation.createPublicCheckoutPlan({
+        organizationId: site.organizationId,
+        accountId:
+          (component.accountId as string | undefined) || site.organizationId || undefined,
+        contactId,
+        siteId: site.id,
+        formKey,
+        donorEmail: identity.email,
+        donorName: `${identity.firstName} ${identity.lastName}`.trim(),
+        donorPhone: identity.phone,
+        amount: normalizedAmount,
+        currency,
+        campaignName,
+        designation: typeof payload.designation === 'string' ? payload.designation : undefined,
+        notes: identity.message,
+        userId: site.ownerUserId || site.userId,
+        pagePath: context.pagePath || null,
+        visitorId: context.visitorId || null,
+        sessionId: context.sessionId || null,
+        referrer: context.referrer || null,
+        userAgent: context.userAgent || null,
+      });
+
+      return {
+        result: {
+          formType: component.type,
+          message: 'Redirecting you to secure checkout...',
+          contactId,
+          recurringPlanId: checkoutPlan.plan.recurring_plan_id,
+          recurringPlanStatus: checkoutPlan.plan.status,
+          redirectUrl: checkoutPlan.redirect_url,
+          returnUrl: checkoutPlan.return_url,
+        },
+        resultEntityType: 'contact',
+        resultEntityId: contactId,
+        activity: {
+          organizationId: site.organizationId,
+          siteId: site.id,
+          type: 'public_form_submission',
+          title: 'Recurring donation checkout started',
+          description: `${identity.firstName} ${identity.lastName}`.trim(),
+          userName: identity.email || `${identity.firstName} ${identity.lastName}`.trim(),
+          entityType: 'contact',
+          entityId: contactId,
+          metadata: {
+            amount: normalizedAmount,
+            currency,
+            recurring: true,
+            recurringPlanId: checkoutPlan.plan.recurring_plan_id,
+            status: checkoutPlan.plan.status,
+          },
+        },
+      };
+    }
+
+    const { contactId } = await this.ensureContact(site, identity, ['donor']);
 
     const donation = await services.donation.createDonation(
       {
         account_id: (component.accountId as string | undefined) || site.organizationId || undefined,
         contact_id: contactId,
-        amount: Number(amountValue.toFixed(2)),
+        amount: normalizedAmount,
         currency,
         donation_date: new Date().toISOString(),
         payment_method: 'credit_card',
         payment_status: 'pending',
         notes: identity.message,
-        campaign_name:
-          typeof component.campaignId === 'string' ? component.campaignId : undefined,
+        campaign_name: campaignName,
         is_recurring: recurringDefault,
         recurring_frequency: recurringDefault ? 'monthly' : 'one_time',
       },
@@ -609,7 +684,8 @@ export class PublicWebsiteFormService {
         'newsletter-signup': () => this.handleNewsletterSignup(site, component, identity),
         'volunteer-interest-form': () =>
           this.handleVolunteerInterest(site, component, identity, payload),
-        'donation-form': () => this.handleDonationForm(site, component, identity, payload, formKey),
+        'donation-form': () =>
+          this.handleDonationForm(site, component, identity, payload, formKey, context),
       };
 
       const outcome = await submitters[formType]();
@@ -625,6 +701,7 @@ export class PublicWebsiteFormService {
             status: 'accepted',
             contactId: outcome.result.contactId || null,
             donationId: outcome.result.donationId || null,
+            recurringPlanId: outcome.result.recurringPlanId || null,
           }),
         });
       }

@@ -76,3 +76,8 @@
 074	074_email_settings_starttls_defaults.sql	
 075	075_staff_backend_efficiency_search_indexes.sql	
 076	076_contact_note_outcome_tracking.sql	
+077	077_recurring_donation_processing.sql	
+078	078_team_messenger_split.sql	
+079	079_donation_tax_receipts_and_org_settings.sql	
+080	080_social_media_tracking.sql	
+081	081_messaging_client_message_ids.sql	

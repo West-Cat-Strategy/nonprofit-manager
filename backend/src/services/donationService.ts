@@ -22,8 +22,153 @@ import { activityEventService } from '@services/activityEventService';
 
 type QueryValue = string | number | boolean | Date | null | string[];
 
+const DONATION_SELECT_COLUMNS = `
+  d.id as donation_id,
+  d.donation_number,
+  d.account_id,
+  d.contact_id,
+  d.recurring_plan_id,
+  d.amount,
+  d.currency,
+  d.donation_date,
+  d.payment_method,
+  d.payment_status,
+  d.transaction_id,
+  d.stripe_subscription_id,
+  d.stripe_invoice_id,
+  d.campaign_name,
+  d.designation,
+  d.is_recurring,
+  d.recurring_frequency,
+  rdp.status as recurring_plan_status,
+  d.notes,
+  d.receipt_sent,
+  d.receipt_sent_date,
+  (
+    SELECT tr.id
+    FROM tax_receipt_items tri
+    INNER JOIN tax_receipts tr ON tr.id = tri.receipt_id
+    WHERE tri.donation_id = d.id
+      AND tri.official_coverage = true
+    ORDER BY tr.created_at DESC
+    LIMIT 1
+  ) as official_tax_receipt_id,
+  (
+    SELECT tr.receipt_number
+    FROM tax_receipt_items tri
+    INNER JOIN tax_receipts tr ON tr.id = tri.receipt_id
+    WHERE tri.donation_id = d.id
+      AND tri.official_coverage = true
+    ORDER BY tr.created_at DESC
+    LIMIT 1
+  ) as official_tax_receipt_number,
+  (
+    SELECT tr.kind
+    FROM tax_receipt_items tri
+    INNER JOIN tax_receipts tr ON tr.id = tri.receipt_id
+    WHERE tri.donation_id = d.id
+      AND tri.official_coverage = true
+      AND tr.kind <> 'annual_summary_reprint'
+    ORDER BY tr.created_at DESC
+    LIMIT 1
+  ) as official_tax_receipt_kind,
+  (
+    SELECT tr.issue_date::text
+    FROM tax_receipt_items tri
+    INNER JOIN tax_receipts tr ON tr.id = tri.receipt_id
+    WHERE tri.donation_id = d.id
+      AND tri.official_coverage = true
+    ORDER BY tr.created_at DESC
+    LIMIT 1
+  ) as official_tax_receipt_issued_at,
+  d.created_at,
+  d.updated_at,
+  d.created_by,
+  d.modified_by,
+  a.account_name,
+  CONCAT(c.first_name, ' ', c.last_name) as contact_name
+`;
+
+const DONATION_RETURNING_COLUMNS = `
+  id as donation_id,
+  donation_number,
+  account_id,
+  contact_id,
+  recurring_plan_id,
+  amount,
+  currency,
+  donation_date,
+  payment_method,
+  payment_status,
+  transaction_id,
+  stripe_subscription_id,
+  stripe_invoice_id,
+  campaign_name,
+  designation,
+  is_recurring,
+  recurring_frequency,
+  (SELECT status FROM recurring_donation_plans WHERE id = donations.recurring_plan_id) as recurring_plan_status,
+  notes,
+  receipt_sent,
+  receipt_sent_date,
+  (
+    SELECT tr.id
+    FROM tax_receipt_items tri
+    INNER JOIN tax_receipts tr ON tr.id = tri.receipt_id
+    WHERE tri.donation_id = donations.id
+      AND tri.official_coverage = true
+    ORDER BY tr.created_at DESC
+    LIMIT 1
+  ) as official_tax_receipt_id,
+  (
+    SELECT tr.receipt_number
+    FROM tax_receipt_items tri
+    INNER JOIN tax_receipts tr ON tr.id = tri.receipt_id
+    WHERE tri.donation_id = donations.id
+      AND tri.official_coverage = true
+    ORDER BY tr.created_at DESC
+    LIMIT 1
+  ) as official_tax_receipt_number,
+  (
+    SELECT tr.kind
+    FROM tax_receipt_items tri
+    INNER JOIN tax_receipts tr ON tr.id = tri.receipt_id
+    WHERE tri.donation_id = donations.id
+      AND tri.official_coverage = true
+      AND tr.kind <> 'annual_summary_reprint'
+    ORDER BY tr.created_at DESC
+    LIMIT 1
+  ) as official_tax_receipt_kind,
+  (
+    SELECT tr.issue_date::text
+    FROM tax_receipt_items tri
+    INNER JOIN tax_receipts tr ON tr.id = tri.receipt_id
+    WHERE tri.donation_id = donations.id
+      AND tri.official_coverage = true
+    ORDER BY tr.created_at DESC
+    LIMIT 1
+  ) as official_tax_receipt_issued_at,
+  created_at,
+  updated_at,
+  created_by,
+  modified_by
+`;
+
 export class DonationService {
   constructor(private pool: Pool) {}
+
+  private async hasOfficialTaxReceiptCoverage(donationId: string): Promise<boolean> {
+    const result = await this.pool.query<{ receipt_id: string }>(
+      `SELECT tri.receipt_id
+       FROM tax_receipt_items tri
+       WHERE tri.donation_id = $1
+         AND tri.official_coverage = true
+       LIMIT 1`,
+      [donationId]
+    );
+
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
 
   private isDonationNumberCollision(error: unknown): boolean {
     if (!error || typeof error !== 'object') {
@@ -211,32 +356,11 @@ export class DonationService {
     // Get paginated results with joined data
     const dataQuery = `
       SELECT 
-        d.id as donation_id,
-        d.donation_number,
-        d.account_id,
-        d.contact_id,
-        d.amount,
-        d.currency,
-        d.donation_date,
-        d.payment_method,
-        d.payment_status,
-        d.transaction_id,
-        d.campaign_name,
-        d.designation,
-        d.is_recurring,
-        d.recurring_frequency,
-        d.notes,
-        d.receipt_sent,
-        d.receipt_sent_date,
-        d.created_at,
-        d.updated_at,
-        d.created_by,
-        d.modified_by,
-        a.account_name,
-        CONCAT(c.first_name, ' ', c.last_name) as contact_name
+        ${DONATION_SELECT_COLUMNS}
       FROM donations d
       LEFT JOIN accounts a ON d.account_id = a.id
       LEFT JOIN contacts c ON d.contact_id = c.id
+      LEFT JOIN recurring_donation_plans rdp ON d.recurring_plan_id = rdp.id
       ${whereClause}
       ORDER BY ${sortColumn} ${sortOrder}
       LIMIT $${paramCount} OFFSET $${paramCount + 1}
@@ -266,32 +390,11 @@ export class DonationService {
   ): Promise<Donation | null> {
     const query = `
       SELECT 
-        d.id as donation_id,
-        d.donation_number,
-        d.account_id,
-        d.contact_id,
-        d.amount,
-        d.currency,
-        d.donation_date,
-        d.payment_method,
-        d.payment_status,
-        d.transaction_id,
-        d.campaign_name,
-        d.designation,
-        d.is_recurring,
-        d.recurring_frequency,
-        d.notes,
-        d.receipt_sent,
-        d.receipt_sent_date,
-        d.created_at,
-        d.updated_at,
-        d.created_by,
-        d.modified_by,
-        a.account_name,
-        CONCAT(c.first_name, ' ', c.last_name) as contact_name
+        ${DONATION_SELECT_COLUMNS}
       FROM donations d
       LEFT JOIN accounts a ON d.account_id = a.id
       LEFT JOIN contacts c ON d.contact_id = c.id
+      LEFT JOIN recurring_donation_plans rdp ON d.recurring_plan_id = rdp.id
       WHERE d.id = $1
     `;
 
@@ -329,12 +432,15 @@ export class DonationService {
     const {
       account_id,
       contact_id,
+      recurring_plan_id,
       amount,
       currency = 'CAD',
       donation_date,
       payment_method,
       payment_status = 'pending',
       transaction_id,
+      stripe_subscription_id,
+      stripe_invoice_id,
       campaign_name,
       designation,
       is_recurring = false,
@@ -349,33 +455,13 @@ export class DonationService {
 
     const query = `
       INSERT INTO donations (
-        donation_number, account_id, contact_id, amount, currency, donation_date,
-        payment_method, payment_status, transaction_id, campaign_name, designation,
-        is_recurring, recurring_frequency, notes, created_by, modified_by
+        donation_number, account_id, contact_id, recurring_plan_id, amount, currency, donation_date,
+        payment_method, payment_status, transaction_id, stripe_subscription_id, stripe_invoice_id,
+        campaign_name, designation, is_recurring, recurring_frequency, notes, created_by, modified_by
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $18)
       RETURNING 
-        id as donation_id,
-        donation_number,
-        account_id,
-        contact_id,
-        amount,
-        currency,
-        donation_date,
-        payment_method,
-        payment_status,
-        transaction_id,
-        campaign_name,
-        designation,
-        is_recurring,
-        recurring_frequency,
-        notes,
-        receipt_sent,
-        receipt_sent_date,
-        created_at,
-        updated_at,
-        created_by,
-        modified_by
+        ${DONATION_RETURNING_COLUMNS}
     `;
     const maxAttempts = 6;
 
@@ -387,12 +473,15 @@ export class DonationService {
           donation_number,
           account_id || null,
           contact_id || null,
+          recurring_plan_id || null,
           amount,
           currency,
           donation_date,
           payment_method || null,
           payment_status,
           transaction_id || null,
+          stripe_subscription_id || null,
+          stripe_invoice_id || null,
           campaign_name || null,
           designation || null,
           is_recurring,
@@ -450,6 +539,18 @@ export class DonationService {
     donationData: UpdateDonationDTO,
     userId: string
   ): Promise<Donation> {
+    if (
+      donationData.payment_status &&
+      ['refunded', 'cancelled'].includes(donationData.payment_status)
+    ) {
+      const hasReceiptCoverage = await this.hasOfficialTaxReceiptCoverage(donationId);
+      if (hasReceiptCoverage) {
+        throw new Error(
+          'Receipted donations cannot be marked refunded or cancelled until receipt reversal is supported'
+        );
+      }
+    }
+
     const fields: string[] = [];
     const values: QueryValue[] = [];
     let paramCount = 1;
@@ -479,27 +580,7 @@ export class DonationService {
       SET ${fields.join(', ')}
       WHERE id = $${paramCount}
       RETURNING 
-        id as donation_id,
-        donation_number,
-        account_id,
-        contact_id,
-        amount,
-        currency,
-        donation_date,
-        payment_method,
-        payment_status,
-        transaction_id,
-        campaign_name,
-        designation,
-        is_recurring,
-        recurring_frequency,
-        notes,
-        receipt_sent,
-        receipt_sent_date,
-        created_at,
-        updated_at,
-        created_by,
-        modified_by
+        ${DONATION_RETURNING_COLUMNS}
     `;
 
     const result = await this.pool.query(query, values);
@@ -528,27 +609,7 @@ export class DonationService {
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
       RETURNING 
-        id as donation_id,
-        donation_number,
-        account_id,
-        contact_id,
-        amount,
-        currency,
-        donation_date,
-        payment_method,
-        payment_status,
-        transaction_id,
-        campaign_name,
-        designation,
-        is_recurring,
-        recurring_frequency,
-        notes,
-        receipt_sent,
-        receipt_sent_date,
-        created_at,
-        updated_at,
-        created_by,
-        modified_by
+        ${DONATION_RETURNING_COLUMNS}
     `;
 
     const result = await this.pool.query(query, [userId, donationId]);

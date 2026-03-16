@@ -55,11 +55,13 @@ export class TeamChatApiClient {
 
   async sendCaseMessage(caseId: string, payload: TeamChatMessageCreateDTO): Promise<{
     room_id: string;
+    room?: TeamChatRoomDetail['room'];
     message: TeamChatRoomDetail['messages'][number];
   }> {
     const response = await api.post<
       ApiEnvelope<{
         room_id: string;
+        room?: TeamChatRoomDetail['room'];
         message: TeamChatRoomDetail['messages'][number];
       }>
     >(`/v2/team-chat/cases/${caseId}/messages`, payload);

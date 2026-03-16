@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import { PublicSiteRuntimeService } from '@services/publishing/publicSiteRuntimeService';
+import { buildPublicFormRuntimeScript } from '@modules/publishing/services/publicSiteRuntime/shared';
 
 jest.mock('@modules/events/services/eventService', () => ({
   __mocks: {
@@ -251,5 +252,9 @@ describe('PublicSiteRuntimeService', () => {
 
     expect(html).toContain('March Update');
     expect(html).toContain('<p>Highlights from March.</p>');
+  });
+
+  it('includes redirect handling for recurring donation checkout responses in the public form runtime', () => {
+    expect(buildPublicFormRuntimeScript()).toContain('window.location.assign(result.redirectUrl)');
   });
 });

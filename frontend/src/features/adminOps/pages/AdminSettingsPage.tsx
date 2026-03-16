@@ -92,13 +92,18 @@ export default function AdminSettings() {
     loadOrganizationData,
     handleChange,
     handleAddressChange,
+    handleTaxReceiptChange,
+    handleTaxReceiptAddressChange,
     handlePhoneChange,
+    handleTaxReceiptPhoneChange,
     handleBrandingChange,
     handleImageUpload,
     handleSaveOrganization,
     handleSaveBranding,
     isOrganizationDirty,
     isBrandingDirty,
+    taxReceiptMissingFields,
+    isTaxReceiptComplete,
   } = useOrganizationSettings({
     initialMode: persistedMode,
     setGlobalBranding,
@@ -351,12 +356,17 @@ export default function AdminSettings() {
               config={config}
               onChange={handleChange}
               onAddressChange={handleAddressChange}
+              onTaxReceiptChange={handleTaxReceiptChange}
+              onTaxReceiptAddressChange={handleTaxReceiptAddressChange}
               onPhoneChange={handlePhoneChange}
+              onTaxReceiptPhoneChange={handleTaxReceiptPhoneChange}
               onSave={handleSaveOrganization}
               isSaving={isSaving}
               saveStatus={saveStatus}
               isDirty={isOrganizationDirty}
               lastSavedAt={organizationLastSavedAt}
+              taxReceiptMissingFields={taxReceiptMissingFields}
+              isTaxReceiptComplete={isTaxReceiptComplete}
             />
           )}
 

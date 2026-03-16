@@ -3,6 +3,11 @@ import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
 import { sendError, sendSuccess } from '@modules/shared/http/envelope';
 import { hasStaticPermissionAccess } from '@services/authorization';
+import {
+  isTeamChatRealtimeEnabled,
+  openTeamChatRealtimeStream,
+  publishTeamChatRoomEvent,
+} from '@services/teamChatRealtimeService';
 import { Permission } from '@utils/permissions';
 import type {
   TeamChatAddMemberDTO,
@@ -168,6 +173,22 @@ export const createTeamChatController = (useCase: TeamChatUseCase) => {
       const payload = req.body as TeamChatMessageCreateDTO;
       const result = await useCase.createMessage(params.caseId, actor, payload);
 
+      publishTeamChatRoomEvent({
+        organizationId: actor.organizationId,
+        participantUserIds: result.participant_user_ids,
+        roomId: result.room_id,
+        roomType: 'case',
+        eventName: TeamChatEventName.MESSAGE_CREATED,
+        payload: {
+          room_id: result.room_id,
+          room_type: 'case',
+          actor_user_id: actor.userId,
+          client_message_id: result.message.client_message_id,
+          message: result.message,
+          room: result.room,
+        },
+      });
+
       logger.info('Team chat message created', {
         action: TeamChatEventName.MESSAGE_CREATED,
         caseId: params.caseId,
@@ -180,7 +201,15 @@ export const createTeamChatController = (useCase: TeamChatUseCase) => {
         requestId: req.correlationId,
       });
 
-      sendSuccess(res, result, 201);
+      sendSuccess(
+        res,
+        {
+          room_id: result.room_id,
+          room: result.room,
+          message: result.message,
+        },
+        201
+      );
     } catch (error) {
       handleControllerError(req, res, error, 'Failed to send message');
     }
@@ -197,6 +226,22 @@ export const createTeamChatController = (useCase: TeamChatUseCase) => {
       const payload = req.body as TeamChatMarkReadDTO;
       const result = await useCase.markRead(params.caseId, actor, payload);
 
+      publishTeamChatRoomEvent({
+        organizationId: actor.organizationId,
+        participantUserIds: result.participant_user_ids,
+        roomId: result.room_id,
+        roomType: 'case',
+        eventName: TeamChatEventName.ROOM_READ,
+        payload: {
+          room_id: result.room_id,
+          room_type: 'case',
+          actor_user_id: actor.userId,
+          last_read_at: result.last_read_at,
+          last_read_message_id: result.last_read_message_id,
+          room: result.room,
+        },
+      });
+
       logger.info('Team chat read cursor updated', {
         action: TeamChatEventName.ROOM_READ,
         caseId: params.caseId,
@@ -210,7 +255,14 @@ export const createTeamChatController = (useCase: TeamChatUseCase) => {
         requestId: req.correlationId,
       });
 
-      sendSuccess(res, result);
+      sendSuccess(res, {
+        room_id: result.room_id,
+        room: result.room,
+        last_read_at: result.last_read_at,
+        last_read_message_id: result.last_read_message_id,
+        unread_count: result.unread_count,
+        unread_mentions_count: result.unread_mentions_count,
+      });
     } catch (error) {
       handleControllerError(req, res, error, 'Failed to mark room read');
     }
@@ -257,6 +309,23 @@ export const createTeamChatController = (useCase: TeamChatUseCase) => {
         requestId: req.correlationId,
       });
 
+      if (addedMember?.room_id) {
+        publishTeamChatRoomEvent({
+          organizationId: actor.organizationId,
+          participantUserIds: members.map((member) => member.user_id),
+          roomId: addedMember.room_id,
+          roomType: 'case',
+          eventName: TeamChatEventName.MEMBER_ADDED,
+          payload: {
+            room_id: addedMember.room_id,
+            room_type: 'case',
+            actor_user_id: actor.userId,
+            target_user_id: payload.user_id,
+            members,
+          },
+        });
+      }
+
       sendSuccess(res, {
         members,
       });
@@ -290,9 +359,65 @@ export const createTeamChatController = (useCase: TeamChatUseCase) => {
         requestId: req.correlationId,
       });
 
+      const roomId = result.members[0]?.room_id || null;
+      if (roomId) {
+        publishTeamChatRoomEvent({
+          organizationId: actor.organizationId,
+          participantUserIds: result.members.map((member) => member.user_id),
+          roomId,
+          roomType: 'case',
+          eventName: TeamChatEventName.MEMBER_REMOVED,
+          payload: {
+            room_id: roomId,
+            room_type: 'case',
+            actor_user_id: actor.userId,
+            target_user_id: params.userId,
+            removed: result.removed,
+            members: result.members,
+          },
+        });
+      }
+
       sendSuccess(res, result);
     } catch (error) {
       handleControllerError(req, res, error, 'Failed to remove room member');
+    }
+  };
+
+  const stream = async (req: AuthRequest, res: Response): Promise<void> => {
+    const actor = buildActor(req, res);
+    if (!actor) return;
+
+    try {
+      if (!isTeamChatRealtimeEnabled()) {
+        sendError(
+          res,
+          'TEAM_CHAT_REALTIME_DISABLED',
+          'Case chat realtime stream is disabled',
+          404,
+          undefined,
+          req.correlationId
+        );
+        return;
+      }
+
+      const params = ((req as unknown as { validatedParams?: { caseId: string } }).validatedParams ||
+        req.params) as { caseId: string };
+      const query = (req.validatedQuery ?? req.query) as { channels?: string };
+      const streamContext = await useCase.getCaseStreamContext(params.caseId, actor);
+
+      openTeamChatRealtimeStream({
+        req,
+        res,
+        organizationId: actor.organizationId,
+        userId: actor.userId,
+        channelsRaw: typeof query.channels === 'string' ? query.channels : undefined,
+        allowedChannels: ['messages', 'read', 'members'],
+        roomTypes: ['case'],
+        roomIds: [streamContext.room_id],
+      });
+    } catch (error) {
+      handleControllerError(req, res, error, 'Failed to open case chat stream');
     }
   };
 
@@ -302,6 +427,7 @@ export const createTeamChatController = (useCase: TeamChatUseCase) => {
     getCaseRoom,
     listMessages,
     createMessage,
+    stream,
     markRead,
     listMembers,
     addMember,

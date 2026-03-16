@@ -29,6 +29,7 @@ jest.mock('@container/services', () => ({
     createContact: jest.fn(),
     createVolunteer: jest.fn(),
     createDonation: jest.fn(),
+    createPublicCheckoutPlan: jest.fn(),
   },
   services: {
     contact: {
@@ -62,6 +63,17 @@ jest.mock('@container/services', () => ({
         };
 
         return module.__mocks.createDonation(...args);
+      },
+    },
+    recurringDonation: {
+      createPublicCheckoutPlan: (...args: unknown[]) => {
+        const module = jest.requireMock('@container/services') as {
+          __mocks: {
+            createPublicCheckoutPlan: jest.Mock;
+          };
+        };
+
+        return module.__mocks.createPublicCheckoutPlan(...args);
       },
     },
   },
@@ -180,6 +192,7 @@ const servicesModule = jest.requireMock('@container/services') as {
     createContact: jest.Mock;
     createVolunteer: jest.Mock;
     createDonation: jest.Mock;
+    createPublicCheckoutPlan: jest.Mock;
   };
 };
 
@@ -310,6 +323,7 @@ describe('PublicWebsiteFormService', () => {
     servicesModule.__mocks.createContact.mockReset();
     servicesModule.__mocks.createVolunteer.mockReset();
     servicesModule.__mocks.createDonation.mockReset();
+    servicesModule.__mocks.createPublicCheckoutPlan.mockReset();
     operationsModule.__mocks.isStripeConfigured.mockReset();
     operationsModule.__mocks.createPaymentIntent.mockReset();
     mailchimpModule.__mocks.addOrUpdateMember.mockReset();
@@ -502,5 +516,101 @@ describe('PublicWebsiteFormService', () => {
     expect(servicesModule.__mocks.createContact).not.toHaveBeenCalled();
     expect(publicSubmissionModule.__mocks.markAccepted).not.toHaveBeenCalled();
     expect(activityEventsModule.__mocks.recordEvent).not.toHaveBeenCalled();
+  });
+
+  it('creates a recurring checkout plan instead of a pending donation when monthly giving is selected', async () => {
+    const site = {
+      ...baseSite,
+      publishedContent: {
+        ...baseSite.publishedContent,
+        pages: [
+          {
+            ...baseSite.publishedContent.pages[0],
+            sections: [
+              {
+                id: 'section-1',
+                name: 'Forms',
+                components: [
+                  {
+                    id: 'donation-form-1',
+                    type: 'donation-form',
+                    campaignId: 'monthly-donors',
+                    recurringDefault: true,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
+    servicesModule.__mocks.createPublicCheckoutPlan.mockResolvedValue({
+      plan: {
+        recurring_plan_id: 'plan-1',
+        status: 'checkout_pending',
+      },
+      redirect_url: 'https://checkout.stripe.com/pay/test-session',
+      return_url: 'https://site.example.org/donate',
+    });
+    operationsModule.__mocks.isStripeConfigured.mockReturnValue(true);
+
+    const result = await service.submitForm(
+      site as never,
+      'donation-form-1',
+      {
+        first_name: 'Ada',
+        last_name: 'Lovelace',
+        email: 'Ada@example.com',
+        amount: '25',
+        recurring: true,
+      },
+      {
+        pagePath: '/donate',
+        visitorId: 'visitor-1',
+        sessionId: 'session-1',
+        referrer: 'https://site.example.org/donate',
+        userAgent: 'Mozilla/5.0',
+      }
+    );
+
+    expect(servicesModule.__mocks.createDonation).not.toHaveBeenCalled();
+    expect(servicesModule.__mocks.createPublicCheckoutPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        contactId: 'contact-1',
+        siteId: 'site-1',
+        formKey: 'donation-form-1',
+        donorEmail: 'ada@example.com',
+        amount: 25,
+        currency: 'CAD',
+        campaignName: 'monthly-donors',
+        pagePath: '/donate',
+        visitorId: 'visitor-1',
+        sessionId: 'session-1',
+        referrer: 'https://site.example.org/donate',
+        userAgent: 'Mozilla/5.0',
+      })
+    );
+    expect(result).toEqual({
+      formType: 'donation-form',
+      message: 'Redirecting you to secure checkout...',
+      contactId: 'contact-1',
+      recurringPlanId: 'plan-1',
+      recurringPlanStatus: 'checkout_pending',
+      redirectUrl: 'https://checkout.stripe.com/pay/test-session',
+      returnUrl: 'https://site.example.org/donate',
+    });
+    expect(publicSubmissionModule.__mocks.markAccepted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        submissionId: 'submission-1',
+        resultEntityType: 'contact',
+        resultEntityId: 'contact-1',
+        auditMetadata: expect.objectContaining({
+          recurringPlanId: 'plan-1',
+        }),
+      })
+    );
   });
 });

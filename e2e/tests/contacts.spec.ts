@@ -5,7 +5,7 @@
 
 import { test, expect } from '../fixtures/auth.fixture';
 import type { APIResponse, Page } from '@playwright/test';
-import { createTestContact, clearDatabase } from '../helpers/database';
+import { createTestContact, createTestEvent, clearDatabase } from '../helpers/database';
 
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 const apiURL = process.env.API_URL || 'http://localhost:3001';
@@ -474,21 +474,252 @@ test.describe('Contacts Module', () => {
     await waitForContactDetailReady(authenticatedPage, new RegExp(`${firstName} ${lastName}`, 'i'));
 
     await authenticatedPage.getByRole('tab', { name: /notes/i }).click();
-    await expect(authenticatedPage.getByText(/no notes yet/i)).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-notes').getByText(/notes timeline/i)).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-notes').getByText(/no notes yet/i)).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /tasks/i }).click();
-    await expect(authenticatedPage.getByRole('heading', { name: /^tasks$/i })).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-tasks').getByRole('button', { name: /new task/i })).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-tasks').getByText(/no tasks yet/i)).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /activity/i }).click();
-    await expect(authenticatedPage.getByText(/no activity yet for this person|loading activity/i)).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-activity').getByText(/activity timeline/i)).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-activity').getByText(/no activity yet|loading activity/i)).toBeVisible();
+
+    await authenticatedPage.getByRole('tab', { name: /communications/i }).click();
+    await expect(authenticatedPage.locator('#tabpanel-communications').getByText(/^communications$/i)).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-communications').getByText(/no communications yet/i)).toBeVisible();
+
+    await authenticatedPage.getByRole('tab', { name: /follow-ups/i }).click();
+    await expect(authenticatedPage.locator('#tabpanel-followups').getByText(/^follow-ups$/i)).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-followups').getByText(/no follow-ups scheduled/i)).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /documents/i }).click();
-    await expect(authenticatedPage.getByText(/no documents uploaded yet/i)).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-documents').getByText(/^documents$/i)).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-documents').getByText(/no documents uploaded yet/i)).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /payments/i }).click();
     await expect(
-      authenticatedPage.getByRole('heading', { name: /payment history/i }).first()
+      authenticatedPage.locator('#tabpanel-payments').getByRole('heading', { name: /payment history/i }).first()
     ).toBeVisible();
+  });
+
+  test('should create tasks from the contact detail page', async ({ authenticatedPage, authToken }) => {
+    const suffix = uniqueSuffix();
+    const taskSubject = `Contact task ${suffix}`;
+    const { id } = await createTestContact(authenticatedPage, authToken, {
+      firstName: `Task${suffix}`,
+      lastName: 'Contact',
+      email: `task.${suffix}@example.com`,
+      phone: '5550203333',
+    });
+
+    await waitForContactAvailability(authenticatedPage, authToken, id);
+    await authenticatedPage.goto(`/contacts/${id}`);
+    await waitForContactDetailReady(authenticatedPage);
+
+    await authenticatedPage.getByRole('tab', { name: /tasks/i }).click();
+    await authenticatedPage.getByRole('button', { name: /new task/i }).click();
+    await authenticatedPage.getByLabel(/subject/i).fill(taskSubject);
+    await authenticatedPage.getByLabel(/details/i).fill('Created from the contact detail tab');
+    await authenticatedPage.getByLabel(/due date/i).fill('2026-03-16T09:30');
+
+    const createTaskResponse = authenticatedPage.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && response.url().includes('/api/v2/tasks'),
+      { timeout: 30000 }
+    );
+
+    await authenticatedPage.getByRole('button', { name: /create task/i }).click();
+
+    const response = await createTaskResponse;
+    expect(response.ok()).toBeTruthy();
+    await expect(authenticatedPage.getByText(taskSubject)).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage.getByRole('link', { name: /open task/i })).toBeVisible();
+  });
+
+  test('should render event reminder history in the communications tab', async ({
+    authenticatedPage,
+    authToken,
+  }) => {
+    const suffix = uniqueSuffix();
+    const eventName = `Reminder Event ${suffix}`;
+    const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
+      firstName: `Comms${suffix}`,
+      lastName: 'Contact',
+      email: `comms.${suffix}@example.com`,
+      phone: '5550206666',
+    });
+    const { id: eventId } = await createTestEvent(authenticatedPage, authToken, {
+      name: eventName,
+      startDate: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+    });
+
+    await authenticatedPage.route(
+      `**/api/v2/contacts/${contactId}/communications**`,
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: {
+              items: [
+                {
+                  id: 'event-comm',
+                  channel: 'email',
+                  source_type: 'event_reminder',
+                  delivery_status: 'skipped',
+                  recipient: `comms.${suffix}@example.com`,
+                  error_message: 'SMTP not configured',
+                  message_preview: `Reminder: ${eventName} starts soon.`,
+                  trigger_type: 'manual',
+                  sent_at: new Date().toISOString(),
+                  appointment_id: null,
+                  case_id: null,
+                  event_id: eventId,
+                  registration_id: 'registration-1',
+                  source_label: eventName,
+                  source_subtitle: 'Reminder history seed',
+                  action: {
+                    type: 'open_event',
+                    label: 'Open event',
+                    event_id: eventId,
+                  },
+                },
+              ],
+              total: 1,
+              filters: {},
+            },
+          }),
+        });
+      }
+    );
+
+    await authenticatedPage.goto(`/contacts/${contactId}`);
+    await waitForContactDetailReady(authenticatedPage);
+    await authenticatedPage.getByRole('tab', { name: /communications/i }).click();
+
+    await expect(authenticatedPage.getByText(eventName)).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage.getByRole('link', { name: /open event/i })).toHaveAttribute(
+      'href',
+      `/events/${eventId}`
+    );
+  });
+
+  test('should only show appointment resend actions when the communication is safe', async ({
+    authenticatedPage,
+    authToken,
+  }) => {
+    const suffix = uniqueSuffix();
+    const { id } = await createTestContact(authenticatedPage, authToken, {
+      firstName: `Action${suffix}`,
+      lastName: 'Contact',
+      email: `action.${suffix}@example.com`,
+      phone: '5550207777',
+    });
+    let reminderSendCount = 0;
+
+    await authenticatedPage.route(
+      `**/api/v2/contacts/${id}/communications**`,
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: {
+              items: [
+                {
+                  id: 'safe-comm',
+                  channel: 'email',
+                  source_type: 'appointment_reminder',
+                  delivery_status: 'sent',
+                  recipient: 'action@example.com',
+                  error_message: null,
+                  message_preview: 'Reminder for your intake appointment',
+                  trigger_type: 'manual',
+                  sent_at: new Date().toISOString(),
+                  appointment_id: 'appointment-safe',
+                  case_id: 'case-safe',
+                  event_id: null,
+                  registration_id: null,
+                  source_label: 'Intake appointment',
+                  source_subtitle: 'Safe to resend',
+                  action: {
+                    type: 'send_appointment_reminder',
+                    label: 'Send email reminder again',
+                    appointment_id: 'appointment-safe',
+                    case_id: 'case-safe',
+                  },
+                },
+                {
+                  id: 'unsafe-comm',
+                  channel: 'sms',
+                  source_type: 'appointment_reminder',
+                  delivery_status: 'skipped',
+                  recipient: '+15555550100',
+                  error_message: 'Appointment start time has passed',
+                  message_preview: 'Reminder for a completed appointment',
+                  trigger_type: 'automated',
+                  sent_at: new Date().toISOString(),
+                  appointment_id: 'appointment-unsafe',
+                  case_id: 'case-unsafe',
+                  event_id: null,
+                  registration_id: null,
+                  source_label: 'Completed appointment',
+                  source_subtitle: 'Not safe to resend',
+                  action: {
+                    type: 'none',
+                    label: 'Unavailable',
+                    appointment_id: 'appointment-unsafe',
+                    case_id: 'case-unsafe',
+                    disabled_reason: 'Appointment start time has passed',
+                  },
+                },
+              ],
+              total: 2,
+              filters: {},
+            },
+          }),
+        });
+      }
+    );
+
+    await authenticatedPage.route(
+      '**/api/v2/portal/admin/appointments/appointment-safe/reminders/send**',
+      async (route) => {
+        reminderSendCount += 1;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            data: {
+              summary: {
+                email: { attempted: 1, sent: 1, failed: 0, skipped: 0 },
+                sms: { attempted: 0, sent: 0, failed: 0, skipped: 0 },
+              },
+            },
+          }),
+        });
+      }
+    );
+
+    await waitForContactAvailability(authenticatedPage, authToken, id);
+    await authenticatedPage.goto(`/contacts/${id}`);
+    await waitForContactDetailReady(authenticatedPage);
+    await authenticatedPage.getByRole('tab', { name: /communications/i }).click();
+
+    await expect(
+      authenticatedPage.getByRole('button', { name: /send email reminder again/i })
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: /send sms reminder again/i })
+    ).toHaveCount(0);
+    await expect(authenticatedPage.getByText(/appointment start time has passed/i)).toBeVisible();
+
+    await authenticatedPage.getByRole('button', { name: /send email reminder again/i }).click();
+    await expect.poll(() => reminderSendCount).toBe(1);
   });
 
   test('should support cancel navigation in create and edit forms', async ({

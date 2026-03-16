@@ -21,7 +21,53 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../../../services/api', () => ({
   default: {
     get: vi.fn((url: string) => {
-      if (url === '/auth/preferences') return Promise.resolve({ data: { preferences: {} } });
+      if (url === '/admin/organization-settings') {
+        return Promise.resolve({
+          data: {
+            organizationId: 'org-1',
+            createdAt: '2026-03-15T00:00:00.000Z',
+            updatedAt: '2026-03-15T00:00:00.000Z',
+            config: {
+              name: 'West Cat',
+              email: 'hello@example.com',
+              phone: '(604) 555-1000',
+              website: 'https://example.com',
+              address: {
+                line1: '1 Main',
+                line2: '',
+                city: 'Vancouver',
+                province: 'BC',
+                postalCode: 'V6B 1A1',
+                country: 'Canada',
+              },
+              timezone: 'America/Vancouver',
+              dateFormat: 'YYYY-MM-DD',
+              currency: 'CAD',
+              fiscalYearStart: '04',
+              measurementSystem: 'metric',
+              phoneFormat: 'canadian',
+              taxReceipt: {
+                legalName: 'West Cat Society',
+                charitableRegistrationNumber: '',
+                receiptingAddress: {
+                  line1: '',
+                  line2: '',
+                  city: '',
+                  province: '',
+                  postalCode: '',
+                  country: 'Canada',
+                },
+                receiptIssueLocation: '',
+                authorizedSignerName: '',
+                authorizedSignerTitle: '',
+                contactEmail: '',
+                contactPhone: '',
+                advantageAmount: 0,
+              },
+            },
+          },
+        });
+      }
       if (url === '/admin/branding') return Promise.resolve({ data: {} });
       if (url === '/admin/roles') return Promise.resolve({ data: { roles: [] } });
       return Promise.resolve({ data: {} });

@@ -1,8 +1,64 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createClientMessageId, shouldSubmitComposer } from '../../features/messaging/composer';
+import { usePersistedMessageDraft } from '../../features/messaging/drafts';
+import { pickPreferredMessageVersion } from '../../features/messaging/messageMerge';
 import { useToast } from '../../contexts/useToast';
 import { casesApiClient } from '../../features/cases/api/casesApiClient';
+import usePortalRealtimeStream from '../../features/portal/client/usePortalRealtimeStream';
 import type { CasePortalConversation } from '../../types/case';
 import type { OutcomeDefinition } from '../../types/outcomes';
+
+const TEMP_PREFIX = 'temp-case-portal-message-';
+
+const mergeConversationMessages = (
+  messages: CasePortalConversation['messages']
+): CasePortalConversation['messages'] => {
+  const byKey = new Map<string, CasePortalConversation['messages'][number]>();
+
+  for (const message of messages) {
+    const key =
+      message.id.startsWith(TEMP_PREFIX) && message.client_message_id
+        ? `client:${message.client_message_id}`
+        : `id:${message.id}`;
+    const existing = byKey.get(key);
+
+    if (!existing) {
+      byKey.set(key, message);
+      continue;
+    }
+
+    byKey.set(key, pickPreferredMessageVersion(existing, message));
+  }
+
+  return Array.from(byKey.values()).sort(
+    (left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
+  );
+};
+
+const mergeConversations = (
+  conversations: CasePortalConversation[],
+  nextConversation: CasePortalConversation
+): CasePortalConversation[] => {
+  const next = [
+    nextConversation,
+    ...conversations.filter((entry) => entry.thread.id !== nextConversation.thread.id),
+  ];
+  next.sort(
+    (left, right) =>
+      new Date(right.thread.last_message_at).getTime() -
+      new Date(left.thread.last_message_at).getTime()
+  );
+  return next;
+};
+
+const updateConversationById = (
+  conversations: CasePortalConversation[],
+  threadId: string,
+  updater: (conversation: CasePortalConversation) => CasePortalConversation
+): CasePortalConversation[] =>
+  conversations.map((conversation) =>
+    conversation.thread.id === threadId ? updater(conversation) : conversation
+  );
 
 interface CasePortalConversationsProps {
   caseId: string;
@@ -37,6 +93,15 @@ export default function CasePortalConversations({
     () => conversations.find((entry) => entry.thread.id === selectedThreadId) || null,
     [conversations, selectedThreadId]
   );
+  const {
+    draft: persistedReplyDraft,
+    setDraft: setPersistedReplyDraft,
+    clearDraft: clearPersistedReplyDraft,
+  } = usePersistedMessageDraft('portal-case', selectedThreadId);
+
+  useEffect(() => {
+    setReplyMessage(persistedReplyDraft);
+  }, [persistedReplyDraft]);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -64,6 +129,52 @@ export default function CasePortalConversations({
     void loadConversations();
   }, [loadConversations]);
 
+  usePortalRealtimeStream({
+    endpointPath: '/v2/portal/admin/stream',
+    channels: ['conversations'],
+    onEvent: (_eventName, payload) => {
+      if (payload.case_id !== caseId || !payload.thread) {
+        return;
+      }
+
+      setConversations((current) => {
+        const existing = current.find((entry) => entry.thread.id === payload.thread!.id);
+        if (!existing) {
+          return current;
+        }
+
+        const nextConversation: CasePortalConversation = {
+          thread: {
+            ...existing.thread,
+            id: payload.thread.id,
+            subject: payload.thread.subject,
+            status: payload.thread.status as CasePortalConversation['thread']['status'],
+            case_id: payload.thread.case_id,
+            case_number: payload.thread.case_number,
+            case_title: payload.thread.case_title,
+            contact_id: payload.thread.contact_id,
+            last_message_at: payload.thread.last_message_at,
+            unread_count: payload.thread.staff_unread_count,
+            portal_email: payload.thread.portal_email,
+          },
+          messages: payload.message
+            ? mergeConversationMessages([
+                ...existing.messages,
+                {
+                  ...payload.message,
+                  send_state: 'sent',
+                  send_error: null,
+                  optimistic: false,
+                },
+              ])
+            : existing.messages,
+        };
+
+        return mergeConversations(current, nextConversation);
+      });
+    },
+  });
+
   const resetResolutionForm = () => {
     setShowResolveForm(false);
     setResolutionNote('');
@@ -72,30 +183,95 @@ export default function CasePortalConversations({
     setCloseStatus('closed');
   };
 
-  const handleReply = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (!selectedConversation || !replyMessage.trim()) {
+  const submitReply = async (input: {
+    body: string;
+    clientMessageId?: string;
+    preserveDraft?: boolean;
+  } = { body: replyMessage }): Promise<void> => {
+    if (!selectedConversation || !input.body.trim()) {
       return;
     }
 
+    const clientMessageId = input.clientMessageId || createClientMessageId();
+    const optimisticMessage = {
+      id: `${TEMP_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      sender_type: 'staff' as const,
+      sender_display_name: 'Staff',
+      message_text: input.body.trim(),
+      is_internal: replyInternal,
+      client_message_id: clientMessageId,
+      created_at: new Date().toISOString(),
+      send_state: 'sending' as const,
+      send_error: null,
+      optimistic: true,
+    };
+
     setSaving(true);
     try {
-      await casesApiClient.replyCasePortalConversation(caseId, selectedConversation.thread.id, {
-        message: replyMessage.trim(),
+      setConversations((current) =>
+        updateConversationById(current, selectedConversation.thread.id, (conversation) => ({
+          ...conversation,
+          messages: mergeConversationMessages([...conversation.messages, optimisticMessage]),
+        }))
+      );
+
+      const response = await casesApiClient.replyCasePortalConversation(caseId, selectedConversation.thread.id, {
+        message: input.body.trim(),
         is_internal: replyInternal,
+        client_message_id: clientMessageId,
       });
       setReplyMessage('');
+      if (!input.preserveDraft) {
+        clearPersistedReplyDraft();
+      }
       setReplyInternal(false);
+      setConversations((current) =>
+        updateConversationById(current, selectedConversation.thread.id, (conversation) => ({
+          ...conversation,
+          messages: mergeConversationMessages(
+            conversation.messages.map((message) =>
+              message.client_message_id === clientMessageId
+                ? {
+                    ...response.message,
+                    send_state: 'sent',
+                    send_error: null,
+                    optimistic: false,
+                  }
+                : message
+            )
+          ),
+        }))
+      );
       showSuccess('Reply sent.');
-      await loadConversations();
       onChanged?.();
     } catch (error) {
+      setConversations((current) =>
+        updateConversationById(current, selectedConversation.thread.id, (conversation) => ({
+          ...conversation,
+          messages: mergeConversationMessages(
+            conversation.messages.map((message) =>
+              message.client_message_id === clientMessageId
+                ? {
+                    ...message,
+                    send_state: 'failed',
+                    send_error: error instanceof Error ? error.message : 'Could not send reply.',
+                    optimistic: true,
+                  }
+                : message
+            )
+          ),
+        }))
+      );
       console.error('Failed to send portal conversation reply', error);
       showError('Could not send reply.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleReply = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await submitReply();
   };
 
   const handleResolve = async (event: React.FormEvent) => {
@@ -233,6 +409,26 @@ export default function CasePortalConversations({
                     {message.is_internal && ' • Internal'}
                   </div>
                   <div className="mt-1 whitespace-pre-wrap">{message.message_text}</div>
+                  {(message.send_state === 'sending' || message.send_state === 'failed') && (
+                    <div className="mt-2 text-[11px] opacity-80">
+                      {message.send_state === 'sending' ? 'Sending...' : 'Failed to send'}
+                    </div>
+                  )}
+                  {message.send_state === 'failed' && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void submitReply({
+                          body: message.message_text,
+                          clientMessageId: message.client_message_id || undefined,
+                          preserveDraft: true,
+                        })
+                      }
+                      className="mt-2 rounded border border-current px-2 py-1 text-[11px] font-semibold"
+                    >
+                      Retry
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -316,7 +512,16 @@ export default function CasePortalConversations({
             <form onSubmit={handleReply} className="border-t border-app-border p-4 space-y-3">
               <textarea
                 value={replyMessage}
-                onChange={(event) => setReplyMessage(event.target.value)}
+                onChange={(event) => {
+                  setReplyMessage(event.target.value);
+                  setPersistedReplyDraft(event.target.value);
+                }}
+                onKeyDown={(event) => {
+                  if (shouldSubmitComposer(event)) {
+                    event.preventDefault();
+                    void submitReply();
+                  }
+                }}
                 rows={3}
                 placeholder="Reply to this conversation"
                 className="w-full rounded-md border border-app-input-border px-3 py-2"

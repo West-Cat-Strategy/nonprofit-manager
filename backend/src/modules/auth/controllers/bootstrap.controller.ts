@@ -4,6 +4,7 @@ import type { AuthRequest } from '@middleware/auth';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { serverError } from '@utils/responseHelpers';
 import { getOrganizationBrandingConfig } from '@modules/admin/lib/brandingStore';
+import { findOrganizationSettings } from '@modules/admin/lib/organizationSettingsStore';
 import {
   getCurrentAuthUserById,
   getUserPreferences,
@@ -24,15 +25,18 @@ const readTrimmedString = (value: unknown): string | null => {
 };
 
 const pickStartupPreferences = (
-  preferences: Record<string, unknown> | null
+  preferences: Record<string, unknown> | null,
+  organizationTimezone?: string | null
 ): Record<string, unknown> => {
   if (!preferences) {
-    return {};
+    return organizationTimezone ? { timezone: organizationTimezone } : {};
   }
 
   const organization = isPlainObject(preferences.organization) ? preferences.organization : null;
   const timezone =
-    readTrimmedString(organization?.timezone) ?? readTrimmedString(preferences.timezone);
+    readTrimmedString(organization?.timezone) ??
+    readTrimmedString(preferences.timezone) ??
+    readTrimmedString(organizationTimezone);
 
   const startupPreferences: Record<string, unknown> = {};
 
@@ -62,10 +66,9 @@ export const getBootstrap = async (
       return;
     }
 
-    const [user, preferences, branding] = await Promise.all([
+    const [user, preferences] = await Promise.all([
       getCurrentAuthUserById(authUser.id),
       getUserPreferences(authUser.id),
-      getOrganizationBrandingConfig(),
     ]);
 
     if (!user) {
@@ -76,6 +79,11 @@ export const getBootstrap = async (
     if (organizationId === undefined) {
       return;
     }
+
+    const [branding, organizationSettings] = await Promise.all([
+      getOrganizationBrandingConfig(),
+      organizationId ? findOrganizationSettings(organizationId) : Promise.resolve(null),
+    ]);
 
     return sendSuccess(res, {
       user: {
@@ -88,7 +96,7 @@ export const getBootstrap = async (
       },
       organizationId: organizationId ?? null,
       branding,
-      preferences: pickStartupPreferences(preferences),
+      preferences: pickStartupPreferences(preferences, organizationSettings?.config.timezone ?? null),
     });
   } catch (error) {
     logger.error('Failed to fetch auth bootstrap payload', { error });

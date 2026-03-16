@@ -23,6 +23,7 @@ export interface TeamChatMessage {
   sender_last_name: string | null;
   body: string;
   parent_message_id: string | null;
+  client_message_id: string | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
   edited_at: string | null;
@@ -65,6 +66,7 @@ export interface TeamChatMessageListResult {
 export interface TeamChatMessageCreateDTO {
   body: string;
   parent_message_id?: string | null;
+  client_message_id?: string;
   mention_user_ids?: string[];
 }
 
@@ -85,6 +87,7 @@ export interface TeamChatAddMemberDTO {
 
 export interface TeamChatMarkReadResult {
   room_id: string;
+  room?: TeamChatInboxItem;
   last_read_at: string;
   last_read_message_id: string | null;
   unread_count: number;

@@ -21,6 +21,7 @@ export interface PortalMessagingPort {
     portalUserId: string;
     threadId: string;
     messageText: string;
+    clientMessageId?: string;
   }): Promise<unknown>;
   markPortalThreadRead(portalUserId: string, threadId: string): Promise<number>;
   updateThread(input: {

@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createClientMessageId } from '../../messaging/composer';
+import { usePersistedMessageDraft } from '../../messaging/drafts';
+import { pickPreferredMessageVersion } from '../../messaging/messageMerge';
 import api from '../../../services/api';
 import usePortalRealtimeStream from '../client/usePortalRealtimeStream';
 import type { PortalStreamStatus } from '../client/types';
@@ -10,6 +13,45 @@ import type {
 
 const PAGE_SIZE = 20;
 const POLL_INTERVAL_MS = 30_000;
+const TEMP_PREFIX = 'temp-portal-message-';
+
+const mergeConversationThread = (
+  conversations: PortalConversationThread[],
+  thread: PortalConversationThread
+): PortalConversationThread[] => {
+  const next = [thread, ...conversations.filter((entry) => entry.id !== thread.id)];
+  next.sort(
+    (left, right) =>
+      new Date(right.last_message_at).getTime() - new Date(left.last_message_at).getTime()
+  );
+  return next;
+};
+
+const mergeConversationMessages = (
+  messages: PortalConversationDetail['messages']
+): PortalConversationDetail['messages'] => {
+  const byKey = new Map<string, PortalConversationDetail['messages'][number]>();
+
+  for (const message of messages) {
+    const key =
+      message.id.startsWith(TEMP_PREFIX) && message.client_message_id
+        ? `client:${message.client_message_id}`
+        : `id:${message.id}`;
+    const existing = byKey.get(key);
+
+    if (!existing) {
+      byKey.set(key, message);
+      continue;
+    }
+
+    byKey.set(key, pickPreferredMessageVersion(existing, message));
+  }
+
+  return Array.from(byKey.values()).sort(
+    (left, right) =>
+      new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
+  );
+};
 
 const toIsoDateTime = (value: string): string | null => {
   if (!value) return null;
@@ -47,6 +89,13 @@ interface FetchOptions {
   offsetValue?: number;
 }
 
+interface SendPortalConversationReplyInput {
+  body: string;
+  clientMessageId?: string;
+  preserveDraft?: boolean;
+  isInternal?: boolean;
+}
+
 export interface UsePortalAdminRealtimeResult {
   streamStatus: PortalStreamStatus;
   conversationFilters: PortalConversationFilters;
@@ -65,6 +114,7 @@ export interface UsePortalAdminRealtimeResult {
   loadMorePortalConversations: () => Promise<void>;
   openPortalConversation: (threadId: string) => Promise<void>;
   sendPortalConversationReply: () => Promise<void>;
+  retryPortalConversationReply: (messageId: string) => Promise<void>;
   updatePortalConversationStatus: (
     threadId: string,
     status: 'open' | 'closed' | 'archived'
@@ -115,9 +165,13 @@ export function usePortalAdminRealtime({
   const [portalConversations, setPortalConversations] = useState<PortalConversationThread[]>([]);
   const [selectedPortalConversation, setSelectedPortalConversation] =
     useState<PortalConversationDetail | null>(null);
-  const [portalConversationReply, setPortalConversationReply] = useState('');
   const [portalConversationReplyInternal, setPortalConversationReplyInternal] = useState(false);
   const [portalConversationReplyLoading, setPortalConversationReplyLoading] = useState(false);
+  const {
+    draft: portalConversationReply,
+    setDraft: setPortalConversationReply,
+    clearDraft: clearPortalConversationReply,
+  } = usePersistedMessageDraft('portal-admin', selectedPortalConversation?.thread.id || null);
 
   const [slotFilters, setSlotFilters] = useState<PortalSlotFilters>({
     status: 'all',
@@ -263,7 +317,22 @@ export function usePortalAdminRealtime({
     async (threadId: string) => {
       try {
         const response = await api.get(`/portal/admin/conversations/${threadId}`);
-        setSelectedPortalConversation(response.data || null);
+        setSelectedPortalConversation((current) => {
+          const next = (response.data || null) as PortalConversationDetail | null;
+          if (!next) {
+            return next;
+          }
+
+          const failedMessages =
+            current?.thread.id === threadId
+              ? current.messages.filter((message) => message.send_state === 'failed')
+              : [];
+
+          return {
+            ...next,
+            messages: mergeConversationMessages([...failedMessages, ...next.messages]),
+          };
+        });
       } catch (error) {
         notifyError(error, 'Failed to load conversation');
       }
@@ -271,38 +340,125 @@ export function usePortalAdminRealtime({
     [notifyError]
   );
 
-  const sendPortalConversationReply = useCallback(async () => {
-    if (!selectedPortalConversation || !portalConversationReply.trim()) {
+  const sendPortalConversationReply = useCallback(async (
+    input: SendPortalConversationReplyInput = { body: portalConversationReply }
+  ) => {
+    if (!selectedPortalConversation || !input.body.trim()) {
       return;
     }
 
+    const clientMessageId = input.clientMessageId || createClientMessageId();
+    const replyBody = input.body.trim();
+    const replyIsInternal = input.isInternal ?? portalConversationReplyInternal;
+    const optimisticMessage = {
+      id: `${TEMP_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      sender_type: 'staff' as const,
+      sender_display_name: 'Staff',
+      message_text: replyBody,
+      is_internal: replyIsInternal,
+      client_message_id: clientMessageId,
+      created_at: new Date().toISOString(),
+      send_state: 'sending' as const,
+      send_error: null,
+      optimistic: true,
+    };
+
     try {
       setPortalConversationReplyLoading(true);
-      await api.post(`/portal/admin/conversations/${selectedPortalConversation.thread.id}/messages`, {
-        message: portalConversationReply.trim(),
-        is_internal: portalConversationReplyInternal,
+      setSelectedPortalConversation((current) =>
+        current
+          ? {
+              ...current,
+              messages: mergeConversationMessages([...current.messages, optimisticMessage]),
+            }
+          : current
+      );
+
+      const response = await api.post(`/portal/admin/conversations/${selectedPortalConversation.thread.id}/messages`, {
+        message: replyBody,
+        is_internal: replyIsInternal,
+        client_message_id: clientMessageId,
       });
-      setPortalConversationReply('');
-      setPortalConversationReplyInternal(false);
+
+      const createdMessage = (response.data?.message || response.data?.data?.message) as
+        | PortalConversationDetail['messages'][number]
+        | undefined;
+
+      setSelectedPortalConversation((current) =>
+        current
+          ? {
+              ...current,
+              messages: mergeConversationMessages(
+                current.messages.map((message) =>
+                  message.client_message_id === clientMessageId && createdMessage
+                    ? {
+                        ...createdMessage,
+                        send_state: 'sent',
+                        send_error: null,
+                        optimistic: false,
+                      }
+                    : message
+                )
+              ),
+            }
+          : current
+      );
+
+      if (!input.preserveDraft) {
+        clearPortalConversationReply();
+        setPortalConversationReplyInternal(false);
+      }
       showSuccess('Reply sent');
-      await Promise.all([
-        fetchPortalConversations({ offsetValue: 0 }),
-        openPortalConversation(selectedPortalConversation.thread.id),
-      ]);
     } catch (error) {
+      setSelectedPortalConversation((current) =>
+        current
+          ? {
+              ...current,
+              messages: mergeConversationMessages(
+                current.messages.map((message) =>
+                  message.client_message_id === clientMessageId
+                    ? {
+                        ...message,
+                        send_state: 'failed',
+                        send_error: error instanceof Error ? error.message : 'Failed to send reply',
+                        optimistic: true,
+                      }
+                    : message
+                )
+              ),
+            }
+          : current
+      );
       notifyError(error, 'Failed to send reply');
     } finally {
       setPortalConversationReplyLoading(false);
     }
   }, [
-    fetchPortalConversations,
+    clearPortalConversationReply,
     notifyError,
-    openPortalConversation,
     portalConversationReply,
     portalConversationReplyInternal,
     selectedPortalConversation,
     showSuccess,
   ]);
+
+  const retryPortalConversationReply = useCallback(
+    async (messageId: string) => {
+      const target = selectedPortalConversation?.messages.find((message) => message.id === messageId);
+
+      if (!target?.client_message_id) {
+        return;
+      }
+
+      await sendPortalConversationReply({
+        body: target.message_text,
+        clientMessageId: target.client_message_id,
+        preserveDraft: true,
+        isInternal: target.is_internal,
+      });
+    },
+    [selectedPortalConversation, sendPortalConversationReply]
+  );
 
   const updatePortalConversationStatus = useCallback(
     async (threadId: string, status: 'open' | 'closed' | 'archived') => {
@@ -459,11 +615,76 @@ export function usePortalAdminRealtime({
       }
 
       if (eventName === 'portal.thread.updated') {
-        void fetchPortalConversations({ quiet: true, offsetValue: 0 });
-        const selectedThreadId = selectedPortalConversation?.thread.id;
-        if (selectedThreadId && payload.entity_id === selectedThreadId) {
-          void openPortalConversation(selectedThreadId);
+        if (!payload.thread) {
+          void fetchPortalConversations({ quiet: true, offsetValue: 0 });
+          const selectedThreadId = selectedPortalConversation?.thread.id;
+          if (selectedThreadId && payload.entity_id === selectedThreadId) {
+            void openPortalConversation(selectedThreadId);
+          }
+          return;
         }
+
+        const nextThread: PortalConversationThread = {
+          id: payload.thread.id,
+          subject: payload.thread.subject,
+          status: payload.thread.status as PortalConversationThread['status'],
+          case_id: payload.thread.case_id,
+          case_number: payload.thread.case_number,
+          case_title: payload.thread.case_title,
+          pointperson_user_id: payload.thread.pointperson_user_id,
+          pointperson_first_name: payload.thread.pointperson_first_name,
+          pointperson_last_name: payload.thread.pointperson_last_name,
+          portal_email: payload.thread.portal_email,
+          unread_count: payload.thread.staff_unread_count,
+          last_message_at: payload.thread.last_message_at,
+        };
+
+        setPortalConversations((current) => {
+          if (
+            conversationFilters.status !== 'all' &&
+            nextThread.status !== conversationFilters.status
+          ) {
+            return current.filter((entry) => entry.id !== nextThread.id);
+          }
+
+          if (
+            conversationFilters.caseId.trim() &&
+            nextThread.case_id !== conversationFilters.caseId.trim()
+          ) {
+            return current.filter((entry) => entry.id !== nextThread.id);
+          }
+
+          if (conversationFilters.search.trim()) {
+            void fetchPortalConversations({ quiet: true, offsetValue: 0 });
+            return current;
+          }
+
+          return mergeConversationThread(current, nextThread);
+        });
+
+        setSelectedPortalConversation((current) => {
+          if (!current || current.thread.id !== payload.entity_id) {
+            return current;
+          }
+
+          return {
+            thread: {
+              ...current.thread,
+              ...nextThread,
+            },
+            messages: payload.message
+              ? mergeConversationMessages([
+                  ...current.messages,
+                  {
+                    ...payload.message,
+                    send_state: 'sent',
+                    send_error: null,
+                    optimistic: false,
+                  },
+                ])
+              : current.messages,
+          };
+        });
         return;
       }
 
@@ -557,6 +778,7 @@ export function usePortalAdminRealtime({
     },
     openPortalConversation,
     sendPortalConversationReply,
+    retryPortalConversationReply,
     updatePortalConversationStatus,
 
     slotFilters,

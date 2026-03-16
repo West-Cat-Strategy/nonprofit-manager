@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalListCard from '../../../components/portal/PortalListCard';
+import PortalListToolbar from '../../../components/portal/PortalListToolbar';
 import { portalV2ApiClient } from '../../../features/portal/api/portalApiClient';
 import type { PortalCaseSummary } from '../../../features/portal/types/contracts';
 import { usePersistentPortalCaseContext } from '../../../hooks/usePersistentPortalCaseContext';
@@ -10,15 +11,30 @@ import { usePersistentPortalCaseContext } from '../../../hooks/usePersistentPort
 export default function PortalCases() {
   const [cases, setCases] = useState<PortalCaseSummary[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState<'updated_at' | 'title' | 'status_name' | 'case_number'>(
+    'updated_at'
+  );
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { setSelectedCaseId } = usePersistentPortalCaseContext();
 
   const filteredCases = useMemo(() => {
     const needle = searchTerm.trim().toLowerCase();
-    const sorted = [...cases].sort(
-      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-    );
+    const sorted = [...cases].sort((a, b) => {
+      if (sortField === 'updated_at') {
+        const delta = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+        return sortOrder === 'asc' ? delta : -delta;
+      }
+
+      const left = String(a[sortField] || '').toLowerCase();
+      const right = String(b[sortField] || '').toLowerCase();
+      if (left === right) {
+        return 0;
+      }
+      const comparison = left < right ? -1 : 1;
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
 
     if (!needle) {
       return sorted;
@@ -32,7 +48,8 @@ export default function PortalCases() {
 
       return haystack.includes(needle);
     });
-  }, [cases, searchTerm]);
+  }, [cases, searchTerm, sortField, sortOrder]);
+  
 
   const loadCases = async () => {
     try {
@@ -55,16 +72,24 @@ export default function PortalCases() {
     <PortalPageShell
       title="My Cases"
       description="Only case files explicitly shared by staff are shown."
-      actions={
-        <input
-          aria-label="Search portal cases"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          placeholder="Search cases"
-          className="rounded-md border border-app-input-border px-3 py-2 text-sm"
-        />
-      }
     >
+      <PortalListToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search cases by number, title, status, or type"
+        sortValue={sortField}
+        onSortChange={setSortField}
+        sortOptions={[
+          { value: 'updated_at', label: 'Recently updated' },
+          { value: 'title', label: 'Title' },
+          { value: 'status_name', label: 'Status' },
+          { value: 'case_number', label: 'Case number' },
+        ]}
+        orderValue={sortOrder}
+        onOrderChange={setSortOrder}
+        showingCount={filteredCases.length}
+        totalCount={cases.length}
+      />
       <PortalPageState
         loading={loading}
         error={error}

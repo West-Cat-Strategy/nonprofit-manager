@@ -105,9 +105,12 @@ vi.mock('../../../../components/ContactRelationships', () => ({ default: () => <
 vi.mock('../../components/ContactNotesPanel', () => ({ default: () => <div>Notes</div> }));
 vi.mock('../../../../components/ContactDocuments', () => ({ default: () => <div>Documents</div> }));
 vi.mock('../../../../components/ContactTags', () => ({ default: () => <div>Tags</div> }));
-vi.mock('../../../../components/ContactTasks', () => ({ default: () => <div>Tasks</div> }));
-vi.mock('../../../../components/ContactActivityTimeline', () => ({ default: () => <div>Timeline</div> }));
-vi.mock('../../../../components/FollowUpList', () => ({ default: () => <div>Follow-ups</div> }));
+vi.mock('../../components/ContactTasksPanel', () => ({ default: () => <div>Tasks Panel</div> }));
+vi.mock('../../components/ContactActivityPanel', () => ({ default: () => <div>Activity Panel</div> }));
+vi.mock('../../components/ContactCommunicationsPanel', () => ({ default: () => <div>Communications Panel</div> }));
+vi.mock('../../components/ContactFollowUpsPanel', () => ({ default: () => <div>Follow-ups Panel</div> }));
+vi.mock('../../components/ContactDocumentsPanel', () => ({ default: () => <div>Documents Panel</div> }));
+vi.mock('../../components/ContactPaymentsPanel', () => ({ default: () => <div>Payments Panel</div> }));
 
 function renderContactDetail(route: string) {
   return renderWithProviders(
@@ -121,6 +124,10 @@ function renderContactDetail(route: string) {
 describe('Contact detail route validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.contactsV2.currentContact = null;
+    mockState.contactsV2.loading = false;
+    mockState.contactsV2.error = null;
+    mockState.contactsV2.contactNotes = [];
   });
 
   it('renders a local invalid-link state and skips fetches for non-UUID params', () => {
@@ -140,5 +147,58 @@ describe('Contact detail route validation', () => {
       type: 'contacts/fetchNotes',
       payload: 'not-a-uuid',
     });
+  });
+
+  it('renders the communications tab on valid contact routes', async () => {
+    mockState.contactsV2.currentContact = {
+      contact_id: '550e8400-e29b-41d4-a716-446655440000',
+      account_id: null,
+      account_name: 'Test Org',
+      first_name: 'Taylor',
+      preferred_name: null,
+      last_name: 'Contact',
+      middle_name: null,
+      salutation: null,
+      suffix: null,
+      birth_date: null,
+      gender: null,
+      pronouns: null,
+      phn: null,
+      email: null,
+      phone: null,
+      mobile_phone: null,
+      address_line1: null,
+      address_line2: null,
+      city: null,
+      state_province: null,
+      postal_code: null,
+      country: null,
+      no_fixed_address: false,
+      job_title: null,
+      department: null,
+      preferred_contact_method: null,
+      do_not_email: false,
+      do_not_phone: false,
+      do_not_text: false,
+      do_not_voicemail: false,
+      notes: null,
+      tags: [],
+      is_active: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-02T00:00:00.000Z',
+      phone_count: 0,
+      email_count: 0,
+      relationship_count: 0,
+      note_count: 0,
+      roles: ['Client'],
+    };
+
+    renderContactDetail('/contacts/550e8400-e29b-41d4-a716-446655440000');
+
+    expect(screen.getByRole('tab', { name: /communications/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^communications$/i })).toBeInTheDocument();
+
+    screen.getByRole('tab', { name: /communications/i }).click();
+    expect(await screen.findByText('Communications Panel')).toBeInTheDocument();
   });
 });

@@ -5,7 +5,12 @@
 
 import '../helpers/testEnv';
 import { test as base, Page } from '@playwright/test';
-import { ensureEffectiveAdminLoginViaAPI, clearAuth, applyAuthTokenState } from '../helpers/auth';
+import {
+  ensureEffectiveAdminLoginViaAPI,
+  clearAuth,
+  applyAuthTokenState,
+  invalidateSharedAuthCaches,
+} from '../helpers/auth';
 import { clearDatabase } from '../helpers/database';
 
 // Extend base test with custom fixtures
@@ -17,6 +22,7 @@ type AuthFixtures = {
 type CachedAuthState = {
   token: string;
   organizationId?: string;
+  user?: Record<string, unknown>;
 };
 
 let cachedAuthState: CachedAuthState | null = null;
@@ -29,10 +35,42 @@ const normalizeOrganizationId = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const normalizeAuthUser = (value: unknown): Record<string, unknown> | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+};
+
+const resetCachedAuthState = async (page: Page): Promise<void> => {
+  cachedAuthState = null;
+  invalidateSharedAuthCaches({ clearLocks: true });
+  await clearAuth(page);
+};
+
 const ensureSharedAuthState = async (page: Page): Promise<CachedAuthState> => {
   if (cachedAuthState?.token) {
-    await applyAuthTokenState(page, cachedAuthState.token, cachedAuthState.organizationId);
-    return cachedAuthState;
+    try {
+      const restoredSession = await applyAuthTokenState(
+        page,
+        cachedAuthState.token,
+        cachedAuthState.organizationId,
+        cachedAuthState.user
+      );
+
+      if (restoredSession) {
+        cachedAuthState = {
+          ...cachedAuthState,
+          organizationId: restoredSession.organizationId || cachedAuthState.organizationId,
+          user: restoredSession.user,
+        };
+        return cachedAuthState;
+      }
+    } catch {
+      // Fall through to a full re-bootstrap after clearing the stale cache below.
+    }
+
+    await resetCachedAuthState(page);
   }
 
   const session = await ensureEffectiveAdminLoginViaAPI(page, {
@@ -47,6 +85,7 @@ const ensureSharedAuthState = async (page: Page): Promise<CachedAuthState> => {
       normalizeOrganizationId(sessionRecord.organizationId) ||
       normalizeOrganizationId(sessionRecord.user?.organizationId) ||
       normalizeOrganizationId(sessionRecord.user?.organization_id),
+    user: normalizeAuthUser(session.user),
   };
   return cachedAuthState;
 };

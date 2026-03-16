@@ -9,6 +9,17 @@ import {
 } from './shared';
 
 const portalPasswordSchema = passwordSchema;
+const optionalTrimmedString = (max: number) =>
+  z.preprocess(
+    (value) => {
+      if (typeof value !== 'string') {
+        return value;
+      }
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : undefined;
+    },
+    z.string().max(max).optional()
+  );
 
 export const portalSignupSchema = z.object({
   email: emailSchema,
@@ -94,6 +105,13 @@ export const portalCaseTimelineQuerySchema = z
     cursor: z.string().trim().max(512).optional(),
   })
   .strict();
+export const portalCaseDocumentUploadSchema = z
+  .object({
+    document_type: optionalTrimmedString(100),
+    document_name: optionalTrimmedString(255),
+    description: optionalTrimmedString(2000),
+  })
+  .strict();
 export const portalEventParamsSchema = z.object({ eventId: uuidSchema });
 export const portalAppointmentParamsSchema = z.object({ id: uuidSchema });
 export const portalThreadParamsSchema = z.object({ threadId: uuidSchema });
@@ -149,10 +167,12 @@ export const portalThreadCreateSchema = z.object({
   case_id: uuidSchema.optional(),
   subject: z.string().max(255).optional().nullable(),
   message: z.string().trim().min(1).max(5000),
+  client_message_id: uuidSchema.optional(),
 });
 
 export const portalThreadMessageSchema = z.object({
   message: z.string().trim().min(1).max(5000),
+  client_message_id: uuidSchema.optional(),
 });
 
 export const portalThreadUpdateSchema = z
@@ -287,6 +307,7 @@ export const portalAdminRealtimeStreamQuerySchema = z
 
 export const portalAdminThreadMessageSchema = z.object({
   message: z.string().trim().min(1).max(5000),
+  client_message_id: uuidSchema.optional(),
   is_internal: z.boolean().optional(),
 });
 
@@ -382,5 +403,6 @@ export const casePortalConversationMessageParamsSchema = z.object({
 
 export const casePortalConversationMessageSchema = z.object({
   message: z.string().trim().min(1).max(5000),
+  client_message_id: uuidSchema.optional(),
   is_internal: z.boolean().optional(),
 });

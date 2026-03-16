@@ -3,9 +3,11 @@ import dbPool from '@config/database';
 import type {
   PublishedComponent,
   PublishedSite,
+  WebsiteFacebookSettings,
   WebsiteFormOperationalConfig,
   WebsiteMailchimpSettings,
   WebsiteManagedFormType,
+  WebsiteSocialSettings,
   WebsiteSiteSettings,
   WebsiteStripeSettings,
 } from '@app-types/publishing';
@@ -88,6 +90,21 @@ const normalizeStripeSettings = (value: unknown): WebsiteStripeSettings => {
   };
 };
 
+const normalizeFacebookSettings = (value: unknown): WebsiteFacebookSettings => {
+  const config = asObject(value);
+  return {
+    trackedPageId: config.trackedPageId === null ? null : cleanString(config.trackedPageId),
+    syncEnabled: cleanBoolean(config.syncEnabled),
+  };
+};
+
+const normalizeSocialSettings = (value: unknown): WebsiteSocialSettings => {
+  const config = asObject(value);
+  return {
+    facebook: normalizeFacebookSettings(config.facebook),
+  };
+};
+
 const normalizeOperationalConfig = (value: unknown): WebsiteFormOperationalConfig => {
   const config = asObject(value);
   return {
@@ -155,6 +172,9 @@ const buildDefaultSettings = (
   organizationId,
   mailchimp: {},
   stripe: {},
+  social: {
+    facebook: {},
+  },
   formDefaults: {},
   formOverrides: {},
   conversionTracking: DEFAULT_CONVERSION_TRACKING,
@@ -220,6 +240,7 @@ export class WebsiteSiteSettingsService {
       organizationId: (row.organization_id as string | null) ?? organizationId,
       mailchimp: normalizeMailchimpSettings(row.mailchimp_config),
       stripe: normalizeStripeSettings(row.stripe_config),
+      social: normalizeSocialSettings(row.social_config),
       formDefaults: normalizeOperationalConfig(row.form_defaults),
       formOverrides,
       conversionTracking: normalizeConversionTracking(row.conversion_tracking),
@@ -269,17 +290,19 @@ export class WebsiteSiteSettingsService {
          organization_id,
          mailchimp_config,
          stripe_config,
+         social_config,
          form_defaults,
          form_overrides,
          conversion_tracking,
          created_by,
          updated_by
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
        ON CONFLICT (site_id)
        DO UPDATE SET
          organization_id = EXCLUDED.organization_id,
          mailchimp_config = EXCLUDED.mailchimp_config,
          stripe_config = EXCLUDED.stripe_config,
+         social_config = EXCLUDED.social_config,
          form_defaults = EXCLUDED.form_defaults,
          form_overrides = EXCLUDED.form_overrides,
          conversion_tracking = EXCLUDED.conversion_tracking,
@@ -291,6 +314,7 @@ export class WebsiteSiteSettingsService {
         site.organizationId,
         JSON.stringify(settings.mailchimp || {}),
         JSON.stringify(settings.stripe || {}),
+        JSON.stringify(settings.social || { facebook: {} }),
         JSON.stringify(settings.formDefaults || {}),
         JSON.stringify(settings.formOverrides || {}),
         JSON.stringify(settings.conversionTracking || DEFAULT_CONVERSION_TRACKING),
@@ -385,6 +409,30 @@ export class WebsiteSiteSettingsService {
       formOverrides: {
         ...current.formOverrides,
         [formKey]: nextOverride,
+      },
+    };
+
+    return this.persistSettings(site, nextSettings, userId);
+  }
+
+  async updateFacebookSettings(
+    siteId: string,
+    patch: Partial<WebsiteFacebookSettings>,
+    userId: string,
+    organizationId?: string
+  ): Promise<WebsiteSiteSettings> {
+    const site = await this.requireOwnedSite(siteId, userId, organizationId);
+    this.assertMutableSite(site);
+
+    const current = await this.getSettingsForSite(site);
+    const nextSettings: WebsiteSiteSettings = {
+      ...current,
+      social: {
+        ...current.social,
+        facebook: {
+          ...current.social.facebook,
+          ...stripUndefined(normalizeFacebookSettings(patch)),
+        },
       },
     };
 

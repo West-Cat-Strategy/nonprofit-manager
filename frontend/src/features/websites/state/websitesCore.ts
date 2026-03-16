@@ -14,6 +14,7 @@ import type {
   WebsiteFormDefinition,
   WebsiteFormOperationalConfig,
   WebsiteIntegrationStatus,
+  WebsiteFacebookSettings,
   WebsiteMailchimpSettings,
   WebsiteOverviewSummary,
   WebsiteSearchParams,
@@ -129,6 +130,17 @@ export const updateWebsiteStripeIntegration = createAsyncThunk<
     return await websitesApiClient.updateStripe(siteId, data);
   } catch (error) {
     return rejectWithValue(getErrorMessage(error, 'Failed to update Stripe settings'));
+  }
+});
+
+export const updateWebsiteFacebookIntegration = createAsyncThunk<
+  WebsiteIntegrationStatus,
+  { siteId: string; data: Partial<WebsiteFacebookSettings> }
+>('websites/updateFacebookIntegration', async ({ siteId, data }, { rejectWithValue }) => {
+  try {
+    return await websitesApiClient.updateFacebook(siteId, data);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, 'Failed to update Facebook settings'));
   }
 });
 
@@ -375,6 +387,21 @@ const websitesSlice = createSlice({
         }
       })
       .addCase(updateWebsiteStripeIntegration.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
+      })
+      .addCase(updateWebsiteFacebookIntegration.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(updateWebsiteFacebookIntegration.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.integrations = action.payload;
+        if (state.overview) {
+          state.overview.integrations = action.payload;
+        }
+      })
+      .addCase(updateWebsiteFacebookIntegration.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload as string;
       });

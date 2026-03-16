@@ -334,6 +334,7 @@ export class ActivityService {
     const appointmentsResult = await pool.query(
       `SELECT
          a.id,
+         a.case_id,
          a.title,
          a.status,
          a.start_time,
@@ -382,6 +383,7 @@ export class ActivityService {
         entity_id: row.id,
         metadata: {
           status: row.status,
+          case_id: row.case_id,
           start_time: row.start_time,
           end_time: row.end_time,
           case_number: row.case_number,

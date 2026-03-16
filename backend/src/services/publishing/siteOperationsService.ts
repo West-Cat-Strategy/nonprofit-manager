@@ -5,6 +5,7 @@ import type {
   PublishedSiteSearchParams,
   WebsiteConversionFunnel,
   WebsiteConversionMetrics,
+  WebsiteFacebookIntegrationStatus,
   WebsiteFormDefinition,
   WebsiteFormOperationalConfig,
   WebsiteIntegrationStatus,
@@ -16,6 +17,7 @@ import type { Template, TemplatePage } from '@app-types/websiteBuilder';
 import { mailchimpService } from '@services/domains/integration';
 import { stripeService } from '@services/domains/operations';
 import { mapRowToPage, mapRowToTemplate } from '@services/template/helpers';
+import { socialMediaService } from '@modules/socialMedia';
 import { FormRegistryService, formRegistryService } from './formRegistryService';
 import { SiteAnalyticsService } from './siteAnalyticsService';
 import { SiteManagementService } from './siteManagementService';
@@ -405,6 +407,12 @@ export class SiteOperationsService {
     const site = await this.requireOwnedSite(siteId, userId, organizationId);
     const settings = await this.siteSettings.getSettingsForSite(site);
     const lastSyncAt = await this.loadMailchimpLastSync(site.id);
+    let facebookIntegration: WebsiteFacebookIntegrationStatus = {
+      ...settings.social.facebook,
+      trackedPageName: null,
+      lastSyncAt: null,
+      lastSyncError: null,
+    };
 
     let mailchimpConfigured: boolean | undefined;
     let accountName: string | undefined;
@@ -434,6 +442,22 @@ export class SiteOperationsService {
       availableAudiences = [];
     }
 
+    if (site.organizationId && settings.social.facebook.trackedPageId) {
+      const trackedPage = await socialMediaService.getFacebookTrackedPageSummary(
+        site.organizationId,
+        settings.social.facebook.trackedPageId
+      );
+      if (trackedPage) {
+        facebookIntegration = {
+          trackedPageId: trackedPage.id,
+          syncEnabled: settings.social.facebook.syncEnabled ?? trackedPage.syncEnabled,
+          trackedPageName: trackedPage.pageName,
+          lastSyncAt: trackedPage.lastSyncAt ? new Date(trackedPage.lastSyncAt) : null,
+          lastSyncError: trackedPage.lastSyncError,
+        };
+      }
+    }
+
     return {
       blocked: site.migrationStatus === 'needs_assignment',
       publishStatus: site.status,
@@ -449,6 +473,9 @@ export class SiteOperationsService {
         ...settings.stripe,
         configured: stripeService.isStripeConfigured(),
         publishableKeyConfigured: Boolean(process.env.STRIPE_PUBLISHABLE_KEY),
+      },
+      social: {
+        facebook: facebookIntegration,
       },
     };
   }

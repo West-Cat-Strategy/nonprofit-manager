@@ -77,9 +77,17 @@ export async function provisionApprovedPortalUser(
       lastName,
     },
   });
-  if (signupResponse.status() !== 201) {
+  const signupStatus = signupResponse.status();
+  const signupBodyText = await signupResponse.text();
+  const lowerSignupBody = signupBodyText.toLowerCase();
+  const signupAlreadyExists =
+    signupStatus === 409 ||
+    lowerSignupBody.includes('user already exists') ||
+    lowerSignupBody.includes('already exists');
+
+  if (signupStatus !== 201 && !signupAlreadyExists) {
     throw new Error(
-      `Portal signup failed (${signupResponse.status()}): ${await signupResponse.text()}`
+      `Portal signup failed (${signupStatus}): ${signupBodyText}`
     );
   }
 
@@ -99,7 +107,7 @@ export async function provisionApprovedPortalUser(
       typeof requestRow.email === 'string' &&
       requestRow.email.toLowerCase() === email.toLowerCase()
   );
-  if (!pendingRequest?.id) {
+  if (!pendingRequest?.id && !signupAlreadyExists) {
     throw new Error(
       `Portal signup request for ${email} not found after signup. Payload: ${JSON.stringify(
         pendingRequestsPayload
@@ -107,16 +115,18 @@ export async function provisionApprovedPortalUser(
     );
   }
 
-  const approveResponse = await page.request.post(
-    `${apiURL}/api/v2/portal/admin/requests/${pendingRequest.id}/approve`,
-    {
-      headers,
-    }
-  );
-  if (!approveResponse.ok()) {
-    throw new Error(
-      `Failed to approve portal signup request (${approveResponse.status()}): ${await approveResponse.text()}`
+  if (pendingRequest?.id) {
+    const approveResponse = await page.request.post(
+      `${apiURL}/api/v2/portal/admin/requests/${pendingRequest.id}/approve`,
+      {
+        headers,
+      }
     );
+    if (!approveResponse.ok()) {
+      throw new Error(
+        `Failed to approve portal signup request (${approveResponse.status()}): ${await approveResponse.text()}`
+      );
+    }
   }
 
   return {

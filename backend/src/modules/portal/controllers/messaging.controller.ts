@@ -102,6 +102,7 @@ export const createPortalMessagingController = (useCase: PortalMessagingUseCase)
         portalUserId: req.portalUser.id,
         threadId: req.params.threadId,
         message: req.body.message as string,
+        clientMessageId: (req.body.client_message_id as string | undefined) ?? undefined,
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
       });

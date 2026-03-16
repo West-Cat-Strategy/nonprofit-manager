@@ -458,6 +458,7 @@ export const replyPortalAdminConversation = async (
     const { threadId } = req.params;
     const { message, is_internal } = req.body as {
       message: string;
+      client_message_id?: string;
       is_internal?: boolean;
     };
 
@@ -477,6 +478,7 @@ export const replyPortalAdminConversation = async (
       senderUserId: req.user!.id,
       messageText: message,
       isInternal: Boolean(is_internal),
+      clientMessageId: (req.body.client_message_id as string | undefined) ?? undefined,
     });
 
     await markStaffThreadRead(threadId);

@@ -2,6 +2,7 @@ import type { NextFunction, Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   PublishedSiteSearchParams,
+  WebsiteFacebookSettings,
   WebsiteFormOperationalConfig,
   WebsiteMailchimpSettings,
   WebsiteStripeSettings,
@@ -174,6 +175,32 @@ export const updateSiteStripeIntegration = async (
     await websiteSiteSettingsService.updateStripeSettings(
       req.params.siteId,
       req.body as Partial<WebsiteStripeSettings>,
+      req.user!.id,
+      req.organizationId
+    );
+    await siteCacheService.invalidateSite(req.params.siteId);
+
+    const result = await publishingService.getSiteIntegrationStatus(
+      req.params.siteId,
+      req.user!.id,
+      req.organizationId
+    );
+    sendSuccess(res, result);
+  } catch (error) {
+    if (handleKnownError(res, error)) return;
+    next(error);
+  }
+};
+
+export const updateSiteFacebookIntegration = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    await websiteSiteSettingsService.updateFacebookSettings(
+      req.params.siteId,
+      req.body as Partial<WebsiteFacebookSettings>,
       req.user!.id,
       req.organizationId
     );

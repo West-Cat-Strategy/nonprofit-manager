@@ -10,6 +10,8 @@ import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
 import {
   createDonationSchema,
+  issueAnnualTaxReceiptSchema,
+  issueTaxReceiptSchema,
   updateDonationSchema,
   uuidSchema,
 } from '@validations/donation';
@@ -39,6 +41,18 @@ router.get(
   donationController.getDonations
 );
 
+router.post(
+  '/annual-tax-receipts',
+  validateBody(issueAnnualTaxReceiptSchema),
+  donationController.issueAnnualTaxReceipt
+);
+
+router.get(
+  '/tax-receipts/:receiptId/pdf',
+  validateParams(z.object({ receiptId: uuidSchema })),
+  donationController.downloadTaxReceiptPdf
+);
+
 /**
  * GET /api/donations/summary
  * Get donation summary
@@ -53,6 +67,13 @@ router.get(
   '/:id',
   validateParams(z.object({ id: uuidSchema })),
   donationController.getDonationById
+);
+
+router.post(
+  '/:id/tax-receipts',
+  validateParams(z.object({ id: uuidSchema })),
+  validateBody(issueTaxReceiptSchema),
+  donationController.issueTaxReceipt
 );
 
 /**

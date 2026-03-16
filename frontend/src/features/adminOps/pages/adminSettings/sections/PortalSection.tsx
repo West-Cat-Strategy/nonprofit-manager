@@ -74,6 +74,7 @@ export interface PortalSectionProps {
   onPortalConversationReplyChange: (value: string) => void;
   onPortalConversationReplyInternalChange: (value: boolean) => void;
   onSendPortalConversationReply: () => void;
+  onRetryPortalConversationReply: (messageId: string) => void;
   onUpdatePortalConversationStatus: (threadId: string, status: 'open' | 'closed' | 'archived') => void;
   portalSlotFilters: {
     status: 'all' | 'open' | 'closed' | 'cancelled';

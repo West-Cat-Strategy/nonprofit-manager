@@ -1,22 +1,46 @@
+import type { MessageSendState } from '../../../messaging/types';
+
+export interface OrganizationAddress {
+  line1: string;
+  line2: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+}
+
+export interface OrganizationTaxReceiptSettings {
+  legalName: string;
+  charitableRegistrationNumber: string;
+  receiptingAddress: OrganizationAddress;
+  receiptIssueLocation: string;
+  authorizedSignerName: string;
+  authorizedSignerTitle: string;
+  contactEmail: string;
+  contactPhone: string;
+  advantageAmount: number;
+}
+
 export interface OrganizationConfig {
   name: string;
   email: string;
   phone: string;
   website: string;
-  address: {
-    line1: string;
-    line2: string;
-    city: string;
-    province: string;
-    postalCode: string;
-    country: string;
-  };
+  address: OrganizationAddress;
   timezone: string;
   dateFormat: string;
   currency: string;
   fiscalYearStart: string;
   measurementSystem: 'metric' | 'imperial';
   phoneFormat: 'canadian' | 'us' | 'international';
+  taxReceipt: OrganizationTaxReceiptSettings;
+}
+
+export interface OrganizationSettings {
+  organizationId: string;
+  config: OrganizationConfig;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Role {
@@ -132,7 +156,11 @@ export interface PortalConversationMessage {
   sender_display_name: string | null;
   message_text: string;
   is_internal: boolean;
+  client_message_id?: string | null;
   created_at: string;
+  send_state?: MessageSendState;
+  send_error?: string | null;
+  optimistic?: boolean;
 }
 
 export interface PortalConversationThread {

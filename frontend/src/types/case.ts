@@ -7,6 +7,7 @@ import type {
   OutcomeDefinition,
   OutcomeUpdateMode,
 } from './outcomes';
+import type { MessageSendState } from '../features/messaging/types';
 
 export type CasePriority = 'low' | 'medium' | 'high' | 'urgent' | 'critical';
 export type CaseSource = 'phone' | 'email' | 'walk-in' | 'referral' | 'web' | 'other';
@@ -286,6 +287,10 @@ export interface CasePortalMessage {
   created_at: string;
   sender_display_name: string | null;
   is_internal: boolean;
+  client_message_id?: string | null;
+  send_state?: MessageSendState;
+  send_error?: string | null;
+  optimistic?: boolean;
 }
 
 export interface CasePortalThread {
