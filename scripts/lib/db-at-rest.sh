@@ -27,17 +27,16 @@ db_at_rest_value() {
     local key="$1"
     local env_file="$2"
     local fallback="${3:-}"
-    local current="${!key:-}"
-
-    if [[ -n "$current" ]]; then
-        printf '%s\n' "$current"
-        return 0
-    fi
-
     local from_file
     from_file="$(env_file_value "$key" "$env_file")"
     if [[ -n "$from_file" ]]; then
         printf '%s\n' "$from_file"
+        return 0
+    fi
+
+    local current="${!key:-}"
+    if [[ -n "$current" ]]; then
+        printf '%s\n' "$current"
         return 0
     fi
 
