@@ -202,7 +202,8 @@ export default function PortalMessages() {
     selectedCaseId,
     caseFilter: threadCaseFilter,
     onRealtimeEvent: (_eventName, payload) => {
-      if (!activeThreadId || payload.entity_id !== activeThreadId || !payload.thread) {
+      const thread = payload.thread;
+      if (!activeThreadId || payload.entity_id !== activeThreadId || !thread) {
         return;
       }
 
@@ -211,15 +212,15 @@ export default function PortalMessages() {
           ? {
               thread: {
                 ...current.thread,
-                subject: payload.thread.subject,
-                status: payload.thread.status as ThreadSummary['status'],
-                case_number: payload.thread.case_number,
-                case_title: payload.thread.case_title,
-                pointperson_first_name: payload.thread.pointperson_first_name,
-                pointperson_last_name: payload.thread.pointperson_last_name,
-                unread_count: payload.thread.portal_unread_count,
-                last_message_at: payload.thread.last_message_at,
-                last_message_preview: payload.thread.last_message_preview,
+                subject: thread.subject,
+                status: thread.status as ThreadSummary['status'],
+                case_number: thread.case_number,
+                case_title: thread.case_title,
+                pointperson_first_name: thread.pointperson_first_name,
+                pointperson_last_name: thread.pointperson_last_name,
+                unread_count: thread.portal_unread_count,
+                last_message_at: thread.last_message_at,
+                last_message_preview: thread.last_message_preview,
               },
               messages: payload.message
                 ? mergeThreadMessages([

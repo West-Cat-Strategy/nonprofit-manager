@@ -85,6 +85,15 @@ export interface TeamMessengerConnectedPayload {
   online_user_ids: string[];
 }
 
+export interface TeamMessengerConversationReadResult {
+  room_id: string;
+  room?: TeamMessengerConversationSummary;
+  last_read_at: string;
+  last_read_message_id: string | null;
+  unread_count: number;
+  unread_mentions_count: number;
+}
+
 export interface TeamMessengerMessageCreatedEventPayload {
   event_id: string;
   occurred_at: string;

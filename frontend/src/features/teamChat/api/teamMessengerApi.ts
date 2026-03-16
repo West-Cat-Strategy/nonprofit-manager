@@ -6,6 +6,7 @@ import type {
   TeamMessengerConversationDetail,
   TeamMessengerConversationMemberUpdateDTO,
   TeamMessengerConversationMessageCreateDTO,
+  TeamMessengerConversationReadResult,
   TeamMessengerConversationReadDTO,
   TeamMessengerConversationSummary,
   TeamMessengerConversationUpdateDTO,
@@ -13,7 +14,6 @@ import type {
   TeamMessengerGroupConversationCreateDTO,
   TeamMessengerTypingDTO,
 } from '../messenger/types';
-import type { TeamChatMarkReadResult } from '../types';
 
 export class TeamMessengerApiClient {
   async listContacts(): Promise<TeamMessengerContact[]> {
@@ -89,8 +89,8 @@ export class TeamMessengerApiClient {
   async markRead(
     roomId: string,
     payload: TeamMessengerConversationReadDTO = {}
-  ): Promise<TeamChatMarkReadResult> {
-    const response = await api.post<ApiEnvelope<TeamChatMarkReadResult>>(
+  ): Promise<TeamMessengerConversationReadResult> {
+    const response = await api.post<ApiEnvelope<TeamMessengerConversationReadResult>>(
       `/v2/team-chat/messenger/conversations/${roomId}/read`,
       payload
     );
