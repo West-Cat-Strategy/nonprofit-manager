@@ -39,6 +39,46 @@ export interface PortalRealtimePayload {
   contact_id?: string | null;
 }
 
+export interface PortalRealtimeThreadSnapshot {
+  id: string;
+  contact_id: string;
+  case_id: string | null;
+  subject: string | null;
+  status: string;
+  last_message_at: string;
+  last_message_preview: string | null;
+  case_number: string | null;
+  case_title: string | null;
+  pointperson_user_id: string | null;
+  pointperson_first_name: string | null;
+  pointperson_last_name: string | null;
+  portal_email: string | null;
+  portal_unread_count: number;
+  staff_unread_count: number;
+}
+
+export interface PortalRealtimeMessageSnapshot {
+  id: string;
+  thread_id: string;
+  sender_type: 'portal' | 'staff' | 'system';
+  sender_portal_user_id: string | null;
+  sender_user_id: string | null;
+  sender_display_name: string | null;
+  message_text: string;
+  is_internal: boolean;
+  client_message_id: string | null;
+  created_at: string;
+  read_by_portal_at: string | null;
+  read_by_staff_at: string | null;
+}
+
+export interface PortalThreadUpdatedRealtimePayload extends PortalRealtimePayload {
+  action?: 'message.created' | 'thread.read' | 'thread.status.updated' | 'thread.updated';
+  thread?: PortalRealtimeThreadSnapshot | null;
+  message?: PortalRealtimeMessageSnapshot | null;
+  client_message_id?: string | null;
+}
+
 const clients = new Map<string, PortalRealtimeClient>();
 
 const writeSseEvent = (res: Response, eventName: string, payload: unknown): boolean => {
@@ -197,8 +237,18 @@ export const publishPortalThreadUpdated = (input: {
   actorType: PortalRealtimeActorType;
   source: string;
   contactId?: string | null;
+  action?: 'message.created' | 'thread.read' | 'thread.status.updated' | 'thread.updated';
+  thread?: PortalRealtimeThreadSnapshot | null;
+  message?: PortalRealtimeMessageSnapshot | null;
+  clientMessageId?: string | null;
 }): void => {
-  const payload = buildPayload(input);
+  const payload: PortalThreadUpdatedRealtimePayload = {
+    ...buildPayload(input),
+    action: input.action,
+    thread: input.thread ?? null,
+    message: input.message ?? null,
+    client_message_id: input.clientMessageId ?? null,
+  };
   broadcast({
     eventName: 'portal.thread.updated',
     payload,
@@ -240,4 +290,3 @@ export const publishPortalSlotUpdated = (input: {
     contactId: input.contactId ?? null,
   });
 };
-

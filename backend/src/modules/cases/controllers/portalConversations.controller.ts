@@ -50,6 +50,7 @@ export const replyCasePortalConversation = async (
     const threadId = req.params.threadId;
     const { message, is_internal } = req.body as {
       is_internal?: boolean;
+      client_message_id?: string;
       message: string;
     };
 
@@ -64,6 +65,7 @@ export const replyCasePortalConversation = async (
       senderUserId: req.user.id,
       messageText: message,
       isInternal: Boolean(is_internal),
+      clientMessageId: (req.body.client_message_id as string | undefined) ?? undefined,
     });
     await markStaffThreadRead(threadId);
 

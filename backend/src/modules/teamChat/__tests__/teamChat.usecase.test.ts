@@ -22,7 +22,10 @@ const baseCaseContext: TeamChatCaseContext = {
 const baseRoom: TeamChatRoomRecord = {
   room_id: '22222222-2222-2222-2222-222222222222',
   organization_id: '33333333-3333-3333-3333-333333333333',
+  room_type: 'case',
   case_id: baseCaseContext.case_id,
+  title: null,
+  direct_key: null,
   status: 'active',
   created_by: '44444444-4444-4444-4444-444444444444',
   last_message_at: '2026-03-02T00:00:00.000Z',
@@ -56,6 +59,7 @@ const baseMessage: TeamChatMessage = {
   sender_last_name: 'User',
   body: 'Hello',
   parent_message_id: null,
+  client_message_id: null,
   metadata: null,
   created_at: '2026-03-02T00:00:00.000Z',
   edited_at: null,

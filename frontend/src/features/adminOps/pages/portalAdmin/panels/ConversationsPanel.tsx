@@ -1,3 +1,4 @@
+import { shouldSubmitComposer } from '../../../../../features/messaging/composer';
 import type { PortalSectionProps } from '../../adminSettings/sections/PortalSection';
 
 type PortalPanelProps = Omit<PortalSectionProps, 'visiblePanels'>;
@@ -50,6 +51,7 @@ export default function ConversationsPanel({
   onPortalConversationReplyChange,
   onPortalConversationReplyInternalChange,
   onSendPortalConversationReply,
+  onRetryPortalConversationReply,
   onUpdatePortalConversationStatus,
 }: PortalPanelProps) {
   const streamBadge = getStreamStatusBadge(portalStreamStatus);
@@ -214,6 +216,20 @@ export default function ConversationsPanel({
                         {message.is_internal && ' • Internal'}
                       </div>
                       <div className="mt-1 whitespace-pre-wrap">{message.message_text}</div>
+                      {(message.send_state === 'sending' || message.send_state === 'failed') && (
+                        <div className="mt-2 text-[11px] text-app-text-muted">
+                          {message.send_state === 'sending' ? 'Sending...' : 'Failed to send'}
+                        </div>
+                      )}
+                      {message.send_state === 'failed' && (
+                        <button
+                          type="button"
+                          onClick={() => onRetryPortalConversationReply(message.id)}
+                          className="mt-2 rounded border border-current px-2 py-1 text-[11px] font-semibold"
+                        >
+                          Retry
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -223,6 +239,12 @@ export default function ConversationsPanel({
                     aria-label="Reply to portal conversation"
                     value={portalConversationReply}
                     onChange={(event) => onPortalConversationReplyChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (shouldSubmitComposer(event)) {
+                        event.preventDefault();
+                        onSendPortalConversationReply();
+                      }
+                    }}
                     rows={3}
                     placeholder="Reply to client"
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg"

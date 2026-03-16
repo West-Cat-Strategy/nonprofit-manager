@@ -57,8 +57,8 @@ describe('admin settings hooks', () => {
       await result.current.handleSaveOrganization();
     });
 
-    expect(mockedApi.patch).toHaveBeenCalledWith('/auth/preferences/organization', {
-      value: expect.objectContaining({ name: 'West Cat' }),
+    expect(mockedApi.put).toHaveBeenCalledWith('/admin/organization-settings', {
+      config: expect.objectContaining({ name: 'West Cat' }),
     });
     expect(result.current.saveStatus).toBe('success');
     expect(result.current.organizationLastSavedAt).toBeInstanceOf(Date);
@@ -67,8 +67,52 @@ describe('admin settings hooks', () => {
   it('hydrates global branding from the saved branding payload on load', async () => {
     const setGlobalBranding = vi.fn();
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/auth/preferences') {
-        return Promise.resolve({ data: { preferences: {} } });
+      if (url === '/admin/organization-settings') {
+        return Promise.resolve({
+          data: {
+            organizationId: 'org-1',
+            createdAt: '2026-03-15T00:00:00.000Z',
+            updatedAt: '2026-03-15T00:00:00.000Z',
+            config: {
+              name: 'West Cat',
+              email: 'hello@example.com',
+              phone: '(604) 555-1000',
+              website: 'https://example.com',
+              address: {
+                line1: '1 Main',
+                line2: '',
+                city: 'Vancouver',
+                province: 'BC',
+                postalCode: 'V6B 1A1',
+                country: 'Canada',
+              },
+              timezone: 'America/Vancouver',
+              dateFormat: 'YYYY-MM-DD',
+              currency: 'CAD',
+              fiscalYearStart: '04',
+              measurementSystem: 'metric',
+              phoneFormat: 'canadian',
+              taxReceipt: {
+                legalName: 'West Cat Society',
+                charitableRegistrationNumber: '12345 6789 RR0001',
+                receiptingAddress: {
+                  line1: '1 Main',
+                  line2: '',
+                  city: 'Vancouver',
+                  province: 'BC',
+                  postalCode: 'V6B 1A1',
+                  country: 'Canada',
+                },
+                receiptIssueLocation: 'Vancouver, BC',
+                authorizedSignerName: 'Jordan Lee',
+                authorizedSignerTitle: 'Executive Director',
+                contactEmail: 'receipts@example.com',
+                contactPhone: '(604) 555-1000',
+                advantageAmount: 0,
+              },
+            },
+          },
+        });
       }
 
       if (url === '/admin/branding') {
@@ -104,6 +148,7 @@ describe('admin settings hooks', () => {
         secondaryColour: '#654321',
       })
     );
+    expect(result.current.config.taxReceipt.legalName).toBe('West Cat Society');
     expect(setGlobalBranding).toHaveBeenCalledWith(
       expect.objectContaining({
         appName: 'West Cat',
@@ -116,10 +161,6 @@ describe('admin settings hooks', () => {
   it('does not overwrite global branding when branding bootstrap falls back to defaults', async () => {
     const setGlobalBranding = vi.fn();
     mockedApi.get.mockImplementation((url: string) => {
-      if (url === '/auth/preferences') {
-        return Promise.resolve({ data: { preferences: {} } });
-      }
-
       if (url === '/admin/branding') {
         return Promise.reject(new Error('boom'));
       }

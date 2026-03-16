@@ -23,6 +23,24 @@ export const defaultConfig: OrganizationConfig = {
   fiscalYearStart: '04',
   measurementSystem: 'metric',
   phoneFormat: 'canadian',
+  taxReceipt: {
+    legalName: '',
+    charitableRegistrationNumber: '',
+    receiptingAddress: {
+      line1: '',
+      line2: '',
+      city: '',
+      province: '',
+      postalCode: '',
+      country: 'Canada',
+    },
+    receiptIssueLocation: '',
+    authorizedSignerName: '',
+    authorizedSignerTitle: '',
+    contactEmail: '',
+    contactPhone: '',
+    advantageAmount: 0,
+  },
 };
 
 // ============================================================================

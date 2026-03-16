@@ -453,6 +453,15 @@ export interface WebsiteStripeSettings {
   campaignId?: string | null;
 }
 
+export interface WebsiteFacebookSettings {
+  trackedPageId?: string | null;
+  syncEnabled?: boolean;
+}
+
+export interface WebsiteSocialSettings {
+  facebook: WebsiteFacebookSettings;
+}
+
 export interface WebsiteConversionTrackingSettings {
   enabled: boolean;
   events: {
@@ -467,11 +476,18 @@ export interface WebsiteSiteSettings {
   organizationId: string | null;
   mailchimp: WebsiteMailchimpSettings;
   stripe: WebsiteStripeSettings;
+  social: WebsiteSocialSettings;
   formDefaults: WebsiteFormOperationalConfig;
   formOverrides: Record<string, WebsiteFormOperationalConfig>;
   conversionTracking: WebsiteConversionTrackingSettings;
   createdAt: Date | null;
   updatedAt: Date | null;
+}
+
+export interface WebsiteFacebookIntegrationStatus extends WebsiteFacebookSettings {
+  trackedPageName?: string | null;
+  lastSyncAt: Date | null;
+  lastSyncError?: string | null;
 }
 
 export interface WebsiteIntegrationStatus {
@@ -491,6 +507,9 @@ export interface WebsiteIntegrationStatus {
   stripe: WebsiteStripeSettings & {
     configured: boolean;
     publishableKeyConfigured: boolean;
+  };
+  social: {
+    facebook: WebsiteFacebookIntegrationStatus;
   };
 }
 

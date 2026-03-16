@@ -2,11 +2,13 @@ import { Router } from 'express';
 import type { Pool } from 'pg';
 import pool from '@config/database';
 import { authenticatePortal } from '@middleware/domains/auth';
+import { handleMulterError, documentUpload } from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   portalAppointmentParamsSchema,
   portalAppointmentsQuerySchema,
   portalBookSlotSchema,
+  portalCaseDocumentUploadSchema,
   portalCaseDocumentDownloadParamsSchema,
   portalCaseParamsSchema,
   portalCaseTimelineQuerySchema,
@@ -36,6 +38,7 @@ import { createPortalAppointmentsAdapter } from '../adapters/portalAppointmentsA
 import { createPortalMessagingAdapter } from '../adapters/portalMessagingAdapter';
 import { createPortalAppointmentsController } from '../controllers/appointments.controller';
 import { createPortalCasesController } from '../controllers/cases.controller';
+import { createPortalDashboardController } from '../controllers/dashboard.controller';
 import { createPortalEventsController } from '../controllers/events.controller';
 import { createPortalMessagingController } from '../controllers/messaging.controller';
 import { createPortalProfileController } from '../controllers/profile.controller';
@@ -45,6 +48,7 @@ import { createPortalResourcesController } from '../controllers/resources.contro
 import { PortalRepository } from '../repositories/portalRepository';
 import { PortalAppointmentsUseCase } from '../usecases/appointmentsUseCase';
 import { PortalCasesUseCase } from '../usecases/casesUseCase';
+import { PortalDashboardUseCase } from '../usecases/dashboardUseCase';
 import { PortalEventsUseCase } from '../usecases/eventsUseCase';
 import { PortalMessagingUseCase } from '../usecases/messagingUseCase';
 import { PortalProfileUseCase } from '../usecases/profileUseCase';
@@ -60,6 +64,7 @@ interface PortalRouteDependencies {
 
 export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router => {
   const repository = new PortalRepository(deps.pool ?? pool);
+  const dashboardController = createPortalDashboardController(new PortalDashboardUseCase(repository));
   const profileController = createPortalProfileController(new PortalProfileUseCase(repository));
   const casesController = createPortalCasesController(new PortalCasesUseCase(repository));
   const messagingController = createPortalMessagingController(
@@ -78,6 +83,7 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
 
   portalV2Routes.use(authenticatePortal);
   portalV2Routes.get('/stream', validateQuery(portalRealtimeStreamQuerySchema), realtimeController.stream);
+  portalV2Routes.get('/dashboard', dashboardController.getDashboard);
 
   portalV2Routes.get('/profile', profileController.getProfile);
   portalV2Routes.patch('/profile', validateBody(portalProfileUpdateSchema), profileController.updateProfile);
@@ -98,6 +104,14 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
     casesController.getCaseTimeline
   );
   portalV2Routes.get('/cases/:id/documents', validateParams(portalCaseParamsSchema), casesController.getCaseDocuments);
+  portalV2Routes.post(
+    '/cases/:id/documents',
+    validateParams(portalCaseParamsSchema),
+    documentUpload.single('file'),
+    handleMulterError,
+    validateBody(portalCaseDocumentUploadSchema),
+    casesController.uploadCaseDocument
+  );
   portalV2Routes.get(
     '/cases/:id/documents/:documentId/download',
     validateParams(portalCaseDocumentDownloadParamsSchema),

@@ -14,7 +14,13 @@ import type {
   PaginatedDonations,
   DonationSummary,
 } from '../../../types/donation';
+import type {
+  IssueAnnualTaxReceiptRequest,
+  IssueTaxReceiptRequest,
+  IssueTaxReceiptResult,
+} from '../../../types/taxReceipt';
 import api from '../../../services/api';
+import { buildDownloadedFile, type DownloadedFile } from '../../../services/fileDownload';
 import {
   handlePending,
   handleRejected,
@@ -105,6 +111,59 @@ export const markReceiptSent = createAsyncThunk(
     return response.data;
   }
 );
+
+export const issueTaxReceipt = createAsyncThunk<
+  IssueTaxReceiptResult,
+  { donationId: string; request: IssueTaxReceiptRequest },
+  { rejectValue: string }
+>('donations/issueTaxReceipt', async ({ donationId, request }, { rejectWithValue }) => {
+  try {
+    const response = await api.post<IssueTaxReceiptResult>(
+      `/donations/${donationId}/tax-receipts`,
+      request
+    );
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Failed to issue tax receipt'
+    );
+  }
+});
+
+export const issueAnnualTaxReceipt = createAsyncThunk<
+  IssueTaxReceiptResult,
+  IssueAnnualTaxReceiptRequest,
+  { rejectValue: string }
+>('donations/issueAnnualTaxReceipt', async (request, { rejectWithValue }) => {
+  try {
+    const response = await api.post<IssueTaxReceiptResult>(
+      '/donations/annual-tax-receipts',
+      request
+    );
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Failed to generate annual tax receipt'
+    );
+  }
+});
+
+export const downloadTaxReceiptPdf = createAsyncThunk<
+  DownloadedFile,
+  { receiptId: string; fallbackFilename: string },
+  { rejectValue: string }
+>('donations/downloadTaxReceiptPdf', async ({ receiptId, fallbackFilename }, { rejectWithValue }) => {
+  try {
+    const response = await api.get<Blob>(`/donations/tax-receipts/${receiptId}/pdf`, {
+      responseType: 'blob',
+    });
+    return buildDownloadedFile(response, fallbackFilename);
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : 'Failed to download tax receipt PDF'
+    );
+  }
+});
 
 export const fetchDonationSummary = createAsyncThunk(
   'donations/fetchDonationSummary',

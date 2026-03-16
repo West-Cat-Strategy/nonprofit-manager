@@ -11,6 +11,9 @@ import type {
   TeamChatRoomDetail,
   TeamChatRoomRecord,
   TeamChatUnreadSummary,
+  TeamMessengerContact,
+  TeamMessengerConversationDetail,
+  TeamMessengerConversationSummary,
 } from './contracts';
 
 export interface TeamChatRepositoryPort {
@@ -58,4 +61,39 @@ export interface TeamChatRepositoryPort {
     userId: string,
     includeAllRooms: boolean
   ): Promise<TeamChatUnreadSummary>;
+}
+
+export interface TeamMessengerRepositoryPort {
+  getMessengerContactById(
+    organizationId: string,
+    userId: string
+  ): Promise<TeamMessengerContact | null>;
+  listMessengerContacts(
+    organizationId: string,
+    viewerUserId: string
+  ): Promise<TeamMessengerContact[]>;
+  getDirectRoomByKey(
+    organizationId: string,
+    directKey: string
+  ): Promise<TeamChatRoomRecord | null>;
+  createMessengerRoom(input: {
+    organizationId: string;
+    createdBy: string;
+    roomType: 'direct' | 'group';
+    title?: string | null;
+    directKey?: string | null;
+  }): Promise<TeamChatRoomRecord>;
+  getMessengerRoomById(
+    roomId: string,
+    organizationId: string
+  ): Promise<TeamChatRoomRecord | null>;
+  listMessengerConversations(
+    organizationId: string,
+    userId: string
+  ): Promise<TeamMessengerConversationSummary[]>;
+  getMessengerConversationDetail(
+    roomId: string,
+    userId: string
+  ): Promise<TeamMessengerConversationDetail>;
+  updateMessengerRoomTitle(roomId: string, title: string): Promise<TeamChatRoomRecord>;
 }

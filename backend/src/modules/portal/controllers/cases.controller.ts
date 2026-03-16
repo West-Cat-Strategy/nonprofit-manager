@@ -1,7 +1,8 @@
 import fs from 'fs';
 import { NextFunction, Response } from 'express';
 import { PortalAuthRequest } from '@middleware/portalAuth';
-import fileStorage from '@services/fileStorageService';
+import fileStorage, { uploadFile } from '@services/fileStorageService';
+import { logPortalActivity } from '@services/domains/integration';
 import { sendError, sendSuccess } from '../../shared/http/envelope';
 import { PortalCasesUseCase } from '../usecases/casesUseCase';
 
@@ -100,6 +101,65 @@ export const createPortalCasesController = (useCase: PortalCasesUseCase) => {
     }
   };
 
+  const uploadCaseDocument = async (
+    req: PortalAuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const contactId = getPortalContactId(req);
+      const portalUserId = req.portalUser?.id ?? null;
+      if (!contactId || !portalUserId) {
+        sendError(res, 'PORTAL_USER_INVALID', 'Portal user context missing', 400);
+        return;
+      }
+
+      const file = req.file;
+      if (!file) {
+        sendError(res, 'VALIDATION_ERROR', 'No file uploaded', 400);
+        return;
+      }
+
+      const caseData = await useCase.getCase(contactId, req.params.id);
+      if (!caseData) {
+        sendError(res, 'NOT_FOUND', 'Case not found', 404);
+        return;
+      }
+
+      const uploadResult = await uploadFile(file, `case-documents/${req.params.id}`);
+      const body = req.body as Record<string, unknown>;
+      const document = await useCase.createDocument({
+        contactId,
+        caseId: req.params.id,
+        fileName: uploadResult.fileName,
+        originalFilename: file.originalname,
+        filePath: uploadResult.filePath,
+        fileSize: uploadResult.fileSize,
+        mimeType: file.mimetype,
+        documentType: typeof body.document_type === 'string' ? body.document_type : undefined,
+        documentName: typeof body.document_name === 'string' ? body.document_name : undefined,
+        description: typeof body.description === 'string' ? body.description : undefined,
+      });
+
+      if (!document) {
+        sendError(res, 'NOT_FOUND', 'Case not found', 404);
+        return;
+      }
+
+      await logPortalActivity({
+        portalUserId,
+        action: 'case.document.upload',
+        details: `Uploaded document to case ${req.params.id}`,
+        ipAddress: req.ip,
+        userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : null,
+      });
+
+      sendSuccess(res, document, 201);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   const downloadCaseDocument = async (req: PortalAuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const contactId = getPortalContactId(req);
@@ -149,6 +209,7 @@ export const createPortalCasesController = (useCase: PortalCasesUseCase) => {
     getCaseById,
     getCaseTimeline,
     getCaseDocuments,
+    uploadCaseDocument,
     downloadCaseDocument,
   };
 };

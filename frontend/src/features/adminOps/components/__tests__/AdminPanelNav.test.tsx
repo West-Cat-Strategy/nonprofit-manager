@@ -25,6 +25,10 @@ describe('AdminPanelNav', () => {
       'href',
       '/settings/backup'
     );
+    expect(screen.getByRole('link', { name: /social media/i })).toHaveAttribute(
+      'href',
+      '/settings/social-media'
+    );
   });
 
   it('hides admin-only links for non-admin users', () => {

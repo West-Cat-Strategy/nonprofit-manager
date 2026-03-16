@@ -86,6 +86,32 @@ export interface PortalReminder {
   date: string;
 }
 
+export interface PortalThreadSummary {
+  id: string;
+  subject: string | null;
+  status: 'open' | 'closed' | 'archived';
+  case_number: string | null;
+  case_title: string | null;
+  pointperson_first_name: string | null;
+  pointperson_last_name: string | null;
+  unread_count: number;
+  last_message_at: string;
+  last_message_preview: string | null;
+}
+
+export interface PortalAppointmentSummary {
+  id: string;
+  title: string;
+  description?: string | null;
+  start_time: string;
+  end_time?: string | null;
+  status: string;
+  location?: string | null;
+  case_number?: string | null;
+  case_title?: string | null;
+  request_type?: 'manual_request' | 'slot_booking';
+}
+
 export interface PortalRemindersQuery {
   search?: string;
   sort?: 'date' | 'title' | 'type';
@@ -147,7 +173,37 @@ export interface PortalCaseDocument {
   created_at: string;
 }
 
+export interface PortalDashboardData {
+  active_cases: PortalCaseSummary[];
+  unread_threads_count: number;
+  recent_threads: PortalThreadSummary[];
+  next_appointment: PortalAppointmentSummary | null;
+  upcoming_events: PortalEvent[];
+  recent_documents: PortalDocument[];
+  reminders: PortalReminder[];
+}
+
+export interface PortalPointpersonCaseContext {
+  case_id: string;
+  case_number: string;
+  case_title: string;
+  assigned_to: string | null;
+  pointperson_first_name: string | null;
+  pointperson_last_name: string | null;
+  is_messageable: boolean;
+  is_default: boolean;
+}
+
+export interface PortalPointpersonContext {
+  default_case_id: string | null;
+  default_pointperson_user_id: string | null;
+  selected_case_id?: string | null;
+  selected_pointperson_user_id?: string | null;
+  cases: PortalPointpersonCaseContext[];
+}
+
 export interface PortalApiClient {
+  getDashboard(): Promise<PortalDashboardData>;
   listEvents(query?: PortalEventsQuery): Promise<PortalPagedResult<PortalEvent>>;
   registerEvent(eventId: string): Promise<void>;
   cancelEventRegistration(eventId: string): Promise<void>;
@@ -159,6 +215,7 @@ export interface PortalApiClient {
   getCase(caseId: string): Promise<PortalCaseDetail>;
   getCaseTimeline(caseId: string, query?: PortalCaseTimelineQuery): Promise<PortalCaseTimelinePage>;
   listCaseDocuments(caseId: string): Promise<PortalCaseDocument[]>;
+  uploadCaseDocument(caseId: string, formData: FormData): Promise<PortalCaseDocument>;
   getCaseDocumentDownloadUrl(caseId: string, documentId: string, disposition?: 'inline' | 'attachment'): string;
   getDocumentDownloadUrl(documentId: string, disposition?: 'inline' | 'attachment'): string;
 }

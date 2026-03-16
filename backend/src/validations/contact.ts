@@ -199,6 +199,17 @@ export const contactLookupQuerySchema = z.object({
 
 export type ContactLookupQueryInput = z.infer<typeof contactLookupQuerySchema>;
 
+export const contactCommunicationsQuerySchema = z
+  .object({
+    channel: z.enum(['email', 'sms']).optional(),
+    source_type: z.enum(['appointment_reminder', 'event_reminder']).optional(),
+    delivery_status: z.enum(['sent', 'failed', 'skipped']).optional(),
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+  })
+  .strict();
+
+export type ContactCommunicationsQueryInput = z.infer<typeof contactCommunicationsQuerySchema>;
+
 // Contact note
 export const contactNoteSchema = z
   .object({

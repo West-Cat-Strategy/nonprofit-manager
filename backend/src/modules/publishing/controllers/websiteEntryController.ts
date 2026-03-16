@@ -39,7 +39,9 @@ const mapKnownError = (error: unknown, res: Response): boolean => {
     error.message.includes('organization assignment') ||
     error.message.includes('Only native') ||
     error.message.includes('Unsupported') ||
-    error.message.includes('Idempotency-Key')
+    error.message.includes('Idempotency-Key') ||
+    error.message.includes('required') ||
+    error.message.includes('configured')
   ) {
     badRequest(res, error.message);
     return true;
@@ -417,7 +419,11 @@ export const submitPublicWebsiteForm = async (
       }
     );
 
-    if (!result.idempotentReplay) {
+    const isRecurringCheckoutPending =
+      result.formType === 'donation-form' &&
+      result.recurringPlanStatus === 'checkout_pending';
+
+    if (!result.idempotentReplay && !isRecurringCheckoutPending) {
       await publishingService.recordAnalyticsEvent(
         site.id,
         result.formType === 'donation-form' ? 'donation' : 'form_submit',
@@ -432,8 +438,14 @@ export const submitPublicWebsiteForm = async (
           eventData: {
             formKey,
             formType: result.formType,
-            sourceEntityType: result.donationId ? 'donation' : result.contactId ? 'contact' : null,
-            sourceEntityId: result.donationId || result.contactId || null,
+            sourceEntityType: result.recurringPlanId
+              ? 'recurring_donation_plan'
+              : result.donationId
+                ? 'donation'
+                : result.contactId
+                  ? 'contact'
+                  : null,
+            sourceEntityId: result.recurringPlanId || result.donationId || result.contactId || null,
           },
         }
       );

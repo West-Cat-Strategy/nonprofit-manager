@@ -5,7 +5,11 @@ import {
   resolvePortalCaseSelection,
   ensureCaseIsPortalAccessible,
 } from '@services/portalPointpersonService';
-import { publishPortalThreadUpdated } from '@services/portalRealtimeService';
+import {
+  publishPortalThreadUpdated,
+  type PortalRealtimeMessageSnapshot,
+  type PortalRealtimeThreadSnapshot,
+} from '@services/portalRealtimeService';
 
 export interface PortalThreadSummary {
   id: string;
@@ -39,6 +43,7 @@ export interface PortalMessageEntry {
   message_text: string;
   is_internal: boolean;
   metadata: Record<string, unknown> | null;
+  client_message_id: string | null;
   created_at: string;
   read_by_portal_at: string | null;
   read_by_staff_at: string | null;
@@ -87,6 +92,7 @@ const MESSAGE_SELECT = `
     pm.message_text,
     pm.is_internal,
     pm.metadata,
+    pm.client_message_id,
     pm.created_at,
     pm.read_by_portal_at,
     pm.read_by_staff_at,
@@ -100,6 +106,22 @@ const MESSAGE_SELECT = `
   LEFT JOIN contacts ct ON ct.id = pu.contact_id
   LEFT JOIN users u ON u.id = pm.sender_user_id
 `;
+
+const mapPortalMessageRow = (row: Record<string, unknown>): PortalMessageEntry => ({
+  id: String(row.id),
+  thread_id: String(row.thread_id),
+  sender_type: row.sender_type as PortalMessageEntry['sender_type'],
+  sender_portal_user_id: row.sender_portal_user_id ? String(row.sender_portal_user_id) : null,
+  sender_user_id: row.sender_user_id ? String(row.sender_user_id) : null,
+  message_text: String(row.message_text),
+  is_internal: Boolean(row.is_internal),
+  metadata: (row.metadata as Record<string, unknown> | null) || null,
+  client_message_id: row.client_message_id ? String(row.client_message_id) : null,
+  created_at: String(row.created_at),
+  read_by_portal_at: row.read_by_portal_at ? String(row.read_by_portal_at) : null,
+  read_by_staff_at: row.read_by_staff_at ? String(row.read_by_staff_at) : null,
+  sender_display_name: row.sender_display_name ? String(row.sender_display_name) : null,
+});
 
 const notifyEmail = async (args: {
   to: string | null | undefined;
@@ -284,6 +306,75 @@ const getThreadById = async (threadId: string): Promise<PortalThreadSummary | nu
   };
 };
 
+const getThreadUnreadCounts = async (
+  threadId: string
+): Promise<{ portal_unread_count: number; staff_unread_count: number }> => {
+  const result = await pool.query(
+    `SELECT
+       COALESCE((
+         SELECT COUNT(*)::int
+         FROM portal_messages pm
+         WHERE pm.thread_id = $1
+           AND pm.sender_type IN ('staff', 'system')
+           AND pm.is_internal = false
+           AND pm.read_by_portal_at IS NULL
+       ), 0) AS portal_unread_count,
+       COALESCE((
+         SELECT COUNT(*)::int
+         FROM portal_messages pm
+         WHERE pm.thread_id = $1
+           AND pm.sender_type = 'portal'
+           AND pm.read_by_staff_at IS NULL
+       ), 0) AS staff_unread_count`,
+    [threadId]
+  );
+
+  return {
+    portal_unread_count: Number(result.rows[0]?.portal_unread_count || 0),
+    staff_unread_count: Number(result.rows[0]?.staff_unread_count || 0),
+  };
+};
+
+const buildRealtimeThreadSnapshot = async (
+  thread: PortalThreadSummary
+): Promise<PortalRealtimeThreadSnapshot> => {
+  const unread = await getThreadUnreadCounts(thread.id);
+  return {
+    id: thread.id,
+    contact_id: thread.contact_id,
+    case_id: thread.case_id,
+    subject: thread.subject,
+    status: thread.status,
+    last_message_at: thread.last_message_at,
+    last_message_preview: thread.last_message_preview,
+    case_number: thread.case_number,
+    case_title: thread.case_title,
+    pointperson_user_id: thread.pointperson_user_id,
+    pointperson_first_name: thread.pointperson_first_name,
+    pointperson_last_name: thread.pointperson_last_name,
+    portal_email: thread.portal_email,
+    portal_unread_count: unread.portal_unread_count,
+    staff_unread_count: unread.staff_unread_count,
+  };
+};
+
+const toRealtimeMessageSnapshot = (
+  message: PortalMessageEntry
+): PortalRealtimeMessageSnapshot => ({
+  id: message.id,
+  thread_id: message.thread_id,
+  sender_type: message.sender_type,
+  sender_portal_user_id: message.sender_portal_user_id,
+  sender_user_id: message.sender_user_id,
+  sender_display_name: message.sender_display_name,
+  message_text: message.message_text,
+  is_internal: message.is_internal,
+  client_message_id: message.client_message_id,
+  created_at: message.created_at,
+  read_by_portal_at: message.read_by_portal_at,
+  read_by_staff_at: message.read_by_staff_at,
+});
+
 const getThreadMessages = async (
   threadId: string,
   includeInternal: boolean
@@ -296,7 +387,49 @@ const getThreadMessages = async (
     [threadId]
   );
 
-  return result.rows as PortalMessageEntry[];
+  return result.rows.map((row) => mapPortalMessageRow(row));
+};
+
+const getPortalMessageByClientMessageId = async (input: {
+  threadId: string;
+  clientMessageId: string;
+  senderUserId?: string | null;
+  senderPortalUserId?: string | null;
+  includeInternal?: boolean;
+}): Promise<PortalMessageEntry | null> => {
+  const conditions = [
+    'pm.thread_id = $1',
+    'pm.client_message_id = $2',
+  ];
+  const values: Array<string | boolean> = [input.threadId, input.clientMessageId];
+
+  if (input.senderUserId) {
+    values.push(input.senderUserId);
+    conditions.push(`pm.sender_user_id = $${values.length}`);
+  }
+
+  if (input.senderPortalUserId) {
+    values.push(input.senderPortalUserId);
+    conditions.push(`pm.sender_portal_user_id = $${values.length}`);
+  }
+
+  if (!input.includeInternal) {
+    conditions.push('pm.is_internal = false');
+  }
+
+  const result = await pool.query(
+    `${MESSAGE_SELECT}
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY pm.created_at DESC
+     LIMIT 1`,
+    values
+  );
+
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  return mapPortalMessageRow(result.rows[0]);
 };
 
 export const getPortalThread = async (
@@ -427,6 +560,9 @@ export const createPortalThreadWithMessage = async (input: {
       actorType: 'portal',
       source: 'portal.thread.create',
       contactId: thread.contact_id,
+      action: 'message.created',
+      thread: await buildRealtimeThreadSnapshot(thread),
+      message: messages[0] ? toRealtimeMessageSnapshot(messages[0]) : null,
     });
 
     return { thread, messages };
@@ -442,7 +578,21 @@ export const addPortalMessage = async (input: {
   portalUserId: string;
   threadId: string;
   messageText: string;
+  clientMessageId?: string;
 }): Promise<PortalMessageEntry> => {
+  if (input.clientMessageId) {
+    const existing = await getPortalMessageByClientMessageId({
+      threadId: input.threadId,
+      clientMessageId: input.clientMessageId,
+      senderPortalUserId: input.portalUserId,
+      includeInternal: false,
+    });
+
+    if (existing) {
+      return existing;
+    }
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -464,10 +614,11 @@ export const addPortalMessage = async (input: {
         sender_type,
         sender_portal_user_id,
         message_text,
+        client_message_id,
         read_by_portal_at
-      ) VALUES ($1, 'portal', $2, $3, NOW())
+      ) VALUES ($1, 'portal', $2, $3, $4, NOW())
       RETURNING id`,
-      [input.threadId, input.portalUserId, input.messageText.trim()]
+      [input.threadId, input.portalUserId, input.messageText.trim(), input.clientMessageId || null]
     );
 
     await client.query('COMMIT');
@@ -492,11 +643,29 @@ export const addPortalMessage = async (input: {
       actorType: 'portal',
       source: 'portal.thread.reply',
       contactId: thread.contact_id,
+      action: 'message.created',
+      thread: await buildRealtimeThreadSnapshot(thread),
+      message: toRealtimeMessageSnapshot(created),
+      clientMessageId: created.client_message_id,
     });
 
     return created;
   } catch (error) {
     await client.query('ROLLBACK');
+
+    if (input.clientMessageId && error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === '23505') {
+      const existing = await getPortalMessageByClientMessageId({
+        threadId: input.threadId,
+        clientMessageId: input.clientMessageId,
+        senderPortalUserId: input.portalUserId,
+        includeInternal: false,
+      });
+
+      if (existing) {
+        return existing;
+      }
+    }
+
     throw error;
   } finally {
     client.release();
@@ -508,21 +677,61 @@ export const addStaffMessage = async (input: {
   senderUserId: string;
   messageText: string;
   isInternal?: boolean;
+  clientMessageId?: string;
 }): Promise<PortalMessageEntry> => {
   const internal = Boolean(input.isInternal);
 
-  const insertResult = await pool.query(
-    `INSERT INTO portal_messages (
-      thread_id,
-      sender_type,
-      sender_user_id,
-      message_text,
-      is_internal,
-      read_by_staff_at
-    ) VALUES ($1, 'staff', $2, $3, $4, NOW())
-    RETURNING id`,
-    [input.threadId, input.senderUserId, input.messageText.trim(), internal]
-  );
+  if (input.clientMessageId) {
+    const existing = await getPortalMessageByClientMessageId({
+      threadId: input.threadId,
+      clientMessageId: input.clientMessageId,
+      senderUserId: input.senderUserId,
+      includeInternal: true,
+    });
+
+    if (existing) {
+      return existing;
+    }
+  }
+
+  let insertResult;
+
+  try {
+    insertResult = await pool.query(
+      `INSERT INTO portal_messages (
+        thread_id,
+        sender_type,
+        sender_user_id,
+        message_text,
+        is_internal,
+        client_message_id,
+        read_by_staff_at
+      ) VALUES ($1, 'staff', $2, $3, $4, $5, NOW())
+      RETURNING id`,
+      [
+        input.threadId,
+        input.senderUserId,
+        input.messageText.trim(),
+        internal,
+        input.clientMessageId || null,
+      ]
+    );
+  } catch (error) {
+    if (input.clientMessageId && error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === '23505') {
+      const existing = await getPortalMessageByClientMessageId({
+        threadId: input.threadId,
+        clientMessageId: input.clientMessageId,
+        senderUserId: input.senderUserId,
+        includeInternal: true,
+      });
+
+      if (existing) {
+        return existing;
+      }
+    }
+
+    throw error;
+  }
 
   const thread = await getThreadById(input.threadId);
   const messages = await getThreadMessages(input.threadId, true);
@@ -548,6 +757,10 @@ export const addStaffMessage = async (input: {
       actorType: 'staff',
       source: internal ? 'admin.thread.internal_note' : 'admin.thread.reply',
       contactId: thread.contact_id,
+      action: 'message.created',
+      thread: await buildRealtimeThreadSnapshot(thread),
+      message: toRealtimeMessageSnapshot(message),
+      clientMessageId: message.client_message_id,
     });
   }
 
@@ -573,7 +786,22 @@ export const markPortalThreadRead = async (
     [threadId]
   );
 
-  return result.rowCount || 0;
+  const updated = result.rowCount || 0;
+
+  if (updated > 0) {
+    publishPortalThreadUpdated({
+      entityId: thread.id,
+      caseId: thread.case_id,
+      status: thread.status,
+      actorType: 'portal',
+      source: 'portal.thread.read',
+      contactId: thread.contact_id,
+      action: 'thread.read',
+      thread: await buildRealtimeThreadSnapshot(thread),
+    });
+  }
+
+  return updated;
 };
 
 export const markStaffThreadRead = async (threadId: string): Promise<number> => {
@@ -586,7 +814,24 @@ export const markStaffThreadRead = async (threadId: string): Promise<number> => 
     [threadId]
   );
 
-  return result.rowCount || 0;
+  const updated = result.rowCount || 0;
+  if (updated > 0) {
+    const thread = await getThreadById(threadId);
+    if (thread) {
+      publishPortalThreadUpdated({
+        entityId: thread.id,
+        caseId: thread.case_id,
+        status: thread.status,
+        actorType: 'staff',
+        source: 'admin.thread.read',
+        contactId: thread.contact_id,
+        action: 'thread.read',
+        thread: await buildRealtimeThreadSnapshot(thread),
+      });
+    }
+  }
+
+  return updated;
 };
 
 export const updateThread = async (input: {
@@ -663,6 +908,8 @@ export const updateThread = async (input: {
     actorType: input.actorType || 'staff',
     source: input.status ? 'thread.status.update' : 'thread.update',
     contactId: updatedThread.contact_id,
+    action: input.status ? 'thread.status.updated' : 'thread.updated',
+    thread: await buildRealtimeThreadSnapshot(updatedThread),
   });
 
   return updatedThread;

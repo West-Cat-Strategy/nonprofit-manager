@@ -18,7 +18,7 @@ const resolveApiBaseUrl = (): string => {
 
 interface UsePortalRealtimeStreamOptions {
   endpointPath: string;
-  channels: string[];
+  channels: readonly string[];
   enabled?: boolean;
   onEvent?: (eventName: PortalRealtimeEventName, payload: PortalRealtimeEventPayload) => void;
 }
@@ -32,15 +32,16 @@ export function usePortalRealtimeStream({
   const [status, setStatus] = useState<PortalStreamStatus>('disabled');
   const streamRef = useRef<EventSource | null>(null);
   const realtimeEnabled = import.meta.env.VITE_PORTAL_REALTIME_ENABLED === 'true';
+  const channelKey = useMemo(() => channels.join(','), [channels]);
 
   const streamUrl = useMemo(() => {
     const base = resolveApiBaseUrl();
     const params = new URLSearchParams();
-    if (channels.length > 0) {
-      params.set('channels', channels.join(','));
+    if (channelKey) {
+      params.set('channels', channelKey);
     }
     return `${base}${endpointPath}${params.toString() ? `?${params.toString()}` : ''}`;
-  }, [channels, endpointPath]);
+  }, [channelKey, endpointPath]);
 
   useEffect(() => {
     if (!enabled || !realtimeEnabled) {

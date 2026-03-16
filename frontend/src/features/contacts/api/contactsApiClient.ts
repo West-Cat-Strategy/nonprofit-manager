@@ -3,6 +3,7 @@ import { unwrapApiData } from '../../../services/apiEnvelope';
 import type { ApiEnvelope } from '../../../services/apiEnvelope';
 import type {
   Contact,
+  ContactCommunicationsResult,
   ContactDocument,
   ContactEmailAddress,
   ContactNote,
@@ -21,6 +22,7 @@ import type {
   UpdateContactPhoneDTO,
 } from '../../../types/contact';
 import type {
+  ContactCommunicationQuery,
   ContactLookupItem,
   ContactMutationPayload,
   ContactsApiClientPort,
@@ -114,6 +116,24 @@ export class ContactsApiClient implements ContactsApiClientPort {
     const response = await api.post<ApiEnvelope<{ updated: number; contact_ids: string[] }>>(
       '/v2/contacts/bulk',
       payload
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async listCommunications(
+    contactId: string,
+    query: ContactCommunicationQuery = {}
+  ): Promise<ContactCommunicationsResult> {
+    const response = await api.get<ApiEnvelope<ContactCommunicationsResult>>(
+      `/v2/contacts/${contactId}/communications`,
+      {
+        params: {
+          channel: query.channel,
+          source_type: query.source_type,
+          delivery_status: query.delivery_status,
+          limit: query.limit,
+        },
+      }
     );
     return unwrapApiData(response.data);
   }

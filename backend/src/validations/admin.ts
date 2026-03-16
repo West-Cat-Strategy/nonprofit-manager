@@ -65,6 +65,54 @@ export const updateTwilioSettingsSchema = z.object({
   fromPhoneNumber: z.union([phoneSchema, z.null()]).optional(),
 });
 
+const settingsAddressSchema = z.object({
+  line1: z.string().trim().max(255),
+  line2: z.string().trim().max(255),
+  city: z.string().trim().max(100),
+  province: z.string().trim().max(100),
+  postalCode: z.string().trim().max(20),
+  country: z.string().trim().max(100),
+});
+
+const optionalEmailOrBlankSchema = z.union([emailSchema, z.literal('')]);
+
+export const organizationTaxReceiptSettingsSchema = z
+  .object({
+    legalName: z.string().trim().max(255),
+    charitableRegistrationNumber: z.string().trim().max(50),
+    receiptingAddress: settingsAddressSchema,
+    receiptIssueLocation: z.string().trim().max(255),
+    authorizedSignerName: z.string().trim().max(255),
+    authorizedSignerTitle: z.string().trim().max(255),
+    contactEmail: optionalEmailOrBlankSchema,
+    contactPhone: z.string().trim().max(50),
+    advantageAmount: z.coerce.number().min(0).max(999999999).default(0),
+  })
+  .strict();
+
+export const organizationSettingsConfigSchema = z
+  .object({
+    name: z.string().trim().max(255),
+    email: optionalEmailOrBlankSchema,
+    phone: z.string().trim().max(50),
+    website: z.string().trim().max(255),
+    address: settingsAddressSchema,
+    timezone: z.string().trim().max(100),
+    dateFormat: z.string().trim().max(50),
+    currency: z.string().trim().length(3),
+    fiscalYearStart: z.string().trim().regex(/^(0[1-9]|1[0-2])$/),
+    measurementSystem: z.enum(['metric', 'imperial']),
+    phoneFormat: z.enum(['canadian', 'us', 'international']),
+    taxReceipt: organizationTaxReceiptSettingsSchema,
+  })
+  .strict();
+
+export const updateOrganizationSettingsSchema = z
+  .object({
+    config: organizationSettingsConfigSchema,
+  })
+  .strict();
+
 export type AdminPendingRegistrationParamsInput = z.infer<
   typeof adminPendingRegistrationParamsSchema
 >;
@@ -76,3 +124,8 @@ export type AdminPendingRegistrationsQueryInput = z.infer<
 >;
 export type UpdateEmailSettingsInput = z.infer<typeof updateEmailSettingsSchema>;
 export type UpdateTwilioSettingsInput = z.infer<typeof updateTwilioSettingsSchema>;
+export type OrganizationSettingsConfigInput = z.infer<typeof organizationSettingsConfigSchema>;
+export type OrganizationTaxReceiptSettingsInput = z.infer<
+  typeof organizationTaxReceiptSettingsSchema
+>;
+export type UpdateOrganizationSettingsInput = z.infer<typeof updateOrganizationSettingsSchema>;

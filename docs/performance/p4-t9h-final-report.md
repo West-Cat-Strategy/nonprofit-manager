@@ -1,8 +1,8 @@
 # P4-T9H Final Report
 
-Date: 2026-03-13  
+Date: 2026-03-15  
 Task: `P4-T9H`  
-Status: `Blocked` (implementation complete, perf evidence captured, and the strict closure rerun is now blocked by an out-of-scope frontend route-smoke failure)
+Status: `Blocked` (implementation complete, perf evidence captured, and the strict closure rerun is now blocked by an out-of-scope backend lint failure)
 
 ## Delivered Scope
 
@@ -18,41 +18,25 @@ Status: `Blocked` (implementation complete, perf evidence captured, and the stri
 
 ## Verification Completed
 
-- `cd frontend && npm test -- --run src/features/adminOps/pages/__tests__/UserSettingsPage.test.tsx src/features/adminOps/pages/portalAdmin/panels/__tests__/PortalPanels.test.tsx` -> pass
-- `cd backend && npx jest --runInBand src/__tests__/services/accountService.test.ts src/__tests__/services/contactService.test.ts src/__tests__/services/taskService.test.ts src/__tests__/services/caseService.test.ts` -> pass
-- `make db-verify` -> pass
-- `scripts/select-checks.sh --files "<changed-file set>" --mode strict` -> emitted strict sequence successfully
-
-Additional closure rerun evidence:
-
-- `cd frontend && npx eslint src/features/builder/components/TemplateSettingsDialog.tsx src/features/builder/pages/PageEditorPage.tsx src/features/builder/components/templateSettingsDraft.ts` -> pass
-- `cd frontend && npm run build` -> pass
-- `cd backend && npx jest --runInBand src/__tests__/integration/adminEmailSettings.test.ts` -> pass
-- `make lint` -> pass (warning only in `frontend/src/features/tasks/pages/TaskListPage.tsx`)
-- `make typecheck` -> pass
-- `cd backend && npm run test:unit` -> pass
-- `cd backend && npm run test:integration` -> pass
-- `node scripts/ui-audit.ts` -> pass
+- `cd frontend && npm test -- --run` -> pass (`137` files, `1127` tests)
+- `make db-verify` -> pass; migration `075_staff_backend_efficiency_search_indexes.sql` verifies cleanly
+- `cd e2e && npm run test:smoke` -> pass (`2` passed)
+- The earlier intake/contact-form route-smoke blocker recorded in this report is stale; the full frontend Vitest gate now passes on `main`
 
 ## Strict Closure Blocker
 
-The builder lint/build issue and the admin email-settings integration-test drift are both cleared. The new first failing strict command is step 6:
+The strict closure rerun resumed after the already-green gates above and stopped at the new first failing command:
 
-- `cd frontend && npm test -- --run`
+- `make ci-full`
 
-It now fails in an out-of-scope route-smoke path:
+It now fails immediately in an out-of-scope backend lint path:
 
-- `frontend/src/pages/__tests__/RouteUxSmoke.test.tsx`
-  - failing case: `renders H1 and primary action without console errors for 'intake-new' route`
-  - visible assertion failure: could not find the `Create contact` button
-- `frontend/src/components/contactForm/sections/RolesSection.tsx`
-  - unhandled error: `TypeError: availableRoles.filter is not a function`
+- `backend/src/services/donationService.ts:334`
+  - `no-useless-assignment`: value assigned to `paramCount` is not used in subsequent statements
+- `backend/src/services/donationService.ts:573`
+  - `no-useless-assignment`: value assigned to `paramCount` is not used in subsequent statements
 
-Targeted repro confirms the same failure:
-
-- `cd frontend && npm test -- --run src/pages/__tests__/RouteUxSmoke.test.tsx` -> fail
-
-Because the first remaining strict-gate failure is now this broader frontend route-smoke regression, `P4-T9H` remains blocked until the intake/contact-form issue is routed or resolved in its owning stream.
+Because this repo-wide backend lint failure sits outside the staff search/list efficiency surfaces, `P4-T9H` remains blocked until the owning stream clears that gate. No task-owned contract or query-path regression surfaced in this closure pass.
 
 ## Performance Artifacts
 
@@ -83,15 +67,10 @@ Plan notes:
 
 ## Related Closure Notes
 
-`P4-T9A` rerun evidence shares the same closure lane. Its two previously known blockers are cleared in this pass:
-
-1. The builder export-rule/build failure is fixed by moving `TemplateSettingsDraft` and `toTemplateSettingsDraft` into `frontend/src/features/builder/components/templateSettingsDraft.ts`.
-2. The admin email-settings integration drift is fixed in test-only form by reading `response.body.data?.data ?? response.body.data`.
-
-However, the ordered closure sequence is now blocked earlier by the same out-of-scope frontend route-smoke failure, so the unchanged `make ci-full` and `cd e2e && npm run test:ci` reruns were not reached in this pass.
+`make ci-full` already contains the full Playwright `test:ci` gate in this repo, so the ordered closure sequence did not require a standalone `cd e2e && npm run test:ci` rerun after this failure. The sequence now stops earlier at backend lint.
 
 ## Next Step
 
-1. Route or resolve the unrelated intake/contact-form route-smoke regression (`RouteUxSmoke` / `RolesSection`), then rerun the strict selector sequence from step 6: `cd frontend && npm test -- --run`.
-2. Once that earlier frontend gate is clear, rerun the remaining closure commands for this lane in order: `make db-verify`, `cd e2e && npm run test:smoke`, `make ci-full`, and `cd e2e && npm run test:ci`.
-3. If the downstream `P4-T9A` commands surface a new first failure after that rerun, document that gate with fresh evidence; otherwise move `P4-T9H` to review using the existing perf artifacts.
+1. Route or resolve the unrelated backend lint failure in `backend/src/services/donationService.ts`.
+2. Rerun `make ci-full`.
+3. If that full CI gate passes, move `P4-T9H` to review using the existing perf artifacts; run a standalone `cd e2e && npm run test:ci` only if repo policy changes to require it after a green `make ci-full`.

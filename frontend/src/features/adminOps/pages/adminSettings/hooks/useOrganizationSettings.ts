@@ -1,14 +1,65 @@
 import { useCallback, useState } from 'react';
 import api from '../../../../../services/api';
 import { clearStaffBootstrapSnapshot } from '../../../../../services/bootstrap/staffBootstrap';
-import { mergeUserPreferencesCached } from '../../../../../services/userPreferencesService';
 import { defaultBranding, type BrandingConfig } from '../../../../../types/branding';
-import type { OrganizationConfig, SaveStatus } from '../types';
+import type {
+  OrganizationAddress,
+  OrganizationConfig,
+  OrganizationSettings,
+  SaveStatus,
+} from '../types';
 import { defaultConfig } from '../constants';
 import { formatCanadianPhone, formatCanadianPostalCode } from '../utils';
 
 const serializeOrganizationConfig = (value: OrganizationConfig): string => JSON.stringify(value);
 const serializeBrandingConfig = (value: BrandingConfig): string => JSON.stringify(value);
+
+const mergeAddress = (
+  base: OrganizationAddress,
+  value?: Partial<OrganizationAddress> | null
+): OrganizationAddress => ({
+  ...base,
+  ...(value || {}),
+});
+
+const mergeOrganizationConfig = (
+  value?: Partial<OrganizationConfig> | null
+): OrganizationConfig => ({
+  ...defaultConfig,
+  ...(value || {}),
+  address: mergeAddress(defaultConfig.address, value?.address),
+  taxReceipt: {
+    ...defaultConfig.taxReceipt,
+    ...(value?.taxReceipt || {}),
+    receiptingAddress: mergeAddress(
+      defaultConfig.taxReceipt.receiptingAddress,
+      value?.taxReceipt?.receiptingAddress
+    ),
+  },
+});
+
+const getTaxReceiptMissingFields = (config: OrganizationConfig): string[] => {
+  const missing: string[] = [];
+  const taxReceipt = config.taxReceipt;
+  const receiptingAddress = taxReceipt.receiptingAddress;
+
+  if (!taxReceipt.legalName.trim()) missing.push('Legal charity name');
+  if (!taxReceipt.charitableRegistrationNumber.trim()) {
+    missing.push('Charitable registration number');
+  }
+  if (!receiptingAddress.line1.trim()) missing.push('Receipting address line 1');
+  if (!receiptingAddress.city.trim()) missing.push('Receipting address city');
+  if (!receiptingAddress.province.trim()) missing.push('Receipting address province/state');
+  if (!receiptingAddress.postalCode.trim()) missing.push('Receipting address postal code');
+  if (!receiptingAddress.country.trim()) missing.push('Receipting address country');
+  if (!taxReceipt.receiptIssueLocation.trim()) missing.push('Receipt issue location');
+  if (!taxReceipt.authorizedSignerName.trim()) missing.push('Authorized signer name');
+  if (!taxReceipt.authorizedSignerTitle.trim()) missing.push('Authorized signer title');
+  if (!taxReceipt.contactEmail.trim()) missing.push('Receipt contact email');
+  if (!taxReceipt.contactPhone.trim()) missing.push('Receipt contact phone');
+
+  return missing;
+};
 
 type UseOrganizationSettingsParams = {
   initialMode: 'basic' | 'advanced';
@@ -30,17 +81,19 @@ export const useOrganizationSettings = ({
   const [brandingLastSavedAt, setBrandingLastSavedAt] = useState<Date | null>(null);
 
   const loadOrganizationData = useCallback(async (): Promise<void> => {
-    const [configResponse, brandingResult] = await Promise.all([
-      api.get('/auth/preferences').catch(() => ({ data: { preferences: {} } })),
+    const [settingsResult, brandingResult] = await Promise.all([
+      api
+        .get<OrganizationSettings>('/admin/organization-settings')
+        .then((response) => ({ ok: true as const, data: response.data }))
+        .catch(() => ({ ok: false as const, data: null })),
       api
         .get('/admin/branding')
         .then((response) => ({ ok: true as const, data: response.data }))
         .catch(() => ({ ok: false as const, data: defaultBranding })),
     ]);
 
-    const prefs = configResponse.data.preferences;
-    const resolvedConfig = prefs?.organization
-      ? ({ ...defaultConfig, ...prefs.organization } as OrganizationConfig)
+    const resolvedConfig = settingsResult.data
+      ? mergeOrganizationConfig(settingsResult.data.config)
       : defaultConfig;
     const resolvedBranding = brandingResult.data
       ? ({ ...defaultBranding, ...brandingResult.data } as BrandingConfig)
@@ -48,6 +101,11 @@ export const useOrganizationSettings = ({
 
     setConfig(resolvedConfig);
     setSavedOrganizationSnapshot(serializeOrganizationConfig(resolvedConfig));
+    setOrganizationLastSavedAt(
+      settingsResult.ok && settingsResult.data?.updatedAt
+        ? new Date(settingsResult.data.updatedAt)
+        : null
+    );
     setBranding(resolvedBranding);
     setSavedBrandingSnapshot(serializeBrandingConfig(resolvedBranding));
     if (brandingResult.ok) {
@@ -70,9 +128,48 @@ export const useOrganizationSettings = ({
     }));
   };
 
+  const handleTaxReceiptChange = (field: string, value: string) => {
+    setConfig((prev) => ({
+      ...prev,
+      taxReceipt: { ...prev.taxReceipt, [field]: value },
+    }));
+  };
+
+  const handleTaxReceiptAddressChange = (field: string, value: string) => {
+    let formattedValue = value;
+    if (
+      field === 'postalCode' &&
+      config.taxReceipt.receiptingAddress.country === 'Canada'
+    ) {
+      formattedValue = formatCanadianPostalCode(value);
+    }
+
+    setConfig((prev) => ({
+      ...prev,
+      taxReceipt: {
+        ...prev.taxReceipt,
+        receiptingAddress: {
+          ...prev.taxReceipt.receiptingAddress,
+          [field]: formattedValue,
+        },
+      },
+    }));
+  };
+
   const handlePhoneChange = (value: string) => {
     const formatted = config.phoneFormat === 'canadian' ? formatCanadianPhone(value) : value;
     setConfig((prev) => ({ ...prev, phone: formatted }));
+  };
+
+  const handleTaxReceiptPhoneChange = (value: string) => {
+    const formatted = config.phoneFormat === 'canadian' ? formatCanadianPhone(value) : value;
+    setConfig((prev) => ({
+      ...prev,
+      taxReceipt: {
+        ...prev.taxReceipt,
+        contactPhone: formatted,
+      },
+    }));
   };
 
   const handleBrandingChange = (field: string, value: string) => {
@@ -102,11 +199,16 @@ export const useOrganizationSettings = ({
     setIsSaving(true);
     setSaveStatus('idle');
     try {
-      await api.patch('/auth/preferences/organization', { value: config });
-      mergeUserPreferencesCached('organization', config);
+      const response = await api.put<OrganizationSettings>('/admin/organization-settings', {
+        config,
+      });
+      const savedConfig = mergeOrganizationConfig(response.data?.config ?? config);
+      setConfig(savedConfig);
       clearStaffBootstrapSnapshot();
-      setSavedOrganizationSnapshot(serializeOrganizationConfig(config));
-      setOrganizationLastSavedAt(new Date());
+      setSavedOrganizationSnapshot(serializeOrganizationConfig(savedConfig));
+      setOrganizationLastSavedAt(
+        response.data?.updatedAt ? new Date(response.data.updatedAt) : new Date()
+      );
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch {
@@ -141,6 +243,8 @@ export const useOrganizationSettings = ({
     serializeOrganizationConfig(config) !== savedOrganizationSnapshot;
   const isBrandingDirty =
     savedBrandingSnapshot !== '' && serializeBrandingConfig(branding) !== savedBrandingSnapshot;
+  const taxReceiptMissingFields = getTaxReceiptMissingFields(config);
+  const isTaxReceiptComplete = taxReceiptMissingFields.length === 0;
 
   return {
     loadOrganizationData,
@@ -164,13 +268,18 @@ export const useOrganizationSettings = ({
     setBrandingLastSavedAt,
     handleChange,
     handleAddressChange,
+    handleTaxReceiptChange,
+    handleTaxReceiptAddressChange,
     handlePhoneChange,
+    handleTaxReceiptPhoneChange,
     handleBrandingChange,
     handleImageUpload,
     handleSaveOrganization,
     handleSaveBranding,
     isOrganizationDirty,
     isBrandingDirty,
+    taxReceiptMissingFields,
+    isTaxReceiptComplete,
   };
 };
 

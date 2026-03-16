@@ -10,7 +10,10 @@ export default function ToastHost() {
   const { toasts, removeToast } = useToast();
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex w-full max-w-sm flex-col gap-3">
+    <div
+      className="fixed right-4 z-50 flex w-full max-w-sm flex-col gap-3"
+      style={{ bottom: 'calc(1rem + var(--team-messenger-toast-offset, 0px))' }}
+    >
       {toasts.map((toast) => (
         <div
           key={toast.id}

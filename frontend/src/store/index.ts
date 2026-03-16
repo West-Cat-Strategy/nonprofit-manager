@@ -17,6 +17,7 @@ import portalAuthReducer from '../features/portalAuth/state';
 import {
   donationsReducer,
   paymentsReducer,
+  recurringDonationsReducer,
   reconciliationReducer,
 } from '../features/finance/state';
 import templateReducer from '../features/builder/state';
@@ -35,6 +36,7 @@ import {
   eventRemindersV2Reducer,
   eventsListV2Reducer,
 } from '../features/events/state';
+import socialMediaReducer from '../features/socialMedia/state';
 
 export const rootReducer = combineReducers({
   auth: authReducer,
@@ -42,6 +44,7 @@ export const rootReducer = combineReducers({
   contactsV2: contactsV2Reducer,
   volunteers: volunteersV2Reducer,
   donations: donationsReducer,
+  recurringDonations: recurringDonationsReducer,
   tasks: tasksV2Reducer,
   analytics: analyticsV2Reducer,
   reports: reportsV2Reducer,
@@ -56,6 +59,7 @@ export const rootReducer = combineReducers({
   alerts: alertsReducer,
   portalAuth: portalAuthReducer,
   websites: websitesReducer,
+  socialMedia: socialMediaReducer,
   followUps: followUpsV2Reducer,
   scheduledReports: scheduledReportsV2Reducer,
   opportunities: opportunitiesReducer,

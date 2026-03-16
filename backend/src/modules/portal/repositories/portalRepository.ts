@@ -9,8 +9,10 @@ export class PortalRepository {
   private readonly profile: PortalProfileRepository;
   private readonly cases: PortalCaseRepository;
   private readonly resources: PortalResourceRepository;
+  private readonly pool: Pool;
 
   constructor(pool: Pool) {
+    this.pool = pool;
     this.profile = new PortalProfileRepository(pool, this.support);
     this.cases = new PortalCaseRepository(pool, this.support);
     this.resources = new PortalResourceRepository(pool, this.support);
@@ -182,5 +184,106 @@ export class PortalRepository {
     documentId: string
   ): Promise<{ file_path: string; original_name: string; mime_type: string } | null> {
     return this.resources.getDownloadableDocument(contactId, documentId);
+  }
+
+  async getDashboard(contactId: string, portalUserId: string): Promise<Record<string, unknown>> {
+    const [activeCases, unreadThreadsCountResult, recentThreadsResult, nextAppointmentResult] =
+      await Promise.all([
+        this.cases.getPortalCases(contactId),
+        this.pool.query<{ unread_threads_count: string }>(
+          `SELECT COUNT(*)::text AS unread_threads_count
+           FROM portal_threads t
+           WHERE t.portal_user_id = $1
+             AND EXISTS (
+               SELECT 1
+               FROM portal_messages pm
+               WHERE pm.thread_id = t.id
+                 AND pm.sender_type IN ('staff', 'system')
+                 AND pm.is_internal = false
+                 AND pm.read_by_portal_at IS NULL
+             )`,
+          [portalUserId]
+        ),
+        this.pool.query<Record<string, unknown>>(
+          `SELECT
+             t.id,
+             t.subject,
+             t.status,
+             t.last_message_at,
+             t.last_message_preview,
+             c.case_number,
+             c.title AS case_title,
+             u.first_name AS pointperson_first_name,
+             u.last_name AS pointperson_last_name,
+             COALESCE(unread.unread_count, 0) AS unread_count
+           FROM portal_threads t
+           LEFT JOIN cases c ON c.id = t.case_id
+           LEFT JOIN users u ON u.id = t.pointperson_user_id
+           LEFT JOIN LATERAL (
+             SELECT COUNT(*)::int AS unread_count
+             FROM portal_messages pm
+             WHERE pm.thread_id = t.id
+               AND pm.sender_type IN ('staff', 'system')
+               AND pm.is_internal = false
+               AND pm.read_by_portal_at IS NULL
+           ) unread ON true
+           WHERE t.portal_user_id = $1
+           ORDER BY t.last_message_at DESC
+           LIMIT 3`,
+          [portalUserId]
+        ),
+        this.pool.query<Record<string, unknown>>(
+          `SELECT
+             a.id,
+             a.title,
+             a.description,
+             a.start_time,
+             a.end_time,
+             a.status,
+             a.location,
+             a.request_type,
+             c.case_number,
+             c.title AS case_title
+           FROM appointments a
+           LEFT JOIN cases c ON c.id = a.case_id
+           WHERE a.contact_id = $1
+             AND a.status IN ('requested', 'confirmed')
+             AND a.start_time >= NOW()
+           ORDER BY a.start_time ASC
+           LIMIT 1`,
+          [contactId]
+        ),
+      ]);
+
+    const [upcomingEvents, recentDocuments, reminders] = await Promise.all([
+      this.resources.getPortalEvents(contactId, {
+        limit: 3,
+        offset: 0,
+        sort: 'start_date',
+        order: 'asc',
+      }),
+      this.resources.getPortalDocuments(contactId, {
+        limit: 3,
+        offset: 0,
+        sort: 'created_at',
+        order: 'desc',
+      }),
+      this.resources.getPortalReminders(contactId, {
+        limit: 5,
+        offset: 0,
+        sort: 'date',
+        order: 'asc',
+      }),
+    ]);
+
+    return {
+      active_cases: activeCases.slice(0, 4),
+      unread_threads_count: Number(unreadThreadsCountResult.rows[0]?.unread_threads_count ?? '0'),
+      recent_threads: recentThreadsResult.rows,
+      next_appointment: (nextAppointmentResult.rows[0] as Record<string, unknown> | undefined) ?? null,
+      upcoming_events: upcomingEvents.items,
+      recent_documents: recentDocuments.items,
+      reminders: reminders.items,
+    };
   }
 }

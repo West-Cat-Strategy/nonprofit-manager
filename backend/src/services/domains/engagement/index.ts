@@ -3,6 +3,8 @@ export { CaseService } from '@services/caseService';
 export { ContactRoleService } from '@services/contactRoleService';
 export { ContactService } from '@services/contactService';
 export { DonationService } from '@services/donationService';
+export { RecurringDonationService } from '@modules/recurringDonations/services/recurringDonationService';
+export { TaxReceiptService } from '@modules/donations/services/taxReceiptService';
 export { EventService } from '@modules/events/services/eventService';
 export { TaskService } from '@services/taskService';
 export { VolunteerService } from '@services/volunteerService';

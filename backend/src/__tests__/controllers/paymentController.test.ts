@@ -1,10 +1,21 @@
 import type { Request, Response } from 'express';
 import { handleWebhook, setPaymentPool } from '@modules/payments/controllers/paymentController';
 import { stripeService } from '@services/domains/operations';
+import { recurringDonationService } from '@modules/recurringDonations/services/recurringDonationService';
 
 jest.mock('@services/domains/operations', () => ({
   stripeService: {
     constructWebhookEvent: jest.fn(),
+  },
+}));
+
+jest.mock('@modules/recurringDonations/services/recurringDonationService', () => ({
+  recurringDonationService: {
+    handleCheckoutSessionCompleted: jest.fn(),
+    handleSubscriptionUpdated: jest.fn(),
+    handleSubscriptionDeleted: jest.fn(),
+    handleInvoicePaid: jest.fn(),
+    handleInvoicePaymentFailed: jest.fn(),
   },
 }));
 
@@ -18,6 +29,9 @@ jest.mock('@config/logger', () => ({
 }));
 
 const mockStripeService = stripeService as jest.Mocked<typeof stripeService>;
+const mockRecurringDonationService = recurringDonationService as jest.Mocked<
+  typeof recurringDonationService
+>;
 
 const createResponse = (): Response => {
   const res = {
@@ -148,5 +162,47 @@ describe('paymentController.handleWebhook', () => {
       received: true,
     });
     expect(poolQuery).toHaveBeenCalledTimes(2);
+  });
+
+  it('dispatches recurring checkout session events to the recurring donation service', async () => {
+    mockStripeService.constructWebhookEvent.mockReturnValue({
+      id: 'evt-checkout-session',
+      type: 'checkout.session.completed',
+      created: new Date(),
+      data: {
+        object: {
+          id: 'cs_test_123',
+          customer: 'cus_123',
+          subscription: 'sub_123',
+          metadata: {
+            recurringPlanId: 'plan-123',
+          },
+        },
+      },
+    } as any);
+
+    poolQuery
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'receipt-1' }] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] });
+
+    const req = {
+      headers: { 'stripe-signature': 'sig_test' },
+      body: Buffer.from('{}'),
+    } as unknown as Request;
+    const res = createResponse();
+
+    await handleWebhook(req, res);
+
+    expect(mockRecurringDonationService.handleCheckoutSessionCompleted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'cs_test_123',
+        customer: 'cus_123',
+        subscription: 'sub_123',
+      })
+    );
+    expect((res.status as jest.Mock).mock.calls[0][0]).toBe(200);
+    expect((res.json as jest.Mock).mock.calls[0][0]).toEqual({
+      received: true,
+    });
   });
 });

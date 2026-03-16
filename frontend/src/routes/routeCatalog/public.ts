@@ -72,6 +72,12 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Builder',
     path: '/event-check-in/:id',
   }),
+  publicRoute({
+    id: 'recurring-donation-checkout-result',
+    title: 'Monthly Donation Checkout',
+    section: 'Builder',
+    path: '/recurring-donations/checkout-result',
+  }),
   portalPublicRoute({
     id: 'portal-login',
     title: 'Portal Login',

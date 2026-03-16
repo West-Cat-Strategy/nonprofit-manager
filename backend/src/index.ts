@@ -24,6 +24,7 @@ import { followUpReminderSchedulerService } from '@services/followUpReminderSche
 import { appointmentReminderSchedulerService } from '@services/appointmentReminderSchedulerService';
 import { publicReportSnapshotCleanupSchedulerService } from '@services/publicReportSnapshotCleanupSchedulerService';
 import { scheduledReportSchedulerService } from '@services/scheduledReportSchedulerService';
+import { socialMediaSyncSchedulerService } from '@services/socialMediaSyncSchedulerService';
 import { webhookRetrySchedulerService } from '@services/webhookRetrySchedulerService';
 import { renderPublishedWebsite } from '@modules/publishing/controllers';
 import pool from './config/database';
@@ -94,6 +95,9 @@ const scheduledReportSchedulerEnabled =
 const publicReportSnapshotCleanupEnabled =
   process.env.NODE_ENV !== 'test' &&
   process.env.REPORT_PUBLIC_SNAPSHOT_CLEANUP_ENABLED === 'true';
+const socialMediaSyncSchedulerEnabled =
+  process.env.NODE_ENV !== 'test' &&
+  process.env.SOCIAL_MEDIA_SYNC_SCHEDULER_ENABLED === 'true';
 const webhookRetrySchedulerEnabled =
   process.env.NODE_ENV !== 'test' &&
   process.env.WEBHOOK_RETRY_SCHEDULER_ENABLED === 'true';
@@ -313,6 +317,7 @@ process.on('SIGTERM', async () => {
   appointmentReminderSchedulerService.stop();
   publicReportSnapshotCleanupSchedulerService.stop();
   scheduledReportSchedulerService.stop();
+  socialMediaSyncSchedulerService.stop();
   webhookRetrySchedulerService.stop();
   await Promise.all([closeRedis(), pool.end()]);
   process.exit(0);
@@ -365,6 +370,12 @@ if (shouldStartServer) {
       publicReportSnapshotCleanupSchedulerService.start();
     } else {
       logger.info('Public report snapshot cleanup scheduler disabled');
+    }
+
+    if (socialMediaSyncSchedulerEnabled) {
+      socialMediaSyncSchedulerService.start();
+    } else {
+      logger.info('Social media sync scheduler disabled');
     }
 
     if (webhookRetrySchedulerEnabled) {

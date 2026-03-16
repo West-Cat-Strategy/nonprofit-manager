@@ -12,6 +12,7 @@ import {
   bulkUpdateContactsSchema,
   contactEmailSchema,
   contactFilterSchema,
+  contactCommunicationsQuerySchema,
   contactLookupQuerySchema,
   contactNoteSchema,
   contactRelationshipSchema,
@@ -27,6 +28,7 @@ import {
 } from '@validations/contact';
 import { createContactDirectoryController } from '../controllers/directory.controller';
 import { followUpController as followUpsController } from '@modules/followUps/controllers/followUps.handlers';
+import { createContactCommunicationsController } from '../controllers/communications.controller';
 import { createContactNotesController } from '../controllers/notes.controller';
 import { createContactPhonesController } from '../controllers/phones.controller';
 import { createContactEmailsController } from '../controllers/emails.controller';
@@ -39,8 +41,10 @@ import { ContactPhonesRepository } from '../repositories/contactPhonesRepository
 import { ContactEmailsRepository } from '../repositories/contactEmailsRepository';
 import { ContactRelationshipsRepository } from '../repositories/contactRelationshipsRepository';
 import { ContactDocumentsRepository } from '../repositories/contactDocumentsRepository';
+import { ContactCommunicationsRepository } from '../repositories/contactCommunicationsRepository';
 import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
 import { ContactImportExportUseCase } from '../usecases/contactImportExport.usecase';
+import { ContactCommunicationsUseCase } from '../usecases/contactCommunications.usecase';
 import { ContactNotesUseCase } from '../usecases/contactNotes.usecase';
 import { ContactPhonesUseCase } from '../usecases/contactPhones.usecase';
 import { ContactEmailsUseCase } from '../usecases/contactEmails.usecase';
@@ -80,6 +84,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   const emailsRepository = new ContactEmailsRepository();
   const relationshipsRepository = new ContactRelationshipsRepository();
   const documentsRepository = new ContactDocumentsRepository();
+  const communicationsRepository = new ContactCommunicationsRepository();
 
   const directoryUseCase = new ContactDirectoryUseCase(directoryRepository);
 
@@ -106,6 +111,11 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   );
   const documentsController = createContactDocumentsController(
     new ContactDocumentsUseCase(documentsRepository),
+    directoryUseCase,
+    mode
+  );
+  const communicationsController = createContactCommunicationsController(
+    new ContactCommunicationsUseCase(communicationsRepository),
     directoryUseCase,
     mode
   );
@@ -167,6 +177,12 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/follow-ups',
     validateParams(z.object({ id: uuidSchema })),
     followUpsController.getContactFollowUps
+  );
+  router.get(
+    '/:id/communications',
+    validateParams(z.object({ id: uuidSchema })),
+    validateQuery(contactCommunicationsQuerySchema),
+    communicationsController.getContactCommunications
   );
 
   router.get(

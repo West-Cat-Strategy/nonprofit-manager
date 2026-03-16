@@ -5,7 +5,9 @@ import {
   getBranding,
   putBranding,
   getEmailSettings,
+  getOrganizationSettingsHandler,
   updateEmailSettings,
+  updateOrganizationSettingsHandler,
   testEmailSettings,
   getTwilioSettings,
   updateTwilioSettings,
@@ -31,6 +33,7 @@ import {
   adminAuditLogsQuerySchema,
   adminPendingRegistrationsQuerySchema,
   adminPendingRegistrationParamsSchema,
+  updateOrganizationSettingsSchema,
   rejectPendingRegistrationSchema,
   updateEmailSettingsSchema,
   updateRegistrationSettingsSchema,
@@ -43,6 +46,14 @@ const router = express.Router();
 
 router.get('/branding', authenticate, getBranding);
 router.put('/branding', authenticate, authorize('admin'), putBranding);
+router.get('/organization-settings', authenticate, authorize('admin'), getOrganizationSettingsHandler);
+router.put(
+  '/organization-settings',
+  authenticate,
+  authorize('admin'),
+  validateBody(updateOrganizationSettingsSchema),
+  updateOrganizationSettingsHandler
+);
 
 router.get('/stats', authenticate, authorize('admin'), getAdminStats);
 router.get(

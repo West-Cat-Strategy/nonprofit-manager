@@ -118,6 +118,7 @@ const resolveStaffArea = (id: string, section: RouteSection): RouteArea => {
     id === 'navigation-settings' ||
     id === 'backup-settings' ||
     id === 'email-marketing' ||
+    id === 'social-media' ||
     id.startsWith('portal-admin-')
   ) {
     return 'Admin';
@@ -200,6 +201,8 @@ const routeParentIds: Record<string, string> = {
   'donation-edit': 'donations',
   'donation-payment': 'donations',
   'donation-payment-result': 'donations',
+  'recurring-donation-detail': 'recurring-donations',
+  'recurring-donation-edit': 'recurring-donations',
   'reports-builder': 'reports',
   'reports-templates': 'reports',
   'reports-saved': 'reports',

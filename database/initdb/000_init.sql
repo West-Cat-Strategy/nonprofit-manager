@@ -95,6 +95,11 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/074_email_settings_starttls_defaults.sql
 \i /migrations/075_staff_backend_efficiency_search_indexes.sql
 \i /migrations/076_contact_note_outcome_tracking.sql
+\i /migrations/077_recurring_donation_processing.sql
+\i /migrations/078_team_messenger_split.sql
+\i /migrations/079_donation_tax_receipts_and_org_settings.sql
+\i /migrations/080_social_media_tracking.sql
+\i /migrations/081_messaging_client_message_ids.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -194,7 +199,12 @@ VALUES
     ('073_contact_method_sync_backfill.sql', '073', '073_contact_method_sync_backfill.sql'),
     ('074_email_settings_starttls_defaults.sql', '074', '074_email_settings_starttls_defaults.sql'),
     ('075_staff_backend_efficiency_search_indexes.sql', '075', '075_staff_backend_efficiency_search_indexes.sql'),
-    ('076_contact_note_outcome_tracking.sql', '076', '076_contact_note_outcome_tracking.sql')
+    ('076_contact_note_outcome_tracking.sql', '076', '076_contact_note_outcome_tracking.sql'),
+    ('077_recurring_donation_processing.sql', '077', '077_recurring_donation_processing.sql'),
+    ('078_team_messenger_split.sql', '078', '078_team_messenger_split.sql'),
+    ('079_donation_tax_receipts_and_org_settings.sql', '079', '079_donation_tax_receipts_and_org_settings.sql'),
+    ('080_social_media_tracking.sql', '080', '080_social_media_tracking.sql'),
+    ('081_messaging_client_message_ids.sql', '081', '081_messaging_client_message_ids.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

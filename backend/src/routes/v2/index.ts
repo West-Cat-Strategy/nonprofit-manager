@@ -27,9 +27,11 @@ import { invitationsV2Routes } from '@modules/invitations';
 import { mailchimpV2Routes } from '@modules/mailchimp';
 import { meetingsV2Routes } from '@modules/meetings';
 import { paymentsV2Routes } from '@modules/payments';
+import { recurringDonationsV2Routes } from '@modules/recurringDonations';
 import { plausibleProxyV2Routes } from '@modules/plausibleProxy';
 import { publicReportsV2Routes } from '@modules/publicReports';
 import { reconciliationV2Routes } from '@modules/reconciliation';
+import { socialMediaV2Routes } from '@modules/socialMedia';
 import {
   publishingV2Routes,
   publicPublishingV2Routes,
@@ -58,11 +60,13 @@ apiV2Routes.use('/invitations', invitationsV2Routes);
 apiV2Routes.use('/mailchimp', mailchimpV2Routes);
 apiV2Routes.use('/meetings', meetingsV2Routes);
 apiV2Routes.use('/payments', paymentsV2Routes);
+apiV2Routes.use('/recurring-donations', recurringDonationsV2Routes);
 apiV2Routes.use('/public/events', publicEventsV2Routes);
 apiV2Routes.use('/public/newsletters', publicPublishingV2Routes);
 apiV2Routes.use('/public/forms', publicWebsiteFormsV2Routes);
 apiV2Routes.use('/public/reports', publicReportsV2Routes);
 apiV2Routes.use('/reconciliation', reconciliationV2Routes);
+apiV2Routes.use('/social-media', socialMediaV2Routes);
 apiV2Routes.use('/sites', publishingV2Routes);
 apiV2Routes.use('/templates', templatesV2Routes);
 apiV2Routes.use('/webhooks', webhooksV2Routes);

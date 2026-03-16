@@ -16,6 +16,11 @@ import type {
   WebhookEvent,
   CreateSubscriptionRequest,
   SubscriptionResponse,
+  CreateCheckoutSessionRequest,
+  CheckoutSessionResponse,
+  CreateMonthlyPriceRequest,
+  StripePriceResponse,
+  BillingPortalSessionResponse,
 } from '@app-types/payment';
 
 // Initialize Stripe client
@@ -23,6 +28,37 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 let stripe: Stripe | null = null;
+
+type StripeResourceWithId = {
+  id?: string | null;
+};
+
+const getStripeId = (value: string | StripeResourceWithId | null): string | null => {
+  if (!value) return null;
+  return typeof value === 'string' ? value : value.id || null;
+};
+
+const mapSubscription = (subscription: Stripe.Subscription): SubscriptionResponse => {
+  const sub = subscription as unknown as {
+    id: string;
+    customer: string;
+    status: string;
+    current_period_start: number;
+    current_period_end: number;
+    cancel_at_period_end: boolean;
+    created: number;
+  };
+
+  return {
+    id: sub.id,
+    customerId: sub.customer,
+    status: sub.status as SubscriptionResponse['status'],
+    currentPeriodStart: new Date(sub.current_period_start * 1000),
+    currentPeriodEnd: new Date(sub.current_period_end * 1000),
+    cancelAtPeriodEnd: sub.cancel_at_period_end,
+    created: new Date(sub.created * 1000),
+  };
+};
 
 /**
  * Get or initialize Stripe client
@@ -234,6 +270,46 @@ export async function createCustomer(request: CreateCustomerRequest): Promise<Cu
 }
 
 /**
+ * Create a Stripe price for a monthly donation amount.
+ */
+export async function createMonthlyPrice(
+  request: CreateMonthlyPriceRequest
+): Promise<StripePriceResponse> {
+  const client = getStripeClient();
+
+  try {
+    const params: Stripe.PriceCreateParams = {
+      unit_amount: request.amount,
+      currency: request.currency.toLowerCase(),
+      recurring: {
+        interval: 'month',
+      },
+      metadata: request.metadata,
+    };
+
+    if (request.productId) {
+      params.product = request.productId;
+    } else {
+      params.product_data = {
+        name: request.productName,
+      };
+    }
+
+    const price = await client.prices.create(params);
+
+    return {
+      id: price.id,
+      productId: getStripeId(price.product as string | Stripe.Product | Stripe.DeletedProduct | null) || '',
+      unitAmount: price.unit_amount || request.amount,
+      currency: price.currency,
+    };
+  } catch (error) {
+    logger.error('Failed to create monthly price', { error, request });
+    throw error;
+  }
+}
+
+/**
  * Get customer by ID
  */
 export async function getCustomer(customerId: string): Promise<CustomerResponse> {
@@ -319,28 +395,166 @@ export async function createSubscription(
       status: subscription.status,
     });
 
-    // Access subscription properties safely
-    const sub = subscription as unknown as {
-      id: string;
-      customer: string;
-      status: string;
-      current_period_start: number;
-      current_period_end: number;
-      cancel_at_period_end: boolean;
-      created: number;
-    };
-
-    return {
-      id: sub.id,
-      customerId: sub.customer,
-      status: sub.status as SubscriptionResponse['status'],
-      currentPeriodStart: new Date(sub.current_period_start * 1000),
-      currentPeriodEnd: new Date(sub.current_period_end * 1000),
-      cancelAtPeriodEnd: sub.cancel_at_period_end,
-      created: new Date(sub.created * 1000),
-    };
+    return mapSubscription(subscription);
   } catch (error) {
     logger.error('Failed to create subscription', { error, request });
+    throw error;
+  }
+}
+
+/**
+ * Create a Checkout Session for a recurring donation subscription.
+ */
+export async function createCheckoutSession(
+  request: CreateCheckoutSessionRequest
+): Promise<CheckoutSessionResponse> {
+  const client = getStripeClient();
+
+  try {
+    const session = await client.checkout.sessions.create({
+      mode: 'subscription',
+      customer: request.customerId,
+      line_items: [{ price: request.priceId, quantity: 1 }],
+      success_url: request.successUrl,
+      cancel_url: request.cancelUrl,
+      metadata: request.metadata,
+      subscription_data: {
+        metadata: request.metadata,
+      },
+      allow_promotion_codes: false,
+    });
+
+    return {
+      id: session.id,
+      url: session.url || '',
+      customerId: getStripeId(session.customer as string | Stripe.Customer | Stripe.DeletedCustomer | null),
+      subscriptionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
+      status: session.status || 'open',
+    };
+  } catch (error) {
+    logger.error('Failed to create checkout session', { error, request });
+    throw error;
+  }
+}
+
+/**
+ * Retrieve a Checkout Session.
+ */
+export async function getCheckoutSession(sessionId: string): Promise<CheckoutSessionResponse> {
+  const client = getStripeClient();
+
+  try {
+    const session = await client.checkout.sessions.retrieve(sessionId, {
+      expand: ['subscription'],
+    });
+
+    return {
+      id: session.id,
+      url: session.url || '',
+      customerId: getStripeId(session.customer as string | Stripe.Customer | Stripe.DeletedCustomer | null),
+      subscriptionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
+      status: session.status || 'open',
+    };
+  } catch (error) {
+    logger.error('Failed to retrieve checkout session', { error, sessionId });
+    throw error;
+  }
+}
+
+/**
+ * Retrieve a subscription.
+ */
+export async function getSubscription(subscriptionId: string): Promise<SubscriptionResponse> {
+  const client = getStripeClient();
+
+  try {
+    const subscription = await client.subscriptions.retrieve(subscriptionId);
+    return mapSubscription(subscription);
+  } catch (error) {
+    logger.error('Failed to retrieve subscription', { error, subscriptionId });
+    throw error;
+  }
+}
+
+/**
+ * Update a subscription to a new monthly price without prorating the current cycle.
+ */
+export async function updateSubscriptionPrice(
+  subscriptionId: string,
+  priceId: string
+): Promise<SubscriptionResponse> {
+  const client = getStripeClient();
+
+  try {
+    const current = await client.subscriptions.retrieve(subscriptionId);
+    const currentItemId = current.items.data[0]?.id;
+
+    if (!currentItemId) {
+      throw new Error('Subscription is missing an editable line item');
+    }
+
+    const updated = await client.subscriptions.update(subscriptionId, {
+      items: [
+        {
+          id: currentItemId,
+          price: priceId,
+        },
+      ],
+      proration_behavior: 'none',
+    });
+
+    return mapSubscription(updated);
+  } catch (error) {
+    logger.error('Failed to update subscription price', { error, subscriptionId, priceId });
+    throw error;
+  }
+}
+
+/**
+ * Update end-of-period cancellation state for a subscription.
+ */
+export async function setSubscriptionCancelAtPeriodEnd(
+  subscriptionId: string,
+  cancelAtPeriodEnd: boolean
+): Promise<SubscriptionResponse> {
+  const client = getStripeClient();
+
+  try {
+    const subscription = await client.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: cancelAtPeriodEnd,
+    });
+
+    return mapSubscription(subscription);
+  } catch (error) {
+    logger.error('Failed to update subscription cancellation state', {
+      error,
+      subscriptionId,
+      cancelAtPeriodEnd,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Create a Billing Portal session for donor self-service.
+ */
+export async function createBillingPortalSession(
+  customerId: string,
+  returnUrl: string
+): Promise<BillingPortalSessionResponse> {
+  const client = getStripeClient();
+
+  try {
+    const session = await client.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl,
+    });
+
+    return {
+      url: session.url,
+    };
+  } catch (error) {
+    logger.error('Failed to create billing portal session', { error, customerId, returnUrl });
     throw error;
   }
 }
@@ -365,31 +579,12 @@ export async function cancelSubscription(
       subscription = await client.subscriptions.cancel(subscriptionId);
     }
 
-    // Access subscription properties safely
-    const sub = subscription as unknown as {
-      id: string;
-      customer: string;
-      status: string;
-      current_period_start: number;
-      current_period_end: number;
-      cancel_at_period_end: boolean;
-      created: number;
-    };
-
     logger.info('Subscription canceled', {
-      subscriptionId: sub.id,
+      subscriptionId,
       cancelAtPeriodEnd,
     });
 
-    return {
-      id: sub.id,
-      customerId: sub.customer,
-      status: sub.status as SubscriptionResponse['status'],
-      currentPeriodStart: new Date(sub.current_period_start * 1000),
-      currentPeriodEnd: new Date(sub.current_period_end * 1000),
-      cancelAtPeriodEnd: sub.cancel_at_period_end,
-      created: new Date(sub.created * 1000),
-    };
+    return mapSubscription(subscription);
   } catch (error) {
     logger.error('Failed to cancel subscription', { error, subscriptionId });
     throw error;
@@ -432,9 +627,16 @@ export default {
   cancelPaymentIntent,
   createRefund,
   createCustomer,
+  createMonthlyPrice,
   getCustomer,
   listPaymentMethods,
   createSubscription,
+  createCheckoutSession,
+  getCheckoutSession,
+  getSubscription,
+  updateSubscriptionPrice,
+  setSubscriptionCancelAtPeriodEnd,
+  createBillingPortalSession,
   cancelSubscription,
   constructWebhookEvent,
 };

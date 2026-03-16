@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { uuidSchema } from './shared';
+import { emailSchema, isoDateSchema, uuidSchema } from './shared';
 
 // Payment method enum
 export const paymentMethodSchema = z.enum(['cash', 'check', 'credit_card', 'debit_card', 'bank_transfer', 'paypal', 'stock', 'in_kind', 'other']);
@@ -30,6 +30,9 @@ export const createDonationSchema = z.object({
   payment_status: paymentStatusSchema.optional(),
   account_id: uuidSchema.optional(),
   contact_id: uuidSchema.optional(),
+  recurring_plan_id: uuidSchema.optional(),
+  stripe_subscription_id: z.string().max(255).optional(),
+  stripe_invoice_id: z.string().max(255).optional(),
   is_recurring: z.boolean().optional(),
   recurring_frequency: recurringFrequencySchema.optional(),
   campaign_name: z.string().max(100).optional(),
@@ -48,6 +51,9 @@ export const updateDonationSchema = z.object({
   payment_status: paymentStatusSchema.optional(),
   account_id: uuidSchema.optional(),
   contact_id: uuidSchema.optional(),
+  recurring_plan_id: uuidSchema.nullable().optional(),
+  stripe_subscription_id: z.string().max(255).nullable().optional(),
+  stripe_invoice_id: z.string().max(255).nullable().optional(),
   is_recurring: z.boolean().optional(),
   recurring_frequency: recurringFrequencySchema.optional(),
   campaign_name: z.string().max(100).optional(),
@@ -70,6 +76,42 @@ export const donationFilterSchema = z.object({
 });
 
 export type DonationFilterInput = z.infer<typeof donationFilterSchema>;
+
+export const taxReceiptDeliveryModeSchema = z.enum(['download', 'email', 'both']);
+
+export const taxReceiptPayeeTypeSchema = z.enum(['contact', 'account']);
+
+const optionalReceiptEmailSchema = z.preprocess((value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? undefined : trimmed;
+}, emailSchema.optional());
+
+export const issueTaxReceiptSchema = z
+  .object({
+    payeeType: taxReceiptPayeeTypeSchema.optional(),
+    deliveryMode: taxReceiptDeliveryModeSchema.optional(),
+    email: optionalReceiptEmailSchema,
+  })
+  .strict();
+
+export const issueAnnualTaxReceiptSchema = z
+  .object({
+    payeeType: taxReceiptPayeeTypeSchema,
+    payeeId: uuidSchema,
+    dateFrom: isoDateSchema,
+    dateTo: isoDateSchema,
+    includeAlreadyReceipted: z.boolean().optional(),
+    deliveryMode: taxReceiptDeliveryModeSchema.optional(),
+    email: optionalReceiptEmailSchema,
+  })
+  .strict();
+
+export type IssueTaxReceiptInput = z.infer<typeof issueTaxReceiptSchema>;
+export type IssueAnnualTaxReceiptInput = z.infer<typeof issueAnnualTaxReceiptSchema>;
 
 // Re-export shared schemas
 export { uuidSchema } from './shared';

@@ -11,6 +11,7 @@ vi.mock('../adminRouteComponents', () => ({
   NavigationSettings: () => <h1>Navigation Settings Page</h1>,
   DataBackup: () => <h1>Data Backup Page</h1>,
   EmailMarketing: () => <h1>Email Marketing Page</h1>,
+  SocialMedia: () => <h1>Social Media Page</h1>,
   PortalAdminPage: ({ panel }: { panel: string }) => <h1>Portal Panel: {panel}</h1>,
 }));
 
@@ -106,6 +107,12 @@ describe('admin route redirects', () => {
     renderAdminRoutes('/settings/email-marketing');
     expect(await screen.findByRole('heading', { name: /email marketing page/i })).toBeInTheDocument();
     expectCurrentLocation('/settings/email-marketing');
+  });
+
+  it('renders canonical social media route directly', async () => {
+    renderAdminRoutes('/settings/social-media');
+    expect(await screen.findByRole('heading', { name: /social media page/i })).toBeInTheDocument();
+    expectCurrentLocation('/settings/social-media');
   });
 
   it.each([
