@@ -500,9 +500,9 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
               },
             };
           });
-          if (created.room) {
-            setConversations((current) => mergeConversationSummary(current, created.room));
-          }
+          setConversations((current) =>
+            created.room ? mergeConversationSummary(current, created.room) : current
+          );
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to send messenger message';

@@ -45,7 +45,19 @@ export function useTeamMessengerRealtimeStream({
     channels: MESSENGER_STREAM_CHANNELS,
     eventNames: EVENT_NAMES,
     enabled,
-    onConnected,
-    onEvent,
+    onConnected: onConnected
+      ? (payload) =>
+          onConnected({
+            ...payload,
+            online_user_ids: payload.online_user_ids || [],
+          })
+      : undefined,
+    onEvent: onEvent
+      ? (eventName, payload) => {
+          if (EVENT_NAMES.includes(eventName as (typeof EVENT_NAMES)[number])) {
+            onEvent(eventName as (typeof EVENT_NAMES)[number], payload);
+          }
+        }
+      : undefined,
   });
 }

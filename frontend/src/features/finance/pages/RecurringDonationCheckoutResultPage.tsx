@@ -90,7 +90,13 @@ const RecurringDonationCheckoutResultPage: React.FC = () => {
           >
             <div className="flex flex-wrap gap-2">
               {result.returnUrl ? (
-                <PrimaryButton onClick={() => window.location.assign(result.returnUrl)}>
+                <PrimaryButton
+                  onClick={() => {
+                    if (result.returnUrl) {
+                      window.location.assign(result.returnUrl);
+                    }
+                  }}
+                >
                   Return to Website
                 </PrimaryButton>
               ) : null}
