@@ -47,6 +47,9 @@ describe('routeCatalog alias resolution', () => {
       'admin-settings-users'
     );
     expect(matchRouteCatalogEntry('/settings/admin/portal')?.id).toBe('portal-admin-access');
+    expect(matchRouteCatalogEntry('/reports/builder')?.id).toBe('reports');
+    expect(matchRouteCatalogEntry('/reports/saved')?.id).toBe('reports-saved');
+    expect(matchRouteCatalogEntry('/reports/scheduled')?.id).toBe('reports-scheduled');
   });
 
   it('groups staff navigation into top-level areas with active state driven by the route area', () => {

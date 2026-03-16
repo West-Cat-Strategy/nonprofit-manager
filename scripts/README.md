@@ -253,7 +253,7 @@ Chooses the minimal command set for changed files (`fast` or `strict` mode).
 
 ```bash
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
-./scripts/select-checks.sh --files \"backend/src/routes/tasks.ts,frontend/src/features/events/api/eventsApiClient.ts\" --mode strict
+./scripts/select-checks.sh --files \"backend/src/modules/tasks/routes/index.ts,frontend/src/features/events/api/eventsApiClient.ts\" --mode strict
 ```
 
 #### `ui-audit.ts` - UI Debt Baseline and Policy Check

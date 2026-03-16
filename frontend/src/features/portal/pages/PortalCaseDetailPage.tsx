@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import portalApi from '../../../services/portalApi';
 import { unwrapApiData } from '../../../services/apiEnvelope';

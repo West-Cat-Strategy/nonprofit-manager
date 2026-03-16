@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
@@ -38,6 +39,21 @@ vi.mock('../../contexts/BrandingContext', () => ({
     },
     setBranding: mockSetBranding,
   }),
+}));
+
+vi.mock('../../components/Layout', () => ({
+  default: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../routes/adminRouteComponents', () => ({
+  AdminSettings: () => <h1>Admin Settings Page</h1>,
+  UserSettings: () => <h1>User Settings Page</h1>,
+  ApiSettings: () => <h1>API Settings Page</h1>,
+  NavigationSettings: () => <h1>Navigation Settings Page</h1>,
+  DataBackup: () => <h1>Data Backup Page</h1>,
+  EmailMarketing: () => <h1>Email Marketing Page</h1>,
+  SocialMedia: () => <h1>Social Media Page</h1>,
+  PortalAdminPage: ({ panel }: { panel: string }) => <h1>Portal Panel: {panel}</h1>,
 }));
 
 vi.mock('../../hooks/useNavigationPreferences', () => ({

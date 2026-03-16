@@ -64,6 +64,42 @@ describe('admin settings hooks', () => {
     expect(result.current.organizationLastSavedAt).toBeInstanceOf(Date);
   });
 
+  it('persists workspace module changes alongside other organization settings', async () => {
+    const setGlobalBranding = vi.fn();
+    const { result } = renderHook(() =>
+      useOrganizationSettings({
+        initialMode: 'basic',
+        setGlobalBranding,
+      })
+    );
+
+    act(() => {
+      result.current.handleChange('name', 'West Cat');
+      result.current.handleWorkspaceModuleChange('cases');
+    });
+
+    await waitFor(() => {
+      expect(result.current.config.name).toBe('West Cat');
+      expect(result.current.config.workspaceModules.cases).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.handleSaveOrganization();
+    });
+
+    expect(mockedApi.put).toHaveBeenCalledWith(
+      '/admin/organization-settings',
+      expect.objectContaining({
+        config: expect.objectContaining({
+          name: 'West Cat',
+          workspaceModules: expect.objectContaining({
+            cases: false,
+          }),
+        }),
+      })
+    );
+  });
+
   it('hydrates global branding from the saved branding payload on load', async () => {
     const setGlobalBranding = vi.fn();
     mockedApi.get.mockImplementation((url: string) => {

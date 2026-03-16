@@ -1,7 +1,10 @@
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
+import { matchRouteCatalogEntry } from '../../routes/routeCatalog';
+import { resolveWorkspaceModuleForRouteId } from '../../features/workspaceModules/catalog';
+import { useWorkspaceModuleAccess } from '../../features/workspaceModules/useWorkspaceModuleAccess';
 
 // Protected Route wrapper component
 interface ProtectedRouteProps {
@@ -12,9 +15,26 @@ const RouteContentFallback = () => (
   <div className="p-6 text-sm text-app-text-muted">Loading page...</div>
 );
 
-const ProtectedRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteProps & { isAuthenticated: boolean }) => {
+const WorkspaceModuleUnavailable = ({ moduleLabel }: { moduleLabel: string }) => (
+  <div className="m-6 rounded-lg border border-app-border bg-app-surface p-6 shadow-sm">
+    <h2 className="text-lg font-semibold text-app-text-heading">Module unavailable</h2>
+    <p className="mt-2 text-sm text-app-text-muted">
+      {moduleLabel} is disabled for this workspace. Contact an organization admin to enable it
+      again.
+    </p>
+  </div>
+);
+
+const ProtectedRouteWrapper = ({
+  children,
+  isAuthenticated,
+  moduleLabel,
+}: ProtectedRouteProps & { isAuthenticated: boolean; moduleLabel: string | null }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  if (moduleLabel) {
+    return <WorkspaceModuleUnavailable moduleLabel={moduleLabel} />;
   }
   return (
     <Suspense fallback={<RouteContentFallback />}>{children}</Suspense>
@@ -22,9 +42,16 @@ const ProtectedRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteProp
 };
 
 // Neo-Brutalist routes now also use the global Layout for consistent navigation
-const NeoBrutalistRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteProps & { isAuthenticated: boolean }) => {
+const NeoBrutalistRouteWrapper = ({
+  children,
+  isAuthenticated,
+  moduleLabel,
+}: ProtectedRouteProps & { isAuthenticated: boolean; moduleLabel: string | null }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  if (moduleLabel) {
+    return <WorkspaceModuleUnavailable moduleLabel={moduleLabel} />;
   }
   return (
     <Suspense fallback={<RouteContentFallback />}>{children}</Suspense>
@@ -33,10 +60,32 @@ const NeoBrutalistRouteWrapper = ({ children, isAuthenticated }: ProtectedRouteP
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  return <ProtectedRouteWrapper isAuthenticated={isAuthenticated}>{children}</ProtectedRouteWrapper>;
+  const location = useLocation();
+  const workspaceModules = useWorkspaceModuleAccess();
+  const entry = matchRouteCatalogEntry(`${location.pathname}${location.search}`);
+  const moduleKey = entry ? resolveWorkspaceModuleForRouteId(entry.id) : null;
+  const moduleLabel =
+    moduleKey && workspaceModules[moduleKey] === false ? entry?.title ?? 'This module' : null;
+
+  return (
+    <ProtectedRouteWrapper isAuthenticated={isAuthenticated} moduleLabel={moduleLabel}>
+      {children}
+    </ProtectedRouteWrapper>
+  );
 };
 
 export const NeoBrutalistRoute = ({ children }: ProtectedRouteProps) => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  return <NeoBrutalistRouteWrapper isAuthenticated={isAuthenticated}>{children}</NeoBrutalistRouteWrapper>;
+  const location = useLocation();
+  const workspaceModules = useWorkspaceModuleAccess();
+  const entry = matchRouteCatalogEntry(`${location.pathname}${location.search}`);
+  const moduleKey = entry ? resolveWorkspaceModuleForRouteId(entry.id) : null;
+  const moduleLabel =
+    moduleKey && workspaceModules[moduleKey] === false ? entry?.title ?? 'This module' : null;
+
+  return (
+    <NeoBrutalistRouteWrapper isAuthenticated={isAuthenticated} moduleLabel={moduleLabel}>
+      {children}
+    </NeoBrutalistRouteWrapper>
+  );
 };

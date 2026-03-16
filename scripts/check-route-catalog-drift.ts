@@ -8,12 +8,22 @@ const { toPosixRelative, walkFiles } = require('./lib/route-integrity-lib');
 const routeCatalogModule = loadRouteCatalogModule();
 const { routeCatalog, normalizeRouteLocation } = routeCatalogModule;
 
-const routesRoot = path.join(repoRoot, 'frontend', 'src', 'routes');
-const routeFiles = walkFiles(
-  routesRoot,
-  (filePath) =>
-    (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) &&
-    !filePath.includes(`${path.sep}__tests__${path.sep}`)
+const routeSearchRoots = [
+  path.join(repoRoot, 'frontend', 'src', 'routes'),
+  path.join(repoRoot, 'frontend', 'src', 'features'),
+];
+const routeFiles = Array.from(
+  new Set(
+    routeSearchRoots.flatMap((root) =>
+      walkFiles(
+        root,
+        (filePath) =>
+          (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) &&
+          !filePath.includes(`${path.sep}__tests__${path.sep}`) &&
+          (root.endsWith(`${path.sep}routes`) || filePath.includes(`${path.sep}routes${path.sep}`))
+      )
+    )
+  )
 );
 
 const pathPattern = /\bpath\s*=\s*["']([^"']+)["']/g;

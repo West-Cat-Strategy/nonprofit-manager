@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { emailSchema, phoneSchema, uuidSchema, optionalStrictBooleanSchema } from './shared';
+import { WORKSPACE_MODULE_KEYS } from '@app-types/workspaceModules';
 
 const nullableString = (maxLength = 255) =>
   z.union([z.string().trim().max(maxLength), z.null()]).optional();
@@ -76,6 +77,14 @@ const settingsAddressSchema = z.object({
 
 const optionalEmailOrBlankSchema = z.union([emailSchema, z.literal('')]);
 
+const workspaceModuleSettingsSchema = z
+  .object(
+    Object.fromEntries(
+      WORKSPACE_MODULE_KEYS.map((key) => [key, z.boolean().optional()])
+    ) as Record<(typeof WORKSPACE_MODULE_KEYS)[number], z.ZodOptional<z.ZodBoolean>>
+  )
+  .strict();
+
 export const organizationTaxReceiptSettingsSchema = z
   .object({
     legalName: z.string().trim().max(255),
@@ -104,6 +113,7 @@ export const organizationSettingsConfigSchema = z
     measurementSystem: z.enum(['metric', 'imperial']),
     phoneFormat: z.enum(['canadian', 'us', 'international']),
     taxReceipt: organizationTaxReceiptSettingsSchema,
+    workspaceModules: workspaceModuleSettingsSchema.optional(),
   })
   .strict();
 

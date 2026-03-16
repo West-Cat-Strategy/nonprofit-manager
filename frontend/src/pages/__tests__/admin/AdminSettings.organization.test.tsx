@@ -93,10 +93,10 @@ describe('AdminSettings organization section', () => {
     const nameInput = await screen.findByPlaceholderText(/your nonprofit name/i);
 
     await waitFor(() => {
-      expect(countGetCalls('/auth/preferences')).toBe(1);
+      expect(countGetCalls('/admin/organization-settings')).toBe(1);
     });
 
-    const initialPreferenceCalls = countGetCalls('/auth/preferences');
+    const initialSettingsCalls = countGetCalls('/admin/organization-settings');
     mockNavigate.mockClear();
 
     await user.type(nameInput, 'West Cat');
@@ -106,6 +106,180 @@ describe('AdminSettings organization section', () => {
     });
 
     expect(mockNavigate).not.toHaveBeenCalled();
-    expect(countGetCalls('/auth/preferences')).toBe(initialPreferenceCalls);
+    expect(countGetCalls('/admin/organization-settings')).toBe(initialSettingsCalls);
+  });
+
+  it('loads workspace module controls and saves module availability changes', async () => {
+    const user = userEvent.setup();
+    mockedApi.get.mockImplementation((url: string) => {
+      if (url === '/auth/preferences') {
+        return Promise.resolve({ data: { preferences: {} } });
+      }
+
+      if (url === '/admin/organization-settings') {
+        return Promise.resolve({
+          data: {
+            organizationId: 'org-1',
+            createdAt: '2026-03-15T00:00:00.000Z',
+            updatedAt: '2026-03-15T00:00:00.000Z',
+            config: {
+              name: 'West Cat',
+              email: '',
+              phone: '',
+              website: '',
+              address: {
+                line1: '',
+                line2: '',
+                city: '',
+                province: '',
+                postalCode: '',
+                country: 'Canada',
+              },
+              timezone: 'America/Vancouver',
+              dateFormat: 'YYYY-MM-DD',
+              currency: 'CAD',
+              fiscalYearStart: '04',
+              measurementSystem: 'metric',
+              phoneFormat: 'canadian',
+              taxReceipt: {
+                legalName: '',
+                charitableRegistrationNumber: '',
+                receiptingAddress: {
+                  line1: '',
+                  line2: '',
+                  city: '',
+                  province: '',
+                  postalCode: '',
+                  country: 'Canada',
+                },
+                receiptIssueLocation: '',
+                authorizedSignerName: '',
+                authorizedSignerTitle: '',
+                contactEmail: '',
+                contactPhone: '',
+                advantageAmount: 0,
+              },
+              workspaceModules: {
+                contacts: true,
+                accounts: true,
+                volunteers: true,
+                events: true,
+                tasks: true,
+                cases: true,
+                followUps: true,
+                opportunities: true,
+                externalServiceProviders: true,
+                teamChat: true,
+                donations: true,
+                recurringDonations: true,
+                reconciliation: true,
+                analytics: true,
+                reports: true,
+                scheduledReports: true,
+                alerts: true,
+              },
+            },
+          },
+        });
+      }
+
+      if (url === '/admin/branding') {
+        return Promise.resolve({ data: {} });
+      }
+
+      if (url === '/admin/roles') {
+        return Promise.resolve({ data: { roles: [] } });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+    mockedApi.put.mockResolvedValue({
+      data: {
+        organizationId: 'org-1',
+        createdAt: '2026-03-15T00:00:00.000Z',
+        updatedAt: '2026-03-15T00:05:00.000Z',
+        config: {
+          name: 'West Cat',
+          email: '',
+          phone: '',
+          website: '',
+          address: {
+            line1: '',
+            line2: '',
+            city: '',
+            province: '',
+            postalCode: '',
+            country: 'Canada',
+          },
+          timezone: 'America/Vancouver',
+          dateFormat: 'YYYY-MM-DD',
+          currency: 'CAD',
+          fiscalYearStart: '04',
+          measurementSystem: 'metric',
+          phoneFormat: 'canadian',
+          taxReceipt: {
+            legalName: '',
+            charitableRegistrationNumber: '',
+            receiptingAddress: {
+              line1: '',
+              line2: '',
+              city: '',
+              province: '',
+              postalCode: '',
+              country: 'Canada',
+            },
+            receiptIssueLocation: '',
+            authorizedSignerName: '',
+            authorizedSignerTitle: '',
+            contactEmail: '',
+            contactPhone: '',
+            advantageAmount: 0,
+          },
+          workspaceModules: {
+            contacts: true,
+            accounts: true,
+            volunteers: true,
+            events: true,
+            tasks: true,
+            cases: false,
+            followUps: true,
+            opportunities: true,
+            externalServiceProviders: true,
+            teamChat: true,
+            donations: true,
+            recurringDonations: true,
+            reconciliation: true,
+            analytics: true,
+            reports: true,
+            scheduledReports: true,
+            alerts: true,
+          },
+        },
+      },
+    });
+
+    renderAdminSettings('/settings/admin/workspace_modules');
+
+    expect(
+      await screen.findByRole('heading', { name: /workspace modules/i })
+    ).toBeInTheDocument();
+    const casesToggle = await screen.findByRole('checkbox', { name: /cases enabled/i });
+
+    await user.click(casesToggle);
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(mockedApi.put).toHaveBeenCalledWith(
+        '/admin/organization-settings',
+        expect.objectContaining({
+          config: expect.objectContaining({
+            name: 'West Cat',
+            workspaceModules: expect.objectContaining({
+              cases: false,
+            }),
+          }),
+        })
+      );
+    });
   });
 });

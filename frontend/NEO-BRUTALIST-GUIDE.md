@@ -10,23 +10,20 @@ After starting the dev server (`npm run dev`), access the Neo-Brutalist views at
 - **Outreach Center**: localhost:5173/demo/outreach
 - **People Directory**: localhost:5173/demo/people
 
-## Adding Routes to App.tsx
+## Router Ownership
 
-To integrate these routes into your application, add the following to `App.tsx`:
+The demo routes already live in `frontend/src/routes/index.tsx` and are mounted directly by the main
+app router:
 
-```tsx
-import NeoBrutalistRoutes from './pages/neo-brutalist/routes';
+- `/demo/dashboard`
+- `/demo/linking`
+- `/demo/operations`
+- `/demo/outreach`
+- `/demo/people`
+- `/demo/audit`
 
-// Inside your Router component:
-<BrowserRouter>
-  <Routes>
-    {/* Existing routes */}
-    
-    {/* Neo-Brutalist Demo Routes */}
-    <Route path="/demo/*" element={<NeoBrutalistRoutes />} />
-  </Routes>
-</BrowserRouter>
-```
+When adding or changing a Neo-Brutalist demo route, update `frontend/src/routes/index.tsx`
+instead of creating a parallel route bundle.
 
 ## Direct Component Usage
 

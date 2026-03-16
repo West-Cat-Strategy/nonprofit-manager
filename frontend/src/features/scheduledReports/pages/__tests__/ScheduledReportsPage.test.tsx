@@ -1,16 +1,69 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import type * as SavedReportsSliceModule from '../../../savedReports/state';
-import type * as ScheduledReportsSliceModule from '../../state';
-import type { ScheduledReport } from '../../../../types/scheduledReport';
+import type { SavedReportListItem } from '../../../../types/savedReport';
+import type { ScheduledReport, ScheduledReportRun } from '../../../../types/scheduledReport';
 import { vi } from 'vitest';
 import ScheduledReportsPage from '../ScheduledReportsPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
-const dispatchMock = vi.fn(() => Promise.resolve());
-const downloadExportJobMock = vi.fn();
-const triggerFileDownloadMock = vi.fn();
+const {
+  clearFormMock,
+  closeEditDialogMock,
+  controllerStateRef,
+  handleCreateMock,
+  handleDeleteMock,
+  handleDownloadRunArtifactMock,
+  handleOpenHistoryMock,
+  handleRunNowMock,
+  handleSaveEditMock,
+  handleToggleScheduledReportMock,
+  loadAllScheduledDataMock,
+  openEditDialogMock,
+  setFormMock,
+  setSearchQueryMock,
+  setShowCreateMock,
+  setStatusFilterMock,
+} = vi.hoisted(() => ({
+  clearFormMock: vi.fn(),
+  closeEditDialogMock: vi.fn(),
+  controllerStateRef: { current: null } as ScheduledReportsControllerStateRef,
+  handleCreateMock: vi.fn(),
+  handleDeleteMock: vi.fn(),
+  handleDownloadRunArtifactMock: vi.fn(),
+  handleOpenHistoryMock: vi.fn(),
+  handleRunNowMock: vi.fn(),
+  handleSaveEditMock: vi.fn(),
+  handleToggleScheduledReportMock: vi.fn(),
+  loadAllScheduledDataMock: vi.fn(),
+  openEditDialogMock: vi.fn(),
+  setFormMock: vi.fn(),
+  setSearchQueryMock: vi.fn(),
+  setShowCreateMock: vi.fn(),
+  setStatusFilterMock: vi.fn(),
+}));
+
+const savedReports: SavedReportListItem[] = [
+  {
+    id: 'saved-report-1',
+    name: 'Donor Growth',
+    description: 'Monthly donor growth',
+    entity: 'donations',
+    report_definition: {
+      name: 'Donor Growth',
+      entity: 'donations',
+      fields: ['amount'],
+      filters: [],
+    },
+    created_at: '2026-03-01T10:00:00.000Z',
+    updated_at: '2026-03-01T10:00:00.000Z',
+    is_public: false,
+    shared_with_users: [],
+    shared_with_roles: [],
+    share_settings: null,
+    public_token: null,
+  },
+];
 
 const makeScheduledReport = (
   overrides: Partial<ScheduledReport> = {}
@@ -37,135 +90,121 @@ const makeScheduledReport = (
   ...overrides,
 });
 
-const mockState = {
-  scheduledReports: {
-    reports: [makeScheduledReport()],
-    runsByReportId: {} as Record<string, unknown[]>,
-    loading: false,
-    error: null as string | null,
-  },
-  savedReports: {
-    reports: [
-      {
-        id: 'saved-report-1',
-        name: 'Donor Growth',
-      },
-    ],
-  },
+const successfulRun: ScheduledReportRun = {
+  id: 'run-success',
+  scheduled_report_id: 'schedule-1',
+  status: 'success',
+  started_at: '2026-03-01T12:00:00.000Z',
+  completed_at: '2026-03-01T12:03:00.000Z',
+  rows_count: 25,
+  file_format: 'csv',
+  file_name: 'weekly-donor-summary.csv',
+  reportExportJobId: 'job-99',
+  recipients: ['ops@example.org'],
+  error_message: null,
+  metadata: null,
+  created_at: '2026-03-01T12:00:00.000Z',
 };
+
+const failedRun: ScheduledReportRun = {
+  id: 'run-failed',
+  scheduled_report_id: 'schedule-2',
+  status: 'failed',
+  started_at: '2026-03-01T12:00:00.000Z',
+  completed_at: '2026-03-01T12:03:00.000Z',
+  rows_count: 0,
+  file_format: 'csv',
+  file_name: null,
+  reportExportJobId: null,
+  recipients: ['ops@example.org'],
+  error_message: 'Mailbox unavailable',
+  metadata: null,
+  created_at: '2026-03-01T12:00:00.000Z',
+};
+
+const buildControllerState = () => ({
+  clearForm: clearFormMock,
+  closeEditDialog: closeEditDialogMock,
+  downloadingExportJobId: null as string | null,
+  editTarget: null as ScheduledReport | null,
+  error: null as string | null,
+  form: {
+    saved_report_id: 'saved-report-1',
+    name: 'Monthly donor digest',
+    recipients: 'ops@example.org',
+    format: 'csv' as const,
+    frequency: 'monthly' as const,
+    timezone: 'UTC',
+    hour: '9',
+    minute: '0',
+    day_of_week: '1',
+    day_of_month: '12',
+  },
+  handleCreate: handleCreateMock,
+  handleDelete: handleDeleteMock,
+  handleDownloadRunArtifact: handleDownloadRunArtifactMock,
+  handleOpenHistory: handleOpenHistoryMock,
+  handleRunNow: handleRunNowMock,
+  handleSaveEdit: handleSaveEditMock,
+  handleToggleScheduledReport: handleToggleScheduledReportMock,
+  historyReportId: null as string | null,
+  loadAllScheduledData: loadAllScheduledDataMock,
+  loading: false,
+  openEditDialog: openEditDialogMock,
+  runsByReportId: {} as Record<string, ScheduledReportRun[]>,
+  savedReports,
+  searchQuery: '',
+  setForm: setFormMock,
+  setSearchQuery: setSearchQueryMock,
+  setShowCreate: setShowCreateMock,
+  setStatusFilter: setStatusFilterMock,
+  showCreate: false,
+  sortedReports: [makeScheduledReport()],
+  statusFilter: 'all' as const,
+});
+
+type ScheduledReportsControllerState = ReturnType<typeof buildControllerState>;
+
+type ScheduledReportsControllerStateRef = {
+  current: ScheduledReportsControllerState | null;
+};
+
+vi.mock('../../hooks/useScheduledReportsController', () => ({
+  default: () => controllerStateRef.current,
+}));
 
 vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('../../../../store/hooks', () => ({
-  useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
-}));
-
-vi.mock('../../../reports/api/reportsApiClient', () => ({
-  reportsApiClient: {
-    downloadExportJob: (jobId: string, fallbackFilename: string) =>
-      downloadExportJobMock(jobId, fallbackFilename),
-  },
-}));
-
-vi.mock('../../../../services/fileDownload', () => ({
-  triggerFileDownload: (file: unknown) => triggerFileDownloadMock(file),
-}));
-
-vi.mock('../../state', async () => {
-  const actual = await vi.importActual<typeof ScheduledReportsSliceModule>(
-    '../../state'
-  );
-  return {
-    ...actual,
-    fetchScheduledReports: () => ({ type: 'scheduledReports/fetch' }),
-    fetchScheduledReportRuns: (payload: unknown) => ({
-      type: 'scheduledReports/fetchRuns',
-      payload,
-    }),
-    createScheduledReport: (payload: unknown) => ({ type: 'scheduledReports/create', payload }),
-    updateScheduledReport: (payload: unknown) => ({ type: 'scheduledReports/update', payload }),
-    toggleScheduledReport: (payload: unknown) => ({ type: 'scheduledReports/toggle', payload }),
-    runScheduledReportNow: (id: string) => ({ type: 'scheduledReports/runNow', payload: id }),
-    deleteScheduledReport: (id: string) => ({ type: 'scheduledReports/delete', payload: id }),
-  };
-});
-
-vi.mock('../../../savedReports/state', async () => {
-  const actual = await vi.importActual<typeof SavedReportsSliceModule>(
-    '../../../savedReports/state'
-  );
-  return {
-    ...actual,
-    fetchSavedReports: () => ({ type: 'savedReports/fetch' }),
-  };
-});
-
-describe('ScheduledReports page', () => {
+describe('ScheduledReportsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(window, 'alert').mockImplementation(() => {});
-    mockState.scheduledReports.reports = [makeScheduledReport()];
-    mockState.scheduledReports.runsByReportId = {};
-    mockState.scheduledReports.loading = false;
-    mockState.scheduledReports.error = null;
+    controllerStateRef.current = buildControllerState();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
-  it('creates a monthly schedule from the creator form', async () => {
+  it('renders the creator form and delegates create submission', async () => {
     const user = userEvent.setup();
+    controllerStateRef.current.showCreate = true;
+
     renderWithProviders(<ScheduledReportsPage />);
 
-    await waitFor(() => {
-      expect(dispatchMock).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'scheduledReports/fetch' })
-      );
-      expect(dispatchMock).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'savedReports/fetch' })
-      );
-    });
+    expect(screen.getByRole('heading', { name: /scheduled reports/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/saved report/i)).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Monthly donor digest')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /new schedule/i }));
-
-    await user.selectOptions(screen.getByLabelText(/saved report/i), 'saved-report-1');
-    await user.type(
-      screen.getByLabelText(/recipients \(comma-separated emails\)/i),
-      'ops@example.org, director@example.org'
-    );
-    await user.selectOptions(screen.getByLabelText(/^frequency$/i), 'monthly');
-    await user.clear(screen.getByLabelText(/day of month/i));
-    await user.type(screen.getByLabelText(/day of month/i), '12');
     await user.click(screen.getByRole('button', { name: /save schedule/i }));
+    await user.click(screen.getByRole('button', { name: /cancel/i }));
 
-    await waitFor(() => {
-      expect(dispatchMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'scheduledReports/create',
-          payload: expect.objectContaining({
-            saved_report_id: 'saved-report-1',
-            frequency: 'monthly',
-            day_of_month: 12,
-            recipients: ['ops@example.org', 'director@example.org'],
-          }),
-        })
-      );
-    });
-  }, 15000);
+    expect(handleCreateMock).toHaveBeenCalled();
+    expect(clearFormMock).toHaveBeenCalled();
+    expect(setShowCreateMock).toHaveBeenCalled();
+  });
 
-  it(
-    'filters schedules and handles row actions including run history and edit',
-    async () => {
-      const user = userEvent.setup();
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
-
-    mockState.scheduledReports.reports = [
-      makeScheduledReport({
-        id: 'schedule-1',
-        name: 'Weekly Donor Summary',
-        is_active: true,
-        frequency: 'weekly',
-      }),
+  it('delegates filter and row actions to the controller', async () => {
+    const user = userEvent.setup();
+    controllerStateRef.current.sortedReports = [
       makeScheduledReport({
         id: 'schedule-2',
         name: 'Paused Outcomes Digest',
@@ -176,130 +215,74 @@ describe('ScheduledReports page', () => {
         last_error: 'SMTP delivery failed',
       }),
     ];
-    mockState.scheduledReports.runsByReportId = {
-      'schedule-2': [
-        {
-          id: 'run-1',
-          status: 'failed',
-          started_at: '2026-03-01T12:00:00.000Z',
-          completed_at: '2026-03-01T12:03:00.000Z',
-          rows_count: 0,
-          file_name: null,
-          error_message: 'Mailbox unavailable',
-        },
-      ],
-    };
 
     renderWithProviders(<ScheduledReportsPage />);
 
+    await user.type(screen.getByLabelText(/search schedules/i), 'paused');
     await user.selectOptions(screen.getByLabelText(/status/i), 'paused');
-    expect(screen.getByText('Paused Outcomes Digest')).toBeInTheDocument();
-    expect(screen.queryByText('Weekly Donor Summary')).not.toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: /resume/i })[0]);
+    await user.click(screen.getAllByRole('button', { name: /^run now$/i })[0]);
+    await user.click(screen.getAllByRole('button', { name: /edit/i })[0]);
+    await user.click(screen.getAllByRole('button', { name: /view runs/i })[0]);
+    await user.click(screen.getAllByRole('button', { name: /delete/i })[0]);
 
-    await user.click(screen.getByRole('button', { name: /view runs/i }));
-    await waitFor(() => {
-      expect(dispatchMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'scheduledReports/fetchRuns',
-          payload: { scheduledReportId: 'schedule-2', limit: 20 },
-        })
-      );
-    });
-
-    await user.click(screen.getByRole('button', { name: /retry failed run/i }));
-    expect(dispatchMock).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'scheduledReports/runNow', payload: 'schedule-2' })
+    expect(setSearchQueryMock).toHaveBeenCalled();
+    expect(setStatusFilterMock).toHaveBeenCalledWith('paused');
+    expect(handleToggleScheduledReportMock).toHaveBeenCalledWith('schedule-2');
+    expect(handleRunNowMock).toHaveBeenCalledWith('schedule-2');
+    expect(openEditDialogMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'schedule-2' })
     );
-
-    await user.click(screen.getByRole('button', { name: /resume/i }));
-    await user.click(screen.getByRole('button', { name: /^run now$/i }));
-    expect(dispatchMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'scheduledReports/toggle',
-        payload: { scheduledReportId: 'schedule-2' },
-      })
-    );
-    expect(dispatchMock).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'scheduledReports/runNow', payload: 'schedule-2' })
-    );
-
-    await user.click(screen.getByRole('button', { name: /edit/i }));
-    await user.clear(screen.getByLabelText(/schedule name/i));
-    await user.type(screen.getByLabelText(/schedule name/i), 'Updated name');
-    await user.click(screen.getByRole('button', { name: /save changes/i }));
-    await waitFor(() => {
-      expect(dispatchMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'scheduledReports/update',
-          payload: expect.objectContaining({
-            scheduledReportId: 'schedule-2',
-            data: expect.objectContaining({ name: 'Updated name' }),
-          }),
-        })
-      );
-    });
-
-      await user.click(screen.getByRole('button', { name: /delete/i }));
-      expect(dispatchMock).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'scheduledReports/delete', payload: 'schedule-2' })
-      );
-    },
-    15000
-  );
-
-  it('renders loading, error, and empty states', () => {
-    mockState.scheduledReports.loading = true;
-    mockState.scheduledReports.error = 'Failed to load schedules';
-    mockState.scheduledReports.reports = [];
-
-    const { rerender } = renderWithProviders(<ScheduledReportsPage />);
-    expect(screen.getByText(/loading schedules/i)).toBeInTheDocument();
-    expect(screen.getByText(/failed to load schedules/i)).toBeInTheDocument();
-
-    mockState.scheduledReports.loading = false;
-    rerender(<ScheduledReportsPage />);
-    expect(screen.getByText(/no schedules created yet/i)).toBeInTheDocument();
+    expect(handleOpenHistoryMock).toHaveBeenCalledWith('schedule-2');
+    expect(handleDeleteMock).toHaveBeenCalledWith('schedule-2');
   });
 
-  it('downloads successful run artifacts through the shared export endpoint', async () => {
+  it('renders edit and history states and delegates edit/run artifact actions', async () => {
     const user = userEvent.setup();
-    mockState.scheduledReports.reports = [makeScheduledReport()];
-    mockState.scheduledReports.runsByReportId = {
-      'schedule-1': [
-        {
-          id: 'run-success',
-          scheduled_report_id: 'schedule-1',
-          status: 'success',
-          started_at: '2026-03-01T12:00:00.000Z',
-          completed_at: '2026-03-01T12:03:00.000Z',
-          rows_count: 25,
-          file_format: 'csv',
-          file_name: 'weekly-donor-summary.csv',
-          reportExportJobId: 'job-99',
-          recipients: ['ops@example.org'],
-          error_message: null,
-          metadata: null,
-          created_at: '2026-03-01T12:00:00.000Z',
-        },
-      ],
+    controllerStateRef.current.editTarget = makeScheduledReport({ id: 'schedule-1' });
+    controllerStateRef.current.historyReportId = 'schedule-1';
+    controllerStateRef.current.runsByReportId = {
+      'schedule-1': [successfulRun, failedRun],
     };
-    downloadExportJobMock.mockResolvedValue({
-      blob: new Blob(['email\nops@example.org'], { type: 'text/csv' }),
-      filename: 'weekly-donor-summary.csv',
-      contentType: 'text/csv',
-    });
 
     renderWithProviders(<ScheduledReportsPage />);
 
-    await user.click(screen.getByRole('button', { name: /view runs/i }));
-    await user.click(screen.getByRole('button', { name: /download artifact/i }));
+    expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
+    expect(screen.getByText(/recent runs/i)).toBeInTheDocument();
 
-    expect(downloadExportJobMock).toHaveBeenCalledWith(
-      'job-99',
-      'weekly-donor-summary.csv'
-    );
-    expect(triggerFileDownloadMock).toHaveBeenCalledWith(
-      expect.objectContaining({ filename: 'weekly-donor-summary.csv' })
-    );
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+    await user.click(screen.getByRole('button', { name: /download artifact/i }));
+    await user.click(screen.getByRole('button', { name: /retry failed run/i }));
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    expect(handleSaveEditMock).toHaveBeenCalled();
+    expect(handleDownloadRunArtifactMock).toHaveBeenCalledWith(successfulRun);
+    expect(handleRunNowMock).toHaveBeenCalledWith('schedule-1');
+    expect(closeEditDialogMock).toHaveBeenCalled();
+  });
+
+  it('renders loading, error, empty, and retry states', async () => {
+    const user = userEvent.setup();
+    controllerStateRef.current.loading = true;
+    controllerStateRef.current.error = 'Failed to fetch scheduled reports';
+
+    const { rerender } = renderWithProviders(<ScheduledReportsPage />);
+
+    expect(screen.getByText(/loading schedules/i)).toBeInTheDocument();
+
+    controllerStateRef.current.loading = false;
+    rerender(<ScheduledReportsPage />);
+    expect(screen.getByText(/failed to fetch scheduled reports/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /try again/i }));
+    expect(loadAllScheduledDataMock).toHaveBeenCalled();
+
+    controllerStateRef.current.error = null;
+    controllerStateRef.current.sortedReports = [];
+    rerender(<ScheduledReportsPage />);
+
+    expect(screen.getByText(/no schedules created yet/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /create first schedule/i }));
+    expect(setShowCreateMock).toHaveBeenCalledWith(true);
   });
 });

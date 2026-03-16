@@ -1,4 +1,5 @@
 import type { OrganizationConfig } from './types';
+import { createDefaultWorkspaceModuleSettings } from '../../../workspaceModules/catalog';
 
 // ============================================================================
 // Canadian Defaults
@@ -41,6 +42,7 @@ export const defaultConfig: OrganizationConfig = {
     contactPhone: '',
     advantageAmount: 0,
   },
+  workspaceModules: createDefaultWorkspaceModuleSettings(),
 };
 
 // ============================================================================
@@ -148,6 +150,7 @@ export const defaultPermissions: PermissionDefinition[] = [
 export const adminSettingsTabs = [
   { id: 'dashboard', label: 'Dashboard', level: 'basic' },
   { id: 'organization', label: 'Organization', level: 'basic' },
+  { id: 'workspace_modules', label: 'Workspace Modules', level: 'basic' },
   { id: 'branding', label: 'Branding', level: 'basic' },
   { id: 'users', label: 'Users & Security', level: 'basic' },
   { id: 'email', label: 'Email Settings', level: 'basic' },

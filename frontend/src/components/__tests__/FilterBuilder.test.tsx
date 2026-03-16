@@ -1,243 +1,63 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import FilterBuilder from '../FilterBuilder';
-import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import type { ReportFilter } from '../../types/report';
 
-// Mock API
-vi.mock('../../services/api', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-  },
-}));
+const mockFields = [
+  { field: 'id', label: 'ID', type: 'string' as const },
+  { field: 'name', label: 'Name', type: 'string' as const },
+  { field: 'age', label: 'Age', type: 'number' as const },
+  { field: 'created_at', label: 'Created At', type: 'date' as const },
+  { field: 'active', label: 'Active', type: 'boolean' as const },
+];
 
-// Create a test store
-// Wrapper component
 describe('FilterBuilder', () => {
-  const mockOnChange = vi.fn();
-  const baseAvailableFields = {
-    accounts: null,
-    contacts: null,
-    donations: null,
-    events: null,
-    volunteers: null,
-    tasks: null,
-    cases: null,
-    opportunities: null,
-    expenses: null,
-    grants: null,
-    programs: null,
-  };
-  const mockFields = [
-    { field: 'id', label: 'ID', type: 'string' },
-    { field: 'name', label: 'Name', type: 'string' },
-    { field: 'age', label: 'Age', type: 'number' },
-    { field: 'created_at', label: 'Created At', type: 'date' },
-    { field: 'active', label: 'Active', type: 'boolean' },
-  ];
-
-  beforeEach(() => {
-    mockOnChange.mockClear();
-  });
-
-const renderFilterBuilder = (component: React.ReactElement, initialState = {}) => {
-  const store = createTestStore(initialState);
-  return renderWithProviders(component, { store });
-};
-
-  it('shows message when no fields are available', () => {
-    const initialState = {
-      reports: {
-        currentReport: null,
-        availableFields: { ...baseAvailableFields, contacts: [] },
-        loading: false,
-        fieldsLoading: false,
-        error: null,
-      },
-    };
-
-    renderFilterBuilder(
-      <FilterBuilder entity="contacts" filters={[]} onChange={mockOnChange} />,
-      initialState
-    );
+  it('shows a message when no fields are available', () => {
+    render(<FilterBuilder availableFields={[]} filters={[]} onChange={vi.fn()} />);
 
     expect(screen.getByText(/select fields first to add filters/i)).toBeInTheDocument();
   });
 
-  it('renders add filter button', () => {
-    const initialState = {
-      reports: {
-        currentReport: null,
-        availableFields: { ...baseAvailableFields, contacts: mockFields },
-        loading: false,
-        fieldsLoading: false,
-        error: null,
-      },
-    };
+  it('adds a new filter', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
 
-    renderFilterBuilder(
-      <FilterBuilder entity="contacts" filters={[]} onChange={mockOnChange} />,
-      initialState
-    );
+    render(<FilterBuilder availableFields={mockFields} filters={[]} onChange={onChange} />);
 
-    expect(screen.getByRole('button', { name: /add filter/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /add filter/i }));
+
+    expect(onChange).toHaveBeenCalledWith([{ field: 'id', operator: 'eq', value: '' }]);
   });
 
-  it('adds new filter when Add Filter button is clicked', () => {
-    const initialState = {
-      reports: {
-        currentReport: null,
-        availableFields: { ...baseAvailableFields, contacts: mockFields },
-        loading: false,
-        fieldsLoading: false,
-        error: null,
-      },
-    };
-
-    renderFilterBuilder(
-      <FilterBuilder entity="contacts" filters={[]} onChange={mockOnChange} />,
-      initialState
-    );
-
-    const addButton = screen.getByRole('button', { name: /add filter/i });
-    fireEvent.click(addButton);
-
-    expect(mockOnChange).toHaveBeenCalledWith([
-      { field: 'id', operator: 'eq', value: '' },
-    ]);
-  });
-
-  it('renders existing filters', () => {
-    const initialState = {
-      reports: {
-        currentReport: null,
-        availableFields: { ...baseAvailableFields, contacts: mockFields },
-        loading: false,
-        fieldsLoading: false,
-        error: null,
-      },
-    };
-
+  it('removes an existing filter', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
     const filters: ReportFilter[] = [
       { field: 'name', operator: 'like', value: 'John' },
       { field: 'age', operator: 'gt', value: '18' },
     ];
 
-    renderFilterBuilder(
-      <FilterBuilder entity="contacts" filters={filters} onChange={mockOnChange} />,
-      initialState
-    );
+    render(<FilterBuilder availableFields={mockFields} filters={filters} onChange={onChange} />);
 
-    // Check that filters are rendered
-    const selects = screen.getAllByRole('combobox');
-    expect(selects.length).toBeGreaterThan(0);
+    await user.click(screen.getAllByTitle(/remove filter/i)[0]);
+
+    expect(onChange).toHaveBeenCalledWith([{ field: 'age', operator: 'gt', value: '18' }]);
   });
 
-  it('removes filter when remove button is clicked', () => {
-    const initialState = {
-      reports: {
-        currentReport: null,
-        availableFields: { ...baseAvailableFields, contacts: mockFields },
-        loading: false,
-        fieldsLoading: false,
-        error: null,
-      },
-    };
-
-    const filters: ReportFilter[] = [
-      { field: 'name', operator: 'like', value: 'John' },
-      { field: 'age', operator: 'gt', value: '18' },
-    ];
-
-    renderFilterBuilder(
-      <FilterBuilder entity="contacts" filters={filters} onChange={mockOnChange} />,
-      initialState
-    );
-
-    const removeButtons = screen.getAllByTitle(/remove filter/i);
-    fireEvent.click(removeButtons[0]);
-
-    expect(mockOnChange).toHaveBeenCalledWith([
-      { field: 'age', operator: 'gt', value: '18' },
-    ]);
-  });
-
-  it('shows tip for In List operator', () => {
-    const initialState = {
-      reports: {
-        currentReport: null,
-        availableFields: { ...baseAvailableFields, contacts: mockFields },
-        loading: false,
-        fieldsLoading: false,
-        error: null,
-      },
-    };
-
+  it('renders the tip and range inputs for supported operators', () => {
     const filters: ReportFilter[] = [
       { field: 'name', operator: 'in', value: 'value1,value2' },
-    ];
-
-    renderFilterBuilder(
-      <FilterBuilder entity="contacts" filters={filters} onChange={mockOnChange} />,
-      initialState
-    );
-
-    expect(screen.getByText(/tip:/i)).toBeInTheDocument();
-    expect(screen.getByText(/comma-separated values/i)).toBeInTheDocument();
-    expect(screen.getByText(/two values for "between"/i)).toBeInTheDocument();
-  });
-
-  it('renders appropriate input for boolean field type', () => {
-    const initialState = {
-      reports: {
-        currentReport: null,
-        availableFields: { ...baseAvailableFields, contacts: mockFields },
-        loading: false,
-        fieldsLoading: false,
-        error: null,
-      },
-    };
-
-    const filters: ReportFilter[] = [
+      { field: 'age', operator: 'between', value: ['10', '20'] },
       { field: 'active', operator: 'eq', value: '' },
     ];
 
-    renderFilterBuilder(
-      <FilterBuilder entity="contacts" filters={filters} onChange={mockOnChange} />,
-      initialState
-    );
+    render(<FilterBuilder availableFields={mockFields} filters={filters} onChange={vi.fn()} />);
 
-    // Should have a select with True/False options
-    const selects = screen.getAllByRole('combobox');
-    // At least one select should have "Select..." option for boolean field
-    const hasSelectOption = Array.from(selects).some((select) =>
-      select.querySelector('option[value=""]')
-    );
-    expect(hasSelectOption).toBe(true);
-  });
-
-  it('renders range inputs for between operator', () => {
-    const initialState = {
-      reports: {
-        currentReport: null,
-        availableFields: { ...baseAvailableFields, contacts: mockFields },
-        loading: false,
-        fieldsLoading: false,
-        error: null,
-      },
-    };
-
-    const filters: ReportFilter[] = [
-      { field: 'age', operator: 'between', value: ['10', '20'] },
-    ];
-
-    renderFilterBuilder(
-      <FilterBuilder entity="contacts" filters={filters} onChange={mockOnChange} />,
-      initialState
-    );
-
+    expect(screen.getByText(/use comma-separated values for "in list"/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/from/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/to/i)).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'True' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'False' })).toBeInTheDocument();
   });
 });

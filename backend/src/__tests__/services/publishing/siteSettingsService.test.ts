@@ -129,6 +129,9 @@ describe('WebsiteSiteSettingsService', () => {
         syncEnabled: true,
       }),
       JSON.stringify({}),
+      JSON.stringify({
+        facebook: {},
+      }),
       JSON.stringify({}),
       JSON.stringify({}),
       JSON.stringify({

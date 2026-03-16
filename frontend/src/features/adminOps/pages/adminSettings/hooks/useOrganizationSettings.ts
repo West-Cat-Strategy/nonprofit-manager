@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
 import api from '../../../../../services/api';
 import { clearStaffBootstrapSnapshot } from '../../../../../services/bootstrap/staffBootstrap';
+import { setWorkspaceModuleAccessCached } from '../../../../../services/workspaceModuleAccessService';
 import { defaultBranding, type BrandingConfig } from '../../../../../types/branding';
+import { normalizeWorkspaceModuleSettings } from '../../../../../features/workspaceModules/catalog';
 import type {
   OrganizationAddress,
   OrganizationConfig,
@@ -36,6 +38,7 @@ const mergeOrganizationConfig = (
       value?.taxReceipt?.receiptingAddress
     ),
   },
+  workspaceModules: normalizeWorkspaceModuleSettings(value?.workspaceModules),
 });
 
 const getTaxReceiptMissingFields = (config: OrganizationConfig): string[] => {
@@ -100,6 +103,7 @@ export const useOrganizationSettings = ({
       : defaultBranding;
 
     setConfig(resolvedConfig);
+    setWorkspaceModuleAccessCached(resolvedConfig.workspaceModules);
     setSavedOrganizationSnapshot(serializeOrganizationConfig(resolvedConfig));
     setOrganizationLastSavedAt(
       settingsResult.ok && settingsResult.data?.updatedAt
@@ -176,6 +180,16 @@ export const useOrganizationSettings = ({
     setBranding((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleWorkspaceModuleChange = (field: keyof OrganizationConfig['workspaceModules']) => {
+    setConfig((prev) => ({
+      ...prev,
+      workspaceModules: {
+        ...prev.workspaceModules,
+        [field]: !prev.workspaceModules[field],
+      },
+    }));
+  };
+
   const handleImageUpload = async (file: File, type: 'icon' | 'favicon') => {
     const maxSize = type === 'favicon' ? 1 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > maxSize) {
@@ -205,6 +219,7 @@ export const useOrganizationSettings = ({
       const savedConfig = mergeOrganizationConfig(response.data?.config ?? config);
       setConfig(savedConfig);
       clearStaffBootstrapSnapshot();
+      setWorkspaceModuleAccessCached(savedConfig.workspaceModules);
       setSavedOrganizationSnapshot(serializeOrganizationConfig(savedConfig));
       setOrganizationLastSavedAt(
         response.data?.updatedAt ? new Date(response.data.updatedAt) : new Date()
@@ -273,6 +288,7 @@ export const useOrganizationSettings = ({
     handlePhoneChange,
     handleTaxReceiptPhoneChange,
     handleBrandingChange,
+    handleWorkspaceModuleChange,
     handleImageUpload,
     handleSaveOrganization,
     handleSaveBranding,

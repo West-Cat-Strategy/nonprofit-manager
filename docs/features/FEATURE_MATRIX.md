@@ -112,7 +112,7 @@ For **detailed feature specifications**, see linked documentation files.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **Customizable Dashboard** | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | `frontend/src/pages/Dashboard.tsx` | User-configurable dashboard |
+| **Customizable Dashboard** | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | `frontend/src/pages/neo-brutalist/NeoBrutalistDashboard.tsx` | User-configurable dashboard |
 | Widget System | ✅ | Frontend | Same | - | Add/remove/configure widgets |
 | Multiple Dashboards | ✅ | Backend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | - | Save different dashboard configs |
 | Widget Types | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | - | Key metrics, charts, tables, etc. |

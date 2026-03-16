@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import type * as FinanceStateModule from '../../state';
+import type * as ReactRouterDom from 'react-router-dom';
 import DonationDetailPage from '../DonationDetailPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
@@ -70,7 +71,7 @@ vi.mock('../../state', async (importOriginal) => {
 });
 
 vi.mock('react-router-dom', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-router-dom')>();
+  const actual = await importOriginal<typeof ReactRouterDom>();
   return {
     ...actual,
     useNavigate: () => navigateMock,

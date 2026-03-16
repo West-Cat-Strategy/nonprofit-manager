@@ -19,7 +19,7 @@ import { AuthRequest } from '@middleware/auth';
 import { extractPagination, getString, getNumber, getBoolean } from '@utils/queryHelpers';
 import { notFound } from '@utils/responseHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
-import { sendError } from '@modules/shared/http/envelope';
+import { sendError, sendSuccess } from '@modules/shared/http/envelope';
 import { requireActiveOrganizationSafe } from '@services/authGuardService';
 
 const donationService = services.donation;
@@ -49,7 +49,7 @@ export class DonationController {
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const result = await donationService.getDonations(filters, pagination, scope);
-      res.json(result);
+      sendSuccess(res, result);
     } catch (error) {
       next(error);
     }
@@ -68,7 +68,7 @@ export class DonationController {
         return;
       }
 
-      res.json(donation);
+      sendSuccess(res, donation);
     } catch (error) {
       next(error);
     }
@@ -83,7 +83,7 @@ export class DonationController {
       const userId = req.user!.id;
 
       const donation = await donationService.createDonation(donationData, userId);
-      res.status(201).json(donation);
+      sendSuccess(res, donation, 201);
     } catch (error) {
       next(error);
     }
@@ -104,7 +104,7 @@ export class DonationController {
         return;
       }
 
-      res.json(donation);
+      sendSuccess(res, donation);
     } catch (error) {
       next(error);
     }
@@ -135,7 +135,7 @@ export class DonationController {
     try {
       const userId = req.user!.id;
       const donation = await donationService.markReceiptSent(req.params.id, userId);
-      res.json(donation);
+      sendSuccess(res, donation);
     } catch (error) {
       next(error);
     }
@@ -155,7 +155,7 @@ export class DonationController {
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const summary = await donationService.getDonationSummary(filters, scope);
-      res.json(summary);
+      sendSuccess(res, summary);
     } catch (error) {
       next(error);
     }
@@ -184,7 +184,7 @@ export class DonationController {
         scope: req.dataScope?.filter as DataScopeFilter | undefined,
       });
 
-      res.json(result);
+      sendSuccess(res, result);
     } catch (error) {
       next(error);
     }
@@ -216,7 +216,7 @@ export class DonationController {
         scope: req.dataScope?.filter as DataScopeFilter | undefined,
       });
 
-      res.json(result);
+      sendSuccess(res, result);
     } catch (error) {
       next(error);
     }

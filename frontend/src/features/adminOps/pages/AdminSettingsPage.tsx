@@ -31,6 +31,9 @@ import { useRolesSettings } from './adminSettings/hooks/useRolesSettings';
 const ADMIN_SETTINGS_MODE_KEY = 'admin_settings_mode_v1';
 
 const OrganizationSection = lazy(() => import('./adminSettings/sections/OrganizationSection'));
+const WorkspaceModulesSection = lazy(
+  () => import('./adminSettings/sections/WorkspaceModulesSection')
+);
 const BrandingSection = lazy(() => import('./adminSettings/sections/BrandingSection'));
 const UsersSection = lazy(() => import('./adminSettings/sections/UsersSection'));
 const RolesSection = lazy(() => import('./adminSettings/sections/RolesSection'));
@@ -96,6 +99,7 @@ export default function AdminSettings() {
     handleTaxReceiptAddressChange,
     handlePhoneChange,
     handleTaxReceiptPhoneChange,
+    handleWorkspaceModuleChange,
     handleBrandingChange,
     handleImageUpload,
     handleSaveOrganization,
@@ -176,7 +180,8 @@ export default function AdminSettings() {
 
   const hasUnsavedChanges =
     !isSaving &&
-    ((activeSection === 'organization' && isOrganizationDirty) ||
+    (((activeSection === 'organization' || activeSection === 'workspace_modules') &&
+      isOrganizationDirty) ||
       (activeSection === 'branding' && isBrandingDirty));
 
   useUnsavedChangesGuard({ hasUnsavedChanges });
@@ -367,6 +372,18 @@ export default function AdminSettings() {
               lastSavedAt={organizationLastSavedAt}
               taxReceiptMissingFields={taxReceiptMissingFields}
               isTaxReceiptComplete={isTaxReceiptComplete}
+            />
+          )}
+
+          {activeSection === 'workspace_modules' && (
+            <WorkspaceModulesSection
+              workspaceModules={config.workspaceModules}
+              onToggleModule={handleWorkspaceModuleChange}
+              onSave={handleSaveOrganization}
+              isSaving={isSaving}
+              saveStatus={saveStatus}
+              isDirty={isOrganizationDirty}
+              lastSavedAt={organizationLastSavedAt}
             />
           )}
 

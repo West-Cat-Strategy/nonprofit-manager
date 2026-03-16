@@ -88,6 +88,9 @@ vi.mock('../../../hooks/useUnsavedChangesGuard', () => ({
 vi.mock('../../../features/adminOps/pages/adminSettings/sections/OrganizationSection', () => ({
   default: () => <div>Organization Section</div>,
 }));
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/WorkspaceModulesSection', () => ({
+  default: () => <div>Workspace Modules Section</div>,
+}));
 vi.mock('../../../features/adminOps/pages/adminSettings/sections/BrandingSection', () => ({
   default: () => <div>Branding Section</div>,
 }));

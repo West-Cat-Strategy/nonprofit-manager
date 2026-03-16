@@ -54,7 +54,8 @@ Financial feature ownership is split across module domains below; the `finance` 
 
 ## Compatibility shims expected in this phase
 
-- `backend/src/routes/payments.ts` and related legacy route surfaces remain compatibility adapters with v1 deprecation headers only.
+- `backend/src/routes/payments.ts` is the remaining compatibility adapter with v1 deprecation headers.
+- The other top-level legacy route shims under `backend/src/routes/*.ts` were retired during `P4-T1R7D` after importer and runtime-mount sweeps confirmed no remaining callers.
 - Backend payment controller/domain export shims were retired during `P4-T1R7` once all in-repo callers moved to module entrypoints.
 
 ## Active task ownership context

@@ -5,11 +5,20 @@
  * Falls back to localStorage when offline
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import api from '../services/api';
 import { useAppSelector } from '../store/hooks';
-import { getStartupStaffNavigationEntries } from '../routes/startupRouteCatalog';
-import type { RouteArea, RouteNavKind, RouteSection } from '../routes/routeCatalog';
+import {
+  getStaffNavigationEntries,
+  type RouteArea,
+  type RouteNavKind,
+  type RouteSection,
+} from '../routes/routeCatalog';
+import {
+  resolveWorkspaceModuleForRouteId,
+  type WorkspaceModuleSettings,
+} from '../features/workspaceModules/catalog';
+import { useWorkspaceModuleAccess } from '../features/workspaceModules/useWorkspaceModuleAccess';
 import { getUserPreferencesCached, mergeUserPreferencesCached } from '../services/userPreferencesService';
 import { clearStaffBootstrapSnapshot } from '../services/bootstrap/staffBootstrap';
 
@@ -26,6 +35,8 @@ export interface NavigationItem {
   enabled: boolean;
   pinned?: boolean;
   isCore: boolean; // Core items cannot be disabled (e.g., Dashboard)
+  workspaceEnabled: boolean;
+  lockedByWorkspace: boolean;
   group?: 'primary' | 'secondary' | 'utility';
   shortLabel?: string;
   ariaLabel?: string;
@@ -35,6 +46,12 @@ export interface NavigationPreferences {
   items: NavigationItem[];
 }
 
+type PersistedNavigationItem = Omit<NavigationItem, 'workspaceEnabled' | 'lockedByWorkspace'>;
+
+type PersistedNavigationPreferences = {
+  items: PersistedNavigationItem[];
+};
+
 export const MAX_PINNED_ITEMS = 3;
 
 const STORAGE_KEY = 'navigation_preferences';
@@ -42,6 +59,22 @@ const PREFERENCE_KEY = 'navigation';
 const PREFERENCES_CACHE_TTL_MS = 5 * 60 * 1000;
 const routeFlags = {
   VITE_TEAM_CHAT_ENABLED: import.meta.env.VITE_TEAM_CHAT_ENABLED,
+};
+
+const getWorkspaceEnabledState = (
+  routeId: string,
+  workspaceModules: WorkspaceModuleSettings
+): { workspaceEnabled: boolean; lockedByWorkspace: boolean } => {
+  const moduleKey = resolveWorkspaceModuleForRouteId(routeId);
+  if (!moduleKey) {
+    return { workspaceEnabled: true, lockedByWorkspace: false };
+  }
+
+  const workspaceEnabled = workspaceModules[moduleKey] !== false;
+  return {
+    workspaceEnabled,
+    lockedByWorkspace: !workspaceEnabled,
+  };
 };
 
 type PreferencesSnapshot = {
@@ -54,6 +87,9 @@ let preferencesInFlightPromise: Promise<NavigationPreferences | null> | null = n
 
 const isPinnedEligible = (item: Pick<NavigationItem, 'id' | 'isCore' | 'enabled'>): boolean =>
   !item.isCore && item.id !== 'dashboard' && item.enabled;
+
+const isEffectivelyEnabled = (item: Pick<NavigationItem, 'enabled' | 'workspaceEnabled'>): boolean =>
+  item.enabled && item.workspaceEnabled;
 
 const normalizeNavigationItem = (
   defaultItem: NavigationItem,
@@ -90,29 +126,36 @@ const clampPinnedItems = (items: NavigationItem[]): NavigationItem[] => {
   });
 };
 
-const defaultNavigationItems: NavigationItem[] = getStartupStaffNavigationEntries(routeFlags)
-  .filter((entry) => entry.staffNav?.group !== 'utility')
-  .map((entry) => ({
-    id: entry.id,
-    name: entry.staffNav?.label || entry.title,
-    path: entry.href || entry.path,
-    icon: entry.staffNav?.icon || '•',
-    area: entry.area,
-    section: entry.section,
-    navKind: entry.navKind,
-    parentId: entry.parentId,
-    breadcrumbLabel: entry.breadcrumbLabel,
-    enabled: true,
-    pinned: false,
-    isCore: entry.id === 'dashboard',
-    group: entry.staffNav?.group,
-    shortLabel: entry.staffNav?.shortLabel,
-    ariaLabel: entry.staffNav?.ariaLabel,
-  }));
+const getDefaultNavigationItems = (
+  workspaceModules: WorkspaceModuleSettings
+): NavigationItem[] =>
+  getStaffNavigationEntries(routeFlags, workspaceModules)
+    .filter((entry) => entry.staffNav?.group !== 'utility')
+    .map((entry) => ({
+      id: entry.id,
+      name: entry.staffNav?.label || entry.title,
+      path: entry.href || entry.path,
+      icon: entry.staffNav?.icon || '•',
+      area: entry.area,
+      section: entry.section,
+      navKind: entry.navKind,
+      parentId: entry.parentId,
+      breadcrumbLabel: entry.breadcrumbLabel,
+      enabled: true,
+      pinned: false,
+      isCore: entry.id === 'dashboard',
+      ...getWorkspaceEnabledState(entry.id, workspaceModules),
+      group: entry.staffNav?.group,
+      shortLabel: entry.staffNav?.shortLabel,
+      ariaLabel: entry.staffNav?.ariaLabel,
+    }));
 
-function mergeWithDefaults(savedItems: NavigationItem[] | undefined): NavigationItem[] {
+function mergeWithDefaults(
+  savedItems: NavigationItem[] | undefined,
+  defaultItems: NavigationItem[]
+): NavigationItem[] {
   if (!savedItems || savedItems.length === 0) {
-    return defaultNavigationItems;
+    return defaultItems;
   }
 
   const savedIds = new Set(savedItems.map((item) => item.id));
@@ -120,14 +163,14 @@ function mergeWithDefaults(savedItems: NavigationItem[] | undefined): Navigation
 
   // First, add items in their saved order with updated properties.
   for (const savedItem of savedItems) {
-    const defaultItem = defaultNavigationItems.find((d) => d.id === savedItem.id);
+    const defaultItem = defaultItems.find((d) => d.id === savedItem.id);
     if (defaultItem) {
       mergedItems.push(normalizeNavigationItem(defaultItem, savedItem));
     }
   }
 
   // Then, add any new default items that weren't in saved preferences.
-  for (const defaultItem of defaultNavigationItems) {
+  for (const defaultItem of defaultItems) {
     if (!savedIds.has(defaultItem.id)) {
       mergedItems.push(defaultItem);
     }
@@ -143,26 +186,32 @@ function mergeWithDefaults(savedItems: NavigationItem[] | undefined): Navigation
   return clampPinnedItems(mergedItems);
 }
 
-function loadFromLocalStorage(): NavigationPreferences {
+function loadFromLocalStorage(defaultItems: NavigationItem[]): NavigationPreferences {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as NavigationPreferences;
-      return { items: mergeWithDefaults(parsed.items) };
+      return { items: mergeWithDefaults(parsed.items, defaultItems) };
     }
   } catch {
     // If parsing fails, return defaults
   }
-  return { items: defaultNavigationItems };
+  return { items: defaultItems };
 }
 
 function saveToLocalStorage(preferences: NavigationPreferences): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersistedPreferences(preferences)));
   } catch {
     // Handle localStorage errors silently
   }
 }
+
+const toPersistedPreferences = (
+  preferences: NavigationPreferences
+): PersistedNavigationPreferences => ({
+  items: preferences.items.map(({ workspaceEnabled: _workspaceEnabled, lockedByWorkspace: _lockedByWorkspace, ...item }) => item),
+});
 
 const cachePreferencesSnapshot = (preferences: NavigationPreferences): void => {
   preferencesSnapshot = {
@@ -174,7 +223,9 @@ const cachePreferencesSnapshot = (preferences: NavigationPreferences): void => {
 const isPreferencesSnapshotFresh = (snapshot: PreferencesSnapshot): boolean =>
   Date.now() - snapshot.fetchedAt < PREFERENCES_CACHE_TTL_MS;
 
-const fetchServerPreferences = async (): Promise<NavigationPreferences | null> => {
+const fetchServerPreferences = async (
+  defaultItems: NavigationItem[]
+): Promise<NavigationPreferences | null> => {
   const serverPrefs = await getUserPreferencesCached();
 
   if (!serverPrefs?.[PREFERENCE_KEY] || typeof serverPrefs[PREFERENCE_KEY] !== 'object') {
@@ -186,21 +237,25 @@ const fetchServerPreferences = async (): Promise<NavigationPreferences | null> =
     return null;
   }
 
-  const preferences = { items: mergeWithDefaults(value.items) };
+  const preferences = { items: mergeWithDefaults(value.items, defaultItems) };
   cachePreferencesSnapshot(preferences);
   return preferences;
 };
 
-const getServerPreferences = async (): Promise<NavigationPreferences | null> => {
+const getServerPreferences = async (
+  defaultItems: NavigationItem[]
+): Promise<NavigationPreferences | null> => {
   if (preferencesSnapshot && isPreferencesSnapshotFresh(preferencesSnapshot)) {
-    return preferencesSnapshot.preferences;
+    return {
+      items: mergeWithDefaults(preferencesSnapshot.preferences.items, defaultItems),
+    };
   }
 
   if (preferencesInFlightPromise) {
     return preferencesInFlightPromise;
   }
 
-  const request = fetchServerPreferences();
+  const request = fetchServerPreferences(defaultItems);
   preferencesInFlightPromise = request;
 
   try {
@@ -213,9 +268,14 @@ const getServerPreferences = async (): Promise<NavigationPreferences | null> => 
 };
 
 export function useNavigationPreferences() {
+  const workspaceModules = useWorkspaceModuleAccess();
+  const defaultNavigationItems = useMemo(
+    () => getDefaultNavigationItems(workspaceModules),
+    [workspaceModules]
+  );
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [preferences, setPreferences] = useState<NavigationPreferences>(() => {
-    const localPreferences = loadFromLocalStorage();
+    const localPreferences = loadFromLocalStorage(defaultNavigationItems);
     cachePreferencesSnapshot(localPreferences);
     return localPreferences;
   });
@@ -236,7 +296,7 @@ export function useNavigationPreferences() {
     let isMounted = true;
     const fetchPreferences = async () => {
       try {
-        const serverPreferences = await getServerPreferences();
+        const serverPreferences = await getServerPreferences(defaultNavigationItems);
         if (!isMounted) return;
 
         if (serverPreferences) {
@@ -262,7 +322,7 @@ export function useNavigationPreferences() {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated]);
+  }, [defaultNavigationItems, isAuthenticated]);
 
   // Save to API with debounce
   const saveToApi = useCallback((newPrefs: NavigationPreferences) => {
@@ -278,9 +338,9 @@ export function useNavigationPreferences() {
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         await api.patch(`/auth/preferences/${PREFERENCE_KEY}`, {
-          value: newPrefs,
+          value: toPersistedPreferences(newPrefs),
         });
-        mergeUserPreferencesCached(PREFERENCE_KEY, newPrefs);
+        mergeUserPreferencesCached(PREFERENCE_KEY, toPersistedPreferences(newPrefs));
         clearStaffBootstrapSnapshot();
         setIsSynced(true);
       } catch {
@@ -305,17 +365,29 @@ export function useNavigationPreferences() {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
-        const nextPreferences = loadFromLocalStorage();
+        const nextPreferences = loadFromLocalStorage(defaultNavigationItems);
         cachePreferencesSnapshot(nextPreferences);
         setPreferences(nextPreferences);
       }
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [defaultNavigationItems]);
+
+  useEffect(() => {
+    setPreferences((prev) => {
+      const nextPreferences = {
+        items: clampPinnedItems(mergeWithDefaults(prev.items, defaultNavigationItems)),
+      };
+      cachePreferencesSnapshot(nextPreferences);
+      return nextPreferences;
+    });
+  }, [defaultNavigationItems]);
 
   const updatePreferences = useCallback((newPrefs: NavigationPreferences) => {
-    const normalizedPrefs = { items: clampPinnedItems(mergeWithDefaults(newPrefs.items)) };
+    const normalizedPrefs = {
+      items: clampPinnedItems(mergeWithDefaults(newPrefs.items, defaultNavigationItems)),
+    };
 
     setPreferences(normalizedPrefs);
     saveToLocalStorage(normalizedPrefs);
@@ -329,12 +401,15 @@ export function useNavigationPreferences() {
 
     setIsSaving(false);
     setIsSynced(false);
-  }, [isAuthenticated, saveToApi]);
+  }, [defaultNavigationItems, isAuthenticated, saveToApi]);
 
   const toggleItem = useCallback((itemId: string) => {
     setPreferences((prev) => {
       const newItems = prev.items.map((item) => {
         if (item.id === itemId && !item.isCore) {
+          if (item.lockedByWorkspace) {
+            return item;
+          }
           const enabled = !item.enabled;
           return {
             ...item,
@@ -354,6 +429,9 @@ export function useNavigationPreferences() {
     setPreferences((prev) => {
       const newItems = prev.items.map((item) => {
         if (item.id === itemId && !item.isCore) {
+          if (item.lockedByWorkspace) {
+            return item;
+          }
           return { ...item, enabled, pinned: enabled ? item.pinned : false };
         }
         return item;
@@ -367,7 +445,7 @@ export function useNavigationPreferences() {
   const togglePinned = useCallback((itemId: string) => {
     setPreferences((prev) => {
       const target = prev.items.find((item) => item.id === itemId);
-      if (!target || !isPinnedEligible(target)) {
+      if (!target || !isPinnedEligible(target) || !target.workspaceEnabled) {
         return prev;
       }
 
@@ -446,9 +524,9 @@ export function useNavigationPreferences() {
     const defaultPrefs = { items: defaultNavigationItems };
     updatePreferences(defaultPrefs);
     setPreferences(defaultPrefs);
-  }, [updatePreferences]);
+  }, [defaultNavigationItems, updatePreferences]);
 
-  const enabledItems = preferences.items.filter((item) => item.enabled);
+  const enabledItems = preferences.items.filter((item) => isEffectivelyEnabled(item));
   const pinnedItems = enabledItems.filter((item) => item.pinned).slice(0, MAX_PINNED_ITEMS);
   const unpinnedEnabledItems = enabledItems.filter((item) => !item.pinned);
   const primaryItems = unpinnedEnabledItems.slice(0, 4); // First 4 unpinned items are primary.
