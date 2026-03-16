@@ -1,5 +1,5 @@
 import type { MessageSendState } from '../../../messaging/types';
-import type { WorkspaceModuleSettings } from '../../../../workspaceModules/catalog';
+import type { WorkspaceModuleSettings } from '../../../workspaceModules/catalog';
 
 export interface OrganizationAddress {
   line1: string;
