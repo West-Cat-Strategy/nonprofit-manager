@@ -8,6 +8,7 @@ import {
   SectionCard,
   SecondaryButton,
 } from '../ui';
+import { classNames } from '../ui/classNames';
 
 export interface TableColumn<T> {
   key: keyof T | string;
@@ -49,6 +50,7 @@ interface PeopleListContainerProps<T> {
     label: string;
     onClick: () => void;
   };
+  mobileCardRenderer?: (row: T) => React.ReactNode;
 }
 
 export const PeopleListContainer = <T,>({
@@ -73,6 +75,7 @@ export const PeopleListContainer = <T,>({
   emptyStateDescription,
   emptyStateAction,
   emptyStateSecondaryAction,
+  mobileCardRenderer,
 }: PeopleListContainerProps<T>) => {
   const allSelected = data.length > 0 && data.every((row) => selectedRows.has(getRowId(row)));
   const someSelected = selectedRows.size > 0 && !allSelected;
@@ -146,97 +149,155 @@ export const PeopleListContainer = <T,>({
         />
       ) : (
         <section className="overflow-hidden rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-app-border-muted text-sm">
-              <thead className="bg-app-surface-muted">
-                <tr>
-                  {onSelectRow ? (
-                    <th className="w-14 px-4 py-3 text-left">
-                      <input
-                        type="checkbox"
-                        ref={selectAllRef}
-                        checked={allSelected}
-                        onChange={(event) => onSelectAll?.(event.target.checked)}
-                        className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
-                        aria-label={`Select all ${title.toLowerCase()}`}
-                      />
-                    </th>
-                  ) : null}
-                  {columns.map((column) => (
-                    <th
-                      key={String(column.key)}
-                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-app-text-muted"
-                      style={{ width: column.width }}
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-app-border-muted">
-                {data.map((row) => {
-                  const rowId = getRowId(row);
-                  return (
-                    <tr
-                      key={rowId}
-                      className={`transition hover:bg-app-hover/40 ${
-                        selectedRows.has(rowId) ? 'bg-app-accent-soft/60' : 'bg-app-surface'
-                      }`}
-                    >
-                      {onSelectRow ? (
-                        <td className="px-4 py-3 align-top">
-                          <input
-                            type="checkbox"
-                            checked={selectedRows.has(rowId)}
-                            onChange={(event) => onSelectRow(rowId, event.target.checked)}
-                            className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
-                            aria-label={`Select ${singularTitle.toLowerCase()} ${rowId}`}
-                          />
-                        </td>
-                      ) : null}
-                      {columns.map((column) => (
-                        <td key={`${rowId}-${String(column.key)}`} className="px-4 py-3 align-top text-app-text">
-                          {column.render
-                            ? column.render(
-                                typeof column.key === 'string'
+          {mobileCardRenderer ? (
+            <div className="space-y-3 px-3 pb-3 md:hidden">
+              {data.map((row) => {
+                const rowId = getRowId(row);
+                const isSelected = selectedRows.has(rowId);
+                return (
+                  <div
+                    key={rowId}
+                    className={classNames(
+                      'rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface p-4 shadow-sm',
+                      isSelected ? 'ring-2 ring-inset ring-app-accent' : ''
+                    )}
+                  >
+                    {onSelectRow ? (
+                      <label className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(event) => onSelectRow(rowId, event.target.checked)}
+                          className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                          aria-label={`Select ${singularTitle.toLowerCase()} ${rowId}`}
+                        />
+                        {isSelected ? `${selectedRows.size} selected` : 'Select item'}
+                      </label>
+                    ) : null}
+                    {mobileCardRenderer(row)}
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
+          <div className={mobileCardRenderer ? 'hidden md:block' : undefined}>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-app-border-muted text-sm">
+                <thead className="bg-app-surface-muted">
+                  <tr>
+                    {onSelectRow ? (
+                      <th className="w-14 px-4 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          ref={selectAllRef}
+                          checked={allSelected}
+                          onChange={(event) => onSelectAll?.(event.target.checked)}
+                          className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                          aria-label={`Select all ${title.toLowerCase()}`}
+                        />
+                      </th>
+                    ) : null}
+                    {columns.map((column) => (
+                      <th
+                        key={String(column.key)}
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-app-text-muted"
+                        style={{ width: column.width }}
+                      >
+                        {column.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-app-border-muted">
+                  {data.map((row) => {
+                    const rowId = getRowId(row);
+                    return (
+                      <tr
+                        key={rowId}
+                        className={classNames(
+                          'transition hover:bg-app-hover/40',
+                          selectedRows.has(rowId) ? 'bg-app-accent-soft/60' : 'bg-app-surface'
+                        )}
+                      >
+                        {onSelectRow ? (
+                          <td className="px-4 py-3 align-top">
+                            <input
+                              type="checkbox"
+                              checked={selectedRows.has(rowId)}
+                              onChange={(event) => onSelectRow(rowId, event.target.checked)}
+                              className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                              aria-label={`Select ${singularTitle.toLowerCase()} ${rowId}`}
+                            />
+                          </td>
+                        ) : null}
+                        {columns.map((column) => (
+                          <td key={`${rowId}-${String(column.key)}`} className="px-4 py-3 align-top text-app-text">
+                            {column.render
+                              ? column.render(
+                                  typeof column.key === 'string'
+                                    ? (row as Record<string, unknown>)[column.key]
+                                    : row[column.key],
+                                  row
+                                )
+                              : ((typeof column.key === 'string'
                                   ? (row as Record<string, unknown>)[column.key]
-                                  : row[column.key],
-                                row
-                              )
-                            : ((typeof column.key === 'string'
-                                ? (row as Record<string, unknown>)[column.key]
-                                : row[column.key]) as React.ReactNode)}
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                                  : row[column.key]) as React.ReactNode)}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {pagination && pagination.totalPages > 1 ? (
-            <div className="flex flex-col gap-3 border-t border-app-border-muted bg-app-surface-muted px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-app-text-muted">
-                Page <span className="font-semibold text-app-text">{pagination.page}</span> of{' '}
-                <span className="font-semibold text-app-text">{pagination.totalPages}</span> ({pagination.total}{' '}
-                total)
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <SecondaryButton
-                  disabled={pagination.page <= 1}
-                  onClick={() => onPageChange?.(pagination.page - 1)}
-                >
-                  Previous
-                </SecondaryButton>
-                <SecondaryButton
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => onPageChange?.(pagination.page + 1)}
-                >
-                  Next
-                </SecondaryButton>
+            <>
+              <div className="hidden md:flex flex-col gap-3 border-t border-app-border-muted bg-app-surface-muted px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-app-text-muted">
+                  Page <span className="font-semibold text-app-text">{pagination.page}</span> of{' '}
+                  <span className="font-semibold text-app-text">{pagination.totalPages}</span> ({pagination.total}{' '}
+                  total)
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <SecondaryButton
+                    disabled={pagination.page <= 1}
+                    onClick={() => onPageChange?.(pagination.page - 1)}
+                  >
+                    Previous
+                  </SecondaryButton>
+                  <SecondaryButton
+                    disabled={pagination.page >= pagination.totalPages}
+                    onClick={() => onPageChange?.(pagination.page + 1)}
+                  >
+                    Next
+                  </SecondaryButton>
+                </div>
               </div>
-            </div>
+              <div className="md:hidden flex flex-col gap-2 border-t border-app-border-muted bg-app-surface-muted px-4 py-3">
+                <p className="text-sm text-app-text-muted">
+                  Page {pagination.page} / {pagination.totalPages} · {pagination.total} items
+                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <SecondaryButton
+                    disabled={pagination.page <= 1}
+                    onClick={() => onPageChange?.(pagination.page - 1)}
+                    className="flex-1"
+                  >
+                    Previous
+                  </SecondaryButton>
+                  <SecondaryButton
+                    disabled={pagination.page >= pagination.totalPages}
+                    onClick={() => onPageChange?.(pagination.page + 1)}
+                    className="flex-1"
+                  >
+                    Next
+                  </SecondaryButton>
+                </div>
+              </div>
+            </>
           ) : null}
         </section>
       )}

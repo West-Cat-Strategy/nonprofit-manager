@@ -93,6 +93,9 @@ export interface RouteCatalogEntry {
     label: string;
     href: string;
   };
+  mobilePriority?: number;
+  showInMobileHeader?: boolean;
+  showInMobileDrawerUtilities?: boolean;
   staffNav?: {
     group: StaffNavGroup;
     order: number;

@@ -4,7 +4,7 @@
 # This replaces GitHub Actions with local commands.
 # All CI/CD operations can be run locally or via git hooks.
 
-.PHONY: help install lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-auth-guards lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-coverage quality-baseline check-links build \
+.PHONY: help install lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-auth-guards lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-coverage quality-baseline check-links build clean clean-local clean-all \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-up-dev docker-up-tools docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
@@ -518,6 +518,21 @@ clean:
 	rm -rf frontend/coverage
 	rm -rf security-reports
 	@echo "$(GREEN)Clean complete!$(RESET)"
+
+clean-local:
+	@echo "$(BLUE)Cleaning local artifacts...$(RESET)"
+	rm -rf backend/logs
+	rm -rf backend/exports
+	rm -rf backend/coverage
+	rm -rf backend/dist
+	rm -rf backend/dist.bak
+	rm -rf frontend/dist
+	rm -rf frontend/coverage
+	rm -rf .playwright-cli
+	rm -rf tmp
+	rm -rf e2e/playwright-report
+	rm -rf logs
+	@echo "$(GREEN)Local cleanup complete!$(RESET)"
 
 clean-all: clean
 	@echo "$(BLUE)Cleaning node_modules...$(RESET)"

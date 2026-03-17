@@ -17,6 +17,8 @@ export default defineConfig({
         manualChunks(id) {
           const normalizedId = normalizeId(id)
 
+          // Keep admin route modules with the core route shell to avoid a compiled
+          // cyclic chunk between shared route metadata/path helpers and admin redirects.
           if (
             normalizedId.includes('/src/routes/index.tsx') ||
             normalizedId.includes('/src/routes/authRouteComponents.tsx') ||
@@ -51,13 +53,6 @@ export default defineConfig({
             normalizedId.includes('/src/routes/analyticsRouteComponents.tsx')
           ) {
             return 'routes-analytics'
-          }
-
-          if (
-            normalizedId.includes('/src/routes/adminRoutes.tsx') ||
-            normalizedId.includes('/src/routes/adminRouteComponents.tsx')
-          ) {
-            return 'routes-admin'
           }
 
           if (

@@ -227,11 +227,11 @@ const TaskList: React.FC = () => {
   return (
     <NeoBrutalistLayout pageTitle="TASKS">
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-black text-[var(--app-text)]">Tasks</h1>
         <button
           onClick={() => navigate('/tasks/new')}
-          className="px-4 py-2 bg-[var(--loop-green)] text-black border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_var(--shadow-color)] transition-all font-bold uppercase"
+          className="w-full border-2 border-[var(--app-border)] bg-[var(--loop-green)] px-4 py-2 font-bold uppercase text-black shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_var(--shadow-color)] sm:w-auto"
         >
           + New Task
         </button>
@@ -285,7 +285,7 @@ const TaskList: React.FC = () => {
             High Priority
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <input
             type="text"
             placeholder="Search tasks..."
@@ -343,7 +343,7 @@ const TaskList: React.FC = () => {
       </div>
 
       {/* Task Table */}
-      <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] shadow-[4px_4px_0px_0px_var(--shadow-color)] overflow-hidden">
+      <div className="overflow-hidden border-2 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[4px_4px_0px_0px_var(--shadow-color)]">
         {loading ? (
           <div className="p-8 text-center text-[var(--app-text-muted)]">Loading tasks...</div>
         ) : tasks.length === 0 ? (
@@ -357,110 +357,205 @@ const TaskList: React.FC = () => {
             </div>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-[var(--app-border)]">
-            <thead className="bg-[var(--app-surface-muted)]">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
-                  Task
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
-                  Assigned To
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
-                  Due Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-[var(--app-surface)] divide-y divide-[var(--app-border)]">
-              {tasks.map((task) => (
-                <tr key={task.id} className="hover:bg-[var(--app-surface-muted)]">
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-[var(--app-text)]">{task.subject}</div>
-                    {task.related_to_name && (
-                      <div className="text-sm text-[var(--app-text-muted)]">
-                        Related to: {task.related_to_name}
+          <>
+            <div className="space-y-3 p-4 md:hidden">
+              {tasks.map((task) => {
+                const overdue = isOverdue(task.due_date, task.status);
+
+                return (
+                  <div
+                    key={task.id}
+                    data-testid="mobile-task-card"
+                    className="rounded-[var(--ui-radius-md)] border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-[2px_2px_0px_0px_var(--shadow-color)]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-lg font-black text-[var(--app-text)]">{task.subject}</p>
+                        {task.related_to_name ? (
+                          <p className="mt-1 text-sm text-[var(--app-text-muted)]">
+                            Related to: {task.related_to_name}
+                          </p>
+                        ) : null}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">{getStatusBadge(task.status)}</td>
-                  <td className="px-6 py-4">{getPriorityBadge(task.priority)}</td>
-                  <td className="px-6 py-4 text-sm text-[var(--app-text)]">
-                    {task.assigned_to_name || 'Unassigned'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div
-                      className={`text-sm ${
-                        isOverdue(task.due_date, task.status)
-                          ? 'text-app-accent font-semibold'
-                          : 'text-[var(--app-text)]'
-                      }`}
-                    >
-                      {formatDueDate(task.due_date)}
+                      <details className="shrink-0">
+                        <summary className="cursor-pointer border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-1 text-xs font-bold uppercase text-[var(--app-text)] shadow-[2px_2px_0px_0px_var(--shadow-color)]">
+                          Actions
+                        </summary>
+                        <div className="mt-2 grid min-w-36 gap-2">
+                          <button
+                            onClick={() => navigate(`/tasks/${task.id}`)}
+                            className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-xs font-bold uppercase text-[var(--app-text)]"
+                          >
+                            View
+                          </button>
+                          {task.status !== TaskStatus.COMPLETED ? (
+                            <button
+                              onClick={() => handleComplete(task.id)}
+                              className="border-2 border-[var(--app-border)] bg-[var(--loop-green)] px-3 py-2 text-xs font-bold uppercase text-black"
+                            >
+                              Complete
+                            </button>
+                          ) : null}
+                          <button
+                            onClick={() => navigate(`/tasks/${task.id}/edit`)}
+                            className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-xs font-bold uppercase text-[var(--app-text)]"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(task.id)}
+                            className="border-2 border-[var(--app-border)] bg-app-accent-soft px-3 py-2 text-xs font-bold uppercase text-app-accent-text"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </details>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm font-bold space-x-2">
-                    <button
-                      onClick={() => navigate(`/tasks/${task.id}`)}
-                      className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)]"
-                    >
-                      View
-                    </button>
-                    {task.status !== TaskStatus.COMPLETED && (
-                      <button
-                        onClick={() => handleComplete(task.id)}
-                        className="text-app-accent hover:text-app-accent-text"
-                      >
-                        Complete
-                      </button>
-                    )}
-                    <button
-                      onClick={() => navigate(`/tasks/${task.id}/edit`)}
-                      className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)]"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(task.id)}
-                      className="text-app-accent hover:text-app-accent-text"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {getStatusBadge(task.status)}
+                      {getPriorityBadge(task.priority)}
+                    </div>
+
+                    <div className="mt-3 space-y-1 text-sm text-[var(--app-text)]">
+                      <p>Assigned: {task.assigned_to_name || 'Unassigned'}</p>
+                      <p className={overdue ? 'font-semibold text-app-accent' : ''}>
+                        Due: {formatDueDate(task.due_date)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full divide-y divide-[var(--app-border)]">
+                <thead className="bg-[var(--app-surface-muted)]">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
+                      Task
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
+                      Priority
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
+                      Assigned To
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
+                      Due Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--app-border)] bg-[var(--app-surface)]">
+                  {tasks.map((task) => (
+                    <tr key={task.id} className="hover:bg-[var(--app-surface-muted)]">
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-[var(--app-text)]">{task.subject}</div>
+                        {task.related_to_name && (
+                          <div className="text-sm text-[var(--app-text-muted)]">
+                            Related to: {task.related_to_name}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">{getStatusBadge(task.status)}</td>
+                      <td className="px-6 py-4">{getPriorityBadge(task.priority)}</td>
+                      <td className="px-6 py-4 text-sm text-[var(--app-text)]">
+                        {task.assigned_to_name || 'Unassigned'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div
+                          className={`text-sm ${
+                            isOverdue(task.due_date, task.status)
+                              ? 'text-app-accent font-semibold'
+                              : 'text-[var(--app-text)]'
+                          }`}
+                        >
+                          {formatDueDate(task.due_date)}
+                        </div>
+                      </td>
+                      <td className="space-x-2 px-6 py-4 text-sm font-bold">
+                        <button
+                          onClick={() => navigate(`/tasks/${task.id}`)}
+                          className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)]"
+                        >
+                          View
+                        </button>
+                        {task.status !== TaskStatus.COMPLETED && (
+                          <button
+                            onClick={() => handleComplete(task.id)}
+                            className="text-app-accent hover:text-app-accent-text"
+                          >
+                            Complete
+                          </button>
+                        )}
+                        <button
+                          onClick={() => navigate(`/tasks/${task.id}/edit`)}
+                          className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)]"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(task.id)}
+                          className="text-app-accent hover:text-app-accent-text"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* Pagination */}
       {pagination.pages > 1 && (
-        <div className="mt-4 flex justify-center">
-          <nav className="inline-flex shadow-[4px_4px_0px_0px_var(--shadow-color)]" aria-label="Task list pagination">
-            {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => handleFilterChange('page', page)}
-                className={`px-4 py-2 text-sm font-bold ${
-                  pagination.page === page
-                    ? 'bg-[var(--app-border)] text-[var(--app-bg)]'
-                    : 'bg-[var(--app-surface)] text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
-                } border-2 border-[var(--app-border)]`}
-              >
-                {page}
-              </button>
-            ))}
-          </nav>
-        </div>
+        <>
+          <div className="mt-4 flex items-center justify-between gap-2 md:hidden">
+            <button
+              onClick={() => handleFilterChange('page', Math.max(1, pagination.page - 1))}
+              disabled={pagination.page === 1}
+              className="flex-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-sm font-bold uppercase text-[var(--app-text)] disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <p className="text-center text-sm font-bold text-[var(--app-text)]">
+              {pagination.page} / {pagination.pages}
+            </p>
+            <button
+              onClick={() => handleFilterChange('page', Math.min(pagination.pages, pagination.page + 1))}
+              disabled={pagination.page === pagination.pages}
+              className="flex-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-sm font-bold uppercase text-[var(--app-text)] disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+          <div className="mt-4 hidden justify-center md:flex">
+            <nav className="inline-flex shadow-[4px_4px_0px_0px_var(--shadow-color)]" aria-label="Task list pagination">
+              {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => handleFilterChange('page', page)}
+                  className={`border-2 border-[var(--app-border)] px-4 py-2 text-sm font-bold ${
+                    pagination.page === page
+                      ? 'bg-[var(--app-border)] text-[var(--app-bg)]'
+                      : 'bg-[var(--app-surface)] text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </>
       )}
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>

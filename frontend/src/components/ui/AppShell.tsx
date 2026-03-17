@@ -19,8 +19,8 @@ export default function AppShell({
   contentClassName,
 }: AppShellProps) {
   const shellClassName = sidebar
-    ? 'mx-auto grid max-w-[1920px] grid-cols-1 gap-4 px-3 py-4 sm:px-4 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-6'
-    : 'mx-auto max-w-[1920px] px-3 py-4 sm:px-4 lg:px-6';
+    ? 'mx-auto grid max-w-[1920px] grid-cols-1 gap-4 px-3 py-3 sm:px-4 sm:py-4 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-6'
+    : 'mx-auto max-w-[1920px] px-3 py-3 sm:px-4 sm:py-4 lg:px-6';
 
   return (
     <div className={classNames('min-h-screen bg-app-bg text-app-text', className)}>

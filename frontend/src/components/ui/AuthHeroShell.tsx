@@ -25,20 +25,22 @@ export default function AuthHeroShell({
         aria-hidden="true"
         className="pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-app-accent-soft/55 blur-3xl"
       />
-      <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid w-full gap-10 lg:grid-cols-[1fr_1.05fr]">
-          <div className="flex flex-col justify-center">
+      <div className="relative mx-auto flex min-h-screen max-w-6xl items-start px-4 py-6 sm:items-center sm:px-6 sm:py-10 lg:px-8">
+        <div className="grid w-full gap-8 lg:grid-cols-[1fr_1.05fr]">
+          <div className="order-2 flex flex-col gap-6 lg:order-1">
             {badge && (
               <span className="inline-flex w-fit items-center gap-2 rounded-full border border-app-border-muted bg-app-surface-elevated/90 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-app-text-label shadow-sm backdrop-blur">
                 {badge}
               </span>
             )}
-            <h1 className="font-display mt-4 text-4xl font-semibold text-app-text-heading sm:text-5xl">
-              {title}
-            </h1>
-            <p className="mt-4 max-w-2xl text-base text-app-text sm:text-lg">{description}</p>
+            <div className="space-y-3">
+              <h1 className="font-display text-3xl font-semibold text-app-text-heading sm:text-4xl">
+                {title}
+              </h1>
+              <p className="max-w-2xl text-base text-app-text sm:text-lg">{description}</p>
+            </div>
             {highlights.length > 0 && (
-              <div className="mt-6 grid gap-3 text-sm text-app-text">
+              <div className="space-y-3 text-sm text-app-text">
                 {highlights.map((copy) => (
                   <div
                     key={copy}
@@ -59,7 +61,7 @@ export default function AuthHeroShell({
               </div>
             )}
           </div>
-          <div className="rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface-elevated/92 p-8 shadow-[var(--ui-elev-2)] backdrop-blur">
+          <div className="order-1 rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface-elevated/92 p-5 shadow-[var(--ui-elev-2)] backdrop-blur sm:p-8 lg:order-2">
             {children}
           </div>
         </div>

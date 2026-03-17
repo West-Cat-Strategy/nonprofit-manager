@@ -327,7 +327,7 @@ const DonationList: React.FC = () => {
             Credit Card
           </button>
         </div>
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <input
             type="text"
             placeholder="Search donations..."
@@ -443,8 +443,104 @@ const DonationList: React.FC = () => {
           />
         ) : (
           <>
-            <div className="bg-app-surface shadow-md rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
+            <div className="overflow-hidden rounded-lg bg-app-surface shadow-md">
+              <div className="space-y-3 p-4 md:hidden">
+                {donations.map((donation) => {
+                  const singleReceiptDisabledReason = getSingleReceiptDisabledReason(donation);
+                  const annualReceiptDisabledReason = getAnnualReceiptDisabledReason(donation);
+
+                  return (
+                    <div
+                      key={donation.donation_id}
+                      data-testid="mobile-donation-card"
+                      className="rounded-[var(--ui-radius-md)] border border-app-border bg-app-bg p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-app-text-muted">
+                            {donation.donation_number}
+                          </p>
+                          <p className="mt-1 text-base font-semibold text-app-text">
+                            {donation.account_name || donation.contact_name || 'Anonymous'}
+                          </p>
+                          <p className="mt-1 text-sm text-app-text-muted">
+                            {formatCurrency(donation.amount, donation.currency)} · {formatDate(donation.donation_date)}
+                          </p>
+                        </div>
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-semibold ${getStatusBadge(
+                            donation.payment_status
+                          )}`}
+                        >
+                          {donation.payment_status}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 space-y-1 text-sm text-app-text-muted">
+                        <p>Payment: {getPaymentMethodLabel(donation.payment_method)}</p>
+                        <p>
+                          Receipt:{' '}
+                          {donation.official_tax_receipt_number || (donation.receipt_sent ? 'Legacy sent' : 'Not issued')}
+                        </p>
+                      </div>
+
+                      <details className="mt-3">
+                        <summary className="cursor-pointer rounded border border-app-border px-3 py-2 text-sm font-semibold text-app-text transition hover:bg-app-surface">
+                          Actions
+                        </summary>
+                        <div className="mt-2 grid gap-2">
+                          <button
+                            onClick={() => navigate(`/donations/${donation.donation_id}`)}
+                            className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-text"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => navigate(`/donations/${donation.donation_id}/edit`)}
+                            className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-text"
+                          >
+                            Edit
+                          </button>
+                          {donation.official_tax_receipt_id ? (
+                            <button
+                              onClick={() => void handleDownloadExistingReceipt(donation)}
+                              className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-text"
+                            >
+                              Download Receipt
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => openReceiptModal(donation, 'single', 'download')}
+                              disabled={Boolean(singleReceiptDisabledReason)}
+                              title={singleReceiptDisabledReason || 'Issue official tax receipt'}
+                              className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-text disabled:cursor-not-allowed disabled:text-app-text-muted"
+                            >
+                              Issue Receipt
+                            </button>
+                          )}
+                          <button
+                            onClick={() => openReceiptModal(donation, 'annual', 'download')}
+                            disabled={Boolean(annualReceiptDisabledReason)}
+                            title={annualReceiptDisabledReason || 'Generate annual receipt for this donor'}
+                            className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-text disabled:cursor-not-allowed disabled:text-app-text-muted"
+                          >
+                            Annual Receipt
+                          </button>
+                          {donation.recurring_plan_id ? (
+                            <button
+                              onClick={() => navigate(`/recurring-donations/${donation.recurring_plan_id}`)}
+                              className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-text"
+                            >
+                              View Plan
+                            </button>
+                          ) : null}
+                        </div>
+                      </details>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
                 <table className="min-w-full divide-y divide-app-border">
                   <thead className="bg-app-surface-muted">
                     <tr>
@@ -474,7 +570,7 @@ const DonationList: React.FC = () => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-app-surface divide-y divide-app-border">
+                  <tbody className="divide-y divide-app-border bg-app-surface">
                     {donations.map((donation) => {
                       const singleReceiptDisabledReason =
                         getSingleReceiptDisabledReason(donation);
@@ -620,30 +716,55 @@ const DonationList: React.FC = () => {
             </div>
 
             {pagination.total_pages > 1 && (
-              <div className="mt-6 flex justify-between items-center">
-                <div className="text-sm text-app-text-muted">
-                  Showing page {pagination.page} of {pagination.total_pages} ({pagination.total}{' '}
-                  total donations)
+              <>
+                <div className="mt-6 flex flex-col gap-3 md:hidden">
+                  <div className="text-sm text-app-text-muted">
+                    Page {pagination.page} of {pagination.total_pages} ({pagination.total} total donations)
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                      disabled={currentPage === 1}
+                      className="flex-1 rounded-md border border-app-border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() =>
+                        setCurrentPage((page) => Math.min(pagination.total_pages, page + 1))
+                      }
+                      disabled={currentPage === pagination.total_pages}
+                      className="flex-1 rounded-md border border-app-border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 border border-app-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() =>
-                      setCurrentPage((page) => Math.min(pagination.total_pages, page + 1))
-                    }
-                    disabled={currentPage === pagination.total_pages}
-                    className="px-4 py-2 border border-app-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-app-surface-muted"
-                  >
-                    Next
-                  </button>
+                <div className="mt-6 hidden items-center justify-between md:flex">
+                  <div className="text-sm text-app-text-muted">
+                    Showing page {pagination.page} of {pagination.total_pages} ({pagination.total}{' '}
+                    total donations)
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                      disabled={currentPage === 1}
+                      className="rounded-md border border-app-border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-app-surface-muted"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() =>
+                        setCurrentPage((page) => Math.min(pagination.total_pages, page + 1))
+                      }
+                      disabled={currentPage === pagination.total_pages}
+                      className="rounded-md border border-app-border px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-app-surface-muted"
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </>
         )}

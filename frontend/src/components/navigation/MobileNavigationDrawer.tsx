@@ -22,14 +22,12 @@ interface NavigationDrawerUser {
 
 interface MobileNavigationDrawerProps {
   adminSettingsPath: string;
-  alertsLink: NavigationDrawerLink;
   appName: string;
   favoriteItems: NavigationItem[];
   isDarkMode: boolean;
   isNavItemActive: (id: string, path: string) => boolean;
   onClose: () => void;
   onLogout: () => void;
-  onOpenSearch: () => void;
   onToggleDarkMode: () => void;
   primaryItems: NavigationItem[];
   secondaryItems: NavigationItem[];
@@ -39,14 +37,12 @@ interface MobileNavigationDrawerProps {
 
 export default function MobileNavigationDrawer({
   adminSettingsPath,
-  alertsLink,
   appName,
   favoriteItems,
   isDarkMode,
   isNavItemActive,
   onClose,
   onLogout,
-  onOpenSearch,
   onToggleDarkMode,
   primaryItems,
   secondaryItems,
@@ -56,7 +52,7 @@ export default function MobileNavigationDrawer({
   const canOpenAdminSettings = canAccessAdminSettings(user);
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col overflow-y-auto bg-app-surface shadow-xl lg:hidden">
+    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[22rem] flex-col overflow-y-auto bg-app-surface shadow-xl lg:hidden">
       <div className="flex items-center justify-between border-b border-app-border px-4 py-4">
         <div>
           <p className="text-sm font-semibold text-app-text-heading">{appName}</p>
@@ -85,34 +81,7 @@ export default function MobileNavigationDrawer({
         </button>
       </div>
 
-      <div className="space-y-6 px-4 py-5">
-        {favoriteItems.length > 0 ? (
-          <section>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
-              Pinned shortcuts
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {favoriteItems.map((item) => (
-                <Link
-                  key={item.id}
-                  to={item.path}
-                  onClick={onClose}
-                  aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
-                  className={classNames(
-                    'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition',
-                    isNavItemActive(item.id, item.path)
-                      ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
-                      : 'border-app-border bg-app-surface text-app-text hover:bg-app-hover'
-                  )}
-                >
-                  <span aria-hidden="true">{item.icon}</span>
-                  <span>{item.shortLabel ?? item.name}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
+      <div className="space-y-5 px-4 py-5">
         {primaryItems.length > 0 ? (
           <section>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
@@ -143,7 +112,7 @@ export default function MobileNavigationDrawer({
         {secondaryItems.length > 0 ? (
           <section>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
-              More
+              More modules
             </p>
             <div className="mt-3 space-y-2">
               {secondaryItems.map((item) => (
@@ -172,22 +141,6 @@ export default function MobileNavigationDrawer({
             Utilities
           </p>
           <div className="mt-3 space-y-2">
-            <button
-              type="button"
-              onClick={onOpenSearch}
-              className="flex w-full items-center gap-3 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface px-3 py-3 text-left text-sm font-medium text-app-text transition hover:bg-app-hover"
-            >
-              <span aria-hidden="true">🔎</span>
-              <span>Search workspace</span>
-            </button>
-            <Link
-              to={alertsLink.path}
-              onClick={onClose}
-              className="flex items-center gap-3 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface px-3 py-3 text-sm font-medium text-app-text transition hover:bg-app-hover"
-            >
-              <span aria-hidden="true">{alertsLink.icon}</span>
-              <span>{alertsLink.label}</span>
-            </Link>
             {utilityNavLinks.map((link) => (
               <Link
                 key={link.id}
@@ -208,6 +161,32 @@ export default function MobileNavigationDrawer({
               <span>{isDarkMode ? 'Switch to Light' : 'Switch to Dark'}</span>
             </button>
           </div>
+          {favoriteItems.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                Pinned shortcuts
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {favoriteItems.map((item) => (
+                  <Link
+                    key={item.id}
+                    to={item.path}
+                    onClick={onClose}
+                    aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
+                    className={classNames(
+                      'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition',
+                      isNavItemActive(item.id, item.path)
+                        ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                        : 'border-app-border bg-app-surface text-app-text hover:bg-app-hover'
+                    )}
+                  >
+                    <span aria-hidden="true">{item.icon}</span>
+                    <span>{item.shortLabel ?? item.name}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
       </div>
 
