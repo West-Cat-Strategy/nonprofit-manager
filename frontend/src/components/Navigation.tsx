@@ -21,14 +21,17 @@ const NavigationQuickLookupDialog = lazy(preloadNavigationQuickLookupDialog);
 export default function Navigation() {
   const {
     adminSettingsPath,
-    alertsLink,
     branding,
     canOpenAdminSettings,
     currentLocation,
+    currentRouteTitle,
     handleLogout,
     hasActiveSecondaryItem,
     hasActiveUtilityItem,
     isNavItemActive,
+    mobileAlertsLink,
+    mobileDrawerUtilityLinks,
+    mobileNavigationPreferences,
     navigationPreferences: { favoriteItems, primaryItems, secondaryItems },
     themeLabels,
     themeState: { availableThemes, isDarkMode, setTheme, theme, toggleDarkMode },
@@ -80,7 +83,7 @@ export default function Navigation() {
   }, []);
 
   const desktopActionButtonClass =
-    'hidden items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-3 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 lg:inline-flex';
+    'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 sm:px-3';
   const desktopMenuButtonClass =
     'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-3 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2';
   const activeDesktopButtonClass =
@@ -155,10 +158,10 @@ export default function Navigation() {
       aria-label="Global navigation"
       className="sticky top-0 z-50 border-b border-app-border bg-[var(--app-shell-surface)] shadow-sm"
     >
-      <div className="mx-auto flex h-16 max-w-[1920px] items-center gap-3 px-3 sm:px-4 lg:px-6">
+      <div className="mx-auto flex h-14 max-w-[1920px] items-center gap-3 px-3 sm:h-16 sm:px-4 lg:px-6">
         <div className="flex min-w-0 shrink-0 items-center gap-3">
           <Link to="/dashboard" className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[var(--ui-radius-md)] bg-app-accent text-[var(--app-accent-foreground)] shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[var(--ui-radius-md)] bg-app-accent text-[var(--app-accent-foreground)] shadow-sm sm:h-10 sm:w-10">
               {branding.appIcon ? (
                 <img
                   src={branding.appIcon}
@@ -172,8 +175,11 @@ export default function Navigation() {
               )}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-app-text-heading">
+              <p className="truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-subtle sm:text-sm sm:normal-case sm:tracking-normal sm:text-app-text-heading">
                 {branding.appName || 'Nonprofit Manager'}
+              </p>
+              <p className="truncate text-sm font-semibold text-app-text-heading sm:hidden">
+                {currentRouteTitle}
               </p>
               <p className="hidden text-xs text-app-text-muted sm:block">Staff workspace</p>
             </div>
@@ -312,16 +318,20 @@ export default function Navigation() {
           </button>
 
           <Link
-            to={alertsLink.path}
-            aria-label={alertsLink.label}
-            aria-current={isNavItemActive(alertsLink.id, alertsLink.path) ? 'page' : undefined}
+            to={mobileAlertsLink.path}
+            aria-label={mobileAlertsLink.label}
+            aria-current={
+              isNavItemActive(mobileAlertsLink.id, mobileAlertsLink.path) ? 'page' : undefined
+            }
             className={classNames(
               desktopActionButtonClass,
-              isNavItemActive(alertsLink.id, alertsLink.path) ? activeDesktopButtonClass : ''
+              isNavItemActive(mobileAlertsLink.id, mobileAlertsLink.path)
+                ? activeDesktopButtonClass
+                : ''
             )}
           >
-            <span aria-hidden="true">{alertsLink.icon}</span>
-            <span className="hidden xl:inline">{alertsLink.shortLabel}</span>
+            <span aria-hidden="true">{mobileAlertsLink.icon}</span>
+            <span className="hidden xl:inline">{mobileAlertsLink.shortLabel}</span>
           </Link>
 
           {utilityNavLinks.length > 0 ? (
@@ -678,7 +688,6 @@ export default function Navigation() {
 
           <MobileNavigationDrawer
             adminSettingsPath={adminSettingsPath}
-            alertsLink={alertsLink}
             appName={branding.appName || 'Nonprofit Manager'}
             favoriteItems={favoriteItems}
             isDarkMode={isDarkMode}
@@ -688,16 +697,11 @@ export default function Navigation() {
               setMobileMenuOpen(false);
               handleLogout();
             }}
-            onOpenSearch={() => {
-              setMobileMenuOpen(false);
-              prefetchQuickLookup();
-              setSearchOpen(true);
-            }}
             onToggleDarkMode={toggleDarkMode}
-            primaryItems={primaryItems}
-            secondaryItems={secondaryItems}
+            primaryItems={mobileNavigationPreferences.primaryItems}
+            secondaryItems={mobileNavigationPreferences.secondaryItems}
             user={user}
-            utilityNavLinks={utilityNavLinks}
+            utilityNavLinks={mobileDrawerUtilityLinks}
           />
         </>
       ) : null}

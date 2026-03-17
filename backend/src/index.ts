@@ -80,6 +80,9 @@ initializeSentry();
 
 const app: Application = express();
 const PORT = Number(process.env.PORT) || 3000;
+const requestLoggingEnabled =
+  process.env.REQUEST_LOGGING_ENABLED === 'true' ||
+  (process.env.REQUEST_LOGGING_ENABLED !== 'false' && process.env.NODE_ENV === 'production');
 const reminderSchedulerEnabled =
   process.env.NODE_ENV !== 'test' &&
   process.env.EVENT_REMINDER_SCHEDULER_ENABLED === 'true';
@@ -263,12 +266,14 @@ app.use('/api/v2/health', healthRoutes);
 app.use('/api', orgContextMiddleware);
 
 // Logging middleware with correlation ID
-app.use(
-  morgan(
-    `:method :url :status :res[content-length] - :response-time ms - :req[${CORRELATION_ID_HEADER}]`,
-    { stream: { write: (message: string) => logger.info(message.trim()) } }
-  )
-);
+if (requestLoggingEnabled) {
+  app.use(
+    morgan(
+      `:method :url :status :res[content-length] - :response-time ms - :req[${CORRELATION_ID_HEADER}]`,
+      { stream: { write: (message: string) => logger.info(message.trim()) } }
+    )
+  );
+}
 
 // Rate limiting for all API routes
 app.use('/api', apiLimiterMiddleware);

@@ -14,6 +14,7 @@ dist-ssr/
 dist.bak/
 *.tsbuildinfo
 *.js.map
+backend/dist/
 backend/dist.bak/
 .deploy.conf
 .deploy.conf.*
@@ -62,6 +63,7 @@ test-results/
 test-results.json
 playwright-report/
 blob-report/
+.playwright-cli/
 playwright/.cache/
 e2e/.cache/
 e2e/.playwright-browsers/
@@ -74,6 +76,7 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+backend/logs/
 
 # ==============================
 # Editors and OS files
@@ -135,6 +138,7 @@ tests_found.txt
 tests.txt
 *.tmp
 *.temp
+tmp/
 
 # ==============================
 # Project-specific

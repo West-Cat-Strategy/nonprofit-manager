@@ -35,7 +35,7 @@ export class IntervalBatchRunner {
       void this.tick();
     }, this.intervalMs);
 
-    logger.info(`${this.name} started`, {
+    logger.debug(`${this.name} started`, {
       intervalMs: this.intervalMs,
     });
 
@@ -48,12 +48,12 @@ export class IntervalBatchRunner {
     clearInterval(this.intervalId);
     this.intervalId = null;
 
-    logger.info(`${this.name} stopped`);
+    logger.debug(`${this.name} stopped`);
   }
 
   async tick(): Promise<number> {
     if (this.inFlight) {
-      logger.warn(`${this.name} tick skipped due to in-flight batch`);
+      logger.debug(`${this.name} tick skipped due to in-flight batch`);
       return 0;
     }
 
@@ -70,7 +70,7 @@ export class IntervalBatchRunner {
       });
       return processed;
     } finally {
-      logger.info(`${this.name} tick complete`, {
+      logger.debug(`${this.name} tick complete`, {
         processed,
         durationMs: Date.now() - startedAt,
       });

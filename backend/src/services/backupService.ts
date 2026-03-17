@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { pipeline } from 'stream/promises';
 import * as zlib from 'zlib';
@@ -25,6 +26,7 @@ const DEFAULT_SECRET_FIELDS: Record<string, string[]> = {
 };
 
 const EXPORT_CHUNK_SIZE = 1000;
+const DEFAULT_EXPORT_DIR = path.join(os.tmpdir(), 'nonprofit-manager', 'exports');
 
 const quoteIdentifier = (value: string): string => `"${value.replace(/"/g, '""')}"`;
 
@@ -71,7 +73,7 @@ export class BackupService {
   private exportDir: string;
 
   constructor() {
-    this.exportDir = path.join(__dirname, '../../exports');
+    this.exportDir = process.env.BACKUP_EXPORT_DIR || DEFAULT_EXPORT_DIR;
   }
 
   async createBackupFile(options: BackupExportOptions): Promise<string> {
@@ -86,6 +88,7 @@ export class BackupService {
     const extension = compress ? '.json.gz' : '.json';
     const filepath = path.join(this.exportDir, `${filenameBase}${extension}`);
     await fs.promises.mkdir(this.exportDir, { recursive: true });
+    await this.pruneOldExports();
 
     const tables = await this.listPublicTables();
 
@@ -197,7 +200,9 @@ export class BackupService {
       const columnNames = columns.map((column) => column.name);
       const selectColumnsSql = columnNames.map((columnName) => quoteIdentifier(columnName)).join(', ');
       const tableIdentifier = quoteIdentifier(tableName);
+      const idColumn = columns.find((column) => column.name === 'id');
       let offset = 0;
+      let lastSeenId: string | number | null = null;
       let tableRowCount = 0;
 
       if (!firstTable) await writeChunk(stream, ',');
@@ -216,12 +221,26 @@ export class BackupService {
 
       let firstRow = true;
       while (true) {
-        const chunkResult = await pool.query(
-          `SELECT ${selectColumnsSql}
-           FROM ${tableIdentifier}
-           LIMIT $1 OFFSET $2`,
-          [EXPORT_CHUNK_SIZE, offset]
-        );
+        const chunkResult = idColumn
+          ? await pool.query(
+            lastSeenId === null
+              ? `SELECT ${selectColumnsSql}
+                 FROM ${tableIdentifier}
+                 ORDER BY ${quoteIdentifier(idColumn.name)} ASC
+                 LIMIT $1`
+              : `SELECT ${selectColumnsSql}
+                 FROM ${tableIdentifier}
+                 WHERE ${quoteIdentifier(idColumn.name)} > $2
+                 ORDER BY ${quoteIdentifier(idColumn.name)} ASC
+                 LIMIT $1`,
+            lastSeenId === null ? [EXPORT_CHUNK_SIZE] : [EXPORT_CHUNK_SIZE, lastSeenId]
+          )
+          : await pool.query(
+            `SELECT ${selectColumnsSql}
+             FROM ${tableIdentifier}
+             LIMIT $1 OFFSET $2`,
+            [EXPORT_CHUNK_SIZE, offset]
+          );
 
         const chunkRows = chunkResult.rows as Record<string, unknown>[];
         if (chunkRows.length === 0) {
@@ -229,7 +248,14 @@ export class BackupService {
         }
 
         tableRowCount += chunkRows.length;
-        offset += chunkRows.length;
+        if (idColumn) {
+          const nextCursor = chunkRows[chunkRows.length - 1]?.[idColumn.name];
+          lastSeenId = typeof nextCursor === 'string' || typeof nextCursor === 'number'
+            ? nextCursor
+            : String(nextCursor ?? '');
+        } else {
+          offset += chunkRows.length;
+        }
 
         for (const rawRow of chunkRows) {
           const row = meta.includeSecrets ? rawRow : this.redactRow(tableName, rawRow);
@@ -244,5 +270,27 @@ export class BackupService {
     }
 
     await writeChunk(stream, `},"row_counts":${JSON.stringify(rowCounts)}}`);
+  }
+
+  private async pruneOldExports(): Promise<void> {
+    const retentionDays = Number.parseInt(process.env.BACKUP_EXPORT_RETENTION_DAYS || '', 10);
+    if (!Number.isFinite(retentionDays) || retentionDays <= 0) {
+      return;
+    }
+
+    const cutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    const entries = await fs.promises.readdir(this.exportDir, { withFileTypes: true });
+
+    await Promise.all(
+      entries
+        .filter((entry) => entry.isFile())
+        .map(async (entry) => {
+          const filepath = path.join(this.exportDir, entry.name);
+          const stats = await fs.promises.stat(filepath);
+          if (stats.mtimeMs < cutoffMs) {
+            await fs.promises.unlink(filepath).catch(() => undefined);
+          }
+        })
+    );
   }
 }

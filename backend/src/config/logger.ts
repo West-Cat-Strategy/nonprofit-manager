@@ -1,6 +1,8 @@
 import winston from 'winston';
 import * as http from 'http';
 import * as https from 'https';
+import * as fs from 'fs';
+import * as path from 'path';
 import Transport from 'winston-transport';
 import { getRequestContext } from '@config/requestContext';
 
@@ -198,10 +200,43 @@ class HttpLogTransport extends Transport {
   }
 }
 
-const transports: winston.transport[] = [
-  new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-  new winston.transports.File({ filename: 'logs/combined.log' }),
-];
+const parsePositiveInteger = (value: string | undefined, fallback: number): number => {
+  const parsed = Number.parseInt(value || '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const logDirectory = process.env.LOG_DIR || path.join(process.cwd(), 'logs');
+const enableFileLogging =
+  process.env.ENABLE_FILE_LOGGING === 'true' ||
+  (process.env.ENABLE_FILE_LOGGING !== 'false' && process.env.NODE_ENV === 'production');
+
+const maxFileSizeBytes = parsePositiveInteger(
+  process.env.LOG_FILE_MAX_BYTES,
+  10 * 1024 * 1024
+);
+const maxFileCount = parsePositiveInteger(process.env.LOG_FILE_MAX_FILES, 5);
+
+const transports: winston.transport[] = [];
+
+if (enableFileLogging) {
+  fs.mkdirSync(logDirectory, { recursive: true });
+
+  transports.push(
+    new winston.transports.File({
+      filename: path.join(logDirectory, 'error.log'),
+      level: 'error',
+      maxsize: maxFileSizeBytes,
+      maxFiles: maxFileCount,
+      tailable: true,
+    }),
+    new winston.transports.File({
+      filename: path.join(logDirectory, 'combined.log'),
+      maxsize: maxFileSizeBytes,
+      maxFiles: maxFileCount,
+      tailable: true,
+    })
+  );
+}
 
 // Add log aggregation transport if configured
 if (process.env.LOG_AGGREGATION_ENABLED === 'true' && process.env.LOG_AGGREGATION_HOST) {

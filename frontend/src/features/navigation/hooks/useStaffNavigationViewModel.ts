@@ -32,6 +32,10 @@ export function useStaffNavigationViewModel() {
   const navigationPreferences = useNavigationPreferences();
 
   const currentLocation = `${location.pathname}${location.search}`;
+  const currentRouteEntry = useMemo(
+    () => matchRouteCatalogEntry(currentLocation),
+    [currentLocation]
+  );
   const normalizedCurrentLocation = useMemo(
     () => normalizeRouteLocation(currentLocation),
     [currentLocation]
@@ -60,6 +64,40 @@ export function useStaffNavigationViewModel() {
       })),
     [workspaceModules]
   );
+  const mobileNavigationPreferences = useMemo(() => {
+    const orderedItems = navigationPreferences.enabledItems
+      .filter((item) => item.group !== 'utility')
+      .map((item, index) => ({
+        item,
+        index,
+        mobilePriority: getRouteCatalogEntryById(item.id)?.mobilePriority ?? Number.MAX_SAFE_INTEGER,
+      }))
+      .sort((left, right) => {
+        if (left.mobilePriority !== right.mobilePriority) {
+          return left.mobilePriority - right.mobilePriority;
+        }
+
+        return left.index - right.index;
+      })
+      .map(({ item }) => item);
+
+    return {
+      primaryItems: orderedItems.slice(0, 4),
+      secondaryItems: orderedItems.slice(4),
+    };
+  }, [navigationPreferences.enabledItems]);
+  const mobileHeaderLinks = useMemo(
+    () =>
+      utilityEntries.filter((entry) => getRouteCatalogEntryById(entry.id)?.showInMobileHeader),
+    [utilityEntries]
+  );
+  const mobileDrawerUtilityLinks = useMemo(
+    () =>
+      utilityEntries.filter(
+        (entry) => getRouteCatalogEntryById(entry.id)?.showInMobileDrawerUtilities
+      ),
+    [utilityEntries]
+  );
 
   const alertsLink = utilityEntries.find((entry) => entry.path === '/alerts') ?? {
     id: 'alerts-overview',
@@ -69,6 +107,8 @@ export function useStaffNavigationViewModel() {
     icon: '🚨',
     ariaLabel: 'Alerts',
   };
+  const mobileAlertsLink =
+    mobileHeaderLinks.find((entry) => entry.path === alertsLink.path) ?? alertsLink;
   const utilityNavLinks = utilityEntries.filter((entry) => entry.path !== alertsLink.path);
   const adminSettingsPath = getAdminSettingsPath('dashboard');
   const canOpenAdminSettings = canAccessAdminSettings(user);
@@ -108,10 +148,19 @@ export function useStaffNavigationViewModel() {
     branding,
     canOpenAdminSettings,
     currentLocation,
+    currentRouteTitle:
+      currentRouteEntry?.staffNav?.label ??
+      currentRouteEntry?.breadcrumbLabel ??
+      currentRouteEntry?.title ??
+      'Workspace',
     handleLogout,
     hasActiveSecondaryItem,
     hasActiveUtilityItem,
     isNavItemActive,
+    mobileAlertsLink,
+    mobileDrawerUtilityLinks,
+    mobileHeaderLinks,
+    mobileNavigationPreferences,
     navigationPreferences,
     normalizedCurrentLocation,
     themeLabels,
