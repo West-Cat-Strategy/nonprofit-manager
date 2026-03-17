@@ -186,7 +186,7 @@ export default function NeoBrutalistDashboard() {
 
   return (
     <NeoBrutalistLayout pageTitle="WORKBENCH OVERVIEW">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <header className="rounded-3xl border border-app-border/70 bg-app-surface/90 p-6 shadow-sm">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">

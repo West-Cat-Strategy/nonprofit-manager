@@ -99,6 +99,7 @@ const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
   },
   canOpenAdminSettings: true,
   currentLocation: '/dashboard',
+  currentRouteTitle: 'Dashboard',
   handleLogout: handleLogoutMock,
   hasActiveSecondaryItem: false,
   hasActiveUtilityItem: false,
@@ -106,6 +107,18 @@ const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
     path === '/dashboard' || id === 'dashboard' || path === '/alerts',
   navigationPreferences: {
     favoriteItems: [],
+    primaryItems,
+    secondaryItems,
+  },
+  mobileAlertsLink: {
+    id: 'alerts-overview',
+    path: '/alerts',
+    label: 'Alerts',
+    shortLabel: 'Alerts',
+    icon: '🚨',
+  },
+  mobileDrawerUtilityLinks: utilityNavLinks,
+  mobileNavigationPreferences: {
     primaryItems,
     secondaryItems,
   },
@@ -166,6 +179,19 @@ describe('Navigation', () => {
       'href',
       '/reports/builder'
     );
+  });
+
+  it('keeps search and alerts in the mobile header instead of the drawer', async () => {
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
+
+    expect(screen.getByRole('button', { name: /^search$/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
+
+    fireEvent.click(screen.getByRole('button', { name: /main menu/i }));
+
+    expect(screen.getByText(/^more modules$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/search workspace/i)).not.toBeInTheDocument();
+    expect(screen.queryAllByText(/^alerts$/i)).toHaveLength(1);
   });
 
   it('shows admin settings links only when the view model allows them', async () => {

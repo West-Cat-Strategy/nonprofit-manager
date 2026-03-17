@@ -55,7 +55,7 @@ export default function EventsHubPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-app-text">Events</h1>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <button
           type="button"
           onClick={() => navigate('/events/new')}
@@ -75,13 +75,13 @@ export default function EventsHubPage() {
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder="Search events..."
-          className="min-w-64 rounded border border-app-border bg-app-surface px-3 py-2 text-sm"
+          className="w-full rounded border border-app-border bg-app-surface px-3 py-2 text-sm sm:min-w-64 sm:flex-1"
         />
         <select
           aria-label="Filter events by type"
           value={eventTypeFilter}
           onChange={(event) => setEventTypeFilter(event.target.value)}
-          className="rounded border border-app-border bg-app-surface px-3 py-2 text-sm"
+          className="w-full rounded border border-app-border bg-app-surface px-3 py-2 text-sm sm:w-auto"
         >
           <option value="">All types</option>
           <option value="fundraiser">Fundraiser</option>
@@ -106,32 +106,62 @@ export default function EventsHubPage() {
             <p className="text-sm text-app-text-muted">No events match your current filters.</p>
           )}
           {listState.events.length > 0 && (
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr>
-                  <th className="pb-2">Event</th>
-                  <th className="pb-2">Type</th>
-                  <th className="pb-2">Start</th>
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              <div className="space-y-3 md:hidden">
                 {listState.events.map((event) => (
-                  <tr key={event.event_id}>
-                    <td className="py-2">
+                  <div
+                    key={event.event_id}
+                    data-testid="mobile-event-card"
+                    className="rounded-[var(--ui-radius-md)] border border-app-border bg-app-bg p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-app-text">{event.event_name}</p>
+                        <p className="mt-1 text-sm text-app-text-muted">{event.event_type}</p>
+                        <p className="mt-1 text-sm text-app-text-muted">
+                          {new Date(event.start_date).toLocaleString()}
+                        </p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => setSelectedEventId(event.event_id)}
-                        className="font-medium text-app-accent hover:underline"
+                        className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-accent hover:bg-app-surface"
                       >
-                        {event.event_name}
+                        View
                       </button>
-                    </td>
-                    <td className="py-2">{event.event_type}</td>
-                    <td className="py-2">{new Date(event.start_date).toLocaleString()}</td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+              <div className="hidden md:block">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr>
+                      <th className="pb-2">Event</th>
+                      <th className="pb-2">Type</th>
+                      <th className="pb-2">Start</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {listState.events.map((event) => (
+                      <tr key={event.event_id}>
+                        <td className="py-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedEventId(event.event_id)}
+                            className="font-medium text-app-accent hover:underline"
+                          >
+                            {event.event_name}
+                          </button>
+                        </td>
+                        <td className="py-2">{event.event_type}</td>
+                        <td className="py-2">{new Date(event.start_date).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </section>
 

@@ -8,6 +8,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Core',
     path: '/dashboard',
     primaryAction: { label: 'Create intake', href: '/intake/new' },
+    mobilePriority: 10,
     staffNav: {
       group: 'primary',
       order: 10,
@@ -23,6 +24,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'People',
     path: '/contacts',
     primaryAction: { label: 'New person', href: '/contacts/new' },
+    mobilePriority: 20,
     staffNav: {
       group: 'primary',
       order: 20,
@@ -140,6 +142,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Engagement',
     path: '/events',
     primaryAction: { label: 'Create event', href: '/events/new' },
+    mobilePriority: 50,
     staffNav: {
       group: 'primary',
       order: 50,
@@ -187,6 +190,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Engagement',
     path: '/tasks',
     primaryAction: { label: 'New task', href: '/tasks/new' },
+    mobilePriority: 30,
     staffNav: {
       group: 'primary',
       order: 60,
@@ -222,6 +226,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Engagement',
     path: '/cases',
     primaryAction: { label: 'New case', href: '/cases/new' },
+    mobilePriority: 40,
     staffNav: {
       group: 'primary',
       order: 70,
@@ -304,6 +309,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Engagement',
     path: '/team-chat',
     featureFlagEnv: 'VITE_TEAM_CHAT_ENABLED',
+    showInMobileDrawerUtilities: true,
     staffNav: {
       group: 'secondary',
       order: 110,
@@ -320,6 +326,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Finance',
     path: '/donations',
     primaryAction: { label: 'Record donation', href: '/donations/new' },
+    mobilePriority: 60,
     staffNav: {
       group: 'secondary',
       order: 120,
@@ -408,6 +415,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Analytics',
     path: '/analytics',
     primaryAction: { label: 'Apply filters', href: '/analytics' },
+    showInMobileDrawerUtilities: true,
     staffNav: {
       group: 'utility',
       order: 140,
@@ -430,6 +438,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     path: '/reports',
     href: '/reports/builder',
     primaryAction: { label: 'Generate report', href: '/reports/builder' },
+    showInMobileDrawerUtilities: true,
     staffNav: {
       group: 'utility',
       order: 150,
@@ -492,6 +501,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Analytics',
     path: '/alerts',
     primaryAction: { label: 'Create alert', href: '/alerts' },
+    showInMobileHeader: true,
     staffNav: {
       group: 'utility',
       order: 170,
@@ -639,6 +649,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     path: '/settings/api',
     adminNav: { mode: 'settings', order: 120, label: 'API Settings' },
     featureStatus: 'available',
+    showInMobileDrawerUtilities: true,
   }),
   settingsRoute({
     id: 'navigation-settings',
@@ -646,6 +657,7 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     path: '/settings/navigation',
     adminNav: { mode: 'settings', order: 130, label: 'Navigation' },
     featureStatus: 'available',
+    showInMobileDrawerUtilities: true,
   }),
   adminRoute({
     id: 'backup-settings',

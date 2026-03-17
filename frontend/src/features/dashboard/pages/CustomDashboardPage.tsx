@@ -43,6 +43,8 @@ const CustomDashboard = () => {
   const [showAddWidget, setShowAddWidget] = useState(false);
   const [creatingDefault, setCreatingDefault] = useState(false);
   const hasInitializedRef = useRef(false);
+  const layoutCommitTimeoutRef = useRef<number | null>(null);
+  const pendingLayoutRef = useRef<Layout | null>(null);
 
   useEffect(() => {
     const initializeDashboard = async () => {
@@ -75,7 +77,7 @@ const CustomDashboard = () => {
 
   const handleLayoutChange = (layout: Layout) => {
     if (editMode && currentDashboard) {
-      // Convert react-grid-layout Layout to WidgetLayout
+      pendingLayoutRef.current = layout;
       const widgetLayout = layout.map((item) => ({
         i: item.i,
         x: item.x,
@@ -88,12 +90,46 @@ const CustomDashboard = () => {
         maxH: item.maxH,
         static: item.static,
       }));
-      dispatch(updateLayout(widgetLayout));
+
+      if (layoutCommitTimeoutRef.current !== null) {
+        window.clearTimeout(layoutCommitTimeoutRef.current);
+      }
+
+      layoutCommitTimeoutRef.current = window.setTimeout(() => {
+        dispatch(updateLayout(widgetLayout));
+        layoutCommitTimeoutRef.current = null;
+      }, 150);
     }
   };
 
+  useEffect(() => () => {
+    if (layoutCommitTimeoutRef.current !== null) {
+      window.clearTimeout(layoutCommitTimeoutRef.current);
+    }
+  }, []);
+
   const handleSaveLayout = async () => {
     if (currentDashboard?.id) {
+      const pendingLayout = pendingLayoutRef.current;
+      if (pendingLayout) {
+        dispatch(updateLayout(pendingLayout.map((item) => ({
+          i: item.i,
+          x: item.x,
+          y: item.y,
+          w: item.w,
+          h: item.h,
+          minW: item.minW,
+          minH: item.minH,
+          maxW: item.maxW,
+          maxH: item.maxH,
+          static: item.static,
+        }))));
+        pendingLayoutRef.current = null;
+      }
+      if (layoutCommitTimeoutRef.current !== null) {
+        window.clearTimeout(layoutCommitTimeoutRef.current);
+        layoutCommitTimeoutRef.current = null;
+      }
       await dispatch(
         saveDashboardLayout({
           id: currentDashboard.id,

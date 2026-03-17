@@ -4,7 +4,7 @@ import {
   provisionApprovedPortalUser,
 } from "../helpers/portal";
 import { ensureEffectiveAdminLoginViaAPI } from "../helpers/auth";
-import type { ConsoleMessage, Page } from "@playwright/test";
+import type { ConsoleMessage, Locator, Page } from "@playwright/test";
 
 const benignConsolePatterns = [
   /favicon\.ico/i,
@@ -136,6 +136,38 @@ const normalizePathWithQuery = (value: string): string => {
   } catch {
     return value;
   }
+};
+
+const expectNoHorizontalOverflow = async (
+  page: Page,
+  routeLabel: string,
+): Promise<void> => {
+  const overflowDelta = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth,
+  );
+  expect(
+    overflowDelta,
+    `${routeLabel} overflowed horizontally by ${overflowDelta}px`,
+  ).toBeLessThanOrEqual(1);
+};
+
+const waitForAnyVisibleLocator = async (
+  page: Page,
+  locators: Locator[],
+  timeoutMs = 5000,
+) => {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    for (const locator of locators) {
+      if (await locator.isVisible().catch(() => false)) {
+        return locator;
+      }
+    }
+    await page.waitForTimeout(100);
+  }
+
+  return locators[0];
 };
 
 const ADMIN_ROUTE_REDIRECT_PATHS = new Set([
@@ -310,11 +342,20 @@ test.describe("UI/UX regression flows", () => {
 
   test("mobile navigation drawer keeps the compact section layout", async ({
     authenticatedPage,
-  }) => {
+  }, testInfo) => {
+    test.skip(!/^Mobile /.test(testInfo.project.name), "Mobile-only coverage");
+
     const runtimeIssues = trackRuntimeIssues(authenticatedPage);
 
     await authenticatedPage.setViewportSize({ width: 390, height: 844 });
     await authenticatedPage.goto("/dashboard");
+
+    await expect(
+      authenticatedPage.getByRole("button", { name: /^search$/i }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole("link", { name: /^alerts$/i }).first(),
+    ).toBeVisible();
 
     await authenticatedPage.getByRole("button", { name: /main menu/i }).click();
 
@@ -327,7 +368,7 @@ test.describe("UI/UX regression flows", () => {
     await expect(
       authenticatedPage
         .locator("p")
-        .filter({ hasText: /^more$/i })
+        .filter({ hasText: /^more modules$/i })
         .first(),
     ).toBeVisible();
     await expect(
@@ -345,8 +386,128 @@ test.describe("UI/UX regression flows", () => {
     await expect(
       authenticatedPage.getByRole("link", { name: /people/i }).first(),
     ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText(/search workspace/i),
+    ).toHaveCount(0);
+    await expectNoHorizontalOverflow(
+      authenticatedPage,
+      "mobile dashboard navigation drawer",
+    );
 
     expectNoRuntimeIssues("mobile dashboard navigation drawer", runtimeIssues);
+    runtimeIssues.detach();
+  });
+
+  test("mobile auth entry routes keep forms above the fold", async ({
+    page,
+  }, testInfo) => {
+    test.skip(!/^Mobile /.test(testInfo.project.name), "Mobile-only coverage");
+
+    const runtimeIssues = trackRuntimeIssues(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    const checks: Array<{
+      path: string;
+      inputName: RegExp;
+      submitNames: RegExp[];
+    }> = [
+      {
+        path: "/login",
+        inputName: /email address/i,
+        submitNames: [/^sign in$/i],
+      },
+      {
+        path: "/setup",
+        inputName: /email/i,
+        submitNames: [/create admin account/i, /^sign in$/i],
+      },
+      {
+        path: "/portal/login",
+        inputName: /email/i,
+        submitNames: [/^sign in$/i],
+      },
+    ];
+
+    for (const check of checks) {
+      await page.goto(check.path, { waitUntil: "domcontentloaded" });
+
+      const input = page.getByLabel(check.inputName).first();
+      const submitCandidates = check.submitNames.map((name) =>
+        page.getByRole("button", { name }).first(),
+      );
+      const submit =
+        (await waitForAnyVisibleLocator(page, submitCandidates)) ?? submitCandidates[0];
+
+      await expect(input).toBeVisible();
+      await expect(submit).toBeVisible();
+
+      const inputBox = await input.boundingBox();
+      const submitBox = await submit.boundingBox();
+
+      expect(inputBox?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(540);
+      expect(
+        (submitBox?.y ?? Number.POSITIVE_INFINITY) +
+          (submitBox?.height ?? Number.POSITIVE_INFINITY),
+      ).toBeLessThanOrEqual(844);
+      await expectNoHorizontalOverflow(page, check.path);
+    }
+
+    expectNoRuntimeIssues("mobile auth entry routes", runtimeIssues);
+    runtimeIssues.detach();
+  });
+
+  test("mobile staff routes use compact cards and avoid horizontal overflow", async ({
+    authenticatedPage,
+  }, testInfo) => {
+    test.skip(!/^Mobile /.test(testInfo.project.name), "Mobile-only coverage");
+
+    const runtimeIssues = trackRuntimeIssues(authenticatedPage);
+    await authenticatedPage.setViewportSize({ width: 390, height: 844 });
+
+    await authenticatedPage.goto("/dashboard");
+
+    const mainContentBox = await authenticatedPage.locator("#main-content").boundingBox();
+    const headingBox = await authenticatedPage.locator("main h1").first().boundingBox();
+    expect(mainContentBox?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(200);
+    expect(headingBox?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(260);
+    await expectNoHorizontalOverflow(authenticatedPage, "/dashboard");
+
+    const cardChecks: Array<{
+      path: string;
+      heading: RegExp;
+      cardTestId: string;
+    }> = [
+      { path: "/contacts", heading: /people/i, cardTestId: "mobile-contact-card" },
+      { path: "/tasks", heading: /tasks/i, cardTestId: "mobile-task-card" },
+      { path: "/cases", heading: /cases/i, cardTestId: "mobile-case-card" },
+      { path: "/events", heading: /events/i, cardTestId: "mobile-event-card" },
+      {
+        path: "/donations",
+        heading: /donations/i,
+        cardTestId: "mobile-donation-card",
+      },
+    ];
+
+    for (const check of cardChecks) {
+      await authenticatedPage.goto(check.path);
+      await expect(
+        authenticatedPage.getByRole("heading", { name: check.heading }).first(),
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByTestId(check.cardTestId).first(),
+      ).toBeVisible();
+      await expectNoHorizontalOverflow(authenticatedPage, check.path);
+    }
+
+    await authenticatedPage.goto("/settings/navigation");
+    await expect(
+      authenticatedPage
+        .getByRole("heading", { name: /navigation settings/i })
+        .first(),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(authenticatedPage, "/settings/navigation");
+
+    expectNoRuntimeIssues("mobile staff route coverage", runtimeIssues);
     runtimeIssues.detach();
   });
 
@@ -387,7 +548,11 @@ test.describe("UI/UX regression flows", () => {
 
   test("portal high-traffic routes remain navigable with headings", async ({
     page,
-  }) => {
+  }, testInfo) => {
+    test.skip(
+      /^Mobile /.test(testInfo.project.name),
+      "Dedicated mobile UX coverage handles phone-specific assertions separately.",
+    );
     const runtimeIssues = trackRuntimeIssues(page);
 
     const portalUser = await provisionApprovedPortalUser(page);
@@ -420,7 +585,11 @@ test.describe("UI/UX regression flows", () => {
 
   test("admin settings and portal routes keep headings/actions and redirect contracts", async ({
     page,
-  }) => {
+  }, testInfo) => {
+    test.skip(
+      /^Mobile /.test(testInfo.project.name),
+      "Dedicated mobile UX coverage handles phone-specific assertions separately.",
+    );
     const runtimeIssues = trackRuntimeIssues(page);
     await ensureEffectiveAdminLoginViaAPI(page);
 

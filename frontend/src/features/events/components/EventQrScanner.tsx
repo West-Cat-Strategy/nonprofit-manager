@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
+import type { IScannerControls } from '@zxing/browser';
 
 interface EventQrScannerProps {
   enabled: boolean;
@@ -30,6 +30,7 @@ export default function EventQrScanner({ enabled, disabled = false, onTokenScann
     if (!videoRef.current) {
       return;
     }
+    const videoElement = videoRef.current;
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError('Camera scanning is unavailable in this browser. Use manual token entry.');
@@ -37,37 +38,40 @@ export default function EventQrScanner({ enabled, disabled = false, onTokenScann
     }
 
     let cancelled = false;
-    const scanner = new BrowserQRCodeReader(undefined, {
-      delayBetweenScanAttempts: 250,
-    });
     setCameraError(null);
 
-    void scanner
-      .decodeFromConstraints(
-        { video: { facingMode: 'environment' } },
-        videoRef.current,
-        (result) => {
-          if (cancelled || disabled || !result) {
-            return;
-          }
+    void import('@zxing/browser')
+      .then(({ BrowserQRCodeReader }) => {
+        const scanner = new BrowserQRCodeReader(undefined, {
+          delayBetweenScanAttempts: 250,
+        });
 
-          const token = result.getText().trim();
-          if (!token) {
-            return;
-          }
+        return scanner.decodeFromConstraints(
+          { video: { facingMode: 'environment' } },
+          videoElement,
+          (result) => {
+            if (cancelled || disabled || !result) {
+              return;
+            }
 
-          const now = Date.now();
-          if (
-            token === lastScanRef.current.token &&
-            now - lastScanRef.current.at < SCAN_DEDUP_WINDOW_MS
-          ) {
-            return;
-          }
+            const token = result.getText().trim();
+            if (!token) {
+              return;
+            }
 
-          lastScanRef.current = { token, at: now };
-          onTokenScanned(token);
-        }
-      )
+            const now = Date.now();
+            if (
+              token === lastScanRef.current.token &&
+              now - lastScanRef.current.at < SCAN_DEDUP_WINDOW_MS
+            ) {
+              return;
+            }
+
+            lastScanRef.current = { token, at: now };
+            onTokenScanned(token);
+          }
+        );
+      })
       .then((controls) => {
         if (cancelled) {
           controls.stop();

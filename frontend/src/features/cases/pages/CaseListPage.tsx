@@ -1,6 +1,6 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { BrutalBadge, BrutalButton, BrutalCard, BrutalInput, NeoBrutalistLayout } from '../../../components/neo-brutalist';
+import { BrutalButton, BrutalCard, BrutalInput, NeoBrutalistLayout } from '../../../components/neo-brutalist';
 import CaseListFiltersBar from '../components/CaseListFiltersBar';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -15,12 +15,14 @@ import {
   clearCaseSelection,
   bulkUpdateCaseStatus,
 } from '../state';
-import type { CaseFilter, CasePriority, CaseStatusType, CaseWithDetails } from '../../../types/case';
+import type { CaseFilter, CasePriority } from '../../../types/case';
 import { useToast } from '../../../contexts/useToast';
+import { CASE_PRIORITY_OPTIONS } from '../utils/casePriority';
 import {
-  CASE_PRIORITY_OPTIONS,
-  getCasePriorityBadgeColor,
-} from '../utils/casePriority';
+  DesktopCaseRow,
+  MobileCaseCard,
+  type CaseDisplayMeta,
+} from '../components/CaseListResults';
 
 type QuickFilter = 'all' | 'active' | 'overdue' | 'due_soon' | 'unassigned' | 'urgent';
 type SavedView = {
@@ -44,223 +46,6 @@ interface CaseListFilterOverrides {
 }
 
 const SAVED_VIEWS_KEY = 'cases.savedViews';
-
-const getStatusTypeBadgeColor = (statusType: CaseStatusType): 'purple' | 'green' | 'yellow' | 'gray' | 'red' => {
-  const colors: Record<CaseStatusType, 'purple' | 'green' | 'yellow' | 'gray' | 'red'> = {
-    intake: 'purple',
-    active: 'green',
-    review: 'yellow',
-    closed: 'gray',
-    cancelled: 'red',
-  };
-  return colors[statusType];
-};
-
-interface CaseDisplayMeta {
-  isOverdue: boolean;
-  isDueSoon: boolean;
-  ageLabel: string;
-  dueDateLabel: string;
-  assignedLabel: string;
-  contactLabel: string;
-}
-
-interface MobileCaseCardProps {
-  caseItem: CaseWithDetails;
-  caseMeta: CaseDisplayMeta;
-  isSelected: boolean;
-  onToggleSelection: (caseId: string) => void;
-  onNavigateCase: (caseId: string) => void;
-  onEditCase: (caseId: string) => void;
-}
-
-const MobileCaseCard = memo(
-  ({ caseItem, caseMeta, isSelected, onToggleSelection, onNavigateCase, onEditCase }: MobileCaseCardProps) => (
-    <BrutalCard
-      color="white"
-      className={`p-4 cursor-pointer transition-colors ${caseMeta.isOverdue ? 'border-app-border bg-app-accent-soft' : 'hover:bg-[var(--loop-yellow)]'}`}
-      onClick={() => onNavigateCase(caseItem.id)}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-2">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={(event) => {
-              event.stopPropagation();
-              onToggleSelection(caseItem.id);
-            }}
-            onClick={(event) => event.stopPropagation()}
-            className="mt-1 w-5 h-5 border-2 border-black accent-black"
-            aria-label={`Select case ${caseItem.case_number}`}
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              {caseItem.is_urgent && (
-                <span className="text-black" title="Urgent">⚠️</span>
-              )}
-              <span className="text-xs font-black uppercase text-black/70">{caseItem.case_number}</span>
-            </div>
-            <div className="text-lg font-black text-black">{caseItem.title}</div>
-            <div className="text-sm font-bold text-black">{caseMeta.contactLabel}</div>
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <BrutalBadge color={caseItem.status_type ? getStatusTypeBadgeColor(caseItem.status_type) : 'gray'} size="sm">
-            {caseItem.status_name}
-          </BrutalBadge>
-          <BrutalBadge color={getCasePriorityBadgeColor(caseItem.priority)} size="sm">
-            {caseItem.priority}
-          </BrutalBadge>
-        </div>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-black/70">
-        <span
-          className="inline-block border-2 border-black bg-app-surface-muted px-2 py-1 text-xs font-black uppercase text-black"
-        >
-          {caseItem.case_type_name || 'General'}
-        </span>
-        <span>Assigned: {caseMeta.assignedLabel}</span>
-        <span>Age: {caseMeta.ageLabel}</span>
-        {caseItem.due_date && (
-          <span className={caseMeta.isOverdue ? 'text-app-accent font-black' : caseMeta.isDueSoon ? 'text-app-accent font-black' : ''}>
-            Due: {caseMeta.dueDateLabel}
-            {caseMeta.isOverdue && ' (OVERDUE)'}
-          </span>
-        )}
-      </div>
-      <div className="mt-4 flex gap-2">
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            onEditCase(caseItem.id);
-          }}
-          className="flex-1 border-2 border-black bg-white text-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
-        >
-          Edit
-        </button>
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            onNavigateCase(caseItem.id);
-          }}
-          className="flex-1 border-2 border-black bg-[var(--loop-green)] text-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
-        >
-          View
-        </button>
-      </div>
-    </BrutalCard>
-  )
-);
-
-interface DesktopCaseRowProps {
-  caseItem: CaseWithDetails;
-  caseMeta: CaseDisplayMeta;
-  isSelected: boolean;
-  onToggleSelection: (caseId: string) => void;
-  onNavigateCase: (caseId: string) => void;
-  onEditCase: (caseId: string) => void;
-}
-
-const DesktopCaseRow = memo(
-  ({ caseItem, caseMeta, isSelected, onToggleSelection, onNavigateCase, onEditCase }: DesktopCaseRowProps) => (
-    <tr
-      className={`border-b-2 border-black cursor-pointer transition-colors ${
-        caseMeta.isOverdue
-          ? 'bg-app-accent-soft hover:bg-app-accent-soft'
-          : caseMeta.isDueSoon
-          ? 'bg-app-accent-soft hover:bg-app-accent-soft'
-          : 'hover:bg-[var(--loop-yellow)]'
-      } ${isSelected ? 'ring-2 ring-inset ring-black' : ''}`}
-      onClick={() => onNavigateCase(caseItem.id)}
-    >
-      <td className="px-4 py-4 whitespace-nowrap">
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={() => onToggleSelection(caseItem.id)}
-          onClick={(event) => event.stopPropagation()}
-          className="w-5 h-5 border-2 border-black accent-black"
-          aria-label={`Select case ${caseItem.case_number}`}
-        />
-      </td>
-      <td className="px-4 py-4 whitespace-nowrap">
-        <div className="flex items-center gap-2">
-          {caseItem.is_urgent && (
-            <span className="text-black" title="Urgent">⚠️</span>
-          )}
-          <span className="text-sm font-black text-black">{caseItem.case_number}</span>
-        </div>
-      </td>
-      <td className="px-4 py-4">
-        <div className="text-sm font-black text-black">{caseItem.title}</div>
-        {caseItem.description && (
-          <div className="text-sm text-black/70 truncate max-w-xs">{caseItem.description}</div>
-        )}
-      </td>
-      <td className="px-4 py-4 whitespace-nowrap">
-        <div className="text-sm font-bold text-black">{caseMeta.contactLabel}</div>
-      </td>
-      <td className="px-4 py-4 whitespace-nowrap">
-        <span
-          className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
-        >
-          {caseItem.case_type_name || 'General'}
-        </span>
-      </td>
-      <td className="px-4 py-4 whitespace-nowrap">
-        <BrutalBadge color={caseItem.status_type ? getStatusTypeBadgeColor(caseItem.status_type) : 'gray'} size="sm">
-          {caseItem.status_name}
-        </BrutalBadge>
-      </td>
-      <td className="px-4 py-4 whitespace-nowrap">
-        <BrutalBadge color={getCasePriorityBadgeColor(caseItem.priority)} size="sm">
-          {caseItem.priority}
-        </BrutalBadge>
-      </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-black">
-        {caseMeta.assignedLabel}
-      </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm font-bold">
-        {caseItem.due_date ? (
-          <span className={caseMeta.isOverdue ? 'text-app-accent font-black' : caseMeta.isDueSoon ? 'text-app-accent font-black' : 'text-black'}>
-            {caseMeta.dueDateLabel}
-            {caseMeta.isOverdue && (
-              <span className="block text-xs text-app-accent font-black uppercase">Overdue</span>
-            )}
-          </span>
-        ) : (
-          <span className="text-black/40">—</span>
-        )}
-      </td>
-      <td className="px-4 py-4 whitespace-nowrap text-xs font-bold text-black/60">
-        {caseMeta.ageLabel}
-      </td>
-      <td className="px-4 py-4 whitespace-nowrap text-sm">
-        <div className="flex gap-2">
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              onEditCase(caseItem.id);
-            }}
-            className="border-2 border-black bg-white text-black px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
-          >
-            Edit
-          </button>
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              onNavigateCase(caseItem.id);
-            }}
-            className="border-2 border-black bg-[var(--loop-green)] text-black px-3 py-1 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
-          >
-            View
-          </button>
-        </div>
-      </td>
-    </tr>
-  )
-);
 
 const CaseList = () => {
   const navigate = useNavigate();
@@ -1201,85 +986,108 @@ const CaseList = () => {
         </BrutalCard>
       )}
 
- 	      {!loading && cases.length > 0 && totalPages > 1 && (
-        <div className="mt-6 flex justify-between items-center">
-          <div className="flex items-center gap-4 text-sm font-bold text-black">
-            Showing {(currentPage - 1) * (filters.limit || 20) + 1} to{' '}
-            {Math.min(currentPage * (filters.limit || 20), total)} of {total} cases
-            <label className="inline-flex items-center gap-2 text-xs font-black uppercase text-black/70">
-              Rows
-              <select
-                value={filters.limit || 20}
-                onChange={(event) => {
-                  const nextLimit = Number(event.target.value);
-                  dispatch(clearCaseSelection());
-                  dispatch(setFilters({ limit: nextLimit, page: 1 }));
-                  syncUrl({ limit: nextLimit, page: 1 });
-                }}
-                className="border-2 border-app-border bg-app-surface-elevated px-2 py-1 text-xs font-black uppercase text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
-                aria-label="Cases per page"
+      {!loading && cases.length > 0 && totalPages > 1 && (
+        <>
+          <div className="mt-6 flex flex-col gap-3 md:hidden">
+            <p className="text-sm font-bold text-black">
+              Page {currentPage} of {totalPages} · {total} cases
+            </p>
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="flex-1 border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </label>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="border-2 border-black bg-white text-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:bg-[var(--loop-yellow)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
-            >
-              Previous
-            </button>
-            <div className="flex items-center gap-2">
-              {paginationPages[0] !== 1 && (
-                <>
-                  <button
-                    onClick={() => handlePageChange(1)}
-                    className="border-2 border-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] bg-white text-black hover:bg-[var(--loop-yellow)] transition-colors"
-                  >
-                    1
-                  </button>
-                  <span className="text-sm font-black text-black/60">…</span>
-                </>
-              )}
-              {paginationPages.map((page) => (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`border-2 border-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-colors ${
-                    currentPage === page
-                      ? 'bg-black text-white'
-                      : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-              {paginationPages[paginationPages.length - 1] !== totalPages && (
-                <>
-                  <span className="text-sm font-black text-black/60">…</span>
-                  <button
-                    onClick={() => handlePageChange(totalPages)}
-                    className="border-2 border-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] bg-white text-black hover:bg-[var(--loop-yellow)] transition-colors"
-                  >
-                    {totalPages}
-                  </button>
-                </>
-              )}
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="flex-1 border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
             </div>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="border-2 border-black bg-white text-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:bg-[var(--loop-yellow)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
-            >
-              Next
-            </button>
           </div>
-        </div>
+          <div className="mt-6 hidden items-center justify-between md:flex">
+            <div className="flex items-center gap-4 text-sm font-bold text-black">
+              Showing {(currentPage - 1) * (filters.limit || 20) + 1} to{' '}
+              {Math.min(currentPage * (filters.limit || 20), total)} of {total} cases
+              <label className="inline-flex items-center gap-2 text-xs font-black uppercase text-black/70">
+                Rows
+                <select
+                  value={filters.limit || 20}
+                  onChange={(event) => {
+                    const nextLimit = Number(event.target.value);
+                    dispatch(clearCaseSelection());
+                    dispatch(setFilters({ limit: nextLimit, page: 1 }));
+                    syncUrl({ limit: nextLimit, page: 1 });
+                  }}
+                  className="border-2 border-app-border bg-app-surface-elevated px-2 py-1 text-xs font-black uppercase text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
+                  aria-label="Cases per page"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+              >
+                Previous
+              </button>
+              <div className="flex items-center gap-2">
+                {paginationPages[0] !== 1 && (
+                  <>
+                    <button
+                      onClick={() => handlePageChange(1)}
+                      className="border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)]"
+                    >
+                      1
+                    </button>
+                    <span className="text-sm font-black text-black/60">…</span>
+                  </>
+                )}
+                {paginationPages.map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`border-2 border-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-colors ${
+                      currentPage === page
+                        ? 'bg-black text-white'
+                        : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                {paginationPages[paginationPages.length - 1] !== totalPages && (
+                  <>
+                    <span className="text-sm font-black text-black/60">…</span>
+                    <button
+                      onClick={() => handlePageChange(totalPages)}
+                      className="border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)]"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </>
       )}
       </div>
     </NeoBrutalistLayout>

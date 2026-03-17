@@ -293,6 +293,68 @@ const ContactList = () => {
     },
   ];
 
+  const renderContactCard = useCallback(
+    (contact: Contact) => (
+      <div data-testid="mobile-contact-card" className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-lg font-semibold text-app-text">
+                {contact.first_name} {contact.last_name}
+              </p>
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                  contact.is_active
+                    ? 'bg-app-accent-soft text-app-accent-text'
+                    : 'bg-app-surface-muted text-app-text-muted'
+                }`}
+              >
+                {contact.is_active ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+            <p className="text-sm text-app-text-muted">{contact.email || 'No email on file'}</p>
+            {contact.account_name ? (
+              <p className="text-sm text-app-text-muted">Account: {contact.account_name}</p>
+            ) : null}
+          </div>
+          <details className="shrink-0">
+            <summary className="cursor-pointer rounded-full border border-app-border px-3 py-1 text-xs font-semibold text-app-text transition hover:bg-app-surface-muted">
+              Actions
+            </summary>
+            <div className="mt-2 grid min-w-32 gap-2">
+              <button
+                type="button"
+                onClick={() => navigate(`/contacts/${contact.contact_id}`)}
+                className="rounded-full border border-app-border px-3 py-1 text-xs font-semibold text-app-text transition hover:bg-app-surface-muted"
+              >
+                View
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/contacts/${contact.contact_id}/edit`)}
+                className="rounded-full border border-app-border px-3 py-1 text-xs font-semibold text-app-text transition hover:bg-app-surface-muted"
+              >
+                Edit
+              </button>
+            </div>
+          </details>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs text-app-text-muted">
+          {contact.tags && contact.tags.length > 0
+            ? contact.tags.slice(0, 2).map((tag) => (
+                <span key={tag} className="rounded-full border border-app-border px-2 py-0.5">
+                  {tag}
+                </span>
+              ))
+            : null}
+          {contact.mobile_phone && <span>📱 {contact.mobile_phone}</span>}
+        </div>
+        <p className="text-xs font-medium text-app-text-subtle">Use actions to open the full record.</p>
+      </div>
+    ),
+    [navigate]
+  );
+
   return (
     <>
       <PeopleListContainer
@@ -350,6 +412,7 @@ const ContactList = () => {
         error={error || undefined}
         data={contacts}
         columns={columns}
+        mobileCardRenderer={renderContactCard}
         pagination={{
           ...pagination,
           totalPages: pagination.total_pages,
