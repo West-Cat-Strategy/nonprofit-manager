@@ -19,7 +19,7 @@ const ALLOWED_DYNAMIC_INLINE_STYLE_PATHS = new Set([
   'frontend/src/components/dashboard/CaseSummaryWidget.tsx',
   'frontend/src/components/VolunteerWidget.tsx',
   'frontend/src/features/events/components/EventInfoPanel.tsx',
-  'frontend/src/components/people/PeopleListContainer.tsx',
+  'frontend/src/features/people/components/PeopleListContainer.tsx',
 ]);
 
 function walkFiles(rootDir, predicate, acc = []) {

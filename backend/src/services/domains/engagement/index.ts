@@ -8,14 +8,14 @@ export { TaxReceiptService } from '@modules/donations/services/taxReceiptService
 export { EventService } from '@modules/events/services/eventService';
 export { TaskService } from '@services/taskService';
 export { VolunteerService } from '@services/volunteerService';
-export { default as activityService } from '@services/activityService';
+export { activityService } from '@modules/activities/services/activityService';
 export * as caseService from '@services/caseService';
 export * as contactDocumentService from '@services/contactDocumentService';
 export * as contactEmailService from '@services/contactEmailService';
 export * as contactNoteService from '@services/contactNoteService';
 export * as contactPhoneService from '@services/contactPhoneService';
 export * as contactRelationshipService from '@services/contactRelationshipService';
-export * as meetingService from '@services/meetingService';
+export * as meetingService from '@modules/meetings/services/meetingService';
 export * as outcomeDefinitionService from '@services/outcomeDefinitionService';
 export * as outcomeImpactService from '@services/outcomeImpactService';
 export * as outcomeReportService from '@services/outcomeReportService';

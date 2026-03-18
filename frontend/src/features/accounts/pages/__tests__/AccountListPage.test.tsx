@@ -48,7 +48,7 @@ vi.mock('../../../../features/accounts/state', () => ({
   clearFilters: () => ({ type: 'accounts/clearFilters' }),
 }));
 
-vi.mock('../../../../components/people', () => ({
+vi.mock('../../../people', () => ({
   PeopleListContainer: ({ filters }: { filters?: ReactNode }) => (
     <div>
       <div>Account List</div>

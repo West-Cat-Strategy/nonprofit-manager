@@ -52,7 +52,7 @@ vi.mock('../../../../features/contacts/state', () => ({
   fetchContactTags: () => ({ type: 'contacts/fetchTags' }),
 }));
 
-vi.mock('../../../../components/people', () => ({
+vi.mock('../../../../features/people', () => ({
   PeopleListContainer: ({
     filters,
     data = [],

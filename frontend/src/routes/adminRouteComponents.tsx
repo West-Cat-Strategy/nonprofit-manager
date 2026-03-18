@@ -1,10 +1,14 @@
-import { lazy } from 'react';
-
-export const AdminSettings = lazy(() => import('../features/adminOps/pages/AdminSettingsPage'));
-export const UserSettings = lazy(() => import('../features/adminOps/pages/UserSettingsPage'));
-export const ApiSettings = lazy(() => import('../features/adminOps/pages/ApiSettingsPage'));
-export const NavigationSettings = lazy(() => import('../features/adminOps/pages/NavigationSettingsPage'));
-export const DataBackup = lazy(() => import('../features/adminOps/pages/DataBackupPage'));
-export const EmailMarketing = lazy(() => import('../features/adminOps/pages/EmailMarketingPage'));
-export const SocialMedia = lazy(() => import('../features/adminOps/pages/SocialMediaPage'));
-export const PortalAdminPage = lazy(() => import('../features/adminOps/pages/portalAdmin/PortalAdminPage'));
+/**
+ * @deprecated Import admin route components from `frontend/src/features/adminOps/routeComponents.tsx`.
+ * This root route surface remains as a thin compatibility facade for tests and tooling.
+ */
+export {
+  AdminSettings,
+  UserSettings,
+  ApiSettings,
+  NavigationSettings,
+  DataBackup,
+  EmailMarketing,
+  SocialMedia,
+  PortalAdminPage,
+} from '../features/adminOps/routeComponents';

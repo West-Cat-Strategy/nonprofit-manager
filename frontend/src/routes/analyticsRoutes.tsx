@@ -5,13 +5,9 @@
 
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
-import {
-  AlertHistory,
-  AlertInstances,
-  AlertsOverview,
-  Analytics,
-  CustomDashboard,
-} from './analyticsRouteComponents';
+import { Analytics } from '../features/analytics/routeComponents';
+import { AlertHistory, AlertInstances, AlertsOverview } from '../features/alerts/routeComponents';
+import { CustomDashboard } from '../features/dashboard/routeComponents';
 import { createReportRoutes } from '../features/reports/routes/createReportRoutes';
 
 // Lazy load analytics pages

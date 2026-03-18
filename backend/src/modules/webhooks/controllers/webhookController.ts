@@ -5,7 +5,8 @@
 
 import { Response } from 'express';
 import { logger } from '@config/logger';
-import { apiKeyService, webhookService } from '@services/domains/integration';
+import { apiKeyService } from '../services/apiKeyService';
+import { webhookService } from '../services/webhookService';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   CreateWebhookEndpointRequest,

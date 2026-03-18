@@ -1,4 +1,4 @@
-import { lazy, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import AdminRoute from '../components/AdminRoute';
@@ -7,8 +7,27 @@ import PublicShellRoute from '../components/PublicShellRoute';
 import { ProtectedRoute, NeoBrutalistRoute } from '../components/auth';
 import AuthenticatedShellRoute from '../components/auth/AuthenticatedShellRoute';
 import PageLoader from '../components/PageLoader';
+import {
+  AcceptInvitation,
+  ForgotPassword,
+  Login,
+  Register,
+  ResetPassword,
+  Setup,
+} from '../features/auth/routeComponents';
+import {
+  LinkingModule,
+  NeoBrutalistDashboard,
+  OperationsBoard,
+  OutreachCenter,
+  PeopleDirectory,
+  ThemeAudit,
+} from '../features/neoBrutalist/routeComponents';
+import { PublicReportSnapshot } from '../features/savedReports/routeComponents';
 import { logout } from '../features/auth/state';
 import { portalLogout } from '../features/portalAuth/state';
+import { PublicEventCheckInPage, PublicEventsPage } from '../features/events/routeComponents';
+import { RecurringDonationCheckoutResult } from '../features/finance/routeComponents';
 
 // Import route creators
 import { createPeopleRoutes } from './peopleRoutes';
@@ -20,28 +39,6 @@ import { createBuilderRoutes } from './builderRoutes';
 import { createWebsiteRoutes } from './websiteRoutes';
 import { createPortalProtectedRoutes, createPortalPublicRoutes } from './portalRoutes';
 import { createWorkflowRoutes } from './workflowRoutes';
-import { RecurringDonationCheckoutResult } from './financeRouteComponents';
-
-// Lazy load auth pages
-const Setup = lazy(() => import('../features/auth/pages/SetupPage'));
-const Login = lazy(() => import('../features/auth/pages/LoginPage'));
-const Register = lazy(() => import('../features/auth/pages/RegisterPage'));
-const AcceptInvitation = lazy(() => import('../features/auth/pages/AcceptInvitationPage'));
-const ForgotPassword = lazy(() => import('../features/auth/pages/ForgotPasswordPage'));
-const ResetPassword = lazy(() => import('../features/auth/pages/ResetPasswordPage'));
-const PublicReportSnapshot = lazy(() => import('../pages/public/PublicReportSnapshot'));
-const PublicEventCheckInPage = lazy(
-  () => import('../features/events/pages/PublicEventCheckInPage')
-);
-const PublicEventsPage = lazy(() => import('../features/events/pages/PublicEventsPage'));
-
-// Lazy load Neo-Brutalist pages (remain in their directory)
-const NeoBrutalistDashboard = lazy(() => import('../pages/neo-brutalist/NeoBrutalistDashboard'));
-const LinkingModule = lazy(() => import('../pages/neo-brutalist/LinkingModule'));
-const OperationsBoard = lazy(() => import('../pages/neo-brutalist/OperationsBoard'));
-const OutreachCenter = lazy(() => import('../pages/neo-brutalist/OutreachCenter'));
-const PeopleDirectory = lazy(() => import('../pages/neo-brutalist/PeopleDirectory'));
-const ThemeAudit = lazy(() => import('../pages/neo-brutalist/ThemeAudit'));
 
 // AppRoutes component with setup check logic
 const AppRoutes = () => {

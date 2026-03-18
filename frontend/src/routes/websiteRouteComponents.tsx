@@ -1,21 +1,14 @@
-import { lazy } from 'react';
-
-export const WebsitesListPage = lazy(
-  () => import('../features/websites/pages/WebsitesListPage')
-);
-export const WebsiteOverviewPage = lazy(
-  () => import('../features/websites/pages/WebsiteOverviewPage')
-);
-export const WebsiteContentPage = lazy(
-  () => import('../features/websites/pages/WebsiteContentPage')
-);
-export const WebsiteFormsPage = lazy(
-  () => import('../features/websites/pages/WebsiteFormsPage')
-);
-export const WebsiteIntegrationsPage = lazy(
-  () => import('../features/websites/pages/WebsiteIntegrationsPage')
-);
-export const WebsitePublishingPage = lazy(
-  () => import('../features/websites/pages/WebsitePublishingPage')
-);
+/**
+ * @deprecated Import website-console route components from `frontend/src/features/websites/routeComponents.tsx`
+ * and builder route components from `frontend/src/features/builder/routeComponents.tsx`.
+ * This root route surface remains as a thin compatibility facade for tests and tooling.
+ */
+export {
+  WebsitesListPage,
+  WebsiteOverviewPage,
+  WebsiteContentPage,
+  WebsiteFormsPage,
+  WebsiteIntegrationsPage,
+  WebsitePublishingPage,
+} from '../features/websites/routeComponents';
 export { PageEditor as WebsiteBuilderPage } from '../features/builder/routeComponents';

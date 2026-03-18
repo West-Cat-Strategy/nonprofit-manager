@@ -5,7 +5,7 @@
 
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
-import { IntakeNew, InteractionNote } from './workflowRouteComponents';
+import { IntakeNew, InteractionNote } from '../features/workflows/routeComponents';
 
 // Lazy load workflow pages
 

@@ -45,16 +45,62 @@ vi.mock('../../components/Layout', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('../../routes/adminRouteComponents', () => ({
-  AdminSettings: () => <h1>Admin Settings Page</h1>,
-  UserSettings: () => <h1>User Settings Page</h1>,
-  ApiSettings: () => <h1>API Settings Page</h1>,
-  NavigationSettings: () => <h1>Navigation Settings Page</h1>,
-  DataBackup: () => <h1>Data Backup Page</h1>,
-  EmailMarketing: () => <h1>Email Marketing Page</h1>,
-  SocialMedia: () => <h1>Social Media Page</h1>,
-  PortalAdminPage: ({ panel }: { panel: string }) => <h1>Portal Panel: {panel}</h1>,
-}));
+vi.mock('../../features/adminOps/routeComponents', async () => {
+  const { Navigate, useLocation, useParams } = await import('react-router-dom');
+  const {
+    getAdminSettingsPath,
+    parseAdminSettingsSection,
+    resolveLegacyAdminSettingsLocation,
+  } = await import('../../features/adminOps/adminRoutePaths');
+  const { resolveRouteCatalogAlias } = await import('../../routes/routeCatalog');
+
+  const AdminSettings = () => <h1>Admin Settings Page</h1>;
+
+  return {
+    AdminSettings,
+    UserSettings: () => <h1>User Settings Page</h1>,
+    ApiSettings: () => <h1>API Settings Page</h1>,
+    NavigationSettings: () => <h1>Navigation Settings Page</h1>,
+    DataBackup: () => <h1>Data Backup Page</h1>,
+    EmailMarketing: () => <h1>Email Marketing Page</h1>,
+    SocialMedia: () => <h1>Social Media Page</h1>,
+    PortalAdminPage: ({ panel }: { panel: string }) => <h1>Portal Panel: {panel}</h1>,
+    RouteCatalogAliasRedirect: () => {
+      const location = useLocation();
+      const currentLocation = `${location.pathname}${location.search}`;
+      const targetLocation = resolveRouteCatalogAlias(currentLocation);
+
+      if (!targetLocation) {
+        throw new Error(`Missing canonical redirect target for route alias: ${currentLocation}`);
+      }
+
+      return <Navigate to={targetLocation} replace />;
+    },
+    AdminSettingsLegacyRedirect: () => {
+      const location = useLocation();
+      const currentLocation = `${location.pathname}${location.search}`;
+      return <Navigate to={resolveLegacyAdminSettingsLocation(currentLocation)} replace />;
+    },
+    AdminSettingsSectionRoute: () => {
+      const location = useLocation();
+      const { section } = useParams<{ section?: string }>();
+
+      if (!parseAdminSettingsSection(section)) {
+        return (
+          <Navigate
+            to={{
+              pathname: getAdminSettingsPath('dashboard'),
+              search: location.search,
+            }}
+            replace
+          />
+        );
+      }
+
+      return <AdminSettings />;
+    },
+  };
+});
 
 vi.mock('../../hooks/useNavigationPreferences', () => ({
   useNavigationPreferences: () => ({

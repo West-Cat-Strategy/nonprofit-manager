@@ -1,7 +1,7 @@
-import type { CreateContactRelationshipDTO, RelationshipType } from '../../../types/contact';
-import type { ContactRelationship } from '../../../types/contact';
+import type { CreateContactRelationshipDTO, RelationshipType } from '../../../../../types/contact';
+import type { ContactRelationship } from '../../../../../types/contact';
 import type { ContactRecord } from '../types';
-import { RELATIONSHIP_TYPES } from '../../../types/contact';
+import { RELATIONSHIP_TYPES } from '../../../../../types/contact';
 
 interface RelationshipsSectionProps {
   mode: 'create' | 'edit';

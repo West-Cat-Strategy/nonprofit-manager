@@ -5,7 +5,26 @@
 
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
-import { EventList, EventDetail, EventCreate, EventEdit, EventCalendarPage, EventCheckInDesk, TaskList, TaskDetail, TaskCreate, TaskEdit, CaseList, CaseDetail, CaseCreate, CaseEdit, ExternalServiceProviders, FollowUpsPage, OpportunitiesPage, TeamChatInboxPage } from './engagementRouteComponents';
+import {
+  CaseCreate,
+  CaseDetail,
+  CaseEdit,
+  CaseList,
+  EventCalendarPage,
+  EventCheckInDesk,
+  EventCreate,
+  EventDetail,
+  EventEdit,
+  EventList,
+  ExternalServiceProviders,
+  FollowUpsPage,
+  OpportunitiesPage,
+  TaskCreate,
+  TaskDetail,
+  TaskEdit,
+  TaskList,
+  TeamChatInboxPage,
+} from '../features/engagement/routeComponents';
 
 // Lazy load event pages
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { ContactForm } from '../../../components/contactForm';
+import { ContactForm } from '../../contacts/components/contactForm';
 import { fetchCases, selectCasesByContact } from '../../cases/state';
 import { createContactNote } from '../../contacts/state';
 import OutcomeTagSelector from '../../outcomes/components/OutcomeTagSelector';
