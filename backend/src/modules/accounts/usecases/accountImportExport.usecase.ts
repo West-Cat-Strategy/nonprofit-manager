@@ -452,6 +452,7 @@ export class AccountImportExportUseCase {
       const rowNumber = getImportRowNumber(parsedFile.dataset, rowIndex);
       const payload = this.mapRow(row, parsedFile.mapping);
       const messages: string[] = [];
+      let nextAction: AccountImportAction | null = null;
 
       if (payload.account_id) {
         const existing = existingAccounts.byId.get(payload.account_id);
@@ -462,12 +463,12 @@ export class AccountImportExportUseCase {
           if (!validation.success) {
             messages.push(...validation.error.issues.map((issue) => issue.message));
           } else {
-            actions.push({
+            nextAction = {
               action: 'update',
               rowNumber,
               accountId: existing.account_id,
               payload: validation.data,
-            });
+            };
           }
         }
       } else {
@@ -479,12 +480,12 @@ export class AccountImportExportUseCase {
           if (!validation.success) {
             messages.push(...validation.error.issues.map((issue) => issue.message));
           } else {
-            actions.push({
+            nextAction = {
               action: 'update',
               rowNumber,
               accountId: matchedByNumber.account_id,
               payload: validation.data,
-            });
+            };
           }
         } else {
           const validation = createAccountImportSchema.safeParse(payload);
@@ -500,17 +501,22 @@ export class AccountImportExportUseCase {
               seenNewAccountNumbers.add(validation.data.account_number);
             }
 
-            actions.push({
+            nextAction = {
               action: 'create',
               rowNumber,
               payload: validation.data,
-            });
+            };
           }
         }
       }
 
       if (messages.length > 0) {
         rowErrors.push({ row_number: rowNumber, messages });
+        return;
+      }
+
+      if (nextAction) {
+        actions.push(nextAction);
       }
     });
 

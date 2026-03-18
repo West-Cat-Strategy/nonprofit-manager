@@ -143,6 +143,19 @@ describe('ContactList page', () => {
     });
 
     expect(screen.getByText('Contact List')).toBeInTheDocument();
+    expect(importExportModalMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'contacts',
+        selectedIds: [],
+        exportRequest: {
+          search: undefined,
+          role: undefined,
+          is_active: undefined,
+          sort_by: 'created_at',
+          sort_order: 'desc',
+        },
+      })
+    );
     expect(dispatchMock).toHaveBeenCalledWith({
       type: 'contacts/fetchContacts',
       payload: {
