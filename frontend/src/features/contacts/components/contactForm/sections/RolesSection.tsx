@@ -1,4 +1,4 @@
-import type { ContactRole } from '../../../types/contact';
+import type { ContactRole } from '../../../../../types/contact';
 
 interface RolesSectionProps {
   rolesLoading: boolean;

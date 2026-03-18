@@ -5,7 +5,7 @@
 
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
-import { TemplateGallery, PageEditor, TemplatePreview } from './builderRouteComponents';
+import { PageEditor, TemplateGallery, TemplatePreview } from '../features/builder/routeComponents';
 
 // Lazy load builder pages
 

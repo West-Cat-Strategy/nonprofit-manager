@@ -11,7 +11,7 @@ import type { VolunteerAssignment } from '../state';
 import {
   PeopleDetailContainer,
   ActivityTimeline,
-} from '../../../components/people';
+} from '../../people';
 import AvailabilityCalendar from '../../../components/AvailabilityCalendar';
 import TimeTracker from '../../../components/TimeTracker';
 

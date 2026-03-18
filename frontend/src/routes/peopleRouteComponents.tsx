@@ -1,31 +1,24 @@
-import { lazy } from 'react';
-
-const importAccountListPage = () => import('../features/accounts/pages/AccountListPage');
-const importAccountDetailPage = () => import('../features/accounts/pages/AccountDetailPage');
-const importAccountCreatePage = () => import('../features/accounts/pages/AccountCreatePage');
-const importAccountEditPage = () => import('../features/accounts/pages/AccountEditPage');
-const importContactListPage = () => import('../features/contacts/pages/ContactListPage');
-const importContactDetailPage = () => import('../features/contacts/pages/ContactDetailPage');
-const importContactCreatePage = () => import('../features/contacts/pages/ContactCreatePage');
-const importContactEditPage = () => import('../features/contacts/pages/ContactEditPage');
-const importVolunteerListPage = () => import('../features/volunteers/pages/VolunteerListPage');
-const importVolunteerDetailPage = () => import('../features/volunteers/pages/VolunteerDetailPage');
-const importVolunteerCreatePage = () => import('../features/volunteers/pages/VolunteerCreatePage');
-const importVolunteerEditPage = () => import('../features/volunteers/pages/VolunteerEditPage');
-const importAssignmentCreatePage = () => import('../features/volunteers/pages/AssignmentCreatePage');
-const importAssignmentEditPage = () => import('../features/volunteers/pages/AssignmentEditPage');
-
-export const AccountList = lazy(importAccountListPage);
-export const AccountDetail = lazy(importAccountDetailPage);
-export const AccountCreate = lazy(importAccountCreatePage);
-export const AccountEdit = lazy(importAccountEditPage);
-export const ContactList = lazy(importContactListPage);
-export const ContactDetail = lazy(importContactDetailPage);
-export const ContactCreate = lazy(importContactCreatePage);
-export const ContactEdit = lazy(importContactEditPage);
-export const VolunteerList = lazy(importVolunteerListPage);
-export const VolunteerDetail = lazy(importVolunteerDetailPage);
-export const VolunteerCreate = lazy(importVolunteerCreatePage);
-export const VolunteerEdit = lazy(importVolunteerEditPage);
-export const AssignmentCreate = lazy(importAssignmentCreatePage);
-export const AssignmentEdit = lazy(importAssignmentEditPage);
+/**
+ * @deprecated Import people route components from the owning feature `routeComponents.tsx` files.
+ * This root route surface remains as a thin compatibility facade for tests and tooling.
+ */
+export {
+  AccountCreate,
+  AccountDetail,
+  AccountEdit,
+  AccountList,
+} from '../features/accounts/routeComponents';
+export {
+  ContactCreate,
+  ContactDetail,
+  ContactEdit,
+  ContactList,
+} from '../features/contacts/routeComponents';
+export {
+  AssignmentCreate,
+  AssignmentEdit,
+  VolunteerCreate,
+  VolunteerDetail,
+  VolunteerEdit,
+  VolunteerList,
+} from '../features/volunteers/routeComponents';

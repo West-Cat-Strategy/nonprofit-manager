@@ -22,56 +22,79 @@ export default defineConfig({
           if (
             normalizedId.includes('/src/routes/index.tsx') ||
             normalizedId.includes('/src/routes/authRouteComponents.tsx') ||
-            normalizedId.includes('/src/routes/routeMeta.ts')
+            normalizedId.includes('/src/routes/adminRoutes.tsx') ||
+            normalizedId.includes('/src/routes/routeMeta.ts') ||
+            normalizedId.includes('/src/features/auth/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/adminOps/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/adminOps/adminRoutePaths.ts')
           ) {
             return 'routes-core'
           }
 
           if (
             normalizedId.includes('/src/routes/peopleRoutes.tsx') ||
-            normalizedId.includes('/src/routes/peopleRouteComponents.tsx')
+            normalizedId.includes('/src/routes/peopleRouteComponents.tsx') ||
+            normalizedId.includes('/src/features/accounts/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/contacts/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/volunteers/routeComponents.tsx')
           ) {
             return 'routes-people'
           }
 
           if (
             normalizedId.includes('/src/routes/engagementRoutes.tsx') ||
-            normalizedId.includes('/src/routes/engagementRouteComponents.tsx')
+            normalizedId.includes('/src/routes/engagementRouteComponents.tsx') ||
+            normalizedId.includes('/src/features/engagement/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/events/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/tasks/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/cases/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/followUps/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/teamChat/routeComponents.tsx')
           ) {
             return 'routes-engagement'
           }
 
           if (
             normalizedId.includes('/src/routes/financeRoutes.tsx') ||
-            normalizedId.includes('/src/routes/financeRouteComponents.tsx')
+            normalizedId.includes('/src/routes/financeRouteComponents.tsx') ||
+            normalizedId.includes('/src/features/finance/routeComponents.tsx')
           ) {
             return 'routes-finance'
           }
 
           if (
             normalizedId.includes('/src/routes/analyticsRoutes.tsx') ||
-            normalizedId.includes('/src/routes/analyticsRouteComponents.tsx')
+            normalizedId.includes('/src/routes/analyticsRouteComponents.tsx') ||
+            normalizedId.includes('/src/features/analytics/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/alerts/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/dashboard/routeComponents.tsx')
           ) {
             return 'routes-analytics'
           }
 
           if (
             normalizedId.includes('/src/routes/builderRoutes.tsx') ||
-            normalizedId.includes('/src/routes/builderRouteComponents.tsx')
+            normalizedId.includes('/src/routes/builderRouteComponents.tsx') ||
+            normalizedId.includes('/src/routes/websiteRoutes.tsx') ||
+            normalizedId.includes('/src/routes/websiteRouteComponents.tsx') ||
+            normalizedId.includes('/src/features/builder/routeComponents.tsx') ||
+            normalizedId.includes('/src/features/websites/routeComponents.tsx')
           ) {
             return 'routes-builder'
           }
 
           if (
             normalizedId.includes('/src/routes/workflowRoutes.tsx') ||
-            normalizedId.includes('/src/routes/workflowRouteComponents.tsx')
+            normalizedId.includes('/src/routes/workflowRouteComponents.tsx') ||
+            normalizedId.includes('/src/features/workflows/routeComponents.tsx')
           ) {
             return 'routes-workflow'
           }
 
           if (
             normalizedId.includes('/src/routes/portalRoutes.tsx') ||
-            normalizedId.includes('/src/routes/portalRouteComponents.tsx')
+            normalizedId.includes('/src/routes/portalRouteComponents.tsx') ||
+            normalizedId.includes('/src/features/portal/routeComponents.tsx')
           ) {
             return 'routes-portal'
           }

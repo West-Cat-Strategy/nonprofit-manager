@@ -31,7 +31,7 @@ vi.mock('../../../../features/volunteers/state', () => ({
   clearFilters: () => ({ type: 'volunteers/clearFilters' }),
 }));
 
-vi.mock('../../../../components/people', () => ({
+vi.mock('../../../people', () => ({
   PeopleListContainer: () => <div>Volunteer List</div>,
   FilterPanel: () => <div>Filter Panel</div>,
   BulkActionBar: () => <div>Bulk Bar</div>,

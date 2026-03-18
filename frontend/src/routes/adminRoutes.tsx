@@ -6,19 +6,17 @@
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
 import {
-  UserSettings,
-  ApiSettings,
-  NavigationSettings,
-  DataBackup,
-  EmailMarketing,
-  SocialMedia,
-  PortalAdminPage,
-} from './adminRouteComponents';
-import {
   AdminSettingsLegacyRedirect,
   AdminSettingsSectionRoute,
+  ApiSettings,
+  DataBackup,
+  EmailMarketing,
+  NavigationSettings,
+  PortalAdminPage,
   RouteCatalogAliasRedirect,
-} from './adminRedirectRouteComponents';
+  SocialMedia,
+  UserSettings,
+} from '../features/adminOps/routeComponents';
 
 // Lazy load admin pages
 

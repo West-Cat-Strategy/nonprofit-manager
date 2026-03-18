@@ -7,6 +7,7 @@ const repoRoot = path.resolve(__dirname, '..');
 const backendRoot = path.join(repoRoot, 'backend/src');
 
 const blockedImports = [
+  '@services/publishingService',
   '@services/publishing/publicSiteRuntimeService',
   '@services/reconciliationService',
   '@services/portalAppointmentSlotService',
@@ -15,6 +16,53 @@ const blockedImports = [
   '@controllers/publishingController',
   '@controllers/reconciliationController',
   '@controllers/portalAdminController',
+];
+
+const scopedModuleImportRules = [
+  {
+    prefix: 'backend/src/modules/activities/',
+    allowSubpaths: ['/services/'],
+    blockedImports: [
+      '@services/activityService',
+      '@services/domains/engagement',
+    ],
+  },
+  {
+    prefix: 'backend/src/modules/webhooks/',
+    allowSubpaths: ['/services/'],
+    blockedImports: [
+      '@services/apiKeyService',
+      '@services/webhookService',
+      '@services/domains/integration',
+    ],
+  },
+  {
+    prefix: 'backend/src/modules/mailchimp/',
+    allowSubpaths: ['/services/'],
+    blockedImports: [
+      '@services/mailchimpService',
+      '@services/domains/integration',
+    ],
+  },
+  {
+    prefix: 'backend/src/modules/invitations/',
+    allowSubpaths: ['/services/'],
+    blockedImports: [
+      '@services/invitationService',
+      '@services/userRoleService',
+      '@services/emailSettingsService',
+      '@services/emailService',
+      '@services/domains/integration',
+    ],
+  },
+  {
+    prefix: 'backend/src/modules/meetings/',
+    allowSubpaths: ['/services/'],
+    blockedImports: [
+      '@services/meetingService',
+      '@services/domains/engagement',
+    ],
+  },
 ];
 
 const shouldScan = (fullPath) => {
@@ -57,6 +105,22 @@ const walk = (dir) => {
         if (line.includes(`'${blockedImport}'`) || line.includes(`"${blockedImport}"`)) {
           violations.push(`${rel}:${index + 1}: ${blockedImport}`);
         }
+      });
+
+      scopedModuleImportRules.forEach((rule) => {
+        if (!rel.startsWith(rule.prefix)) {
+          return;
+        }
+
+        if (rule.allowSubpaths.some((subpath) => rel.includes(subpath))) {
+          return;
+        }
+
+        rule.blockedImports.forEach((blockedImport) => {
+          if (line.includes(`'${blockedImport}'`) || line.includes(`"${blockedImport}"`)) {
+            violations.push(`${rel}:${index + 1}: ${blockedImport}`);
+          }
+        });
       });
     });
   }

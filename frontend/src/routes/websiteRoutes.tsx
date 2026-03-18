@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import {
-  WebsiteBuilderPage,
   WebsiteContentPage,
   WebsiteFormsPage,
   WebsiteIntegrationsPage,
   WebsiteOverviewPage,
   WebsitePublishingPage,
   WebsitesListPage,
-} from './websiteRouteComponents';
+} from '../features/websites/routeComponents';
+import { PageEditor as WebsiteBuilderPage } from '../features/builder/routeComponents';
 
 interface RouteWrapperProps {
   children: ReactNode;

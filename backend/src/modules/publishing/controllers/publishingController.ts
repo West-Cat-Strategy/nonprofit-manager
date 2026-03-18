@@ -4,7 +4,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { getCacheControlHeader, publishingService, siteCacheService } from '@services/domains/content';
+import publishingService from '@services/publishing';
 import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
 import type {
@@ -16,6 +16,7 @@ import type {
 import { badRequest, conflict, forbidden, noContent, notFoundMessage } from '@utils/responseHelpers';
 import { extractPagination } from '@utils/queryHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
+import { getCacheControlHeader, siteCacheService } from '@services/siteCacheService';
 
 const parseIntQuery = (value: unknown, fallback: number): number => {
   if (typeof value === 'number' && Number.isFinite(value)) {

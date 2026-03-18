@@ -10,3 +10,16 @@ export const ExternalServiceProviders = lazy(
   () => import('./cases/pages/ExternalServiceProvidersPage')
 );
 export const OpportunitiesPage = lazy(() => import('./opportunities/pages/OpportunitiesPage'));
+
+export {
+  EventList,
+  EventDetail,
+  EventCreate,
+  EventEdit,
+  EventCalendarPage,
+  EventCheckInDesk,
+} from '../events/routeComponents';
+export { TaskList, TaskDetail, TaskCreate, TaskEdit } from '../tasks/routeComponents';
+export { CaseList, CaseDetail, CaseCreate, CaseEdit } from '../cases/routeComponents';
+export { FollowUpsPage } from '../followUps/routeComponents';
+export { TeamChatInboxPage } from '../teamChat/routeComponents';

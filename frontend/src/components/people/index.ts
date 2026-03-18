@@ -1,11 +1,4 @@
 /**
- * People Module Components Index
+ * @deprecated Use `frontend/src/features/people/components` instead.
  */
-
-export { PeopleListContainer } from './PeopleListContainer';
-export type { TableColumn } from './PeopleListContainer';
-export { PeopleDetailContainer } from './PeopleDetailContainer';
-export { BulkActionBar } from './BulkActionBar';
-export { FilterPanel } from './FilterPanel';
-export { ActivityTimeline } from './ActivityTimeline';
-export { ImportExportModal } from './ImportExportModal';
+export * from '../../features/people/components';

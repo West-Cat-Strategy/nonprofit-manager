@@ -12,9 +12,9 @@ import Avatar from './Avatar';
 import NavPopover from './navigation/NavPopover';
 import MobileNavigationDrawer from './navigation/MobileNavigationDrawer';
 import AdminQuickActionsBar from '../features/adminOps/components/AdminQuickActionsBar';
+import { preloadContactsPeopleRoute } from '../features/contacts/routePreload';
 import useStaffNavigationViewModel from '../features/navigation/hooks/useStaffNavigationViewModel';
 import { classNames } from './ui/classNames';
-import { preloadContactsPeopleRoute } from '../routes/peopleRoutePreload';
 import { preloadNavigationQuickLookupDialog } from './navigation/preloadNavigationQuickLookupDialog';
 const NavigationQuickLookupDialog = lazy(preloadNavigationQuickLookupDialog);
 

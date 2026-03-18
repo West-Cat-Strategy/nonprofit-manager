@@ -7,7 +7,7 @@ import type {
   WebsiteMailchimpSettings,
   WebsiteStripeSettings,
 } from '@app-types/publishing';
-import { publishingService } from '@services/domains/content';
+import publishingService from '@services/publishing';
 import { websiteSiteSettingsService } from '@services/publishing/siteSettingsService';
 import { siteCacheService } from '@services/siteCacheService';
 import { badRequest, notFoundMessage } from '@utils/responseHelpers';

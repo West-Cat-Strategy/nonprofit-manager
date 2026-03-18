@@ -1,41 +1,8 @@
-import type { Contact as StoreContact } from '../../features/contacts/state';
-
-export type ContactFormValues = {
-  contact_id?: string;
-  account_id?: string | null;
-  first_name: string;
-  preferred_name?: string | null;
-  last_name: string;
-  middle_name?: string | null;
-  salutation?: string | null;
-  suffix?: string | null;
-  birth_date?: string | null;
-  gender?: string | null;
-  pronouns?: string | null;
-  phn?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  mobile_phone?: string | null;
-  address_line1?: string | null;
-  address_line2?: string | null;
-  city?: string | null;
-  state_province?: string | null;
-  postal_code?: string | null;
-  country?: string | null;
-  no_fixed_address?: boolean;
-  job_title?: string | null;
-  department?: string | null;
-  preferred_contact_method?: string | null;
-  do_not_email?: boolean;
-  do_not_phone?: boolean;
-  do_not_text?: boolean;
-  do_not_voicemail?: boolean;
-  notes?: string | null;
-  tags?: string[];
-  is_active?: boolean;
-  roles?: string[];
-};
-
-export type ContactFormErrors = Record<string, string>;
-
-export type ContactRecord = StoreContact;
+/**
+ * @deprecated Use `frontend/src/features/contacts/components/contactForm/types` instead.
+ */
+export type {
+  ContactFormValues,
+  ContactFormErrors,
+  ContactRecord,
+} from '../../features/contacts/components/contactForm/types';

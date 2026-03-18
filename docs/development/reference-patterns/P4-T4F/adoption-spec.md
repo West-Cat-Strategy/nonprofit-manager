@@ -24,7 +24,7 @@
 
 - Canonical entity type alignment: `frontend/src/types/report.ts`.
 - Builder entity selection + template discoverability: `frontend/src/pages/analytics/ReportBuilder.tsx`.
-- Templates route exposure: `frontend/src/routes/analyticsRouteComponents.tsx`, `frontend/src/routes/analyticsRoutes.tsx`.
+- Templates route exposure: `frontend/src/features/analytics/routeComponents.tsx`, `frontend/src/features/alerts/routeComponents.tsx`, `frontend/src/features/dashboard/routeComponents.tsx`, `frontend/src/routes/analyticsRoutes.tsx`.
 - Reports cache state alignment: `frontend/src/store/slices/reportsSlice.ts`.
 
 ## KPI Template Pack
