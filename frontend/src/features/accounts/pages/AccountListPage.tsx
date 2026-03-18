@@ -23,7 +23,7 @@ import {
   BulkActionBar,
   ImportExportModal,
   type TableColumn,
-} from '../../../components/people';
+} from '../../people';
 import { SecondaryButton } from '../../../components/ui';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import { useBulkSelect } from '../../../hooks';

@@ -52,7 +52,7 @@ import {
   getBuilderContextLabel,
   getBuilderStatusLabel,
   resolveBuilderSiteId,
-} from '../../../pages/builder/siteAwareEditor';
+} from '../lib/siteAwareEditor';
 import type {
   PageComponent,
   PageSection,

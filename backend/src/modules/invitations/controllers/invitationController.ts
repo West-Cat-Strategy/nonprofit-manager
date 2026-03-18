@@ -11,9 +11,8 @@ import { logger } from '@config/logger';
 import { getJwtSecret } from '@config/jwt';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD, JWT } from '@config/constants';
-import { invitationService, syncUserRole } from '@services/domains/integration';
-import { getEmailSettings } from '@services/emailSettingsService';
-import { sendInvitationEmail } from '@services/emailService';
+import { invitationService, syncUserRole } from '../services/invitationService';
+import { getEmailSettings, sendInvitationEmail } from '../services/invitationEmailService';
 import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
 
 /**

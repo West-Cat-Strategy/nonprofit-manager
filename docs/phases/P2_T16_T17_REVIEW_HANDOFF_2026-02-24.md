@@ -51,7 +51,7 @@ Error behavior remains canonical (`success: false`, `error`, optional `correlati
 | `frontend/src/components/PaymentHistory.tsx` | Direct nested payload assumption | Uses shared envelope unwrapping for donations payload | `make test-frontend` |
 | `frontend/src/pages/admin/AdminSettings.tsx` | Direct nested payload assumption | Portal contact search now unwraps canonical payload shape safely | `make test-frontend` |
 | `frontend/src/pages/admin/adminSettings/sections/RegistrationSettingsSection.tsx` | Direct nested payload assumption | Pending registrations now support envelope/unwrapped forms | `make test-frontend` |
-| `frontend/src/pages/neo-brutalist/PeopleDirectory.tsx` | Direct nested payload assumptions in list/count paths | Standardized envelope unwrapping across list + count requests | `make test-frontend` |
+| `frontend/src/features/neoBrutalist/pages/PeopleDirectoryPage.tsx` | Direct nested payload assumptions in list/count paths | Standardized envelope unwrapping across list + count requests | `make test-frontend` |
 
 ### T17A / T17C — Guardrail Matrix Expansion
 
@@ -166,4 +166,3 @@ Current status alignment in `docs/phases/planning-and-progress.md` is consistent
 - `P2-T16`, `P2-T16C`, `P2-T16D` => `Review`
 - `P2-T17`, `P2-T17A`, `P2-T17C`, `P2-T17D`, `P2-T17E` => `Review`
 - `P3-T5` => `Blocked`
-

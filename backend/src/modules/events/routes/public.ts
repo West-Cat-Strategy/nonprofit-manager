@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { services } from '@container/services';
-import { publishingService } from '@services/domains/content';
+import publishingService from '@services/publishing';
 import { publicEventCheckInLimiterMiddleware } from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {

@@ -17,7 +17,7 @@ export {
 } from './imageOptimizationService';
 export { ReportService } from './reportService';
 export { SavedReportService } from './savedReportService';
-export { PublishingService } from './publishingService';
+export { PublishingService } from './publishing';
 export { SiteGeneratorService, siteGeneratorService } from './site-generator.service';
 export { TaskService } from './taskService';
 export { taskService } from './taskService';
@@ -36,7 +36,7 @@ export * as meetingService from './meetingService';
 export * as outcomeDefinitionService from './outcomeDefinitionService';
 export * as outcomeImpactService from './outcomeImpactService';
 export * as outcomeReportService from './outcomeReportService';
-export { default as publishingService } from './publishingService';
+export { default as publishingService } from './publishing';
 export * as reconciliationService from './reconciliationService';
 export * as stripeService from './stripeService';
 export { getCacheControlHeader } from './siteCacheService';

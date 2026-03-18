@@ -66,7 +66,7 @@ vi.mock('../navigation/preloadNavigationQuickLookupDialog', () => ({
     }),
 }));
 
-vi.mock('../../routes/peopleRoutePreload', () => ({
+vi.mock('../../features/contacts/routePreload', () => ({
   preloadContactsPeopleRoute: vi.fn(() => Promise.resolve([])),
 }));
 

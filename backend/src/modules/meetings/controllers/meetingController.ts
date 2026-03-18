@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import type { AuthRequest } from '@middleware/auth';
-import { meetingService } from '@services/domains/engagement';
+import { meetingService } from '../services/meetingService';
 import { notFoundMessage, unauthorized } from '@utils/responseHelpers';
 
 export const listCommittees = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {

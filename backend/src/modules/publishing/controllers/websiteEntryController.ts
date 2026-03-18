@@ -2,7 +2,7 @@ import type { Response, NextFunction, Request } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { badRequest, noContent, notFoundMessage } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
-import { publishingService } from '@services/domains/content';
+import publishingService from '@services/publishing';
 import { websiteEntryService } from '@services/publishing/websiteEntryService';
 import { publicWebsiteFormService } from '@services/publishing/publicWebsiteFormService';
 import {

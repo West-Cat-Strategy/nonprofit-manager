@@ -65,7 +65,7 @@
       "count": 1
     },
     {
-      "file": "frontend/src/components/people/PeopleListContainer.tsx",
+      "file": "frontend/src/features/people/components/PeopleListContainer.tsx",
       "count": 1
     },
     {
@@ -85,7 +85,7 @@
       "frontend/src/components/dashboard/CaseSummaryWidget.tsx",
       "frontend/src/components/VolunteerWidget.tsx",
       "frontend/src/features/events/components/EventInfoPanel.tsx",
-      "frontend/src/components/people/PeopleListContainer.tsx"
+      "frontend/src/features/people/components/PeopleListContainer.tsx"
     ],
     "disallowedInlineStylePaths": [
       "frontend/src/components/ErrorBoundary.tsx",

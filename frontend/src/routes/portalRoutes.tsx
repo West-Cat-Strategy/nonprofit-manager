@@ -5,22 +5,22 @@
 
 import { Route } from 'react-router-dom';
 import {
-  PortalLogin,
-  PortalSignup,
-  PortalAcceptInvitation,
-  PortalDashboard,
-  PortalProfile,
-  PortalPeople,
-  PortalEvents,
   PortalAppointments,
-  PortalMessages,
-  PortalDocuments,
-  PortalNotes,
-  PortalForms,
-  PortalReminders,
-  PortalCases,
+  PortalAcceptInvitation,
   PortalCaseDetail,
-} from './portalRouteComponents';
+  PortalCases,
+  PortalDashboard,
+  PortalDocuments,
+  PortalEvents,
+  PortalForms,
+  PortalLogin,
+  PortalMessages,
+  PortalNotes,
+  PortalPeople,
+  PortalProfile,
+  PortalReminders,
+  PortalSignup,
+} from '../features/portal/routeComponents';
 
 export function createPortalPublicRoutes() {
   return (

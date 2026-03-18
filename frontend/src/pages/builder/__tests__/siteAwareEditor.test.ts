@@ -5,7 +5,7 @@ import {
   getBuilderStatusLabel,
   resolveBuilderSiteId,
   type BuilderSiteContext,
-} from '../siteAwareEditor';
+} from '../../../features/builder/lib/siteAwareEditor';
 
 describe('site-aware builder launch helpers', () => {
   const siteContext: BuilderSiteContext = {

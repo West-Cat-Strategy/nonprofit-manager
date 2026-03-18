@@ -16,7 +16,7 @@ import {
   DonationPayment,
   PaymentResult,
   ReconciliationDashboard,
-} from './financeRouteComponents';
+} from '../features/finance/routeComponents';
 
 // Lazy load donation pages
 

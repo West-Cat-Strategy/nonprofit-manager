@@ -1,6 +1,7 @@
 /**
  * Publishing Service
- * Re-exports from the modular publishing directory for backwards compatibility
+ * @deprecated Import from `@services/publishing` instead of this root compatibility shim.
+ * Re-exports from the modular publishing directory for backwards compatibility.
  */
 
 // Re-export everything from the publishing module

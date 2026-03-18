@@ -13,7 +13,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../../components/contactForm', () => ({
+vi.mock('../../../features/contacts/components/contactForm', () => ({
   ContactForm: ({ onCreated }: { onCreated: (contact: unknown) => void }) => (
     <button
       type="button"

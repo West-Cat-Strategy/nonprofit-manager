@@ -10,17 +10,21 @@ import {
   AccountDetail,
   AccountCreate,
   AccountEdit,
+} from '../features/accounts/routeComponents';
+import {
   ContactList,
   ContactDetail,
   ContactCreate,
   ContactEdit,
+} from '../features/contacts/routeComponents';
+import {
   VolunteerList,
   VolunteerDetail,
   VolunteerCreate,
   VolunteerEdit,
   AssignmentCreate,
   AssignmentEdit,
-} from './peopleRouteComponents';
+} from '../features/volunteers/routeComponents';
 
 interface RouteWrapperProps {
   children: ReactNode;

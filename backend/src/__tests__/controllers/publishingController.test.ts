@@ -18,9 +18,13 @@ jest.mock('@utils/responseHelpers', () => ({
   forbidden: jest.fn(),
 }));
 
-jest.mock('@services/domains/content', () => ({
+jest.mock('@services/publishing', () => ({
+  __esModule: true,
+  default: mockPublishingService,
+}));
+
+jest.mock('@services/siteCacheService', () => ({
   getCacheControlHeader: jest.fn(),
-  publishingService: mockPublishingService,
   siteCacheService: {
     getStats: jest.fn(),
     invalidateSite: jest.fn(),
