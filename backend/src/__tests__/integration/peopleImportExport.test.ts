@@ -36,6 +36,34 @@ describe('People import/export integration', () => {
   const withAuth = (req: Test): Test => req.set('Authorization', `Bearer ${authToken}`);
   const withOrgAuth = (req: Test): Test =>
     withAuth(req).set('X-Organization-Id', organizationId);
+  const createOrganization = async (
+    overrides: Partial<{
+      account_name: string;
+      email: string;
+    }> = {}
+  ): Promise<{ accountId: string; accountNumber: string }> => {
+    const response = await withAuth(
+      request(app)
+        .post('/api/v2/accounts')
+        .send({
+          account_name: overrides.account_name || `People Import Export Org ${unique()}`,
+          account_type: 'organization',
+          ...(overrides.email ? { email: overrides.email } : {}),
+        })
+    ).expect(201);
+
+    const accountId = accountIdFromResponse(response.body) || '';
+    expect(accountId).toBeTruthy();
+
+    const result = await pool.query<{ account_number: string }>(
+      'SELECT account_number FROM accounts WHERE id = $1',
+      [accountId]
+    );
+    const accountNumber = result.rows[0]?.account_number || '';
+    expect(accountNumber).toBeTruthy();
+
+    return { accountId, accountNumber };
+  };
 
   beforeAll(async () => {
     userEmail = `people-import-export-${unique()}@example.com`;
@@ -60,24 +88,9 @@ describe('People import/export integration', () => {
       { expiresIn: '1h' }
     );
 
-    const organizationResponse = await withAuth(
-      request(app)
-        .post('/api/v2/accounts')
-        .send({
-          account_name: `People Import Export Org ${unique()}`,
-          account_type: 'organization',
-        })
-    ).expect(201);
-
-    organizationId = accountIdFromResponse(organizationResponse.body) || '';
-    expect(organizationId).toBeTruthy();
-
-    const organizationResult = await pool.query<{ account_number: string }>(
-      'SELECT account_number FROM accounts WHERE id = $1',
-      [organizationId]
-    );
-    organizationAccountNumber = organizationResult.rows[0]?.account_number || '';
-    expect(organizationAccountNumber).toBeTruthy();
+    const organization = await createOrganization();
+    organizationId = organization.accountId;
+    organizationAccountNumber = organization.accountNumber;
   });
 
   afterAll(async () => {
@@ -198,6 +211,93 @@ describe('People import/export integration', () => {
       .expect(401);
   });
 
+  it('downloads people import templates with the expected formats', async () => {
+    const accountTemplateResponse = await withAuth(
+      request(app)
+        .get('/api/v2/accounts/import/template')
+        .query({ format: 'csv' })
+    ).expect(200);
+
+    expect(accountTemplateResponse.headers['content-type']).toContain('text/csv');
+    expect(accountTemplateResponse.headers['content-disposition']).toContain(
+      'accounts-import-template.csv'
+    );
+    expect(accountTemplateResponse.text.split('\n')[0]).toContain('account_id');
+
+    const contactTemplateResponse = await withOrgAuth(
+      request(app)
+        .get('/api/v2/contacts/import/template')
+        .query({ format: 'csv' })
+    ).expect(200);
+
+    expect(contactTemplateResponse.headers['content-type']).toContain('text/csv');
+    expect(contactTemplateResponse.text.split('\n')[0]).toContain('account_id');
+    expect(contactTemplateResponse.text.split('\n')[0]).toContain('account_number');
+
+    const volunteerTemplateResponse = await withOrgAuth(
+      request(app)
+        .get('/api/v2/volunteers/import/template')
+        .query({ format: 'xlsx' })
+    ).expect(200);
+
+    expect(volunteerTemplateResponse.headers['content-type']).toContain(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    expect(volunteerTemplateResponse.headers['content-disposition']).toContain(
+      'volunteers-import-template.xlsx'
+    );
+  });
+
+  it('requires organization context for organization-scoped import routes', async () => {
+    const csv = ['first_name,last_name,email', 'Missing,Org,missing-org@example.com'].join('\n');
+
+    await withAuth(
+      request(app)
+        .post('/api/v2/contacts/import/preview')
+        .attach('file', Buffer.from(csv), {
+          filename: 'contacts-import.csv',
+          contentType: 'text/csv',
+        })
+    ).expect(400);
+
+    await withAuth(
+      request(app)
+        .get('/api/v2/volunteers/import/template')
+        .query({ format: 'csv' })
+    ).expect(400);
+  });
+
+  it('counts only committable account actions in preview totals', async () => {
+    const duplicateAccountNumber = `ACC-DUP-${unique()}`;
+    const csv = [
+      'account_number,account_name,account_type',
+      `${duplicateAccountNumber},Duplicate Account One,organization`,
+      `${duplicateAccountNumber},Duplicate Account Two,organization`,
+    ].join('\n');
+
+    const previewResponse = await withAuth(
+      request(app)
+        .post('/api/v2/accounts/import/preview')
+        .attach('file', Buffer.from(csv), {
+          filename: 'accounts-duplicate.csv',
+          contentType: 'text/csv',
+        })
+    ).expect(200);
+
+    const preview = payloadFromResponse<{
+      to_create: number;
+      to_update: number;
+      total_rows: number;
+      row_errors: Array<{ row_number: number; messages: string[] }>;
+    }>(previewResponse.body);
+
+    expect(preview.total_rows).toBe(2);
+    expect(preview.to_create).toBe(1);
+    expect(preview.to_update).toBe(0);
+    expect(preview.row_errors).toHaveLength(1);
+    expect(preview.row_errors[0]?.messages.join(' ')).toContain('appears more than once');
+  });
+
   it('imports contacts with account_number lookup and rolls back invalid commits', async () => {
     const existingEmail = `existing-contact-${unique()}@example.com`;
     const existingContactResult = await pool.query<{ id: string }>(
@@ -214,9 +314,9 @@ describe('People import/export integration', () => {
     const newContactEmail = `imported-contact-${unique()}@example.com`;
 
     const csv = [
-      'contact_id,account_number,first_name,last_name,email,phone,tags',
-      `${existingContactId},${organizationAccountNumber},Updated,Contact,${existingEmail},555-222-2000,support;priority`,
-      `,${organizationAccountNumber},New,Imported,${newContactEmail},555-333-3000,new;board`,
+      'contact_id,account_id,account_number,first_name,last_name,email,phone,tags',
+      `${existingContactId},,${organizationAccountNumber},Updated,Contact,${existingEmail},555-222-2000,support;priority`,
+      `,,${organizationAccountNumber},New,Imported,${newContactEmail},555-333-3000,new;board`,
     ].join('\n');
 
     const previewResponse = await withOrgAuth(
@@ -299,6 +399,136 @@ describe('People import/export integration', () => {
     expect(invalidContactResult.rowCount).toBe(0);
   });
 
+  it('rejects cross-organization account references during contact import preview and commit', async () => {
+    const foreignOrganization = await createOrganization({
+      account_name: `Foreign Contact Org ${unique()}`,
+    });
+    const blockedEmail = `cross-org-contact-${unique()}@example.com`;
+    const csv = [
+      'account_id,account_number,first_name,last_name,email',
+      `,${foreignOrganization.accountNumber},Cross,Org,${blockedEmail}`,
+    ].join('\n');
+
+    const previewResponse = await withOrgAuth(
+      request(app)
+        .post('/api/v2/contacts/import/preview')
+        .attach('file', Buffer.from(csv), {
+          filename: 'contacts-cross-org.csv',
+          contentType: 'text/csv',
+        })
+    ).expect(200);
+
+    const preview = payloadFromResponse<{
+      row_errors: Array<{ row_number: number; messages: string[] }>;
+    }>(previewResponse.body);
+
+    expect(preview.row_errors).toHaveLength(1);
+    expect(preview.row_errors[0]?.messages.join(' ')).toContain(
+      `Account number ${foreignOrganization.accountNumber} was not found.`
+    );
+
+    await withOrgAuth(
+      request(app)
+        .post('/api/v2/contacts/import/commit')
+        .attach('file', Buffer.from(csv), {
+          filename: 'contacts-cross-org.csv',
+          contentType: 'text/csv',
+        })
+    ).expect(400);
+
+    const blockedContactResult = await pool.query('SELECT id FROM contacts WHERE email = $1', [
+      blockedEmail.toLowerCase(),
+    ]);
+    expect(blockedContactResult.rowCount).toBe(0);
+  });
+
+  it('round-trips exported contact CSV files with multiline fields', async () => {
+    const multilineNotes = `Line one ${unique()}\nLine two ${unique()}`;
+    const roundTripMapping = {
+      contact_id: 'contact_id',
+      account_number: 'account_number',
+      first_name: 'first_name',
+      last_name: 'last_name',
+      email: 'email',
+      notes: 'notes',
+    };
+    const contactResult = await pool.query<{ id: string }>(
+      `
+        INSERT INTO contacts (account_id, first_name, last_name, email, notes, created_by, modified_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $6)
+        RETURNING id
+      `,
+      [
+        organizationId,
+        'Roundtrip',
+        'Contact',
+        `roundtrip-contact-${unique()}@example.com`,
+        multilineNotes,
+        userId,
+      ]
+    );
+    const contactId = contactResult.rows[0]?.id || '';
+    expect(contactId).toBeTruthy();
+
+    const exportResponse = await withOrgAuth(
+      request(app)
+        .post('/api/v2/contacts/export')
+        .send({
+          format: 'csv',
+          ids: [contactId],
+          columns: Object.keys(roundTripMapping),
+        })
+    ).expect(200);
+
+    const previewResponse = await withOrgAuth(
+      request(app)
+        .post('/api/v2/contacts/import/preview')
+        .field('mapping', JSON.stringify(roundTripMapping))
+        .attach('file', Buffer.from(exportResponse.text), {
+          filename: 'contacts-roundtrip.csv',
+          contentType: 'text/csv',
+        })
+    ).expect(200);
+
+    const preview = payloadFromResponse<{
+      total_rows: number;
+      to_create: number;
+      to_update: number;
+      row_errors: Array<{ row_number: number; messages: string[] }>;
+    }>(previewResponse.body);
+
+    expect(preview.total_rows).toBe(1);
+    expect(preview.to_create).toBe(0);
+    expect(preview.to_update).toBe(1);
+    expect(preview.row_errors).toEqual([]);
+
+    const commitResponse = await withOrgAuth(
+      request(app)
+        .post('/api/v2/contacts/import/commit')
+        .field('mapping', JSON.stringify(roundTripMapping))
+        .attach('file', Buffer.from(exportResponse.text), {
+          filename: 'contacts-roundtrip.csv',
+          contentType: 'text/csv',
+        })
+    ).expect(200);
+
+    const commit = payloadFromResponse<{
+      created: number;
+      updated: number;
+      affected_ids: string[];
+    }>(commitResponse.body);
+
+    expect(commit.created).toBe(0);
+    expect(commit.updated).toBe(1);
+    expect(commit.affected_ids).toEqual([contactId]);
+
+    const updatedContactResult = await pool.query<{ notes: string | null }>(
+      'SELECT notes FROM contacts WHERE id = $1',
+      [contactId]
+    );
+    expect(updatedContactResult.rows[0]?.notes).toBe(multilineNotes);
+  });
+
   it('imports volunteers through existing and new contacts, then exports xlsx', async () => {
     const existingVolunteerContactEmail = `volunteer-contact-${unique()}@example.com`;
     const existingContactResult = await pool.query<{ id: string }>(
@@ -315,9 +545,9 @@ describe('People import/export integration', () => {
     const newVolunteerEmail = `new-volunteer-${unique()}@example.com`;
 
     const csv = [
-      'contact_id,account_number,first_name,last_name,email,phone,skills,availability_status,background_check_status',
-      `${existingContactId},${organizationAccountNumber},Volunteer,Existing,${existingVolunteerContactEmail},555-444-4000,Driving;First Aid,available,approved`,
-      `,${organizationAccountNumber},Volunteer,New,${newVolunteerEmail},555-555-5000,Translation;Support,limited,pending`,
+      'contact_id,account_id,account_number,first_name,last_name,email,phone,skills,availability_status,background_check_status',
+      `${existingContactId},,${organizationAccountNumber},Volunteer,Existing,${existingVolunteerContactEmail},555-444-4000,Driving;First Aid,available,approved`,
+      `,,${organizationAccountNumber},Volunteer,New,${newVolunteerEmail},555-555-5000,Translation;Support,limited,pending`,
     ].join('\n');
 
     const previewResponse = await withOrgAuth(
@@ -371,5 +601,49 @@ describe('People import/export integration', () => {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     );
     expect(exportResponse.headers['content-disposition']).toContain('.xlsx');
+  });
+
+  it('rejects cross-organization account references during volunteer import preview and commit', async () => {
+    const foreignOrganization = await createOrganization({
+      account_name: `Foreign Volunteer Org ${unique()}`,
+    });
+    const blockedEmail = `cross-org-volunteer-${unique()}@example.com`;
+    const csv = [
+      'account_id,first_name,last_name,email,skills',
+      `${foreignOrganization.accountId},Cross,Volunteer,${blockedEmail},Support`,
+    ].join('\n');
+
+    const previewResponse = await withOrgAuth(
+      request(app)
+        .post('/api/v2/volunteers/import/preview')
+        .attach('file', Buffer.from(csv), {
+          filename: 'volunteers-cross-org.csv',
+          contentType: 'text/csv',
+        })
+    ).expect(200);
+
+    const preview = payloadFromResponse<{
+      row_errors: Array<{ row_number: number; messages: string[] }>;
+    }>(previewResponse.body);
+
+    expect(preview.row_errors).toHaveLength(1);
+    expect(preview.row_errors[0]?.messages.join(' ')).toContain(
+      `Account ID ${foreignOrganization.accountId} was not found.`
+    );
+
+    await withOrgAuth(
+      request(app)
+        .post('/api/v2/volunteers/import/commit')
+        .attach('file', Buffer.from(csv), {
+          filename: 'volunteers-cross-org.csv',
+          contentType: 'text/csv',
+        })
+    ).expect(400);
+
+    const blockedVolunteerContactResult = await pool.query(
+      'SELECT id FROM contacts WHERE email = $1',
+      [blockedEmail.toLowerCase()]
+    );
+    expect(blockedVolunteerContactResult.rowCount).toBe(0);
   });
 });

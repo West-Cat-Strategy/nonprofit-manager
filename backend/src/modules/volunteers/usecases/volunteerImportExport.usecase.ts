@@ -8,6 +8,7 @@ import {
   type TabularExportColumn,
 } from '@modules/shared/export/tabularExport';
 import { parsePeopleImportFile, type ImportFieldOption } from '@modules/shared/import/peopleImportParser';
+import { lookupScopedAccounts } from '@modules/shared/import/scopedAccountLookup';
 import {
   findDuplicateMappedFields,
   getImportRowNumber,
@@ -552,7 +553,12 @@ export class VolunteerImportExportUseCase {
       organizationId,
       scope
     );
-    const accountLookup = await this.lookupAccounts(accountIds, accountNumbers);
+    const accountLookup = await this.lookupAccounts(
+      accountIds,
+      accountNumbers,
+      organizationId,
+      scope
+    );
     const availableRoles = await this.lookupRoleNames();
 
     rows.forEach((row, rowIndex) => {
@@ -811,8 +817,6 @@ export class VolunteerImportExportUseCase {
       if (!resolvedFromId) {
         messages.push(`Account ID ${payload.account_id} was not found.`);
       }
-    } else if (accountIdWasMapped) {
-      return null;
     }
 
     if (payload.account_number) {
@@ -921,43 +925,25 @@ export class VolunteerImportExportUseCase {
 
   private async lookupAccounts(
     accountIds: string[],
-    accountNumbers: string[]
+    accountNumbers: string[],
+    organizationId: string,
+    scope?: DataScopeFilter
   ): Promise<{
     byId: Map<string, string>;
     byNumber: Map<string, string>;
   }> {
-    if (accountIds.length === 0 && accountNumbers.length === 0) {
-      return { byId: new Map(), byNumber: new Map() };
-    }
-
-    const conditions: string[] = [];
-    const values: Array<string[] | string> = [];
-    let parameter = 1;
-
-    if (accountIds.length) {
-      conditions.push(`id = ANY($${parameter}::uuid[])`);
-      values.push(accountIds);
-      parameter += 1;
-    }
-
-    if (accountNumbers.length) {
-      conditions.push(`account_number = ANY($${parameter}::text[])`);
-      values.push(accountNumbers);
-    }
-
-    const result = await this.pool.query<{ account_id: string; account_number: string | null }>(
-      `
-        SELECT id AS account_id, account_number
-        FROM accounts
-        WHERE ${conditions.join(' OR ')}
-      `,
-      values
+    const rows = await lookupScopedAccounts(
+      this.pool,
+      accountIds,
+      accountNumbers,
+      organizationId,
+      scope
     );
 
     return {
-      byId: new Map(result.rows.map((row) => [row.account_id, row.account_id])),
+      byId: new Map(rows.map((row) => [row.account_id, row.account_id])),
       byNumber: new Map(
-        result.rows
+        rows
           .filter((row) => Boolean(row.account_number))
           .map((row) => [row.account_number as string, row.account_id])
       ),

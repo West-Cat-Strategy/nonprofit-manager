@@ -109,6 +109,44 @@ const detectDelimiter = (csvText: string): string => {
   ).delimiter;
 };
 
+const splitCsvRecords = (text: string): string[] => {
+  const records: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    const next = text[index + 1];
+
+    if (character === '"') {
+      current += character;
+
+      if (inQuotes && next === '"') {
+        current += next;
+        index += 1;
+        continue;
+      }
+
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (character === '\n' && !inQuotes) {
+      records.push(current);
+      current = '';
+      continue;
+    }
+
+    current += character;
+  }
+
+  if (current.length > 0) {
+    records.push(current);
+  }
+
+  return records;
+};
+
 const parseCsvRows = (
   buffer: Buffer,
   headers: string[],
@@ -116,8 +154,8 @@ const parseCsvRows = (
 ): Array<Record<string, string | null>> => {
   const text = buffer.toString('utf8').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const delimiter = detectDelimiter(text);
-  const rawLines = text.split('\n').filter((line) => line.length > 0);
-  const dataLines = hasHeader ? rawLines.slice(1) : rawLines;
+  const rawRecords = splitCsvRecords(text).filter((record) => record.length > 0);
+  const dataLines = hasHeader ? rawRecords.slice(1) : rawRecords;
 
   return dataLines
     .map((line) => parseCsvLine(line, delimiter))

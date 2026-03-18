@@ -42,7 +42,7 @@ const PROVIDER_ACK_EXCEPTIONS = new Set([
   // Provider webhook handlers must use sendProviderAck(...) and set skipSuccessEnvelope,
   // not direct 2xx res.json(...) responses.
   'backend/src/modules/payments/controllers/paymentController.ts',
-  'backend/src/controllers/mailchimpController.ts',
+  'backend/src/modules/mailchimp/controllers/mailchimpController.ts',
 ]);
 
 if (!fs.existsSync(baselinePath)) {
