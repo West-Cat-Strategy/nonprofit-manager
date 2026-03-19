@@ -267,7 +267,10 @@ export default function EventCalendarPage() {
     }
   };
 
-  const selectedKind = selectedEntry?.metadata.kind;
+  const selectedEvent = selectedEntry?.metadata.kind === 'event' ? selectedEntry.metadata.event : null;
+  const selectedAppointment =
+    selectedEntry?.metadata.kind === 'appointment' ? selectedEntry.metadata.appointment : null;
+  const selectedSlot = selectedEntry?.metadata.kind === 'slot' ? selectedEntry.metadata.slot : null;
 
   return (
     <NeoBrutalistLayout pageTitle="CALENDAR">
@@ -408,32 +411,30 @@ export default function EventCalendarPage() {
                     )}
                   </div>
 
-                  {selectedKind === 'event' && (
+                  {selectedEvent && (
                     <>
-                      {selectedEntry.metadata.event.description && (
-                        <p className="text-sm text-app-text-muted">
-                          {selectedEntry.metadata.event.description}
-                        </p>
+                      {selectedEvent.description && (
+                        <p className="text-sm text-app-text-muted">{selectedEvent.description}</p>
                       )}
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-app-surface-muted px-2 py-1 text-xs text-app-text-muted">
-                          {selectedEntry.metadata.event.status}
+                          {selectedEvent.status}
                         </span>
                         <span className="rounded-full bg-app-accent-soft px-2 py-1 text-xs text-app-accent-text">
-                          {formatEventType(selectedEntry.metadata.event.event_type)}
+                          {formatEventType(selectedEvent.event_type)}
                         </span>
                       </div>
                       <div className="flex gap-2 pt-2">
                         <button
                           type="button"
-                          onClick={() => navigate(`/events/${selectedEntry.metadata.event.event_id}`)}
+                          onClick={() => navigate(`/events/${selectedEvent.event_id}`)}
                           className="flex-1 rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-white"
                         >
                           View details
                         </button>
                         <button
                           type="button"
-                          onClick={() => navigate(`/events/${selectedEntry.metadata.event.event_id}/edit`)}
+                          onClick={() => navigate(`/events/${selectedEvent.event_id}/edit`)}
                           className="flex-1 rounded-md border border-app-input-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text"
                         >
                           Edit
@@ -442,47 +443,45 @@ export default function EventCalendarPage() {
                     </>
                   )}
 
-                  {selectedKind === 'appointment' && (
+                  {selectedAppointment && (
                     <>
-                      {selectedEntry.metadata.appointment.description && (
-                        <p className="text-sm text-app-text-muted">
-                          {selectedEntry.metadata.appointment.description}
-                        </p>
+                      {selectedAppointment.description && (
+                        <p className="text-sm text-app-text-muted">{selectedAppointment.description}</p>
                       )}
                       <p className="text-sm text-app-text-muted">
-                        Status: {selectedEntry.metadata.appointment.status}
-                        {selectedEntry.metadata.appointment.request_type
-                          ? ` • ${selectedEntry.metadata.appointment.request_type.replace('_', ' ')}`
+                        Status: {selectedAppointment.status}
+                        {selectedAppointment.request_type
+                          ? ` • ${selectedAppointment.request_type.replace('_', ' ')}`
                           : ''}
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {selectedEntry.metadata.appointment.status === 'requested' && (
+                        {selectedAppointment.status === 'requested' && (
                           <button
                             type="button"
-                            onClick={() => void handleConfirmAppointment(selectedEntry.metadata.appointment.id)}
+                            onClick={() => void handleConfirmAppointment(selectedAppointment.id)}
                             disabled={savingEntryId === selectedEntry.id}
                             className="rounded-md bg-app-accent px-3 py-2 text-sm text-white disabled:opacity-60"
                           >
                             {savingEntryId === selectedEntry.id ? 'Saving...' : 'Confirm'}
                           </button>
                         )}
-                        {selectedEntry.metadata.appointment.status === 'confirmed' && (
+                        {selectedAppointment.status === 'confirmed' && (
                           <>
                             <button
                               type="button"
-                              onClick={() => void handleCheckInAppointment(selectedEntry.metadata.appointment)}
+                              onClick={() => void handleCheckInAppointment(selectedAppointment)}
                               disabled={savingEntryId === selectedEntry.id}
                               className="rounded-md border border-app-input-border bg-app-surface px-3 py-2 text-sm text-app-text disabled:opacity-60"
                             >
-                              {selectedEntry.metadata.appointment.case_id ? 'Resolve in case' : 'Check in'}
+                              {selectedAppointment.case_id ? 'Resolve in case' : 'Check in'}
                             </button>
                             <button
                               type="button"
-                              onClick={() => void handleCancelAppointment(selectedEntry.metadata.appointment)}
+                              onClick={() => void handleCancelAppointment(selectedAppointment)}
                               disabled={savingEntryId === selectedEntry.id}
                               className="rounded-md border border-app-input-border bg-app-surface px-3 py-2 text-sm text-app-text disabled:opacity-60"
                             >
-                              {selectedEntry.metadata.appointment.case_id ? 'Open case' : 'Cancel'}
+                              {selectedAppointment.case_id ? 'Open case' : 'Cancel'}
                             </button>
                           </>
                         )}
@@ -490,24 +489,24 @@ export default function EventCalendarPage() {
                     </>
                   )}
 
-                  {selectedKind === 'slot' && (
+                  {selectedSlot && (
                     <>
-                      {selectedEntry.metadata.slot.details && (
-                        <p className="text-sm text-app-text-muted">{selectedEntry.metadata.slot.details}</p>
+                      {selectedSlot.details && (
+                        <p className="text-sm text-app-text-muted">{selectedSlot.details}</p>
                       )}
                       <p className="text-sm text-app-text-muted">
-                        {selectedEntry.metadata.slot.booked_count}/{selectedEntry.metadata.slot.capacity} booked
+                        {selectedSlot.booked_count}/{selectedSlot.capacity} booked
                       </p>
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => void handleToggleSlotStatus(selectedEntry.metadata.slot)}
-                          disabled={savingEntryId === selectedEntry.id || selectedEntry.metadata.slot.status === 'cancelled'}
+                          onClick={() => void handleToggleSlotStatus(selectedSlot)}
+                          disabled={savingEntryId === selectedEntry.id || selectedSlot.status === 'cancelled'}
                           className="flex-1 rounded-md border border-app-input-border bg-app-surface px-3 py-2 text-sm text-app-text disabled:opacity-60"
                         >
                           {savingEntryId === selectedEntry.id
                             ? 'Saving...'
-                            : selectedEntry.metadata.slot.status === 'open'
+                            : selectedSlot.status === 'open'
                               ? 'Close slot'
                               : 'Open slot'}
                         </button>
@@ -532,15 +531,7 @@ export default function EventCalendarPage() {
         </div>
       </div>
 
-      <ConfirmDialog
-        open={dialogState.open}
-        title={dialogState.title}
-        message={dialogState.message}
-        confirmLabel={dialogState.confirmLabel}
-        variant={dialogState.variant}
-        onConfirm={handleConfirm}
-        onCancel={handleCancel}
-      />
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </NeoBrutalistLayout>
   );
 }
