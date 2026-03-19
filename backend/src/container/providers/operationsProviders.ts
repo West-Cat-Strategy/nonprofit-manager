@@ -1,17 +1,16 @@
 import { Pool } from 'pg';
-import {
-  AlertService,
-  AnalyticsService,
-  BackupService,
-  DashboardService,
-  ExportService,
-  ReportService,
-  SavedReportService,
-} from '@services/domains/operations';
+import { AlertsRepository } from '@modules/alerts/repositories/alerts.repository';
+import { AlertsUseCase } from '@modules/alerts/usecases/alerts.usecase';
+import { AnalyticsService } from '@services/analytics';
+import { BackupService } from '@services/backupService';
+import { DashboardService } from '@services/dashboardService';
+import { ExportService } from '@services/exportService';
+import { ReportService } from '@services/reportService';
 import { ReportTemplateService } from '@services/reportTemplateService';
+import { SavedReportService } from '@services/savedReportService';
 
 export interface OperationsProviders {
-  readonly alert: AlertService;
+  readonly alert: AlertsUseCase;
   readonly analytics: AnalyticsService;
   readonly backup: BackupService;
   readonly dashboard: DashboardService;
@@ -22,7 +21,7 @@ export interface OperationsProviders {
 }
 
 export function createOperationsProviders(dbPool: Pool): OperationsProviders {
-  let alertService: AlertService | null = null;
+  let alertUseCase: AlertsUseCase | null = null;
   let analyticsService: AnalyticsService | null = null;
   let backupService: BackupService | null = null;
   let dashboardService: DashboardService | null = null;
@@ -33,10 +32,10 @@ export function createOperationsProviders(dbPool: Pool): OperationsProviders {
 
   return {
     get alert() {
-      if (!alertService) {
-        alertService = new AlertService(dbPool);
+      if (!alertUseCase) {
+        alertUseCase = new AlertsUseCase(new AlertsRepository(dbPool));
       }
-      return alertService;
+      return alertUseCase;
     },
     get analytics() {
       if (!analyticsService) {

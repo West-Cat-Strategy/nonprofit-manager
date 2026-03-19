@@ -128,7 +128,7 @@
           "efficiency": 4,
           "workflowClarity": 4
         },
-        "note": "The card now routes to `/settings/admin?section=users` and the admin side-nav uses the route catalog."
+        "note": "The card now routes to `/settings/admin/users` and the admin side-nav uses the route catalog."
       },
       {
         "id": "alerts-workspace",
@@ -447,7 +447,7 @@
     {
       "id": "admin-settings",
       "title": "Admin Settings",
-      "href": "/settings/admin?section=dashboard",
+      "href": "/settings/admin/dashboard",
       "surface": "staff",
       "authScope": "admin",
       "baseline": {
@@ -1802,8 +1802,8 @@
     {
       "id": "admin-settings",
       "title": "Admin Settings",
-      "href": "/settings/admin?section=dashboard",
-      "path": "/settings/admin",
+      "href": "/settings/admin/dashboard",
+      "path": "/settings/admin/dashboard",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",
@@ -1818,8 +1818,8 @@
     {
       "id": "admin-settings-organization",
       "title": "Organization",
-      "href": "/settings/admin?section=organization",
-      "path": "/settings/admin",
+      "href": "/settings/admin/organization",
+      "path": "/settings/admin/organization",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",
@@ -1834,8 +1834,8 @@
     {
       "id": "admin-settings-branding",
       "title": "Branding",
-      "href": "/settings/admin?section=branding",
-      "path": "/settings/admin",
+      "href": "/settings/admin/branding",
+      "path": "/settings/admin/branding",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",
@@ -1850,8 +1850,8 @@
     {
       "id": "admin-settings-users",
       "title": "Users & Security",
-      "href": "/settings/admin?section=users",
-      "path": "/settings/admin",
+      "href": "/settings/admin/users",
+      "path": "/settings/admin/users",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",
@@ -1866,8 +1866,8 @@
     {
       "id": "admin-settings-email",
       "title": "Email Settings",
-      "href": "/settings/admin?section=email",
-      "path": "/settings/admin",
+      "href": "/settings/admin/email",
+      "path": "/settings/admin/email",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",
@@ -1882,8 +1882,8 @@
     {
       "id": "admin-settings-messaging",
       "title": "Messaging Settings",
-      "href": "/settings/admin?section=messaging",
-      "path": "/settings/admin",
+      "href": "/settings/admin/messaging",
+      "path": "/settings/admin/messaging",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",
@@ -1898,8 +1898,8 @@
     {
       "id": "admin-settings-outcomes",
       "title": "Outcome Definitions",
-      "href": "/settings/admin?section=outcomes",
-      "path": "/settings/admin",
+      "href": "/settings/admin/outcomes",
+      "path": "/settings/admin/outcomes",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",
@@ -1914,8 +1914,8 @@
     {
       "id": "admin-settings-roles",
       "title": "Roles & Permissions",
-      "href": "/settings/admin?section=roles",
-      "path": "/settings/admin",
+      "href": "/settings/admin/roles",
+      "path": "/settings/admin/roles",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",
@@ -1930,8 +1930,8 @@
     {
       "id": "admin-settings-audit-logs",
       "title": "Audit Logs",
-      "href": "/settings/admin?section=audit_logs",
-      "path": "/settings/admin",
+      "href": "/settings/admin/audit_logs",
+      "path": "/settings/admin/audit_logs",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",
@@ -1946,8 +1946,8 @@
     {
       "id": "admin-settings-other",
       "title": "Other Settings",
-      "href": "/settings/admin?section=other",
-      "path": "/settings/admin",
+      "href": "/settings/admin/other",
+      "path": "/settings/admin/other",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",
@@ -2058,8 +2058,8 @@
     {
       "id": "portal-admin-hub",
       "title": "Admin Hub",
-      "href": "/settings/admin?section=dashboard",
-      "path": "/settings/admin",
+      "href": "/settings/admin/dashboard",
+      "path": "/settings/admin/dashboard",
       "surface": "staff",
       "section": "Settings",
       "authScope": "admin",

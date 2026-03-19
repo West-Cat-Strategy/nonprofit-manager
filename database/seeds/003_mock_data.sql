@@ -1,4 +1,4 @@
--- Mock data for development and testing
+-- Optional mock data bundle for explicit development/testing loads
 -- Run after all migrations
 -- Password for all users: 'password123' (hash generated with bcrypt)
 

@@ -465,9 +465,9 @@ For bulk exports, contact your administrator about rate limit increases.
 
 ## Additional Resources
 
-- [Main API Reference](https://github.com/example/nonprofit-manager)
-- [Analytics API Reference](https://github.com/example/nonprofit-manager)
+- [API Documentation Index](./README.md)
 - [Dashboard & Alerts API](./API_REFERENCE_DASHBOARD_ALERTS.md)
+- [Testing Guide](../testing/TESTING.md)
 
 ---
 

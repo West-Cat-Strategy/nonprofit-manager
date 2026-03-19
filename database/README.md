@@ -53,19 +53,19 @@ Database migrations are stored in `database/migrations/` and are ordered by `dat
 - Include rollback instructions in comments when possible
 
 ### Seeds
-Seed data is stored in `database/seeds/` and contains initial/test data for development and testing environments.
+Seed data is stored in `database/seeds/` and contains optional demo/test data for development and testing environments. The default init path loads starter bootstrap data only and does not include the demo contact bundle.
 
 **Available Seeds:**
 - `001_default_users.sql` - Default admin and test users
 - `002_starter_templates.sql` - Template configurations
-- `003_mock_data.sql` - Comprehensive mock data for development
-- `004_mock_data_no_users.sql` - Mock data without user accounts
-- `005_kingdom_hearts_mock_data.sql` - Specialized mock data
+- `003_mock_data.sql` - Optional comprehensive demo bundle for development
+- `004_mock_data_no_users.sql` - Optional demo bundle without user accounts
+- `005_kingdom_hearts_mock_data.sql` - Optional specialized demo bundle
 - `006_theme_presets.sql` - UI theme configurations
 - `007_data_scopes.sql` - Data access scope definitions
 
 ### Initialization
-The `database/initdb/000_init.sql` script runs all migrations and seeds in the correct order for development environments.
+The `database/initdb/000_init.sql` script runs all migrations and starter bootstrap seeds in the correct order for development environments.
 
 ## Migration Management
 
@@ -73,12 +73,15 @@ The `database/initdb/000_init.sql` script runs all migrations and seeds in the c
 
 **Development Environment:**
 ```bash
-# Using Docker Compose (recommended)
-make docker-up
+# Using the optional Docker dev stack (recommended)
+make dev
 make db-migrate
 
 # Show canonical migration status
 ./scripts/db-migrate.sh --status
+
+# Verify migrations against the isolated test database
+make db-verify
 
 # Or directly with psql
 psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.sql
@@ -92,8 +95,8 @@ COMPOSE_MODE=prod ./scripts/db-migrate.sh
 
 ### Migration Scripts
 
-- `scripts/db-migrate.sh` - Applies all pending canonical migrations in manifest order
-- `scripts/verify-migrations.sh` - Replays canonical migrations against a `*_test` database
+- `scripts/db-migrate.sh` - Starts or inspects the active database contract and reports migration status
+- `scripts/verify-migrations.sh` - Rebuilds or verifies the isolated `*_test` database contract
 
 ### Migration Tracking
 

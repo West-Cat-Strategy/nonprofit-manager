@@ -2,6 +2,7 @@ import { Pool, PoolConfig } from 'pg';
 import dotenv from 'dotenv';
 import { logger } from './logger';
 import { DATABASE } from './constants';
+import { getRequestContext } from './requestContext';
 
 if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
   process.env.NODE_ENV = 'test';
@@ -31,7 +32,9 @@ const config: PoolConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
   database: process.env.DB_NAME || 'nonprofit_manager',
-  user: process.env.DB_USER || 'postgres',
+  user:
+    process.env.DB_USER ||
+    (process.env.NODE_ENV === 'production' ? 'nonprofit_app_user_prod' : 'postgres'),
   password: process.env.DB_PASSWORD || 'postgres',
   max: DATABASE.POOL_MAX_CONNECTIONS,
   idleTimeoutMillis: DATABASE.IDLE_TIMEOUT_MS,
@@ -52,6 +55,32 @@ const config: PoolConfig = {
 };
 
 const pool = new Pool(config);
+
+const originalQuery = pool.query.bind(pool);
+pool.query = (async (...args: any[]) => {
+  const context = getRequestContext();
+  if (!context?.userId) {
+    return (originalQuery as any).apply(pool, args);
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [context.userId]);
+    const result = await (client.query as any).apply(client, args);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // Ignore rollback failures while preserving the original error.
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
+}) as typeof pool.query;
 
 // Handle pool errors gracefully without crashing the application
 // The application can implement health checks and alerts based on these errors

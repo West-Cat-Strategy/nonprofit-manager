@@ -178,6 +178,82 @@ describe('webhookService delivery behavior', () => {
     expect(deliveryUpdate?.[1][5]).toEqual(expect.any(Date)); // next_retry_at set
   });
 
+  it('blocks redirect responses without following them to internal targets', async () => {
+    const claimedRow = {
+      id: 'delivery-redirect-1',
+      webhook_endpoint_id: 'endpoint-1',
+      event_type: 'contact.created',
+      payload: {
+        id: 'evt-redirect-1',
+        type: 'contact.created',
+        createdAt: new Date().toISOString(),
+        data: { object: { id: 'contact-1' } },
+      },
+      attempts: 4,
+      next_retry_at: new Date().toISOString(),
+      user_id: 'user-1',
+      url: 'https://8.8.8.8/webhook',
+      secret: 'whsec_test',
+    };
+
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 302,
+      text: jest.fn().mockResolvedValue('redirecting to private target'),
+    });
+
+    mockQuery
+      .mockResolvedValueOnce({ rows: [claimedRow] }) // claim
+      .mockResolvedValueOnce({ rows: [] }) // UPDATE webhook_deliveries dead_letter
+      .mockResolvedValueOnce({ rows: [] }); // UPDATE webhook_endpoints dead_letter
+
+    const processed = await webhookService.processRetries(10);
+
+    expect(processed).toBe(1);
+    expect((global as any).fetch).toHaveBeenCalledWith(
+      claimedRow.url,
+      expect.objectContaining({ redirect: 'manual' })
+    );
+
+    const deliveryUpdate = mockQuery.mock.calls.find((call) =>
+      String(call[0]).includes('response_status = COALESCE')
+    );
+    expect(deliveryUpdate?.[1][0]).toBe('dead_letter');
+    expect(deliveryUpdate?.[1][4]).toBe(5);
+    expect(deliveryUpdate?.[1][5]).toBeNull();
+  });
+
+  it('blocks redirect responses during test webhook sends', async () => {
+    const endpointRow = {
+      id: 'endpoint-test-1',
+      user_id: 'user-1',
+      url: 'https://8.8.8.8/webhook',
+      secret: 'whsec_test',
+      events: ['contact.created'],
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    mockQuery.mockResolvedValueOnce({ rows: [endpointRow] });
+
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 302,
+      text: jest.fn().mockResolvedValue('redirecting to private target'),
+    });
+
+    const result = await webhookService.testWebhookEndpoint('endpoint-test-1', 'user-1');
+
+    expect(result.success).toBe(false);
+    expect(result.statusCode).toBe(302);
+    expect(result.error).toBe('Redirect responses are not allowed for webhook delivery');
+    expect((global as any).fetch).toHaveBeenCalledWith(
+      endpointRow.url,
+      expect.objectContaining({ redirect: 'manual' })
+    );
+  });
+
   it('marks deliveries as dead_letter after max attempts and updates endpoint status', async () => {
     const claimedRow = {
       id: 'delivery-dead-letter-1',

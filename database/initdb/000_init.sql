@@ -1,5 +1,5 @@
 -- Postgres init script for docker-compose.dev.yml
--- Runs migrations (in order), then loads the dev mock dataset.
+-- Runs migrations (in order), then loads the starter bootstrap data only.
 
 \set ON_ERROR_STOP on
 
@@ -100,6 +100,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/079_donation_tax_receipts_and_org_settings.sql
 \i /migrations/080_social_media_tracking.sql
 \i /migrations/081_messaging_client_message_ids.sql
+\i /migrations/082_backend_runtime_efficiency_indexes.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -204,14 +205,14 @@ VALUES
     ('078_team_messenger_split.sql', '078', '078_team_messenger_split.sql'),
     ('079_donation_tax_receipts_and_org_settings.sql', '079', '079_donation_tax_receipts_and_org_settings.sql'),
     ('080_social_media_tracking.sql', '080', '080_social_media_tracking.sql'),
-    ('081_messaging_client_message_ids.sql', '081', '081_messaging_client_message_ids.sql')
+    ('081_messaging_client_message_ids.sql', '081', '081_messaging_client_message_ids.sql'),
+    ('082_backend_runtime_efficiency_indexes.sql', '082', '082_backend_runtime_efficiency_indexes.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;
 
--- No-user seed path so fresh environments land on /setup first.
+-- Starter-only seed path so fresh environments land on /setup without demo rows.
 \i /seeds/002_starter_templates.sql
-\i /seeds/004_mock_data_no_users.sql
 \i /seeds/006_theme_presets.sql
 \i /seeds/007_data_scopes.sql
 \i /seeds/008_outcome_definitions.sql

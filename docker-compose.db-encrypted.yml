@@ -1,5 +1,10 @@
 services:
-  # Self-hosted production PostgreSQL must bind to a host path on the encrypted LUKS mount.
+  backend:
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_AT_REST_ENCRYPTION_MODE: luks
+
   postgres:
-    volumes:
-      - ${POSTGRES_DATA_DIR:?Set POSTGRES_DATA_DIR to an absolute encrypted host path}:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}

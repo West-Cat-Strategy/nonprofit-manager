@@ -47,12 +47,9 @@ vi.mock('../../components/Layout', () => ({
 
 vi.mock('../../features/adminOps/routeComponents', async () => {
   const { Navigate, useLocation, useParams } = await import('react-router-dom');
-  const {
-    getAdminSettingsPath,
-    parseAdminSettingsSection,
-    resolveLegacyAdminSettingsLocation,
-  } = await import('../../features/adminOps/adminRoutePaths');
-  const { resolveRouteCatalogAlias } = await import('../../routes/routeCatalog');
+  const { getAdminSettingsPath, parseAdminSettingsSection } = await import(
+    '../../features/adminOps/adminRoutePaths'
+  );
 
   const AdminSettings = () => <h1>Admin Settings Page</h1>;
 
@@ -65,22 +62,6 @@ vi.mock('../../features/adminOps/routeComponents', async () => {
     EmailMarketing: () => <h1>Email Marketing Page</h1>,
     SocialMedia: () => <h1>Social Media Page</h1>,
     PortalAdminPage: ({ panel }: { panel: string }) => <h1>Portal Panel: {panel}</h1>,
-    RouteCatalogAliasRedirect: () => {
-      const location = useLocation();
-      const currentLocation = `${location.pathname}${location.search}`;
-      const targetLocation = resolveRouteCatalogAlias(currentLocation);
-
-      if (!targetLocation) {
-        throw new Error(`Missing canonical redirect target for route alias: ${currentLocation}`);
-      }
-
-      return <Navigate to={targetLocation} replace />;
-    },
-    AdminSettingsLegacyRedirect: () => {
-      const location = useLocation();
-      const currentLocation = `${location.pathname}${location.search}`;
-      return <Navigate to={resolveLegacyAdminSettingsLocation(currentLocation)} replace />;
-    },
     AdminSettingsSectionRoute: () => {
       const location = useLocation();
       const { section } = useParams<{ section?: string }>();
@@ -246,7 +227,7 @@ describe('AppRoutes setup startup redirects', () => {
     ).toBe(true);
   });
 
-  it('sends unauthenticated legacy settings aliases through the destination auth guard', async () => {
+  it('sends unauthenticated legacy settings routes through the destination auth guard', async () => {
     renderAppRoutes('/email-marketing', {
       authLoading: false,
       isAuthenticated: false,

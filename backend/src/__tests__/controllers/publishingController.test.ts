@@ -41,7 +41,7 @@ import {
   createSite,
   getAnalyticsSummary,
   servePublishedSite,
-} from '../../controllers/publishingController';
+} from '../../modules/publishing/controllers/publishingController';
 
 const createResponse = (): Response => {
   const res = {} as Response;

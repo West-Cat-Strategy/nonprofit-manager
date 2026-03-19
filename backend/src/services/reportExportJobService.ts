@@ -50,6 +50,36 @@ interface ReportExportJobRow extends QueryResultRow {
   updated_at: string | Date;
 }
 
+const REPORT_EXPORT_JOB_COLUMNS = `
+  id,
+  organization_id,
+  saved_report_id,
+  scheduled_report_id,
+  requested_by,
+  job_source,
+  name,
+  entity,
+  format,
+  status,
+  definition,
+  filter_hash,
+  idempotency_key,
+  rows_count,
+  runtime_ms,
+  failure_message,
+  artifact_path,
+  artifact_content_type,
+  artifact_file_name,
+  artifact_size_bytes,
+  artifact_expires_at,
+  retention_until,
+  metadata,
+  started_at,
+  completed_at,
+  created_at,
+  updated_at
+`;
+
 export interface CreateReportExportJobInput {
   organizationId: string;
   requestedBy?: string | null;
@@ -207,7 +237,7 @@ export class ReportExportJobService {
 
     if (idempotencyKey) {
       const existing = await this.db.query<ReportExportJobRow>(
-        `SELECT *
+        `SELECT ${REPORT_EXPORT_JOB_COLUMNS}
          FROM report_export_jobs
          WHERE organization_id = $1
            AND idempotency_key = $2
@@ -237,7 +267,7 @@ export class ReportExportJobService {
          metadata
        )
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', $9::jsonb, $10, $11, $12, $13::jsonb)
-       RETURNING *`,
+       RETURNING ${REPORT_EXPORT_JOB_COLUMNS}`,
       [
         input.organizationId,
         input.savedReportId || null,
@@ -260,7 +290,7 @@ export class ReportExportJobService {
 
   async getJob(organizationId: string, jobId: string): Promise<ReportExportJob | null> {
     const result = await this.db.query<ReportExportJobRow>(
-      `SELECT *
+      `SELECT ${REPORT_EXPORT_JOB_COLUMNS}
        FROM report_export_jobs
        WHERE organization_id = $1
          AND id = $2
@@ -273,7 +303,7 @@ export class ReportExportJobService {
 
   async listJobs(organizationId: string, limit: number = 25): Promise<ReportExportJob[]> {
     const result = await this.db.query<ReportExportJobRow>(
-      `SELECT *
+      `SELECT ${REPORT_EXPORT_JOB_COLUMNS}
        FROM report_export_jobs
        WHERE organization_id = $1
        ORDER BY created_at DESC
@@ -292,14 +322,17 @@ export class ReportExportJobService {
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
          AND status IN ('pending', 'failed')
-       RETURNING *`,
+       RETURNING ${REPORT_EXPORT_JOB_COLUMNS}`,
       [jobId]
     );
 
     const currentJob =
       claimedResult.rows[0] ||
       (await this.db.query<ReportExportJobRow>(
-        `SELECT * FROM report_export_jobs WHERE id = $1 LIMIT 1`,
+        `SELECT ${REPORT_EXPORT_JOB_COLUMNS}
+         FROM report_export_jobs
+         WHERE id = $1
+         LIMIT 1`,
         [jobId]
       )).rows[0];
 
@@ -333,12 +366,12 @@ export class ReportExportJobService {
              artifact_content_type = $5,
              artifact_file_name = $6,
              artifact_size_bytes = $7,
-             artifact_expires_at = retention_until,
-             completed_at = CURRENT_TIMESTAMP,
-             failure_message = NULL,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1
-         RETURNING *`,
+         artifact_expires_at = retention_until,
+         completed_at = CURRENT_TIMESTAMP,
+         failure_message = NULL,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+         RETURNING ${REPORT_EXPORT_JOB_COLUMNS}`,
         [
           currentJob.id,
           generated.data.length,
@@ -358,11 +391,11 @@ export class ReportExportJobService {
       const failed = await this.db.query<ReportExportJobRow>(
         `UPDATE report_export_jobs
          SET status = 'failed',
-             failure_message = $2,
-             completed_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1
-         RETURNING *`,
+         failure_message = $2,
+         completed_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+         RETURNING ${REPORT_EXPORT_JOB_COLUMNS}`,
         [currentJob.id, message]
       );
 

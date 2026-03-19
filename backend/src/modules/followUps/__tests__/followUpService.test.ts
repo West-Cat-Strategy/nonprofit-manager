@@ -45,9 +45,14 @@ describe('FollowUpService', () => {
   });
 
   it('applies filters, overdue condition, and pagination for getFollowUps', async () => {
-    db.query
-      .mockResolvedValueOnce({ rows: [{ count: '3' }] })
-      .mockResolvedValueOnce({ rows: [buildFollowUpRow()] });
+    db.query.mockResolvedValueOnce({
+      rows: [
+        {
+          ...buildFollowUpRow(),
+          total_count: '3',
+        },
+      ],
+    });
 
     const result = await service.getFollowUps('org-1', {
       entity_type: 'task',
@@ -74,16 +79,20 @@ describe('FollowUpService', () => {
       frequency_end_date: null,
     });
 
-    const [countSql, countValues] = db.query.mock.calls[0];
-    expect(countSql).toContain('FROM follow_ups fu');
-    expect(countSql).toContain("fu.status = 'scheduled'");
-    expect(countValues).toEqual([
+    expect(db.query).toHaveBeenCalledTimes(1);
+    const [sql, values] = db.query.mock.calls[0];
+    expect(sql).toContain('COUNT(*) OVER() AS total_count');
+    expect(sql).toContain('FROM follow_ups fu');
+    expect(sql).toContain("fu.status = 'scheduled'");
+    expect(values).toEqual([
       'org-1',
       'task',
       'task-1',
       'user-7',
       '2026-03-01',
       '2026-03-31',
+      5,
+      5,
     ]);
   });
 
@@ -102,7 +111,8 @@ describe('FollowUpService', () => {
 
     expect(result?.id).toBe('fu-1');
     expect(db.query).toHaveBeenCalledTimes(1);
-    expect(db.query.mock.calls[0][0]).toContain('SELECT fu.*');
+    expect(db.query.mock.calls[0][0]).toContain('FROM follow_ups');
+    expect(db.query.mock.calls[0][0]).not.toContain('SELECT *');
   });
 
   it('updates fields, ignores overdue status updates, and clears pending notifications when reminder is null', async () => {

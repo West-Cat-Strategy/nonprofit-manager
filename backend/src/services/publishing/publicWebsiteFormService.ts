@@ -5,9 +5,9 @@ import type { PublishedComponent, PublishedSite } from '@app-types/publishing';
 import { AvailabilityStatus } from '@app-types/volunteer';
 import type { Activity } from '@app-types/activity';
 import type { RecurringDonationPlanStatus } from '@app-types/recurringDonation';
-import { stripeService } from '@services/domains/operations';
 import { addOrUpdateMember, isMailchimpConfigured } from '@services/mailchimpService';
 import { activityEventService, type CreateActivityEventInput } from '@services/activityEventService';
+import stripeService from '@services/stripeService';
 import { SiteManagementService } from './siteManagementService';
 import {
   PublicSubmissionConflictError,

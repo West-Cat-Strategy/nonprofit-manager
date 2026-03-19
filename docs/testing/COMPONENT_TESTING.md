@@ -1,6 +1,6 @@
 # Component Testing Guide
 
-**Last Updated**: 2026-02-18
+**Last Updated**: 2026-03-19
 
 How to test React components in nonprofit-manager using React Testing Library and Vitest.
 
@@ -768,7 +768,7 @@ render(<Component />, { wrapper: TestWrapper });
 
 ## See Also
 
-- [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) — Unit testing utility functions
-- [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) — Testing overview
-- [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) — Code standards
+- [TESTING.md](TESTING.md) — Testing overview and command map
+- [../development/CONVENTIONS.md](../development/CONVENTIONS.md) — Code standards
+- [../development/AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md) — Repo guardrails for contributors
 - [React Testing Library Docs](https://testing-library.com/docs/react-testing-library/intro/) — Official docs

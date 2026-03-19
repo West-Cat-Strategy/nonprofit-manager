@@ -53,17 +53,17 @@ const CustomDashboard = () => {
         hasInitializedRef.current = true;
 
         const result = await dispatch(fetchDashboards()).unwrap();
+        const hasDefaultDashboard = Array.isArray(result) && result.some((dashboard) => dashboard.is_default);
 
-        // If no dashboards exist, create a default one
-        if (Array.isArray(result) && result.length === 0) {
+        // Only bootstrap the server default when the fetched set does not already expose one.
+        if (!hasDefaultDashboard) {
           setCreatingDefault(true);
-          await dispatch(fetchDefaultDashboard()).unwrap();
-          setCreatingDefault(false);
-          return;
+          try {
+            await dispatch(fetchDefaultDashboard()).unwrap();
+          } finally {
+            setCreatingDefault(false);
+          }
         }
-
-        // Ensure we have a current dashboard selected (default server-side).
-        await dispatch(fetchDefaultDashboard()).unwrap();
       } catch (error) {
         console.error('[CustomDashboard] Failed to initialize dashboard:', error);
         setCreatingDefault(false);

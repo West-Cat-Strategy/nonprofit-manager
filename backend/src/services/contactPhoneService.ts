@@ -12,6 +12,18 @@ import type {
 } from '@app-types/contact';
 import { syncContactMethodSummaries } from './contactMethodSyncService';
 
+const CONTACT_PHONE_COLUMNS = [
+  'id',
+  'contact_id',
+  'phone_number',
+  'label',
+  'is_primary',
+  'created_at',
+  'updated_at',
+  'created_by',
+  'modified_by',
+].join(', ');
+
 /**
  * Get all phone numbers for a contact
  */
@@ -19,7 +31,7 @@ export async function getContactPhones(contactId: string): Promise<ContactPhoneN
   try {
     const result = await pool.query(
       `
-      SELECT * FROM contact_phone_numbers
+      SELECT ${CONTACT_PHONE_COLUMNS} FROM contact_phone_numbers
       WHERE contact_id = $1
       ORDER BY is_primary DESC, created_at ASC
       `,
@@ -39,7 +51,7 @@ export async function getContactPhones(contactId: string): Promise<ContactPhoneN
 export async function getContactPhoneById(phoneId: string): Promise<ContactPhoneNumber | null> {
   try {
     const result = await pool.query(
-      `SELECT * FROM contact_phone_numbers WHERE id = $1`,
+      `SELECT ${CONTACT_PHONE_COLUMNS} FROM contact_phone_numbers WHERE id = $1`,
       [phoneId]
     );
 
@@ -64,7 +76,7 @@ export async function createContactPhone(
       INSERT INTO contact_phone_numbers (
         contact_id, phone_number, label, is_primary, created_by, modified_by
       ) VALUES ($1, $2, $3, $4, $5, $5)
-      RETURNING *
+      RETURNING ${CONTACT_PHONE_COLUMNS}
       `,
       [
         contactId,
@@ -125,7 +137,7 @@ export async function updateContactPhone(
     values.push(phoneId);
 
     const result = await pool.query(
-      `UPDATE contact_phone_numbers SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      `UPDATE contact_phone_numbers SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING ${CONTACT_PHONE_COLUMNS}`,
       values
     );
 
@@ -175,7 +187,7 @@ export async function getPrimaryPhone(contactId: string): Promise<ContactPhoneNu
   try {
     const result = await pool.query(
       `
-      SELECT * FROM contact_phone_numbers
+      SELECT ${CONTACT_PHONE_COLUMNS} FROM contact_phone_numbers
       WHERE contact_id = $1 AND is_primary = true
       LIMIT 1
       `,

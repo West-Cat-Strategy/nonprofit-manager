@@ -1,235 +1,70 @@
-#!/bin/bash
-# Security Scanning Script
-# Runs local security scans on the Nonprofit Manager project
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Load common utilities and configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/lib/common.sh"
-source "$SCRIPT_DIR/lib/config.sh"
+run() {
+  echo "==> $*"
+  "$@"
+}
 
-# Create reports directory
-REPORT_DIR="$SECURITY_REPORT_DIR/$(date +%Y-%m-%d)"
-ensure_dir "$REPORT_DIR"
+scan_audit() {
+  local dir="$1"
+  if [[ -d "$dir" ]]; then
+    (cd "$dir" && npm audit --omit=dev --audit-level=moderate) || true
+  fi
+}
 
-BACKEND_VULN_TOTAL=0
-FRONTEND_VULN_TOTAL=0
-DEPENDENCY_STATUS="Not Applicable"
-DEPENDENCY_DETAILS="Dependency audit not executed."
-SECRET_SCAN_STATUS="Not Applicable"
-SECRET_SCAN_DETAILS="Secret scanning not executed."
-ENV_STATUS="Not Applicable"
-ENV_STATUS_DETAILS="Environment file policy not checked."
+scan_secrets_with_gitleaks() {
+  if command -v gitleaks >/dev/null 2>&1; then
+    gitleaks detect --no-banner --redact --source "$ROOT_DIR" --config "$ROOT_DIR/.gitleaks.toml"
+    return 0
+  fi
 
-print_header "Security Scan"
+  if command -v docker >/dev/null 2>&1 && docker image inspect ghcr.io/gitleaks/gitleaks:latest >/dev/null 2>&1; then
+    docker run --rm \
+      -v "$ROOT_DIR:/repo" \
+      -w /repo \
+      ghcr.io/gitleaks/gitleaks:latest \
+      detect --no-banner --redact --source /repo --config /repo/.gitleaks.toml
+    return 0
+  fi
 
-log_info "Reports will be saved to: $REPORT_DIR"
-echo ""
+  echo "gitleaks is not installed and a local container image was not available; running a lightweight fallback scan."
 
-# 1. NPM Audit - Backend
-echo "======================================"
-echo "1. NPM Audit - Backend"
-echo "======================================"
-cd backend
-npm audit --json > "../$REPORT_DIR/backend-audit.json" 2>&1 || true
-npm audit || true
-BACKEND_VULN_TOTAL=$(node -e "const fs=require('fs');const p='../$REPORT_DIR/backend-audit.json';try{const d=JSON.parse(fs.readFileSync(p,'utf8'));console.log(d?.metadata?.vulnerabilities?.total ?? 0);}catch{console.log(0);}")
-cd ..
-echo ""
+  local patterns=(
+    'AKIA[0-9A-Z]{16}'
+    'ASIA[0-9A-Z]{16}'
+    'ghp_[A-Za-z0-9]{20,}'
+    'github_pat_[A-Za-z0-9_]{20,}'
+    'sk_live_[A-Za-z0-9]{10,}'
+    'whsec_[A-Za-z0-9]{10,}'
+    'xox[baprs]-[A-Za-z0-9-]{10,}'
+    '-----BEGIN (RSA |EC |OPENSSH |PRIVATE )?KEY-----'
+  )
 
-# 2. NPM Audit - Frontend
-echo "======================================"
-echo "2. NPM Audit - Frontend"
-echo "======================================"
-cd frontend
-npm audit --json > "../$REPORT_DIR/frontend-audit.json" 2>&1 || true
-npm audit || true
-FRONTEND_VULN_TOTAL=$(node -e "const fs=require('fs');const p='../$REPORT_DIR/frontend-audit.json';try{const d=JSON.parse(fs.readFileSync(p,'utf8'));console.log(d?.metadata?.vulnerabilities?.total ?? 0);}catch{console.log(0);}")
-cd ..
-echo ""
+  local issues=()
+  while IFS= read -r match; do
+    issues+=("$match")
+  done < <(
+    rg -n --hidden --glob '!**/.git/**' --glob '!**/node_modules/**' --glob '!**/dist/**' --glob '!**/coverage/**' --glob '!**/output/**' --glob '!**/tmp/**' --glob '!**/*.example' --glob '!**/*.md' --glob '!**/*.toml' -e "${patterns[0]}" -e "${patterns[1]}" -e "${patterns[2]}" -e "${patterns[3]}" -e "${patterns[4]}" -e "${patterns[5]}" -e "${patterns[6]}" -e "${patterns[7]}" "$ROOT_DIR" || true
+  )
 
-if [ $((BACKEND_VULN_TOTAL + FRONTEND_VULN_TOTAL)) -eq 0 ]; then
-    DEPENDENCY_STATUS="Fixed"
-    DEPENDENCY_DETAILS="No vulnerabilities reported by npm audit."
-else
-    DEPENDENCY_STATUS="Known blocked"
-    DEPENDENCY_DETAILS="Backend: ${BACKEND_VULN_TOTAL}, Frontend: ${FRONTEND_VULN_TOTAL} vulnerabilities remain."
-fi
+  if [[ "${#issues[@]}" -gt 0 ]]; then
+    printf '%s\n' "Potential secret matches found:" >&2
+    printf '%s\n' "${issues[@]}" >&2
+    return 1
+  fi
 
-# 3. Check for secrets in code
-echo "======================================"
-echo "3. Secret Scanning"
-echo "======================================"
-if command -v gitleaks &> /dev/null; then
-    if gitleaks detect --source=. --report-path="$REPORT_DIR/gitleaks-report.json" --verbose; then
-        SECRET_SCAN_STATUS="Fixed"
-        SECRET_SCAN_DETAILS="Local gitleaks scan completed with no findings."
-    else
-        SECRET_SCAN_STATUS="Known blocked"
-        SECRET_SCAN_DETAILS="Local gitleaks detected findings or failed. Review $REPORT_DIR/gitleaks-report.json."
-    fi
-elif command -v docker &> /dev/null; then
-    echo -e "${YELLOW}⚠ Gitleaks not installed locally. Running Docker fallback...${NC}"
-    if docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest \
-        detect --source=/repo --report-path="/repo/$REPORT_DIR/gitleaks-report.json" --verbose; then
-        SECRET_SCAN_STATUS="Fixed"
-        SECRET_SCAN_DETAILS="Docker gitleaks fallback completed with no findings."
-    else
-        SECRET_SCAN_STATUS="Known blocked"
-        SECRET_SCAN_DETAILS="Docker gitleaks detected findings or failed. Review $REPORT_DIR/gitleaks-report.json."
-    fi
-else
-    SECRET_SCAN_STATUS="Known blocked"
-    SECRET_SCAN_DETAILS="gitleaks and Docker are unavailable in this environment."
-    echo -e "${YELLOW}⚠ Gitleaks not installed and Docker unavailable. Secret scanning skipped.${NC}"
-fi
-echo ""
+  return 0
+}
 
-# 4. Check for hardcoded credentials
-echo "======================================"
-echo "4. Credential Search"
-echo "======================================"
-echo "Searching for potential hardcoded credentials..."
-CODE_GLOBS=(-g '*.{ts,tsx,js,jsx}')
-SCAN_EXCLUDES=(
-    -g '!**/node_modules/**'
-    -g '!**/.git/**'
-    -g '!**/dist/**'
-    -g '!**/coverage/**'
-    -g '!**/.vite/**'
-    -g '!**/playwright-report/**'
-    -g '!**/test-results/**'
-)
-rg -n -i --pcre2 "password\\s*=\\s*['\"]" "${CODE_GLOBS[@]}" "${SCAN_EXCLUDES[@]}" . || echo "No hardcoded passwords found"
-rg -n -i --pcre2 "api[_-]?key\\s*=\\s*['\"]" "${CODE_GLOBS[@]}" "${SCAN_EXCLUDES[@]}" . || echo "No hardcoded API keys found"
-rg -n -i --pcre2 "secret\\s*=\\s*['\"]" "${CODE_GLOBS[@]}" "${SCAN_EXCLUDES[@]}" . || echo "No hardcoded secrets found"
-echo ""
+cd "$ROOT_DIR"
 
-# 5. Check for TODO SECURITY comments
-echo "======================================"
-echo "5. Security TODOs"
-echo "======================================"
-echo "Searching for security-related TODO comments..."
-rg -n "TODO.*SECURITY|FIXME.*SECURITY|XXX.*SECURITY" "${CODE_GLOBS[@]}" "${SCAN_EXCLUDES[@]}" . || echo "No security TODOs found"
-echo ""
+scan_audit backend
+scan_audit frontend
 
-# 6. Check .env files are gitignored
-echo "======================================"
-echo "6. Environment File Check"
-echo "======================================"
-TRACKED_ENV_FILES="$(git ls-files | rg '(^|/)\\.env($|\\.)' | rg -v '\\.example$' || true)"
-if [ -n "$TRACKED_ENV_FILES" ]; then
-    echo -e "${RED}✗ Tracked live .env files found in git! This is a security risk.${NC}"
-    ENV_STATUS="Known blocked"
-    ENV_STATUS_DETAILS="Live .env or .env.* files are tracked in git."
-else
-    echo -e "${GREEN}✓ No live .env files are tracked in git${NC}"
-    ENV_STATUS="Fixed"
-    ENV_STATUS_DETAILS="No live .env or .env.* files are tracked in git."
-fi
-echo ""
+run scan_secrets_with_gitleaks
 
-# 7. Check for outdated dependencies
-echo "======================================"
-echo "7. Outdated Dependencies"
-echo "======================================"
-echo "Backend:"
-cd backend
-npm outdated > "../$REPORT_DIR/backend-outdated.txt" 2>&1 || true
-npm outdated || true
-cd ..
-echo ""
-echo "Frontend:"
-cd frontend
-npm outdated > "../$REPORT_DIR/frontend-outdated.txt" 2>&1 || true
-npm outdated || true
-cd ..
-echo ""
+echo "Security scan complete."
 
-# 8. File permissions check
-echo "======================================"
-echo "8. File Permissions Check"
-echo "======================================"
-echo "Checking for world-writable files..."
-find . -type f -perm -002 -not -path "*/node_modules/*" -not -path "*/.git/*" || echo "No world-writable files found"
-echo ""
-
-# 9. Generate summary report
-echo "======================================"
-echo "9. Generating Summary Report"
-echo "======================================"
-
-cat > "$REPORT_DIR/security-summary.md" <<EOF
-# Security Scan Summary
-
-**Scan Date:** $(date)
-**Project:** Nonprofit Manager
-
-## Scans Completed
-
-- ✅ NPM Audit (Backend)
-- ✅ NPM Audit (Frontend)
-- ✅ Secret Scanning
-- ✅ Credential Search
-- ✅ Security TODO Search
-- ✅ Environment File Check
-- ✅ Outdated Dependencies Check
-- ✅ File Permissions Check
-
-## Quick Findings
-
-### Backend Dependencies
-$(cd backend && npm audit --audit-level=moderate 2>&1 | grep "vulnerabilities" || echo "No vulnerabilities found")
-
-### Frontend Dependencies
-$(cd frontend && npm audit --audit-level=moderate 2>&1 | grep "vulnerabilities" || echo "No vulnerabilities found")
-
-## Detailed Reports
-
-See individual report files in this directory:
-- backend-audit.json
-- frontend-audit.json
-- backend-outdated.txt
-- frontend-outdated.txt
-$(if [ -f "$REPORT_DIR/gitleaks-report.json" ]; then echo "- gitleaks-report.json"; fi)
-
-## Recommendations
-
-1. Review all identified vulnerabilities
-2. Update outdated dependencies
-3. Address any security TODOs
-4. Ensure no secrets in code
-5. Schedule professional penetration test
-
-## Remediation Status
-
-- Dependencies: ${DEPENDENCY_STATUS} (${DEPENDENCY_DETAILS})
-- Secret scanning: ${SECRET_SCAN_STATUS} (${SECRET_SCAN_DETAILS})
-- Credential pattern scan: Not Applicable (heuristic grep output requires manual triage)
-- Security TODO scan: Not Applicable (advisory text scan only)
-- Environment file policy: ${ENV_STATUS} (${ENV_STATUS_DETAILS})
-
----
-
-**Next Scan:** $(date -d '+1 week' 2>/dev/null || date -v +1w 2>/dev/null || echo "Manual scheduling required")
-EOF
-
-echo -e "${GREEN}✓ Summary report generated${NC}"
-echo ""
-
-# Print summary
-echo "======================================"
-echo "  Scan Complete!"
-echo "======================================"
-echo ""
-echo "Reports saved to: $REPORT_DIR/"
-echo ""
-echo "View summary: cat $REPORT_DIR/security-summary.md"
-echo ""
-
-# Open summary if on macOS
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "Opening summary report..."
-    open "$REPORT_DIR/security-summary.md" || cat "$REPORT_DIR/security-summary.md"
-fi

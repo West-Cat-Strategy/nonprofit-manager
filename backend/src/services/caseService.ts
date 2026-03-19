@@ -170,8 +170,8 @@ export class CaseService {
   /**
    * Get case by ID
    */
-  async getCaseById(caseId: string): Promise<CaseWithDetails | null> {
-    return getCaseByIdQuery(this.pool, caseId);
+  async getCaseById(caseId: string, organizationId?: string): Promise<CaseWithDetails | null> {
+    return getCaseByIdQuery(this.pool, caseId, organizationId);
   }
 
   /**
@@ -195,8 +195,8 @@ export class CaseService {
   /**
    * Get case notes
    */
-  async getCaseNotes(caseId: string): Promise<CaseNote[]> {
-    return getCaseNotesQuery(this.pool, caseId);
+  async getCaseNotes(caseId: string, organizationId?: string): Promise<CaseNote[]> {
+    return getCaseNotesQuery(this.pool, caseId, organizationId);
   }
 
   /**
@@ -223,8 +223,8 @@ export class CaseService {
   /**
    * List structured case outcomes
    */
-  async getCaseOutcomes(caseId: string): Promise<CaseOutcomeEvent[]> {
-    return getCaseOutcomesQuery(this.pool, caseId);
+  async getCaseOutcomes(caseId: string, organizationId?: string): Promise<CaseOutcomeEvent[]> {
+    return getCaseOutcomesQuery(this.pool, caseId, organizationId);
   }
 
   /**
@@ -251,8 +251,8 @@ export class CaseService {
   /**
    * Topic definitions for a case (account-scoped)
    */
-  async getCaseTopicDefinitions(caseId: string): Promise<CaseTopicDefinition[]> {
-    return getCaseTopicDefinitionsQuery(this.pool, caseId);
+  async getCaseTopicDefinitions(caseId: string, organizationId?: string): Promise<CaseTopicDefinition[]> {
+    return getCaseTopicDefinitionsQuery(this.pool, caseId, organizationId);
   }
 
   /**
@@ -265,8 +265,8 @@ export class CaseService {
   /**
    * List case topic events
    */
-  async getCaseTopicEvents(caseId: string): Promise<CaseTopicEvent[]> {
-    return getCaseTopicEventsQuery(this.pool, caseId);
+  async getCaseTopicEvents(caseId: string, organizationId?: string): Promise<CaseTopicEvent[]> {
+    return getCaseTopicEventsQuery(this.pool, caseId, organizationId);
   }
 
   /**
@@ -286,15 +286,15 @@ export class CaseService {
   /**
    * List case documents
    */
-  async getCaseDocuments(caseId: string): Promise<CaseDocument[]> {
-    return getCaseDocumentsQuery(this.pool, caseId);
+  async getCaseDocuments(caseId: string, organizationId?: string): Promise<CaseDocument[]> {
+    return getCaseDocumentsQuery(this.pool, caseId, organizationId);
   }
 
   /**
    * Get case document by id with ownership checks
    */
-  async getCaseDocumentById(caseId: string, documentId: string): Promise<CaseDocument | null> {
-    return getCaseDocumentByIdQuery(this.pool, caseId, documentId);
+  async getCaseDocumentById(caseId: string, documentId: string, organizationId?: string): Promise<CaseDocument | null> {
+    return getCaseDocumentByIdQuery(this.pool, caseId, documentId, organizationId);
   }
 
   /**
@@ -335,9 +335,10 @@ export class CaseService {
    */
   async getCaseTimeline(
     caseId: string,
-    options?: { limit?: number; cursor?: string }
+    options?: { limit?: number; cursor?: string },
+    organizationId?: string
   ): Promise<{ items: CaseTimelineEvent[]; page: { limit: number; has_more: boolean; next_cursor: string | null } }> {
-    return getCaseTimelineQuery(this.pool, caseId, options);
+    return getCaseTimelineQuery(this.pool, caseId, options, organizationId);
   }
 
   /**

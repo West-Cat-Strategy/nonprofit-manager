@@ -120,7 +120,7 @@ const TemplateGallery: React.FC = () => {
 
   const handlePreviewTemplate = useCallback((template: TemplateListItem) => {
     // Open preview in new tab or modal
-    window.open(`/website-builder/${template.id}/preview`, '_blank');
+    window.open(`/website-builder/${template.id}/preview`, '_blank', 'noopener,noreferrer');
   }, []);
 
   const handleDuplicateTemplate = useCallback(

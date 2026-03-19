@@ -1,9 +1,10 @@
 import type { PublishedComponent } from '@app-types/publishing';
 import { imageOptimizationService } from '../../imageOptimizationService';
 import { escapeHtml } from '../escapeHtml';
+import { sanitizeRenderableUrl } from '../urlSanitizer';
 
 export function generateImage(component: PublishedComponent): string {
-  const src = (component.src as string) || '';
+  const src = sanitizeRenderableUrl((component.src as string) || '') || '';
   const alt = (component.alt as string) || '';
   const width = (component.width as string) || '100%';
   const height = (component.height as string) || 'auto';
@@ -54,8 +55,16 @@ export function generateGallery(component: PublishedComponent): string {
   return `
       <div class="gallery-grid" style="display: grid; grid-template-columns: repeat(${columns}, 1fr); gap: 1rem;">
         ${items.map((item) => {
+    const safeSrc = sanitizeRenderableUrl(item.src);
+    if (!safeSrc) {
+      return `
+          <div class="gallery-item" style="position: relative; overflow: hidden; border-radius: 0.5rem; aspect-ratio: 1; background: #f8fafc; border: 2px dashed #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center;">
+            <span style="font-family: sans-serif; font-size: 0.875rem;">Image unavailable</span>
+          </div>`;
+    }
+
     const optimizedImageHtml = imageOptimizationService.generateOptimizedImageHtml(
-      item.src,
+      safeSrc,
       item.alt || '',
       { width: thumbnailWidth, quality: 75, lazy: true },
       'gallery-image'
@@ -71,7 +80,7 @@ export function generateGallery(component: PublishedComponent): string {
 }
 
 export function generateVideo(component: PublishedComponent): string {
-  const src = (component.src as string) || '';
+  const src = sanitizeRenderableUrl((component.src as string) || '') || '';
   const provider = (component.provider as string) || 'youtube';
   const aspectRatio = (component.aspectRatio as string) || '16/9';
 
@@ -90,6 +99,7 @@ export function generateVideo(component: PublishedComponent): string {
 
   return `
       <div style="position: relative; aspect-ratio: ${aspectRatio}; overflow: hidden; border-radius: 0.5rem;">
-        <iframe src="${escapeHtml(embedUrl)}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        ${embedUrl ? '' : '<div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #0f172a; color: #94a3b8; font-family: sans-serif;">Video unavailable</div>'}
+        ${embedUrl ? `<iframe src="${escapeHtml(sanitizeRenderableUrl(embedUrl) || '')}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>` : ''}
       </div>`;
 }

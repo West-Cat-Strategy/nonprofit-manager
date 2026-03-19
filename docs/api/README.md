@@ -1,6 +1,6 @@
 # API Documentation Index
 
-**Last Updated**: 2026-03-02
+**Last Updated**: 2026-03-19
 
 Master index for all nonprofit-manager API endpoints and integration documentation.
 
@@ -164,7 +164,7 @@ Mailchimp sync and mailing list management.
 
 External service webhooks and event delivery.
 
-- **File**: [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#webhooks)
+- **File**: [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#webhook-system)
 - **Includes**:
   - Webhook registration and validation
   - Event types and payloads
@@ -292,7 +292,7 @@ All endpoints follow standardized response format:
 
 ### Building an Integration?
 
-1. **Understand the webhook flow**: See [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#webhooks)
+1. **Understand the webhook flow**: See [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#webhook-system)
 2. **Test with Postman first**: Verify endpoint works as expected
 3. **Read integration guide**: See [Integration Guides](#integration-guides) section
 4. **Handle errors gracefully**: Implement retries and error logging
@@ -311,7 +311,7 @@ All endpoints follow standardized response format:
 
 - **...integrate Stripe payments** → [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#stripe-integration)
 - **...sync contacts with Mailchimp** → [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#mailchimp-integration)
-- **...set up webhooks to external service** → [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#webhooks)
+- **...set up webhooks to external service** → [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#webhook-system)
 - **...test an endpoint quickly** → Use [postman/README.md](postman/README.md) collection
 - **...generate a report** → [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md)
 - **...export data as CSV/Excel** → [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md)
@@ -436,4 +436,4 @@ Cross-origin request blocked:
 
 **Questions about an endpoint?**
 
-Check the specific reference file in the table above, or open a GitHub Issue with label `api-question`.
+Check the specific reference file in the table above, or update the relevant doc entry in the workboard if the reference is stale.

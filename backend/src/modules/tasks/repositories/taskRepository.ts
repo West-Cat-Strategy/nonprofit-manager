@@ -5,7 +5,7 @@ import type {
   TaskSummary,
   UpdateTaskDTO,
 } from '@app-types/task';
-import { taskService } from '@services/domains/engagement';
+import { taskService } from '@services/taskService';
 import type { TaskCatalogPort, TaskLifecyclePort } from '../types/ports';
 
 export class TaskRepository implements TaskCatalogPort, TaskLifecyclePort {

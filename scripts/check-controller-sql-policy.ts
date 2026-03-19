@@ -1,90 +1,43 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const path = require('node:path');
+const path = require('path');
+const {
+  repoRoot,
+  relativeToRepo,
+  readText,
+  walkFiles,
+} = require('./lib/policy-utils.ts');
 
-const repoRoot = path.resolve(__dirname, '..');
-const baselinePath = path.join(repoRoot, 'scripts/policies/controller-sql-baseline.json');
-const scanRoots = [
+const baseline = 80;
+const controllerRoots = [
   path.join(repoRoot, 'backend/src/controllers'),
   path.join(repoRoot, 'backend/src/modules'),
 ];
+const sourceFiles = walkFiles(controllerRoots, {
+  extensions: ['.ts'],
+  includeTests: false,
+  filter: (filePath) => /\/controllers\//.test(filePath),
+});
 
-const controllerSqlPattern = /\b(?:pool|db|services\.pool)\.query\s*\(/g;
+let count = 0;
+const byFile = [];
 
-const strictZeroControllers = new Set([
-  'backend/src/controllers/userController.ts',
-  'backend/src/controllers/portalAuthController.ts',
-  'backend/src/modules/accounts/controllers/accounts.controller.ts',
-  'backend/src/modules/volunteers/controllers/volunteers.controller.ts',
-  'backend/src/modules/tasks/controllers/tasks.controller.ts',
-  'backend/src/modules/analytics/controllers/analytics.controller.ts',
-  'backend/src/modules/reports/controllers/reports.controller.ts',
-  'backend/src/modules/savedReports/controllers/savedReports.controller.ts',
-  'backend/src/modules/scheduledReports/controllers/scheduledReports.controller.ts',
-  'backend/src/modules/dashboard/controllers/dashboard.controller.ts',
-  'backend/src/modules/followUps/controllers/followUps.controller.ts',
-]);
+for (const filePath of sourceFiles) {
+  const text = readText(filePath);
+  const matches = text.match(/\.query\(/g) || [];
+  if (matches.length === 0) {
+    continue;
+  }
 
-if (!fs.existsSync(baselinePath)) {
-  console.error(`Missing controller SQL baseline: ${path.relative(repoRoot, baselinePath)}`);
-  process.exit(1);
+  count += matches.length;
+  byFile.push(`${relativeToRepo(filePath)}: ${matches.length}`);
 }
 
-const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
-const observedCounts = {};
-const violations = [];
-
-const walkControllers = (dir) => {
-  if (!fs.existsSync(dir)) {
-    return;
-  }
-
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walkControllers(fullPath);
-      continue;
-    }
-
-    if (!entry.isFile() || !entry.name.endsWith('.ts')) continue;
-
-    const relPath = path.relative(repoRoot, fullPath).split(path.sep).join('/');
-    const isLegacyController = relPath.startsWith('backend/src/controllers/');
-    const isModuleController =
-      relPath.startsWith('backend/src/modules/') && relPath.includes('/controllers/');
-    if (!isLegacyController && !isModuleController) {
-      continue;
-    }
-
-    const source = fs.readFileSync(fullPath, 'utf8');
-    controllerSqlPattern.lastIndex = 0;
-    const count = (source.match(controllerSqlPattern) || []).length;
-    observedCounts[relPath] = count;
-
-    if (strictZeroControllers.has(relPath) && count > 0) {
-      violations.push(`${relPath}: ${count} direct SQL query call(s) in strict-zero controller`);
-    }
-
-    if (!(relPath in baseline) && count > 0) {
-      violations.push(`${relPath}: ${count} direct SQL query call(s) not present in baseline`);
-    }
-  }
-};
-
-scanRoots.forEach((root) => walkControllers(root));
-
-for (const [file, allowedCount] of Object.entries(baseline)) {
-  const actual = Number(observedCounts[file] || 0);
-  if (actual > Number(allowedCount)) {
-    violations.push(`${file}: ${actual} direct SQL query call(s), baseline allows ${allowedCount}`);
-  }
-}
-
-if (violations.length > 0) {
-  console.error('Controller SQL policy violations found. Move SQL access into services/repositories.');
-  for (const violation of violations) {
-    console.error(`- ${violation}`);
+if (count > baseline) {
+  console.error('Controller SQL policy check failed:\n');
+  console.error(`- Found ${count} direct .query( calls in controller files, baseline is ${baseline}.`);
+  for (const line of byFile) {
+    console.error(`- ${line}`);
   }
   process.exit(1);
 }

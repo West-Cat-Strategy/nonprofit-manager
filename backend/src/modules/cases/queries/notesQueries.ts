@@ -6,6 +6,7 @@ import {
   requireCaseOwnership,
   resolveVisibleToClient,
 } from './shared';
+import { getRequestContext } from '@config/requestContext';
 
 type PgExecutor = Pool | PoolClient;
 
@@ -51,19 +52,37 @@ const CASE_NOTE_SELECT_WITH_OUTCOMES = `
 
 export const getCaseNoteByIdQuery = async (
   db: PgExecutor,
-  noteId: string
+  noteId: string,
+  organizationId?: string
 ): Promise<CaseNote | null> => {
+  const resolvedOrganizationId =
+    organizationId || getRequestContext()?.organizationId || getRequestContext()?.accountId || getRequestContext()?.tenantId;
   const result = await db.query(
     `${CASE_NOTE_SELECT_WITH_OUTCOMES}
     WHERE cn.id = $1
+      AND (
+        $2::uuid IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM cases c
+          LEFT JOIN contacts con ON con.id = c.contact_id
+          WHERE c.id = cn.case_id
+            AND COALESCE(c.account_id, con.account_id) = $2::uuid
+        )
+      )
     LIMIT 1`,
-    [noteId]
+    [noteId, resolvedOrganizationId || null]
   );
 
   return result.rows[0] || null;
 };
 
-export const getCaseNotesQuery = async (db: PgExecutor, caseId: string): Promise<CaseNote[]> => {
+export const getCaseNotesQuery = async (
+  db: PgExecutor,
+  caseId: string,
+  organizationId?: string
+): Promise<CaseNote[]> => {
+  await requireCaseOwnership(db, caseId, organizationId);
   const result = await db.query(
     `${CASE_NOTE_SELECT_WITH_OUTCOMES}
     WHERE cn.case_id = $1

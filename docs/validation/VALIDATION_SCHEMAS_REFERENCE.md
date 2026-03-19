@@ -498,11 +498,11 @@ When adding a new route:
 
 ## 📚 Documentation
 
-- **Phase 1 Completion**: [PHASE_1_COMPLETION_SUMMARY.md](https://github.com/example/nonprofit-manager)
-- **Phase 1 Migration Guide**: [PHASE_1_MIGRATION_GUIDE.md](https://github.com/example/nonprofit-manager)
-- **Phase 1 Quick Reference**: [PHASE_1_QUICK_REFERENCE.md](https://github.com/example/nonprofit-manager)
-- **Phase 2 Completion**: [PHASE_2_COMPLETION_SUMMARY.md](https://github.com/example/nonprofit-manager)
-- **Phase 2 Next Steps**: [PHASE_2_NEXT_STEPS.md](https://github.com/example/nonprofit-manager)
+- **Phase 1 Completion**: [PHASE_1_COMPLETION_SUMMARY.md](../phases/archive/PHASE_1_COMPLETION_SUMMARY.md)
+- **Phase 1 Migration Guide**: [PHASE_1_MIGRATION_GUIDE.md](../phases/archive/PHASE_1_MIGRATION_GUIDE.md)
+- **Phase 1 Quick Reference**: [PHASE_1_QUICK_REFERENCE.md](../quick-reference/PHASE_1_QUICK_REFERENCE.md)
+- **Phase 2 Completion**: [PHASE_2_COMPLETION_SUMMARY.md](../phases/archive/PHASE_2_COMPLETION_SUMMARY.md)
+- **Phase 2 Next Steps**: [PHASE_2_NEXT_STEPS.md](../phases/archive/PHASE_2_NEXT_STEPS.md)
 
 ---
 
@@ -557,5 +557,5 @@ A: Use the standardized format automatically:
 ---
 
 **Status**: ✅ Complete, production-ready, all tests passing  
-**Last Updated**: February 1, 2026  
+**Last Updated**: 2026-03-19  
 **Maintained By**: Development Team

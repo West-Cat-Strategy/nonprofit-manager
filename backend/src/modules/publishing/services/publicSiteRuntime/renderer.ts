@@ -21,6 +21,7 @@ import {
 } from '@services/site-generator';
 import { escapeHtml } from '@services/site-generator/escapeHtml';
 import { generateComponentHtml } from '@services/site-generator/componentRenderer';
+import { sanitizeNewsletterHtml } from '@services/publishing/newsletterHtmlSanitizer';
 import { PublicSiteRouteResolver } from './routeResolver';
 import {
   buildAnalyticsScript,
@@ -154,9 +155,13 @@ export class PublicSiteRenderer {
   }
 
   private renderNewsletterDetail(entry: WebsiteEntry): string {
-    const bodyHtml =
+    const sanitizedBodyHtml =
       entry.bodyHtml && entry.bodyHtml.trim().length > 0
-        ? entry.bodyHtml
+        ? sanitizeNewsletterHtml(entry.bodyHtml)
+        : '';
+    const bodyHtml =
+      sanitizedBodyHtml.trim().length > 0
+        ? sanitizedBodyHtml
         : entry.body
           ? `<p>${escapeHtml(entry.body)}</p>`
           : entry.excerpt

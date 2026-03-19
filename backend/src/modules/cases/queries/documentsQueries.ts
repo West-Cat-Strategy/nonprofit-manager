@@ -2,8 +2,12 @@ import { Pool } from 'pg';
 import type { CaseDocument, UpdateCaseDocumentDTO } from '@app-types/case';
 import { requireCaseIdForDocument, requireCaseOwnership, resolveVisibleToClient } from './shared';
 
-export const getCaseDocumentsQuery = async (db: Pool, caseId: string): Promise<CaseDocument[]> => {
-  await requireCaseOwnership(db, caseId);
+export const getCaseDocumentsQuery = async (
+  db: Pool,
+  caseId: string,
+  organizationId?: string
+): Promise<CaseDocument[]> => {
+  await requireCaseOwnership(db, caseId, organizationId);
   const result = await db.query(
     `
     SELECT
@@ -26,9 +30,10 @@ export const getCaseDocumentsQuery = async (db: Pool, caseId: string): Promise<C
 export const getCaseDocumentByIdQuery = async (
   db: Pool,
   caseId: string,
-  documentId: string
+  documentId: string,
+  organizationId?: string
 ): Promise<CaseDocument | null> => {
-  await requireCaseOwnership(db, caseId);
+  await requireCaseOwnership(db, caseId, organizationId);
   const result = await db.query(
     `
     SELECT

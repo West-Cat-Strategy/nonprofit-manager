@@ -26,6 +26,9 @@ DEV_ENV_FILE ?= .env.development
 COMPOSE_PROJECT_PROD ?= nonprofit-prod
 COMPOSE_PROJECT_DEV ?= nonprofit-dev
 COMPOSE_PROJECT_CI ?= nonprofit-ci
+BACKEND_DOCKER_IMAGE ?= nonprofit-manager-backend:latest
+FRONTEND_DOCKER_IMAGE ?= nonprofit-manager-frontend:latest
+LEGACY_COMPOSE_STACK_FILES := docker-compose.yml docker-compose.tools.yml docker-compose.caddy.yml docker-compose.host-access.yml docker-compose.ci.yml docker-compose.db-encrypted.yml docker-compose.vps.yml docker-compose.plausible.yml docker-compose.elk.yml
 
 COMPOSE_PROD_ARGS := -p $(COMPOSE_PROJECT_PROD) --env-file $(PROD_ENV_FILE) -f docker-compose.yml
 COMPOSE_DEV_ARGS := -p $(COMPOSE_PROJECT_DEV) -f docker-compose.dev.yml
@@ -41,15 +44,16 @@ help:
 	@echo ""
 	@echo "$(GREEN)Development:$(RESET)"
 	@echo "  make install        Install all dependencies"
-	@echo "  make dev            Start development environment (Docker)"
-	@echo "  make docker-up      Start production-like Docker stack"
-	@echo "  make docker-up-dev  Start development stack (hot reload)"
-	@echo "  make docker-up-tools Start dev stack + optional tools profile"
-	@echo "  make docker-up-caddy Start dev stack + Caddy overlay"
-	@echo "  make docker-down    Stop all Docker services"
-	@echo "  make docker-logs    View Docker logs"
-	@echo "  make docker-rebuild Rebuild containers (no cache)"
-	@echo "  make docker-validate Validate compose files and overlays"
+	@echo "  make docker-build   Build backend/frontend Docker images directly"
+	@echo "  make docker-validate Validate both Dockerfiles with clean direct builds"
+	@echo "  make docker-rebuild Rebuild backend/frontend Docker images without cache"
+	@echo "  make dev            Start the optional compose dev stack"
+	@echo "  make docker-up-dev  Start the optional compose dev stack (hot reload)"
+	@echo "  make docker-up      Start the compose stack"
+	@echo "  make docker-up-tools Start the compose stack with tools profile"
+	@echo "  make docker-up-caddy Start the dev compose stack behind Caddy"
+	@echo "  make docker-down    Stop the optional compose dev stack"
+	@echo "  make docker-logs    View optional compose dev stack logs"
 	@echo ""
 	@echo "$(GREEN)Quality Checks:$(RESET)"
 	@echo "  make lint           Run linters on all projects"
@@ -126,44 +130,73 @@ dev: docker-up-dev
 	@echo ""
 
 docker-up:
+	@missing=0; \
+	for file in $(LEGACY_COMPOSE_STACK_FILES); do \
+	  if [ ! -f "$$file" ]; then \
+	    echo "$(YELLOW)Required compose manifest missing: $$file$(RESET)"; \
+	    missing=1; \
+	  fi; \
+	done; \
+	if [ $$missing -ne 0 ]; then \
+	  echo "$(RED)Compose stack target is unavailable until the manifests are restored.$(RESET)"; \
+	  exit 1; \
+	fi
 	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) up -d
 
 docker-up-dev:
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) up -d
 
 docker-up-tools:
+	@missing=0; \
+	for file in $(LEGACY_COMPOSE_STACK_FILES); do \
+	  if [ ! -f "$$file" ]; then \
+	    echo "$(YELLOW)Required compose manifest missing: $$file$(RESET)"; \
+	    missing=1; \
+	  fi; \
+	done; \
+	if [ $$missing -ne 0 ]; then \
+	  echo "$(RED)Compose stack target is unavailable until the manifests are restored.$(RESET)"; \
+	  exit 1; \
+	fi
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_TOOLS_ARGS) up -d
 
 docker-up-caddy:
+	@missing=0; \
+	for file in $(LEGACY_COMPOSE_STACK_FILES); do \
+	  if [ ! -f "$$file" ]; then \
+	    echo "$(YELLOW)Required compose manifest missing: $$file$(RESET)"; \
+	    missing=1; \
+	  fi; \
+	done; \
+	if [ $$missing -ne 0 ]; then \
+	  echo "$(RED)Compose stack target is unavailable until the manifests are restored.$(RESET)"; \
+	  exit 1; \
+	fi
+	CADDY_BACKEND_UPSTREAM=host.docker.internal:8004 \
+	CADDY_FRONTEND_UPSTREAM=host.docker.internal:8005 \
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) up -d
 
 docker-down:
-	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) down --remove-orphans
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) down --remove-orphans
-	$(DOCKER_COMPOSE) $(COMPOSE_DEV_TOOLS_ARGS) down --remove-orphans
-	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) down --remove-orphans
-	$(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) down -v --remove-orphans
+	@echo "$(YELLOW)Only the compose dev stack can be stopped from this checkout.$(RESET)"
 
 docker-logs:
-	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) logs -f
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) logs -f
 
 docker-build:
-	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) build
+	docker build -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
+	docker build -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
+	@echo "$(GREEN)Docker images built!$(RESET)"
 
 docker-rebuild:
-	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) build --no-cache
+	docker build --no-cache -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
+	docker build --no-cache -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
+	@echo "$(GREEN)Docker images rebuilt without cache!$(RESET)"
 
 docker-validate:
-	DB_PASSWORD=$${DB_PASSWORD:-postgres} $(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) config > /tmp/nonprofit-compose-config.txt
-	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) config > /tmp/nonprofit-compose-dev-config.txt
-	$(DOCKER_COMPOSE) $(COMPOSE_DEV_TOOLS_ARGS) config > /tmp/nonprofit-compose-dev-tools-config.txt
-	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) config > /tmp/nonprofit-compose-dev-caddy-config.txt
-	DB_PASSWORD=$${DB_PASSWORD:-postgres} POSTGRES_DATA_DIR=/srv/nonprofit-manager/postgres $(DOCKER_COMPOSE) -p $(COMPOSE_PROJECT_PROD) --env-file $(PROD_ENV_FILE) -f docker-compose.yml -f docker-compose.db-encrypted.yml config > /tmp/nonprofit-compose-encrypted-db-config.txt
-	DB_PASSWORD=$${DB_PASSWORD:-postgres} POSTGRES_DATA_DIR=/srv/nonprofit-manager/postgres $(DOCKER_COMPOSE) -p $(COMPOSE_PROJECT_PROD) --env-file $(PROD_ENV_FILE) -f docker-compose.yml -f docker-compose.vps.yml -f docker-compose.db-encrypted.yml config > /tmp/nonprofit-compose-vps-encrypted-db-config.txt
-	DB_PASSWORD=$${DB_PASSWORD:-postgres} $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) config > /tmp/nonprofit-compose-ci-config.txt
-	$(DOCKER_COMPOSE) -p nonprofit-plausible -f docker-compose.plausible.yml config > /tmp/nonprofit-compose-plausible-config.txt
-	$(DOCKER_COMPOSE) -p nonprofit-elk -f docker-compose.elk.yml config > /tmp/nonprofit-compose-elk-config.txt
-	@echo "$(GREEN)Compose validation complete!$(RESET)"
+	docker build --pull --no-cache -f backend/Dockerfile backend
+	docker build --pull --no-cache -f frontend/Dockerfile frontend
+	@echo "$(GREEN)Dockerfile validation complete!$(RESET)"
 
 #------------------------------------------------------------------------------
 # Quality Checks
@@ -337,8 +370,8 @@ typecheck:
 	@echo "$(GREEN)Type checking complete!$(RESET)"
 
 test:
-	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
+	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
 	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests...$(RESET)"
@@ -350,8 +383,8 @@ test:
 	@echo "$(GREEN)Tests complete!$(RESET)"
 
 test-coverage:
-	@echo "$(BLUE)Ensuring test infrastructure is running (Postgres/Redis)...$(RESET)"
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
+	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
 	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
@@ -363,7 +396,7 @@ test-coverage:
 	@echo "$(GREEN)Coverage reports generated!$(RESET)"
 
 test-backend:
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	cd backend && npm test -- --runInBand
 
@@ -371,7 +404,7 @@ test-frontend:
 	cd frontend && npm test -- --run
 
 test-e2e:
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d postgres redis
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	cd e2e && npm run test:ci
 

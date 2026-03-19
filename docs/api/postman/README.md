@@ -259,5 +259,5 @@ To share with team:
 
 - [Postman Documentation](https://learning.postman.com/docs/)
 - [Newman CLI Documentation](https://github.com/postmanlabs/newman)
-- [Stripe Testing Guide](https://github.com/example/nonprofit-manager)
+- [Stripe Testing Guide](../../product/STRIPE_TESTING_GUIDE.md)
 - [API Documentation](../../README.md)

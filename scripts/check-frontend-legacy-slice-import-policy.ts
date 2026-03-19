@@ -1,73 +1,51 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const path = require('node:path');
+const path = require('path');
+const {
+  repoRoot,
+  relativeToRepo,
+  readText,
+  walkFiles,
+} = require('./lib/policy-utils.ts');
+const {
+  extractImportSpecifiers,
+  resolveImportTarget,
+} = require('./lib/import-audit.ts');
 
-const repoRoot = path.resolve(__dirname, '..');
-const featuresRoot = path.join(repoRoot, 'frontend/src/features');
+const sourceFiles = walkFiles(path.join(repoRoot, 'frontend/src'), {
+  extensions: ['.ts', '.tsx'],
+  includeTests: false,
+});
 
-const migratedDomains = new Set([
-  'accounts',
-  'analytics',
-  'builder',
-  'cases',
-  'contacts',
-  'engagement',
-  'dashboard',
-  'finance',
-  'followUps',
-  'reports',
-  'savedReports',
-  'scheduledReports',
-  'tasks',
-  'volunteers',
-]);
+const legacyDir = path.join(repoRoot, 'frontend/src/store/slices');
+const issues = [];
 
-const importPatterns = [
-  /from\s+['"][^'"]*store\/slices\//g,
-  /import\(\s*['"][^'"]*store\/slices\//g,
-];
+for (const filePath of sourceFiles) {
+  if (filePath.startsWith(legacyDir)) {
+    continue;
+  }
 
-const violations = [];
-
-const walkTypeScript = (dir) => {
-  if (!fs.existsSync(dir)) return;
-
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walkTypeScript(fullPath);
+  const text = readText(filePath);
+  for (const importEntry of extractImportSpecifiers(text)) {
+    const targetPath = resolveImportTarget(filePath, importEntry.specifier, []);
+    if (!targetPath) {
       continue;
     }
 
-    if (!entry.isFile()) continue;
-    if (!fullPath.endsWith('.ts') && !fullPath.endsWith('.tsx')) continue;
-
-    const relPath = path.relative(repoRoot, fullPath).split(path.sep).join('/');
-    const source = fs.readFileSync(fullPath, 'utf8');
-    const count = importPatterns.reduce(
-      (total, pattern) => total + (source.match(pattern) || []).length,
-      0
-    );
-
-    if (count > 0) {
-      violations.push(`${relPath}: ${count} legacy store/slices import(s)`);
+    if (targetPath === legacyDir || targetPath.startsWith(`${legacyDir}${path.sep}`)) {
+      issues.push(
+        `${relativeToRepo(filePath)}:${importEntry.line} imports legacy store slice code via ${importEntry.specifier}`
+      );
     }
   }
-};
-
-for (const domain of migratedDomains) {
-  walkTypeScript(path.join(featuresRoot, domain));
 }
 
-if (violations.length > 0) {
-  console.error(
-    'Frontend legacy slice import policy violations found. Migrated feature domains must not import frontend/src/store/slices/*.'
-  );
-  for (const violation of violations) {
-    console.error(`- ${violation}`);
+if (issues.length > 0) {
+  console.error('Frontend legacy slice import policy check failed:\n');
+  for (const issue of issues) {
+    console.error(`- ${issue}`);
   }
   process.exit(1);
 }
 
-console.log('Frontend legacy slice import policy check passed for migrated feature domains.');
+console.log('Frontend legacy slice import check complete.');

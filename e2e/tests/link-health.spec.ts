@@ -71,9 +71,9 @@ const staffAuthenticatedRoutes = [
   '/settings/api',
   '/settings/navigation',
   '/settings/user',
-  '/settings/admin',
-  '/settings/admin?section=audit_logs',
-  '/settings/admin?section=organization',
+  '/settings/admin/dashboard',
+  '/settings/admin/organization',
+  '/settings/admin/audit_logs',
   '/settings/admin/portal/access',
   '/settings/admin/portal/users',
   '/settings/admin/portal/conversations',
@@ -204,7 +204,6 @@ authTest.describe('Authenticated staff route health', () => {
   for (const { route, canonical } of removedCompatibilityRoutes) {
     authTest(`legacy route ${route} no longer resolves to ${canonical}`, async ({ authenticatedPage }) => {
       await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
-      await authenticatedPage.waitForLoadState('networkidle');
 
       const currentUrl = new URL(authenticatedPage.url(), 'http://localhost');
       expect(`${currentUrl.pathname}${currentUrl.search}`).not.toBe(canonical);

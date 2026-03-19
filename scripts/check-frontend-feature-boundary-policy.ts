@@ -1,69 +1,51 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const path = require('node:path');
-
-const repoRoot = path.resolve(__dirname, '..');
-const featuresRoot = path.join(repoRoot, 'frontend/src/features');
-const baselinePath = path.join(
+const path = require('path');
+const {
   repoRoot,
-  'scripts/policies/frontend-feature-page-import-baseline.json'
-);
+  relativeToRepo,
+  readText,
+  walkFiles,
+} = require('./lib/policy-utils.ts');
+const {
+  extractImportSpecifiers,
+  resolveImportTarget,
+} = require('./lib/import-audit.ts');
 
-if (!fs.existsSync(baselinePath)) {
-  console.error(
-    `Missing frontend feature boundary baseline: ${path.relative(repoRoot, baselinePath)}`
-  );
-  process.exit(1);
-}
+const featureFiles = walkFiles(path.join(repoRoot, 'frontend/src/features'), {
+  extensions: ['.ts', '.tsx'],
+  includeTests: false,
+});
 
-const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
-const observed = {};
-const violations = [];
-
-const importPatterns = [
-  /from\s+['"](?:\.\.\/)+pages\//g,
-  /import\(\s*['"](?:\.\.\/)+pages\//g,
+const disallowedTargets = [
+  path.join(repoRoot, 'frontend/src/pages'),
+  path.join(repoRoot, 'frontend/src/store/slices'),
 ];
 
-const walk = (dir) => {
-  if (!fs.existsSync(dir)) return;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walk(fullPath);
-      continue;
-    }
-    if (!entry.isFile() || !fullPath.includes(`${path.sep}pages${path.sep}`)) continue;
-    if (!entry.name.endsWith('.ts') && !entry.name.endsWith('.tsx')) continue;
+const issues = [];
 
-    const rel = path.relative(repoRoot, fullPath).split(path.sep).join('/');
-    const source = fs.readFileSync(fullPath, 'utf8');
-    const count = importPatterns.reduce((total, pattern) => total + (source.match(pattern) || []).length, 0);
-
-    observed[rel] = count;
-    if (!(rel in baseline) && count > 0) {
-      violations.push(`${rel}: ${count} legacy pages import(s), not in baseline`);
+for (const filePath of featureFiles) {
+  const text = readText(filePath);
+  for (const importEntry of extractImportSpecifiers(text)) {
+    const targetPath = resolveImportTarget(filePath, importEntry.specifier, []);
+    if (!targetPath) {
       continue;
     }
 
-    const allowed = Number(baseline[rel] || 0);
-    if (count > allowed) {
-      violations.push(`${rel}: ${count} legacy pages import(s), baseline allows ${allowed}`);
+    if (disallowedTargets.some((targetDir) => targetPath === targetDir || targetPath.startsWith(`${targetDir}${path.sep}`))) {
+      issues.push(
+        `${relativeToRepo(filePath)}:${importEntry.line} crosses the feature boundary via ${importEntry.specifier}`
+      );
     }
   }
-};
+}
 
-walk(featuresRoot);
-
-if (violations.length > 0) {
-  console.error(
-    'Frontend feature boundary policy violations found. Reduce feature-page imports from legacy pages paths.'
-  );
-  for (const violation of violations) {
-    console.error(`- ${violation}`);
+if (issues.length > 0) {
+  console.error('Frontend feature boundary policy check failed:\n');
+  for (const issue of issues) {
+    console.error(`- ${issue}`);
   }
   process.exit(1);
 }
 
-console.log('Frontend feature boundary policy check passed (baseline ratchet).');
+console.log('Frontend feature boundary policy check passed.');

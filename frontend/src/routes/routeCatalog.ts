@@ -5,7 +5,6 @@ export type {
   RouteArea,
   RouteAuthScope,
   RouteCatalogAdminNavConfig,
-  RouteCatalogAlias,
   RouteCatalogEntry,
   RouteNavKind,
   RouteSection,
@@ -27,7 +26,6 @@ export {
 export {
   matchRouteCatalogEntry,
   normalizeRouteLocation,
-  resolveRouteCatalogAlias,
 } from './routeCatalog/matching';
 
 export {

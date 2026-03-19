@@ -11,7 +11,6 @@ import {
   deleteContact,
   setFilters,
   clearFilters,
-  fetchContactTags,
 } from '../state';
 import type { Contact } from '../state';
 import type { ContactRoleFilter } from '../types/contracts';
@@ -127,10 +126,6 @@ const ContactList = () => {
     if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
     setSearchParams(params, { replace: true });
   }, [searchInput, roleFilter, activeFilter, currentPage, currentLimit, sortBy, sortOrder, setSearchParams]);
-
-  useEffect(() => {
-    dispatch(fetchContactTags());
-  }, [dispatch]);
 
   const handleFilterChange = (filterId: string, value: string | string[]) => {
     if (filterId === 'search' && typeof value === 'string') {

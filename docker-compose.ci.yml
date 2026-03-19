@@ -1,14 +1,7 @@
-# Overlay-only compose file.
-# Use with docker-compose.yml (+ host-access when needed):
-#   docker compose -f docker-compose.yml -f docker-compose.host-access.yml -f docker-compose.ci.yml up -d postgres redis
-# This file is not intended to run standalone.
-
 services:
   postgres:
-    restart: "no"
-    volumes: []
+    restart: unless-stopped
 
   redis:
-    restart: "no"
-    volumes: []
-    command: redis-server --save "" --appendonly no
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]

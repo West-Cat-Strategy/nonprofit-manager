@@ -18,6 +18,7 @@ export class CaseCatalogUseCase {
   list(filter: CaseFilter): Promise<{ cases: unknown[]; total: number }> {
     const normalizedFilter: CaseFilter = {
       ...filter,
+      organizationId: normalizeString(filter.organizationId),
       search: normalizeString(filter.search),
       contact_id: normalizeString(filter.contact_id),
       account_id: normalizeString(filter.account_id),
@@ -33,13 +34,14 @@ export class CaseCatalogUseCase {
     return this.repository.getCases(normalizedFilter);
   }
 
-  getById(caseId: string): Promise<unknown | null> {
-    return this.repository.getCaseById(caseId.trim());
+  getById(caseId: string, organizationId?: string): Promise<unknown | null> {
+    return this.repository.getCaseById(caseId.trim(), normalizeString(organizationId));
   }
 
   timeline(
     caseId: string,
-    options?: { limit?: number; cursor?: string }
+    options?: { limit?: number; cursor?: string },
+    organizationId?: string
   ): Promise<{ items: unknown[]; page: { limit: number; has_more: boolean; next_cursor: string | null } }> {
     const normalizedOptions = options
       ? {
@@ -48,7 +50,7 @@ export class CaseCatalogUseCase {
           cursor: normalizeString(options.cursor),
         }
       : options;
-    return this.repository.getCaseTimeline(caseId.trim(), normalizedOptions);
+    return this.repository.getCaseTimeline(caseId.trim(), normalizedOptions, normalizeString(organizationId));
   }
 
   summary(organizationId?: string): Promise<unknown> {

@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-19
 
 This file is the full documentation catalog. If you are starting work in the repository, begin with [../README.md](../README.md) first.
 
@@ -13,6 +13,7 @@ This file is the full documentation catalog. If you are starting work in the rep
 5. [development/ARCHITECTURE.md](development/ARCHITECTURE.md)
 
 Tracked work starts in [phases/planning-and-progress.md](phases/planning-and-progress.md).
+Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Staff Help Center
 
@@ -27,6 +28,7 @@ Tracked work starts in [phases/planning-and-progress.md](phases/planning-and-pro
 | Document | Purpose |
 |----------|---------|
 | [development/GETTING_STARTED.md](development/GETTING_STARTED.md) | Setup, runtime choices, and verification |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Contributor workflow, validation, and handoff expectations |
 | [development/CONVENTIONS.md](development/CONVENTIONS.md) | Code, validation, and workflow conventions |
 | [development/ARCHITECTURE.md](development/ARCHITECTURE.md) | Architecture decisions and current system shape |
 | [development/AGENT_INSTRUCTIONS.md](development/AGENT_INSTRUCTIONS.md) | Coding-agent guardrails for this repo |
@@ -102,8 +104,10 @@ Tracked work starts in [phases/planning-and-progress.md](phases/planning-and-pro
 
 - Learn the staff workspace: [help-center/staff/index.html](help-center/staff/index.html)
 - Need setup help: [development/GETTING_STARTED.md](development/GETTING_STARTED.md)
+- Need contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md)
 - Need current work status: [phases/planning-and-progress.md](phases/planning-and-progress.md)
 - Need backend details: [../backend/README.md](../backend/README.md)
 - Need frontend details: [../frontend/README.md](../frontend/README.md)
 - Need testing commands: [testing/TESTING.md](testing/TESTING.md)
 - Need API docs: [api/README.md](api/README.md)
+- Need helper scripts: [../scripts/README.md](../scripts/README.md)

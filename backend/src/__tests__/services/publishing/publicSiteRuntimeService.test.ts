@@ -1,6 +1,6 @@
 import type { Pool } from 'pg';
-import { PublicSiteRuntimeService } from '@services/publishing/publicSiteRuntimeService';
 import { buildPublicFormRuntimeScript } from '@modules/publishing/services/publicSiteRuntime/shared';
+import { PublicSiteRuntimeService } from '@modules/publishing/services/publicSiteRuntimeService';
 
 jest.mock('@modules/events/services/eventService', () => ({
   __mocks: {
@@ -252,6 +252,61 @@ describe('PublicSiteRuntimeService', () => {
 
     expect(html).toContain('March Update');
     expect(html).toContain('<p>Highlights from March.</p>');
+  });
+
+  it('sanitizes unsafe newsletter body HTML before rendering', async () => {
+    websiteEntryModule.__mocks.getPublicNewsletterBySlug.mockResolvedValue({
+      id: 'entry-2',
+      organizationId: 'org-1',
+      siteId: 'site-1',
+      kind: 'newsletter',
+      source: 'native',
+      status: 'published',
+      slug: 'security-update',
+      title: 'Security Update',
+      excerpt: 'A security-focused newsletter.',
+      body: 'Fallback body',
+      bodyHtml:
+        '<div><p>Safe content</p><script>alert(1)</script><a href="javascript:alert(2)" target="_blank">Bad link</a><img src="data:text/html,<svg onload=alert(3)>"><iframe src="https://evil.example"></iframe></div>',
+      seo: {},
+      createdAt: '2026-03-02T00:00:00.000Z',
+      updatedAt: '2026-03-02T00:00:00.000Z',
+      publishedAt: '2026-03-02T00:00:00.000Z',
+    });
+
+    const site = {
+      ...baseSite,
+      publishedContent: {
+        ...baseSite.publishedContent,
+        pages: [
+          {
+            id: 'page-newsletters-detail',
+            slug: 'newsletter-detail',
+            name: 'Newsletter Detail',
+            isHomepage: false,
+            pageType: 'collectionDetail',
+            collection: 'newsletters',
+            routePattern: '/newsletters/:slug',
+            sections: [
+              {
+                id: 'section-1',
+                name: 'Newsletter detail section',
+                components: [],
+              },
+            ],
+            seo: {},
+          },
+        ],
+      },
+    };
+
+    const html = await service.renderSitePage(site as never, '/newsletters/security-update');
+
+    expect(html).toContain('Safe content');
+    expect(html).not.toContain('alert(1)');
+    expect(html).not.toContain('javascript:alert(2)');
+    expect(html).not.toContain('data:text/html');
+    expect(html).not.toContain('<iframe');
   });
 
   it('includes redirect handling for recurring donation checkout responses in the public form runtime', () => {

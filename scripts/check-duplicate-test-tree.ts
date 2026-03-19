@@ -1,42 +1,49 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const path = require('node:path');
+const path = require('path');
+const {
+  repoRoot,
+  relativeToRepo,
+  walkFiles,
+} = require('./lib/policy-utils.ts');
 
-const repoRoot = path.resolve(__dirname, '..');
-const duplicateTestRoot = path.join(repoRoot, 'backend/backend/src/__tests__');
+const rootTests = walkFiles(path.join(repoRoot, 'backend/src/__tests__'), {
+  extensions: ['.ts'],
+  includeTests: true,
+  filter: (filePath) => !filePath.includes(`${path.sep}integration${path.sep}`),
+});
 
-if (!fs.existsSync(duplicateTestRoot)) {
-  console.log('Duplicate test tree check passed.');
-  process.exit(0);
+const moduleTests = walkFiles(path.join(repoRoot, 'backend/src/modules'), {
+  extensions: ['.ts'],
+  includeTests: true,
+  filter: (filePath) => /\/__tests__\//.test(filePath),
+});
+
+const rootBasenames = new Map();
+const moduleBasenames = new Map();
+
+for (const filePath of rootTests) {
+  rootBasenames.set(path.basename(filePath), filePath);
 }
 
-const collected = [];
+for (const filePath of moduleTests) {
+  moduleBasenames.set(path.basename(filePath), filePath);
+}
 
-const walk = (dir) => {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walk(fullPath);
-      continue;
-    }
-
-    if (entry.isFile()) {
-      collected.push(path.relative(repoRoot, fullPath).split(path.sep).join('/'));
-    }
+const collisions = [];
+for (const [basename, rootPath] of rootBasenames.entries()) {
+  const modulePath = moduleBasenames.get(basename);
+  if (modulePath) {
+    collisions.push(`${basename}: ${relativeToRepo(rootPath)} <-> ${relativeToRepo(modulePath)}`);
   }
-};
-
-walk(duplicateTestRoot);
-
-if (collected.length === 0) {
-  console.log('Duplicate test tree check passed.');
-  process.exit(0);
 }
 
-console.error('Duplicate backend test tree detected under backend/backend/src/__tests__.');
-for (const file of collected) {
-  console.error(`- ${file}`);
+if (collisions.length > 0) {
+  console.error('Duplicate test tree check failed:\n');
+  for (const collision of collisions) {
+    console.error(`- ${collision}`);
+  }
+  process.exit(1);
 }
-console.error('Remove duplicate files and keep tests under backend/src/__tests__.');
-process.exit(1);
+
+console.log('Duplicate test tree check passed.');

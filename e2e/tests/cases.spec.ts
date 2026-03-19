@@ -8,6 +8,50 @@ const apiURL = process.env.API_URL || 'http://localhost:3001';
 
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
+const normalizeOrganizationId = (value: unknown): string | undefined => {
+    if (typeof value !== 'string') {
+        return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
+    const segments = token.split('.');
+    if (segments.length < 2) {
+        return null;
+    }
+
+    try {
+        const payload = segments[1];
+        const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+        return JSON.parse(Buffer.from(padded, 'base64').toString('utf8')) as Record<string, unknown>;
+    } catch {
+        return null;
+    }
+};
+
+const getTokenOrganizationId = (token: string): string | undefined => {
+    const payload = decodeJwtPayload(token);
+    if (!payload) {
+        return undefined;
+    }
+
+    return (
+        normalizeOrganizationId(payload.organizationId) ||
+        normalizeOrganizationId(payload.organization_id)
+    );
+};
+
+async function resolveOrganizationId(page: Page, token: string): Promise<string | undefined> {
+    const localStorageOrganizationId = await page
+        .evaluate(() => localStorage.getItem('organizationId'))
+        .catch(() => null);
+
+    return normalizeOrganizationId(localStorageOrganizationId) || getTokenOrganizationId(token);
+}
+
 function isMobileLayout(page: Page): boolean {
     return (page.viewportSize()?.width ?? 1024) < 768;
 }
@@ -32,9 +76,7 @@ function firstCaseSelectionCheckbox(page: Page) {
 }
 
 async function getWriteHeaders(page: Page, token: string): Promise<Record<string, string>> {
-    const organizationId = await page
-        .evaluate(() => localStorage.getItem('organizationId'))
-        .catch(() => null);
+    const organizationId = await resolveOrganizationId(page, token);
     const csrfResponse = await page.request.get(`${apiURL}/api/v2/auth/csrf-token`, {
         headers: {
             Authorization: `Bearer ${token}`,
@@ -61,9 +103,7 @@ async function getWriteHeaders(page: Page, token: string): Promise<Record<string
 }
 
 async function getReadHeaders(page: Page, token: string): Promise<Record<string, string>> {
-    const organizationId = await page
-        .evaluate(() => localStorage.getItem('organizationId'))
-        .catch(() => null);
+    const organizationId = await resolveOrganizationId(page, token);
     const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
     if (organizationId) {
         headers['X-Organization-Id'] = organizationId;
@@ -109,16 +149,25 @@ async function waitForUrgentCaseToIndex(page: Page, token: string, title: string
 }
 
 async function waitForCaseAvailability(page: Page, token: string, caseId: string): Promise<void> {
-    await expect
-        .poll(
-            async () => {
-                const headers = await getReadHeaders(page, token);
-                const response = await page.request.get(`${apiURL}/api/v2/cases/${caseId}`, { headers });
-                return response.ok();
-            },
-            { timeout: 15000, intervals: [500, 1000, 1500] }
-        )
-        .toBe(true);
+    const deadline = Date.now() + 15000;
+    let lastStatus: number | null = null;
+    let lastBody = '';
+
+    while (Date.now() < deadline) {
+        const headers = await getReadHeaders(page, token);
+        const response = await page.request.get(`${apiURL}/api/v2/cases/${caseId}`, { headers });
+        lastStatus = response.status();
+        lastBody = await response.text().catch(() => '');
+        if (response.ok()) {
+            return;
+        }
+
+        await page.waitForTimeout(750);
+    }
+
+    throw new Error(
+        `Case ${caseId} was not readable after waiting for availability (lastStatus=${lastStatus ?? 'unknown'}, lastBody=${lastBody || 'empty response'})`
+    );
 }
 
 async function getFirstCaseTypeId(page: Page, token: string): Promise<string> {
@@ -151,13 +200,20 @@ async function createTestCase(
         description?: string;
     }
 ): Promise<{ id: string }> {
-    const contactId = data.contactId || (
-        await createTestContact(page, token, {
-            firstName: 'Case',
-            lastName: `Contact-${uniqueSuffix()}`,
-            email: `case.contact.${uniqueSuffix()}@example.com`,
-        })
-    ).id;
+    const organizationId = (await resolveOrganizationId(page, token)) || getTokenOrganizationId(token);
+    if (!organizationId) {
+        throw new Error('Unable to resolve organization context for case creation tests');
+    }
+
+    const contact = data.contactId
+        ? { id: data.contactId, accountId: organizationId }
+        : await createTestContact(page, token, {
+              firstName: 'Case',
+              lastName: `Contact-${uniqueSuffix()}`,
+              email: `case.contact.${uniqueSuffix()}@example.com`,
+              accountId: organizationId,
+          });
+    const contactId = contact.id;
 
     const caseTypeId = await getFirstCaseTypeId(page, token);
     const headers = await getWriteHeaders(page, token);
@@ -166,6 +222,7 @@ async function createTestCase(
         headers,
         data: {
             contact_id: contactId,
+            ...(contact.accountId ? { account_id: contact.accountId } : {}),
             case_type_id: caseTypeId,
             title: data.title,
             description: data.description || 'Test case description',
@@ -183,6 +240,8 @@ async function createTestCase(
     if (!caseId) {
         throw new Error(`Missing case id in response: ${JSON.stringify(result)}`);
     }
+
+    await waitForCaseAvailability(page, token, caseId);
 
     return { id: caseId };
 }
@@ -247,11 +306,16 @@ test.describe('Cases Module', () => {
         const firstName = `Prefill${suffix}`;
         const lastName = 'Contact';
         const title = `Prefilled Case ${suffix}`;
+        const organizationId = (await resolveOrganizationId(authenticatedPage, authToken)) || getTokenOrganizationId(authToken);
+        if (!organizationId) {
+            throw new Error('Unable to resolve organization context for case prefill test');
+        }
 
         const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
             firstName,
             lastName,
             email: `prefill.${suffix}@example.com`,
+            accountId: organizationId,
         });
 
         await authenticatedPage.goto(

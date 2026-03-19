@@ -479,8 +479,8 @@ Set up goals in Plausible:
 ## Support
 
 For issues specific to the Nonprofit Manager Plausible integration:
-- Check the [GitHub Issues](https://github.com/example/nonprofit-manager/issues)
-- Review the [Product Analytics Research](https://github.com/example/nonprofit-manager)
+- Review the [Product Analytics Research](../product/PRODUCT_ANALYTICS_RESEARCH.md)
+- Use the [Contributor Guide](../../CONTRIBUTING.md) for repo workflow and follow-up items
 
 For general Plausible questions:
 - [Plausible Community Forum](https://github.com/plausible/analytics/discussions)

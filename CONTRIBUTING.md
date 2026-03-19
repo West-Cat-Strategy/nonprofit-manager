@@ -1,40 +1,31 @@
-# Contributing To Nonprofit Manager
+# Contributing to Nonprofit Manager
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-19
 
-This repository uses local validation and a workboard-driven workflow. Start with [README.md](README.md) and [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) before making changes.
+Use this guide when you are contributing code, docs, or release support to Nonprofit Manager.
 
-## Before You Start
+## Start Here
 
-Read these first:
+Read these in order before you make changes:
 
-1. [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md)
-2. [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md)
-3. [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md)
+1. [README.md](README.md)
+2. [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md)
+3. [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md)
+4. [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md)
+5. [docs/testing/TESTING.md](docs/testing/TESTING.md)
 
-If the work belongs on the workboard, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before you start editing.
+If the work is tracked, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before you start. The workboard is the source of truth for status, ownership, and blockers.
 
-## Tracked Work
+## Working Agreement
 
-For tracked tasks:
+- Keep changes scoped to the task you signed out.
+- Preserve unrelated user edits in the worktree.
+- Prefer the repo-native `make` targets and check matrices over ad hoc validation.
+- Keep active docs in sync with command, port, or workflow changes.
 
-- Move the task to `In Progress` before implementation.
-- Use the task ID in commit messages and PR titles when applicable.
-- Keep the workboard current when status changes to `Blocked`, `Review`, or `Done`.
-- Do not reuse unrelated blocked rows for new work.
+## Validation
 
-## Development Workflow
-
-1. Create or switch to the branch you will use.
-2. Set up the runtime you need by following [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md).
-3. Make the change.
-4. Update related docs if behavior, commands, ports, or workflows changed.
-5. Run the smallest sufficient verification set for the touched files.
-6. Update the workboard status before handoff.
-
-## Validation Expectations
-
-Default repo-root commands:
+Use the smallest validation set that still covers your change:
 
 ```bash
 make lint
@@ -42,56 +33,28 @@ make typecheck
 make test
 ```
 
-For documentation-heavy changes, also run:
+For docs-only changes:
 
 ```bash
 make check-links
 make lint-doc-api-versioning
 ```
 
-For narrower change sets, use the repo selector:
+For smaller mixed changes, use the selector helper:
 
 ```bash
-scripts/select-checks.sh --base HEAD~1 --mode fast
+./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
-Run the emitted commands in order and stop on the first failure.
+## Documentation Hygiene
 
-## Commit And Review Guidance
+- Keep repo links relative in Markdown docs.
+- Use `/api/v2/*` in active API docs unless you are documenting a health alias or compatibility exception.
+- Treat `docs/INDEX.md` as the catalog and [docs/README.md](docs/README.md) as the short docs landing page.
+- Use [scripts/README.md](scripts/README.md) when you need the root helper-script index.
 
-- Keep commits scoped and descriptive.
-- If the work is tracked, include the task ID.
-- Use conventional prefixes when they help clarify intent: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`.
-- If you open a PR, keep the title consistent with the workboard task when applicable.
+## When You Finish
 
-Examples:
-
-```text
-P4-T15: restructure active contributor documentation
-docs: refresh README and testing guides
-```
-
-## Documentation Changes
-
-If you touch active docs:
-
-- Update adjacent entry docs when navigation changes
-- Verify commands against the repo instead of copying older prose
-- Keep runtime modes distinct when ports or env files differ
-- Use relative links, not GitHub blob links
-
-See [docs/DOCUMENTATION_STYLE_GUIDE.md](docs/DOCUMENTATION_STYLE_GUIDE.md).
-
-## Handoff Checklist
-
-- [ ] Workboard updated
-- [ ] Relevant docs updated
-- [ ] Validation commands recorded
-- [ ] Known blockers or residual risks written down
-
-## Related References
-
-- [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md)
-- [backend/README.md](backend/README.md)
-- [frontend/README.md](frontend/README.md)
-- [docs/testing/TESTING.md](docs/testing/TESTING.md)
+- Update the workboard if you touched a tracked task.
+- Add concise notes about any remaining risk or follow-up.
+- Run the relevant validation commands before handing off.

@@ -35,6 +35,16 @@ export interface EmailSettingsRow {
   updated_at: Date;
 }
 
+interface SmtpSettingsRow {
+  smtp_host: string | null;
+  smtp_port: number;
+  smtp_secure: boolean;
+  smtp_user: string | null;
+  smtp_pass_encrypted: string | null;
+  smtp_from_address: string | null;
+  smtp_from_name: string | null;
+}
+
 export interface SmtpConfig {
   host: string;
   port: number;
@@ -58,6 +68,15 @@ export interface SendMailOptions {
 }
 
 const STARTTLS_SMTP_PORTS = new Set([25, 587, 2525]);
+const SMTP_SETTINGS_COLUMNS = [
+  'smtp_host',
+  'smtp_port',
+  'smtp_secure',
+  'smtp_user',
+  'smtp_pass_encrypted',
+  'smtp_from_address',
+  'smtp_from_name',
+].join(', ');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -68,8 +87,8 @@ const STARTTLS_SMTP_PORTS = new Set([25, 587, 2525]);
  * Returns null when email is not yet configured.
  */
 async function getSmtpConfig(): Promise<SmtpConfig | null> {
-  const result = await pool.query<EmailSettingsRow>(
-    'SELECT * FROM email_settings WHERE is_configured = true ORDER BY created_at LIMIT 1'
+  const result = await pool.query<SmtpSettingsRow>(
+    `SELECT ${SMTP_SETTINGS_COLUMNS} FROM email_settings WHERE is_configured = true ORDER BY created_at LIMIT 1`
   );
 
   if (result.rows.length === 0) {

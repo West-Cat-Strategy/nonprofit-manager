@@ -4,7 +4,7 @@
  */
 
 import { Request, Response } from 'express';
-import * as mailchimpController from '../../controllers/mailchimpController';
+import * as mailchimpController from '../../modules/mailchimp/controllers/mailchimpController';
 import { mailchimpService } from '@services';
 import { AuthRequest } from '../../middleware/auth';
 

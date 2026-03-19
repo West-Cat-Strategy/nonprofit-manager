@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import PublicReportSnapshotPage from '../../public/PublicReportSnapshot';
+import PublicReportSnapshotPage from '../../../features/savedReports/pages/PublicReportSnapshotPage';
 import { savedReportsApiClient } from '../../../features/savedReports/api/savedReportsApiClient';
 
 vi.mock('react-router-dom', async () => {

@@ -132,7 +132,7 @@ export const validationError = (
 };
 
 /**
- * Send a 400 Bad Request response with express-validator errors
+ * Send a 400 Bad Request response with validation errors
  */
 export const validationErrorResponse = (
   res: Response,

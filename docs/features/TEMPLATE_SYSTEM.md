@@ -250,7 +250,7 @@ generateTemplatePreview(
 ): Promise<GeneratedPage | null>
 ```
 
-**Controller** (`templateController.ts`):
+**Controller** (`backend/src/modules/templates/controllers/templateController.ts`):
 ```typescript
 previewTemplate(req: AuthRequest, res: Response): Promise<void>
 ```
@@ -759,12 +759,12 @@ POST /api/v2/templates/:templateId/versions/:versionId/restore
 
 For additional help:
 
-- **Documentation**: [docs/](https://github.com/example/nonprofit-manager)
-- **API Reference**: [ARCHITECTURE.md](https://github.com/example/nonprofit-manager)
-- **Issue Tracker**: [GitHub Issues](https://github.com/example/nonprofit-manager/issues)
+- **Documentation**: [docs/INDEX.md](../INDEX.md)
+- **Architecture**: [ARCHITECTURE.md](../development/ARCHITECTURE.md)
+- **Contributing**: [CONTRIBUTING.md](../../CONTRIBUTING.md)
 - **Email**: maintainer@example.com
 
 ---
 
-**Last Updated**: March 3, 2026
+**Last Updated**: March 19, 2026
 **Version**: 1.1.0

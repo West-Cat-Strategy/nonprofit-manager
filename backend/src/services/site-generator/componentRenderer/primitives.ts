@@ -1,5 +1,6 @@
 import type { PublishedComponent, PublishedTheme } from '@app-types/publishing';
 import { escapeHtml } from '../escapeHtml';
+import { sanitizeRenderableUrl } from '../urlSanitizer';
 
 export function generateHeading(component: PublishedComponent, theme: PublishedTheme): string {
   const level = (component.level as number) || 2;
@@ -21,7 +22,8 @@ export function generateText(component: PublishedComponent, theme: PublishedThem
 
 export function generateButton(component: PublishedComponent, theme: PublishedTheme): string {
   const text = (component.text as string) || 'Button';
-  const url = (component.url as string) || '#';
+  const url =
+    sanitizeRenderableUrl((component.href as string) || (component.url as string) || '#') || '#';
   const variant = (component.variant as string) || 'primary';
   const size = (component.size as string) || 'md';
   const fullWidth = component.fullWidth as boolean;
@@ -77,7 +79,7 @@ export function generateTestimonial(component: PublishedComponent, theme: Publis
   const quote = (component.quote as string) || '';
   const author = (component.author as string) || '';
   const title = component.title as string;
-  const avatar = component.avatar as string;
+  const avatar = sanitizeRenderableUrl(component.avatar as string) || '';
 
   return `
       <blockquote style="text-align: center; margin: 0;">

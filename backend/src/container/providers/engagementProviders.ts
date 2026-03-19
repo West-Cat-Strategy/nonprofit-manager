@@ -1,16 +1,14 @@
 import { Pool } from 'pg';
-import {
-  AccountService,
-  CaseService,
-  ContactRoleService,
-  ContactService,
-  DonationService,
-  EventService,
-  RecurringDonationService,
-  TaskService,
-  TaxReceiptService,
-  VolunteerService,
-} from '@services/domains/engagement';
+import { AccountService } from '@services/accountService';
+import { CaseService } from '@services/caseService';
+import { ContactRoleService } from '@services/contactRoleService';
+import { ContactService } from '@services/contactService';
+import { DonationService } from '@services/donationService';
+import { TaskService } from '@services/taskService';
+import { VolunteerService } from '@services/volunteerService';
+import { EventService } from '@modules/events/services/eventService';
+import { TaxReceiptService } from '@modules/donations/services/taxReceiptService';
+import { RecurringDonationService } from '@modules/recurringDonations/services/recurringDonationService';
 
 export interface EngagementProviders {
   readonly donation: DonationService;

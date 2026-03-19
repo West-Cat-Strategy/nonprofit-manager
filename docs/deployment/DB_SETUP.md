@@ -60,7 +60,7 @@ docker compose -f docker-compose.dev.yml up postgres -d
 This automatically:
 - Creates the `nonprofit_manager` database
 - Runs all migrations in `database/migrations/` (via `docker-entrypoint-initdb.d`)
-- Loads development seeds from `database/initdb/000_init.sql` (includes seeded users)
+- Loads starter bootstrap data from `database/initdb/000_init.sql` (templates, theme presets, data scopes, and outcome definitions only)
 - Sets up persistent volume for data storage
 - Exposes PostgreSQL on `localhost:8002`
 
@@ -95,13 +95,13 @@ docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql 
 (10 rows)
 ```
 
-### 3. Load Seed Data (Optional)
+### 3. Load Optional Demo Data
 
 ```bash
 docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
 ```
 
-For a no-user seed set (to preserve first-time setup flow), use:
+For a no-user demo bundle that still preserves first-time setup flow, use:
 
 ```bash
 docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/seeds/004_mock_data_no_users.sql
@@ -209,10 +209,11 @@ psql -U postgres -d nonprofit_manager -c "SELECT tablename FROM pg_tables WHERE 
 
 ## Loading Seed Data
 
-Seed behavior differs by file:
+Seed behavior differs by file. None of these files run during the default bootstrap:
 
 - `database/seeds/003_mock_data.sql` includes users (default login: `admin@example.com` / `password123`).
 - `database/seeds/004_mock_data_no_users.sql` preserves first-time setup behavior (`/setup`).
+- `database/seeds/005_kingdom_hearts_mock_data.sql` is a themed optional demo bundle.
 - `database/seeds/001_default_users.sql` is placeholder-oriented and not the recommended dev seed path.
 
 ### Docker Environment
@@ -299,17 +300,10 @@ export DB_USER=postgres
 export DB_PASSWORD=postgres
 
 # Run verification
-./scripts/verify-migrations.sh
+make db-verify
 ```
 
-**Expected Output:**
-```
-✓ Database connection successful
-✓ All migration files applied
-✓ All expected tables exist
-✓ All foreign keys valid
-Migration verification completed successfully!
-```
+**Expected behavior:** the isolated `nonprofit_manager_test` database is rebuilt or verified on port `8012`, then the helper reports a populated `schema_migrations` table.
 
 ---
 
@@ -565,11 +559,11 @@ psql -U postgres -d nonprofit_manager -c "
 
 - [PostgreSQL Official Documentation](https://www.postgresql.org/docs/14/)
 - [Docker PostgreSQL Image](https://hub.docker.com/_/postgres)
-- [Database Schema Documentation](https://github.com/example/nonprofit-manager)
-- [Migration Guide](https://github.com/example/nonprofit-manager)
+- [Database Schema Documentation](../../database/README.md)
+- [Migration Guide](../deployment/DEPLOYMENT.md#database-migration)
 
 ---
 
-**Last Updated:** February 1, 2026  
+**Last Updated:** 2026-03-19  
 **Maintained by:** Example Organization  
 **Questions?** Contact [maintainer@example.com](mailto:maintainer@example.com)

@@ -5,7 +5,7 @@
 
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '@middleware/auth';
-import { contactNoteService } from '@services/domains/engagement';
+import * as contactNoteService from '@modules/contacts/repositories/contactNotesQueries';
 import { notFoundMessage } from '@utils/responseHelpers';
 
 /**
