@@ -65,7 +65,6 @@ Tracked work starts in [phases/planning-and-progress.md](phases/planning-and-pro
 |----------|---------|
 | [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md) | Deployment guide |
 | [deployment/DB_SETUP.md](deployment/DB_SETUP.md) | Database setup and migration details |
-| [deployment/production.md](deployment/production.md) | production production runbook |
 | [deployment/PLAUSIBLE_SETUP.md](deployment/PLAUSIBLE_SETUP.md) | Plausible analytics setup |
 | [deployment/LOG_AGGREGATION_SETUP.md](deployment/LOG_AGGREGATION_SETUP.md) | ELK/log aggregation setup |
 
