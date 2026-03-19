@@ -2,19 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTheme, type ColorSchemePreference } from '../contexts/ThemeContext';
 import { SunIcon, MoonIcon, ComputerDesktopIcon, CheckIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { THEME_IDS, THEME_REGISTRY, type ThemeId } from '../theme/themeRegistry';
+import ThemePreviewSwatch from './theme/ThemePreviewSwatch';
 
 const colorSchemeOptions: { value: ColorSchemePreference; label: string; icon: typeof SunIcon }[] = [
   { value: 'light', label: 'Light', icon: SunIcon },
   { value: 'dark', label: 'Dark', icon: MoonIcon },
   { value: 'system', label: 'System', icon: ComputerDesktopIcon },
 ];
-
-const borderStyleClass: Record<string, string> = {
-  solid: 'border-solid',
-  dashed: 'border-dashed',
-  dotted: 'border-dotted',
-  double: 'border-double',
-};
 
 export default function ThemeSelector() {
   const { theme, setTheme, colorScheme, setColorScheme } = useTheme();
@@ -73,14 +67,21 @@ export default function ThemeSelector() {
   }, [theme]);
 
   return (
-    <div className="rounded-2xl border border-app-border bg-app-surface shadow-md overflow-hidden">
-      <div className="bg-app-surface-elevated px-5 py-3 flex justify-between items-center border-b border-app-border">
+    <div className="overflow-hidden rounded-[calc(var(--ui-radius-lg)+0.25rem)] border border-app-border bg-app-surface shadow-[var(--ui-elev-1)]">
+      <div className="flex items-center justify-between gap-4 border-b border-app-border px-5 py-4 bg-app-surface-elevated/90">
         <div className="flex items-center gap-3">
           <EyeIcon className="w-5 h-5 text-app-accent" />
-          <h2 className="text-base font-semibold text-app-text-heading">Appearance</h2>
+          <div>
+            <h2 className="text-base font-semibold text-app-text-heading">Appearance</h2>
+            <p className="text-xs text-app-text-muted">Choose the workspace mood and color scheme.</p>
+          </div>
         </div>
 
-        <div className="flex items-center rounded-xl border border-app-border bg-app-surface p-0.5" role="radiogroup" aria-label="Color scheme">
+        <div
+          className="flex items-center rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface p-0.5"
+          role="radiogroup"
+          aria-label="Color scheme"
+        >
           {colorSchemeOptions.map((option) => {
             const isActive = colorScheme === option.value;
             const Icon = option.icon;
@@ -91,15 +92,11 @@ export default function ThemeSelector() {
                 role="radio"
                 aria-checked={isActive}
                 aria-label={`${option.label} mode`}
-                className={`
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
-                  transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent
-                  ${
-                    isActive
-                      ? 'bg-app-accent text-white'
-                      : 'text-app-text-muted hover:text-app-text hover:bg-app-hover'
-                  }
-                `}
+                className={`flex items-center gap-1.5 rounded-[var(--ui-radius-sm)] px-3 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent ${
+                  isActive
+                    ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                    : 'text-app-text-muted hover:bg-app-hover hover:text-app-text'
+                }`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{option.label}</span>
@@ -111,7 +108,7 @@ export default function ThemeSelector() {
 
       <div
         ref={themeGridRef}
-        className="p-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"
+        className="grid grid-cols-2 gap-4 p-5 xl:grid-cols-3"
         role="radiogroup"
         aria-label="Select interface theme"
         onKeyDown={handleKeyDown}
@@ -120,7 +117,6 @@ export default function ThemeSelector() {
           const option = THEME_REGISTRY[themeId];
           const isActive = theme === themeId;
           const isFocused = focusedIndex === index;
-          const previewBorderClass = borderStyleClass[option.preview.borderStyle] || 'border-solid';
           return (
             <button
               key={themeId}
@@ -129,45 +125,37 @@ export default function ThemeSelector() {
               aria-checked={isActive}
               aria-label={`${option.label} theme`}
               tabIndex={isFocused ? 0 : -1}
-              className={`
-                relative group flex flex-col rounded-xl overflow-hidden
-                border transition-all duration-200
-                focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2
-                ${
-                  isActive
-                    ? 'border-app-accent ring-2 ring-app-accent/30'
-                    : 'border-app-border hover:border-app-accent/50 hover:shadow-md'
-                }
-              `}
+              data-theme-card={themeId}
+              className={`theme-selector-card relative flex flex-col overflow-hidden rounded-[calc(var(--ui-radius-lg)+0.125rem)] border bg-app-surface text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 ${
+                isActive
+                  ? 'border-app-accent shadow-[var(--ui-elev-2)] ring-2 ring-app-accent/20'
+                  : 'border-app-border-muted hover:-translate-y-0.5 hover:border-app-accent/50 hover:shadow-[var(--ui-elev-1)]'
+              }`}
             >
-              <div className="space-y-1.5 bg-app-surface-muted p-2.5">
-                <div
-                  className={`h-2.5 rounded-sm border border-app-border-muted bg-app-surface ${previewBorderClass}`}
-                />
-                <div
-                  className={`space-y-1 rounded-sm border border-app-border-muted bg-app-surface p-1.5 ${previewBorderClass}`}
-                >
-                  <div className="h-1 w-3/4 rounded-full bg-app-text/80" />
-                  <div className="h-1 w-1/2 rounded-full bg-app-text/45" />
-                </div>
-                <div className="flex gap-1">
-                  <div className="h-2.5 flex-1 rounded-sm bg-app-accent" />
-                  <div
-                    className={`h-2.5 w-5 rounded-sm border border-app-border-muted bg-transparent ${previewBorderClass}`}
-                  />
-                </div>
-              </div>
+              <ThemePreviewSwatch themeId={themeId} size="card" className="w-full" />
 
-              <div className="px-2.5 py-2 text-center bg-app-surface-muted border-t border-app-border">
-                <span className="text-xs font-semibold text-app-text block leading-tight">{option.label}</span>
-                <span className="text-[10px] text-app-text-subtle leading-tight">{option.description}</span>
-              </div>
+              <div className="theme-selector-card__meta border-t border-app-border-muted bg-app-surface px-3.5 pb-3.5 pt-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="theme-selector-card__short inline-flex items-center rounded-full border border-app-border-muted bg-app-surface-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-app-text-label">
+                      {option.shortLabel}
+                    </span>
+                    <span className="theme-selector-card__label mt-2 block text-sm font-semibold leading-tight text-app-text-heading">
+                      {option.label}
+                    </span>
+                  </div>
 
-              {isActive && (
-                <div className="absolute top-1.5 right-1.5 bg-app-accent text-white rounded-full p-0.5 shadow-sm">
-                  <CheckIcon className="w-3 h-3" strokeWidth={3} />
+                  {isActive ? (
+                    <div className="mt-0.5 rounded-full bg-app-accent p-1 text-[var(--app-accent-foreground)] shadow-sm">
+                      <CheckIcon className="h-3 w-3" strokeWidth={3} />
+                    </div>
+                  ) : null}
                 </div>
-              )}
+
+                <p className="theme-selector-card__description mt-2 text-[11px] leading-relaxed text-app-text-muted">
+                  {option.description}
+                </p>
+              </div>
             </button>
           );
         })}

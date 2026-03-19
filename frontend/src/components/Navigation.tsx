@@ -11,11 +11,13 @@ import { Link } from 'react-router-dom';
 import Avatar from './Avatar';
 import NavPopover from './navigation/NavPopover';
 import MobileNavigationDrawer from './navigation/MobileNavigationDrawer';
+import ThemePreviewSwatch from './theme/ThemePreviewSwatch';
 import AdminQuickActionsBar from '../features/adminOps/components/AdminQuickActionsBar';
 import { preloadContactsPeopleRoute } from '../features/contacts/routePreload';
 import useStaffNavigationViewModel from '../features/navigation/hooks/useStaffNavigationViewModel';
 import { classNames } from './ui/classNames';
 import { preloadNavigationQuickLookupDialog } from './navigation/preloadNavigationQuickLookupDialog';
+import { THEME_REGISTRY } from '../theme/themeRegistry';
 const NavigationQuickLookupDialog = lazy(preloadNavigationQuickLookupDialog);
 
 export default function Navigation() {
@@ -481,7 +483,7 @@ export default function Navigation() {
               aria-controls="topnav-theme-menu"
               title="Click to pick theme, double-click to cycle"
             >
-              <span>{themeLabels[theme]}</span>
+              <span className="font-semibold tracking-[0.22em]">{themeLabels[theme]}</span>
               {isDarkMode ? <span aria-hidden="true">🌙</span> : null}
             </button>
 
@@ -489,39 +491,58 @@ export default function Navigation() {
               open={themeMenuOpen}
               onClose={() => setThemeMenuOpen(false)}
               align="right"
-              panelClassName="w-56 py-2"
+              panelClassName="w-80 py-2"
               panelRef={themeMenuRef}
             >
               <div id="topnav-theme-menu" role="menu" aria-label="Theme settings">
-                <div className="mb-1 border-b border-app-border-muted px-3 pb-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                <div className="mb-1 border-b border-app-border-muted px-3 pb-3 pt-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-app-text-muted">
                     Theme
                   </p>
+                  <p className="mt-1 text-xs text-app-text-subtle">Each theme keeps its own light and dark identity.</p>
                 </div>
-                {availableThemes.map((availableTheme) => (
-                  <button
-                    key={availableTheme}
-                    type="button"
-                    onClick={() => {
-                      setTheme(availableTheme);
-                      setThemeMenuOpen(false);
-                    }}
-                    role="menuitem"
-                    className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition ${
-                      theme === availableTheme
-                        ? 'bg-app-accent-soft font-medium text-app-accent-text'
-                        : 'text-app-text hover:bg-app-hover'
-                    }`}
-                  >
-                    <span className="text-[11px] font-semibold tracking-wide">
-                      {themeLabels[availableTheme]}
-                    </span>
-                    <span className="capitalize">{availableTheme.replace(/-/g, ' ')}</span>
-                    {theme === availableTheme ? (
-                      <span className="ml-auto text-app-accent">✓</span>
-                    ) : null}
-                  </button>
-                ))}
+                <div className="grid gap-1.5 px-2">
+                  {availableThemes.map((availableTheme) => {
+                    const option = THEME_REGISTRY[availableTheme];
+                    const isSelected = theme === availableTheme;
+
+                    return (
+                      <button
+                        key={availableTheme}
+                        type="button"
+                        onClick={() => {
+                          setTheme(availableTheme);
+                          setThemeMenuOpen(false);
+                        }}
+                        role="menuitem"
+                        data-theme-menu-item={availableTheme}
+                        className={`flex w-full items-center gap-3 rounded-[var(--ui-radius-md)] border px-3 py-2 text-left transition ${
+                          isSelected
+                            ? 'border-app-accent bg-app-accent-soft text-app-accent-text shadow-sm'
+                            : 'border-transparent text-app-text hover:border-app-border-muted hover:bg-app-hover'
+                        }`}
+                      >
+                        <ThemePreviewSwatch themeId={availableTheme} size="menu" className="shrink-0" />
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-app-text-subtle">
+                              {option.shortLabel}
+                            </span>
+                            <span className="truncate text-sm font-semibold text-app-text-heading">
+                              {option.label}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-app-text-muted">
+                            {option.menuDescription}
+                          </p>
+                        </div>
+
+                        {isSelected ? <span className="ml-auto text-app-accent">✓</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
                 <div className="mt-1 border-t border-app-border-muted px-3 pt-2">
                   <button
                     type="button"

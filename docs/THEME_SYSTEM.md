@@ -4,20 +4,20 @@
 
 The app supports 6 stable theme IDs with light/dark mode handling and a feature-flagged redesign layer.
 
-| Theme ID | Display Label | Current Role |
+| Theme ID | Label | Short Label | Personality |
 | --- | --- | --- |
-| `neobrutalist` | Editorial Ops | Default editorial workspace theme |
-| `sea-breeze` | Sea Breeze | Calm service-delivery palette |
-| `corporate` | Corporate | Restrained enterprise presentation |
-| `clean-modern` | Clean Modern | Soft structure, lower visual noise |
-| `glass` | Glass | Translucent panels with cooler ink contrast |
-| `high-contrast` | High Contrast | WCAG-first visibility and interaction affordance |
+| `neobrutalist` | Editorial Ops | `EO` | Warm editorial workspace with paper-toned surfaces and ink-first hierarchy |
+| `sea-breeze` | Sea Breeze | `SB` | Rounded marine palette for calmer intake and portal-heavy flows |
+| `corporate` | Corporate | `CP` | Crisp enterprise presentation with tighter geometry and restrained chrome |
+| `clean-modern` | Clean Modern | `CM` | Sage-forward modern workspace with softer depth and quieter structure |
+| `glass` | Glass | `GL` | Frosted, luminous panels with neon-accented night mode |
+| `high-contrast` | High Contrast | `HC` | Accessibility-first mode with zero blur and maximum focus clarity |
 
 Theme IDs are compatibility contracts. Their names should remain stable even when token values evolve.
 
 ## Current Design Model
 
-The redesign does not create a parallel theme system. It keeps the existing engine and changes the token values plus shared shell overrides:
+The redesign does not create a parallel theme system. It keeps the existing engine and changes token values, preview metadata, and shared shell overrides:
 
 - `frontend/src/theme/themeRegistry.ts` owns theme metadata and previews.
 - `frontend/src/index.css` owns token values and the `body.ui-redesign` presentation layer.
@@ -32,6 +32,7 @@ The active semantic tokens are:
 - Borders: `--app-border`, `--app-border-muted`, `--app-input-border`
 - Actions: `--app-accent`, `--app-accent-hover`, `--app-accent-foreground`, `--app-accent-text`, `--app-accent-text-hover`, `--app-accent-soft`, `--app-accent-soft-hover`
 - Interaction: `--app-hover`, `--focus-ring`
+- Shell: `--app-shell-surface`, `--app-shell-top`, `--app-shell-glow`, `--app-shell-glow-secondary`
 
 The default editorial palette is intentionally calmer than the historical neo-brutalist defaults:
 
@@ -39,6 +40,14 @@ The default editorial palette is intentionally calmer than the historical neo-br
 - Dark ink primary text
 - Navy primary actions
 - Lighter borders and softer elevation
+
+Each non-default theme now owns both:
+
+- a distinct light-mode token set,
+- a distinct dark-mode token set,
+- and its own typography, radius, elevation, and shell-atmosphere treatment.
+
+Dark mode is no longer a single flattened redesign palette shared across every theme.
 
 ## Shared UI Tokens
 
@@ -50,7 +59,19 @@ The redesign layer also standardizes shared UI values:
 - `--ui-elev-*`
 - `--ui-motion-*`
 
-These tokens are used by shared shell primitives and should be preferred over hard-coded one-off values.
+These tokens are used by shared shell primitives and should be preferred over hard-coded one-off values. Theme-specific personality changes should happen here before adding component-level overrides.
+
+## Selector and Menu Metadata
+
+`frontend/src/theme/themeRegistry.ts` is the source of truth for:
+
+- stable theme IDs,
+- human-facing labels,
+- short labels used by compact navigation controls,
+- selector and menu descriptions,
+- preview color metadata.
+
+Theme selection UI should use CSS classes or `data-theme` hooks for previews rather than inline styles so it stays within the UI-audit policy.
 
 ## Accessibility Requirements
 

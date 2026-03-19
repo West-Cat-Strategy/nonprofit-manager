@@ -15,11 +15,19 @@ import {
 } from '../../../routes/routeCatalog';
 import { getAdminSettingsPath } from '../../adminOps/adminRoutePaths';
 import type { NavigationDrawerLink } from '../../../components/navigation/MobileNavigationDrawer';
-import type { ThemeId } from '../../../theme/themeRegistry';
+import { THEME_IDS, THEME_REGISTRY, type ThemeId } from '../../../theme/themeRegistry';
 
 const routeFlags = {
   VITE_TEAM_CHAT_ENABLED: import.meta.env.VITE_TEAM_CHAT_ENABLED,
 };
+
+const themeLabels = THEME_IDS.reduce(
+  (labels, themeId) => {
+    labels[themeId] = THEME_REGISTRY[themeId].shortLabel;
+    return labels;
+  },
+  {} as Record<ThemeId, string>
+);
 
 export function useStaffNavigationViewModel() {
   const location = useLocation();
@@ -121,15 +129,6 @@ export function useStaffNavigationViewModel() {
     (item) =>
       activeRouteIds.has(item.id) || normalizeRouteLocation(item.path) === normalizedCurrentLocation
   );
-
-  const themeLabels: Record<ThemeId, string> = {
-    neobrutalist: 'NB',
-    'sea-breeze': 'SB',
-    corporate: 'CP',
-    'clean-modern': 'CM',
-    glass: 'GL',
-    'high-contrast': 'HC',
-  };
 
   const handleLogout = useCallback(() => {
     dispatch(logoutAsync()).finally(() => navigate('/login'));
