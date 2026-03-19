@@ -77,9 +77,10 @@ const ensureTopicDefinitionInCaseScope = async (
 
 export const getCaseOutcomesQuery = async (
   db: PgExecutor,
-  caseId: string
+  caseId: string,
+  organizationId?: string
 ): Promise<CaseOutcomeEvent[]> => {
-  await requireCaseOwnership(db, caseId);
+  await requireCaseOwnership(db, caseId, organizationId);
   const result = await db.query(
     `
     SELECT
@@ -279,9 +280,10 @@ export const deleteCaseOutcomeQuery = async (db: PgExecutor, outcomeId: string):
 
 export const getCaseTopicDefinitionsQuery = async (
   db: PgExecutor,
-  caseId: string
+  caseId: string,
+  organizationId?: string
 ): Promise<CaseTopicDefinition[]> => {
-  const ownership = await requireCaseOwnership(db, caseId);
+  const ownership = await requireCaseOwnership(db, caseId, organizationId);
   const result = await db.query(
     `
     SELECT *
@@ -330,9 +332,10 @@ export const createCaseTopicDefinitionQuery = async (
 
 export const getCaseTopicEventsQuery = async (
   db: PgExecutor,
-  caseId: string
+  caseId: string,
+  organizationId?: string
 ): Promise<CaseTopicEvent[]> => {
-  await requireCaseOwnership(db, caseId);
+  await requireCaseOwnership(db, caseId, organizationId);
 
   const result = await db.query(
     `

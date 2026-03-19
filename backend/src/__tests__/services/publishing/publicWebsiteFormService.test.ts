@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import { PublicWebsiteFormService } from '@services/publishing/publicWebsiteFormService';
+import stripeService from '@services/stripeService';
 
 jest.mock('@services/publishing/siteManagementService', () => ({
   __mocks: {
@@ -79,30 +80,11 @@ jest.mock('@container/services', () => ({
   },
 }));
 
-jest.mock('@services/domains/operations', () => ({
-  __mocks: {
+jest.mock('@services/stripeService', () => ({
+  __esModule: true,
+  default: {
     isStripeConfigured: jest.fn(),
     createPaymentIntent: jest.fn(),
-  },
-  stripeService: {
-    isStripeConfigured: () => {
-      const module = jest.requireMock('@services/domains/operations') as {
-        __mocks: {
-          isStripeConfigured: jest.Mock;
-        };
-      };
-
-      return module.__mocks.isStripeConfigured();
-    },
-    createPaymentIntent: (...args: unknown[]) => {
-      const module = jest.requireMock('@services/domains/operations') as {
-        __mocks: {
-          createPaymentIntent: jest.Mock;
-        };
-      };
-
-      return module.__mocks.createPaymentIntent(...args);
-    },
   },
 }));
 
@@ -196,12 +178,7 @@ const servicesModule = jest.requireMock('@container/services') as {
   };
 };
 
-const operationsModule = jest.requireMock('@services/domains/operations') as {
-  __mocks: {
-    isStripeConfigured: jest.Mock;
-    createPaymentIntent: jest.Mock;
-  };
-};
+const operationsModule = stripeService as jest.Mocked<typeof stripeService>;
 
 const mailchimpModule = jest.requireMock('@services/mailchimpService') as {
   __mocks: {
@@ -324,15 +301,15 @@ describe('PublicWebsiteFormService', () => {
     servicesModule.__mocks.createVolunteer.mockReset();
     servicesModule.__mocks.createDonation.mockReset();
     servicesModule.__mocks.createPublicCheckoutPlan.mockReset();
-    operationsModule.__mocks.isStripeConfigured.mockReset();
-    operationsModule.__mocks.createPaymentIntent.mockReset();
+    operationsModule.isStripeConfigured.mockReset();
+    operationsModule.createPaymentIntent.mockReset();
     mailchimpModule.__mocks.addOrUpdateMember.mockReset();
     mailchimpModule.__mocks.isMailchimpConfigured.mockReset();
     publicSubmissionModule.__mocks.beginSubmission.mockReset();
     publicSubmissionModule.__mocks.markAccepted.mockReset();
     publicSubmissionModule.__mocks.markRejected.mockReset();
     activityEventsModule.__mocks.recordEvent.mockReset();
-    operationsModule.__mocks.isStripeConfigured.mockReturnValue(false);
+    operationsModule.isStripeConfigured.mockReturnValue(false);
     mailchimpModule.__mocks.isMailchimpConfigured.mockReturnValue(false);
     publicSubmissionModule.__mocks.beginSubmission.mockResolvedValue({ submissionId: 'submission-1' });
     publicSubmissionModule.__mocks.markAccepted.mockResolvedValue(undefined);
@@ -554,7 +531,7 @@ describe('PublicWebsiteFormService', () => {
       redirect_url: 'https://checkout.stripe.com/pay/test-session',
       return_url: 'https://site.example.org/donate',
     });
-    operationsModule.__mocks.isStripeConfigured.mockReturnValue(true);
+    operationsModule.isStripeConfigured.mockReturnValue(true);
 
     const result = await service.submitForm(
       site as never,

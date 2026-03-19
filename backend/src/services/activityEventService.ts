@@ -6,6 +6,23 @@ import { logger } from '@config/logger';
 type ActivityEntityType = Activity['entity_type'];
 type Queryable = Pick<Pool, 'query'> | Pick<PoolClient, 'query'>;
 
+const ACTIVITY_EVENT_COLUMNS = `
+  id,
+  organization_id,
+  site_id,
+  activity_type,
+  title,
+  description,
+  actor_user_id,
+  actor_name,
+  entity_type,
+  entity_id,
+  related_entity_type,
+  related_entity_id,
+  metadata,
+  occurred_at
+`;
+
 interface ActivityEventRow extends QueryResultRow {
   id: string;
   organization_id: string | null;
@@ -140,13 +157,13 @@ export class ActivityEventService {
              related_entity_type,
              related_entity_id,
              source_table,
-             source_record_id,
-             metadata,
-             occurred_at
+           source_record_id,
+           metadata,
+           occurred_at
            )
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::uuid, $14::jsonb, $15)
            ON CONFLICT DO NOTHING
-           RETURNING *`,
+           RETURNING ${ACTIVITY_EVENT_COLUMNS}`,
           [
             ...params.slice(0, 11),
             input.sourceTable || null,
@@ -156,7 +173,7 @@ export class ActivityEventService {
           ]
         )
       : await queryable.query<ActivityEventRow>(
-          `INSERT INTO activity_events (
+        `INSERT INTO activity_events (
              organization_id,
              site_id,
              activity_type,
@@ -172,7 +189,7 @@ export class ActivityEventService {
              occurred_at
            )
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13)
-           RETURNING *`,
+           RETURNING ${ACTIVITY_EVENT_COLUMNS}`,
           params
         );
 
@@ -182,7 +199,7 @@ export class ActivityEventService {
 
     if (supportsSourceColumns && input.sourceTable && input.sourceRecordId) {
       const existing = await queryable.query<ActivityEventRow>(
-        `SELECT *
+        `SELECT ${ACTIVITY_EVENT_COLUMNS}
          FROM activity_events
          WHERE source_table = $1
            AND source_record_id = $2::uuid
@@ -204,7 +221,7 @@ export class ActivityEventService {
     organizationId?: string
   ): Promise<Activity[]> {
     const result = await this.db.query<ActivityEventRow>(
-      `SELECT *
+      `SELECT ${ACTIVITY_EVENT_COLUMNS}
        FROM activity_events
        WHERE ($1::uuid IS NULL OR organization_id = $1)
        ORDER BY occurred_at DESC
@@ -221,7 +238,7 @@ export class ActivityEventService {
     organizationId?: string
   ): Promise<Activity[]> {
     const result = await this.db.query<ActivityEventRow>(
-      `SELECT *
+      `SELECT ${ACTIVITY_EVENT_COLUMNS}
        FROM activity_events
        WHERE (($1::uuid IS NULL OR organization_id = $1))
          AND (

@@ -691,7 +691,7 @@ curl -X POST localhost:3000/api/v2/cases \
 - **API Documentation**: See API_INTEGRATION_GUIDE.md
 - **Database Schema**: See 009_case_management.sql
 - **Type Definitions**: See backend/src/types/case.ts
-- **Issues**: https://github.com/example/nonprofit-manager/issues
+- **Workflow**: [planning-and-progress.md](../phases/planning-and-progress.md)
 
 ---
 

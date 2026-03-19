@@ -15,6 +15,43 @@ import type {
 import { SiteManagementService } from './siteManagementService';
 import { ConversionEventService } from './conversionEventService';
 
+interface SiteAnalyticsRow {
+  [key: string]: unknown;
+  id: string;
+  site_id: string;
+  page_path: string;
+  visitor_id: string | null;
+  session_id: string | null;
+  user_agent: string | null;
+  referrer: string | null;
+  country: string | null;
+  city: string | null;
+  device_type: string | null;
+  browser: string | null;
+  os: string | null;
+  event_type: AnalyticsEventType;
+  event_data: Record<string, unknown> | string | null;
+  created_at: string | Date;
+}
+
+const SITE_ANALYTICS_COLUMNS = `
+  id,
+  site_id,
+  page_path,
+  visitor_id,
+  session_id,
+  user_agent,
+  referrer,
+  country,
+  city,
+  device_type,
+  browser,
+  os,
+  event_type,
+  event_data,
+  created_at
+`;
+
 export class SiteAnalyticsService {
   private siteManagement: SiteManagementService;
   private conversionEvents: ConversionEventService;
@@ -44,12 +81,12 @@ export class SiteAnalyticsService {
       eventData?: Record<string, unknown>;
     }
   ): Promise<SiteAnalyticsRecord> {
-    const result = await this.pool.query<{ id: string } & Record<string, unknown>>(
+    const result = await this.pool.query<SiteAnalyticsRow>(
       `INSERT INTO site_analytics (
         site_id, page_path, visitor_id, session_id, user_agent, referrer,
         country, city, device_type, browser, os, event_type, event_data
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      RETURNING *`,
+      RETURNING ${SITE_ANALYTICS_COLUMNS}`,
       [
         siteId,
         data.pagePath,
@@ -104,24 +141,17 @@ export class SiteAnalyticsService {
     periodStart.setDate(periodStart.getDate() - periodDays);
     const periodEnd = new Date();
 
-    // Get total pageviews
-    const pageviewsResult = await this.pool.query(
+    const pageviewsQuery = this.pool.query(
       `SELECT COUNT(*) FROM site_analytics
        WHERE site_id = $1 AND event_type = 'pageview' AND created_at >= $2`,
       [siteId, periodStart]
     );
-    const totalPageviews = parseInt(pageviewsResult.rows[0].count, 10);
-
-    // Get unique visitors
-    const visitorsResult = await this.pool.query(
+    const visitorsQuery = this.pool.query(
       `SELECT COUNT(DISTINCT visitor_id) FROM site_analytics
        WHERE site_id = $1 AND created_at >= $2 AND visitor_id IS NOT NULL`,
       [siteId, periodStart]
     );
-    const uniqueVisitors = parseInt(visitorsResult.rows[0].count, 10);
-
-    // Get top pages
-    const topPagesResult = await this.pool.query(
+    const topPagesQuery = this.pool.query(
       `SELECT page_path, COUNT(*) as views
        FROM site_analytics
        WHERE site_id = $1 AND event_type = 'pageview' AND created_at >= $2
@@ -130,13 +160,7 @@ export class SiteAnalyticsService {
        LIMIT 10`,
       [siteId, periodStart]
     );
-    const topPages = topPagesResult.rows.map((row) => ({
-      path: row.page_path,
-      views: parseInt(row.views, 10),
-    }));
-
-    // Get traffic by device
-    const deviceResult = await this.pool.query(
+    const deviceQuery = this.pool.query(
       `SELECT COALESCE(device_type, 'unknown') as device, COUNT(*) as count
        FROM site_analytics
        WHERE site_id = $1 AND created_at >= $2
@@ -144,13 +168,7 @@ export class SiteAnalyticsService {
        ORDER BY count DESC`,
       [siteId, periodStart]
     );
-    const trafficByDevice = deviceResult.rows.map((row) => ({
-      device: row.device,
-      count: parseInt(row.count, 10),
-    }));
-
-    // Get traffic by country
-    const countryResult = await this.pool.query(
+    const countryQuery = this.pool.query(
       `SELECT COALESCE(country, 'unknown') as country, COUNT(*) as count
        FROM site_analytics
        WHERE site_id = $1 AND created_at >= $2
@@ -159,19 +177,39 @@ export class SiteAnalyticsService {
        LIMIT 10`,
       [siteId, periodStart]
     );
-    const trafficByCountry = countryResult.rows.map((row) => ({
-      country: row.country,
-      count: parseInt(row.count, 10),
-    }));
-
-    // Get recent events
-    const recentEventsResult = await this.pool.query(
-      `SELECT * FROM site_analytics
+    const recentEventsQuery = this.pool.query<SiteAnalyticsRow>(
+      `SELECT ${SITE_ANALYTICS_COLUMNS}
+       FROM site_analytics
        WHERE site_id = $1 AND created_at >= $2
        ORDER BY created_at DESC
        LIMIT 20`,
       [siteId, periodStart]
     );
+
+    const [pageviewsResult, visitorsResult, topPagesResult, deviceResult, countryResult, recentEventsResult] =
+      await Promise.all([
+        pageviewsQuery,
+        visitorsQuery,
+        topPagesQuery,
+        deviceQuery,
+        countryQuery,
+        recentEventsQuery,
+      ]);
+
+    const totalPageviews = parseInt(pageviewsResult.rows[0].count, 10);
+    const uniqueVisitors = parseInt(visitorsResult.rows[0].count, 10);
+    const topPages = topPagesResult.rows.map((row) => ({
+      path: row.page_path,
+      views: parseInt(row.views, 10),
+    }));
+    const trafficByDevice = deviceResult.rows.map((row) => ({
+      device: row.device,
+      count: parseInt(row.count, 10),
+    }));
+    const trafficByCountry = countryResult.rows.map((row) => ({
+      country: row.country,
+      count: parseInt(row.count, 10),
+    }));
     const recentEvents = recentEventsResult.rows.map((row) => this.siteManagement.mapRowToAnalytics(row));
 
     return {
@@ -201,7 +239,7 @@ export class SiteAnalyticsService {
     periodStart.setDate(periodStart.getDate() - periodDays);
     const periodEnd = new Date();
 
-    const totalsResult = await this.pool.query<{
+    const totalsQuery = this.pool.query<{
       total_pageviews: string;
       unique_visitors: string;
       form_submissions: string;
@@ -220,8 +258,8 @@ export class SiteAnalyticsService {
       [siteId, periodStart]
     );
 
-    const recentConversionsResult = await this.pool.query(
-      `SELECT *
+    const recentConversionsQuery = this.pool.query<SiteAnalyticsRow>(
+      `SELECT ${SITE_ANALYTICS_COLUMNS}
        FROM site_analytics
        WHERE site_id = $1
          AND created_at >= $2
@@ -230,6 +268,11 @@ export class SiteAnalyticsService {
        LIMIT 20`,
       [siteId, periodStart]
     );
+
+    const [totalsResult, recentConversionsResult] = await Promise.all([
+      totalsQuery,
+      recentConversionsQuery,
+    ]);
 
     const totals = totalsResult.rows[0];
     const formSubmissions = Number.parseInt(totals?.form_submissions ?? '0', 10);

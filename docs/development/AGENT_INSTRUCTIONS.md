@@ -100,7 +100,7 @@ cd backend && npm run type-check
 cd frontend && npm run type-check
 make check-links
 make lint-doc-api-versioning
-scripts/select-checks.sh --base HEAD~1 --mode fast
+./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
 Coverage thresholds are enforced by repo config. Do not restate a blanket percentage unless you have verified it from the current config.

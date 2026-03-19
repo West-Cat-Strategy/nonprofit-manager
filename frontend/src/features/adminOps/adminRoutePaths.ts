@@ -1,7 +1,6 @@
 import {
   getRouteCatalogEntryById,
   getRouteHref,
-  normalizeRouteLocation,
 } from '../../routes/routeCatalog';
 import { adminSettingsTabs } from './pages/adminSettings/constants';
 
@@ -49,11 +48,6 @@ const getCatalogPath = (id: string): string => {
   return getRouteHref(entry);
 };
 
-const buildLocationWithSearch = (path: string, searchParams: URLSearchParams): string => {
-  const search = searchParams.toString();
-  return normalizeRouteLocation(search ? `${path}?${search}` : path);
-};
-
 export const parseAdminSettingsSection = (
   value: string | null | undefined
 ): AdminSettingsSection | null => {
@@ -77,18 +71,3 @@ export const getAdminSettingsPath = (
 export const getPortalAdminPath = (
   panel: PortalAdminPanel = 'access'
 ): string => getCatalogPath(portalAdminRouteIds[panel]);
-
-export const resolveLegacyAdminSettingsLocation = (value: string): string => {
-  const normalized = normalizeRouteLocation(value);
-  const parsed = new URL(normalized, 'http://localhost');
-  const remainingParams = new URLSearchParams(parsed.searchParams);
-  const section = remainingParams.get('section');
-  remainingParams.delete('section');
-
-  if (section === 'portal') {
-    return buildLocationWithSearch(getPortalAdminPath('access'), remainingParams);
-  }
-
-  const targetSection = parseAdminSettingsSection(section) ?? 'dashboard';
-  return buildLocationWithSearch(getAdminSettingsPath(targetSection), remainingParams);
-};

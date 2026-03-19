@@ -16,12 +16,6 @@ dist.bak/
 *.js.map
 backend/dist/
 backend/dist.bak/
-.deploy.conf
-.deploy.conf.*
-!.deploy.conf.example
-!.deploy.conf.*.example
-.secrets/
-.codex/
 
 # ==============================
 # Environment and secrets
@@ -31,6 +25,12 @@ backend/dist.bak/
 .env.*
 !.env.example
 !.env.*.example
+.deploy.conf
+.deploy.conf.*
+!.deploy.conf.example
+!.deploy.conf.*.example
+.secrets/
+.codex/
 
 # Private keys, certs, and credentials
 *.pem

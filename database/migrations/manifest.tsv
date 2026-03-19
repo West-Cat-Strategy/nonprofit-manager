@@ -81,3 +81,4 @@
 079	079_donation_tax_receipts_and_org_settings.sql	
 080	080_social_media_tracking.sql	
 081	081_messaging_client_message_ids.sql	
+082	082_backend_runtime_efficiency_indexes.sql	

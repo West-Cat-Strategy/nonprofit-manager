@@ -45,7 +45,7 @@ Developer agents are AI assistants contributing code to the nonprofit-manager pr
 
 **DevOps:**
 - Docker & Docker Compose for local development
-- Local CI/CD via `Makefile` + `scripts/ci.sh` / `scripts/local-ci.sh`
+- Local CI/CD via `Makefile` targets (`make ci`, `make ci-fast`, `make ci-full`, `make ci-unit`)
 - PostgreSQL + Redis for services
 
 ### Code Standards
@@ -136,7 +136,7 @@ Helper functions for checking user permissions:
 - Run tests: `npm test` in e2e/ root
 
 **CI/CD:**
-- Local CI pipeline via `make ci`, `make ci-fast`, `make ci-full`, and `scripts/local-ci.sh`
+- Local CI pipeline via `make ci`, `make ci-fast`, `make ci-full`, and `make ci-unit`
 - Services: PostgreSQL + Redis + Backend (+ frontend/e2e checks when selected)
 - Requirements:
   - All unit tests pass
@@ -325,8 +325,8 @@ The application tracks HTTP `User-Agent` headers to understand browser/client be
 |---------|------|---------|
 | Portal Activity | [backend/src/services/portalActivityService.ts](backend/src/services/portalActivityService.ts#L25-L32) | Log user interactions on portal |
 | API Key Usage | [backend/src/services/apiKeyService.ts](backend/src/services/apiKeyService.ts#L269) | Track API key consumption by client |
-| Auth Activity | [backend/src/controllers/portalAuthController.ts](backend/src/controllers/portalAuthController.ts#L147) | Log authentication attempts and sessions |
-| Publishing Events | [backend/src/controllers/publishingController.ts](backend/src/controllers/publishingController.ts#L286) | Track publishing actions |
+| Auth Activity | [backend/src/modules/portalAuth/controllers/portalAuthController.ts](backend/src/modules/portalAuth/controllers/portalAuthController.ts#L136) | Log authentication attempts and sessions |
+| Publishing Events | [backend/src/modules/publishing/controllers/publishingController.ts](backend/src/modules/publishing/controllers/publishingController.ts#L286) | Track publishing actions |
 | Portal Actions | [backend/src/modules/portal/controllers/resources.controller.ts](backend/src/modules/portal/controllers/resources.controller.ts#L96) | Log portal document/resource actions |
 
 ### Database Schema

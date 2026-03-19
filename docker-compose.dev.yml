@@ -2,126 +2,89 @@ services:
   postgres:
     image: postgres:14-alpine
     restart: unless-stopped
-    env_file:
-      - .env.development
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DB: nonprofit_manager
     ports:
       - "8002:5432"
+    environment:
+      POSTGRES_DB: nonprofit_manager
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     volumes:
-      - postgres_data_dev:/var/lib/postgresql/data
-      - ./database/initdb:/docker-entrypoint-initdb.d:ro
+      - nonprofit-manager-postgres-data:/var/lib/postgresql/data
+      - ./database/initdb/000_init.sql:/docker-entrypoint-initdb.d/000_init.sql:ro
       - ./database/migrations:/migrations:ro
       - ./database/seeds:/seeds:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nonprofit_manager"]
+      interval: 5s
       timeout: 5s
-      retries: 5
-    networks:
-      - nonprofit-dev-network
+      retries: 20
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
       - "8003:6379"
-    volumes:
-      - redis_data_dev:/data
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    networks:
-      - nonprofit-dev-network
-    command: redis-server --appendonly yes
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
 
-  # Development backend with hot reload
   backend-dev:
     build:
       context: ./backend
-      dockerfile: Dockerfile
       target: dev
-    init: true
     restart: unless-stopped
-    ports:
-      - "8004:3000"
-      - "8009:8009" # Node.js debugger port
+    init: true
     env_file:
       - .env.development
     environment:
-      NODE_ENV: development
-      PORT: 3000
-      DB_HOST: postgres
-      DB_PORT: 5432
-      REDIS_URL: redis://redis:6379
-      FRONTEND_URL: https://localhost:8443
-      CORS_ORIGIN: http://127.0.0.1:8005,http://localhost:8005,https://localhost:8443
-      EXPOSE_AUTH_TOKENS_IN_RESPONSE: 'true'
-      RATE_LIMIT_MAX_REQUESTS: 1000000
-      AUTH_RATE_LIMIT_MAX_REQUESTS: 1000000
-      REGISTRATION_MAX_ATTEMPTS: 1000000
-      MAX_LOGIN_ATTEMPTS: 1000
+      HOST: 0.0.0.0
+    ports:
+      - "8004:3000"
+    volumes:
+      - ./backend:/app
+      - backend-dev-node-modules:/app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - backend_node_modules:/app/node_modules
-      - backend_logs_dev:/app/logs
-    networks:
-      - nonprofit-dev-network
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health >/dev/null 2>&1 || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health/live > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
       start_period: 20s
 
-  # Development frontend with hot reload
   frontend-dev:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
       target: dev
-    init: true
     restart: unless-stopped
+    init: true
+    environment:
+      VITE_API_URL: /api
+      VITE_TEAM_CHAT_ENABLED: "true"
+      VITE_TEAM_CHAT_REALTIME_ENABLED: "true"
     ports:
       - "8005:8005"
-    environment:
-      # Use relative path so Vite proxy handles requests (enabling LAN/Tailnet access)
-      VITE_API_URL: /api
+    volumes:
+      - ./frontend:/app
+      - frontend-dev-node-modules:/app/node_modules
     depends_on:
       backend-dev:
         condition: service_healthy
-    volumes:
-      - ./frontend:/app
-      - frontend_node_modules:/app/node_modules
-    networks:
-      - nonprofit-dev-network
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8005 >/dev/null 2>&1 || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8005 > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
       start_period: 20s
 
 volumes:
-  postgres_data_dev:
-    driver: local
-  redis_data_dev:
-    driver: local
-  backend_logs_dev:
-    driver: local
-  backend_node_modules:
-    driver: local
-  frontend_node_modules:
-    driver: local
-
-networks:
-  nonprofit-dev-network:
-    driver: bridge
+  nonprofit-manager-postgres-data:
+  backend-dev-node-modules:
+  frontend-dev-node-modules:

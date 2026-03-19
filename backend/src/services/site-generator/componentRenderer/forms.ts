@@ -1,6 +1,7 @@
 import type { PublishedComponent, PublishedTheme } from '@app-types/publishing';
 import { escapeHtml } from '../escapeHtml';
 import { getSocialIcon } from '../socialIcons';
+import { sanitizeRenderableUrl } from '../urlSanitizer';
 
 export function generateContactForm(component: PublishedComponent, theme: PublishedTheme): string {
   const submitText = (component.submitText as string) || 'Send Message';
@@ -77,10 +78,18 @@ export function generateSocialLinks(component: PublishedComponent): string {
 
   return `
       <div class="social-links" style="display: flex; gap: 1rem; justify-content: ${justifyMap[align] || 'center'}; flex-wrap: wrap;">
-        ${links.map((link) => `
-          <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(link.platform)}" style="color: inherit; transition: opacity 0.2s;">
+        ${links
+          .map((link) => {
+            const safeUrl = sanitizeRenderableUrl(link.url);
+            if (!safeUrl) {
+              return '';
+            }
+            return `
+          <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(link.platform)}" style="color: inherit; transition: opacity 0.2s;">
             ${getSocialIcon(link.platform)}
           </a>
-        `).join('\n')}
+        `;
+          })
+          .join('\n')}
       </div>`;
 }

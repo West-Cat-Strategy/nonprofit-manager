@@ -1,6 +1,5 @@
 /**
  * Module-owned contact note persistence and hydration helpers.
- * Legacy `@services/contactNoteService` re-exports from this file as a thin wrapper.
  */
 
 import { Pool, PoolClient } from 'pg';

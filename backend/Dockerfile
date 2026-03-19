@@ -13,9 +13,11 @@ RUN --mount=type=cache,target=/root/.npm \
 
 FROM deps AS build
 
-COPY tsconfig.json ./
+COPY tsconfig.json tsconfig.docker.json ./
 COPY src ./src
-RUN npm run build && npm prune --omit=dev
+RUN ./node_modules/.bin/tsc -p tsconfig.docker.json && \
+    ./node_modules/.bin/tsc-alias -p tsconfig.docker.json && \
+    npm prune --omit=dev
 
 FROM deps AS dev
 
@@ -35,9 +37,8 @@ ENV NODE_ENV=production \
     PORT=8000
 
 RUN mkdir -p /app/exports /app/logs /app/uploads && \
-    chown -R node:node /app
+    chown node:node /app/exports /app/logs /app/uploads
 
-COPY --from=build --chown=node:node /app/package*.json ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 

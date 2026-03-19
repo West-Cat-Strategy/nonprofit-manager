@@ -115,7 +115,7 @@ test.describe('Tasks Module', () => {
     await authenticatedPage.evaluate(() => {
       localStorage.removeItem('tasks_list_filters_v1');
     });
-    await authenticatedPage.reload({ waitUntil: 'networkidle' });
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     const filteredResponsePromise = authenticatedPage.waitForResponse(
       (response) =>
         response.url().includes('/api/v2/tasks?') &&
@@ -149,7 +149,7 @@ test.describe('Tasks Module', () => {
     await authenticatedPage.evaluate(() => {
       localStorage.removeItem('tasks_list_filters_v1');
     });
-    await authenticatedPage.reload({ waitUntil: 'networkidle' });
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await authenticatedPage.getByLabel('Search tasks').fill('Task 25');
     await expect(authenticatedPage.getByText('Task 25').first()).toBeVisible();
     await authenticatedPage.getByLabel('Search tasks').fill('');

@@ -11,6 +11,7 @@ import type {
   WebsiteEntryStatus,
 } from '@app-types/websiteBuilder';
 import { getCampaigns } from '@services/mailchimpService';
+import { sanitizeNewsletterHtml } from './newsletterHtmlSanitizer';
 import { SiteManagementService } from './siteManagementService';
 
 const normalizeSlug = (value: string): string =>
@@ -42,6 +43,12 @@ const mapEntryRow = (row: Record<string, unknown>): WebsiteEntry => ({
   createdAt: new Date(row.created_at as string).toISOString(),
   updatedAt: new Date(row.updated_at as string).toISOString(),
 });
+
+const sanitizeBodyHtml = (value?: string | null): string | null => {
+  if (!value) return null;
+  const sanitized = sanitizeNewsletterHtml(value).trim();
+  return sanitized.length > 0 ? sanitized : null;
+};
 
 interface EntryListOptions {
   status?: WebsiteEntryStatus;
@@ -158,7 +165,7 @@ export class WebsiteEntryService {
         data.title.trim(),
         data.excerpt || null,
         data.body || null,
-        data.bodyHtml || null,
+        sanitizeBodyHtml(data.bodyHtml),
         JSON.stringify(data.seo || {}),
         JSON.stringify(data.metadata || {}),
         publishedAt,
@@ -210,7 +217,7 @@ export class WebsiteEntryService {
     }
     if (data.bodyHtml !== undefined) {
       updates.push(`body_html = $${paramIndex++}`);
-      params.push(data.bodyHtml || null);
+      params.push(sanitizeBodyHtml(data.bodyHtml));
     }
     if (data.seo !== undefined) {
       updates.push(`seo = $${paramIndex++}`);

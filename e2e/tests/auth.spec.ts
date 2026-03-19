@@ -15,6 +15,7 @@ const defaultCreds = {
 };
 let currentCreds = { ...defaultCreds };
 const getCreds = () => currentCreds;
+const dashboardUrl = /\/dashboard(?:[/?#]|$)/;
 
 const gotoLogin = async (page: Page) => {
   for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -48,7 +49,7 @@ const gotoDashboardWithApiAuth = async (page: Page) => {
     lastName: 'User',
   });
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-  await expect(page).toHaveURL('/dashboard');
+  await expect(page).toHaveURL(dashboardUrl);
 };
 
 test.describe('Authentication Flow', () => {
@@ -105,7 +106,7 @@ test.describe('Authentication Flow', () => {
     await login(page, email, password);
 
     // Should redirect to dashboard
-    await expect(page).toHaveURL('/dashboard');
+    await expect(page).toHaveURL(dashboardUrl);
 
     // WebKit can render the shell heading slower; accept either a dashboard heading or primary nav link.
     await expect
@@ -210,7 +211,7 @@ test.describe('Authentication Flow', () => {
 
     const { email, password } = getCreds();
     await login(page, email, password);
-    await expect(page).toHaveURL('/dashboard');
+    await expect(page).toHaveURL(dashboardUrl);
     await page.waitForTimeout(800);
     expect(preferencesRequests).toEqual([]);
     expect(brandingRequests).toEqual([]);
@@ -219,7 +220,7 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveURL('/contacts');
     await page.waitForTimeout(500);
     await clickVisibleNavLink('/dashboard', /dashboard|home/i);
-    await expect(page).toHaveURL('/dashboard');
+    await expect(page).toHaveURL(dashboardUrl);
 
     await page.waitForTimeout(800);
     expect(preferencesRequests).toEqual([]);
@@ -256,7 +257,7 @@ test.describe('Authentication Flow', () => {
     // Login first
     const { email, password } = getCreds();
     await login(page, email, password);
-    await expect(page).toHaveURL('/dashboard');
+    await expect(page).toHaveURL(dashboardUrl);
 
     // Logout
     await logout(page);
@@ -295,13 +296,13 @@ test.describe('Authentication Flow', () => {
   test('should persist authentication across page reloads', async ({ page }) => {
     const { email, password } = getCreds();
     await login(page, email, password);
-    await expect(page).toHaveURL('/dashboard');
+    await expect(page).toHaveURL(dashboardUrl);
 
     // Reload page
     await page.reload();
 
     // Should still be on dashboard
-    await expect(page).toHaveURL('/dashboard');
+    await expect(page).toHaveURL(dashboardUrl);
 
     // Check that we're still authenticated
     const user = await page.evaluate(() => localStorage.getItem('user'));

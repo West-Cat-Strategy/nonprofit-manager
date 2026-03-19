@@ -28,6 +28,37 @@ const CADENCE_MINUTES: Record<ReminderCadenceKey, number> = {
 
 const CADENCE_KEYS: ReminderCadenceKey[] = ['24h', '2h'];
 const CHANNELS: ReminderChannel[] = ['email', 'sms'];
+const APPOINTMENT_REMINDER_JOB_COLUMNS = [
+  'id',
+  'appointment_id',
+  'cadence_key',
+  'channel',
+  'scheduled_for',
+  'status',
+  'processing_started_at',
+  'attempt_count',
+  'last_error',
+  'cancelled_reason',
+  'created_at',
+  'updated_at',
+] as const;
+const APPOINTMENT_REMINDER_JOB_SELECT_COLUMNS = APPOINTMENT_REMINDER_JOB_COLUMNS.join(', ');
+const APPOINTMENT_REMINDER_JOB_RETURNING_COLUMNS = APPOINTMENT_REMINDER_JOB_COLUMNS.map(
+  (column) => `j.${column}`
+).join(', ');
+const APPOINTMENT_REMINDER_DELIVERY_COLUMNS = [
+  'id',
+  'appointment_id',
+  'job_id',
+  'channel',
+  'trigger_type',
+  'recipient',
+  'delivery_status',
+  'error_message',
+  'message_preview',
+  'sent_by',
+  'sent_at',
+].join(', ');
 
 interface AppointmentReminderContextRow {
   appointment_id: string;
@@ -495,7 +526,7 @@ export async function syncJobsForAppointment(
   }
 
   const rows = await pool.query<AppointmentReminderJobRow>(
-    `SELECT *
+    `SELECT ${APPOINTMENT_REMINDER_JOB_SELECT_COLUMNS}
      FROM appointment_reminder_jobs
      WHERE appointment_id = $1
      ORDER BY scheduled_for ASC, channel ASC`,
@@ -588,10 +619,10 @@ export async function claimDueJobs(
            updated_at = NOW()
        FROM due
        WHERE j.id = due.id
-       RETURNING j.*
+       RETURNING ${APPOINTMENT_REMINDER_JOB_RETURNING_COLUMNS}
      )
      SELECT
-       claimed.*,
+       ${APPOINTMENT_REMINDER_JOB_SELECT_COLUMNS},
        a.title,
        a.start_time,
        a.end_time,
@@ -635,14 +666,14 @@ export async function listAppointmentReminders(
 ): Promise<AppointmentReminderListResult> {
   const [jobsResult, deliveriesResult] = await Promise.all([
     pool.query<AppointmentReminderJobRow>(
-      `SELECT *
+      `SELECT ${APPOINTMENT_REMINDER_JOB_SELECT_COLUMNS}
        FROM appointment_reminder_jobs
        WHERE appointment_id = $1
        ORDER BY scheduled_for ASC, channel ASC`,
       [appointmentId]
     ),
     pool.query<AppointmentReminderDeliveryRow>(
-      `SELECT *
+      `SELECT ${APPOINTMENT_REMINDER_DELIVERY_COLUMNS}
        FROM appointment_reminder_deliveries
        WHERE appointment_id = $1
        ORDER BY sent_at DESC`,

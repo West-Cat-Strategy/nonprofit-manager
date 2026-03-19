@@ -41,10 +41,11 @@ const E2E_COMPOSE_PROJECT_NAME = process.env.E2E_COMPOSE_PROJECT_NAME || process
 const E2E_COMPOSE_FILES = process.env.E2E_COMPOSE_FILES || process.env.COMPOSE_FILES || '';
 const E2E_COMPOSE_ENV_FILE =
   process.env.E2E_COMPOSE_ENV_FILE || process.env.COMPOSE_ENV_FILE || '.env.development';
-const E2E_DB_HOST = process.env.E2E_DB_HOST || '127.0.0.1';
-const E2E_DB_PORT = process.env.E2E_DB_PORT || '8012';
-const E2E_DB_NAME = process.env.E2E_DB_NAME || 'nonprofit_manager';
-const E2E_DB_USER = process.env.E2E_DB_USER || 'postgres';
+const E2E_DB_HOST = process.env.E2E_DB_HOST || process.env.DB_HOST || '127.0.0.1';
+const E2E_DB_PORT = process.env.E2E_DB_PORT || process.env.DB_PORT || '8012';
+const E2E_DB_NAME =
+  process.env.E2E_DB_NAME || process.env.DB_NAME || process.env.TEST_DB_NAME || 'nonprofit_manager_test';
+const E2E_DB_USER = process.env.E2E_DB_USER || process.env.DB_USER || 'postgres';
 const E2E_DB_PASSWORD = process.env.E2E_DB_PASSWORD || process.env.DB_PASSWORD || 'postgres';
 const clearFrontendPortCommand =
   `for p in $(lsof -ti tcp:${E2E_FRONTEND_PORT} 2>/dev/null); do kill -9 "$p" 2>/dev/null || true; done`;
@@ -54,9 +55,7 @@ const WEB_SERVER_TIMEOUT_MS = RUNNING_IN_CI ? 300 * 1000 : 120 * 1000;
 const backendRuntimeCommand = useCompiledCiRuntime
   ? 'npm run build && node dist/index.js'
   : 'npx ts-node -r tsconfig-paths/register --transpileOnly src/index.ts';
-const backendStartCommand =
-  'cd .. && env -u DB_HOST -u DB_PORT -u DB_NAME -u DB_USER -u DB_PASSWORD DB_AUTO_START=true ./scripts/db-migrate.sh' +
-  ` && cd backend && ${backendRuntimeCommand}`;
+const backendStartCommand = `cd .. && DB_AUTO_START=true COMPOSE_MODE=ci DB_HOST=${E2E_DB_HOST} DB_PORT=${E2E_DB_PORT} DB_NAME=${E2E_DB_NAME} DB_USER=${E2E_DB_USER} DB_PASSWORD=${E2E_DB_PASSWORD} ./scripts/db-migrate.sh && cd backend && ${backendRuntimeCommand}`;
 
 const frontendRuntimeCommand = useCompiledCiRuntime
   ? `${clearFrontendPortCommand} && npm run build && ${clearFrontendPortCommand} && npx vite preview --host ${E2E_FRONTEND_HOST} --port ${E2E_FRONTEND_PORT} --strictPort`
@@ -149,6 +148,8 @@ export default defineConfig({
         env: {
           NODE_ENV: 'test',
           PORT: E2E_BACKEND_PORT,
+          BYPASS_REGISTRATION_POLICY_IN_TEST:
+            process.env.BYPASS_REGISTRATION_POLICY_IN_TEST || 'true',
           COMPOSE_MODE: E2E_COMPOSE_MODE,
           ...(E2E_COMPOSE_PROJECT_NAME ? { COMPOSE_PROJECT_NAME: E2E_COMPOSE_PROJECT_NAME } : {}),
           ...(E2E_COMPOSE_FILES ? { COMPOSE_FILES: E2E_COMPOSE_FILES } : {}),

@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import * as webhookController from '../../controllers/webhookController';
+import * as webhookController from '../../modules/webhooks/controllers/webhookController';
 
 jest.mock('../../config/logger', () => ({
   logger: {

@@ -6,7 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { services } from '@container/services';
 import { AuthRequest } from '@middleware/auth';
-import type { ExportFormat } from '@services/domains/operations';
+import type { ExportFormat } from '@services/exportService';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
 import { forbidden } from '@utils/responseHelpers';

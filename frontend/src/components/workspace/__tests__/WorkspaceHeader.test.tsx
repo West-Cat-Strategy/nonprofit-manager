@@ -59,4 +59,19 @@ describe('WorkspaceHeader', () => {
       '/cases'
     );
   });
+
+  it('hides the browse workspace block on staff detail routes', () => {
+    renderWithProviders(<WorkspaceHeader />, {
+      route: '/contacts/11111111-1111-4111-8111-111111111111',
+    });
+
+    expect(
+      screen.queryByRole('navigation', { name: /browse workspace/i })
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText(/person detail/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: /manage navigation/i })[0]).toHaveAttribute(
+      'href',
+      '/settings/navigation'
+    );
+  });
 });

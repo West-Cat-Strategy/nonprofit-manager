@@ -1,101 +1,57 @@
-# Nonprofit Manager Configuration
-# Common settings used across scripts
+#!/bin/bash
+# Shared script configuration helpers for Nonprofit Manager.
 
-# Project settings
-PROJECT_NAME="${PROJECT_NAME:-nonprofit-manager}"
-PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Docker settings
-DOCKER_COMPOSE_FILE="${DOCKER_COMPOSE_FILE:-docker-compose.yml}"
-DOCKER_COMPOSE_DEV_FILE="${DOCKER_COMPOSE_DEV_FILE:-docker-compose.dev.yml}"
-DOCKER_COMPOSE_TOOLS_FILE="${DOCKER_COMPOSE_TOOLS_FILE:-docker-compose.tools.yml}"
-DOCKER_COMPOSE_CADDY_FILE="${DOCKER_COMPOSE_CADDY_FILE:-docker-compose.caddy.yml}"
-DOCKER_COMPOSE_HOST_ACCESS_FILE="${DOCKER_COMPOSE_HOST_ACCESS_FILE:-docker-compose.host-access.yml}"
-DOCKER_COMPOSE_CI_FILE="${DOCKER_COMPOSE_CI_FILE:-docker-compose.ci.yml}"
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker compose)
+elif docker-compose version >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker-compose)
+else
+  COMPOSE_CMD=(docker compose)
+fi
 
-COMPOSE_PROJECT_PROD="${COMPOSE_PROJECT_PROD:-nonprofit-prod}"
-COMPOSE_PROJECT_DEV="${COMPOSE_PROJECT_DEV:-nonprofit-dev}"
-COMPOSE_PROJECT_CI="${COMPOSE_PROJECT_CI:-nonprofit-ci}"
-COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE:-}"
+repo_root() {
+  printf '%s\n' "$PROJECT_ROOT"
+}
 
-COMPOSE_FILES_PROD="${COMPOSE_FILES_PROD:-docker-compose.yml}"
-COMPOSE_FILES_DEV="${COMPOSE_FILES_DEV:-docker-compose.dev.yml}"
-COMPOSE_FILES_CI="${COMPOSE_FILES_CI:-docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml}"
-DB_ENCRYPTED_COMPOSE_FILE="${DB_ENCRYPTED_COMPOSE_FILE:-docker-compose.db-encrypted.yml}"
+require_cmd() {
+  local cmd="$1"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "Required command not found: $cmd" >&2
+    return 1
+  fi
+}
 
-# Service names
-DB_SERVICE="${DB_SERVICE:-postgres}"
-REDIS_SERVICE="${REDIS_SERVICE:-redis}"
-BACKEND_SERVICE="${BACKEND_SERVICE:-backend}"
-FRONTEND_SERVICE="${FRONTEND_SERVICE:-frontend}"
-BACKEND_DEV_SERVICE="${BACKEND_DEV_SERVICE:-backend-dev}"
-FRONTEND_DEV_SERVICE="${FRONTEND_DEV_SERVICE:-frontend-dev}"
+require_abs_path() {
+  local value="${1:-}"
+  if [[ -z "$value" || "${value:0:1}" != "/" ]]; then
+    return 1
+  fi
+}
 
-# Database settings
-DB_USER="${DB_USER:-postgres}"
-DB_NAME="${DB_NAME:-nonprofit_manager}"
-DB_HOST="${DB_HOST:-localhost}"
-DB_PORT="${DB_PORT:-5432}"
-DB_DEV_PORT="${DB_DEV_PORT:-8002}"
-REDIS_PORT="${REDIS_PORT:-6379}"
-REDIS_DEV_PORT="${REDIS_DEV_PORT:-8003}"
+compose() {
+  "${COMPOSE_CMD[@]}" "$@"
+}
 
-# Service ports (development)
-BACKEND_DEV_PORT="${BACKEND_DEV_PORT:-8004}"
-FRONTEND_DEV_PORT="${FRONTEND_DEV_PORT:-8005}"
+compose_with_project() {
+  local project_name="$1"
+  shift
+  "${COMPOSE_CMD[@]}" -p "$project_name" "$@"
+}
 
-# Service ports (production)
-BACKEND_PORT="${BACKEND_PORT:-8000}"
-FRONTEND_PORT="${FRONTEND_PORT:-8001}"
+compose_exec() {
+  local project_name="$1"
+  local compose_file="$2"
+  local service="$3"
+  shift 3
+  "${COMPOSE_CMD[@]}" -p "$project_name" -f "$compose_file" exec -T "$service" "$@"
+}
 
-# API settings
-API_BASE_URL="${API_BASE_URL:-http://localhost:8000/api}"
-API_DEV_URL="${API_DEV_URL:-http://localhost:8004/api}"
+compose_up() {
+  local project_name="$1"
+  shift
+  "${COMPOSE_CMD[@]}" -p "$project_name" "$@" up -d
+}
 
-# Health check settings
-HEALTH_CHECK_TIMEOUT="${HEALTH_CHECK_TIMEOUT:-30}"
-HEALTH_CHECK_RETRIES="${HEALTH_CHECK_RETRIES:-3}"
-HEALTH_CHECK_INTERVAL="${HEALTH_CHECK_INTERVAL:-10}"
-
-# Backup settings
-BACKUP_DIR="${BACKUP_DIR:-database/backups}"
-BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
-BACKUP_COMPRESSION="${BACKUP_COMPRESSION:-true}"
-
-# Migration settings
-MIGRATIONS_DIR="${MIGRATIONS_DIR:-database/migrations}"
-SEEDS_DIR="${SEEDS_DIR:-database/seeds}"
-
-# CI settings
-CI_TIMEOUT="${CI_TIMEOUT:-300}"  # 5 minutes
-CI_PARALLEL_JOBS="${CI_PARALLEL_JOBS:-2}"
-
-# Security settings
-SECURITY_REPORT_DIR="${SECURITY_REPORT_DIR:-security-reports}"
-VULNERABILITY_LEVEL="${VULNERABILITY_LEVEL:-moderate}"
-
-# Deployment settings
-DEPLOY_CONFIG_FILE="${DEPLOY_CONFIG_FILE:-.deploy.conf}"
-DEPLOY_HISTORY_FILE="${DEPLOY_HISTORY_FILE:-.deploy-history}"
-
-# Git settings
-GIT_HOOKS_DIR="${GIT_HOOKS_DIR:-scripts/hooks}"
-
-# Export all variables
-export PROJECT_NAME PROJECT_ROOT
-export DOCKER_COMPOSE_FILE DOCKER_COMPOSE_DEV_FILE DOCKER_COMPOSE_TOOLS_FILE
-export DOCKER_COMPOSE_CADDY_FILE DOCKER_COMPOSE_HOST_ACCESS_FILE DOCKER_COMPOSE_CI_FILE
-export COMPOSE_PROJECT_PROD COMPOSE_PROJECT_DEV COMPOSE_PROJECT_CI COMPOSE_ENV_FILE
-export COMPOSE_FILES_PROD COMPOSE_FILES_DEV COMPOSE_FILES_CI DB_ENCRYPTED_COMPOSE_FILE
-export DB_SERVICE REDIS_SERVICE BACKEND_SERVICE FRONTEND_SERVICE
-export BACKEND_DEV_SERVICE FRONTEND_DEV_SERVICE
-export DB_USER DB_NAME DB_HOST DB_PORT DB_DEV_PORT REDIS_PORT REDIS_DEV_PORT
-export BACKEND_DEV_PORT FRONTEND_DEV_PORT BACKEND_PORT FRONTEND_PORT
-export API_BASE_URL API_DEV_URL
-export HEALTH_CHECK_TIMEOUT HEALTH_CHECK_RETRIES HEALTH_CHECK_INTERVAL
-export BACKUP_DIR BACKUP_RETENTION_DAYS BACKUP_COMPRESSION
-export MIGRATIONS_DIR SEEDS_DIR
-export CI_TIMEOUT CI_PARALLEL_JOBS
-export SECURITY_REPORT_DIR VULNERABILITY_LEVEL
-export DEPLOY_CONFIG_FILE DEPLOY_HISTORY_FILE
-export GIT_HOOKS_DIR

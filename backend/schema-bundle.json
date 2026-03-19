@@ -1,6 +1,6 @@
 {
-  "version": "2026-02-18.1",
-  "generated_at": "2026-02-18T19:08:54.372Z",
+  "version": "2026-03-19.1",
+  "generated_at": "2026-03-19T12:01:52.569Z",
   "tables": [
     {
       "name": "accounts",
@@ -167,6 +167,15 @@
             "ssn"
           ],
           "constraints": {}
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "aliases": [
+            "active",
+            "enabled"
+          ],
+          "constraints": {}
         }
       ]
     },
@@ -196,6 +205,16 @@
             "account",
             "accountid",
             "organization_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "account_number",
+          "type": "string",
+          "aliases": [
+            "account_no",
+            "acct_no",
+            "accountnumber"
           ],
           "constraints": {}
         },
@@ -268,6 +287,18 @@
           "type": "string",
           "aliases": [
             "pronoun"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "phn",
+          "type": "string",
+          "aliases": [
+            "personal_health_number",
+            "personal_health_no",
+            "health_number",
+            "health_no",
+            "phn_number"
           ],
           "constraints": {}
         },
@@ -409,6 +440,33 @@
             "memo",
             "comment",
             "comments"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "aliases": [
+            "labels",
+            "segments"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "roles",
+          "type": "string",
+          "aliases": [
+            "role",
+            "contact_roles"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "aliases": [
+            "active",
+            "enabled"
           ],
           "constraints": {}
         }
@@ -795,6 +853,95 @@
           "constraints": {}
         },
         {
+          "name": "account_id",
+          "type": "uuid",
+          "aliases": [
+            "account",
+            "accountid",
+            "organization_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "account_number",
+          "type": "string",
+          "aliases": [
+            "account_no",
+            "acct_no",
+            "accountnumber"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "aliases": [
+            "firstname",
+            "given_name",
+            "forename"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "last_name",
+          "type": "string",
+          "aliases": [
+            "lastname",
+            "surname",
+            "family_name"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "aliases": [
+            "email_address",
+            "e-mail"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "aliases": [
+            "telephone",
+            "tel",
+            "home_phone",
+            "work_phone"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "mobile_phone",
+          "type": "string",
+          "aliases": [
+            "mobile",
+            "cell",
+            "cell_phone",
+            "cellphone"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "aliases": [
+            "labels",
+            "segments"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "roles",
+          "type": "string",
+          "aliases": [
+            "role",
+            "contact_roles"
+          ],
+          "constraints": {}
+        },
+        {
           "name": "skills",
           "type": "string",
           "aliases": [
@@ -863,6 +1010,15 @@
           "constraints": {}
         },
         {
+          "name": "certifications",
+          "type": "string",
+          "aliases": [
+            "certs",
+            "credentials"
+          ],
+          "constraints": {}
+        },
+        {
           "name": "max_hours_per_week",
           "type": "number",
           "aliases": [
@@ -895,6 +1051,15 @@
           "aliases": [
             "emergency_relationship",
             "ice_relationship"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "aliases": [
+            "active",
+            "enabled"
           ],
           "constraints": {}
         }

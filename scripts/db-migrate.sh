@@ -1,180 +1,43 @@
 #!/bin/bash
-# Database Migration Script
-# Runs all pending SQL migrations in canonical manifest order.
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-has_db_host=false
-has_db_port=false
-has_db_user=false
-has_db_name=false
-has_db_password=false
-
-if [[ "${DB_HOST+x}" == "x" ]]; then
-  has_db_host=true
-  inbound_db_host="$DB_HOST"
-fi
-
-if [[ "${DB_PORT+x}" == "x" ]]; then
-  has_db_port=true
-  inbound_db_port="$DB_PORT"
-fi
-
-if [[ "${DB_USER+x}" == "x" ]]; then
-  has_db_user=true
-  inbound_db_user="$DB_USER"
-fi
-
-if [[ "${DB_NAME+x}" == "x" ]]; then
-  has_db_name=true
-  inbound_db_name="$DB_NAME"
-fi
-
-if [[ "${DB_PASSWORD+x}" == "x" ]]; then
-  has_db_password=true
-  inbound_db_password="$DB_PASSWORD"
-fi
-
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
-source "$SCRIPT_DIR/lib/config.sh"
-source "$SCRIPT_DIR/lib/db-at-rest.sh"
-source "$SCRIPT_DIR/lib/migration-manifest.sh"
 
-ENV_FILE="$(db_at_rest_env_file "${COMPOSE_ENV_FILE:-}")"
+MODE="${COMPOSE_MODE:-dev}"
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-8002}"
+DB_NAME="${DB_NAME:-nonprofit_manager}"
+DB_USER="${DB_USER:-postgres}"
+DB_PASSWORD="${DB_PASSWORD:-postgres}"
+TEST_CONTAINER_NAME="${DB_TEST_CONTAINER_NAME:-nonprofit-manager-test-postgres}"
+TEST_VOLUME_NAME="${DB_TEST_VOLUME_NAME:-nonprofit-manager-test-postgres-data}"
+TEST_IMAGE="${DB_TEST_IMAGE:-postgres:14-alpine}"
+STATUS_ONLY=0
 
-if [[ "$has_db_host" == "true" ]]; then
-  DB_HOST="$inbound_db_host"
-else
-  DB_HOST="$(env_file_value_or_default DB_HOST "$ENV_FILE" "${DB_HOST:-localhost}")"
+if [[ "${1:-}" == "--status" ]]; then
+  STATUS_ONLY=1
 fi
 
-if [[ "$has_db_port" == "true" ]]; then
-  DB_PORT="$inbound_db_port"
-else
-  DB_PORT="$(env_file_value_or_default DB_PORT "$ENV_FILE" "${DB_PORT:-5432}")"
-fi
-
-if [[ "$has_db_user" == "true" ]]; then
-  DB_USER="$inbound_db_user"
-else
-  DB_USER="$(env_file_value_or_default DB_USER "$ENV_FILE" "${DB_USER:-postgres}")"
-fi
-
-if [[ "$has_db_name" == "true" ]]; then
-  DB_NAME="$inbound_db_name"
-else
-  DB_NAME="$(env_file_value_or_default DB_NAME "$ENV_FILE" "${DB_NAME:-nonprofit_manager}")"
-fi
-
-if [[ "$has_db_password" == "true" ]]; then
-  DB_PASSWORD="$inbound_db_password"
-else
-  DB_PASSWORD="$(env_file_value_or_default DB_PASSWORD "$ENV_FILE" "${DB_PASSWORD:-postgres}")"
-fi
-
-usage() {
-  cat <<'USAGE'
-Usage: ./scripts/db-migrate.sh [--status] [--timing]
-
-Options:
-  --status   Show canonical migration status without applying pending migrations
-  --timing   Print per-migration timing during application
-  --help     Show this help message
-USAGE
+is_test_db() {
+  [[ "$DB_PORT" == "8012" || "$DB_NAME" == "nonprofit_manager_test" || "$MODE" == "ci" ]]
 }
 
-STATUS_ONLY=false
-TIMING_ENABLED=false
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --status)
-      STATUS_ONLY=true
-      shift
-      ;;
-    --timing)
-      TIMING_ENABLED=true
-      shift
-      ;;
-    --help|-h)
-      usage
-      exit 0
-      ;;
-    *)
-      log_error "Unknown argument: $1"
-      usage
-      exit 1
-      ;;
-  esac
-done
-
-COMPOSE_MODE="$(normalize_compose_mode "${COMPOSE_MODE:-prod}")"
-DB_SERVICE="${DB_SERVICE:-postgres}"
-MIGRATIONS_DIR="${MIGRATIONS_DIR:-database/migrations}"
-export DB_PASSWORD
-DB_AUTO_START_RAW="$(printf '%s' "${DB_AUTO_START:-false}" | tr '[:upper:]' '[:lower:]')"
-
-case "$DB_AUTO_START_RAW" in
-  1|true|yes|on)
-    DB_AUTO_START=true
-    ;;
-  *)
-    DB_AUTO_START=false
-    ;;
-esac
-
-if [[ "$MIGRATIONS_DIR" != /* ]]; then
-  MIGRATIONS_DIR="$PROJECT_ROOT/$MIGRATIONS_DIR"
-fi
-
-print_header "Database Migrations"
-
-if [[ ! -d "$MIGRATIONS_DIR" ]]; then
-  log_error "Migrations directory not found: $MIGRATIONS_DIR"
-  exit 1
-fi
-
-load_migration_manifest "$MIGRATIONS_DIR"
-
-USE_DIRECT_DB=false
-DB_AT_REST_MODE="$(resolve_db_at_rest_mode "$ENV_FILE")"
-
-if ! validate_production_db_at_rest_config "$ENV_FILE"; then
-  exit 1
-fi
-
-if [[ "${DIRECT_DB_CONNECTION:-0}" == "1" || "$has_db_host" == "true" || "$has_db_port" == "true" || "$DB_AT_REST_MODE" == "managed" ]]; then
-  USE_DIRECT_DB=true
-elif [[ "$DB_HOST" != "localhost" && "$DB_HOST" != "127.0.0.1" && "$DB_HOST" != "postgres" ]]; then
-  USE_DIRECT_DB=true
-fi
-
-wait_for_direct_db() {
-  local max_attempts="${1:-10}"
+wait_for_schema_migrations() {
+  local container="$1"
   local attempt=1
+  local max_attempts=60
 
-  if ! command -v psql >/dev/null 2>&1; then
-    log_error "psql is required for direct database migrations"
-    return 1
-  fi
-
-  export PGPASSWORD="$DB_PASSWORD"
-
-  while ((attempt <= max_attempts)); do
-    if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c 'SELECT 1' >/dev/null 2>&1; then
-      log_success "Database is ready"
+  while true; do
+    if docker exec "$container" psql -U "$DB_USER" -d "$DB_NAME" -Atqc 'SELECT 1 FROM schema_migrations LIMIT 1;' >/dev/null 2>&1; then
       return 0
     fi
 
-    if ((attempt == max_attempts)); then
-      log_error "Database is not reachable at ${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    if [[ "$attempt" -ge "$max_attempts" ]]; then
+      log_error "Timed out waiting for PostgreSQL migrations in $container on port $DB_PORT."
+      docker logs "$container" --tail 100 >&2 || true
       return 1
-    fi
-
-    if ((attempt == 1)); then
-      log_info "Waiting for database at ${DB_HOST}:${DB_PORT}/${DB_NAME}..."
     fi
 
     sleep 2
@@ -182,236 +45,129 @@ wait_for_direct_db() {
   done
 }
 
-if [[ "$USE_DIRECT_DB" == true ]]; then
-  wait_for_direct_db 10 || exit 1
-else
-  if ! check_compose_service_running "$DB_SERVICE" "$COMPOSE_MODE"; then
-    if [[ "$DB_AUTO_START" == true ]]; then
-      log_info "Starting database service '$DB_SERVICE' (mode: $COMPOSE_MODE)..."
-      docker_compose_mode "$COMPOSE_MODE" up -d "$DB_SERVICE"
-    else
-      exit 1
-    fi
-  fi
+wait_for_host_connection() {
+  local host="$1"
+  local port="$2"
+  local attempt=1
+  local max_attempts=30
 
-  wait_for_db_service "$DB_SERVICE" "$DB_USER" "$DB_NAME" 10 "$COMPOSE_MODE" || exit 1
-fi
-
-run_db_psql() {
-  if [[ "$USE_DIRECT_DB" == true ]]; then
-    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" "$@"
-    return $?
-  fi
-
-  compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" "$@"
-}
-
-ensure_schema_migrations_bookkeeping() {
-  run_db_psql <<SQL >/dev/null
-$(emit_schema_migrations_bootstrap_sql)
-$(emit_schema_migrations_backfill_sql)
-SQL
-}
-
-APPLIED_MIGRATION_IDS=()
-APPLIED_RECORDED_FILES=()
-APPLIED_AT_VALUES=()
-PENDING_MIGRATION_IDS=()
-PENDING_CANONICAL_FILES=()
-
-find_applied_index_by_id() {
-  local target="$1"
-  local i
-
-  for ((i = 0; i < ${#APPLIED_MIGRATION_IDS[@]}; i++)); do
-    if [[ "${APPLIED_MIGRATION_IDS[$i]}" == "$target" ]]; then
-      printf '%s' "$i"
+  while true; do
+    if PGPASSWORD="$DB_PASSWORD" psql -h "$host" -p "$port" -U "$DB_USER" -d "$DB_NAME" -Atqc 'SELECT 1;' >/dev/null 2>&1; then
       return 0
     fi
+
+    if [[ "$attempt" -ge "$max_attempts" ]]; then
+      log_error "Timed out waiting for PostgreSQL to accept host connections on $host:$port."
+      return 1
+    fi
+
+    sleep 1
+    attempt=$((attempt + 1))
+  done
+}
+
+ensure_dev_database() {
+  local container_id
+  container_id="$(docker compose -p nonprofit-dev -f "$PROJECT_ROOT/docker-compose.dev.yml" ps -q postgres 2>/dev/null || true)"
+
+  if [[ -z "$container_id" ]]; then
+    log_info "Starting Docker development database services..."
+    docker compose -p nonprofit-dev -f "$PROJECT_ROOT/docker-compose.dev.yml" up -d postgres redis
+    container_id="$(docker compose -p nonprofit-dev -f "$PROJECT_ROOT/docker-compose.dev.yml" ps -q postgres 2>/dev/null || true)"
+  fi
+
+  if [[ -z "$container_id" ]]; then
+    log_error "Unable to locate the development postgres container. Run 'make dev' first."
+    return 1
+  fi
+
+  wait_for_schema_migrations "$container_id"
+  wait_for_host_connection "127.0.0.1" "$DB_PORT"
+  log_success "Development database is available on localhost:${DB_PORT}."
+}
+
+ensure_test_database() {
+  local attempt=1
+  local max_attempts=5
+  local run_log
+
+  while [[ "$attempt" -le "$max_attempts" ]]; do
+    log_info "Rebuilding the isolated Playwright test database on localhost:${DB_PORT} (attempt ${attempt}/${max_attempts})..."
+    docker rm -f "$TEST_CONTAINER_NAME" >/dev/null 2>&1 || true
+    docker volume rm "$TEST_VOLUME_NAME" >/dev/null 2>&1 || true
+
+    run_log="$(mktemp)"
+    if docker run -d \
+      --name "$TEST_CONTAINER_NAME" \
+      -p "127.0.0.1:${DB_PORT}:5432" \
+      -e POSTGRES_DB="$DB_NAME" \
+      -e POSTGRES_USER="$DB_USER" \
+      -e POSTGRES_PASSWORD="$DB_PASSWORD" \
+      -v "$TEST_VOLUME_NAME:/var/lib/postgresql/data" \
+      -v "$PROJECT_ROOT/database/initdb/000_init.sql:/docker-entrypoint-initdb.d/000_init.sql:ro" \
+      -v "$PROJECT_ROOT/database/migrations:/migrations:ro" \
+      -v "$PROJECT_ROOT/database/seeds:/seeds:ro" \
+      "$TEST_IMAGE" >"$run_log" 2>&1; then
+      rm -f "$run_log"
+      wait_for_schema_migrations "$TEST_CONTAINER_NAME"
+      wait_for_host_connection "127.0.0.1" "$DB_PORT"
+      log_success "Playwright test database is ready on localhost:${DB_PORT}."
+      return 0
+    fi
+
+    if grep -qi 'port is already allocated' "$run_log" && [[ "$attempt" -lt "$max_attempts" ]]; then
+      log_warn "Test database port ${DB_PORT} is still releasing; retrying shortly."
+      rm -f "$run_log"
+      sleep 2
+      attempt=$((attempt + 1))
+      continue
+    fi
+
+    log_error "Unable to start the isolated Playwright test database."
+    cat "$run_log" >&2 || true
+    rm -f "$run_log"
+    return 1
   done
 
+  log_error "Failed to start the isolated Playwright test database after ${max_attempts} attempts."
   return 1
 }
 
-refresh_migration_status() {
-  local raw_rows=""
-  local line=""
-  local filename=""
-  local migration_id=""
-  local canonical_filename=""
-  local applied_at=""
-  local manifest_index=""
-  local resolved_id=""
-  local applied_index=""
-  local i
-
-  APPLIED_MIGRATION_IDS=()
-  APPLIED_RECORDED_FILES=()
-  APPLIED_AT_VALUES=()
-  PENDING_MIGRATION_IDS=()
-  PENDING_CANONICAL_FILES=()
-
-  raw_rows="$(
-    run_db_psql -F $'\t' -A -t -c \
-      "SELECT filename, COALESCE(migration_id, ''), COALESCE(canonical_filename, ''), COALESCE(applied_at::text, '') FROM schema_migrations ORDER BY applied_at NULLS LAST, id;" \
-      2>/dev/null || true
-  )"
-  raw_rows="$(printf '%s' "$raw_rows" | tr -d '\r')"
-
-  if [[ -n "$raw_rows" ]]; then
-    while IFS=$'\t' read -r filename migration_id canonical_filename applied_at; do
-      [[ -z "${filename}${migration_id}${canonical_filename}${applied_at}" ]] && continue
-      resolved_id=""
-
-      if [[ -n "$migration_id" ]]; then
-        manifest_index="$(find_manifest_index_by_id "$migration_id" || true)"
-        if [[ -n "$manifest_index" ]]; then
-          resolved_id="${MIGRATION_IDS[$manifest_index]}"
-        fi
-      fi
-
-      if [[ -z "$resolved_id" && -n "$filename" ]]; then
-        manifest_index="$(find_manifest_index_by_known_filename "$filename" || true)"
-        if [[ -n "$manifest_index" ]]; then
-          resolved_id="${MIGRATION_IDS[$manifest_index]}"
-        fi
-      fi
-
-      if [[ -z "$resolved_id" && -n "$canonical_filename" ]]; then
-        manifest_index="$(find_manifest_index_by_known_filename "$canonical_filename" || true)"
-        if [[ -n "$manifest_index" ]]; then
-          resolved_id="${MIGRATION_IDS[$manifest_index]}"
-        fi
-      fi
-
-      if [[ -z "$resolved_id" ]]; then
-        continue
-      fi
-
-      applied_index="$(find_applied_index_by_id "$resolved_id" || true)"
-      if [[ -z "$applied_index" ]]; then
-        APPLIED_MIGRATION_IDS+=("$resolved_id")
-        APPLIED_RECORDED_FILES+=("$filename")
-        APPLIED_AT_VALUES+=("$applied_at")
-      fi
-    done <<< "$raw_rows"
-  fi
-
-  for ((i = 0; i < ${#MIGRATION_IDS[@]}; i++)); do
-    if ! find_applied_index_by_id "${MIGRATION_IDS[$i]}" >/dev/null 2>&1; then
-      PENDING_MIGRATION_IDS+=("${MIGRATION_IDS[$i]}")
-      PENDING_CANONICAL_FILES+=("${MIGRATION_CANONICAL_FILES[$i]}")
-    fi
-  done
-}
-
-print_status_table() {
-  local i
-  local migration_id=""
-  local canonical_filename=""
-  local applied_index=""
-  local status=""
-  local recorded_as=""
-  local applied_at=""
-
-  printf '%-8s %-8s %-48s %-48s %s\n' "ID" "STATUS" "CANONICAL FILE" "RECORDED AS" "APPLIED AT"
-  for ((i = 0; i < ${#MIGRATION_IDS[@]}; i++)); do
-    migration_id="${MIGRATION_IDS[$i]}"
-    canonical_filename="${MIGRATION_CANONICAL_FILES[$i]}"
-    applied_index="$(find_applied_index_by_id "$migration_id" || true)"
-
-    if [[ -n "$applied_index" ]]; then
-      status="APPLIED"
-      recorded_as="${APPLIED_RECORDED_FILES[$applied_index]}"
-      applied_at="${APPLIED_AT_VALUES[$applied_index]}"
+show_status() {
+  if is_test_db; then
+    if docker ps --filter "name=^/${TEST_CONTAINER_NAME}$" --format '{{.ID}}' | grep -q .; then
+      log_info "Test database container $TEST_CONTAINER_NAME is running."
+      docker exec "$TEST_CONTAINER_NAME" psql -U "$DB_USER" -d "$DB_NAME" -Atqc 'SELECT COUNT(*) FROM schema_migrations;' || true
     else
-      status="PENDING"
-      recorded_as="-"
-      applied_at="-"
+      log_warn "Test database container $TEST_CONTAINER_NAME is not running."
+      return 1
     fi
+    return 0
+  fi
 
-    printf '%-8s %-8s %-48s %-48s %s\n' \
-      "$migration_id" \
-      "$status" \
-      "$canonical_filename" \
-      "${recorded_as:--}" \
-      "${applied_at:--}"
-  done
+  local container_id
+  container_id="$(docker compose -p nonprofit-dev -f "$PROJECT_ROOT/docker-compose.dev.yml" ps -q postgres 2>/dev/null || true)"
+  if [[ -z "$container_id" ]]; then
+    log_warn "Development postgres service is not running."
+    return 1
+  fi
 
-  echo ""
-  log_info "Applied migrations: ${#APPLIED_MIGRATION_IDS[@]}"
-  log_info "Pending migrations: ${#PENDING_MIGRATION_IDS[@]}"
+  log_info "Development postgres service is running."
+  docker exec "$container_id" psql -U postgres -d nonprofit_manager -Atqc 'SELECT COUNT(*) FROM schema_migrations;' || true
 }
 
-log_info "Ensuring migrations table exists..."
-ensure_schema_migrations_bookkeeping
-refresh_migration_status
-
-if [[ "$STATUS_ONLY" == true ]]; then
-  print_status_table
-  print_footer "Migration status complete"
-  exit 0
-fi
-
-if [[ ${#PENDING_MIGRATION_IDS[@]} -eq 0 ]]; then
-  log_success "No pending migrations"
-  print_footer "Migration check complete"
-  exit 0
-fi
-
-log_info "Found ${#PENDING_MIGRATION_IDS[@]} pending migration(s)"
-echo ""
-
-APPLIED_COUNT=0
-FAILED=false
-TOTAL_START_MS="$(current_time_millis)"
-TIMING_LINES=()
-
-for ((i = 0; i < ${#PENDING_MIGRATION_IDS[@]}; i++)); do
-  migration_id="${PENDING_MIGRATION_IDS[$i]}"
-  canonical_filename="${PENDING_CANONICAL_FILES[$i]}"
-  migration_path="$MIGRATIONS_DIR/$canonical_filename"
-  checksum="$(calculate_file_checksum "$migration_path")"
-
-  log_info "Applying: ${migration_id} (${canonical_filename})"
-  start_ms="$(current_time_millis)"
-
-  if run_db_psql -v ON_ERROR_STOP=1 < "$migration_path"; then
-    run_db_psql <<SQL >/dev/null
-$(emit_schema_migration_record_sql "$migration_id" "$canonical_filename" "$checksum")
-SQL
-    end_ms="$(current_time_millis)"
-
-    if [[ "$TIMING_ENABLED" == true ]]; then
-      duration="$(format_duration_millis "$start_ms" "$end_ms")"
-      TIMING_LINES+=("${migration_id} ${canonical_filename} ${duration}")
-      log_info "Timing: ${migration_id} ${duration}"
-    fi
-
-    log_success "Applied: ${canonical_filename}"
-    APPLIED_COUNT=$((APPLIED_COUNT + 1))
-  else
-    log_error "Failed to apply: ${canonical_filename}"
-    FAILED=true
-    break
+main() {
+  if [[ "$STATUS_ONLY" -eq 1 ]]; then
+    show_status
+    return $?
   fi
-done
 
-echo ""
-echo "========================================"
-if [[ "$FAILED" == true ]]; then
-  log_error "Migration failed!"
-  echo "Applied $APPLIED_COUNT of ${#PENDING_MIGRATION_IDS[@]} migrations before failure"
-  exit 1
-fi
+  if is_test_db; then
+    ensure_test_database
+    return $?
+  fi
 
-if [[ "$TIMING_ENABLED" == true ]]; then
-  TOTAL_END_MS="$(current_time_millis)"
-  for timing_line in "${TIMING_LINES[@]}"; do
-    echo "$timing_line"
-  done
-  log_info "Total duration: $(format_duration_millis "$TOTAL_START_MS" "$TOTAL_END_MS")"
-fi
+  ensure_dev_database
+}
 
-log_success "Applied $APPLIED_COUNT migration(s)"
-echo "========================================"
+main "$@"

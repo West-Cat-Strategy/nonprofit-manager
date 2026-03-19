@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/auth.fixture';
+import { test, testWithCleanDB, expect } from '../fixtures/auth.fixture';
 import { createTestContact } from '../helpers/database';
 import { expectCriticalSection, waitForPageReady } from '../helpers/routeHelpers';
 
@@ -9,6 +9,22 @@ const buildUniqueName = (prefix: string): string => `${prefix}-${Date.now()}-${M
 test('people directory requires authentication', async ({ page }) => {
   await page.goto(PEOPLE_DIRECTORY_ROUTE, { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
+});
+
+testWithCleanDB('starts empty on a clean database before any contacts exist', async ({ authenticatedPage }) => {
+  await authenticatedPage.goto(PEOPLE_DIRECTORY_ROUTE, { waitUntil: 'domcontentloaded' });
+  await waitForPageReady(authenticatedPage, {
+    url: /\/people(?:\?|$)/,
+    selectors: [
+      'h2:has-text("DIRECTORY")',
+      'input[aria-label="Search people"]',
+      'button:has-text("ALL PEOPLE")',
+    ],
+    timeoutMs: 25000,
+  });
+
+  await expect(authenticatedPage.getByRole('heading', { name: 'No People Found' })).toBeVisible();
+  await expect(authenticatedPage.getByText('No people in this category')).toBeVisible();
 });
 
 test('loads people directory and supports search, tabs, and new item action', async ({ authenticatedPage, authToken }) => {

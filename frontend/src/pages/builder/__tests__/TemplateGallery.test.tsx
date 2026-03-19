@@ -6,6 +6,14 @@ import TemplateGallery from '../../../features/builder/pages/TemplateGalleryPage
 
 const navigateMock = vi.fn();
 const dispatchMock = vi.fn();
+let templateState = {
+  templates: [] as Array<{ id: string; name: string; description?: string; category?: string; isSystemTemplate?: boolean }>,
+  systemTemplates: [] as Array<{ id: string; name: string; description?: string; category?: string; isSystemTemplate?: boolean }>,
+  searchParams: {},
+  pagination: { total: 0, page: 1, totalPages: 1 },
+  isLoading: false,
+  error: null as string | null,
+};
 
 const templateSliceMocks = vi.hoisted(() => {
   const createTemplate = Object.assign(
@@ -49,16 +57,7 @@ vi.mock('react-redux', async (importOriginal) => {
     ...actual,
     useDispatch: () => dispatchMock,
     useSelector: (selector: (state: unknown) => unknown) =>
-      selector({
-        templates: {
-          templates: [],
-          systemTemplates: [],
-          searchParams: {},
-          pagination: { total: 0, page: 1, totalPages: 1 },
-          isLoading: false,
-          error: null,
-        },
-      }),
+      selector({ templates: templateState }),
   };
 });
 
@@ -75,6 +74,14 @@ vi.mock('../../../features/builder/state', () => ({
 describe('TemplateGallery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    templateState = {
+      templates: [],
+      systemTemplates: [],
+      searchParams: {},
+      pagination: { total: 0, page: 1, totalPages: 1 },
+      isLoading: false,
+      error: null,
+    };
     dispatchMock.mockImplementation((action: { __createTemplate?: boolean }) => {
       if (action?.__createTemplate) {
         return Promise.resolve({
@@ -104,5 +111,39 @@ describe('TemplateGallery', () => {
       );
       expect(navigateMock).toHaveBeenCalledWith('/website-builder/template-123');
     });
+  });
+
+  it('opens template previews with noopener and noreferrer', async () => {
+    const openMock = vi.spyOn(window, 'open').mockImplementation(() => null);
+    templateState = {
+      ...templateState,
+      systemTemplates: [
+        {
+          id: 'template-preview-1',
+          name: 'Preview Template',
+          description: 'Template for previewing',
+          category: 'landing-page',
+          isSystemTemplate: false,
+          pageCount: 1,
+          tags: [],
+        },
+      ],
+    };
+
+    render(<TemplateGallery />);
+
+    await waitFor(() => {
+      expect(screen.getByTitle('Preview')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTitle('Preview'));
+
+    expect(openMock).toHaveBeenCalledWith(
+      '/website-builder/template-preview-1/preview',
+      '_blank',
+      'noopener,noreferrer'
+    );
+
+    openMock.mockRestore();
   });
 });

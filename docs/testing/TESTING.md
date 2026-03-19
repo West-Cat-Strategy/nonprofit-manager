@@ -86,7 +86,7 @@ make lint-doc-api-versioning
 When the change set does not justify the full suite, use the repo selector:
 
 ```bash
-scripts/select-checks.sh --base HEAD~1 --mode fast
+./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
 Run the emitted commands in order.

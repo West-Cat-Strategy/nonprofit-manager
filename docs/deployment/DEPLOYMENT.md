@@ -2,14 +2,14 @@
 
 This guide covers deploying the Nonprofit Manager platform to production.
 
-For the standard production workflow, prefer `./scripts/deploy.sh production` and the shared deployment guidance below.
+Workspace note: this checkout includes the Dockerfiles plus the compose manifests and overlays used by the repo's local and deployment scripts. For image-only validation here, prefer `make docker-build` and `make docker-validate`.
 
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
 - [Security: TLS/HTTPS & Encryption](#security-tlshttps--encryption)
 - [Environment Setup](#environment-setup)
-- [Docker Deployment](https://github.com/example/nonprofit-manager)
+- [Docker Deployment](#docker-deployment)
 - [Manual Deployment](#manual-deployment)
 - [Database Migration](#database-migration)
 - [Local CI Runner](#local-ci-runner-no-github-actions)
@@ -19,7 +19,7 @@ For the standard production workflow, prefer `./scripts/deploy.sh production` an
 ## Prerequisites
 
 ### Required Software
-- Docker & Docker Compose (recommended)
+- Docker (Docker Compose only if you plan to use the optional dev stack)
 - Node.js 20.19+ (for manual deployment)
 - PostgreSQL 14+
 - Git
@@ -110,11 +110,7 @@ sudo certbot certonly --standalone -d example.com
 ```
 
 2. **Run the VPS overlay** so Caddy is the only public ingress.
-   For self-hosted PostgreSQL on a LUKS mount, include the encrypted DB overlay:
-
-```bash
-docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.vps.yml -f docker-compose.db-encrypted.yml up -d
-```
+   For self-hosted PostgreSQL on a LUKS mount, use the `docker-compose.db-encrypted.yml` overlay.
 
 3. **Key Points:**
    - Enable HTTP/2 for better performance
@@ -122,7 +118,7 @@ docker compose --env-file .env.production -f docker-compose.yml -f docker-compos
    - Redirect all HTTP traffic to HTTPS
    - Route `/api` and `/health` to the backend and all other paths to the frontend
    - Keep backend/frontend host ports (`8000`/`8001`) bound to `127.0.0.1` for host-local diagnostics only
-   - If `DB_AT_REST_ENCRYPTION_MODE=managed`, use the deploy scripts instead of raw `docker compose up -d` so the host does not start a local `postgres` service
+   - If `DB_AT_REST_ENCRYPTION_MODE=managed`, use your production deployment workflow instead of starting the legacy compose stack locally so the host does not start a local `postgres` service
 
 #### Option 2: Application Load Balancer (AWS, Azure, GCP)
 
@@ -162,10 +158,10 @@ If using Cloudflare or similar:
 - `managed`
   - Use an external managed PostgreSQL service with provider-encrypted storage and snapshots.
   - Required env: `DB_AT_REST_PROVIDER` and `DB_AT_REST_VERIFIED=true`.
-  - `DB_HOST` must point at the external provider, not the local compose `postgres` service.
+  - `DB_HOST` must point at the external provider, not a local `postgres` container.
   - Local `./scripts/db-backup.sh` is intentionally blocked in this mode; use provider-managed backups instead.
 - `luks`
-  - Use self-hosted PostgreSQL with `docker-compose.db-encrypted.yml`.
+  - Use self-hosted PostgreSQL with the `docker-compose.db-encrypted.yml` overlay.
   - Required env: `POSTGRES_DATA_DIR` as an absolute host path on the unlocked LUKS mount and `DB_LUKS_MAPPING_NAME`.
   - `BACKUP_DIR` must be an absolute path on the same encrypted mount; repo-local backup paths are rejected in production.
   - The production deploy and verification scripts validate the LUKS mapper, the mounted host path, and the Postgres bind mount before reporting success.
@@ -357,7 +353,9 @@ VITE_ENABLE_ANALYTICS=true
 VITE_ANALYTICS_ID=your_analytics_id
 ```
 
-## Docker Deployment (Recommended)
+## Docker Deployment
+
+This is the container-first workflow for this checkout.
 
 ### 1. Clone Repository
 
@@ -380,41 +378,35 @@ nano frontend/.env
 
 ### 3. Build Images
 
-```bash
-docker compose --env-file .env.production build
-```
-
-### 4. Start Services
+Use the repo-native direct-build path first:
 
 ```bash
-# Local production-like stack (backend/frontend ports remain localhost-only)
-docker compose --env-file .env.production up -d
-
-
-# Optional: expose postgres/redis to host for local admin/debug access
-docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
+make docker-build
+make docker-validate
 ```
 
-When using a public reverse proxy or load balancer, keep the backend and frontend loopback-bound and point ingress at the published ports or containers. The public `/health` endpoint should reflect backend health.
-
-### 5. Run Database Migrations
+If you want the raw Docker commands instead:
 
 ```bash
-./scripts/db-migrate.sh
+docker build -f backend/Dockerfile -t nonprofit-manager-backend:latest backend
+docker build -f frontend/Dockerfile -t nonprofit-manager-frontend:latest frontend
 ```
 
-### 6. Verify Deployment
+### 4. Publish or Run the Images
+
+Push the images to your registry or hand them to your runtime or orchestrator. This checkout does not include the full compose overlay set referenced by older docs.
+
+### 5. Verify Deployment
 
 ```bash
 # Check backend health
 curl http://localhost:8000/health
 
 # Check frontend
-curl http://localhost:8001/health
-
-# View logs
-docker compose --env-file .env.production logs -f
+curl http://localhost:8001/
 ```
+
+When using a public reverse proxy or load balancer, keep the backend and frontend loopback-bound and point ingress at the published ports or containers. The public `/health` endpoint should reflect backend health.
 
 ## Manual Deployment
 
@@ -553,20 +545,19 @@ This project uses a local runner to validate changes without paid CI/CD services
 ### Run Local CI
 
 ```bash
-./scripts/local-ci.sh          # Lint + type-check + tests
-./scripts/local-ci.sh --fast   # Lint + type-check only
-./scripts/local-ci.sh --audit  # Include npm audit (high+)
-./scripts/local-ci.sh --db-verify # Apply migrations to a *_test database
-./scripts/local-ci.sh --build  # Build backend + frontend
+make ci          # Lint, type-check, tests, and build
+make ci-fast     # Lint and type-check only
+make ci-full     # Coverage + security audit + build
+make ci-unit     # Unit-test coverage without integration or E2E
 ```
 
 ### Optional Git Hooks
 
 ```bash
-./scripts/install-git-hooks.sh
+make hooks
 ```
 
-This installs a pre-commit hook that runs the fast local CI checks.
+This installs local hooks for the repo's standard lint/type-check flow.
 
 ### Migration Verification (Local)
 
@@ -576,21 +567,21 @@ Migration verification only runs against a database whose name ends with `_test`
 export DB_NAME=nonprofit_manager_test
 export DB_USER=postgres
 export DB_PASSWORD=your_password
-./scripts/local-ci.sh --db-verify
+make db-verify
 ```
 
 ### Manual Deployment Process
 
 ```bash
 # Run local CI before deploy
-./scripts/local-ci.sh
+make ci
 
 # Tag a release
 git tag -a v1.0.0 -m "Release version 1.0.0"
 git push origin v1.0.0
 ```
 
-Before release, review the checklist in `docs/RELEASE_CHECKLIST.md`.
+Before release, review the checklist in `../development/RELEASE_CHECKLIST.md`.
 
 ## Monitoring & Maintenance
 
@@ -610,9 +601,9 @@ curl https://example.com/api/health
 ### Log Management
 
 ```bash
-# View Docker logs
-docker compose --env-file .env.production logs -f backend
-docker compose --env-file .env.production logs -f frontend
+# View Docker logs if you are running named containers locally
+docker logs nonprofit-manager-backend
+docker logs nonprofit-manager-frontend
 
 # PM2 logs (manual deployment)
 pm2 logs nonprofit-backend
@@ -666,10 +657,10 @@ docker scan nonprofit-manager-frontend:latest
 docker images | grep nonprofit
 
 # Stop current containers
-docker compose --env-file .env.production down
+docker stop nonprofit-manager-backend nonprofit-manager-frontend
 
 # Deploy previous version
-docker compose --env-file .env.production up -d --force-recreate
+# Redeploy the previous tagged images through your orchestrator
 ```
 
 ### Database Rollback
@@ -684,10 +675,10 @@ psql -U nonprofit_user -d nonprofit_manager < /backups/nonprofit_20260131.sql
 ```bash
 # Quick rollback script
 #!/bin/bash
-docker compose --env-file .env.production down
+docker stop nonprofit-manager-backend nonprofit-manager-frontend
 git checkout tags/v1.0.0  # Replace with stable version
-docker compose --env-file .env.production build
-docker compose --env-file .env.production up -d
+make docker-build
+# Redeploy the rebuilt previous-tag images through your orchestrator
 ```
 
 ## Troubleshooting
@@ -696,7 +687,7 @@ docker compose --env-file .env.production up -d
 
 ```bash
 # Check logs
-docker compose --env-file .env.production logs backend
+docker logs nonprofit-manager-backend
 
 # Common issues:
 # 1. Database connection failed
@@ -721,10 +712,10 @@ npm run build
 
 ```bash
 # Test connection
-docker compose --env-file .env.production exec postgres psql -U postgres -c "SELECT version();"
+docker exec -it nonprofit-manager-postgres psql -U postgres -c "SELECT version();"
 
 # Check PostgreSQL logs
-docker compose --env-file .env.production logs postgres
+docker logs nonprofit-manager-postgres
 ```
 
 ## Production Checklist
@@ -750,4 +741,4 @@ docker compose --env-file .env.production logs postgres
 For deployment issues:
 - Email: maintainer@example.com
 - Organization: Example Organization
-- GitHub Issues: https://github.com/example/nonprofit-manager/issues
+- Contributor workflow: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)

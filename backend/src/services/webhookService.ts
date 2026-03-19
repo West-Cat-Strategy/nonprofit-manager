@@ -8,6 +8,12 @@ import dns from 'dns/promises';
 import net from 'net';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import {
+  WEBHOOK_DELIVERY_COLUMNS,
+  WEBHOOK_DELIVERY_SELECT_COLUMNS,
+  WEBHOOK_ENDPOINT_COLUMNS,
+  WEBHOOK_ENDPOINT_SELECT_COLUMNS,
+} from '@services/webhookQueryColumns';
 import type {
   WebhookEndpoint,
   WebhookDelivery,
@@ -24,6 +30,7 @@ const MAX_RETRY_ATTEMPTS = 5;
 const RETRY_DELAYS = [60, 300, 900, 3600, 7200]; // seconds: 1m, 5m, 15m, 1h, 2h
 const WEBHOOK_TIMEOUT = 30000; // 30 seconds
 const RETRY_PROCESSING_STALE_TIMEOUT_MINUTES = 10;
+const WEBHOOK_FETCH_OPTIONS = { redirect: 'manual' as const };
 
 const PRIVATE_HOSTNAME_SUFFIXES = ['.localhost', '.local'];
 const BLOCKED_HOSTNAMES = new Set(['localhost']);
@@ -35,6 +42,7 @@ interface ClaimedRetryDeliveryRow {
   payload: WebhookPayload;
   attempts: number;
   next_retry_at: Date | null;
+  created_at: Date | null;
   user_id: string;
   url: string;
   secret: string;
@@ -173,7 +181,7 @@ export async function createWebhookEndpoint(
   const result = await pool.query(
     `INSERT INTO webhook_endpoints (user_id, url, description, secret, events, is_active)
      VALUES ($1, $2, $3, $4, $5, true)
-     RETURNING *`,
+     RETURNING ${WEBHOOK_ENDPOINT_COLUMNS}`,
     [userId, data.url, data.description || null, secret, JSON.stringify(data.events)]
   );
 
@@ -187,10 +195,10 @@ export async function createWebhookEndpoint(
 export async function getWebhookEndpoints(userId: string): Promise<WebhookEndpointWithStats[]> {
   const result = await pool.query(
     `SELECT
-       we.*,
-       COUNT(wd.id) as total_deliveries,
-       COUNT(CASE WHEN wd.status = 'success' THEN 1 END) as successful_deliveries,
-       COUNT(CASE WHEN wd.status IN ('failed', 'dead_letter') THEN 1 END) as failed_deliveries
+       ${WEBHOOK_ENDPOINT_SELECT_COLUMNS},
+       COUNT(wd.id)::int AS total_deliveries,
+       COUNT(*) FILTER (WHERE wd.status = 'success')::int AS successful_deliveries,
+       COUNT(*) FILTER (WHERE wd.status IN ('failed', 'dead_letter'))::int AS failed_deliveries
      FROM webhook_endpoints we
      LEFT JOIN webhook_deliveries wd ON we.id = wd.webhook_endpoint_id
      WHERE we.user_id = $1
@@ -219,7 +227,9 @@ export async function getWebhookEndpoint(
   userId: string
 ): Promise<WebhookEndpoint | null> {
   const result = await pool.query(
-    'SELECT * FROM webhook_endpoints WHERE id = $1 AND user_id = $2',
+    `SELECT ${WEBHOOK_ENDPOINT_COLUMNS}
+     FROM webhook_endpoints
+     WHERE id = $1 AND user_id = $2`,
     [endpointId, userId]
   );
 
@@ -270,7 +280,7 @@ export async function updateWebhookEndpoint(
     `UPDATE webhook_endpoints
      SET ${updates.join(', ')}
      WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
-     RETURNING *`,
+     RETURNING ${WEBHOOK_ENDPOINT_COLUMNS}`,
     values
   );
 
@@ -335,7 +345,8 @@ export async function getWebhookDeliveries(
   }
 
   const result = await pool.query(
-    `SELECT * FROM webhook_deliveries
+    `SELECT ${WEBHOOK_DELIVERY_COLUMNS}
+     FROM webhook_deliveries
      WHERE webhook_endpoint_id = $1
      ORDER BY created_at DESC
      LIMIT $2`,
@@ -369,7 +380,8 @@ export async function triggerWebhooks(
   try {
     // Find all active endpoints subscribed to this event type
     const result = await pool.query(
-      `SELECT * FROM webhook_endpoints
+      `SELECT ${WEBHOOK_ENDPOINT_COLUMNS}
+       FROM webhook_endpoints
        WHERE is_active = true
        AND events @> $1::jsonb`,
       [JSON.stringify([eventType])]
@@ -460,6 +472,7 @@ async function attemptDelivery({
       },
       body: payloadString,
       signal: controller.signal,
+      ...WEBHOOK_FETCH_OPTIONS,
     });
 
     clearTimeout(timeoutId);
@@ -476,6 +489,17 @@ async function attemptDelivery({
       });
 
       await updateEndpointDeliveryStatus(endpoint.id, 'success');
+      return;
+    }
+
+    if (response.status >= 300 && response.status < 400) {
+      await handleDeliveryFailure(
+        deliveryId,
+        endpoint.id,
+        existingAttempts,
+        response.status,
+        'Redirect responses are not allowed for webhook delivery'
+      );
       return;
     }
 
@@ -597,15 +621,10 @@ const claimDueDeliveries = async (limit: number): Promise<ClaimedRetryDeliveryRo
            processing_started_at = NOW()
        FROM due
        WHERE wd.id = due.id
-       RETURNING wd.*
+       RETURNING ${WEBHOOK_DELIVERY_COLUMNS}
      )
      SELECT
-       claimed.id,
-       claimed.webhook_endpoint_id,
-       claimed.event_type,
-       claimed.payload,
-       claimed.attempts,
-       claimed.next_retry_at,
+       ${WEBHOOK_DELIVERY_SELECT_COLUMNS},
        we.user_id,
        we.url,
        we.secret
@@ -719,10 +738,20 @@ export async function testWebhookEndpoint(
       },
       body: payloadString,
       signal: controller.signal,
+      ...WEBHOOK_FETCH_OPTIONS,
     });
 
     clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
+
+    if (response.status >= 300 && response.status < 400) {
+      return {
+        success: false,
+        statusCode: response.status,
+        responseTime,
+        error: 'Redirect responses are not allowed for webhook delivery',
+      };
+    }
 
     return {
       success: response.ok,

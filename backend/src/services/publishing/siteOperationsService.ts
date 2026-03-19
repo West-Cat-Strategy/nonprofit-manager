@@ -15,8 +15,8 @@ import type {
 } from '@app-types/publishing';
 import type { Template, TemplatePage } from '@app-types/websiteBuilder';
 import { mailchimpService } from '@services/domains/integration';
-import { stripeService } from '@services/domains/operations';
 import { mapRowToPage, mapRowToTemplate } from '@services/template/helpers';
+import stripeService from '@services/stripeService';
 import { socialMediaService } from '@modules/socialMedia';
 import { FormRegistryService, formRegistryService } from './formRegistryService';
 import { SiteAnalyticsService } from './siteAnalyticsService';

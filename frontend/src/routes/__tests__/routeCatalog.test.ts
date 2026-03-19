@@ -4,49 +4,23 @@ import {
   getRouteLocalNavigation,
   getSurfaceAreaNavigation,
   matchRouteCatalogEntry,
-  resolveRouteCatalogAlias,
 } from '../routeCatalog';
 
-describe('routeCatalog alias resolution', () => {
-  it('returns null for already canonical locations', () => {
-    expect(resolveRouteCatalogAlias('/settings/admin/users')).toBeNull();
-    expect(resolveRouteCatalogAlias('/settings/email-marketing')).toBeNull();
-  });
-
-  it('canonicalizes legacy admin query routes and preserves unrelated params', () => {
-    expect(resolveRouteCatalogAlias('/settings/admin?section=users')).toBe(
-      '/settings/admin/users'
-    );
-    expect(resolveRouteCatalogAlias('/settings/admin?section=users&foo=1')).toBe(
-      '/settings/admin/users?foo=1'
-    );
-  });
-
-  it('canonicalizes bare admin and portal roots', () => {
-    expect(resolveRouteCatalogAlias('/settings/admin')).toBe('/settings/admin/dashboard');
-    expect(resolveRouteCatalogAlias('/settings/admin/portal')).toBe(
-      '/settings/admin/portal/access'
-    );
-  });
-
-  it('canonicalizes retired aliases to their current settings routes', () => {
-    expect(resolveRouteCatalogAlias('/email-marketing?ref=legacy')).toBe(
-      '/settings/email-marketing?ref=legacy'
-    );
-    expect(resolveRouteCatalogAlias('/settings/organization')).toBe(
-      '/settings/admin/organization'
-    );
-    expect(resolveRouteCatalogAlias('/admin/audit-logs')).toBe(
-      '/settings/admin/audit_logs'
-    );
-  });
-
-  it('matches canonical and alias admin locations to the same route entries', () => {
+describe('routeCatalog matching', () => {
+  it('matches canonical routes and keeps query strings attached to canonical paths', () => {
     expect(matchRouteCatalogEntry('/settings/admin/users')?.id).toBe('admin-settings-users');
-    expect(matchRouteCatalogEntry('/settings/admin?section=users')?.id).toBe(
+    expect(matchRouteCatalogEntry('/settings/admin/users?foo=1')?.id).toBe(
       'admin-settings-users'
     );
-    expect(matchRouteCatalogEntry('/settings/admin/portal')?.id).toBe('portal-admin-access');
+    expect(matchRouteCatalogEntry('/settings/admin/portal/access')?.id).toBe(
+      'portal-admin-access'
+    );
+    expect(matchRouteCatalogEntry('/settings/email-marketing?ref=legacy')?.id).toBe(
+      'email-marketing'
+    );
+  });
+
+  it('matches canonical and dynamic routes', () => {
     expect(matchRouteCatalogEntry('/reports/builder')?.id).toBe('reports');
     expect(matchRouteCatalogEntry('/reports/saved')?.id).toBe('reports-saved');
     expect(matchRouteCatalogEntry('/reports/scheduled')?.id).toBe('reports-scheduled');

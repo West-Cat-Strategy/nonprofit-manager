@@ -2,6 +2,11 @@ import { Pool } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import { createCaseWorkflowArtifacts } from '@services/caseWorkflowService';
+import {
+  FOLLOW_UP_ENTITY_COLUMNS,
+  FOLLOW_UP_RETURNING_COLUMNS,
+  FOLLOW_UP_SELECT_COLUMNS,
+} from '@services/followUpQueryColumns';
 import type {
   CompleteFollowUpDTO,
   CreateFollowUpDTO,
@@ -12,10 +17,36 @@ import type {
   UpdateFollowUpDTO,
 } from '@app-types/followUp';
 
-type FollowUpRow = FollowUpWithEntity & {
-  reminder_minutes_before?: number | null;
-  assigned_email?: string | null;
+type FollowUpQueryRow = {
+  id: string;
+  organization_id: string;
+  entity_type: FollowUp['entity_type'];
+  entity_id: string;
+  title: string;
+  description: string | null;
+  scheduled_date: string | Date;
+  scheduled_time: string | null;
+  frequency: FollowUp['frequency'];
+  frequency_end_date: string | Date | null;
+  method: FollowUp['method'] | null;
+  status: FollowUp['status'];
+  completed_date: string | Date | null;
+  completed_notes: string | null;
+  assigned_to: string | null;
+  assigned_to_name?: string | null;
+  reminder_minutes_before: number | null;
+  created_by: string | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+  case_number?: string | null;
+  case_title?: string | null;
+  case_priority?: string | null;
+  contact_name?: string | null;
   direct_contact_name?: string | null;
+  task_subject?: string | null;
+  task_priority?: string | null;
+  total_count?: string | number;
+  assigned_email?: string | null;
 };
 
 const STALE_PROCESSING_MINUTES = 10;
@@ -70,9 +101,12 @@ const combineDateTime = (date: string | Date, time?: string | null): Date => {
   return new Date(`${normalizedDate}T${normalizedTime}Z`);
 };
 
-const computeNextScheduledDate = (date: string, frequency: FollowUp['frequency']): string | null => {
+const computeNextScheduledDate = (
+  date: string | Date,
+  frequency: FollowUp['frequency']
+): string | null => {
   if (frequency === 'once') return null;
-  const current = new Date(`${date}T00:00:00Z`);
+  const current = new Date(`${normalizeDateInput(date)}T00:00:00Z`);
 
   if (frequency === 'daily') current.setUTCDate(current.getUTCDate() + 1);
   if (frequency === 'weekly') current.setUTCDate(current.getUTCDate() + 7);
@@ -82,21 +116,47 @@ const computeNextScheduledDate = (date: string, frequency: FollowUp['frequency']
   return current.toISOString().slice(0, 10);
 };
 
-const mapRow = (row: FollowUpRow): FollowUpWithEntity => ({
-  ...row,
-  scheduled_date: toIsoDate(row.scheduled_date) || '',
-  scheduled_time: toIsoTime(row.scheduled_time || null),
-  frequency_end_date: toIsoDate(row.frequency_end_date || null),
-  completed_date: row.completed_date ? new Date(row.completed_date).toISOString() : null,
-  created_at: new Date(row.created_at).toISOString(),
-  updated_at: new Date(row.updated_at).toISOString(),
-});
+const mapRow = (row: FollowUpQueryRow): FollowUpWithEntity => {
+  const base: FollowUp = {
+    id: row.id,
+    organization_id: row.organization_id,
+    entity_type: row.entity_type,
+    entity_id: row.entity_id,
+    title: row.title,
+    description: row.description,
+    scheduled_date: toIsoDate(row.scheduled_date) || '',
+    scheduled_time: toIsoTime(row.scheduled_time || null),
+    frequency: row.frequency,
+    frequency_end_date: toIsoDate(row.frequency_end_date || null),
+    method: row.method,
+    status: row.status,
+    completed_date: row.completed_date ? new Date(row.completed_date).toISOString() : null,
+    completed_notes: row.completed_notes,
+    assigned_to: row.assigned_to,
+    assigned_to_name: row.assigned_to_name || undefined,
+    reminder_minutes_before: row.reminder_minutes_before,
+    created_by: row.created_by,
+    created_at: new Date(row.created_at).toISOString(),
+    updated_at: new Date(row.updated_at).toISOString(),
+  };
+
+  return {
+    ...base,
+    case_number: row.case_number || undefined,
+    case_title: row.case_title || undefined,
+    case_priority: row.case_priority || undefined,
+    contact_name: row.contact_name || undefined,
+    direct_contact_name: row.direct_contact_name || undefined,
+    task_subject: row.task_subject || undefined,
+    task_priority: row.task_priority || undefined,
+  };
+};
 
 export class FollowUpService {
   constructor(private readonly db: Pool) {}
 
   private async upsertNotificationForFollowUp(followUpId: string): Promise<void> {
-    const followUpResult = await this.db.query<FollowUpRow>(
+    const followUpResult = await this.db.query<FollowUpQueryRow>(
       `SELECT fu.id,
               fu.organization_id,
               fu.scheduled_date,
@@ -202,28 +262,10 @@ export class FollowUpService {
 
     const whereClause = `WHERE ${where.join(' AND ')}`;
 
-    const totalResult = await this.db.query<{ count: string }>(
-      `SELECT COUNT(*)::text AS count
-       FROM follow_ups fu
-       ${whereClause}`,
-      values
-    );
-
-    const total = Number.parseInt(totalResult.rows[0]?.count || '0', 10);
-
-    const rowsResult = await this.db.query<FollowUpRow>(
-      `SELECT fu.*,
-              assignee.first_name || ' ' || assignee.last_name AS assigned_to_name,
-              c.case_number,
-              c.title AS case_title,
-              c.priority AS case_priority,
-              CASE
-                WHEN fu.entity_type = 'contact' THEN direct_contact.first_name || ' ' || direct_contact.last_name
-                ELSE con.first_name || ' ' || con.last_name
-              END AS contact_name,
-              direct_contact.first_name || ' ' || direct_contact.last_name AS direct_contact_name,
-              t.subject AS task_subject,
-              t.priority AS task_priority
+    const rowsResult = await this.db.query<FollowUpQueryRow>(
+      `SELECT
+         ${FOLLOW_UP_ENTITY_COLUMNS},
+         COUNT(*) OVER() AS total_count
        FROM follow_ups fu
        LEFT JOIN users assignee ON assignee.id = fu.assigned_to
        LEFT JOIN cases c ON fu.entity_type = 'case' AND fu.entity_id = c.id
@@ -236,6 +278,8 @@ export class FollowUpService {
        OFFSET $${values.length + 2}`,
       [...values, limit, offset]
     );
+
+    const total = Number.parseInt(String(rowsResult.rows[0]?.total_count ?? '0'), 10);
 
     return {
       data: rowsResult.rows.map(mapRow),
@@ -316,19 +360,9 @@ export class FollowUpService {
     organizationId: string,
     limit = 10
   ): Promise<FollowUpWithEntity[]> {
-    const result = await this.db.query<FollowUpRow>(
-      `SELECT fu.*,
-              assignee.first_name || ' ' || assignee.last_name AS assigned_to_name,
-              c.case_number,
-              c.title AS case_title,
-              c.priority AS case_priority,
-              CASE
-                WHEN fu.entity_type = 'contact' THEN direct_contact.first_name || ' ' || direct_contact.last_name
-                ELSE con.first_name || ' ' || con.last_name
-              END AS contact_name,
-              direct_contact.first_name || ' ' || direct_contact.last_name AS direct_contact_name,
-              t.subject AS task_subject,
-              t.priority AS task_priority
+    const result = await this.db.query<FollowUpQueryRow>(
+      `SELECT
+         ${FOLLOW_UP_ENTITY_COLUMNS}
        FROM follow_ups fu
        LEFT JOIN users assignee ON assignee.id = fu.assigned_to
        LEFT JOIN cases c ON fu.entity_type = 'case' AND fu.entity_id = c.id
@@ -350,8 +384,10 @@ export class FollowUpService {
     entityType: FollowUp['entity_type'],
     entityId: string
   ): Promise<FollowUp[]> {
-    const result = await this.db.query<FollowUpRow>(
-      `SELECT fu.*, assignee.first_name || ' ' || assignee.last_name AS assigned_to_name
+    const result = await this.db.query<FollowUpQueryRow>(
+        `SELECT
+         ${FOLLOW_UP_SELECT_COLUMNS},
+         assignee.first_name || ' ' || assignee.last_name AS assigned_to_name
        FROM follow_ups fu
        LEFT JOIN users assignee ON assignee.id = fu.assigned_to
        WHERE fu.organization_id = $1
@@ -368,8 +404,10 @@ export class FollowUpService {
     organizationId: string,
     followUpId: string
   ): Promise<FollowUp | null> {
-    const result = await this.db.query<FollowUpRow>(
-      `SELECT fu.*, assignee.first_name || ' ' || assignee.last_name AS assigned_to_name
+    const result = await this.db.query<FollowUpQueryRow>(
+        `SELECT
+         ${FOLLOW_UP_SELECT_COLUMNS},
+         assignee.first_name || ' ' || assignee.last_name AS assigned_to_name
        FROM follow_ups fu
        LEFT JOIN users assignee ON assignee.id = fu.assigned_to
        WHERE fu.organization_id = $1
@@ -387,7 +425,7 @@ export class FollowUpService {
     userId: string,
     data: CreateFollowUpDTO
   ): Promise<FollowUp> {
-    const result = await this.db.query<FollowUpRow>(
+    const result = await this.db.query<FollowUpQueryRow>(
       `INSERT INTO follow_ups (
          organization_id,
          entity_type,
@@ -405,7 +443,7 @@ export class FollowUpService {
          modified_by
        )
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
-       RETURNING *`,
+       RETURNING ${FOLLOW_UP_RETURNING_COLUMNS}`,
       [
         organizationId,
         data.entity_type,
@@ -462,12 +500,12 @@ export class FollowUpService {
     updates.push(`modified_by = $${values.length}`);
     updates.push('updated_at = NOW()');
 
-    const result = await this.db.query<FollowUpRow>(
+    const result = await this.db.query<FollowUpQueryRow>(
       `UPDATE follow_ups
        SET ${updates.join(', ')}
        WHERE organization_id = $1
          AND id = $2
-       RETURNING *`,
+       RETURNING ${FOLLOW_UP_RETURNING_COLUMNS}`,
       values
     );
 
@@ -494,8 +532,8 @@ export class FollowUpService {
     try {
       await client.query('BEGIN');
 
-      const currentResult = await client.query<FollowUpRow>(
-        `SELECT *
+      const currentResult = await client.query<FollowUpQueryRow>(
+        `SELECT ${FOLLOW_UP_RETURNING_COLUMNS}
          FROM follow_ups
          WHERE organization_id = $1
            AND id = $2
@@ -517,7 +555,7 @@ export class FollowUpService {
         });
       }
 
-      const updateResult = await client.query<FollowUpRow>(
+      const updateResult = await client.query<FollowUpQueryRow>(
         `UPDATE follow_ups
          SET status = 'completed',
              completed_date = NOW(),
@@ -526,7 +564,7 @@ export class FollowUpService {
              updated_at = NOW()
          WHERE organization_id = $1
            AND id = $2
-         RETURNING *`,
+         RETURNING ${FOLLOW_UP_RETURNING_COLUMNS}`,
         [organizationId, followUpId, completionNotes, userId]
       );
 
@@ -650,8 +688,8 @@ export class FollowUpService {
     try {
       await client.query('BEGIN');
 
-      const currentResult = await client.query<FollowUpRow>(
-        `SELECT *
+      const currentResult = await client.query<FollowUpQueryRow>(
+        `SELECT ${FOLLOW_UP_RETURNING_COLUMNS}
          FROM follow_ups
          WHERE organization_id = $1
            AND id = $2
@@ -673,7 +711,7 @@ export class FollowUpService {
         });
       }
 
-      const result = await client.query<FollowUpRow>(
+      const result = await client.query<FollowUpQueryRow>(
         `UPDATE follow_ups
          SET status = 'cancelled',
              completed_notes = $4,
@@ -681,7 +719,7 @@ export class FollowUpService {
              updated_at = NOW()
          WHERE organization_id = $1
            AND id = $2
-         RETURNING *`,
+         RETURNING ${FOLLOW_UP_RETURNING_COLUMNS}`,
         [organizationId, followUpId, userId, cancellationNotes]
       );
 
@@ -736,7 +774,7 @@ export class FollowUpService {
     scheduledDate: string,
     scheduledTime?: string | null
   ): Promise<FollowUp | null> {
-    const result = await this.db.query<FollowUpRow>(
+    const result = await this.db.query<FollowUpQueryRow>(
       `UPDATE follow_ups
        SET scheduled_date = $3,
            scheduled_time = $4,
@@ -747,7 +785,7 @@ export class FollowUpService {
            updated_at = NOW()
        WHERE organization_id = $1
          AND id = $2
-       RETURNING *`,
+       RETURNING ${FOLLOW_UP_RETURNING_COLUMNS}`,
       [organizationId, followUpId, scheduledDate, scheduledTime || null, userId]
     );
 

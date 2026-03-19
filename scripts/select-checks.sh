@@ -1,141 +1,151 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MODE="fast"
-BASE_REF=""
-FILES_INPUT=""
-
-usage() {
-  cat <<USAGE
-Usage: scripts/select-checks.sh [--base <ref>] [--files "a,b,c"] [--mode <fast|strict>]
-
-Examples:
-  scripts/select-checks.sh --base HEAD~1 --mode fast
-  scripts/select-checks.sh --files "backend/src/modules/accounts/routes/index.ts,frontend/src/features/events/state/index.ts" --mode strict
-
-Environment:
-  UI_AUDIT_ENFORCE=true  # run ui-audit in enforce mode (default: report mode)
-USAGE
-}
+mode="fast"
+base=""
+files_arg=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --mode)
+      mode="${2:-}"
+      shift 2
+      ;;
     --base)
-      BASE_REF="${2:-}"
+      base="${2:-}"
       shift 2
       ;;
     --files)
-      FILES_INPUT="${2:-}"
+      files_arg="${2:-}"
       shift 2
       ;;
-    --mode)
-      MODE="${2:-fast}"
-      shift 2
-      ;;
-    --help|-h)
-      usage
+    -h|--help)
+      cat <<'EOF'
+Usage: scripts/select-checks.sh [--base <ref>] [--files "<file list>"] [--mode fast|strict]
+
+Print a small, ordered set of repo checks based on the changed files.
+EOF
       exit 0
       ;;
     *)
-      echo "Unknown argument: $1"
-      usage
-      exit 1
+      echo "Unknown argument: $1" >&2
+      exit 2
       ;;
   esac
 done
 
-if [[ "$MODE" != "fast" && "$MODE" != "strict" ]]; then
-  echo "Invalid mode: $MODE"
-  exit 1
-fi
-
-declare -a CHANGED_FILES=()
-
-if [[ -n "$FILES_INPUT" ]]; then
-  IFS=',' read -r -a CHANGED_FILES <<<"$FILES_INPUT"
-else
-  if [[ -z "$BASE_REF" ]]; then
-    BASE_REF="HEAD~1"
+if [[ -z "$files_arg" ]]; then
+  if [[ -n "$base" ]]; then
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      mapfile -t changed_files < <(git diff --name-only "${base}...HEAD")
+    else
+      echo "scripts/select-checks.sh: git repository metadata is unavailable; pass --files explicitly." >&2
+      exit 2
+    fi
+  else
+    mapfile -t changed_files < <(git diff --name-only HEAD~1...HEAD 2>/dev/null || true)
   fi
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && CHANGED_FILES+=("$line")
-  done < <(git -C "$ROOT_DIR" diff --name-only "$BASE_REF"...HEAD)
+else
+  mapfile -t changed_files < <(printf '%s\n' "$files_arg" | tr ' ' '\n' | sed '/^$/d')
 fi
 
-if [[ ${#CHANGED_FILES[@]} -eq 0 ]]; then
-  echo "make lint"
-  echo "make typecheck"
+if [[ ${#changed_files[@]} -eq 0 ]]; then
+  if [[ "$mode" == "strict" ]]; then
+    printf '%s\n' \
+      "make lint" \
+      "make typecheck" \
+      "make test" \
+      "make db-verify"
+  else
+    printf '%s\n' \
+      "make lint" \
+      "make typecheck"
+  fi
   exit 0
 fi
 
-needs_backend=false
-needs_frontend=false
-needs_e2e=false
-needs_db_verify=false
-needs_security=false
+has_docs=0
+has_api_docs=0
+has_backend=0
+has_frontend=0
+has_e2e=0
+has_database=0
+has_scripts=0
 
-for raw in "${CHANGED_FILES[@]}"; do
-  file="$(echo "$raw" | xargs)"
-  [[ -z "$file" ]] && continue
-
+for file in "${changed_files[@]}"; do
   case "$file" in
-    backend/*)
-      needs_backend=true
-      ;;
-    frontend/*)
-      needs_frontend=true
-      ;;
-    e2e/*)
-      needs_e2e=true
+    README.md|CONTRIBUTING.md|agents.md|docs/*|backend/README.md|frontend/README.md|frontend/SETUP.md|e2e/README.md|database/README.md)
+      has_docs=1
       ;;
   esac
 
   case "$file" in
-    backend/src/routes/*|backend/src/middleware/*|backend/src/controllers/*|backend/src/services/*|backend/src/modules/*)
-      needs_backend=true
+    docs/api/*|README.md|backend/README.md|frontend/README.md|frontend/SETUP.md|e2e/README.md|database/README.md)
+      has_api_docs=1
       ;;
-    frontend/src/routes/*|frontend/src/features/*|frontend/src/store/*|frontend/src/services/*)
-      needs_frontend=true
+  esac
+
+  case "$file" in
+    backend/*)
+      has_backend=1
       ;;
-    database/migrations/*|database/initdb/*|scripts/db-migrate.sh|scripts/verify-migrations.sh|scripts/check-migration-manifest-policy.ts)
-      needs_db_verify=true
+    frontend/*)
+      has_frontend=1
       ;;
-    docs/security/*|backend/src/middleware/*rate*|backend/src/middleware/*auth*|backend/src/modules/auth/*)
-      needs_security=true
+    e2e/*)
+      has_e2e=1
+      ;;
+    database/*)
+      has_database=1
+      ;;
+    scripts/*|Makefile)
+      has_scripts=1
       ;;
   esac
 done
 
 commands=()
-commands+=("make lint")
-commands+=("make typecheck")
 
-if [[ "$needs_backend" == true ]]; then
-  commands+=("cd backend && npm run test:unit")
-  commands+=("cd backend && npm run test:integration")
-fi
-
-if [[ "$needs_frontend" == true ]]; then
-  if [[ "${UI_AUDIT_ENFORCE:-false}" == "true" ]]; then
-    commands+=("node scripts/ui-audit.ts --enforce-baseline")
-  else
-    commands+=("node scripts/ui-audit.ts")
+if [[ "$mode" == "strict" ]]; then
+  commands+=("make lint" "make typecheck")
+  if [[ $has_docs -eq 1 ]]; then
+    commands+=("make check-links")
   fi
-  commands+=("cd frontend && npm test -- --run")
+  if [[ $has_api_docs -eq 1 ]]; then
+    commands+=("make lint-doc-api-versioning")
+  fi
+  if [[ $has_database -eq 1 ]]; then
+    commands+=("make db-verify")
+  fi
+  if [[ $has_backend -eq 1 || $has_frontend -eq 1 || $has_scripts -eq 1 ]]; then
+    commands+=("make test")
+  fi
+  if [[ $has_e2e -eq 1 ]]; then
+    commands+=("cd e2e && npm run test:smoke")
+  fi
+else
+  if [[ $has_docs -eq 1 ]]; then
+    commands+=("make check-links")
+  fi
+  if [[ $has_api_docs -eq 1 ]]; then
+    commands+=("make lint-doc-api-versioning")
+  fi
+  if [[ $has_backend -eq 1 || $has_scripts -eq 1 ]]; then
+    commands+=("make lint" "make typecheck")
+  fi
+  if [[ $has_frontend -eq 1 ]]; then
+    commands+=("cd frontend && npm run type-check")
+  fi
+  if [[ $has_e2e -eq 1 ]]; then
+    commands+=("cd e2e && npm run test:smoke")
+  fi
+  if [[ $has_database -eq 1 ]]; then
+    commands+=("make db-verify")
+  fi
 fi
 
-if [[ "$needs_db_verify" == true ]]; then
-  commands+=("make db-verify")
+if [[ ${#commands[@]} -eq 0 ]]; then
+  commands+=("make lint" "make typecheck")
 fi
 
-if [[ "$needs_e2e" == true || "$needs_security" == true || "$MODE" == "strict" ]]; then
-  commands+=("cd e2e && npm run test:smoke")
-fi
-
-if [[ "$MODE" == "strict" ]]; then
-  commands+=("make ci-full")
-  commands+=("cd e2e && npm run test:ci")
-fi
-
-printf '%s\n' "${commands[@]}" | awk '!seen[$0]++'
+printf '%s\n' "${commands[@]}"

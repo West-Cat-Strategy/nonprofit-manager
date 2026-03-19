@@ -81,9 +81,9 @@ describe('AdminPanelNav', () => {
     expect(screen.getByRole('link', { name: /appointments/i })).toHaveClass('bg-app-accent');
   });
 
-  it('highlights the canonical admin settings entry for legacy query locations', () => {
-    renderWithProviders(<AdminPanelNav currentPath="/settings/admin?section=users" />, {
-      route: '/settings/admin?section=users',
+  it('highlights the canonical admin settings entry for canonical section locations', () => {
+    renderWithProviders(<AdminPanelNav currentPath="/settings/admin/users" />, {
+      route: '/settings/admin/users',
       preloadedState: {
         auth: {
           user: {

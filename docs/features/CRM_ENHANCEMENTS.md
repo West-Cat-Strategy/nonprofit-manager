@@ -33,7 +33,7 @@ The CRM module has been upgraded with automated workflows and intelligence to he
 ## Technical Implementation
 
 - **Lead Scoring Engine**: `backend/src/services/leadScoringService.ts` executes the scoring logic.
-- **Reminder Service**: `backend/src/services/contactNoteService.ts` (enhanced with reminder flags and dates).
+- **Reminder Service**: `backend/src/modules/contacts/repositories/contactNotesQueries.ts` (enhanced with reminder flags and dates).
 - **Frontend Components**:
     - `FollowUpReminders`: `frontend/src/components/FollowUpReminders.tsx`
     - `LeadScoreBadge`: Reusable component for displaying scores.

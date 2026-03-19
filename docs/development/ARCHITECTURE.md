@@ -11,7 +11,7 @@ The active repository shape as of 2026-03-11:
 - Backend runtime work is centered on `backend/src/modules/**` and `/api/v2/*`.
 - `backend/src/routes/v2/index.ts` is the active v2 registrar and imports module-owned route surfaces.
 - Frontend feature ownership is centered on `frontend/src/features/**`.
-- `frontend/src/pages/**` remains primarily a compatibility or route-surface layer where older paths still exist.
+- `frontend/src/pages/**` remains primarily a compatibility or route-surface layer where explicit legacy wrappers still exist; stale route alias tables were removed in `P4-T1R8E`.
 - The frontend stack is React 19 + React Router 7 + Vite.
 - Repo-root development and validation flows are documented through the root `Makefile` and the active docs under `README.md`, `docs/development/*`, and `docs/testing/*`.
 
@@ -378,6 +378,10 @@ Even after v2 cutover, `/api/v2` route registration still mixed module surfaces 
 Only `backend/src/routes/payments.ts` remains as an intentional compatibility shim; the other former
 top-level `backend/src/routes/*.ts` wrappers were retired once importer and runtime-mount sweeps
 confirmed they were no longer used.
+
+The repo-wide simplicity sweep later retired dead root controller/service wrappers and removed
+frontend route alias tables, so only explicit compatibility facades documented in the shim ledger
+remain.
 
 For the remaining legacy v2 surfaces, module route entrypoints now own runtime route definitions
 directly and do not import `@routes/*` proxies.

@@ -1,47 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Load common utilities and configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/lib/common.sh"
-source "$SCRIPT_DIR/lib/config.sh"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-print_header "Quality Baseline Report"
+run() {
+  echo "==> $*"
+  "$@"
+}
 
-if is_git_repo; then
-  echo "Repository: $(basename "$PROJECT_ROOT")"
-  echo "Branch: $(git -C "$PROJECT_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
-fi
-echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-echo ""
+cd "$ROOT_DIR"
 
-echo "## File inventory"
-echo "TypeScript files: $(rg --files "${PROJECT_ROOT}/backend/src" "${PROJECT_ROOT}/frontend/src" -g '*.ts' -g '*.tsx' | wc -l | tr -d ' ')"
-echo "Backend source files: $(rg --files "${PROJECT_ROOT}/backend/src" -g '*.ts' | wc -l | tr -d ' ')"
-echo "Frontend source files: $(rg --files "${PROJECT_ROOT}/frontend/src" -g '*.ts' -g '*.tsx' | wc -l | tr -d ' ')"
-echo ""
+run node scripts/check-rate-limit-key-policy.ts
+run node scripts/check-success-envelope-policy.ts
+run node scripts/check-route-validation-policy.ts
+run node scripts/check-query-contract-policy.ts
+run node scripts/check-express-validator-policy.ts
+run node scripts/check-controller-sql-policy.ts
+run node scripts/check-auth-guard-policy.ts
+run node scripts/check-migration-manifest-policy.ts
+run node scripts/check-duplicate-test-tree.ts
+run node scripts/check-v2-module-ownership-policy.ts
+run node scripts/check-module-boundary-policy.ts
+run node scripts/check-module-route-proxy-policy.ts
+run node scripts/check-canonical-module-import-policy.ts
+run node scripts/check-implementation-size-policy.ts
+run node scripts/check-frontend-feature-boundary-policy.ts
+run node scripts/check-frontend-legacy-slice-import-policy.ts
+run node scripts/check-frontend-legacy-page-path-policy.ts
+run node scripts/check-backend-legacy-controller-wrapper-policy.ts
+run node scripts/check-route-integrity.ts
+run node scripts/check-route-catalog-drift.ts
+run node scripts/ui-audit.ts
 
-echo "## Largest backend files (top 10 by lines)"
-rg --files "${PROJECT_ROOT}/backend/src" -g '*.ts' | xargs wc -l | sort -rn | head -n 10
-echo ""
-
-echo "## Largest frontend files (top 10 by lines)"
-rg --files "${PROJECT_ROOT}/frontend/src" -g '*.ts' -g '*.tsx' | xargs wc -l | sort -rn | head -n 10
-echo ""
-
-echo "## Complexity signals"
-echo "TODO/FIXME/HACK markers: $(rg -n 'TODO|FIXME|HACK' "${PROJECT_ROOT}/backend/src" "${PROJECT_ROOT}/frontend/src" | wc -l | tr -d ' ')"
-echo "any usage count: $(rg -n '\\bany\\b' "${PROJECT_ROOT}/backend/src" "${PROJECT_ROOT}/frontend/src" | wc -l | tr -d ' ')"
-echo "eslint-disable count: $(rg -n 'eslint-disable' "${PROJECT_ROOT}/backend/src" "${PROJECT_ROOT}/frontend/src" | wc -l | tr -d ' ')"
-echo ""
-
-echo "## Quality gates"
-echo "Running backend lint..."
-(cd "${PROJECT_ROOT}/backend" && npm run lint >/dev/null)
-echo "Running backend type-check..."
-(cd "${PROJECT_ROOT}/backend" && npm run type-check >/dev/null)
-echo "Running frontend lint..."
-(cd "${PROJECT_ROOT}/frontend" && npm run lint >/dev/null)
-echo "Running frontend type-check..."
-(cd "${PROJECT_ROOT}/frontend" && npm run type-check >/dev/null)
-log_success "All quality gates passed."
+echo "Quality baseline complete."

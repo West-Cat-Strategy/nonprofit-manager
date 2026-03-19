@@ -37,9 +37,9 @@ This system is meant to feel credible and operational rather than playful or orn
 
 ### Admin Shell
 
-- Admin side navigation must be driven by the admin feature manifest, including query-based sections such as `/settings/admin?section=users`.
+- Admin side navigation must be driven by the admin feature manifest, including canonical section routes such as `/settings/admin/users`.
 - Only show admin-only destinations to admins.
-- Query-based sections are canonical and should not be replaced with legacy aliases.
+- Section routes are canonical and should not fall back to legacy query aliases.
 
 ### Portal Shell
 

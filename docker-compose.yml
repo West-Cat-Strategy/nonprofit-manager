@@ -1,130 +1,103 @@
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:14-alpine
     restart: unless-stopped
-    env_file:
-      - .env.production
     environment:
-      POSTGRES_USER: postgres
       POSTGRES_DB: nonprofit_manager
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD (or use --env-file .env.production)}
-    # Host port exposure is opt-in via docker-compose.host-access.yml.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    expose:
+      - "5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      # Note: Migrations should be applied manually in production
-      # using the db-migrate.sh script, not auto-mounted
+      - ${POSTGRES_DATA_DIR:-nonprofit-manager-postgres-data}:/var/lib/postgresql/data
+      - ./database/initdb/000_init.sql:/docker-entrypoint-initdb.d/000_init.sql:ro
+      - ./database/migrations:/migrations:ro
+      - ./database/seeds:/seeds:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d nonprofit_manager" ]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nonprofit_manager"]
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - nonprofit-network
-    # Resource limits for production
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
+      retries: 20
+      start_period: 10s
 
-  # Redis Cache (for future use)
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    # Host port exposure is opt-in via docker-compose.host-access.yml.
+    expose:
+      - "6379"
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    networks:
-      - nonprofit-network
-    command: redis-server --appendonly yes
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
 
-  # Backend API
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
       target: production
-    init: true
     restart: unless-stopped
-    # Bind app ports to loopback by default; public exposure should go through a reverse proxy.
-    ports:
-      - "${BACKEND_PORT_BINDING:-127.0.0.1:8000:8000}"
-    env_file:
-      - .env.production
+    init: true
+    expose:
+      - "8000"
     environment:
-      NODE_ENV: production
-      PORT: 8000
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD (or use --env-file .env.production)}
-      REDIS_URL: redis://redis:6379
-      DB_SSL_ENABLED: 'false'
-      CONSOLE_LOGGING: 'true'
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8001}
-      # Set this explicitly in deployment environments; avoid wildcard origins.
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${BACKEND_PORT:-8000}
+      HOST: 0.0.0.0
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-nonprofit_manager}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8001}
-      EXPOSE_AUTH_TOKENS_IN_RESPONSE: ${EXPOSE_AUTH_TOKENS_IN_RESPONSE:-false}
+      API_ORIGIN: ${API_ORIGIN:-http://localhost:8000}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
       RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-900000}
       AUTH_RATE_LIMIT_MAX_REQUESTS: ${AUTH_RATE_LIMIT_MAX_REQUESTS:-5}
-      REGISTRATION_MAX_ATTEMPTS: ${REGISTRATION_MAX_ATTEMPTS:-5}
+      REGISTRATION_RATE_LIMIT_WINDOW_MS: ${REGISTRATION_RATE_LIMIT_WINDOW_MS:-900000}
+      REGISTRATION_RATE_LIMIT_MAX_REQUESTS: ${REGISTRATION_RATE_LIMIT_MAX_REQUESTS:-5}
+      MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS:-5}
+      ACCOUNT_LOCKOUT_DURATION_MS: ${ACCOUNT_LOCKOUT_DURATION_MS:-900000}
+      DB_AT_REST_ENCRYPTION_MODE: ${DB_AT_REST_ENCRYPTION_MODE:-managed}
+      DB_AT_REST_PROVIDER: ${DB_AT_REST_PROVIDER:-other}
+      DB_AT_REST_VERIFIED: ${DB_AT_REST_VERIFIED:-true}
+      DB_LUKS_MAPPING_NAME: ${DB_LUKS_MAPPING_NAME:-nonprofit-manager-db}
+      POSTGRES_DATA_DIR: ${POSTGRES_DATA_DIR:-/var/lib/nonprofit-manager/postgres}
+      BACKUP_DIR: ${BACKUP_DIR:-/var/lib/nonprofit-manager/backups/database}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - backend_logs:/app/logs
-    networks:
-      - nonprofit-network
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health/live > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
-  # Frontend Application
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
       target: production
       args:
-        VITE_API_URL: /api
+        VITE_API_URL: ${VITE_API_URL:-/api}
     restart: unless-stopped
-    # Bind app ports to loopback by default; public exposure should go through a reverse proxy.
-    ports:
-      - "${FRONTEND_PORT_BINDING:-127.0.0.1:8001:8001}"
-    environment:
-      VITE_API_URL: /api
+    init: true
+    expose:
+      - "8001"
     depends_on:
       backend:
         condition: service_healthy
-    networks:
-      - nonprofit-network
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8001/health || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8001/health > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
 volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-  backend_logs:
-    driver: local
-
-networks:
-  nonprofit-network:
-    driver: bridge
+  nonprofit-manager-postgres-data:

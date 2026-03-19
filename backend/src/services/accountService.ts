@@ -16,15 +16,56 @@ import { Contact } from '@app-types/contact';
 import { logger } from '@config/logger';
 import { resolveSort } from '@utils/queryHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import { mapContactRow, type ContactRecord } from './contactServiceHelpers';
 
 type QueryValue = string | number | boolean | null | string[];
 type DbClient = Pick<Pool, 'query'>;
 type AccountListRow = Account & { total_count?: number | string };
+type AccountContactRow = ContactRecord & { total_count?: number | string };
 
 const ACCOUNT_SEARCH_SQL =
   `coalesce(nullif(account_name, ''), '')`
   + ` || CASE WHEN nullif(email, '') IS NOT NULL THEN ' ' || email ELSE '' END`
   + ` || CASE WHEN nullif(account_number, '') IS NOT NULL THEN ' ' || account_number ELSE '' END`;
+
+const ACCOUNT_CONTACT_COLUMNS = [
+  'id',
+  'account_id',
+  'first_name',
+  'preferred_name',
+  'last_name',
+  'middle_name',
+  'salutation',
+  'suffix',
+  'birth_date',
+  'gender',
+  'pronouns',
+  'phn_encrypted',
+  'email',
+  'phone',
+  'mobile_phone',
+  'address_line1',
+  'address_line2',
+  'city',
+  'state_province',
+  'postal_code',
+  'country',
+  'no_fixed_address',
+  'job_title',
+  'department',
+  'preferred_contact_method',
+  'do_not_email',
+  'do_not_phone',
+  'do_not_text',
+  'do_not_voicemail',
+  'notes',
+  'tags',
+  'is_active',
+  'created_at',
+  'updated_at',
+  'created_by',
+  'modified_by',
+].join(', ');
 
 export class AccountService {
   private pool: Pool;
@@ -126,46 +167,38 @@ export class AccountService {
       }
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const accountColumns = [
+        'id as account_id',
+        'account_number',
+        'account_name',
+        'account_type',
+        'category',
+        'email',
+        'phone',
+        'website',
+        'description',
+        'address_line1',
+        'address_line2',
+        'city',
+        'state_province',
+        'postal_code',
+        'country',
+        'tax_id',
+        'is_active',
+        'created_at',
+        'updated_at',
+        'created_by',
+        'modified_by',
+      ].join(', ');
 
       // Get paginated data
       const dataQuery = `
-        WITH filtered_accounts AS (
-          SELECT
-            id as account_id,
-            account_number,
-            account_name,
-            account_type,
-            category,
-            email,
-            phone,
-            website,
-            description,
-            address_line1,
-            address_line2,
-            city,
-            state_province,
-            postal_code,
-            country,
-            tax_id,
-            is_active,
-            created_at,
-            updated_at,
-            created_by,
-            modified_by
-          FROM accounts
-          ${whereClause}
-        ),
-        paged_accounts AS (
-          SELECT
-            fa.*,
-            COUNT(*) OVER()::int AS total_count
-          FROM filtered_accounts fa
-          ORDER BY ${sortColumn} ${sortOrder}
-          LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
-        )
-        SELECT *
-        FROM paged_accounts
+        SELECT ${accountColumns},
+               COUNT(*) OVER()::int AS total_count
+        FROM accounts
+        ${whereClause}
         ORDER BY ${sortColumn} ${sortOrder}
+        LIMIT $${paramCounter} OFFSET $${paramCounter + 1}
       `;
       const dataResult = await this.pool.query(dataQuery, [...values, limit, offset]);
       const rows = dataResult.rows as AccountListRow[];
@@ -465,23 +498,32 @@ export class AccountService {
     offset: number = 0
   ): Promise<{ contacts: Contact[]; total: number }> {
     try {
-      // Get total count
-      const countResult = await this.pool.query(
-        'SELECT COUNT(*) as total FROM contacts WHERE account_id = $1 AND is_active = true',
-        [accountId]
-      );
-      const total = parseInt(countResult.rows[0]?.total || '0', 10);
-
-      // Get paginated contacts
-      const result = await this.pool.query(
-        `SELECT * FROM contacts 
+      const result = await this.pool.query<AccountContactRow>(
+        `SELECT ${ACCOUNT_CONTACT_COLUMNS},
+                COUNT(*) OVER()::int AS total_count
+         FROM contacts
          WHERE account_id = $1 AND is_active = true
          ORDER BY created_at DESC
          LIMIT $2 OFFSET $3`,
         [accountId, limit, offset]
       );
 
-      return { contacts: result.rows, total };
+      const rows = result.rows;
+      let total = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
+      let contacts = rows.map(({ total_count: _totalCount, ...contact }) =>
+        mapContactRow(contact as ContactRecord, 'staff')
+      );
+
+      if (rows.length === 0) {
+        const countResult = await this.pool.query<{ total: string }>(
+          'SELECT COUNT(*) as total FROM contacts WHERE account_id = $1 AND is_active = true',
+          [accountId]
+        );
+        total = parseInt(countResult.rows[0]?.total || '0', 10);
+        contacts = [];
+      }
+
+      return { contacts, total };
     } catch (error) {
       logger.error('Error getting account contacts:', error);
       throw Object.assign(new Error('Failed to retrieve account contacts'), { cause: error });

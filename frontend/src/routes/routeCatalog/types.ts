@@ -58,12 +58,6 @@ export type RouteAuditFixtureKey =
   | 'public-report-snapshot'
   | 'public-events';
 
-export interface RouteCatalogAlias {
-  path: string;
-  query?: Record<string, string>;
-  exactQuery?: boolean;
-}
-
 export interface RouteCatalogAdminNavConfig {
   mode: AdminNavigationMode;
   order: number;
@@ -88,7 +82,6 @@ export interface RouteCatalogEntry {
   featureFlagEnv?: string;
   auditFixtureKey?: RouteAuditFixtureKey;
   auditScore?: UiAuditScore;
-  aliases?: readonly (string | RouteCatalogAlias)[];
   primaryAction?: {
     label: string;
     href: string;

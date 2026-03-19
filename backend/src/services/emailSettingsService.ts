@@ -67,6 +67,27 @@ interface SettingsRow {
   updated_at: Date;
 }
 
+const EMAIL_SETTINGS_COLUMNS = [
+  'id',
+  'smtp_host',
+  'smtp_port',
+  'smtp_secure',
+  'smtp_user',
+  'smtp_pass_encrypted',
+  'smtp_from_address',
+  'smtp_from_name',
+  'imap_host',
+  'imap_port',
+  'imap_secure',
+  'imap_user',
+  'imap_pass_encrypted',
+  'is_configured',
+  'last_tested_at',
+  'last_test_success',
+  'created_at',
+  'updated_at',
+].join(', ');
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -102,7 +123,7 @@ function mapRow(row: SettingsRow): EmailSettings {
  */
 export async function getEmailSettings(): Promise<EmailSettings | null> {
   const result = await pool.query<SettingsRow>(
-    'SELECT * FROM email_settings ORDER BY created_at LIMIT 1'
+    `SELECT ${EMAIL_SETTINGS_COLUMNS} FROM email_settings ORDER BY created_at LIMIT 1`
   );
 
   if (result.rows.length === 0) return null;
@@ -193,7 +214,7 @@ export async function updateEmailSettings(
   const result = await pool.query<SettingsRow>(
     `UPDATE email_settings SET ${setClauses.join(', ')}
      WHERE id = (SELECT id FROM email_settings ORDER BY created_at LIMIT 1)
-     RETURNING *`,
+     RETURNING ${EMAIL_SETTINGS_COLUMNS}`,
     values
   );
 

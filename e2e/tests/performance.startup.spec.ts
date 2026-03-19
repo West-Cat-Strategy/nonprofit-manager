@@ -21,6 +21,7 @@ const loginBootstrapRequestPatterns = [
 ];
 
 const thresholdsPath = path.resolve(__dirname, '..', '..', 'docs', 'performance', 'p4-t9d-thresholds.json');
+const dashboardUrl = /\/dashboard(?:[/?#]|$)/;
 
 const percentile = (values: number[], ratio: number): number => {
   if (values.length === 0) return 0;
@@ -117,7 +118,7 @@ test.describe('Startup Performance Guards', () => {
       page.on('request', trackRequest);
       const startedAt = Date.now();
       await login(page, email, password);
-      await expect(page).toHaveURL('/dashboard');
+      await expect(page).toHaveURL(dashboardUrl);
       await expect(
         page.getByRole('heading', { name: /workbench overview|dashboard/i }).first()
       ).toBeVisible({ timeout: 10000 });

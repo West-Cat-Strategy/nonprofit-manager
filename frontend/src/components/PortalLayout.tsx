@@ -100,7 +100,10 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
     <AppShell
       topNav={topNav}
       header={
-        <SurfaceContextBar secondaryAction={{ label: 'Account Settings', to: '/portal/profile' }} />
+        <SurfaceContextBar
+          showLocalNavigation={false}
+          secondaryAction={{ label: 'Account Settings', to: '/portal/profile' }}
+        />
       }
       contentClassName="space-y-6 rounded-[var(--ui-radius-md)] bg-app-surface p-4 shadow-sm sm:p-6"
     >

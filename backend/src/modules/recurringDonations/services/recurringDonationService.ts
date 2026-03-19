@@ -3,9 +3,9 @@ import { Pool } from 'pg';
 import dbPool from '@config/database';
 import { logger } from '@config/logger';
 import { DonationService } from '@services/donationService';
-import { stripeService } from '@services/domains/operations';
 import { publishingService } from '@services/publishing';
 import { SiteManagementService } from '@services/publishing/siteManagementService';
+import stripeService from '@services/stripeService';
 import type {
   RecurringDonationPlan,
   RecurringDonationPlanFilters,

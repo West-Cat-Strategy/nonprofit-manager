@@ -24,7 +24,6 @@ test.describe('Events Module', () => {
   test('should display events list page', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/events');
     await authenticatedPage.waitForURL(/\/events(?:\?|$)/);
-    await authenticatedPage.waitForLoadState('networkidle');
 
     await expect(authenticatedPage.getByRole('heading', { level: 1, name: /^events$/i })).toBeVisible();
     await expect(authenticatedPage.getByRole('button', { name: 'Create Event' })).toBeVisible();
@@ -200,7 +199,6 @@ test.describe('Events Module', () => {
 
     await authenticatedPage.goto('/events');
     await authenticatedPage.waitForURL(/\/events(?:\?|$)/);
-    await authenticatedPage.waitForLoadState('networkidle');
     await authenticatedPage.getByPlaceholder('Search events...').fill(String(suffix));
     await authenticatedPage.locator('select').filter({ has: authenticatedPage.locator('option[value="fundraiser"]') }).first().selectOption('fundraiser');
     await expect(authenticatedPage.locator(`tbody tr:has-text("${fundraiserName}")`).first()).toBeVisible({

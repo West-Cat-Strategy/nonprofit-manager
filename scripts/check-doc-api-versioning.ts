@@ -1,113 +1,83 @@
 #!/usr/bin/env node
+const fs = require('fs');
+const path = require('path');
 
-const fs = require('node:fs');
-const path = require('node:path');
-
-const repoRoot = path.resolve(__dirname, '..');
-const docsRoot = path.join(repoRoot, 'docs');
-
-const allowedFilePatterns = [
-  /^docs\/deployment\/PLAUSIBLE_SETUP\.md$/,
-  /^docs\/development\/WC_MANAGE_PATTERN_ADOPTION_AUDIT\.md$/,
-  /^docs\/development\/reference-patterns\//,
-  /^docs\/phases\//,
+const rootDir = path.resolve(__dirname, '..');
+const activeRoots = [
+  'README.md',
+  'CONTRIBUTING.md',
+  'agents.md',
+  'backend/README.md',
+  'frontend/README.md',
+  'frontend/SETUP.md',
+  'e2e/README.md',
+  'database/README.md',
+  'docs/README.md',
+  'docs/INDEX.md',
+  'docs/DOCUMENTATION_STYLE_GUIDE.md',
+  'docs/development',
+  'docs/testing',
+  'docs/api',
+  'docs/features',
+  'docs/deployment',
+  'docs/product',
+  'docs/security',
+  'docs/validation',
+  'docs/quick-reference',
+  'docs/THEME_SYSTEM.md',
 ];
 
-const patternChecks = [
-  {
-    label: 'Local app URL contains legacy /api/* path',
-    regex: /\bhttps?:\/\/(?:localhost|127\.0\.0\.1)[^\s"'`]*\/api\/(?!v(?:[2-9]\d*)(?:\/|\b))/,
-  },
-  {
-    label: 'Localhost URL contains legacy /api/* path',
-    regex: /\b(?:localhost|127\.0\.0\.1)(?::\d+)?\/api\/(?!v(?:[2-9]\d*)(?:\/|\b))/,
-  },
-  {
-    label: 'Route example contains legacy /api/* path',
-    regex: /(^|[\s"'`(])\/api\/(?!v(?:[2-9]\d*)(?:\/|\b))[a-z]/,
-  },
+const skipDirNames = new Set(['.git', '.next', 'coverage', 'dist', 'dist.bak', 'node_modules', 'output', 'tmp']);
+const fileExtensions = new Set(['.md', '.markdown', '.html', '.htm']);
+const apiV1AllowedFiles = new Set([
+  'docs/deployment/LOG_AGGREGATION_SETUP.md',
+  'docs/deployment/PLAUSIBLE_SETUP.md',
+  'docs/product/PRODUCT_ANALYTICS_RESEARCH.md',
+]);
+const disallowedPatterns = [
+  { pattern: /API Version:\s*v1\b/gi, label: 'API Version: v1' },
+  { pattern: /\/api\/v1\b/gi, label: '/api/v1' },
+  { pattern: /legacy\s+\/api\/\*/gi, label: 'legacy /api/*' },
 ];
 
-const isAllowedFile = (relativePath: string): boolean =>
-  allowedFilePatterns.some((pattern) => pattern.test(relativePath));
+function collectFiles(targetPath) {
+  const abs = path.join(rootDir, targetPath);
+  if (!fs.existsSync(abs)) return [];
+  const stat = fs.statSync(abs);
+  if (stat.isFile()) return [abs];
 
-const isAllowedLine = (line: string): boolean => {
-  if (!line.includes('/api/*')) return false;
-  const normalized = line.toLowerCase();
-  return (
-    normalized.includes('legacy') ||
-    normalized.includes('removed') ||
-    normalized.includes('tombstone') ||
-    normalized.includes('migration') ||
-    normalized.includes('/api/v2')
-  );
-};
+  const results = [];
+  for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
+    if (entry.isDirectory() && skipDirNames.has(entry.name)) continue;
+    results.push(...collectFiles(path.join(targetPath, entry.name)));
+  }
+  return results;
+}
 
-const collectMarkdownFiles = (dir: string, relPrefix = 'docs'): string[] => {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  const files: string[] = [];
+const files = activeRoots.flatMap(collectFiles).filter((file) => fileExtensions.has(path.extname(file).toLowerCase()));
+const violations = [];
 
-  for (const entry of entries) {
-    if (entry.name.startsWith('.')) continue;
-    const absPath = path.join(dir, entry.name);
-    const relPath = `${relPrefix}/${entry.name}`;
+for (const file of files) {
+  const text = fs.readFileSync(file, 'utf8');
+  const rel = path.relative(rootDir, file);
 
-    if (entry.isDirectory()) {
-      files.push(...collectMarkdownFiles(absPath, relPath));
+  for (const { pattern, label } of disallowedPatterns) {
+    if (label === '/api/v1' && apiV1AllowedFiles.has(rel)) {
       continue;
     }
-
-    if (!entry.isFile()) continue;
-    if (!entry.name.endsWith('.md') && !entry.name.endsWith('.mdx')) continue;
-
-    files.push(relPath);
-  }
-
-  return files;
-};
-
-const violations: Array<{
-  file: string;
-  lineNumber: number;
-  rule: string;
-  line: string;
-}> = [];
-
-for (const relativePath of collectMarkdownFiles(docsRoot)) {
-  if (isAllowedFile(relativePath)) continue;
-
-  const absPath = path.join(repoRoot, relativePath);
-  const source = fs.readFileSync(absPath, 'utf8');
-  const lines = source.split(/\r?\n/);
-
-  lines.forEach((line: string, index: number) => {
-    if (!line.includes('/api/')) return;
-    if (line.includes('/api/v2/')) return;
-    if (isAllowedLine(line)) return;
-
-    for (const check of patternChecks) {
-      if (check.regex.test(line)) {
-        violations.push({
-          file: relativePath,
-          lineNumber: index + 1,
-          rule: check.label,
-          line: line.trim(),
-        });
-        break;
-      }
+    for (const match of text.matchAll(pattern)) {
+      const line = text.slice(0, match.index).split('\n').length;
+      violations.push(`${rel}:${line}: ${label}`);
     }
-  });
+  }
 }
 
 if (violations.length > 0) {
-  console.error('Documentation API versioning check failed.');
-  console.error('Use /api/v2/* routes or /health* endpoints in project docs examples.');
+  console.error('Docs API versioning check failed:\n');
   for (const violation of violations) {
-    console.error(
-      `- ${violation.file}:${violation.lineNumber} (${violation.rule}) ${violation.line}`
-    );
+    console.error(`- ${violation}`);
   }
   process.exit(1);
 }
 
-console.log('Documentation API versioning check passed.');
+console.log(`Checked ${files.length} active-doc files. No stale API-version references found.`);

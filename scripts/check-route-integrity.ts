@@ -1,21 +1,15 @@
 #!/usr/bin/env node
 
-const { loadRouteCatalogModule, repoRoot } = require('./lib/load-route-catalog');
-const { collectRouteIntegrityViolations } = require('./lib/route-integrity-lib');
+const { collectRouteIntegrityIssues } = require('./lib/route-audit.ts');
 
-const routeCatalogModule = loadRouteCatalogModule();
-const { references, violations } = collectRouteIntegrityViolations(repoRoot, routeCatalogModule);
+const { issues } = collectRouteIntegrityIssues();
 
-if (violations.length > 0) {
-  console.error(
-    'Route integrity check failed. Literal route targets must resolve through frontend/src/routes/routeCatalog.ts.'
-  );
-  for (const violation of violations) {
-    console.error(`- ${violation.file}:${violation.line} [${violation.kind}] -> ${violation.target}`);
+if (issues.length > 0) {
+  console.error('Route integrity check failed:\n');
+  for (const issue of issues) {
+    console.error(`- ${issue}`);
   }
   process.exit(1);
 }
 
-console.log(
-  `Route integrity check passed. Validated ${references.length} literal route target(s) against the canonical catalog.`
-);
+console.log('Route integrity check passed.');

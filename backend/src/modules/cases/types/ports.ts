@@ -22,10 +22,11 @@ import type { UpdateInteractionOutcomeImpactsDTO } from '@app-types/outcomes';
 
 export interface CaseCatalogPort {
   getCases(filter: CaseFilter): Promise<{ cases: unknown[]; total: number }>;
-  getCaseById(caseId: string): Promise<unknown | null>;
+  getCaseById(caseId: string, organizationId?: string): Promise<unknown | null>;
   getCaseTimeline(
     caseId: string,
-    options?: { limit?: number; cursor?: string }
+    options?: { limit?: number; cursor?: string },
+    organizationId?: string
   ): Promise<{ items: unknown[]; page: { limit: number; has_more: boolean; next_cursor: string | null } }>;
   getCaseSummary(organizationId?: string): Promise<unknown>;
   getCaseTypes(): Promise<unknown[]>;

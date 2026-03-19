@@ -8,6 +8,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PageSection, PageComponent, TemplateTheme } from '../../types/websiteBuilder';
+import { sanitizeBuilderUrl } from '../../utils/validation';
 
 interface EditorCanvasProps {
   sections: PageSection[];
@@ -120,7 +121,12 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
 
   const sectionStyle: React.CSSProperties = {
     backgroundColor: section.backgroundColor || 'transparent',
-    backgroundImage: section.backgroundImage ? `url(${section.backgroundImage})` : undefined,
+    backgroundImage: section.backgroundImage
+      ? (() => {
+          const safeBackgroundImage = sanitizeBuilderUrl(section.backgroundImage);
+          return safeBackgroundImage ? `url(${safeBackgroundImage})` : undefined;
+        })()
+      : undefined,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     paddingTop: section.paddingTop || '2rem',
@@ -363,9 +369,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
     case 'image':
       return (
         <div style={baseStyle}>
-          {component.src ? (
+          {sanitizeBuilderUrl(component.src) ? (
             <img
-              src={component.src}
+              src={sanitizeBuilderUrl(component.src)}
               alt={component.alt}
               style={{
                 width: component.width || '100%',
@@ -437,7 +443,8 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
         </div>
       );
 
-    case 'testimonial':
+    case 'testimonial': {
+      const safeAvatar = sanitizeBuilderUrl(component.avatar || '');
       return (
         <blockquote style={baseStyle} className="text-center">
           <p
@@ -447,9 +454,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
             "{component.quote}"
           </p>
           <footer>
-            {component.avatar && (
+            {safeAvatar && (
               <img
-                src={component.avatar}
+                src={safeAvatar}
                 alt={component.author}
                 className="w-12 h-12 rounded-full mx-auto mb-2"
               />
@@ -467,6 +474,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
           </footer>
         </blockquote>
       );
+    }
 
     case 'contact-form':
       return (
@@ -848,13 +856,13 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
 
       return (
         <div style={baseStyle}>
-          {embedUrl ? (
-            <div
+                {embedUrl ? (
+                  <div
               className="relative w-full rounded-lg overflow-hidden bg-black"
               style={{ aspectRatio: component.aspectRatio || '16/9' }}
             >
               <iframe
-                src={embedUrl}
+                src={sanitizeBuilderUrl(embedUrl) || 'about:blank'}
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -866,7 +874,12 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
               className="bg-app-text rounded-lg flex items-center justify-center text-app-text-subtle"
               style={{
                 aspectRatio: component.aspectRatio || '16/9',
-                backgroundImage: component.poster ? `url(${component.poster})` : undefined,
+                backgroundImage: component.poster
+                  ? (() => {
+                      const safePoster = sanitizeBuilderUrl(component.poster);
+                      return safePoster ? `url(${safePoster})` : undefined;
+                    })()
+                  : undefined,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }}
@@ -1003,7 +1016,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
               {component.links.map((link) => (
                 <a
                   key={link.platform}
-                  href={link.url}
+                  href={sanitizeBuilderUrl(link.url) || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`p-2 rounded-lg transition-colors ${

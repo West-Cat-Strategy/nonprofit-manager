@@ -432,6 +432,7 @@ export interface UpdateCaseDTO {
  * Case Filter Parameters
  */
 export interface CaseFilter {
+  organizationId?: string;
   search?: string;
   contact_id?: string;
   account_id?: string;

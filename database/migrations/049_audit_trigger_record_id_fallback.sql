@@ -80,7 +80,7 @@ BEGIN
     v_old_values,
     v_new_values,
     v_changed_fields,
-    (current_setting('app.current_user_id', true)::UUID),
+    (NULLIF(current_setting('app.current_user_id', true), '')::UUID),
     (current_setting('app.client_ip', true)::INET),
     current_setting('app.user_agent', true),
     current_setting('app.request_id', true),

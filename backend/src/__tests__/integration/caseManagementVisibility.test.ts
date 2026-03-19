@@ -15,6 +15,7 @@ describe('Case Management Visibility Integration', () => {
   let adminEmail: string;
   let adminToken: string;
   let organizationId: string;
+  let organizationBId: string;
 
   let caseTypeId: string;
   let activeStatusId: string;
@@ -75,6 +76,15 @@ describe('Case Management Visibility Integration', () => {
     organizationId = orgResult.rows[0].id as string;
     createdAccountIds.push(organizationId);
 
+    const orgBResult = await pool.query(
+      `INSERT INTO accounts (account_name, account_type, is_active, created_by, modified_by, created_at, updated_at)
+       VALUES ($1, 'organization', true, $2, $2, NOW(), NOW())
+       RETURNING id`,
+      [`Case Visibility Org B ${suffix}`, adminUserId]
+    );
+    organizationBId = orgBResult.rows[0].id as string;
+    createdAccountIds.push(organizationBId);
+
     adminToken = jwt.sign(
       { id: adminUserId, email: adminEmail, role: 'admin', organizationId },
       getJwtSecret(),
@@ -128,7 +138,7 @@ describe('Case Management Visibility Integration', () => {
       `INSERT INTO contacts (first_name, last_name, email, account_id, created_by, modified_by)
        VALUES ('Portal', 'Beta', $1, $2, NULL, NULL)
        RETURNING id`,
-      [portalBEmail, organizationId]
+      [portalBEmail, organizationBId]
     );
     contactBId = contactBResult.rows[0].id as string;
     createdContactIds.push(contactBId);
@@ -184,7 +194,7 @@ describe('Case Management Visibility Integration', () => {
          updated_at
        ) VALUES ($1, $2, $3, $4, $5, $6, true, $7, $7, $7, NOW(), NOW())
        RETURNING id`,
-      [`CASE-B-${suffix}`, contactBId, organizationId, caseTypeId, activeStatusId, 'Case Beta', adminUserId]
+      [`CASE-B-${suffix}`, contactBId, organizationBId, caseTypeId, activeStatusId, 'Case Beta', adminUserId]
     );
     caseBId = caseBResult.rows[0].id as string;
     createdCaseIds.push(caseBId);
@@ -448,6 +458,28 @@ describe('Case Management Visibility Integration', () => {
     await request(app)
       .get(`/api/v2/portal/cases/${caseAId}`)
       .set('Cookie', [`portal_auth_token=${portalBToken}`])
+      .expect(404);
+  });
+
+  it('keeps cases scoped to the active organization for list, detail, and timeline access', async () => {
+    const listResponse = await request(app)
+      .get('/api/v2/cases')
+      .set(authHeader())
+      .expect(200);
+
+    const listBody = unwrap<{ cases: Array<{ id: string }> }>(listResponse.body);
+    const listedCaseIds = listBody.cases.map((entry) => entry.id);
+    expect(listedCaseIds).toContain(caseAId);
+    expect(listedCaseIds).not.toContain(caseBId);
+
+    await request(app)
+      .get(`/api/v2/cases/${caseBId}`)
+      .set(authHeader())
+      .expect(404);
+
+    await request(app)
+      .get(`/api/v2/cases/${caseBId}/timeline`)
+      .set(authHeader())
       .expect(404);
   });
 

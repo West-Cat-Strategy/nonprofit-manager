@@ -7,8 +7,8 @@ import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { logger } from '@config/logger';
 import { recurringDonationService } from '@modules/recurringDonations/services/recurringDonationService';
-import { stripeService } from '@services/domains/operations';
 import { appendAuditLog } from '@services/auditService';
+import stripeService from '@services/stripeService';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   CreatePaymentIntentRequest,

@@ -12,6 +12,18 @@ import type {
 } from '@app-types/contact';
 import { syncContactMethodSummaries } from './contactMethodSyncService';
 
+const CONTACT_EMAIL_COLUMNS = [
+  'id',
+  'contact_id',
+  'email_address',
+  'label',
+  'is_primary',
+  'created_at',
+  'updated_at',
+  'created_by',
+  'modified_by',
+].join(', ');
+
 /**
  * Get all email addresses for a contact
  */
@@ -19,7 +31,7 @@ export async function getContactEmails(contactId: string): Promise<ContactEmailA
   try {
     const result = await pool.query(
       `
-      SELECT * FROM contact_email_addresses
+      SELECT ${CONTACT_EMAIL_COLUMNS} FROM contact_email_addresses
       WHERE contact_id = $1
       ORDER BY is_primary DESC, created_at ASC
       `,
@@ -39,7 +51,7 @@ export async function getContactEmails(contactId: string): Promise<ContactEmailA
 export async function getContactEmailById(emailId: string): Promise<ContactEmailAddress | null> {
   try {
     const result = await pool.query(
-      `SELECT * FROM contact_email_addresses WHERE id = $1`,
+      `SELECT ${CONTACT_EMAIL_COLUMNS} FROM contact_email_addresses WHERE id = $1`,
       [emailId]
     );
 
@@ -64,7 +76,7 @@ export async function createContactEmail(
       INSERT INTO contact_email_addresses (
         contact_id, email_address, label, is_primary, created_by, modified_by
       ) VALUES ($1, $2, $3, $4, $5, $5)
-      RETURNING *
+      RETURNING ${CONTACT_EMAIL_COLUMNS}
       `,
       [
         contactId,
@@ -125,7 +137,7 @@ export async function updateContactEmail(
     values.push(emailId);
 
     const result = await pool.query(
-      `UPDATE contact_email_addresses SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      `UPDATE contact_email_addresses SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING ${CONTACT_EMAIL_COLUMNS}`,
       values
     );
 
@@ -175,7 +187,7 @@ export async function getPrimaryEmail(contactId: string): Promise<ContactEmailAd
   try {
     const result = await pool.query(
       `
-      SELECT * FROM contact_email_addresses
+      SELECT ${CONTACT_EMAIL_COLUMNS} FROM contact_email_addresses
       WHERE contact_id = $1 AND is_primary = true
       LIMIT 1
       `,

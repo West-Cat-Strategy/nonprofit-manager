@@ -184,7 +184,7 @@ describe('CaseService', () => {
 
       const result = await service.getCaseById('case-1');
       expect(result).toEqual(mockCase);
-      expect(mockQuery.mock.calls[0][1]).toEqual(['case-1']);
+      expect(mockQuery.mock.calls[0][1]).toEqual(['case-1', null]);
     });
 
     it('returns null when not found', async () => {
