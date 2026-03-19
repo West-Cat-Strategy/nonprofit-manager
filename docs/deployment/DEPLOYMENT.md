@@ -205,9 +205,10 @@ echo "ssl_key_file = '/var/lib/postgresql/server.key'" >> /etc/postgresql/14/mai
 #### Backend Database Connection
 
 The Node.js backend in `backend/src/config/database.ts` automatically:
-- Enables SSL in production (`NODE_ENV=production`)
-- Rejects untrusted certificates by default
-- Can be configured via environment variables:
+- Enables SSL in production for managed/external databases
+- Disables SSL in production when `DB_AT_REST_ENCRYPTION_MODE=luks`
+- Rejects untrusted certificates by default when SSL is enabled
+- Treats `DB_SSL_ENABLED` as a managed/external-database knob only; LUKS-backed deployments ignore it because the backend forces DB TLS off
 
 ```bash
 # Production database config
@@ -220,6 +221,9 @@ DB_PASSWORD=your_strong_random_password
 # SSL enforcement (recommended: true for strict validation)
 # Set to false ONLY for self-signed certificates in development
 DB_SSL_REJECT_UNAUTHORIZED=true
+
+# For LUKS-backed deployments, the backend disables DB TLS automatically.
+# Do not rely on DB_SSL_ENABLED for local Postgres over the compose network.
 
 # (Optional) Custom CA certificate path
 # DB_SSL_CA_PATH=/path/to/ca-bundle.crt
