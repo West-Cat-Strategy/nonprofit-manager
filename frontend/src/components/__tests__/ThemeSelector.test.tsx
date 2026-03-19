@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ThemeSelector from '../ThemeSelector';
 import { ThemeProvider } from '../../contexts/ThemeContext';
@@ -27,7 +27,12 @@ describe('ThemeSelector', () => {
     );
 
     expect(screen.getByRole('radiogroup', { name: /select interface theme/i })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('radio', { name: /corporate theme/i }));
+    const corporateTheme = screen.getByRole('radio', { name: /corporate theme/i });
+    expect(corporateTheme).toHaveAttribute('data-theme-card', 'corporate');
+    expect(within(corporateTheme).getAllByText('CP')).toHaveLength(2);
+    expect(corporateTheme.querySelector('[data-theme-preview="corporate"]')).not.toBeNull();
+
+    fireEvent.click(corporateTheme);
 
     await waitFor(() => expect(localStorage.getItem('app-theme')).toBe('corporate'));
     expect(document.body.classList.contains('theme-corporate')).toBe(true);
