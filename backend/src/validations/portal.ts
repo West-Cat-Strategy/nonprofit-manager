@@ -136,6 +136,8 @@ const portalListQueryBaseSchema = portalPaginationQuerySchema
 export const portalEventsQuerySchema = portalListQueryBaseSchema
   .extend({
     sort: z.enum(['start_date', 'name', 'created_at']).optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
   })
   .strict();
 
@@ -193,6 +195,8 @@ export const portalPointpersonQuerySchema = z
 export const portalSlotQuerySchema = z
   .object({
     case_id: uuidSchema.optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
   })
   .strict();
 

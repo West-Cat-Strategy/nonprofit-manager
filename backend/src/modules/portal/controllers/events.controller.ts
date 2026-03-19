@@ -18,6 +18,8 @@ export const createPortalEventsController = (useCase: PortalEventsUseCase) => {
         search?: string;
         sort?: 'start_date' | 'name' | 'created_at';
         order?: 'asc' | 'desc';
+        from?: string;
+        to?: string;
         limit?: number;
         offset?: number;
       };
@@ -26,6 +28,8 @@ export const createPortalEventsController = (useCase: PortalEventsUseCase) => {
         search: query.search,
         sort: query.sort,
         order: query.order,
+        from: query.from,
+        to: query.to,
         limit: query.limit,
         offset: query.offset,
       });

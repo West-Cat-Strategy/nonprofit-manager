@@ -32,8 +32,55 @@ export interface PortalEventsQuery {
   search?: string;
   sort?: 'start_date' | 'name' | 'created_at';
   order?: PortalSortOrder;
+  from?: string;
+  to?: string;
   limit?: number;
   offset?: number;
+}
+
+export interface PortalAppointmentQuery {
+  status?: 'requested' | 'confirmed' | 'cancelled' | 'completed';
+  case_id?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PortalAppointmentSlot {
+  id: string;
+  title: string | null;
+  details: string | null;
+  location: string | null;
+  start_time: string;
+  end_time: string;
+  available_count: number;
+  status: 'open' | 'closed' | 'cancelled';
+  case_number?: string | null;
+  pointperson_first_name?: string | null;
+  pointperson_last_name?: string | null;
+}
+
+export interface PortalAppointmentSlotsPayload {
+  selected_case_id: string | null;
+  selected_pointperson_user_id: string | null;
+  slots: PortalAppointmentSlot[];
+}
+
+export interface PortalAppointmentRequestInput {
+  case_id?: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time?: string;
+  location?: string;
+}
+
+export interface PortalAppointmentSlotBookingInput {
+  case_id?: string;
+  title?: string | null;
+  description?: string | null;
 }
 
 export interface PortalDocument {
@@ -205,8 +252,19 @@ export interface PortalPointpersonContext {
 export interface PortalApiClient {
   getDashboard(): Promise<PortalDashboardData>;
   listEvents(query?: PortalEventsQuery): Promise<PortalPagedResult<PortalEvent>>;
+  listEventsAll(query?: PortalEventsQuery): Promise<PortalEvent[]>;
   registerEvent(eventId: string): Promise<void>;
   cancelEventRegistration(eventId: string): Promise<void>;
+  listAppointments(query?: PortalAppointmentQuery): Promise<PortalAppointmentSummary[]>;
+  listAppointmentsAll(query?: PortalAppointmentQuery): Promise<PortalAppointmentSummary[]>;
+  listAppointmentSlots(query?: {
+    case_id?: string;
+    from?: string;
+    to?: string;
+  }): Promise<PortalAppointmentSlotsPayload>;
+  requestAppointment(payload: PortalAppointmentRequestInput): Promise<void>;
+  bookAppointmentSlot(slotId: string, payload: PortalAppointmentSlotBookingInput): Promise<void>;
+  cancelAppointment(appointmentId: string): Promise<void>;
   listDocuments(query?: PortalDocumentsQuery): Promise<PortalPagedResult<PortalDocument>>;
   listForms(query?: PortalFormsQuery): Promise<PortalPagedResult<PortalDocument>>;
   listNotes(query?: PortalNotesQuery): Promise<PortalPagedResult<PortalNote>>;

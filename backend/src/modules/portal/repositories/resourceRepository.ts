@@ -18,6 +18,8 @@ export class PortalResourceRepository {
       search?: string;
       sort?: 'start_date' | 'name' | 'created_at';
       order?: PortalListOrder;
+      from?: string;
+      to?: string;
       limit?: number;
       offset?: number;
     }
@@ -32,11 +34,15 @@ export class PortalResourceRepository {
     const sort = query?.sort ?? 'start_date';
     const sortColumn = sortColumns[sort];
     const order = query?.order === 'desc' ? 'DESC' : 'ASC';
+    const from = query?.from ?? null;
+    const to = query?.to ?? null;
 
     const totalResult = await this.pool.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count
        FROM events e
        WHERE e.start_date >= NOW()
+         AND ($2::timestamptz IS NULL OR e.start_date >= $2)
+         AND ($3::timestamptz IS NULL OR e.start_date <= $3)
          AND e.status NOT IN ('cancelled', 'completed')
          AND (
            e.is_public = true
@@ -48,10 +54,10 @@ export class PortalResourceRepository {
            )
          )
          AND (
-           $2::text IS NULL
-           OR concat_ws(' ', e.name, e.description, e.location_name, e.event_type) ILIKE '%' || $2 || '%'
+           $4::text IS NULL
+           OR concat_ws(' ', e.name, e.description, e.location_name, e.event_type) ILIKE '%' || $4 || '%'
          )`,
-      [contactId, search]
+      [contactId, from, to, search]
     );
     const total = Number(totalResult.rows[0]?.count ?? '0');
 
@@ -79,6 +85,8 @@ export class PortalResourceRepository {
          LIMIT 1
        ) er ON true
        WHERE e.start_date >= NOW()
+         AND ($2::timestamptz IS NULL OR e.start_date >= $2)
+         AND ($3::timestamptz IS NULL OR e.start_date <= $3)
          AND e.status NOT IN ('cancelled', 'completed')
          AND (
            e.is_public = true
@@ -90,12 +98,12 @@ export class PortalResourceRepository {
            )
          )
          AND (
-           $2::text IS NULL
-           OR concat_ws(' ', e.name, e.description, e.location_name, e.event_type) ILIKE '%' || $2 || '%'
+           $4::text IS NULL
+           OR concat_ws(' ', e.name, e.description, e.location_name, e.event_type) ILIKE '%' || $4 || '%'
          )
        ORDER BY ${sortColumn} ${order}, e.id ${order}
-       LIMIT $3 OFFSET $4`,
-      [contactId, search, limit, offset]
+       LIMIT $5 OFFSET $6`,
+      [contactId, from, to, search, limit, offset]
     );
 
     return {
