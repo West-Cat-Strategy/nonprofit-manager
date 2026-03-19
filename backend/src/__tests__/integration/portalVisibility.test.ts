@@ -384,4 +384,22 @@ describe('Portal Visibility Integration', () => {
     expect(eventRow?.check_in_method).toBe('qr');
     expect(eventRow).not.toHaveProperty('public_checkin_pin_hash');
   });
+
+  it('filters portal events by date range without exposing out-of-range items', async () => {
+    const from = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+
+    const filteredResponse = await request(app)
+      .get('/api/v2/portal/events')
+      .query({ from })
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(200);
+
+    const filteredPayload = unwrap<
+      PortalPagedPayload<{
+        id: string;
+      }>
+    >(filteredResponse.body);
+
+    expect(filteredPayload.items.find((item) => item.id === portalEventId)).toBeUndefined();
+  });
 });

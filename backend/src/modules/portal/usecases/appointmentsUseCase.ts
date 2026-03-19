@@ -22,8 +22,15 @@ export class PortalAppointmentsUseCase {
     return this.appointmentsPort.listPortalAppointments(contactId, filters);
   }
 
-  listSlots(contactId: string, caseId?: string): Promise<unknown> {
-    return this.appointmentsPort.listPortalAppointmentSlots(contactId, caseId);
+  listSlots(
+    contactId: string,
+    filters?: {
+      caseId?: string;
+      from?: string;
+      to?: string;
+    }
+  ): Promise<unknown> {
+    return this.appointmentsPort.listPortalAppointmentSlots(contactId, filters);
   }
 
   async bookSlot(input: {

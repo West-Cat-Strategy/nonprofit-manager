@@ -19,6 +19,8 @@ export class PortalEventsUseCase {
       search?: string;
       sort?: 'start_date' | 'name' | 'created_at';
       order?: 'asc' | 'desc';
+      from?: string;
+      to?: string;
       limit?: number;
       offset?: number;
     }

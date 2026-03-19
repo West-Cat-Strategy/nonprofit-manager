@@ -32,6 +32,7 @@ const resolvePortalArea = (id: string): RouteArea => {
   if (id === 'portal-dashboard') return 'Home';
   if (id === 'portal-cases' || id === 'portal-case-detail') return 'Cases';
   if (id === 'portal-messages') return 'Messages';
+  if (id === 'portal-calendar') return 'Appointments';
   if (id === 'portal-events') return 'Events';
   if (id === 'portal-documents') return 'Documents';
   if (id === 'portal-forms') return 'Forms';

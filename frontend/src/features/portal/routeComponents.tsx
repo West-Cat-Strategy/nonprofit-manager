@@ -12,6 +12,7 @@ export const PortalAcceptInvitation = lazy(() => import('./pages/PortalAcceptInv
 export const PortalDashboard = lazy(() => import('./pages/PortalDashboardPage'));
 export const PortalProfile = lazy(() => import('./pages/PortalProfilePage'));
 export const PortalPeople = lazy(() => import('./pages/PortalPeoplePage'));
+export const PortalCalendar = lazy(() => import('./pages/PortalCalendarPage'));
 export const PortalEvents = lazy(() => import('./pages/PortalEventsPage'));
 export const PortalAppointments = lazy(() => import('./pages/PortalAppointmentsPage'));
 export const PortalMessages = lazy(() => import('./pages/PortalMessagesPage'));

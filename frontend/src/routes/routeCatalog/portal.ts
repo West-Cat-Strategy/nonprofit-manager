@@ -21,6 +21,12 @@ export const portalRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     portalNav: { order: 30, label: 'People' },
   }),
   portalRoute({
+    id: 'portal-calendar',
+    title: 'Calendar',
+    path: '/portal/calendar',
+    portalNav: { order: 35, label: 'Calendar' },
+  }),
+  portalRoute({
     id: 'portal-events',
     title: 'Events',
     path: '/portal/events',
