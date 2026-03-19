@@ -17,8 +17,10 @@ export interface ThemePreview {
 
 export interface ThemeDefinition {
   id: ThemeId;
+  shortLabel: string;
   label: string;
   description: string;
+  menuDescription: string;
   bodyClass?: `theme-${ThemeId}`;
   preview: ThemePreview;
 }
@@ -35,8 +37,10 @@ export const THEME_IDS: ThemeId[] = [
 export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
   neobrutalist: {
     id: 'neobrutalist',
+    shortLabel: 'EO',
     label: 'Editorial Ops',
-    description: 'Neutral workspace surfaces, dark-ink actions, and refined hierarchy',
+    description: 'Paper-toned editorial rhythm with ink-first hierarchy',
+    menuDescription: 'Warm operational surfaces, serif headlines, and firmer chrome.',
     preview: {
       bg: '#f4f1eb',
       surface: '#fffdf9',
@@ -48,64 +52,74 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
   },
   'sea-breeze': {
     id: 'sea-breeze',
+    shortLabel: 'SB',
     label: 'Sea Breeze',
-    description: 'Calm marine tones for service-heavy intake and portal work',
+    description: 'Rounded marine palette with airy intake-friendly calm',
+    menuDescription: 'Soft teal gradients and relaxed geometry for service-heavy work.',
     bodyClass: 'theme-sea-breeze',
     preview: {
-      bg: '#e8f6f3',
+      bg: '#dff7f3',
       surface: '#f8fffd',
       text: '#113d3b',
       accent: '#0d8b80',
-      border: '#9fcfc9',
+      border: '#6ab8b0',
       borderStyle: '1px solid',
     },
   },
   corporate: {
     id: 'corporate',
+    shortLabel: 'CP',
     label: 'Corporate',
-    description: 'Operational clarity with a restrained enterprise palette',
+    description: 'Crisp enterprise clarity with disciplined cobalt accents',
+    menuDescription: 'Tighter geometry, sharper data surfaces, and quiet professionalism.',
     bodyClass: 'theme-corporate',
     preview: {
-      bg: '#f4f6fa',
+      bg: '#f3f5fa',
       surface: '#ffffff',
-      text: '#172234',
-      accent: '#1a4d8f',
-      border: '#c4cfdd',
+      text: '#142033',
+      accent: '#1d4ed8',
+      border: '#a7b4c7',
       borderStyle: '1px solid',
     },
   },
   'clean-modern': {
     id: 'clean-modern',
+    shortLabel: 'CM',
     label: 'Clean Modern',
-    description: 'Balanced geometry with soft structure and no purple bias',
+    description: 'Sage-forward balance with smoother cards and lighter structure',
+    menuDescription: 'A softer contemporary workspace with calm depth and cleaner spacing.',
     bodyClass: 'theme-clean-modern',
     preview: {
       bg: '#eef4f2',
       surface: '#ffffff',
-      text: '#16212b',
+      text: '#17252a',
       accent: '#0f766e',
-      border: '#c7d8d3',
+      border: '#9bb8ad',
       borderStyle: '1px solid',
     },
   },
   glass: {
     id: 'glass',
+    shortLabel: 'GL',
     label: 'Glass',
-    description: 'Translucent panels with cooler ink tones and tighter contrast',
+    description: 'Luminous glass layers with neon detail and crisp contrast',
+    menuDescription: 'Frosted panels, electric accents, and the boldest night mode.',
     bodyClass: 'theme-glass',
     preview: {
-      bg: '#d8dde8',
-      surface: 'rgba(255,255,255,0.78)',
-      text: '#132033',
-      accent: '#0f6b7d',
-      border: '#a5b6cb',
+      bg: '#dbe3f4',
+      surface: 'rgba(248,251,255,0.8)',
+      text: '#112138',
+      accent: '#00a2ff',
+      border: '#8aa8d1',
       borderStyle: '1px solid',
     },
   },
   'high-contrast': {
     id: 'high-contrast',
+    shortLabel: 'HC',
     label: 'High Contrast',
-    description: 'WCAG-first visibility and interaction affordance',
+    description: 'Maximum readability with uncompromising borders and focus',
+    menuDescription: 'Accessibility-first mode with zero blur and the clearest states.',
     bodyClass: 'theme-high-contrast',
     preview: {
       bg: '#ffffff',

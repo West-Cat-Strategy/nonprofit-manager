@@ -123,7 +123,7 @@ const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
     secondaryItems,
   },
   themeLabels: {
-    neobrutalist: 'NB',
+    neobrutalist: 'EO',
     'clean-modern': 'CM',
   },
   themeState: {
@@ -248,5 +248,18 @@ describe('Navigation', () => {
     await waitFor(() => {
       expect(searchButton).toHaveFocus();
     });
+  });
+
+  it('renders compact theme labels and detailed theme menu rows', async () => {
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
+
+    const themeButton = screen.getByRole('button', { name: /theme settings/i });
+    expect(themeButton).toHaveTextContent('EO');
+
+    fireEvent.click(themeButton);
+
+    expect(screen.getByRole('menuitem', { name: /editorial ops/i })).toBeInTheDocument();
+    expect(screen.getByText(/warm operational surfaces, serif headlines/i)).toBeInTheDocument();
+    expect(screen.getByText(/a softer contemporary workspace with calm depth/i)).toBeInTheDocument();
   });
 });
