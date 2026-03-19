@@ -6,7 +6,7 @@ import pool from '@config/database';
 import { getJwtSecret } from '@config/jwt';
 import { randomUUID } from 'crypto';
 import { handleWebhook, setPaymentPool } from '@modules/payments/controllers/paymentController';
-import { stripeService } from '@services/domains/operations';
+import stripeService from '@services/stripeService';
 
 type GuardrailCase = {
   name: string;

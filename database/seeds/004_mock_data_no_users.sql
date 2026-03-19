@@ -1,4 +1,4 @@
--- Mock data without users (preserves first-login behavior)
+-- Optional mock data bundle without users (preserves first-login behavior)
 -- Run after all migrations
 
 BEGIN;

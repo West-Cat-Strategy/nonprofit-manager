@@ -68,7 +68,12 @@ pid_is_alive() {
 
 get_process_group() {
   local pid="$1"
-  ps -o pgid= -p "$pid" 2>/dev/null | tr -d '[:space:]'
+  if ! command -v ps >/dev/null 2>&1; then
+    echo ""
+    return 0
+  fi
+
+  ps -o pgid= -p "$pid" 2>/dev/null | tr -d '[:space:]' || true
 }
 
 wait_for_pid_exit() {
@@ -176,7 +181,10 @@ run_with_retry() {
     : > "$latest_log"
 
     set +e
-    "$@" > >(tee "$attempt_log" "$latest_log") 2>&1 &
+    (
+      set -o pipefail
+      "$@" 2>&1 | tee "$attempt_log" "$latest_log"
+    ) &
     local command_pid=$!
     local heartbeat_pid=""
 

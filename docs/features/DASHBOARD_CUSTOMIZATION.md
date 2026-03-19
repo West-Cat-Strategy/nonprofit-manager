@@ -8,7 +8,7 @@ This document describes the customizable dashboard feature implementation with d
 
 ### ✅ Completed Components
 
-1. **Type Definitions** ([frontend/src/types/dashboard.ts](https://github.com/example/nonprofit-manager))
+1. **Type Definitions** ([frontend/src/types/dashboard.ts](../../frontend/src/types/dashboard.ts))
    - WidgetType enum with 10 widget types
    - DashboardConfig interface
    - DashboardWidget interface
@@ -16,13 +16,13 @@ This document describes the customizable dashboard feature implementation with d
    - WIDGET_TEMPLATES array with default configurations
    - DEFAULT_DASHBOARD_CONFIG with default layout
 
-2. **Redux State Management** ([frontend/src/store/slices/dashboardSlice.ts](https://github.com/example/nonprofit-manager))
+2. **Dashboard State Management** ([frontend/src/features/dashboard/state/index.ts](../../frontend/src/features/dashboard/state/index.ts))
    - Dashboard state management
    - Async thunks for CRUD operations
    - Layout update actions
    - Widget management actions
 
-3. **Widget Components** ([frontend/src/components/dashboard/](https://github.com/example/nonprofit-manager))
+3. **Widget Components** ([frontend/src/components/dashboard/](../../frontend/src/components/dashboard/))
    - WidgetContainer: Base wrapper component
    - QuickActionsWidget: Shortcuts to common tasks
    - DonationSummaryWidget: Donation metrics overview
@@ -33,7 +33,7 @@ This document describes the customizable dashboard feature implementation with d
    - CaseSummaryWidget: Case management overview
    - ActivityFeedWidget: Recent activity feed
 
-4. **Main Dashboard Page** ([frontend/src/pages/CustomDashboard.tsx](https://github.com/example/nonprofit-manager))
+4. **Main Dashboard Page** ([frontend/src/features/dashboard/pages/CustomDashboardPage.tsx](../../frontend/src/features/dashboard/pages/CustomDashboardPage.tsx))
    - Drag-and-drop grid layout
    - Edit/view mode toggle
    - Add widget modal

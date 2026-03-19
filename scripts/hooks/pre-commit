@@ -1,6 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -e
+cd "$(git rev-parse --show-toplevel)"
+make lint
 
-root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-"${root_dir}/scripts/local-ci.sh" --fast

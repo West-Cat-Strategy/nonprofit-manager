@@ -55,19 +55,48 @@ export function validatePhoneNumber(phone: string): string | null {
   return null;
 }
 
-// URL validation
-const URL_REGEX = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i;
+const EXECUTABLE_URL_SCHEME_REGEX = /^(javascript|data|vbscript):/i;
+const RELATIVE_OR_SAFE_URL_REGEX = /^(https?:\/\/|mailto:|tel:|\/|\.\.\/|\.\/|#)/i;
+
+export interface SafeUrlOptions {
+  allowRelative?: boolean;
+}
+
+export function sanitizeBuilderUrl(url: string, options: SafeUrlOptions = {}): string {
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (EXECUTABLE_URL_SCHEME_REGEX.test(trimmed) || trimmed.startsWith('//')) {
+    return '';
+  }
+  if (RELATIVE_OR_SAFE_URL_REGEX.test(trimmed)) {
+    return encodeURI(trimmed).replace(/'/g, '%27').replace(/"/g, '%22');
+  }
+  if (options.allowRelative !== false && !trimmed.includes(':')) {
+    return encodeURI(trimmed).replace(/'/g, '%27').replace(/"/g, '%22');
+  }
+  return '';
+}
 
 export function validateUrl(url: string): string | null {
   if (!url) return null; // Empty is valid (optional field)
-  if (!URL_REGEX.test(url.trim())) {
+  const trimmed = url.trim();
+  if (EXECUTABLE_URL_SCHEME_REGEX.test(trimmed)) {
+    return 'Please enter a valid URL';
+  }
+  const candidate = /^[a-z][a-z0-9+.-]*:/i.test(trimmed) || trimmed.startsWith('//') ? trimmed : `https://${trimmed}`;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return 'Please enter a valid URL';
+    }
+  } catch {
     return 'Please enter a valid URL';
   }
   return null;
 }
 
 export function isValidUrl(url: string): boolean {
-  return URL_REGEX.test(url.trim());
+  return validateUrl(url) === null;
 }
 
 // Postal code validation

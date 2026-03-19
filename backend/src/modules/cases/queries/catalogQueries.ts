@@ -7,6 +7,7 @@ import {
   MAX_TIMELINE_LIMIT,
   requireCaseOwnership,
 } from './shared';
+import { getRequestContext } from '@config/requestContext';
 
 const CASE_COLUMNS = `
   c.id,
@@ -54,6 +55,7 @@ export const getCasesQuery = async (
   const filters: string[] = [];
   const params: unknown[] = [];
   let needsStatusJoin = false;
+  const organizationId = filter.organizationId || getRequestContext()?.organizationId || getRequestContext()?.accountId || getRequestContext()?.tenantId;
 
   const addFilter = (sql: string, value?: unknown) => {
     if (value !== undefined) {
@@ -129,6 +131,11 @@ export const getCasesQuery = async (
     filters.push(`${CASE_SEARCH_SQL} ILIKE $${params.length}`);
   }
 
+  if (organizationId) {
+    params.push(organizationId);
+    filters.push(`COALESCE(c.account_id, con.account_id) = $${params.length}`);
+  }
+
   const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
   const filterStatusJoin = needsStatusJoin
     ? 'LEFT JOIN case_statuses filter_cs ON c.status_id = filter_cs.id'
@@ -156,6 +163,7 @@ export const getCasesQuery = async (
     WITH filtered_cases AS (
       SELECT ${CASE_COLUMNS}
       FROM cases c
+      LEFT JOIN contacts con ON c.contact_id = con.id
       ${filterStatusJoin}
       ${whereClause}
     ),
@@ -206,8 +214,11 @@ export const getCasesQuery = async (
 
 export const getCaseByIdQuery = async (
   db: Pool,
-  caseId: string
+  caseId: string,
+  organizationId?: string
 ): Promise<CaseWithDetails | null> => {
+  const resolvedOrganizationId =
+    organizationId || getRequestContext()?.organizationId || getRequestContext()?.accountId || getRequestContext()?.tenantId;
   const result = await db.query(
     `
     SELECT ${CASE_COLUMNS},
@@ -225,8 +236,12 @@ export const getCaseByIdQuery = async (
     LEFT JOIN contacts con ON c.contact_id = con.id
     LEFT JOIN users u ON c.assigned_to = u.id
     WHERE c.id = $1
+      AND (
+        $2::uuid IS NULL
+        OR COALESCE(c.account_id, con.account_id) = $2::uuid
+      )
   `,
-    [caseId]
+    [caseId, resolvedOrganizationId || null]
   );
 
   return result.rows[0] || null;
@@ -235,9 +250,10 @@ export const getCaseByIdQuery = async (
 export const getCaseTimelineQuery = async (
   db: Pool,
   caseId: string,
-  options?: { limit?: number; cursor?: string }
+  options?: { limit?: number; cursor?: string },
+  organizationId?: string
 ): Promise<{ items: CaseTimelineEvent[]; page: { limit: number; has_more: boolean; next_cursor: string | null } }> => {
-  await requireCaseOwnership(db, caseId);
+  await requireCaseOwnership(db, caseId, organizationId);
   const requestedLimit = options?.limit ?? DEFAULT_TIMELINE_LIMIT;
   const limit = Math.max(1, Math.min(requestedLimit, MAX_TIMELINE_LIMIT));
   const cursor = decodeTimelineCursor(options?.cursor);
@@ -538,10 +554,12 @@ export const getCaseTimelineQuery = async (
 };
 
 export const getCaseSummaryQuery = async (db: Pool, organizationId?: string): Promise<CaseSummary> => {
+  const resolvedOrganizationId =
+    organizationId || getRequestContext()?.organizationId || getRequestContext()?.accountId || getRequestContext()?.tenantId;
   const scopeParams: string[] = [];
   const scopeValues: unknown[] = [];
-  if (organizationId) {
-    scopeValues.push(organizationId);
+  if (resolvedOrganizationId) {
+    scopeValues.push(resolvedOrganizationId);
     scopeParams.push(`COALESCE(c.account_id, con.account_id) = $${scopeValues.length}`);
   }
   const scopeClause = scopeParams.length > 0 ? `WHERE ${scopeParams.join(' AND ')}` : '';

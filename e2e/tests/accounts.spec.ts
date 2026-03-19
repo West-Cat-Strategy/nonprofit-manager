@@ -70,7 +70,6 @@ async function searchAccountByName(authenticatedPage: Page, name: string) {
   await filterForm.getByRole('button', { name: 'Search' }).click();
   await searchRequest;
   await expect.poll(() => hasSearchQuery(authenticatedPage.url(), name), { timeout: 10000 }).toBe(true);
-  await authenticatedPage.waitForLoadState('networkidle');
 }
 
 test.describe('Accounts Module', () => {
@@ -83,8 +82,12 @@ test.describe('Accounts Module', () => {
   test('should create a new account via UI', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/accounts');
 
-    // Click "New Account" button
-    await authenticatedPage.click('text=/New Account|Create Account/i');
+    // Click the primary create button instead of the breadcrumb shortcut link.
+    const newAccountButton = authenticatedPage
+      .getByRole('button', { name: /New Account|Create Account/i })
+      .first();
+    await expect(newAccountButton).toBeVisible({ timeout: 15000 });
+    await newAccountButton.click();
 
     // Wait for form
     await authenticatedPage.waitForURL(/\/accounts\/(new|create)/);
@@ -104,9 +107,8 @@ test.describe('Accounts Module', () => {
     // Submit form
     await authenticatedPage.click('button[type="submit"]');
 
-    // Should redirect to accounts list page
-    await authenticatedPage.waitForURL('/accounts', { timeout: 10000 });
-    await authenticatedPage.waitForLoadState('networkidle');
+    // Should redirect to the accounts list page, including the active-filter query string.
+    await authenticatedPage.waitForURL(/\/accounts(?:\?.*)?$/, { timeout: 10000 });
 
     // Wait for the account to appear in the list
     await expect(
@@ -154,7 +156,6 @@ test.describe('Accounts Module', () => {
     }
 
     await authenticatedPage.goto('/accounts');
-    await authenticatedPage.waitForLoadState('networkidle');
 
     // Search by the unique full account name to avoid cross-test contamination.
     const filterForm = await getAccountsFilterForm(authenticatedPage);
@@ -174,7 +175,6 @@ test.describe('Accounts Module', () => {
     await filterForm.getByRole('button', { name: 'Search' }).click();
     await searchPromise;
     await expect.poll(() => hasSearchQuery(authenticatedPage.url(), searchTerm), { timeout: 10000 }).toBe(true);
-    await authenticatedPage.waitForLoadState('networkidle');
 
     // Wait for search results
     await expect(authenticatedPage.getByRole('link', { name: searchTerm }).first()).toBeVisible({
@@ -264,8 +264,8 @@ test.describe('Accounts Module', () => {
       throw new Error(`Unauthorized API responses: ${unauthorized.join(', ')}`);
     }
     await authenticatedPage.waitForURL(new RegExp(`/accounts/${accountId}$`), { timeout: 10000 });
-    // Force a fresh detail fetch after redirect to avoid stale cached UI in Chromium.
-    await authenticatedPage.reload({ waitUntil: 'networkidle' });
+    // Force a fresh detail fetch after redirect without waiting for the app's live connections.
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await expect(
       authenticatedPage.locator(`text=Updated Name ${editSuffix}`)
     ).toBeVisible({ timeout: 10000 });

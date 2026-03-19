@@ -1,67 +1,54 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const path = require('node:path');
+const path = require('path');
+const {
+  repoRoot,
+  relativeToRepo,
+  readText,
+  walkFiles,
+} = require('./lib/policy-utils.ts');
 
-const root = path.resolve(__dirname, '..', 'backend', 'src');
+const expectedFile = path.join(repoRoot, 'backend/src/middleware/rateLimiter.ts');
+const sourceFiles = walkFiles(path.join(repoRoot, 'backend/src'), {
+  extensions: ['.ts'],
+  includeTests: false,
+});
 
-const violations = [];
+const issues = [];
+let expectedFileHits = 0;
 
-const isCodeFile = (name) => /\.ts$/.test(name) && !/\.test\.ts$/.test(name);
+for (const filePath of sourceFiles) {
+  const text = readText(filePath);
+  const keyGeneratorMatches = [...text.matchAll(/keyGenerator\s*:/g)];
+  if (keyGeneratorMatches.length === 0) {
+    continue;
+  }
 
-const walk = (dir) => {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (
-      entry.name === 'node_modules' ||
-      entry.name === 'dist' ||
-      entry.name === '__tests__'
-    ) {
-      continue;
-    }
-    const fullPath = path.join(dir, entry.name);
+  if (filePath !== expectedFile) {
+    issues.push(`${relativeToRepo(filePath)} contains keyGenerator logic outside backend/src/middleware/rateLimiter.ts`);
+    continue;
+  }
 
-    if (entry.isDirectory()) {
-      walk(fullPath);
-      continue;
-    }
-
-    if (!isCodeFile(entry.name)) continue;
-
-    const source = fs.readFileSync(fullPath, 'utf8');
-
-    const keyGeneratorRegex = /keyGenerator\s*:\s*\(([^)]*)\)\s*=>\s*([^,\n]+)/g;
-    let match;
-    while ((match = keyGeneratorRegex.exec(source)) !== null) {
-      const expression = (match[2] || '').trim();
-      if (!expression.includes('rateLimitKeys.')) {
-        const line = source.slice(0, match.index).split(/\r?\n/).length;
-        violations.push({
-          file: path.relative(path.resolve(__dirname, '..'), fullPath),
-          line,
-          reason: 'keyGenerator must use rateLimitKeys helper',
-        });
-      }
-    }
-
-    const rawLiteralRegex = /keyGenerator\s*:\s*\(([^)]*)\)\s*=>\s*(`[^`]+`|'[^']+'|"[^"]+")/g;
-    while ((match = rawLiteralRegex.exec(source)) !== null) {
-      const line = source.slice(0, match.index).split(/\r?\n/).length;
-      violations.push({
-        file: path.relative(path.resolve(__dirname, '..'), fullPath),
-        line,
-        reason: 'raw literal keyGenerator values are blocked',
-      });
+  expectedFileHits += keyGeneratorMatches.length;
+  for (const match of keyGeneratorMatches) {
+    const slice = text.slice(match.index, match.index + 300);
+    if (!/rateLimitKeys\./.test(slice)) {
+      const line = text.slice(0, match.index).split(/\r?\n/).length;
+      issues.push(`${relativeToRepo(filePath)}:${line} keyGenerator does not use rateLimitKeys.*`);
     }
   }
-};
+}
 
-walk(root);
-
-if (violations.length > 0) {
-  console.error('Rate-limit key policy violations found. Use @utils/rateLimitKeys helpers.');
-  for (const violation of violations) {
-    console.error(`- ${violation.file}:${violation.line} ${violation.reason}`);
+if (issues.length > 0) {
+  console.error('Rate-limit key policy check failed:\n');
+  for (const issue of issues) {
+    console.error(`- ${issue}`);
   }
+  process.exit(1);
+}
+
+if (expectedFileHits === 0) {
+  console.error('Rate-limit key policy check failed:\n- No keyGenerator definitions were found in backend/src/middleware/rateLimiter.ts');
   process.exit(1);
 }
 

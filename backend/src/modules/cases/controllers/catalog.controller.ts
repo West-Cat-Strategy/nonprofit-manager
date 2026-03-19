@@ -34,6 +34,7 @@ export const createCaseCatalogController = (
         sort_order?: CaseFilter['sort_order'];
       };
       const filter: CaseFilter = {
+        organizationId: req.organizationId || req.accountId || req.tenantId,
         search: query.search,
         contact_id: query.contact_id,
         account_id: query.account_id,
@@ -73,7 +74,8 @@ export const createCaseCatalogController = (
 
   const getCaseById = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const caseData = await useCase.getById(req.params.id);
+      const organizationId = req.organizationId || req.accountId || req.tenantId;
+      const caseData = await useCase.getById(req.params.id, organizationId);
       if (!caseData) {
         sendFailure(res, mode, 'NOT_FOUND', 'Case not found', 404);
         return;
@@ -90,10 +92,11 @@ export const createCaseCatalogController = (
         limit?: number;
         cursor?: string;
       };
+      const organizationId = req.organizationId || req.accountId || req.tenantId;
       const timelinePage = await useCase.timeline(req.params.id, {
         limit: query.limit,
         cursor: query.cursor,
-      });
+      }, organizationId);
       sendData(
         res,
         mode,

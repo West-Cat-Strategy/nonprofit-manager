@@ -1,7 +1,11 @@
 import { Pool, PoolClient } from 'pg';
 import type { CaseTimelineEvent } from '@app-types/case';
+import { getRequestContext } from '@config/requestContext';
 
 type PgExecutor = Pool | PoolClient;
+
+const resolveOrganizationId = (organizationId?: string): string | undefined =>
+  organizationId || getRequestContext()?.organizationId || getRequestContext()?.accountId || getRequestContext()?.tenantId;
 
 export const DEFAULT_TIMELINE_LIMIT = 50;
 export const MAX_TIMELINE_LIMIT = 200;
@@ -90,16 +94,23 @@ export const resolveVisibleToClient = (input: {
 
 export const getCaseOwnership = async (
   db: PgExecutor,
-  caseId: string
+  caseId: string,
+  organizationId?: string
 ): Promise<{ case_id: string; contact_id: string; account_id: string | null } | null> => {
+  const resolvedOrganizationId = resolveOrganizationId(organizationId);
   const result = await db.query(
     `
-    SELECT id AS case_id, contact_id, account_id
-    FROM cases
-    WHERE id = $1
+    SELECT c.id AS case_id, c.contact_id, c.account_id
+    FROM cases c
+    LEFT JOIN contacts con ON con.id = c.contact_id
+    WHERE c.id = $1
+      AND (
+        $2::uuid IS NULL
+        OR COALESCE(c.account_id, con.account_id) = $2::uuid
+      )
     LIMIT 1
   `,
-    [caseId]
+    [caseId, resolvedOrganizationId || null]
   );
 
   return result.rows[0] || null;
@@ -107,25 +118,36 @@ export const getCaseOwnership = async (
 
 export const requireCaseOwnership = async (
   db: PgExecutor,
-  caseId: string
+  caseId: string,
+  organizationId?: string
 ): Promise<{ case_id: string; contact_id: string; account_id: string | null }> => {
-  const ownership = await getCaseOwnership(db, caseId);
+  const ownership = await getCaseOwnership(db, caseId, organizationId);
   if (!ownership) {
-    throw new Error('Case not found');
+    throw Object.assign(new Error('Case not found'), {
+      statusCode: 404,
+      code: 'not_found',
+    });
   }
 
   return ownership;
 };
 
 export const requireCaseIdForNote = async (db: PgExecutor, noteId: string): Promise<string> => {
+  const organizationId = resolveOrganizationId();
   const result = await db.query(
     `
-    SELECT case_id
-    FROM case_notes
-    WHERE id = $1
+    SELECT cn.case_id
+    FROM case_notes cn
+    INNER JOIN cases c ON c.id = cn.case_id
+    LEFT JOIN contacts con ON con.id = c.contact_id
+    WHERE cn.id = $1
+      AND (
+        $2::uuid IS NULL
+        OR COALESCE(c.account_id, con.account_id) = $2::uuid
+      )
     LIMIT 1
   `,
-    [noteId]
+    [noteId, organizationId || null]
   );
 
   const caseId = result.rows[0]?.case_id as string | undefined;
@@ -136,14 +158,21 @@ export const requireCaseIdForNote = async (db: PgExecutor, noteId: string): Prom
 };
 
 export const requireCaseIdForOutcome = async (db: PgExecutor, outcomeId: string): Promise<string> => {
+  const organizationId = resolveOrganizationId();
   const result = await db.query(
     `
-    SELECT case_id
-    FROM case_outcomes
-    WHERE id = $1
+    SELECT co.case_id
+    FROM case_outcomes co
+    INNER JOIN cases c ON c.id = co.case_id
+    LEFT JOIN contacts con ON con.id = c.contact_id
+    WHERE co.id = $1
+      AND (
+        $2::uuid IS NULL
+        OR COALESCE(c.account_id, con.account_id) = $2::uuid
+      )
     LIMIT 1
   `,
-    [outcomeId]
+    [outcomeId, organizationId || null]
   );
 
   const caseId = result.rows[0]?.case_id as string | undefined;
@@ -154,14 +183,21 @@ export const requireCaseIdForOutcome = async (db: PgExecutor, outcomeId: string)
 };
 
 export const requireCaseIdForTopicEvent = async (db: PgExecutor, topicEventId: string): Promise<string> => {
+  const organizationId = resolveOrganizationId();
   const result = await db.query(
     `
-    SELECT case_id
-    FROM case_topic_events
-    WHERE id = $1
+    SELECT cte.case_id
+    FROM case_topic_events cte
+    INNER JOIN cases c ON c.id = cte.case_id
+    LEFT JOIN contacts con ON con.id = c.contact_id
+    WHERE cte.id = $1
+      AND (
+        $2::uuid IS NULL
+        OR COALESCE(c.account_id, con.account_id) = $2::uuid
+      )
     LIMIT 1
   `,
-    [topicEventId]
+    [topicEventId, organizationId || null]
   );
 
   const caseId = result.rows[0]?.case_id as string | undefined;
@@ -172,14 +208,21 @@ export const requireCaseIdForTopicEvent = async (db: PgExecutor, topicEventId: s
 };
 
 export const requireCaseIdForDocument = async (db: PgExecutor, documentId: string): Promise<string> => {
+  const organizationId = resolveOrganizationId();
   const result = await db.query(
     `
-    SELECT case_id
-    FROM case_documents
-    WHERE id = $1
+    SELECT cd.case_id
+    FROM case_documents cd
+    INNER JOIN cases c ON c.id = cd.case_id
+    LEFT JOIN contacts con ON con.id = c.contact_id
+    WHERE cd.id = $1
+      AND (
+        $2::uuid IS NULL
+        OR COALESCE(c.account_id, con.account_id) = $2::uuid
+      )
     LIMIT 1
   `,
-    [documentId]
+    [documentId, organizationId || null]
   );
 
   const caseId = result.rows[0]?.case_id as string | undefined;

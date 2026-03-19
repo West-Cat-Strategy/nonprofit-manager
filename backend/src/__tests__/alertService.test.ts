@@ -4,7 +4,8 @@
  */
 
 import { Pool } from 'pg';
-import { AlertService } from '@services';
+import { AlertsRepository } from '@modules/alerts/repositories/alerts.repository';
+import { AlertsUseCase } from '@modules/alerts/usecases/alerts.usecase';
 import type { CreateAlertDTO } from '../types/alert';
 
 jest.mock('pg', () => {
@@ -15,13 +16,13 @@ jest.mock('pg', () => {
   return { Pool: jest.fn(() => mockPool) };
 });
 
-describe('AlertService', () => {
-  let alertService: AlertService;
+describe('AlertsUseCase', () => {
+  let alertService: AlertsUseCase;
   let mockPool: jest.Mocked<Pool>;
 
   beforeEach(() => {
     mockPool = new Pool() as jest.Mocked<Pool>;
-    alertService = new AlertService(mockPool);
+    alertService = new AlertsUseCase(new AlertsRepository(mockPool));
     jest.clearAllMocks();
   });
 

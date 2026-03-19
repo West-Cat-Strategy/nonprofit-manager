@@ -16,12 +16,14 @@ interface SurfaceContextBarProps {
     to: string;
   };
   shortcutLabel?: string;
+  showLocalNavigation?: boolean;
 }
 
 export default function SurfaceContextBar({
   shortcuts = [],
   secondaryAction,
   shortcutLabel = 'Favorites',
+  showLocalNavigation = true,
 }: SurfaceContextBarProps) {
   const location = useLocation();
   const routeMeta = getRouteMeta(`${location.pathname}${location.search}`);
@@ -180,9 +182,9 @@ export default function SurfaceContextBar({
             </div>
           </div>
 
-          {routeMeta.localNavigation.length > 0 || shortcuts.length > 0 ? (
+          {(showLocalNavigation && routeMeta.localNavigation.length > 0) || shortcuts.length > 0 ? (
             <div className="mt-3 space-y-3 border-t border-app-border pt-3">
-              {routeMeta.localNavigation.length > 0 ? (
+              {showLocalNavigation && routeMeta.localNavigation.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
                     {browseLabel}

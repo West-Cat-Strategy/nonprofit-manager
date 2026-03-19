@@ -9,6 +9,8 @@ dotenv.config({ path: '.env', quiet: true });
 jest.setTimeout(60000);
 
 process.env.NODE_ENV = 'test';
+process.env.BYPASS_REGISTRATION_POLICY_IN_TEST =
+  process.env.BYPASS_REGISTRATION_POLICY_IN_TEST || 'true';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
 process.env.REDIS_ENABLED = 'false'; // Disable Redis in tests
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'test-encryption-key';

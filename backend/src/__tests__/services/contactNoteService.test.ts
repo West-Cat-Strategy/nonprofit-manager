@@ -25,13 +25,13 @@ jest.mock('../../modules/contacts/services/contactNoteOutcomeImpactService', () 
 }));
 
 import {
-  getContactNotes,
-  getContactNoteById,
   createContactNote,
-  updateContactNote,
   deleteContactNote,
+  getContactNoteById,
+  getContactNotes,
   getNotesByCaseId,
-} from '../../services/contactNoteService';
+  updateContactNote,
+} from '../../modules/contacts/repositories/contactNotesQueries';
 
 const makeNoteRow = (overrides: Record<string, unknown> = {}) => ({
   id: 'note-uuid',

@@ -9,10 +9,10 @@ jest.mock('../../config/database', () => ({
   },
 }));
 
-import { OutcomeReportService } from '../../services/outcomeReportService';
+import { OutcomeReportService } from '@modules/reports/services/outcomesReportService';
 
 describe('OutcomeReportService', () => {
-  let service: OutcomeReportService;
+  let service: InstanceType<typeof OutcomeReportService>;
 
   beforeEach(() => {
     mockQuery.mockReset();

@@ -30,15 +30,16 @@ export class CaseRepository implements CaseCatalogPort, CaseLifecyclePort {
     return getCasesQuery(pool, filter);
   }
 
-  async getCaseById(caseId: string): Promise<unknown | null> {
-    return getCaseByIdQuery(pool, caseId);
+  async getCaseById(caseId: string, organizationId?: string): Promise<unknown | null> {
+    return getCaseByIdQuery(pool, caseId, organizationId);
   }
 
   async getCaseTimeline(
     caseId: string,
-    options?: { limit?: number; cursor?: string }
+    options?: { limit?: number; cursor?: string },
+    organizationId?: string
   ): Promise<{ items: unknown[]; page: { limit: number; has_more: boolean; next_cursor: string | null } }> {
-    return getCaseTimelineQuery(pool, caseId, options);
+    return getCaseTimelineQuery(pool, caseId, options, organizationId);
   }
 
   async getCaseSummary(organizationId?: string): Promise<unknown> {

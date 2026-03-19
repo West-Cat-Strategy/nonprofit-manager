@@ -4,19 +4,21 @@
  */
 
 import type { ReactNode } from 'react';
-import { Route } from 'react-router-dom';
+import { Navigate, Route } from 'react-router-dom';
 import {
-  AdminSettingsLegacyRedirect,
   AdminSettingsSectionRoute,
   ApiSettings,
   DataBackup,
   EmailMarketing,
   NavigationSettings,
   PortalAdminPage,
-  RouteCatalogAliasRedirect,
   SocialMedia,
   UserSettings,
 } from '../features/adminOps/routeComponents';
+import {
+  getAdminSettingsPath,
+  getPortalAdminPath,
+} from '../features/adminOps/adminRoutePaths';
 
 // Lazy load admin pages
 
@@ -43,7 +45,7 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       />
       <Route
         path="/email-marketing"
-        element={<ProtectedRoute><RouteCatalogAliasRedirect /></ProtectedRoute>}
+        element={<ProtectedRoute><Navigate to="/settings/email-marketing" replace /></ProtectedRoute>}
       />
       <Route
         path="/settings/api"
@@ -59,11 +61,11 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       />
       <Route
         path="/settings/admin"
-        element={<AdminRoute><AdminSettingsLegacyRedirect /></AdminRoute>}
+        element={<AdminRoute><Navigate to={getAdminSettingsPath('dashboard')} replace /></AdminRoute>}
       />
       <Route
         path="/settings/admin/portal"
-        element={<AdminRoute><RouteCatalogAliasRedirect /></AdminRoute>}
+        element={<AdminRoute><Navigate to={getPortalAdminPath('access')} replace /></AdminRoute>}
       />
       <Route
         path="/settings/admin/portal/access"
@@ -91,11 +93,11 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       />
       <Route
         path="/settings/organization"
-        element={<AdminRoute><RouteCatalogAliasRedirect /></AdminRoute>}
+        element={<AdminRoute><Navigate to={getAdminSettingsPath('organization')} replace /></AdminRoute>}
       />
       <Route
         path="/admin/audit-logs"
-        element={<AdminRoute><RouteCatalogAliasRedirect /></AdminRoute>}
+        element={<AdminRoute><Navigate to={getAdminSettingsPath('audit_logs')} replace /></AdminRoute>}
       />
       <Route
         path="/settings/backup"

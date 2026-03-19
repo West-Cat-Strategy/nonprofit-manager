@@ -176,7 +176,6 @@ const assertSettingsRouteShell = async (request: APIRequestContext, route: strin
 const gotoAuthenticatedRoute = async (page: Page, route: string): Promise<void> => {
   await ensureAuthenticatedSession(page);
   await page.goto(`${BASE_URL}${route}`, { waitUntil: 'domcontentloaded' });
-  await page.waitForLoadState('networkidle');
 };
 
 test.describe('Admin & Settings Module', () => {
@@ -219,7 +218,6 @@ test('user settings uploads and persists the profile avatar', async ({ request, 
     await expect(page.getByText(/profile saved successfully/i)).toBeVisible({ timeout: 10000 });
 
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle');
     await expect(page.getByAltText('Profile')).toHaveAttribute('src', /data:image\/jpeg;base64,/);
   });
 
@@ -274,8 +272,8 @@ test('user settings uploads and persists the profile avatar', async ({ request, 
 
     const saveOrganizationResponse = page.waitForResponse(
       (response) =>
-        response.request().method() === 'PATCH' &&
-        response.url().includes('/api/v2/auth/preferences/organization') &&
+        response.request().method() === 'PUT' &&
+        response.url().includes('/api/v2/admin/organization-settings') &&
         response.ok()
     );
     await page.getByRole('button', { name: /save changes/i }).click();
@@ -413,7 +411,6 @@ test('user settings uploads and persists the profile avatar', async ({ request, 
 
     for (const { route, canonical } of legacyRoutes) {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
-      await page.waitForLoadState('networkidle');
 
       const currentPath = getPathWithQuery(page.url());
       expect(

@@ -88,6 +88,6 @@ describe('componentRenderer.generateSectionHtml', () => {
 
     const html = generateSectionHtml(section, theme);
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
-    expect(html).toContain('https://example.org?a=&lt;x&gt;');
+    expect(html).toContain('https://example.org?a=%3Cx%3E');
   });
 });

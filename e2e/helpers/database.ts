@@ -373,7 +373,7 @@ export async function createTestContact(
     contactType?: string;
     accountId?: string;
   }
-): Promise<{ id: string }> {
+): Promise<{ id: string; accountId: string }> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
   const accountId = data.accountId || (
     await createTestAccount(page, token, {
@@ -415,7 +415,7 @@ export async function createTestContact(
     throw new Error(`Failed to parse contact id from response: ${JSON.stringify(result)}`);
   }
 
-  return { id: String(id) };
+  return { id: String(id), accountId };
 }
 
 /**

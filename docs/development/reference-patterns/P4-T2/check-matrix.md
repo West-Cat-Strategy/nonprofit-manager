@@ -11,7 +11,7 @@
 
 ## Strict Matrix (recommended before merge)
 
-- `scripts/select-checks.sh --files "<full changed set>" --mode strict`
+- `./scripts/select-checks.sh --files "<full changed set>" --mode strict`
 - `make db-verify`
 - `make lint`
 - `make typecheck`

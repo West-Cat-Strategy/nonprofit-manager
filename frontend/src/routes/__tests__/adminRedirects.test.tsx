@@ -6,12 +6,9 @@ import { createAdminRoutes } from '../adminRoutes';
 
 vi.mock('../../features/adminOps/routeComponents', async () => {
   const { Navigate, useLocation, useParams } = await import('react-router-dom');
-  const {
-    getAdminSettingsPath,
-    parseAdminSettingsSection,
-    resolveLegacyAdminSettingsLocation,
-  } = await import('../../features/adminOps/adminRoutePaths');
-  const { resolveRouteCatalogAlias } = await import('../../routes/routeCatalog');
+  const { getAdminSettingsPath, parseAdminSettingsSection } = await import(
+    '../../features/adminOps/adminRoutePaths'
+  );
 
   const AdminSettings = () => <h1>Admin Settings Page</h1>;
 
@@ -24,22 +21,6 @@ vi.mock('../../features/adminOps/routeComponents', async () => {
     EmailMarketing: () => <h1>Email Marketing Page</h1>,
     SocialMedia: () => <h1>Social Media Page</h1>,
     PortalAdminPage: ({ panel }: { panel: string }) => <h1>Portal Panel: {panel}</h1>,
-    RouteCatalogAliasRedirect: () => {
-      const location = useLocation();
-      const currentLocation = `${location.pathname}${location.search}`;
-      const targetLocation = resolveRouteCatalogAlias(currentLocation);
-
-      if (!targetLocation) {
-        throw new Error(`Missing canonical redirect target for route alias: ${currentLocation}`);
-      }
-
-      return <Navigate to={targetLocation} replace />;
-    },
-    AdminSettingsLegacyRedirect: () => {
-      const location = useLocation();
-      const currentLocation = `${location.pathname}${location.search}`;
-      return <Navigate to={resolveLegacyAdminSettingsLocation(currentLocation)} replace />;
-    },
     AdminSettingsSectionRoute: () => {
       const location = useLocation();
       const { section } = useParams<{ section?: string }>();
@@ -101,32 +82,26 @@ describe('admin route redirects', () => {
   });
 
   it.each([
-    ['/settings/admin?section=dashboard', '/settings/admin/dashboard'],
-    ['/settings/admin?section=organization', '/settings/admin/organization'],
-    ['/settings/admin?section=branding', '/settings/admin/branding'],
-    ['/settings/admin?section=users', '/settings/admin/users'],
-    ['/settings/admin?section=email', '/settings/admin/email'],
-    ['/settings/admin?section=messaging', '/settings/admin/messaging'],
-    ['/settings/admin?section=outcomes', '/settings/admin/outcomes'],
-    ['/settings/admin?section=roles', '/settings/admin/roles'],
-    ['/settings/admin?section=audit_logs', '/settings/admin/audit_logs'],
-    ['/settings/admin?section=other', '/settings/admin/other'],
-  ])('canonicalizes legacy admin section url %s', async (legacyRoute, canonicalRoute) => {
-    renderAdminRoutes(legacyRoute);
+    ['/settings/admin/dashboard', '/settings/admin/dashboard'],
+    ['/settings/admin/organization', '/settings/admin/organization'],
+    ['/settings/admin/branding', '/settings/admin/branding'],
+    ['/settings/admin/users', '/settings/admin/users'],
+    ['/settings/admin/email', '/settings/admin/email'],
+    ['/settings/admin/messaging', '/settings/admin/messaging'],
+    ['/settings/admin/outcomes', '/settings/admin/outcomes'],
+    ['/settings/admin/roles', '/settings/admin/roles'],
+    ['/settings/admin/audit_logs', '/settings/admin/audit_logs'],
+    ['/settings/admin/other', '/settings/admin/other'],
+  ])('renders canonical admin section route %s', async (route, canonicalRoute) => {
+    renderAdminRoutes(route);
     expect(await screen.findByRole('heading', { name: /admin settings page/i })).toBeInTheDocument();
     expectCurrentLocation(canonicalRoute);
   });
 
-  it('redirects invalid legacy admin section queries to dashboard', async () => {
-    renderAdminRoutes('/settings/admin?section=not-a-real-section&foo=1');
+  it('redirects invalid admin section slugs to dashboard', async () => {
+    renderAdminRoutes('/settings/admin/not-a-real-section?foo=1');
     expect(await screen.findByRole('heading', { name: /admin settings page/i })).toBeInTheDocument();
     expectCurrentLocation('/settings/admin/dashboard?foo=1');
-  });
-
-  it('redirects section=portal to portal access panel', async () => {
-    renderAdminRoutes('/settings/admin?section=portal');
-    expect(await screen.findByRole('heading', { name: /portal panel: access/i })).toBeInTheDocument();
-    expectCurrentLocation('/settings/admin/portal/access');
   });
 
   it('redirects /settings/admin/portal to portal access panel', async () => {

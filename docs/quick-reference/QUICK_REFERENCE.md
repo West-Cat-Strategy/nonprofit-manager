@@ -1,142 +1,115 @@
 # Nonprofit Manager - Quick Reference
 
+**Last Updated:** 2026-03-19
+
+Compact command map for day-to-day work in the nonprofit-manager repo.
+
 ## Project Structure
-```
+
+```text
 nonprofit-manager/
 ├── backend/           # Express.js + TypeScript API
-├── frontend/          # React + TypeScript + Redux + Tailwind
-├── database/          # PostgreSQL migrations and schema
-└── docs/             # Project documentation
+├── frontend/          # React + TypeScript + Vite app
+├── database/          # PostgreSQL migrations, seeds, and init scripts
+├── docs/              # Repository documentation
+└── scripts/           # Local validation and helper scripts
 ```
 
-## Key Commands
+## Core Commands
 
-### Local Runner (No GitHub Actions)
+Run these from the repo root unless noted otherwise:
+
 ```bash
-./scripts/local-ci.sh          # Lint + type-check + tests
-./scripts/local-ci.sh --fast   # Lint + type-check only
-./scripts/local-ci.sh --audit  # Add npm audit (high+)
-./scripts/local-ci.sh --db-verify # Verify migrations against *_test DB
-./scripts/local-ci.sh --build  # Build backend + frontend
-./scripts/install-git-hooks.sh # Optional pre-commit hook
+make lint
+make typecheck
+make test
+make ci
+make ci-fast
+make ci-full
+make check-links
+make lint-doc-api-versioning
 ```
 
-### Backend
+## Runtime Commands
+
+### Optional Docker Compose Dev Stack
+
+```bash
+make dev
+```
+
+- Frontend: `http://localhost:8005`
+- Backend API: `http://localhost:8004`
+- PostgreSQL: `localhost:8002`
+- Redis: `localhost:8003`
+
+### Direct Backend Runtime
+
 ```bash
 cd backend
-npm install          # Install dependencies
-npm run dev          # Start dev server (port 3000)
-npm run build        # Build TypeScript
-npm start            # Start production server
-npm test             # Run tests
-npm run lint         # Check code style
+npm ci
+npm run dev
 ```
 
-### Frontend
+- Backend API: `http://localhost:3000`
+
+### Direct Frontend Runtime
+
 ```bash
 cd frontend
-npm install          # Install dependencies
-npm run dev          # Start dev server (port 5173)
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm test             # Run tests (Vitest)
+npm ci
+npm run dev
 ```
 
-### Database
+- Frontend: `http://localhost:8005`
+
+### Playwright / E2E Harness
+
 ```bash
-# Create database
-createdb nonprofit_manager
-
-# Run migration
-psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.sql
-
-# Load seed data
-psql -U postgres -d nonprofit_manager -f database/seeds/001_default_users.sql
+cd e2e
+npm ci
+npm test
 ```
 
-## Current Status
-**Phase**: Foundation (Phase 1) - In Progress  
-**Last Updated**: February 1, 2026
+- Frontend: `http://127.0.0.1:5173`
+- Backend API: `http://127.0.0.1:3001`
 
-See [https://github.com/example/nonprofit-manager/blob/main/docs/phases/planning-and-progress.md](https://github.com/example/nonprofit-manager/blob/main/docs/phases/planning-and-progress.md) for detailed status.
+## Database Commands
 
-## Tech Stack Summary
-- **Backend**: Node.js, Express, TypeScript, PostgreSQL, JWT
-- **Frontend**: React, Redux, TypeScript, Tailwind CSS, Vite
-- **Database**: PostgreSQL with CDM-aligned schema
-
-## Important Files
-- `https://github.com/example/nonprofit-manager/blob/main/docs/phases/planning-and-progress.md` - Roadmap and status
-- `product-spec.md` - Requirements
-- `README.md` - Setup instructions
-- `docs/AGENT_INSTRUCTIONS.md` - Development guide
-- `docs/CONVENTIONS.md` - Code standards
-- `docs/ARCHITECTURE.md` - Design decisions
-
-## Environment Setup
-
-### Backend .env
 ```bash
-PORT=3000
-NODE_ENV=development
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=nonprofit_manager
-DB_USER=postgres
-DB_PASSWORD=your_password
-JWT_SECRET=your_secret_here
-JWT_EXPIRES_IN=24h
-CORS_ORIGIN=localhost:5173
+make db-migrate
+make db-verify
 ```
 
-### Backend .env.test.local (copy from backend/.env.test.example)
-```bash
-NODE_ENV=test
-DB_PORT=8012
-DB_NAME=nonprofit_manager
-DB_USER=postgres
-DB_PASSWORD=postgres
-JWT_SECRET=test_jwt_secret_local_only
-```
+- `make db-migrate` starts or inspects the current database contract.
+- `make db-verify` rebuilds and validates the isolated `*_test` database contract.
 
-### Frontend .env
-```bash
-VITE_API_URL=localhost:3000/api
-```
+## Validation Choices
 
-## API Endpoints (Current)
-- `POST /api/v2/auth/register` - Register user
-- `POST /api/v2/auth/login` - Login user
-- `GET /api/v2/auth/bootstrap` - Canonical browser staff-session bootstrap
-- `GET /api/v2/portal/auth/bootstrap` - Canonical browser portal-session bootstrap
-- `GET /api/v2/auth/me` - Current-user compatibility/API client endpoint
+- Docs-only change: `make check-links` and `make lint-doc-api-versioning`
+- Small mixed change: `./scripts/select-checks.sh --base HEAD~1 --mode fast`
+- Release-facing change: `make ci-full`
 
-## Next Steps
-1. ✅ Install backend dependencies
-2. ✅ Install frontend dependencies
-3. ⏳ Set up local PostgreSQL
-4. ⏳ Run database migrations
-5. ⏳ Test authentication flow
-6. ⏳ Begin core module development
+## Key References
+
+- [README.md](../../README.md) - Contributor start page
+- [CONTRIBUTING.md](../../CONTRIBUTING.md) - Contributor workflow and validation
+- [docs/development/GETTING_STARTED.md](../development/GETTING_STARTED.md) - Setup and runtime choices
+- [docs/development/CONVENTIONS.md](../development/CONVENTIONS.md) - Code and workflow conventions
+- [docs/development/AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md) - Coding-agent guardrails
+- [docs/testing/TESTING.md](../testing/TESTING.md) - Test command map
+- [docs/phases/planning-and-progress.md](../phases/planning-and-progress.md) - Active workboard
+- [scripts/README.md](../../scripts/README.md) - Helper-script index
 
 ## Common Issues
 
-### TypeScript errors
-```bash
-npm run build  # Check for compilation errors
-```
-
 ### Database connection errors
-- Verify PostgreSQL is running
-- Check credentials in .env
-- Ensure database exists
+
+- Verify PostgreSQL is running and the credentials in your env files match the runtime you are using.
+- For the test database contract, use the `_test` database names and ports described in `docs/development/GETTING_STARTED.md`.
 
 ### Port conflicts
-- Backend default: 3000
-- Frontend default: 5173
-- Change in .env if needed
 
-## Getting Help
-- Check documentation in `docs/` directory
-- Review https://github.com/example/nonprofit-manager/blob/main/docs/phases/planning-and-progress.md for current status
-- See CONVENTIONS.md for code standards
+- Backend default: `3000` for direct runtime, `8004` for the Docker dev stack
+- Frontend default: `8005` for direct runtime or Docker dev stack, `5173` for Playwright
+- Change the relevant env file if you need a different local port map

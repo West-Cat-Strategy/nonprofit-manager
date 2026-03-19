@@ -33,15 +33,21 @@ CREATE INDEX idx_user_account_access_account_id ON user_account_access(account_i
 -- ============================================================================
 
 ALTER TABLE user_account_access ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_account_access FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY user_account_access_select ON user_account_access
   FOR SELECT
   USING (
     -- Users can see their own access records
-    user_id = current_setting('app.current_user_id', true)::UUID
+    user_id = NULLIF(current_setting('app.current_user_id', true), '')::UUID
     OR
     -- Admins (sys admins) can see all records
-    EXISTS (SELECT 1 FROM users WHERE id = current_setting('app.current_user_id', true)::UUID AND role = 'admin')
+    EXISTS (
+      SELECT 1
+      FROM users
+      WHERE id = NULLIF(current_setting('app.current_user_id', true), '')::UUID
+        AND role = 'admin'
+    )
   );
 
 -- ============================================================================
@@ -51,7 +57,7 @@ CREATE POLICY user_account_access_select ON user_account_access
 CREATE OR REPLACE FUNCTION get_current_user_id() RETURNS UUID AS $$
 BEGIN
   RETURN COALESCE(
-    current_setting('app.current_user_id', true)::UUID,
+    NULLIF(current_setting('app.current_user_id', true), '')::UUID,
     NULL
   );
 END;
@@ -89,6 +95,7 @@ $$ LANGUAGE plpgsql STABLE;
 -- ============================================================================
 
 ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contacts FORCE ROW LEVEL SECURITY;
 
 -- Users can SELECT contacts for accounts they have access to
 CREATE POLICY contacts_select_policy ON contacts
@@ -145,6 +152,7 @@ CREATE POLICY contacts_delete_policy ON contacts
 -- ============================================================================
 
 ALTER TABLE donations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE donations FORCE ROW LEVEL SECURITY;
 
 -- Users can view donations only for their accessible accounts
 CREATE POLICY donations_select_policy ON donations
@@ -189,6 +197,7 @@ CREATE POLICY donations_update_policy ON donations
 -- ============================================================================
 
 ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE accounts FORCE ROW LEVEL SECURITY;
 
 -- Users see only accounts they have access to
 CREATE POLICY accounts_select_policy ON accounts
@@ -212,6 +221,7 @@ CREATE POLICY accounts_modify_policy ON accounts
 -- ============================================================================
 
 ALTER TABLE volunteers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE volunteers FORCE ROW LEVEL SECURITY;
 
 -- Users see volunteers from their accessible contacts
 CREATE POLICY volunteers_select_policy ON volunteers
@@ -231,6 +241,7 @@ CREATE POLICY volunteers_select_policy ON volunteers
 -- ============================================================================
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE events FORCE ROW LEVEL SECURITY;
 
 -- Events are typically account-scoped - admins can see all, others see their account's events
 CREATE POLICY events_select_policy ON events
@@ -333,5 +344,5 @@ IMPLEMENTATION NOTES:
 -- ============================================================================
 
 -- Record migration as applied (if using migration tracking)
-INSERT INTO schema_migrations (filename) VALUES ('032_row_level_security_fixed.sql')
+INSERT INTO schema_migrations (filename) VALUES ('032_row_level_security.sql')
 ON CONFLICT (filename) DO NOTHING;

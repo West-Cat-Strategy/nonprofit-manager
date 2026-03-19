@@ -49,7 +49,6 @@ vi.mock('../../../../features/contacts/state', () => ({
   deleteContact: (id: string) => ({ type: 'contacts/delete', payload: id }),
   setFilters: (payload: unknown) => ({ type: 'contacts/setFilters', payload }),
   clearFilters: () => ({ type: 'contacts/clearFilters' }),
-  fetchContactTags: () => ({ type: 'contacts/fetchTags' }),
 }));
 
 vi.mock('../../../../features/people', () => ({
@@ -168,7 +167,6 @@ describe('ContactList page', () => {
         sort_order: 'desc',
       },
     });
-    expect(dispatchMock).toHaveBeenCalledWith({ type: 'contacts/fetchTags' });
   });
 
   it('debounces free-text search before dispatching another fetch', async () => {

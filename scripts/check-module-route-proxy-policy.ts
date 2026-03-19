@@ -1,43 +1,66 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const path = require('node:path');
+const path = require('path');
+const {
+  repoRoot,
+  relativeToRepo,
+  readText,
+  walkFiles,
+} = require('./lib/policy-utils.ts');
+const {
+  backendAliasMap,
+  extractImportSpecifiers,
+  resolveImportTarget,
+} = require('./lib/import-audit.ts');
 
-const repoRoot = path.resolve(__dirname, '..');
-const modulesRoot = path.join(repoRoot, 'backend/src/modules');
+const routeFiles = walkFiles(
+  [path.join(repoRoot, 'backend/src/modules'), path.join(repoRoot, 'backend/src/routes')],
+  {
+    extensions: ['.ts'],
+    includeTests: false,
+    filter: (filePath) => /\/routes\//.test(filePath),
+  }
+);
 
-const excludedModules = new Set([
-  'shared',
-]);
+const issues = [];
+const disallowedTargets = [
+  path.join(repoRoot, 'backend/src/controllers'),
+  path.join(repoRoot, 'backend/src/routes'),
+];
+const allowlistedRoutePrefixes = [
+  path.join(repoRoot, 'backend/src/routes/registrars'),
+];
 
-const migratedModules = fs
-  .readdirSync(modulesRoot, { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => entry.name)
-  .filter((moduleName) => !excludedModules.has(moduleName))
-  .sort();
-
-const violations = [];
-
-for (const moduleName of migratedModules) {
-  const routeFile = path.join(repoRoot, 'backend/src/modules', moduleName, 'routes/index.ts');
-  if (!fs.existsSync(routeFile)) {
-    violations.push(`${path.relative(repoRoot, routeFile)}: missing route entrypoint`);
+for (const filePath of routeFiles) {
+  if (filePath === path.join(repoRoot, 'backend/src/modules/plausibleProxy/routes/index.ts')) {
     continue;
   }
 
-  const source = fs.readFileSync(routeFile, 'utf8');
-  if (/from\s+['"]@routes\//.test(source)) {
-    violations.push(`${path.relative(repoRoot, routeFile)}: imports @routes/* proxy`);
+  if (allowlistedRoutePrefixes.some((prefix) => filePath === prefix || filePath.startsWith(`${prefix}${path.sep}`))) {
+    continue;
+  }
+
+  const text = readText(filePath);
+  for (const importEntry of extractImportSpecifiers(text)) {
+    const targetPath = resolveImportTarget(filePath, importEntry.specifier, backendAliasMap);
+    if (!targetPath) {
+      continue;
+    }
+
+    if (disallowedTargets.some((targetDir) => targetPath === targetDir || targetPath.startsWith(`${targetDir}${path.sep}`))) {
+      issues.push(
+        `${relativeToRepo(filePath)}:${importEntry.line} proxies through legacy root code via ${importEntry.specifier}`
+      );
+    }
   }
 }
 
-if (violations.length > 0) {
-  console.error('Module route proxy policy violations found. Module routes must not import @routes/*.');
-  for (const violation of violations) {
-    console.error(`- ${violation}`);
+if (issues.length > 0) {
+  console.error('Module route proxy policy check failed:\n');
+  for (const issue of issues) {
+    console.error(`- ${issue}`);
   }
   process.exit(1);
 }
 
-console.log('Module route proxy policy check passed for module domains.');
+console.log('Module route proxy policy check passed.');

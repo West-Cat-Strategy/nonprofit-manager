@@ -4,7 +4,7 @@
  */
 
 import { Pool } from 'pg';
-import { AnalyticsService } from './analyticsService';
+import { AnalyticsService } from './analytics';
 import { analyticsCache, CacheKeys, invalidateAnalyticsCache } from '@utils/cache';
 import type {
   AccountAnalytics,

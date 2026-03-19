@@ -1,6 +1,6 @@
 # Feature Matrix
 
-**Last Updated**: 2026-03-02
+**Last Updated**: 2026-03-19
 
 Master status of all features in nonprofit-manager.
 
@@ -97,7 +97,7 @@ For **detailed feature specifications**, see linked documentation files.
 | Scheduled Reports | ✅ | Backend/Frontend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | `backend/src/services/scheduledReportService.ts` | Recurring delivery with run logs and run-now controls |
 | Analytics Dashboard | ✅ | Frontend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | - | Real-time metrics and graphs |
 | Trend Analysis | 🟡 | Backend | [API_REFERENCE_EXPORT.md](../api/API_REFERENCE_EXPORT.md) | - | Historical trends in progress |
-| Outcomes Report | 🟡 | Backend/Frontend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/services/outcomeReportService.ts` | Outcome totals, unique clients, and time-series reporting |
+| Outcomes Report | 🟡 | Backend/Frontend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/modules/reports/services/outcomesReportService.ts` | Outcome totals, unique clients, and time-series reporting |
 
 ### Opportunities Pipeline
 
@@ -123,7 +123,7 @@ For **detailed feature specifications**, see linked documentation files.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **Webhooks** | ✅ | Backend | [API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md#webhooks) | `backend/src/services/webhookService.ts` | External service integration |
+| **Webhooks** | ✅ | Backend | [API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md#webhook-system) | `backend/src/services/webhookService.ts` | External service integration |
 | Mailchimp Sync | ✅ | Backend | [API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md#mailchimp-integration) | - | Sync mailing lists |
 | External CRM Sync | 🟡 | Backend | Same | - | Sync with external CRMs |
 | SMS Integration | 📋 | Backend | - | - | Send SMS messages (planned) |
@@ -163,7 +163,7 @@ For **detailed feature specifications**, see linked documentation files.
 | **Activity Logging** | ✅ | Backend | [TELEMETRY.md](TELEMETRY.md) | `backend/src/services/portalActivityService.ts` | User action tracking |
 | User-Agent Tracking | ✅ | Backend | Same | - | Browser/client identification |
 | Access Logs | ✅ | Backend | Same | - | Login/access audit trail |
-| GDPR Compliance | ✅ | Backend | [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) | - | Data privacy controls |
+| GDPR Compliance | ✅ | Backend | [SECURITY_MONITORING_GUIDE.md](../security/SECURITY_MONITORING_GUIDE.md) | - | Data privacy controls |
 | Data Subject Rights | ✅ | Backend | Same | - | Export/delete user data |
 | Consent Management | 📋 | Backend | - | - | Cookie/tracking consent |
 
@@ -178,7 +178,7 @@ For **detailed feature specifications**, see linked documentation files.
 | **Organization Access** | ✅ | Backend | Same | - | Multi-tenancy support |
 | Password Reset | ✅ | Backend | - | - | Secure password recovery |
 | Session Management | ✅ | Backend | - | - | JWT token management |
-| Rate Limiting | ✅ | Backend | [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) | - | DDoS protection |
+| Rate Limiting | ✅ | Backend | [AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md) | - | DDoS protection |
 | API Key Management | ✅ | Backend | Same | - | Third-party access tokens |
 | Backup & Recovery | ✅ | Backend/DevOps | [../deployment/DB_SETUP.md](../deployment/DB_SETUP.md) | - | Database backup procedures |
 
@@ -269,7 +269,7 @@ For detailed specifications, use this navigation:
 ### Have an idea for a new feature?
 
 1. Check if it's already listed as Planned (📋) or In Development (🟡)
-2. Open a [GitHub Issue](https://github.com/example/nonprofit-manager/issues) with feature request label
+2. Open a task in [planning-and-progress.md](../phases/planning-and-progress.md) with a feature-request note
 3. Describe what problem it solves and who would benefit
 4. Please provide use cases or examples
 
@@ -277,15 +277,15 @@ For detailed specifications, use this navigation:
 
 1. Find the feature above and note its status
 2. If In Development 🟡, check the documentation file for current progress
-3. See [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) to set up dev environment
-4. Check GitHub Issues for related PRs or assign yourself
+3. See [GETTING_STARTED.md](../development/GETTING_STARTED.md) to set up the dev environment
+4. Check the workboard for related tasks or assign yourself
 5. Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md) workflow
 
 ---
 
 ## See Also
 
-- [https://github.com/example/nonprofit-manager](https://github.com/example/nonprofit-manager) — How to start contributing
+- [../../CONTRIBUTING.md](../../CONTRIBUTING.md) — How to start contributing
 - [../product/product-spec.md](../product/product-spec.md) — Product requirements and vision
 - [../phases/planning-and-progress.md](../phases/planning-and-progress.md) — Current work in progress
 - [../../CONTRIBUTING.md](../../CONTRIBUTING.md) — Contribution guidelines

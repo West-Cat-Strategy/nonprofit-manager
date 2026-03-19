@@ -1,375 +1,69 @@
-# Scripts Directory
+# Script Index
 
-This directory contains utility scripts for the Nonprofit Manager project. All scripts follow consistent patterns and use shared libraries for common functionality.
+**Last Updated:** 2026-03-19
 
-## Shared Libraries
+This directory contains the repo-local helpers used by the Makefile, deployment scripts, and docs workflow.
+Prefer the `make` targets when they exist. Call the scripts directly when you need the narrower entrypoint.
 
-### `lib/common.sh`
-Common utilities used across all scripts:
-- Logging functions with consistent colors
-- Error handling helpers
-- Docker container management
-- File and directory operations
-- Git information retrieval
+## Core Entry Points
 
-### `lib/config.sh`
-Configuration constants and defaults:
-- Container names and ports
-- Database settings
-- API endpoints
-- File paths and directories
+| Script | Purpose | Preferred Entry Point |
+|---|---|---|
+| [check-links.sh](check-links.sh) | Validate repo Markdown and HTML links used by the active docs. | `make check-links` |
+| [check-doc-api-versioning.ts](check-doc-api-versioning.ts) | Enforce active-doc `/api/v2` wording and catch stale API-version references. | `make lint-doc-api-versioning` |
+| [ci.sh](ci.sh) | Root CI wrapper that backs the `make ci*` targets. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` |
+| [local-ci.sh](local-ci.sh) | Orchestrate lint, type-check, tests, coverage, and build checks. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` |
+| [quality-baseline.sh](quality-baseline.sh) | Run the static quality baseline checks used by the repo's policy gates. | `make quality-baseline` |
+| [security-scan.sh](security-scan.sh) | Run dependency and secret scanning. | `make security-scan` |
+| [db-migrate.sh](db-migrate.sh) | Apply or inspect canonical database migrations. | `make db-migrate` / `make db-verify` |
+| [db-backup.sh](db-backup.sh) | Back up the Postgres data volume through the compose contract. | Manual ops / scheduled backups |
+| [db-restore.sh](db-restore.sh) | Restore a database backup through the compose contract. | Manual ops / recovery |
+| [verify-migrations.sh](verify-migrations.sh) | Verify the isolated `_test` database contract. | `make db-verify` |
+| [deploy.sh](deploy.sh) | Run the local, staging, or production deployment wrapper. | `make deploy-local` / `make deploy-staging` / `make deploy` |
+| [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-local git hooks. | `make hooks` |
+| [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files. | `./scripts/select-checks.sh` |
+| [test-auth-flow.sh](test-auth-flow.sh) | Thin shell wrapper around the auth flow smoke checker. | `./scripts/test-auth-flow.sh` |
+| [test-auth.js](test-auth.js) | Probe public login/setup pages and the auth API. | `./scripts/test-auth-flow.sh` |
+| [daily-security-report.py](daily-security-report.py) | Generate a lightweight security-status report from repo checks. | `python3 scripts/daily-security-report.py` |
+| [e2e-port-preflight.sh](e2e-port-preflight.sh) | Reserve or clean up the ports used by the Playwright harness. | `e2e` package scripts |
+| [e2e-run-with-lock.sh](e2e-run-with-lock.sh) | Run Playwright with the shared lock and port safeguards. | `e2e` package scripts |
 
-### `lib/migration-manifest.sh`
-Canonical migration manifest helpers:
-- Loads `database/migrations/manifest.tsv`
-- Validates canonical filenames and legacy aliases
-- Emits `schema_migrations` bootstrap/backfill SQL
-- Provides shared checksum and timing helpers for migration scripts
+## Policy Checks
 
-## Available Scripts
+The `check-*.ts` scripts are the repo policy gates that back `make lint`, `make quality-baseline`, and the static UI/security reports:
 
-### CI and Quality Assurance
+- Backend policy gates: `check-rate-limit-key-policy.ts`, `check-success-envelope-policy.ts`, `check-route-validation-policy.ts`, `check-query-contract-policy.ts`, `check-express-validator-policy.ts`, `check-controller-sql-policy.ts`, `check-auth-guard-policy.ts`, `check-migration-manifest-policy.ts`, `check-duplicate-test-tree.ts`, `check-v2-module-ownership-policy.ts`, `check-module-boundary-policy.ts`, `check-module-route-proxy-policy.ts`, `check-canonical-module-import-policy.ts`, `check-implementation-size-policy.ts`, and `check-backend-legacy-controller-wrapper-policy.ts`.
+- Frontend policy gates: `check-frontend-feature-boundary-policy.ts`, `check-frontend-legacy-slice-import-policy.ts`, and `check-frontend-legacy-page-path-policy.ts`.
+- Route and UI policy gates: `check-route-integrity.ts`, `check-route-catalog-drift.ts`, and `ui-audit.ts`.
+- Implementation-size ratchet data lives in `baselines/implementation-size.json`.
 
-#### `ci.sh` - Unified CI Pipeline
-Runs linting, type checking, tests, and builds with flexible options.
+## Support Helpers
 
-```bash
-# Quick check (lint + typecheck only)
-./scripts/ci.sh --quick
+- [lib/common.sh](lib/common.sh) contains shell helpers shared by the root scripts.
+- [lib/config.sh](lib/config.sh) and [lib/import-audit.ts](lib/import-audit.ts) provide shared config/audit helpers for the policy checks.
+- `backend/scripts/run-integration-tests.sh` is backend-owned and is invoked from the backend test workflow.
+- `reference/sync-reference-repos.sh` and `reference/verify-reference-repos.sh` keep the mirrored reference repositories in sync.
+- `perf/p4-t9h-capture.sh` and `perf/p4-t9h-seed.sql` support the documented performance artifact workflow.
 
-# Full CI with tests
-./scripts/ci.sh --build --coverage
+## Common Validation Flow
 
-# Backend only
-./scripts/ci.sh --backend-only --verbose
-
-# Help
-./scripts/ci.sh --help
-```
-
-#### `quality-baseline.sh` - Code Quality Report
-Generates a comprehensive report on code quality metrics.
-
-```bash
-./scripts/quality-baseline.sh
-```
-
-### Database Management
-
-#### `db-migrate.sh` - Database Migrations
-Applies pending canonical database migrations in manifest order.
+If you just need a quick repo check, start with:
 
 ```bash
-./scripts/db-migrate.sh
-./scripts/db-migrate.sh --status
-./scripts/db-migrate.sh --timing
+make lint
+make typecheck
+make test
 ```
 
-#### `db-backup.sh` - Database Backup
-Creates timestamped database backups with optional compression.
-
-Production behavior:
-- `DB_AT_REST_ENCRYPTION_MODE=managed` -> exits non-zero and directs operators to provider-managed backups/snapshots
-- `DB_AT_REST_ENCRYPTION_MODE=luks` -> requires `BACKUP_DIR` to be an absolute path on the encrypted host mount
+If your change is docs-only, use:
 
 ```bash
-./scripts/db-backup.sh
+make check-links
+make lint-doc-api-versioning
 ```
 
-#### `db-restore.sh` - Database Restore
-Restores database from backup (destructive operation).
-
-```bash
-./scripts/db-restore.sh backup_file.sql --confirm-destructive
-```
-
-#### `verify-migrations.sh` - Migration Verification
-Verifies that migrations can be applied without errors.
-
-```bash
-./scripts/verify-migrations.sh
-./scripts/verify-migrations.sh --timing
-```
-
-### Deployment
-
-#### `deploy.sh` - Application Deployment
-Deploys the application locally, to staging, or production.
-
-```bash
-# Local deployment
-./scripts/deploy.sh local
-
-# Staging deployment
-./scripts/deploy.sh staging
-
-# Production deployment (requires confirmation)
-./scripts/deploy.sh production
-```
-
-### Docker Compose Overlays
-
-Use these commands from the repo root when you need optional overlay stacks:
-
-```bash
-# Preferred local dev env file:
-cp .env.development.example .env.development
-
-# Dev stack + tools profile
-docker compose -f docker-compose.dev.yml -f docker-compose.tools.yml --profile tools up -d
-
-# Dev stack + Caddy overlay
-docker compose -f docker-compose.dev.yml -f docker-compose.caddy.yml up -d
-
-# Production-like stack + optional DB/Redis host access
-docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
-```
-
-The app dev services now build from the shared `backend/Dockerfile` and `frontend/Dockerfile` `dev` targets, and the Caddy overlay uses the stock `caddy:2-alpine` image directly.
-
-### Security
-
-#### `security-scan.sh` - Security Scanning
-Runs comprehensive security scans including dependency audits and secret detection.
-
-```bash
-./scripts/security-scan.sh
-```
-
-### Testing
-
-#### `test-auth-flow.sh` - Authentication Testing
-End-to-end testing of the authentication flow.
-
-```bash
-./scripts/test-auth-flow.sh
-```
-
-#### `check-links.sh` - Link Checking
-Validates markdown links and highlights any broken references.
-
-```bash
-./scripts/check-links.sh
-```
-
-#### `check-rate-limit-key-policy.ts` - Rate-limit Key Policy Guardrail
-Blocks raw/literal rate-limit key generation and enforces helper-based key composition.
-
-```bash
-node scripts/check-rate-limit-key-policy.ts
-```
-
-#### `check-success-envelope-policy.ts` - Success Envelope Policy Guardrail
-Enforces a no-regression baseline for direct 2xx `res.json()` responses in backend controllers.
-
-```bash
-node scripts/check-success-envelope-policy.ts
-```
-
-#### `check-route-validation-policy.ts` - Route Validation Guardrail
-Enforces required `validateParams`/`validateBody` middleware coverage for critical backend routes.
-
-```bash
-node scripts/check-route-validation-policy.ts
-```
-
-#### `audit-query-contracts.ts` - Query Contract Audit Snapshot
-Builds deterministic query-contract inventory artifacts under `scripts/policies/`:
-- `query-contract-audit-baseline.json`
-- `query-contract-audit-summary.md`
-
-```bash
-node scripts/audit-query-contracts.ts
-```
-
-#### `check-query-contract-policy.ts` - Query Contract Guardrail
-Enforces no-regression policy for query-validation coverage:
-- no new query-consuming routes without `validateQuery`
-- no direct controller query regressions
-- no non-strict query schema regressions
-
-```bash
-node scripts/check-query-contract-policy.ts
-```
-
-#### `check-express-validator-policy.ts` - Validation Migration Guardrail
-Blocks production `express-validator` usage in routes/controllers/modules after Zod migration.
-
-```bash
-node scripts/check-express-validator-policy.ts
-```
-
-#### `check-controller-sql-policy.ts` - Controller SQL Boundary Guardrail
-Enforces a no-regression baseline for direct SQL in controllers, with strict-zero on migrated controllers.
-
-```bash
-node scripts/check-controller-sql-policy.ts
-```
-
-#### `check-canonical-module-import-policy.ts` - Canonical Module Import Guardrail
-Blocks application code from importing module-owned publishing, reconciliation, and portal surfaces through legacy controller/service shim paths.
-
-```bash
-node scripts/check-canonical-module-import-policy.ts
-```
-
-#### `check-implementation-size-policy.ts` - Implementation Size Guardrail
-Uses `scripts/policies/implementation-size-baseline.json` to block new implementation files over 900 lines and prevent existing oversized files from growing.
-
-```bash
-node scripts/check-implementation-size-policy.ts
-```
-
-#### `check-auth-guard-policy.ts` - Auth Guard Usage Guardrail
-Blocks reintroduction of legacy `require*OrError` auth-guard helpers in controllers/modules.
-
-```bash
-node scripts/check-auth-guard-policy.ts
-```
-
-#### `check-migration-manifest-policy.ts` - Canonical Migration Guardrail
-Blocks manifest/file drift, duplicate migration surfaces, and initdb ordering mismatches.
-
-```bash
-node scripts/check-migration-manifest-policy.ts
-```
-
-#### `check-duplicate-test-tree.ts` - Duplicate Test Path Guardrail
-Blocks duplicate backend test trees under `backend/backend/src/__tests__`.
-
-```bash
-node scripts/check-duplicate-test-tree.ts
-```
-
-#### `check-doc-api-versioning.ts` - Docs API Versioning Guardrail
-Blocks legacy `/api/*` endpoint examples in project docs (requires `/api/v2/*` or `/health*` for backend health checks).
-
-```bash
-node scripts/check-doc-api-versioning.ts
-```
-
-#### `select-checks.sh` - Deterministic Check Selector
-Chooses the minimal command set for changed files (`fast` or `strict` mode).
+If you need a narrower sequence, ask the selector helper for a recommendation:
 
 ```bash
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
-./scripts/select-checks.sh --files \"backend/src/modules/tasks/routes/index.ts,frontend/src/features/events/api/eventsApiClient.ts\" --mode strict
-```
-
-#### `ui-audit.ts` - UI Debt Baseline and Policy Check
-Scans frontend route/component files for hardcoded color utilities, semantic token usage, and inline-style hotspots.
-
-```bash
-# Print current report
-node scripts/ui-audit.ts
-
-# Refresh baseline snapshot
-node scripts/ui-audit.ts --write-baseline
-
-# Enforce policy against baseline
-node scripts/ui-audit.ts --enforce-baseline
-```
-
-`scripts/select-checks.sh` runs this in report mode by default for migration phases.
-Use `UI_AUDIT_ENFORCE=true` to force baseline failure mode in strict release gates.
-
-### Git Hooks
-
-#### `install-git-hooks.sh` - Git Hook Installation
-Installs custom git hooks for the project.
-
-```bash
-./scripts/install-git-hooks.sh
-```
-
-#### `hooks/pre-commit` - Pre-commit Hook
-Runs fast CI checks before allowing commits.
-
-#### `hooks/pre-push` - Pre-push Hook
-Runs type checking before allowing pushes.
-
-## Script Patterns
-
-All scripts follow these consistent patterns:
-
-### Error Handling
-- Use `set -e` for strict error handling
-- Use `log_error` for error messages
-- Exit with appropriate error codes
-
-### Logging
-- `log_info` - General information
-- `log_success` - Successful operations
-- `log_warn` - Warnings
-- `log_error` - Errors
-
-### Configuration
-- Load common libraries first
-- Use configuration variables from `lib/config.sh`
-- Allow environment variable overrides
-
-### Documentation
-- Include usage examples
-- Document all command-line options
-- Provide help with `--help` flag
-
-## Environment Variables
-
-Scripts respect these environment variables:
-
-- `COMPOSE_MODE` - Compose target mode (`prod`, `dev`, `ci`)
-- `COMPOSE_PROJECT_NAME` - Optional compose project override
-- `COMPOSE_FILES` - Optional compose file list override (space or comma separated)
-- `DB_AT_REST_ENCRYPTION_MODE` - Production at-rest mode (`managed` or `luks`)
-- `DB_AT_REST_PROVIDER` - Provider attestation for managed production databases
-- `DB_AT_REST_VERIFIED` - Explicit managed-database encryption verification flag (`true`)
-- `POSTGRES_DATA_DIR` - Absolute encrypted host path for self-hosted PostgreSQL data
-- `DB_LUKS_MAPPING_NAME` - LUKS mapper name for self-hosted encrypted PostgreSQL
-- `DB_SERVICE` - Database compose service name (default: `postgres`)
-- `DB_USER` - Database username
-- `DB_NAME` - Database name
-- `BACKUP_DIR` - Backup directory path
-- `SECURITY_REPORT_DIR` - Security scan reports directory
-
-## Exit Codes
-
-- `0` - Success
-- `1` - General error
-- `2` - Configuration error
-- `3` - Dependency missing
-
-## Development
-
-When adding new scripts:
-
-1. Source the common libraries
-2. Follow the established patterns
-3. Add comprehensive error handling
-4. Include help documentation
-5. Update this README
-
-## Troubleshooting
-
-### Common Issues
-
-**Permission denied**
-```bash
-chmod +x scripts/*.sh
-```
-
-**Container not running**
-```bash
-docker compose up -d
-```
-
-**Database connection failed**
-```bash
-# Check if database is ready
-docker compose -p nonprofit-prod -f docker-compose.yml exec -T postgres pg_isready -U postgres -d nonprofit_manager
-```
-
-**Script not found**
-```bash
-# Use absolute paths or run from project root
-./scripts/ci.sh
 ```

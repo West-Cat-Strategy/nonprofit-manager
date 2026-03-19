@@ -1,138 +1,58 @@
-#!/bin/bash
-# Database Restore Script
-# Restores a PostgreSQL database from a backup file
-
+#!/usr/bin/env bash
 set -euo pipefail
 
-# Load common utilities and configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/lib/common.sh"
-source "$SCRIPT_DIR/lib/config.sh"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/lib/config.sh"
 
-COMPOSE_MODE="$(normalize_compose_mode "${COMPOSE_MODE:-prod}")"
-DB_SERVICE="${DB_SERVICE:-postgres}"
-DB_USER="${DB_USER:-postgres}"
+BACKUP_FILE="${1:-${DB_BACKUP_FILE:-}}"
 DB_NAME="${DB_NAME:-nonprofit_manager}"
-BACKUP_DIR="${BACKUP_DIR:-database/backups}"
+DB_USER="${DB_USER:-postgres}"
+DB_PASSWORD="${DB_PASSWORD:-postgres}"
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-8002}"
+DB_SERVICE="${DB_SERVICE:-postgres}"
 
-if [[ "$BACKUP_DIR" != /* ]]; then
-    BACKUP_DIR="$PROJECT_ROOT/$BACKUP_DIR"
+if [[ -z "$BACKUP_FILE" ]]; then
+  echo "Usage: scripts/db-restore.sh <backup-file.gz>" >&2
+  exit 2
 fi
 
-print_header "Database Restore"
-
-# Check if backup file is provided
-if [ $# -eq 0 ]; then
-    log_error "Usage: $0 <backup_file.sql> [--confirm-destructive]"
-    echo ""
-    log_info "Available backups:"
-    ls -la "$BACKUP_DIR"/backup_*.sql* 2>/dev/null | head -10 || echo "No backups found in $BACKUP_DIR"
-    exit 1
+if [[ "${DB_RESTORE_CONFIRM:-0}" != "1" ]]; then
+  echo "Set DB_RESTORE_CONFIRM=1 to confirm the restore operation." >&2
+  exit 1
 fi
 
-BACKUP_FILE="$1"
-CONFIRM_DESTRUCTIVE="${2:-}"
-
-# Validate backup file exists
-if [ ! -f "$BACKUP_FILE" ]; then
-    # Try with backup directory prefix
-    if [ -f "$BACKUP_DIR/$BACKUP_FILE" ]; then
-        BACKUP_FILE="$BACKUP_DIR/$BACKUP_FILE"
-    else
-        log_error "Backup file not found: $BACKUP_FILE"
-        exit 1
-    fi
+if [[ ! -f "$BACKUP_FILE" ]]; then
+  echo "Backup file not found: $BACKUP_FILE" >&2
+  exit 1
 fi
 
-# Check if it's a compressed file
-if [[ "$BACKUP_FILE" == *.gz ]]; then
-    log_info "Detected compressed backup file"
-    TEMP_FILE=$(mktemp)
-    if ! gunzip -c "$BACKUP_FILE" > "$TEMP_FILE"; then
-        log_error "Failed to decompress backup file"
-        rm -f "$TEMP_FILE"
-        exit 1
-    fi
-    BACKUP_FILE="$TEMP_FILE"
-    CLEANUP_TEMP=true
-else
-    CLEANUP_TEMP=false
-fi
-
-# Safety check for destructive operations
-if [ "$CONFIRM_DESTRUCTIVE" != "--confirm-destructive" ]; then
-    log_warn "WARNING: This will DROP and RECREATE the database '$DB_NAME'"
-    log_warn "All existing data will be lost!"
-    echo ""
-    log_info "To proceed, run:"
-    echo "  $0 $1 --confirm-destructive"
-    echo ""
-    if [ "$CLEANUP_TEMP" = true ]; then
-        rm -f "$TEMP_FILE"
-    fi
-    exit 1
-fi
-
-# Check if database service is running
-check_compose_service_running "$DB_SERVICE" "$COMPOSE_MODE" || {
-    if [ "$CLEANUP_TEMP" = true ]; then
-        rm -f "$TEMP_FILE"
-    fi
-    exit 1
+restore_stream() {
+  if [[ "$BACKUP_FILE" == *.gz ]]; then
+    gunzip -c "$BACKUP_FILE"
+  else
+    cat "$BACKUP_FILE"
+  fi
 }
 
-# Wait for database to be ready
-wait_for_db_service "$DB_SERVICE" "$DB_USER" "$DB_NAME" 10 "$COMPOSE_MODE" || {
-    if [ "$CLEANUP_TEMP" = true ]; then
-        rm -f "$TEMP_FILE"
-    fi
-    exit 1
+compose_exec() {
+  local project_name="${COMPOSE_PROJECT_NAME:-${COMPOSE_PROJECT_DEV:-nonprofit-dev}}"
+  local compose_files="${COMPOSE_FILES:-$ROOT_DIR/docker-compose.dev.yml}"
+  local -a compose_args=(-p "$project_name")
+  local file
+
+  for file in $compose_files; do
+    compose_args+=(-f "$file")
+  done
+
+  compose_args+=(exec -T "$DB_SERVICE")
+  "${COMPOSE_CMD[@]}" "${compose_args[@]}" "$@"
 }
 
-# Get backup file size
-BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
-log_info "Restoring from: $(basename "$BACKUP_FILE") ($BACKUP_SIZE)"
-
-# Terminate active connections to the database
-log_info "Terminating active connections to '$DB_NAME'..."
-compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d postgres -c "
-    SELECT pg_terminate_backend(pid)
-    FROM pg_stat_activity
-    WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();
-" > /dev/null 2>&1 || true
-
-# Drop and recreate the database
-log_info "Dropping and recreating database '$DB_NAME'..."
-compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" > /dev/null
-compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d postgres -c "CREATE DATABASE $DB_NAME;" > /dev/null
-
-# Restore from backup
-log_info "Restoring database from backup..."
-if compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" < "$BACKUP_FILE"; then
-    log_success "Database restore completed successfully"
-
-    # Run any post-restore operations (recreate extensions, etc.)
-    log_info "Running post-restore operations..."
-    compose_exec "$COMPOSE_MODE" "$DB_SERVICE" psql -U "$DB_USER" -d "$DB_NAME" -c "
-        -- Ensure UUID extension is available
-        CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
-
-        -- Ensure other common extensions
-        CREATE EXTENSION IF NOT EXISTS \"pgcrypto\";
-    " > /dev/null 2>&1 || true
-
-    echo ""
-    echo "========================================"
-    log_success "Restore completed!"
-    echo "Database: $DB_NAME"
-    echo "Backup source: $(basename "$BACKUP_FILE")"
-    echo "========================================"
+if [[ "$DB_HOST" == "postgres" ]]; then
+  restore_stream | compose_exec psql -U "$DB_USER" -d "$DB_NAME"
 else
-    log_error "Database restore failed!"
-    exit 1
+  restore_stream | PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME"
 fi
 
-# Cleanup temporary file
-if [ "$CLEANUP_TEMP" = true ]; then
-    rm -f "$TEMP_FILE"
-fi
+echo "Database restore completed from $BACKUP_FILE"

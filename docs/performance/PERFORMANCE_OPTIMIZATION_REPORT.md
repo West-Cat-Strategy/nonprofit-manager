@@ -66,7 +66,7 @@ A comprehensive code review identified **23 critical efficiency issues** across 
 - Backend:
   - `cd backend && npm test -- src/__tests__/services/taskService.test.ts src/__tests__/auth.test.ts src/__tests__/services/eventService.test.ts` ✅
   - `cd backend && npm run lint` ⚠️ blocked by pre-existing unrelated issues in `events.controller.ts` and `eventService.ts`
-  - `cd backend && npm run type-check` ⚠️ blocked by pre-existing unrelated issues in `events.controller.ts` and `outcomeReportService.ts`
+  - `cd backend && npm run type-check` ⚠️ blocked by pre-existing unrelated issues in `events.controller.ts` and `backend/src/modules/reports/services/outcomesReportService.ts`
 - E2E:
   - `cd e2e && npm test -- tests/auth.spec.ts tests/events.spec.ts --project=chromium` ⚠️ 17 passed / 1 failed (deterministic existing failure: `tests/events.spec.ts` "should register and check in attendee")
 
@@ -325,7 +325,7 @@ Wrapped `calculatedStats` computation in `useMemo`:
 ---
 
 ### 10. ✅ Add Pagination to Contact Notes (Backend)
-**File:** [backend/src/services/contactNoteService.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/services/contactNoteService.ts)
+**File:** [backend/src/modules/contacts/repositories/contactNotesQueries.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/modules/contacts/repositories/contactNotesQueries.ts)
 
 Added pagination support to `getContactNotes()`:
 - Parameters: `limit` (default: 50), `offset` (default: 0)

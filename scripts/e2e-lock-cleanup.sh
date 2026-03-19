@@ -1,83 +1,49 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-LOCK_FILE="${1:-${E2E_LOCK_FILE:-/tmp/nonprofit-manager-e2e.lock}}"
+LOCK_FILE="${E2E_LOCK_FILE:-${E2E_CI_LOCK_FILE:-/tmp/nonprofit-manager-e2e.lock}}"
+ACTION="${1:-warn}"
 
-read_lock_pid() {
-  if [[ ! -f "$LOCK_FILE" ]]; then
-    echo ""
-    return
-  fi
-  tr -dc '0-9' < "$LOCK_FILE" 2>/dev/null || true
-}
+if [[ ! -f "$LOCK_FILE" ]]; then
+  echo "No E2E lock file present at $LOCK_FILE"
+  exit 0
+fi
 
-remove_lock_if_matches() {
-  local pid="$1"
-  if [[ ! -f "$LOCK_FILE" ]]; then
-    return
-  fi
-  local current_pid
-  current_pid="$(read_lock_pid)"
-  if [[ -z "$current_pid" || "$current_pid" == "$pid" ]]; then
-    rm -f "$LOCK_FILE"
-  fi
-}
+metadata="$(cat "$LOCK_FILE" 2>/dev/null || true)"
+lock_pid="${metadata%%:*}"
+lock_pid="${lock_pid//[^0-9]/}"
+lock_pgid=""
+if [[ "$metadata" == *:* ]]; then
+  lock_pgid="${metadata#*:}"
+  lock_pgid="${lock_pgid//[^0-9]/}"
+fi
 
-is_playwright_lock_owner() {
-  local pid="$1"
-  local command_line
-  command_line="$(ps -p "$pid" -o command= 2>/dev/null || true)"
-  [[ "$command_line" == *"e2e-run-with-lock.sh"* ]] && [[ "$command_line" == *"playwright test"* ]]
-}
+if [[ -z "$lock_pid" ]]; then
+  rm -f "$LOCK_FILE"
+  echo "Removed malformed E2E lock file: $LOCK_FILE"
+  exit 0
+fi
 
-terminate_lock_owner() {
-  local pid="$1"
-
-  kill "$pid" 2>/dev/null || true
-
-  local attempt=1
-  while [[ "$attempt" -le 5 ]]; do
-    if ! kill -0 "$pid" 2>/dev/null; then
-      return 0
+if kill -0 "$lock_pid" 2>/dev/null; then
+  if [[ "$ACTION" == "kill" ]]; then
+    if [[ -n "$lock_pgid" ]]; then
+      kill -TERM -- "-$lock_pgid" 2>/dev/null || true
+      sleep 1
+      kill -KILL -- "-$lock_pgid" 2>/dev/null || true
+    else
+      kill -TERM "$lock_pid" 2>/dev/null || true
+      sleep 1
+      kill -KILL "$lock_pid" 2>/dev/null || true
     fi
-    sleep 1
-    attempt=$((attempt + 1))
-  done
-
-  if kill -0 "$pid" 2>/dev/null; then
-    kill -9 "$pid" 2>/dev/null || true
-  fi
-}
-
-main() {
-  if [[ ! -f "$LOCK_FILE" ]]; then
-    exit 0
-  fi
-
-  local lock_pid
-  lock_pid="$(read_lock_pid)"
-
-  if [[ -z "$lock_pid" ]]; then
-    echo "[WARN] Removing invalid E2E lock file: $LOCK_FILE" >&2
     rm -f "$LOCK_FILE"
+    echo "Terminated active E2E lock owner PID $lock_pid and removed $LOCK_FILE"
     exit 0
   fi
 
-  if ! kill -0 "$lock_pid" 2>/dev/null; then
-    echo "[INFO] Removing stale E2E lock file (dead pid=$lock_pid): $LOCK_FILE" >&2
-    remove_lock_if_matches "$lock_pid"
-    exit 0
-  fi
+  echo "E2E lock is still owned by PID $lock_pid; use 'kill' to terminate it." >&2
+  exit 1
+fi
 
-  if ! is_playwright_lock_owner "$lock_pid"; then
-    echo "[WARN] Lock pid $lock_pid is not an e2e wrapper playwright owner; removing stale lock file only: $LOCK_FILE" >&2
-    remove_lock_if_matches "$lock_pid"
-    exit 0
-  fi
+rm -f "$LOCK_FILE"
+echo "Removed stale E2E lock file: $LOCK_FILE"
 
-  echo "[INFO] Terminating lock-owner playwright wrapper pid=$lock_pid for lock file: $LOCK_FILE" >&2
-  terminate_lock_owner "$lock_pid"
-  remove_lock_if_matches "$lock_pid"
-}
-
-main "$@"

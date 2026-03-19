@@ -571,10 +571,6 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     id: 'admin-settings',
     title: 'Admin Settings',
     path: '/settings/admin/dashboard',
-    aliases: [
-      { path: '/settings/admin', exactQuery: true },
-      { path: '/settings/admin', query: { section: 'dashboard' } },
-    ],
     adminNav: [
       { mode: 'settings', order: 10, label: 'Admin Settings' },
       { mode: 'portal', order: 10, label: 'Admin Settings' },
@@ -584,64 +580,51 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     id: 'admin-settings-organization',
     title: 'Organization',
     path: '/settings/admin/organization',
-    aliases: [
-      '/settings/organization',
-      { path: '/settings/admin', query: { section: 'organization' } },
-    ],
   }),
   adminRoute({
     id: 'admin-settings-workspace-modules',
     title: 'Workspace Modules',
     path: '/settings/admin/workspace_modules',
-    aliases: [{ path: '/settings/admin', query: { section: 'workspace_modules' } }],
   }),
   adminRoute({
     id: 'admin-settings-branding',
     title: 'Branding',
     path: '/settings/admin/branding',
-    aliases: [{ path: '/settings/admin', query: { section: 'branding' } }],
   }),
   adminRoute({
     id: 'admin-settings-users',
     title: 'Users & Security',
     path: '/settings/admin/users',
-    aliases: [{ path: '/settings/admin', query: { section: 'users' } }],
   }),
   adminRoute({
     id: 'admin-settings-email',
     title: 'Email Settings',
     path: '/settings/admin/email',
-    aliases: [{ path: '/settings/admin', query: { section: 'email' } }],
   }),
   adminRoute({
     id: 'admin-settings-messaging',
     title: 'Messaging Settings',
     path: '/settings/admin/messaging',
-    aliases: [{ path: '/settings/admin', query: { section: 'messaging' } }],
   }),
   adminRoute({
     id: 'admin-settings-outcomes',
     title: 'Outcome Definitions',
     path: '/settings/admin/outcomes',
-    aliases: [{ path: '/settings/admin', query: { section: 'outcomes' } }],
   }),
   adminRoute({
     id: 'admin-settings-roles',
     title: 'Roles & Permissions',
     path: '/settings/admin/roles',
-    aliases: [{ path: '/settings/admin', query: { section: 'roles' } }],
   }),
   adminRoute({
     id: 'admin-settings-audit-logs',
     title: 'Audit Logs',
     path: '/settings/admin/audit_logs',
-    aliases: ['/admin/audit-logs', { path: '/settings/admin', query: { section: 'audit_logs' } }],
   }),
   adminRoute({
     id: 'admin-settings-other',
     title: 'Other Settings',
     path: '/settings/admin/other',
-    aliases: [{ path: '/settings/admin', query: { section: 'other' } }],
   }),
   settingsRoute({
     id: 'api-settings',
@@ -669,7 +652,6 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     id: 'email-marketing',
     title: 'Email Marketing',
     path: '/settings/email-marketing',
-    aliases: ['/email-marketing'],
     adminNav: { mode: 'settings', order: 150, label: 'Email Marketing' },
     featureStatus: 'available',
   }),
@@ -684,7 +666,6 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     id: 'portal-admin-access',
     title: 'Portal Access',
     path: '/settings/admin/portal/access',
-    aliases: ['/settings/admin/portal'],
     adminNav: [
       {
         mode: 'settings',

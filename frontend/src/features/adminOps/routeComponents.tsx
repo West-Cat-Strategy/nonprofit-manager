@@ -1,11 +1,6 @@
 import { lazy } from 'react';
 import { Navigate, useLocation, useParams } from 'react-router-dom';
-import {
-  getAdminSettingsPath,
-  parseAdminSettingsSection,
-  resolveLegacyAdminSettingsLocation,
-} from './adminRoutePaths';
-import { resolveRouteCatalogAlias } from '../../routes/routeCatalog';
+import { getAdminSettingsPath, parseAdminSettingsSection } from './adminRoutePaths';
 
 /**
  * MODULE-OWNERSHIP: admin route boundary
@@ -21,24 +16,6 @@ export const DataBackup = lazy(() => import('./pages/DataBackupPage'));
 export const EmailMarketing = lazy(() => import('./pages/EmailMarketingPage'));
 export const SocialMedia = lazy(() => import('./pages/SocialMediaPage'));
 export const PortalAdminPage = lazy(() => import('./pages/portalAdmin/PortalAdminPage'));
-
-export const RouteCatalogAliasRedirect = () => {
-  const location = useLocation();
-  const currentLocation = `${location.pathname}${location.search}`;
-  const targetLocation = resolveRouteCatalogAlias(currentLocation);
-
-  if (!targetLocation) {
-    throw new Error(`Missing canonical redirect target for route alias: ${currentLocation}`);
-  }
-
-  return <Navigate to={targetLocation} replace />;
-};
-
-export const AdminSettingsLegacyRedirect = () => {
-  const location = useLocation();
-  const currentLocation = `${location.pathname}${location.search}`;
-  return <Navigate to={resolveLegacyAdminSettingsLocation(currentLocation)} replace />;
-};
 
 export const AdminSettingsSectionRoute = () => {
   const location = useLocation();

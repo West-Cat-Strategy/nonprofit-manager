@@ -2,65 +2,59 @@
 
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
-const assetsDir = path.join(__dirname, '..', 'frontend', 'dist', 'assets');
+const repoRoot = path.resolve(__dirname, '..');
+const distIndexPath = path.join(repoRoot, 'frontend', 'dist', 'index.html');
+const thresholdsPath = path.join(repoRoot, 'docs', 'performance', 'p4-t9d-thresholds.json');
 
-if (!fs.existsSync(assetsDir)) {
-  console.error('Frontend build artifacts not found at frontend/dist/assets. Run frontend build first.');
+const fail = (message) => {
+  console.error(`Frontend bundle size check failed: ${message}`);
   process.exit(1);
+};
+
+if (!fs.existsSync(distIndexPath)) {
+  fail('frontend/dist/index.html was not found. Run `cd frontend && npm run build` first.');
 }
 
-const jsFiles = fs
-  .readdirSync(assetsDir)
-  .filter((file) => file.endsWith('.js'))
-  .map((file) => ({
-    file,
-    bytes: fs.statSync(path.join(assetsDir, file)).size,
-  }));
-
-const budgets = [
-  { id: 'EventDetailPage', prefix: 'EventDetailPage-', maxBytes: 500 * 1024 },
-  // Keep backward compatibility with historical chunk names.
-  { id: 'AdminSettings', prefixes: ['AdminSettingsPage-', 'AdminSettings-'], maxBytes: 180 * 1024 },
-  { id: 'vendor-recharts', prefix: 'vendor-recharts-', maxBytes: 380 * 1024 },
-  { id: 'vendor-pdf', prefix: 'vendor-pdf-', maxBytes: 450 * 1024 },
-  { id: 'index-main', prefix: 'index-', maxBytes: 120 * 1024 },
-  { id: 'routes-core', prefix: 'routes-core-', maxBytes: 220 * 1024 },
-  { id: 'routes-people', prefix: 'routes-people-', maxBytes: 120 * 1024 },
-  { id: 'routes-engagement', prefix: 'routes-engagement-', maxBytes: 120 * 1024 },
-  { id: 'routes-admin', prefix: 'routes-admin-', maxBytes: 120 * 1024 },
-];
-
-const formatKb = (value) => `${(value / 1024).toFixed(1)} KiB`;
-
-let hasViolation = false;
-
-console.log('Frontend bundle budget report:');
-for (const budget of budgets) {
-  const prefixes = budget.prefixes ?? [budget.prefix];
-  const match = jsFiles
-    .filter((entry) => prefixes.some((prefix) => entry.file.startsWith(prefix)))
-    .sort((a, b) => b.bytes - a.bytes)[0];
-
-  if (!match) {
-    console.error(`- ${budget.id}: missing chunk with prefix "${prefixes.join('" or "')}"`);
-    hasViolation = true;
-    continue;
-  }
-
-  const status = match.bytes > budget.maxBytes ? 'FAIL' : 'PASS';
-  console.log(
-    `- ${budget.id}: ${status} (${formatKb(match.bytes)} / budget ${formatKb(budget.maxBytes)}) -> ${match.file}`
-  );
-
-  if (status === 'FAIL') {
-    hasViolation = true;
-  }
+if (!fs.existsSync(thresholdsPath)) {
+  fail('docs/performance/p4-t9d-thresholds.json was not found.');
 }
 
-if (hasViolation) {
-  console.error('Frontend bundle budget check failed.');
-  process.exit(1);
+const thresholds = JSON.parse(fs.readFileSync(thresholdsPath, 'utf8'));
+const startupBundleCap = Number(thresholds.appOwnedStartupJsBytesCap);
+
+if (!Number.isFinite(startupBundleCap) || startupBundleCap <= 0) {
+  fail('appOwnedStartupJsBytesCap is missing or invalid in docs/performance/p4-t9d-thresholds.json.');
 }
 
-console.log('Frontend bundle budget check passed.');
+const html = fs.readFileSync(distIndexPath, 'utf8');
+const scriptMatch = html.match(
+  /<script\s+type=["']module["'][^>]*\ssrc=["']([^"']+)["'][^>]*><\/script>/i
+);
+
+if (!scriptMatch) {
+  fail('could not find the startup module script in frontend/dist/index.html.');
+}
+
+const scriptHref = scriptMatch[1].split('?')[0].split('#')[0];
+const scriptPath = path.resolve(path.dirname(distIndexPath), scriptHref.replace(/^\//, ''));
+
+if (!fs.existsSync(scriptPath)) {
+  fail(`startup bundle ${scriptHref} was not found on disk.`);
+}
+
+const rawBytes = fs.statSync(scriptPath).size;
+const gzipBytes = zlib.gzipSync(fs.readFileSync(scriptPath)).length;
+const relScriptPath = path.relative(repoRoot, scriptPath);
+
+console.log(`Startup bundle: ${relScriptPath}`);
+console.log(`Raw bytes: ${rawBytes}`);
+console.log(`Gzip bytes: ${gzipBytes}`);
+console.log(`Cap: ${startupBundleCap}`);
+
+if (rawBytes > startupBundleCap) {
+  fail(`startup bundle exceeds cap by ${rawBytes - startupBundleCap} bytes.`);
+}
+
+console.log('Frontend bundle size check passed.');

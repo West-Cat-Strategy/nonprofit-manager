@@ -1,15 +1,17 @@
 # Documentation Style Guide
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-19
 
 Use this guide when creating or updating documentation in nonprofit-manager.
 
 ## Source Of Truth Model
 
 - [../README.md](../README.md) is the contributor start page.
+- [../CONTRIBUTING.md](../CONTRIBUTING.md) is the contributor workflow and validation guide.
 - [INDEX.md](INDEX.md) is the full documentation catalog.
 - [README.md](README.md) inside `docs/` is a short directory landing page only.
 - [phases/planning-and-progress.md](phases/planning-and-progress.md) is the live workboard and status log.
+- [../scripts/README.md](../scripts/README.md) is the root helper-script index.
 - Service READMEs such as [../backend/README.md](../backend/README.md) and [../frontend/README.md](../frontend/README.md) should explain their own surfaces, but should not replace the root README as the contributor start path.
 
 ## Before You Write

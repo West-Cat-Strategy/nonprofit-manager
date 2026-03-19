@@ -17,7 +17,7 @@
 
 ### Local CI audit fails
 - `npm audit` requires network access to the npm registry.
-- If running in a restricted environment, rerun when network is available.
+- If running in a restricted environment, rerun `make ci-full` when network is available.
 
 ### Auth failures (401/403)
 - Confirm `JWT_SECRET` matches the value used to sign tokens.
@@ -27,5 +27,4 @@
 
 - Backend: `npm run type-check`, `npm test -- --runInBand --detectOpenHandles`
 - Frontend: `npm run type-check`, `npm test -- --run`
-- Local CI: `./scripts/local-ci.sh --audit --build`
-
+- Local CI: `make ci-full`

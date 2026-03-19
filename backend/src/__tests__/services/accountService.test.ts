@@ -320,27 +320,45 @@ describe('AccountService', () => {
   describe('getAccountContacts', () => {
     it('should return contacts for account', async () => {
       const mockContacts = [
-        { id: 'c1', first_name: 'John', last_name: 'Doe' },
-        { id: 'c2', first_name: 'Jane', last_name: 'Smith' },
+        { id: 'c1', first_name: 'John', last_name: 'Doe', total_count: '2' },
+        { id: 'c2', first_name: 'Jane', last_name: 'Smith', total_count: '2' },
       ];
 
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ total: '2' }] })   // count query
-        .mockResolvedValueOnce({ rows: mockContacts });        // data query
+      mockQuery.mockResolvedValueOnce({ rows: mockContacts });
 
       const result = await accountService.getAccountContacts('123');
 
-      expect(result.contacts).toEqual(mockContacts);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      expect(result.contacts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'c1',
+            first_name: 'John',
+            last_name: 'Doe',
+            birth_date: null,
+            phn: null,
+          }),
+          expect.objectContaining({
+            id: 'c2',
+            first_name: 'Jane',
+            last_name: 'Smith',
+            birth_date: null,
+            phn: null,
+          }),
+        ])
+      );
+      expect(result.contacts[0]).not.toHaveProperty('phn_encrypted');
       expect(result.total).toBe(2);
     });
 
     it('should return empty array when no contacts found', async () => {
       mockQuery
-        .mockResolvedValueOnce({ rows: [{ total: '0' }] })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ total: '0' }] });
 
       const result = await accountService.getAccountContacts('123');
 
+      expect(mockQuery).toHaveBeenCalledTimes(2);
       expect(result.contacts).toEqual([]);
       expect(result.total).toBe(0);
     });

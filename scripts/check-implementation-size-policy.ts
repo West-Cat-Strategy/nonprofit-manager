@@ -1,85 +1,55 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const path = require('node:path');
+const path = require('path');
+const {
+  lineCount,
+  readBaselineJson,
+  relativeToRepo,
+  repoRoot,
+  walkFiles,
+} = require('./lib/policy-utils.ts');
 
-const repoRoot = path.resolve(__dirname, '..');
-const baselinePath = path.join(repoRoot, 'scripts/policies/implementation-size-baseline.json');
-const maxLines = 900;
+const baselinePath = 'scripts/baselines/implementation-size.json';
+const baseline = readBaselineJson(baselinePath);
 
-if (!fs.existsSync(baselinePath)) {
-  console.error(
-    `Missing implementation size baseline: ${path.relative(repoRoot, baselinePath)}`
-  );
+if (!baseline || typeof baseline !== 'object' || !baseline.files || typeof baseline.cap !== 'number') {
+  console.error(`Implementation size policy baseline is missing or invalid: ${baselinePath}`);
   process.exit(1);
 }
 
-const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
-const roots = ['backend/src', 'frontend/src'].map((relativePath) => path.join(repoRoot, relativePath));
-const violations = [];
+const cap = baseline.cap;
+const baselineFiles = new Map(
+  Object.entries(baseline.files).map(([filePath, lineTotal]) => [filePath, Number(lineTotal)])
+);
 
-const isImplementationFile = (fullPath) => {
-  if (!fullPath.endsWith('.ts') && !fullPath.endsWith('.tsx')) {
-    return false;
+const sourceFiles = walkFiles([path.join(repoRoot, 'backend/src'), path.join(repoRoot, 'frontend/src')], {
+  extensions: ['.ts', '.tsx'],
+  includeTests: false,
+});
+
+const issues = [];
+
+for (const filePath of sourceFiles) {
+  const relativePath = relativeToRepo(filePath);
+  const currentLines = lineCount(filePath);
+  const baselineLines = baselineFiles.get(relativePath);
+
+  if (baselineLines == null) {
+    if (currentLines > cap) {
+      issues.push(`${relativePath}: ${currentLines} lines exceeds the ${cap}-line cap`);
+    }
+    continue;
   }
 
-  const rel = path.relative(repoRoot, fullPath).split(path.sep).join('/');
-  const base = path.basename(fullPath);
-
-  if (rel.includes('/__tests__/') || /\.test\.[tj]sx?$/.test(base) || /\.spec\.[tj]sx?$/.test(base)) {
-    return false;
+  if (currentLines > baselineLines) {
+    issues.push(`${relativePath}: ${currentLines} lines exceeds baseline ${baselineLines}`);
   }
-  if (rel.includes('/types/') || rel.includes('/validations/')) {
-    return false;
-  }
-  if (/^(constants|index)\.[tj]sx?$/.test(base)) {
-    return false;
-  }
+}
 
-  return true;
-};
-
-const walk = (dir) => {
-  if (!fs.existsSync(dir)) return;
-
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walk(fullPath);
-      continue;
-    }
-
-    if (!entry.isFile() || !isImplementationFile(fullPath)) {
-      continue;
-    }
-
-    const rel = path.relative(repoRoot, fullPath).split(path.sep).join('/');
-    const lineCount = fs.readFileSync(fullPath, 'utf8').split(/\r?\n/).length;
-
-    if (lineCount <= maxLines) {
-      continue;
-    }
-
-    if (!(rel in baseline)) {
-      violations.push(`${rel}: ${lineCount} lines exceeds ${maxLines} and is not in baseline`);
-      continue;
-    }
-
-    const allowed = Number(baseline[rel] || 0);
-    if (lineCount > allowed) {
-      violations.push(`${rel}: ${lineCount} lines exceeds baseline ${allowed}`);
-    }
-  }
-};
-
-roots.forEach(walk);
-
-if (violations.length > 0) {
-  console.error(
-    `Implementation size policy violations found. Keep implementation files at or below ${maxLines} lines unless already baselined.`
-  );
-  for (const violation of violations) {
-    console.error(`- ${violation}`);
+if (issues.length > 0) {
+  console.error('Implementation size policy check failed:\n');
+  for (const issue of issues) {
+    console.error(`- ${issue}`);
   }
   process.exit(1);
 }

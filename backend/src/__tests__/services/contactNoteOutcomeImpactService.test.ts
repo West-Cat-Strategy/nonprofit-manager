@@ -20,10 +20,10 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
-import { ContactNoteOutcomeImpactService } from '../../services/contactNoteOutcomeImpactService';
+import { ContactNoteOutcomeImpactService } from '@modules/contacts/services/contactNoteOutcomeImpactService';
 
 describe('ContactNoteOutcomeImpactService', () => {
-  let service: ContactNoteOutcomeImpactService;
+  let service: InstanceType<typeof ContactNoteOutcomeImpactService>;
 
   beforeEach(() => {
     mockQuery.mockReset();

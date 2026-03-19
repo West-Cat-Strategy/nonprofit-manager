@@ -23,7 +23,7 @@ Generated: 2026-03-06T00:12:19.788Z
 | Surface | Baseline | Post-Fix | Notes |
 | --- | --- | --- | --- |
 | Staff Navigation | 3/3/2/2 (broken) | 4/4/4/4 (available) | Navigation and utility links are catalog-driven and validated by route-integrity checks. |
-| Admin User Management | 3/3/1/1 (broken) | 4/4/4/4 (available) | The card now routes to `/settings/admin?section=users` and the admin side-nav uses the route catalog. |
+| Admin User Management | 3/3/1/1 (broken) | 4/4/4/4 (available) | The card now routes to `/settings/admin/users` and the admin side-nav uses the route catalog. |
 | Alerts Workspace | 2/2/1/1 (missing-ui) | 4/4/4/4 (available) | Configuration, triggered alerts, and history routes now share a consistent shell with cross-links. |
 | Dashboard Volunteer Widget | 3/3/1/1 (broken) | 4/4/4/4 (available) | The shortcut now routes to the volunteer management surface instead of a dead-end create page. |
 | Portal Navigation | 3/3/3/3 (available) | 4/4/4/4 (available) | Portal navigation now consumes the shared route catalog and aligns with the shared shell. |
@@ -54,4 +54,3 @@ Scores are `readability/accessibility/efficiency/workflowClarity`.
 - Required commands:
   - `npx playwright test tests/link-health.spec.ts --project=chromium`
   - `npx playwright test tests/navigation-links.spec.ts --project=chromium`
-

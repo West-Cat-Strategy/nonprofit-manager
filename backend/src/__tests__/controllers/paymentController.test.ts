@@ -1,10 +1,11 @@
 import type { Request, Response } from 'express';
 import { handleWebhook, setPaymentPool } from '@modules/payments/controllers/paymentController';
-import { stripeService } from '@services/domains/operations';
 import { recurringDonationService } from '@modules/recurringDonations/services/recurringDonationService';
+import stripeService from '@services/stripeService';
 
-jest.mock('@services/domains/operations', () => ({
-  stripeService: {
+jest.mock('@services/stripeService', () => ({
+  __esModule: true,
+  default: {
     constructWebhookEvent: jest.fn(),
   },
 }));

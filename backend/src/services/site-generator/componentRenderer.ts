@@ -16,12 +16,16 @@ import {
   generateSocialLinks,
 } from './componentRenderer/forms';
 import { generateEventList } from './componentRenderer/events';
+import { sanitizeRenderableUrl } from './urlSanitizer';
 
 export function generateSectionHtml(section: PublishedSection, theme: PublishedTheme): string {
   const style: string[] = [];
 
   if (section.backgroundColor) style.push(`background-color: ${section.backgroundColor}`);
-  if (section.backgroundImage) style.push(`background-image: url('${section.backgroundImage}'); background-size: cover; background-position: center`);
+  const safeBackgroundImage = sanitizeRenderableUrl(section.backgroundImage);
+  if (safeBackgroundImage) {
+    style.push(`background-image: url('${safeBackgroundImage}'); background-size: cover; background-position: center`);
+  }
   if (section.paddingTop) style.push(`padding-top: ${section.paddingTop}`);
   if (section.paddingBottom) style.push(`padding-bottom: ${section.paddingBottom}`);
   if (section.paddingLeft) style.push(`padding-left: ${section.paddingLeft}`);

@@ -1,6 +1,6 @@
 # Getting Started
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-19
 
 Use this guide to get a working nonprofit-manager development environment without guessing which runtime the docs assume.
 
@@ -8,7 +8,7 @@ Use this guide to get a working nonprofit-manager development environment withou
 
 - Node.js `20.19+`
 - npm `10+`
-- Docker with Compose support for the recommended local stack
+- Docker if you plan to build images or use the optional compose dev stack
 - Git
 
 Verify your toolchain:
@@ -16,7 +16,8 @@ Verify your toolchain:
 ```bash
 node --version
 npm --version
-docker compose version
+docker --version
+docker compose version  # optional, only if you plan to use make dev
 git --version
 ```
 
@@ -24,20 +25,32 @@ git --version
 
 | Goal | Recommended Path | Notes |
 |------|------------------|-------|
-| Full-stack day-to-day development | Docker development | Fastest path to a working app with Postgres and Redis included |
+| Dockerfile or image validation | Direct Dockerfile builds | Fastest way to verify container changes and packaged public assets |
+| Full-stack day-to-day development | Optional Docker Compose dev stack | Fastest path to a working app with Postgres and Redis included |
 | Backend-only feature work | Direct backend runtime | App runs on `3000`; you provide env config and infra |
 | Frontend-only feature work | Direct frontend runtime | App runs on `8005`; point it at a running backend |
 | Playwright or end-to-end validation | E2E harness | Playwright manages frontend/backend on `5173/3001` |
 
-## Path 1: Docker Development
+## Path 1: Build-First Docker Images
 
-This is the default contributor path.
+Use this when you are changing Dockerfiles or want to confirm the production images still package the right files.
+
+```bash
+make docker-build
+make docker-validate
+```
+
+Expected result:
+
+- The backend and frontend Dockerfiles both build successfully
+- The frontend production image includes `/usr/share/nginx/html/vite.svg` from `frontend/public`
+
+## Path 2: Optional Compose Dev Stack
+
+Use this when you want local Postgres and Redis alongside the app.
 
 ```bash
 cp .env.development.example .env.development
-make install
-cd e2e && npm ci
-cd ..
 make dev
 ```
 
@@ -54,16 +67,11 @@ Quick verification:
 curl http://localhost:8004/health
 ```
 
-## Path 2: Direct Backend Runtime
+## Path 3: Direct Backend Runtime
 
-Use this when you want to run the backend outside Docker while still using either local or Docker-backed infrastructure.
+Use this when you want to run the backend outside Docker while still using either local or managed infrastructure.
 
-1. Start infrastructure if needed:
-
-```bash
-cp .env.development.example .env.development
-docker compose -f docker-compose.dev.yml up -d postgres redis
-```
+1. Ensure Postgres and Redis are available. You can use local services, managed services, or the optional compose dev stack from Path 2.
 
 2. Create the backend env file:
 
@@ -72,7 +80,7 @@ cd backend
 cp .env.example .env
 ```
 
-3. If you are using the Docker dev Postgres/Redis services from step 1, update `backend/.env`:
+3. If you are using local Postgres/Redis services, update `backend/.env`:
 
 - `DB_HOST=localhost`
 - `DB_PORT=8002`
@@ -96,7 +104,7 @@ Quick verification:
 curl http://localhost:3000/health/live
 ```
 
-## Path 3: Direct Frontend Runtime
+## Path 4: Direct Frontend Runtime
 
 Use this when you are working on frontend code and already have an API running.
 
@@ -121,7 +129,7 @@ Expected endpoint:
 
 - Frontend: `http://localhost:8005`
 
-## Path 4: E2E Harness
+## Path 5: E2E Harness
 
 Use this for Playwright-driven validation. The harness starts its own backend and frontend by default.
 

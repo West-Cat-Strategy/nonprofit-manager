@@ -12,7 +12,6 @@ test.describe('Donations Module', () => {
   test('should display donations list page', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/donations');
     await authenticatedPage.waitForURL(/\/donations(?:\?|$)/);
-    await authenticatedPage.waitForLoadState('networkidle');
 
     await expect(authenticatedPage.getByRole('heading', { level: 1, name: /^donations$/i })).toBeVisible();
     await expect(authenticatedPage.getByRole('button', { name: 'Record Donation' }).first()).toBeVisible();

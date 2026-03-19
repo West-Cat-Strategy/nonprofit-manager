@@ -1,12 +1,24 @@
-{
-    # Enable admin API for internal use if needed, but not strictly required
-    # admin off 
-}
+{$CADDY_DOMAIN:localhost} {
+  tls internal
 
-localhost {
-    # Serve the frontend
-    reverse_proxy frontend-dev:8005
+  encode zstd gzip
 
-    # Use internal CA for this private domain
-    tls internal
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Frame-Options "SAMEORIGIN"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
+
+  handle /api* {
+    reverse_proxy {$CADDY_BACKEND_UPSTREAM:host.docker.internal:8000}
+  }
+
+  handle /health* {
+    reverse_proxy {$CADDY_BACKEND_UPSTREAM:host.docker.internal:8000}
+  }
+
+  handle {
+    reverse_proxy {$CADDY_FRONTEND_UPSTREAM:host.docker.internal:8001}
+  }
 }
