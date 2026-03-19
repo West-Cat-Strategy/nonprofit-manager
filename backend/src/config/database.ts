@@ -28,6 +28,30 @@ if (process.env.NODE_ENV === 'test') {
   dotenv.config({ path: '.env', quiet: true });
 }
 
+export function resolveDatabaseSslConfig(
+  env: NodeJS.ProcessEnv = process.env
+): PoolConfig['ssl'] {
+  if (env.NODE_ENV !== 'production') {
+    return false;
+  }
+
+  const dbAtRestMode = (env.DB_AT_REST_ENCRYPTION_MODE || '').trim().toLowerCase();
+
+  // LUKS-backed deployments talk to the local Postgres container over the compose
+  // network, so node-postgres SSL must stay off even while the app is in production mode.
+  if (dbAtRestMode === 'luks') {
+    return false;
+  }
+
+  if (env.DB_SSL_ENABLED === 'false') {
+    return false;
+  }
+
+  return {
+    rejectUnauthorized: env.DB_SSL_REJECT_UNAUTHORIZED !== 'false', // Default: true (strict)
+  };
+}
+
 const config: PoolConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
@@ -43,15 +67,8 @@ const config: PoolConfig = {
   // https://node-postgres.com/api/pool
   allowExitOnIdle: process.env.NODE_ENV === 'test',
   // SSL/TLS Configuration for Database Connection
-  // In production, enforce SSL for secure database communication
-  ssl:
-    process.env.NODE_ENV === 'production' && process.env.DB_SSL_ENABLED !== 'false'
-      ? {
-        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false', // Default: true (strict)
-        // Optional: ca certificate path for self-signed certs
-        // ca: process.env.DB_SSL_CA_PATH ? fs.readFileSync(process.env.DB_SSL_CA_PATH, 'utf8') : undefined,
-      }
-      : false,
+  // Managed/external production databases keep SSL on; LUKS-backed local Postgres does not.
+  ssl: resolveDatabaseSslConfig(),
 };
 
 const pool = new Pool(config);

@@ -1,6 +1,4 @@
 {$CADDY_DOMAIN:localhost} {
-  tls internal
-
   encode zstd gzip
 
   header {

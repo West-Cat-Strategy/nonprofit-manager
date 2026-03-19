@@ -5,8 +5,9 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      CADDY_BACKEND_UPSTREAM: ${CADDY_BACKEND_UPSTREAM:-host.docker.internal:8000}
-      CADDY_FRONTEND_UPSTREAM: ${CADDY_FRONTEND_UPSTREAM:-host.docker.internal:8001}
+      CADDY_BACKEND_UPSTREAM: ${CADDY_BACKEND_UPSTREAM:-backend:8000}
+      CADDY_FRONTEND_UPSTREAM: ${CADDY_FRONTEND_UPSTREAM:-frontend:8001}
+      CADDY_DOMAIN: ${CADDY_DOMAIN:-example.com}
     ports:
       - "80:80"
       - "443:443"

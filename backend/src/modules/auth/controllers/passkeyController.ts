@@ -329,18 +329,15 @@ export const loginVerify = async (
       [challengeId]
     );
     if (challengeResult.rows.length === 0) {
-      await trackLoginAttempt(email, false, undefined, clientIp);
       return badRequest(res, 'Invalid or expired challenge');
     }
 
     const challenge = challengeResult.rows[0];
     if (challenge.type !== 'authentication') {
-      await trackLoginAttempt(email, false, undefined, clientIp);
       return badRequest(res, 'Invalid or expired challenge');
     }
     if (new Date() > new Date(challenge.expires_at)) {
       await pool.query('DELETE FROM user_webauthn_challenges WHERE id = $1', [challengeId]);
-      await trackLoginAttempt(email, false, undefined, clientIp);
       return badRequest(res, 'Invalid or expired challenge');
     }
 
@@ -349,12 +346,10 @@ export const loginVerify = async (
       [challenge.user_id]
     );
     if (userResult.rows.length === 0) {
-      await trackLoginAttempt(email, false, undefined, clientIp);
       return unauthorized(res, 'Invalid credentials');
     }
     const user = userResult.rows[0];
     if (user.email.toLowerCase() !== email.toLowerCase()) {
-      await trackLoginAttempt(email, false, undefined, clientIp);
       return unauthorized(res, 'Invalid credentials');
     }
 
@@ -366,7 +361,6 @@ export const loginVerify = async (
       [user.id, credentialId]
     );
     if (credResult.rows.length === 0) {
-      await trackLoginAttempt(email, false, user.id, clientIp);
       return unauthorized(res, 'Invalid credentials');
     }
 
@@ -389,7 +383,6 @@ export const loginVerify = async (
     });
 
     if (!verification.verified || !verification.authenticationInfo) {
-      await trackLoginAttempt(email, false, user.id, clientIp);
       return unauthorized(res, 'Invalid credentials');
     }
 

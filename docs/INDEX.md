@@ -22,6 +22,14 @@ Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 | [help-center/staff/index.html](help-center/staff/index.html) | Staff-facing HTML help-center landing page |
 | [help-center/staff/quick-start.html](help-center/staff/quick-start.html) | First-day staff quick start |
 | [help-center/staff/workspace-basics.html](help-center/staff/workspace-basics.html) | Shared navigation, filter, and page behavior guide |
+| [help-center/staff/people-accounts.html](help-center/staff/people-accounts.html) | People and account record workflows |
+| [help-center/staff/volunteers.html](help-center/staff/volunteers.html) | Volunteer readiness and assignment guidance |
+| [help-center/staff/events.html](help-center/staff/events.html) | Event setup, reminders, and check-in desk |
+| [help-center/staff/donations.html](help-center/staff/donations.html) | Donation tracking and receipt review |
+| [help-center/staff/dashboard-analytics.html](help-center/staff/dashboard-analytics.html) | Dashboard and analytics overview |
+| [help-center/staff/reports.html](help-center/staff/reports.html) | Report Builder, saved reports, and schedules |
+| [help-center/staff/faq.html](help-center/staff/faq.html) | Staff FAQ and troubleshooting checklist |
+| [help-center/staff/beta-appendix.html](help-center/staff/beta-appendix.html) | Changing Areas appendix |
 
 ## Development
 

@@ -190,14 +190,12 @@ export const createAuthRoutes = (_mode: ResponseMode = 'v2'): Router => {
   router.post(
     '/passkeys/login/options',
     authLimiterMiddleware,
-    checkAccountLockout,
     validateBody(passkeyLoginOptionsSchema),
     passkeyLoginOptions
   );
   router.post(
     '/passkeys/login/verify',
     authLimiterMiddleware,
-    checkAccountLockout,
     validateBody(passkeyLoginVerifySchema),
     passkeyLoginVerify
   );
