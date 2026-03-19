@@ -2,7 +2,7 @@
 
 This guide covers deploying the Nonprofit Manager platform to production.
 
-For the live `example.com` VPS, use the dedicated runbook in [`docs/deployment/production.md`](production.md) and the committed helpers `./scripts/deploy.sh` / `./scripts/verify.sh`. That host runs from `/srv/nonprofit-manager` as a promoted snapshot and does not use `./scripts/deploy.sh production`.
+For the standard production workflow, prefer `./scripts/deploy.sh production` and the shared deployment guidance below.
 
 ## Table of Contents
 
@@ -395,14 +395,7 @@ docker compose --env-file .env.production up -d
 docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.host-access.yml up -d
 ```
 
-When using the VPS overlay, public traffic enters through Caddy on `80/443`. The backend and frontend stay reachable on `127.0.0.1:8000` and `127.0.0.1:8001` for host-local diagnostics, and the public `/health` endpoint reflects backend health.
-
-For the live production host, prefer the dedicated deploy helper instead of the generic remote deploy flow:
-
-```bash
-./scripts/deploy.sh --ref origin/main
-./scripts/verify.sh
-```
+When using a public reverse proxy or load balancer, keep the backend and frontend loopback-bound and point ingress at the published ports or containers. The public `/health` endpoint should reflect backend health.
 
 ### 5. Run Database Migrations
 
@@ -425,7 +418,7 @@ docker compose --env-file .env.production logs -f
 
 ## Manual Deployment
 
-The rest of this section describes generic manual/self-managed production deployment. The live production VPS uses the snapshot promotion flow in [`production.md`](production.md).
+The rest of this section describes generic manual/self-managed production deployment.
 
 ### Backend Deployment
 
