@@ -46,7 +46,14 @@ export interface PortalAppointmentsPort {
       offset?: number;
     }
   ): Promise<unknown[]>;
-  listPortalAppointmentSlots(contactId: string, caseId?: string): Promise<unknown>;
+  listPortalAppointmentSlots(
+    contactId: string,
+    filters?: {
+      caseId?: string;
+      from?: string;
+      to?: string;
+    }
+  ): Promise<unknown>;
   bookPortalAppointmentSlot(input: {
     slotId: string;
     contactId: string;

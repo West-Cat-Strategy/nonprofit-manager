@@ -360,6 +360,69 @@ describe('Portal Appointments Integration', () => {
     expect(filteredSlots.some((slot) => slot.id === closedSlotId)).toBe(false);
   });
 
+  it('filters portal-visible appointment slots by date range', async () => {
+    const portalToken = buildPortalToken();
+    const adminToken = buildAdminToken();
+    const now = Date.now();
+
+    const inRangeStart = new Date(now + 26 * 60 * 60 * 1000);
+    const inRangeEnd = new Date(inRangeStart.getTime() + 30 * 60 * 1000);
+    const inRangeResponse = await request(app)
+      .post('/api/v2/portal/admin/appointment-slots')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        pointperson_user_id: adminUserId,
+        case_id: caseId,
+        title: 'Portal in-range slot',
+        start_time: inRangeStart.toISOString(),
+        end_time: inRangeEnd.toISOString(),
+        capacity: 1,
+      })
+      .expect(201);
+
+    const inRangeSlotId = unwrap<{ slot: { id: string } }>(inRangeResponse.body).slot.id as string;
+    createdSlotIds.push(inRangeSlotId);
+
+    const outOfRangeStart = new Date(now + 32 * 60 * 60 * 1000);
+    const outOfRangeEnd = new Date(outOfRangeStart.getTime() + 30 * 60 * 1000);
+    const outOfRangeResponse = await request(app)
+      .post('/api/v2/portal/admin/appointment-slots')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        pointperson_user_id: adminUserId,
+        case_id: caseId,
+        title: 'Portal out-of-range slot',
+        start_time: outOfRangeStart.toISOString(),
+        end_time: outOfRangeEnd.toISOString(),
+        capacity: 1,
+      })
+      .expect(201);
+
+    const outOfRangeSlotId = unwrap<{ slot: { id: string } }>(outOfRangeResponse.body).slot.id as string;
+    createdSlotIds.push(outOfRangeSlotId);
+
+    const filteredSlotsResponse = await request(app)
+      .get('/api/v2/portal/appointments/slots')
+      .set('Cookie', [`portal_auth_token=${portalToken}`])
+      .query({
+        case_id: caseId,
+        from: new Date(now + 25 * 60 * 60 * 1000).toISOString(),
+        to: new Date(now + 27 * 60 * 60 * 1000).toISOString(),
+      })
+      .expect(200);
+
+    const filteredSlots = unwrap<{
+      selected_case_id: string | null;
+      selected_pointperson_user_id: string | null;
+      slots: Array<{ id: string }>;
+    }>(filteredSlotsResponse.body);
+
+    expect(filteredSlots.selected_case_id).toBe(caseId);
+    expect(filteredSlots.selected_pointperson_user_id).toBe(adminUserId);
+    expect(filteredSlots.slots.some((slot) => slot.id === inRangeSlotId)).toBe(true);
+    expect(filteredSlots.slots.some((slot) => slot.id === outOfRangeSlotId)).toBe(false);
+  });
+
   it('supports admin appointment inbox, reminder history/manual send, and check-in', async () => {
     const adminToken = buildAdminToken();
 

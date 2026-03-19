@@ -7,6 +7,7 @@ import { Route } from 'react-router-dom';
 import {
   PortalAppointments,
   PortalAcceptInvitation,
+  PortalCalendar,
   PortalCaseDetail,
   PortalCases,
   PortalDashboard,
@@ -39,6 +40,7 @@ export function createPortalProtectedRoutes() {
       <Route path="/portal" element={<PortalDashboard />} />
       <Route path="/portal/profile" element={<PortalProfile />} />
       <Route path="/portal/people" element={<PortalPeople />} />
+      <Route path="/portal/calendar" element={<PortalCalendar />} />
       <Route path="/portal/events" element={<PortalEvents />} />
       <Route path="/portal/messages" element={<PortalMessages />} />
       <Route path="/portal/cases" element={<PortalCases />} />

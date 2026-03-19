@@ -186,22 +186,19 @@ const SLOT_SELECT = `
   LEFT JOIN users u ON u.id = s.pointperson_user_id
 `;
 
-const normalizeSlot = (row: Record<string, unknown>): AppointmentSlot => {
-  return {
-    ...(row as unknown as AppointmentSlot),
-    capacity: Number(row.capacity || 0),
-    booked_count: Number(row.booked_count || 0),
-    available_count: Number(row.available_count || 0),
-  };
-};
+const normalizeSlot = (row: Record<string, unknown>): AppointmentSlot => ({
+  ...(row as unknown as AppointmentSlot),
+  capacity: Number(row.capacity || 0),
+  booked_count: Number(row.booked_count || 0),
+  available_count: Number(row.available_count || 0),
+});
 
 export const listPortalAppointmentSlots = async (
   contactId: string,
-  caseId?: string | null
+  filters?: { caseId?: string | null; from?: string; to?: string }
 ): Promise<{ selected_case_id: string | null; selected_pointperson_user_id: string | null; slots: AppointmentSlot[] }> => {
-  const selection = await resolvePortalCaseSelection(contactId, caseId);
+  const selection = await resolvePortalCaseSelection(contactId, filters?.caseId);
   const selectedCase = selection.selected_case;
-
   if (!selectedCase || !selectedCase.assigned_to) {
     return {
       selected_case_id: selection.selected_case_id,
@@ -210,15 +207,29 @@ export const listPortalAppointmentSlots = async (
     };
   }
 
-  const result = await pool.query(
-    `${SLOT_SELECT}
+  const values: Array<string | number | null> = [selectedCase.assigned_to, selectedCase.case_id];
+  let whereClause = `
      WHERE s.status = 'open'
        AND s.start_time >= NOW()
        AND s.pointperson_user_id = $1
        AND (s.case_id IS NULL OR s.case_id = $2)
-       AND s.capacity > s.booked_count
+       AND s.capacity > s.booked_count`;
+
+  if (filters?.from) {
+    values.push(filters.from);
+    whereClause += ` AND s.start_time >= $${values.length}`;
+  }
+
+  if (filters?.to) {
+    values.push(filters.to);
+    whereClause += ` AND s.start_time <= $${values.length}`;
+  }
+
+  const result = await pool.query(
+    `${SLOT_SELECT}
+     ${whereClause}
      ORDER BY s.start_time ASC`,
-    [selectedCase.assigned_to, selectedCase.case_id]
+    values
   );
 
   return {

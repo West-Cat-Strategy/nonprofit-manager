@@ -9,7 +9,8 @@ import type { PortalAppointmentsPort } from '../types/ports';
 
 export const createPortalAppointmentsAdapter = (): PortalAppointmentsPort => ({
   listPortalAppointments,
-  listPortalAppointmentSlots,
+  listPortalAppointmentSlots: (contactId, filters) =>
+    listPortalAppointmentSlots(contactId, filters),
   bookPortalAppointmentSlot,
   createPortalManualAppointmentRequest,
   cancelPortalAppointment,

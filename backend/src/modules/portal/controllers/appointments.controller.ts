@@ -47,8 +47,17 @@ export const createPortalAppointmentsController = (useCase: PortalAppointmentsUs
         return;
       }
 
-      const caseId = typeof req.query.case_id === 'string' ? req.query.case_id : undefined;
-      const slots = await useCase.listSlots(contactId, caseId);
+      const query = (req.validatedQuery ?? req.query) as {
+        case_id?: string;
+        from?: string;
+        to?: string;
+      };
+
+      const slots = await useCase.listSlots(contactId, {
+        caseId: query.case_id,
+        from: query.from,
+        to: query.to,
+      });
       sendSuccess(res, slots);
     } catch (error) {
       if (

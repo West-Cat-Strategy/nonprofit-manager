@@ -3,6 +3,11 @@ import { unwrapApiData } from '../../../services/apiEnvelope';
 import type { ApiEnvelope } from '../../../services/apiEnvelope';
 import type {
   PortalApiClient,
+  PortalAppointmentQuery,
+  PortalAppointmentRequestInput,
+  PortalAppointmentSlotsPayload,
+  PortalAppointmentSlotBookingInput,
+  PortalAppointmentSummary,
   PortalCaseDetail,
   PortalCaseDocument,
   PortalCaseSummary,
@@ -22,6 +27,8 @@ import type {
 } from '../types/contracts';
 
 export class PortalV2ApiClient implements PortalApiClient {
+  private static readonly PAGE_SIZE = 100;
+
   async getDashboard(): Promise<PortalDashboardData> {
     const response = await portalApi.get<ApiEnvelope<PortalDashboardData>>('/v2/portal/dashboard');
     return unwrapApiData(response.data);
@@ -33,11 +40,34 @@ export class PortalV2ApiClient implements PortalApiClient {
         search: query.search,
         sort: query.sort,
         order: query.order,
+        from: query.from,
+        to: query.to,
         limit: query.limit,
         offset: query.offset,
       },
     });
     return unwrapApiData(response.data);
+  }
+
+  async listEventsAll(query: PortalEventsQuery = {}): Promise<PortalEvent[]> {
+    const items: PortalEvent[] = [];
+    let offset = query.offset ?? 0;
+    const limit = Math.max(1, Math.min(query.limit ?? PortalV2ApiClient.PAGE_SIZE, PortalV2ApiClient.PAGE_SIZE));
+
+    while (true) {
+      const page = await this.listEvents({
+        ...query,
+        limit,
+        offset,
+      });
+      items.push(...page.items);
+      if (!page.page.has_more) {
+        break;
+      }
+      offset += limit;
+    }
+
+    return items;
   }
 
   async registerEvent(eventId: string): Promise<void> {
@@ -46,6 +76,72 @@ export class PortalV2ApiClient implements PortalApiClient {
 
   async cancelEventRegistration(eventId: string): Promise<void> {
     await portalApi.delete(`/v2/portal/events/${eventId}/register`);
+  }
+
+  async listAppointments(query: PortalAppointmentQuery = {}): Promise<PortalAppointmentSummary[]> {
+    const response = await portalApi.get<ApiEnvelope<PortalAppointmentSummary[]>>('/v2/portal/appointments', {
+      params: {
+        status: query.status,
+        case_id: query.case_id,
+        search: query.search,
+        from: query.from,
+        to: query.to,
+        limit: query.limit,
+        offset: query.offset,
+      },
+    });
+    return unwrapApiData(response.data);
+  }
+
+  async listAppointmentsAll(query: PortalAppointmentQuery = {}): Promise<PortalAppointmentSummary[]> {
+    const items: PortalAppointmentSummary[] = [];
+    let offset = query.offset ?? 0;
+    const limit = Math.max(1, Math.min(query.limit ?? PortalV2ApiClient.PAGE_SIZE, PortalV2ApiClient.PAGE_SIZE));
+
+    while (true) {
+      const page = await this.listAppointments({
+        ...query,
+        limit,
+        offset,
+      });
+      items.push(...page);
+      if (page.length < limit) {
+        break;
+      }
+      offset += limit;
+    }
+
+    return items;
+  }
+
+  async listAppointmentSlots(query: {
+    case_id?: string;
+    from?: string;
+    to?: string;
+  } = {}): Promise<PortalAppointmentSlotsPayload> {
+    const response = await portalApi.get<ApiEnvelope<PortalAppointmentSlotsPayload>>(
+      '/v2/portal/appointments/slots',
+      {
+        params: {
+          case_id: query.case_id,
+          from: query.from,
+          to: query.to,
+        },
+      }
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async requestAppointment(payload: PortalAppointmentRequestInput): Promise<void> {
+    await portalApi.post('/v2/portal/appointments/requests', payload);
+  }
+
+  async bookAppointmentSlot(slotId: string, payload: PortalAppointmentSlotBookingInput): Promise<void> {
+    await portalApi.post(`/v2/portal/appointments/slots/${slotId}/book`, payload);
+  }
+
+  async cancelAppointment(appointmentId: string): Promise<void> {
+    await portalApi.patch(`/v2/portal/appointments/${appointmentId}/cancel`);
   }
 
   async listDocuments(query: PortalDocumentsQuery = {}): Promise<PortalPagedResult<PortalDocument>> {
