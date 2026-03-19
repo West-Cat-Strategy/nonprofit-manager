@@ -389,7 +389,10 @@ export default function PortalCalendarPage() {
     }
   };
 
-  const selectedKind = selectedEntry?.metadata.kind;
+  const selectedEvent = selectedEntry?.metadata.kind === 'event' ? selectedEntry.metadata.event : null;
+  const selectedAppointment =
+    selectedEntry?.metadata.kind === 'appointment' ? selectedEntry.metadata.appointment : null;
+  const selectedSlot = selectedEntry?.metadata.kind === 'slot' ? selectedEntry.metadata.slot : null;
 
   return (
     <PortalPageShell
@@ -548,21 +551,17 @@ export default function PortalCalendarPage() {
                       )}
                     </div>
 
-                    {selectedKind === 'event' && (
+                    {selectedEvent && (
                       <>
-                        {selectedEntry.metadata.event.description && (
-                          <p className="text-sm text-app-text-muted">
-                            {selectedEntry.metadata.event.description}
-                          </p>
+                        {selectedEvent.description && (
+                          <p className="text-sm text-app-text-muted">{selectedEvent.description}</p>
                         )}
                         <div className="flex flex-wrap gap-2">
-                          {selectedEntry.metadata.event.registration_id ? (
+                          {selectedEvent.registration_id ? (
                             <button
                               type="button"
-                              onClick={() => void handleCancelEvent(selectedEntry.metadata.event.id)}
-                              disabled={
-                                savingEntryId === selectedEntry.id || selectedEntry.metadata.event.checked_in === true
-                              }
+                              onClick={() => void handleCancelEvent(selectedEvent.id)}
+                              disabled={savingEntryId === selectedEntry.id || selectedEvent.checked_in === true}
                               className="rounded-md border border-app-input-border px-3 py-2 text-sm text-app-text disabled:opacity-60"
                             >
                               {savingEntryId === selectedEntry.id ? 'Saving...' : 'Cancel registration'}
@@ -570,7 +569,7 @@ export default function PortalCalendarPage() {
                           ) : (
                             <button
                               type="button"
-                              onClick={() => void handleRegisterEvent(selectedEntry.metadata.event.id)}
+                              onClick={() => void handleRegisterEvent(selectedEvent.id)}
                               disabled={savingEntryId === selectedEntry.id}
                               className="rounded-md bg-app-accent px-3 py-2 text-sm text-white disabled:opacity-60"
                             >
@@ -581,22 +580,22 @@ export default function PortalCalendarPage() {
                       </>
                     )}
 
-                    {selectedKind === 'slot' && (
+                    {selectedSlot && (
                       <>
-                        {selectedEntry.metadata.slot.details && (
-                          <p className="text-sm text-app-text-muted">{selectedEntry.metadata.slot.details}</p>
+                        {selectedSlot.details && (
+                          <p className="text-sm text-app-text-muted">{selectedSlot.details}</p>
                         )}
                         <p className="text-sm text-app-text-muted">
-                          {selectedEntry.metadata.slot.available_count} slot
-                          {selectedEntry.metadata.slot.available_count === 1 ? '' : 's'} available
+                          {selectedSlot.available_count} slot
+                          {selectedSlot.available_count === 1 ? '' : 's'} available
                         </p>
                         <button
                           type="button"
-                          onClick={() => void handleBookSlot(selectedEntry.metadata.slot.id)}
+                          onClick={() => void handleBookSlot(selectedSlot.id)}
                           disabled={
                             savingEntryId === selectedEntry.id ||
-                            selectedEntry.metadata.slot.status !== 'open' ||
-                            selectedEntry.metadata.slot.available_count <= 0
+                            selectedSlot.status !== 'open' ||
+                            selectedSlot.available_count <= 0
                           }
                           className="rounded-md bg-app-accent px-3 py-2 text-sm text-white disabled:opacity-60"
                         >
@@ -605,26 +604,24 @@ export default function PortalCalendarPage() {
                       </>
                     )}
 
-                    {selectedKind === 'appointment' && (
+                    {selectedAppointment && (
                       <>
-                        {selectedEntry.metadata.appointment.description && (
-                          <p className="text-sm text-app-text-muted">
-                            {selectedEntry.metadata.appointment.description}
-                          </p>
+                        {selectedAppointment.description && (
+                          <p className="text-sm text-app-text-muted">{selectedAppointment.description}</p>
                         )}
                         <p className="text-sm text-app-text-muted">
-                          Status: {selectedEntry.metadata.appointment.status}
-                          {selectedEntry.metadata.appointment.request_type
-                            ? ` • ${selectedEntry.metadata.appointment.request_type.replace('_', ' ')}`
+                          Status: {selectedAppointment.status}
+                          {selectedAppointment.request_type
+                            ? ` • ${selectedAppointment.request_type.replace('_', ' ')}`
                             : ''}
                         </p>
                         <button
                           type="button"
-                          onClick={() => void handleCancelAppointment(selectedEntry.metadata.appointment.id)}
+                          onClick={() => void handleCancelAppointment(selectedAppointment.id)}
                           disabled={
                             savingEntryId === selectedEntry.id ||
-                            selectedEntry.metadata.appointment.status === 'cancelled' ||
-                            selectedEntry.metadata.appointment.status === 'completed'
+                            selectedAppointment.status === 'cancelled' ||
+                            selectedAppointment.status === 'completed'
                           }
                           className="rounded-md border border-app-input-border px-3 py-2 text-sm text-app-text disabled:opacity-60"
                         >
@@ -705,15 +702,7 @@ export default function PortalCalendarPage() {
         </div>
       )}
 
-      <ConfirmDialog
-        open={dialogState.open}
-        title={dialogState.title}
-        message={dialogState.message}
-        confirmLabel={dialogState.confirmLabel}
-        variant={dialogState.variant}
-        onConfirm={handleConfirm}
-        onCancel={handleCancel}
-      />
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </PortalPageShell>
   );
 }
