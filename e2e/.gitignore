@@ -1,26 +1,8 @@
-# Dependencies
-node_modules/
-
-# Test results
-/test-results/
-/playwright-report/
-/playwright/.cache/
-test-results.json
-
 # Environment files
 .env.test.local
 
-# Playwright videos and screenshots
+# Playwright caches and artifacts
+.cache/
+.playwright-browsers/
 *.webm
 *.mp4
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
