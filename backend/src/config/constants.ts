@@ -9,23 +9,23 @@
 export const RATE_LIMIT = {
   // General API rate limiting
   WINDOW_MS: 15 * 60 * 1000, // 15 minutes in milliseconds
-  MAX_REQUESTS: 300, // Maximum requests per window
+  MAX_REQUESTS: 1500, // Maximum requests per window
 
   // Authentication rate limiting
   AUTH_WINDOW_MS: 15 * 60 * 1000, // 15 minutes in milliseconds
-  AUTH_MAX_ATTEMPTS: 15, // Maximum login attempts per window
+  AUTH_MAX_ATTEMPTS: 75, // Maximum login attempts per window
 
   // Password reset rate limiting
   PASSWORD_RESET_WINDOW_MS: 60 * 60 * 1000, // 1 hour in milliseconds
-  PASSWORD_RESET_MAX_ATTEMPTS: 6, // Maximum password reset requests per hour
+  PASSWORD_RESET_MAX_ATTEMPTS: 30, // Maximum password reset requests per hour
 
   // Registration rate limiting
   REGISTRATION_WINDOW_MS: 60 * 60 * 1000, // 1 hour in milliseconds
-  REGISTRATION_MAX_ATTEMPTS: 15, // Maximum registrations per IP per hour
+  REGISTRATION_MAX_ATTEMPTS: 75, // Maximum registrations per IP per hour
 
   // Public event check-in rate limiting
   PUBLIC_EVENT_CHECKIN_WINDOW_MS: 10 * 60 * 1000, // 10 minutes in milliseconds
-  PUBLIC_EVENT_CHECKIN_MAX_REQUESTS: 60, // Maximum public event check-in submissions per window
+  PUBLIC_EVENT_CHECKIN_MAX_REQUESTS: 300, // Maximum public event check-in submissions per window
 } as const;
 
 /**
