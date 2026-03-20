@@ -19,17 +19,24 @@ Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
 | Document | Purpose |
 |----------|---------|
-| [help-center/staff/index.html](help-center/staff/index.html) | Staff-facing HTML help-center landing page |
-| [help-center/staff/quick-start.html](help-center/staff/quick-start.html) | First-day staff quick start |
-| [help-center/staff/workspace-basics.html](help-center/staff/workspace-basics.html) | Shared navigation, filter, and page behavior guide |
-| [help-center/staff/people-accounts.html](help-center/staff/people-accounts.html) | People and account record workflows |
-| [help-center/staff/volunteers.html](help-center/staff/volunteers.html) | Volunteer readiness and assignment guidance |
-| [help-center/staff/events.html](help-center/staff/events.html) | Event setup, reminders, and check-in desk |
-| [help-center/staff/donations.html](help-center/staff/donations.html) | Donation tracking and receipt review |
-| [help-center/staff/dashboard-analytics.html](help-center/staff/dashboard-analytics.html) | Dashboard and analytics overview |
-| [help-center/staff/reports.html](help-center/staff/reports.html) | Report Builder, saved reports, and schedules |
-| [help-center/staff/faq.html](help-center/staff/faq.html) | Staff FAQ and troubleshooting checklist |
-| [help-center/staff/beta-appendix.html](help-center/staff/beta-appendix.html) | Changing Areas appendix |
+| [help-center/staff/index.html](help-center/staff/index.html) | Staff workflow hub and guide landing page |
+| [help-center/staff/quick-start.html](help-center/staff/quick-start.html) | Step-by-step first-day onboarding workflow |
+| [help-center/staff/workspace-basics.html](help-center/staff/workspace-basics.html) | Shared list, filter, detail, confirmation, and export workflow |
+| [help-center/staff/people-accounts.html](help-center/staff/people-accounts.html) | People and account record workflow |
+| [help-center/staff/cases.html](help-center/staff/cases.html) | Case queue, creation, detail, and portal-sharing workflow |
+| [help-center/staff/volunteers.html](help-center/staff/volunteers.html) | Volunteer readiness and assignment workflow |
+| [help-center/staff/events.html](help-center/staff/events.html) | Event setup, reminders, and live check-in workflow |
+| [help-center/staff/donations.html](help-center/staff/donations.html) | Donation tracking and receipt workflow |
+| [help-center/staff/dashboard-analytics.html](help-center/staff/dashboard-analytics.html) | Workbench overview and custom layout workflow |
+| [help-center/staff/reports.html](help-center/staff/reports.html) | Report builder, saved reports, and scheduling workflow |
+| [help-center/staff/faq.html](help-center/staff/faq.html) | Triage guide for filters, permissions, errors, and changing areas |
+| [help-center/staff/beta-appendix.html](help-center/staff/beta-appendix.html) | Boundary guide for deferred areas |
+
+## Portal Help Center
+
+| Document | Purpose |
+|----------|---------|
+| [help-center/portal/cases.html](help-center/portal/cases.html) | Portal shared-case workflow for reading updates, uploading documents, messaging staff, and requesting appointments |
 
 ## Development
 
@@ -82,7 +89,9 @@ Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
 | Document | Purpose |
 |----------|---------|
-| [help-center/staff/index.html](help-center/staff/index.html) | Staff-facing HTML help center manual |
+| [help-center/staff/index.html](help-center/staff/index.html) | Staff workflow hub and HTML help center manual |
+| [help-center/staff/cases.html](help-center/staff/cases.html) | Staff case workflow guide |
+| [help-center/portal/cases.html](help-center/portal/cases.html) | Portal case workflow guide |
 | [features/FEATURE_MATRIX.md](features/FEATURE_MATRIX.md) | Feature inventory and status |
 | [features/PEOPLE_MODULE_ENHANCEMENTS.md](features/PEOPLE_MODULE_ENHANCEMENTS.md) | People module notes |
 | [features/TASK_MANAGEMENT.md](features/TASK_MANAGEMENT.md) | Task-management behavior |
@@ -110,7 +119,9 @@ Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Quick Navigation
 
-- Learn the staff workspace: [help-center/staff/index.html](help-center/staff/index.html)
+- Learn the staff workflow hub: [help-center/staff/index.html](help-center/staff/index.html)
+- Need the staff cases workflow: [help-center/staff/cases.html](help-center/staff/cases.html)
+- Need the portal cases workflow: [help-center/portal/cases.html](help-center/portal/cases.html)
 - Need setup help: [development/GETTING_STARTED.md](development/GETTING_STARTED.md)
 - Need contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md)
 - Need current work status: [phases/planning-and-progress.md](phases/planning-and-progress.md)
