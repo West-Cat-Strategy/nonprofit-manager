@@ -38,6 +38,8 @@ services:
       target: production
     restart: unless-stopped
     init: true
+    env_file:
+      - .env.production
     expose:
       - "8000"
     environment:
