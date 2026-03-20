@@ -35,23 +35,28 @@ jest.mock('@modules/shared/http/envelope', () => ({
 describe('rateLimiter defaults', () => {
   const originalEnv = { ...process.env };
 
-  const resetProductionEnv = (): void => {
+  const resetProductionEnv = (overrides: Record<string, string> = {}): void => {
     process.env = { ...originalEnv, NODE_ENV: 'production' };
     delete process.env.RATE_LIMIT_WINDOW_MS;
     delete process.env.RATE_LIMIT_MAX_REQUESTS;
     delete process.env.AUTH_RATE_LIMIT_WINDOW_MS;
     delete process.env.AUTH_RATE_LIMIT_MAX_REQUESTS;
     delete process.env.REGISTRATION_MAX_ATTEMPTS;
+    delete process.env.REGISTRATION_RATE_LIMIT_WINDOW_MS;
+    delete process.env.REGISTRATION_RATE_LIMIT_MAX_REQUESTS;
     delete process.env.PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS;
     delete process.env.PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS;
+    Object.assign(process.env, overrides);
   };
 
-  const loadRateLimiterModule = async (): Promise<typeof import('@middleware/rateLimiter')> => {
+  const loadRateLimiterModule = async (
+    overrides: Record<string, string> = {}
+  ): Promise<typeof import('@middleware/rateLimiter')> => {
     jest.resetModules();
     mockRateLimit.mockClear();
     mockSendError.mockClear();
     mockGetRedisClient.mockClear();
-    resetProductionEnv();
+    resetProductionEnv(overrides);
     return await import('@middleware/rateLimiter');
   };
 
@@ -91,6 +96,50 @@ describe('rateLimiter defaults', () => {
     expect(publicEventOptions).toMatchObject({
       windowMs: RATE_LIMIT.PUBLIC_EVENT_CHECKIN_WINDOW_MS,
       max: RATE_LIMIT.PUBLIC_EVENT_CHECKIN_MAX_REQUESTS,
+    });
+  });
+
+  it('honors explicit env overrides for the production ceilings', async () => {
+    await loadRateLimiterModule({
+      RATE_LIMIT_WINDOW_MS: '60000',
+      RATE_LIMIT_MAX_REQUESTS: '9001',
+      AUTH_RATE_LIMIT_WINDOW_MS: '60000',
+      AUTH_RATE_LIMIT_MAX_REQUESTS: '45',
+      REGISTRATION_MAX_ATTEMPTS: '80',
+      REGISTRATION_RATE_LIMIT_WINDOW_MS: '1',
+      REGISTRATION_RATE_LIMIT_MAX_REQUESTS: '2',
+      PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS: '120000',
+      PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS: '320',
+    });
+
+    expect(mockRateLimit).toHaveBeenCalledTimes(5);
+
+    const [apiOptions, authOptions, passwordResetOptions, registrationOptions, publicEventOptions] =
+      mockRateLimit.mock.calls.map(([options]) => options as Record<string, unknown>);
+
+    expect(apiOptions).toMatchObject({
+      windowMs: 60000,
+      max: 9001,
+    });
+
+    expect(authOptions).toMatchObject({
+      windowMs: 60000,
+      max: 45,
+    });
+
+    expect(passwordResetOptions).toMatchObject({
+      windowMs: RATE_LIMIT.PASSWORD_RESET_WINDOW_MS,
+      max: RATE_LIMIT.PASSWORD_RESET_MAX_ATTEMPTS,
+    });
+
+    expect(registrationOptions).toMatchObject({
+      windowMs: RATE_LIMIT.REGISTRATION_WINDOW_MS,
+      max: 80,
+    });
+
+    expect(publicEventOptions).toMatchObject({
+      windowMs: 120000,
+      max: 320,
     });
   });
 
