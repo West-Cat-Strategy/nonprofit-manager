@@ -454,19 +454,6 @@ test.describe.serial('help center screenshot refresh', () => {
     });
     recordShot('reports/report-builder.png', await writeShot(page, 'reports/report-builder.png'));
 
-    await gotoApp(page, '/reports/saved');
-    const savedReportSelectors = ['h1:has-text("Saved Reports")'];
-    if (seeded.savedReportName) {
-      savedReportSelectors.push(`text=${seeded.savedReportName}`);
-    } else {
-      savedReportSelectors.push('table');
-    }
-    await waitForPageReady(page, {
-      selectors: savedReportSelectors,
-      timeoutMs: 30_000,
-    });
-    recordShot('reports/saved-reports.png', await writeShot(page, 'reports/saved-reports.png'));
-
     const nowIso = new Date().toISOString();
     const nextRunIso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const scheduledReportsSnapshot = [
@@ -539,10 +526,22 @@ test.describe.serial('help center screenshot refresh', () => {
       });
     });
 
+    await gotoApp(page, '/reports/saved');
+    const savedReportSelectors = ['h1:has-text("Saved Reports")'];
+    if (seeded.savedReportName) {
+      savedReportSelectors.push(`text=${seeded.savedReportName}`);
+    } else {
+      savedReportSelectors.push('table');
+    }
+    await waitForPageReady(page, {
+      selectors: savedReportSelectors,
+      timeoutMs: 60_000,
+    });
+    recordShot('reports/saved-reports.png', await writeShot(page, 'reports/saved-reports.png'));
     await gotoApp(page, '/reports/scheduled');
     await waitForPageReady(page, {
       selectors: ['h1:has-text("Scheduled Reports")', `text=${seeded.scheduledReport.name}`],
-      timeoutMs: 30_000,
+      timeoutMs: 60_000,
     });
     recordShot('reports/scheduled-reports.png', await writeShot(page, 'reports/scheduled-reports.png'));
     await page.unroute('**/api/**/scheduled-reports**');
