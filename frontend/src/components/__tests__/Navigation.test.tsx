@@ -181,6 +181,24 @@ describe('Navigation', () => {
     );
   });
 
+  it('renders the branded logo without the accent tile wrapper', () => {
+    viewModelRef.current = buildViewModel({
+      branding: {
+        appName: 'Nonprofit Manager',
+        appIcon: '/vite.svg',
+      },
+    });
+
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
+
+    const logo = screen.getByRole('img', { name: /cbis/i });
+    const logoWrapper = logo.closest('div');
+
+    expect(logoWrapper).toHaveClass('flex', 'h-9', 'w-9', 'overflow-hidden');
+    expect(logoWrapper).not.toHaveClass('bg-app-accent', 'text-[var(--app-accent-foreground)]');
+    expect(logoWrapper).not.toHaveClass('shadow-sm');
+  });
+
   it('keeps search and alerts in the mobile header instead of the drawer', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
