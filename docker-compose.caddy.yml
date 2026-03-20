@@ -2,6 +2,11 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    # Use public resolvers so ACME lookups work even when the host's internal
+    # DNS servers are not reachable from inside Docker.
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
