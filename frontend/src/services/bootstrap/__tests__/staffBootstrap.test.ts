@@ -81,6 +81,7 @@ describe('staffBootstrap', () => {
               externalServiceProviders: true,
               teamChat: true,
               donations: true,
+              grants: true,
               recurringDonations: true,
               reconciliation: true,
               analytics: true,
@@ -117,6 +118,7 @@ describe('staffBootstrap', () => {
       },
       workspaceModules: {
         cases: false,
+        grants: true,
       },
     });
 
