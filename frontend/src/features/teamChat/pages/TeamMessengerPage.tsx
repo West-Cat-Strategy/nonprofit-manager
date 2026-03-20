@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useToast } from '../../../contexts/useToast';
 import TeamMessengerConversationPanel from '../components/TeamMessengerConversationPanel';
 import { useTeamMessenger } from '../messenger/TeamMessengerContext';
 
@@ -15,6 +16,7 @@ const formatTimestamp = (value: string): string => {
 };
 
 export default function TeamMessengerPage() {
+  const { showError } = useToast();
   const {
     contacts,
     conversations,
@@ -31,6 +33,8 @@ export default function TeamMessengerPage() {
   const [directParticipantId, setDirectParticipantId] = useState('');
   const [groupTitle, setGroupTitle] = useState('');
   const [groupParticipantIds, setGroupParticipantIds] = useState<string[]>([]);
+  const [isStartingDirectConversation, setIsStartingDirectConversation] = useState(false);
+  const [isCreatingGroupConversation, setIsCreatingGroupConversation] = useState(false);
 
   useEffect(() => {
     if (!selectedRoomId && conversations[0]?.room_id) {
@@ -55,6 +59,46 @@ export default function TeamMessengerPage() {
       return haystack.includes(query);
     });
   }, [conversations, search]);
+
+  const handleStartDirectConversation = async (): Promise<void> => {
+    if (!directParticipantId || isStartingDirectConversation) {
+      return;
+    }
+
+    setIsStartingDirectConversation(true);
+    try {
+      await startDirectConversation(directParticipantId);
+      setDirectParticipantId('');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Failed to start direct conversation');
+    } finally {
+      setIsStartingDirectConversation(false);
+    }
+  };
+
+  const handleCreateGroupConversation = async (): Promise<void> => {
+    if (
+      !groupTitle.trim() ||
+      groupParticipantIds.length < 2 ||
+      isCreatingGroupConversation
+    ) {
+      return;
+    }
+
+    setIsCreatingGroupConversation(true);
+    try {
+      await createGroupConversation({
+        title: groupTitle.trim(),
+        participant_user_ids: groupParticipantIds,
+      });
+      setGroupTitle('');
+      setGroupParticipantIds([]);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Failed to create group conversation');
+    } finally {
+      setIsCreatingGroupConversation(false);
+    }
+  };
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
@@ -100,16 +144,11 @@ export default function TeamMessengerPage() {
             </select>
             <button
               type="button"
-              onClick={async () => {
-                if (!directParticipantId) {
-                  return;
-                }
-                await startDirectConversation(directParticipantId);
-                setDirectParticipantId('');
-              }}
-              className="mt-3 w-full rounded-xl bg-[#0f766e] px-4 py-2 text-sm font-semibold text-white"
+              onClick={() => void handleStartDirectConversation()}
+              disabled={!directParticipantId || isStartingDirectConversation}
+              className="mt-3 w-full rounded-xl bg-[#0f766e] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Message teammate
+              {isStartingDirectConversation ? 'Starting...' : 'Message teammate'}
             </button>
           </section>
 
@@ -139,20 +178,15 @@ export default function TeamMessengerPage() {
             </select>
             <button
               type="button"
-              onClick={async () => {
-                if (!groupTitle.trim() || groupParticipantIds.length < 2) {
-                  return;
-                }
-                await createGroupConversation({
-                  title: groupTitle.trim(),
-                  participant_user_ids: groupParticipantIds,
-                });
-                setGroupTitle('');
-                setGroupParticipantIds([]);
-              }}
-              className="mt-3 w-full rounded-xl border border-app-border bg-app-bg px-4 py-2 text-sm font-semibold text-app-text"
+              onClick={() => void handleCreateGroupConversation()}
+              disabled={
+                isCreatingGroupConversation ||
+                !groupTitle.trim() ||
+                groupParticipantIds.length < 2
+              }
+              className="mt-3 w-full rounded-xl border border-app-border bg-app-bg px-4 py-2 text-sm font-semibold text-app-text disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Create group chat
+              {isCreatingGroupConversation ? 'Creating...' : 'Create group chat'}
             </button>
           </section>
 

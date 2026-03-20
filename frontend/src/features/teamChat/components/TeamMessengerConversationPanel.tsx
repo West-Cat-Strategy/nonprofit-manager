@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { shouldSubmitComposer } from '../../messaging/composer';
 import { usePersistedMessageDraft } from '../../messaging/drafts';
 import { useAppSelector } from '../../../store/hooks';
+import { useToast } from '../../../contexts/useToast';
 import { useTeamMessenger } from '../messenger/TeamMessengerContext';
 import type { TeamChatMember } from '../types';
 
@@ -28,6 +29,7 @@ export default function TeamMessengerConversationPanel({
   mode,
 }: TeamMessengerConversationPanelProps) {
   const { user } = useAppSelector((state) => state.auth);
+  const { showError } = useToast();
   const {
     contacts,
     conversationDetails,
@@ -44,6 +46,7 @@ export default function TeamMessengerConversationPanel({
   const [titleDraft, setTitleDraft] = useState('');
   const [newMemberId, setNewMemberId] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<TeamChatMember['membership_role']>('member');
+  const [isSending, setIsSending] = useState(false);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const typingActiveRef = useRef(false);
@@ -64,8 +67,13 @@ export default function TeamMessengerConversationPanel({
   }, [room?.title]);
 
   useEffect(() => {
-    scrollerRef.current?.scrollTo({
-      top: scrollerRef.current.scrollHeight,
+    const scroller = scrollerRef.current;
+    if (!scroller || typeof scroller.scrollTo !== 'function') {
+      return;
+    }
+
+    scroller.scrollTo({
+      top: scroller.scrollHeight,
       behavior: 'smooth',
     });
   }, [messages.length, roomId]);
@@ -123,6 +131,29 @@ export default function TeamMessengerConversationPanel({
       void updateTyping(roomId, false);
     }
   }, [roomId, updateTyping]);
+
+  const handleSendMessage = async (): Promise<void> => {
+    if (isSending) {
+      return;
+    }
+
+    const trimmedBody = messageBody.trim();
+    if (!trimmedBody) {
+      return;
+    }
+
+    setIsSending(true);
+    stopTyping();
+
+    try {
+      await sendMessage(roomId, { body: trimmedBody });
+      clearDraft();
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Failed to send message');
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const handleTypingPulse = useCallback(() => {
     if (!typingActiveRef.current) {
@@ -259,21 +290,13 @@ export default function TeamMessengerConversationPanel({
           }}
           onBlur={stopTyping}
           onKeyDown={(event) => {
+            if (isSending) {
+              return;
+            }
+
             if (shouldSubmitComposer(event)) {
               event.preventDefault();
-              const trimmedBody = messageBody.trim();
-              if (!trimmedBody) {
-                return;
-              }
-
-              stopTyping();
-              void sendMessage(roomId, { body: trimmedBody })
-                .then(() => {
-                  clearDraft();
-                })
-                .catch(() => {
-                  // Context keeps the failed message visible for retry.
-                });
+              void handleSendMessage();
             }
           }}
           rows={mode === 'page' ? 4 : 3}
@@ -287,23 +310,11 @@ export default function TeamMessengerConversationPanel({
           </div>
           <button
             type="button"
-            onClick={async () => {
-              const trimmedBody = messageBody.trim();
-              if (!trimmedBody) {
-                return;
-              }
-
-              stopTyping();
-              try {
-                await sendMessage(roomId, { body: trimmedBody });
-                clearDraft();
-              } catch {
-                // Context keeps the failed message visible for retry.
-              }
-            }}
-            className="rounded-xl bg-[#0f766e] px-4 py-2 text-sm font-semibold text-white shadow-sm"
+            onClick={() => void handleSendMessage()}
+            disabled={isSending || !messageBody.trim()}
+            className="rounded-xl bg-[#0f766e] px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Send
+            {isSending ? 'Sending...' : 'Send'}
           </button>
         </div>
 
