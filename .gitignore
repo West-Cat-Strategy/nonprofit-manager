@@ -2,25 +2,18 @@
 # Dependencies
 # ==============================
 node_modules/
-.pnp
-.pnp.js
 
 # ==============================
 # Build artifacts
 # ==============================
-build/
 dist/
-dist-ssr/
 dist.bak/
 *.tsbuildinfo
 *.js.map
-backend/dist/
-backend/dist.bak/
 
 # ==============================
-# Environment and secrets
+# Environment and deploy config
 # ==============================
-# Ignore all env files by default, keep examples tracked
 .env
 .env.*
 !.env.example
@@ -29,10 +22,8 @@ backend/dist.bak/
 .deploy.conf.*
 !.deploy.conf.example
 !.deploy.conf.*.example
-.secrets/
-.codex/
 
-# Private keys, certs, and credentials
+# Private keys and certificates
 *.pem
 *.key
 *.cert
@@ -45,28 +36,14 @@ id_rsa
 id_ed25519
 *.pub
 
-# Generic secret/credential files
-*secret*
-!*secret*.ts
-!*secret*.js
-!*secret*.md
-*.credentials
-*.token
-
 # ==============================
 # Testing and reports
 # ==============================
 coverage/
-.nyc_output/
-junit.xml
 test-results/
 test-results.json
 playwright-report/
-blob-report/
 .playwright-cli/
-playwright/.cache/
-e2e/.cache/
-e2e/.playwright-browsers/
 
 # ==============================
 # Logs
@@ -74,9 +51,6 @@ e2e/.playwright-browsers/
 logs/
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-backend/logs/
 
 # ==============================
 # Editors and OS files
@@ -104,50 +78,14 @@ Thumbs.db
 *.sql.bak
 
 # ==============================
-# Docker and local container files
-# ==============================
-.docker/
-.docker-tmp/
-temp-docker-config.json
-
-# ==============================
-# Cloud and infrastructure credentials
-# ==============================
-*.tfstate
-*.tfstate.*
-.terraform/
-*.auto.tfvars
-aws-credentials
-.aws/
-.gcp/
-gcloud-service-key.json
-
-# ==============================
-# Package manager auth
-# ==============================
-.npmrc
-.yarnrc
-.pypirc
-
-# ==============================
 # Generated and temporary files
 # ==============================
-services_found.txt
-services.txt
-tests_found.txt
-tests.txt
+backend/exports/
+security-reports/
 *.tmp
 *.temp
 tmp/
-
-# ==============================
-# Project-specific
-# ==============================
-backend/exports/
-backend/uploads/**
-!backend/uploads/.gitignore
-security-reports/
-.deploy-history
+output/
 
 # ==============================
 # Reference repo workspace (local-only)

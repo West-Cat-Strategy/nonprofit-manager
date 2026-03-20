@@ -191,7 +191,7 @@ describe('Navigation', () => {
 
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
-    const logo = screen.getByRole('img', { name: /cbis/i });
+    const logo = screen.getByRole('img', { name: /nonprofit manager/i });
     const logoWrapper = logo.closest('div');
 
     expect(logoWrapper).toHaveClass('flex', 'h-9', 'w-9', 'overflow-hidden');
