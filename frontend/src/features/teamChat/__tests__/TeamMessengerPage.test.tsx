@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import TeamMessengerPage from '../pages/TeamMessengerPage';
@@ -8,9 +8,27 @@ const startDirectConversation = vi.fn();
 const createGroupConversation = vi.fn();
 const openConversation = vi.fn();
 const setSelectedRoomId = vi.fn();
+const showError = vi.fn();
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+};
 
 vi.mock('../components/TeamMessengerConversationPanel', () => ({
   default: ({ roomId }: { roomId: string }) => <div>Conversation panel for {roomId}</div>,
+}));
+
+vi.mock('../../../contexts/useToast', () => ({
+  useToast: () => ({
+    showError,
+  }),
 }));
 
 vi.mock('../messenger/TeamMessengerContext', () => ({
@@ -102,5 +120,35 @@ describe('TeamMessengerPage', () => {
       title: 'Coverage Crew',
       participant_user_ids: ['contact-1', 'contact-2'],
     });
+  });
+
+  it('disables the group launcher while pending and surfaces failures', async () => {
+    const user = userEvent.setup();
+    const deferred = createDeferred<void>();
+    createGroupConversation.mockReturnValueOnce(deferred.promise);
+
+    renderWithProviders(<TeamMessengerPage />);
+
+    await user.type(screen.getByPlaceholderText('Group name'), 'Coverage Crew');
+    await user.selectOptions(screen.getByRole('listbox'), ['contact-1', 'contact-2']);
+
+    const createButton = screen.getByRole('button', { name: 'Create group chat' });
+    await user.click(createButton);
+
+    expect(createGroupConversation).toHaveBeenCalledTimes(1);
+    expect(createButton).toBeDisabled();
+
+    await user.click(createButton);
+    expect(createGroupConversation).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      deferred.reject(new Error('Unable to create group conversation'));
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(showError).toHaveBeenCalledWith('Unable to create group conversation')
+    );
+    await waitFor(() => expect(createButton).not.toBeDisabled());
   });
 });

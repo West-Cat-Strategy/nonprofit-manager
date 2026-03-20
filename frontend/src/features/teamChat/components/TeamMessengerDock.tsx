@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useToast } from '../../../contexts/useToast';
 import TeamMessengerConversationPanel from './TeamMessengerConversationPanel';
 import { useTeamMessenger } from '../messenger/TeamMessengerContext';
 
@@ -13,6 +14,7 @@ const formatConversationTime = (value: string): string => {
 };
 
 export default function TeamMessengerDock() {
+  const { showError } = useToast();
   const {
     contacts,
     closeConversation,
@@ -29,6 +31,7 @@ export default function TeamMessengerDock() {
     visibleRoomIds,
   } = useTeamMessenger();
   const [directParticipantId, setDirectParticipantId] = useState('');
+  const [isStartingDirectConversation, setIsStartingDirectConversation] = useState(false);
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -54,6 +57,22 @@ export default function TeamMessengerDock() {
     () => visibleRoomIds[visibleRoomIds.length - 1] || openRoomIds[openRoomIds.length - 1] || null,
     [openRoomIds, visibleRoomIds]
   );
+
+  const handleStartDirectConversation = async (): Promise<void> => {
+    if (!directParticipantId || isStartingDirectConversation) {
+      return;
+    }
+
+    setIsStartingDirectConversation(true);
+    try {
+      await startDirectConversation(directParticipantId);
+      setDirectParticipantId('');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Failed to start direct conversation');
+    } finally {
+      setIsStartingDirectConversation(false);
+    }
+  };
 
   if (!enabled) {
     return null;
@@ -97,16 +116,11 @@ export default function TeamMessengerDock() {
             </select>
             <button
               type="button"
-              onClick={async () => {
-                if (!directParticipantId) {
-                  return;
-                }
-                await startDirectConversation(directParticipantId);
-                setDirectParticipantId('');
-              }}
-              className="mt-3 w-full rounded-xl bg-[#0f766e] px-4 py-2 text-sm font-semibold text-white"
+              onClick={() => void handleStartDirectConversation()}
+              disabled={!directParticipantId || isStartingDirectConversation}
+              className="mt-3 w-full rounded-xl bg-[#0f766e] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Start chat
+              {isStartingDirectConversation ? 'Starting...' : 'Start chat'}
             </button>
           </div>
 
