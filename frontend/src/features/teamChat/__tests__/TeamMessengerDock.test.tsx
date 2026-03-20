@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TeamMessengerDock from '../components/TeamMessengerDock';
@@ -9,9 +9,27 @@ const startDirectConversation = vi.fn();
 const openConversation = vi.fn();
 const toggleMinimized = vi.fn();
 const closeConversation = vi.fn();
+const showError = vi.fn();
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+};
 
 vi.mock('../components/TeamMessengerConversationPanel', () => ({
   default: ({ roomId }: { roomId: string }) => <div>Panel {roomId}</div>,
+}));
+
+vi.mock('../../../contexts/useToast', () => ({
+  useToast: () => ({
+    showError,
+  }),
 }));
 
 vi.mock('../messenger/TeamMessengerContext', () => ({
@@ -83,5 +101,31 @@ describe('TeamMessengerDock', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Close' })[0]);
     expect(closeConversation).toHaveBeenCalledWith('room-1');
+  });
+
+  it('disables the launcher while a direct chat is pending and surfaces failures', async () => {
+    const user = userEvent.setup();
+    const deferred = createDeferred<void>();
+    startDirectConversation.mockReturnValueOnce(deferred.promise);
+
+    renderWithProviders(<TeamMessengerDock />);
+
+    await user.selectOptions(screen.getByRole('combobox'), 'contact-1');
+    const startButton = screen.getByRole('button', { name: 'Start chat' });
+
+    await user.click(startButton);
+    expect(startDirectConversation).toHaveBeenCalledTimes(1);
+    expect(startButton).toBeDisabled();
+
+    await user.click(startButton);
+    expect(startDirectConversation).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      deferred.reject(new Error('Unable to start chat'));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(showError).toHaveBeenCalledWith('Unable to start chat'));
+    await waitFor(() => expect(startButton).not.toBeDisabled());
   });
 });

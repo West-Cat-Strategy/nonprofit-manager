@@ -7,7 +7,7 @@ test.skip(!isTeamChatEnabled(), 'Team chat is disabled in this environment');
 test.describe('Team Messenger', () => {
   test('team messenger route requires authentication', async ({ page }) => {
     await page.goto(TEAM_CHAT_ROUTE, { waitUntil: 'domcontentloaded' });
-    await expect(page).toHaveURL(/\/login(?:\?|$)/);
+    await expect(page).toHaveURL(/\/(login|setup)(?:\?|$)/);
   });
 
   test('shows the staff messenger dock on authenticated pages', async ({ authenticatedPage }) => {

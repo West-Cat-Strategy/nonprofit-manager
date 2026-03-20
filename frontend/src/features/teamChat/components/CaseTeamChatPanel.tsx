@@ -95,6 +95,10 @@ const CaseTeamChatPanel = ({ caseId }: CaseTeamChatPanelProps) => {
       return;
     }
 
+    if (sending) {
+      return;
+    }
+
     const trimmedBody = messageBody.trim();
     if (!trimmedBody) {
       return;
@@ -242,6 +246,10 @@ const CaseTeamChatPanel = ({ caseId }: CaseTeamChatPanelProps) => {
               setPersistedDraft(event.target.value);
             }}
             onKeyDown={(event) => {
+              if (sending) {
+                return;
+              }
+
               if (shouldSubmitComposer(event)) {
                 event.preventDefault();
                 void handleSendMessage();
@@ -258,7 +266,10 @@ const CaseTeamChatPanel = ({ caseId }: CaseTeamChatPanelProps) => {
             placeholder="Mention user IDs (comma separated, optional)"
           />
           <div className="flex justify-end">
-            <BrutalButton onClick={() => void handleSendMessage()} disabled={sending}>
+            <BrutalButton
+              onClick={() => void handleSendMessage()}
+              disabled={sending || !messageBody.trim()}
+            >
               {sending ? 'Sending...' : 'Send Message'}
             </BrutalButton>
           </div>
