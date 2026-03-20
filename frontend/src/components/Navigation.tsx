@@ -163,12 +163,19 @@ export default function Navigation() {
       <div className="mx-auto flex h-14 max-w-[1920px] items-center gap-3 px-3 sm:h-16 sm:px-4 lg:px-6">
         <div className="flex min-w-0 shrink-0 items-center gap-3">
           <Link to="/dashboard" className="flex min-w-0 items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[var(--ui-radius-md)] bg-app-accent text-[var(--app-accent-foreground)] shadow-sm sm:h-10 sm:w-10">
+            <div
+              className={classNames(
+                'flex h-9 w-9 items-center justify-center overflow-hidden rounded-[var(--ui-radius-md)] sm:h-10 sm:w-10',
+                branding.appIcon
+                  ? 'bg-transparent shadow-none'
+                  : 'bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+              )}
+            >
               {branding.appIcon ? (
                 <img
                   src={branding.appIcon}
                   alt={branding.appName}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               ) : (
                 <span className="text-lg font-bold">
