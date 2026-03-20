@@ -94,6 +94,10 @@ const resolveStaffArea = (id: string, section: RouteSection): RouteArea => {
     return 'Finance';
   }
 
+  if (isPrefixedRoute(id, 'grants')) {
+    return 'Finance';
+  }
+
   if (
     id === 'analytics' ||
     id === 'dashboard-custom' ||
@@ -202,6 +206,18 @@ const routeParentIds: Record<string, string> = {
   'donation-edit': 'donations',
   'donation-payment': 'donations',
   'donation-payment-result': 'donations',
+  grants: 'grants',
+  'grants-funders': 'grants',
+  'grants-programs': 'grants',
+  'grants-recipients': 'grants',
+  'grants-funded-programs': 'grants',
+  'grants-applications': 'grants',
+  'grants-awards': 'grants',
+  'grants-disbursements': 'grants',
+  'grants-reports': 'grants',
+  'grants-documents': 'grants',
+  'grants-calendar': 'grants',
+  'grants-activities': 'grants',
   'recurring-donation-detail': 'recurring-donations',
   'recurring-donation-edit': 'recurring-donations',
   'reports-builder': 'reports',

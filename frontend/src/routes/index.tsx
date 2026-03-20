@@ -33,6 +33,7 @@ import { RecurringDonationCheckoutResult } from '../features/finance/routeCompon
 import { createPeopleRoutes } from './peopleRoutes';
 import { createEngagementRoutes } from './engagementRoutes';
 import { createFinanceRoutes } from './financeRoutes';
+import { createGrantsRoutes } from './grantsRoutes';
 import { createAnalyticsRoutes } from './analyticsRoutes';
 import { createAdminRoutes } from './adminRoutes';
 import { createBuilderRoutes } from './builderRoutes';
@@ -155,6 +156,9 @@ const AppRoutes = () => {
 
         {/* Finance Routes (Donations, Reconciliation) */}
         {createFinanceRoutes(ProtectedRoute)}
+
+        {/* Grants Routes */}
+        {createGrantsRoutes(ProtectedRoute)}
 
         {/* Analytics Routes */}
         {createAnalyticsRoutes(ProtectedRoute)}
