@@ -354,15 +354,61 @@ export class ReportService {
       case 'grants':
         return {
           id: { label: 'Grant ID', type: 'string', column: 'g.id' },
-          name: { label: 'Grant Name', type: 'string', column: 'g.name' },
-          funder: { label: 'Funder', type: 'string', column: 'g.funder' },
-          amount: { label: 'Amount', type: 'currency', column: 'g.amount' },
+          grant_number: { label: 'Grant Number', type: 'string', column: 'g.grant_number' },
+          title: { label: 'Grant Title', type: 'string', column: 'g.title' },
           status: { label: 'Status', type: 'string', column: 'g.status' },
-          start_date: { label: 'Start Date', type: 'date', column: 'g.award_date' },
-          end_date: { label: 'End Date', type: 'date', column: 'g.expiry_date' },
+          funder_name: { label: 'Funder', type: 'string', column: 'f.name' },
+          funder_type: { label: 'Funder Type', type: 'string', column: 'f.funder_type' },
+          program_name: { label: 'Program', type: 'string', column: 'gp.name' },
+          program_code: { label: 'Program Code', type: 'string', column: 'gp.program_code' },
+          recipient_name: { label: 'Recipient', type: 'string', column: 'ro.name' },
+          recipient_legal_name: {
+            label: 'Recipient Legal Name',
+            type: 'string',
+            column: 'ro.legal_name',
+          },
+          funded_program_name: { label: 'Funded Program', type: 'string', column: 'fp.name' },
+          application_number: {
+            label: 'Application Number',
+            type: 'string',
+            column: 'ga.application_number',
+          },
+          application_status: { label: 'Application Status', type: 'string', column: 'ga.status' },
+          amount: { label: 'Amount', type: 'currency', column: 'g.amount' },
+          committed_amount: { label: 'Committed Amount', type: 'currency', column: 'g.committed_amount' },
+          disbursed_amount: { label: 'Disbursed Amount', type: 'currency', column: 'g.disbursed_amount' },
+          outstanding_amount: {
+            label: 'Outstanding Amount',
+            type: 'currency',
+            column: 'GREATEST(g.amount - g.disbursed_amount, 0)',
+          },
+          currency: { label: 'Currency', type: 'string', column: 'g.currency' },
+          fiscal_year: { label: 'Fiscal Year', type: 'string', column: 'g.fiscal_year' },
+          jurisdiction: { label: 'Jurisdiction', type: 'string', column: 'g.jurisdiction' },
+          start_date: { label: 'Start Date', type: 'date', column: 'g.start_date' },
+          end_date: { label: 'End Date', type: 'date', column: 'g.end_date' },
           award_date: { label: 'Award Date', type: 'date', column: 'g.award_date' },
+          next_report_due_at: {
+            label: 'Next Report Due',
+            type: 'date',
+            column: 'g.next_report_due_at',
+          },
+          closeout_due_at: { label: 'Closeout Due', type: 'date', column: 'g.closeout_due_at' },
           expiry_date: { label: 'Expiry Date', type: 'date', column: 'g.expiry_date' },
+          report_count: {
+            label: 'Report Count',
+            type: 'number',
+            column:
+              'COALESCE((SELECT COUNT(*) FROM grant_reports gr WHERE gr.organization_id = g.organization_id AND gr.grant_id = g.id), 0)',
+          },
+          disbursement_count: {
+            label: 'Disbursement Count',
+            type: 'number',
+            column:
+              'COALESCE((SELECT COUNT(*) FROM grant_disbursements gd WHERE gd.organization_id = g.organization_id AND gd.grant_id = g.id), 0)',
+          },
           created_at: { label: 'Created Date', type: 'date', column: 'g.created_at' },
+          updated_at: { label: 'Updated Date', type: 'date', column: 'g.updated_at' },
         };
       case 'programs':
         return {
@@ -533,6 +579,16 @@ export class ReportService {
       };
     }
 
+    if (entity === 'grants') {
+      if (!scope?.organizationId) {
+        throw new Error('Organization scope is required for grants reports');
+      }
+      return {
+        condition: 'g.organization_id = $1',
+        values: [scope.organizationId],
+      };
+    }
+
     if (entity === 'attendance') {
       if (!scope?.organizationId) {
         throw new Error('Organization scope is required for attendance reports');
@@ -600,7 +656,8 @@ export class ReportService {
       opportunities:
         "opportunities o INNER JOIN opportunity_stages st ON st.id = o.stage_id LEFT JOIN accounts acc ON acc.id = o.account_id LEFT JOIN contacts con ON con.id = o.contact_id LEFT JOIN users assignee ON assignee.id = o.assigned_to",
       expenses: 'expenses ex',
-      grants: 'grants g',
+      grants:
+        'grants g LEFT JOIN grant_funders f ON f.id = g.funder_id LEFT JOIN grant_programs gp ON gp.id = g.program_id LEFT JOIN recipient_organizations ro ON ro.id = g.recipient_organization_id LEFT JOIN funded_programs fp ON fp.id = g.funded_program_id LEFT JOIN grant_applications ga ON ga.grant_id = g.id',
       programs: 'programs p',
     };
 

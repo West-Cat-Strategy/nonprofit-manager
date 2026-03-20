@@ -49,6 +49,13 @@ export enum Permission {
   PAYMENT_VIEW = 'payment:view',
   PAYMENT_PROCESS = 'payment:process',
 
+  // Grants Management
+  GRANT_VIEW = 'grant:view',
+  GRANT_CREATE = 'grant:create',
+  GRANT_EDIT = 'grant:edit',
+  GRANT_DELETE = 'grant:delete',
+  GRANT_EXPORT = 'grant:export',
+
   // Reporting
   REPORT_VIEW = 'report:view',
   REPORT_CREATE = 'report:create',
@@ -130,6 +137,11 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.DONATION_DELETE,
     Permission.PAYMENT_VIEW,
     Permission.PAYMENT_PROCESS,
+    Permission.GRANT_VIEW,
+    Permission.GRANT_CREATE,
+    Permission.GRANT_EDIT,
+    Permission.GRANT_DELETE,
+    Permission.GRANT_EXPORT,
     Permission.REPORT_VIEW,
     Permission.REPORT_CREATE,
     Permission.REPORT_EXPORT,
@@ -191,6 +203,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.DONATION_CREATE,
     Permission.DONATION_EDIT,
     Permission.PAYMENT_VIEW,
+    Permission.GRANT_VIEW,
+    Permission.GRANT_CREATE,
+    Permission.GRANT_EDIT,
+    Permission.GRANT_EXPORT,
     Permission.REPORT_VIEW,
     Permission.REPORT_CREATE,
     Permission.REPORT_EXPORT,
@@ -234,6 +250,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.CONTACT_CREATE,
     Permission.CONTACT_EDIT,
     Permission.DONATION_VIEW,
+    Permission.GRANT_VIEW,
+    Permission.GRANT_CREATE,
+    Permission.GRANT_EDIT,
+    Permission.GRANT_EXPORT,
     Permission.REPORT_VIEW,
     Permission.SCHEDULED_REPORT_VIEW,
     Permission.FOLLOWUP_VIEW,
@@ -367,6 +387,19 @@ export function canViewAuditLogs(role: UserRole | string): boolean {
  */
 export function canManageUsers(role: UserRole | string): boolean {
   return hasPermission(role, Permission.ADMIN_USERS);
+}
+
+/**
+ * Check if user can manage grants
+ */
+export function canManageGrants(role: UserRole | string): boolean {
+  return hasAnyPermission(role, [
+    Permission.GRANT_VIEW,
+    Permission.GRANT_CREATE,
+    Permission.GRANT_EDIT,
+    Permission.GRANT_DELETE,
+    Permission.GRANT_EXPORT,
+  ]);
 }
 
 /**

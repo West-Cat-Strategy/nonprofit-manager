@@ -30,7 +30,7 @@ export const routeAreaMeta: Record<
   People: { label: 'People', order: 20, icon: '👥', representativeIds: ['contacts'] },
   Service: { label: 'Service', order: 30, icon: '🩺', representativeIds: ['cases'] },
   Engagement: { label: 'Engagement', order: 40, icon: '📅', representativeIds: ['events'] },
-  Finance: { label: 'Finance', order: 50, icon: '💰', representativeIds: ['donations'] },
+  Finance: { label: 'Finance', order: 50, icon: '💰', representativeIds: ['donations', 'grants'] },
   Insights: { label: 'Insights', order: 60, icon: '📈', representativeIds: ['reports', 'analytics'] },
   Publishing: { label: 'Publishing', order: 70, icon: '🌐', representativeIds: ['websites', 'website-builder'] },
   Admin: {

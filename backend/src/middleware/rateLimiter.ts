@@ -197,11 +197,15 @@ export const registrationLimiterMiddleware = isTestEnv ? noopLimiter : registrat
 // Rate limiter for public event kiosk check-in submissions
 export const publicEventCheckInLimiter = rateLimit({
   windowMs: parseInt(
-    process.env.PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS || String(10 * 60 * 1000)
+    process.env.PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS ||
+      String(RATE_LIMIT.PUBLIC_EVENT_CHECKIN_WINDOW_MS)
   ),
   max: isTestEnv
     ? 10000
-    : parseInt(process.env.PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS || String(20)),
+    : parseInt(
+        process.env.PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS ||
+          String(RATE_LIMIT.PUBLIC_EVENT_CHECKIN_MAX_REQUESTS)
+      ),
   keyGenerator: (req) => rateLimitKeys.publicEventCheckIn(req),
   skipSuccessfulRequests: false,
   skip: shouldSkipRateLimit,
