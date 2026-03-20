@@ -36,6 +36,20 @@ describe('rateLimitKeys', () => {
     expect(rateLimitKeys.api(req)).toBe('rate-limit:global:api:user-2');
   });
 
+  it('builds distinct API keys for different users on the same IP', () => {
+    const reqOne = buildRequest({
+      user: { id: 'user-1' },
+    });
+
+    const reqTwo = buildRequest({
+      user: { id: 'user-2' },
+    });
+
+    expect(rateLimitKeys.api(reqOne)).toBe('rate-limit:global:api:user-1');
+    expect(rateLimitKeys.api(reqTwo)).toBe('rate-limit:global:api:user-2');
+    expect(rateLimitKeys.api(reqOne)).not.toBe(rateLimitKeys.api(reqTwo));
+  });
+
   it('uses organization headers when request context fields are absent', () => {
     const req = buildRequest({
       headers: {
