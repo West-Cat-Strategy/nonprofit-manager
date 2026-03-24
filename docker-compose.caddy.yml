@@ -12,7 +12,7 @@ services:
     environment:
       CADDY_BACKEND_UPSTREAM: ${CADDY_BACKEND_UPSTREAM:-backend:8000}
       CADDY_FRONTEND_UPSTREAM: ${CADDY_FRONTEND_UPSTREAM:-frontend:8001}
-      CADDY_DOMAIN: ${CADDY_DOMAIN:-example.com}
+      CADDY_DOMAIN: ${CADDY_DOMAIN:-localhost}
     ports:
       - "80:80"
       - "443:443"

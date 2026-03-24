@@ -73,7 +73,7 @@ Affected packages:
 - ✅ Password hashing (bcrypt with salt rounds)
 - ✅ Token expiration (configurable TTL)
 - ✅ Refresh token rotation
-- ✅ Rate limiting on login endpoint (5 attempts per 15 minutes)
+- ✅ Rate limiting on login endpoint (75 attempts per 15 minutes)
 - ✅ Account lockout after failed attempts
 
 **Authorization:**
@@ -213,15 +213,16 @@ cors({
 ### ✅ Rate Limiting
 
 **Endpoints Protected:**
-- ✅ POST /api/v2/auth/login (5 requests per 15 minutes)
+- ✅ POST /api/v2/auth/login (75 requests per 15 minutes)
 - ✅ POST /api/v2/auth/register (3 requests per hour)
 - ✅ POST /api/v2/auth/password-reset (3 requests per hour)
+- ✅ Account lockout after 15 failed login attempts with a 5 minute timeout
 
 **Configuration:**
 ```typescript
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 75,
   message: 'Too many login attempts, please try again later',
 });
 ```

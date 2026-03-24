@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
 import { getJwtSecret } from '../../config/jwt';
+import { MAX_LOGIN_ATTEMPTS } from '../../middleware/accountLockout';
 
 describe('Portal Auth API Integration', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -172,7 +173,7 @@ describe('Portal Auth API Integration', () => {
       );
       portalUserId = portalUserResult.rows[0].id as string;
 
-      for (let attempt = 0; attempt < 5; attempt += 1) {
+      for (let attempt = 0; attempt < MAX_LOGIN_ATTEMPTS; attempt += 1) {
         await request(app)
           .post('/api/v2/portal/auth/login')
           .send({

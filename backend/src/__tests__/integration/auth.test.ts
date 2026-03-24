@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
 import { getJwtSecret } from '../../config/jwt';
+import { MAX_LOGIN_ATTEMPTS } from '../../middleware/accountLockout';
 
 describe('Auth API Integration Tests', () => {
   let authToken: string;
@@ -602,7 +603,7 @@ describe('Auth API Integration Tests', () => {
       });
 
       // Make multiple failed login attempts sequentially
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < MAX_LOGIN_ATTEMPTS; i++) {
         await request(app).post('/api/v2/auth/login').send({
           email: lockoutEmail,
           password: 'WrongPassword',

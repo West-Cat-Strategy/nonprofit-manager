@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import { errorPayload } from '@utils/responseHelpers';
-import { getRedisClient } from '@config/redis';
+import { getRedisClient, scanAndDeleteByPattern } from '@config/redis';
 
 interface LoginAttempt {
   userId: string;
@@ -10,13 +10,42 @@ interface LoginAttempt {
   lockedUntil: Date | null;
 }
 
-const loginAttempts = new Map<string, LoginAttempt>();
-const LOCKOUT_KEY_PREFIX = 'auth:lockout:';
+const parseEnvInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
-const MAX_LOGIN_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10);
-const LOCKOUT_DURATION_MS = parseInt(process.env.ACCOUNT_LOCKOUT_DURATION_MS || '900000', 10); // 15 minutes
+const DEFAULT_MAX_LOGIN_ATTEMPTS = 15;
+const DEFAULT_LOCKOUT_DURATION_MS = 5 * 60 * 1000;
+
+export const LOCKOUT_KEY_PREFIX = 'auth:lockout:';
+export const LOCKOUT_REDIS_PATTERN = `${LOCKOUT_KEY_PREFIX}*`;
+export const MAX_LOGIN_ATTEMPTS = parseEnvInt(
+  process.env.MAX_LOGIN_ATTEMPTS,
+  DEFAULT_MAX_LOGIN_ATTEMPTS
+);
+export const ACCOUNT_LOCKOUT_DURATION_MS = parseEnvInt(
+  process.env.ACCOUNT_LOCKOUT_DURATION_MS,
+  DEFAULT_LOCKOUT_DURATION_MS
+);
+export const ACCOUNT_LOCKOUT_DURATION_MINUTES = Math.max(
+  1,
+  Math.ceil(ACCOUNT_LOCKOUT_DURATION_MS / 60000)
+);
+
+const loginAttempts = new Map<string, LoginAttempt>();
+const attemptCreationTimes = new Map<string, number>();
+
 const isLockoutDisabledForTests = () =>
   process.env.NODE_ENV === 'test' && process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST !== 'true';
+
+export const resetAccountLockoutMemory = (): void => {
+  loginAttempts.clear();
+  attemptCreationTimes.clear();
+};
+
+export const clearPersistedAccountLockouts = async (): Promise<number> =>
+  scanAndDeleteByPattern(LOCKOUT_REDIS_PATTERN);
 
 const getLoginAttempt = async (identifier: string): Promise<LoginAttempt | null> => {
   const key = identifier.toLowerCase();
@@ -60,6 +89,7 @@ export const trackLoginAttempt = async (
       await redis.del(redisKey);
     } else {
       loginAttempts.delete(key);
+      attemptCreationTimes.delete(key);
     }
 
     // Log successful login for audit
@@ -86,6 +116,11 @@ export const trackLoginAttempt = async (
       attempts: 0,
       lockedUntil: null,
     };
+    if (!redis?.isReady) {
+      attemptCreationTimes.set(key, Date.now());
+    }
+  } else if (!redis?.isReady && !attemptCreationTimes.has(key)) {
+    attemptCreationTimes.set(key, Date.now());
   }
 
   attempt.userId = userId || attempt.userId;
@@ -93,7 +128,7 @@ export const trackLoginAttempt = async (
 
   // Check if account should be locked
   if (attempt.attempts >= MAX_LOGIN_ATTEMPTS) {
-    attempt.lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+    attempt.lockedUntil = new Date(Date.now() + ACCOUNT_LOCKOUT_DURATION_MS);
     logger.warn('Account locked due to too many failed login attempts', {
       identifier,
       attempts: attempt.attempts,
@@ -132,7 +167,7 @@ export const trackLoginAttempt = async (
       lockedUntil: attempt.lockedUntil ? String(attempt.lockedUntil.getTime()) : '',
     });
     // Ensure lockout data expires eventually in Redis
-    await redis.expire(redisKey, Math.ceil(LOCKOUT_DURATION_MS / 1000));
+    await redis.expire(redisKey, Math.ceil(ACCOUNT_LOCKOUT_DURATION_MS / 1000));
   } else {
     loginAttempts.set(key, attempt);
   }
@@ -175,6 +210,7 @@ export const isAccountLocked = async (identifier: string): Promise<boolean> => {
       await redis.del(redisKey);
     } else {
       loginAttempts.delete(key);
+      attemptCreationTimes.delete(key);
     }
     return false;
   }
@@ -250,7 +286,6 @@ export const checkAccountLockout = async (
 if (!isLockoutDisabledForTests()) {
   const ATTEMPT_CLEANUP_INTERVAL_MS = 300000; // 5 minutes
   const MAX_FAILED_ATTEMPT_AGE_MS = 1800000; // 30 minutes
-  const attemptCreationTimes = new Map<string, number>();
 
   const cleanupInterval = setInterval(() => {
     const now = Date.now();
