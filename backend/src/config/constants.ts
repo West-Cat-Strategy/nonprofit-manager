@@ -130,7 +130,7 @@ export const ERROR_MESSAGES = {
 
   // Rate Limiting
   TOO_MANY_REQUESTS: 'Too many requests from this IP, please try again later.',
-  TOO_MANY_LOGIN_ATTEMPTS: 'Account temporarily locked due to too many failed login attempts. Please try again in 15 minutes.',
+  TOO_MANY_LOGIN_ATTEMPTS: 'Too many login attempts. Please try again later.',
   TOO_MANY_PASSWORD_RESETS: 'Too many password reset requests. Please wait before requesting another password reset.',
   TOO_MANY_REGISTRATIONS: 'Too many accounts created from this IP address. Please try again later.',
 

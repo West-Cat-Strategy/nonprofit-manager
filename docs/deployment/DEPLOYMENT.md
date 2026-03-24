@@ -67,13 +67,15 @@ RATE_LIMIT_MAX_REQUESTS=1500
 AUTH_RATE_LIMIT_WINDOW_MS=900000
 AUTH_RATE_LIMIT_MAX_REQUESTS=75
 REGISTRATION_MAX_ATTEMPTS=75
+MAX_LOGIN_ATTEMPTS=15
+ACCOUNT_LOCKOUT_DURATION_MS=300000
 PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS=600000
 PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS=300
 # Password reset uses the built-in 30/hour default.
 
 # Security
-MAX_LOGIN_ATTEMPTS=5
-ACCOUNT_LOCKOUT_DURATION_MS=900000
+MAX_LOGIN_ATTEMPTS=15
+ACCOUNT_LOCKOUT_DURATION_MS=300000
 
 # Monitoring
 SENTRY_DSN=your_sentry_dsn
@@ -344,13 +346,15 @@ RATE_LIMIT_MAX_REQUESTS=1500
 AUTH_RATE_LIMIT_WINDOW_MS=900000
 AUTH_RATE_LIMIT_MAX_REQUESTS=75
 REGISTRATION_MAX_ATTEMPTS=75
+MAX_LOGIN_ATTEMPTS=15
+ACCOUNT_LOCKOUT_DURATION_MS=300000
 PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS=600000
 PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS=300
 # Password reset uses the built-in 30/hour default.
 
 # Security
-MAX_LOGIN_ATTEMPTS=5
-ACCOUNT_LOCKOUT_DURATION_MS=900000
+MAX_LOGIN_ATTEMPTS=15
+ACCOUNT_LOCKOUT_DURATION_MS=300000
 ENFORCE_SECURE_CONFIG=true
 
 # Monitoring
@@ -620,6 +624,18 @@ docker logs nonprofit-manager-frontend
 # PM2 logs (manual deployment)
 pm2 logs nonprofit-backend
 ```
+
+### Reset Auth Lockouts
+
+Use the backend helper to clear persisted account lockouts and auth rate-limit buckets
+before restarting backend processes:
+
+```bash
+cd backend
+npm run auth:reset-state
+```
+
+Then restart the backend so any in-memory fallback state is cleared.
 
 ### Performance Monitoring
 

@@ -3,8 +3,11 @@ import { getRedisClient } from '@config/redis';
 import { logger } from '@config/logger';
 import { errorPayload } from '@utils/responseHelpers';
 import {
+  ACCOUNT_LOCKOUT_DURATION_MINUTES,
+  ACCOUNT_LOCKOUT_DURATION_MS,
   checkAccountLockout,
   getLockoutTimeRemaining,
+  MAX_LOGIN_ATTEMPTS,
   isAccountLocked,
   trackLoginAttempt,
 } from '@middleware/accountLockout';
@@ -60,7 +63,7 @@ describe('accountLockout middleware', () => {
   it('tracks failed attempts in memory and locks accounts after threshold', async () => {
     const identifier = `lock-memory-${Date.now()}@example.com`;
 
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < MAX_LOGIN_ATTEMPTS; i += 1) {
       await trackLoginAttempt(identifier, false, 'user-memory', '127.0.0.1');
     }
 
@@ -101,7 +104,10 @@ describe('accountLockout middleware', () => {
       expect.stringContaining('auth:lockout:redis-user@example.com'),
       expect.objectContaining({ attempts: '1' })
     );
-    expect(redis.expire).toHaveBeenCalled();
+    expect(redis.expire).toHaveBeenCalledWith(
+      expect.stringContaining('auth:lockout:redis-user@example.com'),
+      Math.ceil(ACCOUNT_LOCKOUT_DURATION_MS / 1000)
+    );
 
     await trackLoginAttempt('redis-user@example.com', true, 'user-redis', '192.168.1.1');
     expect(redis.del).toHaveBeenCalledWith(expect.stringContaining('auth:lockout:redis-user@example.com'));
@@ -148,7 +154,7 @@ describe('accountLockout middleware', () => {
 
   it('returns locked response payload when checkAccountLockout detects a lock', async () => {
     const identifier = `lock-check-${Date.now()}@example.com`;
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < MAX_LOGIN_ATTEMPTS; i += 1) {
       await trackLoginAttempt(identifier, false, 'user-lock', '127.0.0.1');
     }
 
@@ -162,7 +168,7 @@ describe('accountLockout middleware', () => {
       res,
       'Account locked',
       expect.objectContaining({
-        message: expect.stringContaining('temporarily locked'),
+        message: expect.stringContaining(`${ACCOUNT_LOCKOUT_DURATION_MINUTES} minutes`),
       }),
       'account_locked'
     );
