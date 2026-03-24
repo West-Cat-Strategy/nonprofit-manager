@@ -1,6 +1,6 @@
 # Backend Service
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-23
 
 This guide covers the backend service only. For the overall contributor flow, start at [../README.md](../README.md).
 
@@ -56,6 +56,18 @@ npm test
 npm run test:unit
 npm run test:integration
 npm run test:coverage
+```
+
+Imported unified dataset import:
+
+```bash
+npm run imported:import -- --source-dir /Users/bryan/Desktop/Imported\ Data --dry-run
+```
+
+Reset persisted auth lockouts and auth rate-limit buckets:
+
+```bash
+npm run auth:reset-state
 ```
 
 Repo-root equivalents:

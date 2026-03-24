@@ -9,6 +9,7 @@ import {
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
 } from '@simplewebauthn/server';
+import { MAX_LOGIN_ATTEMPTS } from '../../middleware/accountLockout';
 
 jest.mock('@simplewebauthn/server', () => ({
   __esModule: true,
@@ -62,7 +63,7 @@ describe('Passkey lockout behavior', () => {
   };
 
   const lockPasswordLogin = async (email: string) => {
-    for (let attempt = 0; attempt < 5; attempt += 1) {
+    for (let attempt = 0; attempt < MAX_LOGIN_ATTEMPTS; attempt += 1) {
       await request(app)
         .post('/api/v2/auth/login')
         .send({

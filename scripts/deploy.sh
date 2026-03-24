@@ -28,7 +28,7 @@ deploy_production_like() {
   fi
 
   if [[ "$MODE" == "production" ]]; then
-    caddy_domain="${CADDY_DOMAIN:-example.com}"
+    caddy_domain="${CADDY_DOMAIN:-imported.westcat.ca}"
   fi
 
   if [[ "${DEPLOY_EXECUTE:-0}" != "1" ]]; then
