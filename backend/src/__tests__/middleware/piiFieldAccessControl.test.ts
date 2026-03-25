@@ -27,18 +27,24 @@ const createResponse = () => {
 };
 
 describe('piiFieldAccessControl middleware', () => {
+  let piiService: any;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    piiService = {
+      getFieldAccessRules: jest.fn().mockResolvedValue(new Map()),
+    };
   });
 
   it('masks sensitive fields recursively for authenticated users', async () => {
     const req = {
       user: { id: 'user-1', email: 'user@example.com', role: 'manager' },
+      path: '/contacts/123',
     } as unknown as Request;
     const { res, originalJson } = createResponse();
     const next = jest.fn() as NextFunction;
 
-    await piiFieldAccessControl({} as any)(req as any, res, next);
+    await piiFieldAccessControl(piiService)(req as any, res, next);
     expect(next).toHaveBeenCalled();
 
     (res.json as any)({
@@ -61,10 +67,11 @@ describe('piiFieldAccessControl middleware', () => {
   it('passes data through unchanged when user role is unavailable', async () => {
     const req = {
       user: undefined,
+      path: '/contacts/123',
     } as unknown as Request;
     const { res, originalJson } = createResponse();
 
-    await piiFieldAccessControl({} as any)(req as any, res, jest.fn() as NextFunction);
+    await piiFieldAccessControl(piiService)(req as any, res, jest.fn() as NextFunction);
     (res.json as any)({ email: 'plain@example.com', phone: '1112223333' });
 
     expect(originalJson).toHaveBeenCalledWith({ email: 'plain@example.com', phone: '1112223333' });

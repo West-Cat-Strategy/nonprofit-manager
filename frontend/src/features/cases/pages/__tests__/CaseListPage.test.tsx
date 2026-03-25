@@ -10,7 +10,7 @@ const dispatchMock = vi.hoisted(() => vi.fn());
 const validCaseId = '44444444-4444-4444-8444-444444444444';
 
 const mockState = {
-  casesV2: {
+  cases: {
     cases: [
       {
         id: validCaseId,

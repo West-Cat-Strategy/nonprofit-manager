@@ -15,7 +15,7 @@ import {
   clearCaseSelection,
   bulkUpdateCaseStatus,
 } from '../state';
-import type { CaseFilter, CasePriority } from '../../../types/case';
+import type { CaseFilter, CasePriority, CaseType, CaseStatus, CaseWithDetails } from '../../../types/case';
 import { useToast } from '../../../contexts/useToast';
 import { CASE_PRIORITY_OPTIONS } from '../utils/casePriority';
 import {
@@ -53,10 +53,10 @@ const CaseList = () => {
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
   const { cases, total, loading, error, filters, caseTypes, caseStatuses } = useAppSelector(
-    (state) => state.casesV2
+    (state) => state.cases
   );
-  const summary = useAppSelector((state) => state.casesV2.summary);
-  const selectedCaseIds = useAppSelector((state) => state.casesV2.selectedCaseIds);
+  const summary = useAppSelector((state) => state.cases.summary);
+  const selectedCaseIds = useAppSelector((state) => state.cases.selectedCaseIds);
   const hasInitializedFromUrl = useRef(false);
 
   const [searchTerm, setSearchTerm] = useState(filters.search || '');
@@ -341,11 +341,11 @@ const CaseList = () => {
       chips.push({ key: 'search', label: `Search: ${trimmedSearch}` });
     }
     if (selectedType) {
-      const typeLabel = caseTypes.find((item) => item.id === selectedType)?.name || 'Type';
+      const typeLabel = caseTypes.find((item: CaseType) => item.id === selectedType)?.name || 'Type';
       chips.push({ key: 'type', label: `Type: ${typeLabel}` });
     }
     if (selectedStatus) {
-      const statusLabel = caseStatuses.find((item) => item.id === selectedStatus)?.name || 'Status';
+      const statusLabel = caseStatuses.find((item: CaseStatus) => item.id === selectedStatus)?.name || 'Status';
       chips.push({ key: 'status', label: `Status: ${statusLabel}` });
     }
     if (selectedPriority) {
@@ -583,7 +583,7 @@ const CaseList = () => {
               aria-label="Filter cases by type"
             >
               <option value="">All Types</option>
-              {caseTypes.map((type) => (
+              {caseTypes.map((type: CaseType) => (
                 <option key={type.id} value={type.id}>
                   {type.name}
                 </option>
@@ -599,7 +599,7 @@ const CaseList = () => {
               aria-label="Filter cases by status"
             >
               <option value="">All Statuses</option>
-              {caseStatuses.map((status) => (
+              {caseStatuses.map((status: CaseStatus) => (
                 <option key={status.id} value={status.id}>
                   {status.name}
                 </option>
@@ -847,7 +847,7 @@ const CaseList = () => {
                   aria-label="Bulk status"
                 >
                   <option value="">Select status...</option>
-                  {caseStatuses.map((status) => (
+                  {caseStatuses.map((status: CaseStatus) => (
                     <option key={status.id} value={status.id}>{status.name}</option>
                   ))}
                 </select>
@@ -879,7 +879,7 @@ const CaseList = () => {
  	      {!loading && visibleCases.length > 0 && (
         <>
           <div className="grid grid-cols-1 gap-4 md:hidden">
-            {visibleCases.map((caseItem) => {
+            {visibleCases.map((caseItem: any) => {
               const caseMeta = caseDisplayMetaById.get(caseItem.id);
               if (!caseMeta) return null;
               return (
@@ -947,7 +947,7 @@ const CaseList = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {visibleCases.map((caseItem) => {
+                  {visibleCases.map((caseItem: CaseWithDetails) => {
                     const caseMeta = caseDisplayMetaById.get(caseItem.id);
                     if (!caseMeta) return null;
                     return (

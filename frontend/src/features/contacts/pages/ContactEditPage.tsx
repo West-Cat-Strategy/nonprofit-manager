@@ -14,7 +14,7 @@ export const ContactEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentContact, loading, error } = useAppSelector((state) => state.contactsV2);
+  const { currentContact, loading, error } = useAppSelector((state) => state.contacts);
 
   useEffect(() => {
     if (id) {

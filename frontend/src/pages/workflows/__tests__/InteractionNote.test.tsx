@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import InteractionNote from '../InteractionNote';
+import casesReducer from '../../../features/cases/state';
 import { resetOutcomeDefinitionsCache } from '../../../features/outcomes/hooks/useOutcomeDefinitions';
 import { renderWithProviders } from '../../../test/testUtils';
 import api from '../../../services/api';
@@ -61,6 +62,21 @@ const mockApi = api as {
 };
 
 const createEnvelope = <T,>(data: T) => ({ data: { success: true as const, data } });
+const caseItem = {
+  id: 'case-1',
+  case_number: 'CASE-001',
+  contact_id: 'contact-1',
+  case_type_id: 'type-1',
+  status_id: 'status-1',
+  priority: 'medium',
+  title: 'Housing support',
+  intake_date: '2026-03-01',
+  is_urgent: false,
+  client_viewable: false,
+  requires_followup: false,
+  created_at: '2026-03-01T00:00:00.000Z',
+  updated_at: '2026-03-01T00:00:00.000Z',
+} as const;
 
 describe('InteractionNote', () => {
   beforeEach(() => {
@@ -120,7 +136,24 @@ describe('InteractionNote', () => {
   });
 
   it('reveals outcome tags only for case-linked notes and submits the selected outcomes', async () => {
-    renderWithProviders(<InteractionNote />);
+    const casesState = casesReducer(undefined, { type: '@@INIT' });
+
+    renderWithProviders(<InteractionNote />, {
+      preloadedState: {
+        cases: {
+          ...casesState,
+          cases: [caseItem],
+          contactCasesByContactId: {
+            'contact-1': {
+              cases: [caseItem],
+              loading: false,
+              error: null,
+              fetchedAt: Date.now(),
+            },
+          },
+        },
+      },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: /jane doe/i }));
 

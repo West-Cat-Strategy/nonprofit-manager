@@ -8,7 +8,7 @@ import { renderWithProviders } from '../../../../test/testUtils';
 const dispatchMock = vi.fn();
 
 const mockState = {
-  contactsV2: {
+  contacts: {
     currentContact: null,
     loading: false,
     error: null,
@@ -124,10 +124,10 @@ function renderContactDetail(route: string) {
 describe('Contact detail route validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockState.contactsV2.currentContact = null;
-    mockState.contactsV2.loading = false;
-    mockState.contactsV2.error = null;
-    mockState.contactsV2.contactNotes = [];
+    mockState.contacts.currentContact = null;
+    mockState.contacts.loading = false;
+    mockState.contacts.error = null;
+    mockState.contacts.contactNotes = [];
   });
 
   it('renders a local invalid-link state and skips fetches for non-UUID params', () => {
@@ -150,7 +150,7 @@ describe('Contact detail route validation', () => {
   });
 
   it('renders the communications tab on valid contact routes', async () => {
-    mockState.contactsV2.currentContact = {
+    mockState.contacts.currentContact = {
       contact_id: '550e8400-e29b-41d4-a716-446655440000',
       account_id: null,
       account_name: 'Test Org',

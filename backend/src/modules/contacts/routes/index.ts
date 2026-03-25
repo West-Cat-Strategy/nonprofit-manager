@@ -50,6 +50,8 @@ import { ContactPhonesUseCase } from '../usecases/contactPhones.usecase';
 import { ContactEmailsUseCase } from '../usecases/contactEmails.usecase';
 import { ContactRelationshipsUseCase } from '../usecases/contactRelationships.usecase';
 import { ContactDocumentsUseCase } from '../usecases/contactDocuments.usecase';
+import { piiFieldAccessControl } from '@middleware/piiFieldAccessControl';
+import { services } from '@container/services';
 
 const contactExportSchema = z
   .object({
@@ -124,7 +126,12 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.use(requireActiveOrganizationContext);
   router.use(loadDataScope('contacts'));
 
-  router.get('/', validateQuery(contactFilterSchema), directoryController.getContacts);
+  router.get(
+    '/',
+    validateQuery(contactFilterSchema),
+    piiFieldAccessControl(services.pii, 'contacts'),
+    directoryController.getContacts
+  );
   router.get(
     '/lookup',
     validateQuery(contactLookupQuerySchema),
@@ -159,13 +166,20 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.get(
     '/:id',
     validateParams(z.object({ id: uuidSchema })),
+    piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.getContactById
   );
-  router.post('/', validateBody(createContactSchema), directoryController.createContact);
+  router.post(
+    '/',
+    validateBody(createContactSchema),
+    piiFieldAccessControl(services.pii, 'contacts'),
+    directoryController.createContact
+  );
   router.put(
     '/:id',
     validateParams(z.object({ id: uuidSchema })),
     validateBody(updateContactSchema),
+    piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.updateContact
   );
   router.delete(

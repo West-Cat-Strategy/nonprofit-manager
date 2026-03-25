@@ -19,13 +19,6 @@ import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import { registerApiRoutes } from '@routes/registrars';
 import { setPaymentPool } from '@modules/payments';
-import { eventReminderSchedulerService } from '@services/eventReminderSchedulerService';
-import { followUpReminderSchedulerService } from '@services/followUpReminderSchedulerService';
-import { appointmentReminderSchedulerService } from '@services/appointmentReminderSchedulerService';
-import { publicReportSnapshotCleanupSchedulerService } from '@services/publicReportSnapshotCleanupSchedulerService';
-import { scheduledReportSchedulerService } from '@services/scheduledReportSchedulerService';
-import { socialMediaSyncSchedulerService } from '@services/socialMediaSyncSchedulerService';
-import { webhookRetrySchedulerService } from '@services/webhookRetrySchedulerService';
 import { renderPublishedWebsite } from '@modules/publishing/controllers';
 import pool from './config/database';
 import { validateProductionSecurityConfig } from './config/productionSecurityConfig';
@@ -83,28 +76,6 @@ const PORT = Number(process.env.PORT) || 3000;
 const requestLoggingEnabled =
   process.env.REQUEST_LOGGING_ENABLED === 'true' ||
   (process.env.REQUEST_LOGGING_ENABLED !== 'false' && process.env.NODE_ENV === 'production');
-const reminderSchedulerEnabled =
-  process.env.NODE_ENV !== 'test' &&
-  process.env.EVENT_REMINDER_SCHEDULER_ENABLED === 'true';
-const followUpReminderSchedulerEnabled =
-  process.env.NODE_ENV !== 'test' &&
-  process.env.FOLLOW_UP_REMINDER_SCHEDULER_ENABLED === 'true';
-const appointmentReminderSchedulerEnabled =
-  process.env.NODE_ENV !== 'test' &&
-  process.env.APPOINTMENT_REMINDER_SCHEDULER_ENABLED === 'true';
-const scheduledReportSchedulerEnabled =
-  process.env.NODE_ENV !== 'test' &&
-  process.env.SCHEDULED_REPORT_SCHEDULER_ENABLED === 'true';
-const publicReportSnapshotCleanupEnabled =
-  process.env.NODE_ENV !== 'test' &&
-  process.env.REPORT_PUBLIC_SNAPSHOT_CLEANUP_ENABLED === 'true';
-const socialMediaSyncSchedulerEnabled =
-  process.env.NODE_ENV !== 'test' &&
-  process.env.SOCIAL_MEDIA_SYNC_SCHEDULER_ENABLED === 'true';
-const webhookRetrySchedulerEnabled =
-  process.env.NODE_ENV !== 'test' &&
-  process.env.WEBHOOK_RETRY_SCHEDULER_ENABLED === 'true';
-
 const resolveTrustProxy = (): boolean | number | string => {
   const raw = (process.env.TRUST_PROXY || '').trim().toLowerCase();
   if (!raw) {
@@ -278,15 +249,13 @@ if (requestLoggingEnabled) {
 // Rate limiting for all API routes
 app.use('/api', apiLimiterMiddleware);
 app.use('/api', successEnvelopeMiddleware);
+app.use('/api', legacyApiTombstoneMiddleware);
 
 // Metrics endpoint
 app.use('/metrics', metricsRouter);
 
 // API Routes
 registerApiRoutes(app);
-
-// Hard cutover: all legacy `/api/*` (non-v2) endpoints are tombstoned with migration guidance.
-app.use('/api', legacyApiTombstoneMiddleware);
 
 // Serve published websites by host/path after API routes are mounted.
 app.get(/.*/, (req, res, next) => {
@@ -317,25 +286,12 @@ initializeRedis().catch((err) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, closing server gracefully...');
-  eventReminderSchedulerService.stop();
-  followUpReminderSchedulerService.stop();
-  appointmentReminderSchedulerService.stop();
-  publicReportSnapshotCleanupSchedulerService.stop();
-  scheduledReportSchedulerService.stop();
-  socialMediaSyncSchedulerService.stop();
-  webhookRetrySchedulerService.stop();
   await Promise.all([closeRedis(), pool.end()]);
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, closing server gracefully...');
-  eventReminderSchedulerService.stop();
-  followUpReminderSchedulerService.stop();
-  appointmentReminderSchedulerService.stop();
-  publicReportSnapshotCleanupSchedulerService.stop();
-  scheduledReportSchedulerService.stop();
-  webhookRetrySchedulerService.stop();
   await Promise.all([closeRedis(), pool.end()]);
   process.exit(0);
 });
@@ -347,47 +303,7 @@ if (shouldStartServer) {
   const HOST = process.env.HOST || '0.0.0.0';
   app.listen(PORT, HOST, () => {
     logger.info(`Nonprofit Manager API running on ${HOST}:${PORT}`);
-    if (reminderSchedulerEnabled) {
-      eventReminderSchedulerService.start();
-    } else {
-      logger.info('Event reminder scheduler disabled');
-    }
-
-    if (followUpReminderSchedulerEnabled) {
-      followUpReminderSchedulerService.start();
-    } else {
-      logger.info('Follow-up reminder scheduler disabled');
-    }
-
-    if (appointmentReminderSchedulerEnabled) {
-      appointmentReminderSchedulerService.start();
-    } else {
-      logger.info('Appointment reminder scheduler disabled');
-    }
-
-    if (scheduledReportSchedulerEnabled) {
-      scheduledReportSchedulerService.start();
-    } else {
-      logger.info('Scheduled report scheduler disabled');
-    }
-
-    if (publicReportSnapshotCleanupEnabled) {
-      publicReportSnapshotCleanupSchedulerService.start();
-    } else {
-      logger.info('Public report snapshot cleanup scheduler disabled');
-    }
-
-    if (socialMediaSyncSchedulerEnabled) {
-      socialMediaSyncSchedulerService.start();
-    } else {
-      logger.info('Social media sync scheduler disabled');
-    }
-
-    if (webhookRetrySchedulerEnabled) {
-      webhookRetrySchedulerService.start();
-    } else {
-      logger.info('Webhook retry scheduler disabled');
-    }
+    logger.info('Background worker processes are managed separately.');
   });
 }
 

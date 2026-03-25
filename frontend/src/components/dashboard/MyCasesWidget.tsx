@@ -24,7 +24,7 @@ interface MyCasesWidgetProps {
 const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { loading, error } = useAppSelector((state) => state.casesV2);
+  const { loading, error } = useAppSelector((state) => state.cases);
 
   // Get cases assigned to current user
   const myCases = useAppSelector((state) =>

@@ -1,0 +1,203 @@
+/* CORPORATE THEME */
+
+body.theme-corporate {
+  /* LIGHT MODE */
+  --loop-yellow: #f3f4f6;
+  --loop-green: #e5e7eb;
+  --loop-purple: #d1d5db;
+  --loop-pink: #9ca3af;
+  --loop-cyan: #6b7280;
+  --loop-blue: #374151;
+
+  /* App Base */
+  --app-bg: #ffffff;
+  --app-surface: #f9fafb;
+  --app-text: #111827;
+  --app-surface-muted: #f3f4f6;
+  --app-text-muted: #4b5563;
+  --app-text-subtle: #4b5563;
+  --app-border: #e5e7eb;
+  --app-accent: #1f2937;
+  --app-accent-hover: #111827;
+  --app-accent-text: #1f2937;
+  --app-accent-text-hover: #111827;
+  --app-accent-soft: #e5e7eb;
+  --app-accent-soft-hover: #d1d5db;
+
+  --app-hover: #f3f4f6;
+  --app-input-bg: #ffffff;
+  --app-input-border: #d1d5db;
+  --app-text-heading: #111827;
+  --app-text-label: #374151;
+  --app-border-muted: #e5e7eb;
+  --app-surface-elevated: #ffffff;
+
+  /* Brutalist Overrides (Normalized) */
+  --shadow-color: rgba(0, 0, 0, 0.05);
+  --border-brutal: 1px solid #e5e7eb;
+  --shadow-brutal: 0 1px 2px 0 var(--shadow-color);
+  --shadow-brutal-sm: 0 1px 2px 0 var(--shadow-color);
+  --font-weight-brutal: 400;
+  --focus-ring: #6b7280;
+
+  /* Redesign Token Layer Overrides */
+  --ui-font-display: 'Public Sans', 'Space Grotesk', system-ui, sans-serif;
+  --ui-font-body: 'Public Sans', 'Space Grotesk', system-ui, sans-serif;
+  --ui-radius-xs: 0.28rem;
+  --ui-radius-sm: 0.55rem;
+  --ui-radius-md: 0.78rem;
+  --ui-radius-lg: 1rem;
+  --ui-elev-1: 0 1px 2px rgba(15, 23, 42, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  --ui-elev-2: 0 16px 28px rgba(15, 23, 42, 0.08), 0 4px 10px rgba(15, 23, 42, 0.05);
+  --app-bg: #f3f5fa;
+  --app-surface: #ffffff;
+  --app-surface-muted: #edf2f7;
+  --app-surface-elevated: #ffffff;
+  --app-text: #182434;
+  --app-text-muted: #516174;
+  --app-text-subtle: #6b7a8b;
+  --app-text-heading: #0d1826;
+  --app-text-label: #334254;
+  --app-border: #a4b0c3;
+  --app-border-muted: #d4dbe6;
+  --app-accent: #1d4ed8;
+  --app-accent-hover: #163ca9;
+  --app-accent-foreground: #ffffff;
+  --app-accent-text: #1d4ed8;
+  --app-accent-text-hover: #163ca9;
+  --app-accent-soft: rgba(29, 78, 216, 0.11);
+  --app-accent-soft-hover: rgba(29, 78, 216, 0.18);
+  --app-hover: rgba(15, 23, 40, 0.07);
+  --app-input-bg: #ffffff;
+  --app-input-border: #adb8c8;
+  --loop-yellow: #ebdcbd;
+  --loop-green: #cbd8d2;
+  --loop-purple: #d9deef;
+  --loop-pink: #e7d4db;
+  --loop-cyan: #c8dde6;
+  --loop-blue: #c7d4f0;
+  --shadow-color: rgba(15, 23, 40, 0.16);
+  --focus-ring: #1d4ed8;
+  --app-shell-surface: #ffffff;
+  --app-shell-top: #f8fbff;
+  --app-shell-glow: rgba(178, 195, 230, 0.28);
+  --app-shell-glow-secondary: rgba(255, 255, 255, 0.9);
+}
+
+/* CORPORATE: DARK MODE */
+body.theme-corporate.dark {
+  /* Dark Slate Palette */
+  --loop-yellow: #f3f4f6;
+  --loop-green: #e5e7eb;
+  --loop-purple: #d1d5db;
+  --loop-pink: #9ca3af;
+  --loop-cyan: #6b7280;
+  --loop-blue: #374151;
+
+  /* App Base (DARK) */
+  --app-bg: #111827;
+  --app-surface: #1f2937;
+  --app-surface-muted: #374151;
+  --app-text: #f9fafb;
+  --app-text-muted: #e5e7eb;
+  --app-text-subtle: #cbd5e1;
+  --app-border: #374151;
+  --app-accent: #4b5563;
+  --app-accent-hover: #374151;
+  --app-accent-text: #e5e7eb;
+  --app-accent-text-hover: #f9fafb;
+  --app-accent-soft: rgba(75, 85, 99, 0.2);
+  --app-accent-soft-hover: rgba(75, 85, 99, 0.35);
+
+  --app-hover: #374151;
+  --app-input-bg: #1f2937;
+  --app-input-border: #4b5563;
+  --app-text-heading: #f9fafb;
+  --app-text-label: #e5e7eb;
+  --app-border-muted: #374151;
+  --app-surface-elevated: #374151;
+
+  --shadow-color: #000000;
+  --border-brutal: 1px solid #374151;
+
+  /* Redesign Token Layer Overrides (Dark) */
+  --app-bg: #121722;
+  --app-surface: #18202d;
+  --app-surface-muted: #222d3d;
+  --app-surface-elevated: #1c2433;
+  --app-text: #eef2f9;
+  --app-text-muted: #ccd5e2;
+  --app-text-subtle: #a7b4c6;
+  --app-text-heading: #ffffff;
+  --app-text-label: #dbe3ef;
+  --app-border: #aebcd1;
+  --app-border-muted: #455368;
+  --app-accent: #7da4ff;
+  --app-accent-hover: #6d92ea;
+  --app-accent-foreground: #0f1728;
+  --app-accent-text: #bfd3ff;
+  --app-accent-text-hover: #e2ebff;
+  --app-accent-soft: rgba(125, 164, 255, 0.22);
+  --app-accent-soft-hover: rgba(125, 164, 255, 0.34);
+  --app-hover: rgba(255, 255, 255, 0.08);
+  --app-input-bg: #121a27;
+  --app-input-border: #8da2bd;
+  --loop-yellow: #d8c48b;
+  --loop-green: #9fb7ab;
+  --loop-purple: #aeb9dd;
+  --loop-pink: #d7bac3;
+  --loop-cyan: #9dc3d3;
+  --loop-blue: #94b2ea;
+  --shadow-color: rgba(0, 0, 0, 0.34);
+  --focus-ring: #bfd3ff;
+  --app-shell-surface: rgba(22, 31, 45, 0.95);
+  --app-shell-top: #141c28;
+  --app-shell-glow: rgba(125, 164, 255, 0.2);
+  --app-shell-glow-secondary: rgba(255, 255, 255, 0.08);
+}
+
+/* Corporate Component Overrides */
+body.theme-corporate h1,
+body.theme-corporate h2,
+body.theme-corporate h3,
+body.theme-corporate h4,
+body.theme-corporate h5,
+body.theme-corporate h6,
+body.theme-corporate p,
+body.theme-corporate span,
+body.theme-corporate label,
+body.theme-corporate button,
+body.theme-corporate a,
+body.theme-corporate td,
+body.theme-corporate th,
+body.theme-corporate li,
+body.theme-corporate div {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif !important;
+}
+
+body.theme-corporate .border-brutal,
+body.theme-corporate [class*='border-brutal'] {
+  border-radius: 6px !important;
+  border-color: var(--app-border) !important;
+}
+
+body.theme-corporate
+  button:not([class*='bg-blue']):not([class*='bg-red']):not([class*='bg-green']):not(
+    [class*='bg-indigo']
+  ):not([class*='bg-app-accent']):not([class*='bg-yellow']):not([class*='bg-loop-']) {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transform: none !important;
+}
+
+body.theme-corporate
+  button:not([class*='bg-blue']):not([class*='bg-red']):not([class*='bg-green']):not(
+    [class*='bg-indigo']
+  ):not([class*='bg-app-accent']):not([class*='bg-yellow']):not([class*='bg-loop-']):hover {
+  background-color: var(--app-surface-muted) !important;
+  border-color: var(--app-border) !important;
+}

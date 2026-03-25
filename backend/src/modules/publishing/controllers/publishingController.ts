@@ -13,7 +13,8 @@ import type {
   PublishedSiteSearchParams,
   AnalyticsEventType,
 } from '@app-types/publishing';
-import { badRequest, conflict, forbidden, noContent, notFoundMessage } from '@utils/responseHelpers';
+import { badRequest, conflict, noContent, notFoundMessage } from '@utils/responseHelpers';
+import { guardWithRole } from '@services/authGuardService';
 import { extractPagination } from '@utils/queryHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { getCacheControlHeader, siteCacheService } from '@services/siteCacheService';
@@ -667,10 +668,7 @@ export const clearAllCache = async (
   _next: NextFunction
 ): Promise<void> => {
   // Check for admin role
-  if (req.user?.role !== 'admin') {
-    forbidden(res, 'Admin access required');
-    return;
-  }
+  if (!guardWithRole(req, res, 'admin')) return;
 
   await siteCacheService.clear();
   sendSuccess(res, { message: 'Cache cleared successfully' });

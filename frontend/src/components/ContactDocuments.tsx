@@ -21,7 +21,7 @@ interface ContactDocumentsProps {
 
 const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
   const dispatch = useAppDispatch();
-  const { documents, documentsLoading } = useAppSelector((state) => state.contactsV2);
+  const { documents, documentsLoading } = useAppSelector((state) => state.contacts);
   const contactCases = useAppSelector((state) => selectCasesByContact(state, contactId));
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>

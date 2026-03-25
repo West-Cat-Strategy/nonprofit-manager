@@ -10,7 +10,7 @@ const dispatchMock = vi.fn();
 const navigateMock = vi.fn();
 
 const mockState = {
-  eventDetailV2: {
+  eventDetail: {
     loading: false,
     event: {
       event_id: 'event-123',
@@ -25,18 +25,18 @@ const mockState = {
       registered_count: 3,
     },
   },
-  eventRegistrationV2: {
+  eventRegistration: {
     registrations: [],
     loading: false,
     actionLoading: false,
     error: null,
   },
-  eventRemindersV2: {
+  eventReminders: {
     sending: false,
     lastSummary: null,
     error: null,
   },
-  eventAutomationV2: {
+  eventAutomation: {
     automations: [],
     loading: false,
     creating: false,
