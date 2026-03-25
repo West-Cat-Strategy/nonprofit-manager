@@ -47,6 +47,7 @@ describe('ThemeContext', () => {
     expect(screen.getByTestId('dark').textContent).toBe('true');
     await waitFor(() => expect(document.body.classList.contains('theme-corporate')).toBe(true));
     expect(document.body.classList.contains('dark')).toBe(true);
+    expect(document.body.classList.contains('ui-redesign')).toBe(false);
   });
 
   it('updates theme and color scheme via context actions', async () => {
@@ -72,5 +73,6 @@ describe('ThemeContext', () => {
     expect(localStorage.getItem('app-color-scheme')).toBe('light');
     expect(document.body.classList.contains('theme-glass')).toBe(true);
     expect(document.body.classList.contains('dark')).toBe(false);
+    expect(document.body.classList.contains('ui-redesign')).toBe(false);
   });
 });

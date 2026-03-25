@@ -16,7 +16,7 @@ interface VolunteerFormProps {
 export const VolunteerForm: React.FC<VolunteerFormProps> = ({ volunteer, mode }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { contacts } = useAppSelector((state) => state.contactsV2);
+  const { contacts } = useAppSelector((state) => state.contacts);
 
   const [formData, setFormData] = useState<Volunteer>({
     contact_id: '',

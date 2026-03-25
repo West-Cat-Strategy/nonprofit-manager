@@ -23,7 +23,7 @@ interface CaseSearchResult {
 
 const CaseRelationships = ({ caseId }: CaseRelationshipsProps) => {
     const dispatch = useAppDispatch();
-    const { caseRelationships } = useAppSelector((state) => state.casesV2);
+    const { caseRelationships } = useAppSelector((state) => state.cases);
     const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
     const [isAdding, setIsAdding] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');

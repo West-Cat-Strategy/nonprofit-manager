@@ -27,7 +27,7 @@ interface CaseServicesProps {
 const CaseServices = ({ caseId }: CaseServicesProps) => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
-    const { caseServices } = useAppSelector((state) => state.casesV2);
+    const { caseServices } = useAppSelector((state) => state.cases);
     const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
     const [isAdding, setIsAdding] = useState(false);
     const [editingService, setEditingService] = useState<CaseService | null>(null);

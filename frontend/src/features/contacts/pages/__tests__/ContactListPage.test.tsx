@@ -27,7 +27,7 @@ const { contactsState, dispatchMock, importExportModalMock } = vi.hoisted(() => 
 const navigateMock = vi.hoisted(() => vi.fn());
 
 const state = {
-  contactsV2: contactsState,
+  contacts: contactsState,
 };
 
 vi.mock('../../../../store/hooks', () => ({
@@ -149,9 +149,9 @@ describe('ContactList page', () => {
         exportRequest: {
           search: undefined,
           role: undefined,
-          is_active: undefined,
-          sort_by: 'created_at',
-          sort_order: 'desc',
+          isActive: undefined,
+          sortBy: 'created_at',
+          sortOrder: 'desc',
         },
       })
     );
@@ -161,10 +161,10 @@ describe('ContactList page', () => {
         page: 1,
         limit: 20,
         search: undefined,
-        is_active: undefined,
+        isActive: undefined,
         role: undefined,
-        sort_by: 'created_at',
-        sort_order: 'desc',
+        sortBy: 'created_at',
+        sortOrder: 'desc',
       },
     });
   });
@@ -200,10 +200,10 @@ describe('ContactList page', () => {
         page: 1,
         limit: 20,
         search: 'alex',
-        is_active: undefined,
+        isActive: undefined,
         role: undefined,
-        sort_by: 'created_at',
-        sort_order: 'desc',
+        sortBy: 'created_at',
+        sortOrder: 'desc',
       },
     });
 

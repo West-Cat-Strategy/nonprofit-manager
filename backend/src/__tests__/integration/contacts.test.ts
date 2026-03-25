@@ -189,7 +189,7 @@ describe('Contact API Integration Tests', () => {
         .expect(201);
 
       const payload = payloadFromResponse<{ email: string }>(response.body);
-      expect(payload.email).toBe('email.test@example.com');
+      expect(payload.email).toMatch(/^e\*+@example\.com$/);
     });
 
     it('should accept formatted PHN input and normalize to 10 digits', async () => {
@@ -235,10 +235,10 @@ describe('Contact API Integration Tests', () => {
         mobile_phone: string | null;
         roles: string[];
       }>(createResponse.body);
-      expect(createdPayload.birth_date).toBe('1986-07-09');
-      expect(createdPayload.email).toBe(email);
-      expect(createdPayload.phone).toBe(phone);
-      expect(createdPayload.mobile_phone).toBe(mobilePhone);
+      expect(createdPayload.birth_date).toBe('1986-**-**');
+      expect(createdPayload.email).toMatch(/^c\*+@example\.com$/);
+      expect(createdPayload.phone).toBe('***-***-2222');
+      expect(createdPayload.mobile_phone).toBe('***-***-4444');
       expect(createdPayload.roles).toEqual(expect.arrayContaining(['Staff', 'Board Member']));
 
       const detailResponse = await withStaffAuth(request(app)
@@ -248,7 +248,7 @@ describe('Contact API Integration Tests', () => {
         birth_date: string | null;
         roles: string[];
       }>(detailResponse.body);
-      expect(detailPayload.birth_date).toBe('1986-07-09');
+      expect(detailPayload.birth_date).toBe('1986-**-**');
       expect(detailPayload.roles).toEqual(expect.arrayContaining(['Staff', 'Board Member']));
 
       const emailsResponse = await withStaffAuth(request(app)
@@ -751,7 +751,7 @@ describe('Contact API Integration Tests', () => {
 
       const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
 
-      const response = await withStaffAuth(request(app)
+      const response = await withAuth(request(app)
         .put(`/api/v2/contacts/${contactId}`)
         .send({
           first_name: 'Updated',
@@ -761,7 +761,7 @@ describe('Contact API Integration Tests', () => {
 
       const payload = payloadFromResponse<{ first_name: string; email: string }>(response.body);
       expect(payload.first_name).toBe('Updated');
-      expect(payload.email).toBe('updated@example.com');
+      expect(payload.email).toMatch(/^u\*+@example\.com$/);
     });
 
     it('should clear summary contact methods and preserve DOB as a date-only string', async () => {
@@ -797,7 +797,7 @@ describe('Contact API Integration Tests', () => {
         phone: string | null;
         mobile_phone: string | null;
       }>(updateResponse.body);
-      expect(updatedPayload.birth_date).toBe('1990-04-12');
+      expect(updatedPayload.birth_date).toBe('1990-**-**');
       expect(updatedPayload.email).toBeNull();
       expect(updatedPayload.phone).toBeNull();
       expect(updatedPayload.mobile_phone).toBeNull();
@@ -903,8 +903,8 @@ describe('Contact API Integration Tests', () => {
         phone: string | null;
         mobile_phone: string | null;
       }>(detailResponse.body);
-      expect(detailPayload.email).toBe(updatedEmailAddress);
-      expect(detailPayload.phone).toBe('555-777-3000');
+      expect(detailPayload.email).toMatch(/^c\*+@example\.com$/);
+      expect(detailPayload.phone).toBe('***-***-3000');
       expect(detailPayload.mobile_phone).toBeNull();
     });
   });

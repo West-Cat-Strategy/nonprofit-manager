@@ -60,7 +60,7 @@ const ContactList = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { contacts, loading, error, pagination, filters } = useAppSelector(
-    (state) => state.contactsV2
+    (state) => state.contacts
   );
   const initialRoleFilter = normalizeRoleFilter(searchParams.get('type'));
 
@@ -103,10 +103,10 @@ const ContactList = () => {
           page: currentPage,
           limit: currentLimit,
           search: debouncedSearchInput || undefined,
-          is_active: resolvedIsActive,
+          isActive: resolvedIsActive,
           role: roleFilter || undefined,
-          sort_by: sortBy,
-          sort_order: sortOrder,
+          sortBy: sortBy,
+          sortOrder: sortOrder,
         })
       );
   }, [dispatch, currentPage, currentLimit, debouncedSearchInput, resolvedIsActive, roleFilter, sortBy, sortOrder]);
@@ -466,9 +466,9 @@ const ContactList = () => {
         exportRequest={{
           search: searchInput || undefined,
           role: roleFilter || undefined,
-          is_active: resolvedIsActive,
-          sort_by: sortBy,
-          sort_order: sortOrder,
+          isActive: resolvedIsActive,
+          sortBy: sortBy,
+          sortOrder: sortOrder,
         }}
         onImportComplete={() => {
           deselectAll();

@@ -16,6 +16,8 @@ import {
   uuidSchema,
 } from '@validations/donation';
 import { z } from 'zod';
+import { piiFieldAccessControl } from '@middleware/piiFieldAccessControl';
+import { services } from '@container/services';
 
 const router = Router();
 
@@ -38,6 +40,7 @@ router.get(
     min_amount: z.coerce.number().nonnegative().optional(),
     max_amount: z.coerce.number().nonnegative().optional(),
   })),
+  piiFieldAccessControl(services.pii, 'donations'),
   donationController.getDonations
 );
 
@@ -66,6 +69,7 @@ router.get('/summary', donationController.getDonationSummary);
 router.get(
   '/:id',
   validateParams(z.object({ id: uuidSchema })),
+  piiFieldAccessControl(services.pii, 'donations'),
   donationController.getDonationById
 );
 
@@ -83,6 +87,7 @@ router.post(
 router.post(
   '/',
   validateBody(createDonationSchema),
+  piiFieldAccessControl(services.pii, 'donations'),
   donationController.createDonation
 );
 
@@ -94,6 +99,7 @@ router.put(
   '/:id',
   validateParams(z.object({ id: uuidSchema })),
   validateBody(updateDonationSchema),
+  piiFieldAccessControl(services.pii, 'donations'),
   donationController.updateDonation
 );
 

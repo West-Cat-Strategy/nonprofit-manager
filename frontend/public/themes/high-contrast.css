@@ -1,0 +1,223 @@
+/* HIGH CONTRAST THEME */
+
+body.theme-high-contrast {
+  /* LIGHT MODE - Bold & Clear */
+  --loop-yellow: #ffd700;
+  --loop-green: #008000;
+  --loop-purple: #6a0dad;
+  --loop-pink: #c71585;
+  --loop-cyan: #006d6f;
+  --loop-blue: #0047ab;
+
+  --app-bg: #ffffff;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f0f0f0;
+  --app-text: #000000;
+  --app-text-muted: #1a1a1a;
+  --app-text-subtle: #333333;
+  --app-border: #000000;
+  --app-accent: #0047ab;
+  --app-accent-hover: #003380;
+  --app-accent-text: #0047ab;
+  --app-accent-text-hover: #003380;
+  --app-accent-soft: #d6e4f0;
+  --app-accent-soft-hover: #b8d0e8;
+
+  --app-hover: #e8e8e8;
+  --app-input-bg: #ffffff;
+  --app-input-border: #000000;
+  --app-text-heading: #000000;
+  --app-text-label: #000000;
+  --app-border-muted: #666666;
+  --app-surface-elevated: #ffffff;
+
+  --shadow-color: #000000;
+  --border-brutal: 3px solid #000000;
+  --shadow-brutal: none;
+  --shadow-brutal-sm: none;
+  --shadow-brutal-lg: none;
+  --focus-ring: #0047ab;
+
+  /* Redesign Token Layer Overrides */
+  --ui-font-display: 'Atkinson Hyperlegible Next', 'Public Sans', system-ui, sans-serif;
+  --ui-font-body: 'Atkinson Hyperlegible Next', 'Public Sans', system-ui, sans-serif;
+  --ui-radius-xs: 0;
+  --ui-radius-sm: 0;
+  --ui-radius-md: 0;
+  --ui-radius-lg: 0;
+  --ui-elev-1: none;
+  --ui-elev-2: none;
+  --app-bg: #ffffff;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f2f2f2;
+  --app-surface-elevated: #ffffff;
+  --app-text: #000000;
+  --app-text-muted: #1a1a1a;
+  --app-text-subtle: #2f2f2f;
+  --app-text-heading: #000000;
+  --app-text-label: #121212;
+  --app-border: #000000;
+  --app-border-muted: #303030;
+  --app-accent: #0049d6;
+  --app-accent-hover: #0037a3;
+  --app-accent-foreground: #ffffff;
+  --app-accent-text: #0049d6;
+  --app-accent-text-hover: #00307f;
+  --app-accent-soft: rgba(0, 73, 214, 0.18);
+  --app-accent-soft-hover: rgba(0, 73, 214, 0.29);
+  --app-hover: rgba(0, 0, 0, 0.09);
+  --app-input-bg: #ffffff;
+  --app-input-border: #000000;
+  --loop-yellow: #ffdc00;
+  --loop-green: #00a63f;
+  --loop-purple: #7b37d2;
+  --loop-pink: #d61976;
+  --loop-cyan: #007c82;
+  --loop-blue: #0049d6;
+  --shadow-color: rgba(0, 0, 0, 0.45);
+  --focus-ring: #0049d6;
+  --app-shell-surface: #ffffff;
+  --app-shell-top: #ffffff;
+  --app-shell-glow: rgba(0, 73, 214, 0.08);
+  --app-shell-glow-secondary: rgba(255, 215, 0, 0.08);
+}
+
+/* HIGH CONTRAST: DARK MODE */
+body.theme-high-contrast.dark {
+  --loop-yellow: #ffd700;
+  --loop-green: #00ff00;
+  --loop-purple: #da70d6;
+  --loop-pink: #ff69b4;
+  --loop-cyan: #00ffff;
+  --loop-blue: #6495ed;
+
+  --app-bg: #000000;
+  --app-surface: #000000;
+  --app-surface-muted: #1a1a1a;
+  --app-text: #ffffff;
+  --app-text-muted: #f0f0f0;
+  --app-text-subtle: #e0e0e0;
+  --app-border: #ffffff;
+  --app-accent: #ffd700;
+  --app-accent-hover: #ffc000;
+  --app-accent-foreground: #000000;
+  --app-accent-text: #ffd700;
+  --app-accent-text-hover: #ffc000;
+  --app-accent-soft: rgba(255, 215, 0, 0.2);
+  --app-accent-soft-hover: rgba(255, 215, 0, 0.35);
+
+  --app-hover: #1a1a1a;
+  --app-input-bg: #000000;
+  --app-input-border: #ffffff;
+  --app-text-heading: #ffffff;
+  --app-text-label: #ffffff;
+  --app-border-muted: #999999;
+  --app-surface-elevated: #1a1a1a;
+
+  --shadow-color: #ffffff;
+  --border-brutal: 3px solid #ffffff;
+  --shadow-brutal: none;
+  --shadow-brutal-sm: none;
+  --shadow-brutal-lg: none;
+  --focus-ring: #ffd700;
+
+  /* Redesign Token Layer Overrides (Dark) */
+  --app-bg: #000000;
+  --app-surface: #000000;
+  --app-surface-muted: #111111;
+  --app-surface-elevated: #000000;
+  --app-text: #ffffff;
+  --app-text-muted: #f0f0f0;
+  --app-text-subtle: #dddddd;
+  --app-text-heading: #ffffff;
+  --app-text-label: #ffffff;
+  --app-border: #ffffff;
+  --app-border-muted: #bcbcbc;
+  --app-accent: #ffe45c;
+  --app-accent-hover: #ffd11f;
+  --app-accent-foreground: #000000;
+  --app-accent-text: #ffe45c;
+  --app-accent-text-hover: #fff1a5;
+  --app-accent-soft: rgba(255, 228, 92, 0.26);
+  --app-accent-soft-hover: rgba(255, 228, 92, 0.4);
+  --app-hover: rgba(255, 255, 255, 0.12);
+  --app-input-bg: #000000;
+  --app-input-border: #ffffff;
+  --loop-yellow: #ffdc00;
+  --loop-green: #00ff6e;
+  --loop-purple: #d6a4ff;
+  --loop-pink: #ff8ec9;
+  --loop-cyan: #76f6ff;
+  --loop-blue: #8ab7ff;
+  --shadow-color: rgba(255, 255, 255, 0.2);
+  --focus-ring: #ffe45c;
+  --app-shell-surface: #000000;
+  --app-shell-top: #000000;
+  --app-shell-glow: rgba(255, 228, 92, 0.14);
+  --app-shell-glow-secondary: rgba(0, 73, 214, 0.12);
+}
+
+/* High Contrast Component Overrides */
+body.theme-high-contrast,
+body.theme-high-contrast * {
+  border-radius: 0 !important;
+  text-decoration-thickness: 2px !important;
+}
+
+body.theme-high-contrast a {
+  text-decoration: underline !important;
+}
+
+body.theme-high-contrast button {
+  border-width: 3px !important;
+  font-weight: 700 !important;
+}
+
+body.theme-high-contrast :focus-visible {
+  outline: 4px solid var(--focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+body.theme-high-contrast .app-shell-panel {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.theme-high-contrast .app-shell,
+body.theme-high-contrast .app-shell-panel {
+  background-image: none !important;
+}
+
+body.theme-high-contrast .app-shell-orb {
+  display: none;
+}
+
+body.ui-redesign .theme-preview-swatch[data-theme-preview='high-contrast'] {
+  --preview-bg: #ffffff;
+  --preview-surface: #ffffff;
+  --preview-border: #000000;
+  --preview-accent: #0049d6;
+  --preview-text: #000000;
+  --preview-glow: rgba(0, 73, 214, 0.08);
+  --preview-shadow: none;
+  --preview-radius: 0px;
+  --preview-display: 'Atkinson Hyperlegible Next', sans-serif;
+  --preview-body: 'Atkinson Hyperlegible Next', sans-serif;
+}
+
+body.ui-redesign .theme-preview-swatch[data-theme-preview='high-contrast'] .theme-preview-swatch__panel {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-width: 2px;
+}
+
+body.ui-redesign .theme-selector-card[data-theme-card='high-contrast'] {
+  border-width: 2px;
+  border-radius: 0;
+  box-shadow: none !important;
+}
+
+body.ui-redesign .theme-selector-card[data-theme-card='high-contrast'] .theme-selector-card__label,
+body.ui-redesign .theme-selector-card[data-theme-card='high-contrast'] .theme-selector-card__description {
+  font-family: 'Atkinson Hyperlegible Next', sans-serif;
+}

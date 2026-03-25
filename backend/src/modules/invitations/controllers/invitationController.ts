@@ -13,7 +13,8 @@ import { AuthRequest } from '@middleware/auth';
 import { PASSWORD, JWT } from '@config/constants';
 import { invitationService, syncUserRole } from '../services/invitationService';
 import { getEmailSettings, sendInvitationEmail } from '../services/invitationEmailService';
-import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
+import { badRequest, conflict, notFoundMessage } from '@utils/responseHelpers';
+import { guardWithRole } from '@services/authGuardService';
 
 /**
  * POST /api/invitations
@@ -25,9 +26,7 @@ export const createInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const { email, role, message, expiresInDays, sendEmail = false } = req.body as {
       email: string;
@@ -39,7 +38,7 @@ export const createInvitation = async (
 
     const invitation = await invitationService.createInvitation(
       { email, role, message, expiresInDays },
-      req.user.id
+      req.user!.id
     );
 
     // Generate the invitation URL (frontend will need to handle this route)
@@ -61,7 +60,7 @@ export const createInvitation = async (
         emailDelivery.reason = 'Email is not configured. Configure SMTP in Admin > Email settings.';
       } else {
         const inviterRow = await pool.query<{ first_name: string; last_name: string }>(
-          'SELECT first_name, last_name FROM users WHERE id = $1', [req.user.id]
+          'SELECT first_name, last_name FROM users WHERE id = $1', [req.user!.id]
         );
         const inviterName = inviterRow.rows[0]
           ? `${inviterRow.rows[0].first_name} ${inviterRow.rows[0].last_name}`.trim()
@@ -110,9 +109,7 @@ export const getInvitations = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const query = (req.validatedQuery ?? req.query) as {
       includeExpired?: boolean | string;
@@ -154,9 +151,7 @@ export const getInvitationById = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const { id } = req.params;
     const invitation = await invitationService.getInvitationById(id);
@@ -287,12 +282,10 @@ export const revokeInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const { id } = req.params;
-    const invitation = await invitationService.revokeInvitation(id, req.user.id);
+    const invitation = await invitationService.revokeInvitation(id, req.user!.id);
 
     if (!invitation) {
       return notFoundMessage(res, 'Invitation not found or already revoked/accepted');
@@ -314,12 +307,10 @@ export const resendInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const { id } = req.params;
-    const invitation = await invitationService.resendInvitation(id, req.user.id);
+    const invitation = await invitationService.resendInvitation(id, req.user!.id);
 
     if (!invitation) {
       return notFoundMessage(res, 'Invitation not found or already revoked/accepted');
@@ -331,7 +322,7 @@ export const resendInvitation = async (
 
     // Resend invitation email
     const inviterRow2 = await pool.query<{ first_name: string; last_name: string }>(
-      'SELECT first_name, last_name FROM users WHERE id = $1', [req.user.id]
+      'SELECT first_name, last_name FROM users WHERE id = $1', [req.user!.id]
     );
     const inviterName2 = inviterRow2.rows[0]
       ? `${inviterRow2.rows[0].first_name} ${inviterRow2.rows[0].last_name}`.trim()

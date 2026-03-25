@@ -1,4 +1,4 @@
-import { Pool, PoolConfig } from 'pg';
+import { Pool, PoolConfig, PoolClient } from 'pg';
 import dotenv from 'dotenv';
 import { logger } from './logger';
 import { DATABASE } from './constants';
@@ -74,41 +74,57 @@ const config: PoolConfig = {
 const pool = new Pool(config);
 
 const originalQuery = pool.query.bind(pool);
-pool.query = (async (...args: any[]) => {
-  const context = getRequestContext();
-  if (!context?.userId) {
-    return (originalQuery as any).apply(pool, args);
-  }
 
+/**
+ * Executes a query directly against the pool without RLS transaction overhead.
+ * Use for public data, health checks, or when RLS is not required.
+ */
+export const fastQuery: typeof pool.query = originalQuery;
+
+/**
+ * Execute multiple queries within a single RLS context transaction.
+ */
+export async function withRLSContext<T>(
+  userId: string,
+  fn: (client: PoolClient) => Promise<T>
+): Promise<T> {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [context.userId]);
-    const result = await (client.query as any).apply(client, args);
+    await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
+    const result = await fn(client);
     await client.query('COMMIT');
     return result;
   } catch (error) {
     try {
       await client.query('ROLLBACK');
     } catch {
-      // Ignore rollback failures while preserving the original error.
+      // Ignore
     }
     throw error;
   } finally {
     client.release();
   }
+}
+
+// Override default pool.query to inject RLS context when userId is present
+pool.query = (async (...args: any[]) => {
+  const context = getRequestContext();
+  if (!context?.userId) {
+    return (originalQuery as any).apply(pool, args);
+  }
+
+  return withRLSContext(context.userId, (client) => (client.query as any).apply(client, args));
 }) as typeof pool.query;
 
 // Handle pool errors gracefully without crashing the application
-// The application can implement health checks and alerts based on these errors
 pool.on('error', (err: Error) => {
   logger.error('Unexpected error on idle database client', {
     error: err.message,
     stack: err.stack,
     name: err.name,
   });
-  // Don't crash the application - let health checks and monitoring handle it
-  // Health check endpoint will detect database connectivity issues
 });
 
+export type { PoolClient };
 export default pool;

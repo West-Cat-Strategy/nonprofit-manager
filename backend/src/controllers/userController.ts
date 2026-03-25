@@ -10,8 +10,9 @@ import { AuthRequest } from '@middleware/auth';
 import { PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
 import * as userManagementService from '@services/userManagementService';
-import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
+import { badRequest, conflict, notFoundMessage } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
+import { guardWithRole } from '@services/authGuardService';
 
 /**
  * GET /api/users
@@ -23,10 +24,7 @@ export const listUsers = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    // Check if user is admin
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const query = (req.validatedQuery ?? req.query) as {
       search?: string;
@@ -70,9 +68,7 @@ export const getUser = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const { id } = req.params;
     const user = await userManagementService.getUserById(id);
@@ -106,9 +102,7 @@ export const createUser = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const { email, password, firstName, lastName, role = 'user' } = req.body;
 
@@ -128,12 +122,12 @@ export const createUser = async (
       firstName,
       lastName,
       role,
-      createdBy: req.user.id,
+      createdBy: req.user!.id,
     });
 
     await syncUserRole(user.id, user.role);
 
-    logger.info(`User created by admin: ${user.email}`, { adminId: req.user.id });
+    logger.info(`User created by admin: ${user.email}`, { adminId: req.user!.id });
 
     return sendSuccess(
       res,
@@ -165,9 +159,7 @@ export const updateUser = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const { id } = req.params;
     const { email, firstName, lastName, role, isActive } = req.body;
@@ -209,7 +201,7 @@ export const updateUser = async (
       lastName,
       role,
       isActive,
-      modifiedBy: req.user.id,
+      modifiedBy: req.user!.id,
     });
     if (!user) {
       return notFoundMessage(res, 'User not found');
@@ -219,7 +211,7 @@ export const updateUser = async (
       await syncUserRole(user.id, user.role);
     }
 
-    logger.info(`User updated by admin: ${user.email}`, { adminId: req.user.id, userId: id });
+    logger.info(`User updated by admin: ${user.email}`, { adminId: req.user!.id, userId: id });
 
     return sendSuccess(res, {
       id: user.id,
@@ -247,9 +239,7 @@ export const resetUserPassword = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const { id } = req.params;
     const { password } = req.body;
@@ -263,9 +253,9 @@ export const resetUserPassword = async (
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, PASSWORD.BCRYPT_SALT_ROUNDS);
 
-    await userManagementService.updateUserPassword(id, hashedPassword, req.user.id);
+    await userManagementService.updateUserPassword(id, hashedPassword, req.user!.id);
 
-    logger.info(`Password reset by admin for user: ${existingUser.email}`, { adminId: req.user.id, userId: id });
+    logger.info(`Password reset by admin for user: ${existingUser.email}`, { adminId: req.user!.id, userId: id });
 
     return sendSuccess(res, { message: 'Password reset successfully' });
   } catch (error) {
@@ -283,14 +273,12 @@ export const deleteUser = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithRole(req, res, 'admin')) return;
 
     const { id } = req.params;
 
     // Prevent self-deletion
-    if (id === req.user.id) {
+    if (id === req.user!.id) {
       return badRequest(res, 'Cannot delete your own account');
     }
 
@@ -309,9 +297,9 @@ export const deleteUser = async (
     }
 
     // Soft delete - just deactivate the user
-    await userManagementService.deactivateUser(id, req.user.id);
+    await userManagementService.deactivateUser(id, req.user!.id);
 
-    logger.info(`User deactivated by admin: ${existingUser.email}`, { adminId: req.user.id, userId: id });
+    logger.info(`User deactivated by admin: ${existingUser.email}`, { adminId: req.user!.id, userId: id });
 
     return sendSuccess(res, { message: 'User deactivated successfully' });
   } catch (error) {
@@ -328,9 +316,7 @@ export const getRoles = async (
   res: Response,
   _next: NextFunction
 ): Promise<Response | void> => {
-  if (req.user?.role !== 'admin') {
-    return forbidden(res, 'Admin access required');
-  }
+  if (!guardWithRole(req, res, 'admin')) return;
 
   const roles = [
     { value: 'admin', label: 'Administrator', description: 'Full access to all features and settings' },

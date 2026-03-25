@@ -11,7 +11,7 @@ import { maskFinancialData } from '@middleware/analyticsAuth';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { forbidden, notFoundMessage } from '@utils/responseHelpers';
 
-const analyticsService = services.analytics;
+// Service access moved inside handlers to avoid circular dependencies
 
 const denyIfScopedForOrgWide = (
   scope: DataScopeFilter | undefined,
@@ -68,7 +68,7 @@ export const getAccountAnalytics = async (
     if (denyIfAccountOutOfScope(scope, id, res)) {
       return;
     }
-    const analytics = await analyticsService.getAccountAnalytics(id);
+    const analytics = await services.analytics.getAccountAnalytics(id);
     const maskedAnalytics = maskFinancialData(analytics, req.user!.role);
     res.json(maskedAnalytics);
   } catch (error) {
@@ -95,7 +95,7 @@ export const getContactAnalytics = async (
     if (denyIfContactOutOfScope(scope, id, res)) {
       return;
     }
-    const analytics = await analyticsService.getContactAnalytics(id);
+    const analytics = await services.analytics.getContactAnalytics(id);
     const maskedAnalytics = maskFinancialData(analytics, req.user!.role);
     res.json(maskedAnalytics);
   } catch (error) {
@@ -134,7 +134,7 @@ export const getAnalyticsSummary = async (
       category: query.category,
     };
 
-    const summary = await analyticsService.getAnalyticsSummary(filters);
+    const summary = await services.analytics.getAnalyticsSummary(filters);
     const maskedSummary = maskFinancialData(summary, req.user!.role);
     res.json(maskedSummary);
   } catch (error) {
@@ -157,7 +157,7 @@ export const getAccountDonationMetrics = async (
     if (denyIfAccountOutOfScope(scope, id, res)) {
       return;
     }
-    const metrics = await analyticsService.getDonationMetrics('account', id);
+    const metrics = await services.analytics.getDonationMetrics('account', id);
     const maskedMetrics = maskFinancialData(metrics, req.user!.role);
     res.json(maskedMetrics);
   } catch (error) {
@@ -180,7 +180,7 @@ export const getContactDonationMetrics = async (
     if (denyIfContactOutOfScope(scope, id, res)) {
       return;
     }
-    const metrics = await analyticsService.getDonationMetrics('contact', id);
+    const metrics = await services.analytics.getDonationMetrics('contact', id);
     const maskedMetrics = maskFinancialData(metrics, req.user!.role);
     res.json(maskedMetrics);
   } catch (error) {
@@ -203,7 +203,7 @@ export const getAccountEventMetrics = async (
     if (denyIfAccountOutOfScope(scope, id, res)) {
       return;
     }
-    const metrics = await analyticsService.getEventMetrics('account', id);
+    const metrics = await services.analytics.getEventMetrics('account', id);
     res.json(metrics);
   } catch (error) {
     next(error);
@@ -225,7 +225,7 @@ export const getContactEventMetrics = async (
     if (denyIfContactOutOfScope(scope, id, res)) {
       return;
     }
-    const metrics = await analyticsService.getEventMetrics('contact', id);
+    const metrics = await services.analytics.getEventMetrics('contact', id);
     res.json(metrics);
   } catch (error) {
     next(error);
@@ -247,7 +247,7 @@ export const getContactVolunteerMetrics = async (
     if (denyIfContactOutOfScope(scope, id, res)) {
       return;
     }
-    const metrics = await analyticsService.getVolunteerMetrics(id);
+    const metrics = await services.analytics.getVolunteerMetrics(id);
 
     if (!metrics) {
       notFoundMessage(res, 'Contact is not a volunteer');
@@ -280,7 +280,7 @@ export const getDonationTrends = async (
         ? query.months
         : parseInt(String(query.months ?? ''), 10);
     const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
-    const trends = await analyticsService.getDonationTrends(Math.min(months, 24));
+    const trends = await services.analytics.getDonationTrends(Math.min(months, 24));
     const maskedTrends = maskFinancialData(trends, req.user!.role);
     res.json(maskedTrends);
   } catch (error) {
@@ -308,7 +308,7 @@ export const getVolunteerHoursTrends = async (
         ? query.months
         : parseInt(String(query.months ?? ''), 10);
     const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
-    const trends = await analyticsService.getVolunteerHoursTrends(Math.min(months, 24));
+    const trends = await services.analytics.getVolunteerHoursTrends(Math.min(months, 24));
     res.json(trends);
   } catch (error) {
     next(error);
@@ -335,7 +335,7 @@ export const getEventAttendanceTrends = async (
         ? query.months
         : parseInt(String(query.months ?? ''), 10);
     const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
-    const trends = await analyticsService.getEventAttendanceTrends(Math.min(months, 24));
+    const trends = await services.analytics.getEventAttendanceTrends(Math.min(months, 24));
     res.json(trends);
   } catch (error) {
     next(error);
@@ -361,7 +361,7 @@ export const getComparativeAnalytics = async (
     };
     const periodType = query.period || 'month';
 
-    const analytics = await analyticsService.getComparativeAnalytics(periodType);
+    const analytics = await services.analytics.getComparativeAnalytics(periodType);
     const maskedAnalytics = maskFinancialData(analytics, req.user!.role);
     res.json(maskedAnalytics);
   } catch (error) {
@@ -391,7 +391,7 @@ export const getTrendAnalysis = async (
         : parseInt(String(query.months ?? ''), 10);
     const months = Number.isFinite(parsedMonths) ? parsedMonths : 12;
 
-    const analysis = await analyticsService.getTrendAnalysis(metricType, months);
+    const analysis = await services.analytics.getTrendAnalysis(metricType, months);
     res.json(analysis);
   } catch (error) {
     next(error);
@@ -428,7 +428,7 @@ export const detectAnomalies = async (
         : parseFloat(String(query.sensitivity ?? ''));
     const sensitivity = Number.isFinite(parsedSensitivity) ? parsedSensitivity : 2.0;
 
-    const result = await analyticsService.detectAnomalies(metricType, months, sensitivity);
+    const result = await services.analytics.detectAnomalies(metricType, months, sensitivity);
     res.json(result);
   } catch (error) {
     next(error);

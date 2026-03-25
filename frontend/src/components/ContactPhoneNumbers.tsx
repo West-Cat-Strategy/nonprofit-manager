@@ -17,7 +17,7 @@ interface ContactPhoneNumbersProps {
 
 const ContactPhoneNumbers = ({ contactId }: ContactPhoneNumbersProps) => {
   const dispatch = useAppDispatch();
-  const { phones, phonesLoading } = useAppSelector((state) => state.contactsV2);
+  const { phones, phonesLoading } = useAppSelector((state) => state.contacts);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;

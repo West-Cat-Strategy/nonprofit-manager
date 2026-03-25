@@ -477,7 +477,7 @@ export default function EmailMarketing() {
   const dispatch = useAppDispatch();
   const { status, lists, selectedList, campaigns, segments, syncResult, isLoading, isSyncing, error } =
     useAppSelector((state) => state.mailchimp);
-  const { contacts } = useAppSelector((state) => state.contactsV2);
+  const { contacts } = useAppSelector((state) => state.contacts);
   const isMailchimpConfigured = status?.configured === true;
 
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
@@ -671,7 +671,7 @@ export default function EmailMarketing() {
             </div>
           ) : (
             <div className="space-y-3">
-              {lists.map(list => (
+              {lists.map((list: MailchimpList) => (
                 <ListCard
                   key={list.id}
                   list={list}
@@ -794,7 +794,7 @@ export default function EmailMarketing() {
 
         {campaigns.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {campaigns.slice(0, 6).map(campaign => (
+            {campaigns.slice(0, 6).map((campaign: MailchimpCampaign) => (
               <CampaignCard key={campaign.id} campaign={campaign} />
             ))}
           </div>

@@ -1,8 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import ContactNotes from '../ContactNotes';
-import contactsV2Reducer from '../../features/contacts/state';
-import casesV2Reducer from '../../features/cases/state';
+import contactsReducer from '../../features/contacts/state';
+import casesReducer from '../../features/cases/state';
 import { resetOutcomeDefinitionsCache } from '../../features/outcomes/hooks/useOutcomeDefinitions';
 import { renderWithProviders } from '../../test/testUtils';
 import api from '../../services/api';
@@ -57,13 +57,13 @@ const caseItem = {
 } as const;
 
 const renderContactNotes = () => {
-  const contactsState = contactsV2Reducer(undefined, { type: '@@INIT' });
-  const casesState = casesV2Reducer(undefined, { type: '@@INIT' });
+  const contactsState = contactsReducer(undefined, { type: '@@INIT' });
+  const casesState = casesReducer(undefined, { type: '@@INIT' });
 
   return renderWithProviders(<ContactNotes contactId="contact-1" />, {
     preloadedState: {
-      contactsV2: contactsState,
-      casesV2: {
+      contacts: contactsState,
+      cases: {
         ...casesState,
         contactCasesByContactId: {
           'contact-1': {

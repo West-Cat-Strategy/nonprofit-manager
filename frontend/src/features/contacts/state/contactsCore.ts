@@ -5,8 +5,8 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import api from '../../../services/api';
-import { unwrapApiData, type ApiEnvelope } from '../../../services/apiEnvelope';
+import { contactsApiClient } from '../api/contactsApiClient';
+import type { ContactsListQuery } from '../types/contracts';
 import type {
   Contact,
   ContactPhoneNumber,
@@ -63,15 +63,6 @@ export interface ContactsState {
 }
 
 type ContactInput = Partial<Contact>;
-type ContactsListPayload = {
-  data: Contact[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    total_pages: number;
-  };
-};
 
 const initialState: ContactsState = {
   contacts: [],
@@ -113,55 +104,36 @@ const initialState: ContactsState = {
 
 export const fetchContacts = createAsyncThunk(
   'contacts/fetchContacts',
-  async (params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    account_id?: string;
-    is_active?: boolean;
-    tags?: string[];
-    role?: ContactRoleFilter;
-    sort_by?: string;
-    sort_order?: 'asc' | 'desc';
-  }) => {
-    const response = await api.get<ApiEnvelope<ContactsListPayload>>('/v2/contacts', {
-      params: {
-        ...params,
-        tags: params.tags?.length ? params.tags.join(',') : undefined,
-      },
-    });
-    return unwrapApiData(response.data);
+  async (params: ContactsListQuery) => {
+    return await contactsApiClient.listContacts(params);
   }
 );
 
 export const fetchContactById = createAsyncThunk(
   'contacts/fetchContactById',
   async (contactId: string) => {
-    const response = await api.get<ApiEnvelope<Contact>>(`/v2/contacts/${contactId}`);
-    return unwrapApiData(response.data);
+    return await contactsApiClient.getContact(contactId);
   }
 );
 
 export const createContact = createAsyncThunk(
   'contacts/createContact',
   async (contactData: ContactInput) => {
-    const response = await api.post<ApiEnvelope<Contact>>('/v2/contacts', contactData);
-    return unwrapApiData(response.data);
+    return await contactsApiClient.createContact(contactData as any);
   }
 );
 
 export const updateContact = createAsyncThunk(
   'contacts/updateContact',
   async ({ contactId, data }: { contactId: string; data: ContactInput }) => {
-    const response = await api.put<ApiEnvelope<Contact>>(`/v2/contacts/${contactId}`, data);
-    return unwrapApiData(response.data);
+    return await contactsApiClient.updateContact(contactId, data as any);
   }
 );
 
 export const deleteContact = createAsyncThunk(
   'contacts/deleteContact',
   async (contactId: string) => {
-    await api.delete(`/v2/contacts/${contactId}`);
+    await contactsApiClient.deleteContact(contactId);
     return contactId;
   }
 );
@@ -169,8 +141,7 @@ export const deleteContact = createAsyncThunk(
 export const fetchContactTags = createAsyncThunk(
   'contacts/fetchContactTags',
   async () => {
-    const response = await api.get<ApiEnvelope<string[]>>('/v2/contacts/tags');
-    return unwrapApiData(response.data);
+    return await contactsApiClient.listTags();
   }
 );
 
@@ -185,11 +156,7 @@ export const bulkUpdateContacts = createAsyncThunk(
       replace?: string[];
     };
   }) => {
-    const response = await api.post<ApiEnvelope<{ updated: number; contact_ids: string[] }>>(
-      '/v2/contacts/bulk',
-      payload
-    );
-    return unwrapApiData(response.data);
+    return await contactsApiClient.bulkUpdate(payload);
   }
 );
 
@@ -200,37 +167,28 @@ export const bulkUpdateContacts = createAsyncThunk(
 export const fetchContactPhones = createAsyncThunk(
   'contacts/fetchContactPhones',
   async (contactId: string) => {
-    const response = await api.get<ApiEnvelope<ContactPhoneNumber[]>>(`/v2/contacts/${contactId}/phones`);
-    return unwrapApiData(response.data);
+    return await contactsApiClient.listPhones(contactId);
   }
 );
 
 export const createContactPhone = createAsyncThunk(
   'contacts/createContactPhone',
   async ({ contactId, data }: { contactId: string; data: CreateContactPhoneDTO }) => {
-    const response = await api.post<ApiEnvelope<ContactPhoneNumber>>(
-      `/v2/contacts/${contactId}/phones`,
-      data
-    );
-    return unwrapApiData(response.data);
+    return await contactsApiClient.createPhone(contactId, data);
   }
 );
 
 export const updateContactPhone = createAsyncThunk(
   'contacts/updateContactPhone',
   async ({ phoneId, data }: { phoneId: string; data: UpdateContactPhoneDTO }) => {
-    const response = await api.put<ApiEnvelope<ContactPhoneNumber>>(
-      `/v2/contacts/phones/${phoneId}`,
-      data
-    );
-    return unwrapApiData(response.data);
+    return await contactsApiClient.updatePhone(phoneId, data);
   }
 );
 
 export const deleteContactPhone = createAsyncThunk(
   'contacts/deleteContactPhone',
   async (phoneId: string) => {
-    await api.delete(`/v2/contacts/phones/${phoneId}`);
+    await contactsApiClient.deletePhone(phoneId);
     return phoneId;
   }
 );
@@ -242,37 +200,28 @@ export const deleteContactPhone = createAsyncThunk(
 export const fetchContactEmails = createAsyncThunk(
   'contacts/fetchContactEmails',
   async (contactId: string) => {
-    const response = await api.get<ApiEnvelope<ContactEmailAddress[]>>(`/v2/contacts/${contactId}/emails`);
-    return unwrapApiData(response.data);
+    return await contactsApiClient.listEmails(contactId);
   }
 );
 
 export const createContactEmail = createAsyncThunk(
   'contacts/createContactEmail',
   async ({ contactId, data }: { contactId: string; data: CreateContactEmailDTO }) => {
-    const response = await api.post<ApiEnvelope<ContactEmailAddress>>(
-      `/v2/contacts/${contactId}/emails`,
-      data
-    );
-    return unwrapApiData(response.data);
+    return await contactsApiClient.createEmail(contactId, data);
   }
 );
 
 export const updateContactEmail = createAsyncThunk(
   'contacts/updateContactEmail',
   async ({ emailId, data }: { emailId: string; data: UpdateContactEmailDTO }) => {
-    const response = await api.put<ApiEnvelope<ContactEmailAddress>>(
-      `/v2/contacts/emails/${emailId}`,
-      data
-    );
-    return unwrapApiData(response.data);
+    return await contactsApiClient.updateEmail(emailId, data);
   }
 );
 
 export const deleteContactEmail = createAsyncThunk(
   'contacts/deleteContactEmail',
   async (emailId: string) => {
-    await api.delete(`/v2/contacts/emails/${emailId}`);
+    await contactsApiClient.deleteEmail(emailId);
     return emailId;
   }
 );
@@ -284,37 +233,28 @@ export const deleteContactEmail = createAsyncThunk(
 export const fetchContactRelationships = createAsyncThunk(
   'contacts/fetchContactRelationships',
   async (contactId: string) => {
-    const response = await api.get<ApiEnvelope<ContactRelationship[]>>(`/v2/contacts/${contactId}/relationships`);
-    return unwrapApiData(response.data);
+    return await contactsApiClient.listRelationships(contactId);
   }
 );
 
 export const createContactRelationship = createAsyncThunk(
   'contacts/createContactRelationship',
   async ({ contactId, data }: { contactId: string; data: CreateContactRelationshipDTO }) => {
-    const response = await api.post<ApiEnvelope<ContactRelationship>>(
-      `/v2/contacts/${contactId}/relationships`,
-      data
-    );
-    return unwrapApiData(response.data);
+    return await contactsApiClient.createRelationship(contactId, data);
   }
 );
 
 export const updateContactRelationship = createAsyncThunk(
   'contacts/updateContactRelationship',
   async ({ relationshipId, data }: { relationshipId: string; data: UpdateContactRelationshipDTO }) => {
-    const response = await api.put<ApiEnvelope<ContactRelationship>>(
-      `/v2/contacts/relationships/${relationshipId}`,
-      data
-    );
-    return unwrapApiData(response.data);
+    return await contactsApiClient.updateRelationship(relationshipId, data);
   }
 );
 
 export const deleteContactRelationship = createAsyncThunk(
   'contacts/deleteContactRelationship',
   async (relationshipId: string) => {
-    await api.delete(`/v2/contacts/relationships/${relationshipId}`);
+    await contactsApiClient.deleteRelationship(relationshipId);
     return relationshipId;
   }
 );
@@ -326,33 +266,29 @@ export const deleteContactRelationship = createAsyncThunk(
 export const fetchContactNotes = createAsyncThunk(
   'contacts/fetchContactNotes',
   async (contactId: string) => {
-    const response = await api.get<ApiEnvelope<{ notes: ContactNote[]; total: number }>>(
-      `/v2/contacts/${contactId}/notes`
-    );
-    return unwrapApiData(response.data).notes;
+    const result = await contactsApiClient.listNotes(contactId);
+    return result.notes;
   }
 );
 
 export const createContactNote = createAsyncThunk(
   'contacts/createContactNote',
   async ({ contactId, data }: { contactId: string; data: CreateContactNoteDTO }) => {
-    const response = await api.post<ApiEnvelope<ContactNote>>(`/v2/contacts/${contactId}/notes`, data);
-    return unwrapApiData(response.data);
+    return await contactsApiClient.createNote(contactId, data);
   }
 );
 
 export const updateContactNote = createAsyncThunk(
   'contacts/updateContactNote',
   async ({ noteId, data }: { noteId: string; data: UpdateContactNoteDTO }) => {
-    const response = await api.put<ApiEnvelope<ContactNote>>(`/v2/contacts/notes/${noteId}`, data);
-    return unwrapApiData(response.data);
+    return await contactsApiClient.updateNote(noteId, data);
   }
 );
 
 export const deleteContactNote = createAsyncThunk(
   'contacts/deleteContactNote',
   async (noteId: string) => {
-    await api.delete(`/v2/contacts/notes/${noteId}`);
+    await contactsApiClient.deleteNote(noteId);
     return noteId;
   }
 );
@@ -364,48 +300,28 @@ export const deleteContactNote = createAsyncThunk(
 export const fetchContactDocuments = createAsyncThunk(
   'contacts/fetchContactDocuments',
   async (contactId: string) => {
-    const response = await api.get<ApiEnvelope<ContactDocument[]>>(`/v2/contacts/${contactId}/documents`);
-    return unwrapApiData(response.data);
+    return await contactsApiClient.listDocuments(contactId);
   }
 );
 
 export const uploadContactDocument = createAsyncThunk(
   'contacts/uploadContactDocument',
   async ({ contactId, file, data }: { contactId: string; file: File; data: CreateContactDocumentDTO }) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (data.case_id) formData.append('case_id', data.case_id);
-    if (data.document_type) formData.append('document_type', data.document_type);
-    if (data.title) formData.append('title', data.title);
-    if (data.description) formData.append('description', data.description);
-    if (typeof data.is_portal_visible === 'boolean') {
-      formData.append('is_portal_visible', String(data.is_portal_visible));
-    }
-
-    const response = await api.post<ApiEnvelope<ContactDocument>>(`/v2/contacts/${contactId}/documents`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return unwrapApiData(response.data);
+    return await contactsApiClient.uploadDocument(contactId, data, file);
   }
 );
 
 export const updateContactDocument = createAsyncThunk(
   'contacts/updateContactDocument',
   async ({ documentId, data }: { documentId: string; data: UpdateContactDocumentDTO }) => {
-    const response = await api.put<ApiEnvelope<ContactDocument>>(
-      `/v2/contacts/documents/${documentId}`,
-      data
-    );
-    return unwrapApiData(response.data);
+    return await contactsApiClient.updateDocument(documentId, data);
   }
 );
 
 export const deleteContactDocument = createAsyncThunk(
   'contacts/deleteContactDocument',
   async (documentId: string) => {
-    await api.delete(`/v2/contacts/documents/${documentId}`);
+    await contactsApiClient.deleteDocument(documentId);
     return documentId;
   }
 );
