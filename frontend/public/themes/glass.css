@@ -1,0 +1,187 @@
+/* GLASSMORPHISM THEME */
+
+body.theme-glass {
+  /* LIGHT MODE - "Frosted Steel" */
+  --loop-yellow: #cbd5e1;
+  --loop-green: #90ee90;
+  --loop-blue: #87ceeb;
+  --loop-purple: #d8bfd8;
+  --loop-pink: #ffb6c1;
+  --loop-cyan: #00b0ff;
+
+  --app-bg: #b0bec5;
+  --app-surface: #e2e8f0;
+  --app-surface-muted: #cbd5e1;
+  --app-text: #0f172a;
+  --app-text-muted: #1e293b;
+  --app-text-subtle: #334155;
+  --app-border: #cbd5e1;
+  --app-accent: #00b0ff;
+  --app-accent-hover: #0081cc;
+  --app-accent-text: #00b0ff;
+  --app-accent-text-hover: #0081cc;
+  --app-accent-soft: rgba(0, 176, 255, 0.15);
+  --app-accent-soft-hover: rgba(0, 176, 255, 0.25);
+
+  --app-hover: #cbd5e1;
+  --app-input-bg: #f8fafc;
+  --app-input-border: #94a3b8;
+  --app-text-heading: #0f172a;
+  --app-text-label: #1e293b;
+  --app-border-muted: #94a3b8;
+  --app-surface-elevated: #f1f5f9;
+
+  /* Brutalist Overrides (Glassy) */
+  --shadow-color: rgba(0, 0, 0, 0.15);
+  --border-brutal: 1px solid #94a3b8;
+  --shadow-brutal: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-brutal-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --focus-ring: #00b0ff;
+
+  /* Redesign Token Layer Overrides */
+  --ui-font-display: 'Oxanium', 'Space Grotesk', system-ui, sans-serif;
+  --ui-font-body: 'Space Grotesk', 'Public Sans', system-ui, sans-serif;
+  --ui-radius-xs: 0.5rem;
+  --ui-radius-sm: 0.88rem;
+  --ui-radius-md: 1.14rem;
+  --ui-radius-lg: 1.5rem;
+  --ui-elev-1: 0 18px 34px rgba(10, 28, 54, 0.12), 0 0 0 1px rgba(10, 28, 54, 0.06);
+  --ui-elev-2: 0 34px 72px rgba(10, 28, 54, 0.2), 0 12px 28px rgba(10, 28, 54, 0.12);
+  --app-bg: #dbe3f4;
+  --app-surface: rgba(252, 255, 255, 0.68);
+  --app-surface-muted: rgba(239, 247, 255, 0.78);
+  --app-surface-elevated: rgba(255, 255, 255, 0.84);
+  --app-text: #112138;
+  --app-text-muted: #34506d;
+  --app-text-subtle: #55728e;
+  --app-text-heading: #0a1727;
+  --app-text-label: #24405d;
+  --app-border: #7f97bf;
+  --app-border-muted: #b3c3da;
+  --app-accent: #00a2ff;
+  --app-accent-hover: #0080cc;
+  --app-accent-foreground: #06131f;
+  --app-accent-text: #0078bb;
+  --app-accent-text-hover: #005d92;
+  --app-accent-soft: rgba(0, 162, 255, 0.19);
+  --app-accent-soft-hover: rgba(0, 162, 255, 0.3);
+  --app-hover: rgba(19, 32, 51, 0.09);
+  --app-input-bg: rgba(255, 255, 255, 0.9);
+  --app-input-border: #97abca;
+  --loop-yellow: #ffe39e;
+  --loop-green: #a8f4d5;
+  --loop-purple: #d8ccff;
+  --loop-pink: #ffc7e6;
+  --loop-cyan: #8ef0ff;
+  --loop-blue: #99d0ff;
+  --shadow-color: rgba(12, 24, 41, 0.26);
+  --focus-ring: #0099f2;
+  --app-shell-surface: rgba(247, 251, 255, 0.86);
+  --app-shell-top: #edf5ff;
+  --app-shell-glow: rgba(86, 182, 255, 0.3);
+  --app-shell-glow-secondary: rgba(180, 226, 255, 0.44);
+}
+
+/* GLASS: DARK MODE */
+body.theme-glass.dark {
+  /* Redesign Token Layer Overrides (Dark) */
+  --app-bg: #050a12;
+  --app-surface: rgba(10, 22, 39, 0.8);
+  --app-surface-muted: rgba(17, 32, 56, 0.86);
+  --app-surface-elevated: rgba(14, 28, 49, 0.9);
+  --app-text: #f0f7ff;
+  --app-text-muted: #c8ddf5;
+  --app-text-subtle: #9dbadb;
+  --app-text-heading: #ffffff;
+  --app-text-label: #dbeaff;
+  --app-border: #5ca8ff;
+  --app-border-muted: #325987;
+  --app-accent: #68d9ff;
+  --app-accent-hover: #3fc3ff;
+  --app-accent-foreground: #051019;
+  --app-accent-text: #9fe8ff;
+  --app-accent-text-hover: #ddfbff;
+  --app-accent-soft: rgba(80, 196, 255, 0.22);
+  --app-accent-soft-hover: rgba(80, 196, 255, 0.34);
+  --app-hover: rgba(146, 205, 255, 0.12);
+  --app-input-bg: rgba(6, 16, 29, 0.88);
+  --app-input-border: #4f8fd5;
+  --loop-yellow: #ffe48c;
+  --loop-green: #76f2c8;
+  --loop-purple: #c7b7ff;
+  --loop-pink: #ffb5e9;
+  --loop-cyan: #7cf5ff;
+  --loop-blue: #7ebeff;
+  --shadow-color: rgba(60, 165, 255, 0.42);
+  --focus-ring: #9beeff;
+  --app-shell-surface: rgba(8, 20, 36, 0.86);
+  --app-shell-top: #08111f;
+  --app-shell-glow: rgba(54, 163, 255, 0.24);
+  --app-shell-glow-secondary: rgba(103, 233, 255, 0.16);
+}
+
+/* Glass Component Overrides */
+body.theme-glass {
+  color: var(--app-text) !important;
+  background-color: var(--app-bg) !important;
+}
+
+body.theme-glass .bg-white,
+body.theme-glass .bg-gray-50,
+body.theme-glass .bg-gray-100 {
+  background-color: var(--app-surface-elevated) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+body.theme-glass div[class*='border-brutal']:hover,
+body.theme-glass button:hover {
+  box-shadow: 0 0 25px var(--shadow-color) !important;
+  border-color: var(--loop-blue) !important;
+}
+
+body.theme-glass .border-brutal,
+body.theme-glass [class*='border-brutal'] {
+  border-radius: 12px !important;
+}
+
+body.theme-glass input,
+body.theme-glass select,
+body.theme-glass textarea {
+  background-color: var(--app-input-bg) !important;
+  border-color: var(--app-input-border) !important;
+  color: var(--app-text) !important;
+}
+
+body.theme-glass input::placeholder,
+body.theme-glass select::placeholder,
+body.theme-glass textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+
+body.theme-glass .app-shell-panel {
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+body.ui-redesign .theme-preview-swatch[data-theme-preview='glass'] {
+  --preview-bg: #dbe3f4;
+  --preview-surface: rgba(255, 255, 255, 0.72);
+  --preview-border: #7f97bf;
+  --preview-accent: #00a2ff;
+  --preview-text: #112138;
+  --preview-glow: rgba(86, 182, 255, 0.46);
+  --preview-shadow: 0 18px 36px rgba(10, 28, 54, 0.16);
+  --preview-radius: 24px;
+  --preview-display: 'Oxanium', sans-serif;
+  --preview-body: 'Space Grotesk', sans-serif;
+}
+
+body.ui-redesign .theme-selector-card[data-theme-card='glass'] {
+  border-radius: 1.55rem;
+}
+
+body.ui-redesign .theme-selector-card[data-theme-card='glass'] .theme-selector-card__label {
+  font-family: 'Oxanium', sans-serif;
+}

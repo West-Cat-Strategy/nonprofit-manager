@@ -83,8 +83,8 @@ const initialState: CasesState = {
   selectedCaseIds: [],
 };
 
-const wrapState = (cases: CasesState['cases']): { casesV2: CasesState } => ({
-  casesV2: { ...initialState, cases },
+const wrapState = (cases: CasesState['cases']): { cases: CasesState } => ({
+  cases: { ...initialState, cases },
 });
 
 // ─── Reducers ─────────────────────────────────────────────────────────────────

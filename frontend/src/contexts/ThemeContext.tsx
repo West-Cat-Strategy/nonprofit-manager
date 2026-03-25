@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { THEME_IDS, type ThemeId, isThemeId } from '../theme/themeRegistry';
+import { THEME_IDS, THEME_REGISTRY, type ThemeId, isThemeId } from '../theme/themeRegistry';
 
 export type ColorSchemePreference = 'light' | 'dark' | 'system';
 
@@ -68,26 +68,47 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const root = document.body;
 
-    root.classList.remove('neo-dark-mode');
-    for (const registeredTheme of THEME_IDS) {
-      if (registeredTheme !== 'neobrutalist') {
-        root.classList.remove(`theme-${registeredTheme}`);
-      }
-    }
-
+    // Transition effect
     root.classList.add('theme-transitioning');
     const transitionTimeout = setTimeout(() => {
       root.classList.remove('theme-transitioning');
     }, 400);
 
-    if (theme !== 'neobrutalist') {
-      root.classList.add(`theme-${theme}`);
+    // Remove all theme classes first
+    for (const registeredThemeId of THEME_IDS) {
+      root.classList.remove(`theme-${registeredThemeId}`);
     }
 
+    // Handle Dark Mode class
     if (isDarkMode) {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
+    }
+
+    // Dynamic CSS Injection
+    const themeDef = THEME_REGISTRY[theme];
+    const linkId = 'dynamic-theme-style';
+    let linkElement = document.getElementById(linkId) as HTMLLinkElement | null;
+
+    if (themeDef.cssPath) {
+      if (!linkElement) {
+        linkElement = document.createElement('link');
+        linkElement.id = linkId;
+        linkElement.rel = 'stylesheet';
+        document.head.appendChild(linkElement);
+      }
+      linkElement.href = themeDef.cssPath;
+
+      // Add theme class for styling overrides
+      if (themeDef.bodyClass) {
+        root.classList.add(themeDef.bodyClass);
+      }
+    } else {
+      // Remove link if theme has no specific CSS (e.g. neobrutalist default)
+      if (linkElement) {
+        linkElement.remove();
+      }
     }
 
     return () => clearTimeout(transitionTimeout);

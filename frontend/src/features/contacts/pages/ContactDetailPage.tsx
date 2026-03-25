@@ -15,6 +15,7 @@ import ContactRelationships from '../../../components/ContactRelationships';
 import ContactNotes from '../components/ContactNotesPanel';
 import ContactTags from '../../../components/ContactTags';
 import ContactTasksPanel from '../components/ContactTasksPanel';
+import type { ContactNote } from '../../../types/contact';
 import ContactActivityPanel from '../components/ContactActivityPanel';
 import ContactCommunicationsPanel from '../components/ContactCommunicationsPanel';
 import ContactFollowUpsPanel from '../components/ContactFollowUpsPanel';
@@ -38,7 +39,7 @@ const ContactDetail = () => {
   const hasValidId = isUuid(id);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentContact, loading, error, contactNotes } = useAppSelector((state) => state.contactsV2);
+  const { currentContact, loading, error, contactNotes } = useAppSelector((state) => state.contacts);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [openNoteForm, setOpenNoteForm] = useState(false);
@@ -61,7 +62,7 @@ const ContactDetail = () => {
   }, [dispatch]);
 
   // Show alert modal when alert notes exist
-  const alertNotes = contactNotes.filter((n) => n.is_alert);
+  const alertNotes = contactNotes.filter((n: ContactNote) => n.is_alert);
   useEffect(() => {
     if (alertNotes.length > 0) {
       setShowAlertModal(true);
@@ -186,7 +187,7 @@ const ContactDetail = () => {
               <BrutalBadge color={currentContact.is_active ? 'green' : 'gray'} size="sm">
                 {currentContact.is_active ? 'Active' : 'Inactive'}
               </BrutalBadge>
-              {currentContact.roles && currentContact.roles.length > 0 && currentContact.roles.map((role) => (
+              {currentContact.roles && currentContact.roles.length > 0 && currentContact.roles.map((role: string) => (
                 <BrutalBadge
                   key={role}
                   color={
@@ -238,7 +239,7 @@ const ContactDetail = () => {
         </div>
         {currentContact.tags && currentContact.tags.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {currentContact.tags.map((tag) => (
+            {currentContact.tags.map((tag: string) => (
               <BrutalBadge key={tag} color="yellow" size="sm">
                 {tag}
               </BrutalBadge>
@@ -587,7 +588,7 @@ const ContactDetail = () => {
               <h2 className="text-xl font-black uppercase text-white">Alert Notes</h2>
             </div>
             <div className="p-6 space-y-4">
-              {alertNotes.map((note) => (
+              {alertNotes.map((note: ContactNote) => (
                 <div key={note.id} className="border-2 border-app-border bg-app-accent-soft p-4 rounded">
                   {note.subject && (
                     <div className="font-black text-black mb-1">{note.subject}</div>

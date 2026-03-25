@@ -6,8 +6,9 @@ import { BackupService } from '@services/backupService';
 import { DashboardService } from '@services/dashboardService';
 import { ExportService } from '@services/exportService';
 import { ReportService } from '@services/reportService';
-import { ReportTemplateService } from '@services/reportTemplateService';
 import { SavedReportService } from '@services/savedReportService';
+import { ReportTemplateService } from '@services/reportTemplateService';
+import { PIIService } from '@services/piiService';
 
 export interface OperationsProviders {
   readonly alert: AlertsUseCase;
@@ -18,6 +19,7 @@ export interface OperationsProviders {
   readonly report: ReportService;
   readonly savedReport: SavedReportService;
   readonly reportTemplate: ReportTemplateService;
+  readonly pii: PIIService;
 }
 
 export function createOperationsProviders(dbPool: Pool): OperationsProviders {
@@ -29,6 +31,7 @@ export function createOperationsProviders(dbPool: Pool): OperationsProviders {
   let reportService: ReportService | null = null;
   let savedReportService: SavedReportService | null = null;
   let reportTemplateService: ReportTemplateService | null = null;
+  let piiService: PIIService | null = null;
 
   return {
     get alert() {
@@ -78,6 +81,12 @@ export function createOperationsProviders(dbPool: Pool): OperationsProviders {
         reportTemplateService = new ReportTemplateService(dbPool);
       }
       return reportTemplateService;
+    },
+    get pii() {
+      if (!piiService) {
+        piiService = new PIIService(dbPool);
+      }
+      return piiService;
     },
   };
 }

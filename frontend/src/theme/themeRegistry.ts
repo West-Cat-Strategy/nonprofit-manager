@@ -23,6 +23,7 @@ export interface ThemeDefinition {
   menuDescription: string;
   bodyClass?: `theme-${ThemeId}`;
   preview: ThemePreview;
+  cssPath?: string;
 }
 
 export const THEME_IDS: ThemeId[] = [
@@ -57,6 +58,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     description: 'Rounded marine palette with airy intake-friendly calm',
     menuDescription: 'Soft teal gradients and relaxed geometry for service-heavy work.',
     bodyClass: 'theme-sea-breeze',
+    cssPath: '/themes/sea-breeze.css',
     preview: {
       bg: '#dff7f3',
       surface: '#f8fffd',
@@ -73,6 +75,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     description: 'Crisp enterprise clarity with disciplined cobalt accents',
     menuDescription: 'Tighter geometry, sharper data surfaces, and quiet professionalism.',
     bodyClass: 'theme-corporate',
+    cssPath: '/themes/corporate.css',
     preview: {
       bg: '#f3f5fa',
       surface: '#ffffff',
@@ -89,6 +92,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     description: 'Sage-forward balance with smoother cards and lighter structure',
     menuDescription: 'A softer contemporary workspace with calm depth and cleaner spacing.',
     bodyClass: 'theme-clean-modern',
+    cssPath: '/themes/clean-modern.css',
     preview: {
       bg: '#eef4f2',
       surface: '#ffffff',
@@ -105,6 +109,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     description: 'Luminous glass layers with neon detail and crisp contrast',
     menuDescription: 'Frosted panels, electric accents, and the boldest night mode.',
     bodyClass: 'theme-glass',
+    cssPath: '/themes/glass.css',
     preview: {
       bg: '#dbe3f4',
       surface: 'rgba(248,251,255,0.8)',
@@ -121,6 +126,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     description: 'Maximum readability with uncompromising borders and focus',
     menuDescription: 'Accessibility-first mode with zero blur and the clearest states.',
     bodyClass: 'theme-high-contrast',
+    cssPath: '/themes/high-contrast.css',
     preview: {
       bg: '#ffffff',
       surface: '#ffffff',

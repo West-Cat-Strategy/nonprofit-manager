@@ -1,0 +1,165 @@
+/* SEA BREEZE THEME */
+
+body.theme-sea-breeze {
+  --loop-yellow: #b2dfdb;
+  --loop-green: #90ee90;
+  --loop-blue: #87ceeb;
+  --loop-purple: #d8bfd8;
+  --loop-pink: #ffb6c1;
+  --loop-cyan: #009688;
+
+  --app-bg: #e0f2f1;
+  --app-surface: #f5fcfd;
+  --app-surface-muted: #dff6f3;
+  --app-text: #004d40;
+  --app-text-muted: #0f766e;
+  --app-text-subtle: #0f766e;
+  --app-border: #80cbc4;
+  --app-accent: #009688;
+  --app-accent-hover: #00796b;
+  --app-accent-text: #009688;
+  --app-accent-text-hover: #00796b;
+  --app-accent-soft: #b2dfdb;
+  --app-accent-soft-hover: #80cbc4;
+
+  --app-hover: #dff6f3;
+  --app-input-bg: #f5fcfd;
+  --app-input-border: #80cbc4;
+  --app-text-heading: #004d40;
+  --app-text-label: #0f766e;
+  --app-border-muted: #b2dfdb;
+  --app-surface-elevated: #f5fcfd;
+
+  --shadow-color: rgba(0, 150, 136, 0.2);
+  --border-brutal: 2px solid #009688;
+  --shadow-brutal: 4px 4px 0px var(--shadow-color);
+  --shadow-brutal-sm: 2px 2px 0px var(--shadow-color);
+  --font-weight-brutal: 600;
+  --focus-ring: #009688;
+
+  /* Redesign Token Layer Overrides */
+  --ui-font-display: 'Cormorant Garamond', 'Fraunces', serif;
+  --ui-font-body: 'Manrope', 'Space Grotesk', system-ui, sans-serif;
+  --ui-radius-xs: 0.55rem;
+  --ui-radius-sm: 0.95rem;
+  --ui-radius-md: 1.25rem;
+  --ui-radius-lg: 1.65rem;
+  --ui-elev-1: 0 14px 28px rgba(8, 89, 86, 0.12), 0 0 0 1px rgba(8, 89, 86, 0.05);
+  --ui-elev-2: 0 32px 64px rgba(8, 89, 86, 0.16), 0 12px 32px rgba(8, 89, 86, 0.08);
+  --app-bg: #dff7f3;
+  --app-surface: #f8fffd;
+  --app-surface-muted: #d7f1ec;
+  --app-surface-elevated: #fcfffe;
+  --app-text: #123f3d;
+  --app-text-muted: #296965;
+  --app-text-subtle: #4c8884;
+  --app-text-heading: #0a3532;
+  --app-text-label: #23605d;
+  --app-border: #63b7af;
+  --app-border-muted: #a9ddd7;
+  --app-accent: #0e8d82;
+  --app-accent-hover: #0a6f67;
+  --app-accent-foreground: #ffffff;
+  --app-accent-text: #0d7f75;
+  --app-accent-text-hover: #095e58;
+  --app-accent-soft: rgba(14, 141, 130, 0.18);
+  --app-accent-soft-hover: rgba(14, 141, 130, 0.28);
+  --app-hover: rgba(14, 141, 130, 0.11);
+  --app-input-bg: #ffffff;
+  --app-input-border: #57a89f;
+  --loop-yellow: #f9ddb4;
+  --loop-green: #bbe7d3;
+  --loop-purple: #d4dfff;
+  --loop-pink: #f4d7df;
+  --loop-cyan: #a8ece4;
+  --loop-blue: #c7ebf4;
+  --shadow-color: rgba(14, 96, 92, 0.22);
+  --focus-ring: #0e8d82;
+  --app-shell-surface: rgba(255, 255, 255, 0.94);
+  --app-shell-top: #f4fffd;
+  --app-shell-glow: rgba(144, 235, 224, 0.5);
+  --app-shell-glow-secondary: rgba(255, 255, 255, 0.86);
+}
+
+/* SEA BREEZE: DARK MODE */
+body.theme-sea-breeze.dark {
+  --loop-yellow: #b2dfdb;
+  --loop-green: #80cbc4;
+  --loop-purple: #4db6ac;
+  --loop-pink: #26a69a;
+  --loop-cyan: #009688;
+  --loop-blue: #00897b;
+
+  --app-bg: #00251a;
+  --app-surface: #004d40;
+  --app-surface-muted: #00695c;
+  --app-text: #e0f2f1;
+  --app-text-muted: #b2dfdb;
+  --app-text-subtle: #b2dfdb;
+  --app-border: #00796b;
+  --app-accent: #4db6ac;
+  --app-accent-hover: #26a69a;
+  --app-accent-text: #b2dfdb;
+  --app-accent-text-hover: #80cbc4;
+  --app-accent-soft: rgba(77, 182, 172, 0.2);
+  --app-accent-soft-hover: rgba(77, 182, 172, 0.35);
+
+  --app-hover: #00695c;
+  --app-input-bg: #004d40;
+  --app-input-border: #00796b;
+  --app-text-heading: #e0f2f1;
+  --app-text-label: #b2dfdb;
+  --app-border-muted: #004d40;
+  --app-surface-elevated: #00695c;
+
+  --shadow-color: #000000;
+
+  /* Redesign Token Layer Overrides (Dark) */
+  --app-bg: #041f1d;
+  --app-surface: #0a2b29;
+  --app-surface-muted: #123b38;
+  --app-surface-elevated: #103330;
+  --app-text: #e8fbf8;
+  --app-text-muted: #c2ece6;
+  --app-text-subtle: #99d6ce;
+  --app-text-heading: #f4fffd;
+  --app-text-label: #d6f6f1;
+  --app-border: #4bb4a9;
+  --app-border-muted: #245c58;
+  --app-accent: #63dbc9;
+  --app-accent-hover: #41bea9;
+  --app-accent-foreground: #03211f;
+  --app-accent-text: #9bf3e4;
+  --app-accent-text-hover: #c6fff6;
+  --app-accent-soft: rgba(99, 219, 201, 0.24);
+  --app-accent-soft-hover: rgba(99, 219, 201, 0.36);
+  --app-hover: rgba(116, 227, 209, 0.14);
+  --app-input-bg: #081f1d;
+  --app-input-border: #46a79d;
+  --loop-yellow: #f3d091;
+  --loop-green: #8fe6cc;
+  --loop-purple: #a9cbff;
+  --loop-pink: #f1bfd0;
+  --loop-cyan: #79efe4;
+  --loop-blue: #94dff0;
+  --shadow-color: rgba(0, 0, 0, 0.42);
+  --focus-ring: #83f3e5;
+  --app-shell-surface: rgba(9, 42, 39, 0.93);
+  --app-shell-top: #08312e;
+  --app-shell-glow: rgba(31, 141, 129, 0.35);
+  --app-shell-glow-secondary: rgba(131, 243, 229, 0.16);
+}
+
+/* Sea Breeze Component Overrides */
+body.theme-sea-breeze .border-brutal,
+body.theme-sea-breeze [class*='border-brutal'],
+body.theme-sea-breeze button,
+body.theme-sea-breeze input,
+body.theme-sea-breeze select {
+  border-radius: 16px !important;
+}
+
+body.theme-sea-breeze button.p-3,
+body.theme-sea-breeze button.p-4 {
+  border-radius: 50px !important;
+}

@@ -23,36 +23,52 @@ interface AuthenticatedRequest extends Request {
  * Middleware to apply PII field-level access control
  * 
  * Usage in routes:
- *   router.get('/contacts/:id', authenticate, piiFieldAccessControl(piiService), controller.getContact);
+ *   router.get('/contacts/:id', authenticate, piiFieldAccessControl(piiService, 'contacts'), controller.getContact);
  */
-export function piiFieldAccessControl(_piiService: PIIService) {
+export function piiFieldAccessControl(piiService: PIIService, tableName?: string) {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     // Store original res.json to intercept responses
     const originalJson = res.json.bind(res);
 
-    res.json = function (data: any) {
-      // Apply field-level access control to response data
-      if (data && typeof data === 'object') {
-        data = applyFieldAccessControl(data, req.user?.role);
-      }
+    // Determine table name if not provided
+    const effectiveTableName = tableName || extractContextFromRequest(req).tableName;
+    const userRole = req.user?.role;
 
-      return originalJson(data);
-    };
+    if (!effectiveTableName || !userRole) {
+      return next(); 
+    }
+
+    try {
+      // Pre-fetch field access rules for the current user's role
+      // This is the only async part and happens BEFORE the controller
+      const rules = await (piiService as any).getFieldAccessRules(effectiveTableName, userRole);
+      
+      res.json = function (data: any) {
+        // Apply field-level access control to response data synchronously
+        if (data && typeof data === 'object') {
+          data = applyFieldAccessControlSync(data, rules);
+        }
+
+        return originalJson(data);
+      };
+    } catch (error) {
+      logger.error('Error loading PII field access rules', { error, path: req.path });
+      // In case of error, we proceed without rules - which will default to masked for sensitive fields
+    }
 
     next();
   };
 }
 
 /**
- * Recursively apply field-level access control to data structure
+ * Recursively apply field-level access control to data structure (Synchronous)
  */
-function applyFieldAccessControl(data: any, userRole?: string): any {
-  if (!userRole) {
-    return data; // No user role - return as-is (will be handled by controller)
-  }
-
+function applyFieldAccessControlSync(
+  data: any,
+  rules: Map<string, any>
+): any {
   if (Array.isArray(data)) {
-    return data.map((item) => applyFieldAccessControl(item, userRole));
+    return data.map((item) => applyFieldAccessControlSync(item, rules));
   }
 
   if (data === null || typeof data !== 'object') {
@@ -62,19 +78,25 @@ function applyFieldAccessControl(data: any, userRole?: string): any {
   const controlled: Record<string, any> = {};
 
   for (const [key, value] of Object.entries(data)) {
-    // Check if this is a PII field that should be masked
-    const shouldMask = isSensitiveField(key);
+    const rule = rules?.get(key);
+    const accessLevel = rule?.accessLevel || (isSensitiveField(key) ? 'masked' : 'full');
 
-    if (shouldMask && value) {
-      // Apply masking based on field type
-      controlled[key] = maskFieldByType(key, value);
+    if (accessLevel === 'none') {
+      continue; // Skip the field entirely
+    }
+
+    if (accessLevel === 'masked' && value !== null && value !== undefined) {
+      const pattern = rule?.maskingPattern || 'partial';
+      controlled[key] = maskFieldByType(key, value, pattern);
     } else {
       // Recursively process nested objects
       if (value && typeof value === 'object' && !Array.isArray(value)) {
-        controlled[key] = applyFieldAccessControl(value, userRole);
+        controlled[key] = applyFieldAccessControlSync(value, rules);
       } else if (Array.isArray(value)) {
         controlled[key] = value.map((item) =>
-          item && typeof item === 'object' ? applyFieldAccessControl(item, userRole) : item
+          item && typeof item === 'object' 
+            ? applyFieldAccessControlSync(item, rules) 
+            : item
         );
       } else {
         controlled[key] = value;
@@ -115,36 +137,32 @@ function isSensitiveField(fieldName: string): boolean {
 /**
  * Apply masking to a field based on its type
  */
-function maskFieldByType(fieldName: string, value: string | any): string {
+function maskFieldByType(fieldName: string, value: any, pattern: string = 'partial'): string {
   const lowerFieldName = fieldName.toLowerCase();
+  const stringValue = value?.toString() || '';
 
-  // Phone numbers - show last 4 digits
-  if (lowerFieldName.includes('phone')) {
-    return maskPhoneNumber(value?.toString() || '');
+  // Use the explicit pattern if provided and high confidence
+  if (pattern === 'email' || (pattern === 'partial' && lowerFieldName.includes('email'))) {
+    return maskEmail(stringValue);
+  }
+  if (pattern === 'phone' || (pattern === 'partial' && lowerFieldName.includes('phone'))) {
+    return maskPhoneNumber(stringValue);
+  }
+  if (pattern === 'ssn' || (pattern === 'partial' && lowerFieldName.includes('ssn'))) {
+    return '***-**-' + stringValue.slice(-4);
   }
 
-  // Email - show first letter and domain
-  if (lowerFieldName.includes('email')) {
-    return maskEmail(value?.toString() || '');
-  }
-
-  // SSN - show last 4 digits
-  if (lowerFieldName.includes('ssn') || lowerFieldName.includes('social_security')) {
-    return '***-**-' + (value?.toString() || '').slice(-4);
-  }
-
-  // Date of birth - show only year
+  // Fallback to general patterns
   if (lowerFieldName.includes('birth') || lowerFieldName.includes('dob')) {
-    return maskDateOfBirth(value?.toString() || '');
+    return maskDateOfBirth(stringValue);
   }
 
-  // Credit card - show last 4 digits
   if (lowerFieldName.includes('card') || lowerFieldName.includes('credit')) {
-    return '*'.repeat(Math.max(0, (value?.toString() || '').length - 4)) + (value?.toString() || '').slice(-4);
+    return '*'.repeat(Math.max(0, stringValue.length - 4)) + stringValue.slice(-4);
   }
 
-  // Default - show first character and asterisks
-  return (value?.toString() || '').charAt(0) + '*'.repeat(Math.max(0, (value?.toString() || '').length - 1));
+  // Default masking
+  return stringValue.charAt(0) + '*'.repeat(Math.max(0, stringValue.length - 1));
 }
 
 function maskPhoneNumber(phone: string): string {
@@ -225,8 +243,11 @@ function shouldAuditAccess(data: any): boolean {
  * Extract table name and record ID from request context
  */
 function extractContextFromRequest(req: AuthenticatedRequest): { tableName?: string; recordId?: string } {
+  const path = req.path || req.url || '';
+  if (!path) return {};
+
   // Try to extract from route params and path
-  const pathMatch = req.path.match(/\/(contacts|accounts|volunteers|donations)\/([a-f0-9-]+)/);
+  const pathMatch = path.match(/\/(contacts|accounts|volunteers|donations)\/([a-f0-9-]+)/);
 
   if (pathMatch) {
     const tableMap: Record<string, string> = {

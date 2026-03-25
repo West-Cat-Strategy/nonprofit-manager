@@ -15,7 +15,7 @@ const CaseEdit = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentCase, loading, error } = useAppSelector((state) => state.casesV2);
+  const { currentCase, loading, error } = useAppSelector((state) => state.cases);
 
   // Convert CaseWithDetails to CreateCaseDTO format
   const initialData = useMemo<Partial<CreateCaseDTO> | undefined>(() => {

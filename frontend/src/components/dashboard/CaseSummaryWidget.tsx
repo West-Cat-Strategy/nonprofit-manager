@@ -18,7 +18,7 @@ interface CaseSummaryWidgetProps {
 
 const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProps) => {
   const dispatch = useAppDispatch();
-  const { loading, error } = useAppSelector((state) => state.casesV2);
+  const { loading, error } = useAppSelector((state) => state.cases);
 
   // Use selectors to get filtered case data
   const activeCases = useAppSelector(selectActiveCases);

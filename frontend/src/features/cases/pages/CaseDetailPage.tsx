@@ -25,7 +25,8 @@ import CasePortalConversations from '../../../components/cases/CasePortalConvers
 import CaseTimeline from '../../../components/cases/CaseTimeline';
 import CaseOutcomesTopics from '../../../components/cases/CaseOutcomesTopics';
 import CaseAppointments from '../../../components/cases/CaseAppointments';
-import type { CaseStatusType, CaseMilestone } from '../../../types/case';
+import type { CaseStatusType, CaseMilestone, CaseStatus } from '../../../types/case';
+import type { OutcomeDefinition } from '../../../types/outcomes';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import { getCasePriorityBadgeColor } from '../utils/casePriority';
@@ -91,7 +92,7 @@ const CaseDetail = () => {
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
   const { currentCase, caseStatuses, caseMilestones, caseOutcomeDefinitions, loading, error } = useAppSelector(
-    (state) => state.casesV2
+    (state) => state.cases
   );
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
@@ -161,7 +162,7 @@ const CaseDetail = () => {
   const handleStatusChange = async () => {
     if (!id || !newStatusId) return;
 
-    const nextStatus = caseStatuses.find((status) => status.id === newStatusId);
+    const nextStatus = caseStatuses.find((status: CaseStatus) => status.id === newStatusId);
     const requiresOutcome =
       nextStatus?.status_type === 'review' ||
       nextStatus?.status_type === 'closed' ||
@@ -298,8 +299,8 @@ const CaseDetail = () => {
     setTimelineRefreshKey((value) => value + 1);
   };
 
-  const activeOutcomeDefinitions = (caseOutcomeDefinitions || []).filter((definition) => definition.is_active);
-  const selectedStatusDefinition = caseStatuses.find((status) => status.id === newStatusId);
+  const activeOutcomeDefinitions = (caseOutcomeDefinitions || []).filter((definition: OutcomeDefinition) => definition.is_active);
+  const selectedStatusDefinition = caseStatuses.find((status: CaseStatus) => status.id === newStatusId);
   const selectedStatusRequiresOutcome =
     selectedStatusDefinition?.status_type === 'review' ||
     selectedStatusDefinition?.status_type === 'closed' ||
@@ -413,7 +414,7 @@ const CaseDetail = () => {
     );
   }
 
-  const completedMilestones = caseMilestones.filter(m => m.is_completed).length;
+  const completedMilestones = caseMilestones.filter((m: CaseMilestone) => m.is_completed).length;
 
   const tabs: Array<{ key: TabType; label: string; count?: number }> = [
     { key: 'overview', label: 'Overview' },
@@ -669,7 +670,7 @@ const CaseDetail = () => {
                         Tags
                       </dt>
                       <dd className="flex flex-wrap gap-2">
-                        {currentCase.tags.map((tag) => (
+                        {currentCase.tags.map((tag: string) => (
                           <span
                             key={tag}
                             className="px-2 py-1 bg-[var(--loop-cyan)] text-black text-xs font-black border-2 border-black"
@@ -807,7 +808,7 @@ const CaseDetail = () => {
                 </BrutalCard>
               ) : (
                 <div className="space-y-3">
-                  {caseMilestones.map((milestone, index) => {
+                  {caseMilestones.map((milestone: CaseMilestone, index: number) => {
                     const isOverdueMilestone = milestone.due_date && new Date(milestone.due_date) < new Date() && !milestone.is_completed;
                     return (
                       <BrutalCard

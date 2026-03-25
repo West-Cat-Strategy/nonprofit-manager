@@ -7,7 +7,7 @@ import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn();
 const state = {
-  eventsListV2: {
+  eventsList: {
     events: [],
     total: 0,
     page: 1,
@@ -16,18 +16,18 @@ const state = {
     loading: false,
     error: null,
   },
-  eventDetailV2: {
+  eventDetail: {
     event: null,
     loading: false,
     error: null,
   },
-  eventRegistrationV2: {
+  eventRegistration: {
     registrations: [],
     loading: false,
     actionLoading: false,
     error: null,
   },
-  eventRemindersV2: {
+  eventReminders: {
     sending: false,
     lastSummary: null,
     error: null,

@@ -16,10 +16,10 @@ export default function EventsHubPage() {
   const [appliedSearch, setAppliedSearch] = useState('');
   const [eventTypeFilter, setEventTypeFilter] = useState('');
 
-  const listState = useAppSelector((state) => state.eventsListV2);
-  const detailState = useAppSelector((state) => state.eventDetailV2);
-  const registrationState = useAppSelector((state) => state.eventRegistrationV2);
-  const remindersState = useAppSelector((state) => state.eventRemindersV2);
+  const listState = useAppSelector((state) => state.eventsList);
+  const detailState = useAppSelector((state) => state.eventDetail);
+  const registrationState = useAppSelector((state) => state.eventRegistration);
+  const remindersState = useAppSelector((state) => state.eventReminders);
 
   useEffect(() => {
     const debounceTimer = window.setTimeout(() => {

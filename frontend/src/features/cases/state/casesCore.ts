@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { createSelector } from 'reselect';
-import api from '../../../services/api';
-import { unwrapApiData, type ApiEnvelope } from '../../../services/apiEnvelope';
+import { casesApiClient } from '../api/casesApiClient';
 import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import { isUrgentEquivalentPriority } from '../utils/casePriority';
 import type {
@@ -12,26 +11,18 @@ import type {
   CaseFilter,
   CreateCaseNoteDTO,
   UpdateCaseStatusDTO,
-  CasesResponse,
-  CaseType,
-  CaseStatus,
-  CaseNote,
-  CaseSummary,
   CaseStatusType,
-  CaseMilestone,
+  CaseNote,
   CreateCaseMilestoneDTO,
   UpdateCaseMilestoneDTO,
   BulkStatusUpdateDTO,
   ReassignCaseDTO,
-  CaseRelationship,
-  CaseService,
   CreateCaseRelationshipDTO,
   CreateCaseServiceDTO,
   UpdateCaseServiceDTO,
 } from '../../../types/case';
 import type {
   InteractionOutcomeImpact,
-  OutcomeDefinition,
   UpdateInteractionOutcomesInput,
 } from '../../../types/outcomes';
 
@@ -72,14 +63,7 @@ export const fetchCases = createAsyncThunk(
   'cases/fetchCases',
   async (filters: CaseFilter = {}, { rejectWithValue }) => {
     try {
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          params.append(key, String(value));
-        }
-      });
-      const response = await api.get<ApiEnvelope<CasesResponse>>(`/v2/cases?${params.toString()}`);
-      return unwrapApiData(response.data);
+      return await casesApiClient.listCases(filters);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch cases'));
     }
@@ -90,14 +74,11 @@ export const fetchCasesByContact = createAsyncThunk(
   'cases/fetchCasesByContact',
   async (contactId: string, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<CasesResponse>>('/v2/cases', {
-        params: {
-          contact_id: contactId,
-          page: 1,
-          limit: 50,
-        },
+      const payload = await casesApiClient.listCases({
+        contactId,
+        page: 1,
+        limit: 50,
       });
-      const payload = unwrapApiData(response.data);
       return {
         contactId,
         cases: Array.isArray(payload.cases) ? payload.cases : [],
@@ -112,8 +93,8 @@ export const fetchCasesByContact = createAsyncThunk(
   },
   {
     condition: (contactId, { getState }) => {
-      const state = getState() as { casesV2?: CasesState };
-      const cachedEntry = state.casesV2?.contactCasesByContactId?.[contactId];
+      const state = getState() as { cases?: CasesState };
+      const cachedEntry = state.cases?.contactCasesByContactId?.[contactId];
       if (!cachedEntry) {
         return true;
       }
@@ -132,8 +113,7 @@ export const fetchCaseById = createAsyncThunk(
   'cases/fetchCaseById',
   async (id: string, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<CaseWithDetails>>(`/v2/cases/${id}`);
-      return unwrapApiData(response.data);
+      return await casesApiClient.getCase(id);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch case'));
     }
@@ -144,8 +124,7 @@ export const createCase = createAsyncThunk(
   'cases/createCase',
   async (data: CreateCaseDTO, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<CaseWithDetails>>('/v2/cases', data);
-      return unwrapApiData(response.data);
+      return await casesApiClient.createCase(data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to create case'));
     }
@@ -156,8 +135,7 @@ export const updateCase = createAsyncThunk(
   'cases/updateCase',
   async ({ id, data }: { id: string; data: UpdateCaseDTO }, { rejectWithValue }) => {
     try {
-      const response = await api.put<ApiEnvelope<CaseWithDetails>>(`/v2/cases/${id}`, data);
-      return unwrapApiData(response.data);
+      return await casesApiClient.updateCase(id, data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to update case'));
     }
@@ -168,7 +146,7 @@ export const deleteCase = createAsyncThunk(
   'cases/deleteCase',
   async (id: string, { rejectWithValue }) => {
     try {
-      await api.delete(`/v2/cases/${id}`);
+      await casesApiClient.deleteCase(id);
       return id;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to delete case'));
@@ -180,8 +158,7 @@ export const updateCaseStatus = createAsyncThunk(
   'cases/updateCaseStatus',
   async ({ id, data }: { id: string; data: UpdateCaseStatusDTO }, { rejectWithValue }) => {
     try {
-      const response = await api.put<ApiEnvelope<CaseWithDetails>>(`/v2/cases/${id}/status`, data);
-      return unwrapApiData(response.data);
+      return await casesApiClient.updateCaseStatus(id, data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to update status'));
     }
@@ -192,8 +169,8 @@ export const fetchCaseNotes = createAsyncThunk(
   'cases/fetchCaseNotes',
   async (caseId: string, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<CaseNote[]>>(`/v2/cases/${caseId}/notes`);
-      return unwrapApiData(response.data);
+      const result = await casesApiClient.listCaseNotes(caseId);
+      return result.notes;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch notes'));
     }
@@ -204,8 +181,7 @@ export const createCaseNote = createAsyncThunk(
   'cases/createCaseNote',
   async (data: CreateCaseNoteDTO, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<CaseNote>>('/v2/cases/notes', data);
-      return unwrapApiData(response.data);
+      return await casesApiClient.createCaseNote(data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to create note'));
     }
@@ -216,10 +192,7 @@ export const fetchCaseOutcomeDefinitions = createAsyncThunk(
   'cases/fetchCaseOutcomeDefinitions',
   async (includeInactive: boolean = false, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<OutcomeDefinition[]>>(
-        `/v2/cases/outcomes/definitions?includeInactive=${String(includeInactive)}`
-      );
-      return unwrapApiData<OutcomeDefinition[]>(response.data);
+      return await casesApiClient.listOutcomeDefinitions(includeInactive);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch outcome definitions'));
     }
@@ -233,12 +206,10 @@ export const fetchInteractionOutcomes = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await api.get<ApiEnvelope<InteractionOutcomeImpact[]>>(
-        `/v2/cases/${caseId}/interactions/${interactionId}/outcomes`
-      );
+      const impacts = await casesApiClient.getInteractionOutcomes(caseId, interactionId);
       return {
         interactionId,
-        impacts: unwrapApiData<InteractionOutcomeImpact[]>(response.data),
+        impacts,
       };
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch interaction outcomes'));
@@ -261,13 +232,10 @@ export const saveInteractionOutcomes = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await api.put<ApiEnvelope<InteractionOutcomeImpact[]>>(
-        `/v2/cases/${caseId}/interactions/${interactionId}/outcomes`,
-        data
-      );
+      const impacts = await casesApiClient.updateInteractionOutcomes(caseId, interactionId, data);
       return {
         interactionId,
-        impacts: unwrapApiData<InteractionOutcomeImpact[]>(response.data),
+        impacts,
       };
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to save interaction outcomes'));
@@ -279,8 +247,7 @@ export const fetchCaseTypes = createAsyncThunk(
   'cases/fetchCaseTypes',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<CaseType[]>>('/v2/cases/types');
-      return unwrapApiData(response.data);
+      return await casesApiClient.getCaseTypes();
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch case types'));
     }
@@ -291,8 +258,7 @@ export const fetchCaseStatuses = createAsyncThunk(
   'cases/fetchCaseStatuses',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<CaseStatus[]>>('/v2/cases/statuses');
-      return unwrapApiData(response.data);
+      return await casesApiClient.getCaseStatuses();
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch statuses'));
     }
@@ -303,8 +269,7 @@ export const fetchCaseSummary = createAsyncThunk(
   'cases/fetchCaseSummary',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<CaseSummary>>('/v2/cases/summary');
-      return unwrapApiData(response.data);
+      return await casesApiClient.getCaseSummary();
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch summary'));
     }
@@ -317,8 +282,7 @@ export const fetchCaseMilestones = createAsyncThunk(
   'cases/fetchCaseMilestones',
   async (caseId: string, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<CaseMilestone[]>>(`/v2/cases/${caseId}/milestones`);
-      return unwrapApiData(response.data);
+      return await casesApiClient.listCaseMilestones(caseId);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch milestones'));
     }
@@ -329,11 +293,7 @@ export const createCaseMilestone = createAsyncThunk(
   'cases/createCaseMilestone',
   async ({ caseId, data }: { caseId: string; data: CreateCaseMilestoneDTO }, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<CaseMilestone>>(
-        `/v2/cases/${caseId}/milestones`,
-        data
-      );
-      return unwrapApiData(response.data);
+      return await casesApiClient.createCaseMilestone(caseId, data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to create milestone'));
     }
@@ -344,11 +304,7 @@ export const updateCaseMilestone = createAsyncThunk(
   'cases/updateCaseMilestone',
   async ({ milestoneId, data }: { milestoneId: string; data: UpdateCaseMilestoneDTO }, { rejectWithValue }) => {
     try {
-      const response = await api.put<ApiEnvelope<CaseMilestone>>(
-        `/v2/cases/milestones/${milestoneId}`,
-        data
-      );
-      return unwrapApiData(response.data);
+      return await casesApiClient.updateCaseMilestone(milestoneId, data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to update milestone'));
     }
@@ -359,7 +315,7 @@ export const deleteCaseMilestone = createAsyncThunk(
   'cases/deleteCaseMilestone',
   async (milestoneId: string, { rejectWithValue }) => {
     try {
-      await api.delete(`/v2/cases/milestones/${milestoneId}`);
+      await casesApiClient.deleteCaseMilestone(milestoneId);
       return milestoneId;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to delete milestone'));
@@ -373,12 +329,9 @@ export const bulkUpdateCaseStatus = createAsyncThunk(
   'cases/bulkUpdateStatus',
   async (data: BulkStatusUpdateDTO, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<Record<string, unknown>>>(
-        '/v2/cases/bulk-status',
-        data
-      );
+      const payload = await casesApiClient.bulkUpdateStatus(data);
       return {
-        ...(unwrapApiData(response.data) as Record<string, unknown>),
+        ...(payload as Record<string, unknown>),
         case_ids: data.case_ids,
         new_status_id: data.new_status_id,
       };
@@ -392,11 +345,7 @@ export const reassignCase = createAsyncThunk(
   'cases/reassignCase',
   async ({ id, data }: { id: string; data: ReassignCaseDTO }, { rejectWithValue }) => {
     try {
-      const response = await api.put<ApiEnvelope<CaseWithDetails>>(
-        `/v2/cases/${id}/reassign`,
-        data
-      );
-      return unwrapApiData(response.data);
+      return await casesApiClient.reassignCase(id, data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to reassign case'));
     }
@@ -409,8 +358,7 @@ export const fetchCaseRelationships = createAsyncThunk(
   'cases/fetchCaseRelationships',
   async (caseId: string, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<CaseRelationship[]>>(`/v2/cases/${caseId}/relationships`);
-      return unwrapApiData(response.data);
+      return await casesApiClient.listCaseRelationships(caseId);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch relationships'));
     }
@@ -421,11 +369,7 @@ export const createCaseRelationship = createAsyncThunk(
   'cases/createCaseRelationship',
   async ({ caseId, data }: { caseId: string; data: CreateCaseRelationshipDTO }, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<CaseRelationship>>(
-        `/v2/cases/${caseId}/relationships`,
-        data
-      );
-      return unwrapApiData(response.data);
+      return await casesApiClient.createCaseRelationship(caseId, data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to create relationship'));
     }
@@ -436,7 +380,7 @@ export const deleteCaseRelationship = createAsyncThunk(
   'cases/deleteCaseRelationship',
   async (relationshipId: string, { rejectWithValue }) => {
     try {
-      await api.delete(`/v2/cases/relationships/${relationshipId}`);
+      await casesApiClient.deleteCaseRelationship(relationshipId);
       return relationshipId;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to delete relationship'));
@@ -450,8 +394,7 @@ export const fetchCaseServices = createAsyncThunk(
   'cases/fetchCaseServices',
   async (caseId: string, { rejectWithValue }) => {
     try {
-      const response = await api.get<ApiEnvelope<CaseService[]>>(`/v2/cases/${caseId}/services`);
-      return unwrapApiData(response.data);
+      return await casesApiClient.listCaseServices(caseId);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to fetch services'));
     }
@@ -462,8 +405,7 @@ export const createCaseService = createAsyncThunk(
   'cases/createCaseService',
   async ({ caseId, data }: { caseId: string; data: CreateCaseServiceDTO }, { rejectWithValue }) => {
     try {
-      const response = await api.post<ApiEnvelope<CaseService>>(`/v2/cases/${caseId}/services`, data);
-      return unwrapApiData(response.data);
+      return await casesApiClient.createCaseService(caseId, data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to create service'));
     }
@@ -474,8 +416,7 @@ export const updateCaseService = createAsyncThunk(
   'cases/updateCaseService',
   async ({ serviceId, data }: { serviceId: string; data: UpdateCaseServiceDTO }, { rejectWithValue }) => {
     try {
-      const response = await api.put<ApiEnvelope<CaseService>>(`/v2/cases/services/${serviceId}`, data);
-      return unwrapApiData(response.data);
+      return await casesApiClient.updateCaseService(serviceId, data);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to update service'));
     }
@@ -486,7 +427,7 @@ export const deleteCaseService = createAsyncThunk(
   'cases/deleteCaseService',
   async (serviceId: string, { rejectWithValue }) => {
     try {
-      await api.delete(`/v2/cases/services/${serviceId}`);
+      await casesApiClient.deleteCaseService(serviceId);
       return serviceId;
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to delete service'));
@@ -506,7 +447,7 @@ const applyImpactsToCaseNote = (
   }
   state.interactionOutcomeImpacts[interactionId] = impacts;
 
-  const noteIndex = state.caseNotes.findIndex((note) => note.id === interactionId);
+  const noteIndex = state.caseNotes.findIndex((note: CaseNote) => note.id === interactionId);
   if (noteIndex !== -1) {
     state.caseNotes[noteIndex] = {
       ...state.caseNotes[noteIndex],
@@ -547,7 +488,7 @@ const casesSlice = createSlice({
       }
     },
     selectAllCases: (state) => {
-      state.selectedCaseIds = state['cases'].map((c) => c.id);
+      state.selectedCaseIds = state.cases.map((c) => c.id);
     },
     clearCaseSelection: (state) => {
       state.selectedCaseIds = [];
@@ -562,7 +503,7 @@ const casesSlice = createSlice({
       })
       .addCase(fetchCases.fulfilled, (state, action) => {
         state.loading = false;
-        state['cases'] = action.payload.cases;
+        state.cases = action.payload.cases;
         state.total = action.payload.total;
       })
       .addCase(fetchCases.rejected, (state, action) => {
@@ -636,9 +577,9 @@ const casesSlice = createSlice({
       })
       .addCase(updateCase.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state['cases'].findIndex((c) => c.id === action.payload.id);
+        const index = state.cases.findIndex((c: CaseWithDetails) => c.id === action.payload.id);
         if (index !== -1) {
-          state['cases'][index] = action.payload;
+          state.cases[index] = action.payload;
         }
         if (state.currentCase?.id === action.payload.id) {
           state.currentCase = action.payload;
@@ -879,7 +820,7 @@ const incrementPriorityCount = (
 };
 
 // Base selector
-const selectCasesState = (state: { casesV2: CasesState }) => state.casesV2;
+const selectCasesState = (state: { cases: CasesState }) => state.cases;
 const selectCasesList = createSelector([selectCasesState], (state) => state['cases']);
 const selectContactCasesByContactId = createSelector(
   [selectCasesState],
