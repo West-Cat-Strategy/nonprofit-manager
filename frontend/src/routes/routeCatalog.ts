@@ -29,12 +29,14 @@ export {
 } from './routeCatalog/matching';
 
 export {
+  collectRouteAncestors,
   getPortalNavigationEntries,
   getRouteBreadcrumbs,
   getRouteLocalNavigation,
   getStaffNavigationEntries,
   getStaffUtilityEntries,
   getSurfaceAreaNavigation,
+  walkRouteParentChain,
   type RouteBreadcrumbEntry,
   type RouteNavigationEntry,
   type SurfaceAreaNavigationEntry,

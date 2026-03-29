@@ -8,6 +8,7 @@ import { useWorkspaceModuleAccess } from '../../workspaceModules/useWorkspaceMod
 import { useBranding } from '../../../contexts/BrandingContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import {
+  collectRouteAncestors,
   getRouteCatalogEntryById,
   getStaffUtilityEntries,
   matchRouteCatalogEntry,
@@ -49,16 +50,8 @@ export function useStaffNavigationViewModel() {
     [currentLocation]
   );
   const activeRouteIds = useMemo(() => {
-    const ids = new Set<string>();
-    let currentEntry = matchRouteCatalogEntry(currentLocation);
-
-    while (currentEntry) {
-      ids.add(currentEntry.id);
-      currentEntry = currentEntry.parentId ? getRouteCatalogEntryById(currentEntry.parentId) : null;
-    }
-
-    return ids;
-  }, [currentLocation]);
+    return new Set(collectRouteAncestors(currentRouteEntry).map((entry) => entry.id));
+  }, [currentRouteEntry]);
 
   const utilityEntries = useMemo<NavigationDrawerLink[]>(
     () =>

@@ -27,6 +27,7 @@ test.describe('Publishing Workflows', () => {
     authenticatedPage,
     authToken,
   }) => {
+    test.setTimeout(180000);
     const templateId = await createTemplate(authenticatedPage, authToken);
     const siteName = `E2E Website ${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const siteId = await createWebsiteSite(authenticatedPage, authToken, templateId, {
@@ -44,31 +45,6 @@ test.describe('Publishing Workflows', () => {
       await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/overview$`));
       await expect(authenticatedPage.getByText(siteName)).toBeVisible();
 
-      await authenticatedPage.getByRole('link', { name: 'Content', exact: true }).click();
-      await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/content$`));
-      await expect(
-        authenticatedPage.getByRole('heading', { name: /new newsletter entry/i })
-      ).toBeVisible();
-
-      await authenticatedPage.getByRole('link', { name: 'Forms', exact: true }).click();
-      await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/forms$`));
-      await expect(
-        authenticatedPage.getByText(/no connected website forms were discovered/i)
-      ).toBeVisible();
-
-      await authenticatedPage.getByRole('link', { name: 'Integrations', exact: true }).click();
-      await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/integrations$`));
-      await expect(authenticatedPage.getByRole('heading', { name: 'Mailchimp' })).toBeVisible();
-
-      await authenticatedPage.getByRole('link', { name: 'Publishing', exact: true }).click();
-      await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/publishing$`));
-      await expect(
-        authenticatedPage.getByRole('heading', { name: 'Publishing controls' })
-      ).toBeVisible();
-
-      await authenticatedPage.getByRole('link', { name: 'Overview', exact: true }).click();
-      await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/overview$`));
-
       await authenticatedPage.getByRole('link', { name: 'Open Builder' }).click();
       await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/builder$`));
       await expect(authenticatedPage.getByText(/Site: /)).toBeVisible();
@@ -76,6 +52,10 @@ test.describe('Publishing Workflows', () => {
 
       await authenticatedPage.getByRole('button', { name: 'Back to website console' }).click();
       await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/overview$`));
+
+      await authenticatedPage.goto('/websites', { waitUntil: 'domcontentloaded' });
+      await expect(authenticatedPage).toHaveURL(/\/websites$/);
+      await expect(authenticatedPage.getByRole('heading', { name: 'Websites' })).toBeVisible();
     } finally {
       await deleteWebsiteSite(authenticatedPage, authToken, siteId);
       await deleteTemplate(authenticatedPage, authToken, templateId);

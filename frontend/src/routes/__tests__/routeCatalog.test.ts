@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  collectRouteAncestors,
   getRouteBreadcrumbs,
   getRouteLocalNavigation,
   getSurfaceAreaNavigation,
   matchRouteCatalogEntry,
+  getStaffNavigationEntries,
+  walkRouteParentChain,
 } from '../routeCatalog';
+import { createDefaultWorkspaceModuleSettings } from '../../features/workspaceModules/catalog';
 
 describe('routeCatalog matching', () => {
   it('matches canonical routes and keeps query strings attached to canonical paths', () => {
@@ -44,6 +48,57 @@ describe('routeCatalog matching', () => {
       isActive: true,
       label: 'Service',
     });
+  });
+
+  it('includes Websites in the staff navigation and resolves the module hub route', () => {
+    expect(
+      getStaffNavigationEntries({}, createDefaultWorkspaceModuleSettings())
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'websites',
+          path: '/websites',
+          staffNav: expect.objectContaining({
+            group: 'secondary',
+          }),
+        }),
+      ])
+    );
+
+    expect(matchRouteCatalogEntry('/websites')?.id).toBe('websites');
+    expect(getRouteLocalNavigation('/websites').some((entry) => entry.id === 'websites')).toBe(
+      true
+    );
+  });
+
+  it('walks the Websites route family to a terminal ancestor chain', () => {
+    expect(collectRouteAncestors(matchRouteCatalogEntry('/websites'))?.map((entry) => entry.id)).toEqual([
+      'websites',
+    ]);
+    expect(
+      collectRouteAncestors(matchRouteCatalogEntry('/websites/example-site/overview')).map(
+        (entry) => entry.id
+      )
+    ).toEqual(['website-console-overview', 'websites']);
+    expect(
+      collectRouteAncestors(matchRouteCatalogEntry('/website-builder/example-template/preview')).map(
+        (entry) => entry.id
+      )
+    ).toEqual(['website-builder-preview', 'website-builder', 'websites']);
+  });
+
+  it('stops walking parent chains when a cycle is encountered', () => {
+    const cyclicNodes = new Map([
+      ['a', { id: 'a', parentId: 'b' }],
+      ['b', { id: 'b', parentId: 'c' }],
+      ['c', { id: 'c', parentId: 'a' }],
+    ]);
+
+    const chain = walkRouteParentChain(cyclicNodes.get('a') ?? null, (entry) =>
+      cyclicNodes.get(entry.parentId ?? '') ?? null
+    );
+
+    expect(chain.map((entry) => entry.id)).toEqual(['a', 'b', 'c']);
   });
 
   it('builds breadcrumbs and local navigation from the route hierarchy for detail pages', () => {

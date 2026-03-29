@@ -31,10 +31,11 @@ const templateSliceMocks = vi.hoisted(() => {
     fetchSystemTemplates: vi.fn(() => ({ type: 'templates/fetchSystem' })),
     deleteTemplate: vi.fn(() => ({ type: 'templates/delete' })),
     duplicateTemplate: Object.assign(
-      vi.fn(() => ({ type: 'templates/duplicate' })),
+      (payload: unknown) => ({ type: 'templates/duplicate', payload, __duplicateTemplate: true }),
       {
         fulfilled: {
-          match: () => false,
+          match: (action: { type?: string }) =>
+            action?.type === 'templates/duplicate/fulfilled',
         },
       }
     ),
@@ -87,6 +88,12 @@ describe('TemplateGallery', () => {
         return Promise.resolve({
           type: 'templates/create/fulfilled',
           payload: { id: 'template-123' },
+        });
+      }
+      if ((action as { __duplicateTemplate?: boolean })?.__duplicateTemplate) {
+        return Promise.resolve({
+          type: 'templates/duplicate/fulfilled',
+          payload: { id: 'template-456' },
         });
       }
       return Promise.resolve(action);
@@ -145,5 +152,43 @@ describe('TemplateGallery', () => {
     );
 
     openMock.mockRestore();
+  });
+
+  it('duplicates starter templates with a generated copy name and opens the editor', async () => {
+    templateState = {
+      ...templateState,
+      systemTemplates: [
+        {
+          id: 'template-starter-1',
+          name: 'Starter Template',
+          description: 'Template for starting a site',
+          category: 'multi-page',
+          isSystemTemplate: true,
+          pageCount: 3,
+          tags: [],
+        },
+      ],
+    };
+
+    render(<TemplateGallery />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Use Template' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use Template' }));
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'templates/duplicate',
+          payload: expect.objectContaining({
+            id: 'template-starter-1',
+            name: 'Starter Template (Copy)',
+          }),
+        })
+      );
+      expect(navigateMock).toHaveBeenCalledWith('/website-builder/template-456');
+    });
   });
 });

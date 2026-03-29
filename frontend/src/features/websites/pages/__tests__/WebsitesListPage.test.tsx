@@ -29,7 +29,24 @@ const mockState = {
         primaryUrl: 'https://mutualaid.org',
         previewUrl: 'https://preview.mutualaid.org',
         analyticsEnabled: true,
-        blocked: false,
+        managementSummary: {
+          status: 'blocked',
+          nextAction: {
+            title: 'Review publishing',
+            detail: 'Publishing, domains, and live changes stay paused until the site is assigned.',
+            href: '/websites/site-1/publishing',
+            tone: 'warning',
+          },
+          readiness: {
+            publish: false,
+            preview: false,
+            domain: false,
+            ssl: false,
+            analytics: false,
+          },
+          attentionCount: 5,
+        },
+        blocked: true,
         createdAt: '2026-03-01T00:00:00.000Z',
         updatedAt: '2026-03-05T12:00:00.000Z',
       },
@@ -91,11 +108,13 @@ describe('WebsitesListPage', () => {
       );
     });
 
-    expect(
-      screen.getByRole('heading', { name: 'Neighborhood Mutual Aid', level: 2 })
-    ).toBeInTheDocument();
-    expect(screen.getByText('Community Template')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open Console' })).toHaveAttribute(
+    expect(screen.getAllByRole('heading', { name: 'Neighborhood Mutual Aid' })).toHaveLength(2);
+    expect(screen.getByRole('heading', { name: 'Websites', level: 1 })).toBeInTheDocument();
+    expect(screen.getAllByText('Community Template')).toHaveLength(2);
+    expect(screen.getAllByText('Next action')).toHaveLength(2);
+    expect(screen.getByText(/review publishing/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Open Console' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Open Console' })[0]).toHaveAttribute(
       'href',
       '/websites/site-1/overview'
     );
@@ -107,6 +126,7 @@ describe('WebsitesListPage', () => {
       'href',
       'https://preview.mutualaid.org'
     );
+    expect(screen.getByText('Ready')).toBeInTheDocument();
   });
 
   it('updates search params from the console filters', async () => {

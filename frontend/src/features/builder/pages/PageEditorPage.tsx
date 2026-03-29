@@ -345,6 +345,15 @@ const PageEditor: React.FC = () => {
       pricing: { type: 'pricing', tiers: [], columns: 3 },
       faq: { type: 'faq', items: [], expandFirst: true, allowMultiple: false },
       'contact-form': { type: 'contact-form', submitText: 'Send Message', includePhone: true, includeMessage: true },
+      'referral-form': {
+        type: 'referral-form',
+        heading: 'Referral intake',
+        description: 'Send people who need support, follow-up, or case review.',
+        submitText: 'Send Referral',
+        successMessage: 'Referral received.',
+        includePhone: true,
+        defaultTags: ['referral'],
+      },
       'donation-form': { type: 'donation-form', suggestedAmounts: [25, 50, 100, 250], allowCustomAmount: true, recurringOption: true },
       'event-list': {
         type: 'event-list',
