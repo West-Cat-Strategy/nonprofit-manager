@@ -24,9 +24,15 @@ const CaseEdit = () => {
       contact_id: currentCase.contact_id,
       account_id: currentCase.account_id || undefined,
       case_type_id: currentCase.case_type_id,
+      case_type_ids: currentCase.case_type_ids?.length
+        ? currentCase.case_type_ids
+        : currentCase.case_type_id
+          ? [currentCase.case_type_id]
+          : undefined,
       title: currentCase.title,
       description: currentCase.description || undefined,
       priority: currentCase.priority,
+      outcome: currentCase.outcome || undefined,
       source: currentCase.source || undefined,
       referral_source: currentCase.referral_source || undefined,
       assigned_to: currentCase.assigned_to || undefined,
@@ -34,6 +40,11 @@ const CaseEdit = () => {
       due_date: currentCase.due_date || undefined,
       is_urgent: currentCase.is_urgent,
       tags: currentCase.tags || undefined,
+      case_outcome_values: currentCase.case_outcome_values?.length
+        ? currentCase.case_outcome_values
+        : currentCase.outcome
+          ? [currentCase.outcome]
+          : undefined,
     };
   }, [currentCase]);
 

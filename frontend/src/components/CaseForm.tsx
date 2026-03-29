@@ -14,8 +14,9 @@ import api from '../services/api';
 import { useToast } from '../contexts/useToast';
 import { useQuickLookup } from './dashboard';
 import type { SearchResult } from './dashboard';
-import type { CaseWithDetails, CreateCaseDTO, UpdateCaseDTO, CaseType } from '../types/case';
+import type { CaseOutcome, CaseWithDetails, CreateCaseDTO, UpdateCaseDTO, CaseType } from '../types/case';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
+import { CASE_OUTCOME_OPTIONS, formatCaseOutcomeLabel } from '../features/cases/utils/caseClassification';
 
 interface AssigneeOption {
   id: string;
@@ -47,20 +48,38 @@ const CaseForm = ({
 
   const isEditMode = Boolean(caseId);
 
+  const toggleSelection = <T extends string>(values: T[] | undefined, value: T): T[] => {
+    const current = values || [];
+    if (current.includes(value)) {
+      return current.filter((item) => item !== value);
+    }
+    return [...current, value];
+  };
+
   // Form state
   const [formData, setFormData] = useState<CreateCaseDTO & Partial<UpdateCaseDTO>>({
     contact_id: initialData?.contact_id || '',
     case_type_id: initialData?.case_type_id || '',
+    case_type_ids: initialData?.case_type_ids?.length
+      ? initialData.case_type_ids
+      : initialData?.case_type_id
+        ? [initialData.case_type_id]
+        : [],
     title: initialData?.title || '',
     description: initialData?.description || '',
     priority: initialData?.priority || 'medium',
+    outcome: initialData?.outcome || undefined,
     source: initialData?.source || undefined,
     referral_source: initialData?.referral_source || '',
     assigned_to: initialData?.assigned_to || '',
     due_date: initialData?.due_date || '',
     is_urgent: initialData?.is_urgent || false,
     tags: initialData?.tags || [],
-    outcome: initialData?.outcome || undefined,
+    case_outcome_values: initialData?.case_outcome_values?.length
+      ? initialData.case_outcome_values
+      : initialData?.outcome
+        ? [initialData.outcome]
+        : [],
     outcome_notes: initialData?.outcome_notes || '',
     closure_reason: initialData?.closure_reason || '',
   });
@@ -166,7 +185,10 @@ const CaseForm = ({
     e.preventDefault();
 
     // Validation
-    if (!formData.contact_id || !formData.case_type_id || !formData.title) {
+    const selectedCaseTypeIds = formData.case_type_ids || [];
+    const selectedCaseOutcomeValues = formData.case_outcome_values || [];
+
+    if (!formData.contact_id || selectedCaseTypeIds.length === 0 || !formData.title) {
       showError('Please fill in all required fields');
       return;
     }
@@ -177,11 +199,14 @@ const CaseForm = ({
           title: formData.title,
           description: formData.description,
           priority: formData.priority,
+          case_type_id: selectedCaseTypeIds[0],
+          case_type_ids: selectedCaseTypeIds,
           assigned_to: formData.assigned_to || undefined,
           due_date: formData.due_date || undefined,
           is_urgent: formData.is_urgent,
           tags: formData.tags,
           outcome: formData.outcome,
+          case_outcome_values: selectedCaseOutcomeValues.length > 0 ? selectedCaseOutcomeValues : undefined,
           outcome_notes: formData.outcome_notes || undefined,
           closure_reason: formData.closure_reason || undefined,
         };
@@ -191,16 +216,19 @@ const CaseForm = ({
       } else {
         const createData: CreateCaseDTO = {
           contact_id: formData.contact_id,
-          case_type_id: formData.case_type_id,
+          case_type_id: selectedCaseTypeIds[0],
+          case_type_ids: selectedCaseTypeIds,
           title: formData.title,
           description: formData.description || undefined,
           priority: formData.priority,
+          outcome: formData.outcome,
           source: formData.source || undefined,
           referral_source: formData.referral_source || undefined,
           assigned_to: formData.assigned_to || undefined,
           due_date: formData.due_date || undefined,
           tags: formData.tags?.length ? formData.tags : undefined,
           is_urgent: formData.is_urgent,
+          case_outcome_values: selectedCaseOutcomeValues.length > 0 ? selectedCaseOutcomeValues : undefined,
         };
         const createdCase = await dispatch(createCase(createData)).unwrap();
         setIsDirty(false);
@@ -224,6 +252,11 @@ const CaseForm = ({
   const hasSelectedAssignee = Boolean(
     formData.assigned_to && assignees.some((user) => user.id === formData.assigned_to)
   );
+  const selectedCaseTypeIds = formData.case_type_ids || [];
+  const selectedCaseTypeLabels = selectedCaseTypeIds
+    .map((caseTypeId) => caseTypes.find((type: CaseType) => type.id === caseTypeId)?.name || caseTypeId)
+    .filter((label): label is string => Boolean(label));
+  const selectedCaseOutcomeValues = formData.case_outcome_values || [];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -283,31 +316,63 @@ const CaseForm = ({
         )}
       </div>
 
-      {/* Case Type */}
+      {/* Case Types */}
       <div>
-        <label htmlFor="case-type-id" className="block text-sm font-medium text-app-text-label mb-2">
-          Case Type <span className="text-app-accent">*</span>
-        </label>
-        <select
-          id="case-type-id"
-          name="case_type_id"
-          value={formData.case_type_id}
-          onChange={handleChange}
-          required
-          disabled={isEditMode}
-          className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent disabled:bg-app-surface-muted"
-        >
-          <option value="">Select a case type...</option>
-          {caseTypes.map((type: CaseType) => (
-            <option key={type.id} value={type.id}>
-              {type.name}
-            </option>
-          ))}
-        </select>
-        {isEditMode && (
-          <p className="mt-1 text-sm text-app-text-muted">
-            Case type cannot be changed after case creation
+        <div className="mb-2">
+          <label className="block text-sm font-medium text-app-text-label">
+            Case Types <span className="text-app-accent">*</span>
+          </label>
+          <p className="text-xs text-app-text-muted">
+            The first selected type remains the legacy primary type.
           </p>
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          {caseTypes.map((type: CaseType) => {
+            const checked = selectedCaseTypeIds.includes(type.id);
+            return (
+              <label
+                key={type.id}
+                className="flex items-start gap-3 rounded-lg border border-app-input-border bg-app-surface px-3 py-2 font-medium text-app-text"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() =>
+                    setFormData((prev) => {
+                      const nextCaseTypes = toggleSelection(prev.case_type_ids, type.id);
+                      return {
+                        ...prev,
+                        case_type_ids: nextCaseTypes,
+                        case_type_id: nextCaseTypes[0] || '',
+                      };
+                    })
+                  }
+                  className="mt-0.5 h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                />
+                <span className="flex-1">
+                  {type.name}
+                  {type.description && (
+                    <span className="mt-1 block text-xs text-app-text-muted">{type.description}</span>
+                  )}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        {selectedCaseTypeLabels.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {selectedCaseTypeLabels.map((label, index) => (
+              <span
+                key={`${label}-${index}`}
+                className={`px-3 py-1 text-xs font-black uppercase border-2 border-black ${
+                  index === 0 ? 'bg-[var(--loop-green)] text-black' : 'bg-app-surface-muted text-black'
+                }`}
+              >
+                {label}
+                {index === 0 && ' (Primary)'}
+              </span>
+            ))}
+          </div>
         )}
       </div>
 
@@ -520,40 +585,76 @@ const CaseForm = ({
 
       {isEditMode && (
         <div className="mt-8 pt-8 border-t border-app-border">
-          <h3 className="text-lg font-bold mb-4 uppercase">Case Outcome / Closure</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <h3 className="text-lg font-bold mb-4 uppercase">Case Outcomes / Closure</h3>
+          <div className="space-y-4">
             <div>
-              <label htmlFor="case-outcome" className="block text-sm font-medium text-app-text-label mb-2">Outcome</label>
-              <select
-                id="case-outcome"
-                name="outcome"
-                value={formData.outcome || ''}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
-              >
-                <option value="">Select outcome...</option>
-                <option value="successful">Successful</option>
-                <option value="unsuccessful">Unsuccessful</option>
-                <option value="referred">Referred</option>
-                <option value="withdrawn">Withdrawn</option>
-                <option value="attended_event">Attended Event</option>
-                <option value="additional_related_case">Additional/Related Case Opened</option>
-                <option value="other">Other</option>
-              </select>
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-app-text-label">Outcomes</label>
+                <p className="text-xs text-app-text-muted">
+                  Select every outcome that applies. The first selected value remains the legacy primary outcome.
+                </p>
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                {CASE_OUTCOME_OPTIONS.map((option) => {
+                  const checked = selectedCaseOutcomeValues.includes(option.value);
+                  return (
+                    <label
+                      key={option.value}
+                      className="flex items-center gap-3 rounded-lg border border-app-input-border bg-app-surface px-3 py-2 font-medium text-app-text"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setFormData((prev) => {
+                            const nextCaseOutcomes = toggleSelection(
+                              prev.case_outcome_values as CaseOutcome[] | undefined,
+                              option.value
+                            );
+                            return {
+                              ...prev,
+                              case_outcome_values: nextCaseOutcomes,
+                              outcome: nextCaseOutcomes[0] || undefined,
+                            };
+                          })
+                        }
+                        className="h-4 w-4 rounded border-app-input-border text-app-accent focus:ring-app-accent"
+                      />
+                      <span>{option.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {selectedCaseOutcomeValues.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {selectedCaseOutcomeValues.map((value, index) => (
+                    <span
+                      key={`${value}-${index}`}
+                      className={`px-3 py-1 text-xs font-black uppercase border-2 border-black ${
+                        index === 0 ? 'bg-[var(--loop-green)] text-black' : 'bg-app-surface-muted text-black'
+                      }`}
+                    >
+                      {formatCaseOutcomeLabel(value)}
+                      {index === 0 && ' (Primary)'}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
-            <div>
-              <label htmlFor="case-closure-reason" className="block text-sm font-medium text-app-text-label mb-2">Closure Reason</label>
-              <input
-                id="case-closure-reason"
-                type="text"
-                name="closure_reason"
-                value={formData.closure_reason || ''}
-                onChange={handleChange}
-                placeholder="e.g., Client reached goal"
-                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="case-closure-reason" className="block text-sm font-medium text-app-text-label mb-2">Closure Reason</label>
+                <input
+                  id="case-closure-reason"
+                  type="text"
+                  name="closure_reason"
+                  value={formData.closure_reason || ''}
+                  onChange={handleChange}
+                  placeholder="e.g., Client reached goal"
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
+                />
+              </div>
             </div>
-          </div>
           <div className="mt-4">
             <label htmlFor="case-outcome-notes" className="block text-sm font-medium text-app-text-label mb-2">Outcome Notes</label>
             <textarea
@@ -565,6 +666,7 @@ const CaseForm = ({
               placeholder="Final notes on the case outcome..."
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
             />
+          </div>
           </div>
         </div>
       )}

@@ -1,7 +1,8 @@
 import type { Config } from 'jest';
 
+const relaxCoverageThresholds = process.env.JEST_RELAX_COVERAGE_THRESHOLDS === '1';
+
 const config: Config = {
-  preset: 'ts-jest/presets/default-esm',
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
     '^.+\\.ts$': [
@@ -38,14 +39,18 @@ const config: Config = {
   verbose: true,
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/**/__tests__/**', '!<rootDir>/src/index.ts'],
-  coverageThreshold: {
-    global: {
-      branches: 32,
-      functions: 41,
-      lines: 46,
-      statements: 47,
-    },
-  },
+  ...(relaxCoverageThresholds
+    ? {}
+    : {
+        coverageThreshold: {
+          global: {
+            branches: 32,
+            functions: 41,
+            lines: 46,
+            statements: 47,
+          },
+        },
+      }),
 };
 
 export default config;

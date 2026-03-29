@@ -1,6 +1,7 @@
 import type { CaseLifecyclePort } from '../types/ports';
 import type {
   BulkStatusUpdateDTO,
+  CaseOutcome,
   CreateCaseDTO,
   ReassignCaseDTO,
   UpdateCaseDTO,
@@ -13,6 +14,33 @@ const normalizeText = (value: string | undefined): string | undefined => {
   return normalized.length > 0 ? normalized : undefined;
 };
 
+const normalizeStringArray = (values: string[] | undefined): string[] | undefined => {
+  if (!Array.isArray(values)) return values;
+
+  const normalized: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of values) {
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    normalized.push(trimmed);
+  }
+
+  return normalized;
+};
+
+const resolvePreferredStrings = (values: string[] | undefined, fallback?: string): string[] => {
+  const normalizedValues = normalizeStringArray(values);
+  if (normalizedValues && normalizedValues.length > 0) {
+    return normalizedValues;
+  }
+
+  const normalizedFallback = normalizeText(fallback);
+  return normalizedFallback ? [normalizedFallback] : [];
+};
+
 const normalizeTags = (tags: string[] | undefined): string[] | undefined => {
   if (!Array.isArray(tags)) return tags;
   const normalized = tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0);
@@ -23,22 +51,41 @@ export class CaseLifecycleUseCase {
   constructor(private readonly repository: CaseLifecyclePort) {}
 
   create(data: CreateCaseDTO, userId?: string): Promise<unknown> {
+    const caseTypeIds = resolvePreferredStrings(data.case_type_ids, data.case_type_id);
+    const caseOutcomeValues = resolvePreferredStrings(
+      data.case_outcome_values,
+      data.outcome as CaseOutcome | undefined
+    ) as CaseOutcome[];
+    const primaryCaseTypeId = caseTypeIds[0] ?? normalizeText(data.case_type_id);
+    const primaryCaseOutcome = caseOutcomeValues[0] ?? (normalizeText(data.outcome) as CaseOutcome | undefined);
+
     const normalizedData: CreateCaseDTO = {
       ...data,
       contact_id: data.contact_id.trim(),
       account_id: normalizeText(data.account_id),
-      case_type_id: data.case_type_id.trim(),
+      case_type_id: primaryCaseTypeId,
+      case_type_ids: caseTypeIds.length > 0 ? caseTypeIds : undefined,
       title: data.title.trim(),
       description: normalizeText(data.description),
       referral_source: normalizeText(data.referral_source),
       assigned_to: normalizeText(data.assigned_to),
       assigned_team: normalizeText(data.assigned_team),
       tags: normalizeTags(data.tags),
+      outcome: primaryCaseOutcome,
+      case_outcome_values: caseOutcomeValues.length > 0 ? caseOutcomeValues : undefined,
     };
     return this.repository.createCase(normalizedData, userId);
   }
 
   update(caseId: string, data: UpdateCaseDTO, userId?: string): Promise<unknown> {
+    const caseTypeIds = resolvePreferredStrings(data.case_type_ids, data.case_type_id);
+    const caseOutcomeValues = resolvePreferredStrings(
+      data.case_outcome_values,
+      data.outcome as CaseOutcome | undefined
+    ) as CaseOutcome[];
+    const primaryCaseTypeId = caseTypeIds[0] ?? normalizeText(data.case_type_id);
+    const primaryCaseOutcome = caseOutcomeValues[0] ?? (normalizeText(data.outcome) as CaseOutcome | undefined);
+
     const normalizedData: UpdateCaseDTO = {
       ...data,
       title: normalizeText(data.title),
@@ -48,6 +95,10 @@ export class CaseLifecycleUseCase {
       outcome_notes: normalizeText(data.outcome_notes),
       closure_reason: normalizeText(data.closure_reason),
       tags: normalizeTags(data.tags),
+      case_type_id: primaryCaseTypeId,
+      case_type_ids: caseTypeIds.length > 0 ? caseTypeIds : undefined,
+      outcome: primaryCaseOutcome,
+      case_outcome_values: caseOutcomeValues.length > 0 ? caseOutcomeValues : undefined,
     };
     return this.repository.updateCase(caseId.trim(), normalizedData, userId);
   }

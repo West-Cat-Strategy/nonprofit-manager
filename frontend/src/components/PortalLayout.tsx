@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -25,7 +26,7 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
           <Link
             to="/portal/profile"
             className="block px-4 py-2 text-sm font-medium text-app-text-heading hover:bg-app-surface-muted"
-            onClick={(event) => event.currentTarget.closest('details')?.removeAttribute('open')}
+            onClick={(event: MouseEvent<HTMLAnchorElement>) => event.currentTarget.closest('details')?.removeAttribute('open')}
           >
             Profile
           </Link>

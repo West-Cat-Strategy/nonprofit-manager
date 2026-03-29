@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { BrutalBadge, BrutalCard } from '../neo-brutalist';
 import type { CaseWithDetails, CaseStatusType } from '../../types/case';
 import { getCasePriorityBadgeColor } from '../../features/cases/utils/casePriority';
+import { summarizeLabels } from '../../features/cases/utils/caseClassification';
 
 interface CaseTableProps {
   cases: CaseWithDetails[];
@@ -36,6 +37,12 @@ const getContactLabel = (caseItem: CaseWithDetails): string => {
   const name = `${caseItem.contact_first_name || ''} ${caseItem.contact_last_name || ''}`.trim();
   return name || 'Unknown contact';
 };
+
+const getTypeLabels = (caseItem: CaseWithDetails) =>
+  summarizeLabels(
+    caseItem.case_type_names?.length ? caseItem.case_type_names : [caseItem.case_type_name || 'General'],
+    2
+  );
 
 export default function CaseTable({ cases }: CaseTableProps) {
   const navigate = useNavigate();
@@ -146,11 +153,21 @@ export default function CaseTable({ cases }: CaseTableProps) {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
-                  >
-                    {caseItem.case_type_name || 'General'}
-                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {getTypeLabels(caseItem).visible.map((label) => (
+                      <span
+                        key={label}
+                        className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                    {getTypeLabels(caseItem).hiddenCount > 0 && (
+                      <span className="inline-block border-2 border-black bg-[var(--loop-green)] px-3 py-1 text-xs font-black uppercase text-black">
+                        +{getTypeLabels(caseItem).hiddenCount}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <BrutalBadge

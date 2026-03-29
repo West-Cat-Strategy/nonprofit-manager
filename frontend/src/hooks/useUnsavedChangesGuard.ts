@@ -13,7 +13,10 @@ export function useUnsavedChangesGuard({
   hasUnsavedChanges,
   message = DEFAULT_MESSAGE,
 }: UseUnsavedChangesGuardOptions): void {
-  const { navigator } = useContext(UNSAFE_NavigationContext);
+  const navigationContext = useContext(UNSAFE_NavigationContext) as {
+    navigator: unknown;
+  };
+  const { navigator } = navigationContext;
 
   useEffect(() => {
     if (!hasUnsavedChanges) {

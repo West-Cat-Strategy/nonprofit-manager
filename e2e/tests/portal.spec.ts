@@ -16,7 +16,7 @@ test.describe('Donor Portal', () => {
 
         await page.goto('/portal');
         await expect(page).toHaveURL(/\/portal(?:\?|$)/);
-        await expect(page.locator('body')).toContainText(/welcome to your portal|loading portal/i, {
+        await expect(page.getByRole('heading', { name: /your case workspace/i }).first()).toBeVisible({
             timeout: 30000,
         });
     });
@@ -59,6 +59,7 @@ test.describe('Donor Portal', () => {
 
         await loginPortalUserUI(page, portalUser);
         await expect(page).toHaveURL(/\/portal(?:\?|$)/);
+        portalBootstrapRequests.length = 0;
         await page.getByRole('banner').getByRole('link', { name: /^account$/i }).click();
         await expect(page).toHaveURL(/\/portal\/profile(?:\?|$)/);
         await page.getByRole('banner').getByRole('link', { name: /^client portal$/i }).click();

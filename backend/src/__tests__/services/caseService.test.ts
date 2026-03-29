@@ -51,49 +51,51 @@ describe('CaseService', () => {
       const mockCase = { id: 'case-uuid', case_number: 'CASE-240101-12345', ...validInput };
 
       mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] })             // generateCaseNumber count
-        .mockResolvedValueOnce({ rows: [{ id: 'status-intake' }] })   // status lookup
-        .mockResolvedValueOnce({ rows: [mockCase] })                   // INSERT cases
-        .mockResolvedValueOnce({ rows: [] });                          // INSERT case_notes
+        .mockResolvedValueOnce({ rows: [{ id: 'status-intake' }] })    // status lookup
+        .mockResolvedValueOnce({ rows: [mockCase] })                    // INSERT cases
+        .mockResolvedValueOnce({ rows: [] })                            // DELETE case_type_assignments
+        .mockResolvedValueOnce({ rows: [] })                            // INSERT case_type_assignments
+        .mockResolvedValueOnce({ rows: [] })                            // DELETE case_outcome_assignments
+        .mockResolvedValueOnce({ rows: [] });                           // INSERT case_notes
 
       const result = await service.createCase(validInput, 'user-1');
 
       expect(result).toEqual(mockCase);
-      expect(mockQuery).toHaveBeenCalledTimes(4);
+      expect(mockQuery).toHaveBeenCalledTimes(6);
 
       // Status lookup uses 'intake' type
-      expect(mockQuery.mock.calls[1][0]).toMatch(/intake/);
+      expect(mockQuery.mock.calls[0][0]).toMatch(/intake/);
 
       // Initial note is created
-      expect(mockQuery.mock.calls[3][0]).toMatch(/case_notes/);
-      expect(mockQuery.mock.calls[3][1]).toContain('Case created');
+      expect(mockQuery.mock.calls[5][0]).toMatch(/case_notes/);
+      expect(mockQuery.mock.calls[5][1]).toContain('Case created');
     });
 
     it('throws when no active intake status exists', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] }) // generateCaseNumber count
-        .mockResolvedValueOnce({ rows: [] }); // no status found
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // no status found
 
       await expect(service.createCase(validInput, 'user-1')).rejects.toThrow(
         'No active intake status found'
       );
     });
 
-    it('generates a case number matching CASE-YYMMDD-NNNNN format', async () => {
+    it('generates a case number matching CASE-YYMMDD-NNNNNNNN format', async () => {
       const mockCase = { id: 'case-uuid', case_number: 'CASE-240615-00001', ...validInput };
 
       mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] })             // generateCaseNumber count
         .mockResolvedValueOnce({ rows: [{ id: 'status-intake' }] })
         .mockResolvedValueOnce({ rows: [mockCase] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] });
 
       await service.createCase(validInput);
 
       // The second positional param to the INSERT is the generated case number
-      const insertCall = mockQuery.mock.calls[2];
+      const insertCall = mockQuery.mock.calls[1];
       const caseNumber = insertCall[1][0] as string;
-      expect(caseNumber).toMatch(/^CASE-\d{6}-\d{5}$/);
+      expect(caseNumber).toMatch(/^CASE-\d{6}-\d{8}$/);
     });
 
     it('defaults priority to "medium" when omitted', async () => {
@@ -101,16 +103,50 @@ describe('CaseService', () => {
       const mockCase = { id: 'case-uuid', case_number: 'CASE-240101-00001', ...input };
 
       mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '0' }] })             // generateCaseNumber count
         .mockResolvedValueOnce({ rows: [{ id: 'status-intake' }] })
         .mockResolvedValueOnce({ rows: [mockCase] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [] });
 
       await service.createCase(input);
 
-      const insertParams = mockQuery.mock.calls[2][1] as unknown[];
+      const insertParams = mockQuery.mock.calls[1][1] as unknown[];
       // priority is at index 7 (0-based) in the INSERT params
       expect(insertParams[7]).toBe('medium');
+    });
+
+    it('persists multiple case types and outcomes when provided', async () => {
+      const input = {
+        contact_id: 'c-1',
+        case_type_id: 'legacy-type',
+        case_type_ids: ['type-a', 'type-b', 'type-a'],
+        title: 'Test',
+        outcome: 'unsuccessful' as const,
+        case_outcome_values: ['successful' as const, 'referred' as const, 'successful' as const],
+      };
+      const mockCase = { id: 'case-uuid', case_number: 'CASE-240101-00001', ...input };
+
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ id: 'status-intake' }] })
+        .mockResolvedValueOnce({ rows: [mockCase] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      await service.createCase(input);
+
+      const insertParams = mockQuery.mock.calls[1][1] as unknown[];
+      expect(insertParams[3]).toBe('type-a');
+      expect(insertParams[8]).toBe('successful');
+      expect(mockQuery.mock.calls[2][0]).toMatch(/case_type_assignments/);
+      expect(mockQuery.mock.calls[3][0]).toMatch(/case_type_assignments/);
+      expect(mockQuery.mock.calls[4][0]).toMatch(/case_outcome_assignments/);
+      expect(mockQuery.mock.calls[5][0]).toMatch(/case_outcome_assignments/);
+      expect(mockQuery.mock.calls[6][0]).toMatch(/case_notes/);
     });
   });
 

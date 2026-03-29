@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import type { NavLinkRenderProps } from 'react-router-dom';
 import type { WebsiteOverviewSummary } from '../types';
 import WebsiteStatusBadge from './WebsiteStatusBadge';
 
@@ -61,7 +62,7 @@ const WebsiteConsoleLayout: React.FC<WebsiteConsoleLayoutProps> = ({
             <NavLink
               key={tab.key}
               to={`/websites/${siteId}/${tab.key}`}
-              className={({ isActive }) =>
+              className={({ isActive }: NavLinkRenderProps) =>
                 `rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-app-accent text-white'

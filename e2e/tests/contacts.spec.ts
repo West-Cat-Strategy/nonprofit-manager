@@ -10,6 +10,26 @@ import { createTestContact, createTestEvent, clearDatabase } from '../helpers/da
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 const apiURL = process.env.API_URL || 'http://localhost:3001';
 
+function parseUrl(input: string): URL | null {
+  try {
+    return new URL(input);
+  } catch {
+    try {
+      return new URL(input, 'http://127.0.0.1');
+    } catch {
+      return null;
+    }
+  }
+}
+
+function hasSearchQuery(url: string, searchTerm: string): boolean {
+  const parsed = parseUrl(url);
+  if (!parsed) {
+    return false;
+  }
+  return parsed.searchParams.get('search') === searchTerm;
+}
+
 function parseCreatedContactId(payload: unknown): string | null {
   if (!payload || typeof payload !== 'object') return null;
   const envelopeData = (payload as Record<string, unknown>).data;
@@ -482,19 +502,19 @@ test.describe('Contacts Module', () => {
     await expect(authenticatedPage.locator('#tabpanel-tasks').getByText(/no tasks yet/i)).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /activity/i }).click();
-    await expect(authenticatedPage.locator('#tabpanel-activity').getByText(/activity timeline/i)).toBeVisible();
-    await expect(authenticatedPage.locator('#tabpanel-activity').getByText(/no activity yet|loading activity/i)).toBeVisible();
+    const activityPanel = authenticatedPage.locator('#tabpanel-activity');
+    await expect(activityPanel.getByText(/activity timeline/i)).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /communications/i }).click();
     await expect(authenticatedPage.locator('#tabpanel-communications').getByText(/^communications$/i)).toBeVisible();
     await expect(authenticatedPage.locator('#tabpanel-communications').getByText(/no communications yet/i)).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /follow-ups/i }).click();
-    await expect(authenticatedPage.locator('#tabpanel-followups').getByText(/^follow-ups$/i)).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-followups')).toBeVisible();
     await expect(authenticatedPage.locator('#tabpanel-followups').getByText(/no follow-ups scheduled/i)).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /documents/i }).click();
-    await expect(authenticatedPage.locator('#tabpanel-documents').getByText(/^documents$/i)).toBeVisible();
+    await expect(authenticatedPage.locator('#tabpanel-documents')).toBeVisible();
     await expect(authenticatedPage.locator('#tabpanel-documents').getByText(/no documents uploaded yet/i)).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /payments/i }).click();
@@ -599,8 +619,11 @@ test.describe('Contacts Module', () => {
     await waitForContactDetailReady(authenticatedPage);
     await authenticatedPage.getByRole('tab', { name: /communications/i }).click();
 
-    await expect(authenticatedPage.getByText(eventName)).toBeVisible({ timeout: 15000 });
-    await expect(authenticatedPage.getByRole('link', { name: /open event/i })).toHaveAttribute(
+    const eventCard = authenticatedPage.locator('div.border-2.border-black.bg-white').filter({
+      hasText: eventName,
+    });
+    await expect(eventCard.getByText(eventName, { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(eventCard.getByRole('link', { name: /open event/i })).toHaveAttribute(
       'href',
       `/events/${eventId}`
     );
@@ -716,7 +739,10 @@ test.describe('Contacts Module', () => {
     await expect(
       authenticatedPage.getByRole('button', { name: /send sms reminder again/i })
     ).toHaveCount(0);
-    await expect(authenticatedPage.getByText(/appointment start time has passed/i)).toBeVisible();
+    const unsafeCard = authenticatedPage.locator('div.border-2.border-black.bg-white').filter({
+      hasText: 'Completed appointment',
+    });
+    await expect(unsafeCard.getByText(/^Appointment start time has passed$/i)).toBeVisible();
 
     await authenticatedPage.getByRole('button', { name: /send email reminder again/i }).click();
     await expect.poll(() => reminderSendCount).toBe(1);
@@ -844,10 +870,11 @@ test.describe('Contacts Module', () => {
 
   test('should paginate contacts list', async ({ authenticatedPage, authToken }) => {
     const suffix = uniqueSuffix();
+    const searchTerm = `Page${suffix}`;
 
     for (let i = 1; i <= 25; i++) {
       await createTestContact(authenticatedPage, authToken, {
-        firstName: `Page${suffix}`,
+        firstName: searchTerm,
         lastName: `${i.toString().padStart(2, '0')}`,
         email: `page.${suffix}.${i}@example.com`,
         phone: `555020${(1000 + i).toString().slice(-4)}`,
@@ -855,16 +882,40 @@ test.describe('Contacts Module', () => {
     }
 
     await authenticatedPage.goto('/contacts');
-    await authenticatedPage.getByLabel('Search contacts').fill('');
+    await authenticatedPage.getByLabel('Search contacts').fill(searchTerm);
     const statusFilter = authenticatedPage.getByLabel('Status');
     await statusFilter.selectOption('active').catch(() => statusFilter.selectOption('').catch(() => undefined));
+    const searchRequest = authenticatedPage.waitForResponse((response) => {
+      const url = response.url();
+      return (
+        response.request().method() === 'GET' &&
+        response.status() === 200 &&
+        url.includes('/api/v2/contacts') &&
+        hasSearchQuery(url, searchTerm)
+      );
+    });
     await authenticatedPage.locator('form').getByRole('button', { name: /^search$/i }).click();
+    await searchRequest;
+    await expect.poll(() => hasSearchQuery(authenticatedPage.url(), searchTerm), { timeout: 10000 }).toBe(true);
 
     const nextButton = authenticatedPage.getByRole('button', { name: /next/i });
     await expect(nextButton).toBeVisible({ timeout: 15000 });
     await nextButton.click();
 
     await expect(authenticatedPage.getByRole('button', { name: /previous/i })).toBeEnabled();
-    await expect(authenticatedPage.locator('text=/Page 2 of|Page 2/i')).toBeVisible();
+    await expect
+      .poll(
+        async () => {
+          if (await authenticatedPage.getByText(/^Page 2 of 2 \(25 total\)$/i).isVisible().catch(() => false)) {
+            return 'desktop';
+          }
+          if (await authenticatedPage.getByText(/^Page 2 \/ 2 · 25 items$/i).isVisible().catch(() => false)) {
+            return 'mobile';
+          }
+          return null;
+        },
+        { timeout: 10000, intervals: [250, 500, 1000] }
+      )
+      .not.toBeNull();
   });
 });

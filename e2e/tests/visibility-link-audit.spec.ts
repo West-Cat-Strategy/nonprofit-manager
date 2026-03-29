@@ -39,7 +39,7 @@ type ClickthroughAuditLink = {
   label: string;
   href: string;
   surface: 'staff' | 'portal';
-  scope?: 'workspace-nav' | 'alerts-shortcut' | 'utilities-menu';
+  scope?: 'primary-navigation' | 'more-navigation' | 'more-button' | 'alerts-shortcut' | 'utilities-menu';
 };
 
 type LinkAuditRow = {
@@ -150,7 +150,7 @@ const publicRouteAudits: RouteAuditConfig[] = [
     name: 'demo audit',
     route: '/demo/audit',
     surface: 'demo',
-    heading: /audit/i,
+    heading: /visual qa workbench for theme identity/i,
   },
 ];
 
@@ -363,7 +363,7 @@ const portalRouteAudits: RouteAuditConfig[] = [
     route: '/portal',
     surface: 'portal',
     expectedEntryId: 'portal-dashboard',
-    heading: /welcome to your portal|dashboard|workspace/i,
+    heading: /your case workspace/i,
   },
   { name: 'portal profile', route: '/portal/profile', surface: 'portal', expectedEntryId: 'portal-profile', heading: /profile|account/i },
   { name: 'portal people', route: '/portal/people', surface: 'portal', expectedEntryId: 'portal-people', heading: /people/i },
@@ -378,11 +378,11 @@ const portalRouteAudits: RouteAuditConfig[] = [
 ];
 
 const staffNavigationLinks: ClickthroughAuditLink[] = [
-  { label: 'Home', href: '/dashboard', surface: 'staff', scope: 'workspace-nav' },
-  { label: 'People', href: '/contacts', surface: 'staff', scope: 'workspace-nav' },
-  { label: 'Service', href: '/cases', surface: 'staff', scope: 'workspace-nav' },
-  { label: 'Engagement', href: '/events', surface: 'staff', scope: 'workspace-nav' },
-  { label: 'Finance', href: '/donations', surface: 'staff', scope: 'workspace-nav' },
+  { label: 'Home', href: '/dashboard', surface: 'staff', scope: 'primary-navigation' },
+  { label: 'People', href: '/contacts', surface: 'staff', scope: 'primary-navigation' },
+  { label: 'Accounts', href: '/accounts?status=active', surface: 'staff', scope: 'primary-navigation' },
+  { label: 'Volunteers', href: '/volunteers', surface: 'staff', scope: 'primary-navigation' },
+  { label: 'More', href: '#topnav-more-menu', surface: 'staff', scope: 'more-button' },
   { label: 'Analytics', href: '/analytics', surface: 'staff', scope: 'utilities-menu' },
   { label: 'Reports', href: '/reports/builder', surface: 'staff', scope: 'utilities-menu' },
   { label: 'Alerts', href: '/alerts', surface: 'staff', scope: 'alerts-shortcut' },
@@ -839,14 +839,32 @@ authTest.describe('Staff text visibility and link audit', () => {
 
   authTest('staff navigation links stay visible and canonical', async ({ authenticatedPage }) => {
     await gotoAuditedRoute(authenticatedPage, '/dashboard');
-    const workspaceNav = authenticatedPage.getByRole('navigation', { name: /browse workspace/i });
+    const primaryNavigation = authenticatedPage.getByRole('navigation', {
+      name: /primary navigation/i,
+    });
+    await expect(primaryNavigation).toBeVisible();
+    const moreNavigationButton = authenticatedPage.getByRole('button', {
+      name: /more navigation/i,
+    });
 
     for (const linkConfig of staffNavigationLinks) {
       const targetHref = normalizeRouteLocation(linkConfig.href);
       let link;
 
-      if (linkConfig.scope === 'workspace-nav') {
-        link = workspaceNav.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();
+      if (linkConfig.scope === 'primary-navigation') {
+        link = primaryNavigation.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();
+      } else if (linkConfig.scope === 'more-button') {
+        link = moreNavigationButton.first();
+      } else if (linkConfig.scope === 'more-navigation') {
+        await expect(moreNavigationButton).toBeVisible();
+        await moreNavigationButton.click();
+        const moreNavigationMenu = authenticatedPage.getByRole('menu', {
+          name: /more navigation/i,
+        });
+        await expect(moreNavigationMenu).toBeVisible();
+        link = moreNavigationMenu
+          .getByRole('link', { name: toNamePattern(linkConfig.label) })
+          .first();
       } else if (linkConfig.scope === 'utilities-menu') {
         const utilitiesButton = authenticatedPage.getByRole('button', { name: /utilities/i });
         await expect(utilitiesButton).toBeVisible();
@@ -862,6 +880,9 @@ authTest.describe('Staff text visibility and link audit', () => {
       }
 
       await expect(link, `missing visible staff nav link for ${linkConfig.label}`).toBeVisible();
+      if (linkConfig.scope === 'more-button') {
+        continue;
+      }
       await link.click();
       await waitForAppRoute(authenticatedPage);
 

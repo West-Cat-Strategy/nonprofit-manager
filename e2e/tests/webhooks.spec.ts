@@ -1,6 +1,6 @@
 import '../helpers/testEnv';
-import { test, expect, APIRequestContext } from '@playwright/test';
-import { getSharedTestUser } from '../helpers/testUser';
+import { test, expect, APIRequestContext, type Page } from '@playwright/test';
+import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:3001';
 const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up/i;
@@ -8,16 +8,6 @@ const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket 
 type AuthSession = {
   token: string;
   organizationId?: string;
-};
-
-type LoginPayload = {
-  token: string;
-  organizationId?: string;
-  organization_id?: string;
-  user?: {
-    organizationId?: string;
-    organization_id?: string;
-  };
 };
 
 const isRetryableNetworkError = (error: unknown): boolean =>
@@ -69,58 +59,25 @@ const normalizeOrganizationId = (value: unknown): string | undefined => {
 const getErrorText = async (response: Awaited<ReturnType<APIRequestContext['get']>>): Promise<string> =>
   response.text().catch(() => '<unreadable response body>');
 
-const loginViaApi = async (
-  request: APIRequestContext,
-  email: string,
-  password: string
-): Promise<AuthSession | null> => {
-  const response = await withRequestRetry(() =>
-    request.post(`${API_URL}/api/v2/auth/login`, {
-      data: { email, password },
-      headers: { 'Content-Type': 'application/json' },
-    })
-  );
+const ensureAuthenticatedSession = async (page: Page): Promise<AuthSession> => {
+  const session = await ensureEffectiveAdminLoginViaAPI(page, {
+    firstName: 'Webhook',
+    lastName: 'Admin',
+    organizationName: 'Webhook Test Organization',
+  });
 
-  if (!response.ok()) {
-    return null;
+  const organizationId =
+    normalizeOrganizationId(session.user?.organizationId) ||
+    normalizeOrganizationId(session.user?.organization_id);
+
+  if (!organizationId) {
+    throw new Error('Unable to resolve organization id for webhooks E2E');
   }
 
-  const payload = unwrapApiData<LoginPayload>(await response.json());
   return {
-    token: payload.token,
-    organizationId:
-      normalizeOrganizationId(payload.organizationId) ||
-      normalizeOrganizationId(payload.organization_id) ||
-      normalizeOrganizationId(payload.user?.organizationId) ||
-      normalizeOrganizationId(payload.user?.organization_id),
+    token: session.token,
+    organizationId,
   };
-};
-
-const ensureAuthenticatedSession = async (request: APIRequestContext): Promise<AuthSession> => {
-  const sharedUser = getSharedTestUser();
-  const existing = await loginViaApi(request, sharedUser.email, sharedUser.password);
-  if (existing) {
-    return existing;
-  }
-
-  await withRequestRetry(() =>
-    request.post(`${API_URL}/api/v2/auth/register`, {
-      data: {
-        email: sharedUser.email,
-        password: sharedUser.password,
-        password_confirm: sharedUser.password,
-        first_name: 'Test',
-        last_name: 'User',
-      },
-      headers: { 'Content-Type': 'application/json' },
-    })
-  ).catch(() => undefined);
-
-  const afterBootstrap = await loginViaApi(request, sharedUser.email, sharedUser.password);
-  if (!afterBootstrap) {
-    throw new Error('Unable to establish authenticated session for webhooks E2E');
-  }
-  return afterBootstrap;
 };
 
 const getAuthHeaders = async (
@@ -180,8 +137,8 @@ const pickId = (value: Record<string, unknown>): string | null => {
 };
 
 test.describe('Webhooks Workflows', () => {
-  test('create and delete webhook endpoint with settings page check', async ({ request }) => {
-    const session = await ensureAuthenticatedSession(request);
+  test('create and delete webhook endpoint with settings page check', async ({ request, page }) => {
+    const session = await ensureAuthenticatedSession(page);
     const headers = await getAuthHeaders(request, session);
 
     const dashboardResponse = await withRequestRetry(() =>

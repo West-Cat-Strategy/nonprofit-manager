@@ -15,6 +15,7 @@ const CASE_COLUMNS = `
   c.contact_id,
   c.account_id,
   c.case_type_id,
+  c.outcome,
   c.status_id,
   c.priority,
   c.title,
@@ -27,7 +28,6 @@ const CASE_COLUMNS = `
   c.due_date,
   c.assigned_to,
   c.assigned_team,
-  c.outcome,
   c.outcome_notes,
   c.closure_reason,
   c.intake_data,
@@ -40,7 +40,23 @@ const CASE_COLUMNS = `
   c.created_at,
   c.updated_at,
   c.created_by,
-  c.modified_by
+  c.modified_by,
+  COALESCE((
+    SELECT ARRAY_AGG(cta.case_type_id ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC)
+    FROM case_type_assignments cta
+    WHERE cta.case_id = c.id
+  ), ARRAY[]::uuid[]) AS case_type_ids,
+  COALESCE((
+    SELECT ARRAY_AGG(ct.name ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC)
+    FROM case_type_assignments cta
+    INNER JOIN case_types ct ON ct.id = cta.case_type_id
+    WHERE cta.case_id = c.id
+  ), ARRAY[]::text[]) AS case_type_names,
+  COALESCE((
+    SELECT ARRAY_AGG(coa.outcome_value ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC)
+    FROM case_outcome_assignments coa
+    WHERE coa.case_id = c.id
+  ), ARRAY[]::text[]) AS case_outcome_values
 `;
 
 const CASE_SEARCH_SQL =
@@ -71,7 +87,13 @@ export const getCasesQuery = async (
   }
 
   if (filter.case_type_id) {
-    addFilter('c.case_type_id = ?', filter.case_type_id);
+    params.push(filter.case_type_id, filter.case_type_id);
+    filters.push(`(c.case_type_id = $${params.length - 1} OR EXISTS (
+      SELECT 1
+      FROM case_type_assignments cta
+      WHERE cta.case_id = c.id
+        AND cta.case_type_id = $${params.length}
+    ))`);
   }
 
   if (filter.status_id) {
@@ -594,10 +616,11 @@ export const getCaseSummaryQuery = async (db: Pool, organizationId?: string): Pr
 
   const typeResult = await db.query(
     `
-    SELECT ct.name, COUNT(*) as count
+    SELECT ct.name, COUNT(DISTINCT cta.case_id) as count
     FROM cases c
     LEFT JOIN contacts con ON con.id = c.contact_id
-    JOIN case_types ct ON c.case_type_id = ct.id
+    JOIN case_type_assignments cta ON cta.case_id = c.id
+    JOIN case_types ct ON cta.case_type_id = ct.id
     ${scopeClause}
     GROUP BY ct.name
     ORDER BY count DESC

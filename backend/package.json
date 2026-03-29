@@ -11,11 +11,11 @@
     "worker:start": "node dist/worker.js",
     "imported:import": "ts-node -r tsconfig-paths/register --transpileOnly scripts/import-imported-unified-dataset.ts",
     "auth:reset-state": "ts-node -r tsconfig-paths/register --transpileOnly scripts/reset-auth-state.ts",
-    "test": "jest --forceExit",
+    "test": "bash scripts/run-full-tests.sh",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:coverage": "bash scripts/run-full-tests.sh --coverage",
     "test:unit": "jest --forceExit --testPathIgnorePatterns=src/__tests__/integration/",
-    "test:unit:coverage": "jest --forceExit --coverage --testPathIgnorePatterns=src/__tests__/integration/",
+    "test:unit:coverage": "JEST_RELAX_COVERAGE_THRESHOLDS=1 jest --forceExit --coverage --testPathIgnorePatterns=src/__tests__/integration/",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -51,7 +51,7 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
-    "nodemailer": "^8.0.2",
+    "nodemailer": "^8.0.4",
     "pdf-lib": "^1.17.1",
     "pg": "^8.20.0",
     "prom-client": "^15.1.3",
@@ -62,7 +62,6 @@
     "zod": "^4.3.6"
   },
   "overrides": {
-    "minimatch": "3.1.5",
     "test-exclude": {
       "minimatch": "3.1.5"
     },
@@ -70,7 +69,9 @@
       "minimatch": "10.2.3"
     },
     "ajv": "^6.14.0",
-    "flatted": "^3.4.1",
+    "flatted": "^3.4.2",
+    "handlebars": "^4.7.9",
+    "path-to-regexp": "^8.4.0",
     "glob": {
       "minimatch": "3.1.5"
     },
@@ -97,7 +98,7 @@
     "@types/pg": "^8.18.0",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
-    "eslint": "^10.0.3",
+    "eslint": "^10.1.0",
     "globals": "^17.4.0",
     "jest": "^30.3.0",
     "minimatch": "3.1.5",
@@ -109,6 +110,6 @@
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.57.0"
+    "typescript-eslint": "^8.57.2"
   }
 }

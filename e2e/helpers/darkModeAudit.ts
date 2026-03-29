@@ -143,8 +143,8 @@ export async function ensureDarkMode(page: Page, theme: string = 'glass'): Promi
 
 export async function waitForSettledPage(page: Page): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForLoadState('networkidle').catch(() => undefined);
-  await page.getByText('Loading...').waitFor({ state: 'hidden', timeout: 30000 }).catch(() => undefined);
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
+  await page.getByText('Loading...').waitFor({ state: 'hidden', timeout: 8000 }).catch(() => undefined);
 }
 
 export async function assertDarkModeApplied(page: Page): Promise<boolean> {

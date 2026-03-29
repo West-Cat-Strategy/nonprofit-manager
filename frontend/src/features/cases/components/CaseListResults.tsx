@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { BrutalBadge, BrutalCard } from '../../../components/neo-brutalist';
 import type { CaseStatusType, CaseWithDetails } from '../../../types/case';
 import { getCasePriorityBadgeColor } from '../utils/casePriority';
+import { summarizeLabels } from '../utils/caseClassification';
 
 const getStatusTypeBadgeColor = (
   statusType: CaseStatusType,
@@ -15,6 +16,12 @@ const getStatusTypeBadgeColor = (
   };
   return colors[statusType];
 };
+
+const getTypeLabels = (caseItem: CaseWithDetails) =>
+  summarizeLabels(
+    caseItem.case_type_names?.length ? caseItem.case_type_names : [caseItem.case_type_name || 'General'],
+    2
+  );
 
 export interface CaseDisplayMeta {
   isOverdue: boolean;
@@ -43,7 +50,7 @@ export const MobileCaseCard = memo(
     onNavigateCase,
     onEditCase,
   }: MobileCaseCardProps) => (
-    <div data-testid="mobile-case-card">
+  <div data-testid="mobile-case-card">
       <BrutalCard
         color="white"
         className={`p-4 cursor-pointer transition-colors ${caseMeta.isOverdue ? 'border-app-border bg-app-accent-soft' : 'hover:bg-[var(--loop-yellow)]'}`}
@@ -86,9 +93,19 @@ export const MobileCaseCard = memo(
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-black/70">
-          <span className="inline-block border-2 border-black bg-app-surface-muted px-2 py-1 text-xs font-black uppercase text-black">
-            {caseItem.case_type_name || 'General'}
-          </span>
+          {getTypeLabels(caseItem).visible.map((label) => (
+            <span
+              key={label}
+              className="inline-block border-2 border-black bg-app-surface-muted px-2 py-1 text-xs font-black uppercase text-black"
+            >
+              {label}
+            </span>
+          ))}
+          {getTypeLabels(caseItem).hiddenCount > 0 && (
+            <span className="inline-block border-2 border-black bg-[var(--loop-green)] px-2 py-1 text-xs font-black uppercase text-black">
+              +{getTypeLabels(caseItem).hiddenCount}
+            </span>
+          )}
           <span>Assigned: {caseMeta.assignedLabel}</span>
           <span>Age: {caseMeta.ageLabel}</span>
           {caseItem.due_date && (
@@ -189,9 +206,21 @@ export const DesktopCaseRow = memo(
         <div className="text-sm font-bold text-black">{caseMeta.contactLabel}</div>
       </td>
       <td className="px-4 py-4 whitespace-nowrap">
-        <span className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black">
-          {caseItem.case_type_name || 'General'}
-        </span>
+        <div className="flex flex-wrap gap-2">
+          {getTypeLabels(caseItem).visible.map((label) => (
+            <span
+              key={label}
+              className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
+            >
+              {label}
+            </span>
+          ))}
+          {getTypeLabels(caseItem).hiddenCount > 0 && (
+            <span className="inline-block border-2 border-black bg-[var(--loop-green)] px-3 py-1 text-xs font-black uppercase text-black">
+              +{getTypeLabels(caseItem).hiddenCount}
+            </span>
+          )}
+        </div>
       </td>
       <td className="px-4 py-4 whitespace-nowrap">
         <BrutalBadge

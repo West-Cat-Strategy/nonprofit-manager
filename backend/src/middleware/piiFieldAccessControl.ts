@@ -19,6 +19,9 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+const shouldBypassPIIMaskingForTests = (): boolean =>
+  process.env.NODE_ENV === 'test' && process.env.DISABLE_PII_MASKING_IN_TEST === 'true';
+
 /**
  * Middleware to apply PII field-level access control
  * 
@@ -27,6 +30,10 @@ interface AuthenticatedRequest extends Request {
  */
 export function piiFieldAccessControl(piiService: PIIService, tableName?: string) {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (shouldBypassPIIMaskingForTests()) {
+      return next();
+    }
+
     // Store original res.json to intercept responses
     const originalJson = res.json.bind(res);
 

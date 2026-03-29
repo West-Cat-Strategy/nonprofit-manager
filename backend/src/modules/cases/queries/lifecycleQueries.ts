@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, QueryResult } from 'pg';
 import { logger } from '@config/logger';
 import type {
   BulkStatusUpdateDTO,
@@ -11,13 +11,127 @@ import type {
 import { createCaseWorkflowArtifacts } from '@services/caseWorkflowService';
 import { generateCaseNumber, normalizeCasePriority } from './shared';
 
+const dedupeStrings = (values: Array<string | null | undefined>): string[] => {
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  for (const rawValue of values) {
+    if (typeof rawValue !== 'string') continue;
+    const value = rawValue.trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    result.push(value);
+  }
+
+  return result;
+};
+
+const normalizeStringArray = (values: Array<string | null | undefined> | undefined): string[] | undefined => {
+  if (!Array.isArray(values)) return values;
+  return dedupeStrings(values);
+};
+
+const normalizeSingleString = (value: string | null | undefined): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const resolveCaseTypeIds = (data: { case_type_id?: string; case_type_ids?: string[] }): string[] => {
+  const normalizedIds = normalizeStringArray(data.case_type_ids);
+  if (normalizedIds && normalizedIds.length > 0) {
+    return normalizedIds;
+  }
+
+  const singleTypeId = normalizeSingleString(data.case_type_id);
+  return singleTypeId ? [singleTypeId] : [];
+};
+
+const resolveCaseOutcomeValues = (data: { outcome?: string | null; case_outcome_values?: string[] }): string[] => {
+  const normalizedValues = normalizeStringArray(data.case_outcome_values);
+  if (normalizedValues && normalizedValues.length > 0) {
+    return normalizedValues;
+  }
+
+  const singleOutcome = normalizeSingleString(data.outcome);
+  return singleOutcome ? [singleOutcome] : [];
+};
+
+const persistCaseTypeAssignments = async (
+  db: Pool,
+  caseId: string,
+  caseTypeIds: string[],
+  userId?: string
+): Promise<void> => {
+  await db.query(`DELETE FROM case_type_assignments WHERE case_id = $1`, [caseId]);
+
+  if (caseTypeIds.length === 0) {
+    return;
+  }
+
+  await db.query(
+    `
+    INSERT INTO case_type_assignments (
+      case_id,
+      case_type_id,
+      sort_order,
+      is_primary,
+      created_by,
+      modified_by
+    )
+    SELECT
+      $1,
+      input.case_type_id,
+      input.sort_order - 1,
+      input.sort_order = 1,
+      $2,
+      $2
+    FROM unnest($3::uuid[]) WITH ORDINALITY AS input(case_type_id, sort_order)
+  `,
+    [caseId, userId || null, caseTypeIds]
+  );
+};
+
+const persistCaseOutcomeAssignments = async (
+  db: Pool,
+  caseId: string,
+  outcomeValues: string[],
+  userId?: string
+): Promise<void> => {
+  await db.query(`DELETE FROM case_outcome_assignments WHERE case_id = $1`, [caseId]);
+
+  if (outcomeValues.length === 0) {
+    return;
+  }
+
+  await db.query(
+    `
+    INSERT INTO case_outcome_assignments (
+      case_id,
+      outcome_value,
+      sort_order,
+      is_primary,
+      created_by,
+      modified_by
+    )
+    SELECT
+      $1,
+      input.outcome_value,
+      input.sort_order - 1,
+      input.sort_order = 1,
+      $2,
+      $2
+    FROM unnest($3::text[]) WITH ORDINALITY AS input(outcome_value, sort_order)
+  `,
+    [caseId, userId || null, outcomeValues]
+  );
+};
+
 export const createCaseQuery = async (
   db: Pool,
   data: CreateCaseDTO,
   userId?: string
 ): Promise<Case> => {
-  const caseNumber = await generateCaseNumber(db);
-
   const statusResult = await db.query(
     `SELECT id FROM case_statuses WHERE status_type = 'intake' AND is_active = true ORDER BY sort_order LIMIT 1`
   );
@@ -26,40 +140,70 @@ export const createCaseQuery = async (
   if (!statusId) {
     throw new Error('No active intake status found');
   }
+  let result: QueryResult<Case> | null = null;
+  let caseNumber = '';
+  const caseTypeIds = resolveCaseTypeIds(data);
+  const caseOutcomeValues = resolveCaseOutcomeValues(data);
 
-  const result = await db.query(
-    `
-    INSERT INTO cases (
-      case_number, contact_id, account_id, case_type_id, status_id,
-      title, description, priority, source, referral_source,
-      assigned_to, assigned_team, due_date, intake_data, custom_data,
-      tags, is_urgent, client_viewable, created_by, modified_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
-    RETURNING *
-  `,
-    [
-      caseNumber,
-      data.contact_id,
-      data.account_id || null,
-      data.case_type_id,
-      statusId,
-      data.title,
-      data.description || null,
-      normalizeCasePriority(data.priority) || 'medium',
-      data.source || null,
-      data.referral_source || null,
-      data.assigned_to || null,
-      data.assigned_team || null,
-      data.due_date || null,
-      JSON.stringify(data.intake_data || null),
-      JSON.stringify(data.custom_data || null),
-      data.tags || null,
-      data.is_urgent || false,
-      data.client_viewable || false,
-      userId,
-      userId,
-    ]
-  );
+  if (caseTypeIds.length === 0) {
+    throw new Error('At least one case type is required');
+  }
+
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    caseNumber = await generateCaseNumber(db);
+
+    try {
+      result = await db.query(
+        `
+        INSERT INTO cases (
+          case_number, contact_id, account_id, case_type_id, status_id,
+          title, description, priority, outcome, source, referral_source,
+          assigned_to, assigned_team, due_date, intake_data, custom_data,
+          tags, is_urgent, client_viewable, created_by, modified_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        RETURNING *
+      `,
+        [
+          caseNumber,
+          data.contact_id,
+          data.account_id || null,
+          caseTypeIds[0],
+          statusId,
+          data.title,
+          data.description || null,
+          normalizeCasePriority(data.priority) || 'medium',
+          caseOutcomeValues[0] || null,
+          data.source || null,
+          data.referral_source || null,
+          data.assigned_to || null,
+          data.assigned_team || null,
+          data.due_date || null,
+          JSON.stringify(data.intake_data || null),
+          JSON.stringify(data.custom_data || null),
+          data.tags || null,
+          data.is_urgent || false,
+          data.client_viewable || false,
+          userId,
+          userId,
+        ]
+      );
+      break;
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      const constraint = (error as { constraint?: string }).constraint;
+      if (code === '23505' && constraint === 'cases_case_number_key' && attempt < 5) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  if (!result) {
+    throw new Error('Failed to create case after retrying case number generation');
+  }
+
+  await persistCaseTypeAssignments(db, result.rows[0].id, caseTypeIds, userId);
+  await persistCaseOutcomeAssignments(db, result.rows[0].id, caseOutcomeValues, userId);
 
   await db.query(
     `INSERT INTO case_notes (case_id, note_type, content, created_by) VALUES ($1, 'note', $2, $3)`,
@@ -79,6 +223,14 @@ export const updateCaseQuery = async (
   const fields: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
+  const hasCaseTypeInput = data.case_type_id !== undefined || data.case_type_ids !== undefined;
+  const hasCaseOutcomeInput = data.outcome !== undefined || data.case_outcome_values !== undefined;
+  const caseTypeIds = hasCaseTypeInput ? resolveCaseTypeIds(data) : [];
+  const caseOutcomeValues = hasCaseOutcomeInput ? resolveCaseOutcomeValues(data) : [];
+
+  if (hasCaseTypeInput && caseTypeIds.length === 0) {
+    throw new Error('At least one case type is required');
+  }
 
   if (data.title !== undefined) {
     fields.push(`title = $${paramIndex++}`);
@@ -93,6 +245,11 @@ export const updateCaseQuery = async (
   if (data.priority !== undefined) {
     fields.push(`priority = $${paramIndex++}`);
     values.push(normalizeCasePriority(data.priority));
+  }
+
+  if (hasCaseTypeInput) {
+    fields.push(`case_type_id = $${paramIndex++}`);
+    values.push(caseTypeIds[0]);
   }
 
   if (data.assigned_to !== undefined) {
@@ -125,9 +282,9 @@ export const updateCaseQuery = async (
     values.push(JSON.stringify(data.custom_data));
   }
 
-  if (data.outcome !== undefined) {
+  if (hasCaseOutcomeInput) {
     fields.push(`outcome = $${paramIndex++}`);
-    values.push(data.outcome);
+    values.push(caseOutcomeValues[0] || null);
   }
 
   if (data.outcome_notes !== undefined) {
@@ -159,6 +316,14 @@ export const updateCaseQuery = async (
     `UPDATE cases SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
     values
   );
+
+  if (hasCaseTypeInput) {
+    await persistCaseTypeAssignments(db, caseId, caseTypeIds, userId);
+  }
+
+  if (hasCaseOutcomeInput) {
+    await persistCaseOutcomeAssignments(db, caseId, caseOutcomeValues, userId);
+  }
 
   return result.rows[0];
 };

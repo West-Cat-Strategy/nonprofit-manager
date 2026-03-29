@@ -49,8 +49,31 @@ npm run test:report
 
 - `npm test`: local default run using the Playwright web servers
 - `npm run test:smoke`: Chromium smoke slice
-- `npm run test:ci`: Chromium, Firefox, and WebKit matrix
+- `npm run test:ci`: Chromium, Firefox, and WebKit functional matrix
+- `npm run test:docker`: run against an already running Docker app stack on `8005/8004`
+- `npm run test:docker:smoke`: Chromium smoke slice against Docker-hosted services
+- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services
+- `npm run test:docker:audit`: dedicated Chromium dark-mode route audit against Docker-hosted services
 - `npm run test:report`: open the HTML report
+
+## Docker App Stack Runtime
+
+If you want Playwright to target the Docker development stack instead of starting host processes:
+
+```bash
+make docker-up-dev
+cd e2e
+npm run test:docker:smoke
+npm run test:docker:ci
+npm run test:docker:audit
+```
+
+These commands assume:
+
+- Frontend: `http://127.0.0.1:8005`
+- Backend API: `http://127.0.0.1:8004`
+- `SKIP_WEBSERVER=1`
+- `PW_REUSE_EXISTING_SERVER=1`
 
 ## Strict Route-Health Example
 
@@ -74,6 +97,13 @@ Run the full dark-mode route audit and generate a markdown findings report:
 
 ```bash
 cd e2e
+npm run test:docker:audit
+```
+
+Or against the default Playwright-managed runtime:
+
+```bash
+cd e2e
 npx playwright test tests/dark-mode-accessibility-audit.spec.ts --project=chromium
 ```
 
@@ -92,7 +122,7 @@ npm run test:debug
 npx playwright test --debug
 ```
 
-If you want to reuse already running services, set `PW_REUSE_EXISTING_SERVER=1`. If you want to disable Playwright-managed web servers entirely, set `SKIP_WEBSERVER=1` and provide matching `BASE_URL` and `API_URL`.
+If you want to reuse already running services, set `PW_REUSE_EXISTING_SERVER=1`. If you want to disable Playwright-managed web servers entirely, set `SKIP_WEBSERVER=1` and provide matching `BASE_URL` and `API_URL`, or use the `npm run test:docker*` commands above.
 
 ## Related References
 

@@ -15,9 +15,15 @@ const CaseCreate = () => {
 
   const initialData = useMemo<Partial<CreateCaseDTO>>(() => {
     const isUrgent = searchParams.get('is_urgent');
+    const caseTypeIds = searchParams
+      .get('case_type_ids')
+      ?.split(',')
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
     return {
       contact_id: searchParams.get('contact_id') || undefined,
-      case_type_id: searchParams.get('case_type_id') || undefined,
+      case_type_id: searchParams.get('case_type_id') || caseTypeIds?.[0] || undefined,
+      case_type_ids: caseTypeIds?.length ? caseTypeIds : undefined,
       title: searchParams.get('title') || undefined,
       description: searchParams.get('description') || undefined,
       priority: (searchParams.get('priority') as CreateCaseDTO['priority']) || undefined,

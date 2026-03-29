@@ -9,9 +9,9 @@ This file is the active test command map for nonprofit-manager. Use it with [../
 | Layer | Primary Command | Notes |
 |------|------------------|-------|
 | Repo-wide validation | `make test` | Runs backend, frontend, and Playwright on the CI-style local stack |
-| Backend unit/integration | `cd backend && npm test` / `cd backend && npm run test:integration` | Backend uses Jest |
+| Backend unit/integration | `cd backend && npm test` / `cd backend && npm run test:integration` | `npm test` prepares the CI-style test DB before running the full Jest suite |
 | Frontend unit/component | `cd frontend && npm test -- --run` | Frontend uses Vitest |
-| E2E | `cd e2e && npm test` | Playwright starts frontend/backend by default |
+| E2E | `cd e2e && npm test` | Playwright starts frontend/backend by default; use `npm run test:docker` against `make docker-up-dev` |
 | Docs validation | `make check-links` and `make lint-doc-api-versioning` | Use when docs changed |
 
 ## Runtime Matrix
@@ -21,6 +21,7 @@ This file is the active test command map for nonprofit-manager. Use it with [../
 | Docker development | `8005` | `8004` | Started with `make dev` |
 | Direct backend runtime | n/a | `3000` | `cd backend && npm run dev` |
 | E2E harness | `5173` | `3001` | Started by Playwright |
+| Docker-backed E2E | `8005` | `8004` | Start with `make docker-up-dev`, then run `cd e2e && npm run test:docker*` |
 
 ## Default Commands
 
@@ -67,6 +68,10 @@ npm run type-check
 cd e2e
 npm test
 npm run test:smoke
+npm run test:docker
+npm run test:docker:smoke
+npm run test:docker:ci
+npm run test:docker:audit
 npm run test:headed
 npm run test:ui
 npm run test:ci

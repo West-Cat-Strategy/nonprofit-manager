@@ -13,7 +13,7 @@ createRoot(rootElement).render(
   <MemoryRouter initialEntries={['/grants/awards']}>
     <div className="min-h-screen bg-app-bg text-app-text">
       <Routes>
-        <Route path="/grants/*" element={<GrantsPage />} />
+        <Route path="/grants/awards" element={<GrantsPage />} />
       </Routes>
     </div>
   </MemoryRouter>

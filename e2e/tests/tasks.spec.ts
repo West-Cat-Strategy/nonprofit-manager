@@ -132,8 +132,8 @@ test.describe('Tasks Module', () => {
     await expect(authenticatedPage.getByLabel('Filter by priority')).toHaveValue('high');
     await expect(
       authenticatedPage
-        .locator('tbody tr, p')
-        .filter({ hasText: /no tasks match your current filters|in progress|high/i })
+        .locator('tbody tr')
+        .filter({ hasText: /In Progress High Priority/i })
         .first()
     ).toBeVisible({ timeout: 15000 });
   });

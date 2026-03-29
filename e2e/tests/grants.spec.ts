@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { test, expect } from '../fixtures/auth.fixture';
+import type { Page } from '@playwright/test';
 import { waitForPageReady } from '../helpers/routeHelpers';
 
 type MockGrantEntity = {
@@ -557,49 +558,42 @@ const installMockGrantsApi = async (page: Page, dataset: MockGrantDataset): Prom
 };
 
 test.describe('Grants workspace', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
-  });
-
-  test('loads the internal grants workspace harness', async ({ page }) => {
+  test('loads the internal grants workspace harness', async ({ authenticatedPage }) => {
     const dataset = createDataset([]);
-    await installMockGrantsApi(page, dataset);
+    await installMockGrantsApi(authenticatedPage, dataset);
 
-    await page.goto('/grants-smoke.html', { waitUntil: 'domcontentloaded' });
-    await waitForPageReady(page, {
+    await authenticatedPage.goto('/grants-smoke.html', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(authenticatedPage, {
       selectors: ['h1:has-text("Grants")'],
     });
 
-    await expect(page.getByRole('heading', { name: 'Grants' })).toBeVisible();
-    await expect(page.getByLabel('Search')).toBeVisible();
-    await expect(page.getByLabel('Status')).toBeVisible();
-    await expect(page.getByLabel('Jurisdiction')).toBeVisible();
-    await expect(page.getByLabel('Page Size')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Clear filters' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Program' })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Recipient' })).toBeVisible();
+    await expect(authenticatedPage.getByRole('heading', { name: 'Grants' })).toBeVisible();
+    await expect(authenticatedPage.getByLabel('Search')).toBeVisible();
+    await expect(authenticatedPage.getByLabel('Status')).toBeVisible();
+    await expect(authenticatedPage.getByLabel('Jurisdiction')).toBeVisible();
+    await expect(authenticatedPage.getByLabel('Page Size')).toBeVisible();
+    await expect(authenticatedPage.getByRole('button', { name: 'Clear filters' })).toBeVisible();
+    await expect(authenticatedPage.getByRole('columnheader', { name: 'Program' })).toBeVisible();
+    await expect(authenticatedPage.getByRole('columnheader', { name: 'Recipient' })).toBeVisible();
   });
 
-  test('filters awards and clears the active filters', async ({ page }) => {
+  test('filters awards and clears the active filters', async ({ authenticatedPage }) => {
     const dataset = createDefaultDataset();
-    await installMockGrantsApi(page, dataset);
+    await installMockGrantsApi(authenticatedPage, dataset);
 
-    await page.goto('/grants-smoke.html', { waitUntil: 'domcontentloaded' });
-    await waitForPageReady(page, {
+    await authenticatedPage.goto('/grants-smoke.html', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(authenticatedPage, {
       selectors: ['h1:has-text("Grants")'],
     });
 
-    const tableRows = page.locator('table tbody tr');
-    const searchInput = page.getByLabel('Search');
-    const clearFiltersButton = page.getByRole('button', { name: 'Clear filters' });
+    const tableRows = authenticatedPage.locator('table tbody tr');
+    const searchInput = authenticatedPage.getByLabel('Search');
+    const clearFiltersButton = authenticatedPage.getByRole('button', { name: 'Clear filters' });
     const searchTerm = 'Capital Renovation Grant';
 
     await expect(clearFiltersButton).toBeDisabled();
 
-    const searchRequest = page.waitForResponse((response) => {
+    const searchRequest = authenticatedPage.waitForResponse((response) => {
       if (response.request().method() !== 'GET' || response.status() !== 200) {
         return false;
       }
@@ -622,7 +616,7 @@ test.describe('Grants workspace', () => {
     await expect(tableRows.first()).toContainText('Capital Renovation Grant');
     await expect(clearFiltersButton).toBeEnabled();
 
-    const resetRequest = page.waitForResponse((response) => {
+    const resetRequest = authenticatedPage.waitForResponse((response) => {
       if (response.request().method() !== 'GET' || response.status() !== 200) {
         return false;
       }
@@ -639,6 +633,6 @@ test.describe('Grants workspace', () => {
       timeout: 30_000,
     });
     await expect(clearFiltersButton).toBeDisabled();
-    await expect(page.getByText('Staff Training Grant')).toBeVisible();
+    await expect(authenticatedPage.getByText('Staff Training Grant')).toBeVisible();
   });
 });

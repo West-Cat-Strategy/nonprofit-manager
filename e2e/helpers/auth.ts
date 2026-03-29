@@ -140,6 +140,20 @@ const extractApiErrorMessage = (payload: unknown, fallback: string): string => {
   return fallback;
 };
 
+const extractAuthTokenFromSetCookie = (setCookieHeader: string | undefined): string | undefined => {
+  if (!setCookieHeader) {
+    return undefined;
+  }
+
+  const match = setCookieHeader.match(/(?:^|[\n,]\s*)auth_token=([^;]+)/i);
+  if (!match || !match[1]) {
+    return undefined;
+  }
+
+  const token = match[1].trim();
+  return token.length > 0 ? token : undefined;
+};
+
 const INVALID_CREDENTIAL_PATTERNS = [
   'invalid credentials',
   'invalid email',
@@ -271,11 +285,28 @@ const resolveJwtSecret = (): string | null => {
     return process.env.JWT_SECRET.trim();
   }
 
-  const envFiles = [
-    path.resolve(__dirname, '..', '..', 'backend', '.env.test.local'),
-    path.resolve(__dirname, '..', '..', 'backend', '.env.test'),
-    path.resolve(__dirname, '..', '..', 'backend', '.env'),
-  ];
+  const isDockerBackedRun =
+    process.env.SKIP_WEBSERVER === '1' ||
+    process.env.API_URL?.includes(':8004') ||
+    process.env.BASE_URL?.includes(':8005');
+
+  const envFiles = isDockerBackedRun
+    ? [
+        path.resolve(__dirname, '..', '..', '.env.development.local'),
+        path.resolve(__dirname, '..', '..', '.env.development'),
+        path.resolve(__dirname, '..', '..', 'backend', '.env.test.local'),
+        path.resolve(__dirname, '..', '..', 'backend', '.env.test'),
+        path.resolve(__dirname, '..', '..', 'backend', '.env'),
+        path.resolve(__dirname, '..', '..', '.env'),
+      ]
+    : [
+        path.resolve(__dirname, '..', '..', 'backend', '.env.test.local'),
+        path.resolve(__dirname, '..', '..', 'backend', '.env.test'),
+        path.resolve(__dirname, '..', '..', '.env.development.local'),
+        path.resolve(__dirname, '..', '..', '.env.development'),
+        path.resolve(__dirname, '..', '..', 'backend', '.env'),
+        path.resolve(__dirname, '..', '..', '.env'),
+      ];
 
   for (const envFile of envFiles) {
     const envSecret = readEnvValueFromFile(envFile, 'JWT_SECRET');
@@ -1032,7 +1063,9 @@ export async function loginViaAPI(
   }>(
     await response.json()
   );
-  expect(data.token).toBeDefined();
+  const token =
+    normalizeString(data.token) || extractAuthTokenFromSetCookie(response.headers()['set-cookie']);
+  expect(token).toBeDefined();
   expect(data.user).toBeDefined();
   const organizationId = resolveOrganizationIdFromPayload(data);
   const authUser = normalizeAuthUser(data.user);
@@ -1041,7 +1074,7 @@ export async function loginViaAPI(
   const bootstrapSession = await primeValidatedBrowserAuthSession(
     page,
     {
-      token: data.token,
+      token: token as string,
       organizationId,
       user: authUser,
     },
@@ -1056,14 +1089,14 @@ export async function loginViaAPI(
 
   if (!bootstrapSession) {
     return {
-      token: data.token,
+      token: token as string,
       user: authUser,
       organizationId,
     };
   }
 
   return {
-    token: data.token,
+    token: token as string,
     user: bootstrapSession.user,
     organizationId: bootstrapSession.organizationId,
   };
@@ -1520,15 +1553,6 @@ export async function ensureLoginViaAPI(
   }
 
   try {
-    // Fast path: user may already exist from a previous run.
-    try {
-      const existing = await attemptLogin();
-      writeReadyAuthCache(email);
-      return existing;
-    } catch {
-      // Continue with setup/user creation flow below.
-    }
-
     const setupStatus = await getSetupStatusOrNull(page, { attempts: 3, delayMs: 200 });
     if (!setupStatus || setupStatus.setupRequired) {
       await ensureSetupComplete(page, email, password, profile);
@@ -1546,6 +1570,9 @@ export async function ensureLoginViaAPI(
 
     try {
       await createTestUser(page, { email, password, firstName, lastName });
+      const registeredUser = await attemptLogin();
+      writeReadyAuthCache(email);
+      return registeredUser;
     } catch (registerError) {
       const registerMessage =
         registerError instanceof Error ? registerError.message : String(registerError);

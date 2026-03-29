@@ -3,10 +3,67 @@
  */
 
 import { test, expect } from '../fixtures/auth.fixture';
-import { createTestAccount, createTestDonation } from '../helpers/database';
+import type { Page } from '@playwright/test';
+import { createTestAccount, createTestDonation, getAuthHeaders } from '../helpers/database';
+import { unwrapSuccess } from '../helpers/apiEnvelope';
 
 const makeUnique = (prefix: string): string =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+const apiURL = process.env.API_URL || 'http://localhost:3001';
+
+async function ensureTaxReceiptSettings(authenticatedPage: Page, token: string): Promise<void> {
+  const headers = await getAuthHeaders(authenticatedPage, token);
+  const response = await authenticatedPage.request.put(`${apiURL}/api/v2/admin/organization-settings`, {
+    headers,
+    data: {
+      config: {
+        name: 'Receipt Test Organization',
+        email: 'receipts@example.com',
+        phone: '604-555-0100',
+        website: 'https://example.com',
+        address: {
+          line1: '100 Main Street',
+          line2: '',
+          city: 'Vancouver',
+          province: 'BC',
+          postalCode: 'V5K 0A1',
+          country: 'Canada',
+        },
+        timezone: 'America/Vancouver',
+        dateFormat: 'YYYY-MM-DD',
+        currency: 'CAD',
+        fiscalYearStart: '01',
+        measurementSystem: 'metric',
+        phoneFormat: 'canadian',
+        taxReceipt: {
+          legalName: 'Receipt Test Organization',
+          charitableRegistrationNumber: '12345 6789 RR0001',
+          receiptingAddress: {
+            line1: '100 Main Street',
+            line2: '',
+            city: 'Vancouver',
+            province: 'BC',
+            postalCode: 'V5K 0A1',
+            country: 'Canada',
+          },
+          receiptIssueLocation: 'Vancouver, BC',
+          authorizedSignerName: 'Test Signer',
+          authorizedSignerTitle: 'Executive Director',
+          contactEmail: 'receipts@example.com',
+          contactPhone: '604-555-0100',
+          advantageAmount: 0,
+        },
+      },
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to seed organization receipting settings (${response.status()}): ${await response.text()}`
+    );
+  }
+}
 
 test.describe('Donations Module', () => {
   test('should display donations list page', async ({ authenticatedPage }) => {
@@ -100,6 +157,9 @@ test.describe('Donations Module', () => {
     });
 
     await authenticatedPage.goto(`/donations/${donationId}`);
+    await expect(authenticatedPage.getByRole('button', { name: 'Edit' })).toBeVisible({
+      timeout: 15000,
+    });
     await authenticatedPage.getByRole('button', { name: 'Edit' }).click();
     await authenticatedPage.waitForURL(new RegExp(`/donations/${donationId}/edit$`));
 
@@ -116,7 +176,14 @@ test.describe('Donations Module', () => {
     const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
       name: `Receipt Test Donor ${unique}`,
       email: `${unique}@example.com`,
+      addressLine1: '123 Receipt Way',
+      city: 'Vancouver',
+      stateProvince: 'BC',
+      postalCode: 'V5K 0A1',
+      country: 'Canada',
     });
+
+    await ensureTaxReceiptSettings(authenticatedPage, authToken);
 
     const { id: donationId } = await createTestDonation(authenticatedPage, authToken, {
       accountId,
@@ -126,14 +193,59 @@ test.describe('Donations Module', () => {
 
     await authenticatedPage.goto(`/donations/${donationId}`);
 
-    const sendReceiptButton = authenticatedPage.getByRole('button', { name: 'Send Receipt' });
-    await expect(sendReceiptButton).toBeVisible();
+    const issueTaxReceiptButton = authenticatedPage.getByRole('button', { name: 'Issue Tax Receipt' });
+    const downloadReceiptButton = authenticatedPage.getByRole('button', { name: 'Download Receipt' });
+    const headers = await getAuthHeaders(authenticatedPage, authToken);
+    const issueReceiptPathAvailable = await issueTaxReceiptButton
+      .waitFor({ state: 'visible', timeout: 3000 })
+      .then(() => true)
+      .catch(() => false);
 
-    await sendReceiptButton.click();
-    await authenticatedPage.getByRole('button', { name: 'Mark as Sent' }).click();
+    if (issueReceiptPathAvailable) {
+      await issueTaxReceiptButton.click();
+      await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
 
-    await expect(authenticatedPage.getByRole('button', { name: 'Send Receipt' })).not.toBeVisible();
-    await expect(authenticatedPage.locator('dd', { hasText: /sent/i }).first()).toBeVisible();
+      const issueReceiptResponsePromise = authenticatedPage.waitForResponse((response) => {
+        if (response.request().method() !== 'POST') {
+          return false;
+        }
+
+        return /\/api\/v2\/donations\/[^/]+\/tax-receipts$/.test(response.url());
+      });
+
+      await authenticatedPage.getByRole('button', { name: /^issue receipt$/i }).click();
+      const issueReceiptResponse = await issueReceiptResponsePromise;
+      expect(issueReceiptResponse.ok()).toBeTruthy();
+    } else {
+      await expect(downloadReceiptButton).toBeVisible({ timeout: 15000 });
+    }
+
+    const donationDetailResponse = await authenticatedPage.request.get(
+      `${apiURL}/api/v2/donations/${donationId}`,
+      { headers }
+    );
+    expect(donationDetailResponse.ok()).toBeTruthy();
+    const donationDetail = unwrapSuccess<Record<string, unknown>>(await donationDetailResponse.json());
+    const receiptIdValue = donationDetail['official_tax_receipt_id'];
+    expect(typeof receiptIdValue === 'string' && receiptIdValue.length > 0).toBeTruthy();
+    const receiptId = receiptIdValue as string;
+
+    const pdfResponse = await authenticatedPage.request.get(
+      `${apiURL}/api/v2/donations/tax-receipts/${receiptId}/pdf`,
+      { headers }
+    );
+    expect(pdfResponse.ok()).toBeTruthy();
+    const contentDisposition = pdfResponse.headers()['content-disposition'];
+    expect(contentDisposition?.toLowerCase()).toContain('.pdf');
+    expect(pdfResponse.headers()['content-type']).toContain('application/pdf');
+
+    await expect(authenticatedPage.getByRole('button', { name: 'Download Receipt' })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(authenticatedPage.getByRole('button', { name: 'Email Receipt' })).toBeVisible();
+    await expect(authenticatedPage.getByText('Marked as sent')).toBeVisible();
+    await expect(authenticatedPage.getByText('Not marked')).not.toBeVisible();
+    await expect(authenticatedPage.getByText('Not issued yet')).not.toBeVisible();
   });
 
   test('should filter donations by payment status', async ({ authenticatedPage, authToken }) => {

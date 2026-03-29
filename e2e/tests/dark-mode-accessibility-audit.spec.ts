@@ -503,50 +503,60 @@ async function auditRoute(input: {
 }): Promise<RouteAuditRecord> {
   const { page, entry, resolvedPath, fixtureState } = input;
   let screenshot: string | undefined;
+  const routeTimeoutMs = 15000;
 
   try {
-    await ensureDarkMode(page);
-    await page.goto(resolvedPath, { waitUntil: 'domcontentloaded' });
-    await waitForSettledPage(page);
+    return await Promise.race([
+      (async () => {
+        await ensureDarkMode(page);
+        await page.goto(resolvedPath, { waitUntil: 'domcontentloaded' });
+        await waitForSettledPage(page);
 
-    const darkModeApplied = await assertDarkModeApplied(page);
-    const pageProbe = await collectPageProbe(page);
-    const focusIssues = await collectFocusIssues(page);
-    let findings = buildFindingsFromProbe({
-      routeId: entry.id,
-      routePath: resolvedPath,
-      routeTitle: entry.title,
-      surface: entry.surface,
-      fixtureState,
-      darkModeApplied,
-      pageProbe,
-      focusIssues,
-    });
+        const darkModeApplied = await assertDarkModeApplied(page);
+        const pageProbe = await collectPageProbe(page);
+        const focusIssues = await collectFocusIssues(page);
+        let findings = buildFindingsFromProbe({
+          routeId: entry.id,
+          routePath: resolvedPath,
+          routeTitle: entry.title,
+          surface: entry.surface,
+          fixtureState,
+          darkModeApplied,
+          pageProbe,
+          focusIssues,
+        });
 
-    if (findings.length > 0 || requiresManualReview(entry.id)) {
-      screenshot = await captureRouteScreenshot(page, entry.id, resolvedPath);
-      findings = buildFindingsFromProbe({
-        routeId: entry.id,
-        routePath: resolvedPath,
-        routeTitle: entry.title,
-        surface: entry.surface,
-        fixtureState,
-        screenshot,
-        darkModeApplied,
-        pageProbe,
-        focusIssues,
-      });
-    }
+        if (findings.length > 0 || requiresManualReview(entry.id)) {
+          screenshot = await captureRouteScreenshot(page, entry.id, resolvedPath);
+          findings = buildFindingsFromProbe({
+            routeId: entry.id,
+            routePath: resolvedPath,
+            routeTitle: entry.title,
+            surface: entry.surface,
+            fixtureState,
+            screenshot,
+            darkModeApplied,
+            pageProbe,
+            focusIssues,
+          });
+        }
 
-    return {
-      routeId: entry.id,
-      routePath: resolvedPath,
-      routeTitle: entry.title,
-      surface: entry.surface,
-      fixtureState,
-      screenshot,
-      findings,
-    };
+        return {
+          routeId: entry.id,
+          routePath: resolvedPath,
+          routeTitle: entry.title,
+          surface: entry.surface,
+          fixtureState,
+          screenshot,
+          findings,
+        };
+      })(),
+      new Promise<RouteAuditRecord>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Timed out after ${Math.round(routeTimeoutMs / 1000)}s while auditing route.`));
+        }, routeTimeoutMs);
+      }),
+    ]);
   } catch (error) {
     screenshot = await captureRouteScreenshot(page, entry.id, resolvedPath).catch(() => undefined);
     const message = error instanceof Error ? error.message : String(error);
@@ -594,7 +604,11 @@ async function closeContext(context: BrowserContext | null): Promise<void> {
 }
 
 test.describe('Dark Mode Accessibility Audit', () => {
-  test('audits all cataloged routes and writes a findings report', async ({ browser }) => {
+  test('audits all cataloged routes and writes a findings report', async ({ browser }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'chromium',
+      'The route-catalog dark-mode audit is maintained as a dedicated Chromium visual sweep.'
+    );
     test.setTimeout(20 * 60 * 1000);
 
     let publicContext: BrowserContext | null = null;

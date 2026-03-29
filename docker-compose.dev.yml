@@ -41,7 +41,22 @@ services:
     env_file:
       - .env.development
     environment:
+      NODE_ENV: test
       HOST: 0.0.0.0
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: nonprofit_manager
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      BYPASS_REGISTRATION_POLICY_IN_TEST: "true"
+      RATE_LIMIT_WINDOW_MS: "900000"
+      RATE_LIMIT_MAX_REQUESTS: "100000"
+      AUTH_RATE_LIMIT_WINDOW_MS: "900000"
+      AUTH_RATE_LIMIT_MAX_REQUESTS: "100000"
+      REGISTRATION_MAX_ATTEMPTS: "100000"
+      MAX_LOGIN_ATTEMPTS: "1000"
+      DISABLE_PII_MASKING_IN_TEST: "true"
+      CORS_ORIGIN: http://localhost:5173,http://localhost:8005,http://127.0.0.1:5173,http://127.0.0.1:8005
     ports:
       - "8004:3000"
     volumes:
