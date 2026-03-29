@@ -17,6 +17,7 @@ export const WORKSPACE_MODULE_KEYS = [
   'reports',
   'scheduledReports',
   'alerts',
+  'websites',
 ] as const;
 
 export type WorkspaceModuleKey = (typeof WORKSPACE_MODULE_KEYS)[number];
@@ -25,7 +26,7 @@ export type WorkspaceModuleSettings = Record<WorkspaceModuleKey, boolean>;
 
 export type PartialWorkspaceModuleSettings = Partial<WorkspaceModuleSettings> | null | undefined;
 
-export type WorkspaceModuleGroup = 'People' | 'Engagement' | 'Finance' | 'Insights';
+export type WorkspaceModuleGroup = 'People' | 'Engagement' | 'Finance' | 'Publishing' | 'Insights';
 
 export type WorkspaceModuleDefinition = {
   key: WorkspaceModuleKey;
@@ -143,12 +144,19 @@ export const workspaceModuleDefinitions: readonly WorkspaceModuleDefinition[] = 
     description: 'Alerts overview, history, and triggered alert monitoring.',
     group: 'Insights',
   },
+  {
+    key: 'websites',
+    label: 'Websites',
+    description: 'Website console, builder, content, forms, and publishing controls.',
+    group: 'Publishing',
+  },
 ];
 
 export const workspaceModuleGroupOrder: readonly WorkspaceModuleGroup[] = [
   'People',
   'Engagement',
   'Finance',
+  'Publishing',
   'Insights',
 ];
 
@@ -171,6 +179,7 @@ export const createDefaultWorkspaceModuleSettings = (): WorkspaceModuleSettings 
   reports: true,
   scheduledReports: true,
   alerts: true,
+  websites: true,
 });
 
 export const normalizeWorkspaceModuleSettings = (
@@ -211,6 +220,10 @@ const exactRouteModuleMap: Partial<Record<string, WorkspaceModuleKey>> = {
   'reports-scheduled': 'scheduledReports',
   'alerts-overview': 'alerts',
   'dashboard-custom': 'analytics',
+  websites: 'websites',
+  'website-builder': 'websites',
+  'website-builder-preview': 'websites',
+  'website-builder-editor': 'websites',
 };
 
 const prefixedRouteModuleMap: ReadonlyArray<[prefix: string, module: WorkspaceModuleKey]> = [
@@ -229,6 +242,7 @@ const prefixedRouteModuleMap: ReadonlyArray<[prefix: string, module: WorkspaceMo
   ['reports-outcomes', 'reports'],
   ['reports-workflow-coverage', 'reports'],
   ['alerts-', 'alerts'],
+  ['website-', 'websites'],
 ];
 
 export const resolveWorkspaceModuleForRouteId = (

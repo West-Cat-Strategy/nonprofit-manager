@@ -29,6 +29,7 @@ describe('ProtectedRoute workspace module gating', () => {
     ['/cases', 'cases'],
     ['/donations', 'donations'],
     ['/reports/scheduled', 'scheduledReports'],
+    ['/websites', 'websites'],
   ] as const)('blocks %s when %s is disabled', (path, moduleKey) => {
     clearWorkspaceModuleAccessCache();
     setWorkspaceModuleAccessCached({

@@ -4,6 +4,8 @@ import type {
   WebsiteManagedFormType,
   WebsiteManagementSnapshot,
   WebsiteOverviewSummary,
+  WebsiteSiteManagementSummary,
+  WebsiteSiteSummary,
 } from '../types';
 
 type FormDependencyKey = 'crm' | 'mailchimp' | 'stripe' | 'events';
@@ -100,6 +102,90 @@ const EMPTY_INTEGRATIONS: WebsiteIntegrationStatus = {
       lastSyncError: null,
     },
   },
+};
+
+const buildSiteManagementNextAction = (
+  site: WebsiteSiteSummary,
+  readiness: WebsiteSiteManagementSummary['readiness']
+): WebsiteSiteManagementSummary['nextAction'] => {
+  if (site.blocked) {
+    return {
+      title: 'Resolve the blocked assignment',
+      detail: 'Publishing, domains, and live changes stay paused until the site is assigned.',
+      href: `/websites/${site.id}/publishing`,
+      tone: 'warning',
+    };
+  }
+
+  if (!readiness.publish) {
+    return {
+      title: 'Publish the site',
+      detail: 'Draft pages exist, but the public site still needs a publish step.',
+      href: `/websites/${site.id}/publishing`,
+      tone: 'primary',
+    };
+  }
+
+  if (!readiness.domain) {
+    return {
+      title: 'Set the public domain',
+      detail: 'Add a subdomain or custom domain before sharing the site more broadly.',
+      href: `/websites/${site.id}/publishing`,
+      tone: 'warning',
+    };
+  }
+
+  if (!readiness.ssl) {
+    return {
+      title: 'Review SSL settings',
+      detail: 'Secure traffic for the live domain before the certificate expires.',
+      href: `/websites/${site.id}/publishing`,
+      tone: 'warning',
+    };
+  }
+
+  if (!readiness.analytics) {
+    return {
+      title: 'Enable analytics',
+      detail: 'Turn on analytics to track visits and conversions from the site hub.',
+      href: `/websites/${site.id}/overview`,
+      tone: 'warning',
+    };
+  }
+
+  return {
+    title: 'Open the site overview',
+    detail: 'Review content, forms, integrations, and publishing details from the console.',
+    href: `/websites/${site.id}/overview`,
+    tone: 'neutral',
+  };
+};
+
+export const deriveWebsiteSiteManagementSummary = (
+  site: WebsiteSiteSummary
+): WebsiteSiteManagementSummary => {
+  const sslCertificateExpiresAt = toDateValue(site.sslCertificateExpiresAt);
+  const sslExpiringSoon =
+    Boolean(site.customDomain) &&
+    sslCertificateExpiresAt !== null &&
+    sslCertificateExpiresAt.getTime() - Date.now() <= 1000 * 60 * 60 * 24 * 30;
+
+  const readiness: WebsiteSiteManagementSummary['readiness'] = {
+    publish: site.status === 'published' && Boolean(site.publishedVersion),
+    preview: Boolean(site.previewUrl),
+    domain: Boolean(site.customDomain || site.subdomain),
+    ssl: !site.customDomain || (site.sslEnabled && !sslExpiringSoon),
+    analytics: site.analyticsEnabled,
+  };
+
+  const attentionCount = Object.values(readiness).filter((value) => !value).length;
+
+  return {
+    status: site.blocked ? 'blocked' : attentionCount > 0 ? 'attention' : 'healthy',
+    nextAction: buildSiteManagementNextAction(site, readiness),
+    readiness,
+    attentionCount,
+  };
 };
 
 const buildNextAction = (
@@ -222,10 +308,8 @@ export const deriveWebsiteManagementSnapshot = (
   const sslCertificateExpiresAt = toDateValue(overview.site.sslCertificateExpiresAt);
   const sslExpiringSoon =
     Boolean(overview.site.customDomain) &&
-    Boolean(sslCertificateExpiresAt) &&
-    (sslCertificateExpiresAt
-      ? (sslCertificateExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24) <= 30
-      : false);
+    sslCertificateExpiresAt !== null &&
+    (sslCertificateExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24) <= 30;
   const conversionMetrics = overview.conversionMetrics || {
     totalConversions: 0,
     totalPageviews: 0,

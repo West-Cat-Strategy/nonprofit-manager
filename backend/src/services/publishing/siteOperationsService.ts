@@ -12,6 +12,7 @@ import type {
   WebsiteManagementSnapshot,
   WebsiteManagementSnapshotAttentionItem,
   WebsiteOverviewSummary,
+  WebsiteSiteManagementSummary,
   WebsiteRouteSummary,
   WebsiteSiteSummary,
 } from '@app-types/publishing';
@@ -95,6 +96,77 @@ const toSiteSummary = (
   });
 };
 
+const buildSiteManagementSummary = (
+  site: PublishedSite,
+  siteSummary: WebsiteSiteSummary
+): WebsiteSiteManagementSummary => {
+  const sslCertificateExpiresAt = site.sslCertificateExpiresAt;
+  const sslExpiringSoon =
+    Boolean(siteSummary.customDomain) &&
+    (sslCertificateExpiresAt
+      ? sslCertificateExpiresAt.getTime() - Date.now() <= 1000 * 60 * 60 * 24 * 30
+      : false);
+
+  const readiness: WebsiteSiteManagementSummary['readiness'] = {
+    publish: siteSummary.status === 'published' && Boolean(siteSummary.publishedVersion),
+    preview: Boolean(siteSummary.previewUrl),
+    domain: Boolean(siteSummary.customDomain || siteSummary.subdomain),
+    ssl: !siteSummary.customDomain || (siteSummary.sslEnabled && !sslExpiringSoon),
+    analytics: siteSummary.analyticsEnabled,
+  };
+
+  const attentionCount = Object.values(readiness).filter((value) => !value).length;
+
+  const nextAction = siteSummary.blocked
+    ? {
+        title: 'Resolve the blocked assignment',
+        detail: 'Publishing, domains, and live changes stay paused until the site is assigned.',
+        href: `/websites/${site.id}/publishing`,
+        tone: 'warning' as const,
+      }
+    : !readiness.publish
+      ? {
+          title: 'Publish the site',
+          detail: 'Draft pages exist, but the public site still needs a publish step.',
+          href: `/websites/${site.id}/publishing`,
+          tone: 'primary' as const,
+        }
+      : !readiness.domain
+        ? {
+            title: 'Set the public domain',
+            detail: 'Add a subdomain or custom domain before sharing the site more broadly.',
+            href: `/websites/${site.id}/publishing`,
+            tone: 'warning' as const,
+          }
+        : !readiness.ssl
+          ? {
+              title: 'Review SSL settings',
+              detail: 'Secure traffic for the live domain before the certificate expires.',
+              href: `/websites/${site.id}/publishing`,
+              tone: 'warning' as const,
+            }
+          : !readiness.analytics
+            ? {
+                title: 'Enable analytics',
+                detail: 'Turn on analytics to track visits and conversions from the site hub.',
+                href: `/websites/${site.id}/overview`,
+                tone: 'warning' as const,
+              }
+            : {
+                title: 'Open the site overview',
+                detail: 'Review content, forms, integrations, and publishing details from the console.',
+                href: `/websites/${site.id}/overview`,
+                tone: 'neutral' as const,
+              };
+
+  return {
+    status: siteSummary.blocked ? 'blocked' : attentionCount > 0 ? 'attention' : 'healthy',
+    nextAction,
+    readiness,
+    attentionCount,
+  };
+};
+
 const toSiteSummaryFromSite = (
   siteManagement: SiteManagementService,
   site: PublishedSite,
@@ -105,7 +177,7 @@ const toSiteSummaryFromSite = (
   }
 ): WebsiteSiteSummary => {
   const primaryUrl = siteManagement.getSiteUrl(site);
-  return {
+  const summary: WebsiteSiteSummary = {
     id: site.id,
     templateId: site.templateId,
     templateName: extras.templateName,
@@ -129,6 +201,10 @@ const toSiteSummaryFromSite = (
     createdAt: site.createdAt,
     updatedAt: site.updatedAt,
   };
+
+  summary.managementSummary = buildSiteManagementSummary(site, summary);
+
+  return summary;
 };
 
 const buildManagementSnapshot = (

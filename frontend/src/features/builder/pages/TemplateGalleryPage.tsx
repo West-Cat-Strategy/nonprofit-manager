@@ -40,6 +40,9 @@ const statuses: { value: TemplateStatus | ''; label: string }[] = [
 
 type TabType = 'my-templates' | 'starter-templates';
 
+const getTemplateCopyName = (template: TemplateListItem): string =>
+  template.name ? `${template.name} (Copy)` : 'Untitled Website Copy';
+
 const TemplateGallery: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -105,7 +108,12 @@ const TemplateGallery: React.FC = () => {
     (template: TemplateListItem) => {
       if (template.isSystemTemplate) {
         // For system templates, duplicate and then edit
-        dispatch(duplicateTemplate({ id: template.id })).then((result) => {
+        dispatch(
+          duplicateTemplate({
+            id: template.id,
+            name: getTemplateCopyName(template),
+          })
+        ).then((result) => {
           if (duplicateTemplate.fulfilled.match(result)) {
             navigate(`/website-builder/${result.payload.id}`);
           }
@@ -125,7 +133,12 @@ const TemplateGallery: React.FC = () => {
 
   const handleDuplicateTemplate = useCallback(
     (template: TemplateListItem) => {
-      dispatch(duplicateTemplate({ id: template.id })).then((result) => {
+      dispatch(
+        duplicateTemplate({
+          id: template.id,
+          name: getTemplateCopyName(template),
+        })
+      ).then((result) => {
         if (duplicateTemplate.fulfilled.match(result)) {
           // Refresh list to show new template
           dispatch(searchTemplates());

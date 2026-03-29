@@ -32,6 +32,13 @@ const secondaryItems = [
     icon: '👤',
     shortLabel: 'People',
   },
+  {
+    id: 'websites',
+    name: 'Websites',
+    path: '/websites',
+    icon: '🌐',
+    shortLabel: 'Websites',
+  },
 ];
 
 const utilityNavLinks = [
@@ -166,6 +173,10 @@ describe('Navigation', () => {
     expect(screen.getByRole('menuitem', { name: /^people$/i })).toHaveAttribute(
       'href',
       '/contacts'
+    );
+    expect(screen.getByRole('menuitem', { name: /^websites$/i })).toHaveAttribute(
+      'href',
+      '/websites'
     );
 
     expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');

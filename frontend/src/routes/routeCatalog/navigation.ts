@@ -44,6 +44,8 @@ interface RouteCatalogQueryOptions {
   workspaceModules?: WorkspaceModuleSettings;
 }
 
+const MAX_ROUTE_ANCESTOR_DEPTH = 50;
+
 const toEnabledRouteSet = (enabledRouteIds?: Iterable<string>): Set<string> | null => {
   if (!enabledRouteIds) {
     return null;
@@ -145,6 +147,36 @@ const getEntryNavigationIcon = (entry: RouteCatalogEntry): string | undefined =>
 
 const getCurrentHubId = (entry: RouteCatalogEntry): string =>
   entry.navKind === 'hub' ? entry.id : entry.parentId ?? entry.id;
+
+export function walkRouteParentChain<T extends { id: string; parentId?: string }>(
+  entry: T | null,
+  resolveParent: (entry: T) => T | null,
+  maxDepth: number = MAX_ROUTE_ANCESTOR_DEPTH
+): T[] {
+  const chain: T[] = [];
+  const visitedIds = new Set<string>();
+  let currentEntry = entry;
+
+  while (currentEntry && !visitedIds.has(currentEntry.id) && chain.length < maxDepth) {
+    chain.push(currentEntry);
+    visitedIds.add(currentEntry.id);
+    currentEntry = resolveParent(currentEntry);
+  }
+
+  return chain;
+}
+
+export function collectRouteAncestors(
+  entry: RouteCatalogEntry | null,
+  maxDepth: number = MAX_ROUTE_ANCESTOR_DEPTH
+): RouteCatalogEntry[] {
+  return walkRouteParentChain(
+    entry,
+    (currentEntry) =>
+      currentEntry.parentId ? getRouteCatalogEntryById(currentEntry.parentId) : null,
+    maxDepth
+  );
+}
 
 const toRouteNavigationEntry = (
   entry: RouteCatalogEntry,

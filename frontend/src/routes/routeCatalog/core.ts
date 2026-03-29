@@ -22,6 +22,8 @@ export const routeCatalog: readonly RouteCatalogEntry[] = [
   ...demoRouteCatalogEntries,
 ];
 
+const routeCatalogEntryById = new Map(routeCatalog.map((entry) => [entry.id, entry] as const));
+
 export const routeAreaMeta: Record<
   RouteArea,
   { label: string; order: number; icon?: string; representativeIds?: string[] }
@@ -74,7 +76,7 @@ export function getRouteHref(entry: RouteCatalogEntry): string {
 }
 
 export function getRouteCatalogEntryById(id: string): RouteCatalogEntry | null {
-  return routeCatalog.find((entry) => entry.id === id) ?? null;
+  return routeCatalogEntryById.get(id) ?? null;
 }
 
 export function getRouteAreaLabel(area: RouteArea): string {

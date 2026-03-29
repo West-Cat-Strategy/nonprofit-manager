@@ -797,6 +797,16 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     title: 'Websites',
     section: 'Websites',
     path: '/websites',
+    primaryAction: { label: 'Open Builder', href: '/website-builder' },
+    staffNav: {
+      group: 'secondary',
+      order: 85,
+      label: 'Websites',
+      shortLabel: 'Websites',
+      ariaLabel: 'Go to websites',
+      icon: '🌐',
+      pinnedEligible: true,
+    },
   }),
   staffRoute({
     id: 'website-console-redirect',

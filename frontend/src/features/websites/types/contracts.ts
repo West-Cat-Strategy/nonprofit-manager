@@ -14,6 +14,24 @@ export type WebsiteManagedFormType =
   | 'referral-form'
   | 'event-registration';
 
+export interface WebsiteSiteManagementSummary {
+  status: 'healthy' | 'attention' | 'blocked';
+  nextAction: {
+    title: string;
+    detail: string;
+    href: string;
+    tone: 'primary' | 'warning' | 'neutral';
+  };
+  readiness: {
+    publish: boolean;
+    preview: boolean;
+    domain: boolean;
+    ssl: boolean;
+    analytics: boolean;
+  };
+  attentionCount: number;
+}
+
 export interface WebsiteSiteSummary {
   id: string;
   templateId: string;
@@ -34,6 +52,7 @@ export interface WebsiteSiteSummary {
   primaryUrl: string;
   previewUrl: string | null;
   analyticsEnabled: boolean;
+  managementSummary?: WebsiteSiteManagementSummary;
   blocked: boolean;
   createdAt: string;
   updatedAt: string;

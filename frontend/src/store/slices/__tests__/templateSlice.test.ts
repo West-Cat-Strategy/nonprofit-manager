@@ -343,6 +343,17 @@ describe('templateSlice', () => {
       expect(mockApi.post).toHaveBeenCalledWith('/templates/template_1/duplicate', {});
       expect(store.getState().templates.templates[0].id).toBe('template_2');
     });
+
+    it('sends an explicit name when provided', async () => {
+      const duplicatedTemplate = { ...mockTemplate, id: 'template_2', name: 'Custom Copy' };
+      mockApi.post.mockResolvedValue({ data: duplicatedTemplate });
+
+      await store.dispatch(duplicateTemplate({ id: 'template_1', name: 'Custom Copy' }));
+
+      expect(mockApi.post).toHaveBeenCalledWith('/templates/template_1/duplicate', {
+        name: 'Custom Copy',
+      });
+    });
   });
 
   describe('Page Operations', () => {

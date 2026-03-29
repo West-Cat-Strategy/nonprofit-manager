@@ -235,6 +235,9 @@ describe('SiteOperationsService', () => {
 
     const result = await service.getOverview('site-1', 'user-1', 30, 'org-1');
 
+    expect(result.site.managementSummary?.status).toBe('attention');
+    expect(result.site.managementSummary?.readiness.publish).toBe(false);
+    expect(result.site.managementSummary?.nextAction.href).toBe('/websites/site-1/publishing');
     expect(result.managementSnapshot.status).toBe('attention');
     expect(result.managementSnapshot.readiness.publish).toBe(true);
     expect(result.managementSnapshot.readiness.forms).toBe(true);
