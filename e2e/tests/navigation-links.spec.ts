@@ -62,15 +62,23 @@ base.describe('Portal navigation click-through audit', () => {
   });
 
   base('sidebar links stay within the portal shell', async ({ page }) => {
-    const portalNav = page.getByRole('navigation', { name: /browse portal/i });
+    await page.goto('/portal', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: /your case workspace/i })).toBeVisible();
 
-    await portalNav.getByRole('link', { name: /^appointments$/i }).click();
-    await expect(page).toHaveURL(/\/portal\/appointments$/);
+    const linkChecks: Array<{ label: RegExp; url: RegExp }> = [
+      { label: /^view shared cases$/i, url: /\/portal\/cases$/ },
+      { label: /^message staff$/i, url: /\/portal\/messages$/ },
+      { label: /^manage appointments$/i, url: /\/portal\/appointments$/ },
+      { label: /^shared documents$/i, url: /\/portal\/documents$/ },
+      { label: /^account settings$/i, url: /\/portal\/profile$/ },
+    ];
 
-    await portalNav.getByRole('link', { name: /^documents$/i }).click();
-    await expect(page).toHaveURL(/\/portal\/documents$/);
-
-    await portalNav.getByRole('link', { name: /^account$/i }).click();
-    await expect(page).toHaveURL(/\/portal\/profile$/);
+    for (const { label, url } of linkChecks) {
+      const link = page.getByRole('link', { name: label }).first();
+      await expect(link).toBeVisible();
+      await link.click();
+      await expect(page).toHaveURL(url);
+      await page.goto('/portal', { waitUntil: 'domcontentloaded' });
+    }
   });
 });

@@ -374,7 +374,7 @@ test:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
-	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests...$(RESET)"
 	cd backend && npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
@@ -387,7 +387,7 @@ test-coverage:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
-	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
 	cd backend && npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
@@ -398,7 +398,7 @@ test-coverage:
 
 test-backend:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
-	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	cd backend && npm test -- --runInBand
 
 test-frontend:
@@ -406,7 +406,7 @@ test-frontend:
 
 test-e2e:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
-	@COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
 	cd e2e && npm run test:ci
 
 quality-baseline:
@@ -420,10 +420,10 @@ check-links:
 #------------------------------------------------------------------------------
 security-audit:
 	@echo "$(BLUE)Running npm audit on backend...$(RESET)"
-	cd backend && npm audit --audit-level=high || true
+	cd backend && npm audit --workspaces=false --audit-level=high || true
 	@echo ""
 	@echo "$(BLUE)Running npm audit on frontend...$(RESET)"
-	cd frontend && npm audit --audit-level=high || true
+	cd frontend && npm audit --workspaces=false --audit-level=high || true
 	@echo ""
 	@echo "$(GREEN)Security audit complete!$(RESET)"
 

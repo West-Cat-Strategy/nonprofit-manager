@@ -363,7 +363,7 @@ const portalRouteAudits: RouteAuditConfig[] = [
     route: '/portal',
     surface: 'portal',
     expectedEntryId: 'portal-dashboard',
-    heading: /welcome to your portal|dashboard/i,
+    heading: /welcome to your portal|dashboard|workspace/i,
   },
   { name: 'portal profile', route: '/portal/profile', surface: 'portal', expectedEntryId: 'portal-profile', heading: /profile|account/i },
   { name: 'portal people', route: '/portal/people', surface: 'portal', expectedEntryId: 'portal-people', heading: /people/i },
@@ -388,15 +388,16 @@ const staffNavigationLinks: ClickthroughAuditLink[] = [
   { label: 'Alerts', href: '/alerts', surface: 'staff', scope: 'alerts-shortcut' },
 ];
 
-const portalNavigationLinks: ClickthroughAuditLink[] = [
-  { label: 'Home', href: '/portal', surface: 'portal' },
-  { label: 'Cases', href: '/portal/cases', surface: 'portal' },
-  { label: 'Events', href: '/portal/events', surface: 'portal' },
-  { label: 'Messages', href: '/portal/messages', surface: 'portal' },
-  { label: 'Documents', href: '/portal/documents', surface: 'portal' },
-  { label: 'Forms', href: '/portal/forms', surface: 'portal' },
-  { label: 'Appointments', href: '/portal/appointments', surface: 'portal' },
-  { label: 'Account', href: '/portal/profile', surface: 'portal' },
+const portalNavigationLinks = (portalCaseId?: string): ClickthroughAuditLink[] => [
+  {
+    label: portalCaseId ? 'Resume Case Workspace' : 'View Shared Cases',
+    href: portalCaseId ? `/portal/cases/${portalCaseId}` : '/portal/cases',
+    surface: 'portal',
+  },
+  { label: 'Message Staff', href: '/portal/messages', surface: 'portal' },
+  { label: 'Manage Appointments', href: '/portal/appointments', surface: 'portal' },
+  { label: 'Shared Documents', href: '/portal/documents', surface: 'portal' },
+  { label: 'Account Settings', href: '/portal/profile', surface: 'portal' },
 ];
 
 const ignoredHrefProtocols = new Set(['mailto:', 'tel:', 'blob:', 'data:']);
@@ -906,11 +907,11 @@ base.describe('Portal text visibility and link audit', () => {
 
   base('portal navigation links stay visible and canonical', async ({ page }) => {
     await gotoAuditedRoute(page, '/portal');
-    const portalNav = page.getByRole('navigation', { name: /browse portal/i });
+    await expect(page.getByRole('heading', { name: /quick actions/i })).toBeVisible();
 
-    for (const linkConfig of portalNavigationLinks) {
+    for (const linkConfig of portalNavigationLinks(portalFixture.caseId)) {
       const targetHref = normalizeRouteLocation(linkConfig.href);
-      const link = portalNav.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();
+      const link = page.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();
 
       await expect(link, `missing visible portal nav link for ${linkConfig.label}`).toBeVisible();
       await link.click();
