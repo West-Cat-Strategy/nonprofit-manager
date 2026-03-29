@@ -235,6 +235,6 @@ base.describe('Authenticated portal route health', () => {
   base('loads /portal/cases/:id using a fixture-linked portal user', async ({ page }) => {
     await assertRouteLoads(page, `/portal/cases/${portalFixture.caseId}`);
     await expect(page).toHaveURL(new RegExp(`/portal/cases/${portalFixture.caseId}(?:\\?|$)`));
-    await expect(page.getByRole('heading', { name: portalFixture.caseTitle, exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: portalFixture.caseTitle, level: 1 })).toBeVisible();
   });
 });
