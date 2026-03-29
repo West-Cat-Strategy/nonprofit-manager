@@ -211,7 +211,15 @@ test.describe("Theming and Design System", () => {
         .waitFor({ state: "hidden", timeout: 30000 })
         .catch(() => undefined);
 
-      const homeLink = page.getByRole("link", { name: /^home$/i }).first();
+      const primaryNavigation = page.getByRole("navigation", {
+        name: /primary navigation/i,
+      });
+      await expect(primaryNavigation).toBeVisible({ timeout: 30000 });
+
+      const homeLink = page
+        .getByRole("navigation", { name: /breadcrumb/i })
+        .getByText(/^home$/i)
+        .first();
       await expect(homeLink).toBeVisible({ timeout: 30000 });
 
       const navColors = await homeLink.evaluate((element) => {

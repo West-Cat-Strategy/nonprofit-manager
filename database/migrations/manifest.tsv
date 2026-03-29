@@ -84,3 +84,4 @@
 082	082_backend_runtime_efficiency_indexes.sql	
 083	083_grants_tracking.sql	
 084	084_imported_import_staging.sql	
+085	085_case_type_and_outcome_assignments.sql	

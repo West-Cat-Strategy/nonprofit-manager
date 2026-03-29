@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import {
@@ -83,6 +83,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const hydratedContactIdRef = useRef<string | null>(null);
 
   // Relationship form state
   const [isAddingRelationship, setIsAddingRelationship] = useState(false);
@@ -109,11 +110,16 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
 
   useEffect(() => {
     if (contact && mode === 'edit') {
+      if (hydratedContactIdRef.current === contact.contact_id) {
+        return;
+      }
+
       setFormData({
         ...contact,
         birth_date: toDateInputValue(contact.birth_date),
         roles: contact.roles || [],
       });
+      hydratedContactIdRef.current = contact.contact_id;
       setIsDirty(false);
     }
   }, [contact, mode]);

@@ -372,6 +372,12 @@ export async function createTestAccount(
     email?: string;
     phone?: string;
     website?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    stateProvince?: string;
+    postalCode?: string;
+    country?: string;
   }
 ): Promise<{ id: string }> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
@@ -387,6 +393,12 @@ export async function createTestAccount(
       email: data.email,
       phone: data.phone,
       website: data.website,
+      address_line1: data.addressLine1,
+      address_line2: data.addressLine2,
+      city: data.city,
+      state_province: data.stateProvince,
+      postal_code: data.postalCode,
+      country: data.country,
     },
   });
 

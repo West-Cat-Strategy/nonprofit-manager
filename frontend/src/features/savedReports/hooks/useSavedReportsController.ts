@@ -15,6 +15,9 @@ import type {
 } from '../../../types/scheduledReport';
 
 const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const formatLoadError = formatApiErrorMessageWith('Failed to fetch saved reports');
+const formatDeleteError = formatApiErrorMessageWith('Failed to delete saved report');
+const formatScheduleError = formatApiErrorMessageWith('Failed to create scheduled report');
 
 const toDateTimeLocal = (isoValue?: string): string => {
   if (!isoValue) {
@@ -63,10 +66,6 @@ export function useSavedReportsController() {
   const [publicLinkToken, setPublicLinkToken] = useState<string | null>(null);
   const [publicLinkUrl, setPublicLinkUrl] = useState<string | null>(null);
 
-  const formatLoadError = formatApiErrorMessageWith('Failed to fetch saved reports');
-  const formatDeleteError = formatApiErrorMessageWith('Failed to delete saved report');
-  const formatScheduleError = formatApiErrorMessageWith('Failed to create scheduled report');
-
   const selectedEntity = filterEntity || undefined;
 
   const loadSavedReports = useCallback(
@@ -88,7 +87,7 @@ export function useSavedReportsController() {
         setLoading(false);
       }
     },
-    [currentPage, formatLoadError, pagination.limit, selectedEntity]
+    [currentPage, pagination.limit, selectedEntity]
   );
 
   useEffect(() => {

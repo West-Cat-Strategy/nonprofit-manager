@@ -42,13 +42,46 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
+const toValidDate = (value: unknown): Date | null => {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === 'number') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    const candidate = (value as { valueOf?: () => unknown }).valueOf?.();
+    if (candidate && candidate !== value) {
+      return toValidDate(candidate);
+    }
+  }
+
+  return null;
+};
+
 /**
  * Format a date as a localized date string (e.g., "Jan 15, 2024")
  */
-export function formatDate(date: string | Date | null | undefined): string {
-  if (!date) return '';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '';
+export function formatDate(date: string | number | Date | null | undefined): string {
+  const d = toValidDate(date);
+  if (!d) return '';
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -143,9 +176,8 @@ export function getAgeFromDateOnly(date: string | Date | null | undefined): numb
  * Format a date with time (e.g., "Jan 15, 2024, 2:30 PM")
  */
 export function formatDateTime(date: string | Date | null | undefined): string {
-  if (!date) return '';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '';
+  const d = toValidDate(date);
+  if (!d) return '';
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -159,9 +191,8 @@ export function formatDateTime(date: string | Date | null | undefined): string {
  * Format time only from a Date (e.g., "2:30 PM")
  */
 export function formatTime(date: string | Date | null | undefined): string {
-  if (!date) return '';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '';
+  const d = toValidDate(date);
+  if (!d) return '';
   return d.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
@@ -184,9 +215,8 @@ export function formatTimeString(timeString: string | null | undefined): string 
  * Format a date with Today/Tomorrow labels for near dates
  */
 export function formatDateSmart(date: string | Date | null | undefined): string {
-  if (!date) return '';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '';
+  const d = toValidDate(date);
+  if (!d) return '';
 
   const today = new Date();
   const tomorrow = new Date(today);

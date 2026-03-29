@@ -85,6 +85,18 @@ export interface CaseType {
   modified_by?: string | null;
 }
 
+export interface CaseTypeAssignment {
+  id: string;
+  case_id: string;
+  case_type_id: string;
+  sort_order: number;
+  is_primary: boolean;
+  created_at: Date | string;
+  updated_at: Date | string;
+  created_by?: string | null;
+  modified_by?: string | null;
+}
+
 /**
  * Case Status Definition
  */
@@ -115,6 +127,8 @@ export interface Case {
 
   // Case details
   case_type_id: string;
+  case_type_ids?: string[] | null;
+  case_type_names?: string[] | null;
   status_id: string;
   priority: CasePriority;
 
@@ -136,6 +150,7 @@ export interface Case {
 
   // Outcome
   outcome?: CaseOutcome | null;
+  case_outcome_values?: CaseOutcome[] | null;
   outcome_notes?: string | null;
   closure_reason?: string | null;
 
@@ -181,6 +196,18 @@ export interface CaseWithDetails extends Case {
   notes_count?: number;
   documents_count?: number;
   services_count?: number;
+}
+
+export interface CaseOutcomeAssignment {
+  id: string;
+  case_id: string;
+  outcome_value: CaseOutcome;
+  sort_order: number;
+  is_primary: boolean;
+  created_at: Date | string;
+  updated_at: Date | string;
+  created_by?: string | null;
+  modified_by?: string | null;
 }
 
 /**
@@ -391,10 +418,12 @@ export interface CaseMilestone {
 export interface CreateCaseDTO {
   contact_id: string;
   account_id?: string;
-  case_type_id: string;
+  case_type_id?: string;
+  case_type_ids?: string[];
   title: string;
   description?: string;
   priority?: CasePriority;
+  outcome?: CaseOutcome;
   source?: CaseSource;
   referral_source?: string;
   assigned_to?: string;
@@ -405,6 +434,7 @@ export interface CreateCaseDTO {
   tags?: string[];
   is_urgent?: boolean;
   client_viewable?: boolean;
+  case_outcome_values?: CaseOutcome[];
 }
 
 /**
@@ -414,10 +444,13 @@ export interface UpdateCaseDTO {
   title?: string;
   description?: string;
   priority?: CasePriority;
+  case_type_id?: string;
+  case_type_ids?: string[];
   assigned_to?: string;
   assigned_team?: string;
   due_date?: Date | string;
   outcome?: CaseOutcome;
+  case_outcome_values?: CaseOutcome[];
   outcome_notes?: string;
   closure_reason?: string;
   custom_data?: Record<string, any>;

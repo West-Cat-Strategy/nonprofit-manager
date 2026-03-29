@@ -34,6 +34,7 @@ import CaseTeamChatPanel from '../../teamChat/components/CaseTeamChatPanel';
 import CaseDetailTabs from '../components/CaseDetailTabs';
 import CaseStatusChangeModal from '../components/CaseStatusChangeModal';
 import { isUuid } from '../../../utils/uuid';
+import { formatCaseOutcomeLabel, summarizeLabels } from '../utils/caseClassification';
 
 type TabType =
   | 'overview'
@@ -112,6 +113,22 @@ const CaseDetail = () => {
   const [milestoneDueDate, setMilestoneDueDate] = useState('');
   const [milestoneCompleted, setMilestoneCompleted] = useState(false);
   const [timelineRefreshKey, setTimelineRefreshKey] = useState(0);
+  const caseTypeLabels = summarizeLabels(
+    currentCase?.case_type_names?.length
+      ? currentCase.case_type_names
+      : currentCase?.case_type_name
+        ? [currentCase.case_type_name]
+        : [],
+    3
+  );
+  const caseOutcomeLabels = summarizeLabels(
+    currentCase?.case_outcome_values?.length
+      ? currentCase.case_outcome_values.map((value) => formatCaseOutcomeLabel(value))
+      : currentCase?.outcome
+        ? [formatCaseOutcomeLabel(currentCase.outcome)]
+        : [],
+    3
+  );
 
   useEffect(() => {
     if (hasValidId) {
@@ -503,11 +520,39 @@ const CaseDetail = () => {
               </div>
               <div>
                 <div className="text-xs font-black uppercase text-black/70 mb-1">Type</div>
-                <span
-                  className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
-                >
-                  {currentCase.case_type_name}
-                </span>
+                <div className="flex flex-wrap gap-2">
+                  {caseTypeLabels.visible.map((label) => (
+                    <span
+                      key={label}
+                      className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                  {caseTypeLabels.hiddenCount > 0 && (
+                    <span className="inline-block border-2 border-black bg-[var(--loop-green)] px-3 py-1 text-xs font-black uppercase text-black">
+                      +{caseTypeLabels.hiddenCount}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-black uppercase text-black/70 mb-1">Outcome</div>
+                <div className="flex flex-wrap gap-2">
+                  {caseOutcomeLabels.visible.map((label) => (
+                    <span
+                      key={label}
+                      className="inline-block border-2 border-black bg-app-surface-muted px-3 py-1 text-xs font-black uppercase text-black"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                  {caseOutcomeLabels.hiddenCount > 0 && (
+                    <span className="inline-block border-2 border-black bg-[var(--loop-green)] px-3 py-1 text-xs font-black uppercase text-black">
+                      +{caseOutcomeLabels.hiddenCount}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <BrutalButton onClick={() => setIsChangingStatus(true)} variant="primary" size="sm">
@@ -678,6 +723,50 @@ const CaseDetail = () => {
                             {tag}
                           </span>
                         ))}
+                      </dd>
+                    </div>
+                  )}
+                  {caseTypeLabels.visible.length > 0 && (
+                    <div>
+                      <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60 mb-2">
+                        Types
+                      </dt>
+                      <dd className="flex flex-wrap gap-2">
+                        {caseTypeLabels.visible.map((label) => (
+                          <span
+                            key={label}
+                            className="px-2 py-1 bg-[var(--loop-green)] text-black text-xs font-black border-2 border-black"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                        {caseTypeLabels.hiddenCount > 0 && (
+                          <span className="px-2 py-1 bg-app-surface-muted text-black text-xs font-black border-2 border-black">
+                            +{caseTypeLabels.hiddenCount} more
+                          </span>
+                        )}
+                      </dd>
+                    </div>
+                  )}
+                  {caseOutcomeLabels.visible.length > 0 && (
+                    <div>
+                      <dt className="text-xs font-black uppercase text-black/60 dark:text-white/60 mb-2">
+                        Outcomes
+                      </dt>
+                      <dd className="flex flex-wrap gap-2">
+                        {caseOutcomeLabels.visible.map((label) => (
+                          <span
+                            key={label}
+                            className="px-2 py-1 bg-app-accent-soft text-black text-xs font-black border-2 border-black"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                        {caseOutcomeLabels.hiddenCount > 0 && (
+                          <span className="px-2 py-1 bg-app-surface-muted text-black text-xs font-black border-2 border-black">
+                            +{caseOutcomeLabels.hiddenCount} more
+                          </span>
+                        )}
                       </dd>
                     </div>
                   )}

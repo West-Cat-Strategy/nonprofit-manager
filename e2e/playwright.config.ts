@@ -1,9 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 
-// Load the shared test defaults first, then let local overrides win explicitly.
+// Preserve explicit shell-provided env (for Docker/CI entrypoints), then layer shared
+// defaults followed by local file overrides for anything the shell did not specify.
+const explicitEnv = { ...process.env };
 dotenv.config({ path: '.env.test', quiet: true, override: true });
 dotenv.config({ path: '.env.test.local', quiet: true, override: true });
+Object.assign(process.env, explicitEnv);
 
 /**
  * Playwright Configuration for Nonprofit Manager E2E Tests
@@ -168,6 +171,7 @@ export default defineConfig({
           AUTH_RATE_LIMIT_MAX_REQUESTS: '100000',
           REGISTRATION_MAX_ATTEMPTS: '100000',
           MAX_LOGIN_ATTEMPTS: '1000',
+          DISABLE_PII_MASKING_IN_TEST: 'true',
         },
       },
       {

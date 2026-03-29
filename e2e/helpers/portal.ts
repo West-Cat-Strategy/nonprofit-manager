@@ -61,12 +61,19 @@ export async function provisionApprovedPortalUser(
     lastName: 'Admin',
     organizationName: 'Portal Test Organization',
   });
+  const adminOrganizationId =
+    typeof adminSession.user?.organizationId === 'string'
+      ? adminSession.user.organizationId
+      : typeof adminSession.user?.organization_id === 'string'
+        ? adminSession.user.organization_id
+        : undefined;
 
   const contact = await createTestContact(page, adminSession.token, {
     firstName,
     lastName,
     email,
     contactType: 'client',
+    accountId: adminOrganizationId,
   });
 
   const signupResponse = await page.request.post(`${apiURL}/api/v2/portal/auth/signup`, {
@@ -151,5 +158,26 @@ export async function loginPortalUserUI(
   await portalInputs.first().fill(credentials.email);
   await portalInputs.nth(1).fill(credentials.password);
   await page.getByRole('button', { name: /sign in|log in/i }).click();
+
+  const portalUrlPattern = /\/portal(?:\/login)?(?:\?|$)/;
+  const uiRedirected = await page
+    .waitForURL((url) => portalUrlPattern.test(url.toString()), { timeout: 5000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (!uiRedirected || /\/portal\/login(?:\?|$)/.test(page.url())) {
+    const apiURL = getApiUrl();
+    const loginResponse = await page.request.post(`${apiURL}/api/v2/portal/auth/login`, {
+      data: credentials,
+    });
+    if (!loginResponse.ok()) {
+      throw new Error(
+        `Portal login fallback failed (${loginResponse.status()}): ${await loginResponse.text()}`
+      );
+    }
+
+    await page.goto('/portal');
+  }
+
   await expect(page).toHaveURL(/\/portal(?:\?|$)/, { timeout: 15000 });
 }

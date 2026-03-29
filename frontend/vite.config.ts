@@ -13,6 +13,10 @@ export default defineConfig({
     target: 'es2020',
     sourcemap: false,
     rollupOptions: {
+      input: {
+        main: 'index.html',
+        grantsSmoke: 'grants-smoke.html',
+      },
       output: {
         manualChunks(id) {
           const normalizedId = normalizeId(id)

@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { Pool, PoolClient } from 'pg';
 import type { CaseTimelineEvent } from '@app-types/case';
 import { getRequestContext } from '@config/requestContext';
@@ -233,13 +234,13 @@ export const requireCaseIdForDocument = async (db: PgExecutor, documentId: strin
 };
 
 export const generateCaseNumber = async (db: PgExecutor): Promise<string> => {
+  void db;
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   const prefix = `CASE-${year}${month}${day}`;
-
-  const result = await db.query(`SELECT COUNT(*) FROM cases WHERE case_number LIKE $1`, [`${prefix}-%`]);
-  const seq = (parseInt(result.rows[0].count, 10) + 1).toString().padStart(5, '0');
-  return `${prefix}-${seq}`;
+  const timestampPart = String(Date.now()).slice(-6);
+  const randomPart = String(randomInt(0, 100)).padStart(2, '0');
+  return `${prefix}-${timestampPart}${randomPart}`;
 };

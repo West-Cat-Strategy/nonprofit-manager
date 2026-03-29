@@ -29,6 +29,12 @@ test.describe('Portal Cases Visibility', () => {
     });
     expect(adminSession.isAdmin).toBeTruthy();
     const effectiveAdminToken = adminSession.token;
+    const organizationId =
+      typeof adminSession.user?.organizationId === 'string'
+        ? adminSession.user.organizationId
+        : typeof adminSession.user?.organization_id === 'string'
+          ? adminSession.user.organization_id
+          : undefined;
 
     await page.context().clearCookies();
     const unique = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -43,6 +49,7 @@ test.describe('Portal Cases Visibility', () => {
       lastName: 'Client',
       email: portalEmail,
       contactType: 'client',
+      accountId: organizationId,
     });
 
     const authHeaders = await getAuthHeaders(page, effectiveAdminToken);

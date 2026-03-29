@@ -3,6 +3,7 @@
  * Shortcuts to common tasks
  */
 
+import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
@@ -79,7 +80,7 @@ const QuickActionsWidget = ({ widget, editMode = false, onRemove }: QuickActions
           key={action.title}
           to={action.link}
           className={`${action.color} rounded-xl p-4 flex flex-col items-center justify-center text-center hover:opacity-80 transition-opacity ${editMode ? 'pointer-events-auto' : ''}`}
-          onClick={(e) => {
+          onClick={(e: MouseEvent<HTMLAnchorElement>) => {
             if (editMode) {
               e.stopPropagation();
             }

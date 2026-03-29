@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-alpine3.20 AS deps
+FROM node:20-alpine3.20 AS base
 
 WORKDIR /app
 
-# Shared dependency layer for build + dev targets.
-RUN apk add --no-cache python3 make g++
+FROM base AS deps
 
-COPY package*.json ./
+# Shared dependency layer for build + dev targets.
+COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
 
@@ -29,9 +29,7 @@ EXPOSE 3000 8009
 
 CMD ["npm", "run", "dev"]
 
-FROM node:20-alpine3.20 AS production
-
-WORKDIR /app
+FROM base AS production
 
 ENV NODE_ENV=production \
     PORT=8000

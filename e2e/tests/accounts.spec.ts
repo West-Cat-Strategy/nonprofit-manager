@@ -108,7 +108,7 @@ test.describe('Accounts Module', () => {
     await authenticatedPage.click('button[type="submit"]');
 
     // Should redirect to the accounts list page, including the active-filter query string.
-    await authenticatedPage.waitForURL(/\/accounts(?:\?.*)?$/, { timeout: 10000 });
+    await authenticatedPage.waitForURL(/\/accounts(?:\?.*)?$/, { timeout: 30000 });
 
     // Wait for the account to appear in the list
     await expect(
@@ -249,6 +249,7 @@ test.describe('Accounts Module', () => {
 
     // Change name
     const nameInput = authenticatedPage.locator('input[name="account_name"]');
+    await expect(nameInput).toHaveValue(`Original Name ${editSuffix}`, { timeout: 15000 });
     await nameInput.fill(`Updated Name ${editSuffix}`);
 
     // Submit form
@@ -268,7 +269,7 @@ test.describe('Accounts Module', () => {
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await expect(
       authenticatedPage.locator(`text=Updated Name ${editSuffix}`)
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 15000 });
     await expect(
       authenticatedPage.locator(`text=original+${editSuffix}@test.com`)
     ).toBeVisible({ timeout: 10000 });

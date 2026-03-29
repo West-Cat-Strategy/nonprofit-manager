@@ -1,10 +1,12 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-alpine3.20 AS deps
+FROM node:20-alpine3.20 AS base
 
 WORKDIR /app
 
-COPY package*.json ./
+FROM base AS deps
+
+COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
 
@@ -13,11 +15,7 @@ FROM deps AS build
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
-COPY index.html ./
-COPY postcss.config.js ./
-COPY tailwind.config.js ./
-COPY tsconfig*.json ./
-COPY vite.config.ts ./
+COPY index.html grants-smoke.html postcss.config.js tailwind.config.js tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts ./
 COPY public ./public
 COPY src ./src
 RUN npm run build

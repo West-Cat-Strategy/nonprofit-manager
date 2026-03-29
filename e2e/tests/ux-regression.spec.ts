@@ -562,7 +562,7 @@ test.describe("UI/UX regression flows", () => {
       page,
       runtimeIssues,
       "/portal",
-      /welcome to your portal/i,
+      /your case workspace/i,
     );
 
     await navigateWithRuntimeRecovery(

@@ -88,7 +88,7 @@ body.theme-glass.dark {
   --app-bg: #050a12;
   --app-surface: rgba(10, 22, 39, 0.8);
   --app-surface-muted: rgba(17, 32, 56, 0.86);
-  --app-surface-elevated: rgba(14, 28, 49, 0.9);
+  --app-surface-elevated: #0e1c31;
   --app-text: #f0f7ff;
   --app-text-muted: #c8ddf5;
   --app-text-subtle: #9dbadb;

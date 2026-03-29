@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
 import { createAccount, updateAccount } from '../features/accounts/state';
@@ -67,6 +67,7 @@ interface AccountFormProps {
 export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const hydratedAccountIdRef = useRef<string | null>(null);
 
   const {
     values,
@@ -83,7 +84,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
   });
 
   useEffect(() => {
-    if (account && mode === 'edit') {
+    if (account && mode === 'edit' && hydratedAccountIdRef.current !== account.account_id) {
       resetTo({
         ...initialValues,
         ...account,
@@ -100,6 +101,7 @@ export const AccountForm: React.FC<AccountFormProps> = ({ account, mode }) => {
         description: account.description ?? '',
         is_active: account.is_active ?? true,
       });
+      hydratedAccountIdRef.current = account.account_id;
     }
   }, [account, mode, resetTo]);
 

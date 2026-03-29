@@ -39,12 +39,18 @@ async function getFirstCaseTypeId(page: Page, token: string): Promise<string> {
   return firstTypeId;
 }
 
-async function createCase(page: Page, token: string, title: string): Promise<string> {
+async function createCase(
+  page: Page,
+  token: string,
+  title: string
+): Promise<{ id: string; caseNumber: string }> {
+  const organizationId = await page.evaluate(() => localStorage.getItem('organizationId'));
   const contact = await createTestContact(page, token, {
     firstName: 'FollowUp',
     lastName: `Contact ${uniqueSuffix()}`,
     email: `followup.${uniqueSuffix()}@example.com`,
     contactType: 'client',
+    accountId: organizationId || undefined,
   });
   const caseTypeId = await getFirstCaseTypeId(page, token);
   const headers = await getAuthHeaders(page, token);
@@ -65,13 +71,22 @@ async function createCase(page: Page, token: string, title: string): Promise<str
     throw new Error(`Failed to create case (${response.status()}): ${await response.text()}`);
   }
 
-  const payload = unwrapSuccess<{ id?: string; data?: { id?: string } }>(await response.json());
+  const payload = unwrapSuccess<{
+    id?: string;
+    case_number?: string;
+    data?: { id?: string; case_number?: string };
+  }>(await response.json());
   const caseId = payload?.id || payload?.data?.id;
   if (!caseId) {
     throw new Error(`Missing case id from create response: ${JSON.stringify(payload)}`);
   }
 
-  return caseId;
+  const caseNumber = payload?.case_number || payload?.data?.case_number;
+  if (!caseNumber) {
+    throw new Error(`Missing case number from create response: ${JSON.stringify(payload)}`);
+  }
+
+  return { id: caseId, caseNumber };
 }
 
 async function createTask(page: Page, token: string, subject: string): Promise<string> {
@@ -120,7 +135,7 @@ test.describe('Follow-ups workflow', () => {
     const followUpTitle = `Call Back ${suffix}`;
     const updatedTitle = `Call Back Updated ${suffix}`;
 
-    await createCase(authenticatedPage, adminToken, caseTitle);
+    const createdCase = await createCase(authenticatedPage, adminToken, caseTitle);
     await createTask(authenticatedPage, adminToken, taskSubject);
 
     await authenticatedPage.goto('/follow-ups');
@@ -130,7 +145,10 @@ test.describe('Follow-ups workflow', () => {
 
     const entitySearchInput = authenticatedPage.getByPlaceholder('Search by case number/title');
     await entitySearchInput.fill(caseTitle);
-    const caseOption = authenticatedPage.locator('li button').filter({ hasText: caseTitle }).first();
+    const caseOption = authenticatedPage
+      .locator('li button')
+      .filter({ hasText: caseTitle })
+      .first();
     await expect(caseOption).toBeVisible({ timeout: 30000 });
     await caseOption.click();
 

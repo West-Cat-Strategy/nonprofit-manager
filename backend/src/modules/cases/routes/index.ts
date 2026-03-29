@@ -54,6 +54,15 @@ import { CaseOutcomesUseCase } from '../usecases/caseOutcomes.usecase';
 import { CaseDocumentsUseCase } from '../usecases/caseDocuments.usecase';
 
 const casePrioritySchema = z.enum(['low', 'medium', 'high', 'urgent', 'critical']);
+const caseOutcomeSchema = z.enum([
+  'successful',
+  'unsuccessful',
+  'referred',
+  'withdrawn',
+  'attended_event',
+  'additional_related_case',
+  'other',
+]);
 const quickFilterSchema = z.enum(['active', 'overdue', 'due_soon', 'unassigned', 'urgent']);
 const noteTypeSchema = z.enum([
   'note',
@@ -146,10 +155,12 @@ const caseCatalogQuerySchema = z
 const createCaseSchema = z.object({
   contact_id: uuidSchema,
   account_id: uuidSchema.optional(),
-  case_type_id: uuidSchema,
+  case_type_id: uuidSchema.optional(),
+  case_type_ids: z.array(uuidSchema).optional(),
   title: z.string().min(1),
   description: z.string().optional(),
   priority: casePrioritySchema.optional(),
+  outcome: caseOutcomeSchema.optional(),
   source: z.string().optional(),
   referral_source: z.string().optional(),
   assigned_to: uuidSchema.optional(),
@@ -160,16 +171,26 @@ const createCaseSchema = z.object({
   tags: z.array(z.string()).optional(),
   is_urgent: optionalStrictBooleanSchema,
   client_viewable: optionalStrictBooleanSchema,
-});
+  case_outcome_values: z.array(caseOutcomeSchema).optional(),
+}).refine(
+  (payload) => Boolean(payload.case_type_id || (payload.case_type_ids && payload.case_type_ids.length > 0)),
+  {
+    message: 'At least one case type is required',
+    path: ['case_type_ids'],
+  }
+);
 
 const updateCaseSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
   priority: casePrioritySchema.optional(),
+  case_type_id: uuidSchema.optional(),
+  case_type_ids: z.array(uuidSchema).optional(),
   assigned_to: uuidSchema.optional(),
   assigned_team: z.string().optional(),
   due_date: dateStringSchema.optional(),
-  outcome: z.string().optional(),
+  outcome: caseOutcomeSchema.optional(),
+  case_outcome_values: z.array(caseOutcomeSchema).optional(),
   outcome_notes: z.string().optional(),
   closure_reason: z.string().optional(),
   custom_data: z.record(z.string(), z.unknown()).optional(),
