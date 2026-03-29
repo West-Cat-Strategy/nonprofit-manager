@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { WebsiteConsoleLayout, WebsiteConsoleNotice } from '../components';
+import {
+  WebsiteConsoleLayout,
+  WebsiteConsoleNotice,
+  WebsiteConsoleStatePanel,
+  WebsiteConsoleUrlAction,
+} from '../components';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
-import { deriveWebsiteManagementSnapshot } from '../lib/websiteConsole';
+import { deriveWebsiteManagementSnapshot, getWebsiteConsoleUrlTarget } from '../lib/websiteConsole';
 import {
   clearWebsitesError,
   createWebsiteEntry,
@@ -57,6 +62,7 @@ const WebsiteContentPage: React.FC = () => {
   }, [dispatch, siteId, sourceFilter, statusFilter]);
 
   const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
+  const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
 
   const visibleEntries = useMemo(
     () =>
@@ -223,14 +229,13 @@ const WebsiteContentPage: React.FC = () => {
       title="Manage native newsletters, Mailchimp archive sync, and route-level content visibility."
       actions={
         <div className="flex flex-wrap gap-3">
-          <a
-            href={overview?.deployment?.previewUrl || overview?.deployment?.primaryUrl || '#'}
-            target="_blank"
-            rel="noreferrer"
+          <WebsiteConsoleUrlAction
+            href={previewHref}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+            disabledTitle="Preview is unavailable until the site has a public URL."
           >
             Open preview
-          </a>
+          </WebsiteConsoleUrlAction>
           <button
             type="button"
             onClick={handleSyncMailchimp}
@@ -244,8 +249,9 @@ const WebsiteContentPage: React.FC = () => {
     >
       <div className="space-y-6">
         {error ? (
-          <WebsiteConsoleNotice
+          <WebsiteConsoleStatePanel
             tone="error"
+            title="Website content unavailable"
             message={error}
             onDismiss={() => dispatch(clearWebsitesError())}
           />
@@ -478,9 +484,11 @@ const WebsiteContentPage: React.FC = () => {
               </p>
               <div className="mt-4 space-y-3">
                 {visibleRoutes.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-app-border px-4 py-4 text-sm text-app-text-muted">
-                    No routes match the current filter.
-                  </div>
+                  <WebsiteConsoleStatePanel
+                    tone="empty"
+                    title="No routes match the current filter"
+                    message="Adjust the route visibility filter to view live or draft surfaces."
+                  />
                 ) : (
                   visibleRoutes.map((route) => (
                     <div
@@ -510,11 +518,17 @@ const WebsiteContentPage: React.FC = () => {
             <h2 className="text-lg font-semibold text-app-text">Native archive</h2>
             <div className="mt-4 space-y-3">
               {isLoading && entries.length === 0 ? (
-                <div className="text-sm text-app-text-muted">Loading content...</div>
+                <WebsiteConsoleStatePanel
+                  tone="loading"
+                  title="Loading website content"
+                  message="We are fetching newsletter entries, archive mirrors, and route visibility."
+                />
               ) : nativeEntries.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-app-border px-4 py-4 text-sm text-app-text-muted">
-                  No native newsletter entries match the current filters.
-                </div>
+                <WebsiteConsoleStatePanel
+                  tone="empty"
+                  title="No native newsletter entries"
+                  message="No editable newsletter posts match the current filters."
+                />
               ) : (
                 nativeEntries.map((entry) => (
                   <div
@@ -555,9 +569,11 @@ const WebsiteContentPage: React.FC = () => {
             <h2 className="text-lg font-semibold text-app-text">Mailchimp archive</h2>
             <div className="mt-4 space-y-3">
               {syncedEntries.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-app-border px-4 py-4 text-sm text-app-text-muted">
-                  No Mailchimp campaigns match the current filters.
-                </div>
+                <WebsiteConsoleStatePanel
+                  tone="empty"
+                  title="No Mailchimp campaigns"
+                  message="No synced archive entries match the current filters."
+                />
               ) : (
                 syncedEntries.map((entry) => (
                   <div

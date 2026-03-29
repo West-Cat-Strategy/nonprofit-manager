@@ -1,12 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { WebsiteConsoleLayout, WebsiteConsoleNotice } from '../components';
+import {
+  WebsiteConsoleLayout,
+  WebsiteConsoleNotice,
+  WebsiteConsoleStatePanel,
+  WebsiteConsoleUrlAction,
+} from '../components';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
 import {
   deriveWebsiteManagementSnapshot,
   getFormDependencyState,
   getFormSurfaceMeta,
+  getWebsiteConsoleUrlTarget,
 } from '../lib/websiteConsole';
 import {
   clearWebsitesError,
@@ -50,6 +56,7 @@ const WebsiteFormsPage: React.FC = () => {
     deriveWebsiteManagementSnapshot(
       overview ? ({ ...overview, forms } as WebsiteOverviewSummary) : overview
     );
+  const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
   const [drafts, setDrafts] = useState<Record<string, WebsiteFormOperationalConfig>>({});
   const [notice, setNotice] = useState<{
     tone: 'success' | 'error';
@@ -131,14 +138,13 @@ const WebsiteFormsPage: React.FC = () => {
       subtitle="Changes here merge over the builder-authored component config and affect public submissions immediately."
       actions={
         <div className="flex flex-wrap gap-3">
-          <a
-            href={overview?.deployment?.previewUrl || overview?.deployment?.primaryUrl || '#'}
-            target="_blank"
-            rel="noreferrer"
+          <WebsiteConsoleUrlAction
+            href={previewHref}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+            disabledTitle="Preview is unavailable until the site has a public URL."
           >
             Open preview
-          </a>
+          </WebsiteConsoleUrlAction>
           <a
             href={`/websites/${siteId}/builder`}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
@@ -150,8 +156,9 @@ const WebsiteFormsPage: React.FC = () => {
     >
       <div className="space-y-6">
         {error ? (
-          <WebsiteConsoleNotice
+          <WebsiteConsoleStatePanel
             tone="error"
+            title="Website forms unavailable"
             message={error}
             onDismiss={() => dispatch(clearWebsitesError())}
           />
@@ -213,15 +220,19 @@ const WebsiteFormsPage: React.FC = () => {
         </section>
 
         {isLoading && forms.length === 0 ? (
-          <div className="rounded-3xl border border-app-border bg-app-surface p-8 text-center text-app-text-muted">
-            Loading connected forms...
-          </div>
+          <WebsiteConsoleStatePanel
+            tone="loading"
+            title="Loading website forms"
+            message="We are fetching connected CTAs and their operational overrides."
+          />
         ) : null}
 
         {!isLoading && groupedForms.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-app-border bg-app-surface p-8 text-center text-app-text-muted">
-            No connected website forms were discovered in the linked template yet.
-          </div>
+          <WebsiteConsoleStatePanel
+            tone="empty"
+            title="No connected website forms"
+            message="The linked template has no public form blocks yet."
+          />
         ) : null}
 
         {groupedForms.map(([pageName, pageForms]) => (

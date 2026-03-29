@@ -283,6 +283,16 @@ export const getFormDependencyState = (
 
 export const formatWebsiteConsoleDate = toDateLabel;
 
+export const getWebsiteConsoleUrlTarget = (
+  target:
+    | {
+        previewUrl?: string | null;
+        primaryUrl?: string | null;
+      }
+    | null
+    | undefined
+): string | null => target?.previewUrl || target?.primaryUrl || null;
+
 export const deriveWebsiteManagementSnapshot = (
   overview: WebsiteOverviewSummary | null
 ): WebsiteManagementSnapshot | null => {

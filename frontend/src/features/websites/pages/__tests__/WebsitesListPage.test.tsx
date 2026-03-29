@@ -52,13 +52,13 @@ const mockState = {
       },
     ],
     pagination: {
-      total: 1,
-      page: 1,
+      total: 42,
+      page: 2,
       limit: 20,
-      totalPages: 1,
+      totalPages: 3,
     },
     searchParams: {
-      page: 1,
+      page: 2,
       limit: 20,
       sortBy: 'createdAt',
       sortOrder: 'desc',
@@ -111,8 +111,8 @@ describe('WebsitesListPage', () => {
     expect(screen.getAllByRole('heading', { name: 'Neighborhood Mutual Aid' })).toHaveLength(2);
     expect(screen.getByRole('heading', { name: 'Websites', level: 1 })).toBeInTheDocument();
     expect(screen.getAllByText('Community Template')).toHaveLength(2);
-    expect(screen.getAllByText('Next action')).toHaveLength(2);
-    expect(screen.getByText(/review publishing/i)).toBeInTheDocument();
+    expect(screen.getByText('Recommended next step')).toBeInTheDocument();
+    expect(screen.getAllByText(/review publishing/i)).toHaveLength(2);
     expect(screen.getAllByRole('link', { name: 'Open Console' })).toHaveLength(2);
     expect(screen.getAllByRole('link', { name: 'Open Console' })[0]).toHaveAttribute(
       'href',
@@ -122,6 +122,7 @@ describe('WebsitesListPage', () => {
       'href',
       '/websites/site-1/builder'
     );
+    expect(screen.getByText('Showing 21-40 of 42 websites.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Preview' })).toHaveAttribute(
       'href',
       'https://preview.mutualaid.org'
@@ -142,6 +143,57 @@ describe('WebsitesListPage', () => {
         payload: {
           search: 'mutual',
           page: 1,
+        },
+      })
+    );
+  });
+
+  it('refreshes the list and updates page and sort controls', async () => {
+    renderWithProviders(<WebsitesListPage />, { route: '/websites' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh list' }));
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'websites/fetchSites',
+      })
+    );
+
+    fireEvent.change(screen.getByLabelText('Sort websites by'), {
+      target: { value: 'name' },
+    });
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'websites/setSearchParams',
+        payload: {
+          sortBy: 'name',
+          page: 1,
+        },
+      })
+    );
+
+    fireEvent.change(screen.getByLabelText('Sort order'), {
+      target: { value: 'asc' },
+    });
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'websites/setSearchParams',
+        payload: {
+          sortOrder: 'asc',
+          page: 1,
+        },
+      })
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'websites/setSearchParams',
+        payload: {
+          page: 3,
         },
       })
     );

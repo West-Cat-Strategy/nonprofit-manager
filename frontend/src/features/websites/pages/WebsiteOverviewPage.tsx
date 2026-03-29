@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { WebsiteConsoleLayout } from '../components';
+import { WebsiteConsoleLayout, WebsiteConsoleStatePanel, WebsiteConsoleUrlAction } from '../components';
 import {
   deriveWebsiteManagementSnapshot,
   formatWebsiteConsoleDate,
+  getWebsiteConsoleUrlTarget,
 } from '../lib/websiteConsole';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
-import { fetchWebsiteConversionFunnel } from '../state';
+import { fetchWebsiteConversionFunnel, fetchWebsiteOverview } from '../state';
 
 const stepLabels = {
   view: 'View',
@@ -44,18 +45,17 @@ const WebsiteOverviewPage: React.FC = () => {
   }
 
   const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
-  const previewHref = overview?.deployment?.previewUrl || overview?.deployment?.primaryUrl || '#';
+  const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
 
   const actions = overview ? (
     <>
-      <a
+      <WebsiteConsoleUrlAction
         href={previewHref}
-        target="_blank"
-        rel="noreferrer"
         className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+        disabledTitle="Preview is unavailable until the site has a public URL."
       >
         Preview
-      </a>
+      </WebsiteConsoleUrlAction>
       <Link
         to={`/websites/${siteId}/content`}
         className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
@@ -92,9 +92,28 @@ const WebsiteOverviewPage: React.FC = () => {
       actions={actions}
     >
       {isLoading && !overview ? (
-        <div className="rounded-3xl border border-app-border bg-app-surface p-8 text-center text-app-text-muted">
-          Loading website overview...
-        </div>
+        <WebsiteConsoleStatePanel
+          tone="loading"
+          title="Loading website overview"
+          message="We are fetching the site summary, live routes, form connections, and conversion data."
+        />
+      ) : !overview ? (
+        <WebsiteConsoleStatePanel
+          tone="empty"
+          title="Website overview unavailable"
+          message="Refresh the page or return to the website list to load the latest site summary."
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
+              }}
+              className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover"
+            >
+              Retry overview
+            </button>
+          }
+        />
       ) : overview ? (
         <div className="space-y-6">
           <section className="rounded-3xl border border-app-border bg-app-surface p-5">
