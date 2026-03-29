@@ -3,9 +3,25 @@
  */
 
 import { Page } from '@playwright/test';
+import { createRequire } from 'node:module';
+import path from 'node:path';
 
 const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up/i;
 const HTTP_SCHEME = ['http', '://'].join('');
+const backendRequire = createRequire(path.resolve(__dirname, '..', '..', 'backend', 'package.json'));
+const { Client: PgClient } = backendRequire('pg') as {
+  Client: new (config: {
+    host: string;
+    port: number;
+    database: string;
+    user: string;
+    password: string;
+  }) => {
+    connect(): Promise<void>;
+    end(): Promise<void>;
+    query(text: string, values?: unknown[]): Promise<unknown>;
+  };
+};
 
 const isRetryableNetworkError = (error: unknown): boolean =>
   error instanceof Error && RETRYABLE_NETWORK_ERROR.test(error.message);
@@ -99,6 +115,30 @@ async function withRequestRetry<T>(
     `Request failed for ${context}: ${lastError instanceof Error ? lastError.message : String(lastError)}`
   );
 }
+
+const getDatabaseConnectionConfig = (): {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+} => ({
+  host: process.env.DB_HOST || process.env.E2E_DB_HOST || '127.0.0.1',
+  port: Number(process.env.DB_PORT || process.env.E2E_DB_PORT || '8012'),
+  database: process.env.DB_NAME || process.env.E2E_DB_NAME || 'nonprofit_manager_test',
+  user: process.env.DB_USER || process.env.E2E_DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || process.env.E2E_DB_PASSWORD || 'postgres',
+});
+
+const hardResetContacts = async (): Promise<void> => {
+  const client = new PgClient(getDatabaseConnectionConfig());
+  try {
+    await client.connect();
+    await client.query('TRUNCATE TABLE contacts CASCADE;');
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+};
 
 async function getCachedAuthHeaders(
   page: Page,
@@ -292,13 +332,21 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
             continue;
           }
           const headers = await getCachedAuthHeaders(page, token, authHeaderCache);
-          await withRequestRetry(
+          const deleteResponse = await withRequestRetry(
             () =>
               page.request.delete(`${apiURL}${endpoint}/${itemId}`, {
                 headers,
               }),
             `delete ${endpoint}/${itemId}`
           );
+          if (!deleteResponse.ok()) {
+            if (deleteResponse.status() === 404) {
+              continue;
+            }
+            throw new Error(
+              `Failed to delete ${endpoint}/${itemId} (${deleteResponse.status()}): ${await deleteResponse.text()}`
+            );
+          }
           deletedIds.add(itemId);
         }
       }
@@ -306,6 +354,8 @@ export async function clearDatabase(page: Page, token: string): Promise<void> {
       console.warn(`Failed to clear ${endpoint}:`, error);
     }
   }
+
+  await hardResetContacts();
 }
 
 /**
@@ -494,9 +544,11 @@ export async function createTestEvent(
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const defaultStart = new Date(tomorrow);
-  const defaultEnd = new Date(tomorrow);
-  defaultEnd.setHours(defaultEnd.getHours() + 1);
   const startDate = data.startDate || defaultStart.toISOString();
+  const resolvedStart = new Date(startDate);
+  const endBase = Number.isNaN(resolvedStart.getTime()) ? defaultStart : resolvedStart;
+  const defaultEnd = new Date(endBase);
+  defaultEnd.setHours(defaultEnd.getHours() + 1);
   const endDate = data.endDate || defaultEnd.toISOString();
 
   const response = await page.request.post(`${apiURL}/api/v2/events`, {
