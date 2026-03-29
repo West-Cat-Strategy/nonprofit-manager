@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { WebsiteConsoleLayout, WebsiteConsoleNotice } from '../components';
+import {
+  WebsiteConsoleLayout,
+  WebsiteConsoleNotice,
+  WebsiteConsoleStatePanel,
+  WebsiteConsoleUrlAction,
+} from '../components';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
-import { deriveWebsiteManagementSnapshot } from '../lib/websiteConsole';
+import { deriveWebsiteManagementSnapshot, getWebsiteConsoleUrlTarget } from '../lib/websiteConsole';
 import {
   clearWebsitesError,
   fetchWebsiteIntegrations,
@@ -18,6 +23,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
   const overview = useWebsiteOverviewLoader(siteId, 30);
   const { integrations, isSaving, isLoading, error } = useAppSelector((state) => state.websites);
   const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
+  const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
   const [mailchimpAudienceId, setMailchimpAudienceId] = useState('');
   const [mailchimpMode, setMailchimpMode] = useState<'crm' | 'mailchimp' | 'both'>('crm');
   const [mailchimpTags, setMailchimpTags] = useState('');
@@ -122,14 +128,13 @@ const WebsiteIntegrationsPage: React.FC = () => {
       title="Control Mailchimp audience behavior, Stripe defaults, and integration health."
       actions={
         <div className="flex flex-wrap gap-3">
-          <a
-            href={overview?.deployment?.previewUrl || overview?.deployment?.primaryUrl || '#'}
-            target="_blank"
-            rel="noreferrer"
+          <WebsiteConsoleUrlAction
+            href={previewHref}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+            disabledTitle="Preview is unavailable until the site has a public URL."
           >
             Open preview
-          </a>
+          </WebsiteConsoleUrlAction>
           <a
             href={`/websites/${siteId}/forms`}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
@@ -141,8 +146,9 @@ const WebsiteIntegrationsPage: React.FC = () => {
     >
       <div className="space-y-6">
         {error ? (
-          <WebsiteConsoleNotice
+          <WebsiteConsoleStatePanel
             tone="error"
+            title="Website integrations unavailable"
             message={error}
             onDismiss={() => dispatch(clearWebsitesError())}
           />
@@ -205,9 +211,11 @@ const WebsiteIntegrationsPage: React.FC = () => {
         </section>
 
         {isLoading && !integrations ? (
-          <div className="rounded-3xl border border-app-border bg-app-surface p-8 text-center text-app-text-muted">
-            Loading integration status...
-          </div>
+          <WebsiteConsoleStatePanel
+            tone="loading"
+            title="Loading integration status"
+            message="We are fetching Mailchimp, Stripe, and social tracking configuration."
+          />
         ) : null}
 
         <div className="grid gap-6 xl:grid-cols-2">

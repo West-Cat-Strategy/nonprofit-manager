@@ -1,9 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { WebsiteConsoleLayout, WebsiteConsoleNotice } from '../components';
+import {
+  WebsiteConsoleLayout,
+  WebsiteConsoleNotice,
+  WebsiteConsoleStatePanel,
+  WebsiteConsoleUrlAction,
+} from '../components';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
-import { deriveWebsiteManagementSnapshot, formatWebsiteConsoleDate } from '../lib/websiteConsole';
+import {
+  deriveWebsiteManagementSnapshot,
+  formatWebsiteConsoleDate,
+  getWebsiteConsoleUrlTarget,
+} from '../lib/websiteConsole';
 import {
   clearWebsitesError,
   fetchWebsiteDeployment,
@@ -50,6 +59,7 @@ const WebsitePublishingPage: React.FC = () => {
     domainStatus: 'none' as const,
     sslStatus: 'unconfigured' as const,
   };
+  const liveSiteHref = getWebsiteConsoleUrlTarget(deploymentInfo);
 
   const saveSiteSettings = async () => {
     if (!overview) return;
@@ -132,14 +142,13 @@ const WebsitePublishingPage: React.FC = () => {
       title="Manage publish/unpublish, routing targets, domains, and live-cache refresh."
       actions={
         <div className="flex flex-wrap gap-3">
-          <a
-            href={deploymentInfo.previewUrl || deploymentInfo.primaryUrl || '#'}
-            target="_blank"
-            rel="noreferrer"
+          <WebsiteConsoleUrlAction
+            href={liveSiteHref}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+            disabledTitle="Live site is unavailable until the website has a public URL."
           >
             Open live site
-          </a>
+          </WebsiteConsoleUrlAction>
           <a
             href={`/websites/${siteId}/content`}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
@@ -151,8 +160,9 @@ const WebsitePublishingPage: React.FC = () => {
     >
       <div className="space-y-6">
         {error ? (
-          <WebsiteConsoleNotice
+          <WebsiteConsoleStatePanel
             tone="error"
+            title="Website publishing unavailable"
             message={error}
             onDismiss={() => dispatch(clearWebsitesError())}
           />
@@ -166,16 +176,19 @@ const WebsitePublishingPage: React.FC = () => {
         ) : null}
 
         {isLoading && !overview ? (
-          <div className="rounded-3xl border border-app-border bg-app-surface p-8 text-center text-app-text-muted">
-            Loading publishing status...
-          </div>
+          <WebsiteConsoleStatePanel
+            tone="loading"
+            title="Loading publishing status"
+            message="We are fetching the live deployment, domain state, and cache status."
+          />
         ) : null}
 
         {!isLoading && !overview ? (
-          <div className="rounded-3xl border border-dashed border-app-border bg-app-surface p-8 text-center text-app-text-muted">
-            Publishing data is unavailable right now. Refresh the page or try again after the
-            website overview finishes loading.
-          </div>
+          <WebsiteConsoleStatePanel
+            tone="empty"
+            title="Publishing data is unavailable"
+            message="Refresh the page or retry after the website overview finishes loading."
+          />
         ) : null}
 
         {overview ? (

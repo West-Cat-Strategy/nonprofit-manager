@@ -180,7 +180,7 @@ describe('WebsitePublishingPage', () => {
 
     renderPage();
 
-    expect(screen.getByText('Loading publishing status...')).toBeInTheDocument();
+    expect(screen.getByText('Loading publishing status')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Website console' })).toBeInTheDocument();
   });
 
@@ -196,9 +196,23 @@ describe('WebsitePublishingPage', () => {
     renderPage();
 
     expect(screen.getByText('Publishing lookup failed.')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Publishing data is unavailable right now/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText('Publishing data is unavailable')).toBeInTheDocument();
+  });
+
+  it('disables the live-site action when no public URL is available', () => {
+    mockOverview = {
+      ...overview,
+      deployment: {
+        primaryUrl: '',
+        previewUrl: null,
+        domainStatus: 'none',
+        sslStatus: 'unconfigured',
+      },
+    };
+
+    renderPage();
+
+    expect(screen.getByRole('button', { name: 'Open live site' })).toBeDisabled();
   });
 });
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import WebsiteConsoleStatePanel from '../components/WebsiteConsoleStatePanel';
 import {
   clearWebsitesError,
   fetchWebsiteSites,
@@ -30,6 +31,37 @@ const WebsitesListPage: React.FC = () => {
       })),
     [sites]
   );
+
+  const currentPage = pagination.page || 1;
+  const totalPages = Math.max(pagination.totalPages || 0, 1);
+  const rangeStart = pagination.total === 0 ? 0 : (currentPage - 1) * pagination.limit + 1;
+  const rangeEnd = pagination.total === 0 ? 0 : Math.min(currentPage * pagination.limit, pagination.total);
+  const hasFilterReset = Boolean(
+    searchParams.search ||
+      searchParams.status ||
+      searchParams.sortBy !== 'createdAt' ||
+      searchParams.sortOrder !== 'desc'
+  );
+
+  const handleRefresh = () => {
+    void dispatch(fetchWebsiteSites(searchParams));
+  };
+
+  const handleResetFilters = () => {
+    dispatch(
+      setWebsiteSearchParams({
+        search: undefined,
+        status: undefined,
+        page: 1,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      })
+    );
+  };
+
+  const handlePageChange = (page: number) => {
+    dispatch(setWebsiteSearchParams({ page }));
+  };
 
   const dashboardSummary = useMemo(() => {
     const publishedSites = sitesWithManagement.filter((site) => site.status === 'published');
@@ -81,12 +113,13 @@ const WebsitesListPage: React.FC = () => {
               >
                 Open Template Builder
               </Link>
-              <Link
-                to="/websites"
+              <button
+                type="button"
+                onClick={handleRefresh}
                 className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover"
               >
-                Refresh module
-              </Link>
+                Refresh list
+              </button>
             </div>
           </div>
 
@@ -137,19 +170,113 @@ const WebsitesListPage: React.FC = () => {
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {error ? (
-          <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-            <div className="flex items-center justify-between gap-4">
-              <span>{error}</span>
+          <div className="mb-6">
+            <WebsiteConsoleStatePanel
+              tone="error"
+              title="Website list unavailable"
+              message={error}
+              onDismiss={() => dispatch(clearWebsitesError())}
+            />
+          </div>
+        ) : null}
+
+        <div className="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <input
+              type="text"
+              aria-label="Search websites"
+              value={searchParams.search || ''}
+              onChange={(event) =>
+                dispatch(setWebsiteSearchParams({ search: event.target.value, page: 1 }))
+              }
+              placeholder="Search websites, domains, or templates"
+              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+            />
+            <select
+              aria-label="Filter websites by status"
+              value={searchParams.status || ''}
+              onChange={(event) =>
+                dispatch(
+                  setWebsiteSearchParams({
+                    status: event.target.value
+                      ? (event.target.value as typeof searchParams.status)
+                      : undefined,
+                    page: 1,
+                  })
+                )
+              }
+              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+            >
+              <option value="">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="suspended">Suspended</option>
+            </select>
+            <select
+              aria-label="Sort websites by"
+              value={searchParams.sortBy || 'createdAt'}
+              onChange={(event) =>
+                dispatch(
+                  setWebsiteSearchParams({
+                    sortBy: event.target.value as typeof searchParams.sortBy,
+                    page: 1,
+                  })
+                )
+              }
+              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+            >
+              <option value="createdAt">Newest first</option>
+              <option value="publishedAt">Recently published</option>
+              <option value="name">Name</option>
+              <option value="status">Status</option>
+            </select>
+            <select
+              aria-label="Sort order"
+              value={searchParams.sortOrder || 'desc'}
+              onChange={(event) =>
+                dispatch(
+                  setWebsiteSearchParams({
+                    sortOrder: event.target.value as typeof searchParams.sortOrder,
+                    page: 1,
+                  })
+                )
+              }
+              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+            >
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
+          </div>
+
+          <div className="rounded-3xl border border-app-border bg-app-surface p-4 shadow-sm">
+            <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+              Results
+            </div>
+            <div className="mt-2 text-3xl font-semibold text-app-text">{pagination.total}</div>
+            <p className="mt-2 text-sm text-app-text-muted">
+              Showing {rangeStart}-{rangeEnd} of {pagination.total} websites.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => dispatch(clearWebsitesError())}
-                className="rounded-full border border-rose-200 px-3 py-1 text-xs font-medium"
+                onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                disabled={currentPage <= 1}
+                className="rounded-full border border-app-border px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Dismiss
+                Previous page
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                disabled={currentPage >= totalPages}
+                className="rounded-full border border-app-border px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next page
               </button>
             </div>
           </div>
-        ) : null}
+        </div>
 
         {spotlightSite ? (
           <section className="mb-6 rounded-3xl border border-app-border bg-app-surface p-5 shadow-sm">
@@ -245,48 +372,37 @@ const WebsitesListPage: React.FC = () => {
           </section>
         ) : null}
 
-        <div className="mb-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
-          <input
-            type="text"
-            aria-label="Search websites"
-            value={searchParams.search || ''}
-            onChange={(event) =>
-              dispatch(setWebsiteSearchParams({ search: event.target.value, page: 1 }))
-            }
-            placeholder="Search websites, domains, or templates"
-            className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+        {isLoading && sitesWithManagement.length === 0 ? (
+          <WebsiteConsoleStatePanel
+            tone="loading"
+            title="Loading websites"
+            message="We are fetching the latest staff websites and their readiness summary."
           />
-          <select
-            aria-label="Filter websites by status"
-            value={searchParams.status || ''}
-            onChange={(event) =>
-              dispatch(
-                setWebsiteSearchParams({
-                  status: event.target.value
-                    ? (event.target.value as typeof searchParams.status)
-                    : undefined,
-                  page: 1,
-                })
-              )
-            }
-            className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-          >
-            <option value="">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="maintenance">Maintenance</option>
-            <option value="suspended">Suspended</option>
-          </select>
-        </div>
-
-        {isLoading ? (
-          <div className="rounded-3xl border border-app-border bg-app-surface p-8 text-center text-app-text-muted">
-            Loading websites...
-          </div>
         ) : sitesWithManagement.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-app-border bg-app-surface p-8 text-center text-app-text-muted">
-            No websites match the current filters.
-          </div>
+          <WebsiteConsoleStatePanel
+            tone="empty"
+            title="No websites match the current view"
+            message="Try a different search, status, or sort order. If this workspace is new, you can also open the builder to create a template."
+            action={
+              <div className="flex flex-wrap gap-3">
+                {hasFilterReset ? (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover"
+                  >
+                    Clear filters
+                  </button>
+                ) : null}
+                <Link
+                  to="/website-builder"
+                  className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                >
+                  Open Template Builder
+                </Link>
+              </div>
+            }
+          />
         ) : (
           <div className="space-y-4">
             {sitesWithManagement.map((site) => {
@@ -365,59 +481,90 @@ const WebsitesListPage: React.FC = () => {
 
                       <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-3">
                         <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                          Next action
+                          Recommended next step
                         </div>
                         <p className="mt-2 text-sm text-app-text-muted">{nextAction.detail}</p>
+                        <div className="mt-3 flex flex-wrap gap-3">
+                          {nextAction.href.startsWith('http') ? (
+                            <a
+                              href={nextAction.href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors ${
+                                nextAction.tone === 'primary'
+                                  ? 'bg-app-accent hover:bg-app-accent-hover'
+                                  : nextAction.tone === 'warning'
+                                    ? 'bg-amber-600 hover:bg-amber-700'
+                                    : 'bg-slate-700 hover:bg-slate-800'
+                              }`}
+                            >
+                              {nextAction.title}
+                            </a>
+                          ) : (
+                            <Link
+                              to={nextAction.href}
+                              className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors ${
+                                nextAction.tone === 'primary'
+                                  ? 'bg-app-accent hover:bg-app-accent-hover'
+                                  : nextAction.tone === 'warning'
+                                    ? 'bg-amber-600 hover:bg-amber-700'
+                                    : 'bg-slate-700 hover:bg-slate-800'
+                              }`}
+                            >
+                              {nextAction.title}
+                            </Link>
+                          )}
+                          <Link
+                            to={`/websites/${site.id}/overview`}
+                            className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                          >
+                            Open Console
+                          </Link>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex flex-wrap gap-2 lg:max-w-[26rem] lg:justify-end">
-                      <Link
-                        to={`/websites/${site.id}/overview`}
-                        className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover"
-                      >
-                        Open Console
-                      </Link>
-                      <Link
-                        to={`/websites/${site.id}/builder`}
-                        className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
-                      >
-                        Builder
-                      </Link>
-                      <Link
-                        to={`/websites/${site.id}/content`}
-                        className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
-                      >
-                        Content
-                      </Link>
-                      <Link
-                        to={`/websites/${site.id}/forms`}
-                        className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
-                      >
-                        Forms
-                      </Link>
-                      <Link
-                        to={`/websites/${site.id}/integrations`}
-                        className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
-                      >
-                        Integrations
-                      </Link>
-                      <Link
-                        to={`/websites/${site.id}/publishing`}
-                        className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
-                      >
-                        Publishing
-                      </Link>
-                      {site.previewUrl ? (
-                        <a
-                          href={site.previewUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          to={`/websites/${site.id}/content`}
+                          className="rounded-full border border-app-border bg-app-surface px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                         >
-                          Preview
-                        </a>
-                      ) : null}
+                          Content
+                        </Link>
+                        <Link
+                          to={`/websites/${site.id}/forms`}
+                          className="rounded-full border border-app-border bg-app-surface px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                        >
+                          Forms
+                        </Link>
+                        <Link
+                          to={`/websites/${site.id}/integrations`}
+                          className="rounded-full border border-app-border bg-app-surface px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                        >
+                          Integrations
+                        </Link>
+                        <Link
+                          to={`/websites/${site.id}/publishing`}
+                          className="rounded-full border border-app-border bg-app-surface px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                        >
+                          Publishing
+                        </Link>
+                        <Link
+                          to={`/websites/${site.id}/builder`}
+                          className="rounded-full border border-app-border bg-app-surface px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                        >
+                          Builder
+                        </Link>
+                        {site.previewUrl ? (
+                          <a
+                            href={site.previewUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border border-app-border px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                          >
+                            Preview
+                          </a>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </article>
@@ -425,6 +572,7 @@ const WebsitesListPage: React.FC = () => {
             })}
           </div>
         )}
+
       </div>
     </div>
   );
