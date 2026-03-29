@@ -12,6 +12,7 @@ const MANAGED_FORM_TYPES = new Set<WebsiteManagedFormType>([
   'newsletter-signup',
   'donation-form',
   'volunteer-interest-form',
+  'referral-form',
   'event-registration',
 ]);
 
@@ -40,6 +41,8 @@ const humanizeFormType = (formType: WebsiteManagedFormType): string => {
       return 'Donation form';
     case 'volunteer-interest-form':
       return 'Volunteer interest form';
+    case 'referral-form':
+      return 'Referral form';
     case 'event-registration':
       return 'Event registration';
     default:

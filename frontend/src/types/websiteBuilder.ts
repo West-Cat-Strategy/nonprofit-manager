@@ -56,6 +56,7 @@ export type ComponentType =
   | 'newsletter-signup'
   | 'newsletter-archive'
   | 'volunteer-interest-form'
+  | 'referral-form'
   | 'countdown'
   | 'stats'
   | 'team'
@@ -448,6 +449,17 @@ export interface VolunteerInterestFormComponent extends BaseComponentProps {
   defaultTags?: string[];
 }
 
+export interface ReferralFormComponent extends BaseComponentProps {
+  type: 'referral-form';
+  heading?: string;
+  description?: string;
+  submitText?: string;
+  successMessage?: string;
+  includePhone?: boolean;
+  accountId?: string;
+  defaultTags?: string[];
+}
+
 export interface CountdownComponent extends BaseComponentProps {
   type: 'countdown';
   targetDate: string;
@@ -531,6 +543,7 @@ export type PageComponent =
   | NewsletterSignupComponent
   | NewsletterArchiveComponent
   | VolunteerInterestFormComponent
+  | ReferralFormComponent
   | CountdownComponent
   | StatsComponent
   | TeamComponent

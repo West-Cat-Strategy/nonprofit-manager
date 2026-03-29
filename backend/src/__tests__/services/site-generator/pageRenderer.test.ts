@@ -45,6 +45,7 @@ describe('pageRenderer.renderPageHtml', () => {
     expect(html).toContain('<footer class="site-footer"');
     expect(html).toContain('gtag/js?id=G-TEST');
     expect(html).toContain("/api/v2/sites/' + siteId + '/track");
+    expect(html).toContain('nav-toggle');
     expect(html).toContain('tpl_123');
     expect(html).toContain('body { color: red; }');
     expect(html).toContain('Welcome');

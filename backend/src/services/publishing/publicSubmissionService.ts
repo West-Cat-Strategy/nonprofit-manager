@@ -8,6 +8,7 @@ type SubmissionType =
   | 'contact-form'
   | 'newsletter-signup'
   | 'volunteer-interest-form'
+  | 'referral-form'
   | 'donation-form';
 
 interface PublicSubmissionRow extends QueryResultRow {

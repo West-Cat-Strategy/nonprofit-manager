@@ -10,6 +10,7 @@ import {
   convertToPublishedTheme,
   convertToPublishedPage,
   ensureEventsPage,
+  ensureNewslettersPage,
 } from './helpers';
 import { getTemplate } from './templateCrud';
 import { createTemplate, updateTemplate } from './templateCrud';
@@ -76,7 +77,7 @@ export async function generateTemplatePreview(
     if (templatePages.length === 0) {
       return null;
     }
-    const pages = ensureEventsPage(templatePages, templateId);
+    const pages = ensureNewslettersPage(ensureEventsPage(templatePages, templateId), templateId);
 
     const requestedPage = pages.find(p => p.slug === pageSlug) || pages.find(p => p.isHomepage) || pages[0];
     if (!requestedPage) {

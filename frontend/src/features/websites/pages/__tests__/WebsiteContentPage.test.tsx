@@ -191,6 +191,27 @@ describe('WebsiteContentPage', () => {
 
     expect(screen.getByText('Spring Update')).toBeInTheDocument();
     expect(screen.getByText('March Campaign')).toBeInTheDocument();
+    expect(screen.getByText('Content filters')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Filter content source'), {
+      target: { value: 'native' },
+    });
+    fireEvent.change(screen.getByLabelText('Filter content status'), {
+      target: { value: 'draft' },
+    });
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'websites/fetchEntries',
+          payload: {
+            siteId: 'site-1',
+            source: 'native',
+            status: 'draft',
+          },
+        })
+      );
+    });
 
     fireEvent.change(screen.getByPlaceholderText('Newsletter title'), {
       target: { value: 'April Update' },

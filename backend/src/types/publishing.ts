@@ -313,6 +313,7 @@ export type WebsiteManagedFormType =
   | 'newsletter-signup'
   | 'donation-form'
   | 'volunteer-interest-form'
+  | 'referral-form'
   | 'event-registration';
 
 export interface WebsiteSiteSummary {
@@ -513,6 +514,47 @@ export interface WebsiteIntegrationStatus {
   };
 }
 
+export interface WebsiteManagementSnapshotAttentionItem {
+  id: string;
+  title: string;
+  detail: string;
+  severity: 'info' | 'warning' | 'critical';
+  href?: string;
+  actionLabel?: string;
+}
+
+export interface WebsiteManagementSnapshot {
+  status: 'healthy' | 'attention' | 'blocked';
+  nextAction: {
+    title: string;
+    detail: string;
+    href: string;
+    tone: 'primary' | 'warning' | 'neutral';
+  };
+  readiness: {
+    publish: boolean;
+    preview: boolean;
+    content: boolean;
+    forms: boolean;
+    integrations: boolean;
+    domain: boolean;
+    ssl: boolean;
+    analytics: boolean;
+  };
+  signals: {
+    liveRoutes: number;
+    draftRoutes: number;
+    forms: number;
+    conversions: number;
+    nativeNewsletters: number;
+    syncedNewsletters: number;
+    publishedNewsletters: number;
+  };
+  attentionItems: WebsiteManagementSnapshotAttentionItem[];
+  lastPublishedAt: Date | null;
+  lastUpdatedAt: Date;
+}
+
 export interface WebsiteOverviewSummary {
   site: WebsiteSiteSummary;
   template: {
@@ -537,6 +579,7 @@ export interface WebsiteOverviewSummary {
   forms: WebsiteFormDefinition[];
   conversionMetrics: WebsiteConversionMetrics;
   integrations: WebsiteIntegrationStatus;
+  managementSnapshot: WebsiteManagementSnapshot;
   settings: WebsiteSiteSettings;
 }
 

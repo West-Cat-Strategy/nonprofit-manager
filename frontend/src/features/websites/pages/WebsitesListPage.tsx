@@ -153,6 +153,20 @@ const WebsitesListPage: React.FC = () => {
                       {site.subdomain ? <span>Subdomain: {site.subdomain}</span> : null}
                       {site.customDomain ? <span>Domain: {site.customDomain}</span> : null}
                     </div>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full bg-app-surface-muted px-3 py-1 text-xs font-medium text-app-text-muted">
+                        Version {site.publishedVersion || 'draft'}
+                      </span>
+                      <span className="rounded-full bg-app-surface-muted px-3 py-1 text-xs font-medium text-app-text-muted">
+                        {site.customDomain ? 'Custom domain' : 'No custom domain'}
+                      </span>
+                      <span className="rounded-full bg-app-surface-muted px-3 py-1 text-xs font-medium text-app-text-muted">
+                        {site.sslEnabled ? 'SSL enabled' : 'SSL pending'}
+                      </span>
+                      <span className="rounded-full bg-app-surface-muted px-3 py-1 text-xs font-medium text-app-text-muted">
+                        {site.previewUrl ? 'Preview available' : 'No preview'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -167,6 +181,24 @@ const WebsitesListPage: React.FC = () => {
                       className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                     >
                       Open Builder
+                    </Link>
+                    <Link
+                      to={`/websites/${site.id}/content`}
+                      className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                    >
+                      Content
+                    </Link>
+                    <Link
+                      to={`/websites/${site.id}/forms`}
+                      className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                    >
+                      Forms
+                    </Link>
+                    <Link
+                      to={`/websites/${site.id}/publishing`}
+                      className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                    >
+                      Publishing
                     </Link>
                     {site.previewUrl ? (
                       <a

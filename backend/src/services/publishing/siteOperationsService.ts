@@ -9,6 +9,8 @@ import type {
   WebsiteFormDefinition,
   WebsiteFormOperationalConfig,
   WebsiteIntegrationStatus,
+  WebsiteManagementSnapshot,
+  WebsiteManagementSnapshotAttentionItem,
   WebsiteOverviewSummary,
   WebsiteRouteSummary,
   WebsiteSiteSummary,
@@ -126,6 +128,250 @@ const toSiteSummaryFromSite = (
     blocked: site.migrationStatus === 'needs_assignment',
     createdAt: site.createdAt,
     updatedAt: site.updatedAt,
+  };
+};
+
+const buildManagementSnapshot = (
+  site: PublishedSite,
+  siteSummary: WebsiteSiteSummary,
+  liveRoutes: WebsiteRouteSummary[],
+  draftRoutes: WebsiteRouteSummary[],
+  contentSummary: WebsiteOverviewSummary['contentSummary'],
+  forms: WebsiteFormDefinition[],
+  conversionMetrics: WebsiteConversionMetrics,
+  integrations: WebsiteIntegrationStatus
+): WebsiteManagementSnapshot => {
+  const attentionItems: WebsiteManagementSnapshotAttentionItem[] = [];
+  const addAttentionItem = (item: WebsiteManagementSnapshotAttentionItem) => {
+    attentionItems.push(item);
+  };
+  const sslExpiryDays =
+    siteSummary.customDomain && site.sslCertificateExpiresAt
+      ? (site.sslCertificateExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      : Number.POSITIVE_INFINITY;
+  const sslExpiringSoon = sslExpiryDays <= 30;
+
+  if (siteSummary.blocked) {
+    addAttentionItem({
+      id: 'assignment',
+      title: 'Site assignment needs attention',
+      detail: 'Publishing, domains, and integration changes are paused until the site is assigned.',
+      severity: 'critical',
+      href: `/websites/${site.id}/publishing`,
+      actionLabel: 'Review publishing',
+    });
+  }
+
+  if (!draftRoutes.length) {
+    addAttentionItem({
+      id: 'draft-routes',
+      title: 'No editable pages were found',
+      detail: 'The template has no route entries yet, so there is nothing ready to publish.',
+      severity: 'critical',
+      href: `/websites/${site.id}/builder`,
+      actionLabel: 'Open builder',
+    });
+  } else if (!liveRoutes.length) {
+    addAttentionItem({
+      id: 'publish',
+      title: 'The public site has not been published yet',
+      detail: 'Draft pages exist, but the live site still needs a publish step.',
+      severity: 'warning',
+      href: `/websites/${site.id}/publishing`,
+      actionLabel: 'Publish site',
+    });
+  }
+
+  if (!siteSummary.customDomain && !siteSummary.subdomain) {
+    addAttentionItem({
+      id: 'domain',
+      title: 'No public domain is configured',
+      detail: 'Set a subdomain or custom domain so supporters can find the site easily.',
+      severity: 'warning',
+      href: `/websites/${site.id}/publishing`,
+      actionLabel: 'Set domain',
+    });
+  }
+
+  if (siteSummary.customDomain && siteSummary.sslEnabled && sslExpiringSoon) {
+    addAttentionItem({
+      id: 'ssl',
+      title: 'SSL certificate is expiring soon',
+      detail: 'Renew or reissue the certificate before the public site loses a secure connection.',
+      severity: 'warning',
+      href: `/websites/${site.id}/publishing`,
+      actionLabel: 'Review SSL',
+    });
+  }
+
+  if (!forms.length) {
+    addAttentionItem({
+      id: 'forms',
+      title: 'No public CTA forms are connected',
+      detail: 'Connect at least one contact, newsletter, referral, or donation form before launch.',
+      severity: 'warning',
+      href: `/websites/${site.id}/forms`,
+      actionLabel: 'Open forms',
+    });
+  }
+
+  if (forms.some((form) => form.formType === 'newsletter-signup') && !integrations.mailchimp.configured) {
+    addAttentionItem({
+      id: 'mailchimp',
+      title: 'Newsletter signup needs Mailchimp',
+      detail: 'Newsletter capture will stay local until a Mailchimp audience is configured.',
+      severity: 'critical',
+      href: `/websites/${site.id}/integrations`,
+      actionLabel: 'Open integrations',
+    });
+  }
+
+  if (forms.some((form) => form.formType === 'donation-form') && !integrations.stripe.configured) {
+    addAttentionItem({
+      id: 'stripe',
+      title: 'Donation forms need Stripe',
+      detail: 'Donation and recurring support actions are waiting on Stripe configuration.',
+      severity: 'critical',
+      href: `/websites/${site.id}/integrations`,
+      actionLabel: 'Open integrations',
+    });
+  }
+
+  if (!siteSummary.analyticsEnabled) {
+    addAttentionItem({
+      id: 'analytics',
+      title: 'Conversion tracking is disabled',
+      detail: 'Enable analytics to keep a reliable record of clicks, submits, and donations.',
+      severity: 'info',
+      href: `/websites/${site.id}/publishing`,
+      actionLabel: 'Review analytics',
+    });
+  }
+
+  if (contentSummary.nativeNewsletters === 0 && contentSummary.syncedNewsletters === 0) {
+    addAttentionItem({
+      id: 'content',
+      title: 'No newsletter content is published yet',
+      detail: 'Add a newsletter post or import the archive so the public site has a content stream.',
+      severity: 'info',
+      href: `/websites/${site.id}/content`,
+      actionLabel: 'Open content',
+    });
+  }
+
+  const requiredIntegrationsReady =
+    !forms.some((form) => form.formType === 'newsletter-signup') || integrations.mailchimp.configured;
+  const donationIntegrationsReady =
+    !forms.some((form) => form.formType === 'donation-form') || integrations.stripe.configured;
+  const publishReady = !siteSummary.blocked && draftRoutes.length > 0;
+  const status: WebsiteManagementSnapshot['status'] = siteSummary.blocked
+    ? 'blocked'
+    : attentionItems.some((item) => item.severity === 'critical' || item.severity === 'warning')
+      ? 'attention'
+      : 'healthy';
+
+  const nextAction = (() => {
+    if (siteSummary.blocked) {
+      return {
+        title: 'Resolve the blocking site assignment',
+        detail:
+          'Publishing, domains, and integration changes are paused until the site is assigned.',
+        href: `/websites/${site.id}/publishing`,
+        tone: 'warning' as const,
+      };
+    }
+
+    if (!draftRoutes.length) {
+      return {
+        title: 'Open the builder',
+        detail: 'Add or restore the site routes before publishing the public site.',
+        href: `/websites/${site.id}/builder`,
+        tone: 'primary' as const,
+      };
+    }
+
+    if (!liveRoutes.length) {
+      return {
+        title: 'Publish the site',
+        detail: 'Draft pages are ready. Publish to make the public nonprofit site live.',
+        href: `/websites/${site.id}/publishing`,
+        tone: 'primary' as const,
+      };
+    }
+
+    if (!siteSummary.customDomain && !siteSummary.subdomain) {
+      return {
+        title: 'Configure the public domain',
+        detail:
+          'Add a subdomain or custom domain so supporters can find the site easily.',
+        href: `/websites/${site.id}/publishing`,
+        tone: 'warning' as const,
+      };
+    }
+
+    if (!forms.length) {
+      return {
+        title: 'Open the forms workspace',
+        detail: 'Connect at least one contact, newsletter, referral, or donation form before launch.',
+        href: `/websites/${site.id}/forms`,
+        tone: 'warning' as const,
+      };
+    }
+
+    if (!requiredIntegrationsReady || !donationIntegrationsReady) {
+      return {
+        title: 'Connect the missing integration',
+        detail: 'One or more public CTAs still need their connected service before launch.',
+        href: `/websites/${site.id}/integrations`,
+        tone: 'warning' as const,
+      };
+    }
+
+    if (siteSummary.customDomain && siteSummary.sslEnabled && sslExpiringSoon) {
+      return {
+        title: 'Review SSL renewal timing',
+        detail: 'The certificate is close to expiry, so renew it before the public site is affected.',
+        href: `/websites/${site.id}/publishing`,
+        tone: 'warning' as const,
+      };
+    }
+
+    return {
+      title: 'Open the public preview',
+      detail: 'Review the live pages, recent updates, and conversion flow before sharing the site.',
+      href: siteSummary.previewUrl || siteSummary.primaryUrl,
+      tone: 'neutral' as const,
+    };
+  })();
+
+  return {
+    status,
+    nextAction,
+    readiness: {
+      publish: publishReady,
+      preview: Boolean(siteSummary.previewUrl),
+      content:
+        liveRoutes.length > 0 ||
+        contentSummary.nativeNewsletters > 0 ||
+        contentSummary.syncedNewsletters > 0,
+      forms: forms.length > 0,
+      integrations: requiredIntegrationsReady && donationIntegrationsReady,
+      domain: Boolean(siteSummary.customDomain || siteSummary.subdomain),
+      ssl: siteSummary.customDomain ? siteSummary.sslEnabled && !sslExpiringSoon : true,
+      analytics: siteSummary.analyticsEnabled,
+    },
+    signals: {
+      liveRoutes: liveRoutes.length,
+      draftRoutes: draftRoutes.length,
+      forms: forms.length,
+      conversions: conversionMetrics.totalConversions,
+      nativeNewsletters: contentSummary.nativeNewsletters,
+      syncedNewsletters: contentSummary.syncedNewsletters,
+      publishedNewsletters: contentSummary.publishedNewsletters,
+    },
+    attentionItems,
+    lastPublishedAt: site.publishedAt,
+    lastUpdatedAt: site.updatedAt,
   };
 };
 
@@ -553,6 +799,16 @@ export class SiteOperationsService {
       templateStatus: template?.status || null,
       organizationName: null,
     });
+    const managementSnapshot = buildManagementSnapshot(
+      site,
+      siteSummary,
+      liveRoutes,
+      draftRoutes,
+      contentSummary,
+      forms,
+      conversionMetrics,
+      integrations
+    );
 
     return {
       site: siteSummary,
@@ -574,6 +830,7 @@ export class SiteOperationsService {
       forms,
       conversionMetrics,
       integrations,
+      managementSnapshot,
       settings: siteSettings,
     };
   }

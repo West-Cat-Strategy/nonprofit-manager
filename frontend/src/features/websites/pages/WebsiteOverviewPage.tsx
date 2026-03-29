@@ -2,6 +2,10 @@ import React, { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { WebsiteConsoleLayout } from '../components';
+import {
+  deriveWebsiteManagementSnapshot,
+  formatWebsiteConsoleDate,
+} from '../lib/websiteConsole';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
 import { fetchWebsiteConversionFunnel } from '../state';
 
@@ -39,16 +43,31 @@ const WebsiteOverviewPage: React.FC = () => {
     return null;
   }
 
+  const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
+  const previewHref = overview?.deployment?.previewUrl || overview?.deployment?.primaryUrl || '#';
+
   const actions = overview ? (
     <>
       <a
-        href={overview.deployment.previewUrl || overview.deployment.primaryUrl}
+        href={previewHref}
         target="_blank"
         rel="noreferrer"
         className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
       >
         Preview
       </a>
+      <Link
+        to={`/websites/${siteId}/content`}
+        className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+      >
+        Content
+      </Link>
+      <Link
+        to={`/websites/${siteId}/forms`}
+        className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+      >
+        Forms
+      </Link>
       <Link
         to={`/websites/${siteId}/publishing`}
         className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
@@ -78,6 +97,153 @@ const WebsiteOverviewPage: React.FC = () => {
         </div>
       ) : overview ? (
         <div className="space-y-6">
+          <section className="rounded-3xl border border-app-border bg-app-surface p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl">
+                <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                  Next action
+                </div>
+                <h2 className="mt-2 text-2xl font-semibold text-app-text">
+                  {managementSnapshot?.nextAction.title || 'Open the public preview'}
+                </h2>
+                <p className="mt-2 text-sm text-app-text-muted">
+                  {managementSnapshot?.nextAction.detail ||
+                    'Review the live pages, recent updates, and conversion flow before sharing the site.'}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {managementSnapshot?.nextAction.href?.startsWith('http') ? (
+                    <a
+                      href={managementSnapshot.nextAction.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors ${
+                        managementSnapshot.nextAction.tone === 'warning'
+                          ? 'bg-amber-600 hover:bg-amber-700'
+                          : managementSnapshot.nextAction.tone === 'primary'
+                            ? 'bg-app-accent hover:bg-app-accent-hover'
+                            : 'bg-slate-700 hover:bg-slate-800'
+                      }`}
+                    >
+                      {managementSnapshot?.nextAction.title || 'Open preview'}
+                    </a>
+                  ) : (
+                    <Link
+                      to={managementSnapshot?.nextAction.href || `/websites/${siteId}/publishing`}
+                      className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors ${
+                        managementSnapshot?.nextAction.tone === 'warning'
+                          ? 'bg-amber-600 hover:bg-amber-700'
+                          : managementSnapshot?.nextAction.tone === 'primary'
+                            ? 'bg-app-accent hover:bg-app-accent-hover'
+                            : 'bg-slate-700 hover:bg-slate-800'
+                      }`}
+                    >
+                      {managementSnapshot?.nextAction.title || 'Open preview'}
+                    </Link>
+                  )}
+                  <Link
+                    to={`/websites/${siteId}/publishing`}
+                    className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                  >
+                    Publishing
+                  </Link>
+                  <Link
+                    to={`/websites/${siteId}/builder`}
+                    className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                  >
+                    Builder
+                  </Link>
+                </div>
+              </div>
+
+              <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:w-[22rem]">
+                <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    Console state
+                  </div>
+                  <div className="mt-2 text-lg font-semibold capitalize text-app-text">
+                    {managementSnapshot?.status || 'attention'}
+                  </div>
+                  <p className="mt-1 text-sm text-app-text-muted">
+                    {overview.site.status} • version {overview.site.publishedVersion || 'draft'}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    Freshness
+                  </div>
+                  <div className="mt-2 text-lg font-semibold text-app-text">
+                    {formatWebsiteConsoleDate(managementSnapshot?.lastUpdatedAt || overview.site.updatedAt)}
+                  </div>
+                  <p className="mt-1 text-sm text-app-text-muted">
+                    Published {formatWebsiteConsoleDate(managementSnapshot?.lastPublishedAt || overview.site.publishedAt)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    Publish readiness
+                  </div>
+                  <div className="mt-2 text-lg font-semibold text-app-text">
+                    {managementSnapshot?.readiness.publish ? 'Ready' : 'Needs work'}
+                  </div>
+                  <p className="mt-1 text-sm text-app-text-muted">
+                    Domain {managementSnapshot?.readiness.domain ? 'ready' : 'missing'} • Forms{' '}
+                    {managementSnapshot?.readiness.forms ? 'connected' : 'missing'}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    Live surface count
+                  </div>
+                  <div className="mt-2 text-3xl font-semibold text-app-text">
+                    {managementSnapshot?.signals.liveRoutes || overview.liveRoutes.length}
+                  </div>
+                  <p className="mt-1 text-sm text-app-text-muted">
+                    {managementSnapshot?.signals.forms || overview.forms.length} forms •{' '}
+                    {managementSnapshot?.signals.conversions || overview.conversionMetrics.totalConversions}{' '}
+                    conversions
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {managementSnapshot?.attentionItems.length ? (
+              <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                {managementSnapshot.attentionItems.slice(0, 4).map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-app-text">{item.title}</div>
+                        <p className="mt-1 text-sm text-app-text-muted">{item.detail}</p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.severity === 'critical'
+                            ? 'bg-rose-100 text-rose-800'
+                            : item.severity === 'warning'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-sky-100 text-sky-800'
+                        }`}
+                      >
+                        {item.severity}
+                      </span>
+                    </div>
+                    {item.href ? (
+                      <Link
+                        to={item.href}
+                        className="mt-3 inline-flex text-sm font-medium text-app-accent"
+                      >
+                        {item.actionLabel || 'Open'}
+                      </Link>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </section>
+
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-3xl border border-app-border bg-app-surface p-5">
               <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
@@ -108,10 +274,10 @@ const WebsiteOverviewPage: React.FC = () => {
                 Domain / SSL
               </div>
               <div className="mt-2 text-lg font-semibold text-app-text">
-                {overview.deployment.domainStatus}
+                {overview?.deployment?.domainStatus || 'configured'}
               </div>
               <p className="mt-2 text-sm text-app-text-muted">
-                SSL status: {overview.deployment.sslStatus}
+                SSL status: {overview?.deployment?.sslStatus || 'unconfigured'}
               </p>
             </div>
             <div className="rounded-3xl border border-app-border bg-app-surface p-5">

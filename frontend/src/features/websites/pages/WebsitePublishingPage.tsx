@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { WebsiteConsoleLayout, WebsiteConsoleNotice } from '../components';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
+import { deriveWebsiteManagementSnapshot, formatWebsiteConsoleDate } from '../lib/websiteConsole';
 import {
   clearWebsitesError,
   fetchWebsiteDeployment,
@@ -41,6 +42,14 @@ const WebsitePublishingPage: React.FC = () => {
   if (!siteId) {
     return null;
   }
+
+  const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
+  const deploymentInfo = overview?.deployment || {
+    primaryUrl: overview?.site.primaryUrl || '',
+    previewUrl: null,
+    domainStatus: 'none' as const,
+    sslStatus: 'unconfigured' as const,
+  };
 
   const saveSiteSettings = async () => {
     if (!overview) return;
@@ -121,6 +130,24 @@ const WebsitePublishingPage: React.FC = () => {
       siteId={siteId}
       overview={overview}
       title="Manage publish/unpublish, routing targets, domains, and live-cache refresh."
+      actions={
+        <div className="flex flex-wrap gap-3">
+          <a
+            href={deploymentInfo.previewUrl || deploymentInfo.primaryUrl || '#'}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+          >
+            Open live site
+          </a>
+          <a
+            href={`/websites/${siteId}/content`}
+            className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+          >
+            Review content
+          </a>
+        </div>
+      }
     >
       <div className="space-y-6">
         {error ? (
@@ -153,6 +180,80 @@ const WebsitePublishingPage: React.FC = () => {
 
         {overview ? (
           <>
+            <section className="rounded-3xl border border-app-border bg-app-surface p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-2xl">
+                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    Publish readiness
+                  </div>
+                  <h2 className="mt-2 text-2xl font-semibold text-app-text">
+                    {managementSnapshot?.nextAction.title || 'Review publish settings'}
+                  </h2>
+                  <p className="mt-2 text-sm text-app-text-muted">
+                    {managementSnapshot?.nextAction.detail ||
+                      'Check routing, domain configuration, and cache state before publishing.'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <span className="rounded-full bg-app-surface-muted px-3 py-1 text-sm font-medium text-app-text-muted">
+                    Status: {managementSnapshot?.status || overview.site.status}
+                  </span>
+                  <span className="rounded-full bg-app-surface-muted px-3 py-1 text-sm font-medium text-app-text-muted">
+                    Version: {overview.site.publishedVersion || 'draft'}
+                  </span>
+                  <span className="rounded-full bg-app-surface-muted px-3 py-1 text-sm font-medium text-app-text-muted">
+                    Updated {formatWebsiteConsoleDate(managementSnapshot?.lastUpdatedAt || overview.site.updatedAt)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    Publish
+                  </div>
+                  <div className="mt-2 text-lg font-semibold text-app-text">
+                    {managementSnapshot?.readiness.publish ? 'Ready' : 'Needs work'}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    Domain
+                  </div>
+                  <div className="mt-2 text-lg font-semibold text-app-text">
+                    {managementSnapshot?.readiness.domain ? 'Configured' : 'Missing'}
+                  </div>
+                  <p className="mt-1 text-sm text-app-text-muted">
+                    {deploymentInfo.domainStatus === 'configured'
+                      ? 'Primary site domain is attached.'
+                      : 'Add a subdomain or custom domain.'}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    SSL
+                  </div>
+                  <div className="mt-2 text-lg font-semibold text-app-text capitalize">
+                    {deploymentInfo.sslStatus}
+                  </div>
+                  <p className="mt-1 text-sm text-app-text-muted">
+                    {overview.site.customDomain ? 'Secure traffic for the live domain.' : 'Not required without a custom domain.'}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
+                  <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                    Preview
+                  </div>
+                  <div className="mt-2 text-lg font-semibold text-app-text">
+                    {managementSnapshot?.readiness.preview ? 'Available' : 'Unavailable'}
+                  </div>
+                  <p className="mt-1 text-sm text-app-text-muted">
+                    {deploymentInfo.previewUrl || deploymentInfo.primaryUrl}
+                  </p>
+                </div>
+              </div>
+            </section>
+
             <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
               <section className="rounded-3xl border border-app-border bg-app-surface p-5">
                 <h2 className="text-lg font-semibold text-app-text">Site identity and domains</h2>
@@ -200,7 +301,7 @@ const WebsitePublishingPage: React.FC = () => {
                       Primary URL
                     </div>
                     <div className="mt-2 text-sm text-app-text">
-                      {deployment?.primaryUrl || overview.deployment.primaryUrl}
+                      {deployment?.primaryUrl || deploymentInfo.primaryUrl}
                     </div>
                   </div>
                   <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
@@ -208,7 +309,7 @@ const WebsitePublishingPage: React.FC = () => {
                       SSL
                     </div>
                     <div className="mt-2 text-sm capitalize text-app-text">
-                      {overview.deployment.sslStatus}
+                      {deploymentInfo.sslStatus}
                     </div>
                   </div>
                 </div>

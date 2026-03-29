@@ -90,4 +90,75 @@ describe('componentRenderer.generateSectionHtml', () => {
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).toContain('https://example.org?a=%3Cx%3E');
   });
+
+  it('renders the richer nonprofit builder blocks used by the starter template', () => {
+    const section: PublishedSection = {
+      id: 's4',
+      name: 'Rich Blocks',
+      components: [
+        {
+          id: 'hero',
+          type: 'hero',
+          backgroundImage: 'https://example.org/hero.jpg',
+          components: [
+            { id: 'hero-heading', type: 'heading', content: 'Hero title', level: 1 },
+          ],
+        },
+        {
+          id: 'columns',
+          type: 'columns',
+          columns: [
+            {
+              id: 'col-1',
+              width: '2/3',
+              components: [
+                { id: 'card-1', type: 'card', title: 'Card title', content: 'Card copy', link: '/learn-more', linkText: 'Learn more' },
+              ],
+            },
+            {
+              id: 'col-2',
+              width: '1/3',
+              components: [
+                { id: 'map-1', type: 'map', address: '400 West Georgia Street, Vancouver, BC V6B 1A1', height: '280px' },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'pricing',
+          type: 'pricing',
+          tiers: [
+            { id: 'tier-1', name: 'One', price: '$10', features: ['First'], buttonText: 'Choose', buttonLink: '/donate' },
+          ],
+        },
+        {
+          id: 'faq',
+          type: 'faq',
+          items: [{ id: 'faq-1', question: 'Question?', answer: 'Answer.' }],
+          expandFirst: true,
+        },
+        {
+          id: 'team',
+          type: 'team',
+          members: [{ id: 'member-1', name: 'Taylor', role: 'Director', bio: 'Leads the team.' }],
+        },
+        {
+          id: 'logos',
+          type: 'logo-grid',
+          logos: [{ id: 'logo-1', src: 'https://example.org/logo.png', alt: 'Logo' }],
+        },
+      ],
+    };
+
+    const html = generateSectionHtml(section, theme);
+
+    expect(html).toContain('hero-component');
+    expect(html).toContain('card-component');
+    expect(html).toContain('map-component');
+    expect(html).toContain('pricing-grid');
+    expect(html).toContain('faq-list');
+    expect(html).toContain('team-grid');
+    expect(html).toContain('logo-grid');
+    expect(html).toContain('data-track-click="true"');
+  });
 });
