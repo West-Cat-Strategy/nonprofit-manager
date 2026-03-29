@@ -6,7 +6,7 @@ import type {
 } from '@app-types/publishing';
 import { SiteOperationsService } from '@services/publishing/siteOperationsService';
 
-const buildSite = (): PublishedSite => ({
+const buildSite = (overrides: Partial<PublishedSite> = {}): PublishedSite => ({
   id: 'site-1',
   userId: 'user-1',
   ownerUserId: 'owner-1',
@@ -27,6 +27,28 @@ const buildSite = (): PublishedSite => ({
   analyticsEnabled: true,
   createdAt: new Date('2026-03-01T00:00:00.000Z'),
   updatedAt: new Date('2026-03-01T00:00:00.000Z'),
+  ...overrides,
+});
+
+const buildManagedForm = (overrides: Partial<WebsiteFormDefinition> = {}): WebsiteFormDefinition => ({
+  formKey: 'contact-form-1',
+  componentId: 'contact-form-1',
+  formType: 'contact-form',
+  title: 'Contact form',
+  description: 'Stay in touch',
+  pageId: 'page-home',
+  pageName: 'Home',
+  pageSlug: 'home',
+  pageType: 'static',
+  routePattern: '/',
+  path: '/',
+  live: true,
+  blocked: false,
+  sourceConfig: {},
+  operationalSettings: {
+    successMessage: 'Original message',
+  },
+  ...overrides,
 });
 
 const buildSettings = (): WebsiteSiteSettings => ({
@@ -48,29 +70,6 @@ const buildSettings = (): WebsiteSiteSettings => ({
   updatedAt: null,
 });
 
-const buildForm = (
-  overrides: Partial<WebsiteFormDefinition> = {}
-): WebsiteFormDefinition => ({
-  formKey: 'contact-form-1',
-  componentId: 'contact-form-1',
-  formType: 'contact-form',
-  title: 'Contact form',
-  description: 'Stay in touch',
-  pageId: 'page-home',
-  pageName: 'Home',
-  pageSlug: 'home',
-  pageType: 'static',
-  routePattern: '/',
-  path: '/',
-  live: true,
-  blocked: false,
-  sourceConfig: {},
-  operationalSettings: {
-    successMessage: 'Original message',
-  },
-  ...overrides,
-});
-
 describe('SiteOperationsService', () => {
   let mockQuery: jest.Mock;
   let service: SiteOperationsService;
@@ -87,6 +86,7 @@ describe('SiteOperationsService', () => {
 
     mockSiteManagement = {
       getSite: jest.fn().mockResolvedValue(buildSite()),
+      getSiteUrl: jest.fn().mockReturnValue('https://site-one.example.com'),
     };
     mockSiteSettings = {
       getSettingsForSite: jest.fn().mockResolvedValue(buildSettings()),
@@ -104,7 +104,7 @@ describe('SiteOperationsService', () => {
   });
 
   it('rejects unknown form keys before persisting overrides', async () => {
-    mockFormRegistry.extract.mockReturnValue([buildForm()]);
+    mockFormRegistry.extract.mockReturnValue([buildManagedForm()]);
 
     await expect(
       service.updateForm(
@@ -121,9 +121,9 @@ describe('SiteOperationsService', () => {
 
   it('persists valid form overrides and returns the refreshed form definition', async () => {
     mockFormRegistry.extract
-      .mockReturnValueOnce([buildForm()])
+      .mockReturnValueOnce([buildManagedForm()])
       .mockReturnValueOnce([
-        buildForm({
+        buildManagedForm({
           operationalSettings: {
             successMessage: 'Updated by site console',
             defaultTags: ['console-updated'],
@@ -159,5 +159,90 @@ describe('SiteOperationsService', () => {
         defaultTags: ['console-updated'],
       },
     });
+  });
+
+  it('returns a management snapshot with readiness and the next operator action', async () => {
+    const site = buildSite({
+      publishedContent: {
+        templateId: 'template-1',
+        templateName: 'Community Template',
+        theme: {} as any,
+        pages: [
+          {
+            id: 'page-home',
+            slug: 'home',
+            name: 'Home',
+            isHomepage: true,
+            sections: [],
+            seo: { title: 'Home' },
+          } as any,
+        ],
+        navigation: { items: [], style: 'horizontal', sticky: false, transparent: false },
+        footer: { columns: [], copyright: 'Copyright' },
+        seoDefaults: { title: 'Site', description: 'Desc' },
+        publishedAt: '2026-03-01T00:00:00.000Z',
+        version: 'v1',
+      } as PublishedSite['publishedContent'],
+    });
+
+    mockSiteManagement.getSite.mockResolvedValue(site);
+    mockFormRegistry.extract.mockReturnValue([buildManagedForm({ formType: 'newsletter-signup' })]);
+    mockSiteSettings.getSettingsForSite.mockResolvedValue(buildSettings());
+
+    (service as unknown as { getForms: jest.Mock }).getForms = jest.fn().mockResolvedValue([
+      buildManagedForm({ formType: 'newsletter-signup' }),
+      buildManagedForm({
+        formType: 'donation-form',
+        formKey: 'donation-form-1',
+        componentId: 'donation-form-1',
+        title: 'Donation form',
+      }),
+    ]);
+    (service as unknown as { getConversionMetrics: jest.Mock }).getConversionMetrics = jest
+      .fn()
+      .mockResolvedValue({
+        totalPageviews: 100,
+        uniqueVisitors: 50,
+        formSubmissions: 12,
+        eventRegistrations: 0,
+        donations: 1,
+        totalConversions: 13,
+        periodStart: '2026-02-01T00:00:00.000Z',
+        periodEnd: '2026-03-01T00:00:00.000Z',
+        recentConversions: [],
+      });
+    (service as unknown as { getIntegrationStatus: jest.Mock }).getIntegrationStatus = jest
+      .fn()
+      .mockResolvedValue({
+        blocked: false,
+        publishStatus: 'draft',
+        mailchimp: {
+          configured: false,
+          availableAudiences: [],
+          lastSyncAt: null,
+        },
+        stripe: {
+          configured: false,
+          publishableKeyConfigured: false,
+        },
+        social: {
+          facebook: {
+            lastSyncAt: null,
+            lastSyncError: null,
+          },
+        },
+      });
+
+    const result = await service.getOverview('site-1', 'user-1', 30, 'org-1');
+
+    expect(result.managementSnapshot.status).toBe('attention');
+    expect(result.managementSnapshot.readiness.publish).toBe(true);
+    expect(result.managementSnapshot.readiness.forms).toBe(true);
+    expect(result.managementSnapshot.readiness.integrations).toBe(false);
+    expect(result.managementSnapshot.nextAction.href).toBe('/websites/site-1/integrations');
+    expect(result.managementSnapshot.attentionItems.map((item) => item.id)).toEqual(
+      expect.arrayContaining(['mailchimp', 'stripe'])
+    );
+    expect(result.managementSnapshot.signals.forms).toBe(2);
   });
 });

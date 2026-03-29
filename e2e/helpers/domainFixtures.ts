@@ -115,12 +115,14 @@ export async function createWebsiteSite(
   options: {
     name?: string;
     subdomain?: string;
+    customDomain?: string;
   } = {}
 ): Promise<string> {
   const response = await postJSON(page, token, '/api/v2/sites', {
     templateId,
     name: options.name || `E2E Website ${Date.now()}`,
     ...(options.subdomain ? { subdomain: options.subdomain } : {}),
+    ...(options.customDomain ? { customDomain: options.customDomain } : {}),
   });
   if (!response.ok()) {
     throw new Error(`Failed to create website site (${response.status()}): ${await response.text()}`);
@@ -135,6 +137,48 @@ export async function createWebsiteSite(
 
 export async function deleteWebsiteSite(page: Page, token: string, id: string) {
   await deleteWithAuth(page, token, `/api/v2/sites/${id}`);
+}
+
+export async function createWebsiteEntry(
+  page: Page,
+  token: string,
+  siteId: string,
+  data: {
+    title: string;
+    excerpt?: string;
+    body?: string;
+    bodyHtml?: string;
+    status?: 'draft' | 'published' | 'archived';
+    slug?: string;
+  }
+): Promise<string> {
+  const response = await postJSON(page, token, `/api/v2/sites/${siteId}/entries`, {
+    kind: 'newsletter',
+    source: 'native',
+    status: data.status || 'published',
+    title: data.title,
+    excerpt: data.excerpt,
+    body: data.body,
+    bodyHtml: data.bodyHtml,
+    slug: data.slug,
+    seo: {
+      title: data.title,
+      description: data.excerpt || data.title,
+    },
+  });
+  if (!response.ok()) {
+    throw new Error(`Failed to create website entry (${response.status()}): ${await response.text()}`);
+  }
+  const body = await response.json();
+  const entryId = body.id || body.entry_id || body.entryId || body.data?.id || body.data?.entry_id;
+  if (!entryId) {
+    throw new Error(`Website entry created but id missing in response: ${JSON.stringify(body)}`);
+  }
+  return entryId;
+}
+
+export async function deleteWebsiteEntry(page: Page, token: string, siteId: string, entryId: string) {
+  await deleteWithAuth(page, token, `/api/v2/sites/${siteId}/entries/${entryId}`);
 }
 
 export async function publishWebsiteSite(

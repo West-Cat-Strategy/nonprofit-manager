@@ -3,14 +3,53 @@ import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { WebsiteConsoleLayout, WebsiteConsoleNotice } from '../components';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
-import { clearWebsitesError, fetchWebsiteForms, updateWebsiteForm } from '../state';
-import type { WebsiteFormDefinition, WebsiteFormOperationalConfig } from '../types';
+import {
+  deriveWebsiteManagementSnapshot,
+  getFormDependencyState,
+  getFormSurfaceMeta,
+} from '../lib/websiteConsole';
+import {
+  clearWebsitesError,
+  fetchWebsiteForms,
+  fetchWebsiteOverview,
+  updateWebsiteForm,
+} from '../state';
+import type {
+  WebsiteFormDefinition,
+  WebsiteFormOperationalConfig,
+  WebsiteIntegrationStatus,
+  WebsiteOverviewSummary,
+} from '../types';
+
+const emptyIntegrationStatus: WebsiteIntegrationStatus = {
+  blocked: false,
+  publishStatus: 'draft',
+  mailchimp: {
+    configured: false,
+    availableAudiences: [],
+    lastSyncAt: null,
+  },
+  stripe: {
+    configured: false,
+    publishableKeyConfigured: false,
+  },
+  social: {
+    facebook: {
+      lastSyncAt: null,
+      lastSyncError: null,
+    },
+  },
+};
 
 const WebsiteFormsPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const dispatch = useAppDispatch();
   const overview = useWebsiteOverviewLoader(siteId, 30);
   const { forms, isSaving, isLoading, error } = useAppSelector((state) => state.websites);
+  const managementSnapshot = overview?.managementSnapshot ??
+    deriveWebsiteManagementSnapshot(
+      overview ? ({ ...overview, forms } as WebsiteOverviewSummary) : overview
+    );
   const [drafts, setDrafts] = useState<Record<string, WebsiteFormOperationalConfig>>({});
   const [notice, setNotice] = useState<{
     tone: 'success' | 'error';
@@ -28,6 +67,13 @@ const WebsiteFormsPage: React.FC = () => {
     );
     setDrafts(nextDrafts);
   }, [forms]);
+
+  const refreshOverview = () => {
+    if (!siteId) return;
+    void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
+  };
+
+  const integrationStatus = overview?.integrations ?? emptyIntegrationStatus;
 
   const groupedForms = useMemo(() => {
     const groups = new Map<string, WebsiteFormDefinition[]>();
@@ -63,6 +109,7 @@ const WebsiteFormsPage: React.FC = () => {
     );
     if (updateWebsiteForm.fulfilled.match(result)) {
       await dispatch(fetchWebsiteForms(siteId));
+      refreshOverview();
       setNotice({ tone: 'success', message: 'Form settings saved.' });
     } else {
       setNotice({
@@ -82,6 +129,24 @@ const WebsiteFormsPage: React.FC = () => {
       overview={overview}
       title="Manage connected public form blocks discovered from the linked template."
       subtitle="Changes here merge over the builder-authored component config and affect public submissions immediately."
+      actions={
+        <div className="flex flex-wrap gap-3">
+          <a
+            href={overview?.deployment?.previewUrl || overview?.deployment?.primaryUrl || '#'}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+          >
+            Open preview
+          </a>
+          <a
+            href={`/websites/${siteId}/builder`}
+            className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+          >
+            Open builder
+          </a>
+        </div>
+      }
     >
       <div className="space-y-6">
         {error ? (
@@ -98,6 +163,54 @@ const WebsiteFormsPage: React.FC = () => {
             onDismiss={() => setNotice(null)}
           />
         ) : null}
+
+        <section className="rounded-3xl border border-app-border bg-app-surface p-5">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Connected CTAs
+              </div>
+              <div className="mt-2 text-3xl font-semibold text-app-text">{forms.length}</div>
+              <p className="mt-2 text-sm text-app-text-muted">
+                Every form is wired to a public surface and overrideable here.
+              </p>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Ready CTAs
+              </div>
+              <div className="mt-2 text-3xl font-semibold text-app-text">
+                {forms.filter((form) => getFormDependencyState(form, integrationStatus).ready).length}
+              </div>
+              <p className="mt-2 text-sm text-app-text-muted">
+                Forms whose required integration is already configured.
+              </p>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Missing dependencies
+              </div>
+              <div className="mt-2 text-3xl font-semibold text-app-text">
+                {forms.filter((form) => !getFormDependencyState(form, integrationStatus).ready).length}
+              </div>
+              <p className="mt-2 text-sm text-app-text-muted">
+                These CTAs need Mailchimp or Stripe before they feel finished.
+              </p>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Next action
+              </div>
+              <div className="mt-2 text-lg font-semibold text-app-text">
+                {managementSnapshot?.nextAction.title || 'Review a CTA'}
+              </div>
+              <p className="mt-2 text-sm text-app-text-muted">
+                {managementSnapshot?.nextAction.detail ||
+                  'Check the public surface, integration dependency, and override status.'}
+              </p>
+            </div>
+          </div>
+        </section>
 
         {isLoading && forms.length === 0 ? (
           <div className="rounded-3xl border border-app-border bg-app-surface p-8 text-center text-app-text-muted">
@@ -127,6 +240,8 @@ const WebsiteFormsPage: React.FC = () => {
               {pageForms.map((form) => {
                 const draft = drafts[form.formKey] || {};
                 const tagsValue = (draft.defaultTags || []).join(', ');
+                const surfaceMeta = getFormSurfaceMeta(form.formType);
+                const dependencyState = getFormDependencyState(form, integrationStatus);
 
                 return (
                   <article
@@ -136,9 +251,30 @@ const WebsiteFormsPage: React.FC = () => {
                     <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <div className="text-sm font-semibold text-app-text">{form.title}</div>
-                        <div className="text-sm text-app-text-muted">
-                          {form.formType} • {form.path}
+                        <div className="mt-1 text-sm text-app-text-muted">
+                          {surfaceMeta.label} • {form.path}
                         </div>
+                        <p className="mt-2 max-w-2xl text-sm text-app-text-muted">
+                          {surfaceMeta.description}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                          <span className="rounded-full bg-app-surface px-3 py-1 font-medium text-app-text-muted">
+                            Public CTA: {surfaceMeta.label}
+                          </span>
+                          <span
+                            className={`rounded-full px-3 py-1 font-medium ${
+                              dependencyState.ready
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            Depends on: {dependencyState.label}
+                          </span>
+                          <span className="rounded-full bg-app-surface px-3 py-1 font-medium text-app-text-muted">
+                            {form.blocked ? 'Read-only' : 'Editable override'}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-app-text-subtle">{dependencyState.detail}</p>
                       </div>
                       <button
                         type="button"

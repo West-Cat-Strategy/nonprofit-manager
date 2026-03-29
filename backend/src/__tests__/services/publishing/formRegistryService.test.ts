@@ -67,6 +67,12 @@ describe('FormRegistryService', () => {
                 },
               ],
             } as never,
+            {
+              id: 'referral-1',
+              type: 'referral-form',
+              heading: 'Send a referral',
+              description: 'Create an intake record.',
+            } as never,
           ],
         },
       ],
@@ -121,7 +127,7 @@ describe('FormRegistryService', () => {
       ]
     );
 
-    expect(definitions).toHaveLength(2);
+    expect(definitions).toHaveLength(3);
     expect(definitions[0]).toMatchObject({
       formKey: 'newsletter-1',
       formType: 'newsletter-signup',
@@ -136,6 +142,13 @@ describe('FormRegistryService', () => {
       trackingEnabled: true,
     });
     expect(definitions[1]).toMatchObject({
+      formKey: 'referral-1',
+      formType: 'referral-form',
+      path: '/',
+      live: true,
+      title: 'Send a referral',
+    });
+    expect(definitions[2]).toMatchObject({
       formKey: 'registration-1',
       formType: 'event-registration',
       path: '/events/:slug',

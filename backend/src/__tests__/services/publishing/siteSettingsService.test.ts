@@ -239,6 +239,24 @@ describe('siteSettings merge helpers', () => {
     expect(
       mergeManagedComponentConfig(
         {
+          id: 'form-2',
+          type: 'referral-form',
+          submitText: 'Submit referral',
+        },
+        settings
+      )
+    ).toMatchObject({
+      id: 'form-2',
+      type: 'referral-form',
+      submitText: 'Submit referral',
+      successMessage: 'Saved',
+      trackingEnabled: true,
+      includePhone: true,
+    });
+
+    expect(
+      mergeManagedComponentConfig(
+        {
           id: 'hero-1',
           type: 'hero',
           heading: 'Welcome',

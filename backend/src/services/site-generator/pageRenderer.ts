@@ -4,6 +4,7 @@ import {
   generateFooterHtml,
   generateGoogleAnalyticsScript,
   generateNavigationHtml,
+  generateNavigationToggleScript,
 } from './layoutRenderer';
 import { generateSectionHtml } from './componentRenderer';
 import { generateSiteAnalyticsScript } from './analyticsScript';
@@ -34,6 +35,7 @@ export function renderPageHtml(
 
   ${generateFooterHtml(content)}
   ${generateSiteAnalyticsScript(content.templateId)}
+  ${generateNavigationToggleScript()}
   ${eventListScript}
 `;
 

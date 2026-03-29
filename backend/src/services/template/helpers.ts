@@ -237,3 +237,152 @@ export function ensureEventsPage(pages: TemplatePage[], templateId: string): Tem
 
   return [...pages, fallbackPage];
 }
+
+export function ensureNewslettersPage(pages: TemplatePage[], templateId: string): TemplatePage[] {
+  const hasNewsletterIndex = pages.some(
+    (page) => page.pageType === 'collectionIndex' && page.collection === 'newsletters'
+  );
+  const hasNewsletterDetail = pages.some(
+    (page) => page.pageType === 'collectionDetail' && page.collection === 'newsletters'
+  );
+
+  if (hasNewsletterIndex && hasNewsletterDetail) {
+    return pages;
+  }
+
+  const now = new Date().toISOString();
+  const indexPage: TemplatePage = {
+    id: `newsletters-fallback-${templateId}`,
+    name: 'What\'s Happening',
+    slug: 'whats-happening',
+    isHomepage: false,
+    pageType: 'collectionIndex',
+    collection: 'newsletters',
+    routePattern: '/whats-happening',
+    seo: {
+      title: 'What\'s Happening',
+      description: 'Read the latest news, stories, and updates from our organization.',
+      keywords: ['news', 'stories', 'updates', 'events'],
+    },
+    sections: [
+      {
+        id: `newsletters-section-${templateId}`,
+        name: 'Updates',
+        paddingTop: '3rem',
+        paddingBottom: '3rem',
+        maxWidth: '1200px',
+        components: [
+          {
+            id: `newsletters-heading-${templateId}`,
+            type: 'hero',
+            backgroundColor: '#f8fafc',
+            minHeight: '18rem',
+            components: [
+              {
+                id: `newsletters-hero-copy-${templateId}`,
+                type: 'columns',
+                columns: [
+                  {
+                    id: `newsletters-hero-left-${templateId}`,
+                    width: '2/3',
+                    components: [
+                      {
+                        id: `newsletters-hero-title-${templateId}`,
+                        type: 'heading',
+                        content: 'What\'s Happening',
+                        level: 1,
+                      },
+                      {
+                        id: `newsletters-hero-text-${templateId}`,
+                        type: 'text',
+                        content:
+                          'Catch up on program updates, advocacy notes, community stories, and upcoming events in one place.',
+                      },
+                    ],
+                  },
+                  {
+                    id: `newsletters-hero-right-${templateId}`,
+                    width: '1/3',
+                    components: [
+                      {
+                        id: `newsletters-hero-cta-${templateId}`,
+                        type: 'card',
+                        title: 'Stay connected',
+                        subtitle: 'Subscribe and follow along',
+                        content:
+                          'Use this page to share the stories, milestones, and opportunities that matter most to your community.',
+                        link: '/contact',
+                        linkText: 'Contact us',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: `newsletters-feed-${templateId}`,
+        name: 'Newsletters Feed',
+        paddingTop: '2rem',
+        paddingBottom: '2rem',
+        components: [
+          {
+            id: `newsletters-archive-${templateId}`,
+            type: 'newsletter-archive',
+            maxItems: 6,
+            sourceFilter: 'all',
+          },
+          {
+            id: `newsletters-events-${templateId}`,
+            type: 'event-list',
+            maxEvents: 3,
+            showPastEvents: false,
+            layout: 'grid',
+          },
+        ],
+      },
+    ],
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const detailPage: TemplatePage = {
+    id: `newsletters-detail-fallback-${templateId}`,
+    name: 'Story Detail',
+    slug: 'whats-happening-detail',
+    isHomepage: false,
+    pageType: 'collectionDetail',
+    collection: 'newsletters',
+    routePattern: '/whats-happening/:slug',
+    seo: {
+      title: 'Story Detail',
+      description: 'Read the full update.',
+      keywords: ['news', 'stories', 'updates'],
+    },
+    sections: [
+      {
+        id: `newsletters-detail-section-${templateId}`,
+        name: 'Story Detail Intro',
+        paddingTop: '2rem',
+        paddingBottom: '2rem',
+        components: [
+          {
+            id: `newsletters-detail-note-${templateId}`,
+            type: 'text',
+            content: 'Story detail pages render the full article below this intro section.',
+          },
+        ],
+      },
+    ],
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  return [
+    ...pages,
+    ...(hasNewsletterIndex ? [] : [indexPage]),
+    ...(hasNewsletterDetail ? [] : [detailPage]),
+  ];
+}

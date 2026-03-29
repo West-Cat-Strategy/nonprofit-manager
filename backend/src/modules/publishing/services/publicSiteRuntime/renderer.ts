@@ -17,6 +17,7 @@ import {
   generateFooterHtml,
   generateGoogleAnalyticsScript,
   generateNavigationHtml,
+  generateNavigationToggleScript,
   generateThemeCSS,
 } from '@services/site-generator';
 import { escapeHtml } from '@services/site-generator/escapeHtml';
@@ -50,14 +51,15 @@ export class PublicSiteRenderer {
   ): string {
     return `
       <form
+        class="npm-public-form npm-public-form--${escapeHtml(component.type)}"
         data-public-site-form="true"
         action="/api/v2/public/forms/${encodeURIComponent(site.id)}/${encodeURIComponent(component.id)}/submit"
         method="post"
-        style="display: grid; gap: 0.75rem; padding: 1.25rem; border: 1px solid var(--npm-border); border-radius: 16px; background: var(--npm-surface);"
+        style="display: grid; gap: 0.85rem; padding: 1.35rem; border: 1px solid var(--npm-border); border-radius: 18px; background: var(--npm-surface); box-shadow: 0 12px 30px rgba(19, 49, 38, 0.08);"
       >
         ${description ? `<p style="margin: 0; color: var(--npm-muted);">${escapeHtml(description)}</p>` : ''}
         ${fieldsHtml}
-        <button type="submit" style="padding: 0.85rem 1rem; border: none; border-radius: 999px; background: var(--npm-primary); color: white; font-weight: 600; cursor: pointer;">
+        <button type="submit" class="btn" style="padding: 0.9rem 1rem; border: none; border-radius: 999px; background: var(--npm-primary); color: white; font-weight: 700; cursor: pointer; box-shadow: 0 6px 18px rgba(31, 77, 59, 0.22);">
           ${escapeHtml(submitText)}
         </button>
         <p data-form-status style="margin: 0; min-height: 1.2rem; color: var(--npm-muted); font-size: 0.95rem;"></p>
@@ -234,6 +236,25 @@ export class PublicSiteRenderer {
           String(component.submitText || 'Send Interest'),
           typeof component.description === 'string' ? component.description : undefined
         );
+      case 'referral-form':
+        return this.renderPublicForm(
+          site,
+          component,
+          `
+            <div class="npm-field-grid">
+              <input name="first_name" placeholder="First name" required />
+              <input name="last_name" placeholder="Last name" required />
+            </div>
+            <input name="email" type="email" placeholder="Email" required />
+            ${component.includePhone !== false ? '<input name="phone" type="tel" placeholder="Phone" />' : ''}
+            <input name="subject" placeholder="Referral subject" />
+            <input name="referral_source" placeholder="Who is this referral coming from?" />
+            <textarea name="notes" rows="5" placeholder="Tell us what is happening and how we can help."></textarea>
+            <label class="npm-checkbox"><input type="checkbox" name="urgent" value="true" /> Mark this referral as urgent</label>
+          `,
+          String(component.submitText || 'Submit Referral'),
+          typeof component.description === 'string' ? component.description : undefined
+        );
       case 'donation-form':
         return this.renderPublicForm(
           site,
@@ -392,6 +413,7 @@ export class PublicSiteRenderer {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         gap: 1rem;
+        align-items: stretch;
       }
 
       .npm-card-list {
@@ -406,6 +428,14 @@ export class PublicSiteRenderer {
         border-radius: 18px;
         background: var(--npm-surface);
         padding: 1.25rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+      }
+
+      .npm-card {
+        display: grid;
+        gap: 0.75rem;
+        align-content: start;
+        height: 100%;
       }
 
       .npm-card-kicker {
@@ -420,6 +450,7 @@ export class PublicSiteRenderer {
       .npm-card h3,
       .npm-detail h1 {
         margin-bottom: 0.5rem;
+        line-height: 1.15;
       }
 
       .npm-card-meta {
@@ -441,6 +472,7 @@ export class PublicSiteRenderer {
         display: flex;
         gap: 0.5rem;
         align-items: center;
+        font-size: 0.95rem;
       }
 
       [data-public-site-form="true"] input,
@@ -450,11 +482,42 @@ export class PublicSiteRenderer {
         border: 1px solid var(--npm-border);
         border-radius: 12px;
         font: inherit;
+        min-width: 0;
+      }
+
+      .npm-public-form {
+        width: min(100%, 720px);
+        margin: 0 auto;
+      }
+
+      .npm-public-form--donation-form {
+        text-align: center;
+      }
+
+      @media (max-width: 960px) {
+        .npm-card-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       @media (max-width: 768px) {
+        .npm-card-grid,
+        .npm-card-list {
+          gap: 0.85rem;
+        }
+
         .npm-field-grid {
           grid-template-columns: 1fr;
+        }
+
+        .npm-public-form {
+          width: 100%;
+        }
+
+        .npm-card,
+        .npm-detail,
+        .npm-empty {
+          padding: 1rem;
         }
       }
     `;
@@ -520,6 +583,7 @@ export class PublicSiteRenderer {
       </main>
       ${generateFooterHtml(site.publishedContent!)}
       ${buildAnalyticsScript(site.id)}
+      ${generateNavigationToggleScript()}
       ${buildPublicFormRuntimeScript()}
     `;
 

@@ -5,6 +5,7 @@ export {
   generateFooterHtml,
   generateGoogleAnalyticsScript,
   generateNavigationHtml,
+  generateNavigationToggleScript,
 } from './layoutRenderer';
 export { renderPageHtml } from './pageRenderer';
 export { generateThemeCSS } from './themeCss';

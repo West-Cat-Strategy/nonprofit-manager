@@ -31,6 +31,7 @@ jest.mock('@container/services', () => ({
     createVolunteer: jest.fn(),
     createDonation: jest.fn(),
     createPublicCheckoutPlan: jest.fn(),
+    createCase: jest.fn(),
   },
   services: {
     contact: {
@@ -75,6 +76,17 @@ jest.mock('@container/services', () => ({
         };
 
         return module.__mocks.createPublicCheckoutPlan(...args);
+      },
+    },
+    case: {
+      createCase: (...args: unknown[]) => {
+        const module = jest.requireMock('@container/services') as {
+          __mocks: {
+            createCase: jest.Mock;
+          };
+        };
+
+        return module.__mocks.createCase(...args);
       },
     },
   },
@@ -175,6 +187,7 @@ const servicesModule = jest.requireMock('@container/services') as {
     createVolunteer: jest.Mock;
     createDonation: jest.Mock;
     createPublicCheckoutPlan: jest.Mock;
+    createCase: jest.Mock;
   };
 };
 
@@ -301,6 +314,7 @@ describe('PublicWebsiteFormService', () => {
     servicesModule.__mocks.createVolunteer.mockReset();
     servicesModule.__mocks.createDonation.mockReset();
     servicesModule.__mocks.createPublicCheckoutPlan.mockReset();
+    servicesModule.__mocks.createCase.mockReset();
     operationsModule.isStripeConfigured.mockReset();
     operationsModule.createPaymentIntent.mockReset();
     mailchimpModule.__mocks.addOrUpdateMember.mockReset();
@@ -439,6 +453,100 @@ describe('PublicWebsiteFormService', () => {
     );
   });
 
+  it('creates a referral intake case for referral forms', async () => {
+    const site = {
+      ...baseSite,
+      publishedContent: {
+        ...baseSite.publishedContent,
+        pages: [
+          {
+            ...baseSite.publishedContent.pages[0],
+            sections: [
+              {
+                id: 'section-1',
+                name: 'Forms',
+                components: [
+                  {
+                    id: 'referral-form-1',
+                    type: 'referral-form',
+                    defaultTags: ['public-site'],
+                    successMessage: 'Referral saved.',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+    servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
+    servicesModule.__mocks.createCase.mockResolvedValue({ id: 'case-1' });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 'case-type-1' }] });
+
+    const result = await service.submitForm(site as never, 'referral-form-1', {
+      first_name: 'Grace',
+      last_name: 'Hopper',
+      email: 'grace@example.com',
+      phone: '(604) 555-1212',
+      subject: 'Housing referral',
+      referral_source: 'Community Partner',
+      notes: 'Needs support this week.',
+      urgent: 'true',
+    });
+
+    expect(servicesModule.__mocks.createContact).toHaveBeenCalledWith(
+      {
+        account_id: 'org-1',
+        first_name: 'Grace',
+        last_name: 'Hopper',
+        email: 'grace@example.com',
+        phone: '(604) 555-1212',
+        mobile_phone: '(604) 555-1212',
+        notes: 'Needs support this week.',
+        tags: ['public-site', 'referral', 'intake'],
+      },
+      'owner-1'
+    );
+    expect(servicesModule.__mocks.createCase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contact_id: 'contact-1',
+        account_id: 'org-1',
+        case_type_id: 'case-type-1',
+        title: 'Housing referral',
+        description: 'Needs support this week.',
+        source: 'referral',
+        referral_source: 'Community Partner',
+        is_urgent: true,
+        client_viewable: false,
+      }),
+      'owner-1'
+    );
+    expect(result).toEqual({
+      formType: 'referral-form',
+      message: 'Referral saved.',
+      contactId: 'contact-1',
+      caseId: 'case-1',
+    });
+    expect(publicSubmissionModule.__mocks.markAccepted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultEntityType: 'case',
+        resultEntityId: 'case-1',
+      })
+    );
+    expect(activityEventsModule.__mocks.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'case',
+        entityId: 'case-1',
+        relatedEntityType: 'contact',
+        relatedEntityId: 'contact-1',
+      })
+    );
+  });
+
   it('returns stored response payloads on idempotent replay', async () => {
     const site = {
       ...baseSite,
@@ -541,7 +649,7 @@ describe('PublicWebsiteFormService', () => {
         last_name: 'Lovelace',
         email: 'Ada@example.com',
         amount: '25',
-        recurring: true,
+        recurring: 'true',
       },
       {
         pagePath: '/donate',

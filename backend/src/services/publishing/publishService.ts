@@ -12,7 +12,7 @@ import type {
 } from '@app-types/publishing';
 import type { TemplatePage, PageSection } from '@app-types/websiteBuilder';
 import { SiteManagementService } from './siteManagementService';
-import { ensureEventsPage } from '../template/helpers';
+import { ensureEventsPage, ensureNewslettersPage } from '../template/helpers';
 
 export class PublishService {
   private siteManagement: SiteManagementService;
@@ -80,7 +80,10 @@ export class PublishService {
           createdAt: p.created_at as string,
           updatedAt: p.updated_at as string,
         }));
-      const pagesWithEventsFallback = ensureEventsPage(pages, templateRow.id as string);
+      const pagesWithEventsFallback = ensureNewslettersPage(
+        ensureEventsPage(pages, templateRow.id as string),
+        templateRow.id as string
+      );
 
       // Generate version
       const version = `v${Date.now()}`;

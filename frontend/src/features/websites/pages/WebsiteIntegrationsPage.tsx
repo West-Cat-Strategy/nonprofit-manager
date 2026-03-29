@@ -3,9 +3,11 @@ import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { WebsiteConsoleLayout, WebsiteConsoleNotice } from '../components';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
+import { deriveWebsiteManagementSnapshot } from '../lib/websiteConsole';
 import {
   clearWebsitesError,
   fetchWebsiteIntegrations,
+  fetchWebsiteOverview,
   updateWebsiteMailchimpIntegration,
   updateWebsiteStripeIntegration,
 } from '../state';
@@ -15,6 +17,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const overview = useWebsiteOverviewLoader(siteId, 30);
   const { integrations, isSaving, isLoading, error } = useAppSelector((state) => state.websites);
+  const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
   const [mailchimpAudienceId, setMailchimpAudienceId] = useState('');
   const [mailchimpMode, setMailchimpMode] = useState<'crm' | 'mailchimp' | 'both'>('crm');
   const [mailchimpTags, setMailchimpTags] = useState('');
@@ -69,6 +72,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
     );
     if (updateWebsiteMailchimpIntegration.fulfilled.match(result)) {
       await dispatch(fetchWebsiteIntegrations(siteId));
+      void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
       setNotice({ tone: 'success', message: 'Mailchimp settings saved.' });
     } else {
       setNotice({
@@ -100,6 +104,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
     );
     if (updateWebsiteStripeIntegration.fulfilled.match(result)) {
       await dispatch(fetchWebsiteIntegrations(siteId));
+      void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
       setNotice({ tone: 'success', message: 'Stripe settings saved.' });
     } else {
       setNotice({
@@ -115,6 +120,24 @@ const WebsiteIntegrationsPage: React.FC = () => {
       siteId={siteId}
       overview={overview}
       title="Control Mailchimp audience behavior, Stripe defaults, and integration health."
+      actions={
+        <div className="flex flex-wrap gap-3">
+          <a
+            href={overview?.deployment?.previewUrl || overview?.deployment?.primaryUrl || '#'}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+          >
+            Open preview
+          </a>
+          <a
+            href={`/websites/${siteId}/forms`}
+            className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+          >
+            Review forms
+          </a>
+        </div>
+      }
     >
       <div className="space-y-6">
         {error ? (
@@ -132,6 +155,55 @@ const WebsiteIntegrationsPage: React.FC = () => {
           />
         ) : null}
 
+        <section className="rounded-3xl border border-app-border bg-app-surface p-5">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Integration state
+              </div>
+              <div className="mt-2 text-3xl font-semibold text-app-text">
+                {managementSnapshot?.readiness.integrations ? 'Ready' : 'Needs work'}
+              </div>
+              <p className="mt-2 text-sm text-app-text-muted">
+                {managementSnapshot?.nextAction.title || 'Review connected services'}
+              </p>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Mailchimp
+              </div>
+              <div className="mt-2 text-3xl font-semibold text-app-text">
+                {integrations?.mailchimp.configured ? 'Configured' : 'Missing'}
+              </div>
+              <p className="mt-2 text-sm text-app-text-muted">
+                Powers newsletter signup and audience sync.
+              </p>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Stripe
+              </div>
+              <div className="mt-2 text-3xl font-semibold text-app-text">
+                {integrations?.stripe.configured ? 'Configured' : 'Missing'}
+              </div>
+              <p className="mt-2 text-sm text-app-text-muted">
+                Powers public donations and recurring support.
+              </p>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Facebook
+              </div>
+              <div className="mt-2 text-3xl font-semibold text-app-text">
+                {integrations?.social?.facebook?.trackedPageId ? 'Tracked' : 'Not tracked'}
+              </div>
+              <p className="mt-2 text-sm text-app-text-muted">
+                Helps sync social page updates into the site stack.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {isLoading && !integrations ? (
           <div className="rounded-3xl border border-app-border bg-app-surface p-8 text-center text-app-text-muted">
             Loading integration status...
@@ -145,6 +217,9 @@ const WebsiteIntegrationsPage: React.FC = () => {
               <h2 className="text-lg font-semibold text-app-text">Mailchimp</h2>
               <p className="text-sm text-app-text-muted">
                 Configure audience defaults for newsletter and supporter capture.
+              </p>
+              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Powers newsletter signup, email updates, and synced archive imports.
               </p>
             </div>
             <div className="text-sm text-app-text-muted">
@@ -212,6 +287,9 @@ const WebsiteIntegrationsPage: React.FC = () => {
               <h2 className="text-lg font-semibold text-app-text">Stripe</h2>
               <p className="text-sm text-app-text-muted">
                 Configure donation defaults used by public website donation forms.
+              </p>
+              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Powers donation, recurring support, and campaign checkout flows.
               </p>
             </div>
             <div className="text-sm text-app-text-muted">

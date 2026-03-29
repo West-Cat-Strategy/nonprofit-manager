@@ -20,7 +20,7 @@ export function generateFooterHtml(content: PublishedContent): string {
             <h4>${escapeHtml(col.title)}</h4>
             <ul>
               ${col.links.map((link) => `
-                <li><a href="${escapeHtml(link.url)}">${escapeHtml(link.label)}</a></li>
+                <li><a href="${escapeHtml(link.url)}" data-track-click="true" data-track-label="${escapeHtml(link.label)}" data-track-href="${escapeHtml(link.url)}">${escapeHtml(link.label)}</a></li>
               `).join('\n')}
             </ul>
           </div>
@@ -31,7 +31,7 @@ export function generateFooterHtml(content: PublishedContent): string {
       ${footer.socialLinks?.length ? `
       <div class="footer-social">
         ${footer.socialLinks.map((link) => `
-          <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(link.platform)}">
+          <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(link.platform)}" data-track-click="true" data-track-label="${escapeHtml(link.platform)}" data-track-href="${escapeHtml(link.url)}">
             ${getSocialIcon(link.platform)}
           </a>
         `).join('\n')}
@@ -42,10 +42,16 @@ export function generateFooterHtml(content: PublishedContent): string {
       <div class="footer-newsletter">
         <h4>${escapeHtml(footer.newsletterTitle || 'Subscribe to our newsletter')}</h4>
         ${footer.newsletterDescription ? `<p>${escapeHtml(footer.newsletterDescription)}</p>` : ''}
-        <form class="newsletter-form">
-          <input type="email" placeholder="Enter your email" required>
-          <button type="submit">Subscribe</button>
-        </form>
+        <a
+          href="/whats-happening#newsletter"
+          class="btn"
+          data-track-click="true"
+          data-track-label="Subscribe to newsletter"
+          data-track-href="/whats-happening#newsletter"
+          style="display: inline-flex; align-items: center; justify-content: center; margin-top: 0.5rem; padding: 0.75rem 1.1rem; border-radius: 9999px; background: #1f4d3b; color: white; font-weight: 600;"
+        >
+          Subscribe
+        </a>
       </div>
       ` : ''}
 

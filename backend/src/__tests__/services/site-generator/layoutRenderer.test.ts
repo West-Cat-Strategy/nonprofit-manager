@@ -63,6 +63,8 @@ describe('layoutRenderer', () => {
     expect(html).toContain('About &lt;Us&gt;');
     expect(html).toContain('https://x.com/example');
     expect(html).toContain('footer-newsletter');
+    expect(html).toContain('href="/whats-happening#newsletter"');
+    expect(html).toContain('data-track-click="true"');
     expect(html).toContain('Copyright &quot;Org&quot;');
   });
 });

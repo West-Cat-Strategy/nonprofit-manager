@@ -100,7 +100,9 @@ describe('WebsiteFormsPage', () => {
       );
     });
 
+    expect(screen.getByText('Connected CTAs')).toBeInTheDocument();
     expect(screen.getByText('Contact form')).toBeInTheDocument();
+    expect(screen.getByText(/Public CTA: Contact \/ referral/i)).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText('Success message'), {
       target: { value: 'Thanks for reaching out.' },
     });

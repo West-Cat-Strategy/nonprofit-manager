@@ -23,6 +23,7 @@ export interface PublicWebsiteFormResult {
   formType: string;
   message: string;
   contactId?: string;
+  caseId?: string;
   donationId?: string;
   recurringPlanId?: string;
   recurringPlanStatus?: RecurringDonationPlanStatus;
@@ -55,6 +56,7 @@ type SupportedPublicWebsiteFormType =
   | 'contact-form'
   | 'newsletter-signup'
   | 'volunteer-interest-form'
+  | 'referral-form'
   | 'donation-form';
 
 interface PublicWebsiteFormSubmissionOutcome {
@@ -72,6 +74,9 @@ const normalizePhone = (value: string | undefined): string | null => {
   const digits = value.replace(/\D/g, '');
   return digits.length > 0 ? digits : null;
 };
+
+const isTruthyFlag = (value: unknown): boolean =>
+  value === true || value === 'true' || value === 'on' || value === '1' || value === 1;
 
 const splitName = (value: string | undefined): { firstName: string; lastName: string } => {
   const parts = (value || '').trim().split(/\s+/).filter(Boolean);
@@ -268,11 +273,41 @@ export class PublicWebsiteFormService {
     return { contactId: contact.contact_id, created: true };
   }
 
+  private async resolveReferralCaseTypeId(site: PublishedSite): Promise<string> {
+    const preferred = await this.pool.query<{ id: string }>(
+      `SELECT id
+       FROM case_types
+       WHERE is_active = true
+         AND requires_intake = true
+       ORDER BY sort_order ASC, created_at ASC
+       LIMIT 1`
+    );
+
+    if (preferred.rows[0]?.id) {
+      return preferred.rows[0].id;
+    }
+
+    const fallback = await this.pool.query<{ id: string }>(
+      `SELECT id
+       FROM case_types
+       WHERE is_active = true
+       ORDER BY sort_order ASC, created_at ASC
+       LIMIT 1`
+    );
+
+    if (fallback.rows[0]?.id) {
+      return fallback.rows[0].id;
+    }
+
+    throw new Error(`No active case type is available for ${site.name} referrals`);
+  }
+
   private requireSupportedFormType(component: PublishedComponent): SupportedPublicWebsiteFormType {
     if (
       component.type === 'contact-form' ||
       component.type === 'newsletter-signup' ||
       component.type === 'volunteer-interest-form' ||
+      component.type === 'referral-form' ||
       component.type === 'donation-form'
     ) {
       return component.type;
@@ -466,6 +501,96 @@ export class PublicWebsiteFormService {
     };
   }
 
+  private async handleReferralForm(
+    site: PublishedSite,
+    component: PublishedComponent,
+    identity: ContactIdentity,
+    payload: Record<string, unknown>
+  ): Promise<PublicWebsiteFormSubmissionOutcome> {
+    const defaultTags = appendUniqueTags((component.defaultTags as string[] | undefined) || [], [
+      'referral',
+      'intake',
+    ]);
+    const { contactId } = await this.ensureContact(site, identity, defaultTags);
+    const caseTypeId = await this.resolveReferralCaseTypeId(site);
+    const referralSource =
+      typeof payload.referral_source === 'string' && payload.referral_source.trim().length > 0
+        ? payload.referral_source.trim()
+        : typeof payload.source === 'string' && payload.source.trim().length > 0
+          ? payload.source.trim()
+          : undefined;
+    const title =
+      typeof payload.subject === 'string' && payload.subject.trim().length > 0
+        ? payload.subject.trim()
+        : `Referral intake for ${identity.firstName} ${identity.lastName}`.trim();
+    const description =
+      identity.message ||
+      (typeof payload.description === 'string' ? payload.description.trim() : undefined) ||
+      undefined;
+    const caseRecord = await services.case.createCase(
+      {
+        contact_id: contactId,
+        account_id: (component.accountId as string | undefined) || site.organizationId || undefined,
+        case_type_id: caseTypeId,
+        title,
+        description,
+        priority:
+          typeof payload.priority === 'string' &&
+          ['low', 'medium', 'high', 'urgent', 'critical'].includes(payload.priority)
+            ? (payload.priority as 'low' | 'medium' | 'high' | 'urgent' | 'critical')
+            : 'medium',
+        source: 'referral',
+        referral_source: referralSource,
+        intake_data: {
+          ...payload,
+          referral_source: referralSource,
+          submitted_at: new Date().toISOString(),
+        },
+        custom_data: {
+          publicFormType: component.type,
+          siteId: site.id,
+        },
+        tags: defaultTags,
+        is_urgent:
+          isTruthyFlag(payload.urgent) ||
+          isTruthyFlag(payload.is_urgent) ||
+          (typeof payload.priority === 'string' && payload.priority === 'urgent'),
+        client_viewable: false,
+      },
+      site.ownerUserId || site.userId
+    );
+
+    return {
+      result: {
+        formType: component.type,
+        message:
+          (component.successMessage as string | undefined) ||
+          'Your referral has been recorded. Our team will follow up soon.',
+        contactId,
+        caseId: caseRecord.id,
+      },
+      resultEntityType: 'case',
+      resultEntityId: caseRecord.id,
+      activity: {
+        organizationId: site.organizationId,
+        siteId: site.id,
+        type: 'public_form_submission',
+        title: 'Public referral submitted',
+        description: `${identity.firstName} ${identity.lastName}`.trim(),
+        userName: identity.email || identity.phone || `${identity.firstName} ${identity.lastName}`.trim(),
+        entityType: 'case',
+        entityId: caseRecord.id,
+        relatedEntityType: 'contact',
+        relatedEntityId: contactId,
+        metadata: {
+          formType: component.type,
+          tags: defaultTags,
+          referralSource,
+        },
+      },
+    };
+  }
+
   private async handleDonationForm(
     site: PublishedSite,
     component: PublishedComponent,
@@ -490,7 +615,7 @@ export class PublicWebsiteFormService {
         ? component.currency.trim().toUpperCase()
         : 'CAD';
     const recurringDefault =
-      payload.recurring === true ||
+      isTruthyFlag(payload.recurring) ||
       (payload.recurring === undefined && component.recurringDefault === true);
     const normalizedAmount = Number(amountValue.toFixed(2));
     const campaignName =
@@ -684,6 +809,7 @@ export class PublicWebsiteFormService {
         'newsletter-signup': () => this.handleNewsletterSignup(site, component, identity),
         'volunteer-interest-form': () =>
           this.handleVolunteerInterest(site, component, identity, payload),
+        'referral-form': () => this.handleReferralForm(site, component, identity, payload),
         'donation-form': () =>
           this.handleDonationForm(site, component, identity, payload, formKey, context),
       };

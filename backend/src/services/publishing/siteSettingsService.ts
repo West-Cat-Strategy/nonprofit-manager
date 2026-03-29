@@ -27,6 +27,7 @@ const MANAGED_FORM_TYPES = new Set<WebsiteManagedFormType>([
   'newsletter-signup',
   'donation-form',
   'volunteer-interest-form',
+  'referral-form',
   'event-registration',
 ]);
 

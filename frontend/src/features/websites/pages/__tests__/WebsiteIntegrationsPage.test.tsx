@@ -108,6 +108,10 @@ describe('WebsiteIntegrationsPage', () => {
       );
     });
 
+    expect(screen.getByText('Integration state')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Mailchimp' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Stripe' })).toBeInTheDocument();
+
     fireEvent.change(screen.getByPlaceholderText('Default tags (comma separated)'), {
       target: { value: 'members, donors' },
     });

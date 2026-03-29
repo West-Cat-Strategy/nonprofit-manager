@@ -57,13 +57,13 @@ const WebsiteConsoleLayout: React.FC<WebsiteConsoleLayoutProps> = ({
           </div>
         ) : null}
 
-        <nav className="flex flex-wrap gap-2" aria-label="Website console">
+        <nav className="flex gap-2 overflow-x-auto pb-1" aria-label="Website console">
           {tabs.map((tab) => (
             <NavLink
               key={tab.key}
               to={`/websites/${siteId}/${tab.key}`}
               className={({ isActive }: NavLinkRenderProps) =>
-                `rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                `shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-app-accent text-white'
                     : 'bg-app-surface-muted text-app-text-muted hover:bg-app-input-bg'

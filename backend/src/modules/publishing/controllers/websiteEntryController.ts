@@ -442,10 +442,13 @@ export const submitPublicWebsiteForm = async (
               ? 'recurring_donation_plan'
               : result.donationId
                 ? 'donation'
+                : result.caseId
+                  ? 'case'
                 : result.contactId
                   ? 'contact'
                   : null,
-            sourceEntityId: result.recurringPlanId || result.donationId || result.contactId || null,
+            sourceEntityId:
+              result.recurringPlanId || result.donationId || result.caseId || result.contactId || null,
           },
         }
       );
