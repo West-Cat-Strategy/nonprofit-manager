@@ -53,6 +53,18 @@ describe('Login page', () => {
     expect(submitButton).toBeEnabled();
   });
 
+  it('renders the primary login button with accent token classes', () => {
+    renderLogin();
+
+    const submitButton = screen.getByRole('button', { name: /^sign in$/i });
+
+    expect(submitButton).toHaveClass(
+      'bg-[var(--app-accent)]',
+      'text-[var(--app-accent-foreground)]',
+      'border-[var(--app-accent)]'
+    );
+  });
+
   it('submits credentials and navigates on success', async () => {
     const user = userEvent.setup();
     const authResponse = {

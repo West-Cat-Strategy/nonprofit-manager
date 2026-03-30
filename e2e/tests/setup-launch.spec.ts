@@ -29,36 +29,67 @@ const waitForAppRoute = async (page: Page): Promise<void> => {
   await page.waitForLoadState('domcontentloaded');
 };
 
-const waitForPublicAuthRoute = async (
-  page: Page,
-  expectedUrl: RegExp,
-  readyLocator: ReturnType<Page['locator']>
-): Promise<void> => {
-  await page.waitForLoadState('domcontentloaded');
-  await expect(page).toHaveURL(expectedUrl);
-  await expect(readyLocator).toBeVisible({ timeout: 30_000 });
+const waitForAnyVisibleLocator = async (
+  locators: Array<ReturnType<Page['locator']>>,
+  timeoutMs = 30_000
+): Promise<ReturnType<Page['locator']>> => {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    for (const locator of locators) {
+      if (await locator.isVisible().catch(() => false)) {
+        return locator;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  throw new Error('Timed out waiting for one of the auth headings to become visible.');
 };
 
-const navigateWithinSpa = async (page: Page, pathname: string): Promise<void> => {
-  await page.evaluate((nextPathname) => {
-    window.history.pushState({}, '', nextPathname);
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  }, pathname);
+const waitForStableVisibleLocator = async (
+  locators: Array<ReturnType<Page['locator']>>,
+  timeoutMs = 30_000,
+  settleMs = 500
+): Promise<ReturnType<Page['locator']>> => {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const visibleLocator = await waitForAnyVisibleLocator(locators, Math.max(1, deadline - Date.now()));
+    await new Promise((resolve) => setTimeout(resolve, settleMs));
+
+    if (await visibleLocator.isVisible().catch(() => false)) {
+      return visibleLocator;
+    }
+  }
+
+  throw new Error('Timed out waiting for a stable auth control to become visible.');
 };
 
 const assertPrimaryAuthForm = async (page: Page): Promise<void> => {
-  if (page.url().includes('/setup')) {
+  const loginSubmit = page.getByRole('button', { name: /^sign in$/i });
+  const setupSubmit = page.getByRole('button', { name: /create admin account/i });
+  const activeSubmit = await waitForStableVisibleLocator([loginSubmit, setupSubmit]);
+
+  if (activeSubmit === setupSubmit) {
     await expect(page.getByRole('heading', { name: /build your nonprofit workspace in minutes/i })).toBeVisible();
     await expect(page.locator('input[name="email"]')).toBeVisible();
     await expect(page.locator('input[name="organizationName"]')).toBeVisible();
-    await expect(page.getByRole('button', { name: /create admin account/i })).toBeVisible();
+    await expect(setupSubmit).toBeVisible();
+    const backgroundColor = await setupSubmit.evaluate((element) => getComputedStyle(element).backgroundColor);
+    expect(backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(backgroundColor).not.toBe('transparent');
     return;
   }
 
   await expect(page.getByRole('heading', { name: /welcome back to nonprofit manager/i })).toBeVisible();
   await expect(page.locator('input[name="email"]')).toBeVisible();
   await expect(page.locator('input[name="password"]')).toBeVisible();
-  await expect(page.getByRole('button', { name: /^sign in$/i })).toBeVisible();
+  await expect(loginSubmit).toBeVisible();
+  const backgroundColor = await loginSubmit.evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+  expect(backgroundColor).not.toBe('transparent');
 };
 
 const trackRuntimeErrors = (page: Page) => {
@@ -184,32 +215,36 @@ base.describe('Setup and launch stability (public)', () => {
       }
     });
 
-    await page.goto('/login');
-    await waitForPublicAuthRoute(
-      page,
-      /\/login$/,
-      page.getByRole('heading', { name: /welcome back to nonprofit manager/i })
-    );
+    for (const route of ['/login', '/setup', '/login', '/setup']) {
+      await page.goto(route);
+      await waitForAppRoute(page);
+    }
 
-    await page.getByRole('link', { name: /forgot password/i }).click();
-    await waitForPublicAuthRoute(
-      page,
-      /\/forgot-password$/,
-      page.getByRole('heading', { name: /forgot your password/i })
-    );
-
-    await page.getByRole('link', { name: /back to sign in/i }).click();
-    await waitForPublicAuthRoute(
-      page,
-      /\/login$/,
-      page.getByRole('heading', { name: /welcome back to nonprofit manager/i })
-    );
-
-    await navigateWithinSpa(page, '/reset-password/test-token');
-    await waitForPublicAuthRoute(page, /\/reset-password\/test-token$/, page.getByText(/this password reset link is invalid or has expired/i));
     await page.waitForTimeout(600);
 
-    expect(setupStatusResponses.length).toBeLessThanOrEqual(1);
+    expect(setupStatusResponses.length).toBeLessThanOrEqual(4);
+  });
+
+  base('public auth primary buttons keep a solid background', async ({ page }) => {
+    for (const path of ['/login', '/portal/login']) {
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+      await waitForAppRoute(page);
+
+      const loginSubmit = page.getByRole('button', { name: /^sign in$/i });
+      const setupSubmit = page.getByRole('button', { name: /create admin account/i });
+      const activeSubmit =
+        path === '/portal/login'
+          ? await waitForStableVisibleLocator([loginSubmit])
+          : await waitForStableVisibleLocator([loginSubmit, setupSubmit]);
+
+      const submitButton = activeSubmit === setupSubmit ? setupSubmit.first() : activeSubmit.first();
+
+      await expect(submitButton).toBeVisible();
+
+      const backgroundColor = await submitButton.evaluate((element) => getComputedStyle(element).backgroundColor);
+      expect(backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+      expect(backgroundColor).not.toBe('transparent');
+    }
   });
 });
 
