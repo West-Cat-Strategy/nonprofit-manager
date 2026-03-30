@@ -10,20 +10,20 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const toneClasses: Record<ButtonTone, string> = {
   primary:
-    'bg-app-accent text-[var(--app-accent-foreground)] border border-app-accent hover:bg-app-accent-hover hover:border-app-accent-hover',
+    'bg-[var(--app-accent)] text-[var(--app-accent-foreground)] border border-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] hover:border-[var(--app-accent-hover)]',
   secondary:
-    'bg-app-surface text-app-text border border-app-border hover:bg-app-hover',
+    'bg-[var(--app-surface)] text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-hover)]',
   danger:
-    'bg-app-accent text-[var(--app-accent-foreground)] border border-app-accent hover:bg-app-accent-hover hover:border-app-accent',
+    'bg-[var(--app-accent)] text-[var(--app-accent-foreground)] border border-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] hover:border-[var(--app-accent-hover)]',
 };
 
 const disabledToneClasses: Record<ButtonTone, string> = {
   primary:
-    'bg-app-surface-muted text-app-text-muted border border-app-border-muted hover:bg-app-surface-muted hover:border-app-border-muted',
+    'bg-[var(--app-surface-muted)] text-[var(--app-text-muted)] border border-[var(--app-border-muted)] hover:bg-[var(--app-surface-muted)] hover:border-[var(--app-border-muted)]',
   secondary:
-    'bg-app-surface-muted text-app-text-muted border border-app-border-muted hover:bg-app-surface-muted',
+    'bg-[var(--app-surface-muted)] text-[var(--app-text-muted)] border border-[var(--app-border-muted)] hover:bg-[var(--app-surface-muted)] hover:border-[var(--app-border-muted)]',
   danger:
-    'bg-app-surface-muted text-app-text-muted border border-app-border-muted hover:bg-app-surface-muted hover:border-app-border-muted',
+    'bg-[var(--app-surface-muted)] text-[var(--app-text-muted)] border border-[var(--app-border-muted)] hover:bg-[var(--app-surface-muted)] hover:border-[var(--app-border-muted)]',
 };
 
 export default function Button({
