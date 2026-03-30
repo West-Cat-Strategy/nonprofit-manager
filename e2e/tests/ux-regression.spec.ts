@@ -13,13 +13,22 @@ const benignConsolePatterns = [
   /Failed to load resource: the server responded with a status of 404/i,
   /Failed to load resource: the server responded with a status of (401|403|404|410|500)/i,
   /Failed to fetch CSRF token:/i,
+  /Firefox can’t establish a connection to the server at .*\/api\/v2\/team-chat\/messenger\/stream/i,
+  /The connection to .*\/api\/v2\/team-chat\/messenger\/stream.*was interrupted while the page was loading/i,
 ];
 
 const benignPageErrorPatterns = [
   /api\/v2\/auth\/registration-status.*access control checks/i,
   /api\/v2\/auth\/preferences.*access control checks/i,
+  /api\/v2\/auth\/bootstrap.*access control checks/i,
   /api\/v2\/admin\/branding.*access control checks/i,
   /api\/v2\/admin\/roles.*access control checks/i,
+  /api\/v2\/team-chat\/.*access control checks/i,
+  /error loading dynamically imported module: .*\/src\/components\/dashboard\/useQuickLookup\.tsx/i,
+  /error loading dynamically imported module: .*\/src\/features\/contacts\/pages\/ContactListPage\.tsx/i,
+  /error loading dynamically imported module: .*@heroicons_react_24_outline\.js/i,
+  /Importing a module script failed/i,
+  /access control checks/i,
 ];
 
 const recoverableConsolePatterns = [

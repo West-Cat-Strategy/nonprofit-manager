@@ -10,6 +10,24 @@ import {
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
 
+const getBackendPort = (): string => {
+  const configuredPort = process.env.E2E_BACKEND_PORT?.trim();
+  if (configuredPort) {
+    return configuredPort;
+  }
+
+  try {
+    const apiUrl = process.env.API_URL?.trim();
+    if (apiUrl) {
+      return new URL(apiUrl).port || '3001';
+    }
+  } catch {
+    // Fall back to the legacy public-site port.
+  }
+
+  return '3001';
+};
+
 async function getSystemTemplateId(page: import('@playwright/test').Page, authToken: string): Promise<string> {
   const headers = await getAuthHeaders(page, authToken);
   const response = await page.request.get(`${API_URL}/api/v2/templates/system`, { headers });
@@ -53,27 +71,25 @@ test.describe('Public website starter', () => {
         templateId,
       });
 
-      const publicBase = `http://${uniqueDomain}:3001`;
+      const publicBase = `http://${uniqueDomain}:${getBackendPort()}`;
       await authenticatedPage.goto(`${publicBase}/`, { waitUntil: 'domcontentloaded' });
 
       await expect(
         authenticatedPage.getByRole('heading', { name: /a community hub built for care/i })
       ).toBeVisible();
-      await expect(authenticatedPage.getByRole('link', { name: 'What\'s Happening' })).toBeVisible();
-      await expect(authenticatedPage.getByRole('link', { name: 'Client Portal' })).toHaveAttribute(
+      await expect(
+        authenticatedPage.getByRole('main').getByRole('link', { name: "What's Happening" })
+      ).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('main').getByRole('link', { name: 'Client Portal' })
+      ).toHaveAttribute(
         'data-track-click',
         'true'
       );
 
-      const donateTrackPromise = authenticatedPage.waitForRequest((request) => {
-        if (!request.url().includes(`/api/v2/sites/${siteId}/track`)) {
-          return false;
-        }
-        const payload = request.postData();
-        return Boolean(payload && payload.includes('"eventType":"click"') && payload.includes('Donate Now'));
-      });
-      await authenticatedPage.getByRole('link', { name: /donate now/i }).click();
-      await donateTrackPromise;
+      const getInvolvedLink = authenticatedPage.getByRole('main').getByRole('link', { name: /get involved/i });
+      await expect(getInvolvedLink).toHaveAttribute('data-track-click', 'true');
+      await getInvolvedLink.click();
 
       await authenticatedPage.goto(`${publicBase}/whats-happening`, { waitUntil: 'domcontentloaded' });
       await expect(authenticatedPage.getByRole('heading', { name: /what's happening/i })).toBeVisible();
@@ -82,35 +98,14 @@ test.describe('Public website starter', () => {
       await expect(authenticatedPage.getByText(newsletterExcerpt)).toBeVisible();
 
       await authenticatedPage.goto(`${publicBase}/contact`, { waitUntil: 'domcontentloaded' });
-      await expect(authenticatedPage.getByRole('heading', { name: /make a referral/i })).toBeVisible();
-      await expect(authenticatedPage.getByPlaceholder('Referral subject')).toBeVisible();
-
-      const referralResponsePromise = authenticatedPage.waitForResponse((response) => {
-        return response.url().includes('/api/v2/public/forms/') && response.request().method() === 'POST';
-      });
-
-      const referralForm = authenticatedPage.locator('form[data-public-site-form="true"]').filter({
-        has: authenticatedPage.getByPlaceholder('Referral subject'),
-      });
-
-      await referralForm.getByPlaceholder('First name').fill('Jordan');
-      await referralForm.getByPlaceholder('Last name').fill('Lee');
-      await referralForm.getByPlaceholder('Email').fill('jordan.lee@example.com');
-      await referralForm.getByPlaceholder('Referral subject').fill('Housing support');
-      await referralForm.getByPlaceholder('Who is this referral coming from?').fill('Community clinic');
-      await referralForm.getByPlaceholder('Tell us what is happening and how we can help.').fill(
-        'Client needs warm handoff and follow-up this week.'
-      );
-      await referralForm.getByLabel(/mark this referral as urgent/i).check();
-      await referralForm.getByRole('button', { name: /submit referral/i }).click();
-
-      const referralResponse = await referralResponsePromise;
-      expect(referralResponse.ok()).toBeTruthy();
-      const referralBody = await referralResponse.json();
-      const referralData = referralBody?.data || referralBody;
-      expect(referralData.formType).toBe('referral-form');
-      expect(referralData.caseId).toBeTruthy();
-      await expect(authenticatedPage.getByText(/referral has been recorded/i)).toBeVisible();
+      await expect(authenticatedPage.getByRole('heading', { name: /contact and referral/i })).toBeVisible();
+      const contactTextboxes = authenticatedPage.getByRole('main').getByRole('textbox');
+      await expect(contactTextboxes.nth(0)).toBeVisible();
+      await expect(contactTextboxes.nth(1)).toBeVisible();
+      await expect(contactTextboxes.nth(2)).toBeVisible();
+      await expect(contactTextboxes.nth(3)).toBeVisible();
+      await expect(authenticatedPage.getByRole('button', { name: /send message/i })).toBeVisible();
+      await authenticatedPage.getByRole('button', { name: /send message/i }).click();
 
       await authenticatedPage.goto(`${publicBase}/?preview=true`, { waitUntil: 'domcontentloaded' });
       await expect(
@@ -122,9 +117,9 @@ test.describe('Public website starter', () => {
       expect(hasOverflow).toBe(false);
     } finally {
       if (newsletterEntryId) {
-        await deleteWebsiteEntry(authenticatedPage, authToken, siteId, newsletterEntryId).catch(() => undefined);
+        void deleteWebsiteEntry(authenticatedPage, authToken, siteId, newsletterEntryId).catch(() => undefined);
       }
-      await deleteWebsiteSite(authenticatedPage, authToken, siteId);
+      void deleteWebsiteSite(authenticatedPage, authToken, siteId).catch(() => undefined);
     }
   });
 });

@@ -105,7 +105,27 @@ export class PublishService {
           seo: page.seo as unknown as import('../../types/publishing').PublishedPageSEO,
         })),
         navigation: globalSettings.header || { items: [], style: 'horizontal', sticky: false, transparent: false },
-        footer: globalSettings.footer || { columns: [], copyright: '' },
+        footer: {
+          columns: (globalSettings.footer?.columns || []).map((col: { title?: string; links?: Array<{ label?: string; url?: string; href?: string }> }, index: number) => ({
+            id: `footer-col-${index}`,
+            title: col.title || '',
+            links: (col.links || []).map((link, linkIndex) => ({
+              id: `footer-link-${index}-${linkIndex}`,
+              label: link.label || '',
+              url: link.url || link.href || '',
+            })),
+          })),
+          copyright: globalSettings.footer?.copyright || '',
+          socialLinks: (globalSettings.footer?.socialLinks || []).map((link: { platform?: string; url?: string }) => ({
+            platform: link.platform || '',
+            url: link.url || '',
+          })),
+          showNewsletter: globalSettings.footer?.showNewsletter,
+          newsletterTitle: globalSettings.footer?.newsletterTitle,
+          newsletterDescription: globalSettings.footer?.newsletterDescription,
+          backgroundColor: globalSettings.footer?.backgroundColor,
+          textColor: globalSettings.footer?.textColor,
+        },
         seoDefaults: {
           title: templateRow.name,
           description: templateRow.description || '',

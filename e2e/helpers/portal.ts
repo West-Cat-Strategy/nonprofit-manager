@@ -17,7 +17,14 @@ export type ProvisionedPortalUser = {
   contactId: string;
 };
 
-const getApiUrl = (): string => process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+const getApiUrl = (): string => {
+  const backendPort = process.env.E2E_BACKEND_PORT?.trim();
+  if (backendPort) {
+    return `${HTTP_SCHEME}127.0.0.1:${backendPort}`;
+  }
+
+  return process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+};
 
 const toRequestRows = (payload: unknown): PortalRequestRow[] => {
   if (!payload || typeof payload !== 'object') {

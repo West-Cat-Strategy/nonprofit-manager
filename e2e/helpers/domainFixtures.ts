@@ -1,7 +1,14 @@
 import type { Page } from '@playwright/test';
 import { getAuthHeaders } from './database';
 
-const apiURL = () => process.env.API_URL || 'http://localhost:3001';
+const apiURL = () => {
+  const backendPort = process.env.E2E_BACKEND_PORT?.trim();
+  if (backendPort) {
+    return `http://127.0.0.1:${backendPort}`;
+  }
+
+  return process.env.API_URL || 'http://localhost:3001';
+};
 
 type ApiBody = Record<string, unknown>;
 

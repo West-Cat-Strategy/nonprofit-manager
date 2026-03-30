@@ -556,7 +556,14 @@ const getSessionOrganizationId = async (page: Page): Promise<string | undefined>
   return normalizeOrganizationId(localStorageOrganizationId);
 };
 
-const getApiBaseUrl = (): string => process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+const getApiBaseUrl = (): string => {
+  const backendPort = process.env.E2E_BACKEND_PORT?.trim();
+  if (backendPort) {
+    return `${HTTP_SCHEME}127.0.0.1:${backendPort}`;
+  }
+
+  return process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+};
 
 const isAdminRole = (role: unknown): boolean =>
   typeof role === 'string' && role.trim().toLowerCase() === 'admin';
