@@ -57,6 +57,8 @@ export default function TeamMessengerDock() {
     () => visibleRoomIds[visibleRoomIds.length - 1] || openRoomIds[openRoomIds.length - 1] || null,
     [openRoomIds, visibleRoomIds]
   );
+  const popupSurfaceClassName = 'bg-[var(--app-bg)]';
+  const popupChromeClassName = 'bg-[var(--app-bg)]';
 
   const handleStartDirectConversation = async (): Promise<void> => {
     if (!directParticipantId || isStartingDirectConversation) {
@@ -81,7 +83,9 @@ export default function TeamMessengerDock() {
   return (
     <>
       {launcherOpen && (
-        <div className="fixed bottom-20 left-4 z-40 w-[22rem] max-w-[calc(100vw-2rem)] rounded-3xl border border-app-border bg-app-surface p-4 shadow-2xl">
+        <div
+          className={`fixed bottom-20 left-4 z-40 w-[22rem] max-w-[calc(100vw-2rem)] rounded-3xl border border-app-border p-4 shadow-2xl ${popupSurfaceClassName}`}
+        >
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-app-text-heading">Team Messenger</div>
@@ -96,14 +100,14 @@ export default function TeamMessengerDock() {
             </Link>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-app-border bg-app-bg p-3">
+          <div className={`mt-4 rounded-2xl border border-app-border p-3 ${popupChromeClassName}`}>
             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-app-text-muted">
               Quick message
             </div>
             <select
               value={directParticipantId}
               onChange={(event) => setDirectParticipantId(event.target.value)}
-              className="mt-3 w-full rounded-xl border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text"
+              className={`mt-3 w-full rounded-xl border border-app-border px-3 py-2 text-sm text-app-text ${popupChromeClassName}`}
             >
               <option value="">Choose teammate</option>
               {contacts.map((contact) => (
@@ -126,7 +130,7 @@ export default function TeamMessengerDock() {
 
           <div className="mt-4 max-h-[20rem] space-y-2 overflow-y-auto">
             {conversations.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-app-border bg-app-bg px-3 py-4 text-sm text-app-text-muted">
+              <div className={`rounded-2xl border border-dashed border-app-border px-3 py-4 text-sm text-app-text-muted ${popupChromeClassName}`}>
                 No staff conversations yet.
               </div>
             ) : (
@@ -138,7 +142,7 @@ export default function TeamMessengerDock() {
                   className={`w-full rounded-2xl border px-3 py-3 text-left ${
                     selectedRoomId === conversation.room_id
                       ? 'border-[#0f766e] bg-[#0f766e]/10'
-                      : 'border-app-border bg-app-bg'
+                    : `border-app-border ${popupChromeClassName}`
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -163,7 +167,9 @@ export default function TeamMessengerDock() {
           className="hidden lg:block"
           style={{ position: 'fixed', bottom: '5rem', right: `${1 + index * 21.5}rem`, zIndex: 45 }}
         >
-          <div className="flex h-[28rem] w-[20rem] flex-col overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-2xl">
+          <div
+            className={`flex h-[28rem] w-[20rem] flex-col overflow-hidden rounded-3xl border border-app-border shadow-2xl ${popupSurfaceClassName}`}
+          >
             <div className="flex items-center justify-between border-b border-app-border bg-[linear-gradient(135deg,rgba(24,144,255,0.18),rgba(15,118,110,0.12))] px-4 py-3">
               <div className="truncate text-sm font-semibold text-app-text-heading">
                 {conversations.find((conversation) => conversation.room_id === roomId)?.title || 'Conversation'}
@@ -172,14 +178,14 @@ export default function TeamMessengerDock() {
                 <button
                   type="button"
                   onClick={() => toggleMinimized(roomId)}
-                  className="rounded-lg border border-app-border bg-app-surface px-2 py-1 text-xs text-app-text-muted"
+                  className={`rounded-lg border border-app-border px-2 py-1 text-xs text-app-text-muted ${popupChromeClassName}`}
                 >
                   _
                 </button>
                 <button
                   type="button"
                   onClick={() => closeConversation(roomId)}
-                  className="rounded-lg border border-app-border bg-app-surface px-2 py-1 text-xs text-app-text-muted"
+                  className={`rounded-lg border border-app-border px-2 py-1 text-xs text-app-text-muted ${popupChromeClassName}`}
                 >
                   Close
                 </button>
@@ -194,7 +200,9 @@ export default function TeamMessengerDock() {
 
       {mobileRoomId && (
         <div className="fixed inset-x-0 bottom-16 top-20 z-40 lg:hidden">
-          <div className="mx-3 flex h-full flex-col overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-2xl">
+          <div
+            className={`mx-3 flex h-full flex-col overflow-hidden rounded-3xl border border-app-border shadow-2xl ${popupSurfaceClassName}`}
+          >
             <div className="flex items-center justify-between border-b border-app-border bg-[linear-gradient(135deg,rgba(24,144,255,0.18),rgba(15,118,110,0.12))] px-4 py-3">
               <div className="truncate text-sm font-semibold text-app-text-heading">
                 {conversations.find((conversation) => conversation.room_id === mobileRoomId)?.title || 'Conversation'}
@@ -203,14 +211,14 @@ export default function TeamMessengerDock() {
                 <button
                   type="button"
                   onClick={() => toggleMinimized(mobileRoomId)}
-                  className="rounded-lg border border-app-border bg-app-surface px-2 py-1 text-xs text-app-text-muted"
+                  className={`rounded-lg border border-app-border px-2 py-1 text-xs text-app-text-muted ${popupChromeClassName}`}
                 >
                   Minimize
                 </button>
                 <button
                   type="button"
                   onClick={() => closeConversation(mobileRoomId)}
-                  className="rounded-lg border border-app-border bg-app-surface px-2 py-1 text-xs text-app-text-muted"
+                  className={`rounded-lg border border-app-border px-2 py-1 text-xs text-app-text-muted ${popupChromeClassName}`}
                 >
                   Close
                 </button>
@@ -223,7 +231,7 @@ export default function TeamMessengerDock() {
         </div>
       )}
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-app-border bg-[rgba(255,255,255,0.92)] backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-app-border bg-[var(--app-bg)]">
         <div className="mx-auto flex max-w-[1600px] items-center gap-3 overflow-x-auto px-3 py-3 sm:px-4 lg:px-6">
           <button
             type="button"
@@ -252,7 +260,7 @@ export default function TeamMessengerDock() {
                 className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm ${
                   selectedRoomId === roomId
                     ? 'border-[#0f766e] bg-[#0f766e]/10 text-app-text'
-                    : 'border-app-border bg-app-surface text-app-text-muted'
+                    : `border-app-border ${popupChromeClassName} text-app-text-muted`
                 }`}
               >
                 <span className="truncate">{conversation.title}</span>
