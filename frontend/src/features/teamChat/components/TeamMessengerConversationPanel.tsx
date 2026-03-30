@@ -173,7 +173,7 @@ export default function TeamMessengerConversationPanel({
 
   if (!detail || !room) {
     return (
-      <div className="flex h-full items-center justify-center rounded-2xl border border-app-border bg-app-surface p-4 text-sm text-app-text-muted">
+      <div className="flex h-full items-center justify-center rounded-2xl border border-app-border bg-[var(--app-bg)] p-4 text-sm text-app-text-muted">
         Loading conversation...
       </div>
     );
@@ -182,7 +182,7 @@ export default function TeamMessengerConversationPanel({
   const counterpartPresence = getPresenceStatus(room.counterpart_user_id);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-app-border bg-app-surface">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-app-border bg-[var(--app-bg)]">
       <div className="border-b border-app-border bg-[linear-gradient(135deg,rgba(24,144,255,0.12),rgba(16,185,129,0.08))] px-4 py-3">
         <div className="flex items-center justify-between gap-3">
           <div>

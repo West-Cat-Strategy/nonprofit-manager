@@ -83,12 +83,27 @@ describe('TeamMessengerDock', () => {
   });
 
   it('renders the launcher, unread badge, and conversation windows', () => {
-    renderWithProviders(<TeamMessengerDock />);
+    const { container } = renderWithProviders(<TeamMessengerDock />);
 
     expect(screen.getAllByText('Team Messenger').length).toBeGreaterThan(0);
     expect(screen.getAllByText('3').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Panel room-1').length).toBeGreaterThan(0);
     expect(document.documentElement.style.getPropertyValue('--team-messenger-toast-offset')).toBe('29rem');
+
+    const launcherShell = container.querySelector('div.fixed.bottom-20.left-4.z-40');
+    expect(launcherShell).not.toBeNull();
+    expect(launcherShell).toHaveClass('bg-[var(--app-bg)]');
+    expect(launcherShell).not.toHaveClass('bg-app-surface');
+
+    const windowShell = container.querySelector('div.hidden.lg\\:block > div');
+    expect(windowShell).not.toBeNull();
+    expect(windowShell).toHaveClass('bg-[var(--app-bg)]');
+    expect(windowShell).not.toHaveClass('bg-app-surface');
+
+    const bottomBar = container.querySelector('div.fixed.inset-x-0.bottom-0.z-30');
+    expect(bottomBar).not.toBeNull();
+    expect(bottomBar).toHaveClass('bg-[var(--app-bg)]');
+    expect(bottomBar).not.toHaveClass('backdrop-blur');
   });
 
   it('starts chats from the launcher and closes open windows', async () => {
