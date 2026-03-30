@@ -50,7 +50,13 @@ export function usePortalRealtimeStream({
     }
 
     setStatus('connecting');
-    const stream = new EventSource(streamUrl, { withCredentials: true });
+    let stream: EventSource;
+    try {
+      stream = new EventSource(streamUrl, { withCredentials: true });
+    } catch {
+      setStatus('error');
+      return;
+    }
     streamRef.current = stream;
 
     stream.onopen = () => {

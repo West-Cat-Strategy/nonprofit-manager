@@ -67,4 +67,31 @@ describe('layoutRenderer', () => {
     expect(html).toContain('data-track-click="true"');
     expect(html).toContain('Copyright &quot;Org&quot;');
   });
+
+  it('tolerates legacy footer links that use href instead of url', () => {
+    const html = generateFooterHtml({
+      templateId: 't1',
+      templateName: 'Template',
+      theme: {} as never,
+      pages: [],
+      navigation: { style: 'horizontal', sticky: false, transparent: false, items: [] },
+      footer: {
+        columns: [
+          {
+            id: 'c1',
+            title: 'Resources',
+            links: [{ id: 'l1', label: 'Docs', href: '/docs' } as never],
+          },
+        ],
+        copyright: 'Copyright',
+      } as never,
+      seoDefaults: { title: 's', description: 'd' },
+      publishedAt: 'now',
+      version: '1',
+    });
+
+    expect(html).toContain('Resources');
+    expect(html).toContain('href="/docs"');
+    expect(html).toContain('Docs');
+  });
 });

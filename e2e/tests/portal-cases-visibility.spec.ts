@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 import { createTestContact, getAuthHeaders } from '../helpers/database';
+import { API_URL, BASE_URL } from '../helpers/testEnv';
 
 type SuccessEnvelope<T> = {
   success?: boolean;
@@ -14,14 +15,12 @@ const unwrap = <T>(payload: SuccessEnvelope<T> | T): T => {
   return payload as T;
 };
 
-test.use({ baseURL: 'http://127.0.0.1:5173' });
+test.use({ baseURL: BASE_URL });
 
 test.describe('Portal Cases Visibility', () => {
   test('staff-shared case exposes only client-visible notes in portal', async ({ page }) => {
-    const apiURL = 'http://127.0.0.1:3001';
-    const frontendURL = 'http://127.0.0.1:5173';
-    process.env.API_URL = apiURL;
-    process.env.BASE_URL = frontendURL;
+    const apiURL = API_URL;
+    const frontendURL = BASE_URL;
     const adminSession = await ensureEffectiveAdminLoginViaAPI(page, {
       firstName: 'Portal',
       lastName: 'Staff',

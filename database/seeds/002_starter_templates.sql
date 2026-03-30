@@ -10,7 +10,7 @@ INSERT INTO templates (
   id, user_id, name, description, category, tags, status, is_system_template,
   theme, global_settings, metadata, current_version
 ) VALUES (
-  'a1b2c3d4-1111-1111-1111-000000000001',
+  'a1b2c3d4-1111-4111-8111-000000000001',
   NULL,
   'Simple Landing Page',
   'A clean, single-page template perfect for introducing your nonprofit and collecting donations.',
@@ -73,8 +73,8 @@ INSERT INTO templates (
 -- Landing Page - Home
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-1111-1111-1111-000000000001',
-  'a1b2c3d4-1111-1111-1111-000000000001',
+  'b1b2c3d4-1111-4111-8111-000000000001',
+  'a1b2c3d4-1111-4111-8111-000000000001',
   'Home',
   'home',
   true,
@@ -149,7 +149,7 @@ INSERT INTO templates (
   id, user_id, name, description, category, tags, status, is_system_template,
   theme, global_settings, metadata, current_version
 ) VALUES (
-  'a1b2c3d4-2222-2222-2222-000000000002',
+  'a1b2c3d4-2222-4222-8222-000000000002',
   NULL,
   'Event Showcase',
   'A dynamic template designed to showcase your upcoming events and encourage registrations.',
@@ -213,8 +213,8 @@ INSERT INTO templates (
 -- Event Site - Home
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-2222-2222-2222-000000000001',
-  'a1b2c3d4-2222-2222-2222-000000000002',
+  'b1b2c3d4-2222-4222-8222-000000000001',
+  'a1b2c3d4-2222-4222-8222-000000000002',
   'Home',
   'home',
   true,
@@ -266,7 +266,7 @@ INSERT INTO templates (
   id, user_id, name, description, category, tags, status, is_system_template,
   theme, global_settings, metadata, current_version
 ) VALUES (
-  'a1b2c3d4-3333-3333-3333-000000000003',
+  'a1b2c3d4-3333-4333-8333-000000000003',
   NULL,
   'Fundraising Campaign',
   'A compelling single-page template designed to drive donations with impactful storytelling.',
@@ -329,8 +329,8 @@ INSERT INTO templates (
 -- Campaign Page - Home
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-3333-3333-3333-000000000001',
-  'a1b2c3d4-3333-3333-3333-000000000003',
+  'b1b2c3d4-3333-4333-8333-000000000001',
+  'a1b2c3d4-3333-4333-8333-000000000003',
   'Home',
   'home',
   true,
@@ -394,7 +394,7 @@ INSERT INTO templates (
   id, user_id, name, description, category, tags, status, is_system_template,
   theme, global_settings, metadata, current_version
 ) VALUES (
-  'a1b2c3d4-4444-4444-4444-000000000004',
+  'a1b2c3d4-4444-4444-8444-000000000004',
   NULL,
   'News & Blog',
   'A content-focused template for sharing news, stories, and updates with your community.',
@@ -458,8 +458,8 @@ INSERT INTO templates (
 -- Blog Site - Home
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-4444-4444-4444-000000000001',
-  'a1b2c3d4-4444-4444-4444-000000000004',
+  'b1b2c3d4-4444-4444-8444-000000000001',
+  'a1b2c3d4-4444-4444-8444-000000000004',
   'Home',
   'home',
   true,
@@ -508,7 +508,7 @@ INSERT INTO templates (
   id, user_id, name, description, category, tags, status, is_system_template,
   theme, global_settings, metadata, current_version
 ) VALUES (
-  'a1b2c3d4-5555-5555-5555-000000000005',
+  'a1b2c3d4-5555-4555-8555-000000000005',
   NULL,
   'Complete Nonprofit Website',
   'A comprehensive multi-page template with all the sections a nonprofit needs: home, about, programs, volunteer, and donate.',
@@ -585,8 +585,8 @@ INSERT INTO templates (
 -- Multi-page Site - Home
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-5555-5555-5555-000000000001',
-  'a1b2c3d4-5555-5555-5555-000000000005',
+  'b1b2c3d4-5555-4555-8555-000000000001',
+  'a1b2c3d4-5555-4555-8555-000000000005',
   'Home',
   'home',
   true,
@@ -659,8 +659,8 @@ VALUES (
 -- Multi-page Site - About Page
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-5555-5555-5555-000000000002',
-  'a1b2c3d4-5555-5555-5555-000000000005',
+  'b1b2c3d4-5555-4555-8555-000000000002',
+  'a1b2c3d4-5555-4555-8555-000000000005',
   'About',
   'about',
   false,
@@ -709,8 +709,8 @@ VALUES (
 -- Multi-page Site - Volunteer Page
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-5555-5555-5555-000000000003',
-  'a1b2c3d4-5555-5555-5555-000000000005',
+  'b1b2c3d4-5555-4555-8555-000000000003',
+  'a1b2c3d4-5555-4555-8555-000000000005',
   'Volunteer',
   'volunteer',
   false,
@@ -755,8 +755,8 @@ VALUES (
 -- Multi-page Site - Donate Page
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-5555-5555-5555-000000000004',
-  'a1b2c3d4-5555-5555-5555-000000000005',
+  'b1b2c3d4-5555-4555-8555-000000000004',
+  'a1b2c3d4-5555-4555-8555-000000000005',
   'Donate',
   'donate',
   false,
@@ -804,8 +804,8 @@ VALUES (
 -- Multi-page Site - Contact Page
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-5555-5555-5555-000000000005',
-  'a1b2c3d4-5555-5555-5555-000000000005',
+  'b1b2c3d4-5555-4555-8555-000000000005',
+  'a1b2c3d4-5555-4555-8555-000000000005',
   'Contact',
   'contact',
   false,
@@ -852,7 +852,7 @@ INSERT INTO templates (
   id, user_id, name, description, category, tags, status, is_system_template,
   theme, global_settings, metadata, current_version
 ) VALUES (
-  'a1b2c3d4-6666-6666-6666-000000000006',
+  'a1b2c3d4-6666-4666-8666-000000000006',
   NULL,
   'Community Nonprofit Hub',
   'A public-facing nonprofit starter with a news hub, program pages, team profiles, referral intake, and a prominent client portal link.',
@@ -932,8 +932,8 @@ INSERT INTO templates (
 -- Community Nonprofit Hub - Home
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-6666-6666-6666-000000000001',
-  'a1b2c3d4-6666-6666-6666-000000000006',
+  'b1b2c3d4-6666-4666-8666-000000000001',
+  'a1b2c3d4-6666-4666-8666-000000000006',
   'Home',
   'home',
   true,
@@ -1012,8 +1012,8 @@ VALUES (
 -- Community Nonprofit Hub - What''s Happening
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-6666-6666-6666-000000000002',
-  'a1b2c3d4-6666-6666-6666-000000000006',
+  'b1b2c3d4-6666-4666-8666-000000000002',
+  'a1b2c3d4-6666-4666-8666-000000000006',
   'What''s Happening',
   'whats-happening',
   false,
@@ -1060,8 +1060,8 @@ VALUES (
 -- Community Nonprofit Hub - What''s Happening Story Detail
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-6666-6666-6666-000000000003',
-  'a1b2c3d4-6666-6666-6666-000000000006',
+  'b1b2c3d4-6666-4666-8666-000000000003',
+  'a1b2c3d4-6666-4666-8666-000000000006',
   'Story Detail',
   'story-detail',
   false,
@@ -1084,8 +1084,8 @@ VALUES (
 -- Community Nonprofit Hub - Our Space
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-6666-6666-6666-000000000004',
-  'a1b2c3d4-6666-6666-6666-000000000006',
+  'b1b2c3d4-6666-4666-8666-000000000004',
+  'a1b2c3d4-6666-4666-8666-000000000006',
   'Our Space',
   'our-space',
   false,
@@ -1135,8 +1135,8 @@ VALUES (
 -- Community Nonprofit Hub - Our Programs
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-6666-6666-6666-000000000005',
-  'a1b2c3d4-6666-6666-6666-000000000006',
+  'b1b2c3d4-6666-4666-8666-000000000005',
+  'a1b2c3d4-6666-4666-8666-000000000006',
   'Our Programs',
   'programs',
   false,
@@ -1183,8 +1183,8 @@ VALUES (
 -- Community Nonprofit Hub - Our People
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-6666-6666-6666-000000000006',
-  'a1b2c3d4-6666-6666-6666-000000000006',
+  'b1b2c3d4-6666-4666-8666-000000000006',
+  'a1b2c3d4-6666-4666-8666-000000000006',
   'Our People',
   'our-people',
   false,
@@ -1237,8 +1237,8 @@ VALUES (
 -- Community Nonprofit Hub - Get Involved
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-6666-6666-6666-000000000007',
-  'a1b2c3d4-6666-6666-6666-000000000006',
+  'b1b2c3d4-6666-4666-8666-000000000007',
+  'a1b2c3d4-6666-4666-8666-000000000006',
   'Get Involved',
   'get-involved',
   false,
@@ -1307,8 +1307,8 @@ VALUES (
 -- Community Nonprofit Hub - Contact / Referral
 INSERT INTO template_pages (id, template_id, name, slug, is_homepage, seo, sections, sort_order)
 VALUES (
-  'b1b2c3d4-6666-6666-6666-000000000008',
-  'a1b2c3d4-6666-6666-6666-000000000006',
+  'b1b2c3d4-6666-4666-8666-000000000008',
+  'a1b2c3d4-6666-4666-8666-000000000006',
   'Contact / Referral',
   'contact',
   false,

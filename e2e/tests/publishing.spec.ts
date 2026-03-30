@@ -36,16 +36,20 @@ test.describe('Publishing Workflows', () => {
 
     try {
       await authenticatedPage.goto('/websites', { waitUntil: 'domcontentloaded' });
-      await expect(authenticatedPage.getByRole('heading', { name: 'Websites' })).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('heading', { level: 1, name: 'Websites', exact: true })
+      ).toBeVisible();
 
       const siteCard = authenticatedPage.locator(`a[href="/websites/${siteId}/overview"]`).first();
       await expect(siteCard).toBeVisible();
       await siteCard.click();
 
       await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/overview$`));
-      await expect(authenticatedPage.getByText(siteName)).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('article').getByRole('heading', { name: siteName })
+      ).toBeVisible();
 
-      await authenticatedPage.getByRole('link', { name: 'Open Builder' }).click();
+      await authenticatedPage.locator('#main-content').getByRole('link', { name: 'Open Builder' }).click();
       await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/builder$`));
       await expect(authenticatedPage.getByText(/Site: /)).toBeVisible();
       await expect(authenticatedPage.getByText(/Publish status: /)).toBeVisible();
@@ -55,7 +59,9 @@ test.describe('Publishing Workflows', () => {
 
       await authenticatedPage.goto('/websites', { waitUntil: 'domcontentloaded' });
       await expect(authenticatedPage).toHaveURL(/\/websites$/);
-      await expect(authenticatedPage.getByRole('heading', { name: 'Websites' })).toBeVisible();
+      await expect(
+        authenticatedPage.getByRole('heading', { level: 1, name: 'Websites', exact: true })
+      ).toBeVisible();
     } finally {
       await deleteWebsiteSite(authenticatedPage, authToken, siteId);
       await deleteTemplate(authenticatedPage, authToken, templateId);

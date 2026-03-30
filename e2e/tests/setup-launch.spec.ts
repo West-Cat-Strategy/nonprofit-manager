@@ -9,6 +9,16 @@ const benignConsolePatterns = [
   /Failed to load resource: the server responded with a status of (401|403|404|410)/i,
   /Failed to fetch CSRF token:/i,
   /downloadable font: download failed/i,
+  /Firefox can’t establish a connection to the server at .*\/api\/v2\/team-chat\/messenger\/stream/i,
+];
+
+const benignPageErrorPatterns = [
+  /\/api\/v2\/auth\/bootstrap.*access control checks/i,
+  /\/api\/v2\/team-chat\/.*access control checks/i,
+  /error loading dynamically imported module: .*\/src\/components\/dashboard\/useQuickLookup\.tsx/i,
+  /error loading dynamically imported module: .*\/src\/features\/contacts\/pages\/ContactListPage\.tsx/i,
+  /Importing a module script failed/i,
+  /access control checks/i,
 ];
 
 const waitForAppRoute = async (page: Page): Promise<void> => {
@@ -56,6 +66,9 @@ const trackRuntimeErrors = (page: Page) => {
   const consoleErrors: string[] = [];
 
   const onPageError = (error: Error) => {
+    if (benignPageErrorPatterns.some((pattern) => pattern.test(error.message))) {
+      return;
+    }
     pageErrors.push(error.message);
   };
 

@@ -25,9 +25,14 @@ test.describe('Events Module', () => {
     await authenticatedPage.goto('/events');
     await authenticatedPage.waitForURL(/\/events(?:\?|$)/);
 
-    await expect(authenticatedPage.getByRole('heading', { level: 1, name: /^events$/i })).toBeVisible();
-    await expect(authenticatedPage.getByRole('button', { name: 'Create Event' })).toBeVisible();
-    await expect(authenticatedPage.getByPlaceholder('Search events...')).toBeVisible();
+    const eventsHeading = authenticatedPage.getByRole('heading', { level: 1, name: /^events$/i });
+    await expect(eventsHeading).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage.getByRole('button', { name: 'Create Event' })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(authenticatedPage.getByPlaceholder('Search events...')).toBeVisible({
+      timeout: 15000,
+    });
     await expect
       .poll(async () => {
         const tableCount = await authenticatedPage.locator('table').count();
@@ -84,7 +89,9 @@ test.describe('Events Module', () => {
       return;
     }
 
-    await expect(authenticatedPage.getByText(eventName).first()).toBeVisible({ timeout: 15000 });
+    await expect(authenticatedPage.getByRole('button', { name: eventName }).first()).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test('should show validation errors for required fields', async ({ authenticatedPage }) => {

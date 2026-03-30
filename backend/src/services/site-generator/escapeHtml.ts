@@ -1,4 +1,4 @@
-export function escapeHtml(text: string): string {
+export function escapeHtml(text: unknown): string {
   const htmlEntities: Record<string, string> = {
     '&': '&amp;',
     '<': '&lt;',
@@ -7,5 +7,8 @@ export function escapeHtml(text: string): string {
     "'": '&#39;',
   };
 
-  return text.replace(/[&<>"']/g, (char) => htmlEntities[char] || char);
+  const normalizedText =
+    typeof text === 'string' ? text : text == null ? '' : String(text);
+
+  return normalizedText.replace(/[&<>"']/g, (char) => htmlEntities[char] || char);
 }
