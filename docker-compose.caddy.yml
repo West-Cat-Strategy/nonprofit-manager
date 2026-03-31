@@ -12,6 +12,8 @@ services:
     environment:
       CADDY_BACKEND_UPSTREAM: ${CADDY_BACKEND_UPSTREAM:-backend:8000}
       CADDY_FRONTEND_UPSTREAM: ${CADDY_FRONTEND_UPSTREAM:-frontend:8001}
+      CADDY_PUBLIC_SITE_UPSTREAM: ${CADDY_PUBLIC_SITE_UPSTREAM:-public-site:8006}
+      CADDY_PUBLIC_SITE_DOMAIN: ${CADDY_PUBLIC_SITE_DOMAIN:-sites.localhost}
       CADDY_DOMAIN: ${CADDY_DOMAIN:-localhost}
     ports:
       - "80:80"

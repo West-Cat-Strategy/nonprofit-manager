@@ -14,6 +14,7 @@ interface HistoryState {
 interface UseEditorHistoryOptions {
   maxHistoryLength?: number;
   debounceMs?: number;
+  resetKey?: string;
 }
 
 interface UseEditorHistoryReturn {
@@ -21,6 +22,7 @@ interface UseEditorHistoryReturn {
   setSections: (sections: PageSection[]) => void;
   undo: () => void;
   redo: () => void;
+  isDirty: boolean;
   canUndo: boolean;
   canRedo: boolean;
   historyLength: number;
@@ -34,7 +36,7 @@ export function useEditorHistory(
   initialSections: PageSection[],
   options: UseEditorHistoryOptions = {}
 ): UseEditorHistoryReturn {
-  const { maxHistoryLength = 50, debounceMs = 300 } = options;
+  const { maxHistoryLength = 50, debounceMs = 300, resetKey } = options;
   const initialSectionsSignature = getSectionsSignature(initialSections);
 
   // History stack - immutable entries
@@ -48,13 +50,22 @@ export function useEditorHistory(
 
   // Debounce timer ref
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hydrationSnapshotRef = useRef<{
+    resetKey: string | undefined;
+    signature: string;
+  }>({
+    resetKey,
+    signature: initialSectionsSignature,
+  });
 
   // Current sections: use pending state if available, otherwise from history
   const sections = pendingState ?? history[currentIndex]?.sections ?? initialSections;
+  const sectionsSignature = getSectionsSignature(sections);
 
   // Check if undo/redo is available
   const canUndo = currentIndex > 0;
   const canRedo = currentIndex < history.length - 1;
+  const isDirty = sectionsSignature !== hydrationSnapshotRef.current.signature;
 
   // Commit pending state to history
   const commitToHistory = useCallback(
@@ -137,10 +148,14 @@ export function useEditorHistory(
   // Clear history
   const clearHistory = useCallback(() => {
     const currentSections = pendingState ?? history[currentIndex]?.sections ?? initialSections;
+    hydrationSnapshotRef.current = {
+      resetKey,
+      signature: getSectionsSignature(currentSections),
+    };
     setHistory([{ sections: currentSections, timestamp: Date.now() }]);
     setCurrentIndex(0);
     setPendingState(null);
-  }, [history, currentIndex, initialSections, pendingState]);
+  }, [history, currentIndex, initialSections, pendingState, resetKey]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -153,16 +168,26 @@ export function useEditorHistory(
 
   // Reset history when initial sections change (e.g., loading different page)
   useEffect(() => {
+    const snapshot = hydrationSnapshotRef.current;
+    if (snapshot.resetKey === resetKey && snapshot.signature === initialSectionsSignature) {
+      return;
+    }
+
+    hydrationSnapshotRef.current = {
+      resetKey,
+      signature: initialSectionsSignature,
+    };
     setHistory([{ sections: initialSections, timestamp: Date.now() }]);
     setCurrentIndex(0);
     setPendingState(null);
-  }, [initialSections, initialSectionsSignature]);
+  }, [initialSections, initialSectionsSignature, resetKey]);
 
   return {
     sections,
     setSections,
     undo,
     redo,
+    isDirty,
     canUndo,
     canRedo,
     historyLength: history.length,

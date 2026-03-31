@@ -31,7 +31,13 @@ const WebsiteConsoleUrlAction: React.FC<WebsiteConsoleUrlActionProps> = ({
   }
 
   return (
-    <button type="button" disabled title={disabledTitle} className={resolvedClassName}>
+    <button
+      type="button"
+      disabled
+      aria-disabled="true"
+      title={disabledTitle}
+      className={resolvedClassName}
+    >
       {children}
     </button>
   );

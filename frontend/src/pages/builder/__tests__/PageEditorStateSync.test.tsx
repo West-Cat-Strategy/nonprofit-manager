@@ -1,17 +1,12 @@
 import { act, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import PageEditor from '../../../features/builder/pages/PageEditorPage';
-import { renderWithProviders, createTestStore } from '../../../test/testUtils';
-import { updateCurrentPageSections } from '../../../features/builder/state';
+import { updateCurrentPageSections, setCurrentPage } from '../../../features/builder/state';
+import { createTestStore, renderWithProviders } from '../../../test/testUtils';
 import type { RootState } from '../../../store';
 
 vi.mock('../../../components/editor', () => ({
-  EditorHeader: ({ onOpenSettings }: { onOpenSettings: () => void }) => (
-    <button type="button" onClick={onOpenSettings}>
-      Open Template Settings
-    </button>
-  ),
+  EditorHeader: () => <div>Editor Header</div>,
   ComponentPalette: () => <div>Component Palette</div>,
   EditorCanvas: () => <div>Editor Canvas</div>,
   PropertyPanel: () => <div>Property Panel</div>,
@@ -27,21 +22,8 @@ vi.mock('../../../hooks/useAutoSave', () => ({
   }),
 }));
 
-vi.mock('../../../hooks/useEditorHistory', () => ({
-  useEditorHistory: (initialSections: unknown[]) => ({
-    sections: initialSections,
-    setSections: vi.fn(),
-    undo: vi.fn(),
-    redo: vi.fn(),
-    isDirty: false,
-    canUndo: false,
-    canRedo: false,
-  }),
-}));
-
-describe('PageEditor template settings modal', () => {
-  it('preserves in-progress template setting edits across unrelated store updates', async () => {
-    const user = userEvent.setup();
+describe('PageEditor state synchronization', () => {
+  it('does not enter a loop when the store rehydrates with equivalent sections', async () => {
     const preloadedState = {
       templates: {
         templates: [],
@@ -49,8 +31,8 @@ describe('PageEditor template settings modal', () => {
         currentTemplate: {
           id: 'template-1',
           userId: 'user-1',
-          name: 'Initial Template',
-          description: 'Original description',
+          name: 'Template',
+          description: '',
           category: 'landing-page',
           tags: [],
           status: 'draft',
@@ -111,7 +93,7 @@ describe('PageEditor template settings modal', () => {
               name: 'Home',
               slug: 'home',
               isHomepage: true,
-              pageType: 'standard',
+              pageType: 'static',
               routePattern: '/',
               seo: {
                 title: 'Home',
@@ -133,7 +115,7 @@ describe('PageEditor template settings modal', () => {
           name: 'Home',
           slug: 'home',
           isHomepage: true,
-          pageType: 'standard',
+          pageType: 'static',
           routePattern: '/',
           seo: {
             title: 'Home',
@@ -163,21 +145,28 @@ describe('PageEditor template settings modal', () => {
     } satisfies Partial<RootState>;
 
     const store = createTestStore(preloadedState);
+    const dispatchSpy = vi.spyOn(store, 'dispatch');
 
     renderWithProviders(<PageEditor />, { store });
 
-    await user.click(screen.getByRole('button', { name: /open template settings/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Editor Canvas')).toBeInTheDocument();
+    });
 
-    const nameInput = screen.getByDisplayValue('Initial Template');
-    await user.clear(nameInput);
-    await user.type(nameInput, 'Edited Template Name');
-
-    await act(async () => {
-      store.dispatch(updateCurrentPageSections([]));
+    act(() => {
+      store.dispatch(
+        setCurrentPage({
+          ...preloadedState.templates.currentPage,
+          sections: [],
+        })
+      );
     });
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('Edited Template Name')).toBeInTheDocument();
+      const updateCalls = dispatchSpy.mock.calls.filter(
+        ([action]) => typeof action === 'object' && action !== null && action.type === updateCurrentPageSections.type
+      );
+      expect(updateCalls).toHaveLength(0);
     });
   });
 });

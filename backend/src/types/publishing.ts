@@ -234,11 +234,14 @@ export interface UpdatePublishedSiteDTO {
 }
 
 // Publish Site DTO (trigger publishing)
+export type PublishTarget = 'live' | 'preview';
+
 export interface PublishSiteDTO {
   templateId: string;
   siteId?: string; // If updating existing site
   subdomain?: string;
   customDomain?: string;
+  target?: PublishTarget;
 }
 
 // Publish Result
@@ -248,6 +251,7 @@ export interface PublishResult {
   previewUrl?: string;
   publishedAt: Date;
   version: string;
+  target: PublishTarget;
   status: 'success' | 'failed';
   error?: string;
 }
@@ -271,6 +275,7 @@ export interface SiteDeploymentInfo {
   subdomain: string | null;
   customDomain: string | null;
   primaryUrl: string;
+  previewUrl: string | null;
   status: SiteStatus;
   lastPublished: Date | null;
   version: string | null;

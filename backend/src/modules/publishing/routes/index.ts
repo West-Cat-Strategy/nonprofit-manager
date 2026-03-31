@@ -61,6 +61,7 @@ const updateSiteSchema = z.object({
 const publishSchema = z.object({
   templateId: uuidSchema,
   siteId: uuidSchema.optional(),
+  target: z.enum(['live', 'preview']).optional(),
 });
 
 const analyticsEventTypeSchema = z.enum([

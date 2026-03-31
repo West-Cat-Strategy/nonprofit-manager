@@ -8,6 +8,7 @@ import type {
   PublishedSite,
   PublishedContent,
   PublishResult,
+  PublishTarget,
   SiteDeploymentInfo,
 } from '@app-types/publishing';
 import type { TemplatePage, PageSection } from '@app-types/websiteBuilder';
@@ -28,9 +29,11 @@ export class PublishService {
     userId: string,
     templateId: string,
     siteId?: string,
-    organizationId?: string
+    organizationId?: string,
+    target: PublishTarget = 'live'
   ): Promise<PublishResult> {
     const client = await this.pool.connect();
+    const publishTarget: PublishTarget = target === 'preview' ? 'preview' : 'live';
 
     try {
       await client.query('BEGIN');
@@ -86,7 +89,8 @@ export class PublishService {
       );
 
       // Generate version
-      const version = `v${Date.now()}`;
+      const versionPrefix = publishTarget === 'preview' ? 'preview-v' : 'v';
+      const version = `${versionPrefix}${Date.now()}`;
 
       // Create published content snapshot
       const publishedContent: PublishedContent = {
@@ -137,6 +141,7 @@ export class PublishService {
       };
 
       let site: PublishedSite;
+      let baseUrl: string | null = null;
 
       if (siteId) {
         // Update existing site
@@ -147,25 +152,34 @@ export class PublishService {
         if (existingSite.migrationStatus === 'needs_assignment') {
           throw new Error('Site needs organization assignment before publishing');
         }
+        baseUrl = this.siteManagement.getSiteUrl(existingSite);
 
-        const siteResult = await client.query(
-          `UPDATE published_sites
-           SET published_content = $1,
-               published_version = $2,
-               published_at = CURRENT_TIMESTAMP,
-               status = 'published',
-               updated_at = CURRENT_TIMESTAMP
-           WHERE id = $3
-           RETURNING *`,
-          [JSON.stringify(publishedContent), version, siteId]
-        );
+        if (publishTarget === 'live') {
+          const siteResult = await client.query(
+            `UPDATE published_sites
+             SET published_content = $1,
+                 published_version = $2,
+                 published_at = CURRENT_TIMESTAMP,
+                 status = 'published',
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $3
+             RETURNING *`,
+            [JSON.stringify(publishedContent), version, siteId]
+          );
 
-        if (siteResult.rows.length === 0) {
-          throw new Error('Site not found or access denied');
+          if (siteResult.rows.length === 0) {
+            throw new Error('Site not found or access denied');
+          }
+
+          site = this.siteManagement.mapRowToSite(siteResult.rows[0]);
+        } else {
+          site = existingSite;
+        }
+      } else {
+        if (publishTarget === 'preview') {
+          throw new Error('Preview publishing requires an existing site');
         }
 
-        site = this.siteManagement.mapRowToSite(siteResult.rows[0]);
-      } else {
         // Create new site with auto-generated subdomain
         const subdomain = this.siteManagement.generateSubdomain(templateRow.name);
         const resolvedOrganizationId =
@@ -199,20 +213,27 @@ export class PublishService {
       await client.query(
         `INSERT INTO site_versions (site_id, version, published_content, published_by, change_description)
          VALUES ($1, $2, $3, $4, $5)`,
-        [site.id, version, JSON.stringify(publishedContent), userId, 'Published via API']
+        [
+          site.id,
+          version,
+          JSON.stringify(publishedContent),
+          userId,
+          publishTarget === 'preview' ? 'Preview publish via API' : 'Published via API',
+        ]
       );
 
       await client.query('COMMIT');
 
       // Generate the site URL
-      const url = this.siteManagement.getSiteUrl(site);
+      const url = baseUrl || this.siteManagement.getSiteUrl(site);
 
       return {
         siteId: site.id,
         url,
-        previewUrl: `${url}?preview=true`,
-        publishedAt: site.publishedAt!,
+        previewUrl: `${url}?preview=true&version=${encodeURIComponent(version)}`,
+        publishedAt: publishTarget === 'preview' ? new Date() : site.publishedAt!,
         version,
+        target: publishTarget,
         status: 'success',
       };
     } catch (error) {
@@ -274,6 +295,9 @@ export class PublishService {
       subdomain: site.subdomain,
       customDomain: site.customDomain,
       primaryUrl: this.siteManagement.getSiteUrl(site),
+      previewUrl: site.publishedVersion
+        ? `${this.siteManagement.getSiteUrl(site)}?preview=true&version=${encodeURIComponent(site.publishedVersion)}`
+        : null,
       status: site.status,
       lastPublished: site.publishedAt,
       version: site.publishedVersion,

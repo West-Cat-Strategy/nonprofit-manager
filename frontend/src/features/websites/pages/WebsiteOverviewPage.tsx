@@ -54,7 +54,7 @@ const WebsiteOverviewPage: React.FC = () => {
         className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
         disabledTitle="Preview is unavailable until the site has a public URL."
       >
-        Preview
+        Open preview
       </WebsiteConsoleUrlAction>
       <Link
         to={`/websites/${siteId}/content`}
@@ -72,13 +72,13 @@ const WebsiteOverviewPage: React.FC = () => {
         to={`/websites/${siteId}/publishing`}
         className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
       >
-        Publish Controls
+        Publishing
       </Link>
       <Link
         to={`/websites/${siteId}/builder`}
-        className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover"
+        className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-app-accent-hover"
       >
-        Open Builder
+        Open builder
       </Link>
     </>
   ) : null;
@@ -116,20 +116,20 @@ const WebsiteOverviewPage: React.FC = () => {
         />
       ) : overview ? (
         <div className="space-y-6">
-          <section className="rounded-3xl border border-app-border bg-app-surface p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <section className="rounded-3xl border border-app-border bg-gradient-to-br from-app-surface to-app-surface-muted p-6 shadow-sm">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)] xl:items-start">
               <div className="max-w-2xl">
                 <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                  Next action
+                  Recommended next step
                 </div>
-                <h2 className="mt-2 text-2xl font-semibold text-app-text">
+                <h2 className="mt-2 text-2xl font-semibold text-app-text sm:text-3xl">
                   {managementSnapshot?.nextAction.title || 'Open the public preview'}
                 </h2>
-                <p className="mt-2 text-sm text-app-text-muted">
+                <p className="mt-3 text-sm leading-6 text-app-text-muted">
                   {managementSnapshot?.nextAction.detail ||
                     'Review the live pages, recent updates, and conversion flow before sharing the site.'}
                 </p>
-                <div className="mt-4 flex flex-wrap gap-3">
+                <div className="mt-5 flex flex-wrap gap-3">
                   {managementSnapshot?.nextAction.href?.startsWith('http') ? (
                     <a
                       href={managementSnapshot.nextAction.href}
@@ -174,7 +174,7 @@ const WebsiteOverviewPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:w-[22rem]">
+              <div className="grid min-w-0 gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
                   <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
                     Console state

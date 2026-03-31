@@ -12,6 +12,7 @@ import type {
   UpdatePublishedSiteDTO,
   PublishedSiteSearchParams,
   AnalyticsEventType,
+  PublishTarget,
 } from '@app-types/publishing';
 import { badRequest, conflict, noContent, notFoundMessage } from '@utils/responseHelpers';
 import { guardWithRole } from '@services/authGuardService';
@@ -211,8 +212,15 @@ export const publishSite = async (
     const organizationId = req.organizationId;
     const { templateId } = req.body;
     const siteId = req.body.siteId as string | undefined;
+    const target = (req.body.target as PublishTarget | undefined) || 'live';
 
-    const result = await publishingService.publish(userId, templateId, siteId, organizationId);
+    const result = await publishingService.publish(
+      userId,
+      templateId,
+      siteId,
+      organizationId,
+      target
+    );
     sendSuccess(res, result);
   } catch (error) {
     if (handleKnownPublishingError(error, res, { notFound: true, badRequest: true })) return;

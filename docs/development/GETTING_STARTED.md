@@ -58,6 +58,7 @@ Expected endpoints:
 
 - Frontend: `http://localhost:8005`
 - Backend API: `http://localhost:8004`
+- Public site: `http://localhost:8006`
 - Postgres: `localhost:8002`
 - Redis: `localhost:8003`
 

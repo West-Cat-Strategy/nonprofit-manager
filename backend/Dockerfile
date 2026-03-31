@@ -8,7 +8,7 @@ FROM base AS deps
 
 # Shared dependency layer for build + dev targets.
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci --no-audit --no-fund
 
 FROM deps AS build
@@ -16,8 +16,14 @@ FROM deps AS build
 COPY tsconfig.json tsconfig.docker.json ./
 COPY src ./src
 RUN ./node_modules/.bin/tsc -p tsconfig.docker.json && \
-    ./node_modules/.bin/tsc-alias -p tsconfig.docker.json && \
-    npm prune --omit=dev
+    ./node_modules/.bin/tsc-alias -p tsconfig.docker.json
+
+FROM base AS prod-deps
+
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm ci --omit=dev --no-audit --no-fund && \
+    npm cache clean --force
 
 FROM deps AS dev
 
@@ -37,7 +43,7 @@ ENV NODE_ENV=production \
 RUN mkdir -p /app/exports /app/logs /app/uploads && \
     chown node:node /app/exports /app/logs /app/uploads
 
-COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 
 USER node

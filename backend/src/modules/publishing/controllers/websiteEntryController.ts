@@ -78,6 +78,31 @@ const getRequestIpAddress = (req: Request): string | undefined => {
   return undefined;
 };
 
+const isPreviewRequest = (req: Request): boolean => {
+  const preview = req.query.preview;
+  if (typeof preview === 'boolean') {
+    return preview;
+  }
+
+  if (typeof preview === 'string') {
+    return preview === 'true' || preview === '1';
+  }
+
+  if (Array.isArray(preview)) {
+    return preview.some((value) => value === 'true' || value === '1');
+  }
+
+  return false;
+};
+
+const getPreviewVersion = (req: Request): string | undefined => {
+  const version = req.query.version;
+  if (typeof version === 'string' && version.trim().length > 0) {
+    return version.trim();
+  }
+  return undefined;
+};
+
 const renderHtmlNotFound = (res: Response, siteName: string, pagePath: string): void => {
   const safeSiteName = escapeHtml(siteName);
   const safePagePath = escapeHtml(pagePath);
@@ -480,11 +505,28 @@ export const renderPublishedWebsite = async (
       return;
     }
 
+    const previewVersion = isPreviewRequest(req) ? getPreviewVersion(req) || site.publishedVersion || undefined : undefined;
+    let renderableSite = site;
+    if (previewVersion) {
+      const previewSnapshot = await publishingService.getPublicVersion(site.id, previewVersion);
+      if (!previewSnapshot?.publishedContent) {
+        notFoundMessage(res, 'Preview version not found');
+        return;
+      }
+      renderableSite = {
+        ...site,
+        publishedContent: previewSnapshot.publishedContent,
+        publishedVersion: previewSnapshot.version,
+        publishedAt: previewSnapshot.publishedAt,
+      };
+    }
+
     const pagePath = req.path || '/';
+    const cacheVariant = previewVersion ? `preview:${previewVersion}` : renderableSite.publishedVersion || 'v1';
     const cacheKey = siteCacheService.generateCacheKey(
-      site.id,
+      renderableSite.id,
       pagePath,
-      site.publishedVersion || 'v1'
+      cacheVariant
     );
     const cachedEntry = await siteCacheService.get<string>(cacheKey);
     const requestETag = req.headers['if-none-match'] as string | undefined;
@@ -507,14 +549,14 @@ export const renderPublishedWebsite = async (
       return;
     }
 
-    const html = await publicSiteRuntimeService.renderSitePage(site, pagePath);
+    const html = await publicSiteRuntimeService.renderSitePage(renderableSite, pagePath);
     if (!html) {
-      renderHtmlNotFound(res, site.name, pagePath);
+      renderHtmlNotFound(res, renderableSite.name, pagePath);
       return;
     }
 
-    const stored = await siteCacheService.set(cacheKey, html, site.publishedVersion || 'v1', {
-      tags: [`site:${site.id}`],
+    const stored = await siteCacheService.set(cacheKey, html, cacheVariant, {
+      tags: [`site:${renderableSite.id}`],
       ttlSeconds: 300,
     });
     res.setHeader('ETag', stored.etag);

@@ -199,6 +199,39 @@ export class VersionService {
   }
 
   /**
+   * Get a published version without user-scoped authorization.
+   * Used by the public runtime to render shareable preview links.
+   */
+  async getPublicVersion(siteId: string, version: string): Promise<SiteVersion | null> {
+    const result = await this.pool.query(
+      'SELECT * FROM site_versions WHERE site_id = $1 AND version = $2',
+      [siteId, version]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    const siteResult = await this.pool.query(
+      'SELECT published_version FROM published_sites WHERE id = $1',
+      [siteId]
+    );
+    const currentVersion = siteResult.rows[0]?.published_version || null;
+
+    return {
+      id: row.id,
+      siteId: row.site_id,
+      version: row.version,
+      publishedContent: row.published_content,
+      publishedAt: new Date(row.published_at),
+      publishedBy: row.published_by,
+      changeDescription: row.change_description,
+      isCurrent: row.version === currentVersion,
+    };
+  }
+
+  /**
    * Delete old versions (keep latest N versions)
    */
   async pruneVersions(

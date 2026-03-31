@@ -7,6 +7,10 @@ services:
     ports:
       - "127.0.0.1:8001:8001"
 
+  public-site:
+    ports:
+      - "127.0.0.1:8006:8006"
+
   postgres:
     ports:
       - "127.0.0.1:8012:5432"
