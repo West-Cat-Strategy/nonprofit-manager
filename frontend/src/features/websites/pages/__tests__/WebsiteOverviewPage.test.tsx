@@ -206,14 +206,14 @@ describe('WebsiteOverviewPage', () => {
       })
     );
     expect(screen.getByText('Neighborhood Mutual Aid')).toBeInTheDocument();
-    expect(screen.getByText('Next action')).toBeInTheDocument();
+    expect(screen.getByText('Recommended next step')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Resolve the blocking site assignment' })
     ).toHaveAttribute('href', '/websites/site-1/publishing');
     expect(screen.getByText('Total conversions')).toBeInTheDocument();
     expect(screen.getByText('14')).toBeInTheDocument();
     expect(screen.getByText(/publish, domain, and integration changes stay blocked/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open Builder' })).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: 'Open builder' })[0]).toHaveAttribute(
       'href',
       '/websites/site-1/builder'
     );
@@ -225,11 +225,11 @@ describe('WebsiteOverviewPage', () => {
       'href',
       '/websites/site-1/forms'
     );
-    expect(screen.getByRole('link', { name: 'Publish Controls' })).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: 'Publishing' })[0]).toHaveAttribute(
       'href',
       '/websites/site-1/publishing'
     );
-    expect(screen.getByRole('link', { name: 'Preview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Open preview' })).toHaveAttribute(
       'href',
       'https://preview.mutualaid.org'
     );

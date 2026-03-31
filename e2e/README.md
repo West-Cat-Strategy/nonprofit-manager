@@ -12,6 +12,7 @@ Default addresses from `playwright.config.ts`:
 
 - Frontend: `http://127.0.0.1:5173`
 - Backend API: `http://127.0.0.1:3001`
+- Public site: `http://127.0.0.1:3001`
 - Test database port: `8012`
 
 Local overrides load in this order:
@@ -50,10 +51,10 @@ npm run test:report
 - `npm test`: local default run using the Playwright web servers
 - `npm run test:smoke`: Chromium smoke slice
 - `npm run test:ci`: Chromium, Firefox, and WebKit functional matrix
-- `npm run test:docker`: run against an already running Docker app stack on `8005/8004`
-- `npm run test:docker:smoke`: Chromium smoke slice against Docker-hosted services
-- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services
-- `npm run test:docker:audit`: dedicated Chromium dark-mode route audit against Docker-hosted services
+- `npm run test:docker`: run against an already running Docker app stack on `8005/8004/8006`
+- `npm run test:docker:smoke`: Chromium smoke slice against Docker-hosted services on `8005/8004/8006`
+- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services on `8005/8004/8006`
+- `npm run test:docker:audit`: dedicated Chromium dark-mode route audit against Docker-hosted services on `8005/8004/8006`
 - `npm run test:report`: open the HTML report
 
 ## Docker App Stack Runtime
@@ -72,6 +73,7 @@ These commands assume:
 
 - Frontend: `http://127.0.0.1:8005`
 - Backend API: `http://127.0.0.1:8004`
+- Public site: `http://127.0.0.1:8006`
 - `SKIP_WEBSERVER=1`
 - `PW_REUSE_EXISTING_SERVER=1`
 

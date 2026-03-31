@@ -18,15 +18,28 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({
   onUpdateSection,
   onDeleteComponent,
   onDeleteSection,
+  previewHref,
+  onPublishPage,
+  canPublish,
+  isPublishing,
 }) => {
   if (!selectedComponent && !selectedSection) {
     if (currentPage && onUpdatePage) {
-      return <PagePropertyEditor currentPage={currentPage} onUpdatePage={onUpdatePage} />;
+      return (
+        <PagePropertyEditor
+          currentPage={currentPage}
+          onUpdatePage={onUpdatePage}
+          previewHref={previewHref}
+          onPublishPage={onPublishPage}
+          canPublish={canPublish}
+          isPublishing={isPublishing}
+        />
+      );
     }
 
     return (
-      <div className="w-72 border-l border-app-border bg-app-surface p-4">
-        <div className="py-8 text-center text-app-text-muted">
+      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-sm">
+        <div className="flex-1 py-8 text-center text-app-text-muted">
           <svg
             className="mx-auto mb-2 h-12 w-12 text-app-text-subtle"
             fill="none"

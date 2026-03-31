@@ -232,6 +232,21 @@ export class SiteManagementService {
     return this.mapRowToSite(result.rows[0]);
   }
 
+  async getSiteBySubdomainForPreview(subdomain: string): Promise<PublishedSite | null> {
+    const result = await this.pool.query(
+      `SELECT ${PUBLISHED_SITE_SELECT_COLUMNS}
+       FROM published_sites
+       WHERE subdomain = $1`,
+      [subdomain.toLowerCase()]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToSite(result.rows[0]);
+  }
+
   /**
    * Get a published site by custom domain (for serving)
    */
@@ -250,12 +265,42 @@ export class SiteManagementService {
     return this.mapRowToSite(result.rows[0]);
   }
 
+  async getSiteByDomainForPreview(domain: string): Promise<PublishedSite | null> {
+    const result = await this.pool.query(
+      `SELECT ${PUBLISHED_SITE_SELECT_COLUMNS}
+       FROM published_sites
+       WHERE custom_domain = $1`,
+      [domain.toLowerCase()]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToSite(result.rows[0]);
+  }
+
   async getPublicSiteById(siteId: string): Promise<PublishedSite | null> {
     const result = await this.pool.query(
       `SELECT ${PUBLISHED_SITE_SELECT_COLUMNS}
        FROM published_sites
        WHERE id = $1 AND status = $2`,
       [siteId, 'published']
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapRowToSite(result.rows[0]);
+  }
+
+  async getPublicSiteByIdForPreview(siteId: string): Promise<PublishedSite | null> {
+    const result = await this.pool.query(
+      `SELECT ${PUBLISHED_SITE_SELECT_COLUMNS}
+       FROM published_sites
+       WHERE id = $1`,
+      [siteId]
     );
 
     if (result.rows.length === 0) {
@@ -461,7 +506,15 @@ export class SiteManagementService {
       return `https://${site.customDomain}`;
     }
     if (site.subdomain) {
-      return `${SITE_BASE_URL.replace('sites.', `${site.subdomain}.`)}`;
+      try {
+        const baseUrl = new URL(SITE_BASE_URL);
+        baseUrl.hostname = baseUrl.hostname.startsWith('sites.')
+          ? baseUrl.hostname.replace(/^sites\./, `${site.subdomain}.`)
+          : `${site.subdomain}.${baseUrl.hostname}`;
+        return baseUrl.toString().replace(/\/$/, '');
+      } catch {
+        return `${SITE_BASE_URL.replace('sites.', `${site.subdomain}.`)}`;
+      }
     }
     return `${SITE_BASE_URL}/${site.id}`;
   }

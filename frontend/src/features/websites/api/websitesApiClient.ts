@@ -1,5 +1,6 @@
 import api from '../../../services/api';
 import type {
+  PublishWebsiteSiteResponse,
   PublishWebsiteSiteRequest,
   WebsiteConversionFunnel,
   WebsiteConversionMetrics,
@@ -14,6 +15,8 @@ import type {
   WebsiteOverviewSummary,
   WebsiteSearchParams,
   WebsiteSitesResponse,
+  WebsiteRollbackResult,
+  WebsiteVersionHistory,
   WebsiteStripeSettings,
   UpdateWebsiteSiteRequest,
 } from '../types/contracts';
@@ -139,16 +142,10 @@ export class WebsitesApiClient {
     return api.put<WebsiteOverviewSummary['site']>(`/sites/${siteId}`, payload).then((response) => response.data);
   }
 
-  publishSite(payload: PublishWebsiteSiteRequest): Promise<{
-    siteId: string;
-    url: string;
-    previewUrl?: string;
-    publishedAt: string;
-    version: string;
-    status: 'success' | 'failed';
-    error?: string;
-  }> {
-    return api.post('/sites/publish', payload).then((response) => response.data);
+  publishSite(payload: PublishWebsiteSiteRequest): Promise<PublishWebsiteSiteResponse> {
+    return api
+      .post<PublishWebsiteSiteResponse>('/sites/publish', payload)
+      .then((response) => response.data);
   }
 
   unpublishSite(siteId: string): Promise<WebsiteOverviewSummary['site']> {
@@ -157,6 +154,18 @@ export class WebsitesApiClient {
 
   getDeployment(siteId: string): Promise<WebsiteDeploymentInfo> {
     return api.get<WebsiteDeploymentInfo>(`/sites/${siteId}/deployment`).then((response) => response.data);
+  }
+
+  getVersionHistory(siteId: string, limit?: number): Promise<WebsiteVersionHistory> {
+    return api
+      .get<WebsiteVersionHistory>(`/sites/${siteId}/versions${buildQuery({ limit })}`)
+      .then((response) => response.data);
+  }
+
+  rollbackVersion(siteId: string, version: string): Promise<WebsiteRollbackResult> {
+    return api
+      .post<WebsiteRollbackResult>(`/sites/${siteId}/rollback`, { version })
+      .then((response) => response.data);
   }
 
   invalidateCache(siteId: string): Promise<{ invalidated: boolean; siteId: string }> {

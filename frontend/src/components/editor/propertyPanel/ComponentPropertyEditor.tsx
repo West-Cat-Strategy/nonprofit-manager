@@ -59,20 +59,21 @@ const ComponentPropertyEditor: React.FC<ComponentPropertyEditorProps> = ({
   };
 
   return (
-    <div className="w-72 overflow-y-auto border-l border-app-border bg-app-surface">
-      <div className="border-b border-app-border p-4">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-sm">
+      <div className="border-b border-app-border px-4 py-4">
         <h3 className="font-semibold capitalize text-app-text">
           {selectedComponent.type.replace('-', ' ')}
         </h3>
+        <p className="mt-1 text-xs text-app-text-muted">Edit component content and behavior</p>
       </div>
 
-      <div className="space-y-4 p-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {renderComponentProperties()}
 
         <div className="border-t border-app-border pt-4">
           <button
             onClick={() => onDeleteComponent(selectedComponent.id)}
-            className="w-full rounded-md bg-app-accent-soft px-4 py-2 text-sm text-app-accent hover:bg-app-accent-soft"
+            className="w-full rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-100"
           >
             Delete Component
           </button>

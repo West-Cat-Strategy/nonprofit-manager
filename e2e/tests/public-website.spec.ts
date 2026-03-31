@@ -10,19 +10,15 @@ import {
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
 
-const getBackendPort = (): string => {
-  const configuredPort = process.env.E2E_BACKEND_PORT?.trim();
+const getPublicSitePort = (): string => {
+  const configuredPort = process.env.E2E_PUBLIC_SITE_PORT?.trim();
   if (configuredPort) {
     return configuredPort;
   }
 
-  try {
-    const apiUrl = process.env.API_URL?.trim();
-    if (apiUrl) {
-      return new URL(apiUrl).port || '3001';
-    }
-  } catch {
-    // Fall back to the legacy public-site port.
+  const configuredEnvPort = process.env.PUBLIC_SITE_PORT?.trim();
+  if (configuredEnvPort) {
+    return configuredEnvPort;
   }
 
   return '3001';
@@ -71,7 +67,7 @@ test.describe('Public website starter', () => {
         templateId,
       });
 
-      const publicBase = `http://${uniqueDomain}:${getBackendPort()}`;
+      const publicBase = `http://${uniqueDomain}:${getPublicSitePort()}`;
       await authenticatedPage.goto(`${publicBase}/`, { waitUntil: 'domcontentloaded' });
 
       await expect(

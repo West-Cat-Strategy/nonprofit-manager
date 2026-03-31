@@ -36,7 +36,7 @@ Use these when you want the fastest feedback on container changes:
 
 | Mode | Start Command | Frontend | Backend/API | Other Services |
 |------|---------------|----------|-------------|----------------|
-| Optional Docker Compose dev stack | `make dev` | `http://localhost:8005` | `http://localhost:8004` | Postgres `localhost:8002`, Redis `localhost:8003` |
+| Optional Docker Compose dev stack | `make dev` | `http://localhost:8005` | `http://localhost:8004` | Public site `http://localhost:8006`, Postgres `localhost:8002`, Redis `localhost:8003` |
 | Direct frontend runtime | `cd frontend && npm run dev` | `http://localhost:8005` | Configure `frontend/.env.local` to point at a running backend | None by default |
 | Direct backend runtime | `cd backend && npm run dev` | n/a | `http://localhost:3000` | Use your local env settings; Docker-backed infra commonly maps Postgres to `8002` and Redis to `8003` |
 | E2E harness | `cd e2e && npm test` | `http://127.0.0.1:5173` | `http://127.0.0.1:3001` | Playwright manages the frontend/backend processes |

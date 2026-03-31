@@ -20,6 +20,8 @@ import type {
   WebsiteSearchParams,
   WebsiteSitesResponse,
   WebsiteState,
+  WebsiteRollbackResult,
+  WebsiteVersionHistory,
   WebsiteStripeSettings,
 } from '../types/contracts';
 
@@ -47,6 +49,8 @@ const initialState: WebsiteState = {
   analytics: null,
   entries: [],
   deployment: null,
+  versions: null,
+  lastPublishResult: null,
   currentSiteId: null,
   isLoading: false,
   isSaving: false,
@@ -235,6 +239,17 @@ export const fetchWebsiteDeployment = createAsyncThunk<WebsiteDeploymentInfo, st
   }
 );
 
+export const fetchWebsiteVersions = createAsyncThunk<
+  WebsiteVersionHistory,
+  { siteId: string; limit?: number }
+>('websites/fetchVersions', async ({ siteId, limit }, { rejectWithValue }) => {
+  try {
+    return await websitesApiClient.getVersionHistory(siteId, limit);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, 'Failed to load website versions'));
+  }
+});
+
 export const updateWebsiteSite = createAsyncThunk<
   WebsiteOverviewSummary['site'],
   { siteId: string; data: UpdateWebsiteSiteRequest }
@@ -254,6 +269,17 @@ export const publishWebsiteSite = createAsyncThunk<
     return await websitesApiClient.publishSite(payload);
   } catch (error) {
     return rejectWithValue(getErrorMessage(error, 'Failed to publish website'));
+  }
+});
+
+export const rollbackWebsiteVersion = createAsyncThunk<
+  WebsiteRollbackResult,
+  { siteId: string; version: string }
+>('websites/rollbackVersion', async ({ siteId, version }, { rejectWithValue }) => {
+  try {
+    return await websitesApiClient.rollbackVersion(siteId, version);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, 'Failed to roll back website version'));
   }
 });
 
@@ -496,6 +522,20 @@ const websitesSlice = createSlice({
     });
 
     builder
+      .addCase(fetchWebsiteVersions.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchWebsiteVersions.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.versions = action.payload;
+      })
+      .addCase(fetchWebsiteVersions.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    builder
       .addCase(updateWebsiteSite.pending, (state) => {
         state.isSaving = true;
         state.error = null;
@@ -520,10 +560,36 @@ const websitesSlice = createSlice({
         state.isSaving = true;
         state.error = null;
       })
-      .addCase(publishWebsiteSite.fulfilled, (state) => {
+      .addCase(publishWebsiteSite.fulfilled, (state, action) => {
         state.isSaving = false;
+        state.lastPublishResult = action.payload;
       })
       .addCase(publishWebsiteSite.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
+      })
+      .addCase(rollbackWebsiteVersion.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(rollbackWebsiteVersion.fulfilled, (state, action) => {
+        state.isSaving = false;
+        if (state.versions) {
+          state.versions.currentVersion = action.payload.currentVersion;
+          state.versions.versions = state.versions.versions.map((version) => ({
+            ...version,
+            isCurrent: version.version === action.payload.currentVersion,
+          }));
+        }
+        if (state.overview?.site.id === action.payload.siteId) {
+          state.overview.site = {
+            ...state.overview.site,
+            publishedVersion: action.payload.currentVersion,
+            publishedAt: action.payload.rolledBackAt,
+          };
+        }
+      })
+      .addCase(rollbackWebsiteVersion.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload as string;
       })

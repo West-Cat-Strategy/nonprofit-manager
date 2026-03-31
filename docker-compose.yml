@@ -68,6 +68,7 @@ services:
       DB_AT_REST_PROVIDER: ${DB_AT_REST_PROVIDER:-other}
       DB_AT_REST_VERIFIED: ${DB_AT_REST_VERIFIED:-true}
       DB_LUKS_MAPPING_NAME: ${DB_LUKS_MAPPING_NAME:-nonprofit-manager-db}
+      SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.nonprofitmanager.com}
       POSTGRES_DATA_DIR: ${POSTGRES_DATA_DIR:-/var/lib/nonprofit-manager/postgres}
       BACKUP_DIR: ${BACKUP_DIR:-/var/lib/nonprofit-manager/backups/database}
     depends_on:
@@ -97,6 +98,58 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8001/health > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  public-site:
+    build:
+      context: ./backend
+      target: production
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env.production
+    expose:
+      - "8006"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PUBLIC_SITE_PORT:-8006}
+      HOST: 0.0.0.0
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-nonprofit_manager}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
+      CORS_ORIGIN: ${PUBLIC_SITE_CORS_ORIGIN:-https://sites.nonprofitmanager.com}
+      API_ORIGIN: ${PUBLIC_SITE_API_ORIGIN:-https://sites.nonprofitmanager.com}
+      SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.nonprofitmanager.com}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-1500}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-900000}
+      AUTH_RATE_LIMIT_MAX_REQUESTS: ${AUTH_RATE_LIMIT_MAX_REQUESTS:-75}
+      REGISTRATION_MAX_ATTEMPTS: ${REGISTRATION_MAX_ATTEMPTS:-75}
+      PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS: ${PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS:-600000}
+      PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS: ${PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS:-300}
+      MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS:-5}
+      ACCOUNT_LOCKOUT_DURATION_MS: ${ACCOUNT_LOCKOUT_DURATION_MS:-900000}
+      DB_AT_REST_ENCRYPTION_MODE: ${DB_AT_REST_ENCRYPTION_MODE:-managed}
+      DB_AT_REST_PROVIDER: ${DB_AT_REST_PROVIDER:-other}
+      DB_AT_REST_VERIFIED: ${DB_AT_REST_VERIFIED:-true}
+      DB_LUKS_MAPPING_NAME: ${DB_LUKS_MAPPING_NAME:-nonprofit-manager-db}
+      POSTGRES_DATA_DIR: ${POSTGRES_DATA_DIR:-/var/lib/nonprofit-manager/postgres}
+      BACKUP_DIR: ${BACKUP_DIR:-/var/lib/nonprofit-manager/backups/database}
+    command: ["node", "dist/public-site.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8006/health > /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 20

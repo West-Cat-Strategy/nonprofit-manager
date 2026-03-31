@@ -25,7 +25,11 @@ const WebsiteConsoleStatePanel: React.FC<WebsiteConsoleStatePanelProps> = ({
   onDismiss,
   dismissLabel = 'Dismiss',
 }) => (
-  <div className={`rounded-3xl border px-6 py-5 shadow-sm ${toneClasses[tone]}`}>
+  <div
+    role={tone === 'error' ? 'alert' : 'status'}
+    aria-live={tone === 'error' ? 'assertive' : 'polite'}
+    className={`rounded-3xl border px-6 py-5 shadow-sm ${toneClasses[tone]}`}
+  >
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="max-w-3xl">
         <h2 className="text-base font-semibold text-app-text">{title}</h2>

@@ -34,6 +34,12 @@ import {
   updateCurrentPageSections,
 } from '../state';
 import {
+  fetchWebsiteDeployment,
+  fetchWebsiteOverview,
+  fetchWebsiteVersions,
+  publishWebsiteSite,
+} from '../../websites/state';
+import {
   ComponentPalette,
   EditorCanvas,
   PropertyPanel,
@@ -142,6 +148,11 @@ const PageEditor: React.FC = () => {
   const [templateSettingsError, setTemplateSettingsError] = useState<string | null>(null);
   const [templateSettings, setTemplateSettings] = useState(() => toTemplateSettingsDraft(currentTemplate));
   const [autoSaveEnabled] = useState(true);
+  const [publishNotice, setPublishNotice] = useState<{
+    tone: 'success' | 'error';
+    message: string;
+  } | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Initialize sections from currentPage
   const initialSections = useMemo(() => currentPage?.sections || [], [currentPage?.sections]);
@@ -156,9 +167,13 @@ const PageEditor: React.FC = () => {
     setSections: setHistorySections,
     undo,
     redo,
+    isDirty,
     canUndo,
     canRedo,
-  } = useEditorHistory(initialSections, { maxHistoryLength: 50 });
+  } = useEditorHistory(initialSections, {
+    maxHistoryLength: 50,
+    resetKey: currentPage?.id,
+  });
   const historySectionsSignature = useMemo(
     () => getSectionsSignature(historySections),
     [historySections]
@@ -195,10 +210,17 @@ const PageEditor: React.FC = () => {
 
   // Sync history sections to Redux store
   useEffect(() => {
-    if (currentPage && historySectionsSignature !== currentPageSectionsSignature) {
+    if (currentPage && isDirty && historySectionsSignature !== currentPageSectionsSignature) {
       dispatch(updateCurrentPageSections(historySections));
     }
-  }, [historySections, historySectionsSignature, currentPage, currentPageSectionsSignature, dispatch]);
+  }, [
+    historySections,
+    historySectionsSignature,
+    currentPage,
+    currentPageSectionsSignature,
+    dispatch,
+    isDirty,
+  ]);
 
   useEffect(() => {
     if (currentTemplate && !showTemplateSettings) {
@@ -238,6 +260,82 @@ const PageEditor: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo, saveNow]);
+
+  const getUpdatePayload = useCallback(
+    (updates: UpdatePageRequest): UpdatePageRequest => {
+      if (!currentPage) {
+        return updates;
+      }
+
+      const nextSlug =
+        updates.slug !== undefined
+          ? normalizePageSlug(updates.slug) || currentPage.slug
+          : currentPage.slug;
+      const nextPageType = updates.pageType || currentPage.pageType || 'static';
+      const nextCollection =
+        nextPageType === 'static'
+          ? undefined
+          : updates.collection || currentPage.collection || 'events';
+      const nextIsHomepage = updates.isHomepage ?? currentPage.isHomepage;
+      const previousDefaultRoute = getDefaultRoutePattern(
+        currentPage.pageType || 'static',
+        currentPage.collection,
+        currentPage.slug,
+        currentPage.isHomepage
+      );
+      const nextDefaultRoute = getDefaultRoutePattern(
+        nextPageType,
+        nextCollection,
+        nextSlug,
+        nextIsHomepage
+      );
+
+      const payload: UpdatePageRequest = {
+        ...updates,
+        pageType: nextPageType,
+        collection: nextCollection,
+      };
+
+      if (updates.name !== undefined) {
+        payload.name = updates.name.trim() || currentPage.name;
+      }
+
+      if (updates.slug !== undefined) {
+        payload.slug = nextSlug;
+      }
+
+      if (updates.routePattern !== undefined) {
+        payload.routePattern = normalizeRoutePattern(updates.routePattern);
+      } else if (
+        updates.slug !== undefined ||
+        updates.pageType !== undefined ||
+        updates.collection !== undefined ||
+        updates.isHomepage !== undefined
+      ) {
+        if (!currentPage.routePattern || currentPage.routePattern === previousDefaultRoute) {
+          payload.routePattern = nextDefaultRoute;
+        }
+      }
+
+      return payload;
+    },
+    [currentPage]
+  );
+
+  const commitPageUpdate = useCallback(
+    async (updates: UpdatePageRequest) => {
+      if (!resolvedTemplateId || !currentPage) return;
+
+      await dispatch(
+        updateTemplatePage({
+          templateId: resolvedTemplateId,
+          pageId: currentPage.id,
+          data: getUpdatePayload(updates),
+        })
+      ).unwrap();
+    },
+    [dispatch, getUpdatePayload, currentPage, resolvedTemplateId]
+  );
 
   // DnD sensors
   const sensors = useSensors(
@@ -618,71 +716,58 @@ const PageEditor: React.FC = () => {
 
   const handleUpdatePage = useCallback(
     async (updates: UpdatePageRequest) => {
-      if (!resolvedTemplateId || !currentPage) return;
-
-      const nextSlug =
-        updates.slug !== undefined
-          ? normalizePageSlug(updates.slug) || currentPage.slug
-          : currentPage.slug;
-      const nextPageType = updates.pageType || currentPage.pageType || 'static';
-      const nextCollection =
-        nextPageType === 'static'
-          ? undefined
-          : updates.collection || currentPage.collection || 'events';
-      const nextIsHomepage = updates.isHomepage ?? currentPage.isHomepage;
-      const previousDefaultRoute = getDefaultRoutePattern(
-        currentPage.pageType || 'static',
-        currentPage.collection,
-        currentPage.slug,
-        currentPage.isHomepage
-      );
-      const nextDefaultRoute = getDefaultRoutePattern(
-        nextPageType,
-        nextCollection,
-        nextSlug,
-        nextIsHomepage
-      );
-
-      const payload: UpdatePageRequest = {
-        ...updates,
-        pageType: nextPageType,
-        collection: nextCollection,
-      };
-
-      if (updates.name !== undefined) {
-        payload.name = updates.name.trim() || currentPage.name;
-      }
-
-      if (updates.slug !== undefined) {
-        payload.slug = nextSlug;
-      }
-
-      if (updates.routePattern !== undefined) {
-        payload.routePattern = normalizeRoutePattern(updates.routePattern);
-      } else if (
-        updates.slug !== undefined ||
-        updates.pageType !== undefined ||
-        updates.collection !== undefined ||
-        updates.isHomepage !== undefined
-      ) {
-        if (!currentPage.routePattern || currentPage.routePattern === previousDefaultRoute) {
-          payload.routePattern = nextDefaultRoute;
-        }
-      }
-
       try {
-        await dispatch(
-          updateTemplatePage({
-            templateId: resolvedTemplateId,
-            pageId: currentPage.id,
-            data: payload,
-          })
-        ).unwrap();
+        await commitPageUpdate(updates);
       } catch (err) {
         console.error('Failed to update page settings:', err);
       }
     },
-    [dispatch, resolvedTemplateId, currentPage]
+    [commitPageUpdate]
+  );
+
+  const handlePublishPage = useCallback(
+    async (updates: UpdatePageRequest) => {
+      if (!resolvedTemplateId || !currentPage || !siteContext) return;
+
+      setPublishNotice(null);
+      setIsPublishing(true);
+
+      try {
+        await saveNow();
+        await commitPageUpdate(updates);
+        const result = await dispatch(
+          publishWebsiteSite({
+            siteId: siteContext.siteId,
+            templateId: resolvedTemplateId,
+            target: 'live',
+          })
+        ).unwrap();
+
+        void dispatch(fetchWebsiteDeployment(siteContext.siteId));
+        void dispatch(fetchWebsiteOverview({ siteId: siteContext.siteId, period: 30 }));
+        void dispatch(fetchWebsiteVersions({ siteId: siteContext.siteId, limit: 10 }));
+
+        setPublishNotice({
+          tone: 'success',
+          message: result.url
+            ? `Published live at ${result.url}.`
+            : 'Published live successfully.',
+        });
+      } catch (err) {
+        setPublishNotice({
+          tone: 'error',
+          message:
+            err instanceof Error
+              ? err.message
+              : typeof err === 'string'
+                ? err
+                : 'Failed to publish the live site.',
+        });
+      } finally {
+        setIsPublishing(false);
+      }
+    },
+    [commitPageUpdate, currentPage, dispatch, resolvedTemplateId, saveNow, siteContext]
   );
 
   const handleSaveTemplateSettings = useCallback(async () => {
@@ -707,7 +792,7 @@ const PageEditor: React.FC = () => {
 
   if (siteContextLoading && !resolvedTemplateId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-app-surface-muted">
+      <div className="flex min-h-screen items-center justify-center bg-app-surface-muted">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent"></div>
       </div>
     );
@@ -715,8 +800,8 @@ const PageEditor: React.FC = () => {
 
   if (siteContextError && !resolvedTemplateId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-app-surface-muted px-4">
-        <div className="w-full max-w-lg rounded-3xl border border-rose-200 bg-app-surface p-6 text-center">
+      <div className="flex min-h-screen items-center justify-center bg-app-surface-muted px-4">
+        <div className="w-full max-w-lg rounded-3xl border border-rose-200 bg-app-surface p-6 text-center shadow-sm">
           <h1 className="text-lg font-semibold text-app-text">Website builder unavailable</h1>
           <p className="mt-2 text-sm text-app-text-muted">{siteContextError}</p>
           <button
@@ -733,7 +818,7 @@ const PageEditor: React.FC = () => {
 
   if (!currentTemplate || !currentPage) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-app-surface-muted">
+      <div className="flex min-h-screen items-center justify-center bg-app-surface-muted">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent"></div>
       </div>
     );
@@ -746,7 +831,7 @@ const PageEditor: React.FC = () => {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="h-screen flex flex-col bg-app-surface-muted">
+      <div className="flex min-h-screen flex-col bg-app-surface-muted">
         {/* Editor Header */}
         <EditorHeader
           template={currentTemplate}
@@ -769,56 +854,78 @@ const PageEditor: React.FC = () => {
           contextLabel={getBuilderContextLabel(siteContext)}
           statusLabel={getBuilderStatusLabel(siteContext)}
           previewHref={siteContext?.previewUrl || siteContext?.primaryUrl}
+          publishingHref={siteContext ? `/websites/${siteContext.siteId}/publishing` : undefined}
         />
 
+        {publishNotice ? (
+          <div
+            className={`mx-4 mt-4 rounded-2xl border px-4 py-3 text-sm shadow-sm sm:mx-6 lg:mx-8 ${
+              publishNotice.tone === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                : 'border-rose-200 bg-rose-50 text-rose-900'
+            }`}
+            role={publishNotice.tone === 'error' ? 'alert' : 'status'}
+          >
+            {publishNotice.message}
+          </div>
+        ) : null}
+
         {/* Main Editor Area */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-[minmax(16rem,18rem)_minmax(0,1fr)] lg:p-6 xl:grid-cols-[minmax(16rem,18rem)_minmax(0,1fr)_minmax(18rem,22rem)]">
           {/* Left Sidebar - Component Palette */}
-          <ComponentPalette />
+          <aside className="min-h-0 lg:self-start xl:sticky xl:top-6">
+            <ComponentPalette />
+          </aside>
 
           {/* Center - Canvas */}
-          <div className="flex-1 overflow-auto bg-app-surface-muted p-4">
-            <div
-              className={`mx-auto bg-app-surface shadow-lg transition-all duration-300 ${
-                viewMode === 'desktop'
-                  ? 'max-w-full'
-                  : viewMode === 'tablet'
-                  ? 'max-w-[768px]'
-                  : 'max-w-[375px]'
-              }`}
-            >
-              <SortableContext
-                items={historySections.flatMap((s) =>
-                  s.components.map((c) => c.id)
-                )}
-                strategy={verticalListSortingStrategy}
+          <main className="min-h-0 overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-sm">
+            <div className="h-full overflow-auto p-3 sm:p-4">
+              <div
+                className={`mx-auto transition-all duration-300 ${
+                  viewMode === 'desktop'
+                    ? 'max-w-full'
+                    : viewMode === 'tablet'
+                      ? 'max-w-[768px]'
+                      : 'max-w-[375px]'
+                }`}
               >
-                <EditorCanvas
-                  sections={historySections}
-                  theme={currentTemplate.theme}
-                  selectedComponentId={selectedComponentId}
-                  selectedSectionId={selectedSectionId}
-                  onSelectComponent={setSelectedComponentId}
-                  onSelectSection={setSelectedSectionId}
-                  onAddSection={handleAddSection}
-                  onDeleteSection={handleDeleteSection}
-                  onDeleteComponent={handleDeleteComponent}
-                />
-              </SortableContext>
+                <SortableContext
+                  items={historySections.flatMap((s) => s.components.map((c) => c.id))}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <EditorCanvas
+                    sections={historySections}
+                    theme={currentTemplate.theme}
+                    selectedComponentId={selectedComponentId}
+                    selectedSectionId={selectedSectionId}
+                    onSelectComponent={setSelectedComponentId}
+                    onSelectSection={setSelectedSectionId}
+                    onAddSection={handleAddSection}
+                    onDeleteSection={handleDeleteSection}
+                    onDeleteComponent={handleDeleteComponent}
+                  />
+                </SortableContext>
+              </div>
             </div>
-          </div>
+          </main>
 
           {/* Right Sidebar - Property Panel */}
-          <PropertyPanel
-            currentPage={currentPage}
-            selectedComponent={selectedComponent}
-            selectedSection={selectedSection}
-            onUpdatePage={handleUpdatePage}
-            onUpdateComponent={handleUpdateComponent}
-            onUpdateSection={handleUpdateSection}
-            onDeleteComponent={handleDeleteComponent}
-            onDeleteSection={handleDeleteSection}
-          />
+          <aside className="min-h-0 xl:sticky xl:top-6 xl:self-start">
+            <PropertyPanel
+              currentPage={currentPage}
+              selectedComponent={selectedComponent}
+              selectedSection={selectedSection}
+              onUpdatePage={handleUpdatePage}
+              onUpdateComponent={handleUpdateComponent}
+              onUpdateSection={handleUpdateSection}
+              onDeleteComponent={handleDeleteComponent}
+              onDeleteSection={handleDeleteSection}
+              previewHref={siteContext?.previewUrl || siteContext?.primaryUrl || null}
+              onPublishPage={handlePublishPage}
+              canPublish={!!siteContext && !!resolvedTemplateId}
+              isPublishing={isPublishing}
+            />
+          </aside>
         </div>
 
         {/* Drag Overlay */}

@@ -143,7 +143,9 @@ describe('WebsitePublishingPage', () => {
     });
     expect(screen.getByText('Site settings saved.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Publish latest template' }));
+    expect(screen.getByRole('combobox', { name: 'Publish target' })).toHaveValue('live');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publish live' }));
     await waitFor(() => {
       expect(dispatchMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -151,6 +153,7 @@ describe('WebsitePublishingPage', () => {
           payload: {
             siteId: 'site-1',
             templateId: 'template-1',
+            target: 'live',
           },
         })
       );
@@ -166,6 +169,50 @@ describe('WebsitePublishingPage', () => {
       );
     });
     expect(screen.getByText('Live site cache refreshed.')).toBeInTheDocument();
+  });
+
+  it('can publish a preview deployment and surface the preview message', async () => {
+    dispatchMock.mockImplementation((action: { type?: string }) => {
+      if (action.type === 'websites/publishSite') {
+        return Promise.resolve({
+          type: `${action.type}/fulfilled`,
+          payload: {
+            target: 'preview',
+            version: 'v-preview-1',
+            previewUrl: 'https://preview.mutualaid.org?preview=true&version=v-preview-1',
+          },
+        });
+      }
+
+      return Promise.resolve({
+        type: `${action.type}/fulfilled`,
+        payload: action,
+      });
+    });
+
+    renderPage();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Publish target' }), {
+      target: { value: 'preview' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Publish preview' }));
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'websites/publishSite',
+          payload: {
+            siteId: 'site-1',
+            templateId: 'template-1',
+            target: 'preview',
+          },
+        })
+      );
+    });
+
+    expect(
+      screen.getByText(/Preview published\. Use https:\/\/preview\.mutualaid\.org/i)
+    ).toBeInTheDocument();
   });
 
   it('renders loading state instead of a blank page while overview is unresolved', () => {

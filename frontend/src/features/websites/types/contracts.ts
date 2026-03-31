@@ -316,11 +316,40 @@ export interface WebsiteDeploymentInfo {
   subdomain: string | null;
   customDomain: string | null;
   primaryUrl: string;
+  previewUrl: string | null;
   status: WebsiteSiteStatus;
   lastPublished: string | null;
   version: string | null;
   sslEnabled: boolean;
   sslExpiresAt: string | null;
+}
+
+export type WebsitePublishTarget = 'live' | 'preview';
+
+export interface WebsiteVersionListItem {
+  id: string;
+  siteId: string;
+  version: string;
+  publishedAt: string;
+  publishedBy: string | null;
+  changeDescription: string | null;
+  isCurrent: boolean;
+}
+
+export interface WebsiteVersionHistory {
+  siteId: string;
+  versions: WebsiteVersionListItem[];
+  currentVersion: string | null;
+  total: number;
+}
+
+export interface WebsiteRollbackResult {
+  success: boolean;
+  siteId: string;
+  previousVersion: string;
+  currentVersion: string;
+  rolledBackAt: string;
+  message: string;
 }
 
 export interface WebsiteSearchParams {
@@ -343,6 +372,18 @@ export interface UpdateWebsiteSiteRequest {
 export interface PublishWebsiteSiteRequest {
   siteId: string;
   templateId: string;
+  target?: WebsitePublishTarget;
+}
+
+export interface PublishWebsiteSiteResponse {
+  siteId: string;
+  url: string;
+  previewUrl?: string;
+  publishedAt: string;
+  version: string;
+  target: WebsitePublishTarget;
+  status: 'success' | 'failed';
+  error?: string;
 }
 
 export interface WebsiteState {
@@ -361,6 +402,8 @@ export interface WebsiteState {
   analytics: WebsiteConversionMetrics | null;
   entries: WebsiteEntry[];
   deployment: WebsiteDeploymentInfo | null;
+  versions: WebsiteVersionHistory | null;
+  lastPublishResult: PublishWebsiteSiteResponse | null;
   currentSiteId: string | null;
   isLoading: boolean;
   isSaving: boolean;

@@ -174,6 +174,8 @@ docker-up-caddy:
 	fi
 	CADDY_BACKEND_UPSTREAM=host.docker.internal:8004 \
 	CADDY_FRONTEND_UPSTREAM=host.docker.internal:8005 \
+	CADDY_PUBLIC_SITE_UPSTREAM=host.docker.internal:8006 \
+	CADDY_PUBLIC_SITE_DOMAIN=sites.localhost \
 	CADDY_DOMAIN=localhost \
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) up -d
 

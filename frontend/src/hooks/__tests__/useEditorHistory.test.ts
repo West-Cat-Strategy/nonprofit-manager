@@ -236,4 +236,30 @@ describe('useEditorHistory', () => {
     expect(result.current.canRedo).toBe(false);
     expect(result.current.historyLength).toBe(1);
   });
+
+  it('should only reset when the hydrated snapshot actually changes', () => {
+    const { result, rerender } = renderHook(
+      ({ sections, resetKey }) => useEditorHistory(sections, { resetKey }),
+      { initialProps: { sections: initialSections, resetKey: 'page-1' } }
+    );
+
+    expect(result.current.isDirty).toBe(false);
+
+    act(() => {
+      result.current.setSections([createMockSection('section-1', 'Changed')]);
+      vi.advanceTimersByTime(400);
+    });
+
+    expect(result.current.isDirty).toBe(true);
+
+    rerender({ sections: initialSections, resetKey: 'page-1' });
+
+    expect(result.current.isDirty).toBe(true);
+    expect(result.current.sections[0].name).toBe('Changed');
+
+    rerender({ sections: initialSections, resetKey: 'page-2' });
+
+    expect(result.current.isDirty).toBe(false);
+    expect(result.current.sections).toEqual(initialSections);
+  });
 });

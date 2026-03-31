@@ -12,8 +12,11 @@ import { EventRegistrationUseCase } from '../usecases/registration.usecase';
 
 interface PublicSiteResolverPort {
   getPublicSiteById(siteId: string): Promise<PublishedSite | null>;
+  getPublicSiteByIdForPreview(siteId: string): Promise<PublishedSite | null>;
   getSiteBySubdomain(subdomain: string): Promise<PublishedSite | null>;
+  getSiteBySubdomainForPreview(subdomain: string): Promise<PublishedSite | null>;
   getSiteByDomain(domain: string): Promise<PublishedSite | null>;
+  getSiteByDomainForPreview(domain: string): Promise<PublishedSite | null>;
   recordAnalyticsEvent(
     siteId: string,
     eventType: 'event_register',
@@ -129,18 +132,18 @@ const resolveSiteByKey = async (
 ): Promise<PublishedSite | null> => {
   const normalized = siteKey.trim().toLowerCase();
   if (UUID_PATTERN.test(normalized)) {
-    const siteById = await siteResolver.getPublicSiteById(normalized);
+    const siteById = await siteResolver.getPublicSiteByIdForPreview(normalized);
     if (siteById) {
       return siteById;
     }
   }
 
-  const siteBySubdomain = await siteResolver.getSiteBySubdomain(normalized);
+  const siteBySubdomain = await siteResolver.getSiteBySubdomainForPreview(normalized);
   if (siteBySubdomain) {
     return siteBySubdomain;
   }
 
-  return siteResolver.getSiteByDomain(normalized);
+  return siteResolver.getSiteByDomainForPreview(normalized);
 };
 
 const resolveSiteFromRequest = async (
@@ -154,17 +157,16 @@ const resolveSiteFromRequest = async (
 
   const subdomain = req.subdomains?.[0];
   if (subdomain) {
-    const siteBySubdomain = await siteResolver.getSiteBySubdomain(subdomain.toLowerCase());
+    const siteBySubdomain = await siteResolver.getSiteBySubdomainForPreview(subdomain.toLowerCase());
     if (siteBySubdomain) {
       return siteBySubdomain;
     }
   }
 
-  return siteResolver.getSiteByDomain(req.hostname.toLowerCase());
+  return siteResolver.getSiteByDomainForPreview(req.hostname.toLowerCase());
 };
 
-const isPublishedSite = (site: PublishedSite | null): site is PublishedSite =>
-  Boolean(site && site.status === 'published');
+const isPublishedSite = (site: PublishedSite | null): site is PublishedSite => Boolean(site);
 
 const getRequestUserAgent = (req: Request): string | undefined => {
   const userAgent = req.headers['user-agent'];

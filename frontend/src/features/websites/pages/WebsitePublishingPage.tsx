@@ -17,8 +17,10 @@ import {
   clearWebsitesError,
   fetchWebsiteDeployment,
   fetchWebsiteOverview,
+  fetchWebsiteVersions,
   invalidateWebsiteCache,
   publishWebsiteSite,
+  rollbackWebsiteVersion,
   unpublishWebsiteSite,
   updateWebsiteSite,
 } from '../state';
@@ -27,10 +29,13 @@ const WebsitePublishingPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const dispatch = useAppDispatch();
   const overview = useWebsiteOverviewLoader(siteId, 30);
-  const { deployment, isSaving, isLoading, error } = useAppSelector((state) => state.websites);
+  const { deployment, versions, lastPublishResult, isSaving, isLoading, error } = useAppSelector(
+    (state) => state.websites
+  );
   const [name, setName] = useState('');
   const [subdomain, setSubdomain] = useState('');
   const [customDomain, setCustomDomain] = useState('');
+  const [publishTarget, setPublishTarget] = useState<'live' | 'preview'>('live');
   const [notice, setNotice] = useState<{
     tone: 'success' | 'error';
     message: string;
@@ -39,6 +44,7 @@ const WebsitePublishingPage: React.FC = () => {
   useEffect(() => {
     if (!siteId) return;
     void dispatch(fetchWebsiteDeployment(siteId));
+    void dispatch(fetchWebsiteVersions({ siteId, limit: 10 }));
   }, [dispatch, siteId]);
 
   useEffect(() => {
@@ -93,12 +99,20 @@ const WebsitePublishingPage: React.FC = () => {
       publishWebsiteSite({
         siteId,
         templateId: overview.template.id || overview.site.templateId,
+        target: publishTarget,
       })
     );
     if (publishWebsiteSite.fulfilled.match(result)) {
       void dispatch(fetchWebsiteDeployment(siteId));
       void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
-      setNotice({ tone: 'success', message: 'Latest template published.' });
+      void dispatch(fetchWebsiteVersions({ siteId, limit: 10 }));
+      setNotice({
+        tone: 'success',
+        message:
+          result.payload.target === 'preview'
+            ? `Preview published. Use ${result.payload.previewUrl || 'the preview link'} to review it.`
+            : 'Latest template published.',
+      });
     } else {
       setNotice({
         tone: 'error',
@@ -131,6 +145,22 @@ const WebsitePublishingPage: React.FC = () => {
       setNotice({
         tone: 'error',
         message: typeof result.payload === 'string' ? result.payload : 'Failed to refresh cache.',
+      });
+    }
+  };
+
+  const rollbackVersion = async (version: string) => {
+    setNotice(null);
+    const result = await dispatch(rollbackWebsiteVersion({ siteId, version }));
+    if (rollbackWebsiteVersion.fulfilled.match(result)) {
+      void dispatch(fetchWebsiteDeployment(siteId));
+      void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
+      void dispatch(fetchWebsiteVersions({ siteId, limit: 10 }));
+      setNotice({ tone: 'success', message: result.payload.message });
+    } else {
+      setNotice({
+        tone: 'error',
+        message: typeof result.payload === 'string' ? result.payload : 'Failed to roll back version.',
       });
     }
   };
@@ -319,22 +349,36 @@ const WebsitePublishingPage: React.FC = () => {
                   </div>
                   <div className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
                     <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                      SSL
+                      Preview URL
                     </div>
-                    <div className="mt-2 text-sm capitalize text-app-text">
-                      {deploymentInfo.sslStatus}
+                    <div className="mt-2 text-sm text-app-text">
+                      {deploymentInfo.previewUrl || 'No preview deployment available.'}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-3">
+                <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+                  <label className="grid gap-2">
+                    <span className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                      Publish target
+                    </span>
+                    <select
+                      value={publishTarget}
+                      onChange={(event) => setPublishTarget(event.target.value as 'live' | 'preview')}
+                      className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                    >
+                      <option value="live">Live publish</option>
+                      <option value="preview">Preview publish</option>
+                    </select>
+                  </label>
+                  <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={publish}
                     disabled={isSaving || overview.site.blocked}
                     className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Publish latest template
+                    {publishTarget === 'preview' ? 'Publish preview' : 'Publish live'}
                   </button>
                   <button
                     type="button"
@@ -352,6 +396,85 @@ const WebsitePublishingPage: React.FC = () => {
                   >
                     Refresh cache
                   </button>
+                </div>
+                </div>
+
+                {lastPublishResult ? (
+                  <div className="mt-4 rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4">
+                    <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                      Last publish
+                    </div>
+                    <div className="mt-2 text-sm text-app-text">
+                      {lastPublishResult.target === 'preview'
+                        ? 'Preview deployment created.'
+                        : 'Live deployment updated.'}
+                    </div>
+                    <div className="mt-1 text-sm text-app-text-muted">
+                      Version {lastPublishResult.version}
+                    </div>
+                    {lastPublishResult.previewUrl ? (
+                      <a
+                        href={lastPublishResult.previewUrl}
+                        className="mt-3 inline-flex text-sm font-medium text-app-accent"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open preview link
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="rounded-3xl border border-app-border bg-app-surface p-5">
+                <h2 className="text-lg font-semibold text-app-text">Version history</h2>
+                <p className="mt-2 text-sm text-app-text-muted">
+                  Roll back to a previous publish version or inspect the latest live snapshots.
+                </p>
+                <div className="mt-4 space-y-3">
+                  {versions?.versions?.length ? (
+                    versions.versions.map((version) => (
+                      <div
+                        key={version.id}
+                        className="rounded-2xl border border-app-border bg-app-surface-muted px-4 py-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-app-text">
+                              {version.version}
+                              {version.isCurrent ? (
+                                <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                                  Current
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="mt-1 text-sm text-app-text-muted">
+                              {formatWebsiteConsoleDate(version.publishedAt)}
+                            </div>
+                            <div className="mt-1 text-sm text-app-text-muted">
+                              {version.changeDescription || 'No change description provided.'}
+                            </div>
+                          </div>
+                          {!version.isCurrent ? (
+                            <button
+                              type="button"
+                              onClick={() => rollbackVersion(version.version)}
+                              disabled={isSaving}
+                              className="rounded-full border border-app-border px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Roll back
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <WebsiteConsoleStatePanel
+                      tone="empty"
+                      title="No version history yet"
+                      message="Publish the site to start tracking live and preview versions."
+                    />
+                  )}
                 </div>
               </section>
             </div>

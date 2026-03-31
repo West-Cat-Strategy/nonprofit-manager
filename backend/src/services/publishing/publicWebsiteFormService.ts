@@ -870,18 +870,18 @@ export class PublicWebsiteFormService {
     const normalized = siteKey.trim().toLowerCase();
 
     if (UUID_PATTERN.test(normalized)) {
-      const byId = await this.siteManagement.getPublicSiteById(normalized);
+      const byId = await this.siteManagement.getPublicSiteByIdForPreview(normalized);
       if (byId) {
         return byId;
       }
     }
 
-    const bySubdomain = await this.siteManagement.getSiteBySubdomain(normalized);
+    const bySubdomain = await this.siteManagement.getSiteBySubdomainForPreview(normalized);
     if (bySubdomain) {
       return bySubdomain;
     }
 
-    return this.siteManagement.getSiteByDomain(normalized);
+    return this.siteManagement.getSiteByDomainForPreview(normalized);
   }
 }
 

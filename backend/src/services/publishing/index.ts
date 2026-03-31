@@ -32,6 +32,7 @@ export type {
   PublishedContent,
   CreatePublishedSiteDTO,
   UpdatePublishedSiteDTO,
+  PublishTarget,
   PublishResult,
   SiteDeploymentInfo,
   PublishedSiteSearchParams,
@@ -96,12 +97,30 @@ export class PublishingService {
     return this.siteManagement.getSiteBySubdomain(...args);
   }
 
+  async getSiteBySubdomainForPreview(
+    ...args: Parameters<SiteManagementService['getSiteBySubdomainForPreview']>
+  ) {
+    return this.siteManagement.getSiteBySubdomainForPreview(...args);
+  }
+
   async getSiteByDomain(...args: Parameters<SiteManagementService['getSiteByDomain']>) {
     return this.siteManagement.getSiteByDomain(...args);
   }
 
+  async getSiteByDomainForPreview(
+    ...args: Parameters<SiteManagementService['getSiteByDomainForPreview']>
+  ) {
+    return this.siteManagement.getSiteByDomainForPreview(...args);
+  }
+
   async getPublicSiteById(...args: Parameters<SiteManagementService['getPublicSiteById']>) {
     return this.siteManagement.getPublicSiteById(...args);
+  }
+
+  async getPublicSiteByIdForPreview(
+    ...args: Parameters<SiteManagementService['getPublicSiteByIdForPreview']>
+  ) {
+    return this.siteManagement.getPublicSiteByIdForPreview(...args);
   }
 
   async updateSite(...args: Parameters<SiteManagementService['updateSite']>) {
@@ -195,6 +214,10 @@ export class PublishingService {
 
   async getVersion(...args: Parameters<VersionService['getVersion']>) {
     return this.versionService.getVersion(...args);
+  }
+
+  async getPublicVersion(...args: Parameters<VersionService['getPublicVersion']>) {
+    return this.versionService.getPublicVersion(...args);
   }
 
   async pruneVersions(...args: Parameters<VersionService['pruneVersions']>) {

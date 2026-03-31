@@ -353,7 +353,7 @@ const DraggableComponent: React.FC<DraggableComponentProps> = ({ component }) =>
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`flex items-center gap-2 p-2 rounded cursor-grab hover:bg-app-surface-muted transition-colors ${
+      className={`flex cursor-grab items-center gap-3 rounded-xl border border-transparent px-3 py-2 transition-colors hover:border-app-border hover:bg-app-surface-muted ${
         isDragging ? 'opacity-50' : ''
       }`}
     >
@@ -389,18 +389,18 @@ const ComponentPalette: React.FC = () => {
   }, {} as Record<string, ComponentDefinition[]>);
 
   return (
-    <div className="w-64 bg-app-surface border-r border-app-border overflow-y-auto">
-      <div className="p-4 border-b border-app-border">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-3xl border border-app-border bg-app-surface shadow-sm">
+      <div className="border-b border-app-border px-4 py-4">
         <h2 className="font-semibold text-app-text">Components</h2>
-        <p className="text-xs text-app-text-muted mt-1">Drag to add to page</p>
+        <p className="mt-1 text-xs text-app-text-muted">Drag to add to the current page</p>
       </div>
 
-      <div className="p-2">
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {Object.entries(groupedComponents).map(([category, comps]) => (
           <div key={category} className="mb-2">
             <button
               onClick={() => toggleCategory(category)}
-              className="w-full flex items-center justify-between p-2 text-sm font-medium text-app-text-muted hover:bg-app-surface-muted rounded"
+              className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
             >
               {categoryLabels[category]}
               <svg
@@ -421,7 +421,7 @@ const ComponentPalette: React.FC = () => {
             </button>
 
             {expandedCategories[category] && (
-              <div className="ml-2 space-y-1">
+              <div className="ml-2 space-y-1 py-1">
                 {comps.map((comp) => (
                   <DraggableComponent key={comp.type} component={comp} />
                 ))}
