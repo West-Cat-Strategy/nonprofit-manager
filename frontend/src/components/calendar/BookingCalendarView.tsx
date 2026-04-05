@@ -196,7 +196,7 @@ export default function BookingCalendarView<TMeta = unknown>({
                 <div className="mb-2 flex items-center justify-between">
                   <span
                     className={`text-sm font-semibold ${
-                      isDayToday ? 'flex h-7 w-7 items-center justify-center rounded-full bg-app-accent text-white' : 'text-app-text'
+                      isDayToday ? 'flex h-7 w-7 items-center justify-center rounded-full bg-app-accent text-[var(--app-accent-foreground)]' : 'text-app-text'
                     }`}
                   >
                     {format(day, 'd')}

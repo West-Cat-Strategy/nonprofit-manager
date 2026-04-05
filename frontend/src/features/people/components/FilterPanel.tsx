@@ -54,7 +54,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           <AdjustmentsHorizontalIcon className="w-5 h-5" />
           Filters
           {activeFilterCount > 0 && (
-            <span className="bg-app-accent text-white px-2 py-1 text-xs rounded">
+            <span className="bg-app-accent text-[var(--app-accent-foreground)] px-2 py-1 text-xs rounded">
               {activeFilterCount}
             </span>
           )}

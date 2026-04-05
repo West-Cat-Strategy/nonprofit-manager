@@ -8,6 +8,7 @@ import {
     deleteCaseService,
 } from '../../features/cases/state';
 import { BrutalButton, BrutalCard, BrutalBadge } from '../neo-brutalist';
+import CaseProvenanceSummary from './CaseProvenanceSummary';
 import api from '../../services/api';
 import ConfirmDialog from '../ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
@@ -16,15 +17,17 @@ import type {
     ServiceOutcome,
     CreateCaseServiceDTO,
     CaseService,
+    CaseProvenance,
     ExternalServiceProvidersResponse,
     ExternalServiceProvider,
 } from '../../types/case';
 
 interface CaseServicesProps {
     caseId: string;
+    provenance?: CaseProvenance | null;
 }
 
-const CaseServices = ({ caseId }: CaseServicesProps) => {
+const CaseServices = ({ caseId, provenance }: CaseServicesProps) => {
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const { caseServices } = useAppSelector((state) => state.cases);
@@ -172,6 +175,10 @@ const CaseServices = ({ caseId }: CaseServicesProps) => {
 
     return (
         <div className="space-y-6">
+            {provenance && (
+                <CaseProvenanceSummary provenance={provenance} variant="staff" density="inline" />
+            )}
+
             <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black uppercase text-black">Case Services</h3>
                 <div className="flex gap-2">

@@ -31,7 +31,7 @@ export default function WorkflowStepper<T extends string = string>({
           <span
             className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold ${
               isActive
-                ? 'bg-app-accent text-white'
+                ? 'bg-app-accent text-[var(--app-accent-foreground)]'
                 : isComplete
                   ? 'bg-app-accent-soft text-app-accent'
                   : 'bg-app-surface-muted text-app-text-muted'
@@ -40,7 +40,7 @@ export default function WorkflowStepper<T extends string = string>({
             <span
               className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs ${
                 isActive
-                  ? 'border-white/80 text-white'
+                  ? 'border-current text-current'
                   : isComplete
                     ? 'border-app-accent text-app-accent'
                     : 'border-app-border text-app-text-muted'

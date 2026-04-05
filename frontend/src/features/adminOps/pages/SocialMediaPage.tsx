@@ -304,7 +304,7 @@ export default function SocialMediaPage() {
               type="button"
               onClick={handleSaveSettings}
               disabled={isSavingSettings || settingsLoading}
-              className="rounded-xl bg-app-accent px-4 py-2 text-sm font-semibold text-white hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSavingSettings ? 'Saving...' : 'Save Credentials'}
             </button>

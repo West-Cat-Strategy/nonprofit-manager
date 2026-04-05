@@ -3,17 +3,39 @@
  * Shows cases assigned to the current user
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchCases, selectCasesByAssignee } from '../../features/cases/state';
+import { casesApiClient } from '../../features/cases/api/casesApiClient';
+import { useAppSelector } from '../../store/hooks';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
-import type { CasePriority } from '../../types/case';
+import type { CasePriority, CaseWithDetails } from '../../types/case';
 import {
   getCasePriorityLabel,
   isUrgentEquivalentPriority,
 } from '../../features/cases/utils/casePriority';
+
+const MAX_ASSIGNED_CASES = 5;
+
+const sortByDueDate = (cases: CaseWithDetails[]): CaseWithDetails[] => {
+  const normalizeDueDate = (dateString?: string | null): number => {
+    if (!dateString) {
+      return Number.POSITIVE_INFINITY;
+    }
+
+    const parsed = new Date(dateString).getTime();
+    return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+  };
+
+  return [...cases].sort((a, b) => {
+    const dueDateDiff = normalizeDueDate(a.due_date) - normalizeDueDate(b.due_date);
+    if (dueDateDiff !== 0) {
+      return dueDateDiff;
+    }
+
+    return a.case_number.localeCompare(b.case_number);
+  });
+};
 
 interface MyCasesWidgetProps {
   widget: DashboardWidget;
@@ -22,31 +44,74 @@ interface MyCasesWidgetProps {
 }
 
 const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
-  const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
-  const { loading, error } = useAppSelector((state) => state.cases);
+  const { user, authLoading } = useAppSelector((state) => state.auth);
+  const userId = user?.id ?? null;
+  const [cases, setCases] = useState<CaseWithDetails[]>([]);
+  const [totalCases, setTotalCases] = useState(0);
+  const [loading, setLoading] = useState(Boolean(userId) || authLoading);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get cases assigned to current user
-  const myCases = useAppSelector((state) =>
-    user ? selectCasesByAssignee(state, user.id) : []
-  );
-
-  // Sort by due date (soonest first) and limit to 5
   const sortedCases = useMemo(() => {
-    return [...myCases]
-      .sort((a, b) => {
-        // Cases without due dates go to the end
-        if (!a.due_date) return 1;
-        if (!b.due_date) return -1;
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-      })
-      .slice(0, 5);
-  }, [myCases]);
+    return sortByDueDate(cases).slice(0, MAX_ASSIGNED_CASES);
+  }, [cases]);
 
   useEffect(() => {
-    // Fetch cases on mount
-    dispatch(fetchCases({}));
-  }, [dispatch]);
+    let cancelled = false;
+
+    const fetchAssignedCases = async () => {
+      if (authLoading) {
+        setLoading(true);
+        return;
+      }
+
+      if (!userId) {
+        setCases([]);
+        setTotalCases(0);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await casesApiClient.listCases({
+          assignedTo: userId,
+          page: 1,
+          limit: MAX_ASSIGNED_CASES,
+          sortBy: 'due_date',
+          sortOrder: 'asc',
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        const nextCases = Array.isArray(response.cases) ? response.cases : [];
+        setCases(nextCases);
+        setTotalCases(typeof response.total === 'number' ? response.total : nextCases.length);
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        setCases([]);
+        setTotalCases(0);
+        setError('Failed to load assigned cases');
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void fetchAssignedCases();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, userId]);
 
   const getPriorityColor = (priority: CasePriority) => {
     if (isUrgentEquivalentPriority(priority)) {
@@ -112,7 +177,7 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
             <p className="mt-2 text-sm text-app-text-muted">No cases assigned to you</p>
             <Link
               to="/cases/new"
-              className="mt-3 inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-app-accent border border-transparent rounded-md hover:bg-app-accent-hover transition"
+              className="mt-3 inline-flex items-center px-3 py-2 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent border border-transparent rounded-md hover:bg-app-accent-hover transition"
             >
               Create New Case
             </Link>
@@ -157,14 +222,14 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
               ))}
             </div>
 
-            {/* Show total count if more than 5 cases */}
-            {myCases.length > 5 && (
+            {/* Show total count if more than the widget limit */}
+            {totalCases > MAX_ASSIGNED_CASES && userId && (
               <div className="pt-2 border-t border-app-border">
                 <Link
-                  to="/cases"
+                  to={`/cases?assigned_to=${userId}`}
                   className="text-xs text-app-accent hover:text-app-accent-text font-medium"
                 >
-                  View all {myCases.length} assigned cases →
+                  View all {totalCases} assigned cases →
                 </Link>
               </div>
             )}

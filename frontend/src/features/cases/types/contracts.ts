@@ -49,6 +49,7 @@ export interface CasesListQuery {
   assignedTeam?: string;
   isUrgent?: boolean;
   requiresFollowup?: boolean;
+  importedOnly?: boolean;
   intakeStartDate?: string;
   intakeEndDate?: string;
   dueDateStart?: string;

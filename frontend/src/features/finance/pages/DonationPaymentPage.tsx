@@ -249,7 +249,7 @@ const DonationPayment: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/donations')}
-            className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+            className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
           >
             Go to Donations
           </button>
@@ -274,9 +274,9 @@ const DonationPayment: React.FC = () => {
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
                   step === s
-                    ? 'bg-app-accent text-white'
+                    ? 'bg-app-accent text-[var(--app-accent-foreground)]'
                     : ['amount', 'details', 'payment', 'success'].indexOf(step) > index
-                      ? 'bg-app-accent text-white'
+                      ? 'bg-app-accent text-[var(--app-accent-foreground)]'
                       : 'bg-app-surface-muted text-app-text-muted'
                 }`}
               >
@@ -371,7 +371,7 @@ const DonationPayment: React.FC = () => {
             <button
               onClick={handleContinueToDetails}
               disabled={formData.amount < 100}
-              className="w-full py-3 px-4 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+              className="w-full py-3 px-4 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
             >
               Continue with {formData.amount > 0 ? formatCurrency(formData.amount) : '$0.00'}
             </button>
@@ -464,7 +464,7 @@ const DonationPayment: React.FC = () => {
               <button
                 onClick={handleContinueToPayment}
                 disabled={!formData.donorEmail || isProcessing}
-                className="flex-1 py-3 px-4 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                className="flex-1 py-3 px-4 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
                 {isProcessing ? 'Processing...' : 'Continue to Payment'}
               </button>
@@ -563,7 +563,7 @@ const DonationPayment: React.FC = () => {
                   });
                   setStep('amount');
                 }}
-                className="px-6 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                className="px-6 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
               >
                 Make Another Donation
               </button>

@@ -224,7 +224,7 @@ export default function InteractionNotePage() {
               <button
                 type="button"
                 onClick={() => setStep('create')}
-                className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover"
+                className="px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent rounded-lg hover:bg-app-accent-hover"
               >
                 Create new person
               </button>
@@ -446,7 +446,7 @@ export default function InteractionNotePage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover disabled:opacity-60"
+                  className="px-5 py-2 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent rounded-lg hover:bg-app-accent-hover disabled:opacity-60"
                 >
                   {saving ? 'Saving...' : 'Save Note'}
                 </button>

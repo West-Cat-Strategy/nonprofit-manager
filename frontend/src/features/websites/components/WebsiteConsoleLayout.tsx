@@ -128,7 +128,7 @@ const WebsiteConsoleLayout: React.FC<WebsiteConsoleLayoutProps> = ({
               className={({ isActive }: NavLinkRenderProps) =>
                 `shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-app-accent text-white shadow-sm'
+                    ? 'bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
                     : 'border border-app-border bg-app-surface text-app-text-muted hover:bg-app-surface-muted'
                 }`
               }

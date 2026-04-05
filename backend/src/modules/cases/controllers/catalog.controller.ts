@@ -22,6 +22,7 @@ export const createCaseCatalogController = (
         assigned_team?: string;
         is_urgent?: boolean;
         requires_followup?: boolean;
+        imported_only?: boolean;
         intake_start_date?: string;
         intake_end_date?: string;
         due_date_start?: string;
@@ -45,6 +46,7 @@ export const createCaseCatalogController = (
         assigned_team: query.assigned_team,
         is_urgent: query.is_urgent,
         requires_followup: query.requires_followup,
+        imported_only: query.imported_only,
         intake_start_date: query.intake_start_date,
         intake_end_date: query.intake_end_date,
         due_date_start: query.due_date_start,

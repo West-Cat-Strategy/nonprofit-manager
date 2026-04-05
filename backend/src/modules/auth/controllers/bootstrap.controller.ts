@@ -66,6 +66,7 @@ export const getBootstrap = async (
     if (!authUser) {
       return;
     }
+    const correlationId = (req as AuthRequest & { correlationId?: string }).correlationId;
 
     const [user, preferences] = await Promise.all([
       getCurrentAuthUserById(authUser.id),
@@ -73,6 +74,10 @@ export const getBootstrap = async (
     ]);
 
     if (!user) {
+      logger.error('Authenticated user record missing during auth bootstrap', {
+        userId: authUser.id,
+        correlationId,
+      });
       return serverError(res, 'Failed to load bootstrap context');
     }
 
@@ -102,7 +107,10 @@ export const getBootstrap = async (
         organizationSettings?.config.workspaceModules ?? createDefaultWorkspaceModulesConfig(),
     });
   } catch (error) {
-    logger.error('Failed to fetch auth bootstrap payload', { error });
+    logger.error('Failed to fetch auth bootstrap payload', {
+      error,
+      correlationId: (req as AuthRequest & { correlationId?: string }).correlationId,
+    });
     next(error);
   }
 };

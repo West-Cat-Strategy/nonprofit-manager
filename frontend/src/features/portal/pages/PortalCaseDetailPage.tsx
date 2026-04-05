@@ -7,6 +7,7 @@ import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalListCard from '../../../components/portal/PortalListCard';
 import { SectionCard } from '../../../components/ui';
+import CaseProvenanceSummary from '../../../components/cases/CaseProvenanceSummary';
 import { portalV2ApiClient } from '../../../features/portal/api/portalApiClient';
 import type {
   PortalCaseDetail,
@@ -346,6 +347,13 @@ export default function PortalCaseDetailPage() {
                     {caseDetail.priority}
                   </span>
                 )}
+                {caseDetail.provenance && (
+                  <CaseProvenanceSummary
+                    provenance={caseDetail.provenance}
+                    variant="portal"
+                    density="inline"
+                  />
+                )}
                 {caseContext?.pointperson_first_name && (
                   <span className="rounded bg-app-accent-soft px-2 py-0.5 text-app-accent-text">
                     Pointperson: {caseContext.pointperson_first_name} {caseContext.pointperson_last_name ?? ''}
@@ -355,6 +363,15 @@ export default function PortalCaseDetailPage() {
 
               {caseDetail.description && (
                 <p className="whitespace-pre-wrap text-sm text-app-text">{caseDetail.description}</p>
+              )}
+
+              {caseDetail.provenance && (
+                <CaseProvenanceSummary
+                  provenance={caseDetail.provenance}
+                  variant="portal"
+                  density="panel"
+                  className="mt-4"
+                />
               )}
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

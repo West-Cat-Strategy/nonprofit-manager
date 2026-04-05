@@ -30,7 +30,7 @@ deploy_production_like() {
   fi
 
   if [[ "$MODE" == "production" ]]; then
-    caddy_domain="${CADDY_DOMAIN:-imported.westcat.ca}"
+    caddy_domain="${CADDY_DOMAIN:-nonprofitmanager.com}"
     caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-sites.nonprofitmanager.com}"
   fi
 

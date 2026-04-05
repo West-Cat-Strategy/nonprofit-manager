@@ -1,3 +1,5 @@
+import type { PortalCaseProvenance } from '../../../types/case';
+
 export interface PortalEvent {
   id: string;
   name: string;
@@ -177,6 +179,7 @@ export interface PortalCaseSummary {
   status_type?: string | null;
   case_type_name?: string | null;
   updated_at: string;
+  provenance?: PortalCaseProvenance | null;
 }
 
 export interface PortalCaseDetail extends PortalCaseSummary {

@@ -279,6 +279,7 @@ export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
     { field: 'status', label: 'Status', type: 'string' },
     { field: 'status_type', label: 'Status Type', type: 'string' },
     { field: 'case_type_name', label: 'Case Type', type: 'string' },
+    { field: 'case_type_names', label: 'Case Types', type: 'string' },
     { field: 'assigned_to_name', label: 'Assigned To', type: 'string' },
     { field: 'account_name', label: 'Account', type: 'string' },
     { field: 'contact_name', label: 'Contact', type: 'string' },
@@ -293,6 +294,7 @@ export const AVAILABLE_FIELDS: Record<ReportEntity, ReportField[]> = {
     { field: 'age_days', label: 'Age (Days)', type: 'number' },
     { field: 'age_bucket', label: 'Age Bucket', type: 'string' },
     { field: 'service_outcome', label: 'Service/Event Outcome', type: 'string' },
+    { field: 'case_outcome_values', label: 'Case Outcomes', type: 'string' },
   ],
   opportunities: [
     { field: 'id', label: 'Opportunity ID', type: 'string' },

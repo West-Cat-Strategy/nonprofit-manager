@@ -161,7 +161,7 @@ describe('CaseService', () => {
       const result = await service.getCases();
 
       expect(result.total).toBe(1);
-      expect(result.cases).toEqual([{ id: 'c1', title: 'Case 1' }]);
+      expect(result.cases).toEqual([{ id: 'c1', title: 'Case 1', provenance: null }]);
       expect(mockQuery).toHaveBeenCalledTimes(1);
     });
 
@@ -209,6 +209,27 @@ describe('CaseService', () => {
       );
       expect(queryParams.some((p) => p.includes('housing'))).toBe(true);
     });
+
+    it('keeps scalar fallbacks for legacy case type and outcome data', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await service.getCases();
+
+      const querySql = mockQuery.mock.calls[0][0] as string;
+      expect(querySql).toContain('case_type_names');
+      expect(querySql).toContain('case_outcome_values');
+      expect(querySql).toContain("ARRAY[c.case_type_id]::uuid[]");
+      expect(querySql).toContain("ARRAY[c.outcome]::text[]");
+    });
+
+    it('treats critical priority as urgent in the quick filter', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await service.getCases({ quick_filter: 'urgent' });
+
+      const querySql = mockQuery.mock.calls[0][0] as string;
+      expect(querySql).toContain("c.priority IN ('urgent', 'critical')");
+    });
   });
 
   // ─── getCaseById ───────────────────────────────────────────────────────────
@@ -219,7 +240,7 @@ describe('CaseService', () => {
       mockQuery.mockResolvedValueOnce({ rows: [mockCase] });
 
       const result = await service.getCaseById('case-1');
-      expect(result).toEqual(mockCase);
+      expect(result).toEqual({ ...mockCase, provenance: null });
       expect(mockQuery.mock.calls[0][1]).toEqual(['case-1', null]);
     });
 
@@ -337,10 +358,17 @@ describe('CaseService', () => {
           { name: 'Health', count: '4' },
         ]
       };
+      const mockOutcomeStats = {
+        rows: [
+          { case_outcome_value: 'attended_event', count: '3' },
+          { case_outcome_value: 'additional_related_case', count: '2' },
+        ],
+      };
 
       mockQuery
         .mockResolvedValueOnce(mockStats)
-        .mockResolvedValueOnce(mockTypeStats);
+        .mockResolvedValueOnce(mockTypeStats)
+        .mockResolvedValueOnce(mockOutcomeStats);
 
       const result = await service.getCaseSummary();
 
@@ -348,8 +376,10 @@ describe('CaseService', () => {
       expect(result.open_cases).toBe(5);
       expect(result.by_case_type['Legal']).toBe(6);
       expect(result.by_case_type['Health']).toBe(4);
+      expect(result.by_case_outcome?.attended_event).toBe(3);
+      expect(result.by_case_outcome?.additional_related_case).toBe(2);
       expect(result.average_case_duration_days).toBe(6); // rounded 5.5
-      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenCalledTimes(3);
     });
 
     it('applies organization scope when organizationId is provided', async () => {
@@ -374,10 +404,12 @@ describe('CaseService', () => {
         }]
       };
       const mockTypeStats = { rows: [{ name: 'Housing', count: '1' }] };
+      const mockOutcomeStats = { rows: [{ case_outcome_value: 'successful', count: '1' }] };
 
       mockQuery
         .mockResolvedValueOnce(mockStats)
-        .mockResolvedValueOnce(mockTypeStats);
+        .mockResolvedValueOnce(mockTypeStats)
+        .mockResolvedValueOnce(mockOutcomeStats);
 
       await service.getCaseSummary('org-42');
 
@@ -385,11 +417,15 @@ describe('CaseService', () => {
       const summaryParams = mockQuery.mock.calls[0][1] as unknown[];
       const typeSql = mockQuery.mock.calls[1][0] as string;
       const typeParams = mockQuery.mock.calls[1][1] as unknown[];
+      const outcomeSql = mockQuery.mock.calls[2][0] as string;
+      const outcomeParams = mockQuery.mock.calls[2][1] as unknown[];
 
       expect(summarySql).toContain('COALESCE(c.account_id, con.account_id) = $1');
       expect(typeSql).toContain('COALESCE(c.account_id, con.account_id) = $1');
+      expect(outcomeSql).toContain('COALESCE(c.account_id, con.account_id) = $1');
       expect(summaryParams).toEqual(['org-42']);
       expect(typeParams).toEqual(['org-42']);
+      expect(outcomeParams).toEqual(['org-42']);
     });
   });
 

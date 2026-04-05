@@ -59,7 +59,7 @@ export default function EventsHubPage() {
         <button
           type="button"
           onClick={() => navigate('/events/new')}
-          className="rounded bg-app-accent px-3 py-2 text-sm text-white"
+          className="rounded bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)]"
         >
           Create Event
         </button>
@@ -178,7 +178,7 @@ export default function EventsHubPage() {
               </p>
               <button
                 type="button"
-                className="mt-3 rounded bg-app-accent px-3 py-1 text-sm text-white disabled:opacity-60"
+                className="mt-3 rounded bg-app-accent px-3 py-1 text-sm text-[var(--app-accent-foreground)] disabled:opacity-60"
                 disabled={remindersState.sending}
                 onClick={() => {
                   if (!selectedEventId) return;

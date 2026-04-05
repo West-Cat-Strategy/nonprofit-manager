@@ -329,7 +329,7 @@ export default function TwilioSettingsSection() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex items-center rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
+          className="inline-flex items-center rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] shadow-sm hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save Settings'}
         </button>

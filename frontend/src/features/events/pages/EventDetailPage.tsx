@@ -297,7 +297,7 @@ export default function EventDetailPage() {
             <button
               type="button"
               onClick={() => navigate(`/events/${id}/edit`)}
-              className="rounded-md bg-app-accent px-4 py-2 text-white hover:bg-app-accent-hover"
+              className="rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] hover:bg-app-accent-hover"
             >
               Edit Event
             </button>

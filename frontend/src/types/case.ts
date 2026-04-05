@@ -94,6 +94,49 @@ export interface CaseStatus {
   updated_at: string;
 }
 
+export interface CaseProvenanceSourceRoleBreakdown {
+  source_role: string;
+  source_tables: string[];
+  source_row_count: number;
+  source_row_ids?: string[];
+}
+
+export interface CaseProvenance {
+  system: 'imported';
+  cluster_id: string;
+  primary_label: string;
+  record_type: string;
+  source_tables: string[];
+  source_files: string[];
+  source_role_breakdown: CaseProvenanceSourceRoleBreakdown[];
+  participant_ids: string[];
+  source_row_ids: string[];
+  source_row_count: number;
+  source_table_count: number;
+  source_file_count: number;
+  source_type_breakdown: string[];
+  link_confidence: number | null;
+  confidence_label: 'high' | 'medium' | 'low' | 'unknown';
+  is_low_confidence: boolean;
+}
+
+export interface PortalCaseProvenance {
+  system: 'imported';
+  primary_label: string;
+  record_type: string;
+  source_tables: string[];
+  source_role_breakdown: Array<
+    Pick<CaseProvenanceSourceRoleBreakdown, 'source_role' | 'source_tables' | 'source_row_count'>
+  >;
+  source_row_count: number;
+  source_table_count: number;
+  source_file_count: number;
+  source_type_breakdown: string[];
+  link_confidence: number | null;
+  confidence_label: 'high' | 'medium' | 'low' | 'unknown';
+  is_low_confidence: boolean;
+}
+
 /**
  * Main Case Record
  */
@@ -154,6 +197,7 @@ export interface CaseWithDetails extends Case {
   notes_count?: number;
   documents_count?: number;
   services_count?: number;
+  provenance?: CaseProvenance | null;
 }
 
 export interface CaseOutcomeAssignment {
@@ -492,6 +536,7 @@ export interface CaseFilter {
   assigned_team?: string;
   is_urgent?: boolean;
   requires_followup?: boolean;
+  imported_only?: boolean;
   tags?: string[];
   intake_start_date?: string;
   intake_end_date?: string;
@@ -526,6 +571,7 @@ export interface CaseSummary {
     cancelled: number;
   };
   by_case_type: Record<string, number>;
+  by_case_outcome?: Record<string, number>;
   average_case_duration_days?: number;
   cases_due_this_week: number;
   overdue_cases: number;

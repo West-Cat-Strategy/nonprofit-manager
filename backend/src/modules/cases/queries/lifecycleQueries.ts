@@ -1,4 +1,4 @@
-import { Pool, QueryResult } from 'pg';
+import { Pool, PoolClient, QueryResult } from 'pg';
 import { logger } from '@config/logger';
 import type {
   BulkStatusUpdateDTO,
@@ -89,6 +89,45 @@ const persistCaseTypeAssignments = async (
     FROM unnest($3::uuid[]) WITH ORDINALITY AS input(case_type_id, sort_order)
   `,
     [caseId, userId || null, caseTypeIds]
+  );
+};
+
+export const upsertCaseTypeAssignments = async (
+  db: Pool | PoolClient,
+  caseId: string,
+  caseTypeIds: string[],
+  userId?: string
+): Promise<void> => {
+  const normalizedIds = normalizeStringArray(caseTypeIds);
+  if (!normalizedIds || normalizedIds.length === 0) {
+    return;
+  }
+
+  await db.query(
+    `
+    INSERT INTO case_type_assignments (
+      case_id,
+      case_type_id,
+      sort_order,
+      is_primary,
+      created_by,
+      modified_by
+    )
+    SELECT
+      $1,
+      input.case_type_id,
+      input.sort_order - 1,
+      input.sort_order = 1,
+      $2,
+      $2
+    FROM unnest($3::uuid[]) WITH ORDINALITY AS input(case_type_id, sort_order)
+    ON CONFLICT (case_id, case_type_id) DO UPDATE
+    SET sort_order = EXCLUDED.sort_order,
+        is_primary = EXCLUDED.is_primary,
+        modified_by = EXCLUDED.modified_by,
+        updated_at = NOW()
+  `,
+    [caseId, userId || null, normalizedIds]
   );
 };
 

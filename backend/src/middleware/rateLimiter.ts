@@ -15,6 +15,30 @@ interface RateLimitRequest extends Request {
 const isTestEnv = process.env.NODE_ENV === 'test';
 const noopLimiter = (_req: Request, _res: Response, next: NextFunction) => next();
 const isDevEnv = process.env.NODE_ENV === 'development';
+
+const PUBLIC_AUTH_RATE_LIMIT_SKIP_PATHS = [
+  '/api/auth/bootstrap',
+  '/api/v2/auth/bootstrap',
+  '/api/auth/registration-status',
+  '/api/v2/auth/registration-status',
+  '/api/auth/setup-status',
+  '/api/v2/auth/setup-status',
+  '/api/auth/csrf-token',
+  '/api/v2/auth/csrf-token',
+  '/api/portal/auth/bootstrap',
+  '/api/v2/portal/auth/bootstrap',
+] as const;
+
+const isPathSkippedByRateLimit = (req: Request, skipPaths: readonly string[]): boolean => {
+  const pathCandidates = [req.path, req.originalUrl?.split('?')[0] || req.path].filter(
+    (candidate): candidate is string => typeof candidate === 'string' && candidate.length > 0
+  );
+
+  return pathCandidates.some((candidate) =>
+    skipPaths.some((skipPath) => candidate === skipPath || candidate.startsWith(`${skipPath}/`))
+  );
+};
+
 const shouldSkipRateLimit = (req: Request): boolean => {
   if (!isDevEnv) return false;
   const ip = req.ip || req.connection.remoteAddress || '';
@@ -26,6 +50,14 @@ const shouldSkipRateLimit = (req: Request): boolean => {
     ip.startsWith('172.') ||     // Docker
     ip.startsWith('10.')         // LAN
   );
+};
+
+const shouldSkipProductionStartupAuthChecks = (req: Request): boolean => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return false;
+  }
+
+  return isPathSkippedByRateLimit(req, PUBLIC_AUTH_RATE_LIMIT_SKIP_PATHS);
 };
 
 class HybridRateLimitStore implements Store {
@@ -104,7 +136,7 @@ export const apiLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || String(RATE_LIMIT.WINDOW_MS)),
   max: isTestEnv ? 10000 : parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || String(RATE_LIMIT.MAX_REQUESTS)),
   keyGenerator: (req) => rateLimitKeys.api(req),
-  skip: shouldSkipRateLimit,
+  skip: (req) => shouldSkipRateLimit(req) || shouldSkipProductionStartupAuthChecks(req),
   message: ERROR_MESSAGES.TOO_MANY_REQUESTS,
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers

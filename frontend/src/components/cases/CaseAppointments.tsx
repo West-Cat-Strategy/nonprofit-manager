@@ -262,7 +262,7 @@ export default function CaseAppointments({
                         })
                       }
                       disabled={actionLoading}
-                      className="rounded-md bg-app-accent px-3 py-2 text-sm text-white disabled:opacity-60"
+                      className="rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)] disabled:opacity-60"
                     >
                       Mark Attended
                     </button>
@@ -370,7 +370,7 @@ export default function CaseAppointments({
                     type="button"
                     onClick={() => void submitResolution()}
                     disabled={actionLoading || activeOutcomeDefinitions.length === 0}
-                    className="rounded-md bg-app-accent px-3 py-2 text-sm text-white disabled:opacity-60"
+                    className="rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)] disabled:opacity-60"
                   >
                     Save resolution
                   </button>

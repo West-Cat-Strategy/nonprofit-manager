@@ -61,7 +61,7 @@ export default function Avatar({
     <div
       className={[
         containerClasses,
-        'bg-gradient-to-br from-app-accent-soft0 to-app-accent-soft flex items-center justify-center text-white font-semibold',
+        'bg-gradient-to-br from-app-accent-soft to-app-accent-soft-hover flex items-center justify-center text-app-text font-semibold',
         sizeClasses.text,
       ].join(' ')}
       aria-label={alt || 'User avatar'}
@@ -70,4 +70,3 @@ export default function Avatar({
     </div>
   );
 }
-

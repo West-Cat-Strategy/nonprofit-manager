@@ -153,7 +153,7 @@ const PaymentResult: React.FC = () => {
             {status === 'failed' && (
               <button
                 onClick={() => navigate('/donations/payment')}
-                className="px-6 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                className="px-6 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
               >
                 Try Again
               </button>
@@ -167,7 +167,7 @@ const PaymentResult: React.FC = () => {
             {status === 'success' && (
               <button
                 onClick={() => navigate('/donations/payment')}
-                className="px-6 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                className="px-6 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
               >
                 Donate Again
               </button>

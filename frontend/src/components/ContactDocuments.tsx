@@ -313,7 +313,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
               <button
                 type="submit"
                 disabled={isUploading}
-                className="px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
               >
                 {isUploading ? 'Uploading...' : 'Upload Document'}
               </button>
@@ -547,7 +547,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
                 >
                   Save Changes
                 </button>

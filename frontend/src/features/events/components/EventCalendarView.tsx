@@ -158,7 +158,7 @@ export default function EventCalendarView({
                 <div className="mb-1 flex items-center justify-between">
                   <span
                     className={`text-sm font-medium ${
-                      isDayToday ? 'flex h-6 w-6 items-center justify-center rounded-full bg-app-accent text-white' : ''
+                      isDayToday ? 'flex h-6 w-6 items-center justify-center rounded-full bg-app-accent text-[var(--app-accent-foreground)]' : ''
                     }`}
                   >
                     {format(day, 'd')}

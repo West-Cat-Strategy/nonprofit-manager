@@ -259,7 +259,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
               onClick={() => setStatusFilter(status)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
                 statusFilter === status
-                  ? 'bg-app-accent text-white'
+                  ? 'bg-app-accent text-[var(--app-accent-foreground)]'
                   : 'bg-app-surface text-app-text-muted'
               }`}
             >
@@ -271,7 +271,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
               setEditingFollowUp(null);
               setShowForm(!showForm);
             }}
-            className="px-3 py-1.5 text-sm font-semibold bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition-colors"
+            className="px-3 py-1.5 text-sm font-semibold bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover transition-colors"
           >
             {showForm ? 'Cancel' : '+ Schedule Follow-up'}
           </button>

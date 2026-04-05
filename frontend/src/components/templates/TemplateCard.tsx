@@ -82,7 +82,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
         {/* System template badge */}
         {template.isSystemTemplate && (
-          <div className="absolute top-2 left-2 bg-app-accent text-white text-xs px-2 py-1 rounded">
+          <div className="absolute top-2 left-2 bg-app-accent text-[var(--app-accent-foreground)] text-xs px-2 py-1 rounded">
             Starter
           </div>
         )}
@@ -147,7 +147,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
           <div className="flex items-center gap-2 pt-3 border-t border-app-border-muted">
             <button
               onClick={() => onSelect(template)}
-              className="flex-1 px-3 py-1.5 bg-app-accent text-white text-sm rounded hover:bg-app-accent-hover transition-colors"
+              className="flex-1 px-3 py-1.5 bg-app-accent text-[var(--app-accent-foreground)] text-sm rounded hover:bg-app-accent-hover transition-colors"
             >
               {template.isSystemTemplate ? 'Use Template' : 'Edit'}
             </button>

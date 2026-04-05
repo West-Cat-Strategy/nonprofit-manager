@@ -333,7 +333,7 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
             <button
               type="submit"
               disabled={saving}
-              className="rounded bg-app-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="rounded bg-app-accent px-3 py-2 text-sm font-medium text-[var(--app-accent-foreground)] disabled:opacity-60"
             >
               {saving ? 'Saving...' : 'Add Outcome'}
             </button>
@@ -410,7 +410,7 @@ const CaseOutcomesTopics = ({ caseId, onChanged }: CaseOutcomesTopicsProps) => {
             <button
               type="submit"
               disabled={saving}
-              className="rounded bg-app-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="rounded bg-app-accent px-3 py-2 text-sm font-medium text-[var(--app-accent-foreground)] disabled:opacity-60"
             >
               {saving ? 'Saving...' : 'Add Topic'}
             </button>

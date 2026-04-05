@@ -232,7 +232,7 @@ export default function PortalPeople() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-md bg-app-accent px-4 py-2 text-white disabled:opacity-50"
+            className="rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] disabled:opacity-50"
           >
             {saving ? 'Adding...' : 'Add Person'}
           </button>

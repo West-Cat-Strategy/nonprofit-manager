@@ -80,7 +80,7 @@ const TemplatePreview: React.FC = () => {
           <button
             type="button"
             onClick={handleClose}
-            className="w-full py-2 px-4 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition-colors"
+            className="w-full py-2 px-4 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover transition-colors"
           >
             Back to Templates
           </button>
@@ -97,14 +97,14 @@ const TemplatePreview: React.FC = () => {
           <button
             type="button"
             onClick={handleClose}
-            className="text-app-text-subtle hover:text-white transition-colors"
+            className="text-app-text-subtle hover:text-[var(--app-bg)] transition-colors"
             title="Close Preview"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="text-white">
+          <div className="text-[var(--app-bg)]">
             <h1 className="text-lg font-semibold">Template Preview</h1>
             <p className="text-sm text-app-text-subtle">Page: {pageSlug}</p>
           </div>
@@ -115,7 +115,7 @@ const TemplatePreview: React.FC = () => {
           <button
             type="button"
             onClick={handleClose}
-            className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition-colors"
+            className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover transition-colors"
           >
             Exit Preview
           </button>

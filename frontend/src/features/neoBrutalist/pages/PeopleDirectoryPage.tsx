@@ -231,7 +231,7 @@ export default function PeopleDirectory() {
                         <button
                             onClick={() => refresh(activeTab, searchTerm)}
                             disabled={isRateLimited}
-                            className="mt-4 px-6 py-2 bg-app-accent text-white font-bold border-2 border-black hover:bg-app-accent uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="mt-4 px-6 py-2 bg-app-accent text-[var(--app-accent-foreground)] font-bold border-2 border-black hover:bg-app-accent uppercase disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Retry
                         </button>

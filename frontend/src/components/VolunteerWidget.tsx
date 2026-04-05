@@ -139,7 +139,7 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
                   className="flex items-center justify-between p-3 bg-app-surface-muted rounded-xl hover:bg-app-hover transition"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="shrink-0 w-8 h-8 bg-app-accent rounded-full flex items-center justify-center text-white font-medium text-sm">
+                    <div className="shrink-0 w-8 h-8 bg-app-accent rounded-full flex items-center justify-center text-[var(--app-accent-foreground)] font-medium text-sm">
                       {idx + 1}
                     </div>
                     <div>
@@ -173,7 +173,7 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
           <div className="grid grid-cols-2 gap-3">
             <Link
               to="/volunteers/new"
-              className="flex items-center justify-center space-x-2 px-4 py-2 bg-app-accent text-white rounded-xl hover:bg-app-accent-hover transition text-sm"
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-xl hover:bg-app-accent-hover transition text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -182,7 +182,7 @@ const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetPro
             </Link>
             <Link
               to="/volunteers"
-              className="flex items-center justify-center space-x-2 px-4 py-2 bg-app-accent text-white rounded-xl hover:bg-app-accent-hover transition text-sm"
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-xl hover:bg-app-accent-hover transition text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

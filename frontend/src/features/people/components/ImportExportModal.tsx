@@ -296,7 +296,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                     void handleExport('csv');
                   }}
                   disabled={isLoading}
-                  className="w-full bg-[var(--app-accent)] text-white"
+                  className="w-full bg-[var(--app-accent)] text-[var(--app-accent-foreground)]"
                 >
                   <ArrowDownTrayIcon className="mr-2 inline h-5 w-5 stroke-[3px]" />
                   {isLoading ? 'Preparing…' : 'Download CSV'}
@@ -486,7 +486,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
                             void handleCommit();
                           }}
                           disabled={!file || !preview || isLoading || preview.row_errors.length > 0}
-                          className="bg-[var(--app-accent)] text-white"
+                          className="bg-[var(--app-accent)] text-[var(--app-accent-foreground)]"
                         >
                           {isLoading ? 'Committing…' : 'Commit Import'}
                         </BrutalButton>

@@ -21,6 +21,13 @@ const formatRate = (current: number, previous: number): string => {
   return `${Math.round((current / previous) * 100)}%`;
 };
 
+const getWebsiteActionToneClasses = (tone?: string) =>
+  tone === 'warning'
+    ? 'bg-amber-600 text-white hover:bg-amber-700'
+    : tone === 'primary'
+      ? 'bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover'
+      : 'bg-slate-700 text-white hover:bg-slate-800';
+
 const WebsiteOverviewPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const dispatch = useAppDispatch();
@@ -76,7 +83,7 @@ const WebsiteOverviewPage: React.FC = () => {
       </Link>
       <Link
         to={`/websites/${siteId}/builder`}
-        className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-app-accent-hover"
+        className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] shadow-sm transition-colors hover:bg-app-accent-hover"
       >
         Open builder
       </Link>
@@ -108,7 +115,7 @@ const WebsiteOverviewPage: React.FC = () => {
               onClick={() => {
                 void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
               }}
-              className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover"
+              className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover"
             >
               Retry overview
             </button>
@@ -135,26 +142,18 @@ const WebsiteOverviewPage: React.FC = () => {
                       href={managementSnapshot.nextAction.href}
                       target="_blank"
                       rel="noreferrer"
-                      className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors ${
-                        managementSnapshot.nextAction.tone === 'warning'
-                          ? 'bg-amber-600 hover:bg-amber-700'
-                          : managementSnapshot.nextAction.tone === 'primary'
-                            ? 'bg-app-accent hover:bg-app-accent-hover'
-                            : 'bg-slate-700 hover:bg-slate-800'
-                      }`}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
+                        managementSnapshot.nextAction.tone
+                      )}`}
                     >
                       {managementSnapshot?.nextAction.title || 'Open preview'}
                     </a>
                   ) : (
                     <Link
                       to={managementSnapshot?.nextAction.href || `/websites/${siteId}/publishing`}
-                      className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors ${
-                        managementSnapshot?.nextAction.tone === 'warning'
-                          ? 'bg-amber-600 hover:bg-amber-700'
-                          : managementSnapshot?.nextAction.tone === 'primary'
-                            ? 'bg-app-accent hover:bg-app-accent-hover'
-                            : 'bg-slate-700 hover:bg-slate-800'
-                      }`}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
+                        managementSnapshot?.nextAction.tone
+                      )}`}
                     >
                       {managementSnapshot?.nextAction.title || 'Open preview'}
                     </Link>

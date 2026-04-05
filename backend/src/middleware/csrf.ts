@@ -1,6 +1,7 @@
 import { doubleCsrf } from 'csrf-csrf';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '@config/logger';
+import { AUTH_COOKIE_NAME, PORTAL_AUTH_COOKIE_NAME, extractToken } from '@utils/cookieHelper';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
@@ -26,18 +27,47 @@ const getCsrfSecret = (): string => {
   return secret || 'csrf-secret-dev-only-not-for-production';
 };
 
+const getAuthSessionToken = (
+  req: Request
+): { token: string; prefix: 'auth' | 'portal' } | null => {
+  const authToken = extractToken(req.cookies, req.headers.authorization, AUTH_COOKIE_NAME);
+  if (authToken) {
+    return { token: authToken, prefix: 'auth' };
+  }
+
+  const portalAuthToken = extractToken(
+    req.cookies,
+    req.headers.authorization,
+    PORTAL_AUTH_COOKIE_NAME
+  );
+  if (portalAuthToken) {
+    return { token: portalAuthToken, prefix: 'portal' };
+  }
+
+  return null;
+};
+
+export const resolveCsrfSessionIdentifier = (req: Request): string => {
+  const sessionToken = getAuthSessionToken(req);
+  if (sessionToken) {
+    return `${sessionToken.prefix}:${sessionToken.token}`;
+  }
+
+  // Anonymous and pre-auth requests do not have a stable auth cookie yet.
+  // Fall back to the current network fingerprint so token bootstrap still works.
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+  const ua = req.headers['user-agent'] || 'unknown';
+  return `anon:${ip}-${ua}`;
+};
+
 // Configure double-submit cookie CSRF protection
 const {
   generateCsrfToken,
   doubleCsrfProtection,
 } = doubleCsrf({
   getSecret: getCsrfSecret,
-  // Use IP + User-Agent as session identifier (stateless)
-  getSessionIdentifier: (req: Request) => {
-    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
-    const ua = req.headers['user-agent'] || 'unknown';
-    return `${ip}-${ua}`;
-  },
+  // Prefer a stable authenticated session identifier, then fall back to anonymous fingerprinting.
+  getSessionIdentifier: resolveCsrfSessionIdentifier,
   cookieName: '__csrf',
   cookieOptions: {
     httpOnly: true,

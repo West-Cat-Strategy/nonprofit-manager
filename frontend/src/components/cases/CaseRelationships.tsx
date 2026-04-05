@@ -5,9 +5,9 @@ import {
     createCaseRelationship,
     deleteCaseRelationship,
 } from '../../features/cases/state';
+import { casesApiClient } from '../../features/cases/api/casesApiClient';
 import { BrutalButton, BrutalCard, BrutalBadge } from '../neo-brutalist';
 import type { RelationshipType, CreateCaseRelationshipDTO } from '../../types/case';
-import api from '../../services/api';
 import ConfirmDialog from '../ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
 
@@ -40,15 +40,15 @@ const CaseRelationships = ({ caseId }: CaseRelationshipsProps) => {
 
     const handleSearch = async (term: string) => {
         setSearchTerm(term);
-        if (term.length < 2) {
+        const query = term.trim();
+        if (query.length < 2) {
             setSearchResults([]);
             return;
         }
 
         try {
-            const response = await api.get(`/cases?search=${term}&limit=5`);
-            // Filter out current case
-            setSearchResults((response.data.cases as CaseSearchResult[]).filter((c) => c.id !== caseId));
+            const response = await casesApiClient.listCases({ search: query, limit: 5 });
+            setSearchResults((response.cases as CaseSearchResult[]).filter((c) => c.id !== caseId));
         } catch (error) {
             console.error('Failed to search cases:', error);
         }
@@ -113,9 +113,15 @@ const CaseRelationships = ({ caseId }: CaseRelationshipsProps) => {
                         <h4 className="font-black uppercase text-sm">Add New Relationship</h4>
 
                         <div>
-                            <label className="block text-xs font-bold uppercase mb-1">Search Case</label>
+                            <label
+                                htmlFor="case-relationship-search"
+                                className="block text-xs font-bold uppercase mb-1"
+                            >
+                                Search Case
+                            </label>
                             <div className="relative">
                                 <input
+                                    id="case-relationship-search"
                                     type="text"
                                     value={searchTerm}
                                     onChange={(e) => handleSearch(e.target.value)}

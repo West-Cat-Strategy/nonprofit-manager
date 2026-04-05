@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { casesApiClient } from '../../features/cases/api/casesApiClient';
 import { useToast } from '../../contexts/useToast';
-import type { CaseTimelineEvent } from '../../types/case';
+import CaseProvenanceSummary from './CaseProvenanceSummary';
+import type { CaseProvenance, CaseTimelineEvent } from '../../types/case';
 
 interface CaseTimelineProps {
   caseId: string;
   refreshKey?: number;
+  provenance?: CaseProvenance | null;
 }
 
 const TIMELINE_PAGE_LIMIT = 50;
@@ -96,7 +98,7 @@ const getTimelineMeta = (event: CaseTimelineEvent): string[] => {
   }
 };
 
-const CaseTimeline = ({ caseId, refreshKey }: CaseTimelineProps) => {
+const CaseTimeline = ({ caseId, refreshKey, provenance }: CaseTimelineProps) => {
   const { showError } = useToast();
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -154,60 +156,66 @@ const CaseTimeline = ({ caseId, refreshKey }: CaseTimelineProps) => {
     void loadTimeline();
   }, [loadTimeline, refreshKey]);
 
-  if (loading) {
-    return <p className="text-sm text-app-text-muted">Loading timeline...</p>;
-  }
+  const renderTimelineEvent = (event: CaseTimelineEvent) => {
+    const metadataDetails = getTimelineMeta(event);
 
-  if (events.length === 0) {
     return (
-      <div className="rounded-lg border border-app-border bg-app-surface-muted p-8 text-center">
-        <p className="text-sm text-app-text-muted">No timeline activity yet.</p>
+      <div key={`${event.type}-${event.id}`} className="rounded-lg border border-app-border bg-app-surface p-4">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className={`rounded px-2 py-0.5 text-xs ${eventTypeBadgeClass[event.type]}`}>
+            {eventTypeLabel[event.type]}
+          </span>
+          {event.visible_to_client ? (
+            <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text">Client visible</span>
+          ) : (
+            <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
+              Internal
+            </span>
+          )}
+          <span className="text-xs text-app-text-muted">
+            {new Date(event.created_at).toLocaleString()}
+          </span>
+        </div>
+        <p className="text-sm font-semibold text-app-text">{event.title}</p>
+        {event.content && <p className="mt-1 whitespace-pre-wrap text-sm text-app-text">{event.content}</p>}
+        {metadataDetails.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {metadataDetails.map((detail) => (
+              <span
+                key={detail}
+                className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted"
+              >
+                {detail}
+              </span>
+            ))}
+          </div>
+        )}
+        {(event.first_name || event.last_name) && (
+          <p className="mt-2 text-xs text-app-text-muted">
+            {event.first_name || 'Staff'} {event.last_name || ''}
+          </p>
+        )}
       </div>
     );
-  }
+  };
 
   return (
     <div className="space-y-3">
-      {events.map((event) => (
-        <div key={`${event.type}-${event.id}`} className="rounded-lg border border-app-border bg-app-surface p-4">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className={`rounded px-2 py-0.5 text-xs ${eventTypeBadgeClass[event.type]}`}>
-              {eventTypeLabel[event.type]}
-            </span>
-            {event.visible_to_client ? (
-              <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text">Client visible</span>
-            ) : (
-              <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
-                Internal
-              </span>
-            )}
-            <span className="text-xs text-app-text-muted">
-              {new Date(event.created_at).toLocaleString()}
-            </span>
-          </div>
-          <p className="text-sm font-semibold text-app-text">{event.title}</p>
-          {event.content && <p className="mt-1 whitespace-pre-wrap text-sm text-app-text">{event.content}</p>}
-          {getTimelineMeta(event).length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {getTimelineMeta(event).map((detail) => (
-                <span
-                  key={detail}
-                  className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted"
-                >
-                  {detail}
-                </span>
-              ))}
-            </div>
-          )}
-          {(event.first_name || event.last_name) && (
-            <p className="mt-2 text-xs text-app-text-muted">
-              {event.first_name || 'Staff'} {event.last_name || ''}
-            </p>
-          )}
-        </div>
-      ))}
+      {provenance && (
+        <CaseProvenanceSummary provenance={provenance} variant="staff" density="inline" />
+      )}
 
-      {hasMore && (
+      {loading && <p className="text-sm text-app-text-muted">Loading timeline...</p>}
+
+      {!loading && events.length === 0 && (
+        <div className="rounded-lg border border-app-border bg-app-surface-muted p-8 text-center">
+          <p className="text-sm text-app-text-muted">No timeline activity yet.</p>
+        </div>
+      )}
+
+      {!loading && events.map((event) => renderTimelineEvent(event))}
+
+      {!loading && hasMore && (
         <div className="pt-2">
           <button
             type="button"

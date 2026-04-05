@@ -12,6 +12,7 @@ describe('ReportService', () => {
   let reportService: ReportService;
 
   beforeEach(() => {
+    query.mockReset();
     query.mockImplementation(async (sql: string) => {
       if (sql.includes('COUNT(*) as count')) {
         return { rows: [{ count: '0' }] };
@@ -86,6 +87,20 @@ describe('ReportService', () => {
       expect(result.fields).toBeInstanceOf(Array);
       expect(result.fields.map((field) => field.field)).toEqual(
         expect.arrayContaining(['stage_name', 'probability', 'weighted_amount', 'won_flag', 'open_flag'])
+      );
+    });
+
+    it('should return case fields for multi-value case types and outcomes', async () => {
+      const result = await reportService.getAvailableFields('cases');
+
+      expect(result.entity).toBe('cases');
+      expect(result.fields.map((field) => field.field)).toEqual(
+        expect.arrayContaining([
+          'case_type_name',
+          'case_type_names',
+          'outcome',
+          'case_outcome_values',
+        ])
       );
     });
   });
@@ -403,6 +418,26 @@ describe('ReportService', () => {
       expect(sql).toContain('AS age_days');
       expect(sql).toContain('AS age_bucket');
       expect(values).toEqual(['org-456']);
+    });
+
+    it('should expose case type and outcome field variants in case reports', async () => {
+      const definition: ReportDefinition = {
+        name: 'Case Variants Report',
+        entity: 'cases' as ReportEntity,
+        fields: ['case_type_name', 'case_type_names', 'outcome', 'case_outcome_values'],
+      };
+
+      await reportService.generateReport(definition, { organizationId: 'org-789' });
+
+      expect(query).toHaveBeenCalled();
+      const [sql, values] = query.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('AS case_type_name');
+      expect(sql).toContain('AS case_type_names');
+      expect(sql).toContain('AS outcome');
+      expect(sql).toContain('AS case_outcome_values');
+      expect(sql).toContain('case_type_summary');
+      expect(sql).toContain('case_outcome_summary');
+      expect(values).toEqual(['org-789']);
     });
 
     it('supports sorting by aggregation alias', async () => {

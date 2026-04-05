@@ -8,3 +8,4 @@ export { default as CaseFilters } from './CaseFilters';
 export { default as CaseTable } from './CaseTable';
 export { default as CaseCards } from './CaseCards';
 export { default as CasePagination } from './CasePagination';
+export { default as CaseProvenanceSummary } from './CaseProvenanceSummary';

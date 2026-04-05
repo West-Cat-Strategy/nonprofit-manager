@@ -101,6 +101,26 @@ describe('PortalCaseDetailPage', () => {
       updated_at: '2026-03-15T18:00:00.000Z',
       opened_date: '2026-03-10T18:00:00.000Z',
       due_date: '2026-03-20T18:00:00.000Z',
+      provenance: {
+        system: 'imported',
+        primary_label: 'Westcat Intake Cluster',
+        record_type: 'case_note',
+        source_tables: ['contact_log', 'case_note'],
+        source_role_breakdown: [
+          {
+            source_role: 'primary_case',
+            source_tables: ['contact_log'],
+            source_row_count: 1,
+          },
+        ],
+        source_row_count: 1,
+        source_table_count: 2,
+        source_file_count: 1,
+        source_type_breakdown: ['contact_log', 'case_note'],
+        link_confidence: 0.91,
+        confidence_label: 'high',
+        is_low_confidence: false,
+      },
     });
     getCaseTimelineMock.mockResolvedValue({
       items: [
@@ -171,6 +191,10 @@ describe('PortalCaseDetailPage', () => {
     expect(await screen.findByText('Case Conversations')).toBeInTheDocument();
     expect(screen.getByText(/Pointperson: Alex Rivera/)).toBeInTheDocument();
     expect(screen.getByText('Need help with documents')).toBeInTheDocument();
+    expect(screen.getByText('Imported source summary')).toBeInTheDocument();
+    expect(screen.getAllByText('1 role').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^Cluster$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/row ids/i)).not.toBeInTheDocument();
 
     const file = new File(['portal pdf'], 'client-intake.pdf', { type: 'application/pdf' });
     fireEvent.change(screen.getByLabelText(/upload a document/i), {

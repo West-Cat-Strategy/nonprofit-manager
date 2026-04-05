@@ -58,6 +58,18 @@ initializeSentry();
 const app: Application = express();
 const PORT = Number(process.env.PORT) || 8006;
 
+const resolveConnectSrc = (developmentFallback: string): string[] => {
+  const apiOrigin = process.env.API_ORIGIN?.trim();
+
+  if (apiOrigin) {
+    return ["'self'", apiOrigin];
+  }
+
+  return process.env.NODE_ENV === 'production'
+    ? ["'self'"]
+    : ["'self'", developmentFallback];
+};
+
 const resolveTrustProxy = (): boolean | number | string => {
   const raw = (process.env.TRUST_PROXY || '').trim().toLowerCase();
   if (!raw) return false;
@@ -79,7 +91,7 @@ app.use(
         styleSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         fontSrc: ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
-        connectSrc: ["'self'", `${process.env.API_ORIGIN || 'http://localhost:8000'}`],
+        connectSrc: resolveConnectSrc('http://localhost:8000'),
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],

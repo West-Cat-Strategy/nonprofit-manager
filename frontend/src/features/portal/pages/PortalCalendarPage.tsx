@@ -425,7 +425,7 @@ export default function PortalCalendarPage() {
                       onClick={() => setFilter(value)}
                       className={`rounded-full px-3 py-1.5 text-sm ${
                         filter === value
-                          ? 'bg-app-accent text-white'
+                          ? 'bg-app-accent text-[var(--app-accent-foreground)]'
                           : 'bg-app-surface-muted text-app-text-muted'
                       }`}
                     >
@@ -571,7 +571,7 @@ export default function PortalCalendarPage() {
                               type="button"
                               onClick={() => void handleRegisterEvent(selectedEvent.id)}
                               disabled={savingEntryId === selectedEntry.id}
-                              className="rounded-md bg-app-accent px-3 py-2 text-sm text-white disabled:opacity-60"
+                              className="rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)] disabled:opacity-60"
                             >
                               {savingEntryId === selectedEntry.id ? 'Saving...' : 'Register'}
                             </button>
@@ -597,7 +597,7 @@ export default function PortalCalendarPage() {
                             selectedSlot.status !== 'open' ||
                             selectedSlot.available_count <= 0
                           }
-                          className="rounded-md bg-app-accent px-3 py-2 text-sm text-white disabled:opacity-60"
+                          className="rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)] disabled:opacity-60"
                         >
                           {savingEntryId === selectedEntry.id ? 'Saving...' : 'Book slot'}
                         </button>
@@ -691,7 +691,7 @@ export default function PortalCalendarPage() {
                   <button
                     type="submit"
                     disabled={submittingRequest}
-                    className="rounded-md bg-app-accent px-3 py-2 text-sm text-white disabled:opacity-60"
+                    className="rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)] disabled:opacity-60"
                   >
                     {submittingRequest ? 'Submitting...' : 'Submit request'}
                   </button>

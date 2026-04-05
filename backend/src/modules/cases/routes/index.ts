@@ -139,6 +139,7 @@ const caseCatalogQuerySchema = z
     assigned_team: z.string().optional(),
     is_urgent: optionalStrictBooleanSchema,
     requires_followup: optionalStrictBooleanSchema,
+    imported_only: optionalStrictBooleanSchema,
     intake_start_date: dateStringSchema.optional(),
     intake_end_date: dateStringSchema.optional(),
     due_date_start: dateStringSchema.optional(),

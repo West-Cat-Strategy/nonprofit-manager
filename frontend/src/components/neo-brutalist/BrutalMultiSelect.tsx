@@ -82,7 +82,7 @@ export const BrutalMultiSelect: React.FC<BrutalMultiSelectProps> = ({
           {selectedLabels.map((label) => (
             <span
               key={label}
-              className="bg-app-text text-white px-2 py-1 text-xs font-bold flex items-center gap-1"
+              className="bg-app-text text-[var(--app-bg)] px-2 py-1 text-xs font-bold flex items-center gap-1"
             >
               {label}
               <button

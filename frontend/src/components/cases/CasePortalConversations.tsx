@@ -347,7 +347,7 @@ export default function CasePortalConversations({
                       {conversation.thread.subject || 'Conversation'}
                     </div>
                     {conversation.thread.unread_count > 0 && (
-                      <span className="rounded-full bg-app-accent px-2 py-0.5 text-xs text-white">
+                      <span className="rounded-full bg-app-accent px-2 py-0.5 text-xs text-[var(--app-accent-foreground)]">
                         {conversation.thread.unread_count}
                       </span>
                     )}
@@ -399,7 +399,7 @@ export default function CasePortalConversations({
                   key={message.id}
                   className={`max-w-[90%] rounded-lg px-3 py-2 text-sm ${
                     message.sender_type === 'staff'
-                      ? 'ml-auto bg-app-accent text-white'
+                      ? 'ml-auto bg-app-accent text-[var(--app-accent-foreground)]'
                       : 'bg-app-surface-muted text-app-text'
                   }`}
                 >
@@ -502,7 +502,7 @@ export default function CasePortalConversations({
                   <button
                     type="submit"
                     disabled={saving}
-                    className="rounded-md bg-app-accent px-4 py-2 text-sm text-white disabled:opacity-50"
+                    className="rounded-md bg-app-accent px-4 py-2 text-sm text-[var(--app-accent-foreground)] disabled:opacity-50"
                   >
                     {saving ? 'Saving...' : 'Resolve'}
                   </button>
@@ -545,7 +545,7 @@ export default function CasePortalConversations({
                     selectedConversation.thread.status !== 'open' ||
                     !replyMessage.trim()
                   }
-                  className="rounded-md bg-app-accent px-4 py-2 text-white disabled:opacity-50"
+                  className="rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] disabled:opacity-50"
                 >
                   {saving ? 'Sending...' : 'Send Reply'}
                 </button>

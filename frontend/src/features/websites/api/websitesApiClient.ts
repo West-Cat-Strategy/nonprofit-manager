@@ -1,5 +1,7 @@
 import api from '../../../services/api';
 import type {
+  CreateWebsiteSiteRequest,
+  CreateWebsiteSiteResponse,
   PublishWebsiteSiteResponse,
   PublishWebsiteSiteRequest,
   WebsiteConversionFunnel,
@@ -33,6 +35,12 @@ const buildQuery = (params: Record<string, string | number | undefined>): string
 };
 
 export class WebsitesApiClient {
+  createSite(payload: CreateWebsiteSiteRequest): Promise<CreateWebsiteSiteResponse> {
+    return api
+      .post<CreateWebsiteSiteResponse>('/sites', payload)
+      .then((response) => response.data);
+  }
+
   listSites(params: WebsiteSearchParams = {}): Promise<WebsiteSitesResponse> {
     return api
       .get<WebsiteSitesResponse>(`/sites${buildQuery(params as Record<string, string | number | undefined>)}`)

@@ -157,6 +157,43 @@ describe('Case Management Visibility Integration', () => {
       { expiresIn: '1h' }
     );
 
+    const caseAProvenance = {
+      import_provenance: {
+        cluster_id: `cluster-${suffix}`,
+        primary_label: 'Westcat Intake Cluster',
+        record_type: 'case_note',
+        source_tables: ['contact_log', 'client_notes_and_stats', 'case_note'],
+        source_files: [`westcat-${suffix}.csv`],
+        source_role_breakdown: [
+          {
+            source_role: 'primary_case',
+            source_tables: ['contact_log'],
+            source_row_count: 1,
+            source_row_ids: [`contact_log:${suffix}:1`],
+          },
+          {
+            source_role: 'supporting_note',
+            source_tables: ['client_notes_and_stats', 'case_note'],
+            source_row_count: 2,
+            source_row_ids: [`client_notes_and_stats:${suffix}:7`, `case_note:${suffix}:4`],
+          },
+        ],
+        participant_ids: [contactAId],
+        source_row_ids: [
+          `contact_log:${suffix}:1`,
+          `client_notes_and_stats:${suffix}:7`,
+          `case_note:${suffix}:4`,
+        ],
+        source_row_count: 3,
+        source_table_count: 3,
+        source_file_count: 1,
+        source_type_breakdown: ['contact_log', 'client_notes_and_stats', 'case_note'],
+        link_confidence: 0.64,
+        confidence_label: 'low',
+        is_low_confidence: true,
+      },
+    };
+
     const caseAResult = await pool.query(
       `INSERT INTO cases (
          case_number,
@@ -165,15 +202,25 @@ describe('Case Management Visibility Integration', () => {
          case_type_id,
          status_id,
          title,
+         custom_data,
          client_viewable,
          assigned_to,
          created_by,
          modified_by,
          created_at,
          updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, false, $7, $7, $7, NOW(), NOW())
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, false, $8, $8, $8, NOW(), NOW())
        RETURNING id`,
-      [`CASE-A-${suffix}`, contactAId, organizationId, caseTypeId, activeStatusId, 'Case Alpha', adminUserId]
+      [
+        `CASE-A-${suffix}`,
+        contactAId,
+        organizationId,
+        caseTypeId,
+        activeStatusId,
+        'Case Alpha',
+        JSON.stringify(caseAProvenance),
+        adminUserId,
+      ]
     );
     caseAId = caseAResult.rows[0].id as string;
     createdCaseIds.push(caseAId);
@@ -459,6 +506,75 @@ describe('Case Management Visibility Integration', () => {
       .get(`/api/v2/portal/cases/${caseAId}`)
       .set('Cookie', [`portal_auth_token=${portalBToken}`])
       .expect(404);
+  });
+
+  it('returns imported case provenance for staff and only portal-safe provenance for clients', async () => {
+    const importedListResponse = await request(app)
+      .get('/api/v2/cases')
+      .query({ imported_only: true })
+      .set(authHeader())
+      .expect(200);
+
+    const importedList = unwrap<{ cases: Array<{ id: string; provenance?: { source_table_count?: number } }> }>(
+      importedListResponse.body
+    );
+    const importedCaseIds = importedList.cases.map((entry) => entry.id);
+    expect(importedCaseIds).toContain(caseAId);
+    expect(importedCaseIds).not.toContain(caseBId);
+    expect(importedList.cases.find((entry) => entry.id === caseAId)?.provenance?.source_table_count).toBe(3);
+
+    const staffDetailResponse = await request(app)
+      .get(`/api/v2/cases/${caseAId}`)
+      .set(authHeader())
+      .expect(200);
+
+    const staffCase = unwrap<{
+      provenance?: {
+        cluster_id?: string;
+        primary_label?: string;
+        source_row_ids?: string[];
+        participant_ids?: string[];
+        source_table_count?: number;
+        confidence_label?: string;
+      } | null;
+    }>(staffDetailResponse.body);
+
+    expect(staffCase.provenance?.cluster_id).toBeTruthy();
+    expect(staffCase.provenance?.source_row_ids).toEqual(
+      expect.arrayContaining([expect.stringContaining('contact_log')])
+    );
+    expect(staffCase.provenance?.participant_ids).toEqual([contactAId]);
+    expect(staffCase.provenance?.source_table_count).toBe(3);
+    expect(staffCase.provenance?.confidence_label).toBe('low');
+
+    const portalDetailResponse = await request(app)
+      .get(`/api/v2/portal/cases/${caseAId}`)
+      .set('Cookie', [`portal_auth_token=${portalAToken}`])
+      .expect(200);
+
+    const portalCase = unwrap<{
+      provenance?: {
+        primary_label?: string;
+        record_type?: string;
+        source_tables?: string[];
+        source_role_breakdown?: Array<{
+          source_role: string;
+          source_tables: string[];
+          source_row_count: number;
+        }>;
+        source_table_count?: number;
+        source_row_ids?: string[];
+        cluster_id?: string;
+        participant_ids?: string[];
+      } | null;
+    }>(portalDetailResponse.body);
+
+    expect(portalCase.provenance?.primary_label).toBe('Westcat Intake Cluster');
+    expect(portalCase.provenance?.source_table_count).toBe(3);
+    expect(portalCase.provenance?.source_role_breakdown?.[0]?.source_row_count).toBe(1);
+    expect(portalCase.provenance?.cluster_id).toBeUndefined();
+    expect(portalCase.provenance?.source_row_ids).toBeUndefined();
+    expect(portalCase.provenance?.participant_ids).toBeUndefined();
   });
 
   it('keeps cases scoped to the active organization for list, detail, and timeline access', async () => {

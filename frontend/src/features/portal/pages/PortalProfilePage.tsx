@@ -279,7 +279,7 @@ export default function PortalProfile() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-white"
+                      className="rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)]"
                     >
                       Upload Photo
                     </button>
@@ -287,7 +287,7 @@ export default function PortalProfile() {
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, profile_picture: null })}
-                        className="ml-2 rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-white"
+                        className="ml-2 rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)]"
                       >
                         Remove
                       </button>
@@ -433,7 +433,7 @@ export default function PortalProfile() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-md bg-app-accent px-6 py-2 font-medium text-white disabled:opacity-50"
+                  className="rounded-md bg-app-accent px-6 py-2 font-medium text-[var(--app-accent-foreground)] disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -490,7 +490,7 @@ export default function PortalProfile() {
                 <button
                   type="submit"
                   disabled={changingPassword}
-                  className="rounded-md bg-app-accent px-6 py-2 font-medium text-white disabled:opacity-50"
+                  className="rounded-md bg-app-accent px-6 py-2 font-medium text-[var(--app-accent-foreground)] disabled:opacity-50"
                 >
                   {changingPassword ? 'Changing...' : 'Change Password'}
                 </button>

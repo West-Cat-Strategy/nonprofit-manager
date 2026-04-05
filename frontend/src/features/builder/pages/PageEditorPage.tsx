@@ -807,7 +807,7 @@ const PageEditor: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate(siteId ? `/websites/${siteId}/overview` : '/website-builder')}
-            className="mt-4 rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white"
+            className="mt-4 rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)]"
           >
             Return
           </button>
@@ -960,7 +960,7 @@ const PageEditor: React.FC = () => {
 
         {/* Error Toast */}
         {error && (
-          <div className="fixed bottom-4 right-4 bg-app-accent text-white px-4 py-2 rounded-lg shadow-lg">
+          <div className="fixed bottom-4 right-4 bg-app-accent text-[var(--app-accent-foreground)] px-4 py-2 rounded-lg shadow-lg">
             {error}
           </div>
         )}

@@ -181,4 +181,32 @@ describe('rateLimiter defaults', () => {
       'corr-rate-limit-test'
     );
   });
+
+  it('skips startup auth and CSRF read-only checks in the shared API limiter', async () => {
+    await loadRateLimiterModule();
+
+    const apiOptions = mockRateLimit.mock.calls[0]?.[0] as
+      | {
+          skip?: (req: Request) => boolean;
+        }
+      | undefined;
+
+    expect(apiOptions?.skip).toEqual(expect.any(Function));
+
+    const makeRequest = (path: string) =>
+      ({
+        method: 'GET',
+        path,
+        originalUrl: path,
+        ip: '203.0.113.10',
+        connection: { remoteAddress: '203.0.113.10' },
+      }) as Request;
+
+    expect(apiOptions?.skip?.(makeRequest('/api/v2/auth/bootstrap'))).toBe(true);
+    expect(apiOptions?.skip?.(makeRequest('/api/v2/auth/setup-status'))).toBe(true);
+    expect(apiOptions?.skip?.(makeRequest('/api/v2/auth/registration-status'))).toBe(true);
+    expect(apiOptions?.skip?.(makeRequest('/api/v2/auth/csrf-token'))).toBe(true);
+    expect(apiOptions?.skip?.(makeRequest('/api/v2/portal/auth/bootstrap'))).toBe(true);
+    expect(apiOptions?.skip?.(makeRequest('/api/v2/dashboard'))).toBe(false);
+  });
 });

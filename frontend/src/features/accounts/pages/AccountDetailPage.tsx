@@ -62,7 +62,7 @@ const AccountDetail = () => {
           </div>
           <button
             onClick={() => navigate(`/accounts/${id}/edit`)}
-            className="bg-app-accent text-white px-4 py-2 rounded-lg hover:bg-app-accent-hover transition"
+            className="bg-app-accent text-[var(--app-accent-foreground)] px-4 py-2 rounded-lg hover:bg-app-accent-hover transition"
           >
             Edit Account
           </button>

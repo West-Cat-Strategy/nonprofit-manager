@@ -107,7 +107,7 @@ const ReconciliationDashboard: React.FC = () => {
         <button
           onClick={() => setShowCreateModal(true)}
           disabled={creating}
-          className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed"
         >
           {creating ? 'Creating...' : 'New Reconciliation'}
         </button>
@@ -436,7 +436,7 @@ const ReconciliationDashboard: React.FC = () => {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:bg-app-text-subtle"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover disabled:bg-app-text-subtle"
                 >
                   {creating ? 'Creating...' : 'Create Reconciliation'}
                 </button>

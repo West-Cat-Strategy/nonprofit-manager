@@ -20,7 +20,7 @@ const checkboxClassName = 'app-focus-ring h-4 w-4 rounded border-app-input-borde
 const secondaryButtonClassName =
   'app-focus-ring rounded-md border border-app-input-border px-6 py-2 text-app-text hover:bg-app-surface-muted focus:outline-none';
 const primaryButtonClassName =
-  'app-focus-ring rounded-md bg-app-accent px-6 py-2 text-white hover:bg-app-accent-hover focus:outline-none disabled:opacity-50';
+  'app-focus-ring rounded-md bg-app-accent px-6 py-2 text-[var(--app-accent-foreground)] hover:bg-app-accent-hover focus:outline-none disabled:opacity-50';
 
 const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit = false }) => {
   const navigate = useNavigate();

@@ -577,7 +577,7 @@ const CaseForm = ({
           disabled={loading}
           aria-label={isEditMode ? 'Update Case' : 'Save Case'}
           data-testid="case-form-primary-submit"
-          className="px-6 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition"
+          className="px-6 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           {loading ? 'Saving...' : isEditMode ? 'Update Case' : 'Save Case'}
         </button>

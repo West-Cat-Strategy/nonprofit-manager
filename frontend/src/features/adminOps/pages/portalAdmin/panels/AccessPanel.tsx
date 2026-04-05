@@ -91,7 +91,7 @@ export default function AccessPanel({
                     <button
                       type="button"
                       onClick={() => onApproveRequest(request.id)}
-                      className="px-3 py-1.5 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                      className="px-3 py-1.5 text-sm bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
                     >
                       Approve
                     </button>
@@ -180,7 +180,7 @@ export default function AccessPanel({
             <button
               type="button"
               onClick={onCreateInvitation}
-              className="px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover"
+              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover"
             >
               Create Invitation
             </button>

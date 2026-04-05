@@ -9,6 +9,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PageSection, PageComponent, TemplateTheme } from '../../types/websiteBuilder';
 import { sanitizeBuilderUrl } from '../../utils/validation';
+import { getReadableTextColor } from './readableForeground';
 
 interface EditorCanvasProps {
   sections: PageSection[];
@@ -80,7 +81,7 @@ const SortableComponent: React.FC<SortableComponentProps> = ({
               e.stopPropagation();
               onDelete();
             }}
-            className="p-1 bg-app-accent text-white rounded text-xs hover:bg-app-accent"
+            className="p-1 bg-app-accent text-[var(--app-accent-foreground)] rounded text-xs hover:bg-app-accent"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -149,7 +150,7 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
     >
       {/* Section overlay with label and actions */}
       <div className="absolute top-0 left-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        <div className="flex items-center justify-between bg-app-accent text-white text-xs px-2 py-1">
+        <div className="app-accent-surface flex items-center justify-between text-xs px-2 py-1">
           <span>{section.name}</span>
           <div className="flex gap-1">
             {canDelete && (
@@ -263,6 +264,14 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
       : undefined,
     ...component.style,
   };
+  const primaryForeground = getReadableTextColor(theme.colors.primary, {
+    lightTextColor: theme.colors.background,
+    darkTextColor: theme.colors.text,
+  });
+  const secondaryForeground = getReadableTextColor(theme.colors.secondary, {
+    lightTextColor: theme.colors.background,
+    darkTextColor: theme.colors.text,
+  });
 
   switch (component.type) {
     case 'heading': {
@@ -312,12 +321,12 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
       const variants: Record<string, React.CSSProperties> = {
         primary: {
           backgroundColor: theme.colors.primary,
-          color: '#ffffff',
+          color: primaryForeground,
           border: 'none',
         },
         secondary: {
           backgroundColor: theme.colors.secondary,
-          color: '#ffffff',
+          color: secondaryForeground,
           border: 'none',
         },
         outline: {
@@ -504,7 +513,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
               <div className="rounded-md border border-app-border bg-app-surface px-3 py-4 text-sm text-app-text-muted">Message</div>
             ) : null}
             <button
-              style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
+              style={{ backgroundColor: theme.colors.primary, color: primaryForeground }}
               className="rounded-md px-4 py-2 text-sm font-medium"
             >
               {component.submitText || 'Send Message'}
@@ -526,7 +535,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
           <div className="flex flex-col gap-3 md:flex-row">
             <div className="flex-1 rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Email address</div>
             <button
-              style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
+              style={{ backgroundColor: theme.colors.primary, color: primaryForeground }}
               className="rounded-md px-4 py-2 text-sm font-medium"
             >
               {component.buttonText || 'Subscribe'}
@@ -591,7 +600,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
             ) : null}
             <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Availability</div>
             <button
-              style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
+              style={{ backgroundColor: theme.colors.primary, color: primaryForeground }}
               className="rounded-md px-4 py-2 text-sm font-medium"
             >
               {component.submitText || 'Share Interest'}
@@ -719,7 +728,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
               <div className="rounded-md border border-app-border bg-app-surface px-3 py-2 text-sm text-app-text-muted">Phone</div>
             ) : null}
             <button
-              style={{ backgroundColor: theme.colors.primary, color: '#fff' }}
+              style={{ backgroundColor: theme.colors.primary, color: primaryForeground }}
               className="rounded-md px-4 py-2 text-sm font-medium"
             >
               {component.submitText || 'Register'}
@@ -1021,7 +1030,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
                   rel="noopener noreferrer"
                   className={`p-2 rounded-lg transition-colors ${
                     component.iconStyle === 'filled'
-                      ? 'bg-app-text text-white hover:bg-app-accent-hover'
+                      ? 'bg-app-text text-[var(--app-bg)] hover:bg-app-accent-hover hover:text-[var(--app-accent-foreground)]'
                       : component.iconStyle === 'rounded'
                       ? 'bg-app-surface-muted text-app-text-muted hover:bg-app-surface-muted rounded-full'
                       : 'text-app-text-muted hover:text-app-text'

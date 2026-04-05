@@ -329,7 +329,7 @@ const WebsitePublishingPage: React.FC = () => {
                     type="button"
                     onClick={saveSiteSettings}
                     disabled={isSaving || overview.site.blocked}
-                    className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Save site settings
                   </button>
@@ -376,7 +376,7 @@ const WebsitePublishingPage: React.FC = () => {
                     type="button"
                     onClick={publish}
                     disabled={isSaving || overview.site.blocked}
-                    className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {publishTarget === 'preview' ? 'Publish preview' : 'Publish live'}
                   </button>

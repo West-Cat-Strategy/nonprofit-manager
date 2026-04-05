@@ -29,6 +29,31 @@ const mockState = {
         due_date: null,
         created_at: '2026-03-01T00:00:00.000Z',
         is_urgent: false,
+        provenance: {
+          system: 'imported',
+          cluster_id: 'cluster-1',
+          primary_label: 'Westcat Intake Cluster',
+          record_type: 'case_note',
+          source_tables: ['contact_log'],
+          source_files: ['westcat.csv'],
+          source_role_breakdown: [
+            {
+              source_role: 'primary_case',
+              source_tables: ['contact_log'],
+              source_row_count: 1,
+              source_row_ids: ['contact_log:1'],
+            },
+          ],
+          participant_ids: ['contact-1'],
+          source_row_ids: ['contact_log:1'],
+          source_row_count: 1,
+          source_table_count: 1,
+          source_file_count: 1,
+          source_type_breakdown: ['contact_log'],
+          link_confidence: 0.95,
+          confidence_label: 'high',
+          is_low_confidence: false,
+        },
       },
     ],
     summary: {
@@ -156,5 +181,22 @@ describe('Case list page', () => {
     fireEvent.click(screen.getAllByText('CASE-100')[0]);
 
     expect(navigateMock).toHaveBeenCalledWith(`/cases/${validCaseId}`);
+  });
+
+  it('shows provenance badges and syncs the imported-only filter', () => {
+    renderWithProviders(<CaseListPage />, { route: '/cases' });
+
+    expect(screen.getAllByText('Imported').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('1 table').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByLabelText('Show imported cases only'));
+    fireEvent.click(screen.getByRole('button', { name: /apply filters/i }));
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'cases/setFilters',
+        payload: expect.objectContaining({ imported_only: true }),
+      })
+    );
   });
 });

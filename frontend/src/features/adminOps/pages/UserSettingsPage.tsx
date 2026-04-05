@@ -734,7 +734,7 @@ export default function UserSettings() {
                       type="button"
                       onClick={handleStartTotpSetup}
                       disabled={securityActionLoading}
-                      className="px-4 py-2 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
+                      className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
                     >
                       {securityActionLoading ? 'Starting…' : 'Enable 2FA'}
                     </button>
@@ -800,7 +800,7 @@ export default function UserSettings() {
                           type="button"
                           onClick={handleEnableTotp}
                           disabled={securityActionLoading}
-                          className="px-4 py-2 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
+                          className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
                         >
                           {securityActionLoading ? 'Enabling…' : 'Confirm & Enable'}
                         </button>
@@ -854,7 +854,7 @@ export default function UserSettings() {
                       type="button"
                       onClick={handleDisableTotp}
                       disabled={securityActionLoading}
-                      className="px-4 py-2 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
+                      className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
                     >
                       {securityActionLoading ? 'Disabling…' : 'Disable 2FA'}
                     </button>
@@ -886,7 +886,7 @@ export default function UserSettings() {
                   type="button"
                   onClick={handleAddPasskey}
                   disabled={securityActionLoading}
-                  className="px-4 py-2 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50"
                 >
                   {securityActionLoading ? 'Adding…' : 'Add passkey'}
                 </button>
