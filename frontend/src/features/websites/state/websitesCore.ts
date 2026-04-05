@@ -4,6 +4,8 @@ import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import type { WebsiteEntry } from '../../../types/websiteBuilder';
 import { websitesApiClient } from '../api/websitesApiClient';
 import type {
+  CreateWebsiteSiteRequest,
+  CreateWebsiteSiteResponse,
   PublishWebsiteSiteRequest,
   WebsiteConversionFunnel,
   UpdateWebsiteSiteRequest,
@@ -58,6 +60,17 @@ const initialState: WebsiteState = {
   funnelLoading: false,
   funnelError: null,
 };
+
+export const createWebsiteSite = createAsyncThunk<
+  CreateWebsiteSiteResponse,
+  CreateWebsiteSiteRequest
+>('websites/createSite', async (payload, { rejectWithValue }) => {
+  try {
+    return await websitesApiClient.createSite(payload);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, 'Failed to create website'));
+  }
+});
 
 export const fetchWebsiteSites = createAsyncThunk<
   WebsiteSitesResponse,
@@ -321,6 +334,18 @@ const websitesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(createWebsiteSite.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(createWebsiteSite.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.currentSiteId = action.payload.id;
+      })
+      .addCase(createWebsiteSite.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
+      })
       .addCase(fetchWebsiteSites.pending, (state) => {
         state.isLoading = true;
         state.error = null;

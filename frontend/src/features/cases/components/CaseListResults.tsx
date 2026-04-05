@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { BrutalBadge, BrutalCard } from '../../../components/neo-brutalist';
+import CaseProvenanceSummary from '../../../components/cases/CaseProvenanceSummary';
 import type { CaseStatusType, CaseWithDetails } from '../../../types/case';
 import { getCasePriorityBadgeColor } from '../utils/casePriority';
 import { summarizeLabels } from '../utils/caseClassification';
@@ -105,6 +106,13 @@ export const MobileCaseCard = memo(
             <span className="inline-block border-2 border-black bg-[var(--loop-green)] px-2 py-1 text-xs font-black uppercase text-black">
               +{getTypeLabels(caseItem).hiddenCount}
             </span>
+          )}
+          {caseItem.provenance && (
+            <CaseProvenanceSummary
+              provenance={caseItem.provenance}
+              variant="staff"
+              density="inline"
+            />
           )}
           <span>Assigned: {caseMeta.assignedLabel}</span>
           <span>Age: {caseMeta.ageLabel}</span>
@@ -219,6 +227,13 @@ export const DesktopCaseRow = memo(
             <span className="inline-block border-2 border-black bg-[var(--loop-green)] px-3 py-1 text-xs font-black uppercase text-black">
               +{getTypeLabels(caseItem).hiddenCount}
             </span>
+          )}
+          {caseItem.provenance && (
+            <CaseProvenanceSummary
+              provenance={caseItem.provenance}
+              variant="staff"
+              density="inline"
+            />
           )}
         </div>
       </td>

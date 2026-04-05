@@ -167,7 +167,7 @@ const TimeTracker = ({
               </div>
               <button
                 onClick={handleStopTimer}
-                className="bg-app-accent text-white px-4 py-2 rounded-lg hover:bg-app-accent-hover transition"
+                className="bg-app-accent text-[var(--app-accent-foreground)] px-4 py-2 rounded-lg hover:bg-app-accent-hover transition"
               >
                 Stop
               </button>
@@ -231,7 +231,7 @@ const TimeTracker = ({
                       {!isTimerActive && !timerState.assignmentId && (
                         <button
                           onClick={() => handleStartTimer(assignment.assignment_id)}
-                          className="bg-app-accent text-white px-3 py-1.5 rounded-lg hover:bg-app-accent-hover transition text-sm flex items-center space-x-1"
+                          className="bg-app-accent text-[var(--app-accent-foreground)] px-3 py-1.5 rounded-lg hover:bg-app-accent-hover transition text-sm flex items-center space-x-1"
                         >
                           <svg
                             className="w-4 h-4"
@@ -271,7 +271,7 @@ const TimeTracker = ({
                         />
                         <button
                           onClick={() => handleSubmitManualHours(assignment.assignment_id)}
-                          className="bg-app-accent text-white px-3 py-1.5 rounded-lg hover:bg-app-accent-hover transition text-sm"
+                          className="bg-app-accent text-[var(--app-accent-foreground)] px-3 py-1.5 rounded-lg hover:bg-app-accent-hover transition text-sm"
                         >
                           Log
                         </button>

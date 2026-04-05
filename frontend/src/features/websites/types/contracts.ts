@@ -1,5 +1,6 @@
 import type {
   CreateWebsiteEntryRequest,
+  SiteKind,
   UpdateWebsiteEntryRequest,
   WebsiteEntry,
 } from '../../../types/websiteBuilder';
@@ -359,6 +360,34 @@ export interface WebsiteSearchParams {
   limit?: number;
   sortBy?: 'name' | 'createdAt' | 'publishedAt' | 'status';
   sortOrder?: 'asc' | 'desc';
+}
+
+export interface CreateWebsiteSiteRequest {
+  templateId: string;
+  name: string;
+  siteKind?: SiteKind;
+}
+
+export interface CreateWebsiteSiteResponse {
+  id: string;
+  userId: string;
+  ownerUserId: string;
+  organizationId: string | null;
+  siteKind: SiteKind;
+  parentSiteId: string | null;
+  migrationStatus: 'complete' | 'needs_assignment';
+  templateId: string;
+  name: string;
+  subdomain: string | null;
+  customDomain: string | null;
+  sslEnabled: boolean;
+  sslCertificateExpiresAt: string | null;
+  status: WebsiteSiteStatus;
+  publishedVersion: string | null;
+  publishedAt: string | null;
+  analyticsEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UpdateWebsiteSiteRequest {

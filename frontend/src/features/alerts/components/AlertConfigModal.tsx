@@ -413,7 +413,7 @@ export default function AlertConfigModal({
             </button>
             <button
               onClick={handleSubmit}
-              className="rounded-lg bg-app-accent px-4 py-2 text-sm font-medium text-white hover:bg-app-accent-hover"
+              className="rounded-lg bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] hover:bg-app-accent-hover"
             >
               {config ? 'Update Alert' : 'Create Alert'}
             </button>

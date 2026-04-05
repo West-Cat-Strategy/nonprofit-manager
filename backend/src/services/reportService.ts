@@ -43,11 +43,32 @@ export class ReportService {
           title: { label: 'Title', type: 'string', column: 'c.title' },
           description: { label: 'Description', type: 'string', column: 'c.description' },
           priority: { label: 'Priority', type: 'string', column: 'c.priority' },
-          outcome: { label: 'Outcome', type: 'string', column: 'c.outcome' },
+          outcome: {
+            label: 'Outcome',
+            type: 'string',
+            column: 'COALESCE(c.outcome, case_outcome_summary.primary_case_outcome_value)',
+          },
           status_name: { label: 'Status', type: 'string', column: 'cs.name' },
           status: { label: 'Status', type: 'string', column: 'cs.name' },
           status_type: { label: 'Status Type', type: 'string', column: 'cs.status_type' },
-          case_type_name: { label: 'Case Type', type: 'string', column: 'ct.name' },
+          case_type_name: {
+            label: 'Case Type',
+            type: 'string',
+            column:
+              "COALESCE(ct.name, case_type_summary.primary_case_type_name, c.case_type_id::text)",
+          },
+          case_type_names: {
+            label: 'Case Types',
+            type: 'string',
+            column:
+              "COALESCE(case_type_summary.case_type_names, COALESCE(ct.name, case_type_summary.primary_case_type_name, c.case_type_id::text))",
+          },
+          case_outcome_values: {
+            label: 'Case Outcomes',
+            type: 'string',
+            column:
+              "COALESCE(case_outcome_summary.case_outcome_values, COALESCE(c.outcome, case_outcome_summary.primary_case_outcome_value))",
+          },
           assigned_to_name: {
             label: 'Assigned To',
             type: 'string',
@@ -640,7 +661,7 @@ export class ReportService {
   private getTableName(entity: ReportEntity): string {
     const tableMap: Record<ReportEntity, string> = {
       cases:
-        'cases c LEFT JOIN contacts con ON c.contact_id = con.id LEFT JOIN accounts acc ON acc.id = COALESCE(c.account_id, con.account_id) LEFT JOIN users assignee ON assignee.id = c.assigned_to LEFT JOIN case_statuses cs ON c.status_id = cs.id LEFT JOIN case_types ct ON c.case_type_id = ct.id LEFT JOIN LATERAL (SELECT s.outcome FROM case_services s WHERE s.case_id = c.id ORDER BY s.service_date DESC NULLS LAST, s.created_at DESC LIMIT 1) svc ON true',
+        'cases c LEFT JOIN contacts con ON c.contact_id = con.id LEFT JOIN accounts acc ON acc.id = COALESCE(c.account_id, con.account_id) LEFT JOIN users assignee ON assignee.id = c.assigned_to LEFT JOIN case_statuses cs ON c.status_id = cs.id LEFT JOIN case_types ct ON c.case_type_id = ct.id LEFT JOIN LATERAL (SELECT STRING_AGG(ct_lookup.name, \' | \' ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC) AS case_type_names, (ARRAY_AGG(ct_lookup.name ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC))[1] AS primary_case_type_name FROM case_type_assignments cta INNER JOIN case_types ct_lookup ON ct_lookup.id = cta.case_type_id WHERE cta.case_id = c.id) case_type_summary ON true LEFT JOIN LATERAL (SELECT STRING_AGG(coa.outcome_value, \' | \' ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC) AS case_outcome_values, (ARRAY_AGG(coa.outcome_value ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC))[1] AS primary_case_outcome_value FROM case_outcome_assignments coa WHERE coa.case_id = c.id) case_outcome_summary ON true LEFT JOIN LATERAL (SELECT s.outcome FROM case_services s WHERE s.case_id = c.id ORDER BY s.service_date DESC NULLS LAST, s.created_at DESC LIMIT 1) svc ON true',
       accounts: 'accounts a',
       contacts: 'contacts c LEFT JOIN accounts a ON c.account_id = a.id',
       donations: 'donations d LEFT JOIN contacts dc ON d.contact_id = dc.id LEFT JOIN accounts da ON d.account_id = da.id',

@@ -233,7 +233,7 @@ export default function RelationshipsSection({
                 <button
                   type="submit"
                   disabled={!relationshipData.related_contact_id}
-                  className="px-3 py-1.5 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 transition"
+                  className="px-3 py-1.5 text-sm bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50 transition"
                 >
                   Add
                 </button>

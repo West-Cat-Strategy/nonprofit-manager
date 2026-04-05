@@ -252,7 +252,7 @@ export default function UserManagement() {
             clearFormError();
             setShowCreateModal(true);
           }}
-          className="inline-flex items-center px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+          className="inline-flex items-center px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -484,7 +484,7 @@ export default function UserManagement() {
                   type="button"
                   onClick={handleCreateUser}
                   disabled={isSaving}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
                 >
                   {isSaving ? 'Creating...' : 'Create User'}
                 </button>
@@ -568,7 +568,7 @@ export default function UserManagement() {
                   type="button"
                   onClick={handleUpdateUser}
                   disabled={isSaving}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
                 >
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -631,7 +631,7 @@ export default function UserManagement() {
                   type="button"
                   onClick={handleResetPassword}
                   disabled={isSaving}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
                 >
                   {isSaving ? 'Resetting...' : 'Reset Password'}
                 </button>

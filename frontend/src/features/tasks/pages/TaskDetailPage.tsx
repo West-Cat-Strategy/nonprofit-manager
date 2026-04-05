@@ -139,20 +139,20 @@ const TaskDetail: React.FC = () => {
             {selectedTask.status !== TaskStatus.COMPLETED && (
               <button
                 onClick={handleComplete}
-                className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
+                className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover"
               >
                 Mark Complete
               </button>
             )}
             <button
               onClick={() => navigate(`/tasks/${id}/edit`)}
-              className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
+              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover"
             >
               Edit
             </button>
             <button
               onClick={handleDelete}
-              className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
+              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover"
             >
               Delete
             </button>

@@ -149,7 +149,7 @@ export default function SlotsPanel({
             type="button"
             onClick={onCreatePortalSlot}
             disabled={portalSlotSaving}
-            className="px-4 py-2 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
           >
             {portalSlotSaving ? 'Saving...' : 'Create Slot'}
           </button>

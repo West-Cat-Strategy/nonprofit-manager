@@ -73,7 +73,7 @@ export default function PortalResetPasswordModal({
               type="button"
               onClick={onSubmit}
               disabled={loading}
-              className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
             >
               {loading ? 'Resetting...' : 'Reset Password'}
             </button>

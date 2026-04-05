@@ -191,7 +191,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, isEdit = false }) =
         </button>
         <button
           type="submit"
-          className="px-6 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-50"
+          className="px-6 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover disabled:opacity-50"
           disabled={loading}
         >
           {loading ? 'Saving...' : isEdit ? 'Update Task' : 'Create Task'}

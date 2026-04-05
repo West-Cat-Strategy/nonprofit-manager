@@ -143,7 +143,7 @@ export default function ConversationsPanel({
                             {conversation.subject || conversation.case_title || 'Conversation'}
                           </div>
                           {conversation.unread_count > 0 && (
-                            <span className="px-2 py-0.5 rounded-full bg-app-accent text-white text-xs">
+                            <span className="px-2 py-0.5 rounded-full bg-app-accent text-[var(--app-accent-foreground)] text-xs">
                               {conversation.unread_count}
                             </span>
                           )}
@@ -268,7 +268,7 @@ export default function ConversationsPanel({
                         selectedPortalConversation.thread.status !== 'open' ||
                         !portalConversationReply.trim()
                       }
-                      className="px-4 py-2 text-sm bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                      className="px-4 py-2 text-sm bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
                     >
                       {portalConversationReplyLoading ? 'Sending...' : 'Send Reply'}
                     </button>

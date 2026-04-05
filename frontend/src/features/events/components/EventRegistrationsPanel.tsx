@@ -425,7 +425,7 @@ export default function EventRegistrationsPanel({
             type="button"
             onClick={() => void rotateKioskPin()}
             disabled={checkInSettingsLoading || kioskBusy}
-            className="rounded-md bg-app-accent px-3 py-1.5 text-sm text-white hover:bg-app-accent-hover disabled:opacity-60"
+            className="rounded-md bg-app-accent px-3 py-1.5 text-sm text-[var(--app-accent-foreground)] hover:bg-app-accent-hover disabled:opacity-60"
           >
             Rotate PIN
           </button>
@@ -500,7 +500,7 @@ export default function EventRegistrationsPanel({
             type="button"
             onClick={() => void submitSendReminders()}
             disabled={remindersSending}
-            className="rounded-md bg-app-accent px-4 py-2 text-white hover:bg-app-accent-hover disabled:opacity-60"
+            className="rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] hover:bg-app-accent-hover disabled:opacity-60"
           >
             {remindersSending ? 'Sending...' : 'Send Reminders'}
           </button>
@@ -714,7 +714,7 @@ export default function EventRegistrationsPanel({
                 type="button"
                 onClick={() => void submitRetryAutomation()}
                 disabled={automationsBusy}
-                className="rounded-md bg-app-accent px-4 py-2 text-white hover:bg-app-accent-hover disabled:opacity-60"
+                className="rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] hover:bg-app-accent-hover disabled:opacity-60"
               >
                 {automationsBusy ? 'Scheduling...' : 'Schedule Reminder'}
               </button>
@@ -753,7 +753,7 @@ export default function EventRegistrationsPanel({
                       setScanToken('');
                     });
                   }}
-                  className="rounded-md bg-app-accent px-3 py-2 text-xs text-white hover:bg-app-accent-hover disabled:opacity-50"
+                  className="rounded-md bg-app-accent px-3 py-2 text-xs text-[var(--app-accent-foreground)] hover:bg-app-accent-hover disabled:opacity-50"
                 >
                   QR Check-In
                 </button>

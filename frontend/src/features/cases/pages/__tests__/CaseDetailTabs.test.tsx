@@ -40,6 +40,7 @@ const mockState = {
       assigned_last_name: 'Rivera',
       tags: [],
       contact_id: validContactId,
+      provenance: undefined as any,
     },
     caseStatuses: [],
     caseMilestones: [],
@@ -154,6 +155,7 @@ function renderCaseDetail(route: string) {
 
 describe('Case detail tabs URL sync', () => {
   beforeEach(() => {
+    mockState.cases.currentCase.provenance = undefined;
     vi.clearAllMocks();
   });
 
@@ -162,6 +164,7 @@ describe('Case detail tabs URL sync', () => {
 
     expect(screen.getByRole('tab', { name: /notes/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('location-search')).toHaveTextContent('tab=notes');
+    expect(screen.queryByText(/imported import provenance/i)).not.toBeInTheDocument();
   });
 
   it('updates query string when switching tabs', () => {
@@ -186,5 +189,34 @@ describe('Case detail tabs URL sync', () => {
       type: 'case/fetchMilestones',
       payload: 'not-a-uuid',
     });
+  });
+
+  it('renders provenance details even when the imported source data is partial', () => {
+    mockState.cases.currentCase.provenance = {
+      system: 'imported',
+      cluster_id: '',
+      primary_label: 'Westcat Intake Cluster',
+      record_type: 'case_note',
+      source_tables: [],
+      source_files: [],
+      source_role_breakdown: [],
+      participant_ids: [],
+      source_row_ids: [],
+      source_row_count: 0,
+      source_table_count: 0,
+      source_file_count: 0,
+      source_type_breakdown: [],
+      link_confidence: 0.42,
+      confidence_label: 'low',
+      is_low_confidence: true,
+    };
+
+    renderCaseDetail(`/cases/${validCaseId}`);
+
+    expect(screen.getByText(/imported import provenance/i)).toBeInTheDocument();
+    expect(screen.getByText('Westcat Intake Cluster')).toBeInTheDocument();
+    expect(screen.getAllByText('0 tables').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Low confidence').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 });

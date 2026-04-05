@@ -157,7 +157,7 @@ export default function AppointmentsPanel({
                           sendSms: true,
                         })
                       }
-                      className="px-3 py-1.5 text-xs bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                      className="px-3 py-1.5 text-xs bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
                     >
                       Send Reminder
                     </button>

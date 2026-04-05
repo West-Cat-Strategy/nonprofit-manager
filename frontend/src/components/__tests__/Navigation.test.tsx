@@ -180,6 +180,9 @@ describe('Navigation', () => {
     );
 
     expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
+    expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveClass(
+      'text-[var(--app-accent-foreground)]'
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /^utilities$/i }));
     expect(screen.getByRole('menuitem', { name: /^analytics$/i })).toHaveAttribute(

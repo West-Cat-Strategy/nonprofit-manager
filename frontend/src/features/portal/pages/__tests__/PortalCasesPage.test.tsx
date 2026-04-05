@@ -29,6 +29,26 @@ describe('PortalCasesPage', () => {
         case_type_name: 'Housing',
         priority: 'high',
         updated_at: '2026-03-15T18:00:00.000Z',
+        provenance: {
+          system: 'imported',
+          primary_label: 'Westcat Intake Cluster',
+          record_type: 'case_note',
+          source_tables: ['contact_log'],
+          source_role_breakdown: [
+            {
+              source_role: 'primary_case',
+              source_tables: ['contact_log'],
+              source_row_count: 1,
+            },
+          ],
+          source_row_count: 1,
+          source_table_count: 1,
+          source_file_count: 1,
+          source_type_breakdown: ['contact_log'],
+          link_confidence: 0.94,
+          confidence_label: 'high',
+          is_low_confidence: false,
+        },
       },
       {
         id: 'case-2',
@@ -47,6 +67,9 @@ describe('PortalCasesPage', () => {
 
     expect(await screen.findByText('Housing Support')).toBeInTheDocument();
     expect(screen.getByText('Employment Support')).toBeInTheDocument();
+    expect(screen.getByText('Imported')).toBeInTheDocument();
+    expect(screen.getByText('1 table')).toBeInTheDocument();
+    expect(screen.queryByText(/cluster/i)).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Search'), {
       target: { value: 'housing' },

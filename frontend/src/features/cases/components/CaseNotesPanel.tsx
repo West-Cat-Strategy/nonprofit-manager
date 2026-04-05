@@ -9,12 +9,20 @@ import {
 import { useToast } from '../../../contexts/useToast';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
-import type { CaseNote, CreateCaseNoteDTO, NoteType, UpdateCaseNoteDTO } from '../../../types/case';
+import CaseProvenanceSummary from '../../../components/cases/CaseProvenanceSummary';
+import type {
+  CaseNote,
+  CaseProvenance,
+  CreateCaseNoteDTO,
+  NoteType,
+  UpdateCaseNoteDTO,
+} from '../../../types/case';
 import { formatNoteDate, getNoteIcon, getNoteTypeLabel } from '../../../utils/notes';
 
 interface CaseNotesProps {
   caseId: string;
   onChanged?: () => void;
+  provenance?: CaseProvenance | null;
 }
 
 const NOTE_TYPE_OPTIONS: Array<{ value: NoteType; label: string }> = [
@@ -81,7 +89,7 @@ const noteToDraft = (note: CaseNote): NoteDraft => ({
   outcome_definition_ids: getSelectedOutcomeDefinitionIds(note.outcome_impacts),
 });
 
-const CaseNotesPanel = ({ caseId, onChanged }: CaseNotesProps) => {
+const CaseNotesPanel = ({ caseId, onChanged, provenance }: CaseNotesProps) => {
   const { showSuccess, showError } = useToast();
   const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
   const {
@@ -202,6 +210,10 @@ const CaseNotesPanel = ({ caseId, onChanged }: CaseNotesProps) => {
 
   return (
     <div className="space-y-5">
+      {provenance && (
+        <CaseProvenanceSummary provenance={provenance} variant="staff" density="inline" />
+      )}
+
       {!isAdding && (
         <button
           type="button"
@@ -312,7 +324,7 @@ const CaseNotesPanel = ({ caseId, onChanged }: CaseNotesProps) => {
             <button
               type="submit"
               disabled={saving}
-              className="rounded bg-app-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="rounded bg-app-accent px-3 py-2 text-sm font-medium text-[var(--app-accent-foreground)] disabled:opacity-60"
             >
               {saving ? 'Saving...' : 'Save Note'}
             </button>
@@ -487,7 +499,7 @@ const CaseNotesPanel = ({ caseId, onChanged }: CaseNotesProps) => {
                       type="button"
                       disabled={saving}
                       onClick={() => void handleSaveEdit()}
-                      className="rounded bg-app-accent px-2 py-1 text-xs font-semibold text-white disabled:opacity-60"
+                      className="rounded bg-app-accent px-2 py-1 text-xs font-semibold text-[var(--app-accent-foreground)] disabled:opacity-60"
                     >
                       {saving ? 'Saving...' : 'Save'}
                     </button>

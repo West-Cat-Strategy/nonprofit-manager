@@ -113,7 +113,7 @@ export default function DataBackup() {
           <div className="pt-2">
             <button
               type="button"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-app-accent hover:bg-app-accent-hover disabled:opacity-50"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-[var(--app-accent-foreground)] bg-app-accent hover:bg-app-accent-hover disabled:opacity-50"
               onClick={downloadBackup}
               disabled={downloading}
             >

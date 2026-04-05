@@ -4,6 +4,7 @@ import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalListCard from '../../../components/portal/PortalListCard';
 import PortalListToolbar from '../../../components/portal/PortalListToolbar';
+import CaseProvenanceSummary from '../../../components/cases/CaseProvenanceSummary';
 import { portalV2ApiClient } from '../../../features/portal/api/portalApiClient';
 import type { PortalCaseSummary } from '../../../features/portal/types/contracts';
 import { usePersistentPortalCaseContext } from '../../../hooks/usePersistentPortalCaseContext';
@@ -41,7 +42,15 @@ export default function PortalCases() {
     }
 
     return sorted.filter((item) => {
-      const haystack = [item.case_number, item.title, item.status_name, item.case_type_name]
+      const haystack = [
+        item.case_number,
+        item.title,
+        item.status_name,
+        item.case_type_name,
+        item.provenance?.primary_label,
+        item.provenance?.record_type,
+        ...(item.provenance?.source_tables || []),
+      ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
@@ -133,6 +142,13 @@ export default function PortalCases() {
                       <span className="rounded bg-app-surface-muted px-2 py-0.5 text-app-text-muted capitalize">
                         {item.priority}
                       </span>
+                    )}
+                    {item.provenance && (
+                      <CaseProvenanceSummary
+                        provenance={item.provenance}
+                        variant="portal"
+                        density="inline"
+                      />
                     )}
                   </>
                 }

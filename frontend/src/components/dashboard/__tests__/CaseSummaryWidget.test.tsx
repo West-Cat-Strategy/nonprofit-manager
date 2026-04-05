@@ -3,13 +3,12 @@
  * Tests for case management summary widget
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import CaseSummaryWidget from '../CaseSummaryWidget';
 import type { DashboardWidget } from '../../../types/dashboard';
-import type { CaseWithDetails } from '../../../types/case';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 
 vi.mock('../../../store/hooks', () => ({
@@ -29,25 +28,39 @@ const mockWidget: DashboardWidget = {
   config: {},
 };
 
-const baseCase = (overrides: Partial<CaseWithDetails>): CaseWithDetails => ({
-  id: overrides.id ?? 'case-1',
-  case_number: 'CASE-001',
-  contact_id: 'contact-1',
-  case_type_id: 'type-1',
-  status_id: 'status-1',
-  priority: 'low',
-  title: 'Test Case',
-  intake_date: '2025-01-01T00:00:00Z',
-  is_urgent: false,
-  requires_followup: false,
-  created_at: '2025-01-01T00:00:00Z',
-  updated_at: '2025-01-01T00:00:00Z',
-  status_type: 'active',
-  ...overrides,
-});
+const mockSummary = {
+  total_cases: 12,
+  open_cases: 8,
+  closed_cases: 4,
+  by_priority: {
+    low: 2,
+    medium: 3,
+    high: 1,
+    urgent: 2,
+  },
+  by_status_type: {
+    intake: 1,
+    active: 4,
+    review: 3,
+    closed: 4,
+    cancelled: 0,
+  },
+  by_case_type: {
+    Housing: 4,
+    Legal: 2,
+  },
+  by_case_outcome: {
+    attended_event: 3,
+    additional_related_case: 1,
+  },
+  average_case_duration_days: 6,
+  cases_due_this_week: 5,
+  overdue_cases: 2,
+  unassigned_cases: 1,
+};
 
 const mockDispatch = vi.fn();
-let mockState: { cases: { cases: CaseWithDetails[]; loading: boolean; error: string | null } };
+let mockState: { cases: { summary: typeof mockSummary | null } };
 type MockSelector<T> = (state: typeof mockState) => T;
 
 const renderWidget = () =>
@@ -60,44 +73,10 @@ const renderWidget = () =>
 describe('CaseSummaryWidget', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-01-15T12:00:00Z'));
 
     mockState = {
       cases: {
-        cases: [
-          baseCase({
-            id: 'case-1',
-            priority: 'low',
-            status_type: 'active',
-            due_date: '2025-01-16T12:00:00Z',
-            assigned_to: 'user-1',
-          }),
-          baseCase({
-            id: 'case-2',
-            priority: 'urgent',
-            status_type: 'active',
-            is_urgent: true,
-            due_date: '2025-01-10T12:00:00Z',
-            assigned_to: null,
-          }),
-          baseCase({
-            id: 'case-3',
-            priority: 'high',
-            status_type: 'review',
-            due_date: '2025-01-20T12:00:00Z',
-            assigned_to: null,
-          }),
-          baseCase({
-            id: 'case-4',
-            priority: 'medium',
-            status_type: 'closed',
-            due_date: '2025-01-14T12:00:00Z',
-            assigned_to: 'user-2',
-          }),
-        ],
-        loading: false,
-        error: null,
+        summary: mockSummary,
       },
     };
 
@@ -107,29 +86,27 @@ describe('CaseSummaryWidget', () => {
     );
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('renders title and key metrics', () => {
+  it('renders title and summary metrics', () => {
     renderWidget();
 
     expect(screen.getByText('Case Summary')).toBeInTheDocument();
-    expect(screen.getByText('Active Cases')).toBeInTheDocument();
-    expect(screen.getByText('Urgent')).toBeInTheDocument();
-    expect(screen.getByText('Overdue')).toBeInTheDocument();
-    expect(screen.getByText('Unassigned')).toBeInTheDocument();
-    expect(screen.getByText('Due This Week')).toBeInTheDocument();
-
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getAllByText('2').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('1').length).toBeGreaterThan(0);
+    expect(screen.getByText('Active Cases').closest('a')).toHaveTextContent('8');
+    expect(screen.getByText('Urgent').closest('a')).toHaveTextContent('2');
+    expect(screen.getByText('Due This Week').parentElement).toHaveTextContent('5');
+    expect(screen.getByText('Unassigned').closest('a')).toHaveTextContent('1');
+    expect(screen.getByText('Overdue').parentElement).toHaveTextContent('2');
+    expect(screen.getByText('Low').parentElement).toHaveTextContent('2');
+    expect(screen.getByText('Med').parentElement).toHaveTextContent('3');
+    expect(screen.getByText('High').parentElement).toHaveTextContent('1');
+    expect(screen.getByText('Urg').parentElement).toHaveTextContent('2');
+    expect(screen.getByText('Attended Event').parentElement).toHaveTextContent('3');
+    expect(screen.getByText('Additional Related Case').parentElement).toHaveTextContent('1');
   });
 
-  it('dispatches fetch on mount', () => {
+  it('dispatches the summary thunk on mount', () => {
     renderWidget();
 
-    expect(mockDispatch).toHaveBeenCalled();
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
     expect(mockDispatch.mock.calls[0][0]).toEqual(expect.any(Function));
   });
 
@@ -143,31 +120,12 @@ describe('CaseSummaryWidget', () => {
     expect(urgentLink).toHaveAttribute('href', '/cases?quick_filter=urgent');
   });
 
-  it('shows priority distribution counts', () => {
-    renderWidget();
-
-    const prioritySection = screen.getByText('Priority Distribution').closest('div');
-    expect(prioritySection).toBeInTheDocument();
-
-    const scope = within(prioritySection as HTMLElement);
-
-    const lowLabel = scope.getByText('Low');
-    const mediumLabel = scope.getByText('Med');
-    const highLabel = scope.getByText('High');
-    const urgentLabel = scope.getByText('Urg');
-
-    expect(lowLabel.previousSibling).toHaveTextContent('1');
-    expect(mediumLabel.previousSibling).toHaveTextContent('0');
-    expect(highLabel.previousSibling).toHaveTextContent('1');
-    expect(urgentLabel.previousSibling).toHaveTextContent('1');
-  });
-
-  it('respects loading and error states from store', () => {
-    mockState.cases.loading = true;
-    mockState.cases.error = 'Failed to load cases';
+  it('shows loading while the summary fetch is unresolved', () => {
+    mockState.cases.summary = null;
+    mockDispatch.mockReturnValue(new Promise(() => {}) as never);
 
     renderWidget();
 
-    expect(screen.getByText('Case Summary')).toBeInTheDocument();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 });

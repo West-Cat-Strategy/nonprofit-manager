@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import type { CaseFilter, CaseSummary, CaseTimelineEvent, CaseWithDetails } from '@app-types/case';
+import { buildCaseProvenance } from '../utils/importProvenance';
 import {
   decodeTimelineCursor,
   DEFAULT_TIMELINE_LIMIT,
@@ -45,18 +46,34 @@ const CASE_COLUMNS = `
     SELECT ARRAY_AGG(cta.case_type_id ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC)
     FROM case_type_assignments cta
     WHERE cta.case_id = c.id
-  ), ARRAY[]::uuid[]) AS case_type_ids,
+  ), CASE WHEN c.case_type_id IS NOT NULL THEN ARRAY[c.case_type_id]::uuid[] ELSE ARRAY[]::uuid[] END) AS case_type_ids,
   COALESCE((
     SELECT ARRAY_AGG(ct.name ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC)
     FROM case_type_assignments cta
     INNER JOIN case_types ct ON ct.id = cta.case_type_id
     WHERE cta.case_id = c.id
-  ), ARRAY[]::text[]) AS case_type_names,
+  ), CASE
+    WHEN c.case_type_id IS NOT NULL THEN ARRAY[
+      COALESCE(
+        (
+          SELECT ct_scalar.name
+          FROM case_types ct_scalar
+          WHERE ct_scalar.id = c.case_type_id
+          LIMIT 1
+        ),
+        c.case_type_id::text
+      )
+    ]::text[]
+    ELSE ARRAY[]::text[]
+  END) AS case_type_names,
   COALESCE((
     SELECT ARRAY_AGG(coa.outcome_value ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC)
     FROM case_outcome_assignments coa
     WHERE coa.case_id = c.id
-  ), ARRAY[]::text[]) AS case_outcome_values
+  ), CASE
+    WHEN c.outcome IS NOT NULL AND btrim(c.outcome) <> '' THEN ARRAY[c.outcome]::text[]
+    ELSE ARRAY[]::text[]
+  END) AS case_outcome_values
 `;
 
 const CASE_SEARCH_SQL =
@@ -112,6 +129,13 @@ export const getCasesQuery = async (
     addFilter('c.is_urgent = ?', filter.is_urgent);
   }
 
+  if (filter.imported_only) {
+    filters.push(`(
+      COALESCE(c.custom_data ? 'import_provenance', false)
+      OR COALESCE(c.custom_data ? 'cluster_id', false)
+    )`);
+  }
+
   if (filter.quick_filter) {
     if (filter.quick_filter === 'active') {
       needsStatusJoin = true;
@@ -119,7 +143,7 @@ export const getCasesQuery = async (
     }
 
     if (filter.quick_filter === 'urgent') {
-      filters.push(`(c.is_urgent = true OR c.priority = 'urgent')`);
+      filters.push(`(c.is_urgent = true OR c.priority IN ('urgent', 'critical'))`);
     }
 
     if (filter.quick_filter === 'unassigned') {
@@ -230,7 +254,10 @@ export const getCasesQuery = async (
   const result = await db.query(query, params);
   const rows = result.rows as Array<CaseWithDetails & { total_count?: number | string }>;
   const total = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
-  const cases = rows.map(({ total_count: _totalCount, ...row }) => row as CaseWithDetails);
+  const cases = rows.map(({ total_count: _totalCount, ...row }) => ({
+    ...row,
+    provenance: buildCaseProvenance(row.custom_data),
+  })) as CaseWithDetails[];
   return { cases, total };
 };
 
@@ -266,7 +293,15 @@ export const getCaseByIdQuery = async (
     [caseId, resolvedOrganizationId || null]
   );
 
-  return result.rows[0] || null;
+  const row = result.rows[0] as (CaseWithDetails & { custom_data?: unknown }) | undefined;
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    provenance: buildCaseProvenance(row.custom_data),
+  } as CaseWithDetails;
 };
 
 export const getCaseTimelineQuery = async (
@@ -588,49 +623,220 @@ export const getCaseSummaryQuery = async (db: Pool, organizationId?: string): Pr
 
   const result = await db.query(
     `
+    WITH scoped_cases AS (
+      SELECT
+        c.id,
+        c.case_type_id,
+        c.outcome,
+        c.priority,
+        c.is_urgent,
+        c.due_date,
+        c.opened_date,
+        c.closed_date,
+        c.intake_date,
+        c.status_id,
+        c.assigned_to,
+        cs.status_type
+      FROM cases c
+      LEFT JOIN contacts con ON con.id = c.contact_id
+      LEFT JOIN case_statuses cs ON c.status_id = cs.id
+      ${scopeClause}
+    ),
+    summary_stats AS (
+      SELECT
+        COUNT(*) AS total_cases,
+        COUNT(*) FILTER (WHERE status_type IN ('intake', 'active', 'review')) AS open_cases,
+        COUNT(*) FILTER (WHERE status_type IN ('closed', 'cancelled')) AS closed_cases,
+        COUNT(*) FILTER (WHERE priority = 'low') AS priority_low,
+        COUNT(*) FILTER (WHERE priority = 'medium') AS priority_medium,
+        COUNT(*) FILTER (WHERE priority = 'high') AS priority_high,
+        COUNT(*) FILTER (WHERE is_urgent = true OR priority IN ('urgent', 'critical')) AS priority_urgent,
+        COUNT(*) FILTER (WHERE status_type = 'intake') AS status_intake,
+        COUNT(*) FILTER (WHERE status_type = 'active') AS status_active,
+        COUNT(*) FILTER (WHERE status_type = 'review') AS status_review,
+        COUNT(*) FILTER (WHERE status_type = 'closed') AS status_closed,
+        COUNT(*) FILTER (WHERE status_type = 'cancelled') AS status_cancelled,
+        COUNT(*) FILTER (WHERE due_date <= CURRENT_DATE + INTERVAL '7 days' AND due_date >= CURRENT_DATE) AS due_this_week,
+        COUNT(*) FILTER (WHERE due_date < CURRENT_DATE AND status_type NOT IN ('closed', 'cancelled')) AS overdue,
+        COUNT(*) FILTER (WHERE assigned_to IS NULL AND status_type NOT IN ('closed', 'cancelled')) AS unassigned,
+        AVG(EXTRACT(EPOCH FROM (COALESCE(closed_date, NOW()) - intake_date)) / 86400)
+          FILTER (WHERE status_type IN ('closed', 'cancelled')) AS avg_duration
+      FROM scoped_cases
+    ),
+    assigned_case_types AS (
+      SELECT ct.name AS case_type_name, COUNT(DISTINCT sc.id)::int AS count
+      FROM scoped_cases sc
+      JOIN case_type_assignments cta ON cta.case_id = sc.id
+      JOIN case_types ct ON ct.id = cta.case_type_id
+      GROUP BY ct.name
+    ),
+    legacy_case_types AS (
+      SELECT COALESCE(ct.name, sc.case_type_id::text) AS case_type_name, COUNT(DISTINCT sc.id)::int AS count
+      FROM scoped_cases sc
+      LEFT JOIN case_types ct ON ct.id = sc.case_type_id
+      WHERE sc.case_type_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM case_type_assignments cta
+          WHERE cta.case_id = sc.id
+        )
+      GROUP BY COALESCE(ct.name, sc.case_type_id::text)
+    ),
+    assigned_case_outcomes AS (
+      SELECT coa.outcome_value AS case_outcome_value, COUNT(DISTINCT sc.id)::int AS count
+      FROM scoped_cases sc
+      JOIN case_outcome_assignments coa ON coa.case_id = sc.id
+      GROUP BY coa.outcome_value
+    ),
+    legacy_case_outcomes AS (
+      SELECT sc.outcome AS case_outcome_value, COUNT(DISTINCT sc.id)::int AS count
+      FROM scoped_cases sc
+      WHERE sc.outcome IS NOT NULL
+        AND btrim(sc.outcome) <> ''
+        AND NOT EXISTS (
+          SELECT 1
+          FROM case_outcome_assignments coa
+          WHERE coa.case_id = sc.id
+        )
+      GROUP BY sc.outcome
+    )
     SELECT
-      COUNT(*) as total_cases,
-      COUNT(*) FILTER (WHERE cs.status_type IN ('intake', 'active', 'review')) as open_cases,
-      COUNT(*) FILTER (WHERE cs.status_type IN ('closed', 'cancelled')) as closed_cases,
-      COUNT(*) FILTER (WHERE c.priority = 'low') as priority_low,
-      COUNT(*) FILTER (WHERE c.priority = 'medium') as priority_medium,
-      COUNT(*) FILTER (WHERE c.priority = 'high') as priority_high,
-      COUNT(*) FILTER (WHERE c.priority = 'urgent') as priority_urgent,
-      COUNT(*) FILTER (WHERE cs.status_type = 'intake') as status_intake,
-      COUNT(*) FILTER (WHERE cs.status_type = 'active') as status_active,
-      COUNT(*) FILTER (WHERE cs.status_type = 'review') as status_review,
-      COUNT(*) FILTER (WHERE cs.status_type = 'closed') as status_closed,
-      COUNT(*) FILTER (WHERE cs.status_type = 'cancelled') as status_cancelled,
-      COUNT(*) FILTER (WHERE c.due_date <= CURRENT_DATE + INTERVAL '7 days' AND c.due_date >= CURRENT_DATE) as due_this_week,
-      COUNT(*) FILTER (WHERE c.due_date < CURRENT_DATE AND cs.status_type NOT IN ('closed', 'cancelled')) as overdue,
-      COUNT(*) FILTER (WHERE c.assigned_to IS NULL AND cs.status_type NOT IN ('closed', 'cancelled')) as unassigned,
-      AVG(EXTRACT(EPOCH FROM (COALESCE(c.closed_date, NOW()) - c.intake_date)) / 86400)
-        FILTER (WHERE cs.status_type IN ('closed', 'cancelled')) as avg_duration
-    FROM cases c
-    LEFT JOIN contacts con ON con.id = c.contact_id
-    LEFT JOIN case_statuses cs ON c.status_id = cs.id
-    ${scopeClause}
+      total_cases,
+      open_cases,
+      closed_cases,
+      priority_low,
+      priority_medium,
+      priority_high,
+      priority_urgent,
+      status_intake,
+      status_active,
+      status_review,
+      status_closed,
+      status_cancelled,
+      due_this_week,
+      overdue,
+      unassigned,
+      avg_duration
+    FROM summary_stats
   `,
     scopeValues
   );
 
   const typeResult = await db.query(
     `
-    SELECT ct.name, COUNT(DISTINCT cta.case_id) as count
-    FROM cases c
-    LEFT JOIN contacts con ON con.id = c.contact_id
-    JOIN case_type_assignments cta ON cta.case_id = c.id
-    JOIN case_types ct ON cta.case_type_id = ct.id
-    ${scopeClause}
-    GROUP BY ct.name
-    ORDER BY count DESC
+    WITH scoped_cases AS (
+      SELECT
+        c.id,
+        c.case_type_id,
+        c.outcome,
+        c.priority,
+        c.is_urgent,
+        c.due_date,
+        c.opened_date,
+        c.closed_date,
+        c.intake_date,
+        c.status_id,
+        c.assigned_to,
+        cs.status_type
+      FROM cases c
+      LEFT JOIN contacts con ON con.id = c.contact_id
+      LEFT JOIN case_statuses cs ON c.status_id = cs.id
+      ${scopeClause}
+    ),
+    assigned_case_types AS (
+      SELECT ct.name AS case_type_name, COUNT(DISTINCT sc.id)::int AS count
+      FROM scoped_cases sc
+      JOIN case_type_assignments cta ON cta.case_id = sc.id
+      JOIN case_types ct ON ct.id = cta.case_type_id
+      GROUP BY ct.name
+    ),
+    legacy_case_types AS (
+      SELECT COALESCE(ct.name, sc.case_type_id::text) AS case_type_name, COUNT(DISTINCT sc.id)::int AS count
+      FROM scoped_cases sc
+      LEFT JOIN case_types ct ON ct.id = sc.case_type_id
+      WHERE sc.case_type_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM case_type_assignments cta
+          WHERE cta.case_id = sc.id
+        )
+      GROUP BY COALESCE(ct.name, sc.case_type_id::text)
+    )
+    SELECT case_type_name, SUM(count)::int AS count
+    FROM (
+      SELECT * FROM assigned_case_types
+      UNION ALL
+      SELECT * FROM legacy_case_types
+    ) type_counts
+    GROUP BY case_type_name
+    ORDER BY count DESC, case_type_name ASC
+  `,
+    scopeValues
+  );
+
+  const outcomeResult = await db.query(
+    `
+    WITH scoped_cases AS (
+      SELECT
+        c.id,
+        c.case_type_id,
+        c.outcome,
+        c.priority,
+        c.is_urgent,
+        c.due_date,
+        c.opened_date,
+        c.closed_date,
+        c.intake_date,
+        c.status_id,
+        c.assigned_to,
+        cs.status_type
+      FROM cases c
+      LEFT JOIN contacts con ON con.id = c.contact_id
+      LEFT JOIN case_statuses cs ON c.status_id = cs.id
+      ${scopeClause}
+    ),
+    assigned_case_outcomes AS (
+      SELECT coa.outcome_value AS case_outcome_value, COUNT(DISTINCT sc.id)::int AS count
+      FROM scoped_cases sc
+      JOIN case_outcome_assignments coa ON coa.case_id = sc.id
+      GROUP BY coa.outcome_value
+    ),
+    legacy_case_outcomes AS (
+      SELECT sc.outcome AS case_outcome_value, COUNT(DISTINCT sc.id)::int AS count
+      FROM scoped_cases sc
+      WHERE sc.outcome IS NOT NULL
+        AND btrim(sc.outcome) <> ''
+        AND NOT EXISTS (
+          SELECT 1
+          FROM case_outcome_assignments coa
+          WHERE coa.case_id = sc.id
+        )
+      GROUP BY sc.outcome
+    )
+    SELECT case_outcome_value, SUM(count)::int AS count
+    FROM (
+      SELECT * FROM assigned_case_outcomes
+      UNION ALL
+      SELECT * FROM legacy_case_outcomes
+    ) outcome_counts
+    GROUP BY case_outcome_value
+    ORDER BY count DESC, case_outcome_value ASC
   `,
     scopeValues
   );
 
   const byCaseType: Record<string, number> = {};
   for (const row of typeResult.rows) {
-    byCaseType[row.name] = parseInt(row.count, 10);
+    const caseTypeName = row.case_type_name ?? row.name;
+    if (!caseTypeName) {
+      continue;
+    }
+    byCaseType[caseTypeName] = parseInt(row.count, 10);
+  }
+
+  const byCaseOutcome: Record<string, number> = {};
+  for (const row of outcomeResult.rows) {
+    byCaseOutcome[row.case_outcome_value] = parseInt(row.count, 10);
   }
 
   const row = result.rows[0];
@@ -652,6 +858,7 @@ export const getCaseSummaryQuery = async (db: Pool, organizationId?: string): Pr
       cancelled: parseInt(row.status_cancelled, 10),
     },
     by_case_type: byCaseType,
+    by_case_outcome: byCaseOutcome,
     average_case_duration_days: row.avg_duration ? Math.round(parseFloat(row.avg_duration)) : undefined,
     cases_due_this_week: parseInt(row.due_this_week, 10),
     overdue_cases: parseInt(row.overdue, 10),

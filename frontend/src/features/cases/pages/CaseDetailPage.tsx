@@ -20,6 +20,7 @@ import CaseNotes from '../components/CaseNotesPanel';
 import CaseDocuments from '../../../components/CaseDocuments';
 import FollowUpList from '../../../components/FollowUpList';
 import CaseRelationships from '../../../components/cases/CaseRelationships';
+import CaseProvenanceSummary from '../../../components/cases/CaseProvenanceSummary';
 import CaseServices from '../../../components/cases/CaseServices';
 import CasePortalConversations from '../../../components/cases/CasePortalConversations';
 import CaseTimeline from '../../../components/cases/CaseTimeline';
@@ -129,6 +130,7 @@ const CaseDetail = () => {
         : [],
     3
   );
+  const caseProvenance = currentCase?.provenance ?? null;
 
   useEffect(() => {
     if (hasValidId) {
@@ -466,12 +468,20 @@ const CaseDetail = () => {
                   {currentCase.case_number}
                 </h1>
                 {currentCase.is_urgent && (
-                  <span className="px-3 py-1 bg-app-accent text-white text-sm font-black rounded-none border-2 border-black">
+                  <span className="px-3 py-1 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-black rounded-none border-2 border-black">
                     ⚠️ URGENT
                   </span>
                 )}
               </div>
               <h2 className="text-xl font-bold text-black">{currentCase.title}</h2>
+              {caseProvenance && (
+                <CaseProvenanceSummary
+                  provenance={caseProvenance}
+                  variant="staff"
+                  density="inline"
+                  className="mt-3"
+                />
+              )}
             </div>
             <div className="flex flex-col gap-3">
               <label className="inline-flex items-center gap-2 text-xs font-black uppercase text-black/80">
@@ -772,13 +782,19 @@ const CaseDetail = () => {
                   )}
                 </dl>
               </BrutalCard>
+
+              {caseProvenance && (
+                <div className="lg:col-span-2">
+                  <CaseProvenanceSummary provenance={caseProvenance} variant="staff" density="panel" />
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'timeline' && id && (
             <div id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline">
               <BrutalCard color="white" className="p-6">
-                <CaseTimeline caseId={id} refreshKey={timelineRefreshKey} />
+                <CaseTimeline caseId={id} refreshKey={timelineRefreshKey} provenance={caseProvenance} />
               </BrutalCard>
             </div>
           )}
@@ -786,7 +802,7 @@ const CaseDetail = () => {
           {activeTab === 'notes' && id && (
             <div id="panel-notes" role="tabpanel" aria-labelledby="tab-notes">
               <BrutalCard color="white" className="p-6">
-                <CaseNotes caseId={id} onChanged={refreshCaseArtifacts} />
+                <CaseNotes caseId={id} onChanged={refreshCaseArtifacts} provenance={caseProvenance} />
               </BrutalCard>
             </div>
           )}
@@ -1014,7 +1030,7 @@ const CaseDetail = () => {
           {activeTab === 'services' && id && (
             <div id="panel-services" role="tabpanel" aria-labelledby="tab-services">
               <BrutalCard color="white" className="p-6">
-                <CaseServices caseId={id} />
+                <CaseServices caseId={id} provenance={caseProvenance} />
               </BrutalCard>
             </div>
           )}

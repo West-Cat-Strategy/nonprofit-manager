@@ -58,12 +58,6 @@ npm run test:integration
 npm run test:coverage
 ```
 
-Imported unified dataset import:
-
-```bash
-npm run imported:import -- --source-dir /Users/bryan/Desktop/Imported\ Data --dry-run
-```
-
 Reset persisted auth lockouts and auth rate-limit buckets:
 
 ```bash

@@ -76,6 +76,19 @@ const PORT = Number(process.env.PORT) || 3000;
 const requestLoggingEnabled =
   process.env.REQUEST_LOGGING_ENABLED === 'true' ||
   (process.env.REQUEST_LOGGING_ENABLED !== 'false' && process.env.NODE_ENV === 'production');
+
+const resolveConnectSrc = (developmentFallback: string): string[] => {
+  const apiOrigin = process.env.API_ORIGIN?.trim();
+
+  if (apiOrigin) {
+    return ["'self'", apiOrigin];
+  }
+
+  return process.env.NODE_ENV === 'production'
+    ? ["'self'"]
+    : ["'self'", developmentFallback];
+};
+
 const resolveTrustProxy = (): boolean | number | string => {
   const raw = (process.env.TRUST_PROXY || '').trim().toLowerCase();
   if (!raw) {
@@ -108,7 +121,7 @@ app.use(
         // Fonts: self and Google Fonts if used
         fontSrc: ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
         // Connect: self + configured API backend
-        connectSrc: ["'self'", `${process.env.API_ORIGIN || 'http://localhost:3000'}`],
+        connectSrc: resolveConnectSrc('http://localhost:3000'),
         // Frame options: prevent clickjacking
         frameSrc: ["'none'"],
         // Object/embed: restrict plugins

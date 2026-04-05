@@ -142,7 +142,7 @@ export const register = async (
 };
 
 export const checkSetupStatus = async (
-  _req: AuthRequest,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
@@ -154,7 +154,10 @@ export const checkSetupStatus = async (
       userCount,
     });
   } catch (error) {
-    logger.error('Error checking setup status', error);
+    logger.error('Error checking setup status', {
+      error,
+      correlationId: (req as AuthRequest & { correlationId?: string }).correlationId,
+    });
     next(error);
   }
 };

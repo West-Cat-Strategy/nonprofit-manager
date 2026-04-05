@@ -275,7 +275,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
             disabled={isSaving || !hasUnsavedChanges}
             className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
               hasUnsavedChanges
-                ? 'bg-app-accent text-white hover:bg-app-accent-hover'
+                ? 'bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover'
                 : 'cursor-not-allowed border border-app-border bg-app-surface-muted text-app-text-subtle'
             }`}
           >

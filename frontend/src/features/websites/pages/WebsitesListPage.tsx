@@ -13,6 +13,13 @@ import {
   formatWebsiteConsoleDate,
 } from '../lib/websiteConsole';
 
+const getWebsiteActionToneClasses = (tone?: string) =>
+  tone === 'primary'
+    ? 'bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover'
+    : tone === 'warning'
+      ? 'bg-amber-600 text-white hover:bg-amber-700'
+      : 'bg-slate-700 text-white hover:bg-slate-800';
+
 const WebsitesListPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { sites, searchParams, pagination, isLoading, error } = useAppSelector(
@@ -116,7 +123,7 @@ const WebsitesListPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover"
+                className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover"
               >
                 Refresh list
               </button>
@@ -304,26 +311,18 @@ const WebsitesListPage: React.FC = () => {
                       href={spotlightSite.managementSummary.nextAction.href}
                       target="_blank"
                       rel="noreferrer"
-                      className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors ${
-                        spotlightSite.managementSummary.nextAction.tone === 'primary'
-                          ? 'bg-app-accent hover:bg-app-accent-hover'
-                          : spotlightSite.managementSummary.nextAction.tone === 'warning'
-                            ? 'bg-amber-600 hover:bg-amber-700'
-                            : 'bg-slate-700 hover:bg-slate-800'
-                      }`}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
+                        spotlightSite.managementSummary.nextAction.tone
+                      )}`}
                     >
                       {spotlightSite.managementSummary.nextAction.title}
                     </a>
                   ) : (
                     <Link
                       to={spotlightSite.managementSummary.nextAction.href}
-                      className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors ${
-                        spotlightSite.managementSummary.nextAction.tone === 'primary'
-                          ? 'bg-app-accent hover:bg-app-accent-hover'
-                          : spotlightSite.managementSummary.nextAction.tone === 'warning'
-                            ? 'bg-amber-600 hover:bg-amber-700'
-                            : 'bg-slate-700 hover:bg-slate-800'
-                      }`}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
+                        spotlightSite.managementSummary.nextAction.tone
+                      )}`}
                     >
                       {spotlightSite.managementSummary.nextAction.title}
                     </Link>
@@ -389,7 +388,7 @@ const WebsitesListPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleResetFilters}
-                    className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-app-accent-hover"
+                    className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover"
                   >
                     Clear filters
                   </button>
@@ -490,26 +489,18 @@ const WebsitesListPage: React.FC = () => {
                               href={nextAction.href}
                               target="_blank"
                               rel="noreferrer"
-                              className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors ${
-                                nextAction.tone === 'primary'
-                                  ? 'bg-app-accent hover:bg-app-accent-hover'
-                                  : nextAction.tone === 'warning'
-                                    ? 'bg-amber-600 hover:bg-amber-700'
-                                    : 'bg-slate-700 hover:bg-slate-800'
-                              }`}
+                              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
+                                nextAction.tone
+                              )}`}
                             >
                               {nextAction.title}
                             </a>
                           ) : (
                             <Link
                               to={nextAction.href}
-                              className={`rounded-full px-4 py-2 text-sm font-medium text-white transition-colors ${
-                                nextAction.tone === 'primary'
-                                  ? 'bg-app-accent hover:bg-app-accent-hover'
-                                  : nextAction.tone === 'warning'
-                                    ? 'bg-amber-600 hover:bg-amber-700'
-                                    : 'bg-slate-700 hover:bg-slate-800'
-                              }`}
+                              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
+                                nextAction.tone
+                              )}`}
                             >
                               {nextAction.title}
                             </Link>

@@ -53,7 +53,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
         <div className="bg-white border-2 border-black p-1">
           <CheckIcon className="w-6 h-6 text-black stroke-[3px]" />
         </div>
-        <p className="font-black uppercase italic tracking-tighter text-white text-xl">
+        <p className="font-black uppercase italic tracking-tighter text-[var(--app-accent-foreground)] text-xl">
           {selectedCount} selected
           {selectedCount > 1 ? ' items' : ' item'}
         </p>
@@ -65,7 +65,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
             variant={action.variant === 'danger' ? 'danger' : action.variant}
             onClick={action.onClick}
             disabled={action.disabled}
-            className={`text-sm px-4 py-2 font-black uppercase ${action.variant === 'danger' ? 'bg-app-accent text-white' : 'bg-white text-black'
+            className={`text-sm px-4 py-2 font-black uppercase ${action.variant === 'danger' ? 'bg-app-accent text-[var(--app-accent-foreground)]' : 'bg-white text-black'
               }`}
           >
             {action.icon && <span className="mr-2 inline-block">{action.icon}</span>}
@@ -74,7 +74,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({
         ))}
         <button
           onClick={onClearSelection}
-          className="px-4 py-2 text-sm font-black uppercase tracking-widest text-white hover:underline transition-all"
+          className="px-4 py-2 text-sm font-black uppercase tracking-widest text-[var(--app-accent-foreground)] hover:underline transition-all"
         >
           Clear
         </button>

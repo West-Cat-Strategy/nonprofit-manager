@@ -571,7 +571,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
               type="button"
               onClick={handleRetryReminderSync}
               disabled={retryingReminderSync}
-              className="mt-3 px-4 py-2 bg-app-accent-hover text-white rounded-md hover:bg-app-accent-hover disabled:opacity-60"
+              className="mt-3 px-4 py-2 bg-app-accent-hover text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover disabled:opacity-60"
             >
               {retryingReminderSync ? 'Retrying...' : 'Retry Reminder Sync'}
             </button>
@@ -1085,7 +1085,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, isEdit = false }
         </button>
         <button
           type="submit"
-          className="px-6 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:opacity-50"
+          className="px-6 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover disabled:opacity-50"
           disabled={loading || retryingReminderSync}
         >
           {loading ? 'Saving...' : isEdit ? 'Update Event' : 'Create Event'}

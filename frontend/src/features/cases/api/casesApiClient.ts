@@ -79,6 +79,7 @@ export class CasesApiClient implements CasesApiClientPort {
     if (query.assignedTeam) params.set('assigned_team', query.assignedTeam);
     if (typeof query.isUrgent === 'boolean') params.set('is_urgent', String(query.isUrgent));
     if (typeof query.requiresFollowup === 'boolean') params.set('requires_followup', String(query.requiresFollowup));
+    if (typeof query.importedOnly === 'boolean') params.set('imported_only', String(query.importedOnly));
     if (query.intakeStartDate) params.set('intake_start_date', query.intakeStartDate);
     if (query.intakeEndDate) params.set('intake_end_date', query.intakeEndDate);
     if (query.dueDateStart) params.set('due_date_start', query.dueDateStart);

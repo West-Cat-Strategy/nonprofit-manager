@@ -36,6 +36,7 @@ export const login = async (
     const { email, password }: LoginRequest = req.body;
     const normalizedEmail = email.trim().toLowerCase();
     const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+    const correlationId = (req as AuthRequest & { correlationId?: string }).correlationId;
 
     const result = await pool.query<UserRow>(
       `SELECT 
@@ -52,6 +53,11 @@ export const login = async (
 
     if (result.rows.length === 0) {
       await trackLoginAttempt(normalizedEmail, false, undefined, clientIp);
+      logger.warn('Login failed: user not found', {
+        email: normalizedEmail,
+        ip: clientIp,
+        correlationId,
+      });
       return unauthorized(res, 'Invalid credentials');
     }
 
@@ -61,21 +67,27 @@ export const login = async (
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       await trackLoginAttempt(normalizedEmail, false, user.id, clientIp);
-      logger.warn(`Failed login attempt for user: ${normalizedEmail}`, { ip: clientIp });
+      logger.warn(`Failed login attempt for user: ${normalizedEmail}`, {
+        ip: clientIp,
+        correlationId,
+      });
       return unauthorized(res, 'Invalid credentials');
     }
 
     const mfaRequired = user.mfa_totp_enabled || user.mfa_required_by_role;
     if (mfaRequired) {
       if (user.mfa_required_by_role && !user.mfa_totp_enabled) {
-        logger.warn(`MFA enforced by role for user: ${user.email} but not yet enrolled`, { ip: clientIp });
+        logger.warn(`MFA enforced by role for user: ${user.email} but not yet enrolled`, {
+          ip: clientIp,
+          correlationId,
+        });
         return forbidden(
           res,
           'Multi-factor authentication is required for your role. Please enroll in MFA to continue.'
         );
       }
 
-      logger.info(`MFA required for user: ${user.email}`, { ip: clientIp });
+      logger.info(`MFA required for user: ${user.email}`, { ip: clientIp, correlationId });
       const organizationId = await getDefaultOrganizationId();
       return sendSuccess(res, {
         ...issueTotpMfaChallenge(user),
@@ -100,9 +112,14 @@ export const login = async (
       { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
     );
 
-    logger.info(`User logged in: ${user.email}`, { ip: clientIp });
+    logger.info(`User logged in: ${user.email}`, { ip: clientIp, correlationId });
 
     setAuthCookie(res, token);
+    // Bind the CSRF token emitted in this login response to the newly issued auth session.
+    req.headers = {
+      ...(req.headers || {}),
+      authorization: `Bearer ${token}`,
+    };
 
     const csrfToken = generateCsrfToken(req, res);
 

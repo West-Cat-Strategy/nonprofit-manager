@@ -290,7 +290,7 @@ export default function EventCalendarPage() {
             <button
               type="button"
               onClick={() => navigate('/events/new')}
-              className="rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-white hover:bg-app-accent-hover"
+              className="rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] hover:bg-app-accent-hover"
             >
               Create Event
             </button>
@@ -321,7 +321,7 @@ export default function EventCalendarPage() {
                 onClick={() => setFilter(value)}
                 className={`rounded-full px-3 py-1.5 text-sm ${
                   filter === value
-                    ? 'bg-app-accent text-white'
+                    ? 'bg-app-accent text-[var(--app-accent-foreground)]'
                     : 'bg-app-surface-muted text-app-text-muted'
                 }`}
               >
@@ -428,7 +428,7 @@ export default function EventCalendarPage() {
                         <button
                           type="button"
                           onClick={() => navigate(`/events/${selectedEvent.event_id}`)}
-                          className="flex-1 rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-white"
+                          className="flex-1 rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)]"
                         >
                           View details
                         </button>
@@ -460,7 +460,7 @@ export default function EventCalendarPage() {
                             type="button"
                             onClick={() => void handleConfirmAppointment(selectedAppointment.id)}
                             disabled={savingEntryId === selectedEntry.id}
-                            className="rounded-md bg-app-accent px-3 py-2 text-sm text-white disabled:opacity-60"
+                            className="rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)] disabled:opacity-60"
                           >
                             {savingEntryId === selectedEntry.id ? 'Saving...' : 'Confirm'}
                           </button>
@@ -513,7 +513,7 @@ export default function EventCalendarPage() {
                         <button
                           type="button"
                           onClick={() => navigate('/settings/admin/portal/slots')}
-                          className="flex-1 rounded-md bg-app-accent px-3 py-2 text-sm text-white"
+                          className="flex-1 rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)]"
                         >
                           Manage
                         </button>

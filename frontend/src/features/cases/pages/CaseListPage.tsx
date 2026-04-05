@@ -38,6 +38,7 @@ interface CaseListFilterOverrides {
   status?: string;
   type?: string;
   isUrgent?: boolean;
+  importedOnly?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   quickFilter?: QuickFilter;
@@ -64,6 +65,7 @@ const CaseList = () => {
   const [selectedStatus, setSelectedStatus] = useState(filters.status_id || '');
   const [selectedType, setSelectedType] = useState(filters.case_type_id || '');
   const [showUrgentOnly, setShowUrgentOnly] = useState(filters.is_urgent || false);
+  const [showImportedOnly, setShowImportedOnly] = useState(filters.imported_only || false);
   const [selectedSort, setSelectedSort] = useState(filters.sort_by || 'created_at');
   const [selectedOrder, setSelectedOrder] = useState(filters.sort_order || 'desc');
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
@@ -111,6 +113,7 @@ const CaseList = () => {
         ? initialQuickFilter
         : 'all';
     const dueWithin = parseNumber(searchParams.get('due_within_days'));
+    const importedOnlyParam = parseBoolean(searchParams.get('imported_only'));
     const initialFilters: CaseFilter = {
       search: searchParams.get('search') || undefined,
       contact_id: searchParams.get('contact_id') || undefined,
@@ -127,6 +130,7 @@ const CaseList = () => {
       limit: parseNumber(searchParams.get('limit')),
       quick_filter: quickFilterValue === 'all' ? undefined : quickFilterValue,
       due_within_days: dueWithin,
+      imported_only: importedOnlyParam,
     };
 
     const hasParams = Array.from(searchParams.keys()).length > 0;
@@ -136,6 +140,7 @@ const CaseList = () => {
       setSelectedStatus(initialFilters.status_id || '');
       setSelectedType(initialFilters.case_type_id || '');
       setShowUrgentOnly(initialFilters.is_urgent || false);
+      setShowImportedOnly(initialFilters.imported_only || false);
       setSelectedSort(initialFilters.sort_by || 'created_at');
       setSelectedOrder(initialFilters.sort_order || 'desc');
       setQuickFilter(quickFilterValue);
@@ -181,6 +186,7 @@ const CaseList = () => {
       limit: filters.limit,
       quick_filter: quickFilter === 'all' ? undefined : quickFilter,
       due_within_days: quickFilter === 'due_soon' ? dueSoonDays : undefined,
+      imported_only: showImportedOnly || undefined,
     };
     const merged = { ...baseFilters, ...overrides };
     const params = new URLSearchParams();
@@ -206,6 +212,7 @@ const CaseList = () => {
     status = selectedStatus,
     type = selectedType,
     isUrgent = showUrgentOnly,
+    importedOnly = showImportedOnly,
     sortBy = selectedSort,
     sortOrder = selectedOrder,
     quickFilter: nextQuickFilter = quickFilter,
@@ -217,6 +224,7 @@ const CaseList = () => {
     setSelectedStatus(status);
     setSelectedType(type);
     setShowUrgentOnly(isUrgent);
+    setShowImportedOnly(importedOnly);
     setSelectedSort(sortBy);
     setSelectedOrder(sortOrder);
     setQuickFilter(nextQuickFilter);
@@ -232,6 +240,7 @@ const CaseList = () => {
       case_type_id: type || undefined,
       assigned_to: filters.assigned_to || undefined,
       is_urgent: isUrgent || undefined,
+      imported_only: importedOnly || undefined,
       sort_by: sortBy,
       sort_order: sortOrder,
       quick_filter: nextQuickFilter === 'all' ? undefined : nextQuickFilter,
@@ -253,6 +262,7 @@ const CaseList = () => {
     setSelectedStatus('');
     setSelectedType('');
     setShowUrgentOnly(false);
+    setShowImportedOnly(false);
     setSelectedSort('created_at');
     setSelectedOrder('desc');
     setQuickFilter('all');
@@ -278,6 +288,7 @@ const CaseList = () => {
       status: view.filters.status_id || '',
       type: view.filters.case_type_id || '',
       isUrgent: view.filters.is_urgent || false,
+      importedOnly: view.filters.imported_only || false,
       sortBy: view.filters.sort_by || 'created_at',
       sortOrder: view.filters.sort_order || 'desc',
       quickFilter: view.quickFilter,
@@ -302,6 +313,7 @@ const CaseList = () => {
         case_type_id: selectedType || undefined,
         assigned_to: filters.assigned_to || undefined,
         is_urgent: showUrgentOnly || undefined,
+        imported_only: showImportedOnly || undefined,
         sort_by: selectedSort,
         sort_order: selectedOrder,
         quick_filter: quickFilter === 'all' ? undefined : quickFilter,
@@ -331,6 +343,7 @@ const CaseList = () => {
     filters.case_type_id,
     filters.assigned_to,
     filters.is_urgent,
+    filters.imported_only,
     filters.quick_filter,
   ].filter(Boolean).length;
   const hasActiveFilters = activeFiltersCount > 0;
@@ -354,6 +367,9 @@ const CaseList = () => {
     if (showUrgentOnly) {
       chips.push({ key: 'urgent', label: 'Urgent only' });
     }
+    if (showImportedOnly) {
+      chips.push({ key: 'imported_only', label: 'Imported only' });
+    }
     if (quickFilter !== 'all') {
       chips.push({
         key: 'quick_filter',
@@ -371,6 +387,7 @@ const CaseList = () => {
     selectedStatus,
     selectedType,
     showUrgentOnly,
+    showImportedOnly,
   ]);
   const handleRemoveFilterChip = (key: string) => {
     switch (key) {
@@ -388,6 +405,9 @@ const CaseList = () => {
         break;
       case 'urgent':
         applyFilters({ isUrgent: false, page: 1 });
+        break;
+      case 'imported_only':
+        applyFilters({ importedOnly: false, page: 1 });
         break;
       case 'quick_filter':
         applyFilters({ quickFilter: 'all', dueSoonDays: 7, page: 1 });
@@ -730,7 +750,7 @@ const CaseList = () => {
           )}
         </div>
 
- 	        <div className="mt-4 flex flex-wrap items-center gap-4">
+        <div className="mt-4 flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -741,6 +761,18 @@ const CaseList = () => {
             />
             <span className="text-sm font-bold text-black dark:text-white uppercase">
               Urgent only
+            </span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showImportedOnly}
+              onChange={(e) => setShowImportedOnly(e.target.checked)}
+              className="w-5 h-5 border-2 border-black dark:border-white accent-black dark:accent-white"
+              aria-label="Show imported cases only"
+            />
+            <span className="text-sm font-bold text-black dark:text-white uppercase">
+              Imported only
             </span>
           </label>
           <div className="flex-1" />

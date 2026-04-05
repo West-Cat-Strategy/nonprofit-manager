@@ -8,6 +8,7 @@
   
   /* GLOBAL DEFAULTS (NEO-BRUTALIST) */
   --loop-yellow: #ffd700;
+  --loop-red: #dc2626;
   --loop-green: #90ee90;
   --loop-purple: #d8bfd8;
   --loop-pink: #ffb6c1;
@@ -128,6 +129,7 @@ body.dark:not([class*='theme-']) {
   --focus-ring: #ffffff;
 
   --loop-yellow: #ffd700;
+  --loop-red: #dc2626;
   --loop-green: #90ee90;
   --loop-purple: #d8bfd8;
   --loop-pink: #ffb6c1;
@@ -157,6 +159,16 @@ body .bg-gray-50, body .bg-gray-100, body .bg-gray-200, body .bg-gray-300 {
 .menu-surface-opaque {
   background-color: var(--app-surface-elevated) !important;
   backdrop-filter: none !important;
+}
+
+.app-accent-surface {
+  background-color: var(--app-accent);
+  color: var(--app-accent-foreground);
+}
+
+.app-accent-surface a,
+.app-accent-surface svg {
+  color: inherit;
 }
 
 /* UTILITIES */

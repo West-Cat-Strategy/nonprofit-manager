@@ -370,7 +370,7 @@ export default function PortalAppointments() {
                   type="button"
                   onClick={() => setMode('slot')}
                   className={`rounded-md px-4 py-2 text-sm ${
-                    mode === 'slot' ? 'bg-app-accent text-white' : 'bg-app-surface-muted text-app-text-muted'
+                    mode === 'slot' ? 'bg-app-accent text-[var(--app-accent-foreground)]' : 'bg-app-surface-muted text-app-text-muted'
                   }`}
                 >
                   Book a Slot
@@ -380,7 +380,7 @@ export default function PortalAppointments() {
                   onClick={() => setMode('request')}
                   className={`rounded-md px-4 py-2 text-sm ${
                     mode === 'request'
-                      ? 'bg-app-accent text-white'
+                      ? 'bg-app-accent text-[var(--app-accent-foreground)]'
                       : 'bg-app-surface-muted text-app-text-muted'
                   }`}
                 >
@@ -453,7 +453,7 @@ export default function PortalAppointments() {
                                 void handleBookSlot(slot);
                               }}
                               disabled={bookingSlotId === slot.id || slot.available_count <= 0}
-                              className="rounded-md bg-app-accent px-3 py-1.5 text-xs text-white disabled:opacity-50"
+                              className="rounded-md bg-app-accent px-3 py-1.5 text-xs text-[var(--app-accent-foreground)] disabled:opacity-50"
                             >
                               {bookingSlotId === slot.id ? 'Booking...' : 'Book'}
                             </button>
@@ -518,7 +518,7 @@ export default function PortalAppointments() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-md bg-app-accent px-4 py-2 text-white disabled:opacity-50"
+                  className="rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] disabled:opacity-50"
                 >
                   {saving ? 'Submitting...' : 'Request Appointment'}
                 </button>

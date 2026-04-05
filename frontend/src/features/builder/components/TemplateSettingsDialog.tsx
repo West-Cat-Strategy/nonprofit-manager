@@ -105,7 +105,7 @@ const TemplateSettingsDialog: React.FC<TemplateSettingsDialogProps> = ({
         <button
           type="button"
           onClick={onSave}
-          className="px-4 py-2 bg-app-accent text-white rounded-md text-sm hover:bg-app-accent-hover"
+          className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md text-sm hover:bg-app-accent-hover"
         >
           Save Changes
         </button>

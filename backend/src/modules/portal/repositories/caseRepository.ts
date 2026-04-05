@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { PortalRepositorySupport } from './shared';
+import { buildPortalCaseProvenance } from '../../cases/utils/importProvenance';
 
 export class PortalCaseRepository {
   constructor(
@@ -18,6 +19,7 @@ export class PortalCaseRepository {
         c.priority,
         c.client_viewable,
         c.updated_at,
+        c.custom_data,
         cs.name AS status_name,
         cs.status_type,
         ct.name AS case_type_name
@@ -31,7 +33,10 @@ export class PortalCaseRepository {
       [contactId]
     );
 
-    return result.rows;
+    return result.rows.map((row) => ({
+      ...row,
+      provenance: buildPortalCaseProvenance(row.custom_data),
+    }));
   }
 
   async getPortalCaseById(contactId: string, caseId: string): Promise<Record<string, unknown> | null> {
@@ -49,6 +54,7 @@ export class PortalCaseRepository {
         c.closed_date,
         c.due_date,
         c.updated_at,
+        c.custom_data,
         cs.name AS status_name,
         cs.status_type,
         ct.name AS case_type_name
@@ -63,7 +69,15 @@ export class PortalCaseRepository {
       [caseId, contactId]
     );
 
-    return (result.rows[0] as Record<string, unknown> | undefined) ?? null;
+    const row = result.rows[0] as Record<string, unknown> | undefined;
+    if (!row) {
+      return null;
+    }
+
+    return {
+      ...row,
+      provenance: buildPortalCaseProvenance(row.custom_data),
+    };
   }
 
   async getPortalCaseTimeline(

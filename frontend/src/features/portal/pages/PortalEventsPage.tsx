@@ -202,7 +202,7 @@ export default function PortalEventsPage() {
                         type="button"
                         onClick={() => void handleRegister(event.id)}
                         disabled={savingEventId === event.id}
-                        className="rounded bg-app-accent px-3 py-1 text-xs text-white disabled:opacity-60"
+                        className="rounded bg-app-accent px-3 py-1 text-xs text-[var(--app-accent-foreground)] disabled:opacity-60"
                       >
                         {savingEventId === event.id ? 'Saving...' : 'Register'}
                       </button>
@@ -271,7 +271,7 @@ export default function PortalEventsPage() {
                 type="button"
                 onClick={downloadPass}
                 disabled={!passQrDataUrl}
-                className="rounded bg-app-accent px-3 py-2 text-xs text-white disabled:opacity-60"
+                className="rounded bg-app-accent px-3 py-2 text-xs text-[var(--app-accent-foreground)] disabled:opacity-60"
               >
                 Download PNG
               </button>

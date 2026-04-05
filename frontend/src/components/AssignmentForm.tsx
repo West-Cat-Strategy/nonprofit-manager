@@ -384,7 +384,7 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-app-accent py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-app-accent disabled:bg-app-text-subtle disabled:cursor-not-allowed"
+          className="bg-app-accent py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-[var(--app-accent-foreground)] hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-app-accent disabled:bg-app-text-subtle disabled:cursor-not-allowed"
         >
           {isSubmitting
             ? 'Saving...'

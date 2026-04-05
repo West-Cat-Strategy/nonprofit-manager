@@ -318,7 +318,7 @@ export default function RegistrationSettingsSection() {
                           type="button"
                           onClick={() => handleApprove(reg.id)}
                           disabled={actionLoading === reg.id}
-                          className="px-4 py-1.5 text-sm font-medium text-white bg-app-accent hover:bg-app-accent-hover rounded-lg disabled:opacity-50"
+                          className="px-4 py-1.5 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent hover:bg-app-accent-hover rounded-lg disabled:opacity-50"
                         >
                           {actionLoading === reg.id ? 'Processing...' : 'Approve'}
                         </button>
@@ -353,7 +353,7 @@ export default function RegistrationSettingsSection() {
                         type="button"
                         onClick={() => handleReject(reg.id)}
                         disabled={actionLoading === reg.id}
-                        className="px-4 py-2 text-sm font-medium text-white bg-app-accent hover:bg-app-accent-hover rounded-lg disabled:opacity-50"
+                        className="px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent hover:bg-app-accent-hover rounded-lg disabled:opacity-50"
                       >
                         {actionLoading === reg.id ? 'Rejecting...' : 'Confirm Reject'}
                       </button>

@@ -252,7 +252,7 @@ const CustomDashboard = () => {
           <div className="text-sm text-app-text-muted mb-4">{error}</div>
           <button
             onClick={() => dispatch(fetchDefaultDashboard())}
-            className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover"
+            className="px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent rounded-lg hover:bg-app-accent-hover"
           >
             Retry
           </button>
@@ -290,7 +290,7 @@ const CustomDashboard = () => {
             <>
               <button
                 onClick={() => setShowAddWidget(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover"
+                className="px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent rounded-lg hover:bg-app-accent-hover"
               >
                 Add Widget
               </button>
@@ -310,7 +310,7 @@ const CustomDashboard = () => {
               <button
                 onClick={handleSaveLayout}
                 disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Layout'}
               </button>
@@ -318,7 +318,7 @@ const CustomDashboard = () => {
           ) : (
             <button
               onClick={() => dispatch(setEditMode(true))}
-              className="px-4 py-2 text-sm font-medium text-white bg-app-accent rounded-lg hover:bg-app-accent-hover"
+              className="px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent rounded-lg hover:bg-app-accent-hover"
             >
               Customize Dashboard
             </button>

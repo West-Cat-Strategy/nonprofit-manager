@@ -191,7 +191,7 @@ function SyncResultModal({
 
         <button
           onClick={onClose}
-          className="mt-6 w-full bg-app-accent text-white py-2 px-4 rounded-lg hover:bg-app-accent-hover transition-colors"
+          className="mt-6 w-full bg-app-accent text-[var(--app-accent-foreground)] py-2 px-4 rounded-lg hover:bg-app-accent-hover transition-colors"
         >
           Close
         </button>
@@ -458,7 +458,7 @@ function CampaignCreateModal({
             </button>
             <button
               onClick={(e) => handleSubmit(e, true)}
-              className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover transition-colors"
+              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover transition-colors"
             >
               Send Now
             </button>
@@ -719,7 +719,7 @@ export default function EmailMarketing() {
                   <button
                     onClick={handleSync}
                     disabled={selectedContactIds.length === 0 || isSyncing}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed transition-colors"
                   >
                     {isSyncing ? (
                       <>
@@ -783,7 +783,7 @@ export default function EmailMarketing() {
           <button
             onClick={handleOpenCampaignModal}
             disabled={lists.length === 0}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -820,7 +820,7 @@ export default function EmailMarketing() {
             {lists.length > 0 && (
               <button
                 onClick={handleOpenCampaignModal}
-                className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover transition-colors"
+                className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

@@ -122,7 +122,7 @@ export default function UsersSection({
           <button
             type="button"
             onClick={onShowInvite}
-            className="px-4 py-2 bg-app-accent text-white text-sm font-medium rounded-lg hover:bg-app-accent-hover"
+            className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover"
           >
             Invite User
           </button>

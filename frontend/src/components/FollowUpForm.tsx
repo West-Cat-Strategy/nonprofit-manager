@@ -284,7 +284,7 @@ export default function FollowUpForm({
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 px-4 py-2 bg-app-accent text-white font-semibold rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] font-semibold rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? 'Saving...' : isEditing ? 'Update Follow-up' : 'Schedule Follow-up'}
         </button>

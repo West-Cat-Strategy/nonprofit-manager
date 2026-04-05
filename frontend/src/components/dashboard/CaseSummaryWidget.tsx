@@ -3,10 +3,10 @@
  * Enhanced overview of case management metrics
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchCases, selectActiveCases, selectUrgentCases, selectOverdueCases, selectCasesDueThisWeek, selectUnassignedCases, selectCasesByPriority } from '../../features/cases/state';
+import { fetchCaseSummary } from '../../features/cases/state';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
 
@@ -18,22 +18,64 @@ interface CaseSummaryWidgetProps {
 
 const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProps) => {
   const dispatch = useAppDispatch();
-  const { loading, error } = useAppSelector((state) => state.cases);
+  const summary = useAppSelector((state) => state.cases.summary);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(summary === null);
+  const initialSummaryExistsRef = useRef(summary !== null);
 
-  // Use selectors to get filtered case data
-  const activeCases = useAppSelector(selectActiveCases);
-  const urgentCases = useAppSelector(selectUrgentCases);
-  const overdueCases = useAppSelector(selectOverdueCases);
-  const casesDueThisWeek = useAppSelector(selectCasesDueThisWeek);
-  const unassignedCases = useAppSelector(selectUnassignedCases);
-  const priorityCounts = useAppSelector(selectCasesByPriority);
-  const attendedEventOutcomes = activeCases.filter((c) => c.outcome === 'attended_event').length;
-  const relatedCaseOutcomes = activeCases.filter((c) => c.outcome === 'additional_related_case').length;
-  const outcomeDenominator = Math.max(1, activeCases.length);
+  const priorityCounts = summary?.by_priority ?? {
+    low: 0,
+    medium: 0,
+    high: 0,
+    urgent: 0,
+  };
+  const caseOutcomes = summary?.by_case_outcome ?? {};
+  const activeCasesCount = summary?.open_cases ?? 0;
+  const urgentCasesCount = priorityCounts.urgent;
+  const overdueCasesCount = summary?.overdue_cases ?? 0;
+  const casesDueThisWeekCount = summary?.cases_due_this_week ?? 0;
+  const unassignedCasesCount = summary?.unassigned_cases ?? 0;
+  const attendedEventOutcomes = caseOutcomes.attended_event ?? 0;
+  const relatedCaseOutcomes = caseOutcomes.additional_related_case ?? 0;
+  const outcomeDenominator = Math.max(1, activeCasesCount);
 
   useEffect(() => {
-    // Fetch all cases on mount
-    dispatch(fetchCases({}));
+    if (summary !== null) {
+      initialSummaryExistsRef.current = true;
+    }
+  }, [summary]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!initialSummaryExistsRef.current) {
+      setSummaryError(null);
+      setSummaryLoading(true);
+    }
+
+    void Promise.resolve(dispatch(fetchCaseSummary()))
+      .then((action) => {
+        if (cancelled || initialSummaryExistsRef.current) {
+          return;
+        }
+
+        if (fetchCaseSummary.rejected.match(action)) {
+          setSummaryError(
+            typeof action.payload === 'string' && action.payload.trim().length > 0
+              ? action.payload
+              : 'Failed to load case summary'
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled && !initialSummaryExistsRef.current) {
+          setSummaryLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [dispatch]);
 
   return (
@@ -41,8 +83,8 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
       widget={widget}
       editMode={editMode}
       onRemove={onRemove}
-      loading={loading}
-      error={error || undefined}
+      loading={summaryLoading}
+      error={summary === null ? summaryError || undefined : undefined}
     >
       <div className="space-y-4">
         {/* Top Metrics Grid */}
@@ -52,7 +94,7 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
             className="p-3 bg-app-accent-soft rounded-lg hover:bg-app-accent-soft transition"
           >
             <p className="text-xs text-app-accent font-medium">Active Cases</p>
-            <p className="text-2xl font-bold text-app-accent-text">{activeCases.length}</p>
+            <p className="text-2xl font-bold text-app-accent-text">{activeCasesCount}</p>
           </Link>
 
           <Link
@@ -60,8 +102,8 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
             className="p-3 bg-app-accent-soft rounded-lg hover:bg-app-accent-soft transition relative"
           >
             <p className="text-xs text-app-accent font-medium">Urgent</p>
-            <p className="text-2xl font-bold text-app-accent-text">{urgentCases.length}</p>
-            {urgentCases.length > 0 && (
+            <p className="text-2xl font-bold text-app-accent-text">{urgentCasesCount}</p>
+            {urgentCasesCount > 0 && (
               <span className="absolute top-2 right-2 flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-app-accent-soft opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-app-accent"></span>
@@ -76,7 +118,7 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
               </svg>
               Overdue
             </p>
-            <p className="text-2xl font-bold text-app-accent-text">{overdueCases.length}</p>
+            <p className="text-2xl font-bold text-app-accent-text">{overdueCasesCount}</p>
           </div>
 
           <Link
@@ -84,7 +126,7 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
             className="p-3 bg-app-surface-muted rounded-lg hover:bg-app-surface-muted transition"
           >
             <p className="text-xs text-app-text-muted font-medium">Unassigned</p>
-            <p className="text-2xl font-bold text-app-text">{unassignedCases.length}</p>
+            <p className="text-2xl font-bold text-app-text">{unassignedCasesCount}</p>
           </Link>
         </div>
 
@@ -93,7 +135,7 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-app-accent-text font-medium">Due This Week</p>
-              <p className="text-xl font-bold text-app-accent-text">{casesDueThisWeek.length}</p>
+              <p className="text-xl font-bold text-app-accent-text">{casesDueThisWeekCount}</p>
             </div>
             <svg className="w-8 h-8 text-app-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -165,7 +207,7 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
           </Link>
           <Link
             to="/cases/new"
-            className="flex-1 text-center px-3 py-2 text-xs font-medium text-white bg-app-accent border border-transparent rounded hover:bg-app-accent-hover transition"
+            className="flex-1 text-center px-3 py-2 text-xs font-medium text-[var(--app-accent-foreground)] bg-app-accent border border-transparent rounded hover:bg-app-accent-hover transition"
           >
             New Case
           </Link>

@@ -300,7 +300,7 @@ const CaseDocuments = ({ caseId, onChanged }: CaseDocumentsProps) => {
           <button
             type="submit"
             disabled={saving}
-            className="rounded bg-app-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="rounded bg-app-accent px-3 py-2 text-sm font-medium text-[var(--app-accent-foreground)] disabled:opacity-60"
           >
             {saving ? 'Uploading...' : 'Upload Document'}
           </button>
@@ -377,7 +377,7 @@ const CaseDocuments = ({ caseId, onChanged }: CaseDocumentsProps) => {
                       </button>
                       <button
                         type="button"
-                        className="rounded bg-app-accent px-2 py-1 text-xs font-semibold text-white"
+                        className="rounded bg-app-accent px-2 py-1 text-xs font-semibold text-[var(--app-accent-foreground)]"
                         disabled={saving}
                         onClick={() => void saveEdit(doc.id)}
                       >

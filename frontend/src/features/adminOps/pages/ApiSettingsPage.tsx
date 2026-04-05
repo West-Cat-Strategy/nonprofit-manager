@@ -407,8 +407,8 @@ function NewApiKeyModal({
               onClick={handleCopy}
               className={`px-4 py-2 rounded font-medium ${
                 copied
-                  ? 'bg-app-accent text-white'
-                  : 'bg-app-accent text-white hover:bg-app-accent-hover'
+                  ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                  : 'bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover'
               }`}
             >
               {copied ? 'Copied!' : 'Copy'}
@@ -669,7 +669,7 @@ export default function ApiSettings() {
             </p>
             <button
               onClick={() => setShowCreateWebhook(true)}
-              className="px-4 py-2 bg-app-accent text-white rounded-lg font-medium hover:bg-app-accent-hover"
+              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg font-medium hover:bg-app-accent-hover"
             >
               Add Webhook
             </button>
@@ -741,7 +741,7 @@ export default function ApiSettings() {
                 <button
                   onClick={handleCreateWebhook}
                   disabled={!webhookUrl || webhookEvents.length === 0 || isLoading}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg font-medium hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg font-medium hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed"
                 >
                   {isLoading ? 'Creating...' : 'Create Webhook'}
                 </button>
@@ -792,7 +792,7 @@ export default function ApiSettings() {
             </p>
             <button
               onClick={() => setShowCreateApiKey(true)}
-              className="px-4 py-2 bg-app-accent text-white rounded-lg font-medium hover:bg-app-accent-hover"
+              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg font-medium hover:bg-app-accent-hover"
             >
               Create API Key
             </button>
@@ -845,7 +845,7 @@ export default function ApiSettings() {
                 <button
                   onClick={handleCreateApiKey}
                   disabled={!apiKeyName || apiKeyScopes.length === 0 || isLoading}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg font-medium hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg font-medium hover:bg-app-accent-hover disabled:bg-app-text-subtle disabled:cursor-not-allowed"
                 >
                   {isLoading ? 'Creating...' : 'Create API Key'}
                 </button>

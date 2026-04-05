@@ -538,7 +538,7 @@ export default function AdminSettings() {
                 <button
                   type="button"
                   onClick={handleResetUserPassword}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
                 >
                   Reset Password
                 </button>
@@ -591,7 +591,7 @@ export default function AdminSettings() {
                 <button
                   type="button"
                   onClick={handleResetUserEmail}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
                 >
                   Update Email
                 </button>
@@ -708,7 +708,7 @@ export default function AdminSettings() {
                 <button
                   type="button"
                   onClick={handleSaveRole}
-                  className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
                 >
                   {editingRole.id ? 'Save Changes' : 'Create Role'}
                 </button>
@@ -804,7 +804,7 @@ export default function AdminSettings() {
                       navigator.clipboard.writeText(inviteUrl);
                       showSuccess('Invitation link copied');
                     }}
-                    className="w-full px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                    className="w-full px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
                   >
                     Copy Link
                   </button>
@@ -895,7 +895,7 @@ export default function AdminSettings() {
                         inviteCapabilitiesLoading ||
                         !inviteEmailConfigured
                       }
-                      className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
+                      className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50"
                     >
                       {isCreatingInvite ? 'Creating...' : 'Create + Send Email'}
                     </button>

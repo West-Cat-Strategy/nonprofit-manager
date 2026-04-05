@@ -63,7 +63,7 @@ const PagePropertyEditor: React.FC<PagePropertyEditorProps> = ({
               className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                 !onPublishPage || !canPublish || isPublishing
                   ? 'cursor-not-allowed border border-app-border bg-app-surface-muted text-app-text-subtle'
-                  : 'bg-app-accent text-white hover:bg-app-accent-hover'
+                  : 'bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover'
               }`}
             >
               {isPublishing ? 'Publishing…' : 'Publish'}

@@ -261,7 +261,7 @@ const VolunteerDetail = () => {
               onClick={() => {
                 navigate(`/volunteers/${id}/assignments/new`);
               }}
-              className="bg-app-accent text-white px-4 py-2 rounded-lg hover:bg-app-accent-hover transition text-sm"
+              className="bg-app-accent text-[var(--app-accent-foreground)] px-4 py-2 rounded-lg hover:bg-app-accent-hover transition text-sm"
               type="button"
             >
               + New Assignment

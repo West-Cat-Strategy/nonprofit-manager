@@ -12,6 +12,8 @@
     "worker:dev": "nodemon --exec ts-node -r tsconfig-paths/register --transpileOnly src/worker.ts",
     "worker:start": "node dist/worker.js",
     "imported:import": "ts-node -r tsconfig-paths/register --transpileOnly scripts/import-imported-unified-dataset.ts",
+    "imported:audit": "ts-node -r tsconfig-paths/register --transpileOnly scripts/audit-imported-import.ts",
+    "imported:reset": "ts-node -r tsconfig-paths/register --transpileOnly scripts/reset-imported-import.ts",
     "auth:reset-state": "ts-node -r tsconfig-paths/register --transpileOnly scripts/reset-auth-state.ts",
     "test": "bash scripts/run-full-tests.sh",
     "test:watch": "jest --watch",

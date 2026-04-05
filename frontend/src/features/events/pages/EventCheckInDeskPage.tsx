@@ -165,7 +165,7 @@ export default function EventCheckInDeskPage() {
             type="button"
             onClick={() => void submitGlobalScan(scanToken)}
             disabled={scanSubmitting || !scanToken.trim()}
-            className="rounded-md bg-app-accent px-3 py-2 text-sm text-white disabled:opacity-60"
+            className="rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)] disabled:opacity-60"
           >
             {scanSubmitting ? 'Checking In...' : 'Check In'}
           </button>
@@ -300,7 +300,7 @@ export default function EventCheckInDeskPage() {
             <button
               type="submit"
               disabled={walkInSubmitting || !selectedEventId}
-              className="rounded-md bg-app-accent px-4 py-2 text-sm text-white disabled:opacity-60"
+              className="rounded-md bg-app-accent px-4 py-2 text-sm text-[var(--app-accent-foreground)] disabled:opacity-60"
             >
               {walkInSubmitting ? 'Processing...' : 'Register + Check In'}
             </button>

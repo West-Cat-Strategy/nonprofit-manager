@@ -191,7 +191,7 @@ const DonationDetail: React.FC = () => {
               <>
                 <button
                   onClick={() => void handleDownloadExistingReceipt()}
-                  className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
+                  className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover"
                 >
                   Download Receipt
                 </button>
@@ -207,7 +207,7 @@ const DonationDetail: React.FC = () => {
                 onClick={() => openSingleReceiptModal('download')}
                 disabled={Boolean(singleReceiptDisabledReason)}
                 title={singleReceiptDisabledReason || 'Issue official tax receipt'}
-                className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+                className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Issue Tax Receipt
               </button>
@@ -222,7 +222,7 @@ const DonationDetail: React.FC = () => {
             </button>
             <button
               onClick={() => navigate(`/donations/${id}/edit`)}
-              className="px-4 py-2 bg-app-accent text-white rounded-md hover:bg-app-accent-hover"
+              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover"
             >
               Edit
             </button>

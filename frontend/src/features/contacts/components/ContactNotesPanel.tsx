@@ -416,7 +416,7 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
               type="submit"
               disabled={notesLoading}
               onClick={() => setSubmitMode('close')}
-              className="px-4 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent-hover disabled:opacity-50 transition"
+              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover disabled:opacity-50 transition"
             >
               {notesLoading ? 'Saving...' : 'Add Note'}
             </button>

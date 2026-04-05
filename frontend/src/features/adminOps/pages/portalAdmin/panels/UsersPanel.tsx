@@ -110,7 +110,7 @@ export default function UsersPanel({
                         <button
                           type="button"
                           onClick={() => onOpenResetModal(user)}
-                          className="px-3 py-1.5 text-xs bg-app-accent text-white rounded-lg hover:bg-app-accent-hover"
+                          className="px-3 py-1.5 text-xs bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover"
                         >
                           Reset Password
                         </button>

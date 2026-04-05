@@ -46,7 +46,7 @@ export default function SaveBar({
         type="button"
         onClick={onSave}
         disabled={isSaving}
-        className="px-6 py-2 bg-app-accent text-white font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-6 py-2 bg-app-accent text-[var(--app-accent-foreground)] font-medium rounded-lg hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSaving ? 'Saving...' : 'Save Changes'}
       </button>
