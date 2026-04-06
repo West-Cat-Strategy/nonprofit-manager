@@ -19,8 +19,11 @@ jest.mock('@services/publishing/siteManagementService', () => ({
 
     return {
       getPublicSiteById: module.__mocks.getPublicSiteById,
+      getPublicSiteByIdForPreview: module.__mocks.getPublicSiteById,
       getSiteBySubdomain: module.__mocks.getSiteBySubdomain,
+      getSiteBySubdomainForPreview: module.__mocks.getSiteBySubdomain,
       getSiteByDomain: module.__mocks.getSiteByDomain,
+      getSiteByDomainForPreview: module.__mocks.getSiteByDomain,
     };
   }),
 }));
