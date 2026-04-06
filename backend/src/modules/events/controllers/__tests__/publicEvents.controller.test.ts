@@ -17,8 +17,13 @@ describe('publicEvents.controller', () => {
   };
 
   const siteResolver = {
+    getPublicSiteById: jest.fn(),
+    getPublicSiteByIdForPreview: jest.fn(),
     getSiteBySubdomain: jest.fn(),
+    getSiteBySubdomainForPreview: jest.fn(),
     getSiteByDomain: jest.fn(),
+    getSiteByDomainForPreview: jest.fn(),
+    recordAnalyticsEvent: jest.fn(),
   };
 
   const controller = createPublicEventsController({
@@ -35,7 +40,7 @@ describe('publicEvents.controller', () => {
   });
 
   it('lists public events by host-resolved site', async () => {
-    siteResolver.getSiteBySubdomain.mockResolvedValueOnce({
+    siteResolver.getSiteBySubdomainForPreview.mockResolvedValueOnce({
       id: 'site-1',
       userId: 'owner-1',
       name: 'Public Site',
@@ -77,8 +82,8 @@ describe('publicEvents.controller', () => {
   });
 
   it('lists public events by explicit site key', async () => {
-    siteResolver.getSiteBySubdomain.mockResolvedValueOnce(null);
-    siteResolver.getSiteByDomain.mockResolvedValueOnce({
+    siteResolver.getSiteBySubdomainForPreview.mockResolvedValueOnce(null);
+    siteResolver.getSiteByDomainForPreview.mockResolvedValueOnce({
       id: 'site-2',
       userId: 'owner-2',
       name: 'Domain Site',
@@ -100,7 +105,8 @@ describe('publicEvents.controller', () => {
       next
     );
 
-    expect(siteResolver.getSiteByDomain).toHaveBeenCalledWith('events.example.org');
+    expect(siteResolver.getSiteBySubdomainForPreview).toHaveBeenCalledWith('events.example.org');
+    expect(siteResolver.getSiteByDomainForPreview).toHaveBeenCalledWith('events.example.org');
     expect(catalogUseCase.listPublicByOwner).toHaveBeenCalledWith('owner-2', {
       include_past: undefined,
       limit: 10,
@@ -119,8 +125,8 @@ describe('publicEvents.controller', () => {
   });
 
   it('returns site-not-found when no published site can be resolved', async () => {
-    siteResolver.getSiteBySubdomain.mockResolvedValueOnce(null);
-    siteResolver.getSiteByDomain.mockResolvedValueOnce(null);
+    siteResolver.getSiteBySubdomainForPreview.mockResolvedValueOnce(null);
+    siteResolver.getSiteByDomainForPreview.mockResolvedValueOnce(null);
 
     await controller.listPublicEvents(
       {

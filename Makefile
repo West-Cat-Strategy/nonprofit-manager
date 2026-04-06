@@ -247,6 +247,8 @@ lint:
 	node scripts/check-route-integrity.ts
 	@echo "$(BLUE)Checking route catalog drift...$(RESET)"
 	node scripts/check-route-catalog-drift.ts
+	@echo "$(BLUE)Running UI audit baseline...$(RESET)"
+	node scripts/ui-audit.ts --enforce-baseline
 	@echo "$(BLUE)Checking backend legacy controller wrapper policy...$(RESET)"
 	node scripts/check-backend-legacy-controller-wrapper-policy.ts
 	@echo "$(BLUE)Linting frontend...$(RESET)"
@@ -422,10 +424,10 @@ check-links:
 #------------------------------------------------------------------------------
 security-audit:
 	@echo "$(BLUE)Running npm audit on backend...$(RESET)"
-	cd backend && npm audit --workspaces=false --audit-level=high || true
+	cd backend && npm audit --omit=dev --audit-level=moderate
 	@echo ""
 	@echo "$(BLUE)Running npm audit on frontend...$(RESET)"
-	cd frontend && npm audit --workspaces=false --audit-level=high || true
+	cd frontend && npm audit --omit=dev --audit-level=moderate
 	@echo ""
 	@echo "$(GREEN)Security audit complete!$(RESET)"
 

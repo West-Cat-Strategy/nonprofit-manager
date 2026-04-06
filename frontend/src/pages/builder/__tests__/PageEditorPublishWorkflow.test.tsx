@@ -5,6 +5,7 @@ import { Route, Routes } from 'react-router-dom';
 import PageEditor from '../../../features/builder/pages/PageEditorPage';
 import { createTestStore, renderWithProviders } from '../../../test/testUtils';
 import type { RootState } from '../../../store';
+import type * as EditorModule from '../../../components/editor';
 
 const sequence: string[] = [];
 
@@ -22,7 +23,7 @@ vi.mock('../../../services/api', () => ({
 }));
 
 vi.mock('../../../components/editor', async () => {
-  const actual = await vi.importActual<typeof import('../../../components/editor')>(
+  const actual = await vi.importActual<typeof EditorModule>(
     '../../../components/editor'
   );
 

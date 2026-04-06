@@ -5,6 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
+CALLER_SET_DB_HOST="${DB_HOST+x}"
+CALLER_SET_DB_PORT="${DB_PORT+x}"
+CALLER_SET_DB_NAME="${DB_NAME+x}"
+CALLER_SET_DB_USER="${DB_USER+x}"
+CALLER_SET_DB_PASSWORD="${DB_PASSWORD+x}"
 MODE="${COMPOSE_MODE:-dev}"
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-8002}"
@@ -22,6 +27,22 @@ fi
 
 is_test_db() {
   [[ "$DB_PORT" == "8012" || "$DB_NAME" == "nonprofit_manager_test" || "$MODE" == "ci" ]]
+}
+
+normalize_test_db_contract() {
+  if ! is_test_db; then
+    return 0
+  fi
+
+  if [[ "$CALLER_SET_DB_HOST" == "x" && "$CALLER_SET_DB_PORT" == "x" && "$CALLER_SET_DB_NAME" == "x" && "$CALLER_SET_DB_USER" == "x" && "$CALLER_SET_DB_PASSWORD" == "x" ]]; then
+    return 0
+  fi
+
+  DB_HOST="127.0.0.1"
+  DB_PORT="8012"
+  DB_NAME="nonprofit_manager_test"
+  DB_USER="postgres"
+  DB_PASSWORD="postgres"
 }
 
 wait_for_schema_migrations() {
@@ -92,7 +113,7 @@ ensure_test_database() {
   local run_log
 
   while [[ "$attempt" -le "$max_attempts" ]]; do
-    log_info "Rebuilding the isolated Playwright test database on localhost:${DB_PORT} (attempt ${attempt}/${max_attempts})..."
+    log_info "Rebuilding the isolated test database on ${DB_HOST}:${DB_PORT}/${DB_NAME} (attempt ${attempt}/${max_attempts})..."
     docker rm -f "$TEST_CONTAINER_NAME" >/dev/null 2>&1 || true
     docker volume rm "$TEST_VOLUME_NAME" >/dev/null 2>&1 || true
 
@@ -110,8 +131,8 @@ ensure_test_database() {
       "$TEST_IMAGE" >"$run_log" 2>&1; then
       rm -f "$run_log"
       wait_for_schema_migrations "$TEST_CONTAINER_NAME"
-      wait_for_host_connection "127.0.0.1" "$DB_PORT"
-      log_success "Playwright test database is ready on localhost:${DB_PORT}."
+      wait_for_host_connection "$DB_HOST" "$DB_PORT"
+      log_success "Isolated test database is ready on ${DB_HOST}:${DB_PORT}/${DB_NAME}."
       return 0
     fi
 
@@ -132,6 +153,8 @@ ensure_test_database() {
   log_error "Failed to start the isolated Playwright test database after ${max_attempts} attempts."
   return 1
 }
+
+normalize_test_db_contract
 
 show_status() {
   if is_test_db; then

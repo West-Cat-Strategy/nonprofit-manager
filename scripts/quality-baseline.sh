@@ -30,6 +30,6 @@ run node scripts/check-frontend-legacy-page-path-policy.ts
 run node scripts/check-backend-legacy-controller-wrapper-policy.ts
 run node scripts/check-route-integrity.ts
 run node scripts/check-route-catalog-drift.ts
-run node scripts/ui-audit.ts
+run node scripts/ui-audit.ts --enforce-baseline
 
 echo "Quality baseline complete."
