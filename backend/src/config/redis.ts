@@ -9,7 +9,8 @@ const DEFAULT_DELETE_BATCH_SIZE = 200;
  * Initialize Redis client connection
  */
 export async function initializeRedis(): Promise<void> {
-  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  const defaultRedisUrl = 'redis://localhost:6379';
+  const redisUrl = process.env.REDIS_URL || defaultRedisUrl;
   const isRedisEnabled = process.env.REDIS_ENABLED !== 'false'; // Default to enabled
 
   if (!isRedisEnabled) {
@@ -20,17 +21,29 @@ export async function initializeRedis(): Promise<void> {
   try {
     // Parse Redis URL and determine TLS settings
     const isProduction = process.env.NODE_ENV === 'production';
+    const redisHost = (() => {
+      try {
+        return new URL(redisUrl).hostname;
+      } catch {
+        return '';
+      }
+    })();
+    const isLocalRedisUrl = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(redisHost);
+    const isNonProductionLocalRedis = !isProduction && isLocalRedisUrl;
 
     // In production, require secure Redis connections
     // Support rediss:// protocol for TLS
     const socketOptions: Record<string, unknown> = {
-      reconnectStrategy: (retries: number) => {
-        if (retries > 10) {
-          logger.error('Redis reconnection failed after 10 attempts');
-          return new Error('Redis reconnection limit reached');
-        }
-        return Math.min(retries * 100, 3000);
-      },
+      connectTimeout: isNonProductionLocalRedis ? 1000 : undefined,
+      reconnectStrategy: isNonProductionLocalRedis
+        ? () => false
+        : (retries: number) => {
+            if (retries > 10) {
+              logger.error('Redis reconnection failed after 10 attempts');
+              return new Error('Redis reconnection limit reached');
+            }
+            return Math.min(retries * 100, 3000);
+          },
     };
 
     // Add TLS config in production if using rediss:// URL
@@ -46,6 +59,10 @@ export async function initializeRedis(): Promise<void> {
     });
 
     redisClient.on('error', (err) => {
+      if (isNonProductionLocalRedis) {
+        return;
+      }
+
       logger.error('Redis client error:', err);
     });
 
@@ -57,14 +74,29 @@ export async function initializeRedis(): Promise<void> {
       logger.info('Redis client ready');
     });
 
-    redisClient.on('reconnecting', () => {
-      logger.warn('Redis client reconnecting...');
-    });
+    if (!isNonProductionLocalRedis) {
+      redisClient.on('reconnecting', () => {
+        logger.warn('Redis client reconnecting...');
+      });
+    }
 
     await redisClient.connect();
     logger.info(`Redis initialized successfully at ${redisUrl}`);
   } catch (error) {
-    logger.error('Failed to initialize Redis:', error);
+    if (process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1', '::1', '[::1]'].includes((() => {
+      try {
+        return new URL(redisUrl).hostname;
+      } catch {
+        return '';
+      }
+    })())) {
+      logger.warn(
+        `Redis is unavailable at ${redisUrl}; continuing without cache. Set REDIS_URL to a reachable service or REDIS_ENABLED=false to skip this probe.`
+      );
+    } else {
+      logger.error('Failed to initialize Redis:', error);
+    }
+
     // Don't throw - allow app to continue without caching
     redisClient = null;
   }

@@ -50,8 +50,8 @@ jest.mock('csrf-csrf', () => ({
   },
 }));
 
-const loadCsrfModule = () =>
-  require('../../middleware/csrf') as typeof import('../../middleware/csrf');
+const loadCsrfModule = async (): Promise<typeof import('../../middleware/csrf')> =>
+  import('../../middleware/csrf');
 
 const createRequest = (overrides: Partial<Request> = {}): Request =>
   ({
@@ -92,8 +92,8 @@ describe('csrf middleware', () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
-  it('binds CSRF tokens to authenticated staff and portal sessions, then falls back for anonymous requests', () => {
-    const { resolveCsrfSessionIdentifier } = loadCsrfModule();
+  it('binds CSRF tokens to authenticated staff and portal sessions, then falls back for anonymous requests', async () => {
+    const { resolveCsrfSessionIdentifier } = await loadCsrfModule();
 
     expect(
       resolveCsrfSessionIdentifier(
@@ -132,8 +132,8 @@ describe('csrf middleware', () => {
     ).toBe('anon:203.0.113.10-Mozilla/5.0');
   });
 
-  it('accepts a create-then-publish flow when the same authenticated session fetches the CSRF token', () => {
-    const { getCsrfToken, csrfMiddleware } = loadCsrfModule();
+  it('accepts a create-then-publish flow when the same authenticated session fetches the CSRF token', async () => {
+    const { getCsrfToken, csrfMiddleware } = await loadCsrfModule();
 
     const sessionReq = createRequest({
       cookies: { auth_token: 'staff-token-123' },
@@ -172,8 +172,8 @@ describe('csrf middleware', () => {
     expect(next).toHaveBeenCalledWith();
   });
 
-  it('rejects a state-changing request without a valid CSRF token', () => {
-    const { csrfMiddleware } = loadCsrfModule();
+  it('rejects a state-changing request without a valid CSRF token', async () => {
+    const { csrfMiddleware } = await loadCsrfModule();
 
     const req = createRequest({
       cookies: { auth_token: 'staff-token-123' },

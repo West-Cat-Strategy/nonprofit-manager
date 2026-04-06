@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-06T00:12:19.788Z",
+  "generatedAt": "2026-04-05T23:58:54.000Z",
   "baseline": {
     "auditedAt": "2026-03-05T00:00:00.000Z",
     "staticAudit": {
@@ -84,22 +84,26 @@
     ]
   },
   "postFix": {
-    "auditedAt": "2026-03-06T00:12:19.788Z",
+    "auditedAt": "2026-04-05T23:44:21.000Z",
     "staticAudit": {
       "routeIntegrityPassed": true,
       "routeCatalogDriftPassed": true,
       "brokenTargets": [],
       "styleAudit": {
-        "hardcodedColorUtilities": 0,
-        "semanticTokenUtilities": 6338,
-        "inlineStyleUsages": 28,
-        "ratioSemanticToHardcoded": null
+        "hardcodedColorUtilities": 9066,
+        "semanticTokenUtilities": 8353,
+        "inlineStyleUsages": 35,
+        "ratioSemanticToHardcoded": 0.9214
       },
       "disallowedInlineStylePaths": []
     },
     "runtimeAudit": {
-      "status": "blocked",
-      "reason": "Docker-backed Playwright audit could not run in this execution environment because the Docker daemon/socket was unavailable on March 6, 2026.",
+      "status": "verified",
+      "reason": "Targeted Playwright route-health and navigation-link audits were rerun successfully on April 5, 2026 in this execution environment.",
+      "verifiedCommands": [
+        "cd e2e && npx playwright test tests/link-health.spec.ts --project=chromium",
+        "cd e2e && npx playwright test tests/navigation-links.spec.ts --project=chromium"
+      ],
       "requiredCommands": [
         "npx playwright test tests/link-health.spec.ts --project=chromium",
         "npx playwright test tests/navigation-links.spec.ts --project=chromium"

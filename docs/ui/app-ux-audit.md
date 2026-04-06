@@ -1,21 +1,22 @@
 # App UI/UX Audit
 
-Generated: 2026-03-06T00:12:19.788Z
+Generated: 2026-04-05T23:58:54.000Z
 
 ## Baseline
 
 - Static route issues before fixes: 4
 - Broken targets: /alerts/history, /alerts/instances, /users, /volunteers/assignments/new
 - Disallowed inline-style hotspots: 6
-- Runtime audit status: blocked in this environment pending Docker-backed Playwright execution
+- Runtime audit status: verified with targeted Playwright route checks on April 5, 2026
 
 ## Post-Fix Static Audit
 
 - Route integrity: pass
 - Route catalog drift: pass
 - Broken targets remaining: 0
-- Hardcoded color utilities: 0
-- Semantic token utilities: 6338
+- Hardcoded color utilities: 9066
+- Semantic token utilities: 8353
+- Inline style usages: 35
 - Disallowed inline-style paths remaining: 0
 
 ## Workflow Surfaces
@@ -49,8 +50,11 @@ Scores are `readability/accessibility/efficiency/workflowClarity`.
 
 ## Runtime Audit Gate
 
-- Status: blocked
-- Reason: Docker-backed Playwright audit could not run in this execution environment because the Docker daemon/socket was unavailable on March 6, 2026.
+- Status: verified
+- Reason: Targeted Playwright route-health and navigation-link audits were rerun successfully on April 5, 2026 in this execution environment.
+- Verified commands:
+  - `cd e2e && npx playwright test tests/link-health.spec.ts --project=chromium`
+  - `cd e2e && npx playwright test tests/navigation-links.spec.ts --project=chromium`
 - Required commands:
   - `npx playwright test tests/link-health.spec.ts --project=chromium`
   - `npx playwright test tests/navigation-links.spec.ts --project=chromium`
