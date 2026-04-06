@@ -5,7 +5,6 @@
 
 import { Pool } from 'pg';
 import pool from '@config/database';
-import { logger } from '@config/logger';
 import type {
   Case,
   CaseDocument,
@@ -43,6 +42,12 @@ import {
   getCaseTypesQuery,
 } from '@modules/cases/queries/catalogQueries';
 import {
+  createCaseMilestoneQuery,
+  deleteCaseMilestoneQuery,
+  getCaseMilestonesQuery,
+  updateCaseMilestoneQuery,
+} from '@modules/cases/queries/milestonesQueries';
+import {
   bulkUpdateStatusQuery,
   createCaseQuery,
   deleteCaseQuery,
@@ -51,11 +56,22 @@ import {
   updateCaseStatusQuery,
 } from '@modules/cases/queries/lifecycleQueries';
 import {
+  createCaseRelationshipQuery,
+  deleteCaseRelationshipQuery,
+  getCaseRelationshipsQuery,
+} from '@modules/cases/queries/relationshipsQueries';
+import {
   createCaseNoteQuery,
   deleteCaseNoteQuery,
   getCaseNotesQuery,
   updateCaseNoteQuery,
 } from '@modules/cases/queries/notesQueries';
+import {
+  createCaseServiceQuery,
+  deleteCaseServiceQuery,
+  getCaseServicesQuery,
+  updateCaseServiceQuery,
+} from '@modules/cases/queries/servicesQueries';
 import {
   addCaseTopicEventQuery,
   createCaseOutcomeQuery,
@@ -77,81 +93,6 @@ import {
 
 export class CaseService {
   constructor(private pool: Pool) { }
-
-  private normalizeProviderName(name: string): string {
-    return name.trim().replace(/\s+/g, ' ');
-  }
-
-  private async resolveExternalServiceProviderId(
-    providerName?: string | null,
-    providerType?: string | null,
-    userId?: string
-  ): Promise<{ providerId: string | null; providerName: string | null }> {
-    if (!providerName || !providerName.trim()) {
-      return { providerId: null, providerName: null };
-    }
-
-    const normalizedName = this.normalizeProviderName(providerName);
-    const existing = await this.pool.query(
-      `
-      SELECT id, provider_name
-      FROM external_service_providers
-      WHERE LOWER(BTRIM(provider_name)) = LOWER(BTRIM($1))
-      LIMIT 1
-    `,
-      [normalizedName]
-    );
-
-    if (existing.rows[0]) {
-      const row = existing.rows[0];
-      if (providerType && providerType.trim()) {
-        await this.pool.query(
-          `
-          UPDATE external_service_providers
-          SET provider_type = COALESCE(provider_type, $1),
-              modified_by = $2
-          WHERE id = $3
-        `,
-          [providerType.trim(), userId || null, row.id]
-        );
-      }
-      return { providerId: row.id, providerName: row.provider_name };
-    }
-
-    const inserted = await this.pool.query(
-      `
-      INSERT INTO external_service_providers (provider_name, provider_type, created_by, modified_by)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id, provider_name
-    `,
-      [normalizedName, providerType?.trim() || null, userId || null, userId || null]
-    );
-
-    return {
-      providerId: inserted.rows[0].id,
-      providerName: inserted.rows[0].provider_name,
-    };
-  }
-
-  private async getExternalProviderById(
-    providerId?: string | null
-  ): Promise<{ id: string; provider_name: string } | null> {
-    if (!providerId) {
-      return null;
-    }
-
-    const result = await this.pool.query(
-      `
-      SELECT id, provider_name
-      FROM external_service_providers
-      WHERE id = $1
-      LIMIT 1
-    `,
-      [providerId]
-    );
-
-    return result.rows[0] || null;
-  }
 
   /**
    * Create a new case
@@ -366,11 +307,7 @@ export class CaseService {
    * Get case milestones
    */
   async getCaseMilestones(caseId: string): Promise<CaseMilestone[]> {
-    const result = await this.pool.query(
-      `SELECT * FROM case_milestones WHERE case_id = $1 ORDER BY sort_order, due_date`,
-      [caseId]
-    );
-    return result.rows;
+    return getCaseMilestonesQuery(this.pool, caseId);
   }
 
   /**
@@ -381,13 +318,7 @@ export class CaseService {
     data: { milestone_name: string; description?: string; due_date?: string; sort_order?: number },
     userId?: string
   ): Promise<CaseMilestone> {
-    const result = await this.pool.query(
-      `INSERT INTO case_milestones (case_id, milestone_name, description, due_date, sort_order, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [caseId, data.milestone_name, data.description || null, data.due_date || null, data.sort_order ?? 0, userId]
-    );
-    logger.info('Milestone created', { caseId, milestoneId: result.rows[0].id });
-    return result.rows[0];
+    return createCaseMilestoneQuery(this.pool, caseId, data, userId);
   }
 
   /**
@@ -397,59 +328,14 @@ export class CaseService {
     milestoneId: string,
     data: { milestone_name?: string; description?: string; due_date?: string; is_completed?: boolean; sort_order?: number }
   ): Promise<CaseMilestone> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let idx = 1;
-
-    if (data.milestone_name !== undefined) {
-      fields.push(`milestone_name = $${idx++}`);
-      values.push(data.milestone_name);
-    }
-    if (data.description !== undefined) {
-      fields.push(`description = $${idx++}`);
-      values.push(data.description);
-    }
-    if (data.due_date !== undefined) {
-      fields.push(`due_date = $${idx++}`);
-      values.push(data.due_date);
-    }
-    if (data.is_completed !== undefined) {
-      fields.push(`is_completed = $${idx++}`);
-      values.push(data.is_completed);
-      if (data.is_completed) {
-        fields.push(`completed_date = CURRENT_DATE`);
-      } else {
-        fields.push(`completed_date = NULL`);
-      }
-    }
-    if (data.sort_order !== undefined) {
-      fields.push(`sort_order = $${idx++}`);
-      values.push(data.sort_order);
-    }
-
-    if (fields.length === 0) {
-      throw new Error('No fields to update');
-    }
-
-    values.push(milestoneId);
-    const result = await this.pool.query(
-      `UPDATE case_milestones SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
-      values
-    );
-
-    if (!result.rows[0]) {
-      throw new Error('Milestone not found');
-    }
-
-    return result.rows[0];
+    return updateCaseMilestoneQuery(this.pool, milestoneId, data);
   }
 
   /**
    * Delete a case milestone
    */
   async deleteCaseMilestone(milestoneId: string): Promise<void> {
-    await this.pool.query(`DELETE FROM case_milestones WHERE id = $1`, [milestoneId]);
-    logger.info('Milestone deleted', { milestoneId });
+    return deleteCaseMilestoneQuery(this.pool, milestoneId);
   }
 
   /**
@@ -503,17 +389,7 @@ export class CaseService {
    * Get case relationships
    */
   async getCaseRelationships(caseId: string): Promise<CaseRelationship[]> {
-    const result = await this.pool.query(
-      `SELECT cr.*, 
-              c.case_number as related_case_number, 
-              c.title as related_case_title
-       FROM case_relationships cr
-       JOIN cases c ON cr.related_case_id = c.id
-       WHERE cr.case_id = $1
-       ORDER BY cr.created_at DESC`,
-      [caseId]
-    );
-    return result.rows;
+    return getCaseRelationshipsQuery(this.pool, caseId);
   }
 
   /**
@@ -524,40 +400,21 @@ export class CaseService {
     data: CreateCaseRelationshipDTO,
     userId?: string
   ): Promise<CaseRelationship> {
-    const result = await this.pool.query(
-      `INSERT INTO case_relationships (case_id, related_case_id, relationship_type, description, created_by)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [caseId, data.related_case_id, data.relationship_type, data.description || null, userId]
-    );
-    logger.info('Case relationship created', { caseId, relatedCaseId: data.related_case_id });
-    return result.rows[0];
+    return createCaseRelationshipQuery(this.pool, caseId, data, userId);
   }
 
   /**
    * Delete case relationship
    */
   async deleteCaseRelationship(relationshipId: string): Promise<void> {
-    await this.pool.query(`DELETE FROM case_relationships WHERE id = $1`, [relationshipId]);
-    logger.info('Case relationship deleted', { relationshipId });
+    return deleteCaseRelationshipQuery(this.pool, relationshipId);
   }
 
   /**
    * Get case services
    */
   async getCaseServices(caseId: string): Promise<CaseServiceType[]> {
-    const result = await this.pool.query(
-      `
-      SELECT cs.*,
-             esp.provider_name as external_service_provider_name,
-             esp.provider_type as external_service_provider_type
-      FROM case_services cs
-      LEFT JOIN external_service_providers esp ON cs.external_service_provider_id = esp.id
-      WHERE cs.case_id = $1
-      ORDER BY cs.service_date DESC, cs.start_time DESC
-    `,
-      [caseId]
-    );
-    return result.rows;
+    return getCaseServicesQuery(this.pool, caseId);
   }
 
   /**
@@ -568,59 +425,7 @@ export class CaseService {
     data: CreateCaseServiceDTO,
     userId?: string
   ): Promise<CaseServiceType> {
-    let providerResolution = await this.resolveExternalServiceProviderId(
-      data.service_provider,
-      data.service_type || null,
-      userId
-    );
-
-    if (data.external_service_provider_id) {
-      const selectedProvider = await this.getExternalProviderById(data.external_service_provider_id);
-      if (selectedProvider) {
-        providerResolution = {
-          providerId: selectedProvider.id,
-          providerName: selectedProvider.provider_name,
-        };
-      }
-    }
-
-    const result = await this.pool.query(
-      `INSERT INTO case_services (
-        case_id, service_name, service_type, service_provider, external_service_provider_id,
-        service_date, start_time, end_time, duration_minutes, 
-        status, outcome, cost, currency, notes, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
-      [
-        caseId,
-        data.service_name,
-        data.service_type || null,
-        providerResolution.providerName || null,
-        data.external_service_provider_id || providerResolution.providerId || null,
-        data.service_date,
-        data.start_time || null,
-        data.end_time || null,
-        data.duration_minutes || null,
-        data.status || 'scheduled',
-        data.outcome || null,
-        data.cost || null,
-        data.currency || 'CAD',
-        data.notes || null,
-        userId
-      ]
-    );
-    logger.info('Case service created', { caseId, serviceId: result.rows[0].id });
-    const joined = await this.pool.query(
-      `
-      SELECT cs.*,
-             esp.provider_name as external_service_provider_name,
-             esp.provider_type as external_service_provider_type
-      FROM case_services cs
-      LEFT JOIN external_service_providers esp ON cs.external_service_provider_id = esp.id
-      WHERE cs.id = $1
-    `,
-      [result.rows[0].id]
-    );
-    return joined.rows[0];
+    return createCaseServiceQuery(this.pool, caseId, data, userId);
   }
 
   /**
@@ -631,62 +436,14 @@ export class CaseService {
     data: UpdateCaseServiceDTO,
     userId?: string
   ): Promise<CaseServiceType> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let idx = 1;
-
-    const payload: Record<string, unknown> = { ...data };
-
-    if (data.service_provider !== undefined) {
-      const providerResolution = await this.resolveExternalServiceProviderId(
-        data.service_provider,
-        data.service_type || null,
-        userId
-      );
-      payload.service_provider = providerResolution.providerName;
-      payload.external_service_provider_id = providerResolution.providerId;
-    } else if (data.external_service_provider_id !== undefined) {
-      const selectedProvider = await this.getExternalProviderById(data.external_service_provider_id);
-      payload.service_provider = selectedProvider?.provider_name || null;
-    }
-
-    Object.entries(payload).forEach(([key, value]) => {
-      if (value !== undefined) {
-        fields.push(`${key} = $${idx++}`);
-        values.push(value);
-      }
-    });
-
-    if (fields.length === 0) throw new Error('No fields to update');
-
-    values.push(serviceId);
-    await this.pool.query(
-      `UPDATE case_services SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
-      values
-    );
-
-    const result = await this.pool.query(
-      `
-      SELECT cs.*,
-             esp.provider_name as external_service_provider_name,
-             esp.provider_type as external_service_provider_type
-      FROM case_services cs
-      LEFT JOIN external_service_providers esp ON cs.external_service_provider_id = esp.id
-      WHERE cs.id = $1
-    `,
-      [serviceId]
-    );
-
-    if (!result.rows[0]) throw new Error('Service not found');
-    return result.rows[0];
+    return updateCaseServiceQuery(this.pool, serviceId, data, userId);
   }
 
   /**
    * Delete case service
    */
   async deleteCaseService(serviceId: string): Promise<void> {
-    await this.pool.query(`DELETE FROM case_services WHERE id = $1`, [serviceId]);
-    logger.info('Case service deleted', { serviceId });
+    return deleteCaseServiceQuery(this.pool, serviceId);
   }
 }
 
