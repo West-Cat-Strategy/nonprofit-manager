@@ -24,14 +24,14 @@ deploy_production_like() {
   local caddy_backend_upstream="backend:8000"
   local caddy_frontend_upstream="frontend:8001"
   local caddy_public_site_upstream="public-site:8006"
-  local caddy_public_site_domain="sites.nonprofitmanager.com"
+  local caddy_public_site_domain="sites.westcat.ca"
   if [[ "$MODE" == "staging" && -f "$ROOT_DIR/.env.staging" ]]; then
     env_file="$ROOT_DIR/.env.staging"
   fi
 
   if [[ "$MODE" == "production" ]]; then
-    caddy_domain="${CADDY_DOMAIN:-nonprofitmanager.com}"
-    caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-sites.nonprofitmanager.com}"
+    caddy_domain="${CADDY_DOMAIN:-westcat.ca}"
+    caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-sites.westcat.ca}"
   fi
 
   if [[ "${DEPLOY_EXECUTE:-0}" != "1" ]]; then

@@ -211,7 +211,7 @@ psql -U postgres -d nonprofit_manager -c "SELECT tablename FROM pg_tables WHERE 
 
 Seed behavior differs by file. None of these files run during the default bootstrap:
 
-- `database/seeds/003_mock_data.sql` includes users (default login: `admin@example.com` / `password123`).
+- `database/seeds/003_mock_data.sql` includes users (default login: `admin@westcat.ca` / `password123`).
 - `database/seeds/004_mock_data_no_users.sql` preserves first-time setup behavior (`/setup`).
 - `database/seeds/005_kingdom_hearts_mock_data.sql` is a themed optional demo bundle.
 - `database/seeds/001_default_users.sql` is placeholder-oriented and not the recommended dev seed path.
@@ -239,9 +239,9 @@ psql -U postgres -d nonprofit_manager -c "SELECT id, email, role FROM users;"
 ```
 
 **Expected Default Users:**
-- `admin@example.com` (role: admin)
-- `manager@example.com` (role: manager)
-- `staff@example.com` (role: user)
+- `admin@westcat.ca` (role: admin)
+- `manager@westcat.ca` (role: manager)
+- `staff@westcat.ca` (role: user)
 
 **Default Password for seeded users:** `password123`
 
@@ -566,4 +566,4 @@ psql -U postgres -d nonprofit_manager -c "
 
 **Last Updated:** 2026-03-19  
 **Maintained by:** Example Organization  
-**Questions?** Contact [maintainer@example.com](mailto:maintainer@example.com)
+**Questions?** Contact [maintainer@westcat.ca](mailto:maintainer@westcat.ca)

@@ -16,7 +16,7 @@ import type {
 } from '@app-types/publishing';
 
 // Base URL for published sites (configurable via environment)
-const SITE_BASE_URL = process.env.SITE_BASE_URL || 'https://sites.nonprofitmanager.com';
+const SITE_BASE_URL = process.env.SITE_BASE_URL || 'https://sites.westcat.ca';
 const PUBLISHED_SITE_SELECT_COLUMNS = `
   id,
   user_id,

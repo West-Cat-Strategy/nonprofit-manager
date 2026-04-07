@@ -68,7 +68,7 @@ services:
       DB_AT_REST_PROVIDER: ${DB_AT_REST_PROVIDER:-other}
       DB_AT_REST_VERIFIED: ${DB_AT_REST_VERIFIED:-true}
       DB_LUKS_MAPPING_NAME: ${DB_LUKS_MAPPING_NAME:-nonprofit-manager-db}
-      SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.nonprofitmanager.com}
+      SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.westcat.ca}
       POSTGRES_DATA_DIR: ${POSTGRES_DATA_DIR:-/var/lib/nonprofit-manager/postgres}
       BACKUP_DIR: ${BACKUP_DIR:-/var/lib/nonprofit-manager/backups/database}
     depends_on:
@@ -124,9 +124,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       REDIS_ENABLED: ${REDIS_ENABLED:-true}
-      CORS_ORIGIN: ${PUBLIC_SITE_CORS_ORIGIN:-https://sites.nonprofitmanager.com}
-      API_ORIGIN: ${PUBLIC_SITE_API_ORIGIN:-https://sites.nonprofitmanager.com}
-      SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.nonprofitmanager.com}
+      CORS_ORIGIN: ${PUBLIC_SITE_CORS_ORIGIN:-https://sites.westcat.ca}
+      API_ORIGIN: ${PUBLIC_SITE_API_ORIGIN:-https://sites.westcat.ca}
+      SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.westcat.ca}
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
       RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-1500}
       AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-900000}

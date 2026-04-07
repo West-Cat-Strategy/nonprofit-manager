@@ -66,7 +66,7 @@ POST /api/v2/sites/:siteId/domain
 Content-Type: application/json
 
 {
-  "domain": "www.example.org",
+  "domain": "www.westcat.ca",
   "verificationMethod": "cname"  // or "txt"
 }
 ```
@@ -74,15 +74,15 @@ Content-Type: application/json
 Response:
 ```json
 {
-  "domain": "www.example.org",
+  "domain": "www.westcat.ca",
   "verificationStatus": "pending",
   "verificationToken": "abc123...",
   "verificationMethod": "cname",
   "dnsRecords": [
     {
       "type": "CNAME",
-      "name": "www.example.org",
-      "value": "mysite-abc123.sites.nonprofitmanager.com",
+      "name": "www.westcat.ca",
+      "value": "mysite-abc123.sites.westcat.ca",
       "verified": false
     }
   ]
@@ -94,12 +94,12 @@ Response:
 Add the required DNS records with your domain registrar:
 
 **CNAME Method:**
-- Name: `www.example.org`
+- Name: `www.westcat.ca`
 - Type: CNAME
-- Value: `<subdomain>.sites.nonprofitmanager.com`
+- Value: `<subdomain>.sites.westcat.ca`
 
 **TXT Method (for verification):**
-- Name: `_npmverify.www.example.org`
+- Name: `_npmverify.www.westcat.ca`
 - Type: TXT
 - Value: `npm-verify=<verification-token>`
 
@@ -114,7 +114,7 @@ POST /api/v2/sites/:siteId/domain/verify
 Response:
 ```json
 {
-  "domain": "www.example.org",
+  "domain": "www.westcat.ca",
   "verified": true,
   "status": "verified",
   "records": [...],
@@ -138,7 +138,7 @@ Response:
 ```json
 {
   "siteId": "uuid...",
-  "domain": "www.example.org",
+  "domain": "www.westcat.ca",
   "status": "active",
   "issuer": "Let's Encrypt",
   "expiresAt": "2026-05-01T00:00:00Z",
@@ -260,10 +260,10 @@ This creates:
 
 ```bash
 # Base URL for published sites
-SITE_BASE_URL=https://sites.nonprofitmanager.com
+SITE_BASE_URL=https://sites.westcat.ca
 
 # SSL provisioning (for production with Let's Encrypt)
-ACME_EMAIL=admin@nonprofitmanager.com
+ACME_EMAIL=admin@westcat.ca
 ACME_DIRECTORY=https://acme-v02.api.letsencrypt.org/directory
 ```
 

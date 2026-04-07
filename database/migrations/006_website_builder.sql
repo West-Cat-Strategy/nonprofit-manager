@@ -113,7 +113,7 @@ CREATE INDEX idx_published_sites_custom_domain ON published_sites(custom_domain)
 CREATE INDEX idx_published_sites_status ON published_sites(status);
 
 COMMENT ON TABLE published_sites IS 'Published websites created from templates';
-COMMENT ON COLUMN published_sites.subdomain IS 'Subdomain for hosting (e.g., myorg.nonprofitmanager.com)';
+COMMENT ON COLUMN published_sites.subdomain IS 'Subdomain for hosting (e.g., myorg.westcat.ca)';
 COMMENT ON COLUMN published_sites.custom_domain IS 'Custom domain if configured (e.g., www.mynonprofit.org)';
 COMMENT ON COLUMN published_sites.published_content IS 'Snapshot of content at publish time for static generation';
 
