@@ -1,6 +1,6 @@
 # Backend Service
 
-**Last Updated:** 2026-03-23
+**Last Updated:** 2026-04-07
 
 This guide covers the backend service only. For the overall contributor flow, start at [../README.md](../README.md).
 
@@ -22,6 +22,8 @@ Active domain-owned backend code lives under `src/modules/`.
 | Docker development | `make dev` from repo root | `http://localhost:8004` | Backend runs in `backend-dev` with Docker-managed Postgres and Redis |
 | Direct backend runtime | `cd backend && npm run dev` | `http://localhost:3000` | Uses your `backend/.env` settings |
 | E2E harness backend | started by Playwright | `http://127.0.0.1:3001` | Used by `cd e2e && npm test` |
+
+Keep these modes separate when debugging or documenting local issues. The port and env expectations are different across the three runtimes.
 
 ## Direct Backend Setup
 
@@ -69,6 +71,7 @@ Repo-root equivalents:
 - `make lint`
 - `make typecheck`
 - `make test`
+- `make check-links` and `make lint-doc-api-versioning` for backend-doc changes
 
 ## Architecture Notes
 

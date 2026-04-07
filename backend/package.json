@@ -84,7 +84,7 @@
       "minimatch": "5.1.9"
     },
     "@sentry/node": {
-      "minimatch": "9.0.9"
+      "minimatch": "10.2.5"
     }
   },
   "devDependencies": {

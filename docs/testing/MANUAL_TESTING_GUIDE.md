@@ -1,8 +1,9 @@
 # Manual Testing Guide - Volunteer Management Features
 
-**Last Updated:** February 1, 2026
-**Testing Phase:** Week 1 - Phase 2 Module Completion
-**Tester:** Bryan Crockett
+**Last Updated:** 2026-04-07
+
+This is a narrow manual QA checklist for older volunteer-management flows.
+For the active testing workflow and command map, start with [TESTING.md](TESTING.md).
 
 ---
 
@@ -11,18 +12,22 @@
 ### Starting the Application
 
 ```bash
-# Terminal 1 - Start Backend (localhost:3000)
+# Terminal 1 - Start Backend (direct runtime on localhost:3000)
 cd backend
 npm run dev
 
-# Terminal 2 - Start Frontend (localhost:5173)
+# Terminal 2 - Start Frontend (Vite defaults to localhost:8005 in this repo)
 cd frontend
 npm run dev
 
-# Terminal 3 - Ensure PostgreSQL is running
-# macOS: brew services list
-# Linux: sudo systemctl status postgresql
+# Terminal 3 - Ensure Postgres is available
+# Option A: use the optional Docker dev stack
+make dev
+#
+# Option B: use your own local/managed Postgres and backend env config
 ```
+
+If you use `make dev`, remember the Docker dev backend runs on `8004`; this checklist assumes the direct backend runtime on `3000`.
 
 ### Test Account
 - Email: test@example.com

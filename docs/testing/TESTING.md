@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-04-07
 
 This file is the active test command map for nonprofit-manager. Use it with [../../README.md](../../README.md) and the service-specific READMEs.
 
@@ -25,7 +25,7 @@ This file is the active test command map for nonprofit-manager. Use it with [../
 
 ## Default Commands
 
-Run from the repo root unless noted otherwise:
+Run from the repo root unless noted otherwise. Prefer these before package-level commands:
 
 ```bash
 make lint
@@ -103,3 +103,5 @@ Run the emitted commands in order.
 - [../../e2e/README.md](../../e2e/README.md)
 - [COMPONENT_TESTING.md](COMPONENT_TESTING.md)
 - [INTEGRATION_TEST_GUIDE.md](INTEGRATION_TEST_GUIDE.md)
+
+`INTEGRATION_TEST_GUIDE.md` and `MANUAL_TESTING_GUIDE.md` are narrower supporting references. Treat this file as the primary source of truth for the current test-command map.

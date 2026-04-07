@@ -1,6 +1,6 @@
 # Agent Instructions For Nonprofit Manager
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-04-07
 
 This file is for coding agents and contributors making repository changes.
 
@@ -82,6 +82,7 @@ This file is for coding agents and contributors making repository changes.
 - Contributor workflow: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
 - Service-specific guidance: [../../backend/README.md](../../backend/README.md) and [../../frontend/README.md](../../frontend/README.md)
 - Testing guidance: [../testing/TESTING.md](../testing/TESTING.md) and [../../e2e/README.md](../../e2e/README.md)
+- The workboard in [../phases/planning-and-progress.md](../phases/planning-and-progress.md) is the source of truth for tracked ownership and status changes.
 
 ## Validation Commands
 

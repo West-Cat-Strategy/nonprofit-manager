@@ -1,14 +1,14 @@
 # Documentation Directory
 
-**Last Updated**: 2026-03-19
+**Last Updated**: 2026-04-07
 
-Use this directory for detailed reference material.
+Use this directory for detailed reference material. It is a short landing page, not the contributor onboarding path.
 
 Start here depending on what you need:
 
-- [../README.md](../README.md) for the contributor start page and active development workflow
-- [../CONTRIBUTING.md](../CONTRIBUTING.md) for the contributor workflow and validation checklist
-- [INDEX.md](INDEX.md) for the full documentation catalog
+- [../README.md](../README.md) for the contributor start page and active runtime matrix
+- [../CONTRIBUTING.md](../CONTRIBUTING.md) for contributor workflow, validation, and handoff expectations
+- [INDEX.md](INDEX.md) for the full documentation catalog and category map
 - [phases/planning-and-progress.md](phases/planning-and-progress.md) for the active workboard
 
 Quick links:

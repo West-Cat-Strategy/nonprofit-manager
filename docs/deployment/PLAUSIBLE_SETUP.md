@@ -1,5 +1,7 @@
 # Plausible Analytics Setup Guide
 
+**Last Updated:** 2026-04-07
+
 This guide explains how to set up and use Plausible Analytics with the Nonprofit Manager application.
 
 ## Table of Contents
@@ -74,7 +76,7 @@ VITE_PLAUSIBLE_API_HOST=localhost:8000
 ### Step 3: Start Plausible
 
 ```bash
-docker-compose -f docker-compose.plausible.yml --env-file .env.plausible up -d
+docker compose -f docker-compose.plausible.yml --env-file .env.plausible up -d
 ```
 
 Wait for the containers to initialize (about 30 seconds).
@@ -346,7 +348,7 @@ The widget requires:
 **Solutions**:
 1. Check that Plausible containers are running:
    ```bash
-   docker-compose -f docker-compose.plausible.yml ps
+   docker compose -f docker-compose.plausible.yml ps
    ```
 
 2. Verify environment variables in `frontend/.env.local`:
@@ -406,18 +408,18 @@ The widget requires:
 **Solutions**:
 1. Stop all containers:
    ```bash
-   docker-compose -f docker-compose.plausible.yml down
+   docker compose -f docker-compose.plausible.yml down
    ```
 
 2. Remove volumes and start fresh:
    ```bash
-   docker-compose -f docker-compose.plausible.yml down -v
-   docker-compose -f docker-compose.plausible.yml up -d
+   docker compose -f docker-compose.plausible.yml down -v
+   docker compose -f docker-compose.plausible.yml up -d
    ```
 
 3. Check logs:
    ```bash
-   docker-compose -f docker-compose.plausible.yml logs plausible
+   docker compose -f docker-compose.plausible.yml logs plausible
    ```
 
 ---

@@ -1,8 +1,10 @@
 # Nonprofit Manager - Quick Reference
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-07
 
 Compact command map for day-to-day work in the nonprofit-manager repo.
+
+Use [../../README.md](../../README.md) for the onboarding path and [../INDEX.md](../INDEX.md) for the full catalog.
 
 ## Project Structure
 
@@ -89,6 +91,7 @@ make db-verify
 - Docs-only change: `make check-links` and `make lint-doc-api-versioning`
 - Small mixed change: `./scripts/select-checks.sh --base HEAD~1 --mode fast`
 - Release-facing change: `make ci-full`
+- Package-level type checking: `cd backend && npm run type-check` or `cd frontend && npm run type-check`
 
 ## Key References
 

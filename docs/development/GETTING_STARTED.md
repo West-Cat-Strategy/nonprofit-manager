@@ -1,8 +1,8 @@
 # Getting Started
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-07
 
-Use this guide to get a working nonprofit-manager development environment without guessing which runtime the docs assume.
+Use this guide to get a working nonprofit-manager development environment without guessing which runtime the docs assume. The ports differ by mode, so keep the runtime you choose in mind as you follow the steps.
 
 ## Prerequisites
 
@@ -30,6 +30,8 @@ git --version
 | Backend-only feature work | Direct backend runtime | App runs on `3000`; you provide env config and infra |
 | Frontend-only feature work | Direct frontend runtime | App runs on `8005`; point it at a running backend |
 | Playwright or end-to-end validation | E2E harness | Playwright manages frontend/backend on `5173/3001` |
+
+Use the same runtime mode consistently while debugging. A direct backend on `3000` and the Docker dev backend on `8004` are both valid, but they are different setups with different env expectations.
 
 ## Path 1: Build-First Docker Images
 
@@ -150,7 +152,7 @@ The harness loads `.env.test.local` first, then `.env.test`.
 
 ## Core Verification Commands
 
-Run the smallest useful set for your change:
+Run the smallest useful set for your change. Prefer repo-root commands first:
 
 ```bash
 make lint

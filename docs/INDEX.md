@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-07
 
 This file is the full documentation catalog. If you are starting work in the repository, begin with [../README.md](../README.md) first.
 
@@ -54,15 +54,23 @@ Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 | [../frontend/SETUP.md](../frontend/SETUP.md) | Frontend-only setup details |
 | [../scripts/README.md](../scripts/README.md) | Utility scripts and policy checks |
 
+Notes:
+- `README.md` and `CONTRIBUTING.md` are the contributor happy path.
+- The files in this section should describe current commands, ports, and workflow expectations.
+
 ## Testing
 
 | Document | Purpose |
 |----------|---------|
 | [testing/TESTING.md](testing/TESTING.md) | Test strategy, command map, and runtime matrix |
 | [testing/COMPONENT_TESTING.md](testing/COMPONENT_TESTING.md) | Frontend component testing patterns |
-| [testing/INTEGRATION_TEST_GUIDE.md](testing/INTEGRATION_TEST_GUIDE.md) | Backend integration testing guidance |
-| [testing/MANUAL_TESTING_GUIDE.md](testing/MANUAL_TESTING_GUIDE.md) | Manual QA flows |
+| [testing/INTEGRATION_TEST_GUIDE.md](testing/INTEGRATION_TEST_GUIDE.md) | Narrow backend integration workflow and legacy script notes |
+| [testing/MANUAL_TESTING_GUIDE.md](testing/MANUAL_TESTING_GUIDE.md) | Narrow manual QA checklist for older volunteer-management flows |
 | [../e2e/README.md](../e2e/README.md) | Playwright test harness guide |
+
+Notes:
+- `testing/TESTING.md` is the active test-command map.
+- Some narrower guides remain useful reference material but are not the primary contributor workflow.
 
 ## API And Integrations
 
@@ -75,6 +83,10 @@ Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 | [api/API_INTEGRATION_GUIDE.md](api/API_INTEGRATION_GUIDE.md) | Stripe, Mailchimp, and webhook integrations |
 | [api/postman/README.md](api/postman/README.md) | Postman collection guide |
 | [api/openapi.yaml](api/openapi.yaml) | OpenAPI specification |
+
+Notes:
+- Active API guidance should use `/api/v2/*` except for documented health aliases.
+- Local examples in this section typically assume the direct backend runtime on `http://localhost:3000`.
 
 ## Deployment And Operations
 
@@ -104,10 +116,13 @@ Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 | Document | Purpose |
 |----------|---------|
 | [security/SECURITY_MONITORING_GUIDE.md](security/SECURITY_MONITORING_GUIDE.md) | Security monitoring guidance |
-| [security/INCIDENT_RESPONSE_RUNBOOK.md](security/INCIDENT_RESPONSE_RUNBOOK.md) | Incident response procedures |
+| [security/INCIDENT_RESPONSE_RUNBOOK.md](security/INCIDENT_RESPONSE_RUNBOOK.md) | Incident response procedures and ops checklist |
 | [validation/VALIDATION_SCHEMAS_REFERENCE.md](validation/VALIDATION_SCHEMAS_REFERENCE.md) | Validation schema reference |
 | [performance/PERFORMANCE_OPTIMIZATION.md](performance/PERFORMANCE_OPTIMIZATION.md) | Performance guidance |
 | [performance/PERFORMANCE_OPTIMIZATION_REPORT.md](performance/PERFORMANCE_OPTIMIZATION_REPORT.md) | Performance report |
+
+Notes:
+- Security and performance reports may include dated operational context; treat the procedural runbooks as current only where they match the active runtime and deployment contract.
 
 ## Planning And History
 
@@ -116,6 +131,10 @@ Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 | [phases/planning-and-progress.md](phases/planning-and-progress.md) | Active workboard and status log |
 | [phases/archive/README.md](phases/archive/README.md) | Archived phase documents |
 | [DOCUMENTATION_STYLE_GUIDE.md](DOCUMENTATION_STYLE_GUIDE.md) | Documentation governance rules |
+
+Notes:
+- `phases/planning-and-progress.md` is current operational state.
+- Archived phase documents and execution reports are historical references, not onboarding docs.
 
 ## Quick Navigation
 

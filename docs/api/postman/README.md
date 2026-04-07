@@ -1,5 +1,7 @@
 # Postman Collection Guide
 
+**Last Updated:** 2026-04-07
+
 ## Overview
 
 This directory contains Postman collection and environment files for testing the Nonprofit Manager API.
@@ -23,7 +25,9 @@ This directory contains Postman collection and environment files for testing the
 
 1. Click environment dropdown in top-right corner
 2. Select "Nonprofit Manager - Local"
-3. Verify `base_url` is set to `localhost:3000/api`
+3. Verify `base_url` is set to `http://localhost:3000/api`
+
+This environment assumes the direct backend runtime. If you want to target the Docker dev backend instead, use `http://localhost:8004/api`.
 
 ### 3. Start Backend Server
 
@@ -31,6 +35,8 @@ This directory contains Postman collection and environment files for testing the
 cd backend
 npm run dev
 ```
+
+The collection base URL points at `/api`, and the active application endpoints under that base are `/api/v2/*`. Health aliases remain documented separately.
 
 ## Using the Collection
 
@@ -117,7 +123,7 @@ These are automatically set by test scripts:
 
 Update these in the environment if your setup differs:
 
-- `base_url` - API base URL (default: `localhost:3000/api`)
+- `base_url` - API base URL (default: `http://localhost:3000/api`)
 
 ## Testing Webhooks
 
