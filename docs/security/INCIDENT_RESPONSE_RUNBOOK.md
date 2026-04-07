@@ -141,10 +141,13 @@ SELECT * FROM users WHERE created_at > NOW() - INTERVAL '24 hours';
 ### 3.1 Immediate Mitigation (Non-Destructive)
 
 ```bash
-# If API under active attack, rate limit more aggressively
-# (without blocking legitimate traffic)
-docker exec backend-api curl -X POST localhost:3000/admin/ratelimit \
-  -d '{"limit": 10, "window": "1m"}'
+# If API traffic is abusive, prefer infrastructure-level controls first:
+# - tighten edge/WAF or reverse-proxy limits
+# - restrict ingress by source IP or path
+# - scale down exposed surfaces while preserving logs
+#
+# Confirm any application-level mitigation endpoint from the current codebase
+# before documenting or using it during an incident.
 
 # Revoke potentially compromised API keys
 docker exec postgres psql -U postgres -d nonprofit_manager << 'SQL'
@@ -160,7 +163,7 @@ SQL
 
 ```bash
 # Take API offline (before debugging)
-docker-compose down
+docker compose down
 
 # Preserve all logs/data
 tar -czvf incident-$(date +%s).tar.gz \
@@ -169,7 +172,7 @@ tar -czvf incident-$(date +%s).tar.gz \
   /tmp/incident-*
 
 # Restart with temporary measures
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 3.3 Credential Rotation (High Priority)

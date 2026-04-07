@@ -1,6 +1,6 @@
 # Documentation Style Guide
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-07
 
 Use this guide when creating or updating documentation in nonprofit-manager.
 
@@ -13,6 +13,7 @@ Use this guide when creating or updating documentation in nonprofit-manager.
 - [phases/planning-and-progress.md](phases/planning-and-progress.md) is the live workboard and status log.
 - [../scripts/README.md](../scripts/README.md) is the root helper-script index.
 - Service READMEs such as [../backend/README.md](../backend/README.md) and [../frontend/README.md](../frontend/README.md) should explain their own surfaces, but should not replace the root README as the contributor start path.
+- `docs/testing/TESTING.md` is the active test-command map; narrower testing docs should say when they are historical or narrowly scoped.
 
 ## Before You Write
 
@@ -54,6 +55,7 @@ Examples:
   - Direct service runtime
   - E2E harness runtime
 - Use the package script names exactly as implemented. For example, this repo uses `npm run type-check` in packages and `make typecheck` at the root.
+- When examples assume the direct backend runtime, say so explicitly instead of implying the same URL applies to Docker dev or Playwright.
 
 ## Writing Style
 
@@ -97,6 +99,7 @@ Examples:
 - Use ISO dates in active docs when practical: `2026-03-11`.
 - Use exact dates instead of relative wording when status matters.
 - Keep workboard changes in [phases/planning-and-progress.md](phases/planning-and-progress.md), not in scattered status notes across active docs.
+- Label historical or narrow-scope docs in `docs/INDEX.md` rather than overloading contributor entry docs with caveats.
 
 ## Maintenance Checklist
 

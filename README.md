@@ -1,6 +1,6 @@
 # Nonprofit Manager
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-07
 
 Nonprofit Manager is a full-stack TypeScript platform for nonprofit operations: people and case management, events and volunteers, fundraising, client portal workflows, analytics, and website publishing.
 
@@ -15,7 +15,7 @@ Read these in order when you are contributing code or docs:
 3. [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md)
 4. [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md)
 
-If the work is tracked, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before editing code or documentation.
+If the work is tracked, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before editing code or documentation. The workboard is the single source of truth for ownership, status, and blockers.
 
 ## Stack
 
@@ -43,7 +43,7 @@ Use these when you want the fastest feedback on container changes:
 
 ## Common Commands
 
-Run these from the repo root unless noted otherwise:
+Run these from the repo root unless noted otherwise. Prefer these before package-level commands when they cover your change:
 
 ```bash
 make docker-build
@@ -71,14 +71,13 @@ Package-level commands still exist when you want narrower feedback:
 
 Use these as the main active references:
 
-- [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup and runtime choices
-- [CONTRIBUTING.md](CONTRIBUTING.md) for branch, review, and validation workflow
+- [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup, runtime choices, and port guidance by mode
+- [CONTRIBUTING.md](CONTRIBUTING.md) for branch, review, validation, and workboard workflow
 - [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for coding-agent rules and repo guardrails
 - [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md) for service-specific guidance
 - [docs/testing/TESTING.md](docs/testing/TESTING.md) and [e2e/README.md](e2e/README.md) for test guidance
 - [docs/api/README.md](docs/api/README.md) for API reference entry points
 - [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) for deployment guidance
-- [CONTRIBUTING.md](CONTRIBUTING.md) for contributor workflow and validation expectations
 - [scripts/README.md](scripts/README.md) for the root helper-script index
 - [docs/INDEX.md](docs/INDEX.md) for the full catalog
 

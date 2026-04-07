@@ -1,6 +1,6 @@
 # Development Conventions
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-04-07
 
 Use this file for active coding and workflow conventions. For setup, see [GETTING_STARTED.md](GETTING_STARTED.md).
 
@@ -8,7 +8,7 @@ Use this file for active coding and workflow conventions. For setup, see [GETTIN
 
 - Node.js `20.19+`
 - npm `10+`
-- Docker Compose for the recommended local stack
+- Docker for the optional compose-based local stack
 
 Repo-root commands:
 
@@ -24,6 +24,7 @@ Package-level type checking uses `npm run type-check`, not `npm run typecheck`.
 
 - Docker development uses `make dev` and exposes frontend `8005`, backend `8004`, Postgres `8002`, and Redis `8003`.
 - Direct backend runtime defaults to `3000`.
+- Direct frontend runtime defaults to `8005` and should point at the backend you choose.
 - The Playwright harness defaults to frontend `5173` and backend `3001`.
 - Root Docker flows prefer `.env.development`.
 - Backend local env files use `backend/.env` and optional `backend/.env.test.local`.
@@ -106,6 +107,7 @@ Package-level type checking uses `npm run type-check`, not `npm run typecheck`.
 
 - [../../README.md](../../README.md) is the contributor start page.
 - [../INDEX.md](../INDEX.md) is the catalog.
+- [../../CONTRIBUTING.md](../../CONTRIBUTING.md) is the contributor workflow and validation guide.
 - Use relative links in local docs.
 - Verify commands, ports, and env guidance against the repo before documenting them.
 

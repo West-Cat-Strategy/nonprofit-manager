@@ -1,6 +1,6 @@
 # Contributing to Nonprofit Manager
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-07
 
 Use this guide when you are contributing code, docs, or release support to Nonprofit Manager.
 
@@ -52,6 +52,8 @@ For smaller mixed changes, use the selector helper:
 - Use `/api/v2/*` in active API docs unless you are documenting a health alias or compatibility exception.
 - Treat `docs/INDEX.md` as the catalog and [docs/README.md](docs/README.md) as the short docs landing page.
 - Use [scripts/README.md](scripts/README.md) when you need the root helper-script index.
+- Call out runtime-specific ports explicitly instead of implying one universal local setup.
+- Keep root `make` commands as the primary contributor interface and use package scripts only for narrower checks.
 
 ## When You Finish
 

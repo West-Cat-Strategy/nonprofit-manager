@@ -1,8 +1,9 @@
 # Integration Test Execution Guide
 
-**Status**: Integration test suite created and ready to run
-**Date**: 2026-02-02
-**Purpose**: Validate all Phase 2 modules work together correctly
+**Last Updated:** 2026-04-07
+
+This is a narrow backend integration-testing reference for the shell-based workflows under `backend/tests/integration/`.
+For the active repo-wide testing map, start with [TESTING.md](TESTING.md).
 
 ---
 
@@ -46,20 +47,24 @@ Before running tests, ensure:
    make db-migrate
    ```
 
-2. **You have admin credentials**
-   - Email: `admin@example.com`
-   - Password: Your admin password
+2. **You are using the direct backend runtime**
+   - These scripts assume a backend at `http://localhost:3000`
+   - They do not target the Docker dev stack on `8004` unless you override the script environment
 
-### Option 1: Quick Start (Recommended)
+3. **You have admin credentials**
+   - Email: `admin@example.com`
+   - Password: your admin password
+
+### Option 1: Quick Start
 
 The fastest way to run all tests:
 
 ```bash
-# 1. Start the backend server (in terminal 1)
+# 1. Start the backend server (terminal 1)
 cd backend
 npm run dev
 
-# 2. Run tests (in terminal 2)
+# 2. Run tests (terminal 2)
 cd backend/tests/integration
 ./setup-test-environment.sh
 # Enter admin password when prompted
@@ -250,7 +255,7 @@ Tests fail because endpoints return 404
 
 **Solution:**
 - Verify all backend modules are implemented
-- Check routes are properly registered in `server.ts`
+- Check routes are properly registered through the current backend entrypoints
 - Ensure migrations have created necessary tables
 
 ### Issue: Permission Errors
@@ -367,61 +372,16 @@ Should return 0 results after test completion.
 
 ---
 
-## Continuous Integration
+## Current Repo Workflow
 
-### Adding to CI/CD Pipeline
+This guide documents a narrow shell-script workflow. For the active contributor validation path, use the repo-native commands:
 
-To run tests in GitHub Actions:
-
-```yaml
-name: Integration Tests
-
-on: [push, pull_request]
-
-jobs:
-  integration-tests:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: nonprofit_manager_test
-        ports:
-          - 5432:5432
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: cd backend && npm install
-
-      - name: Run migrations
-        run: make db-migrate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nonprofit_manager_test
-
-      - name: Start server
-        run: cd backend && npm run dev &
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nonprofit_manager_test
-
-      - name: Wait for server
-        run: sleep 10
-
-      - name: Run integration tests
-        run: |
-          cd backend/tests/integration
-          export ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
-          ./setup-test-environment.sh
-          ./integration-full-system.sh
+```bash
+make test
+cd backend && npm run test:integration
 ```
+
+Use [TESTING.md](TESTING.md) and [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for the current repo-level validation expectations instead of older CI examples.
 
 ---
 

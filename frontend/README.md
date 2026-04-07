@@ -1,6 +1,6 @@
 # Frontend Service
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-04-07
 
 This guide covers the frontend application only. For the full contributor path, start at [../README.md](../README.md).
 
@@ -22,6 +22,8 @@ Current structure is centered on:
 | Docker development | `make dev` from repo root | `http://localhost:8005` | Frontend proxies `/api` to the Docker backend |
 | Direct frontend runtime | `cd frontend && npm run dev` | `http://localhost:8005` | Point `frontend/.env.local` at the backend you want |
 | E2E harness frontend | started by Playwright | `http://127.0.0.1:5173` | Used by `cd e2e && npm test` |
+
+The frontend port changes between the direct runtime and the Playwright harness. Keep the selected runtime in mind before comparing behavior or API URLs.
 
 ## Direct Frontend Setup
 

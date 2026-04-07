@@ -1,6 +1,6 @@
 # E2E Tests
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-04-07
 
 Playwright tests live here. For the overall testing strategy, see [../docs/testing/TESTING.md](../docs/testing/TESTING.md).
 
@@ -14,6 +14,8 @@ Default addresses from `playwright.config.ts`:
 - Backend API: `http://127.0.0.1:3001`
 - Public site: `http://127.0.0.1:3001`
 - Test database port: `8012`
+
+These defaults are specific to the Playwright-managed runtime. They do not match the optional Docker dev stack or the direct backend/frontend runtime.
 
 Local overrides load in this order:
 
