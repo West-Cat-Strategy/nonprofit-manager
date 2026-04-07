@@ -34,7 +34,7 @@ export class SslService {
       return null;
     }
 
-    const domain = site.customDomain || (site.subdomain ? `${site.subdomain}.sites.nonprofitmanager.com` : null);
+    const domain = site.customDomain || (site.subdomain ? `${site.subdomain}.sites.westcat.ca` : null);
     if (!domain) {
       return null;
     }

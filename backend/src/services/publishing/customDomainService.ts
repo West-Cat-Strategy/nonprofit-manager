@@ -62,7 +62,7 @@ export class CustomDomainService {
       dnsRecords.push({
         type: 'CNAME',
         name: domain,
-        value: `${site.subdomain || site.id}.sites.nonprofitmanager.com`,
+        value: `${site.subdomain || site.id}.sites.westcat.ca`,
         verified: false,
       });
     } else {
@@ -75,7 +75,7 @@ export class CustomDomainService {
       dnsRecords.push({
         type: 'CNAME',
         name: domain,
-        value: `${site.subdomain || site.id}.sites.nonprofitmanager.com`,
+        value: `${site.subdomain || site.id}.sites.westcat.ca`,
         verified: false,
       });
     }

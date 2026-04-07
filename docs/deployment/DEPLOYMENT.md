@@ -59,7 +59,7 @@ JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
 # CORS
-CORS_ORIGIN=https://example.com
+CORS_ORIGIN=https://westcat.ca
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
@@ -90,9 +90,9 @@ VITE_ANALYTICS_ID=your_analytics_id
 ```
 
 Public production endpoints:
-- App + API origin: `https://example.com`
-- Public API base: `https://example.com/api`
-- Canonical public health check: `https://example.com/health`
+- App + API origin: `https://westcat.ca`
+- Public API base: `https://westcat.ca/api`
+- Canonical public health check: `https://westcat.ca/health`
 
 ## Security: TLS/HTTPS & Encryption
 
@@ -104,7 +104,7 @@ The Nonprofit Manager application **must be served over HTTPS** in production. W
 
 #### Option 1: Docker with Caddy Reverse Proxy (Recommended)
 
-Serve the frontend and backend from the same public origin (`example.com`) and let the reverse proxy route `/api` and `/health` to the backend while all other paths go to the frontend:
+Serve the frontend and backend from the same public origin (`westcat.ca`) and let the reverse proxy route `/api` and `/health` to the backend while all other paths go to the frontend:
 
 1. **Get SSL Certificate** (using Let's Encrypt):
 ```bash
@@ -112,7 +112,7 @@ Serve the frontend and backend from the same public origin (`example.com`) and l
 sudo apt-get install certbot
 
 # Get certificate
-sudo certbot certonly --standalone -d example.com
+sudo certbot certonly --standalone -d westcat.ca
 ```
 
 2. **Run the VPS overlay** so Caddy is the only public ingress.
@@ -143,7 +143,7 @@ If using a managed load balancer:
 3. **Update Environment:**
    ```bash
    # Use the public site origin in CORS and keep the frontend same-origin
-   CORS_ORIGIN=https://example.com
+   CORS_ORIGIN=https://westcat.ca
    VITE_API_URL=/api
    # Don't expose HTTP ports directly
    ```
@@ -338,7 +338,7 @@ JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
 # CORS (must be HTTPS in production)
-CORS_ORIGIN=https://example.com
+CORS_ORIGIN=https://westcat.ca
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
@@ -605,10 +605,10 @@ Before release, review the checklist in `../development/RELEASE_CHECKLIST.md`.
 
 ```bash
 # Backend health endpoint
-curl https://example.com/health
+curl https://westcat.ca/health
 
 # Compatibility aliases remain available
-curl https://example.com/api/health
+curl https://westcat.ca/api/health
 
 # Expected response
 {"status":"ok","timestamp":"2026-02-01T..."}
@@ -767,6 +767,6 @@ docker logs nonprofit-manager-postgres
 ## Support
 
 For deployment issues:
-- Email: maintainer@example.com
+- Email: maintainer@westcat.ca
 - Organization: Example Organization
 - Contributor workflow: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)

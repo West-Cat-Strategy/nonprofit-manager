@@ -329,8 +329,8 @@ Business-critical operations are logged:
   "resourceId": "contact-123",
   "changes": {
     "email": {
-      "old": "old@example.com",
-      "new": "new@example.com"
+      "old": "old@westcat.ca",
+      "new": "new@westcat.ca"
     }
   },
   "userId": "user-id",
