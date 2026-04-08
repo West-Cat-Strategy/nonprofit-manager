@@ -1,6 +1,13 @@
 import { NextFunction, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
-import type { ContactFilters, ContactRole, CreateContactDTO, PaginationParams, UpdateContactDTO } from '@app-types/contact';
+import type {
+  ContactFilters,
+  ContactMergeRequest,
+  ContactRole,
+  CreateContactDTO,
+  PaginationParams,
+  UpdateContactDTO,
+} from '@app-types/contact';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
 import { parseMultipartJsonField } from '@modules/shared/import/peopleImportParser';
@@ -222,6 +229,46 @@ export const createContactDirectoryController = (
     }
   };
 
+  const getContactMergePreview = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const query = (req.validatedQuery ?? req.query) as { target_contact_id: string };
+      const preview = await useCase.getMergePreview(req.params.id, query.target_contact_id, scope, req.user?.role);
+
+      if (!preview) {
+        sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
+        return;
+      }
+
+      sendData(res, mode, preview);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const mergeContact = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        return;
+      }
+
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const payload = req.body as ContactMergeRequest;
+      const merged = await useCase.merge(req.params.id, payload, userId, scope, req.user?.role);
+
+      if (!merged) {
+        sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
+        return;
+      }
+
+      sendData(res, mode, merged);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   const exportContacts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const organizationId = req.organizationId;
@@ -317,6 +364,8 @@ export const createContactDirectoryController = (
     createContact,
     updateContact,
     deleteContact,
+    getContactMergePreview,
+    mergeContact,
     exportContacts,
     downloadImportTemplate,
     previewImport,

@@ -288,7 +288,7 @@ test.describe("Theming and Design System", () => {
     expect(ratio).toBeGreaterThanOrEqual(4.5);
   });
 
-  test("should keep theme picker dropdown opaque and readable in dark mode", async ({
+  test("should keep the account menu theme controls opaque and readable in dark mode", async ({
     page,
   }) => {
     await page.goto("/dashboard");
@@ -299,11 +299,11 @@ test.describe("Theming and Design System", () => {
       .waitFor({ state: "hidden", timeout: 30000 })
       .catch(() => undefined);
 
-    const themeMenuButton = page
-      .getByRole("button", { name: /theme settings/i })
+    const userMenuButton = page
+      .getByRole("button", { name: /user menu/i })
       .first();
-    await expect(themeMenuButton).toBeVisible({ timeout: 30000 });
-    await themeMenuButton.click();
+    await expect(userMenuButton).toBeVisible({ timeout: 30000 });
+    await userMenuButton.click();
 
     const panel = page
       .locator('div.menu-surface-opaque:has-text("Switch to Light")')

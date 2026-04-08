@@ -28,14 +28,13 @@ export default function Navigation() {
     currentLocation,
     currentRouteTitle,
     handleLogout,
-    hasActiveSecondaryItem,
-    hasActiveUtilityItem,
+    desktopOverflowItems,
+    desktopPrimaryItems,
     isNavItemActive,
     mobileAlertsLink,
     mobileDrawerUtilityLinks,
     mobileNavigationPreferences,
-    navigationPreferences: { favoriteItems, primaryItems, secondaryItems },
-    themeLabels,
+    navigationPreferences: { favoriteItems },
     themeState: { availableThemes, isDarkMode, setTheme, theme, toggleDarkMode },
     utilityNavLinks,
     user,
@@ -43,24 +42,15 @@ export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const [utilitiesMenuOpen, setUtilitiesMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
-  const themeMenuRef = useRef<HTMLDivElement>(null);
-  const adminMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const utilitiesMenuRef = useRef<HTMLDivElement>(null);
 
   const closeAllMenus = useCallback(() => {
     setMobileMenuOpen(false);
     setUserMenuOpen(false);
-    setThemeMenuOpen(false);
-    setAdminMenuOpen(false);
     setMoreMenuOpen(false);
-    setUtilitiesMenuOpen(false);
   }, []);
 
   const focusFirstItem = (ref: RefObject<HTMLDivElement | null>) => {
@@ -70,12 +60,6 @@ export default function Navigation() {
     item?.focus();
   };
 
-  const handleQuickThemeCycle = useCallback(() => {
-    const index = availableThemes.indexOf(theme);
-    const nextIndex = (index + 1) % availableThemes.length;
-    setTheme(availableThemes[nextIndex]);
-  }, [availableThemes, setTheme, theme]);
-
   const prefetchStaffPeoplePath = useCallback(() => {
     void preloadContactsPeopleRoute();
   }, []);
@@ -84,10 +68,12 @@ export default function Navigation() {
     void preloadNavigationQuickLookupDialog();
   }, []);
 
+  const hasActiveDesktopOverflowItem =
+    desktopOverflowItems.some((item) => isNavItemActive(item.id, item.path)) ||
+    utilityNavLinks.some((item) => isNavItemActive(item.id, item.path));
+
   const desktopActionButtonClass =
     'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 sm:px-3';
-  const desktopMenuButtonClass =
-    'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-3 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2';
   const activeDesktopButtonClass =
     'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover hover:text-[var(--app-accent-foreground)]';
 
@@ -126,28 +112,10 @@ export default function Navigation() {
   }, [userMenuOpen]);
 
   useEffect(() => {
-    if (themeMenuOpen) {
-      focusFirstItem(themeMenuRef);
-    }
-  }, [themeMenuOpen]);
-
-  useEffect(() => {
-    if (adminMenuOpen) {
-      focusFirstItem(adminMenuRef);
-    }
-  }, [adminMenuOpen]);
-
-  useEffect(() => {
     if (moreMenuOpen) {
       focusFirstItem(moreMenuRef);
     }
   }, [moreMenuOpen]);
-
-  useEffect(() => {
-    if (utilitiesMenuOpen) {
-      focusFirstItem(utilitiesMenuRef);
-    }
-  }, [utilitiesMenuOpen]);
 
   useEffect(() => {
     if (!searchOpen) {
@@ -195,14 +163,14 @@ export default function Navigation() {
           </Link>
         </div>
 
-        <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
+        <div className="hidden min-w-0 flex-1 items-center justify-center xl:flex">
           <div className="flex min-w-0 max-w-full items-center gap-1 rounded-full border border-app-border bg-app-surface-elevated px-1.5 py-1 shadow-sm">
             <div
               className="flex min-w-0 items-center gap-1 overflow-hidden"
               role="navigation"
               aria-label="Primary navigation"
             >
-              {primaryItems.map((item) => (
+              {desktopPrimaryItems.map((item) => (
                 <Link
                   key={item.id}
                   to={item.path}
@@ -221,20 +189,17 @@ export default function Navigation() {
               ))}
             </div>
 
-            {secondaryItems.length > 0 ? (
+            {desktopOverflowItems.length > 0 || utilityNavLinks.length > 0 ? (
               <div className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => {
                     setMoreMenuOpen((open) => !open);
-                    setUtilitiesMenuOpen(false);
                     setUserMenuOpen(false);
-                    setThemeMenuOpen(false);
-                    setAdminMenuOpen(false);
                   }}
                   className={classNames(
                     'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition',
-                    hasActiveSecondaryItem
+                    hasActiveDesktopOverflowItem
                       ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
                       : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
                   )}
@@ -262,36 +227,76 @@ export default function Navigation() {
                 <NavPopover
                   open={moreMenuOpen}
                   onClose={() => setMoreMenuOpen(false)}
-                  panelClassName="w-72 p-2"
+                  panelClassName="w-80 p-2"
                   panelRef={moreMenuRef}
                 >
                   <div id="topnav-more-menu" role="menu" aria-label="More navigation">
-                    <p className="px-3 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
-                      More modules
-                    </p>
-                    <div className="grid gap-1">
-                      {secondaryItems.map((item) => (
-                        <Link
-                          key={item.id}
-                          to={item.path}
-                          role="menuitem"
-                          onMouseEnter={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
-                          onFocus={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
-                          onClick={() => setMoreMenuOpen(false)}
-                          className={classNames(
-                            'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
-                            isNavItemActive(item.id, item.path)
-                              ? 'bg-app-accent text-[var(--app-accent-foreground)]'
-                              : 'text-app-text-heading hover:bg-app-surface-muted'
-                          )}
-                        >
-                          <span aria-hidden="true" className="text-base">
-                            {item.icon}
-                          </span>
-                          <span className="truncate font-medium">{item.name}</span>
-                        </Link>
-                      ))}
-                    </div>
+                    {desktopOverflowItems.length > 0 ? (
+                      <div className="border-b border-app-border-muted px-1 pb-3">
+                        <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                          More modules
+                        </p>
+                        <div className="grid gap-1">
+                          {desktopOverflowItems.map((item) => (
+                            <Link
+                              key={item.id}
+                              to={item.path}
+                              role="menuitem"
+                              aria-current={
+                                isNavItemActive(item.id, item.path) ? 'page' : undefined
+                              }
+                              onMouseEnter={
+                                item.id === 'contacts' ? prefetchStaffPeoplePath : undefined
+                              }
+                              onFocus={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
+                              onClick={() => setMoreMenuOpen(false)}
+                              className={classNames(
+                                'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
+                                isNavItemActive(item.id, item.path)
+                                  ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                                  : 'text-app-text-heading hover:bg-app-surface-muted'
+                              )}
+                            >
+                              <span aria-hidden="true" className="text-base">
+                                {item.icon}
+                              </span>
+                              <span className="truncate font-medium">{item.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {utilityNavLinks.length > 0 ? (
+                      <div className={desktopOverflowItems.length > 0 ? 'px-1 pt-3' : 'px-1'}>
+                        <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                          Workspace utilities
+                        </p>
+                        <div className="grid gap-1">
+                          {utilityNavLinks.map((link) => (
+                            <Link
+                              key={link.id}
+                              to={link.path}
+                              role="menuitem"
+                              aria-current={
+                                isNavItemActive(link.id, link.path) ? 'page' : undefined
+                              }
+                              onClick={() => setMoreMenuOpen(false)}
+                              className={classNames(
+                                'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
+                                isNavItemActive(link.id, link.path)
+                                  ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                                  : 'text-app-text-heading hover:bg-app-surface-muted'
+                              )}
+                            >
+                              <span aria-hidden="true" className="text-base">
+                                {link.icon}
+                              </span>
+                              <span className="truncate font-medium">{link.label}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </NavPopover>
               </div>
@@ -304,7 +309,10 @@ export default function Navigation() {
             type="button"
             ref={searchButtonRef}
             className={desktopActionButtonClass}
-            onClick={() => setSearchOpen(true)}
+            onClick={() => {
+              closeAllMenus();
+              setSearchOpen(true);
+            }}
             onMouseEnter={prefetchQuickLookup}
             onFocus={prefetchQuickLookup}
             aria-label="Search"
@@ -343,237 +351,12 @@ export default function Navigation() {
             <span className="hidden xl:inline">{mobileAlertsLink.shortLabel}</span>
           </Link>
 
-          {utilityNavLinks.length > 0 ? (
-            <div className="relative hidden lg:block">
-              <button
-                type="button"
-                onClick={() => {
-                  setUtilitiesMenuOpen((open) => !open);
-                  setMoreMenuOpen(false);
-                  setUserMenuOpen(false);
-                  setThemeMenuOpen(false);
-                  setAdminMenuOpen(false);
-                }}
-                className={classNames(
-                  desktopMenuButtonClass,
-                  hasActiveUtilityItem ? activeDesktopButtonClass : ''
-                )}
-                aria-label="Utilities"
-                aria-expanded={utilitiesMenuOpen}
-                aria-haspopup="menu"
-                aria-controls="topnav-utilities-menu"
-              >
-                <span aria-hidden="true">🧰</span>
-                <span className="hidden xl:inline">Utilities</span>
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              <NavPopover
-                open={utilitiesMenuOpen}
-                onClose={() => setUtilitiesMenuOpen(false)}
-                align="right"
-                panelClassName="w-72 p-2"
-                panelRef={utilitiesMenuRef}
-              >
-                <div id="topnav-utilities-menu" role="menu" aria-label="Utilities menu">
-                  <p className="px-3 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
-                    Workspace utilities
-                  </p>
-                  <div className="grid gap-1">
-                    {utilityNavLinks.map((link) => (
-                      <Link
-                        key={link.id}
-                        to={link.path}
-                        role="menuitem"
-                        onClick={() => setUtilitiesMenuOpen(false)}
-                        className={classNames(
-                          'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
-                          isNavItemActive(link.id, link.path)
-                            ? 'bg-app-accent text-[var(--app-accent-foreground)]'
-                            : 'text-app-text-heading hover:bg-app-surface-muted'
-                        )}
-                      >
-                        <span aria-hidden="true" className="text-base">
-                          {link.icon}
-                        </span>
-                        <span className="truncate font-medium">{link.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </NavPopover>
-            </div>
-          ) : null}
-
-          {canOpenAdminSettings ? (
-            <div className="relative hidden lg:block">
-              <button
-                type="button"
-                onClick={() => {
-                  setAdminMenuOpen((open) => !open);
-                  setMoreMenuOpen(false);
-                  setUtilitiesMenuOpen(false);
-                  setUserMenuOpen(false);
-                  setThemeMenuOpen(false);
-                }}
-                className={desktopMenuButtonClass}
-                aria-label="Admin quick actions"
-                aria-expanded={adminMenuOpen}
-                aria-haspopup="menu"
-                aria-controls="topnav-admin-actions"
-              >
-                <span className="hidden xl:inline">Admin</span>
-                <span className="xl:hidden" aria-hidden="true">
-                  ⚙️
-                </span>
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              <NavPopover
-                open={adminMenuOpen}
-                onClose={() => setAdminMenuOpen(false)}
-                align="right"
-                panelClassName="w-80 p-2"
-                panelRef={adminMenuRef}
-              >
-                <div id="topnav-admin-actions" role="menu" aria-label="Admin quick actions">
-                  <AdminQuickActionsBar
-                    role={user?.role}
-                    compact
-                    maxItems={5}
-                    onActionClick={() => setAdminMenuOpen(false)}
-                  />
-                </div>
-              </NavPopover>
-            </div>
-          ) : null}
-
-          <div className="relative hidden lg:block">
-            <button
-              type="button"
-              onClick={() => {
-                setThemeMenuOpen((open) => !open);
-                setMoreMenuOpen(false);
-                setUtilitiesMenuOpen(false);
-                setUserMenuOpen(false);
-                setAdminMenuOpen(false);
-              }}
-              onDoubleClick={handleQuickThemeCycle}
-              className={desktopMenuButtonClass}
-              aria-label="Theme settings"
-              aria-expanded={themeMenuOpen}
-              aria-haspopup="menu"
-              aria-controls="topnav-theme-menu"
-              title="Click to pick theme, double-click to cycle"
-            >
-              <span className="font-semibold tracking-[0.22em]">{themeLabels[theme]}</span>
-              {isDarkMode ? <span aria-hidden="true">🌙</span> : null}
-            </button>
-
-            <NavPopover
-              open={themeMenuOpen}
-              onClose={() => setThemeMenuOpen(false)}
-              align="right"
-              panelClassName="w-80 py-2"
-              panelRef={themeMenuRef}
-            >
-              <div id="topnav-theme-menu" role="menu" aria-label="Theme settings">
-                <div className="mb-1 border-b border-app-border-muted px-3 pb-3 pt-1">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-app-text-muted">
-                    Theme
-                  </p>
-                  <p className="mt-1 text-xs text-app-text-subtle">Each theme keeps its own light and dark identity.</p>
-                </div>
-                <div className="grid gap-1.5 px-2">
-                  {availableThemes.map((availableTheme) => {
-                    const option = THEME_REGISTRY[availableTheme];
-                    const isSelected = theme === availableTheme;
-
-                    return (
-                      <button
-                        key={availableTheme}
-                        type="button"
-                        onClick={() => {
-                          setTheme(availableTheme);
-                          setThemeMenuOpen(false);
-                        }}
-                        role="menuitem"
-                        data-theme-menu-item={availableTheme}
-                        className={`flex w-full items-center gap-3 rounded-[var(--ui-radius-md)] border px-3 py-2 text-left transition ${
-                          isSelected
-                            ? 'border-app-accent bg-app-accent-soft text-app-accent-text shadow-sm'
-                            : 'border-transparent text-app-text hover:border-app-border-muted hover:bg-app-hover'
-                        }`}
-                      >
-                        <ThemePreviewSwatch themeId={availableTheme} size="menu" className="shrink-0" />
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-app-text-subtle">
-                              {option.shortLabel}
-                            </span>
-                            <span className="truncate text-sm font-semibold text-app-text-heading">
-                              {option.label}
-                            </span>
-                          </div>
-                          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-app-text-muted">
-                            {option.menuDescription}
-                          </p>
-                        </div>
-
-                        {isSelected ? <span className="ml-auto text-app-accent">✓</span> : null}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="mt-1 border-t border-app-border-muted px-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={toggleDarkMode}
-                    role="menuitem"
-                    className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-sm text-app-text transition hover:bg-app-hover"
-                  >
-                    <span>{isDarkMode ? '☀️' : '🌙'}</span>
-                    <span>{isDarkMode ? 'Switch to Light' : 'Switch to Dark'}</span>
-                  </button>
-                </div>
-              </div>
-            </NavPopover>
-          </div>
-
-          <div className="relative hidden lg:block">
+          <div className="relative hidden xl:block">
             <button
               type="button"
               onClick={() => {
                 setUserMenuOpen((open) => !open);
                 setMoreMenuOpen(false);
-                setUtilitiesMenuOpen(false);
-                setThemeMenuOpen(false);
-                setAdminMenuOpen(false);
               }}
               className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-1.5 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
               aria-label="User menu"
@@ -610,7 +393,7 @@ export default function Navigation() {
               open={userMenuOpen}
               onClose={() => setUserMenuOpen(false)}
               align="right"
-              panelClassName="w-72"
+              panelClassName="w-80 py-2"
               panelRef={userMenuRef}
             >
               <div id="topnav-user-menu" role="menu" aria-label="User menu links">
@@ -637,17 +420,82 @@ export default function Navigation() {
                 >
                   User Settings
                 </Link>
+                <div className="border-t border-app-border px-3 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-app-text-subtle">
+                    Theme
+                  </p>
+                  <p className="mt-1 text-xs text-app-text-subtle">
+                    Pick a workspace theme or toggle light and dark mode.
+                  </p>
+                  <div className="mt-3 grid gap-1.5">
+                    {availableThemes.map((availableTheme) => {
+                      const option = THEME_REGISTRY[availableTheme];
+                      const isSelected = theme === availableTheme;
+
+                      return (
+                        <button
+                          key={availableTheme}
+                          type="button"
+                          onClick={() => {
+                            setTheme(availableTheme);
+                            setUserMenuOpen(false);
+                          }}
+                          role="menuitem"
+                          data-theme-menu-item={availableTheme}
+                          className={`flex w-full items-center gap-3 rounded-[var(--ui-radius-md)] border px-3 py-2 text-left transition ${
+                            isSelected
+                              ? 'border-app-accent bg-app-accent-soft text-app-accent-text shadow-sm'
+                              : 'border-transparent text-app-text hover:border-app-border-muted hover:bg-app-hover'
+                          }`}
+                        >
+                          <ThemePreviewSwatch
+                            themeId={availableTheme}
+                            size="menu"
+                            className="shrink-0"
+                          />
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-app-text-subtle">
+                                {option.shortLabel}
+                              </span>
+                              <span className="truncate text-sm font-semibold text-app-text-heading">
+                                {option.label}
+                              </span>
+                            </div>
+                            <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-app-text-muted">
+                              {option.menuDescription}
+                            </p>
+                          </div>
+
+                          {isSelected ? <span className="ml-auto text-app-accent">✓</span> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-2 border-t border-app-border-muted pt-2">
+                    <button
+                      type="button"
+                      onClick={toggleDarkMode}
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-sm text-app-text transition hover:bg-app-hover"
+                    >
+                      <span>{isDarkMode ? '☀️' : '🌙'}</span>
+                      <span>{isDarkMode ? 'Switch to Light' : 'Switch to Dark'}</span>
+                    </button>
+                  </div>
+                </div>
                 {canOpenAdminSettings ? (
-                  <>
+                  <div className="border-t border-app-border px-3 py-3">
                     <Link
                       to={adminSettingsPath}
                       role="menuitem"
-                      className="block px-4 py-2 text-sm text-app-text transition hover:bg-app-hover"
+                      className="block rounded px-1 py-1.5 text-sm text-app-text transition hover:bg-app-hover"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       Admin Settings
                     </Link>
-                    <div className="border-t border-app-border px-2 py-2">
+                    <div className="mt-2 border-t border-app-border-muted pt-2">
                       <AdminQuickActionsBar
                         role={user?.role}
                         compact
@@ -655,7 +503,7 @@ export default function Navigation() {
                         onActionClick={() => setUserMenuOpen(false)}
                       />
                     </div>
-                  </>
+                  </div>
                 ) : null}
                 <button
                   type="button"
@@ -675,7 +523,7 @@ export default function Navigation() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen((open) => !open)}
-            className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated p-2 text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading lg:hidden"
+            className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated p-2 text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading xl:hidden"
             aria-label="Main menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -709,7 +557,7 @@ export default function Navigation() {
       {mobileMenuOpen ? (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/45 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/45 xl:hidden"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />

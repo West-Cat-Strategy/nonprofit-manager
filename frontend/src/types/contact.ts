@@ -52,8 +52,54 @@ export interface Contact {
   email_count?: number;
   relationship_count?: number;
   note_count?: number;
+  document_count?: number;
   roles?: string[];
   staffInvitation?: ContactStaffInvitation | null;
+}
+
+export type ContactMergeResolution = 'source' | 'target';
+
+export interface ContactMergeFieldPreview {
+  field: string;
+  label: string;
+  source_value: string | number | boolean | string[] | null;
+  target_value: string | number | boolean | string[] | null;
+  conflict: boolean;
+  auto_merged: boolean;
+}
+
+export interface ContactMergeCounts {
+  phones: number;
+  emails: number;
+  relationships: number;
+  notes: number;
+  documents: number;
+  roles: number;
+}
+
+export interface ContactMergePreview {
+  source_contact: Contact & { roles: string[] };
+  target_contact: Contact & { roles: string[] };
+  fields: ContactMergeFieldPreview[];
+  source_summary: ContactMergeCounts;
+  target_summary: ContactMergeCounts;
+}
+
+export interface ContactMergeRequest {
+  target_contact_id: string;
+  resolutions: Record<string, ContactMergeResolution>;
+}
+
+export interface ContactMergeSummary {
+  source_contact_id: string;
+  target_contact_id: string;
+  merged_fields: string[];
+  moved_counts: Record<string, number>;
+}
+
+export interface ContactMergeResult {
+  survivor_contact: Contact & { roles: string[] };
+  merge_summary: ContactMergeSummary;
 }
 
 // ============================================================================

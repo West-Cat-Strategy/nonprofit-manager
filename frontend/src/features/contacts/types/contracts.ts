@@ -5,6 +5,9 @@ import type {
   ContactDocument,
   ContactEmailAddress,
   ContactNote,
+  ContactMergePreview,
+  ContactMergeRequest,
+  ContactMergeResult,
   ContactRelationship,
   ContactRole,
   ContactPhoneNumber,
@@ -76,6 +79,9 @@ export interface ContactsApiClientPort {
   deleteContact(contactId: string): Promise<void>;
   listTags(): Promise<string[]>;
   listRoles(): Promise<ContactRole[]>;
+  searchContactsForMerge(query: { search: string; limit?: number }): Promise<Contact[]>;
+  getContactMergePreview(contactId: string, targetContactId: string): Promise<ContactMergePreview>;
+  mergeContact(contactId: string, payload: ContactMergeRequest): Promise<ContactMergeResult>;
   bulkUpdate(payload: {
     contactIds: string[];
     is_active?: boolean;

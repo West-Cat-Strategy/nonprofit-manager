@@ -7,6 +7,9 @@ import type {
   ContactDocument,
   ContactEmailAddress,
   ContactNote,
+  ContactMergePreview,
+  ContactMergeRequest,
+  ContactMergeResult,
   ContactRelationship,
   ContactRole,
   ContactPhoneNumber,
@@ -76,6 +79,28 @@ export class ContactsApiClient implements ContactsApiClientPort {
 
   async getContact(contactId: string): Promise<Contact> {
     const response = await api.get<ApiEnvelope<Contact>>(`/v2/contacts/${contactId}`);
+    return unwrapApiData(response.data);
+  }
+
+  async searchContactsForMerge(query: { search: string; limit?: number }): Promise<Contact[]> {
+    const response = await this.listContacts({
+      search: query.search,
+      limit: query.limit ?? 10,
+    });
+    return response.data;
+  }
+
+  async getContactMergePreview(contactId: string, targetContactId: string): Promise<ContactMergePreview> {
+    const response = await api.get<ApiEnvelope<ContactMergePreview>>(`/v2/contacts/${contactId}/merge-preview`, {
+      params: {
+        target_contact_id: targetContactId,
+      },
+    });
+    return unwrapApiData(response.data);
+  }
+
+  async mergeContact(contactId: string, payload: ContactMergeRequest): Promise<ContactMergeResult> {
+    const response = await api.post<ApiEnvelope<ContactMergeResult>>(`/v2/contacts/${contactId}/merge`, payload);
     return unwrapApiData(response.data);
   }
 

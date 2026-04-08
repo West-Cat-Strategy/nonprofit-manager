@@ -1,6 +1,7 @@
 import request from 'supertest';
 import app from '../../index';
 import pool from '../../config/database';
+import { ContactService } from '../../services/contactService';
 
 describe('Contact API Integration Tests', () => {
   let authToken: string;
@@ -8,6 +9,7 @@ describe('Contact API Integration Tests', () => {
   let testAccountId: string;
   let creatorUserId: string;
   let staffUserId: string;
+  const contactService = new ContactService(pool);
   const createdEventIds: string[] = [];
   const createdAppointmentIds: string[] = [];
   const sharedPassword = 'Test123!Strong';
@@ -945,6 +947,431 @@ describe('Contact API Integration Tests', () => {
 
     it('should require authentication', async () => {
       await request(app).delete('/api/v2/contacts/1').expect(401);
+    });
+  });
+
+  describe('POST /api/v2/contacts/:id/merge', () => {
+    const createContact = async (
+      token: string,
+      organizationId: string,
+      payload: Record<string, unknown>
+    ): Promise<string> => {
+      const response = await request(app)
+        .post('/api/v2/contacts')
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Organization-Id', organizationId)
+        .send(payload)
+        .expect(201);
+
+      const created = payloadFromResponse<{ contact_id?: string; id?: string }>(response.body);
+      const contactId = created.contact_id ?? created.id;
+      if (!contactId) {
+        throw new Error('Failed to create test contact');
+      }
+
+      return contactId;
+    };
+
+    const createPhone = async (
+      token: string,
+      organizationId: string,
+      contactId: string,
+      payload: { phone_number: string; label?: string }
+    ): Promise<void> => {
+      await request(app)
+        .post(`/api/v2/contacts/${contactId}/phones`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Organization-Id', organizationId)
+        .send(payload)
+        .expect(201);
+    };
+
+    const createEmail = async (
+      token: string,
+      organizationId: string,
+      contactId: string,
+      payload: { email_address: string; label?: string }
+    ): Promise<void> => {
+      await request(app)
+        .post(`/api/v2/contacts/${contactId}/emails`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Organization-Id', organizationId)
+        .send(payload)
+        .expect(201);
+    };
+
+    const createRelationship = async (
+      token: string,
+      organizationId: string,
+      contactId: string,
+      payload: Record<string, unknown>
+    ): Promise<void> => {
+      await request(app)
+        .post(`/api/v2/contacts/${contactId}/relationships`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Organization-Id', organizationId)
+        .send(payload)
+        .expect(201);
+    };
+
+    const createVolunteer = async (
+      token: string,
+      organizationId: string,
+      payload: Record<string, unknown>
+    ): Promise<void> => {
+      await request(app)
+        .post('/api/v2/volunteers')
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Organization-Id', organizationId)
+        .send(payload)
+        .expect(201);
+    };
+
+    const cleanupAccount = async (accountId: string): Promise<void> => {
+      await pool.query('DELETE FROM contacts WHERE account_id = $1', [accountId]);
+      await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [accountId]);
+      await pool.query('DELETE FROM accounts WHERE id = $1', [accountId]);
+    };
+
+    it('merges linked records and volunteer data without dropping information', async () => {
+      const relatedContactId = await createContact(authToken, testAccountId, {
+        account_id: testAccountId,
+        first_name: 'Jordan',
+        last_name: 'Related',
+      });
+      const sourceContactId = await createContact(staffAuthToken, testAccountId, {
+        account_id: testAccountId,
+        first_name: 'Taylor',
+        last_name: 'Merge',
+      });
+      const targetContactId = await createContact(staffAuthToken, testAccountId, {
+        account_id: testAccountId,
+        first_name: 'Alex',
+        last_name: 'Merge',
+      });
+
+      await createPhone(staffAuthToken, testAccountId, sourceContactId, {
+        phone_number: '555-123-4567',
+        label: 'home',
+      });
+      await createPhone(staffAuthToken, testAccountId, targetContactId, {
+        phone_number: '(555) 123-4567',
+        label: 'mobile',
+      });
+      await createEmail(staffAuthToken, testAccountId, sourceContactId, {
+        email_address: 'merge-test@example.com',
+        label: 'personal',
+      });
+      await createEmail(staffAuthToken, testAccountId, targetContactId, {
+        email_address: 'merge-test@example.com',
+        label: 'work',
+      });
+      await createRelationship(staffAuthToken, testAccountId, sourceContactId, {
+        related_contact_id: relatedContactId,
+        relationship_type: 'friend',
+        relationship_label: 'Source friend',
+        is_bidirectional: false,
+        notes: 'source relationship',
+      });
+      await createRelationship(staffAuthToken, testAccountId, targetContactId, {
+        related_contact_id: relatedContactId,
+        relationship_type: 'friend',
+        relationship_label: 'Target friend',
+        is_bidirectional: false,
+        notes: 'target relationship',
+      });
+      await createVolunteer(staffAuthToken, testAccountId, {
+        contact_id: sourceContactId,
+        skills: ['Teaching', 'Mentoring'],
+        availability_status: 'limited',
+        availability_notes: 'Weekends',
+        background_check_status: 'approved',
+        preferred_roles: ['Coordinator'],
+        certifications: ['CPR'],
+        max_hours_per_week: 12,
+        emergency_contact_name: 'Sam Source',
+        emergency_contact_phone: '555-999-0000',
+        emergency_contact_relationship: 'Sibling',
+      });
+      await createVolunteer(staffAuthToken, testAccountId, {
+        contact_id: targetContactId,
+        skills: ['Driving', 'Mentoring'],
+        availability_status: 'available',
+        availability_notes: 'Mornings',
+        background_check_status: 'approved',
+        preferred_roles: ['Coordinator', 'Driver'],
+        certifications: ['First Aid'],
+        max_hours_per_week: 8,
+        emergency_contact_name: 'Sam Source',
+        emergency_contact_phone: '555-999-0000',
+        emergency_contact_relationship: 'Sibling',
+      });
+
+      const previewResponse = await withStaffAuth(
+        request(app)
+          .get(`/api/v2/contacts/${sourceContactId}/merge-preview`)
+          .query({ target_contact_id: targetContactId })
+      ).expect(200);
+      const preview = payloadFromResponse<{
+        fields: Array<{ field: string; conflict: boolean }>;
+      }>(previewResponse.body);
+      expect(preview.fields.some((field) => field.field === 'first_name' && field.conflict)).toBe(true);
+      expect(preview.fields.some((field) => field.field === 'availability_status' && field.conflict)).toBe(true);
+
+      const mergeResponse = await withStaffAuth(
+        request(app)
+          .post(`/api/v2/contacts/${sourceContactId}/merge`)
+          .send({
+            target_contact_id: targetContactId,
+            resolutions: {
+              first_name: 'source',
+              availability_status: 'source',
+            },
+          })
+      ).expect(200);
+
+      const mergePayload = payloadFromResponse<{
+        survivor_contact: { contact_id: string; first_name: string; is_active: boolean };
+        merge_summary: { merged_fields: string[]; moved_counts: Record<string, number> };
+      }>(mergeResponse.body);
+
+      expect(mergePayload.survivor_contact.contact_id).toBe(targetContactId);
+      expect(mergePayload.survivor_contact.first_name).toBe('Taylor');
+      expect(mergePayload.merge_summary.merged_fields).toEqual(
+        expect.arrayContaining(['first_name', 'availability_status', 'roles'])
+      );
+
+      const sourceDetailResponse = await withStaffAuth(
+        request(app).get(`/api/v2/contacts/${sourceContactId}`)
+      ).expect(200);
+      const sourceDetail = payloadFromResponse<{
+        is_active: boolean;
+        phone_count: number;
+        email_count: number;
+        relationship_count: number;
+      }>(sourceDetailResponse.body);
+      expect(sourceDetail.is_active).toBe(false);
+      expect(sourceDetail.phone_count).toBe(0);
+      expect(sourceDetail.email_count).toBe(0);
+      expect(sourceDetail.relationship_count).toBe(0);
+
+      const targetDetailResponse = await withStaffAuth(
+        request(app).get(`/api/v2/contacts/${targetContactId}`)
+      ).expect(200);
+      const targetDetail = payloadFromResponse<{
+        is_active: boolean;
+        phone_count: number;
+        email_count: number;
+        relationship_count: number;
+      }>(targetDetailResponse.body);
+      expect(targetDetail.is_active).toBe(true);
+      expect(targetDetail.phone_count).toBe(1);
+      expect(targetDetail.email_count).toBe(1);
+      expect(targetDetail.relationship_count).toBe(1);
+
+      const targetPhoneRows = await pool.query<{ phone_number: string; label: string }>(
+        'SELECT phone_number, label FROM contact_phone_numbers WHERE contact_id = $1 ORDER BY created_at ASC, id ASC',
+        [targetContactId]
+      );
+      expect(targetPhoneRows.rowCount).toBe(1);
+      expect(targetPhoneRows.rows[0]?.phone_number).toBe('555-123-4567');
+
+      const targetEmailRows = await pool.query<{ email_address: string; label: string }>(
+        'SELECT email_address, label FROM contact_email_addresses WHERE contact_id = $1 ORDER BY created_at ASC, id ASC',
+        [targetContactId]
+      );
+      expect(targetEmailRows.rowCount).toBe(1);
+      expect(targetEmailRows.rows[0]?.email_address).toBe('merge-test@example.com');
+
+      const targetRelationshipRows = await pool.query<{ related_contact_id: string; notes: string | null }>(
+        'SELECT related_contact_id, notes FROM contact_relationships WHERE contact_id = $1 AND is_active = true',
+        [targetContactId]
+      );
+      expect(targetRelationshipRows.rowCount).toBe(1);
+      expect(targetRelationshipRows.rows[0]?.related_contact_id).toBe(relatedContactId);
+
+      const targetVolunteerRows = await pool.query<{
+        skills: string[] | null;
+        preferred_roles: string[] | null;
+        certifications: string[] | null;
+        availability_status: string | null;
+        is_active: boolean | null;
+      }>(
+        `SELECT skills, preferred_roles, certifications, availability_status, is_active
+         FROM volunteers
+         WHERE contact_id = $1
+         ORDER BY is_active DESC NULLS LAST, updated_at DESC, created_at ASC, id ASC`,
+        [targetContactId]
+      );
+      expect(targetVolunteerRows.rowCount).toBeGreaterThan(0);
+      expect(targetVolunteerRows.rows[0]?.skills).toEqual(
+        expect.arrayContaining(['Teaching', 'Mentoring', 'Driving'])
+      );
+      expect(targetVolunteerRows.rows[0]?.preferred_roles).toEqual(
+        expect.arrayContaining(['Coordinator', 'Driver'])
+      );
+      expect(targetVolunteerRows.rows[0]?.certifications).toEqual(
+        expect.arrayContaining(['CPR', 'First Aid'])
+      );
+      expect(targetVolunteerRows.rows[0]?.availability_status).toBe('limited');
+      expect(targetVolunteerRows.rows[0]?.is_active).toBe(true);
+    });
+
+    it('rejects self merges with a validation error', async () => {
+      const contactId = await createContact(staffAuthToken, testAccountId, {
+        account_id: testAccountId,
+        first_name: 'Self',
+        last_name: 'Merge',
+      });
+
+      await expect(
+        contactService.mergeContacts(
+          contactId,
+          {
+            target_contact_id: contactId,
+            resolutions: {},
+          },
+          staffUserId,
+          undefined,
+          'staff'
+        )
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        code: 'validation_error',
+      });
+    });
+
+    it('rejects cross-organization merges with a validation error', async () => {
+      const secondaryAccountResponse = await request(app)
+        .post('/api/v2/accounts')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          account_name: `Merge Cross Org ${unique()}`,
+          account_type: 'organization',
+        })
+        .expect(201);
+      const secondaryAccountId = accountIdFromResponse(secondaryAccountResponse.body);
+      expect(secondaryAccountId).toBeTruthy();
+
+      if (!secondaryAccountId) {
+        throw new Error('Failed to create secondary account');
+      }
+
+      await pool.query(
+        `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+         VALUES ($1, $2, 'staff', $3, TRUE)
+         ON CONFLICT (user_id, account_id)
+         DO UPDATE SET access_level = EXCLUDED.access_level, granted_by = EXCLUDED.granted_by, is_active = TRUE`,
+        [staffUserId, secondaryAccountId, creatorUserId]
+      );
+
+      try {
+        const sourceContactId = await createContact(authToken, testAccountId, {
+          account_id: testAccountId,
+          first_name: 'Cross',
+          last_name: 'Source',
+        });
+        const targetContactId = await createContact(authToken, secondaryAccountId, {
+          account_id: secondaryAccountId,
+          first_name: 'Cross',
+          last_name: 'Target',
+        });
+
+        await expect(
+          contactService.mergeContacts(
+            sourceContactId,
+            {
+              target_contact_id: targetContactId,
+              resolutions: {},
+            },
+            staffUserId,
+            undefined,
+            'staff'
+          )
+        ).rejects.toMatchObject({
+          statusCode: 400,
+          code: 'validation_error',
+        });
+      } finally {
+        await cleanupAccount(secondaryAccountId);
+      }
+    });
+
+    it('rolls back linked record changes when volunteer validation fails', async () => {
+      const sourceContactId = await createContact(staffAuthToken, testAccountId, {
+        account_id: testAccountId,
+        first_name: 'Rollback',
+        last_name: 'Source',
+      });
+      const targetContactId = await createContact(staffAuthToken, testAccountId, {
+        account_id: testAccountId,
+        first_name: 'Safe',
+        last_name: 'Target',
+      });
+
+      await createPhone(staffAuthToken, testAccountId, sourceContactId, {
+        phone_number: '555-700-1000',
+        label: 'home',
+      });
+      await createVolunteer(staffAuthToken, testAccountId, {
+        contact_id: sourceContactId,
+        skills: ['Teaching'],
+        availability_status: 'limited',
+      });
+      await createVolunteer(staffAuthToken, testAccountId, {
+        contact_id: targetContactId,
+        skills: ['Driving'],
+        availability_status: 'available',
+      });
+
+      await expect(
+        contactService.mergeContacts(
+          sourceContactId,
+          {
+            target_contact_id: targetContactId,
+            resolutions: {
+              first_name: 'target',
+            },
+          },
+          staffUserId,
+          undefined,
+          'staff'
+        )
+      ).rejects.toThrow(/Missing merge resolution for field 'availability_status'/);
+
+      const sourceDetailResponse = await withStaffAuth(
+        request(app).get(`/api/v2/contacts/${sourceContactId}`)
+      ).expect(200);
+      const sourceDetail = payloadFromResponse<{
+        is_active: boolean;
+        first_name: string;
+        phone_count: number;
+      }>(sourceDetailResponse.body);
+      expect(sourceDetail.is_active).toBe(true);
+      expect(sourceDetail.first_name).toBe('Rollback');
+      expect(sourceDetail.phone_count).toBe(1);
+
+      const targetDetailResponse = await withStaffAuth(
+        request(app).get(`/api/v2/contacts/${targetContactId}`)
+      ).expect(200);
+      const targetDetail = payloadFromResponse<{
+        first_name: string;
+        phone_count: number;
+      }>(targetDetailResponse.body);
+      expect(targetDetail.first_name).toBe('Safe');
+      expect(targetDetail.phone_count).toBe(0);
+
+      const targetPhoneRows = await pool.query(
+        'SELECT COUNT(*)::int AS count FROM contact_phone_numbers WHERE contact_id = $1',
+        [targetContactId]
+      );
+      expect(targetPhoneRows.rows[0]?.count).toBe(0);
+
+      const sourcePhoneRows = await pool.query(
+        'SELECT COUNT(*)::int AS count FROM contact_phone_numbers WHERE contact_id = $1',
+        [sourceContactId]
+      );
+      expect(sourcePhoneRows.rows[0]?.count).toBe(1);
     });
   });
 });

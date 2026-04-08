@@ -199,6 +199,23 @@ export const contactLookupQuerySchema = z.object({
 
 export type ContactLookupQueryInput = z.infer<typeof contactLookupQuerySchema>;
 
+export const contactMergePreviewQuerySchema = z
+  .object({
+    target_contact_id: uuidSchema,
+  })
+  .strict();
+
+export type ContactMergePreviewQueryInput = z.infer<typeof contactMergePreviewQuerySchema>;
+
+export const contactMergeSchema = z
+  .object({
+    target_contact_id: uuidSchema,
+    resolutions: z.record(z.string(), z.enum(['source', 'target'])).default({}),
+  })
+  .strict();
+
+export type ContactMergeInput = z.infer<typeof contactMergeSchema>;
+
 export const contactCommunicationsQuerySchema = z
   .object({
     channel: z.enum(['email', 'sms']).optional(),

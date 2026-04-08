@@ -6,7 +6,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { contactsApiClient } from '../api/contactsApiClient';
-import type { ContactsListQuery } from '../types/contracts';
+import type { ContactMutationPayload, ContactsListQuery } from '../types/contracts';
 import type {
   Contact,
   ContactPhoneNumber,
@@ -14,6 +14,7 @@ import type {
   ContactRelationship,
   ContactNote,
   ContactDocument,
+  ContactMergeRequest,
   CreateContactPhoneDTO,
   UpdateContactPhoneDTO,
   CreateContactEmailDTO,
@@ -116,17 +117,38 @@ export const fetchContactById = createAsyncThunk(
   }
 );
 
+export const searchContactsForMerge = createAsyncThunk(
+  'contacts/searchContactsForMerge',
+  async (payload: { search: string; limit?: number }) => {
+    return await contactsApiClient.searchContactsForMerge(payload);
+  }
+);
+
+export const fetchContactMergePreview = createAsyncThunk(
+  'contacts/fetchContactMergePreview',
+  async ({ contactId, targetContactId }: { contactId: string; targetContactId: string }) => {
+    return await contactsApiClient.getContactMergePreview(contactId, targetContactId);
+  }
+);
+
+export const mergeContact = createAsyncThunk(
+  'contacts/mergeContact',
+  async ({ contactId, payload }: { contactId: string; payload: ContactMergeRequest }) => {
+    return await contactsApiClient.mergeContact(contactId, payload);
+  }
+);
+
 export const createContact = createAsyncThunk(
   'contacts/createContact',
   async (contactData: ContactInput) => {
-    return await contactsApiClient.createContact(contactData as any);
+    return await contactsApiClient.createContact(contactData as ContactMutationPayload);
   }
 );
 
 export const updateContact = createAsyncThunk(
   'contacts/updateContact',
   async ({ contactId, data }: { contactId: string; data: ContactInput }) => {
-    return await contactsApiClient.updateContact(contactId, data as any);
+    return await contactsApiClient.updateContact(contactId, data as ContactMutationPayload);
   }
 );
 

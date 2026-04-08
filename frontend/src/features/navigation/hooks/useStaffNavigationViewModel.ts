@@ -16,19 +16,10 @@ import {
 } from '../../../routes/routeCatalog';
 import { getAdminSettingsPath } from '../../adminOps/adminRoutePaths';
 import type { NavigationDrawerLink } from '../../../components/navigation/MobileNavigationDrawer';
-import { THEME_IDS, THEME_REGISTRY, type ThemeId } from '../../../theme/themeRegistry';
 
 const routeFlags = {
   VITE_TEAM_CHAT_ENABLED: import.meta.env.VITE_TEAM_CHAT_ENABLED,
 };
-
-const themeLabels = THEME_IDS.reduce(
-  (labels, themeId) => {
-    labels[themeId] = THEME_REGISTRY[themeId].shortLabel;
-    return labels;
-  },
-  {} as Record<ThemeId, string>
-);
 
 export function useStaffNavigationViewModel() {
   const location = useLocation();
@@ -64,6 +55,17 @@ export function useStaffNavigationViewModel() {
         ariaLabel: entry.staffNav?.ariaLabel || entry.staffNav?.label || entry.title,
       })),
     [workspaceModules]
+  );
+  const desktopPrimaryItems = useMemo(
+    () => navigationPreferences.primaryItems.slice(0, 3),
+    [navigationPreferences.primaryItems]
+  );
+  const desktopOverflowItems = useMemo(
+    () => [
+      ...navigationPreferences.primaryItems.slice(3),
+      ...navigationPreferences.secondaryItems,
+    ],
+    [navigationPreferences.primaryItems, navigationPreferences.secondaryItems]
   );
   const mobileNavigationPreferences = useMemo(() => {
     const orderedItems = navigationPreferences.enabledItems
@@ -114,15 +116,6 @@ export function useStaffNavigationViewModel() {
   const adminSettingsPath = getAdminSettingsPath('dashboard');
   const canOpenAdminSettings = canAccessAdminSettings(user);
 
-  const hasActiveSecondaryItem = navigationPreferences.secondaryItems.some(
-    (item) =>
-      activeRouteIds.has(item.id) || normalizeRouteLocation(item.path) === normalizedCurrentLocation
-  );
-  const hasActiveUtilityItem = utilityNavLinks.some(
-    (item) =>
-      activeRouteIds.has(item.id) || normalizeRouteLocation(item.path) === normalizedCurrentLocation
-  );
-
   const handleLogout = useCallback(() => {
     dispatch(logoutAsync()).finally(() => navigate('/login'));
   }, [dispatch, navigate]);
@@ -145,9 +138,9 @@ export function useStaffNavigationViewModel() {
       currentRouteEntry?.breadcrumbLabel ??
       currentRouteEntry?.title ??
       'Workspace',
+    desktopOverflowItems,
+    desktopPrimaryItems,
     handleLogout,
-    hasActiveSecondaryItem,
-    hasActiveUtilityItem,
     isNavItemActive,
     mobileAlertsLink,
     mobileDrawerUtilityLinks,
@@ -155,7 +148,6 @@ export function useStaffNavigationViewModel() {
     mobileNavigationPreferences,
     navigationPreferences,
     normalizedCurrentLocation,
-    themeLabels,
     themeState,
     utilityEntries,
     utilityNavLinks,

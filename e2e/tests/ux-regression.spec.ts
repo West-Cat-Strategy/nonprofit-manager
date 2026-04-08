@@ -252,45 +252,59 @@ const gotoAdminRouteWithFallback = async (
 };
 
 test.describe("UI/UX regression flows", () => {
-  test("global navigation and dashboard shell remain operable", async ({
+  test("global navigation stays compact below xl and expands at xl", async ({
     authenticatedPage,
   }) => {
     const runtimeIssues = trackRuntimeIssues(authenticatedPage);
-
-    await authenticatedPage.setViewportSize({ width: 1280, height: 900 });
-    await authenticatedPage.goto("/dashboard");
     const globalNav = authenticatedPage
       .getByRole("navigation", { name: /global navigation/i })
       .first();
     const primaryNav = authenticatedPage
-      .getByRole("navigation", { name: /primary navigation/i })
+      .locator('[aria-label="Primary navigation"]')
       .first();
-    const moreButton = authenticatedPage
-      .getByRole("button", { name: /more navigation/i })
-      .first();
-    const utilitiesButton = authenticatedPage
-      .getByRole("button", { name: /^utilities$/i })
-      .first();
-    const userMenuButton = authenticatedPage
-      .getByRole("button", { name: /user menu/i })
-      .first();
-    const themeSettingsButton = authenticatedPage
-      .getByRole("button", { name: /theme settings/i })
-      .first();
-    const searchButton = authenticatedPage
-      .getByRole("button", { name: /^search$/i })
-      .first();
+    const moreButton = authenticatedPage.locator('button[aria-label="More navigation"]');
+    const userMenuButton = authenticatedPage.locator('button[aria-label="User menu"]');
+    const mainMenuButton = authenticatedPage.locator('button[aria-label="Main menu"]');
+    const searchButton = authenticatedPage.locator('button[aria-label="Search"]');
+    const alertsLink = authenticatedPage.locator('a[aria-label="Alerts"]');
 
+    await authenticatedPage.setViewportSize({ width: 1024, height: 900 });
+    await authenticatedPage.goto("/dashboard");
     await expect(globalNav).toBeVisible({ timeout: 10000 });
+    await expect(primaryNav).toBeHidden();
+    await expect(moreButton).toBeHidden();
+    await expect(userMenuButton).toBeHidden();
+    await expect(mainMenuButton).toBeVisible();
+    await expect(searchButton).toBeVisible();
+    await expect(alertsLink).toBeVisible();
+
+    await mainMenuButton.click();
+    await expect(authenticatedPage.getByText(/^primary$/i).first()).toBeVisible();
+    await expect(authenticatedPage.getByText(/^more modules$/i).first()).toBeVisible();
+    await expect(authenticatedPage.getByText(/^utilities$/i).first()).toBeVisible();
+    await expect(authenticatedPage.getByText(/^account$/i).first()).toBeVisible();
+    await expectNoHorizontalOverflow(authenticatedPage, "dashboard shell at 1024px");
+    const compactNavHeight = await globalNav.evaluate((element) =>
+      Math.round(element.getBoundingClientRect().height),
+    );
+    expect(compactNavHeight).toBeLessThanOrEqual(72);
+
+    await authenticatedPage.setViewportSize({ width: 1280, height: 900 });
+    await authenticatedPage.goto("/dashboard");
+    await expect(globalNav).toBeVisible({ timeout: 10000 });
+    await expect(primaryNav).toBeVisible();
     await expect(
-      primaryNav.getByRole("link", { name: /^home$/i }),
+      primaryNav.getByRole("link", { name: /^home$/i }).first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole("link", { name: /^alerts$/i }).first(),
+      primaryNav.getByRole("link", { name: /^people$/i }).first(),
+    ).toBeVisible();
+    await expect(
+      primaryNav.getByRole("link", { name: /^events$/i }).first(),
     ).toBeVisible();
     await expect(moreButton).toBeVisible();
-    await expect(utilitiesButton).toBeVisible();
     await expect(userMenuButton).toBeVisible({ timeout: 10000 });
+    await expect(mainMenuButton).toBeHidden();
     await expect(
       authenticatedPage.getByText(/today at a glance/i).first(),
     ).toBeVisible();
@@ -301,28 +315,21 @@ test.describe("UI/UX regression flows", () => {
       authenticatedPage.getByRole("button", { name: /create intake/i }).first(),
     ).toBeVisible();
 
-    const topNavHeight = await globalNav.evaluate((element) =>
-      Math.round(element.getBoundingClientRect().height),
-    );
-    expect(topNavHeight).toBeLessThanOrEqual(72);
-
     await moreButton.click();
     await expect(
-      authenticatedPage.getByRole("menuitem", { name: /^events$/i }).first(),
+      authenticatedPage.getByRole("menuitem", { name: /^tasks$/i }).first(),
     ).toBeVisible();
-    await authenticatedPage.keyboard.press("Escape");
-
-    await utilitiesButton.click();
     await expect(
       authenticatedPage.getByRole("menuitem", { name: /^analytics$/i }).first(),
     ).toBeVisible();
-    await authenticatedPage.keyboard.press("Escape");
 
-    await themeSettingsButton.click();
+    await userMenuButton.click();
     await expect(
-      authenticatedPage.getByText(/switch to (light|dark)/i),
+      authenticatedPage.getByRole("menuitem", { name: /admin settings/i }).first(),
     ).toBeVisible();
-    await authenticatedPage.keyboard.press("Escape");
+    await expect(
+      authenticatedPage.getByRole("menuitem", { name: /switch to (light|dark)/i }).first(),
+    ).toBeVisible();
 
     await searchButton.click();
     await expect(
@@ -332,18 +339,12 @@ test.describe("UI/UX regression flows", () => {
       .getByRole("button", { name: /close search dialog/i })
       .click();
     await expect(searchButton).toBeFocused();
+    await expectNoHorizontalOverflow(authenticatedPage, "dashboard shell at 1280px");
 
-    for (const width of [1024, 1280]) {
-      await authenticatedPage.setViewportSize({ width, height: 900 });
-      await authenticatedPage.goto("/dashboard");
-      const resizedNavHeight = await authenticatedPage
-        .getByRole("navigation", { name: /global navigation/i })
-        .first()
-        .evaluate((element) =>
-          Math.round(element.getBoundingClientRect().height),
-        );
-      expect(resizedNavHeight).toBeLessThanOrEqual(72);
-    }
+    const fullNavHeight = await globalNav.evaluate((element) =>
+      Math.round(element.getBoundingClientRect().height),
+    );
+    expect(fullNavHeight).toBeLessThanOrEqual(72);
 
     expectNoRuntimeIssues("dashboard shell", runtimeIssues);
     runtimeIssues.detach();
@@ -601,6 +602,7 @@ test.describe("UI/UX regression flows", () => {
     );
     const runtimeIssues = trackRuntimeIssues(page);
     await ensureEffectiveAdminLoginViaAPI(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
 
     const adminHubState = await gotoAdminRouteWithFallback(
       page,
@@ -623,35 +625,21 @@ test.describe("UI/UX regression flows", () => {
       page.getByRole("link", { name: /invite users/i }).first(),
     ).toBeVisible();
 
-    const topNavAdminMenuButton = page
-      .getByRole("button", { name: /admin quick actions/i })
+    const topNavUserMenuButton = page
+      .getByRole("button", { name: /user menu/i })
       .first();
-    const topNavAdminButtonVisible = await topNavAdminMenuButton
+    const topNavUserButtonVisible = await topNavUserMenuButton
       .isVisible()
       .catch(() => false);
-    if (topNavAdminButtonVisible) {
-      await topNavAdminMenuButton.click();
-      await expect(
-        page
-          .getByTestId("admin-quick-actions-compact")
-          .getByRole("link", { name: /invite users/i })
-          .first(),
-      ).toBeVisible();
-      await page.keyboard.press("Escape");
-    } else {
-      const mobileMenuButton = page
-        .getByRole("button", { name: /main menu/i })
-        .first();
-      await expect(mobileMenuButton).toBeVisible();
-      await mobileMenuButton.click();
-      await expect(
-        page
-          .getByTestId("admin-quick-actions-compact")
-          .getByRole("link", { name: /invite users/i })
-          .first(),
-      ).toBeVisible();
-      await page.keyboard.press("Escape");
-    }
+    expect(topNavUserButtonVisible).toBe(true);
+    await topNavUserMenuButton.click();
+    await expect(
+      page
+        .getByTestId("admin-quick-actions-compact")
+        .getByRole("link", { name: /invite users/i })
+        .first(),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
 
     {
       const adminHubButtons = page.getByRole("button", {

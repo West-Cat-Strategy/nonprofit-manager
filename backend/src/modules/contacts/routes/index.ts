@@ -5,6 +5,7 @@ import { CONTACT_ROLE_FILTER_VALUES } from '@app-types/contact';
 import pool from '@config/database';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
+import { requirePermission } from '@middleware/permissions';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
@@ -14,6 +15,8 @@ import {
   contactFilterSchema,
   contactCommunicationsQuerySchema,
   contactLookupQuerySchema,
+  contactMergePreviewQuerySchema,
+  contactMergeSchema,
   contactNoteSchema,
   contactRelationshipSchema,
   contactPhoneSchema,
@@ -52,6 +55,7 @@ import { ContactRelationshipsUseCase } from '../usecases/contactRelationships.us
 import { ContactDocumentsUseCase } from '../usecases/contactDocuments.usecase';
 import { piiFieldAccessControl } from '@middleware/piiFieldAccessControl';
 import { services } from '@container/services';
+import { Permission } from '@utils/permissions';
 
 const contactExportSchema = z
   .object({
@@ -168,6 +172,22 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     validateParams(z.object({ id: uuidSchema })),
     piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.getContactById
+  );
+  router.get(
+    '/:id/merge-preview',
+    validateParams(z.object({ id: uuidSchema })),
+    validateQuery(contactMergePreviewQuerySchema),
+    requirePermission(Permission.CONTACT_EDIT),
+    piiFieldAccessControl(services.pii, 'contacts'),
+    directoryController.getContactMergePreview
+  );
+  router.post(
+    '/:id/merge',
+    validateParams(z.object({ id: uuidSchema })),
+    validateBody(contactMergeSchema),
+    requirePermission(Permission.CONTACT_EDIT),
+    piiFieldAccessControl(services.pii, 'contacts'),
+    directoryController.mergeContact
   );
   router.post(
     '/',
