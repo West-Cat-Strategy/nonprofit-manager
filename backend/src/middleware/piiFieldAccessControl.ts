@@ -22,6 +22,8 @@ interface AuthenticatedRequest extends Request {
 const shouldBypassPIIMaskingForTests = (): boolean =>
   process.env.NODE_ENV === 'test' && process.env.DISABLE_PII_MASKING_IN_TEST === 'true';
 
+const isCountField = (fieldName: string): boolean => fieldName.toLowerCase().endsWith('_count');
+
 /**
  * Middleware to apply PII field-level access control
  * 
@@ -85,6 +87,11 @@ function applyFieldAccessControlSync(
   const controlled: Record<string, any> = {};
 
   for (const [key, value] of Object.entries(data)) {
+    if (isCountField(key)) {
+      controlled[key] = value;
+      continue;
+    }
+
     const rule = rules?.get(key);
     const accessLevel = rule?.accessLevel || (isSensitiveField(key) ? 'masked' : 'full');
 

@@ -64,6 +64,36 @@ describe('piiFieldAccessControl middleware', () => {
     });
   });
 
+  it('leaves count fields untouched while masking nearby sensitive fields', async () => {
+    const req = {
+      user: { id: 'user-1', email: 'user@example.com', role: 'manager' },
+      path: '/contacts/123',
+    } as unknown as Request;
+    const { res, originalJson } = createResponse();
+    const next = jest.fn() as NextFunction;
+
+    await piiFieldAccessControl(piiService)(req as any, res, next);
+    expect(next).toHaveBeenCalled();
+
+    (res.json as any)({
+      phone_count: 7,
+      email_count: 2,
+      nested: {
+        relationship_count: 3,
+        mobile_phone: '7785559999',
+      },
+    });
+
+    expect(originalJson).toHaveBeenCalledWith({
+      phone_count: 7,
+      email_count: 2,
+      nested: {
+        relationship_count: 3,
+        mobile_phone: '***-***-9999',
+      },
+    });
+  });
+
   it('passes data through unchanged when user role is unavailable', async () => {
     const req = {
       user: undefined,

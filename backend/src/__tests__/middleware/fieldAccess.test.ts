@@ -61,6 +61,13 @@ describe('fieldAccess middleware', () => {
       rows: [
         { field_name: 'email', can_read: true, can_write: true, mask_on_read: true, mask_type: 'email' },
         { field_name: 'phone', can_read: true, can_write: true, mask_on_read: true, mask_type: 'phone' },
+        {
+          field_name: 'phone_count',
+          can_read: true,
+          can_write: true,
+          mask_on_read: true,
+          mask_type: 'phone',
+        },
         { field_name: 'secret', can_read: true, can_write: false, mask_on_read: false, mask_type: null },
         { field_name: 'hidden', can_read: false, can_write: false, mask_on_read: false, mask_type: null },
       ],
@@ -85,6 +92,7 @@ describe('fieldAccess middleware', () => {
     wrappedJson({
       email: 'jane@example.com',
       phone: '5551112222',
+      phone_count: 7,
       secret: 'encrypted',
       hidden: 'omit-me',
       name: 'Jane',
@@ -98,6 +106,7 @@ describe('fieldAccess middleware', () => {
     expect(originalJson).toHaveBeenCalledWith({
       email: 'email:jane@example.com',
       phone: 'phone:5551112222',
+      phone_count: 7,
       secret: 'decrypted:encrypted',
       name: 'Jane',
     });

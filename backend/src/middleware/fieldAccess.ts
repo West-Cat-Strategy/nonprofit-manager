@@ -31,6 +31,7 @@ interface FieldAccessRule {
 const fieldAccessCache = new Map<string, { rules: FieldAccessRule[]; timestamp: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_DENY_ON_NO_RULES = process.env.FIELD_ACCESS_DEFAULT_DENY !== 'false';
+const isCountField = (fieldName: string): boolean => fieldName.toLowerCase().endsWith('_count');
 
 /**
  * Get field access rules for a user and resource
@@ -139,6 +140,11 @@ function filterRecord(
   const filtered: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(record)) {
+    if (isCountField(key)) {
+      filtered[key] = value;
+      continue;
+    }
+
     const rule = rulesMap.get(key);
 
     if (!rule) {
