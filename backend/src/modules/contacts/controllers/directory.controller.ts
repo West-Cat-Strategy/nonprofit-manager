@@ -232,7 +232,7 @@ export const createContactDirectoryController = (
   const getContactMergePreview = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-      const query = (req.validatedQuery ?? req.query) as { target_contact_id: string };
+      const query = req.validatedQuery as { target_contact_id: string };
       const preview = await useCase.getMergePreview(req.params.id, query.target_contact_id, scope, req.user?.role);
 
       if (!preview) {

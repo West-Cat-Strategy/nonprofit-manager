@@ -7,6 +7,9 @@ const explicitEnv = { ...process.env };
 dotenv.config({ path: '.env.test', quiet: true, override: true });
 dotenv.config({ path: '.env.test.local', quiet: true, override: true });
 Object.assign(process.env, explicitEnv);
+const TEST_JWT_SECRET = process.env.JWT_SECRET?.trim() || 'test_jwt_secret_local_only';
+process.env.JWT_SECRET = TEST_JWT_SECRET;
+process.env.EXPOSE_AUTH_TOKENS_IN_RESPONSE = 'true';
 
 /**
  * Playwright Configuration for Nonprofit Manager E2E Tests
@@ -153,6 +156,8 @@ export default defineConfig({
           PORT: E2E_BACKEND_PORT,
           BYPASS_REGISTRATION_POLICY_IN_TEST:
             process.env.BYPASS_REGISTRATION_POLICY_IN_TEST || 'true',
+          EXPOSE_AUTH_TOKENS_IN_RESPONSE: 'true',
+          JWT_SECRET: TEST_JWT_SECRET,
           COMPOSE_MODE: E2E_COMPOSE_MODE,
           ...(E2E_COMPOSE_PROJECT_NAME ? { COMPOSE_PROJECT_NAME: E2E_COMPOSE_PROJECT_NAME } : {}),
           ...(E2E_COMPOSE_FILES ? { COMPOSE_FILES: E2E_COMPOSE_FILES } : {}),

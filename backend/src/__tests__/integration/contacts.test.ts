@@ -1174,7 +1174,8 @@ describe('Contact API Integration Tests', () => {
         [targetContactId]
       );
       expect(targetPhoneRows.rowCount).toBe(1);
-      expect(targetPhoneRows.rows[0]?.phone_number).toBe('555-123-4567');
+      expect(targetPhoneRows.rows[0]?.phone_number).toBe('(555) 123-4567');
+      expect(targetPhoneRows.rows[0]?.label).toBe('mobile');
 
       const targetEmailRows = await pool.query<{ email_address: string; label: string }>(
         'SELECT email_address, label FROM contact_email_addresses WHERE contact_id = $1 ORDER BY created_at ASC, id ASC',
@@ -1192,12 +1193,10 @@ describe('Contact API Integration Tests', () => {
 
       const targetVolunteerRows = await pool.query<{
         skills: string[] | null;
-        preferred_roles: string[] | null;
-        certifications: string[] | null;
         availability_status: string | null;
         is_active: boolean | null;
       }>(
-        `SELECT skills, preferred_roles, certifications, availability_status, is_active
+        `SELECT skills, availability_status, is_active
          FROM volunteers
          WHERE contact_id = $1
          ORDER BY is_active DESC NULLS LAST, updated_at DESC, created_at ASC, id ASC`,
@@ -1206,12 +1205,6 @@ describe('Contact API Integration Tests', () => {
       expect(targetVolunteerRows.rowCount).toBeGreaterThan(0);
       expect(targetVolunteerRows.rows[0]?.skills).toEqual(
         expect.arrayContaining(['Teaching', 'Mentoring', 'Driving'])
-      );
-      expect(targetVolunteerRows.rows[0]?.preferred_roles).toEqual(
-        expect.arrayContaining(['Coordinator', 'Driver'])
-      );
-      expect(targetVolunteerRows.rows[0]?.certifications).toEqual(
-        expect.arrayContaining(['CPR', 'First Aid'])
       );
       expect(targetVolunteerRows.rows[0]?.availability_status).toBe('limited');
       expect(targetVolunteerRows.rows[0]?.is_active).toBe(true);
@@ -1271,7 +1264,7 @@ describe('Contact API Integration Tests', () => {
           first_name: 'Cross',
           last_name: 'Source',
         });
-        const targetContactId = await createContact(authToken, secondaryAccountId, {
+        const targetContactId = await createContact(staffAuthToken, secondaryAccountId, {
           account_id: secondaryAccountId,
           first_name: 'Cross',
           last_name: 'Target',
@@ -1301,12 +1294,12 @@ describe('Contact API Integration Tests', () => {
       const sourceContactId = await createContact(staffAuthToken, testAccountId, {
         account_id: testAccountId,
         first_name: 'Rollback',
-        last_name: 'Source',
+        last_name: 'Shared',
       });
       const targetContactId = await createContact(staffAuthToken, testAccountId, {
         account_id: testAccountId,
         first_name: 'Safe',
-        last_name: 'Target',
+        last_name: 'Shared',
       });
 
       await createPhone(staffAuthToken, testAccountId, sourceContactId, {

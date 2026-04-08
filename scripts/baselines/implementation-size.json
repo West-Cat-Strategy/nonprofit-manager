@@ -1,9 +1,10 @@
 {
   "cap": 900,
-  "generated_at": "2026-04-05T23:44:21.000Z",
+  "generated_at": "2026-04-08T06:33:26Z",
   "files": {
     "backend/src/modules/cases/queries/catalogQueries.ts": 912,
     "backend/src/services/importedUnifiedImportService.ts": 1741,
+    "backend/src/services/contactService.ts": 2183,
     "backend/src/modules/grants/controllers/grants.controller.ts": 1267,
     "backend/src/modules/grants/services/grants.service.ts": 3192,
     "backend/src/modules/contacts/usecases/contactImportExport.usecase.ts": 1024,

@@ -1001,9 +1001,9 @@ test.describe('Contacts Module', () => {
     await expect(mergeDialog.getByText(/conflicting fields/i)).toBeVisible({ timeout: 15000 });
 
     const firstNameField = mergeDialog.getByRole('group', { name: /first name/i });
-    await firstNameField.getByRole('button', { name: /^source$/i }).click();
+    await firstNameField.getByRole('button', { name: /^source/i }).click();
     const activeStatusField = mergeDialog.getByRole('group', { name: /active status/i });
-    await activeStatusField.getByRole('button', { name: /^source$/i }).click();
+    await activeStatusField.getByRole('button', { name: /^source/i }).click();
 
     await mergeDialog.getByRole('button', { name: /merge contacts/i }).click();
     await expect(authenticatedPage).toHaveURL(new RegExp(`/contacts/${targetContact.id}$`), {

@@ -621,10 +621,10 @@ export class ContactService {
           c.created_at,
           c.updated_at,
           a.account_name,
-          (SELECT COUNT(*) FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
-          (SELECT COUNT(*) FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
-          (SELECT COUNT(*) FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
-          (SELECT COUNT(*) FROM contact_notes WHERE contact_id = c.id) as note_count,
+          (SELECT COUNT(*)::int FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
+          (SELECT COUNT(*)::int FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
+          (SELECT COUNT(*)::int FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
+          (SELECT COUNT(*)::int FROM contact_notes WHERE contact_id = c.id) as note_count,
           COALESCE(
             (SELECT ARRAY_AGG(cr.name) FROM contact_role_assignments cra
              JOIN contact_roles cr ON cr.id = cra.role_id
@@ -711,10 +711,10 @@ export class ContactService {
           c.created_at,
           c.updated_at,
           a.account_name,
-          (SELECT COUNT(*) FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
-          (SELECT COUNT(*) FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
-          (SELECT COUNT(*) FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
-          (SELECT COUNT(*) FROM contact_notes WHERE contact_id = c.id) as note_count,
+          (SELECT COUNT(*)::int FROM contact_phone_numbers WHERE contact_id = c.id) as phone_count,
+          (SELECT COUNT(*)::int FROM contact_email_addresses WHERE contact_id = c.id) as email_count,
+          (SELECT COUNT(*)::int FROM contact_relationships WHERE contact_id = c.id AND is_active = true) as relationship_count,
+          (SELECT COUNT(*)::int FROM contact_notes WHERE contact_id = c.id) as note_count,
           COALESCE(
             (SELECT ARRAY_AGG(cr.name) FROM contact_role_assignments cra
              JOIN contact_roles cr ON cr.id = cra.role_id
@@ -1123,7 +1123,6 @@ export class ContactService {
           c.is_active,
           c.created_at,
           c.updated_at,
-          a.account_name,
           COALESCE(
             (
               SELECT ARRAY_AGG(cr.name ORDER BY cr.name)
@@ -1134,7 +1133,6 @@ export class ContactService {
             ARRAY[]::text[]
           ) as roles
          FROM contacts c
-         LEFT JOIN accounts a ON c.account_id = a.id
          WHERE c.id = ANY($1::uuid[])
          ORDER BY c.id
          FOR UPDATE`,
@@ -1378,20 +1376,21 @@ export class ContactService {
           return;
         }
 
-        const label = slot === 'mobile_phone' ? 'mobile' : 'other';
+        const desiredLabel = slot === 'mobile_phone' ? 'mobile' : 'other';
         const matchKey = normalizePhoneMatchKey(value);
         const existingRow = await client.query<MergePhoneRow>(
           `SELECT id, contact_id, phone_number, label, is_primary, created_at, modified_by
            FROM contact_phone_numbers
            WHERE contact_id = $1
              AND regexp_replace(phone_number, '\\D', '', 'g') = $2
-             AND (${slot === 'mobile_phone' ? "label = 'mobile'" : "label <> 'mobile'"})
            ORDER BY is_primary DESC, created_at ASC, id ASC
            LIMIT 1`,
           [targetContactId, matchKey]
         );
 
         if (existingRow.rows[0]) {
+          const updatedLabel =
+            chooseNonOtherLabel(existingRow.rows[0].label, desiredLabel) ?? existingRow.rows[0].label;
           await client.query(
             `UPDATE contact_phone_numbers
              SET phone_number = $2,
@@ -1399,7 +1398,7 @@ export class ContactService {
                  is_primary = true,
                  modified_by = $4
              WHERE id = $1`,
-            [existingRow.rows[0].id, value, label, userId]
+            [existingRow.rows[0].id, value, updatedLabel, userId]
           );
           await setContactMethodPrimary(
             client,
@@ -1576,14 +1575,14 @@ export class ContactService {
         if (existing) {
           await client.query(
             `UPDATE contact_relationships
-             SET relationship_label = COALESCE(contact_relationships.relationship_label, $2),
+             SET relationship_label = COALESCE(contact_relationships.relationship_label, $2::text),
                  is_bidirectional = contact_relationships.is_bidirectional OR $3,
-                 inverse_relationship_type = COALESCE(contact_relationships.inverse_relationship_type, $4),
+                 inverse_relationship_type = COALESCE(contact_relationships.inverse_relationship_type, $4::text),
                  notes = CASE
-                   WHEN contact_relationships.notes IS NULL THEN $5
-                   WHEN $5 IS NULL THEN contact_relationships.notes
-                   WHEN contact_relationships.notes = $5 THEN contact_relationships.notes
-                   ELSE contact_relationships.notes || E'\n\n' || $5
+                   WHEN contact_relationships.notes IS NULL THEN $5::text
+                   WHEN $5::text IS NULL THEN contact_relationships.notes
+                   WHEN contact_relationships.notes = $5::text THEN contact_relationships.notes
+                   ELSE contact_relationships.notes || E'\n\n' || $5::text
                  END,
                  is_active = contact_relationships.is_active OR $6,
                  modified_by = $7
