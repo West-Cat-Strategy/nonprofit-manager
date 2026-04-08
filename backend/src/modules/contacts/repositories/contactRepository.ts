@@ -3,6 +3,8 @@ import type {
   Contact,
   ContactFilters,
   ContactLookupItem,
+  ContactMergeRequest,
+  ContactMergeResult,
   ContactRole,
   CreateContactDTO,
   PaginationParams,
@@ -87,6 +89,16 @@ export class ContactRepository implements ContactDirectoryPort {
 
   async deleteContact(contactId: string, userId: string): Promise<boolean> {
     return services.contact.deleteContact(contactId, userId);
+  }
+
+  async mergeContacts(
+    contactId: string,
+    payload: ContactMergeRequest,
+    userId: string,
+    scope?: DataScopeFilter,
+    viewerRole?: string
+  ): Promise<ContactMergeResult | null> {
+    return services.contact.mergeContacts(contactId, payload, userId, scope, viewerRole);
   }
 
   async findContactIdentity(contactId: string): Promise<{

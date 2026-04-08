@@ -5,7 +5,13 @@
 
 import { test, expect } from '../fixtures/auth.fixture';
 import type { APIResponse, Page } from '@playwright/test';
-import { createTestContact, createTestEvent, clearDatabase } from '../helpers/database';
+import {
+  clearDatabase,
+  createTestAccount,
+  createTestContact,
+  createTestEvent,
+  getAuthHeaders,
+} from '../helpers/database';
 
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 const apiURL = process.env.API_URL || 'http://localhost:3001';
@@ -252,6 +258,87 @@ async function waitForContactDetailReady(page: Page, headingMatcher?: RegExp): P
   await expect(page.getByRole('tablist', { name: /contact sections/i })).toBeVisible({ timeout: 30000 });
   if (headingMatcher) {
     await expect(page.getByRole('heading', { name: headingMatcher })).toBeVisible({ timeout: 30000 });
+  }
+}
+
+async function createContactPhone(
+  page: Page,
+  token: string,
+  contactId: string,
+  phoneNumber: string,
+  label: 'home' | 'work' | 'mobile' | 'fax' | 'other' = 'other'
+): Promise<void> {
+  const headers = await getAuthHeaders(page, token);
+  const response = await page.request.post(`${apiURL}/api/v2/contacts/${contactId}/phones`, {
+    headers,
+    data: {
+      phone_number: phoneNumber,
+      label,
+      is_primary: false,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Failed to create phone for ${contactId} (${response.status()}): ${await response.text()}`);
+  }
+}
+
+async function createContactEmail(
+  page: Page,
+  token: string,
+  contactId: string,
+  emailAddress: string,
+  label: 'personal' | 'work' | 'other' = 'other'
+): Promise<void> {
+  const headers = await getAuthHeaders(page, token);
+  const response = await page.request.post(`${apiURL}/api/v2/contacts/${contactId}/emails`, {
+    headers,
+    data: {
+      email_address: emailAddress,
+      label,
+      is_primary: false,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Failed to create email for ${contactId} (${response.status()}): ${await response.text()}`);
+  }
+}
+
+async function createContactRelationship(
+  page: Page,
+  token: string,
+  contactId: string,
+  relatedContactId: string,
+  notes: string
+): Promise<void> {
+  const headers = await getAuthHeaders(page, token);
+  const response = await page.request.post(`${apiURL}/api/v2/contacts/${contactId}/relationships`, {
+    headers,
+    data: {
+      related_contact_id: relatedContactId,
+      relationship_type: 'friend',
+      relationship_label: 'Merge test relationship',
+      is_bidirectional: true,
+      notes,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to create relationship for ${contactId} (${response.status()}): ${await response.text()}`
+    );
+  }
+}
+
+async function deactivateContact(page: Page, token: string, contactId: string): Promise<void> {
+  const headers = await getAuthHeaders(page, token);
+  const response = await page.request.delete(`${apiURL}/api/v2/contacts/${contactId}`, {
+    headers,
+  });
+
+  if (!response.ok()) {
+    throw new Error(`Failed to deactivate contact ${contactId} (${response.status()}): ${await response.text()}`);
   }
 }
 
@@ -834,6 +921,125 @@ test.describe('Contacts Module', () => {
 
     await authenticatedPage.goto(`/contacts/${activeContact.id}`);
     await expect(authenticatedPage.getByText(/active/i).first()).toBeVisible();
+  });
+
+  test('should merge a contact into an inactive target without losing linked records', async ({
+    authenticatedPage,
+    authToken,
+  }) => {
+    const suffix = uniqueSuffix();
+    const account = await createTestAccount(authenticatedPage, authToken, {
+      name: `Merge Flow ${suffix}`,
+      accountType: 'organization',
+      category: 'other',
+    });
+
+    const sourceContact = await createTestContact(authenticatedPage, authToken, {
+      accountId: account.id,
+      firstName: `Taylor${suffix}`,
+      lastName: 'Contact',
+      email: `shared.${suffix}@example.com`,
+      phone: '555-600-1000',
+    });
+    const targetContact = await createTestContact(authenticatedPage, authToken, {
+      accountId: account.id,
+      firstName: `Morgan${suffix}`,
+      lastName: 'Contact',
+      email: `shared.${suffix}@example.com`,
+      phone: '555-600-1000',
+    });
+    const relatedSource = await createTestContact(authenticatedPage, authToken, {
+      accountId: account.id,
+      firstName: `Linked${suffix}`,
+      lastName: 'Source',
+    });
+    const relatedTarget = await createTestContact(authenticatedPage, authToken, {
+      accountId: account.id,
+      firstName: `Linked${suffix}`,
+      lastName: 'Target',
+    });
+
+    await createContactPhone(authenticatedPage, authToken, sourceContact.id, '555-600-1001', 'work');
+    await createContactPhone(authenticatedPage, authToken, targetContact.id, '555-600-1002', 'work');
+    await createContactEmail(authenticatedPage, authToken, sourceContact.id, `source.extra.${suffix}@example.com`, 'work');
+    await createContactEmail(authenticatedPage, authToken, targetContact.id, `target.extra.${suffix}@example.com`, 'work');
+    await createContactRelationship(
+      authenticatedPage,
+      authToken,
+      sourceContact.id,
+      relatedSource.id,
+      'Source relationship'
+    );
+    await createContactRelationship(
+      authenticatedPage,
+      authToken,
+      targetContact.id,
+      relatedTarget.id,
+      'Target relationship'
+    );
+
+    await deactivateContact(authenticatedPage, authToken, targetContact.id);
+
+    await authenticatedPage.goto(`/contacts/${sourceContact.id}`);
+    await waitForContactDetailReady(
+      authenticatedPage,
+      new RegExp(`Taylor${suffix} Contact`, 'i')
+    );
+
+    await authenticatedPage.getByRole('button', { name: /merge contact/i }).click();
+    const mergeDialog = authenticatedPage.getByRole('dialog', { name: /merge contact/i });
+    await expect(mergeDialog).toBeVisible({ timeout: 15000 });
+
+    await mergeDialog.getByLabel(/find target contact/i).fill(`Morgan${suffix}`);
+    await mergeDialog.getByRole('button', { name: /^search$/i }).click();
+    await expect(mergeDialog.getByText(new RegExp(`Morgan${suffix} Contact`, 'i'))).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(mergeDialog.getByText(/inactive/i).first()).toBeVisible();
+
+    await mergeDialog.getByRole('button', { name: new RegExp(`Morgan${suffix} Contact`, 'i') }).click();
+    await expect(mergeDialog.getByText(/conflicting fields/i)).toBeVisible({ timeout: 15000 });
+
+    const firstNameField = mergeDialog.getByRole('group', { name: /first name/i });
+    await firstNameField.getByRole('button', { name: /^source$/i }).click();
+    const activeStatusField = mergeDialog.getByRole('group', { name: /active status/i });
+    await activeStatusField.getByRole('button', { name: /^source$/i }).click();
+
+    await mergeDialog.getByRole('button', { name: /merge contacts/i }).click();
+    await expect(authenticatedPage).toHaveURL(new RegExp(`/contacts/${targetContact.id}$`), {
+      timeout: 30000,
+    });
+
+    await waitForContactDetailReady(
+      authenticatedPage,
+      new RegExp(`Taylor${suffix} Contact`, 'i')
+    );
+    await expect(
+      authenticatedPage.getByRole('heading', { name: new RegExp(`Taylor${suffix} Contact`, 'i') })
+    ).toBeVisible();
+    await expect(authenticatedPage.getByText(/active/i).first()).toBeVisible();
+
+    const headers = await getAuthHeaders(authenticatedPage, authToken);
+    const mergedResponse = await authenticatedPage.request.get(
+      `${apiURL}/api/v2/contacts/${targetContact.id}`,
+      { headers }
+    );
+    expect(mergedResponse.ok()).toBeTruthy();
+    const mergedPayload = (await mergedResponse.json()) as {
+      data?: {
+        first_name?: string;
+        is_active?: boolean;
+        phone_count?: number;
+        email_count?: number;
+        relationship_count?: number;
+      };
+    };
+    const mergedData = mergedPayload.data || {};
+    expect(mergedData.first_name).toBe(`Taylor${suffix}`);
+    expect(mergedData.is_active).toBe(true);
+    expect(mergedData.phone_count).toBe(3);
+    expect(mergedData.email_count).toBe(3);
+    expect(mergedData.relationship_count).toBe(2);
   });
 
   test('should delete contact from list actions', async ({ authenticatedPage, authToken }) => {

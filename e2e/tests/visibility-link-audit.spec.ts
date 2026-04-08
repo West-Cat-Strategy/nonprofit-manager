@@ -39,7 +39,7 @@ type ClickthroughAuditLink = {
   label: string;
   href: string;
   surface: 'staff' | 'portal';
-  scope?: 'primary-navigation' | 'more-navigation' | 'more-button' | 'alerts-shortcut' | 'utilities-menu';
+  scope?: 'primary-navigation' | 'more-navigation' | 'more-button' | 'alerts-shortcut';
 };
 
 type LinkAuditRow = {
@@ -380,11 +380,13 @@ const portalRouteAudits: RouteAuditConfig[] = [
 const staffNavigationLinks: ClickthroughAuditLink[] = [
   { label: 'Home', href: '/dashboard', surface: 'staff', scope: 'primary-navigation' },
   { label: 'People', href: '/contacts', surface: 'staff', scope: 'primary-navigation' },
-  { label: 'Accounts', href: '/accounts?status=active', surface: 'staff', scope: 'primary-navigation' },
-  { label: 'Volunteers', href: '/volunteers', surface: 'staff', scope: 'primary-navigation' },
+  { label: 'Events', href: '/events', surface: 'staff', scope: 'primary-navigation' },
   { label: 'More', href: '#topnav-more-menu', surface: 'staff', scope: 'more-button' },
-  { label: 'Analytics', href: '/analytics', surface: 'staff', scope: 'utilities-menu' },
-  { label: 'Reports', href: '/reports/builder', surface: 'staff', scope: 'utilities-menu' },
+  { label: 'Tasks', href: '/tasks', surface: 'staff', scope: 'more-navigation' },
+  { label: 'Accounts', href: '/accounts', surface: 'staff', scope: 'more-navigation' },
+  { label: 'Volunteers', href: '/volunteers', surface: 'staff', scope: 'more-navigation' },
+  { label: 'Analytics', href: '/analytics', surface: 'staff', scope: 'more-navigation' },
+  { label: 'Reports', href: '/reports/builder', surface: 'staff', scope: 'more-navigation' },
   { label: 'Alerts', href: '/alerts', surface: 'staff', scope: 'alerts-shortcut' },
 ];
 
@@ -864,16 +866,6 @@ authTest.describe('Staff text visibility and link audit', () => {
         await expect(moreNavigationMenu).toBeVisible();
         link = moreNavigationMenu
           .getByRole('link', { name: toNamePattern(linkConfig.label) })
-          .first();
-      } else if (linkConfig.scope === 'utilities-menu') {
-        const utilitiesButton = authenticatedPage.getByRole('button', { name: /utilities/i });
-        await expect(utilitiesButton).toBeVisible();
-        await utilitiesButton.click();
-
-        const utilitiesMenu = authenticatedPage.getByRole('menu', { name: /utilities menu/i });
-        await expect(utilitiesMenu).toBeVisible();
-        link = utilitiesMenu
-          .getByRole('menuitem', { name: toNamePattern(linkConfig.label) })
           .first();
       } else {
         link = authenticatedPage.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import Navigation from '../Navigation';
 import { renderWithProviders } from '../../test/testUtils';
@@ -22,22 +22,40 @@ const primaryItems = [
     path: '/dashboard',
     shortLabel: 'Home',
   },
-];
-
-const secondaryItems = [
   {
     id: 'contacts',
     name: 'People',
     path: '/contacts',
-    icon: '👤',
     shortLabel: 'People',
   },
+  {
+    id: 'events',
+    name: 'Events',
+    path: '/events',
+    shortLabel: 'Events',
+  },
+  {
+    id: 'tasks',
+    name: 'Tasks',
+    path: '/tasks',
+    shortLabel: 'Tasks',
+  },
+];
+
+const secondaryItems = [
   {
     id: 'websites',
     name: 'Websites',
     path: '/websites',
     icon: '🌐',
     shortLabel: 'Websites',
+  },
+  {
+    id: 'donations',
+    name: 'Donations',
+    path: '/donations',
+    icon: '💰',
+    shortLabel: 'Donations',
   },
 ];
 
@@ -105,13 +123,19 @@ const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
     appIcon: null,
   },
   canOpenAdminSettings: true,
-  currentLocation: '/dashboard',
+  currentLocation: (overrides.currentLocation as string) || '/dashboard',
   currentRouteTitle: 'Dashboard',
   handleLogout: handleLogoutMock,
-  hasActiveSecondaryItem: false,
-  hasActiveUtilityItem: false,
-  isNavItemActive: (id: string, path: string) =>
-    path === '/dashboard' || id === 'dashboard' || path === '/alerts',
+  isNavItemActive: (id: string, path: string) => {
+    const activeLocation = (overrides.currentLocation as string) || '/dashboard';
+    return (
+      path === activeLocation ||
+      (activeLocation === '/dashboard' && path === '/alerts') ||
+      (activeLocation === '/dashboard' && id === 'dashboard')
+    );
+  },
+  desktopPrimaryItems: primaryItems.slice(0, 3),
+  desktopOverflowItems: [primaryItems[3], ...secondaryItems],
   navigationPreferences: {
     favoriteItems: [],
     primaryItems,
@@ -128,10 +152,6 @@ const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
   mobileNavigationPreferences: {
     primaryItems,
     secondaryItems,
-  },
-  themeLabels: {
-    neobrutalist: 'EO',
-    'clean-modern': 'CM',
   },
   themeState: {
     availableThemes: ['neobrutalist', 'clean-modern'],
@@ -160,31 +180,29 @@ describe('Navigation', () => {
     viewModelRef.current = buildViewModel();
   });
 
-  it('renders the view-model-driven primary navigation and utilities', async () => {
+  it('renders the compact primary navigation and desktop overflow grouping', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     expect(screen.getByRole('navigation', { name: /global navigation/i })).toHaveClass(
       'bg-[var(--app-shell-surface)]'
     );
     expect(screen.getByRole('link', { name: /^home$/i })).toHaveAttribute('href', '/dashboard');
-    expect(screen.queryByRole('link', { name: /^people$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^people$/i })).toHaveAttribute('href', '/contacts');
+    expect(screen.getByRole('link', { name: /^events$/i })).toHaveAttribute('href', '/events');
+
+    const primaryNav = screen.getByRole('navigation', { name: /primary navigation/i });
+    expect(within(primaryNav).getAllByRole('link')).toHaveLength(3);
+
+    expect(screen.queryByRole('button', { name: /^utilities$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /theme settings/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /admin quick actions/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /more navigation/i }));
-    expect(screen.getByRole('menuitem', { name: /^people$/i })).toHaveAttribute(
-      'href',
-      '/contacts'
-    );
+    expect(screen.getByRole('menuitem', { name: /^tasks$/i })).toHaveAttribute('href', '/tasks');
     expect(screen.getByRole('menuitem', { name: /^websites$/i })).toHaveAttribute(
       'href',
       '/websites'
     );
-
-    expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
-    expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveClass(
-      'text-[var(--app-accent-foreground)]'
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /^utilities$/i }));
     expect(screen.getByRole('menuitem', { name: /^analytics$/i })).toHaveAttribute(
       'href',
       '/analytics'
@@ -192,6 +210,11 @@ describe('Navigation', () => {
     expect(screen.getByRole('menuitem', { name: /^reports$/i })).toHaveAttribute(
       'href',
       '/reports/builder'
+    );
+
+    expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
+    expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveClass(
+      'text-[var(--app-accent-foreground)]'
     );
   });
 
@@ -251,6 +274,23 @@ describe('Navigation', () => {
     expect(screen.queryByRole('menuitem', { name: /admin settings/i })).not.toBeInTheDocument();
   });
 
+  it('highlights hidden desktop destinations through the More menu', async () => {
+    viewModelRef.current = buildViewModel({
+      currentLocation: '/tasks',
+    });
+
+    renderWithProviders(<Navigation />, { route: '/tasks' });
+
+    const moreButton = screen.getByRole('button', { name: /more navigation/i });
+    expect(moreButton).toHaveClass('border-app-accent', 'bg-app-accent');
+
+    fireEvent.click(moreButton);
+    expect(screen.getByRole('menuitem', { name: /^tasks$/i })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+  });
+
   it('maintains user menu state and delegates logout', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
@@ -282,14 +322,16 @@ describe('Navigation', () => {
     });
   });
 
-  it('renders compact theme labels and detailed theme menu rows', async () => {
+  it('renders theme controls and admin actions inside the account menu', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
-    const themeButton = screen.getByRole('button', { name: /theme settings/i });
-    expect(themeButton).toHaveTextContent('EO');
+    fireEvent.click(screen.getByRole('button', { name: /user menu/i }));
 
-    fireEvent.click(themeButton);
-
+    expect(screen.getByRole('menuitem', { name: /admin settings/i })).toHaveAttribute(
+      'href',
+      '/settings/admin/dashboard'
+    );
+    expect(screen.getByRole('menuitem', { name: /switch to dark/i })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /editorial ops/i })).toBeInTheDocument();
     expect(screen.getByText(/warm operational surfaces, serif headlines/i)).toBeInTheDocument();
     expect(screen.getByText(/a softer contemporary workspace with calm depth/i)).toBeInTheDocument();

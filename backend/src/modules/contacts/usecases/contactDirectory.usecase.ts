@@ -2,6 +2,9 @@ import type {
   Contact,
   ContactFilters,
   ContactLookupItem,
+  ContactMergePreview,
+  ContactMergeRequest,
+  ContactMergeResult,
   ContactRole,
   CreateContactDTO,
   PaginationParams,
@@ -12,6 +15,7 @@ import type { DataScopeFilter } from '@app-types/dataScope';
 import { invitationService, syncUserRole } from '@services/domains/integration';
 import { services } from '@container/services';
 import type { ContactDirectoryPort } from '../types/ports';
+import { buildContactMergePreview } from '../shared/contactMerge';
 
 const STAFF_ROLE_MAP: Record<string, string> = {
   'Executive Director': 'admin',
@@ -26,6 +30,20 @@ const getStaffRoleForContact = (roles: string[]): string | null => {
     return STAFF_ROLE_MAP.Staff;
   }
   return null;
+};
+
+const normalizeVolunteerMergePreviewRow = (
+  row: Record<string, unknown> | null | undefined
+): Record<string, unknown> | null => {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    availability_notes:
+      row.availability_notes ?? row.availability ?? null,
+  };
 };
 
 export class ContactDirectoryUseCase {
@@ -214,5 +232,78 @@ export class ContactDirectoryUseCase {
     }
 
     return this.repository.deleteContact(contactId, userId);
+  }
+
+  async getMergePreview(
+    sourceContactId: string,
+    targetContactId: string,
+    scope?: DataScopeFilter,
+    viewerRole?: string
+  ): Promise<ContactMergePreview | null> {
+    const [sourceContact, targetContact] = await Promise.all([
+      scope
+        ? this.repository.getContactByIdWithScope(sourceContactId, scope, viewerRole)
+        : this.repository.getContactById(sourceContactId, viewerRole),
+      scope
+        ? this.repository.getContactByIdWithScope(targetContactId, scope, viewerRole)
+        : this.repository.getContactById(targetContactId, viewerRole),
+    ]);
+
+    if (!sourceContact || !targetContact) {
+      return null;
+    }
+
+    const [sourceRoles, targetRoles] = await Promise.all([
+      this.repository.getRolesForContact(sourceContactId),
+      this.repository.getRolesForContact(targetContactId),
+    ]);
+
+    const volunteerRows = await services.pool.query<Record<string, unknown>>(
+      `
+        SELECT *
+        FROM volunteers
+        WHERE contact_id = ANY($1::uuid[])
+        ORDER BY is_active DESC NULLS LAST, updated_at DESC, created_at ASC, id ASC
+      `,
+      [[sourceContactId, targetContactId]]
+    );
+
+    const sourceVolunteer = normalizeVolunteerMergePreviewRow(
+      volunteerRows.rows.find((row) => row.contact_id === sourceContactId)
+    );
+    const targetVolunteer = normalizeVolunteerMergePreviewRow(
+      volunteerRows.rows.find((row) => row.contact_id === targetContactId)
+    );
+
+    return buildContactMergePreview(
+      { ...sourceContact, roles: sourceRoles.map((role) => role.name) },
+      { ...targetContact, roles: targetRoles.map((role) => role.name) },
+      {
+        sourceVolunteer,
+        targetVolunteer,
+      }
+    );
+  }
+
+  async merge(
+    sourceContactId: string,
+    payload: ContactMergeRequest,
+    userId: string,
+    scope?: DataScopeFilter,
+    viewerRole?: string
+  ): Promise<ContactMergeResult | null> {
+    if (scope) {
+      const scopedSource = await this.repository.getContactByIdWithScope(sourceContactId, scope, viewerRole);
+      const scopedTarget = await this.repository.getContactByIdWithScope(
+        payload.target_contact_id,
+        scope,
+        viewerRole
+      );
+      if (!scopedSource || !scopedTarget) {
+        return null;
+      }
+    }
+
+    return this.repository.mergeContacts(sourceContactId, payload, userId, scope, viewerRole);
   }
 }

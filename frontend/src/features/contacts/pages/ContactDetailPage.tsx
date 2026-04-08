@@ -15,6 +15,7 @@ import ContactRelationships from '../../../components/ContactRelationships';
 import ContactNotes from '../components/ContactNotesPanel';
 import ContactTags from '../../../components/ContactTags';
 import ContactTasksPanel from '../components/ContactTasksPanel';
+import ContactMergeDialog from '../components/ContactMergeDialog';
 import type { ContactNote } from '../../../types/contact';
 import ContactActivityPanel from '../components/ContactActivityPanel';
 import ContactCommunicationsPanel from '../components/ContactCommunicationsPanel';
@@ -43,6 +44,7 @@ const ContactDetail = () => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [openNoteForm, setOpenNoteForm] = useState(false);
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
 
   // Get cases for this contact
   const contactCases = useAppSelector((state) => (hasValidId ? selectCasesByContact(state, id) : []));
@@ -232,6 +234,9 @@ const ContactDetail = () => {
             <BrutalButton onClick={() => setActiveTab('communications')} variant="secondary">
               Communications
             </BrutalButton>
+            <BrutalButton onClick={() => setShowMergeDialog(true)} variant="secondary">
+              Merge Contact
+            </BrutalButton>
             <BrutalButton onClick={() => navigate(`/contacts/${id}/edit`)} variant="primary">
               Edit Contact
             </BrutalButton>
@@ -247,6 +252,18 @@ const ContactDetail = () => {
           </div>
         )}
       </BrutalCard>
+
+      {currentContact && (
+        <ContactMergeDialog
+          isOpen={showMergeDialog}
+          sourceContact={currentContact}
+          onClose={() => setShowMergeDialog(false)}
+          onSuccess={(result) => {
+            setShowMergeDialog(false);
+            navigate(`/contacts/${result.survivor_contact.contact_id}`);
+          }}
+        />
+      )}
 
       {/* Tabs */}
       <div

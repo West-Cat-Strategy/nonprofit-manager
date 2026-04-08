@@ -52,7 +52,7 @@ export default function MobileNavigationDrawer({
   const canOpenAdminSettings = canAccessAdminSettings(user);
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[22rem] flex-col overflow-y-auto bg-app-surface shadow-xl lg:hidden">
+    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[22rem] flex-col overflow-y-auto bg-app-surface shadow-xl xl:hidden">
       <div className="flex items-center justify-between border-b border-app-border px-4 py-4">
         <div>
           <p className="text-sm font-semibold text-app-text-heading">{appName}</p>

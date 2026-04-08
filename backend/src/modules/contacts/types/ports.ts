@@ -11,6 +11,8 @@ import type {
   ContactRole,
   ContactPhoneNumber,
   CreateContactDTO,
+  ContactMergeRequest,
+  ContactMergeResult,
   CreateContactEmailDTO,
   CreateContactNoteDTO,
   CreateContactRelationshipDTO,
@@ -68,6 +70,13 @@ export interface ContactDirectoryPort {
     userId: string
   ): Promise<number>;
   deleteContact(contactId: string, userId: string): Promise<boolean>;
+  mergeContacts(
+    contactId: string,
+    payload: ContactMergeRequest,
+    userId: string,
+    scope?: DataScopeFilter,
+    viewerRole?: string
+  ): Promise<ContactMergeResult | null>;
   findContactIdentity(contactId: string): Promise<{
     email: string | null;
     firstName: string;
