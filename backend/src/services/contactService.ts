@@ -1420,7 +1420,7 @@ export class ContactService {
              modified_by
            ) VALUES ($1, $2, $3, true, $4, $4)
            RETURNING id`,
-          [targetContactId, value, label, userId]
+          [targetContactId, value, desiredLabel, userId]
         );
 
         if (created.rows[0]?.id) {
