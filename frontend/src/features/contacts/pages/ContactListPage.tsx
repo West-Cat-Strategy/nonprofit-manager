@@ -6,12 +6,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import {
-  fetchContacts,
-  deleteContact,
-  setFilters,
-  clearFilters,
-} from '../state';
+import { fetchContacts, deleteContact } from '../state';
 import type { Contact } from '../state';
 import type { ContactRoleFilter } from '../types/contracts';
 import {
@@ -59,9 +54,7 @@ const ContactList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { contacts, loading, error, pagination, filters } = useAppSelector(
-    (state) => state.contacts
-  );
+  const { contacts, loading, error, pagination } = useAppSelector((state) => state.contacts);
   const initialRoleFilter = normalizeRoleFilter(searchParams.get('type'));
 
   const {
@@ -73,22 +66,21 @@ const ContactList = () => {
   } = useBulkSelect();
 
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
-  const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   const debouncedSearchInput = useDebounce(searchInput, 300);
   const [roleFilter, setRoleFilter] = useState<ContactRoleFilter | ''>(
-    initialRoleFilter || filters.role || ''
+    initialRoleFilter || ''
   );
   const [activeFilter, setActiveFilter] = useState(
-    parseAllowedValue(searchParams.get('status'), STATUS_FILTER_VALUES) ||
-      (filters.is_active === true ? 'active' : filters.is_active === false ? 'inactive' : '')
+    parseAllowedValue(searchParams.get('status'), STATUS_FILTER_VALUES) || ''
   );
   const [currentPage, setCurrentPage] = useState(() => parsePositiveInteger(searchParams.get('page'), 1));
   const [currentLimit] = useState(() =>
     parsePositiveInteger(searchParams.get('limit'), pagination.limit || 20)
   );
-  const [sortBy] = useState(searchParams.get('sort_by') || filters.sort_by || 'created_at');
+  const [sortBy] = useState(searchParams.get('sort_by') || 'created_at');
   const [sortOrder] = useState<'asc' | 'desc'>(
-    parseAllowedValue(searchParams.get('sort_order'), SORT_ORDER_VALUES) || filters.sort_order || 'desc'
+    parseAllowedValue(searchParams.get('sort_order'), SORT_ORDER_VALUES) || 'desc'
   );
   const [showImportExport, setShowImportExport] = useState(false);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
@@ -116,6 +108,10 @@ const ContactList = () => {
   }, [loadContacts]);
 
   useEffect(() => {
+    deselectAll();
+  }, [currentPage, debouncedSearchInput, roleFilter, activeFilter, sortBy, sortOrder, deselectAll]);
+
+  useEffect(() => {
     const params = new URLSearchParams();
     if (searchInput) params.set('search', searchInput);
     if (roleFilter) params.set('type', roleFilter);
@@ -130,24 +126,18 @@ const ContactList = () => {
   const handleFilterChange = (filterId: string, value: string | string[]) => {
     if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
+      setCurrentPage(1);
     } else if (filterId === 'role' && typeof value === 'string') {
       setRoleFilter(normalizeRoleFilter(value));
+      setCurrentPage(1);
     } else if (filterId === 'is_active' && typeof value === 'string') {
       setActiveFilter(value);
+      setCurrentPage(1);
     }
   };
 
   const handleApplyFilters = () => {
     setCurrentPage(1);
-    dispatch(
-      setFilters({
-        search: searchInput,
-        role: roleFilter,
-        is_active: activeFilter === 'active' ? true : activeFilter === 'inactive' ? false : null,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-      })
-    );
   };
 
   const handleClearFilters = () => {
@@ -155,7 +145,6 @@ const ContactList = () => {
     setRoleFilter('');
     setActiveFilter('');
     setCurrentPage(1);
-    dispatch(clearFilters());
   };
 
   const handleSelectAll = () => {

@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../../../../services/api';
+import type { RoleSelectorItem } from '../types';
+import { getRoleDisplayLabel } from '../utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,7 +30,13 @@ interface PendingRegistration {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function RegistrationSettingsSection() {
+interface RegistrationSettingsSectionProps {
+  roleOptions: RoleSelectorItem[];
+}
+
+export default function RegistrationSettingsSection({
+  roleOptions,
+}: RegistrationSettingsSectionProps) {
   const [settings, setSettings] = useState<RegistrationSettings | null>(null);
   const [pendingRegistrations, setPendingRegistrations] = useState<PendingRegistration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -222,11 +230,21 @@ export default function RegistrationSettingsSection() {
                 id="defaultRole"
                 value={settings.defaultRole}
                 onChange={(e) => handleDefaultRoleChange(e.target.value)}
-                disabled={saving}
+                disabled={saving || roleOptions.length === 0}
                 className="w-full max-w-xs px-3 py-2 border border-app-input-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
               >
-                <option value="user">User</option>
-                <option value="readonly">Read Only</option>
+                {roleOptions.length === 0 ? (
+                  <option value={settings.defaultRole}>
+                    {getRoleDisplayLabel(settings.defaultRole, {})}
+                  </option>
+                ) : (
+                  roleOptions.map((role) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                      {role.description ? ` - ${role.description}` : ''}
+                    </option>
+                  ))
+                )}
               </select>
               <p className="text-xs text-app-text-muted mt-1">
                 Admins can change a user&apos;s role after approval.

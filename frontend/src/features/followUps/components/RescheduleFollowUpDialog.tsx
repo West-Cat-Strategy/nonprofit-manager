@@ -33,7 +33,7 @@ export default function RescheduleFollowUpDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop p-4" role="dialog" aria-modal="true">
       <div className="w-full max-w-md border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-5 shadow-[6px_6px_0px_0px_var(--shadow-color)]">
         <h2 className="text-lg font-black">Reschedule Follow-up</h2>
         {followUpTitle && <p className="mt-1 text-sm text-[var(--app-text-muted)]">{followUpTitle}</p>}

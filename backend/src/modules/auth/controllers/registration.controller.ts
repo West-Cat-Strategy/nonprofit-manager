@@ -107,7 +107,7 @@ export const register = async (
       passwordHash: hashedPassword,
       firstName,
       lastName,
-      role: 'user',
+      role: 'staff',
     }));
     await runStep('syncUserRole', () => syncUserRole(user.id, user.role));
 

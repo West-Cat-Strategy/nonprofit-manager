@@ -403,9 +403,9 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
       return;
     }
     if (mode === 'edit' && contact?.contact_id) {
-      navigate(`/contacts/${contact.contact_id}`);
+      navigate(`/contacts/${contact.contact_id}`, { replace: true });
     } else {
-      navigate('/contacts');
+      navigate('/contacts', { replace: true });
     }
   };
 

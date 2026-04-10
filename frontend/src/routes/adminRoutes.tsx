@@ -45,11 +45,11 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       />
       <Route
         path="/email-marketing"
-        element={<ProtectedRoute><Navigate to="/settings/communications" replace /></ProtectedRoute>}
+        element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>}
       />
       <Route
         path="/settings/email-marketing"
-        element={<ProtectedRoute><Navigate to="/settings/communications" replace /></ProtectedRoute>}
+        element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>}
       />
       <Route
         path="/settings/api"
@@ -101,11 +101,11 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       />
       <Route
         path="/settings/organization"
-        element={<AdminRoute><Navigate to={getAdminSettingsPath('organization')} replace /></AdminRoute>}
+        element={<AdminRoute><Navigate to="/dashboard" replace /></AdminRoute>}
       />
       <Route
         path="/admin/audit-logs"
-        element={<AdminRoute><Navigate to={getAdminSettingsPath('audit_logs')} replace /></AdminRoute>}
+        element={<AdminRoute><Navigate to="/dashboard" replace /></AdminRoute>}
       />
       <Route
         path="/settings/backup"

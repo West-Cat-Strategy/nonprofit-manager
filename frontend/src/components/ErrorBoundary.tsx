@@ -32,14 +32,14 @@ class ErrorBoundary extends Component<Props, State> {
         >
           <h1 className="mb-2 text-2xl font-semibold text-app-accent">Something went wrong</h1>
           <p className="mb-3 mt-0 text-app-text-muted">
-            Please refresh the page. If the problem persists, contact support.
+            Try again to recover without reloading. If the problem persists, contact support.
           </p>
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={() => this.setState({ hasError: false, error: null })}
             className="rounded-md border border-app-input-border bg-app-surface px-3 py-2 text-sm font-semibold text-app-text transition-colors hover:bg-app-hover"
           >
-            Refresh
+            Try again
           </button>
           {import.meta.env.DEV && (
             <details className="mt-3 whitespace-pre-wrap text-sm text-app-text-muted">

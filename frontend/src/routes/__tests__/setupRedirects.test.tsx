@@ -237,9 +237,9 @@ describe('AppRoutes setup startup redirects', () => {
   });
 
   it.each([
-    ['/email-marketing', '/settings/communications'],
-    ['/settings/organization', '/settings/admin/organization'],
-    ['/admin/audit-logs', '/settings/admin/audit_logs'],
+    ['/email-marketing', '/dashboard'],
+    ['/settings/organization', '/dashboard'],
+    ['/admin/audit-logs', '/dashboard'],
   ])('redirects authenticated legacy route %s to %s', async (route, expectedLocation) => {
     renderAppRoutes(route, {
       user: {

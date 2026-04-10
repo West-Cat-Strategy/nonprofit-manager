@@ -1,4 +1,5 @@
 import {
+  areWorkspaceModuleSettingsEqual,
   createDefaultWorkspaceModuleSettings,
   normalizeWorkspaceModuleSettings,
   type PartialWorkspaceModuleSettings,
@@ -19,10 +20,16 @@ const dispatchWorkspaceModuleUpdate = (): void => {
 };
 
 export const clearWorkspaceModuleAccessCache = (): void => {
+  const hadCachedValue = cachedWorkspaceModules !== null;
   cachedWorkspaceModules = null;
   if (typeof window !== 'undefined') {
-    window.localStorage.removeItem(STORAGE_KEY);
-    dispatchWorkspaceModuleUpdate();
+    const hadStoredValue = window.localStorage.getItem(STORAGE_KEY) !== null;
+    if (hadStoredValue) {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+    if (hadCachedValue || hadStoredValue) {
+      dispatchWorkspaceModuleUpdate();
+    }
   }
 };
 
@@ -30,11 +37,17 @@ export const setWorkspaceModuleAccessCached = (
   value: PartialWorkspaceModuleSettings
 ): WorkspaceModuleSettings => {
   const normalized = normalizeWorkspaceModuleSettings(value);
+  if (cachedWorkspaceModules && areWorkspaceModuleSettingsEqual(cachedWorkspaceModules, normalized)) {
+    return cachedWorkspaceModules;
+  }
   cachedWorkspaceModules = normalized;
 
   if (typeof window !== 'undefined') {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-    dispatchWorkspaceModuleUpdate();
+    const serialized = JSON.stringify(normalized);
+    if (window.localStorage.getItem(STORAGE_KEY) !== serialized) {
+      window.localStorage.setItem(STORAGE_KEY, serialized);
+      dispatchWorkspaceModuleUpdate();
+    }
   }
 
   return normalized;

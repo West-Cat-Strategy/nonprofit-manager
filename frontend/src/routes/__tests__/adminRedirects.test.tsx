@@ -137,9 +137,9 @@ describe('admin route redirects', () => {
   });
 
   it.each([
-    ['/email-marketing', '/settings/communications', /communications page/i],
-    ['/settings/organization', '/settings/admin/organization', /admin settings page/i],
-    ['/admin/audit-logs', '/settings/admin/audit_logs', /admin settings page/i],
+    ['/email-marketing', '/dashboard', /dashboard/i],
+    ['/settings/organization', '/dashboard', /dashboard/i],
+    ['/admin/audit-logs', '/dashboard', /dashboard/i],
   ])('redirects legacy route %s to %s', async (legacyRoute, canonicalRoute, heading) => {
     renderAdminRoutes(legacyRoute);
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();

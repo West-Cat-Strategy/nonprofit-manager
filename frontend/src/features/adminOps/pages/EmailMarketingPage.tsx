@@ -153,7 +153,7 @@ function SyncResultModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 bg-app-surface-muted0 bg-opacity-75 flex items-center justify-center z-50">
+    <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50">
       <div className="bg-app-surface rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium text-app-text-heading">Sync Complete</h3>
@@ -267,7 +267,7 @@ function CampaignCreateModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-app-surface-muted0 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
+    <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-app-surface rounded-lg shadow-xl max-w-3xl w-full mx-4 my-8">
         <div className="flex justify-between items-center p-6 border-b border-app-border">
           <h3 className="text-xl font-medium text-app-text">Create Email Campaign</h3>

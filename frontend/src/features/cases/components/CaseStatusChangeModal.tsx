@@ -43,7 +43,7 @@ export default function CaseStatusChangeModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop"
       role="dialog"
       aria-modal="true"
       aria-labelledby="status-modal-title"

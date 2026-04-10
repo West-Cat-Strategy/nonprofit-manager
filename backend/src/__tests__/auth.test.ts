@@ -217,7 +217,7 @@ describe('Auth API', () => {
               email: 'login@example.com',
               firstName: 'Login',
               lastName: 'User',
-              role: 'user',
+              role: 'staff',
             }),
           }),
         })

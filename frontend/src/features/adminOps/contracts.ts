@@ -48,10 +48,29 @@ export interface OrganizationSettings {
 export interface Role {
   id: string;
   name: string;
+  label: string;
   description: string;
   permissions: string[];
   isSystem: boolean;
   userCount: number;
+  priority: number;
+}
+
+export interface RoleSelectorItem {
+  value: string;
+  label: string;
+  description: string;
+  isSystem: boolean;
+}
+
+export interface PermissionCatalogItem {
+  id: string;
+  name: string;
+  label: string;
+  description: string;
+  resource: string;
+  action: string;
+  category: string;
 }
 
 export interface UserSearchResult {
@@ -84,11 +103,26 @@ export interface UserSecurityInfo {
 
 export interface AuditLog {
   id: string;
-  action: string;
+  tableName: string;
+  recordId: string;
+  operation: string;
+  oldValues?: Record<string, unknown> | null;
+  newValues?: Record<string, unknown> | null;
+  changedFields: string[] | null;
+  changedBy: string | null;
+  changedByEmail: string | null;
+  changedAt: string;
+  clientIpAddress: string | null;
+  userAgent: string | null;
+  isSensitive: boolean;
+  summary: string;
   details: string;
-  ipAddress: string;
-  userAgent: string;
-  createdAt: string;
+}
+
+export interface AuditLogPage {
+  logs: AuditLog[];
+  total: number;
+  warning?: string;
 }
 
 export interface UserInvitation {

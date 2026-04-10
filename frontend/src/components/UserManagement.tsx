@@ -9,6 +9,11 @@ import Avatar from './Avatar';
 import ErrorBanner from './ErrorBanner';
 import { useApiError } from '../hooks/useApiError';
 import { validatePassword } from '../utils/validation';
+import type { RoleSelectorItem } from '../features/adminOps/contracts';
+import {
+  buildRoleLabelMap,
+  getRoleDisplayLabel,
+} from '../features/adminOps/pages/adminSettings/utils';
 
 interface User {
   id: string;
@@ -20,12 +25,6 @@ interface User {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-}
-
-interface Role {
-  value: string;
-  label: string;
-  description: string;
 }
 
 interface UserFormData {
@@ -41,14 +40,14 @@ const initialFormData: UserFormData = {
   email: '',
   firstName: '',
   lastName: '',
-  role: 'user',
+  role: 'staff',
   password: '',
   confirmPassword: '',
 };
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [roles, setRoles] = useState<RoleSelectorItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { error, details, setFromError, clear } = useApiError();
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,25 +86,19 @@ export default function UserManagement() {
     }
   }, [searchTerm, roleFilter, showInactive, clear, setFromError]);
 
-  const fetchRoles = async () => {
+  const fetchRoles = useCallback(async () => {
     try {
       const response = await api.get('/users/roles');
       setRoles(response.data.roles);
     } catch {
-      // Use defaults if fetch fails
-      setRoles([
-        { value: 'admin', label: 'Administrator', description: 'Full access' },
-        { value: 'manager', label: 'Manager', description: 'Manage records' },
-        { value: 'user', label: 'User', description: 'Standard access' },
-        { value: 'readonly', label: 'Read Only', description: 'View only' },
-      ]);
+      setRoles([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
     fetchRoles();
-  }, [fetchUsers]);
+  }, [fetchUsers, fetchRoles]);
 
   const handleCreateUser = async () => {
     clearFormError();
@@ -229,13 +222,16 @@ export default function UserManagement() {
       case 'admin':
         return 'bg-app-accent-soft text-app-accent-text';
       case 'manager':
-        return 'bg-app-accent-soft text-app-accent-text';
-      case 'readonly':
+      case 'staff':
+      case 'volunteer':
+      case 'viewer':
         return 'bg-app-surface-muted text-app-text';
       default:
         return 'bg-app-accent-soft text-app-accent-text';
     }
   };
+
+  const roleLabelMap = buildRoleLabelMap(roles);
 
   return (
     <div className="space-y-6">
@@ -347,7 +343,7 @@ export default function UserManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(user.role)}`}>
-                      {roles.find((r) => r.value === user.role)?.label || user.role}
+                      {getRoleDisplayLabel(user.role, roleLabelMap)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -391,7 +387,7 @@ export default function UserManagement() {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowCreateModal(false)} />
+            <div className="fixed inset-0 app-popup-backdrop" onClick={() => setShowCreateModal(false)} />
             <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
               <h3 className="text-lg font-semibold text-app-text-heading mb-4">Create New User</h3>
 
@@ -440,11 +436,17 @@ export default function UserManagement() {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   >
-                    {roles.map((role) => (
-                      <option key={role.value} value={role.value}>
-                        {role.label} - {role.description}
+                    {roles.length === 0 ? (
+                      <option value={formData.role}>
+                        {getRoleDisplayLabel(formData.role, roleLabelMap)}
                       </option>
-                    ))}
+                    ) : (
+                      roles.map((role) => (
+                        <option key={role.value} value={role.value}>
+                          {role.label} - {role.description}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
@@ -498,7 +500,7 @@ export default function UserManagement() {
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowEditModal(false)} />
+            <div className="fixed inset-0 app-popup-backdrop" onClick={() => setShowEditModal(false)} />
             <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
               <h3 className="text-lg font-semibold text-app-text-heading mb-4">Edit User</h3>
 
@@ -547,11 +549,17 @@ export default function UserManagement() {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   >
-                    {roles.map((role) => (
-                      <option key={role.value} value={role.value}>
-                        {role.label} - {role.description}
+                    {roles.length === 0 ? (
+                      <option value={formData.role}>
+                        {getRoleDisplayLabel(formData.role, roleLabelMap)}
                       </option>
-                    ))}
+                    ) : (
+                      roles.map((role) => (
+                        <option key={role.value} value={role.value}>
+                          {role.label} - {role.description}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
               </div>
@@ -582,7 +590,7 @@ export default function UserManagement() {
       {showResetPasswordModal && selectedUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowResetPasswordModal(false)} />
+            <div className="fixed inset-0 app-popup-backdrop" onClick={() => setShowResetPasswordModal(false)} />
             <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
               <h3 className="text-lg font-semibold text-app-text-heading mb-4">
                 Reset Password for {selectedUser.firstName} {selectedUser.lastName}

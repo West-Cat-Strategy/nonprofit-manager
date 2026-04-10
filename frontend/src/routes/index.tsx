@@ -23,6 +23,7 @@ import {
   PeopleDirectory,
   ThemeAudit,
 } from '../features/neoBrutalist/routeComponents';
+import { ContactPrint } from '../features/contacts/routeComponents';
 import { PublicReportSnapshot } from '../features/savedReports/routeComponents';
 import { logout } from '../features/auth/state';
 import { portalLogout } from '../features/portalAuth/state';
@@ -89,6 +90,14 @@ const AppRoutes = () => {
         <Route
           path="/recurring-donations/checkout-result"
           element={<RecurringDonationCheckoutResult />}
+        />
+        <Route
+          path="/contacts/:id/print"
+          element={
+            <ProtectedRoute>
+              <ContactPrint />
+            </ProtectedRoute>
+          }
         />
         {createPortalPublicRoutes()}
       </Route>

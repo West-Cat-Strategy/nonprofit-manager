@@ -8,6 +8,10 @@ describe('PortalLayout', () => {
       route: '/portal/people',
     });
 
+    expect(screen.getByRole('link', { name: /skip to main content/i })).toHaveAttribute(
+      'href',
+      '#main-content'
+    );
     expect(screen.queryByRole('navigation', { name: /browse portal/i })).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: /account settings/i })[0]).toHaveAttribute(
       'href',

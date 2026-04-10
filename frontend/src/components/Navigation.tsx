@@ -44,13 +44,22 @@ export default function Navigation() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuButtonRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const moreMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const previousSearchOpenRef = useRef(searchOpen);
+  const previousUserMenuOpenRef = useRef(userMenuOpen);
+  const previousMoreMenuOpenRef = useRef(moreMenuOpen);
+  const previousMobileMenuOpenRef = useRef(mobileMenuOpen);
+  const bodyOverflowRef = useRef<string | null>(null);
 
   const closeAllMenus = useCallback(() => {
     setMobileMenuOpen(false);
     setUserMenuOpen(false);
     setMoreMenuOpen(false);
+    setSearchOpen(false);
   }, []);
 
   const focusFirstItem = (ref: RefObject<HTMLDivElement | null>) => {
@@ -81,7 +90,6 @@ export default function Navigation() {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         closeAllMenus();
-        setSearchOpen(false);
       }
     };
 
@@ -94,34 +102,60 @@ export default function Navigation() {
   }, [closeAllMenus, currentLocation]);
 
   useEffect(() => {
-    if (mobileMenuOpen || searchOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+    const shouldLockBody = mobileMenuOpen || searchOpen;
+
+    if (shouldLockBody) {
+      if (bodyOverflowRef.current === null) {
+        bodyOverflowRef.current = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+      }
+
+      return () => {
+        if (bodyOverflowRef.current !== null) {
+          document.body.style.overflow = bodyOverflowRef.current;
+          bodyOverflowRef.current = null;
+        }
+      };
     }
 
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    if (bodyOverflowRef.current !== null) {
+      document.body.style.overflow = bodyOverflowRef.current;
+      bodyOverflowRef.current = null;
+    }
+
+    return undefined;
   }, [mobileMenuOpen, searchOpen]);
 
   useEffect(() => {
-    if (userMenuOpen) {
-      focusFirstItem(userMenuRef);
+    if (previousUserMenuOpenRef.current && !userMenuOpen) {
+      userMenuButtonRef.current?.focus();
     }
+    previousUserMenuOpenRef.current = userMenuOpen;
   }, [userMenuOpen]);
 
   useEffect(() => {
+    if (previousMoreMenuOpenRef.current && !moreMenuOpen) {
+      moreMenuButtonRef.current?.focus();
+    }
     if (moreMenuOpen) {
       focusFirstItem(moreMenuRef);
     }
+    previousMoreMenuOpenRef.current = moreMenuOpen;
   }, [moreMenuOpen]);
 
   useEffect(() => {
-    if (!searchOpen) {
+    if (previousSearchOpenRef.current && !searchOpen) {
       searchButtonRef.current?.focus();
     }
+    previousSearchOpenRef.current = searchOpen;
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (previousMobileMenuOpenRef.current && !mobileMenuOpen) {
+      mobileMenuButtonRef.current?.focus();
+    }
+    previousMobileMenuOpenRef.current = mobileMenuOpen;
+  }, [mobileMenuOpen]);
 
   return (
     <nav
@@ -193,9 +227,12 @@ export default function Navigation() {
               <div className="relative shrink-0">
                 <button
                   type="button"
+                  ref={moreMenuButtonRef}
                   onClick={() => {
-                    setMoreMenuOpen((open) => !open);
+                    setMobileMenuOpen(false);
+                    setSearchOpen(false);
                     setUserMenuOpen(false);
+                    setMoreMenuOpen((open) => !open);
                   }}
                   className={classNames(
                     'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition',
@@ -352,12 +389,15 @@ export default function Navigation() {
           </Link>
 
           <div className="relative hidden xl:block">
-            <button
-              type="button"
-              onClick={() => {
-                setUserMenuOpen((open) => !open);
-                setMoreMenuOpen(false);
-              }}
+                <button
+                  type="button"
+                  ref={userMenuButtonRef}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setSearchOpen(false);
+                    setUserMenuOpen((open) => !open);
+                    setMoreMenuOpen(false);
+                  }}
               className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-1.5 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
               aria-label="User menu"
               aria-expanded={userMenuOpen}
@@ -522,7 +562,13 @@ export default function Navigation() {
 
           <button
             type="button"
-            onClick={() => setMobileMenuOpen((open) => !open)}
+            ref={mobileMenuButtonRef}
+            onClick={() => {
+              setSearchOpen(false);
+              setUserMenuOpen(false);
+              setMoreMenuOpen(false);
+              setMobileMenuOpen((open) => !open);
+            }}
             className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated p-2 text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading xl:hidden"
             aria-label="Main menu"
             aria-expanded={mobileMenuOpen}
@@ -557,7 +603,7 @@ export default function Navigation() {
       {mobileMenuOpen ? (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/45 xl:hidden"
+            className="app-popup-backdrop fixed inset-0 z-40 xl:hidden"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
@@ -576,6 +622,7 @@ export default function Navigation() {
             onToggleDarkMode={toggleDarkMode}
             primaryItems={mobileNavigationPreferences.primaryItems}
             secondaryItems={mobileNavigationPreferences.secondaryItems}
+            triggerRef={mobileMenuButtonRef}
             user={user}
             utilityNavLinks={mobileDrawerUtilityLinks}
           />

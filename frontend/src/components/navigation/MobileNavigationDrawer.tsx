@@ -1,3 +1,4 @@
+import { useEffect, useRef, type KeyboardEvent, type RefObject } from 'react';
 import { Link } from 'react-router-dom';
 import { canAccessAdminSettings } from '../../features/auth/state/adminAccess';
 import type { NavigationItem } from '../../hooks/useNavigationPreferences';
@@ -31,8 +32,28 @@ interface MobileNavigationDrawerProps {
   onToggleDarkMode: () => void;
   primaryItems: NavigationItem[];
   secondaryItems: NavigationItem[];
+  triggerRef: RefObject<HTMLButtonElement | null>;
   user: NavigationDrawerUser | null;
   utilityNavLinks: NavigationDrawerLink[];
+}
+
+const focusableSelectors = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+function getFocusableElements(container: HTMLDivElement | null): HTMLElement[] {
+  if (!container) {
+    return [];
+  }
+
+  return Array.from(container.querySelectorAll<HTMLElement>(focusableSelectors)).filter(
+    (element) => !element.hasAttribute('disabled') && element.tabIndex !== -1
+  );
 }
 
 export default function MobileNavigationDrawer({
@@ -46,19 +67,78 @@ export default function MobileNavigationDrawer({
   onToggleDarkMode,
   primaryItems,
   secondaryItems,
+  triggerRef,
   user,
   utilityNavLinks,
 }: MobileNavigationDrawerProps) {
   const canOpenAdminSettings = canAccessAdminSettings(user);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
+
+  useEffect(
+    () => () => {
+      triggerRef.current?.focus();
+    },
+    [triggerRef]
+  );
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+
+    if (event.key !== 'Tab') {
+      return;
+    }
+
+    const focusableElements = getFocusableElements(panelRef.current);
+    if (focusableElements.length === 0) {
+      return;
+    }
+
+    const firstFocusable = focusableElements[0];
+    const lastFocusable = focusableElements[focusableElements.length - 1];
+    const current = document.activeElement;
+
+    if (event.shiftKey) {
+      if (current === firstFocusable || !panelRef.current?.contains(current)) {
+        event.preventDefault();
+        lastFocusable.focus();
+      }
+      return;
+    }
+
+    if (current === lastFocusable) {
+      event.preventDefault();
+      firstFocusable.focus();
+    }
+  };
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[22rem] flex-col overflow-y-auto bg-app-surface shadow-xl xl:hidden">
+    <div
+      ref={panelRef}
+      className="app-popup-surface-translucent fixed inset-y-0 right-0 z-50 flex w-full max-w-[22rem] flex-col overflow-y-auto shadow-xl xl:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mobile-navigation-drawer-title"
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+    >
       <div className="flex items-center justify-between border-b border-app-border px-4 py-4">
         <div>
-          <p className="text-sm font-semibold text-app-text-heading">{appName}</p>
+          <p id="mobile-navigation-drawer-title" className="text-sm font-semibold text-app-text-heading">
+            {appName}
+          </p>
           <p className="text-xs text-app-text-muted">Staff workspace</p>
         </div>
         <button
+          ref={closeButtonRef}
           type="button"
           onClick={onClose}
           className="rounded-[var(--ui-radius-sm)] p-2 text-app-text-muted transition hover:bg-app-hover hover:text-app-text"

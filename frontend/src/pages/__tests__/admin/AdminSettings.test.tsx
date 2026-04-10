@@ -71,6 +71,7 @@ vi.mock('../../../services/api', () => ({
       }
       if (url === '/admin/branding') return Promise.resolve({ data: {} });
       if (url === '/admin/roles') return Promise.resolve({ data: { roles: [] } });
+      if (url === '/admin/permissions') return Promise.resolve({ data: { permissions: [] } });
       return Promise.resolve({ data: {} });
     }),
   },
@@ -196,9 +197,6 @@ describe('AdminSettings page', () => {
       'href',
       '/settings/admin/users'
     );
-    expect(
-      screen.getByRole('tablist', { name: /admin settings sections/i }).parentElement
-    ).toHaveClass('bg-[var(--app-shell-surface)]');
   });
 
   it('renders the section directly from the canonical route path', async () => {

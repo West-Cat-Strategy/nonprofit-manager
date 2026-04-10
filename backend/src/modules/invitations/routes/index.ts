@@ -22,6 +22,7 @@ import {
   uuidSchema,
   optionalStrictBooleanSchema,
 } from '@validations/shared';
+import { userRoleSchema } from '@validations/user';
 
 const router = Router();
 
@@ -49,7 +50,7 @@ const invitationListQuerySchema = z
 
 const createInvitationSchema = z.object({
   email: emailSchema,
-  role: z.enum(['admin', 'manager', 'user', 'readonly']),
+  role: userRoleSchema,
   message: z.string().trim().optional(),
   expiresInDays: z.coerce.number().int().min(1).max(30).optional(),
   sendEmail: optionalStrictBooleanSchema,

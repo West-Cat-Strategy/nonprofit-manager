@@ -210,6 +210,52 @@ describe('ContactList page', () => {
     vi.useRealTimers();
   });
 
+  it('resets pagination to the first page when a filter changes', async () => {
+    vi.useFakeTimers();
+
+    renderWithProviders(<ContactList />, { route: '/contacts?page=4' });
+
+    const getFetchActions = () =>
+      dispatchMock.mock.calls
+        .map(([action]) => action)
+        .filter((action) => action.type === 'contacts/fetchContacts');
+
+    expect(getFetchActions()[0]).toEqual({
+      type: 'contacts/fetchContacts',
+      payload: {
+        page: 4,
+        limit: 20,
+        search: undefined,
+        isActive: undefined,
+        role: undefined,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+      },
+    });
+
+    const searchInput = screen.getByLabelText('Search contacts');
+    fireEvent.change(searchInput, { target: { value: 'alex' } });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(getFetchActions().at(-1)).toEqual({
+      type: 'contacts/fetchContacts',
+      payload: {
+        page: 1,
+        limit: 20,
+        search: 'alex',
+        isActive: undefined,
+        role: undefined,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+      },
+    });
+
+    vi.useRealTimers();
+  });
+
   it('navigates to a contact detail route using the canonical contact UUID', () => {
     contactsState.contacts = [
       {

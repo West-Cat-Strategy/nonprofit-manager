@@ -14,7 +14,7 @@ const toneClasses: Record<ButtonTone, string> = {
   secondary:
     'bg-[var(--app-surface)] text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-hover)]',
   danger:
-    'bg-[var(--app-accent)] text-[var(--app-accent-foreground)] border border-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] hover:border-[var(--app-accent-hover)]',
+    'bg-red-600 text-white border border-red-600 hover:bg-red-700 hover:border-red-700',
 };
 
 const disabledToneClasses: Record<ButtonTone, string> = {
@@ -23,7 +23,7 @@ const disabledToneClasses: Record<ButtonTone, string> = {
   secondary:
     'bg-[var(--app-surface-muted)] text-[var(--app-text-muted)] border border-[var(--app-border-muted)] hover:bg-[var(--app-surface-muted)] hover:border-[var(--app-border-muted)]',
   danger:
-    'bg-[var(--app-surface-muted)] text-[var(--app-text-muted)] border border-[var(--app-border-muted)] hover:bg-[var(--app-surface-muted)] hover:border-[var(--app-border-muted)]',
+    'bg-red-100 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-200',
 };
 
 export default function Button({

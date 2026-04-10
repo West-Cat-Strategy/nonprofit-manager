@@ -40,6 +40,19 @@ interface SettingsRow {
   updated_at: Date;
 }
 
+const TWILIO_SETTINGS_COLUMNS = [
+  'id',
+  'account_sid',
+  'auth_token_encrypted',
+  'messaging_service_sid',
+  'from_phone_number',
+  'is_configured',
+  'last_tested_at',
+  'last_test_success',
+  'created_at',
+  'updated_at',
+].join(', ');
+
 const mapRow = (row: SettingsRow): TwilioSettings => ({
   id: row.id,
   accountSid: row.account_sid,
@@ -52,29 +65,41 @@ const mapRow = (row: SettingsRow): TwilioSettings => ({
   updatedAt: row.updated_at,
 });
 
+const getTwilioSettingsRow = async (): Promise<SettingsRow | null> => {
+  const result = await pool.query<SettingsRow>(
+    `SELECT ${TWILIO_SETTINGS_COLUMNS} FROM twilio_settings ORDER BY created_at LIMIT 1`
+  );
+
+  return result.rows[0] ?? null;
+};
+
+const computeIsConfigured = (params: {
+  accountSid: string | null | undefined;
+  authTokenPresent: boolean;
+  messagingServiceSid: string | null | undefined;
+  fromPhoneNumber: string | null | undefined;
+}): boolean =>
+  Boolean(
+    params.accountSid &&
+      params.authTokenPresent &&
+      (params.messagingServiceSid || params.fromPhoneNumber)
+  );
+
 /**
  * Retrieve current Twilio settings.
  */
 export async function getTwilioSettings(): Promise<TwilioSettings | null> {
-  const result = await pool.query<SettingsRow>(
-    'SELECT * FROM twilio_settings ORDER BY created_at LIMIT 1'
-  );
-
-  if (result.rows.length === 0) return null;
-  return mapRow(result.rows[0]);
+  const row = await getTwilioSettingsRow();
+  return row ? mapRow(row) : null;
 }
 
 /**
  * Check whether an auth token is currently stored (without revealing it).
  */
 export async function hasStoredCredentials(): Promise<{ authToken: boolean }> {
-  const result = await pool.query<{ auth_token_encrypted: string | null }>(
-    'SELECT auth_token_encrypted FROM twilio_settings ORDER BY created_at LIMIT 1'
-  );
-
-  if (result.rows.length === 0) return { authToken: false };
+  const row = await getTwilioSettingsRow();
   return {
-    authToken: !!result.rows[0].auth_token_encrypted,
+    authToken: Boolean(row?.auth_token_encrypted),
   };
 }
 
@@ -102,39 +127,22 @@ export async function updateTwilioSettings(
     addParam('auth_token_encrypted', data.authToken.trim() ? encrypt(data.authToken) : null);
   }
 
-  // Recompute is_configured when config inputs were touched.
   if (
     data.accountSid !== undefined ||
     data.authToken !== undefined ||
     data.messagingServiceSid !== undefined ||
     data.fromPhoneNumber !== undefined
   ) {
-    const current = await pool.query<{
-      account_sid: string | null;
-      auth_token_encrypted: string | null;
-      messaging_service_sid: string | null;
-      from_phone_number: string | null;
-    }>(
-      `SELECT account_sid, auth_token_encrypted, messaging_service_sid, from_phone_number
-       FROM twilio_settings
-       ORDER BY created_at
-       LIMIT 1`
-    );
-    const cur = current.rows[0] || {};
-
-    const effectiveAccountSid = data.accountSid !== undefined ? data.accountSid : cur.account_sid;
-    const hasEffectiveToken =
-      data.authToken !== undefined ? Boolean(data.authToken.trim()) : Boolean(cur.auth_token_encrypted);
-    const effectiveMessagingServiceSid =
-      data.messagingServiceSid !== undefined ? data.messagingServiceSid : cur.messaging_service_sid;
-    const effectiveFromNumber =
-      data.fromPhoneNumber !== undefined ? data.fromPhoneNumber : cur.from_phone_number;
-
-    const configured = Boolean(
-      effectiveAccountSid &&
-      hasEffectiveToken &&
-      (effectiveMessagingServiceSid || effectiveFromNumber)
-    );
+    const current = await getTwilioSettingsRow();
+    const configured = computeIsConfigured({
+      accountSid: data.accountSid !== undefined ? data.accountSid : current?.account_sid,
+      authTokenPresent:
+        data.authToken !== undefined ? data.authToken.trim().length > 0 : Boolean(current?.auth_token_encrypted),
+      messagingServiceSid:
+        data.messagingServiceSid !== undefined ? data.messagingServiceSid : current?.messaging_service_sid,
+      fromPhoneNumber:
+        data.fromPhoneNumber !== undefined ? data.fromPhoneNumber : current?.from_phone_number,
+    });
     addParam('is_configured', configured);
   }
 
@@ -142,16 +150,18 @@ export async function updateTwilioSettings(
   addParam('updated_at', new Date());
 
   if (setClauses.length === 0) {
-    const existing = await getTwilioSettings();
-    if (!existing) throw new Error('Twilio settings not found');
-    return existing;
+    const existing = await getTwilioSettingsRow();
+    if (!existing) {
+      throw new Error('Twilio settings not found');
+    }
+    return mapRow(existing);
   }
 
   const result = await pool.query<SettingsRow>(
     `UPDATE twilio_settings
      SET ${setClauses.join(', ')}
      WHERE id = (SELECT id FROM twilio_settings ORDER BY created_at LIMIT 1)
-     RETURNING *`,
+     RETURNING ${TWILIO_SETTINGS_COLUMNS}`,
     values
   );
 

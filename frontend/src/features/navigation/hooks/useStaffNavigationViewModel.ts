@@ -56,16 +56,20 @@ export function useStaffNavigationViewModel() {
       })),
     [workspaceModules]
   );
-  const desktopPrimaryItems = useMemo(
-    () => (navigationPreferences.primaryItems ?? []).slice(0, 3),
-    [navigationPreferences.primaryItems]
+  const desktopNavItems = useMemo(
+    () =>
+      (navigationPreferences.enabledItems ?? []).filter(
+        (item) => item.id === 'dashboard' || item.group === 'primary'
+      ),
+    [navigationPreferences.enabledItems]
   );
+  const desktopPrimaryItems = useMemo(() => desktopNavItems.slice(0, 3), [desktopNavItems]);
   const desktopOverflowItems = useMemo(
     () => [
-      ...(navigationPreferences.primaryItems ?? []).slice(3),
-      ...(navigationPreferences.secondaryItems ?? []),
+      ...desktopNavItems.slice(3),
+      ...(navigationPreferences.enabledItems ?? []).filter((item) => item.group === 'secondary'),
     ],
-    [navigationPreferences.primaryItems, navigationPreferences.secondaryItems]
+    [desktopNavItems, navigationPreferences.enabledItems]
   );
   const mobileNavigationPreferences = useMemo(() => {
     const orderedItems = navigationPreferences.enabledItems
@@ -117,7 +121,7 @@ export function useStaffNavigationViewModel() {
   const canOpenAdminSettings = canAccessAdminSettings(user);
 
   const handleLogout = useCallback(() => {
-    dispatch(logoutAsync()).finally(() => navigate('/login'));
+    dispatch(logoutAsync()).finally(() => navigate('/login', { replace: true }));
   }, [dispatch, navigate]);
 
   const isNavItemActive = useCallback(

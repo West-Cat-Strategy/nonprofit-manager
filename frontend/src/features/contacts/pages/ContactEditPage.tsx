@@ -9,12 +9,15 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchContactById, clearCurrentContact } from '../state';
 import { BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
 import { ContactForm } from '../components/contactForm';
+import ContactPageShell from '../components/ContactPageShell';
 
 export const ContactEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { currentContact, loading, error } = useAppSelector((state) => state.contacts);
+  const contactPath = id ? `/contacts/${id}` : '/contacts';
+  const handleCancel = () => navigate(contactPath, { replace: true });
 
   useEffect(() => {
     if (id) {
@@ -47,7 +50,7 @@ export const ContactEdit: React.FC = () => {
             <div className="text-4xl mb-4">⚠️</div>
             <h2 className="text-xl font-black uppercase text-black mb-2">Error</h2>
             <p className="font-bold text-black/70 mb-4">{error}</p>
-            <BrutalButton onClick={() => navigate('/contacts')} variant="secondary">
+            <BrutalButton onClick={handleCancel} variant="secondary">
               Back to People
             </BrutalButton>
           </div>
@@ -66,7 +69,7 @@ export const ContactEdit: React.FC = () => {
             <p className="font-bold text-black/70 mb-4">
               The contact you're looking for doesn't exist or has been removed.
             </p>
-            <BrutalButton onClick={() => navigate('/contacts')} variant="primary">
+            <BrutalButton onClick={handleCancel} variant="primary">
               Back to People
             </BrutalButton>
           </div>
@@ -78,36 +81,22 @@ export const ContactEdit: React.FC = () => {
   const fullName = `${currentContact.first_name} ${currentContact.last_name}`;
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <BrutalCard color="purple" className="p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <button
-              onClick={() => navigate(`/contacts/${id}`)}
-              className="mb-2 flex items-center gap-1 text-sm font-black uppercase text-black/70 hover:text-black dark:text-white/80 dark:hover:text-white"
-              aria-label="Back to contact details"
-            >
-              ← Back to Contact
-            </button>
-            <h1 className="text-3xl font-black uppercase tracking-tight text-black dark:text-white">
-              Edit Contact
-            </h1>
-            <p className="mt-1 font-bold text-black/70 dark:text-white/80">{fullName}</p>
-          </div>
-          <div className="flex gap-2">
-            <BrutalButton onClick={() => navigate(`/contacts/${id}`)} variant="secondary">
-              Cancel
-            </BrutalButton>
-          </div>
-        </div>
-      </BrutalCard>
-
-      {/* Form */}
+    <ContactPageShell
+      tone="purple"
+      backLabel="Back to Contact"
+      onBack={handleCancel}
+      title="Edit Contact"
+      description={fullName}
+      actions={(
+        <BrutalButton onClick={handleCancel} variant="secondary">
+          Cancel
+        </BrutalButton>
+      )}
+    >
       <BrutalCard color="white" className="p-6">
-        <ContactForm contact={currentContact} mode="edit" />
+        <ContactForm contact={currentContact} mode="edit" onCancel={handleCancel} />
       </BrutalCard>
-    </div>
+    </ContactPageShell>
   );
 };
 

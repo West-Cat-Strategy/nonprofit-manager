@@ -24,6 +24,37 @@ const authenticatedState = {
 };
 
 describe('ProtectedRoute workspace module gating', () => {
+  it('waits for auth bootstrap on a protected print route before redirecting', () => {
+    clearWorkspaceModuleAccessCache();
+
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="*"
+          element={
+            <ProtectedRoute>
+              <div>Print content</div>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>,
+      {
+        route: '/contacts/123/print',
+        preloadedState: {
+          auth: {
+            user: null,
+            isAuthenticated: false,
+            authLoading: true,
+            loading: false,
+          },
+        },
+      }
+    );
+
+    expect(screen.getByText(/loading page/i)).toBeInTheDocument();
+    expect(screen.queryByText('Print content')).not.toBeInTheDocument();
+  });
+
   it.each([
     ['/contacts', 'contacts'],
     ['/cases', 'cases'],

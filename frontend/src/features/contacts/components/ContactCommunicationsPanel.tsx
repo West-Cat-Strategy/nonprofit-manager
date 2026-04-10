@@ -84,6 +84,13 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
     }),
     [channel, deliveryStatus, sourceType]
   );
+  const hasFilters = channel !== 'all' || sourceType !== 'all' || deliveryStatus !== 'all';
+
+  const clearFilters = () => {
+    setChannel('all');
+    setSourceType('all');
+    setDeliveryStatus('all');
+  };
 
   const loadCommunications = useCallback(async () => {
     try {
@@ -126,7 +133,25 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
 
   if (loading) {
     return (
-      <div className="space-y-3" aria-label="Loading communications">
+      <div className="space-y-4" aria-label="Loading communications">
+        <div className="flex flex-col gap-3 border-2 border-black bg-white p-4 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-black/60">
+              Communications history
+            </p>
+            <h3 className="text-lg font-black uppercase text-black">Delivery log</h3>
+            <p className="text-sm font-bold text-black/70">Loading recent deliveries...</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled
+              className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-white/80 text-black/50"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
         {[0, 1, 2].map((index) => (
           <div
             key={index}
@@ -139,6 +164,36 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-3 border-2 border-black bg-white p-4 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-1">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-black/60">
+            Communications history
+          </p>
+          <h3 className="text-lg font-black uppercase text-black">Delivery log</h3>
+          <p className="text-sm font-bold text-black/70">
+            {communications.length} record{communications.length === 1 ? '' : 's'}
+            {hasFilters ? ' match the current filters.' : ' from the latest activity window.'}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={clearFilters}
+            disabled={!hasFilters}
+            className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-white disabled:cursor-not-allowed disabled:bg-white/70 disabled:text-black/40"
+          >
+            Clear filters
+          </button>
+          <button
+            type="button"
+            onClick={() => void loadCommunications()}
+            className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-[var(--loop-yellow)]"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
       <div className="grid gap-3 md:grid-cols-3">
         <label className="text-sm font-bold text-black/70">
           Channel
@@ -207,7 +262,9 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
         <div className="border-2 border-dashed border-black/30 bg-white px-6 py-10 text-center">
           <p className="text-sm font-black uppercase text-black/60">No communications yet</p>
           <p className="mt-2 text-sm font-bold text-black/70">
-            Logged appointment and event reminder deliveries will appear here.
+            {hasFilters
+              ? 'No deliveries match the filters you selected. Clear filters to widen the log.'
+              : 'Logged appointment and event reminder deliveries will appear here.'}
           </p>
         </div>
       )}

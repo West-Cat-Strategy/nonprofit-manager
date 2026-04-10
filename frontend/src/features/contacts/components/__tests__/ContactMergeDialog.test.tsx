@@ -131,6 +131,7 @@ describe('ContactMergeDialog', () => {
     await user.click(screen.getByRole('button', { name: /alex target/i }));
 
     expect(await screen.findByText(/conflicting fields/i)).toBeInTheDocument();
+    expect(screen.getByText(/selected target/i)).toBeInTheDocument();
     expect(screen.getByText('First name')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /source/i }));
@@ -151,5 +152,29 @@ describe('ContactMergeDialog', () => {
       },
     });
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('shows a useful empty state and closes cleanly', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+
+    vi.spyOn(contactsApiClient, 'searchContactsForMerge').mockResolvedValue([]);
+
+    renderWithProviders(
+      <ContactMergeDialog
+        isOpen
+        sourceContact={sourceContact}
+        onClose={onClose}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByPlaceholderText(/search by name, phone, or email/i), 'zz');
+    await user.click(screen.getByRole('button', { name: /search/i }));
+
+    expect(await screen.findByText(/no matching contacts found/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^close$/i }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

@@ -106,6 +106,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/085_case_type_and_outcome_assignments.sql
 \i /migrations/086_imported_case_contact_org_backfill.sql
 \i /migrations/087_newsletter_provider_settings.sql
+\i /migrations/088_provider_agnostic_payment_columns.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -216,7 +217,8 @@ VALUES
     ('084_imported_import_staging.sql', '084', '084_imported_import_staging.sql'),
     ('085_case_type_and_outcome_assignments.sql', '085', '085_case_type_and_outcome_assignments.sql'),
     ('086_imported_case_contact_org_backfill.sql', '086', '086_imported_case_contact_org_backfill.sql'),
-    ('087_newsletter_provider_settings.sql', '087', '087_newsletter_provider_settings.sql')
+    ('087_newsletter_provider_settings.sql', '087', '087_newsletter_provider_settings.sql'),
+    ('088_provider_agnostic_payment_columns.sql', '088', '088_provider_agnostic_payment_columns.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

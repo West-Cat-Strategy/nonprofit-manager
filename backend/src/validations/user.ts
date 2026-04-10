@@ -6,8 +6,10 @@
 import { z } from 'zod';
 import { emailSchema, nameSchema, phoneSchema } from './shared';
 
-// User role enum
-export const userRoleSchema = z.enum(['admin', 'manager', 'staff', 'member', 'volunteer']);
+// Roles are stored as catalog-driven slugs. Keep the schema permissive so custom
+// roles can pass through while the service layer normalizes aliases and validates
+// against the role catalog when needed.
+export const userRoleSchema = z.string().trim().min(1).max(120);
 
 export type UserRole = z.infer<typeof userRoleSchema>;
 

@@ -7,7 +7,7 @@ import '../helpers/testEnv';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { login, logout, clearAuth, ensureLoginViaAPI } from '../helpers/auth';
-import { getSharedTestUser } from '../helpers/testUser';
+import { getSharedTestUser, setSharedTestUser } from '../helpers/testUser';
 
 const defaultCreds = {
   email: process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com',
@@ -128,6 +128,27 @@ test.describe('Authentication Flow', () => {
     // Check that user data is set in localStorage
     const user = await page.evaluate(() => localStorage.getItem('user'));
     expect(user).toBeTruthy();
+  });
+
+  test('login helper honors the credentials passed by the caller', async ({ page }) => {
+    const tempEmail = `e2e+login-helper-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+    const tempPassword = 'Test123!@#';
+
+    await ensureLoginViaAPI(page, tempEmail, tempPassword, {
+      firstName: 'Temp',
+      lastName: 'User',
+    });
+    setSharedTestUser({
+      email: tempEmail,
+      password: 'WrongPass123!',
+    });
+
+    await clearAuth(page);
+    await login(page, tempEmail, tempPassword);
+
+    await expect(page).toHaveURL(dashboardUrl);
+    const user = await page.evaluate(() => localStorage.getItem('user'));
+    expect(user).toContain(tempEmail);
   });
 
   test('dashboard startup does not request analytics/task summary endpoints', async ({ page }) => {

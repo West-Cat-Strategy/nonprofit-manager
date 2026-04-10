@@ -32,6 +32,7 @@
   --app-link-visited: #1d4ed8;
   --app-accent-soft: #dbeafe;
   --app-accent-soft-hover: #bfdbfe;
+  --app-overlay-scrim: rgba(15, 23, 42, 0.32);
 
   --app-hover: #f3f4f6;
   --app-input-bg: #ffffff;
@@ -142,6 +143,7 @@ body.dark:not([class*='theme-']) {
   --app-link-visited: #93c5fd;
   --app-accent-soft: rgba(37, 99, 235, 0.2);
   --app-accent-soft-hover: rgba(37, 99, 235, 0.35);
+  --app-overlay-scrim: rgba(2, 6, 23, 0.58);
 
   --app-hover: #1f2937;
   --app-input-bg: #1a1a1a;
@@ -221,6 +223,34 @@ body:not(.theme-neobrutalist) .border-white {
   backdrop-filter: none !important;
 }
 
+.app-popup-backdrop {
+  background-color: var(--app-overlay-scrim);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app-popup-backdrop {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background-color: color-mix(in srgb, var(--app-overlay-scrim) 92%, transparent);
+  }
+}
+
+.app-popup-surface-translucent {
+  background-color: color-mix(in srgb, var(--app-surface) 94%, transparent);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app-popup-surface-translucent {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background-color: var(--app-surface);
+  }
+}
+
 .app-accent-surface {
   background-color: var(--app-accent);
   color: var(--app-accent-foreground);
@@ -262,3 +292,59 @@ body.ui-redesign input, body.ui-redesign select, body.ui-redesign textarea {
 }
 
 body.ui-redesign button { border-radius: var(--ui-radius-sm); }
+
+.contact-print-page {
+  color: #000000;
+  background: #ffffff;
+}
+
+.contact-print-section,
+.contact-print-section * {
+  break-inside: auto;
+}
+
+.contact-print-section {
+  page-break-inside: avoid;
+}
+
+.contact-print-no-print {
+  break-inside: avoid;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  .contact-print-page {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .contact-print-no-print {
+    display: none !important;
+  }
+
+  .contact-print-section {
+    border-color: #000000 !important;
+    box-shadow: none !important;
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .contact-print-section,
+  .contact-print-section * {
+    color: #000000 !important;
+    background: #ffffff !important;
+  }
+
+  a[href]::after {
+    content: '' !important;
+  }
+}

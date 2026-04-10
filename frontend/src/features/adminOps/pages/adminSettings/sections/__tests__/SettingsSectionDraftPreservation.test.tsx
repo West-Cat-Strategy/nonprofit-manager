@@ -551,4 +551,43 @@ describe('settings section draft preservation', () => {
       );
     });
   });
+
+  it('surfaces Twilio API error details when save fails', async () => {
+    const user = userEvent.setup();
+
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        data: {
+          id: 'twilio-settings',
+          accountSid: 'AC1234567890abcdef1234567890abcdef',
+          messagingServiceSid: 'MG1234567890abcdef1234567890abcdef',
+          fromPhoneNumber: '+15555551234',
+          isConfigured: true,
+          lastTestedAt: null,
+          lastTestSuccess: null,
+        },
+        credentials: {
+          authToken: true,
+        },
+      },
+    });
+    mockedApiClient.put.mockRejectedValueOnce({
+      response: {
+        data: {
+          error: {
+            message: 'Invalid Twilio Account SID format',
+          },
+        },
+      },
+    });
+
+    render(<TwilioSettingsSection />);
+
+    await screen.findByPlaceholderText('ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+    await user.click(screen.getByRole('button', { name: /save settings/i }));
+
+    await waitFor(() => {
+      expect(toastSpy.showError).toHaveBeenCalledWith('Invalid Twilio Account SID format');
+    });
+  });
 });

@@ -3,18 +3,36 @@
  * Sends SMS reminders through Twilio using credentials from twilio_settings.
  */
 
+import twilio from 'twilio';
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import { decrypt } from '@utils/encryption';
 
 const TWILIO_API_TIMEOUT_MS = 15_000;
+const TWILIO_SETTINGS_COLUMNS = [
+  'id',
+  'account_sid',
+  'auth_token_encrypted',
+  'messaging_service_sid',
+  'from_phone_number',
+  'is_configured',
+  'last_tested_at',
+  'last_test_success',
+  'created_at',
+  'updated_at',
+].join(', ');
 
 interface TwilioSettingsRow {
+  id: string;
   account_sid: string | null;
   auth_token_encrypted: string | null;
   messaging_service_sid: string | null;
   from_phone_number: string | null;
   is_configured: boolean;
+  last_tested_at: Date | null;
+  last_test_success: boolean | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
 interface TwilioConfig {
@@ -24,9 +42,7 @@ interface TwilioConfig {
   fromPhoneNumber: string | null;
 }
 
-interface TwilioErrorPayload {
-  message?: string;
-}
+type TwilioClient = ReturnType<typeof twilio>;
 
 export interface SendSmsOptions {
   to: string;
@@ -46,45 +62,22 @@ export interface SmsTestResult {
   error?: string;
 }
 
-const buildTwilioAuthHeader = (accountSid: string, authToken: string): string => {
-  const token = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-  return `Basic ${token}`;
-};
-
-const parseTwilioError = async (response: Response): Promise<string> => {
-  try {
-    const payload = await response.json() as TwilioErrorPayload;
-    if (payload.message) return payload.message;
-  } catch {
-    // fall through
-  }
-  return `Twilio request failed with status ${response.status}`;
-};
-
-const recordTwilioTestResult = async (success: boolean): Promise<void> => {
-  await pool.query(
-    `UPDATE twilio_settings
-     SET last_tested_at = NOW(),
-         last_test_success = $1,
-         updated_at = NOW()
-     WHERE id = (SELECT id FROM twilio_settings ORDER BY created_at LIMIT 1)`,
-    [success]
+const getTwilioSettingsRow = async (): Promise<TwilioSettingsRow | null> => {
+  const result = await pool.query<TwilioSettingsRow>(
+    `SELECT ${TWILIO_SETTINGS_COLUMNS} FROM twilio_settings ORDER BY created_at LIMIT 1`
   );
+
+  return result.rows[0] ?? null;
 };
+
+const createTwilioClient = (config: TwilioConfig): TwilioClient =>
+  twilio(config.accountSid, config.authToken, { timeout: TWILIO_API_TIMEOUT_MS });
 
 const getTwilioConfig = async (): Promise<TwilioConfig | null> => {
-  const result = await pool.query<TwilioSettingsRow>(
-    `SELECT account_sid, auth_token_encrypted, messaging_service_sid, from_phone_number, is_configured
-     FROM twilio_settings
-     WHERE is_configured = true
-     ORDER BY created_at
-     LIMIT 1`
-  );
-
-  if (result.rows.length === 0) return null;
-
-  const row = result.rows[0];
-  if (!row.account_sid || !row.auth_token_encrypted) return null;
+  const row = await getTwilioSettingsRow();
+  if (!row || !row.is_configured || !row.account_sid || !row.auth_token_encrypted) {
+    return null;
+  }
 
   let authToken: string;
   try {
@@ -104,6 +97,22 @@ const getTwilioConfig = async (): Promise<TwilioConfig | null> => {
     messagingServiceSid: row.messaging_service_sid,
     fromPhoneNumber: row.from_phone_number,
   };
+};
+
+const recordTwilioTestResult = async (success: boolean): Promise<void> => {
+  const row = await getTwilioSettingsRow();
+  if (!row) {
+    return;
+  }
+
+  await pool.query(
+    `UPDATE twilio_settings
+     SET last_tested_at = NOW(),
+         last_test_success = $1,
+         updated_at = NOW()
+     WHERE id = $2`,
+    [success, row.id]
+  );
 };
 
 /**
@@ -155,78 +164,38 @@ export async function sendSms(options: SendSmsOptions): Promise<SmsSendResult> {
     };
   }
 
-  const formBody = new URLSearchParams();
-  formBody.set('To', normalizedTo);
-  formBody.set('Body', options.body);
+  const client = createTwilioClient(config);
+  const normalizedFrom = config.fromPhoneNumber ? normalizePhoneForSms(config.fromPhoneNumber) : null;
 
-  if (config.messagingServiceSid) {
-    formBody.set('MessagingServiceSid', config.messagingServiceSid);
-  } else if (config.fromPhoneNumber) {
-    const normalizedFrom = normalizePhoneForSms(config.fromPhoneNumber);
-    if (!normalizedFrom) {
-      return {
-        success: false,
-        to: options.to,
-        normalizedTo,
-        error: 'Configured Twilio sender phone number is invalid',
-      };
-    }
-    formBody.set('From', normalizedFrom);
-  } else {
+  if (!config.messagingServiceSid && config.fromPhoneNumber && !normalizedFrom) {
     return {
       success: false,
       to: options.to,
       normalizedTo,
-      error: 'Twilio sender configuration is missing',
+      error: 'Configured Twilio sender phone number is invalid',
     };
   }
 
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(config.accountSid)}/Messages.json`;
-
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TWILIO_API_TIMEOUT_MS);
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          Authorization: buildTwilioAuthHeader(config.accountSid, config.authToken),
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json',
-        },
-        body: formBody.toString(),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
+    const message = await client.messages.create({
+      to: normalizedTo,
+      body: options.body,
+      ...(config.messagingServiceSid ? { messagingServiceSid: config.messagingServiceSid } : {}),
+      ...(!config.messagingServiceSid && normalizedFrom ? { from: normalizedFrom } : {}),
+    });
 
-    if (!response.ok) {
-      const error = await parseTwilioError(response);
-      logger.warn('Twilio SMS send failed', {
-        status: response.status,
-        to: normalizedTo,
-        error,
-      });
-      return {
-        success: false,
-        to: options.to,
-        normalizedTo,
-        error,
-      };
-    }
-
-    const payload = await response.json() as { sid?: string };
     return {
       success: true,
       to: options.to,
       normalizedTo,
-      sid: payload.sid,
+      sid: message.sid,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    logger.warn('Twilio SMS send failed with exception', { to: normalizedTo, error: message });
+    logger.warn('Twilio SMS send failed', {
+      to: normalizedTo,
+      error: message,
+    });
     return {
       success: false,
       to: options.to,
@@ -245,36 +214,19 @@ export async function testTwilioConnection(): Promise<SmsTestResult> {
     return { success: false, error: 'Twilio SMS is not configured' };
   }
 
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(config.accountSid)}.json`;
+  const client = createTwilioClient(config);
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TWILIO_API_TIMEOUT_MS);
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          Authorization: buildTwilioAuthHeader(config.accountSid, config.authToken),
-          Accept: 'application/json',
-        },
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!response.ok) {
-      const error = await parseTwilioError(response);
-      await recordTwilioTestResult(false);
-      return { success: false, error };
-    }
-
+    await client.api.v2010.accounts(config.accountSid).fetch();
     await recordTwilioTestResult(true);
     return { success: true };
   } catch (error) {
     await recordTwilioTestResult(false);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.warn('Twilio connection test failed', {
+      accountSid: config.accountSid,
+      error: message,
+    });
     return { success: false, error: message };
   }
 }

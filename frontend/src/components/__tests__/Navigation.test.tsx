@@ -291,6 +291,25 @@ describe('Navigation', () => {
     );
   });
 
+  it('closes the More menu from the backdrop and restores focus to its trigger', async () => {
+    const { container } = renderWithProviders(<Navigation />, { route: '/dashboard' });
+
+    const moreButton = screen.getByRole('button', { name: /more navigation/i });
+    fireEvent.click(moreButton);
+
+    expect(await screen.findByRole('menu', { name: /more navigation/i })).toBeInTheDocument();
+
+    const backdrop = container.querySelector('div[aria-hidden="true"]');
+    expect(backdrop).toBeTruthy();
+
+    fireEvent.click(backdrop as HTMLElement);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('menu', { name: /more navigation/i })).not.toBeInTheDocument();
+      expect(moreButton).toHaveFocus();
+    });
+  });
+
   it('maintains user menu state and delegates logout', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
@@ -313,12 +332,25 @@ describe('Navigation', () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     const searchButton = await screen.findByRole('button', { name: /^search$/i });
+    expect(searchButton).not.toHaveFocus();
     fireEvent.click(searchButton);
     expect(await screen.findByRole('dialog', { name: /search people/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /close search dialog/i }));
     await waitFor(() => {
       expect(searchButton).toHaveFocus();
+    });
+  });
+
+  it('opens the mobile drawer as a dialog and focuses its close button', async () => {
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
+
+    fireEvent.click(screen.getByRole('button', { name: /main menu/i }));
+
+    const drawer = await screen.findByRole('dialog', { name: /nonprofit manager/i });
+    expect(drawer).toHaveAttribute('aria-modal', 'true');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /close menu/i })).toHaveFocus();
     });
   });
 

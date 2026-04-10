@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { BrowserContext, Page } from '@playwright/test';
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import '../helpers/testEnv';
 import { routeCatalog, type RouteCatalogEntry } from '../../frontend/src/routes/routeCatalog';
 import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
@@ -18,6 +20,7 @@ import {
   createTemplate,
   publishWebsiteSite,
   createWebsiteSite,
+  createWebsiteEntry,
   deleteSavedReport,
   deleteTemplate,
   deleteWebsiteSite,
@@ -43,13 +46,51 @@ import {
 } from '../helpers/darkModeAudit';
 
 const apiURL = process.env.API_URL || 'http://127.0.0.1:3001';
+const backendRequire = createRequire(path.resolve(__dirname, '..', '..', 'backend', 'package.json'));
+const { Client: PgClient } = backendRequire('pg') as {
+  Client: new (config: {
+    host: string;
+    port: number;
+    database: string;
+    user: string;
+    password: string;
+  }) => {
+    connect(): Promise<void>;
+    end(): Promise<void>;
+    query<T = Record<string, unknown>>(text: string, values?: unknown[]): Promise<{ rows: T[] }>;
+  };
+};
+
+const getTestDatabaseConfig = (): {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+} => ({
+  host: process.env.DB_HOST || process.env.E2E_DB_HOST || '127.0.0.1',
+  port: Number(process.env.DB_PORT || process.env.E2E_DB_PORT || '8012'),
+  database: process.env.DB_NAME || process.env.E2E_DB_NAME || 'nonprofit_manager_test',
+  user: process.env.DB_USER || process.env.E2E_DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || process.env.E2E_DB_PASSWORD || 'postgres',
+});
 
 type TaskResponse = { id?: string; data?: { id?: string } };
 type CaseTypeRow = { id?: string };
 
+const normalizeOrganizationId = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
 type StaffFixtureState = {
   accountId?: string;
   contactId?: string;
+  caseContactId?: string;
   volunteerId?: string;
   volunteerContactId?: string;
   volunteerAssignmentId?: string;
@@ -63,6 +104,8 @@ type StaffFixtureState = {
   publishedSiteKey?: string;
   publicReportId?: string;
   publicReportToken?: string;
+  newsletterEntryId?: string;
+  recurringDonationPlanId?: string;
 };
 
 type PortalFixtureState = {
@@ -118,6 +161,70 @@ async function getCaseTypeId(page: Page, token: string): Promise<string> {
     throw new Error('No case type id available for audit fixtures.');
   }
   return id;
+}
+
+async function createRecurringDonationPlan(
+  page: Page,
+  token: string,
+  input: {
+    organizationId: string;
+    accountId: string;
+    contactId: string;
+    donorEmail: string;
+    createdByUserId: string;
+  }
+): Promise<string> {
+  const organizationId = normalizeOrganizationId(input.organizationId);
+  if (!organizationId) {
+    throw new Error('Recurring donation plan fixture requires organizationId');
+  }
+
+  const client = new PgClient(getTestDatabaseConfig());
+  try {
+    await client.connect();
+    const planResult = await client.query<{ id: string }>(
+      `
+      INSERT INTO recurring_donation_plans (
+        organization_id,
+        account_id,
+        contact_id,
+        donor_email,
+        donor_name,
+        amount,
+        currency,
+        interval,
+        status,
+        campaign_name,
+        designation,
+        notes,
+        created_by,
+        modified_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, 'CAD', 'monthly', 'active', $7, $8, $9, $10, $10)
+      RETURNING id
+      `,
+      [
+        organizationId,
+        input.accountId,
+        input.contactId,
+        input.donorEmail,
+        'Dark Mode Audit',
+        25,
+        `Dark Mode Recurring ${Date.now()}`,
+        'Audit recurring plan',
+        'Recurring plan fixture for the dark-mode audit',
+        input.createdByUserId,
+      ]
+    );
+
+    const planId = planResult.rows[0]?.id;
+    if (!planId) {
+      throw new Error('Recurring donation plan id missing after insert');
+    }
+    return planId;
+  } finally {
+    await client.end().catch(() => undefined);
+  }
 }
 
 async function createTestCase(
@@ -314,6 +421,7 @@ async function resolveRoute(
       };
     case 'contact-detail':
     case 'contact-edit':
+    case 'contact-print':
       if (!staffState.contactId) {
         staffState.contactId = (await createTestContact(adminPage, authToken, {
           firstName: 'Dark',
@@ -411,8 +519,29 @@ async function resolveRoute(
       };
     case 'case-detail':
     case 'case-edit':
+      if (!staffState.accountId) {
+        staffState.accountId = (await createTestAccount(adminPage, authToken, {
+          name: `Dark Mode Case Account ${Date.now()}`,
+          email: `dark-mode-case-account-${Date.now()}@example.com`,
+        })).id;
+      }
+      if (!staffState.caseContactId) {
+        staffState.caseContactId = (
+          await createTestContact(adminPage, authToken, {
+            firstName: 'Case',
+            lastName: 'Mode Person',
+            email: `dark-mode-case-contact-${Date.now()}@example.com`,
+            accountId: staffState.accountId,
+          })
+        ).id;
+      }
       if (!staffState.caseId) {
-        staffState.caseId = await createTestCase(adminPage, authToken, `Dark Mode Case ${Date.now()}`, staffState.contactId);
+        staffState.caseId = await createTestCase(
+          adminPage,
+          authToken,
+          `Dark Mode Case ${Date.now()}`,
+          staffState.caseContactId
+        );
       }
       return {
         kind: 'ready',
@@ -438,9 +567,52 @@ async function resolveRoute(
         path: href.replace(/:id\b/g, staffState.donationId),
         fixtureState: `donation ${staffState.donationId}`,
       };
+    case 'recurring-donation-detail':
+    case 'recurring-donation-edit':
+      if (!staffState.accountId) {
+        staffState.accountId = (await createTestAccount(adminPage, authToken, {
+          name: `Dark Mode Recurring Account ${Date.now()}`,
+          email: `dark-mode-recurring-${Date.now()}@example.com`,
+        })).id;
+      }
+      if (!staffState.contactId) {
+        staffState.contactId = (
+          await createTestContact(adminPage, authToken, {
+            firstName: 'Recurring',
+            lastName: 'Mode Person',
+            email: `dark-mode-recurring-contact-${Date.now()}@example.com`,
+            accountId: staffState.accountId,
+          })
+        ).id;
+      }
+      if (!staffState.recurringDonationPlanId) {
+        const organizationId = normalizeOrganizationId(adminSession.user?.organizationId) ||
+          normalizeOrganizationId(adminSession.user?.organization_id);
+        if (!organizationId) {
+          throw new Error('Recurring donation plan fixture requires organizationId from admin session');
+        }
+        const createdByUserId =
+          typeof adminSession.user?.id === 'string' ? adminSession.user.id.trim() : '';
+        if (!createdByUserId) {
+          throw new Error('Recurring donation plan fixture requires createdByUserId from admin session');
+        }
+        staffState.recurringDonationPlanId = await createRecurringDonationPlan(adminPage, authToken, {
+          organizationId,
+          accountId: staffState.accountId,
+          contactId: staffState.contactId,
+          donorEmail: `dark-mode-recurring-plan-${Date.now()}@example.com`,
+          createdByUserId,
+        });
+      }
+      return {
+        kind: 'ready',
+        path: href.replace(/:id\b/g, staffState.recurringDonationPlanId),
+        fixtureState: `recurring donation ${staffState.recurringDonationPlanId}`,
+      };
     case 'website-console-redirect':
     case 'website-console-overview':
     case 'website-console-content':
+    case 'website-console-newsletters':
     case 'website-console-forms':
     case 'website-console-integrations':
     case 'website-console-publishing':
@@ -452,6 +624,13 @@ async function resolveRoute(
         staffState.publishedSiteKey = staffState.publishedSiteKey || `dark-audit-${Date.now().toString(36)}`;
         staffState.siteId = await createWebsiteSite(adminPage, authToken, staffState.templateId, {
           subdomain: staffState.publishedSiteKey,
+        });
+      }
+      if (entry.id === 'website-console-newsletters' && !staffState.newsletterEntryId) {
+        staffState.newsletterEntryId = await createWebsiteEntry(adminPage, authToken, staffState.siteId, {
+          title: `Dark Mode Newsletter ${Date.now()}`,
+          excerpt: 'Newsletter fixture for the dark-mode audit.',
+          bodyHtml: '<p>Dark mode newsletter fixture.</p>',
         });
       }
       return {

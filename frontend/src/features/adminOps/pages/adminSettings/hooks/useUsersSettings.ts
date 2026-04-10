@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import api from '../../../../../services/api';
 import type { ConfirmOptions } from '../../../../../hooks/useConfirmDialog';
 import type {
-  AuditLog,
+  AuditLogPage,
   UserInvitation,
   UserSearchResult,
   UserSecurityInfo,
@@ -27,7 +27,7 @@ export const useUsersSettings = ({
   const [userSearchResults, setUserSearchResults] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserSecurityInfo | null>(null);
-  const [userAuditLogs, setUserAuditLogs] = useState<AuditLog[]>([]);
+  const [userAuditLogPage, setUserAuditLogPage] = useState<AuditLogPage | null>(null);
 
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
@@ -36,7 +36,7 @@ export const useUsersSettings = ({
 
   const [invitations, setInvitations] = useState<UserInvitation[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('user');
+  const [inviteRole, setInviteRole] = useState('staff');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteEmailDelivery, setInviteEmailDelivery] = useState<{
@@ -78,12 +78,13 @@ export const useUsersSettings = ({
 
   const fetchUserSecurityInfo = useCallback(async (userId: string) => {
     try {
+      setUserAuditLogPage(null);
       const [userResponse, logsResponse] = await Promise.all([
         api.get(`/users/${userId}`),
-        api.get(`/admin/users/${userId}/audit-logs`).catch(() => ({ data: { logs: [] } })),
+        api.get(`/admin/users/${userId}/audit-logs`).catch(() => ({ data: { logs: [], total: 0 } })),
       ]);
       setSelectedUser(userResponse.data);
-      setUserAuditLogs(logsResponse.data.logs || []);
+      setUserAuditLogPage(logsResponse.data || { logs: [], total: 0 });
       setShowSecurityModal(true);
     } catch {
       alert('Failed to load user information');
@@ -264,7 +265,7 @@ export const useUsersSettings = ({
   const resetInviteModal = useCallback(() => {
     setShowInviteModal(false);
     setInviteEmail('');
-    setInviteRole('user');
+    setInviteRole('staff');
     setInviteMessage('');
     setInviteUrl(null);
     setInviteEmailDelivery(null);
@@ -280,8 +281,8 @@ export const useUsersSettings = ({
     setIsSearching,
     selectedUser,
     setSelectedUser,
-    userAuditLogs,
-    setUserAuditLogs,
+    userAuditLogPage,
+    setUserAuditLogPage,
     showSecurityModal,
     setShowSecurityModal,
     showResetPasswordModal,

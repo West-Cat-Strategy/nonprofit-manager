@@ -187,6 +187,9 @@ export class PortalRepository {
   }
 
   async getDashboard(contactId: string, portalUserId: string): Promise<Record<string, unknown>> {
+    const [
+      activeCases,
+      unreadThreadsCountResult,
       recentThreadsResult,
       nextAppointmentResult,
       recentActivityResult,

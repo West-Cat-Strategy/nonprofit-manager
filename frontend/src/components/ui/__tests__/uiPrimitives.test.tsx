@@ -6,6 +6,7 @@ import {
   PrimaryButton,
   SecondaryButton,
   DangerButton,
+  FormField,
   PageHeader,
   SectionCard,
   LoadingState,
@@ -27,7 +28,7 @@ describe('ui primitives', () => {
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass('bg-red-600');
   });
 
   it('renders a page header with title and actions', () => {
@@ -56,12 +57,18 @@ describe('ui primitives', () => {
         <LoadingState label="Loading records..." />
         <EmptyState title="No records" description="Create one to begin" />
         <ErrorState message="Failed to load" onRetry={onRetry} />
+        <FormField label="Email address" helperText="Use your work email" error="Email is required" />
       </div>
     );
 
     expect(screen.getByRole('heading', { level: 2, name: 'Summary' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByText('Loading records...')).toBeInTheDocument();
     expect(screen.getByText('No records')).toBeInTheDocument();
+    const emailField = screen.getByLabelText(/email address/i);
+    const emailError = screen.getByText('Email is required');
+    expect(emailField).toHaveAttribute('aria-invalid', 'true');
+    expect(emailField.getAttribute('aria-describedby')).toContain(emailError.id);
     await user.click(screen.getByRole('button', { name: 'Try again' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });

@@ -182,6 +182,7 @@ const routeParentIds: Record<string, string> = {
   'contact-create': 'contacts',
   'contact-detail': 'contacts',
   'contact-edit': 'contacts',
+  'contact-print': 'contact-detail',
   'account-create': 'accounts',
   'account-detail': 'accounts',
   'account-edit': 'accounts',

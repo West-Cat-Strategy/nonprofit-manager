@@ -2,7 +2,11 @@ import express from 'express';
 import { authenticate, authorize } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
+  createRoleHandler,
+  deleteRoleHandler,
   getBranding,
+  listPermissions,
+  listRoles,
   putBranding,
   getEmailSettings,
   getOrganizationSettingsHandler,
@@ -20,8 +24,9 @@ import {
   approvePendingRegistrationHandler,
   rejectPendingRegistrationHandler,
 } from '../controllers';
-import { getAdminStats, getAuditLogs } from '../controllers/adminStatsController';
+import { getAdminStats, getAuditLogs, getUserAuditLogs } from '../controllers/adminStatsController';
 import * as outcomeDefinitionController from '../controllers/outcomeDefinitionController';
+import { updateRoleHandler } from '../controllers/roleCatalogController';
 import {
   createOutcomeDefinitionSchema,
   listOutcomeDefinitionsQuerySchema,
@@ -36,12 +41,13 @@ import {
   updateOrganizationSettingsSchema,
   rejectPendingRegistrationSchema,
   updateEmailSettingsSchema,
+  adminRoleCreateSchema,
+  adminRoleParamsSchema,
+  adminRoleUpdateSchema,
+  adminUserAuditLogsParamsSchema,
   updateRegistrationSettingsSchema,
   updateTwilioSettingsSchema,
 } from '@validations/admin';
-import { sendSuccess } from '@modules/shared/http/envelope';
-
-
 const router = express.Router();
 
 router.get('/branding', authenticate, getBranding);
@@ -62,6 +68,14 @@ router.get(
   authorize('admin'),
   validateQuery(adminAuditLogsQuerySchema),
   getAuditLogs
+);
+router.get(
+  '/users/:id/audit-logs',
+  authenticate,
+  authorize('admin'),
+  validateParams(adminUserAuditLogsParamsSchema),
+  validateQuery(adminAuditLogsQuerySchema),
+  getUserAuditLogs
 );
 
 // Email settings (admin only)
@@ -86,17 +100,31 @@ router.put(
 );
 router.post('/twilio-settings/test', authenticate, authorize('admin'), testTwilioSettings);
 
-// Roles endpoint - returns hardcoded role definitions
-router.get('/roles', authenticate, authorize('admin'), (_req, res) => {
-  sendSuccess(res, {
-    roles: [
-      { id: 'admin', name: 'Administrator', description: 'Full system access', permissions: ['*'] },
-      { id: 'manager', name: 'Manager', description: 'Manage users, contacts, and programs', permissions: ['manage_users', 'manage_contacts', 'manage_programs'] },
-      { id: 'user', name: 'User', description: 'Standard access to assigned areas', permissions: ['view_contacts', 'edit_contacts', 'view_programs'] },
-      { id: 'readonly', name: 'Read Only', description: 'View-only access', permissions: ['view_contacts', 'view_programs'] },
-    ],
-  });
-});
+// Role and permission catalog
+router.get('/roles', authenticate, authorize('admin'), listRoles);
+router.get('/permissions', authenticate, authorize('admin'), listPermissions);
+router.post(
+  '/roles',
+  authenticate,
+  authorize('admin'),
+  validateBody(adminRoleCreateSchema),
+  createRoleHandler
+);
+router.put(
+  '/roles/:id',
+  authenticate,
+  authorize('admin'),
+  validateParams(adminRoleParamsSchema),
+  validateBody(adminRoleUpdateSchema),
+  updateRoleHandler
+);
+router.delete(
+  '/roles/:id',
+  authenticate,
+  authorize('admin'),
+  validateParams(adminRoleParamsSchema),
+  deleteRoleHandler
+);
 
 // Registration settings (admin only)
 router.get('/registration-settings', authenticate, authorize('admin'), getRegistrationSettingsHandler);

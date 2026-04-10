@@ -7,20 +7,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../../../../services/api';
 import { useToast } from '../../../../../contexts/useToast';
 import { useUnsavedChangesGuard } from '../../../../../hooks/useUnsavedChangesGuard';
-
-interface TwilioSettings {
-  id: string;
-  accountSid: string | null;
-  messagingServiceSid: string | null;
-  fromPhoneNumber: string | null;
-  isConfigured: boolean;
-  lastTestedAt: string | null;
-  lastTestSuccess: boolean | null;
-}
-
-interface Credentials {
-  authToken: boolean;
-}
+import { formatApiErrorMessage } from '../../../../../utils/apiError';
+import type {
+  TwilioCredentials,
+  TwilioSettings,
+  TwilioSettingsApiData,
+  TwilioTestApiData,
+} from './twilioSettings.types';
 
 const TWILIO_SETTINGS_CACHE_KEY = 'admin_twilio_settings_cache_v1';
 const TWILIO_SETTINGS_CACHE_TTL_MS = 2 * 60 * 1000;
@@ -33,7 +26,7 @@ export default function TwilioSettingsSection() {
   const { showSuccess, showError } = useToast();
 
   const [settings, setSettings] = useState<TwilioSettings | null>(null);
-  const [credentials, setCredentials] = useState<Credentials>({ authToken: false });
+  const [credentials, setCredentials] = useState<TwilioCredentials>({ authToken: false });
   const [loading, setLoading] = useState(true);
   const [hasHydratedData, setHasHydratedData] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -74,7 +67,7 @@ export default function TwilioSettingsSection() {
     []
   );
 
-  const cacheSettings = useCallback((nextSettings: TwilioSettings, creds: Credentials) => {
+  const cacheSettings = useCallback((nextSettings: TwilioSettings, creds: TwilioCredentials) => {
     sessionStorage.setItem(
       TWILIO_SETTINGS_CACHE_KEY,
       JSON.stringify({
@@ -85,12 +78,12 @@ export default function TwilioSettingsSection() {
     );
   }, []);
 
-  const syncServerMetadata = useCallback((nextSettings: TwilioSettings, creds: Credentials) => {
+  const syncServerMetadata = useCallback((nextSettings: TwilioSettings, creds: TwilioCredentials) => {
     setSettings(nextSettings);
     setCredentials(creds);
   }, []);
 
-  const hydrateDraftFromServer = useCallback((nextSettings: TwilioSettings, creds: Credentials) => {
+  const hydrateDraftFromServer = useCallback((nextSettings: TwilioSettings, creds: TwilioCredentials) => {
     syncServerMetadata(nextSettings, creds);
     setAccountSid(nextSettings.accountSid || '');
     setMessagingServiceSid(nextSettings.messagingServiceSid || '');
@@ -103,17 +96,15 @@ export default function TwilioSettingsSection() {
     async (background = false) => {
       try {
         if (!background) setLoading(true);
-        const { data } = await api.get<{ data: TwilioSettings; credentials: Credentials }>(
-          '/admin/twilio-settings'
-        );
+        const { data } = await api.get<TwilioSettingsApiData>('/admin/twilio-settings');
 
         if (data.data) {
           hydrateDraftFromServer(data.data, data.credentials);
           cacheSettings(data.data, data.credentials);
         }
-      } catch {
+      } catch (error) {
         if (!hasHydratedData) {
-          showError('Failed to load Twilio settings');
+          showError(formatApiErrorMessage(error, 'Failed to load Twilio settings'));
         }
       } finally {
         if (!background) setLoading(false);
@@ -124,17 +115,15 @@ export default function TwilioSettingsSection() {
 
   const refreshMetadata = useCallback(async () => {
     try {
-      const { data } = await api.get<{ data: TwilioSettings; credentials: Credentials }>(
-        '/admin/twilio-settings'
-      );
+      const { data } = await api.get<TwilioSettingsApiData>('/admin/twilio-settings');
 
       if (data.data) {
         syncServerMetadata(data.data, data.credentials);
         cacheSettings(data.data, data.credentials);
       }
-    } catch {
+    } catch (error) {
       if (!hasHydratedData) {
-        showError('Failed to load Twilio settings');
+        showError(formatApiErrorMessage(error, 'Failed to load Twilio settings'));
       }
     }
   }, [cacheSettings, hasHydratedData, showError, syncServerMetadata]);
@@ -151,7 +140,7 @@ export default function TwilioSettingsSection() {
       try {
         const parsed = JSON.parse(cached) as {
           settings: TwilioSettings;
-          credentials: Credentials;
+          credentials: TwilioCredentials;
           cachedAt: number;
         };
         if (Date.now() - parsed.cachedAt < TWILIO_SETTINGS_CACHE_TTL_MS && parsed.settings) {
@@ -183,8 +172,8 @@ export default function TwilioSettingsSection() {
       setAuthToken('');
       setLastSavedAt(new Date());
       await fetchSettings();
-    } catch {
-      showError('Failed to save Twilio settings');
+    } catch (error) {
+      showError(formatApiErrorMessage(error, 'Failed to save Twilio settings'));
     } finally {
       setSaving(false);
     }
@@ -193,9 +182,7 @@ export default function TwilioSettingsSection() {
   const handleTestConnection = async () => {
     setTesting(true);
     try {
-      const { data } = await api.post<{ data: { success: boolean; error?: string } }>(
-        '/admin/twilio-settings/test'
-      );
+      const { data } = await api.post<TwilioTestApiData>('/admin/twilio-settings/test');
 
       if (data.data.success) {
         showSuccess('Twilio connection successful!');
@@ -204,8 +191,8 @@ export default function TwilioSettingsSection() {
       }
 
       await fetchSettings();
-    } catch {
-      showError('Failed to test Twilio connection');
+    } catch (error) {
+      showError(formatApiErrorMessage(error, 'Failed to test Twilio connection'));
     } finally {
       setTesting(false);
     }

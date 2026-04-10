@@ -200,8 +200,14 @@ export const normalizeWorkspaceModuleSettings = (
   return normalized;
 };
 
+export const areWorkspaceModuleSettingsEqual = (
+  left: WorkspaceModuleSettings,
+  right: WorkspaceModuleSettings
+): boolean => WORKSPACE_MODULE_KEYS.every((key) => left[key] === right[key]);
+
 const exactRouteModuleMap: Partial<Record<string, WorkspaceModuleKey>> = {
   contacts: 'contacts',
+  'contact-print': 'contacts',
   accounts: 'accounts',
   volunteers: 'volunteers',
   events: 'events',

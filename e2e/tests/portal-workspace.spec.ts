@@ -1,5 +1,4 @@
 import { expect, test, type Page } from '@playwright/test';
-import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 import { getAuthHeaders } from '../helpers/database';
 import { loginPortalUserUI, provisionApprovedPortalUser } from '../helpers/portal';
 
@@ -29,13 +28,7 @@ async function createSharedPortalCaseFixture(page: Page) {
     lastName: 'Client',
     email: `portal-workspace-${unique}@example.com`,
   });
-
-  const adminSession = await ensureEffectiveAdminLoginViaAPI(page, {
-    firstName: 'Portal',
-    lastName: 'Staff',
-    organizationName: 'Portal Workspace Org',
-  });
-  const authHeaders = await getAuthHeaders(page, adminSession.token);
+  const authHeaders = await getAuthHeaders(page, portalUser.adminToken);
 
   const caseTypesResponse = await page.request.get(`${apiUrl}/api/v2/cases/types`, {
     headers: authHeaders,
@@ -48,6 +41,7 @@ async function createSharedPortalCaseFixture(page: Page) {
     headers: authHeaders,
     data: {
       contact_id: portalUser.contactId,
+      account_id: portalUser.accountId,
       case_type_id: caseTypes[0].id,
       title: caseTitle,
       description: caseDescription,
@@ -57,8 +51,14 @@ async function createSharedPortalCaseFixture(page: Page) {
   expect(createCaseResponse.ok(), await createCaseResponse.text()).toBeTruthy();
   const createdCase = unwrap<{ id: string }>(await createCaseResponse.json());
 
+  await page.evaluate((organizationId) => {
+    localStorage.setItem('organizationId', organizationId);
+  }, createdCase.account_id);
+
+  const caseAuthHeaders = await getAuthHeaders(page, portalUser.adminToken);
+
   const createVisibleNoteResponse = await page.request.post(`${apiUrl}/api/v2/cases/notes`, {
-    headers: authHeaders,
+    headers: caseAuthHeaders,
     data: {
       case_id: createdCase.id,
       note_type: 'note',
@@ -71,7 +71,7 @@ async function createSharedPortalCaseFixture(page: Page) {
   const shareCaseResponse = await page.request.put(
     `${apiUrl}/api/v2/cases/${createdCase.id}/client-viewable`,
     {
-      headers: authHeaders,
+      headers: caseAuthHeaders,
       data: {
         client_viewable: true,
       },
@@ -95,7 +95,7 @@ test.describe('Portal Workspace', () => {
 
     await page.goto('/portal');
     await expect(page.getByRole('heading', { name: /your case workspace/i })).toBeVisible();
-    await expect(page.getByText(caseTitle, { exact: true })).toBeVisible();
+    await expect(page.getByText(caseTitle, { exact: true }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /open workspace/i }).first()).toBeVisible();
 
     await page.getByRole('link', { name: /open workspace/i }).first().click();

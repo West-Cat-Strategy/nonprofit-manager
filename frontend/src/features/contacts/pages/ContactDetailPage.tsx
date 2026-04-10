@@ -22,6 +22,7 @@ import ContactCommunicationsPanel from '../components/ContactCommunicationsPanel
 import ContactFollowUpsPanel from '../components/ContactFollowUpsPanel';
 import ContactDocumentsPanel from '../components/ContactDocumentsPanel';
 import ContactPaymentsPanel from '../components/ContactPaymentsPanel';
+import ContactPageShell from '../components/ContactPageShell';
 import { formatDate, formatDateOnly, getAgeFromDateOnly } from '../../../utils/format';
 import { isUuid } from '../../../utils/uuid';
 
@@ -71,71 +72,75 @@ const ContactDetail = () => {
     }
   }, [alertNotes.length]);
 
+  const renderStateShell = (
+    tone: 'green' | 'purple' | 'yellow' | 'pink' | 'white',
+    backLabel: string,
+    title: string,
+    description: string,
+    icon: string
+  ) => (
+    <ContactPageShell
+      tone={tone}
+      backLabel={backLabel}
+      onBack={() => navigate('/contacts')}
+      title={title}
+      description={description}
+    >
+      <BrutalCard color="white" className="mx-auto w-full max-w-2xl p-6">
+        <div className="flex flex-col items-center justify-center gap-4 text-center">
+          <div className="text-4xl">{icon}</div>
+          <p className="text-sm font-bold text-black/70">{description}</p>
+        </div>
+      </BrutalCard>
+    </ContactPageShell>
+  );
+
   if (id && !hasValidId) {
-    return (
-      <div className="p-6">
-        <BrutalCard color="yellow" className="p-6">
-          <div className="text-center">
-            <div className="text-4xl mb-4">🔗</div>
-            <h2 className="text-xl font-black uppercase text-black mb-2">Invalid Contact Link</h2>
-            <p className="font-bold text-black/70 mb-4">
-              This person link is invalid. Please return to the People list and try again.
-            </p>
-            <BrutalButton onClick={() => navigate('/contacts')} variant="primary">
-              Back to People
-            </BrutalButton>
-          </div>
-        </BrutalCard>
-      </div>
+    return renderStateShell(
+      'yellow',
+      'Back to People',
+      'Invalid Contact Link',
+      'This person link is invalid. Please return to the People list and try again.',
+      '🔗'
     );
   }
 
   if (loading) {
     return (
-      <div className="p-6">
-        <BrutalCard color="white" className="p-12">
-          <div className="flex flex-col items-center justify-center">
-            <div className="animate-spin h-12 w-12 border-4 border-black border-t-transparent mb-4" />
+      <ContactPageShell
+        tone="white"
+        backLabel="Back to People"
+        onBack={() => navigate('/contacts')}
+        title="Loading Contact"
+        description="Fetching the latest contact details..."
+      >
+        <BrutalCard color="white" className="mx-auto w-full max-w-2xl p-8">
+          <div className="flex flex-col items-center justify-center gap-4 text-center">
+            <div className="h-12 w-12 animate-spin border-4 border-black border-t-transparent" />
             <p className="font-bold text-black">Loading contact...</p>
           </div>
         </BrutalCard>
-      </div>
+      </ContactPageShell>
     );
   }
 
   if (error) {
-    return (
-      <div className="p-6">
-        <BrutalCard color="pink" className="p-6">
-          <div className="text-center">
-            <div className="text-4xl mb-4">⚠️</div>
-            <h2 className="text-xl font-black uppercase text-black mb-2">Error</h2>
-            <p className="font-bold text-black/70 mb-4">{error}</p>
-            <BrutalButton onClick={() => navigate('/contacts')} variant="secondary">
-              Back to People
-            </BrutalButton>
-          </div>
-        </BrutalCard>
-      </div>
+    return renderStateShell(
+      'pink',
+      'Back to People',
+      'Error',
+      error,
+      '⚠️'
     );
   }
 
   if (!currentContact) {
-    return (
-      <div className="p-6">
-        <BrutalCard color="yellow" className="p-6">
-          <div className="text-center">
-            <div className="text-4xl mb-4">🔍</div>
-            <h2 className="text-xl font-black uppercase text-black mb-2">Contact Not Found</h2>
-            <p className="font-bold text-black/70 mb-4">
-              The contact you're looking for doesn't exist or has been removed.
-            </p>
-            <BrutalButton onClick={() => navigate('/contacts')} variant="primary">
-              Back to People
-            </BrutalButton>
-          </div>
-        </BrutalCard>
-      </div>
+    return renderStateShell(
+      'yellow',
+      'Back to People',
+      'Contact Not Found',
+      "The contact you're looking for doesn't exist or has been removed.",
+      '🔍'
     );
   }
 
@@ -164,94 +169,106 @@ const ContactDetail = () => {
     { label: 'Phones', value: currentContact.phone_count || 0 },
   ];
 
+  const roleBadgeColor = (role: string): 'green' | 'blue' | 'purple' | 'yellow' | 'red' | 'gray' => {
+    if (role === 'Donor') return 'green';
+    if (role === 'Staff' || role === 'Executive Director') return 'blue';
+    if (role === 'Volunteer') return 'purple';
+    if (role === 'Board Member') return 'yellow';
+    if (role === 'Client') return 'red';
+    return 'gray';
+  };
+
+  const contactDescription = (
+    <div className="space-y-1">
+      {currentContact.job_title ? (
+        <p>
+          {currentContact.job_title}
+          {currentContact.department ? ` - ${currentContact.department}` : ''}
+        </p>
+      ) : null}
+      {currentContact.account_name ? (
+        <p className="text-black/60 dark:text-white/70">Organization: {currentContact.account_name}</p>
+      ) : null}
+    </div>
+  );
+
+  const contactMetadata = (
+    <>
+      <BrutalBadge color={currentContact.is_active ? 'green' : 'gray'} size="sm">
+        {currentContact.is_active ? 'Active' : 'Inactive'}
+      </BrutalBadge>
+      {currentContact.pronouns ? (
+        <BrutalBadge color="gray" size="sm">
+          {currentContact.pronouns}
+        </BrutalBadge>
+      ) : null}
+      {currentContact.roles?.map((role: string) => (
+        <BrutalBadge key={role} color={roleBadgeColor(role)} size="sm">
+          {role}
+        </BrutalBadge>
+      ))}
+    </>
+  );
+
+  const contactActions = (
+    <>
+      <BrutalButton
+        onClick={() => {
+          if (!id) {
+            return;
+          }
+
+          window.open(`/contacts/${id}/print`, '_blank', 'noopener,noreferrer');
+        }}
+        variant="secondary"
+      >
+        Print / Export
+      </BrutalButton>
+      <BrutalButton
+        onClick={() => {
+          setActiveTab('notes');
+          setOpenNoteForm(true);
+        }}
+        variant="secondary"
+      >
+        Add Note
+      </BrutalButton>
+      <BrutalButton onClick={() => setActiveTab('followups')} variant="secondary">
+        Schedule Follow-up
+      </BrutalButton>
+      <BrutalButton onClick={() => setActiveTab('communications')} variant="secondary">
+        Communications
+      </BrutalButton>
+      <BrutalButton onClick={() => setShowMergeDialog(true)} variant="secondary">
+        Merge Contact
+      </BrutalButton>
+      <BrutalButton onClick={() => navigate(`/contacts/${id}/edit`)} variant="primary">
+        Edit Contact
+      </BrutalButton>
+    </>
+  );
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <BrutalCard color="purple" className="p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <button
-              onClick={() => navigate('/contacts')}
-              className="mb-2 flex items-center gap-1 text-sm font-black uppercase text-black/70 hover:text-black dark:text-white/80 dark:hover:text-white"
-              aria-label="Back to people"
-            >
-              ← Back to People
-            </button>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-black uppercase tracking-tight text-black dark:text-white">
-                {fullName}
-              </h1>
-              {currentContact.pronouns && (
-                <BrutalBadge color="gray" size="sm">
-                  {currentContact.pronouns}
-                </BrutalBadge>
-              )}
-              <BrutalBadge color={currentContact.is_active ? 'green' : 'gray'} size="sm">
-                {currentContact.is_active ? 'Active' : 'Inactive'}
-              </BrutalBadge>
-              {currentContact.roles && currentContact.roles.length > 0 && currentContact.roles.map((role: string) => (
-                <BrutalBadge
-                  key={role}
-                  color={
-                    role === 'Donor' ? 'green'
-                    : role === 'Staff' || role === 'Executive Director' ? 'blue'
-                    : role === 'Volunteer' ? 'purple'
-                    : role === 'Board Member' ? 'yellow'
-                    : role === 'Client' ? 'red'
-                    : 'gray'
-                  }
-                  size="sm"
-                >
-                  {role}
-                </BrutalBadge>
-              ))}
-            </div>
-            {currentContact.job_title && (
-              <p className="mt-1 font-bold text-black/70 dark:text-white/80">
-                {currentContact.job_title}
-                {currentContact.department && ` - ${currentContact.department}`}
-              </p>
-            )}
-            {currentContact.account_name && (
-              <p className="text-sm font-bold text-black/60 dark:text-white/70">
-                Organization: {currentContact.account_name}
-              </p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <BrutalButton
-              onClick={() => {
-                setActiveTab('notes');
-                setOpenNoteForm(true);
-              }}
-              variant="secondary"
-            >
-              Add Note
-            </BrutalButton>
-            <BrutalButton onClick={() => setActiveTab('followups')} variant="secondary">
-              Schedule Follow-up
-            </BrutalButton>
-            <BrutalButton onClick={() => setActiveTab('communications')} variant="secondary">
-              Communications
-            </BrutalButton>
-            <BrutalButton onClick={() => setShowMergeDialog(true)} variant="secondary">
-              Merge Contact
-            </BrutalButton>
-            <BrutalButton onClick={() => navigate(`/contacts/${id}/edit`)} variant="primary">
-              Edit Contact
-            </BrutalButton>
-          </div>
-        </div>
-        {currentContact.tags && currentContact.tags.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
+    <ContactPageShell
+      tone="purple"
+      backLabel="Back to People"
+      onBack={() => navigate('/contacts')}
+      title={fullName}
+      description={contactDescription}
+      metadata={contactMetadata}
+      actions={contactActions}
+    >
+      {currentContact.tags && currentContact.tags.length > 0 ? (
+        <BrutalCard color="white" className="p-4">
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
             {currentContact.tags.map((tag: string) => (
               <BrutalBadge key={tag} color="yellow" size="sm">
                 {tag}
               </BrutalBadge>
             ))}
           </div>
-        )}
-      </BrutalCard>
+        </BrutalCard>
+      ) : null}
 
       {currentContact && (
         <ContactMergeDialog
@@ -265,32 +282,31 @@ const ContactDetail = () => {
         />
       )}
 
-      {/* Tabs */}
-      <div
-        className="flex flex-wrap gap-2 border-b-4 border-black pb-2"
-        role="tablist"
-        aria-label="Contact sections"
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            aria-controls={`tabpanel-${tab.id}`}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-sm font-black uppercase transition-all border-2 border-black ${
-              activeTab === tab.id
-                ? 'bg-black text-white shadow-[2px_2px_0px_var(--shadow-color)]'
-                : 'bg-white text-black hover:bg-[var(--loop-yellow)] shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)]'
-            }`}
-          >
-            {tab.label}
-            {tab.count !== undefined && tab.count > 0 && (
-              <span className="ml-1">({tab.count})</span>
-            )}
-          </button>
-        ))}
-      </div>
+      <BrutalCard color="white" className="p-4">
+        <div
+          className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]"
+          role="tablist"
+          aria-label="Contact sections"
+        >
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`tabpanel-${tab.id}`}
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap px-4 py-2 text-sm font-black uppercase transition-all border-2 border-black ${
+                activeTab === tab.id
+                  ? 'bg-black text-white shadow-[2px_2px_0px_var(--shadow-color)]'
+                  : 'bg-white text-black hover:bg-[var(--loop-yellow)] shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)]'
+              }`}
+            >
+              {tab.label}
+              {tab.count !== undefined && tab.count > 0 ? <span className="ml-1">({tab.count})</span> : null}
+            </button>
+          ))}
+        </div>
+      </BrutalCard>
 
       {/* Tab Content */}
       <div id={`tabpanel-${activeTab}`} role="tabpanel" aria-labelledby={activeTab}>
@@ -598,7 +614,7 @@ const ContactDetail = () => {
 
       {/* Alert Notes Modal */}
       {showAlertModal && alertNotes.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 app-popup-backdrop">
           <div className="bg-white border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] max-w-lg w-full max-h-[80vh] overflow-y-auto">
             <div className="bg-app-accent border-b-4 border-black p-4 flex items-center gap-3">
               <span className="text-3xl">⚠️</span>
@@ -629,7 +645,7 @@ const ContactDetail = () => {
           </div>
         </div>
       )}
-    </div>
+    </ContactPageShell>
   );
 };
 

@@ -82,6 +82,10 @@ describe('AdminSettings organization section', () => {
         return Promise.resolve({ data: { roles: [] } });
       }
 
+      if (url === '/admin/permissions') {
+        return Promise.resolve({ data: { permissions: [] } });
+      }
+
       return Promise.resolve({ data: {} });
     });
   });
@@ -191,6 +195,10 @@ describe('AdminSettings organization section', () => {
 
       if (url === '/admin/roles') {
         return Promise.resolve({ data: { roles: [] } });
+      }
+
+      if (url === '/admin/permissions') {
+        return Promise.resolve({ data: { permissions: [] } });
       }
 
       return Promise.resolve({ data: {} });

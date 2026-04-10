@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ThemeSelector from '../ThemeSelector';
 import { ThemeProvider } from '../../contexts/ThemeContext';
@@ -27,10 +28,9 @@ describe('ThemeSelector', () => {
     );
 
     expect(screen.getByRole('radiogroup', { name: /select interface theme/i })).toBeInTheDocument();
-    const corporateTheme = screen.getByRole('radio', { name: /corporate theme/i });
-    expect(corporateTheme).toHaveAttribute('data-theme-card', 'corporate');
-    expect(within(corporateTheme).getAllByText('CP')).toHaveLength(2);
-    expect(corporateTheme.querySelector('[data-theme-preview="corporate"]')).not.toBeNull();
+    const corporateTheme = screen.getByRole('radio', { name: /disciplined cobalt accents/i });
+    expect(corporateTheme.closest('label')).toHaveAttribute('data-theme-card', 'corporate');
+    expect(corporateTheme.closest('label')?.querySelector('[data-theme-preview="corporate"]')).not.toBeNull();
 
     fireEvent.click(corporateTheme);
 
@@ -38,7 +38,8 @@ describe('ThemeSelector', () => {
     expect(document.body.classList.contains('theme-corporate')).toBe(true);
   });
 
-  it('supports color scheme toggle controls', async () => {
+  it('supports keyboard selection for theme and color scheme radios', async () => {
+    const user = userEvent.setup();
     vi.stubGlobal(
       'matchMedia',
       vi.fn().mockImplementation(() => ({
@@ -54,8 +55,15 @@ describe('ThemeSelector', () => {
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByRole('radio', { name: /dark mode/i }));
+    const lightScheme = screen.getByRole('radio', { name: /^light$/i });
+    lightScheme.focus();
+    await user.keyboard('{ArrowRight}');
     await waitFor(() => expect(localStorage.getItem('app-color-scheme')).toBe('dark'));
     expect(document.body.classList.contains('dark')).toBe(true);
+
+    const themeRadio = screen.getByRole('radio', { name: /ink-first hierarchy/i });
+    themeRadio.focus();
+    await user.keyboard('{ArrowRight}');
+    await waitFor(() => expect(localStorage.getItem('app-theme')).toBe('sea-breeze'));
   });
 });

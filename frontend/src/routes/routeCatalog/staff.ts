@@ -55,6 +55,12 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     path: '/contacts/:id/edit',
   }),
   staffRoute({
+    id: 'contact-print',
+    title: 'Print / Export',
+    section: 'People',
+    path: '/contacts/:id/print',
+  }),
+  staffRoute({
     id: 'accounts',
     title: 'Accounts',
     section: 'People',

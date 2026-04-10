@@ -78,7 +78,7 @@ function ReportSharingDialog({ report, isOpen, onClose, onSuccess }: ReportShari
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop">
             <div className="bg-[var(--app-surface)] border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)] max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="bg-[var(--loop-yellow)] border-b-4 border-black p-6 flex justify-between items-center">

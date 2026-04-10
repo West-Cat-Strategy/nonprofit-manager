@@ -123,4 +123,34 @@ describe('ContactCommunicationsPanel', () => {
       });
     });
   });
+
+  it('clears filters and refetches the communications log', async () => {
+    renderWithProviders(<ContactCommunicationsPanel contactId="contact-1" />);
+
+    await screen.findByText(/spring fundraiser/i);
+
+    fireEvent.change(screen.getByLabelText(/source/i), {
+      target: { value: 'event_reminder' },
+    });
+
+    await waitFor(() => {
+      expect(listCommunicationsMock).toHaveBeenLastCalledWith('contact-1', {
+        channel: undefined,
+        source_type: 'event_reminder',
+        delivery_status: undefined,
+        limit: 100,
+      });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /clear filters/i }));
+
+    await waitFor(() => {
+      expect(listCommunicationsMock).toHaveBeenLastCalledWith('contact-1', {
+        channel: undefined,
+        source_type: undefined,
+        delivery_status: undefined,
+        limit: 100,
+      });
+    });
+  });
 });

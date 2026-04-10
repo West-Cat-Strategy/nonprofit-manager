@@ -134,7 +134,7 @@ describe('ContactForm', () => {
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
       fireEvent.click(cancelButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/contacts');
+      expect(mockNavigate).toHaveBeenCalledWith('/contacts', { replace: true });
     });
 
     it('loads roles from the v2 contacts roles endpoint', async () => {

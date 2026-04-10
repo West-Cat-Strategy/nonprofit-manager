@@ -207,7 +207,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop px-4 py-6">
       <BrutalCard className="max-h-[90vh] w-full max-w-5xl overflow-y-auto">
         <div className="flex items-center justify-between border-b-2 border-app-text p-6">
           <div>

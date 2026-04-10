@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { WorkspaceModuleSettings } from './catalog';
+import {
+  areWorkspaceModuleSettingsEqual,
+  type WorkspaceModuleSettings,
+} from './catalog';
 import {
   getWorkspaceModuleAccessCachedSync,
   subscribeWorkspaceModuleAccess,
@@ -11,9 +14,15 @@ export const useWorkspaceModuleAccess = (): WorkspaceModuleSettings => {
   );
 
   useEffect(() => {
-    setWorkspaceModules(getWorkspaceModuleAccessCachedSync());
+    const nextWorkspaceModules = getWorkspaceModuleAccessCachedSync();
+    setWorkspaceModules((current) =>
+      areWorkspaceModuleSettingsEqual(current, nextWorkspaceModules)
+        ? current
+        : nextWorkspaceModules
+    );
     return subscribeWorkspaceModuleAccess(() => {
-      setWorkspaceModules(getWorkspaceModuleAccessCachedSync());
+      const next = getWorkspaceModuleAccessCachedSync();
+      setWorkspaceModules((current) => (areWorkspaceModuleSettingsEqual(current, next) ? current : next));
     });
   }, []);
 

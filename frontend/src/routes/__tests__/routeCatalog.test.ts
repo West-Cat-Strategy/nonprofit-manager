@@ -103,12 +103,21 @@ describe('routeCatalog matching', () => {
 
   it('builds breadcrumbs and local navigation from the route hierarchy for detail pages', () => {
     const contactDetailPath = '/contacts/11111111-1111-4111-8111-111111111111';
+    const contactPrintPath = '/contacts/11111111-1111-4111-8111-111111111111/print';
 
     expect(
       getRouteBreadcrumbs(contactDetailPath).map(({ label, current }) => ({ label, current }))
     ).toEqual([
       { label: 'People', current: false },
       { label: 'Person Detail', current: true },
+    ]);
+
+    expect(
+      getRouteBreadcrumbs(contactPrintPath).map(({ label, current }) => ({ label, current }))
+    ).toEqual([
+      { label: 'People', current: false },
+      { label: 'Person Detail', current: false },
+      { label: 'Print / Export', current: true },
     ]);
 
     const peopleLocalNav = getRouteLocalNavigation(contactDetailPath);

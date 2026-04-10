@@ -11,11 +11,10 @@ import type {
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
 import { parseMultipartJsonField } from '@modules/shared/import/peopleImportParser';
-import { extractPagination, getBoolean, getString } from '@utils/queryHelpers';
 import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
 import { ContactImportExportUseCase } from '../usecases/contactImportExport.usecase';
 import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
-import { normalizeContactRoleFilter } from '../shared/contactRoleFilters';
+import { parseContactListFilters, parseContactPagination } from '../shared/contactQuery';
 
 const hiddenRoleNames = new Set(['Executive Director', 'Committee Member']);
 const roleOrder = new Map<string, number>([
@@ -37,18 +36,6 @@ const normalizeRoles = (roles: ContactRole[]): ContactRole[] =>
       return a.name.localeCompare(b.name);
     });
 
-const getTagsFilter = (value: unknown): string[] | undefined => {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-  const tags = value
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter((tag) => tag.length > 0);
-
-  return tags.length > 0 ? tags : undefined;
-};
-
 export const createContactDirectoryController = (
   useCase: ContactDirectoryUseCase,
   importExportUseCase: ContactImportExportUseCase,
@@ -57,15 +44,8 @@ export const createContactDirectoryController = (
   const getContacts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const query = (req.validatedQuery ?? req.query) as Record<string, unknown>;
-      const filters: ContactFilters = {
-        search: getString(query.search),
-        role: normalizeContactRoleFilter(query.role),
-        account_id: getString(query.account_id),
-        is_active: getBoolean(query.is_active),
-        tags: getTagsFilter(query.tags),
-      };
-
-      const pagination: PaginationParams = extractPagination(query);
+      const filters: ContactFilters = parseContactListFilters(query);
+      const pagination: PaginationParams = parseContactPagination(query);
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const result = await useCase.list(filters, pagination, scope, req.user?.role);
       sendData(res, mode, result);

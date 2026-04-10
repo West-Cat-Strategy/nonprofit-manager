@@ -40,7 +40,7 @@ export const adminCompatibilityRouteManifest: readonly AdminRouteRedirectEntry[]
     id: 'legacy-email-marketing',
     title: 'Legacy communications redirect',
     path: '/email-marketing',
-    redirectsTo: '/settings/communications',
+    redirectsTo: '/dashboard',
   },
   {
     id: 'legacy-admin-settings',
@@ -58,13 +58,13 @@ export const adminCompatibilityRouteManifest: readonly AdminRouteRedirectEntry[]
     id: 'legacy-organization-settings',
     title: 'Legacy organization settings redirect',
     path: '/settings/organization',
-    redirectsTo: getAdminSettingsPath('organization'),
+    redirectsTo: '/dashboard',
   },
   {
     id: 'legacy-admin-audit-logs',
     title: 'Legacy audit logs redirect',
     path: '/admin/audit-logs',
-    redirectsTo: getAdminSettingsPath('audit_logs'),
+    redirectsTo: '/dashboard',
   },
 ] as const;
 

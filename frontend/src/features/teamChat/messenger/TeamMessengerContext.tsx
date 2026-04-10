@@ -103,9 +103,11 @@ const sortMessages = (
 ): number => {
   const leftTime = new Date(left.created_at).getTime();
   const rightTime = new Date(right.created_at).getTime();
+  const leftId = typeof left.id === 'string' ? left.id : '';
+  const rightId = typeof right.id === 'string' ? right.id : '';
 
   if (leftTime === rightTime) {
-    return left.id.localeCompare(right.id);
+    return leftId.localeCompare(rightId);
   }
 
   return leftTime - rightTime;
@@ -125,11 +127,14 @@ const mergeRenderableMessages = (
 ): TeamMessengerRenderableMessage[] => {
   const byKey = new Map<string, TeamMessengerRenderableMessage>();
 
-  for (const message of messages) {
+  for (const [index, message] of messages.entries()) {
+    const messageId = typeof message.id === 'string' ? message.id : '';
     const key =
-      message.id.startsWith(TEMP_PREFIX) && message.client_message_id
+      messageId.startsWith(TEMP_PREFIX) && message.client_message_id
         ? `client:${message.client_message_id}`
-        : `id:${message.id}`;
+        : messageId
+          ? `id:${messageId}`
+          : `fallback:${message.room_id}:${message.client_message_id || index}`;
     const existing = byKey.get(key);
 
     if (!existing) {
@@ -229,16 +234,29 @@ const buildOptimisticMessage = (
 const applyPresence = (
   contacts: TeamMessengerContact[],
   presenceByUserId: Record<string, 'online' | 'offline'>
-): TeamMessengerContact[] =>
-  contacts.map((contact) => ({
-    ...contact,
-    presence_status: presenceByUserId[contact.user_id] || contact.presence_status,
-  }));
+): TeamMessengerContact[] => {
+  let hasChanges = false;
+  const nextContacts = contacts.map((contact) => {
+    const nextPresence = presenceByUserId[contact.user_id] || contact.presence_status;
+    if (nextPresence !== contact.presence_status) {
+      hasChanges = true;
+      return {
+        ...contact,
+        presence_status: nextPresence,
+      };
+    }
+
+    return contact;
+  });
+
+  return hasChanges ? nextContacts : contacts;
+};
 
 export function TeamMessengerProvider({ children }: { children: ReactNode }) {
-  const { user } = useAppSelector((state) => state.auth);
+  const { authLoading, user } = useAppSelector((state) => state.auth);
   const enabled =
     teamChatEnabled &&
+    !authLoading &&
     Boolean(user?.id) &&
     ['admin', 'manager', 'staff'].includes((user?.role || '').toLowerCase());
 
@@ -344,7 +362,7 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
   }, [enabled, refreshContacts, refreshConversations]);
 
   useEffect(() => {
-    void refresh();
+    void refresh().catch(() => undefined);
   }, [refresh]);
 
   const openConversation = useCallback(
@@ -667,11 +685,15 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
   const handleConnected = useCallback((payload: TeamMessengerConnectedPayload) => {
     startTransition(() => {
       setPresenceByUserId((current) => {
+        let hasChanges = false;
         const next: Record<string, 'online' | 'offline'> = { ...current };
         for (const userId of payload.online_user_ids) {
-          next[userId] = 'online';
+          if (next[userId] !== 'online') {
+            next[userId] = 'online';
+            hasChanges = true;
+          }
         }
-        return next;
+        return hasChanges ? next : current;
       });
     });
   }, []);
@@ -689,10 +711,14 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
       if (eventName === 'team_chat.presence.updated') {
         const presence = payload as TeamMessengerPresenceState;
         startTransition(() => {
-          setPresenceByUserId((current) => ({
-            ...current,
-            [presence.user_id]: presence.status,
-          }));
+          setPresenceByUserId((current) =>
+            current[presence.user_id] === presence.status
+              ? current
+              : {
+                  ...current,
+                  [presence.user_id]: presence.status,
+                }
+          );
         });
         return;
       }

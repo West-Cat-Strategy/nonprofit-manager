@@ -59,13 +59,13 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        className="app-popup-backdrop fixed inset-0 transition-opacity"
         onClick={onCancel}
       />
 
       {/* Dialog */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="app-popup-surface-translucent relative w-full max-w-md rounded-lg p-6 shadow-xl">
           <div className="flex items-start gap-4">
             {/* Icon */}
             <div className={`flex-shrink-0 w-10 h-10 rounded-full ${styles.iconBg} flex items-center justify-center`}>

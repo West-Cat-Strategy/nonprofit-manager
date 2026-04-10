@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { portalLogoutAsync } from '../features/portalAuth/state';
 import { AppShell, TopNav, SecondaryButton } from './ui';
+import SkipLink from './SkipLink';
 import SurfaceContextBar from './workspace/SurfaceContextBar';
 
 interface PortalLayoutProps {
@@ -98,17 +99,20 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
   );
 
   return (
-    <AppShell
-      topNav={topNav}
-      header={
-        <SurfaceContextBar
-          showLocalNavigation={false}
-          secondaryAction={{ label: 'Account Settings', to: '/portal/profile' }}
-        />
-      }
-      contentClassName="space-y-6 rounded-[var(--ui-radius-md)] bg-app-surface p-4 shadow-sm sm:p-6"
-    >
-      {children}
-    </AppShell>
+    <div className="min-h-screen bg-app-bg text-app-text">
+      <SkipLink />
+      <AppShell
+        topNav={topNav}
+        header={
+          <SurfaceContextBar
+            showLocalNavigation={false}
+            secondaryAction={{ label: 'Account Settings', to: '/portal/profile' }}
+          />
+        }
+        contentClassName="space-y-6 rounded-[var(--ui-radius-md)] bg-app-surface p-4 shadow-sm sm:p-6"
+      >
+        {children}
+      </AppShell>
+    </div>
   );
 }

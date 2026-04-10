@@ -134,6 +134,10 @@ describe('Contact detail route validation', () => {
     mockState.contacts.contactNotes = [];
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('renders a local invalid-link state and skips fetches for non-UUID params', () => {
     renderContactDetail('/contacts/not-a-uuid');
 
@@ -255,5 +259,62 @@ describe('Contact detail route validation', () => {
 
     await user.click(screen.getByRole('button', { name: /merge contact/i }));
     expect(await screen.findByText('Merge Dialog')).toBeInTheDocument();
+  });
+
+  it('opens the print export in a new tab from the contact header', async () => {
+    const user = userEvent.setup();
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    mockState.contacts.currentContact = {
+      contact_id: '550e8400-e29b-41d4-a716-446655440000',
+      account_id: null,
+      account_name: 'Test Org',
+      first_name: 'Taylor',
+      preferred_name: null,
+      last_name: 'Contact',
+      middle_name: null,
+      salutation: null,
+      suffix: null,
+      birth_date: null,
+      gender: null,
+      pronouns: null,
+      phn: null,
+      email: null,
+      phone: null,
+      mobile_phone: null,
+      address_line1: null,
+      address_line2: null,
+      city: null,
+      state_province: null,
+      postal_code: null,
+      country: null,
+      no_fixed_address: false,
+      job_title: null,
+      department: null,
+      preferred_contact_method: null,
+      do_not_email: false,
+      do_not_phone: false,
+      do_not_text: false,
+      do_not_voicemail: false,
+      notes: null,
+      tags: [],
+      is_active: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-02T00:00:00.000Z',
+      phone_count: 0,
+      email_count: 0,
+      relationship_count: 0,
+      note_count: 0,
+      roles: ['Client'],
+    };
+
+    renderContactDetail('/contacts/550e8400-e29b-41d4-a716-446655440000');
+
+    await user.click(screen.getByRole('button', { name: /print \/ export/i }));
+
+    expect(openSpy).toHaveBeenCalledWith(
+      '/contacts/550e8400-e29b-41d4-a716-446655440000/print',
+      '_blank',
+      'noopener,noreferrer'
+    );
   });
 });
