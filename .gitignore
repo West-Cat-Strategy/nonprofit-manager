@@ -4,12 +4,10 @@
 node_modules/
 
 # ==============================
-# Build artifacts
+# Workspace-local and generated artifacts
 # ==============================
-dist/
-dist.bak/
-*.tsbuildinfo
-*.js.map
+.codex/
+output/pdf/
 
 # ==============================
 # Environment and deploy config
@@ -22,6 +20,14 @@ dist.bak/
 .deploy.conf.*
 !.deploy.conf.example
 !.deploy.conf.*.example
+
+# ==============================
+# Build artifacts
+# ==============================
+dist/
+dist.bak/
+*.tsbuildinfo
+*.js.map
 
 # Private keys and certificates
 *.pem
@@ -46,7 +52,7 @@ playwright-report/
 .playwright-cli/
 
 # ==============================
-# Logs
+# Logs and runtime traces
 # ==============================
 logs/
 *.log
@@ -85,7 +91,6 @@ security-reports/
 *.tmp
 *.temp
 tmp/
-output/
 
 # ==============================
 # Reference repo workspace (local-only)
