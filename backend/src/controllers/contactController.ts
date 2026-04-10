@@ -7,109 +7,26 @@ import { Response, NextFunction } from 'express';
 import { services } from '../container/services';
 import { ContactFilters, PaginationParams } from '@app-types/contact';
 import { AuthRequest } from '@middleware/auth';
-import { invitationService, syncUserRole } from '@services/domains/integration';
-import { extractPagination, getString, getBoolean } from '@utils/queryHelpers';
 import { notFound, badRequest } from '@utils/responseHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
-import { normalizeContactRoleFilter } from '@modules/contacts/shared/contactRoleFilters';
+import { parseContactListFilters, parseContactPagination } from '@modules/contacts/shared/contactQuery';
+import { ensureStaffUserAccount } from '@services/contactStaffProvisioningService';
 
 const contactService = services.contact;
 const contactRoleService = services.contactRole;
-
-const STAFF_ROLE_MAP: Record<string, string> = {
-  'Executive Director': 'admin',
-  Staff: 'staff',
-};
-
-const getStaffRoleForContact = (roles: string[]): string | null => {
-  if (roles.includes('Executive Director')) return STAFF_ROLE_MAP['Executive Director'];
-  if (roles.includes('Staff')) return STAFF_ROLE_MAP['Staff'];
-  return null;
-};
-
-const ensureStaffUserAccount = async (
-  contactId: string,
-  roles: string[],
-  createdBy: string
-): Promise<{ inviteUrl?: string; role?: string } | null> => {
-  const targetRole = getStaffRoleForContact(roles);
-  if (!targetRole) return null;
-
-  const contactResult = await services.pool.query(
-    'SELECT email, first_name, last_name FROM contacts WHERE id = $1',
-    [contactId]
-  );
-  const contact = contactResult.rows[0];
-
-  if (!contact?.email) {
-    throw new Error('Staff roles require a contact email to create an account');
-  }
-
-  const existingUser = await services.pool.query('SELECT id, role FROM users WHERE email = $1', [
-    contact.email.toLowerCase(),
-  ]);
-
-  if (existingUser.rows.length > 0) {
-    const user = existingUser.rows[0];
-    if (user.role !== targetRole) {
-      await services.pool.query('UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2', [
-        targetRole,
-        user.id,
-      ]);
-    }
-    await syncUserRole(user.id, targetRole, services.pool);
-    return { role: targetRole };
-  }
-
-  try {
-    const invitation = await invitationService.createInvitation(
-      {
-        email: contact.email,
-        role: targetRole,
-        message: `Auto-invite created from contact role assignment for ${contact.first_name} ${contact.last_name}`,
-      },
-      createdBy
-    );
-
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const inviteUrl = `${baseUrl}/accept-invitation/${invitation.token}`;
-    return { inviteUrl, role: targetRole };
-  } catch (error: any) {
-    if (error?.message?.includes('pending invitation')) {
-      return { role: targetRole };
-    }
-    throw error;
-  }
-};
 
 /**
  * GET /api/contacts
  * Get all contacts with filtering and pagination
  */
-const getTagsFilter = (value: unknown): string[] | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const tags = value
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter((tag) => tag.length > 0);
-  return tags.length > 0 ? tags : undefined;
-};
-
 export const getContacts = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const filters: ContactFilters = {
-      search: getString(req.query.search),
-      role: normalizeContactRoleFilter(req.query.role),
-      account_id: getString(req.query.account_id),
-      is_active: getBoolean(req.query.is_active),
-      tags: getTagsFilter(req.query.tags),
-    };
-
-    const pagination: PaginationParams = extractPagination(req.query);
+    const filters: ContactFilters = parseContactListFilters(req.query as Record<string, unknown>);
+    const pagination: PaginationParams = parseContactPagination(req.query as Record<string, unknown>);
 
     const scope = req.dataScope?.filter as DataScopeFilter | undefined;
     const result = await contactService.getContacts(filters, pagination, scope, req.user?.role);
