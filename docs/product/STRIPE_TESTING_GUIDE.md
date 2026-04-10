@@ -1,33 +1,38 @@
-# Stripe Integration Testing Guide
+# Payment Provider Testing Guide
 
 ## Overview
 
-This guide covers testing the Stripe payment integration in sandbox mode, including payment processing, webhooks, and error handling.
+This guide covers testing the payment integration in sandbox mode, including Stripe, PayPal, Square, payment processing, webhooks, and error handling.
 
 ## Prerequisites
 
 1. Stripe test account with API keys
-2. Stripe CLI installed for webhook testing
-3. Backend server running locally or in test environment
-4. Postman or similar API testing tool
+2. PayPal sandbox app credentials
+3. Square sandbox credentials
+4. Stripe CLI installed for webhook testing
+5. Backend server running locally or in test environment
+6. Postman or similar API testing tool
 
 ## Environment Setup
 
 ### Required Environment Variables
 
 ```bash
-# Stripe Configuration
+# Provider Configuration
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+PAYPAL_WEBHOOK_ID=...
+SQUARE_ACCESS_TOKEN=...
+SQUARE_LOCATION_ID=...
+SQUARE_WEBHOOK_SIGNATURE_KEY=...
 ```
 
 ### Test Mode Verification
 
-All Stripe test keys begin with:
-- Secret keys: `sk_test_`
-- Publishable keys: `pk_test_`
-- Webhook signing secrets: `whsec_`
+Stripe test keys begin with `sk_test_` and `pk_test_`. PayPal and Square sandbox credentials should also be configured before running provider-specific tests.
 
 ## Test Cases
 
@@ -38,17 +43,20 @@ All Stripe test keys begin with:
 **Expected Response:**
 ```json
 {
-  "stripe": {
-    "configured": true,
-    "publishableKey": "pk_test_..."
+  "defaultProvider": "stripe",
+  "enabledProviders": ["stripe", "paypal", "square"],
+  "providers": {
+    "stripe": { "configured": true, "publicKey": "pk_test_..." },
+    "paypal": { "configured": true, "clientId": "..." },
+    "square": { "configured": true, "applicationId": "...", "locationId": "..." }
   }
 }
 ```
 
 **Test Steps:**
 1. Call endpoint without authentication
-2. Verify publishable key is returned
-3. Verify configured status is true
+2. Verify the enabled providers list includes the configured providers
+3. Verify provider-specific public values are returned
 
 ---
 

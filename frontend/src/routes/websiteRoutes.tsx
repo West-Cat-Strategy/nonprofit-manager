@@ -4,6 +4,7 @@ import {
   WebsiteContentPage,
   WebsiteFormsPage,
   WebsiteIntegrationsPage,
+  WebsiteNewslettersPage,
   WebsiteOverviewPage,
   WebsitePublishingPage,
   WebsitesListPage,
@@ -32,6 +33,10 @@ export function createWebsiteRoutes(ProtectedRoute: React.ComponentType<RouteWra
       <Route
         path="/websites/:siteId/content"
         element={<ProtectedRoute><WebsiteContentPage /></ProtectedRoute>}
+      />
+      <Route
+        path="/websites/:siteId/newsletters"
+        element={<ProtectedRoute><WebsiteNewslettersPage /></ProtectedRoute>}
       />
       <Route
         path="/websites/:siteId/forms"

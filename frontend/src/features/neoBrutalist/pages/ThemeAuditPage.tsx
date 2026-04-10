@@ -26,10 +26,10 @@ export default function ThemeAuditPage() {
               </p>
             </div>
 
-            <div className="rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface px-4 py-3 text-sm text-app-text-muted shadow-sm">
-              Active theme and color scheme should always stay legible, expressive, and easy to
-              distinguish at a glance.
-            </div>
+          <div className="rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface px-4 py-3 text-sm text-app-text-muted shadow-sm">
+            Active theme and color scheme should always stay legible, expressive, and easy to
+            distinguish at a glance.
+          </div>
           </div>
         </section>
 
@@ -132,13 +132,13 @@ export default function ThemeAuditPage() {
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-loop-yellow p-3 text-sm font-semibold text-black">
+                <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-loop-yellow p-3 text-sm font-semibold text-[var(--app-text-heading)]">
                   Highlight
                 </div>
-                <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-loop-green p-3 text-sm font-semibold text-black">
+                <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-loop-green p-3 text-sm font-semibold text-[var(--app-text-heading)]">
                   Success
                 </div>
-                <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-loop-cyan p-3 text-sm font-semibold text-black">
+                <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-loop-cyan p-3 text-sm font-semibold text-[var(--app-text-heading)]">
                   Info
                 </div>
               </div>

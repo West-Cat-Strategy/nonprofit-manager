@@ -3,7 +3,22 @@
  * Type definitions for payment processing
  */
 
-export type PaymentProvider = 'stripe' | 'paypal';
+export type PaymentProvider = 'stripe' | 'paypal' | 'square';
+
+export interface PaymentProviderConfig {
+  configured: boolean;
+  publicKey?: string | null;
+  clientId?: string | null;
+  applicationId?: string | null;
+  locationId?: string | null;
+  webhookConfigured?: boolean;
+}
+
+export interface PaymentConfig {
+  defaultProvider: PaymentProvider;
+  enabledProviders: PaymentProvider[];
+  providers: Record<PaymentProvider, PaymentProviderConfig>;
+}
 export type PaymentIntentStatus =
   | 'requires_payment_method'
   | 'requires_confirmation'
@@ -23,7 +38,23 @@ export type WebhookEventType =
   | 'customer.subscription.updated'
   | 'customer.subscription.deleted'
   | 'invoice.paid'
-  | 'invoice.payment_failed';
+  | 'invoice.payment_failed'
+  | 'PAYMENT.CAPTURE.COMPLETED'
+  | 'PAYMENT.CAPTURE.DENIED'
+  | 'PAYMENT.CAPTURE.REFUNDED'
+  | 'CHECKOUT.ORDER.APPROVED'
+  | 'BILLING.SUBSCRIPTION.ACTIVATED'
+  | 'BILLING.SUBSCRIPTION.CANCELLED'
+  | 'BILLING.SUBSCRIPTION.SUSPENDED'
+  | 'BILLING.SUBSCRIPTION.UPDATED'
+  | 'payment.created'
+  | 'payment.updated'
+  | 'refund.created'
+  | 'subscription.created'
+  | 'subscription.updated'
+  | 'subscription.canceled'
+  | 'order.created'
+  | 'order.updated';
 
 /**
  * Create payment intent request
@@ -37,6 +68,7 @@ export interface CreatePaymentIntentRequest {
   customerId?: string; // Stripe customer ID
   receiptEmail?: string;
   statementDescriptor?: string;
+  provider?: PaymentProvider;
 }
 
 /**
@@ -44,11 +76,16 @@ export interface CreatePaymentIntentRequest {
  */
 export interface PaymentIntentResponse {
   id: string;
-  clientSecret: string;
+  provider: PaymentProvider;
+  clientSecret: string | null;
+  checkoutUrl?: string | null;
   amount: number;
   currency: string;
   status: PaymentIntentStatus;
   created: Date;
+  providerTransactionId?: string | null;
+  providerCheckoutSessionId?: string | null;
+  providerSubscriptionId?: string | null;
 }
 
 /**
@@ -66,6 +103,7 @@ export interface RefundRequest {
   paymentIntentId: string;
   amount?: number; // Partial refund amount in cents, omit for full refund
   reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer';
+  provider?: PaymentProvider;
 }
 
 /**
@@ -90,6 +128,7 @@ export interface CreateCustomerRequest {
   phone?: string;
   metadata?: Record<string, string>;
   contactId?: string; // Link to contact record
+  provider?: PaymentProvider;
 }
 
 /**
@@ -126,6 +165,7 @@ export interface PaymentMethodInfo {
  * Webhook event
  */
 export interface WebhookEvent {
+  provider: PaymentProvider;
   id: string;
   type: WebhookEventType;
   data: {
@@ -142,6 +182,9 @@ export interface PaymentRecord {
   id: string;
   provider: PaymentProvider;
   providerPaymentId: string;
+  providerCustomerId?: string | null;
+  providerCheckoutSessionId?: string | null;
+  providerSubscriptionId?: string | null;
   amount: number;
   currency: string;
   status: PaymentIntentStatus;
@@ -150,6 +193,7 @@ export interface PaymentRecord {
   metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
+  providerStatus?: string | null;
 }
 
 /**
@@ -169,6 +213,7 @@ export type SubscriptionStatus =
  * Create subscription request
  */
 export interface CreateSubscriptionRequest {
+  provider?: PaymentProvider;
   customerId: string;
   priceId: string;
   paymentMethodId?: string;
@@ -176,6 +221,7 @@ export interface CreateSubscriptionRequest {
 }
 
 export interface CreateCheckoutSessionRequest {
+  provider?: PaymentProvider;
   customerId: string;
   priceId: string;
   successUrl: string;
@@ -186,9 +232,11 @@ export interface CreateCheckoutSessionRequest {
 export interface CheckoutSessionResponse {
   id: string;
   url: string;
+  provider: PaymentProvider;
   customerId: string | null;
   subscriptionId: string | null;
   status: string;
+  providerTransactionId?: string | null;
 }
 
 export interface CreateMonthlyPriceRequest {
@@ -215,10 +263,13 @@ export interface BillingPortalSessionResponse {
  */
 export interface SubscriptionResponse {
   id: string;
+  provider: PaymentProvider;
   customerId: string;
   status: SubscriptionStatus;
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   cancelAtPeriodEnd: boolean;
   created: Date;
+  providerSubscriptionId?: string | null;
+  checkoutUrl?: string | null;
 }

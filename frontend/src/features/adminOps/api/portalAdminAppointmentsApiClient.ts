@@ -4,7 +4,7 @@ import type { ApiEnvelope } from '../../../services/apiEnvelope';
 import type {
   PortalAdminAppointmentInboxItem,
   PortalAppointmentSlot,
-} from '../pages/adminSettings/types';
+} from '../contracts';
 
 interface PortalAdminAppointmentsPage {
   data: PortalAdminAppointmentInboxItem[];

@@ -19,8 +19,8 @@ describe('routeCatalog matching', () => {
     expect(matchRouteCatalogEntry('/settings/admin/portal/access')?.id).toBe(
       'portal-admin-access'
     );
-    expect(matchRouteCatalogEntry('/settings/email-marketing?ref=legacy')?.id).toBe(
-      'email-marketing'
+    expect(matchRouteCatalogEntry('/settings/communications?ref=legacy')?.id).toBe(
+      'communications'
     );
   });
 

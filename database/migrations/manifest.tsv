@@ -86,3 +86,4 @@
 084	084_imported_import_staging.sql	
 085	085_case_type_and_outcome_assignments.sql	
 086	086_imported_case_contact_org_backfill.sql	
+087	087_newsletter_provider_settings.sql	

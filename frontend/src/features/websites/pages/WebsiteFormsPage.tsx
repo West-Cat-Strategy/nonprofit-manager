@@ -30,7 +30,24 @@ import type {
 const emptyIntegrationStatus: WebsiteIntegrationStatus = {
   blocked: false,
   publishStatus: 'draft',
+  newsletter: {
+    provider: 'mautic',
+    configured: false,
+    selectedAudienceId: null,
+    selectedAudienceName: null,
+    selectedPresetId: null,
+    listPresets: [],
+    availableAudiences: [],
+    audienceCount: 0,
+    lastRefreshedAt: null,
+    lastSyncAt: null,
+  },
   mailchimp: {
+    configured: false,
+    availableAudiences: [],
+    lastSyncAt: null,
+  },
+  mautic: {
     configured: false,
     availableAudiences: [],
     lastSyncAt: null,
@@ -201,7 +218,7 @@ const WebsiteFormsPage: React.FC = () => {
                 {forms.filter((form) => !getFormDependencyState(form, integrationStatus).ready).length}
               </div>
               <p className="mt-2 text-sm text-app-text-muted">
-                These CTAs need Mailchimp or Stripe before they feel finished.
+                These CTAs need a newsletter provider or Stripe before they feel finished.
               </p>
             </div>
             <div>
@@ -366,27 +383,42 @@ const WebsiteFormsPage: React.FC = () => {
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
                         <input
                           type="text"
-                          value={draft.mailchimpListId || ''}
+                          value={
+                            integrationStatus.newsletter.provider === 'mautic'
+                              ? draft.mauticSegmentId || ''
+                              : draft.mailchimpListId || ''
+                          }
                           onChange={(event) =>
                             updateDraft(form.formKey, {
-                              mailchimpListId: event.target.value || null,
+                              ...(integrationStatus.newsletter.provider === 'mautic'
+                                ? { mauticSegmentId: event.target.value || null }
+                                : { mailchimpListId: event.target.value || null }),
                             })
                           }
-                          placeholder="Mailchimp audience ID"
+                          placeholder={
+                            integrationStatus.newsletter.provider === 'mautic'
+                              ? 'Mautic segment ID'
+                              : 'Mailchimp audience ID'
+                          }
                           className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
                         />
                         <select
                           value={draft.audienceMode || 'crm'}
                           onChange={(event) =>
                             updateDraft(form.formKey, {
-                              audienceMode: event.target.value as 'crm' | 'mailchimp' | 'both',
+                              audienceMode: event.target.value as
+                                | 'crm'
+                                | 'mailchimp'
+                                | 'mautic'
+                                | 'both',
                             })
                           }
                           className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
                         >
                           <option value="crm">CRM only</option>
+                          <option value="mautic">Mautic only</option>
                           <option value="mailchimp">Mailchimp only</option>
-                          <option value="both">CRM + Mailchimp</option>
+                          <option value="both">CRM + newsletter provider</option>
                         </select>
                       </div>
                     ) : null}

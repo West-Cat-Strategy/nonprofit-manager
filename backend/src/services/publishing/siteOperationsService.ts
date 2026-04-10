@@ -17,7 +17,9 @@ import type {
   WebsiteSiteSummary,
 } from '@app-types/publishing';
 import type { Template, TemplatePage } from '@app-types/websiteBuilder';
-import { mailchimpService } from '@services/domains/integration';
+import { newsletterProviderService } from '@services/domains/integration';
+import mailchimpService from '@services/mailchimpService';
+import mauticService from '@services/mauticService';
 import { mapRowToPage, mapRowToTemplate } from '@services/template/helpers';
 import stripeService from '@services/stripeService';
 import { socialMediaService } from '@modules/socialMedia';
@@ -291,11 +293,11 @@ const buildManagementSnapshot = (
     });
   }
 
-  if (forms.some((form) => form.formType === 'newsletter-signup') && !integrations.mailchimp.configured) {
+  if (forms.some((form) => form.formType === 'newsletter-signup') && !integrations.newsletter.configured) {
     addAttentionItem({
-      id: 'mailchimp',
-      title: 'Newsletter signup needs Mailchimp',
-      detail: 'Newsletter capture will stay local until a Mailchimp audience is configured.',
+      id: 'newsletter',
+      title: 'Newsletter signup needs a provider',
+      detail: 'Newsletter capture will stay local until Mailchimp or Mautic is configured.',
       severity: 'critical',
       href: `/websites/${site.id}/integrations`,
       actionLabel: 'Open integrations',
@@ -336,7 +338,7 @@ const buildManagementSnapshot = (
   }
 
   const requiredIntegrationsReady =
-    !forms.some((form) => form.formType === 'newsletter-signup') || integrations.mailchimp.configured;
+    !forms.some((form) => form.formType === 'newsletter-signup') || integrations.newsletter.configured;
   const donationIntegrationsReady =
     !forms.some((form) => form.formType === 'donation-form') || integrations.stripe.configured;
   const publishReady = !siteSummary.blocked && draftRoutes.length > 0;
@@ -729,6 +731,16 @@ export class SiteOperationsService {
     const site = await this.requireOwnedSite(siteId, userId, organizationId);
     const settings = await this.siteSettings.getSettingsForSite(site);
     const lastSyncAt = await this.loadMailchimpLastSync(site.id);
+    const newsletterProvider = newsletterProviderService.resolveNewsletterProvider(settings);
+    const selectedPreset =
+      settings.newsletter.listPresets?.find((preset) => preset.id === settings.newsletter.selectedPresetId) ||
+      null;
+    const selectedAudienceId =
+      settings.newsletter.selectedAudienceId ||
+      selectedPreset?.audienceId ||
+      (newsletterProvider === 'mailchimp'
+        ? settings.mailchimp.audienceId || null
+        : settings.mautic.segmentId || null);
     let facebookIntegration: WebsiteFacebookIntegrationStatus = {
       ...settings.social.facebook,
       trackedPageName: null,
@@ -741,6 +753,12 @@ export class SiteOperationsService {
     let listCount: number | undefined;
     let availableAudiences:
       | WebsiteIntegrationStatus['mailchimp']['availableAudiences']
+      | undefined;
+    let mauticConfigured: boolean | undefined;
+    let mauticBaseUrl: string | undefined;
+    let mauticSegmentCount: number | undefined;
+    let mauticAudiences:
+      | WebsiteIntegrationStatus['mautic']['availableAudiences']
       | undefined;
 
     try {
@@ -764,6 +782,27 @@ export class SiteOperationsService {
       availableAudiences = [];
     }
 
+    try {
+      const mauticStatus = await mauticService.getStatus();
+      mauticConfigured = Boolean(mauticStatus?.configured);
+      mauticBaseUrl = mauticStatus?.baseUrl;
+      mauticSegmentCount = mauticStatus?.segmentCount;
+
+      if (mauticConfigured) {
+        const segments = await mauticService.getSegments();
+        mauticAudiences = segments.map((segment: { id: string; name: string; memberCount: number }) => ({
+          id: segment.id,
+          name: segment.name,
+          memberCount: segment.memberCount,
+        }));
+      } else {
+        mauticAudiences = [];
+      }
+    } catch {
+      mauticConfigured = false;
+      mauticAudiences = [];
+    }
+
     if (site.organizationId && settings.social.facebook.trackedPageId) {
       const trackedPage = await socialMediaService.getFacebookTrackedPageSummary(
         site.organizationId,
@@ -783,6 +822,28 @@ export class SiteOperationsService {
     return {
       blocked: site.migrationStatus === 'needs_assignment',
       publishStatus: site.status,
+      newsletter: {
+        provider: newsletterProvider,
+        configured:
+          (newsletterProvider === 'mailchimp'
+            ? Boolean(mailchimpConfigured)
+            : Boolean(mauticConfigured)) && Boolean(selectedAudienceId),
+        selectedAudienceId,
+        selectedAudienceName:
+          settings.newsletter.selectedAudienceName ||
+          availableAudiences?.find((audience) => audience.id === selectedAudienceId)?.name ||
+          selectedPreset?.audienceName ||
+          null,
+        selectedPresetId: settings.newsletter.selectedPresetId || null,
+        listPresets: settings.newsletter.listPresets || [],
+        availableAudiences: availableAudiences || [],
+        audienceCount:
+          newsletterProvider === 'mailchimp'
+            ? listCount
+            : mauticSegmentCount,
+        lastRefreshedAt: settings.newsletter.lastRefreshedAt || null,
+        lastSyncAt: newsletterProvider === 'mailchimp' ? lastSyncAt : null,
+      },
       mailchimp: {
         ...settings.mailchimp,
         configured: Boolean(mailchimpConfigured),
@@ -790,6 +851,17 @@ export class SiteOperationsService {
         listCount,
         availableAudiences: availableAudiences || [],
         lastSyncAt,
+      },
+      mautic: {
+        ...settings.mautic,
+        configured: Boolean(mauticConfigured),
+        baseUrl: mauticBaseUrl || settings.mautic.baseUrl || undefined,
+        segmentCount: mauticSegmentCount,
+        availableAudiences: mauticAudiences || [],
+        lastSyncAt: null,
+        segmentId: settings.mautic.segmentId || undefined,
+        defaultTags: settings.mautic.defaultTags,
+        syncEnabled: settings.mautic.syncEnabled,
       },
       stripe: {
         ...settings.stripe,

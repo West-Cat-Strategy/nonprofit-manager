@@ -122,7 +122,7 @@ const resolveStaffArea = (id: string, section: RouteSection): RouteArea => {
     id === 'api-settings' ||
     id === 'navigation-settings' ||
     id === 'backup-settings' ||
-    id === 'email-marketing' ||
+    id === 'communications' ||
     id === 'social-media' ||
     id.startsWith('portal-admin-')
   ) {
@@ -232,7 +232,7 @@ const routeParentIds: Record<string, string> = {
   'admin-settings-workspace-modules': 'admin-settings',
   'admin-settings-branding': 'admin-settings',
   'admin-settings-users': 'admin-settings',
-  'admin-settings-email': 'admin-settings',
+  'admin-settings-communications': 'admin-settings',
   'admin-settings-messaging': 'admin-settings',
   'admin-settings-outcomes': 'admin-settings',
   'admin-settings-roles': 'admin-settings',
@@ -246,6 +246,7 @@ const routeParentIds: Record<string, string> = {
   'website-console-redirect': 'websites',
   'website-console-overview': 'websites',
   'website-console-content': 'websites',
+  'website-console-newsletters': 'websites',
   'website-console-forms': 'websites',
   'website-console-integrations': 'websites',
   'website-console-publishing': 'websites',

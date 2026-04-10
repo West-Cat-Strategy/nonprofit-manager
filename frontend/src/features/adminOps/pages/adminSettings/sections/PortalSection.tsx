@@ -2,6 +2,7 @@ import type { PortalStreamStatus } from '../../../../../features/portal/client/t
 import AccessPanel from '../../portalAdmin/panels/AccessPanel';
 import AppointmentsPanel from '../../portalAdmin/panels/AppointmentsPanel';
 import ConversationsPanel from '../../portalAdmin/panels/ConversationsPanel';
+import type { PortalSectionPanel } from '../../portalAdmin/panelTypes';
 import SlotsPanel from '../../portalAdmin/panels/SlotsPanel';
 import UsersPanel from '../../portalAdmin/panels/UsersPanel';
 import type {
@@ -16,8 +17,6 @@ import type {
   PortalSignupRequest,
   PortalUser,
 } from '../types';
-
-export type PortalSectionPanel = 'access' | 'users' | 'conversations' | 'appointments' | 'slots';
 
 export interface PortalSectionProps {
   portalInviteUrl: string | null;

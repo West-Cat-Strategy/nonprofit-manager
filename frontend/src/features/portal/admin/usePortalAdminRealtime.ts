@@ -9,7 +9,7 @@ import type {
   PortalAppointmentSlot,
   PortalConversationDetail,
   PortalConversationThread,
-} from '../../adminOps/pages/adminSettings/types';
+} from '../../adminOps/contracts';
 
 const PAGE_SIZE = 20;
 const POLL_INTERVAL_MS = 30_000;

@@ -51,12 +51,14 @@ const mapSubscription = (subscription: Stripe.Subscription): SubscriptionRespons
 
   return {
     id: sub.id,
+    provider: 'stripe',
     customerId: sub.customer,
     status: sub.status as SubscriptionResponse['status'],
     currentPeriodStart: new Date(sub.current_period_start * 1000),
     currentPeriodEnd: new Date(sub.current_period_end * 1000),
     cancelAtPeriodEnd: sub.cancel_at_period_end,
     created: new Date(sub.created * 1000),
+    providerSubscriptionId: sub.id,
   };
 };
 
@@ -127,11 +129,15 @@ export async function createPaymentIntent(
 
     return {
       id: paymentIntent.id,
+      provider: 'stripe',
       clientSecret: paymentIntent.client_secret!,
+      checkoutUrl: null,
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
       status: paymentIntent.status as PaymentIntentResponse['status'],
       created: new Date(paymentIntent.created * 1000),
+      providerTransactionId: paymentIntent.id,
+      providerCheckoutSessionId: paymentIntent.id,
     };
   } catch (error) {
     logger.error('Failed to create payment intent', { error, request });
@@ -150,11 +156,15 @@ export async function getPaymentIntent(paymentIntentId: string): Promise<Payment
 
     return {
       id: paymentIntent.id,
+      provider: 'stripe',
       clientSecret: paymentIntent.client_secret!,
+      checkoutUrl: null,
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
       status: paymentIntent.status as PaymentIntentResponse['status'],
       created: new Date(paymentIntent.created * 1000),
+      providerTransactionId: paymentIntent.id,
+      providerCheckoutSessionId: paymentIntent.id,
     };
   } catch (error) {
     logger.error('Failed to retrieve payment intent', { error, paymentIntentId });
@@ -175,11 +185,15 @@ export async function cancelPaymentIntent(paymentIntentId: string): Promise<Paym
 
     return {
       id: paymentIntent.id,
+      provider: 'stripe',
       clientSecret: paymentIntent.client_secret!,
+      checkoutUrl: null,
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
       status: paymentIntent.status as PaymentIntentResponse['status'],
       created: new Date(paymentIntent.created * 1000),
+      providerTransactionId: paymentIntent.id,
+      providerCheckoutSessionId: paymentIntent.id,
     };
   } catch (error) {
     logger.error('Failed to cancel payment intent', { error, paymentIntentId });
@@ -426,10 +440,12 @@ export async function createCheckoutSession(
 
     return {
       id: session.id,
+      provider: 'stripe',
       url: session.url || '',
       customerId: getStripeId(session.customer as string | Stripe.Customer | Stripe.DeletedCustomer | null),
       subscriptionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
       status: session.status || 'open',
+      providerTransactionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
     };
   } catch (error) {
     logger.error('Failed to create checkout session', { error, request });
@@ -450,10 +466,12 @@ export async function getCheckoutSession(sessionId: string): Promise<CheckoutSes
 
     return {
       id: session.id,
+      provider: 'stripe',
       url: session.url || '',
       customerId: getStripeId(session.customer as string | Stripe.Customer | Stripe.DeletedCustomer | null),
       subscriptionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
       status: session.status || 'open',
+      providerTransactionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
     };
   } catch (error) {
     logger.error('Failed to retrieve checkout session', { error, sessionId });
@@ -609,6 +627,7 @@ export function constructWebhookEvent(
 
     return {
       id: event.id,
+      provider: 'stripe',
       type: event.type as WebhookEvent['type'],
       data: event.data as unknown as WebhookEvent['data'],
       created: new Date(event.created * 1000),

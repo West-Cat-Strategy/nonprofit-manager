@@ -10,7 +10,7 @@ export type AdminQuickActionId =
   | 'audit-logs'
   | 'portal-access'
   | 'api-settings'
-  | 'email-marketing'
+  | 'communications'
   | 'navigation';
 
 export interface AdminQuickAction {
@@ -64,11 +64,11 @@ const actionMap: Record<AdminQuickActionId, AdminQuickAction> = {
     to: '/settings/api',
     icon: '🧩',
   },
-  'email-marketing': {
-    id: 'email-marketing',
-    label: 'Email Marketing',
-    description: 'Access campaigns and audience sync',
-    to: '/settings/email-marketing',
+  communications: {
+    id: 'communications',
+    label: 'Communications',
+    description: 'Manage newsletters and transactional email',
+    to: '/settings/communications',
     icon: '📧',
   },
   navigation: {
@@ -88,11 +88,11 @@ const roleActionIds: Record<string, AdminQuickActionId[]> = {
     'audit-logs',
     'portal-access',
     'api-settings',
-    'email-marketing',
+    'communications',
     'navigation',
   ],
-  manager: ['organization', 'api-settings', 'email-marketing', 'navigation'],
-  coordinator: ['email-marketing', 'navigation'],
+  manager: ['organization', 'api-settings', 'communications', 'navigation'],
+  coordinator: ['communications', 'navigation'],
   user: [],
   readonly: [],
   donor: [],

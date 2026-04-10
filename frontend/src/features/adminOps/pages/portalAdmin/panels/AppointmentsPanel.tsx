@@ -1,6 +1,4 @@
-import type { PortalSectionProps } from '../../adminSettings/sections/PortalSection';
-
-type PortalPanelProps = Omit<PortalSectionProps, 'visiblePanels'>;
+import type { PortalPanelProps } from '../panelTypes';
 
 const openCaseAppointments = (caseId: string) =>
   window.location.assign(`/cases/${caseId}?tab=appointments`);

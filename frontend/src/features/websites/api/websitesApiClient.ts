@@ -14,6 +14,9 @@ import type {
   WebsiteIntegrationStatus,
   WebsiteFacebookSettings,
   WebsiteMailchimpSettings,
+  WebsiteMauticSettings,
+  WebsiteNewsletterListPreset,
+  WebsiteNewsletterSettings,
   WebsiteOverviewSummary,
   WebsiteSearchParams,
   WebsiteSitesResponse,
@@ -70,6 +73,77 @@ export class WebsitesApiClient {
   getIntegrations(siteId: string): Promise<WebsiteIntegrationStatus> {
     return api
       .get<WebsiteIntegrationStatus>(`/sites/${siteId}/integrations`)
+      .then((response) => response.data);
+  }
+
+  getNewsletterWorkspace(siteId: string): Promise<WebsiteIntegrationStatus> {
+    return api
+      .get<WebsiteIntegrationStatus>(`/sites/${siteId}/newsletters`)
+      .then((response) => response.data);
+  }
+
+  updateNewsletter(
+    siteId: string,
+    payload: {
+      provider?: WebsiteNewsletterSettings['provider'];
+      selectedAudienceId?: string | null;
+      selectedAudienceName?: string | null;
+      selectedPresetId?: string | null;
+      listPresets?: WebsiteNewsletterListPreset[];
+      lastRefreshedAt?: string | null;
+      mailchimp?: Partial<WebsiteMailchimpSettings>;
+      mautic?: Partial<WebsiteMauticSettings>;
+    }
+  ): Promise<WebsiteIntegrationStatus> {
+    return api
+      .put<WebsiteIntegrationStatus>(`/sites/${siteId}/integrations/newsletter`, payload)
+      .then((response) => response.data);
+  }
+
+  refreshNewsletterWorkspace(siteId: string): Promise<WebsiteIntegrationStatus> {
+    return api
+      .post<WebsiteIntegrationStatus>(`/sites/${siteId}/newsletters/refresh`)
+      .then((response) => response.data);
+  }
+
+  createNewsletterListPreset(
+    siteId: string,
+    payload: {
+      name: string;
+      provider?: WebsiteNewsletterSettings['provider'];
+      audienceId: string;
+      audienceName?: string | null;
+      notes?: string | null;
+      defaultTags?: string[];
+      syncEnabled?: boolean;
+    }
+  ): Promise<WebsiteIntegrationStatus> {
+    return api
+      .post<WebsiteIntegrationStatus>(`/sites/${siteId}/newsletters/lists`, payload)
+      .then((response) => response.data);
+  }
+
+  updateNewsletterListPreset(
+    siteId: string,
+    listId: string,
+    payload: {
+      name?: string;
+      provider?: WebsiteNewsletterSettings['provider'];
+      audienceId?: string;
+      audienceName?: string | null;
+      notes?: string | null;
+      defaultTags?: string[];
+      syncEnabled?: boolean;
+    }
+  ): Promise<WebsiteIntegrationStatus> {
+    return api
+      .put<WebsiteIntegrationStatus>(`/sites/${siteId}/newsletters/lists/${listId}`, payload)
+      .then((response) => response.data);
+  }
+
+  deleteNewsletterListPreset(siteId: string, listId: string): Promise<WebsiteIntegrationStatus> {
+    return api
+      .delete<WebsiteIntegrationStatus>(`/sites/${siteId}/newsletters/lists/${listId}`)
       .then((response) => response.data);
   }
 

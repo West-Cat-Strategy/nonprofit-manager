@@ -6,6 +6,7 @@ import { vi } from 'vitest';
 import { renderWithProviders } from '../../../test/testUtils';
 
 let AdminSettings: ComponentType;
+const importAdminSettings = () => import('../../../features/adminOps/pages/AdminSettingsPage');
 
 const { mockNavigate, mockedApi, mockSetBranding } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
@@ -56,7 +57,7 @@ const countGetCalls = (path: string): number =>
 
 describe('AdminSettings organization section', () => {
   beforeAll(async () => {
-    AdminSettings = (await import('../../admin/AdminSettings')).default;
+    AdminSettings = (await importAdminSettings()).default;
   });
 
   beforeEach(() => {

@@ -1,7 +1,5 @@
 import { shouldSubmitComposer } from '../../../../../features/messaging/composer';
-import type { PortalSectionProps } from '../../adminSettings/sections/PortalSection';
-
-type PortalPanelProps = Omit<PortalSectionProps, 'visiblePanels'>;
+import type { PortalPanelProps } from '../panelTypes';
 
 const getStreamStatusBadge = (
   status: PortalPanelProps['portalStreamStatus']

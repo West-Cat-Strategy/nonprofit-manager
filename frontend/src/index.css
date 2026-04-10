@@ -27,6 +27,9 @@
   --app-accent-foreground: #ffffff;
   --app-accent-text: #2563eb;
   --app-accent-text-hover: #1d4ed8;
+  --app-link: #2563eb;
+  --app-link-hover: #1d4ed8;
+  --app-link-visited: #1d4ed8;
   --app-accent-soft: #dbeafe;
   --app-accent-soft-hover: #bfdbfe;
 
@@ -99,6 +102,27 @@ body.theme-transitioning *::after {
   border-color: var(--app-accent);
 }
 
+body :where(a[href]) {
+  color: var(--app-link);
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.14em;
+  text-decoration-color: currentColor;
+}
+
+body :where(a[href]:visited) {
+  color: var(--app-link-visited);
+}
+
+body :where(a[href]:hover) {
+  color: var(--app-link-hover);
+}
+
+body :where(a[href]:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 /* GLOBAL DARK MODE (DEFAULT FALLBACK) */
 body.dark:not([class*='theme-']) {
   --app-bg: #121212;
@@ -113,6 +137,9 @@ body.dark:not([class*='theme-']) {
   --app-accent-foreground: #ffffff;
   --app-accent-text: #60a5fa;
   --app-accent-text-hover: #93c5fd;
+  --app-link: #60a5fa;
+  --app-link-hover: #93c5fd;
+  --app-link-visited: #93c5fd;
   --app-accent-soft: rgba(37, 99, 235, 0.2);
   --app-accent-soft-hover: rgba(37, 99, 235, 0.35);
 
@@ -154,6 +181,39 @@ body {
 body .bg-white { background-color: var(--app-surface) !important; }
 body .bg-gray-50, body .bg-gray-100, body .bg-gray-200, body .bg-gray-300 {
   background-color: var(--app-surface-muted) !important;
+}
+
+body:not(.theme-neobrutalist) .bg-black:not([class*='bg-opacity']) {
+  background-color: var(--app-text-heading) !important;
+  color: var(--app-accent-foreground) !important;
+}
+
+body:not(.theme-neobrutalist) .bg-white {
+  background-color: var(--app-surface) !important;
+}
+
+body:not(.theme-neobrutalist) .text-black {
+  color: var(--app-text-heading) !important;
+}
+
+body:not(.theme-neobrutalist) [class*='text-black/'] {
+  color: var(--app-text-muted) !important;
+}
+
+body:not(.theme-neobrutalist) .text-white {
+  color: var(--app-accent-foreground) !important;
+}
+
+body:not(.theme-neobrutalist) [class*='text-white/'] {
+  color: var(--app-text-subtle) !important;
+}
+
+body:not(.theme-neobrutalist) .border-black {
+  border-color: var(--app-border) !important;
+}
+
+body:not(.theme-neobrutalist) .border-white {
+  border-color: var(--app-border) !important;
 }
 
 .menu-surface-opaque {

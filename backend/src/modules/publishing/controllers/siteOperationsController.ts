@@ -4,7 +4,10 @@ import type {
   PublishedSiteSearchParams,
   WebsiteFacebookSettings,
   WebsiteFormOperationalConfig,
+  WebsiteNewsletterListPreset,
   WebsiteMailchimpSettings,
+  WebsiteMauticSettings,
+  WebsiteNewsletterSettings,
   WebsiteStripeSettings,
 } from '@app-types/publishing';
 import publishingService from '@services/publishing';
@@ -139,6 +142,175 @@ export const getSiteIntegrations = async (
     next(error);
   }
 };
+
+export const getSiteNewsletterWorkspace = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const result = await publishingService.getSiteIntegrationStatus(
+      req.params.siteId,
+      req.user!.id,
+      req.organizationId
+    );
+    sendSuccess(res, result);
+  } catch (error) {
+    if (handleKnownError(res, error)) return;
+    next(error);
+  }
+};
+
+export const updateSiteNewsletterWorkspace = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    await websiteSiteSettingsService.updateNewsletterSettings(
+      req.params.siteId,
+      req.body as Partial<WebsiteNewsletterSettings>,
+      req.user!.id,
+      req.organizationId
+    );
+
+    if (req.body?.mailchimp) {
+      await websiteSiteSettingsService.updateMailchimpSettings(
+        req.params.siteId,
+        req.body.mailchimp as Partial<WebsiteMailchimpSettings>,
+        req.user!.id,
+        req.organizationId
+      );
+    }
+
+    if (req.body?.mautic) {
+      await websiteSiteSettingsService.updateMauticSettings(
+        req.params.siteId,
+        req.body.mautic as Partial<WebsiteMauticSettings>,
+        req.user!.id,
+        req.organizationId
+      );
+    }
+
+    await siteCacheService.invalidateSite(req.params.siteId);
+
+    const result = await publishingService.getSiteIntegrationStatus(
+      req.params.siteId,
+      req.user!.id,
+      req.organizationId
+    );
+    sendSuccess(res, result);
+  } catch (error) {
+    if (handleKnownError(res, error)) return;
+    next(error);
+  }
+};
+
+export const createSiteNewsletterListPreset = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    await websiteSiteSettingsService.createNewsletterListPreset(
+      req.params.siteId,
+      req.body as Omit<WebsiteNewsletterListPreset, 'id' | 'createdAt' | 'updatedAt'>,
+      req.user!.id,
+      req.organizationId
+    );
+    await siteCacheService.invalidateSite(req.params.siteId);
+
+    const result = await publishingService.getSiteIntegrationStatus(
+      req.params.siteId,
+      req.user!.id,
+      req.organizationId
+    );
+    sendSuccess(res, result);
+  } catch (error) {
+    if (handleKnownError(res, error)) return;
+    next(error);
+  }
+};
+
+export const updateSiteNewsletterListPreset = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    await websiteSiteSettingsService.updateNewsletterListPreset(
+      req.params.siteId,
+      req.params.listId,
+      req.body as Partial<Omit<WebsiteNewsletterListPreset, 'id' | 'createdAt' | 'updatedAt'>>,
+      req.user!.id,
+      req.organizationId
+    );
+    await siteCacheService.invalidateSite(req.params.siteId);
+
+    const result = await publishingService.getSiteIntegrationStatus(
+      req.params.siteId,
+      req.user!.id,
+      req.organizationId
+    );
+    sendSuccess(res, result);
+  } catch (error) {
+    if (handleKnownError(res, error)) return;
+    next(error);
+  }
+};
+
+export const deleteSiteNewsletterListPreset = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    await websiteSiteSettingsService.deleteNewsletterListPreset(
+      req.params.siteId,
+      req.params.listId,
+      req.user!.id,
+      req.organizationId
+    );
+    await siteCacheService.invalidateSite(req.params.siteId);
+
+    const result = await publishingService.getSiteIntegrationStatus(
+      req.params.siteId,
+      req.user!.id,
+      req.organizationId
+    );
+    sendSuccess(res, result);
+  } catch (error) {
+    if (handleKnownError(res, error)) return;
+    next(error);
+  }
+};
+
+export const refreshSiteNewsletterWorkspace = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    await websiteSiteSettingsService.refreshNewsletterSettings(
+      req.params.siteId,
+      req.user!.id,
+      req.organizationId
+    );
+    await siteCacheService.invalidateSite(req.params.siteId);
+
+    const result = await publishingService.getSiteIntegrationStatus(
+      req.params.siteId,
+      req.user!.id,
+      req.organizationId
+    );
+    sendSuccess(res, result);
+  } catch (error) {
+    if (handleKnownError(res, error)) return;
+    next(error);
+  }
+};
+
+export const updateSiteNewsletterIntegration = updateSiteNewsletterWorkspace;
 
 export const updateSiteMailchimpIntegration = async (
   req: AuthRequest,

@@ -43,6 +43,7 @@ export default function PortalDashboard() {
   const recentDocuments = dashboard?.recent_documents ?? [];
   const upcomingEvents = dashboard?.upcoming_events ?? [];
   const nextAppointment = dashboard?.next_appointment ?? null;
+  const recentActivity = dashboard?.recent_activity ?? [];
   const primaryCase = activeCases[0] ?? null;
   const hasContent =
     activeCases.length > 0 ||
@@ -276,6 +277,37 @@ export default function PortalDashboard() {
               </SectionCard>
             </div>
           </div>
+
+          <SectionCard
+            title="Recent Activity"
+            subtitle="The latest updates across all your shared cases, appointments, and documents."
+          >
+            {recentActivity.length === 0 ? (
+              <p className="text-sm text-app-text-muted">No recent activity to show.</p>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {recentActivity.map((event) => (
+                  <PortalListCard
+                    key={`${event.type}-${event.id}`}
+                    title={event.title}
+                    subtitle={event.case_title || event.type.toUpperCase()}
+                    meta={formatDateTime(event.created_at)}
+                    badges={
+                      event.type === 'appointment' && event.metadata?.status ? (
+                        <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text capitalize">
+                          {event.metadata.status as string}
+                        </span>
+                      ) : undefined
+                    }
+                  >
+                    {event.content && (
+                      <p className="line-clamp-2 text-sm text-app-text-muted">{event.content}</p>
+                    )}
+                  </PortalListCard>
+                ))}
+              </div>
+            )}
+          </SectionCard>
 
           <div className="grid gap-5 lg:grid-cols-2">
             <SectionCard

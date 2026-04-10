@@ -19,7 +19,7 @@ export const adminSettingsRouteManifest: readonly AdminRouteManifestEntry[] = [
   { id: 'admin-settings-workspace-modules', title: 'Workspace modules', path: getAdminSettingsPath('workspace_modules') },
   { id: 'admin-settings-branding', title: 'Branding', path: getAdminSettingsPath('branding') },
   { id: 'admin-settings-users', title: 'Users', path: getAdminSettingsPath('users') },
-  { id: 'admin-settings-email', title: 'Email', path: getAdminSettingsPath('email') },
+  { id: 'admin-settings-communications', title: 'Communications', path: getAdminSettingsPath('communications') },
   { id: 'admin-settings-messaging', title: 'Messaging', path: getAdminSettingsPath('messaging') },
   { id: 'admin-settings-outcomes', title: 'Outcomes', path: getAdminSettingsPath('outcomes') },
   { id: 'admin-settings-roles', title: 'Roles', path: getAdminSettingsPath('roles') },
@@ -38,9 +38,9 @@ export const portalAdminRouteManifest: readonly AdminRouteManifestEntry[] = [
 export const adminCompatibilityRouteManifest: readonly AdminRouteRedirectEntry[] = [
   {
     id: 'legacy-email-marketing',
-    title: 'Legacy email marketing redirect',
+    title: 'Legacy communications redirect',
     path: '/email-marketing',
-    redirectsTo: '/settings/email-marketing',
+    redirectsTo: '/settings/communications',
   },
   {
     id: 'legacy-admin-settings',

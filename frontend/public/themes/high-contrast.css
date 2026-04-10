@@ -20,6 +20,9 @@ body.theme-high-contrast {
   --app-accent-hover: #003380;
   --app-accent-text: #0047ab;
   --app-accent-text-hover: #003380;
+  --app-link: #0047ab;
+  --app-link-hover: #003380;
+  --app-link-visited: #003380;
   --app-accent-soft: #d6e4f0;
   --app-accent-soft-hover: #b8d0e8;
 
@@ -63,6 +66,9 @@ body.theme-high-contrast {
   --app-accent-foreground: #ffffff;
   --app-accent-text: #0049d6;
   --app-accent-text-hover: #00307f;
+  --app-link: #0049d6;
+  --app-link-hover: #00307f;
+  --app-link-visited: #00307f;
   --app-accent-soft: rgba(0, 73, 214, 0.18);
   --app-accent-soft-hover: rgba(0, 73, 214, 0.29);
   --app-hover: rgba(0, 0, 0, 0.09);
@@ -103,6 +109,9 @@ body.theme-high-contrast.dark {
   --app-accent-foreground: #000000;
   --app-accent-text: #ffd700;
   --app-accent-text-hover: #ffc000;
+  --app-link: #ffd700;
+  --app-link-hover: #ffc000;
+  --app-link-visited: #ffc000;
   --app-accent-soft: rgba(255, 215, 0, 0.2);
   --app-accent-soft-hover: rgba(255, 215, 0, 0.35);
 
@@ -138,6 +147,9 @@ body.theme-high-contrast.dark {
   --app-accent-foreground: #000000;
   --app-accent-text: #ffe45c;
   --app-accent-text-hover: #fff1a5;
+  --app-link: #ffe45c;
+  --app-link-hover: #fff1a5;
+  --app-link-visited: #fff1a5;
   --app-accent-soft: rgba(255, 228, 92, 0.26);
   --app-accent-soft-hover: rgba(255, 228, 92, 0.4);
   --app-hover: rgba(255, 255, 255, 0.12);
@@ -166,6 +178,11 @@ body.theme-high-contrast * {
 
 body.theme-high-contrast a {
   text-decoration: underline !important;
+}
+
+body.theme-high-contrast :where(a[href]) {
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.16em;
 }
 
 body.theme-high-contrast button {

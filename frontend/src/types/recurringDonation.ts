@@ -21,10 +21,15 @@ export interface RecurringDonationPlan {
   amount: number;
   currency: string;
   interval: 'monthly';
+  payment_provider?: 'stripe' | 'paypal' | 'square' | null;
   campaign_name: string | null;
   designation: string | null;
   notes: string | null;
   status: RecurringDonationPlanStatus;
+  provider_customer_id?: string | null;
+  provider_subscription_id?: string | null;
+  provider_checkout_session_id?: string | null;
+  provider_checkout_url?: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   stripe_price_id: string | null;

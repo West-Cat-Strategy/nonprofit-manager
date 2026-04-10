@@ -23,7 +23,7 @@ const thunkMocks = vi.hoisted(() => {
       type: 'websites/fetchIntegrations',
       payload,
     })),
-    updateWebsiteMailchimpIntegration: createAction('websites/updateMailchimpIntegration'),
+    updateWebsiteNewsletterIntegration: createAction('websites/updateNewsletterIntegration'),
     updateWebsiteStripeIntegration: createAction('websites/updateStripeIntegration'),
   };
 });
@@ -37,21 +37,49 @@ const overview = {
   },
 };
 
-const mockState = {
+const buildState = (provider: 'mautic' | 'mailchimp') => ({
   websites: {
     integrations: {
       blocked: false,
       publishStatus: 'published',
+      newsletter: {
+        provider,
+        configured: true,
+        lastSyncAt: null,
+      },
       mailchimp: {
         audienceId: 'aud-1',
         audienceMode: 'both',
         defaultTags: ['members'],
         syncEnabled: true,
-        configured: true,
-        availableAudiences: [
-          { id: 'aud-1', name: 'Main Audience' },
-          { id: 'aud-2', name: 'Volunteers' },
-        ],
+        configured: provider === 'mailchimp',
+        accountName: provider === 'mailchimp' ? 'Mailchimp Account' : undefined,
+        listCount: provider === 'mailchimp' ? 2 : undefined,
+        availableAudiences:
+          provider === 'mailchimp'
+            ? [
+                { id: 'aud-1', name: 'Main Audience' },
+                { id: 'aud-2', name: 'Volunteers' },
+              ]
+            : [],
+        lastSyncAt: null,
+      },
+      mautic: {
+        baseUrl: 'https://mautic.example.org',
+        segmentId: 'seg-1',
+        username: 'api-user',
+        password: 'api-pass',
+        defaultTags: ['supporters'],
+        syncEnabled: provider === 'mautic',
+        configured: provider === 'mautic',
+        availableAudiences:
+          provider === 'mautic'
+            ? [
+                { id: 'seg-1', name: 'Newsletter Supporters' },
+                { id: 'seg-2', name: 'Monthly Donors' },
+              ]
+            : [],
+        segmentCount: provider === 'mautic' ? 2 : undefined,
         lastSyncAt: null,
       },
       stripe: {
@@ -68,11 +96,13 @@ const mockState = {
     isSaving: false,
     error: null,
   },
-};
+});
+
+let currentState = buildState('mautic');
 
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
+  useAppSelector: (selector: (state: typeof currentState) => unknown) => selector(currentState),
 }));
 
 vi.mock('../../hooks/useWebsiteOverviewLoader', () => ({
@@ -86,7 +116,7 @@ vi.mock('../../state', async () => {
     ...actual,
     clearWebsitesError: thunkMocks.clearWebsitesError,
     fetchWebsiteIntegrations: thunkMocks.fetchWebsiteIntegrations,
-    updateWebsiteMailchimpIntegration: thunkMocks.updateWebsiteMailchimpIntegration,
+    updateWebsiteNewsletterIntegration: thunkMocks.updateWebsiteNewsletterIntegration,
     updateWebsiteStripeIntegration: thunkMocks.updateWebsiteStripeIntegration,
   };
 });
@@ -94,12 +124,13 @@ vi.mock('../../state', async () => {
 describe('WebsiteIntegrationsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    currentState = buildState('mautic');
     dispatchMock.mockImplementation(
       (action: { type?: string }) => Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
     );
   });
 
-  it('loads integration status and saves Mailchimp and Stripe defaults', async () => {
+  it('loads integration status and saves Mautic defaults by default', async () => {
     renderPage();
 
     await waitFor(() => {
@@ -108,36 +139,37 @@ describe('WebsiteIntegrationsPage', () => {
       );
     });
 
-    expect(screen.getByText('Integration state')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Mailchimp' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Stripe' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Newsletter provider' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Newsletter provider')).toHaveValue('mautic');
 
-    fireEvent.change(screen.getByPlaceholderText('Default tags (comma separated)'), {
-      target: { value: 'members, donors' },
+    fireEvent.change(screen.getByLabelText('Mautic segment ID'), {
+      target: { value: 'seg-2' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save Mailchimp settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save newsletter settings' }));
 
     await waitFor(() => {
       expect(dispatchMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'websites/updateMailchimpIntegration',
+          type: 'websites/updateNewsletterIntegration',
           payload: {
             siteId: 'site-1',
-            data: expect.objectContaining({
-              audienceId: 'aud-1',
-              audienceMode: 'both',
-              defaultTags: ['members', 'donors'],
-              syncEnabled: true,
-            }),
+            data: {
+              provider: 'mautic',
+              mautic: expect.objectContaining({
+                baseUrl: 'https://mautic.example.org',
+                segmentId: 'seg-2',
+                username: 'api-user',
+                password: 'api-pass',
+                defaultTags: ['supporters'],
+                syncEnabled: true,
+              }),
+            },
           },
         })
       );
     });
-    expect(screen.getByText('Mailchimp settings saved.')).toBeInTheDocument();
+    expect(screen.getByText('Mautic settings saved.')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByPlaceholderText('Currency'), {
-      target: { value: 'usd' },
-    });
     fireEvent.click(screen.getByRole('button', { name: 'Save Stripe settings' }));
 
     await waitFor(() => {
@@ -148,7 +180,7 @@ describe('WebsiteIntegrationsPage', () => {
             siteId: 'site-1',
             data: expect.objectContaining({
               accountId: 'org-1',
-              currency: 'usd',
+              currency: 'cad',
               suggestedAmounts: [20, 40, 80],
               recurringDefault: true,
               campaignId: 'spring-drive',
@@ -158,6 +190,48 @@ describe('WebsiteIntegrationsPage', () => {
       );
     });
     expect(screen.getByText('Stripe settings saved.')).toBeInTheDocument();
+  });
+
+  it('switches to Mailchimp and preserves the legacy audience settings', async () => {
+    currentState = buildState('mailchimp');
+    renderPage();
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'websites/fetchIntegrations', payload: 'site-1' })
+      );
+    });
+
+    fireEvent.change(screen.getByLabelText('Newsletter provider'), {
+      target: { value: 'mailchimp' },
+    });
+    fireEvent.change(screen.getByLabelText('Mailchimp audience'), {
+      target: { value: 'aud-2' },
+    });
+    fireEvent.change(screen.getByLabelText('Mailchimp default tags'), {
+      target: { value: 'members, donors' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save newsletter settings' }));
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'websites/updateNewsletterIntegration',
+          payload: {
+            siteId: 'site-1',
+            data: {
+              provider: 'mailchimp',
+              mailchimp: {
+                audienceId: 'aud-2',
+                defaultTags: ['members', 'donors'],
+                syncEnabled: true,
+              },
+            },
+          },
+        })
+      );
+    });
+    expect(screen.getByText('Mailchimp settings saved.')).toBeInTheDocument();
   });
 });
 

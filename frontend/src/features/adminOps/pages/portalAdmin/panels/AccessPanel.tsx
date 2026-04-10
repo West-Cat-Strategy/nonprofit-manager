@@ -1,7 +1,5 @@
 import ErrorBanner from '../../../../../components/ErrorBanner';
-import type { PortalSectionProps } from '../../adminSettings/sections/PortalSection';
-
-type PortalPanelProps = Omit<PortalSectionProps, 'visiblePanels'>;
+import type { PortalPanelProps } from '../panelTypes';
 
 export default function AccessPanel({
   portalInviteUrl,

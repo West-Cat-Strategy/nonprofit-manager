@@ -5,6 +5,7 @@ import { vi } from 'vitest';
 import { renderWithProviders } from '../../../test/testUtils';
 
 let AdminSettings: ComponentType;
+const importAdminSettings = () => import('../../../features/adminOps/pages/AdminSettingsPage');
 const { mockNavigate, mockSetBranding } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
   mockSetBranding: vi.fn(),
@@ -116,8 +117,8 @@ vi.mock('../../../features/adminOps/pages/adminSettings/sections/DashboardSectio
 vi.mock('../../../features/adminOps/pages/adminSettings/sections/AuditLogsSection', () => ({
   default: () => <div>Audit Section</div>,
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/EmailSettingsSection', () => ({
-  default: () => <div>Email Section</div>,
+vi.mock('../../../features/adminOps/pages/adminSettings/sections/CommunicationsSection', () => ({
+  default: () => <div>Communications Section</div>,
 }));
 vi.mock('../../../features/adminOps/pages/adminSettings/sections/TwilioSettingsSection', () => ({
   default: () => <div>Messaging Section</div>,
@@ -175,7 +176,7 @@ describe('AdminSettings page', () => {
     window.localStorage.clear();
     mockNavigate.mockReset();
     vi.resetModules();
-    AdminSettings = (await import('../../admin/AdminSettings')).default;
+    AdminSettings = (await importAdminSettings()).default;
   });
 
   it('renders admin settings shell and canonical portal/admin links', async () => {
@@ -205,6 +206,14 @@ describe('AdminSettings page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Organization Section')).toBeInTheDocument();
+    });
+  });
+
+  it('renders the communications section directly from the canonical route path', async () => {
+    renderAdminSettings('/settings/admin/communications');
+
+    await waitFor(() => {
+      expect(screen.getByText('Communications Section')).toBeInTheDocument();
     });
   });
 

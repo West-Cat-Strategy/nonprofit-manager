@@ -156,6 +156,26 @@ export class PortalCaseRepository {
           AND c.client_viewable = true
           AND cd.visible_to_client = true
           AND COALESCE(cd.is_active, true) = true
+
+        UNION ALL
+
+        SELECT
+          a.id,
+          'appointment'::text AS type,
+          a.created_at,
+          COALESCE(a.title, 'Appointment') AS title,
+          a.description AS content,
+          jsonb_build_object(
+            'start_time', a.start_time,
+            'end_time', a.end_time,
+            'status', a.status,
+            'location', a.location,
+            'request_type', a.request_type
+          ) AS metadata
+        FROM appointments a
+        WHERE a.case_id = $1
+          AND a.contact_id = $2
+          AND a.status != 'cancelled'
       ) timeline
       WHERE (
         $3::timestamptz IS NULL

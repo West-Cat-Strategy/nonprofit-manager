@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import IntakeNew from '../../workflows/IntakeNew';
+import IntakeNew from '../../../features/workflows/pages/IntakeNewPage';
 import { renderWithProviders } from '../../../test/testUtils';
 
 const navigateMock = vi.fn();

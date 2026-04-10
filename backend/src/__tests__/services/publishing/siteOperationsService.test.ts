@@ -54,7 +54,11 @@ const buildManagedForm = (overrides: Partial<WebsiteFormDefinition> = {}): Websi
 const buildSettings = (): WebsiteSiteSettings => ({
   siteId: 'site-1',
   organizationId: 'org-1',
+  newsletter: {
+    provider: 'mautic',
+  },
   mailchimp: {},
+  mautic: {},
   stripe: {},
   formDefaults: {},
   formOverrides: {},
@@ -214,17 +218,27 @@ describe('SiteOperationsService', () => {
     (service as unknown as { getIntegrationStatus: jest.Mock }).getIntegrationStatus = jest
       .fn()
       .mockResolvedValue({
-        blocked: false,
-        publishStatus: 'draft',
-        mailchimp: {
-          configured: false,
-          availableAudiences: [],
-          lastSyncAt: null,
-        },
-        stripe: {
-          configured: false,
-          publishableKeyConfigured: false,
-        },
+      blocked: false,
+      publishStatus: 'draft',
+      newsletter: {
+        provider: 'mautic',
+        configured: false,
+        lastSyncAt: null,
+      },
+      mailchimp: {
+        configured: false,
+        availableAudiences: [],
+        lastSyncAt: null,
+      },
+      mautic: {
+        configured: false,
+        availableAudiences: [],
+        lastSyncAt: null,
+      },
+      stripe: {
+        configured: false,
+        publishableKeyConfigured: false,
+      },
         social: {
           facebook: {
             lastSyncAt: null,
@@ -244,7 +258,7 @@ describe('SiteOperationsService', () => {
     expect(result.managementSnapshot.readiness.integrations).toBe(false);
     expect(result.managementSnapshot.nextAction.href).toBe('/websites/site-1/integrations');
     expect(result.managementSnapshot.attentionItems.map((item) => item.id)).toEqual(
-      expect.arrayContaining(['mailchimp', 'stripe'])
+      expect.arrayContaining(['newsletter', 'stripe'])
     );
     expect(result.managementSnapshot.signals.forms).toBe(2);
   });

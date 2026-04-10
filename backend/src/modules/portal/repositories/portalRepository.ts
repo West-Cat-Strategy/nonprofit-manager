@@ -187,11 +187,13 @@ export class PortalRepository {
   }
 
   async getDashboard(contactId: string, portalUserId: string): Promise<Record<string, unknown>> {
-    const [activeCases, unreadThreadsCountResult, recentThreadsResult, nextAppointmentResult] =
-      await Promise.all([
-        this.cases.getPortalCases(contactId),
-        this.pool.query<{ unread_threads_count: string }>(
-          `SELECT COUNT(*)::text AS unread_threads_count
+      recentThreadsResult,
+      nextAppointmentResult,
+      recentActivityResult,
+    ] = await Promise.all([
+      this.cases.getPortalCases(contactId),
+      this.pool.query<{ unread_threads_count: string }>(
+        `SELECT COUNT(*)::text AS unread_threads_count
            FROM portal_threads t
            WHERE t.portal_user_id = $1
              AND EXISTS (
@@ -202,10 +204,10 @@ export class PortalRepository {
                  AND pm.is_internal = false
                  AND pm.read_by_portal_at IS NULL
              )`,
-          [portalUserId]
-        ),
-        this.pool.query<Record<string, unknown>>(
-          `SELECT
+        [portalUserId]
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT
              t.id,
              t.subject,
              t.status,
@@ -230,10 +232,10 @@ export class PortalRepository {
            WHERE t.portal_user_id = $1
            ORDER BY t.last_message_at DESC
            LIMIT 3`,
-          [portalUserId]
-        ),
-        this.pool.query<Record<string, unknown>>(
-          `SELECT
+        [portalUserId]
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT
              a.id,
              a.title,
              a.description,
@@ -251,9 +253,70 @@ export class PortalRepository {
              AND a.start_time >= NOW()
            ORDER BY a.start_time ASC
            LIMIT 1`,
-          [contactId]
-        ),
-      ]);
+        [contactId]
+      ),
+      this.pool.query<Record<string, unknown>>(
+        `SELECT
+             timeline.id,
+             timeline.type,
+             timeline.created_at,
+             timeline.title,
+             timeline.content,
+             timeline.metadata,
+             c.case_number,
+             c.title AS case_title
+           FROM (
+             SELECT
+               cn.id,
+               'note'::text AS type,
+               cn.created_at,
+               COALESCE(cn.subject, cn.note_type, 'Note') AS title,
+               cn.content,
+               jsonb_build_object('note_type', cn.note_type) AS metadata,
+               cn.case_id
+             FROM case_notes cn
+             JOIN cases c ON c.id = cn.case_id
+             WHERE c.contact_id = $1
+               AND c.client_viewable = true
+               AND cn.visible_to_client = true
+
+             UNION ALL
+
+             SELECT
+               cd.id,
+               'document'::text AS type,
+               COALESCE(cd.created_at, cd.uploaded_at) AS created_at,
+               COALESCE(cd.document_name, cd.original_filename, 'Document') AS title,
+               cd.description AS content,
+               jsonb_build_object('document_type', cd.document_type) AS metadata,
+               cd.case_id
+             FROM case_documents cd
+             JOIN cases c ON c.id = cd.case_id
+             WHERE c.contact_id = $1
+               AND c.client_viewable = true
+               AND cd.visible_to_client = true
+               AND COALESCE(cd.is_active, true) = true
+
+             UNION ALL
+
+             SELECT
+               a.id,
+               'appointment'::text AS type,
+               a.created_at,
+               COALESCE(a.title, 'Appointment') AS title,
+               a.description AS content,
+               jsonb_build_object('status', a.status, 'start_time', a.start_time) AS metadata,
+               a.case_id
+             FROM appointments a
+             WHERE a.contact_id = $1
+               AND a.status != 'cancelled'
+           ) timeline
+           LEFT JOIN cases c ON c.id = timeline.case_id
+           ORDER BY timeline.created_at DESC
+           LIMIT 5`,
+        [contactId]
+      ),
+    ]);
 
     const [upcomingEvents, recentDocuments, reminders] = await Promise.all([
       this.resources.getPortalEvents(contactId, {
@@ -284,6 +347,7 @@ export class PortalRepository {
       upcoming_events: upcomingEvents.items,
       recent_documents: recentDocuments.items,
       reminders: reminders.items,
+      recent_activity: recentActivityResult.rows,
     };
   }
 }

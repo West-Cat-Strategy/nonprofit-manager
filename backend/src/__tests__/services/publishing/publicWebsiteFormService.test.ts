@@ -128,6 +128,14 @@ jest.mock('@services/mailchimpService', () => ({
   },
 }));
 
+jest.mock('@services/newsletterProviderService', () => ({
+  __esModule: true,
+  default: {
+    resolveNewsletterProvider: jest.fn(),
+    syncNewsletterContact: jest.fn(),
+  },
+}));
+
 jest.mock('@services/publishing/publicSubmissionService', () => ({
   __mocks: {
     beginSubmission: jest.fn(),
@@ -200,6 +208,13 @@ const mailchimpModule = jest.requireMock('@services/mailchimpService') as {
   __mocks: {
     addOrUpdateMember: jest.Mock;
     isMailchimpConfigured: jest.Mock;
+  };
+};
+
+const newsletterProviderModule = jest.requireMock('@services/newsletterProviderService') as {
+  default: {
+    resolveNewsletterProvider: jest.Mock;
+    syncNewsletterContact: jest.Mock;
   };
 };
 
@@ -322,6 +337,8 @@ describe('PublicWebsiteFormService', () => {
     operationsModule.createPaymentIntent.mockReset();
     mailchimpModule.__mocks.addOrUpdateMember.mockReset();
     mailchimpModule.__mocks.isMailchimpConfigured.mockReset();
+    newsletterProviderModule.default.resolveNewsletterProvider.mockReset();
+    newsletterProviderModule.default.syncNewsletterContact.mockReset();
     publicSubmissionModule.__mocks.beginSubmission.mockReset();
     publicSubmissionModule.__mocks.markAccepted.mockReset();
     publicSubmissionModule.__mocks.markRejected.mockReset();
@@ -332,6 +349,69 @@ describe('PublicWebsiteFormService', () => {
     publicSubmissionModule.__mocks.markAccepted.mockResolvedValue(undefined);
     publicSubmissionModule.__mocks.markRejected.mockResolvedValue(undefined);
     activityEventsModule.__mocks.recordEvent.mockResolvedValue(undefined);
+  });
+
+  it('syncs newsletter signups through Mautic when the provider is set to Mautic', async () => {
+    const site = {
+      ...baseSite,
+      publishedContent: {
+        ...baseSite.publishedContent,
+        pages: [
+          {
+            ...baseSite.publishedContent.pages[0],
+            sections: [
+              {
+                id: 'section-1',
+                name: 'Forms',
+                components: [
+                  {
+                    id: 'newsletter-1',
+                    type: 'newsletter-signup',
+                    defaultTags: ['website'],
+                    audienceMode: 'mautic',
+                    mauticSegmentId: 'seg-42',
+                    successMessage: 'You are in.',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
+    newsletterProviderModule.default.resolveNewsletterProvider.mockReturnValue('mautic');
+    newsletterProviderModule.default.syncNewsletterContact.mockResolvedValue({
+      contactId: 'contact-1',
+      email: 'ada@example.com',
+      success: true,
+      action: 'added',
+    });
+
+    const result = await service.submitForm(site as never, 'newsletter-1', {
+      first_name: 'Ada',
+      last_name: 'Lovelace',
+      email: 'Ada@example.com',
+    });
+
+    expect(newsletterProviderModule.default.syncNewsletterContact).toHaveBeenCalledWith(
+      expect.objectContaining({
+        newsletter: expect.any(Object),
+      }),
+      {
+        contactId: 'contact-1',
+        listId: 'seg-42',
+        tags: ['website', 'newsletter'],
+      }
+    );
+    expect(result).toEqual({
+      formType: 'newsletter-signup',
+      message: 'You are in.',
+      contactId: 'contact-1',
+      mailchimpSynced: false,
+      newsletterSynced: true,
+    });
   });
 
   it('resolves site keys by UUID before falling back to host keys', async () => {

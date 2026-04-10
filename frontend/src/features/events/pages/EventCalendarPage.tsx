@@ -10,7 +10,7 @@ import { portalAdminAppointmentsApiClient } from '../../adminOps/api/portalAdmin
 import type {
   PortalAdminAppointmentInboxItem,
   PortalAppointmentSlot,
-} from '../../adminOps/pages/adminSettings/types';
+} from '../../adminOps/contracts';
 import { canAccessAdminSettings } from '../../auth/state/adminAccess';
 import { useToast } from '../../../contexts/useToast';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';

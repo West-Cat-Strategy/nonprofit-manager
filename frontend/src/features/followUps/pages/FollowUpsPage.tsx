@@ -158,7 +158,7 @@ export default function FollowUpsPage() {
           <button
             type="button"
             onClick={() => setShowCreateForm((prev) => !prev)}
-            className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] text-black font-bold shadow-[3px_3px_0px_0px_var(--shadow-color)]"
+            className="px-4 py-2 border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] text-[var(--app-text-heading)] font-bold shadow-[3px_3px_0px_0px_var(--shadow-color)]"
           >
             {showCreateForm ? 'Hide Create Form' : 'Create Follow-up'}
           </button>
@@ -166,13 +166,13 @@ export default function FollowUpsPage() {
 
         {summary && (
           <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
-            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-green)]"><p className="text-xs font-bold">Total</p><p className="text-2xl font-black">{summary.total}</p></div>
-            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-blue)]"><p className="text-xs font-bold">Scheduled</p><p className="text-2xl font-black">{summary.scheduled}</p></div>
-            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-cyan)]"><p className="text-xs font-bold">Completed</p><p className="text-2xl font-black">{summary.completed}</p></div>
-            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-pink)]"><p className="text-xs font-bold">Cancelled</p><p className="text-2xl font-black">{summary.cancelled}</p></div>
-            <div className="p-3 border-2 border-[var(--app-border)] bg-app-accent-soft"><p className="text-xs font-bold">Overdue</p><p className="text-2xl font-black">{summary.overdue}</p></div>
-            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-yellow)]"><p className="text-xs font-bold">Due Today</p><p className="text-2xl font-black">{summary.due_today}</p></div>
-            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--app-surface-muted)]"><p className="text-xs font-bold">Next 7 Days</p><p className="text-2xl font-black">{summary.due_this_week}</p></div>
+            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-green)] text-[var(--app-text-heading)]"><p className="text-xs font-bold">Total</p><p className="text-2xl font-black">{summary.total}</p></div>
+            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-blue)] text-[var(--app-text-heading)]"><p className="text-xs font-bold">Scheduled</p><p className="text-2xl font-black">{summary.scheduled}</p></div>
+            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-cyan)] text-[var(--app-text-heading)]"><p className="text-xs font-bold">Completed</p><p className="text-2xl font-black">{summary.completed}</p></div>
+            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-pink)] text-[var(--app-text-heading)]"><p className="text-xs font-bold">Cancelled</p><p className="text-2xl font-black">{summary.cancelled}</p></div>
+            <div className="p-3 border-2 border-[var(--app-border)] bg-app-accent-soft text-[var(--app-text-heading)]"><p className="text-xs font-bold">Overdue</p><p className="text-2xl font-black">{summary.overdue}</p></div>
+            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] text-[var(--app-text-heading)]"><p className="text-xs font-bold">Due Today</p><p className="text-2xl font-black">{summary.due_today}</p></div>
+            <div className="p-3 border-2 border-[var(--app-border)] bg-[var(--app-surface-muted)] text-[var(--app-text-heading)]"><p className="text-xs font-bold">Next 7 Days</p><p className="text-2xl font-black">{summary.due_this_week}</p></div>
           </div>
         )}
 
@@ -211,11 +211,11 @@ export default function FollowUpsPage() {
         {editingFollowUp && (
           <div className="mb-6 border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-[4px_4px_0px_0px_var(--shadow-color)]">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-lg font-black">Edit Follow-up</h2>
+              <h2 className="text-lg font-black text-[var(--app-text-heading)]">Edit Follow-up</h2>
               <button
                 type="button"
                 onClick={() => setEditingFollowUp(null)}
-                className="border-2 border-[var(--app-border)] px-3 py-1 text-xs font-bold"
+                className="border-2 border-[var(--app-border)] px-3 py-1 text-xs font-bold text-[var(--app-text-heading)]"
               >
                 Close
               </button>
@@ -276,7 +276,7 @@ export default function FollowUpsPage() {
               setStatusFilter('');
               setPage(1);
             }}
-            className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-3 py-2 font-bold"
+            className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-3 py-2 font-bold text-[var(--app-text-heading)]"
           >
             Clear Filters
           </button>

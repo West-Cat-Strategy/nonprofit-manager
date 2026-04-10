@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../../services/api';
 import type { RecurringDonationCheckoutSuccessResponse } from '../../../types/recurringDonation';
+import type { PaymentProvider } from '../../../types/payment';
 import { formatCurrency } from '../../../utils/format';
 import {
   ErrorState,
@@ -17,6 +18,12 @@ type ResultState =
   | { kind: 'cancelled'; returnUrl: string | null }
   | { kind: 'error'; message: string }
   | { kind: 'success'; data: RecurringDonationCheckoutSuccessResponse };
+
+const PROVIDER_LABELS: Record<PaymentProvider, string> = {
+  stripe: 'Stripe',
+  paypal: 'PayPal',
+  square: 'Square',
+};
 
 const RecurringDonationCheckoutResultPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -117,7 +124,8 @@ const RecurringDonationCheckoutResultPage: React.FC = () => {
                 </p>
               </div>
               <p className="text-sm text-app-text-muted">
-                Use the donor self-service link below to update payment details or manage future billing in Stripe.
+                Use the donor self-service link below to update payment details or manage future billing with{' '}
+                {PROVIDER_LABELS[result.data.plan.payment_provider || 'stripe']}.
               </p>
               <div className="flex flex-wrap gap-2">
                 <PrimaryButton onClick={() => window.location.assign(result.data.management_url)}>

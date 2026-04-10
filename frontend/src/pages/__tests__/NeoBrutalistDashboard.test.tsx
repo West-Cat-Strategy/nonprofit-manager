@@ -1,7 +1,7 @@
 import type * as ReactRouterDom from 'react-router-dom';
 import { screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import NeoBrutalistDashboard from '../neo-brutalist/NeoBrutalistDashboard';
+import NeoBrutalistDashboard from '../../features/neoBrutalist/pages/NeoBrutalistDashboardPage';
 import api from '../../services/api';
 import { renderWithProviders, createTestStore } from '../../test/testUtils';
 

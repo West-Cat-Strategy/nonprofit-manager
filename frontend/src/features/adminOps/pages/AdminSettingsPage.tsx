@@ -40,7 +40,9 @@ const RolesSection = lazy(() => import('./adminSettings/sections/RolesSection'))
 const OtherSettingsSection = lazy(() => import('./adminSettings/sections/OtherSettingsSection'));
 const DashboardSection = lazy(() => import('./adminSettings/sections/DashboardSection'));
 const AuditLogsSection = lazy(() => import('./adminSettings/sections/AuditLogsSection'));
-const EmailSettingsSection = lazy(() => import('./adminSettings/sections/EmailSettingsSection'));
+const CommunicationsSection = lazy(
+  () => import('./adminSettings/sections/CommunicationsSection')
+);
 const TwilioSettingsSection = lazy(() => import('./adminSettings/sections/TwilioSettingsSection'));
 const RegistrationSettingsSection = lazy(
   () => import('./adminSettings/sections/RegistrationSettingsSection')
@@ -452,8 +454,8 @@ export default function AdminSettings() {
           {/* Audit Logs Section */}
           {activeSection === 'audit_logs' && <AuditLogsSection />}
 
-          {/* Email Settings Section */}
-          {activeSection === 'email' && <EmailSettingsSection />}
+          {/* Communications Section */}
+          {activeSection === 'communications' && <CommunicationsSection />}
 
           {/* Messaging Settings Section */}
           {activeSection === 'messaging' && <TwilioSettingsSection />}

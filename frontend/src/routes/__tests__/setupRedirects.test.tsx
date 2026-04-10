@@ -59,7 +59,7 @@ vi.mock('../../features/adminOps/routeComponents', async () => {
     ApiSettings: () => <h1>API Settings Page</h1>,
     NavigationSettings: () => <h1>Navigation Settings Page</h1>,
     DataBackup: () => <h1>Data Backup Page</h1>,
-    EmailMarketing: () => <h1>Email Marketing Page</h1>,
+    CommunicationsPage: () => <h1>Communications Page</h1>,
     SocialMedia: () => <h1>Social Media Page</h1>,
     PortalAdminPage: ({ panel }: { panel: string }) => <h1>Portal Panel: {panel}</h1>,
     AdminSettingsSectionRoute: () => {
@@ -237,7 +237,7 @@ describe('AppRoutes setup startup redirects', () => {
   });
 
   it.each([
-    ['/email-marketing', '/settings/email-marketing'],
+    ['/email-marketing', '/settings/communications'],
     ['/settings/organization', '/settings/admin/organization'],
     ['/admin/audit-logs', '/settings/admin/audit_logs'],
   ])('redirects authenticated legacy route %s to %s', async (route, expectedLocation) => {

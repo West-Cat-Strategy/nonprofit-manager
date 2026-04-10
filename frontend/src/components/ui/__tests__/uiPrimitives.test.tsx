@@ -87,6 +87,25 @@ describe('ui primitives', () => {
     expect(screen.getByRole('link', { name: 'Contacts' })).toHaveFocus();
   });
 
+  it('keeps side nav states readable across themes', () => {
+    render(
+      <MemoryRouter>
+        <SideNav
+          title="Main"
+          items={[
+            { key: 'dashboard', label: 'Dashboard', to: '/dashboard', isActive: true },
+            { key: 'contacts', label: 'Contacts', to: '/contacts' },
+          ]}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveClass(
+      'text-[var(--app-accent-foreground)]'
+    );
+    expect(screen.getByRole('link', { name: 'Contacts' })).toHaveClass('text-app-text');
+  });
+
   it('renders top navigation with the opaque shell surface', () => {
     render(<TopNav left={<span>Portal</span>} right={<button type="button">Account</button>} />);
 

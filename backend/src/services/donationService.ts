@@ -315,6 +315,11 @@ export class DonationService {
       payment_method,
       payment_status = 'pending',
       transaction_id,
+      payment_provider,
+      provider_transaction_id,
+      provider_checkout_session_id,
+      provider_subscription_id,
+      provider_customer_id,
       stripe_subscription_id,
       stripe_invoice_id,
       campaign_name,
@@ -332,10 +337,15 @@ export class DonationService {
     const query = `
       INSERT INTO donations (
         donation_number, account_id, contact_id, recurring_plan_id, amount, currency, donation_date,
-        payment_method, payment_status, transaction_id, stripe_subscription_id, stripe_invoice_id,
-        campaign_name, designation, is_recurring, recurring_frequency, notes, created_by, modified_by
+        payment_method, payment_status, transaction_id, payment_provider, provider_transaction_id,
+        provider_checkout_session_id, provider_subscription_id, provider_customer_id,
+        stripe_subscription_id, stripe_invoice_id, campaign_name, designation, is_recurring,
+        recurring_frequency, notes, created_by, modified_by
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $18)
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
+        $19, $20, $21, $22, $23, $24
+      )
       RETURNING 
         ${DONATION_RETURNING_COLUMNS}
     `;
@@ -356,6 +366,11 @@ export class DonationService {
           payment_method || null,
           payment_status,
           transaction_id || null,
+          payment_provider || null,
+          provider_transaction_id || null,
+          provider_checkout_session_id || null,
+          provider_subscription_id || null,
+          provider_customer_id || null,
           stripe_subscription_id || null,
           stripe_invoice_id || null,
           campaign_name || null,
@@ -363,6 +378,7 @@ export class DonationService {
           is_recurring,
           recurring_frequency || null,
           notes || null,
+          userId,
           userId,
         ]);
 

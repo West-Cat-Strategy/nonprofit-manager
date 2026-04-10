@@ -529,7 +529,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
             <p className="text-xs uppercase tracking-wide text-app-text-muted">Newsletter signup</p>
             <h4 className="font-semibold text-app-text">{component.heading || 'Stay in the loop'}</h4>
             <p className="mt-1 text-sm text-app-text-muted">
-              {component.description || 'Collect CRM and Mailchimp subscribers directly from the public site.'}
+              {component.description || 'Collect CRM and newsletter subscribers directly from the public site.'}
             </p>
           </div>
           <div className="flex flex-col gap-3 md:flex-row">
@@ -543,7 +543,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component, theme 
           </div>
           <p className="mt-3 text-xs text-app-text-muted">
             Audience: {component.audienceMode || 'crm'}
-            {component.mailchimpListId ? ` · List ${component.mailchimpListId}` : ''}
+            {component.mailchimpListId || component.mauticSegmentId
+              ? ` · Audience ${(component.mailchimpListId || component.mauticSegmentId) as string}`
+              : ''}
           </p>
         </div>
       );

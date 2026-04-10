@@ -25,8 +25,9 @@ import { emailSchema, uuidSchema } from '@validations/shared';
 
 const router = Router();
 
-const paymentIntentIdSchema = z.string().regex(/^pi_/, 'Invalid payment intent ID');
-const customerIdSchema = z.string().regex(/^cus_/, 'Invalid customer ID');
+const paymentIntentIdSchema = z.string().trim().min(1, 'Invalid payment intent ID');
+const customerIdSchema = z.string().trim().min(1, 'Invalid customer ID');
+const paymentProviderSchema = z.enum(['stripe', 'paypal', 'square']);
 
 const paymentIntentIdParamsSchema = z.object({
   id: paymentIntentIdSchema,
@@ -46,12 +47,14 @@ const createPaymentIntentSchema = z.object({
   description: z.string().max(500, 'Description too long').optional(),
   donationId: uuidSchema.optional(),
   receiptEmail: emailSchema.optional(),
+  provider: paymentProviderSchema.optional(),
 });
 
 const createRefundSchema = z.object({
   paymentIntentId: paymentIntentIdSchema,
   amount: z.coerce.number().int().min(1, 'Refund amount must be positive').optional(),
   reason: z.enum(['duplicate', 'fraudulent', 'requested_by_customer']).optional(),
+  provider: paymentProviderSchema.optional(),
 });
 
 const createCustomerSchema = z.object({
@@ -59,6 +62,7 @@ const createCustomerSchema = z.object({
   name: z.string().max(200, 'Name too long').optional(),
   phone: z.string().max(20, 'Phone too long').optional(),
   contactId: uuidSchema.optional(),
+  provider: paymentProviderSchema.optional(),
 });
 
 /**
@@ -113,7 +117,7 @@ router.post(
 
 /**
  * POST /api/payments/customers
- * Create a Stripe customer
+ * Create a payment customer
  */
 router.post(
   '/customers',
@@ -124,7 +128,7 @@ router.post(
 
 /**
  * GET /api/payments/customers/:id
- * Get Stripe customer
+ * Get payment customer
  */
 router.get(
   '/customers/:id',
@@ -146,7 +150,7 @@ router.get(
 
 /**
  * POST /api/payments/webhook
- * Stripe webhook handler (no auth - verified by signature)
+ * Payment webhook handler (no auth - verified by signature)
  */
 router.post(
   '/webhook',

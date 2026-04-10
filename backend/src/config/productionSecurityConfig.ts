@@ -44,6 +44,22 @@ export function validateProductionSecurityConfig(
     );
   }
 
+  if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) {
+    errors.push('PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET must be set in production');
+  }
+
+  if (!env.PAYPAL_WEBHOOK_ID) {
+    errors.push('PAYPAL_WEBHOOK_ID must be set in production');
+  }
+
+  if (!env.SQUARE_ACCESS_TOKEN || !env.SQUARE_LOCATION_ID) {
+    errors.push('SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID must be set in production');
+  }
+
+  if (!env.SQUARE_WEBHOOK_SIGNATURE_KEY) {
+    errors.push('SQUARE_WEBHOOK_SIGNATURE_KEY must be set in production');
+  }
+
   const encryptionKey = env.ENCRYPTION_KEY || '';
   if (encryptionKey.length < 64) {
     warnings.push(

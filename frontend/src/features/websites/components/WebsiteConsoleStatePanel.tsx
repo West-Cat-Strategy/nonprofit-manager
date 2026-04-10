@@ -12,9 +12,11 @@ interface WebsiteConsoleStatePanelProps {
 }
 
 const toneClasses: Record<WebsiteConsoleStateTone, string> = {
-  loading: 'border-sky-200 bg-sky-50 text-sky-900',
+  loading:
+    'border-app-border bg-app-surface-elevated text-app-text dark:border-sky-300 dark:bg-sky-950/40 dark:text-sky-50',
   empty: 'border-dashed border-app-border bg-app-surface text-app-text-muted',
-  error: 'border-rose-200 bg-rose-50 text-rose-900',
+  error:
+    'border-rose-300 bg-rose-100 text-rose-950 dark:border-rose-300 dark:bg-rose-950/40 dark:text-rose-50',
 };
 
 const WebsiteConsoleStatePanel: React.FC<WebsiteConsoleStatePanelProps> = ({
@@ -32,15 +34,15 @@ const WebsiteConsoleStatePanel: React.FC<WebsiteConsoleStatePanelProps> = ({
   >
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="max-w-3xl">
-        <h2 className="text-base font-semibold text-app-text">{title}</h2>
-        <p className="mt-2 text-sm text-app-text-muted">{message}</p>
+        <h2 className="text-base font-semibold text-current">{title}</h2>
+        <p className="mt-2 text-sm text-current/80">{message}</p>
         {action ? <div className="mt-4">{action}</div> : null}
       </div>
       {onDismiss ? (
         <button
           type="button"
           onClick={onDismiss}
-          className="rounded-full border border-current/20 px-3 py-1 text-xs font-medium"
+          className="rounded-full border border-current/20 px-3 py-1 text-xs font-medium text-current"
         >
           {dismissLabel}
         </button>

@@ -56,9 +56,14 @@ describe('accountLockout middleware', () => {
     poolQueryMock.mockResolvedValue({ rows: [], rowCount: 1 } as never);
   });
 
-  afterAll(() => {
+  beforeAll(() => {
     process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST = 'true';
   });
+
+  afterAll(() => {
+    process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST = 'false';
+  });
+
 
   it('tracks failed attempts in memory and locks accounts after threshold', async () => {
     const identifier = `lock-memory-${Date.now()}@example.com`;

@@ -7,9 +7,33 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '../../../store/hooks';
-import { getPaymentIntent, setPaymentSuccess } from '../state';
+import api from '../../../services/api';
+import { createDonation, getPaymentIntent, setPaymentSuccess } from '../state';
+import type { PaymentProvider } from '../../../types/payment';
+import type { CreateDonationDTO } from '../../../types/donation';
 
 type ResultStatus = 'loading' | 'success' | 'processing' | 'failed';
+
+const PROVIDER_LABELS: Record<PaymentProvider, string> = {
+  stripe: 'Stripe',
+  paypal: 'PayPal',
+  square: 'Square',
+};
+
+const parseDonorName = (name: string | undefined): { first_name: string; last_name: string } => {
+  const trimmed = (name || '').trim();
+  if (!trimmed) {
+    return { first_name: 'Anonymous', last_name: 'Donor' };
+  }
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) {
+    return { first_name: parts[0], last_name: 'Donor' };
+  }
+  return {
+    first_name: parts.slice(0, -1).join(' '),
+    last_name: parts[parts.length - 1],
+  };
+};
 
 const PaymentResult: React.FC = () => {
   const navigate = useNavigate();
@@ -18,9 +42,119 @@ const PaymentResult: React.FC = () => {
   const [status, setStatus] = useState<ResultStatus>('loading');
   const [message, setMessage] = useState('');
 
+  const persistDonationRecord = async (
+    provider: PaymentProvider,
+    paymentIntentId: string,
+    providerIntent: {
+      providerCheckoutSessionId?: string | null;
+      providerSubscriptionId?: string | null;
+    }
+  ): Promise<void> => {
+    let checkoutContext:
+      | {
+          provider?: PaymentProvider;
+          paymentIntentId?: string;
+          checkoutSessionId?: string;
+          donorEmail?: string;
+          donorName?: string;
+          donorPhone?: string;
+          amount?: number;
+          currency?: string;
+          campaignName?: string;
+          designation?: string;
+          isRecurring?: boolean;
+          recurringFrequency?: string;
+        }
+      | null = null;
+
+    try {
+      const checkoutContextRaw = sessionStorage.getItem('payment_checkout_context');
+      checkoutContext = checkoutContextRaw ? JSON.parse(checkoutContextRaw) : null;
+    } catch {
+      checkoutContext = null;
+    }
+
+    if (!checkoutContext?.donorEmail || !checkoutContext.amount) {
+      return;
+    }
+
+    const donorSearch = await api.get('/contacts', {
+      params: { search: checkoutContext.donorEmail, limit: 1, is_active: true },
+    });
+    const contacts = (donorSearch.data?.data || donorSearch.data?.contacts || []) as Array<{
+      email?: string;
+      contact_id?: string;
+    }>;
+    const existingContact = contacts.find(
+      (contact) => (contact.email || '').toLowerCase() === checkoutContext!.donorEmail!.toLowerCase()
+    );
+
+    let contactId = existingContact?.contact_id || null;
+    if (!contactId) {
+      const { first_name, last_name } = parseDonorName(checkoutContext.donorName);
+      const createResponse = await api.post('/contacts', {
+        first_name,
+        last_name,
+        email: checkoutContext.donorEmail,
+        phone: checkoutContext.donorPhone || undefined,
+      });
+      contactId = createResponse.data?.contact_id || null;
+    }
+
+    if (!contactId) {
+      throw new Error('Unable to create or locate donor contact');
+    }
+
+    const donationData: CreateDonationDTO = {
+      contact_id: contactId,
+      amount: checkoutContext.amount / 100,
+      currency: (checkoutContext.currency || 'usd').toUpperCase(),
+      donation_date: new Date().toISOString(),
+      payment_method: provider === 'paypal' ? 'paypal' : 'credit_card',
+      payment_status: 'completed',
+      transaction_id: paymentIntentId,
+      payment_provider: provider,
+      provider_transaction_id: paymentIntentId,
+      provider_checkout_session_id: providerIntent.providerCheckoutSessionId || checkoutContext.checkoutSessionId || paymentIntentId,
+      provider_subscription_id: providerIntent.providerSubscriptionId || undefined,
+      campaign_name: checkoutContext.campaignName || undefined,
+      designation: checkoutContext.designation || undefined,
+      is_recurring: Boolean(checkoutContext.isRecurring),
+      recurring_frequency: checkoutContext.isRecurring
+        ? checkoutContext.recurringFrequency === 'yearly'
+          ? 'annually'
+          : (checkoutContext.recurringFrequency as 'monthly' | 'weekly' | 'annually') || 'monthly'
+        : 'one_time',
+      notes: undefined,
+    };
+
+    await dispatch(createDonation(donationData)).unwrap();
+  };
+
   useEffect(() => {
-    const paymentIntentId = searchParams.get('payment_intent');
-    const redirectStatus = searchParams.get('redirect_status');
+    let checkoutContext:
+      | { provider?: PaymentProvider; paymentIntentId?: string; checkoutSessionId?: string }
+      | null = null;
+    try {
+      const checkoutContextRaw = sessionStorage.getItem('payment_checkout_context');
+      checkoutContext = checkoutContextRaw
+        ? (JSON.parse(checkoutContextRaw) as {
+            provider?: PaymentProvider;
+            paymentIntentId?: string;
+            checkoutSessionId?: string;
+          })
+        : null;
+    } catch {
+      checkoutContext = null;
+    }
+    const provider = (searchParams.get('provider') || checkoutContext?.provider || 'stripe') as PaymentProvider;
+    const paymentIntentId =
+      searchParams.get('payment_intent') ||
+      searchParams.get('session_id') ||
+      searchParams.get('checkout_session_id') ||
+      checkoutContext?.paymentIntentId ||
+      checkoutContext?.checkoutSessionId;
+    const redirectStatus = searchParams.get('redirect_status') || searchParams.get('status');
 
     if (!paymentIntentId) {
       setStatus('failed');
@@ -29,37 +163,53 @@ const PaymentResult: React.FC = () => {
     }
 
     // Check the redirect status from Stripe
-    if (redirectStatus === 'succeeded') {
+    if (redirectStatus === 'succeeded' || redirectStatus === 'success' || redirectStatus === 'completed') {
       setStatus('success');
-      setMessage('Your payment was successful!');
+      setMessage(`Your ${PROVIDER_LABELS[provider]} payment was successful!`);
       dispatch(setPaymentSuccess(true));
     } else if (redirectStatus === 'processing') {
       setStatus('processing');
-      setMessage('Your payment is being processed. You will receive a confirmation email shortly.');
-    } else if (redirectStatus === 'failed') {
+      setMessage(
+        `Your ${PROVIDER_LABELS[provider]} payment is being processed. You will receive a confirmation email shortly.`
+      );
+    } else if (redirectStatus === 'failed' || redirectStatus === 'cancelled' || redirectStatus === 'canceled') {
       setStatus('failed');
-      setMessage('Your payment was not successful. Please try again.');
+      setMessage(`Your ${PROVIDER_LABELS[provider]} payment was cancelled or not successful. Please try again.`);
     } else {
-      // If no redirect_status, fetch the payment intent to check status
-      dispatch(getPaymentIntent(paymentIntentId))
-        .unwrap()
-        .then((intent) => {
+      const verifyPayment = async (): Promise<void> => {
+        try {
+          const intent = await (provider === 'stripe'
+            ? dispatch(getPaymentIntent(paymentIntentId)).unwrap()
+            : api
+                .get(`/payments/intents/${paymentIntentId}`, { params: { provider } })
+                .then((response) => response.data?.data || response.data));
+
           if (intent.status === 'succeeded') {
+            if (provider !== 'stripe') {
+              await persistDonationRecord(provider, paymentIntentId, {
+                providerCheckoutSessionId:
+                  intent.providerCheckoutSessionId || intent.id || paymentIntentId,
+                providerSubscriptionId: intent.providerSubscriptionId || null,
+              });
+            }
+            sessionStorage.removeItem('payment_checkout_context');
             setStatus('success');
-            setMessage('Your payment was successful!');
+            setMessage(`Your ${PROVIDER_LABELS[provider]} payment was successful!`);
             dispatch(setPaymentSuccess(true));
           } else if (intent.status === 'processing') {
             setStatus('processing');
-            setMessage('Your payment is being processed.');
+            setMessage(`Your ${PROVIDER_LABELS[provider]} payment is being processed.`);
           } else {
             setStatus('failed');
             setMessage('Your payment could not be completed. Please try again.');
           }
-        })
-        .catch(() => {
+        } catch {
           setStatus('failed');
           setMessage('Unable to verify payment status. Please contact support.');
-        });
+        }
+      };
+
+      void verifyPayment();
     }
   }, [searchParams, dispatch]);
 

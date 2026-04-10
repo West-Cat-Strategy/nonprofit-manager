@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Pool } from 'pg';
 import dbPool from '@config/database';
 import type {
@@ -6,6 +7,9 @@ import type {
   WebsiteFacebookSettings,
   WebsiteFormOperationalConfig,
   WebsiteMailchimpSettings,
+  WebsiteNewsletterListPreset,
+  WebsiteMauticSettings,
+  WebsiteNewsletterSettings,
   WebsiteManagedFormType,
   WebsiteSocialSettings,
   WebsiteSiteSettings,
@@ -65,6 +69,16 @@ const cleanBoolean = (value: unknown): boolean | undefined => {
   return undefined;
 };
 
+const cleanDate = (value: unknown): Date | null | undefined => {
+  if (value === null) return null;
+  if (value instanceof Date) return value;
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+};
+
 const normalizeMailchimpSettings = (value: unknown): WebsiteMailchimpSettings => {
   const config = asObject(value);
   return {
@@ -72,11 +86,119 @@ const normalizeMailchimpSettings = (value: unknown): WebsiteMailchimpSettings =>
     audienceMode:
       config.audienceMode === 'crm' ||
       config.audienceMode === 'mailchimp' ||
+      config.audienceMode === 'mautic' ||
       config.audienceMode === 'both'
         ? config.audienceMode
         : undefined,
     defaultTags: cleanStringArray(config.defaultTags),
     syncEnabled: cleanBoolean(config.syncEnabled),
+  };
+};
+
+const normalizeNewsletterListPreset = (
+  value: unknown
+): WebsiteNewsletterListPreset | undefined => {
+  const config = asObject(value);
+  const id = cleanString(config.id);
+  const name = cleanString(config.name);
+  const provider =
+    config.provider === 'mailchimp' || config.provider === 'mautic'
+      ? config.provider
+      : undefined;
+  const audienceId = cleanString(config.audienceId);
+
+  if (!id || !name || !provider || !audienceId) {
+    return undefined;
+  }
+
+  return {
+    id,
+    name,
+    provider,
+    audienceId,
+    audienceName:
+      config.audienceName === null ? null : cleanString(config.audienceName),
+    notes: config.notes === null ? null : cleanString(config.notes),
+    defaultTags: cleanStringArray(config.defaultTags),
+    syncEnabled: cleanBoolean(config.syncEnabled),
+    createdAt: cleanDate(config.createdAt) ?? null,
+    updatedAt: cleanDate(config.updatedAt) ?? null,
+  };
+};
+
+const normalizeNewsletterSettingsPatch = (
+  value: unknown
+): Partial<WebsiteNewsletterSettings> => {
+  const config = asObject(value);
+  const presets = Array.isArray(config.listPresets)
+    ? config.listPresets
+        .map((entry) => normalizeNewsletterListPreset(entry))
+        .filter((entry): entry is WebsiteNewsletterListPreset => Boolean(entry))
+    : undefined;
+
+  return {
+    provider:
+      config.provider === 'mailchimp' || config.provider === 'mautic'
+        ? config.provider
+        : undefined,
+    selectedAudienceId:
+      config.selectedAudienceId === null ? null : cleanString(config.selectedAudienceId),
+    selectedAudienceName:
+      config.selectedAudienceName === null ? null : cleanString(config.selectedAudienceName),
+    selectedPresetId:
+      config.selectedPresetId === null ? null : cleanString(config.selectedPresetId),
+    listPresets: presets,
+    lastRefreshedAt: cleanDate(config.lastRefreshedAt),
+  };
+};
+
+const normalizeMauticSettings = (value: unknown): WebsiteMauticSettings => {
+  const config = asObject(value);
+  return {
+    baseUrl: config.baseUrl === null ? null : cleanString(config.baseUrl),
+    segmentId: config.segmentId === null ? null : cleanString(config.segmentId),
+    username: config.username === null ? null : cleanString(config.username),
+    password: config.password === null ? null : cleanString(config.password),
+    defaultTags: cleanStringArray(config.defaultTags),
+    syncEnabled: cleanBoolean(config.syncEnabled),
+  };
+};
+
+const normalizeNewsletterSettings = (
+  value: unknown,
+  mailchimpConfig: WebsiteMailchimpSettings,
+  mauticConfig: WebsiteMauticSettings
+): WebsiteNewsletterSettings => {
+  const config = asObject(value);
+  const normalized = normalizeNewsletterSettingsPatch(config);
+  const provider =
+    normalized.provider ||
+    (mailchimpConfig.audienceId || mailchimpConfig.defaultTags?.length || mailchimpConfig.syncEnabled
+      ? 'mailchimp'
+      : undefined) ||
+    (mauticConfig.baseUrl || mauticConfig.segmentId || mauticConfig.username
+      ? 'mautic'
+      : undefined) ||
+    'mautic';
+  const selectedAudienceId =
+    normalized.selectedAudienceId !== undefined
+      ? normalized.selectedAudienceId
+      : provider === 'mailchimp'
+        ? mailchimpConfig.audienceId ?? null
+        : provider === 'mautic'
+          ? mauticConfig.segmentId ?? null
+          : null;
+
+  return {
+    provider,
+    selectedAudienceId,
+    selectedAudienceName:
+      normalized.selectedAudienceName !== undefined ? normalized.selectedAudienceName : null,
+    selectedPresetId:
+      normalized.selectedPresetId !== undefined ? normalized.selectedPresetId : null,
+    listPresets: normalized.listPresets || [],
+    lastRefreshedAt:
+      normalized.lastRefreshedAt !== undefined ? normalized.lastRefreshedAt : null,
   };
 };
 
@@ -118,9 +240,12 @@ const normalizeOperationalConfig = (value: unknown): WebsiteFormOperationalConfi
     campaignId: config.campaignId === null ? null : cleanString(config.campaignId),
     mailchimpListId:
       config.mailchimpListId === null ? null : cleanString(config.mailchimpListId),
+    mauticSegmentId:
+      config.mauticSegmentId === null ? null : cleanString(config.mauticSegmentId),
     audienceMode:
       config.audienceMode === 'crm' ||
       config.audienceMode === 'mailchimp' ||
+      config.audienceMode === 'mautic' ||
       config.audienceMode === 'both'
         ? config.audienceMode
         : undefined,
@@ -171,7 +296,16 @@ const buildDefaultSettings = (
 ): WebsiteSiteSettings => ({
   siteId,
   organizationId,
+  newsletter: {
+    provider: 'mautic',
+    selectedAudienceId: null,
+    selectedAudienceName: null,
+    selectedPresetId: null,
+    listPresets: [],
+    lastRefreshedAt: null,
+  },
   mailchimp: {},
+  mautic: {},
   stripe: {},
   social: {
     facebook: {},
@@ -228,6 +362,8 @@ export class WebsiteSiteSettingsService {
       return buildDefaultSettings(siteId, organizationId);
     }
 
+    const mailchimp = normalizeMailchimpSettings(row.mailchimp_config);
+    const mautic = normalizeMauticSettings(row.mautic_config);
     const formOverridesSource = asObject(row.form_overrides);
     const formOverrides = Object.fromEntries(
       Object.entries(formOverridesSource).map(([formKey, config]) => [
@@ -239,7 +375,9 @@ export class WebsiteSiteSettingsService {
     return {
       siteId: row.site_id as string,
       organizationId: (row.organization_id as string | null) ?? organizationId,
-      mailchimp: normalizeMailchimpSettings(row.mailchimp_config),
+      newsletter: normalizeNewsletterSettings(row.newsletter_config, mailchimp, mautic),
+      mailchimp,
+      mautic,
       stripe: normalizeStripeSettings(row.stripe_config),
       social: normalizeSocialSettings(row.social_config),
       formDefaults: normalizeOperationalConfig(row.form_defaults),
@@ -289,7 +427,9 @@ export class WebsiteSiteSettingsService {
       `INSERT INTO website_site_settings (
          site_id,
          organization_id,
+         newsletter_config,
          mailchimp_config,
+         mautic_config,
          stripe_config,
          social_config,
          form_defaults,
@@ -297,11 +437,13 @@ export class WebsiteSiteSettingsService {
          conversion_tracking,
          created_by,
          updated_by
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (site_id)
        DO UPDATE SET
          organization_id = EXCLUDED.organization_id,
+         newsletter_config = EXCLUDED.newsletter_config,
          mailchimp_config = EXCLUDED.mailchimp_config,
+         mautic_config = EXCLUDED.mautic_config,
          stripe_config = EXCLUDED.stripe_config,
          social_config = EXCLUDED.social_config,
          form_defaults = EXCLUDED.form_defaults,
@@ -313,12 +455,15 @@ export class WebsiteSiteSettingsService {
       [
         site.id,
         site.organizationId,
+        JSON.stringify(settings.newsletter || { provider: 'mautic' }),
         JSON.stringify(settings.mailchimp || {}),
+        JSON.stringify(settings.mautic || {}),
         JSON.stringify(settings.stripe || {}),
         JSON.stringify(settings.social || { facebook: {} }),
         JSON.stringify(settings.formDefaults || {}),
         JSON.stringify(settings.formOverrides || {}),
         JSON.stringify(settings.conversionTracking || DEFAULT_CONVERSION_TRACKING),
+        userId,
         userId,
       ]
     );
@@ -361,6 +506,183 @@ export class WebsiteSiteSettingsService {
       mailchimp: {
         ...current.mailchimp,
         ...stripUndefined(normalizeMailchimpSettings(patch)),
+      },
+    };
+
+    return this.persistSettings(site, nextSettings, userId);
+  }
+
+  async updateNewsletterSettings(
+    siteId: string,
+    patch: Partial<WebsiteNewsletterSettings>,
+    userId: string,
+    organizationId?: string
+  ): Promise<WebsiteSiteSettings> {
+    const site = await this.requireOwnedSite(siteId, userId, organizationId);
+    this.assertMutableSite(site);
+
+    const current = await this.getSettingsForSite(site);
+    const nextSettings: WebsiteSiteSettings = {
+      ...current,
+      newsletter: {
+        ...current.newsletter,
+        ...stripUndefined(normalizeNewsletterSettingsPatch(patch)),
+      },
+    };
+
+    return this.persistSettings(site, nextSettings, userId);
+  }
+
+  async createNewsletterListPreset(
+    siteId: string,
+    preset: Omit<WebsiteNewsletterListPreset, 'id' | 'createdAt' | 'updatedAt'>,
+    userId: string,
+    organizationId?: string
+  ): Promise<WebsiteSiteSettings> {
+    const site = await this.requireOwnedSite(siteId, userId, organizationId);
+    this.assertMutableSite(site);
+
+    const current = await this.getSettingsForSite(site);
+    const timestamp = new Date();
+    const nextPreset: WebsiteNewsletterListPreset = {
+      ...preset,
+      id: `newsletter-list-${randomUUID()}`,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      defaultTags: preset.defaultTags || [],
+    };
+
+    const nextSettings: WebsiteSiteSettings = {
+      ...current,
+      newsletter: {
+        ...current.newsletter,
+        listPresets: [...(current.newsletter.listPresets || []), nextPreset],
+      },
+    };
+
+    return this.persistSettings(site, nextSettings, userId);
+  }
+
+  async updateNewsletterListPreset(
+    siteId: string,
+    presetId: string,
+    patch: Partial<Omit<WebsiteNewsletterListPreset, 'id' | 'createdAt' | 'updatedAt'>>,
+    userId: string,
+    organizationId?: string
+  ): Promise<WebsiteSiteSettings> {
+    const site = await this.requireOwnedSite(siteId, userId, organizationId);
+    this.assertMutableSite(site);
+
+    const current = await this.getSettingsForSite(site);
+    const timestamp = new Date();
+    const nextPresets = (current.newsletter.listPresets || []).map((preset) =>
+      preset.id === presetId
+        ? {
+            ...preset,
+            ...stripUndefined({
+              ...patch,
+              provider:
+                patch.provider === 'mailchimp' || patch.provider === 'mautic'
+                  ? patch.provider
+                  : undefined,
+              audienceId: cleanString(patch.audienceId) || preset.audienceId,
+              audienceName:
+                patch.audienceName === null ? null : cleanString(patch.audienceName),
+              notes: patch.notes === null ? null : cleanString(patch.notes),
+              defaultTags: cleanStringArray(patch.defaultTags),
+              syncEnabled: cleanBoolean(patch.syncEnabled),
+            }),
+            updatedAt: timestamp,
+          }
+        : preset
+    );
+
+    const nextSettings: WebsiteSiteSettings = {
+      ...current,
+      newsletter: {
+        ...current.newsletter,
+        listPresets: nextPresets,
+      },
+    };
+
+    return this.persistSettings(site, nextSettings, userId);
+  }
+
+  async deleteNewsletterListPreset(
+    siteId: string,
+    presetId: string,
+    userId: string,
+    organizationId?: string
+  ): Promise<WebsiteSiteSettings> {
+    const site = await this.requireOwnedSite(siteId, userId, organizationId);
+    this.assertMutableSite(site);
+
+    const current = await this.getSettingsForSite(site);
+    const nextPresets = (current.newsletter.listPresets || []).filter(
+      (preset) => preset.id !== presetId
+    );
+
+    const nextNewsletter: WebsiteNewsletterSettings = {
+      ...current.newsletter,
+      listPresets: nextPresets,
+      selectedPresetId:
+        current.newsletter.selectedPresetId === presetId
+          ? null
+          : current.newsletter.selectedPresetId,
+    };
+
+    if (
+      current.newsletter.selectedPresetId === presetId &&
+      current.newsletter.selectedAudienceId &&
+      !nextPresets.some((preset) => preset.audienceId === current.newsletter.selectedAudienceId)
+    ) {
+      nextNewsletter.selectedAudienceId = null;
+      nextNewsletter.selectedAudienceName = null;
+    }
+
+    const nextSettings: WebsiteSiteSettings = {
+      ...current,
+      newsletter: nextNewsletter,
+    };
+
+    return this.persistSettings(site, nextSettings, userId);
+  }
+
+  async refreshNewsletterSettings(
+    siteId: string,
+    userId: string,
+    organizationId?: string
+  ): Promise<WebsiteSiteSettings> {
+    const site = await this.requireOwnedSite(siteId, userId, organizationId);
+    this.assertMutableSite(site);
+
+    const current = await this.getSettingsForSite(site);
+    const nextSettings: WebsiteSiteSettings = {
+      ...current,
+      newsletter: {
+        ...current.newsletter,
+        lastRefreshedAt: new Date(),
+      },
+    };
+
+    return this.persistSettings(site, nextSettings, userId);
+  }
+
+  async updateMauticSettings(
+    siteId: string,
+    patch: Partial<WebsiteMauticSettings>,
+    userId: string,
+    organizationId?: string
+  ): Promise<WebsiteSiteSettings> {
+    const site = await this.requireOwnedSite(siteId, userId, organizationId);
+    this.assertMutableSite(site);
+
+    const current = await this.getSettingsForSite(site);
+    const nextSettings: WebsiteSiteSettings = {
+      ...current,
+      mautic: {
+        ...current.mautic,
+        ...stripUndefined(normalizeMauticSettings(patch)),
       },
     };
 

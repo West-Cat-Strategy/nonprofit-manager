@@ -3,6 +3,28 @@ backend/node_modules
 frontend/node_modules
 e2e/node_modules
 
+# Local workspace files and generated artifacts
+.codex/
+output/pdf/
+
+# Secrets and deploy config
+.env
+.env.*
+.deploy.conf
+.deploy.conf.*
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+*.pub
+
+# Logs and temporary output
 logs
 backend/logs
 backend/exports

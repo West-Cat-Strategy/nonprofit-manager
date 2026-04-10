@@ -9,7 +9,6 @@ export { DonationService } from './donationService';
 export { EventService } from '../modules/events/services/eventService';
 export { ExportService } from './exportService';
 export type { ExportFormat } from './exportService';
-export { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './fileStorageService';
 export {
   ImageOptimizationService,
   imageOptimizationService,

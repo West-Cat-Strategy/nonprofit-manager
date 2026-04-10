@@ -157,7 +157,8 @@ const formOperationalSettingsSchema = z
     accountId: z.union([uuidSchema, z.null()]).optional(),
     campaignId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
     mailchimpListId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
-    audienceMode: z.enum(['crm', 'mailchimp', 'both']).optional(),
+    mauticSegmentId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    audienceMode: z.enum(['crm', 'mailchimp', 'mautic', 'both']).optional(),
     defaultTags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
     includePhone: optionalStrictBooleanSchema,
     includeMessage: optionalStrictBooleanSchema,
@@ -173,6 +174,8 @@ const formOperationalSettingsSchema = z
   })
   .strict();
 
+const newsletterProviderSchema = z.enum(['mailchimp', 'mautic']);
+
 const updateSiteMailchimpSettingsSchema = z
   .object({
     audienceId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
@@ -181,6 +184,61 @@ const updateSiteMailchimpSettingsSchema = z
     syncEnabled: optionalStrictBooleanSchema,
   })
   .strict();
+
+const updateSiteMauticSettingsSchema = z
+  .object({
+    baseUrl: z.union([z.string().trim().url(), z.null()]).optional(),
+    segmentId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    username: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    password: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    defaultTags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
+    syncEnabled: optionalStrictBooleanSchema,
+  })
+  .strict();
+
+const updateSiteNewsletterSettingsSchema = z
+  .object({
+    provider: newsletterProviderSchema.optional(),
+    selectedAudienceId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    selectedAudienceName: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    selectedPresetId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    listPresets: z
+      .array(
+        z
+          .object({
+            id: z.string().trim().min(1).max(255),
+            name: z.string().trim().min(1).max(255),
+            provider: newsletterProviderSchema,
+            audienceId: z.string().trim().min(1).max(255),
+            audienceName: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+            notes: z.union([z.string().trim().max(5000), z.null()]).optional(),
+            defaultTags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
+            syncEnabled: optionalStrictBooleanSchema,
+            createdAt: z.union([z.string().trim().min(1), z.null()]).optional(),
+            updatedAt: z.union([z.string().trim().min(1), z.null()]).optional(),
+          })
+          .strict()
+      )
+      .optional(),
+    lastRefreshedAt: z.union([z.string().trim().min(1), z.null()]).optional(),
+    mailchimp: updateSiteMailchimpSettingsSchema.optional(),
+    mautic: updateSiteMauticSettingsSchema.optional(),
+  })
+  .strict();
+
+const createSiteNewsletterListPresetSchema = z
+  .object({
+    name: z.string().trim().min(1).max(255),
+    provider: newsletterProviderSchema.optional(),
+    audienceId: z.string().trim().min(1).max(255),
+    audienceName: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    notes: z.union([z.string().trim().max(5000), z.null()]).optional(),
+    defaultTags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
+    syncEnabled: optionalStrictBooleanSchema,
+  })
+  .strict();
+
+const updateSiteNewsletterListPresetSchema = createSiteNewsletterListPresetSchema.partial().strict();
 
 const updateSiteStripeSettingsSchema = z
   .object({
@@ -317,6 +375,69 @@ router.get(
   ...withOrganizationContext,
   validateParams(siteIdParamsSchema),
   publishingController.getSiteIntegrations
+);
+
+router.get(
+  '/:siteId/newsletters',
+  ...withOrganizationContext,
+  validateParams(siteIdParamsSchema),
+  publishingController.getSiteNewsletterWorkspace
+);
+
+router.put(
+  '/:siteId/integrations/newsletter',
+  ...withOrganizationContext,
+  validateParams(siteIdParamsSchema),
+  validateBody(updateSiteNewsletterSettingsSchema),
+  publishingController.updateSiteNewsletterWorkspace
+);
+
+router.put(
+  '/:siteId/newsletters',
+  ...withOrganizationContext,
+  validateParams(siteIdParamsSchema),
+  validateBody(updateSiteNewsletterSettingsSchema),
+  publishingController.updateSiteNewsletterWorkspace
+);
+
+router.post(
+  '/:siteId/newsletters/refresh',
+  ...withOrganizationContext,
+  validateParams(siteIdParamsSchema),
+  publishingController.refreshSiteNewsletterWorkspace
+);
+
+router.post(
+  '/:siteId/newsletters/lists',
+  ...withOrganizationContext,
+  validateParams(siteIdParamsSchema),
+  validateBody(createSiteNewsletterListPresetSchema),
+  publishingController.createSiteNewsletterListPreset
+);
+
+router.put(
+  '/:siteId/newsletters/lists/:listId',
+  ...withOrganizationContext,
+  validateParams(
+    z.object({
+      siteId: uuidSchema,
+      listId: z.string().trim().min(1).max(255),
+    })
+  ),
+  validateBody(updateSiteNewsletterListPresetSchema),
+  publishingController.updateSiteNewsletterListPreset
+);
+
+router.delete(
+  '/:siteId/newsletters/lists/:listId',
+  ...withOrganizationContext,
+  validateParams(
+    z.object({
+      siteId: uuidSchema,
+      listId: z.string().trim().min(1).max(255),
+    })
+  ),
+  publishingController.deleteSiteNewsletterListPreset
 );
 
 router.put(

@@ -29,6 +29,9 @@ import {
   getSingleReceiptDisabledReason,
 } from '../utils/taxReceipts';
 
+const formatProviderLabel = (provider?: string | null): string =>
+  provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : 'Stripe';
+
 const DonationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -264,6 +267,36 @@ const DonationDetail: React.FC = () => {
                   <div>
                     <dt className="text-sm font-medium text-app-text-muted">Transaction ID</dt>
                     <dd className="text-sm text-app-text font-mono">{donation.transaction_id}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-sm font-medium text-app-text-muted">Payment Provider</dt>
+                  <dd className="text-sm text-app-text">
+                    {formatProviderLabel(donation.payment_provider)}
+                  </dd>
+                </div>
+                {donation.provider_transaction_id && (
+                  <div>
+                    <dt className="text-sm font-medium text-app-text-muted">Provider Transaction ID</dt>
+                    <dd className="text-sm text-app-text font-mono">
+                      {donation.provider_transaction_id}
+                    </dd>
+                  </div>
+                )}
+                {donation.provider_checkout_session_id && (
+                  <div>
+                    <dt className="text-sm font-medium text-app-text-muted">Provider Checkout Session</dt>
+                    <dd className="text-sm text-app-text font-mono">
+                      {donation.provider_checkout_session_id}
+                    </dd>
+                  </div>
+                )}
+                {donation.provider_subscription_id && (
+                  <div>
+                    <dt className="text-sm font-medium text-app-text-muted">Provider Subscription ID</dt>
+                    <dd className="text-sm text-app-text font-mono">
+                      {donation.provider_subscription_id}
+                    </dd>
                   </div>
                 )}
               </dl>

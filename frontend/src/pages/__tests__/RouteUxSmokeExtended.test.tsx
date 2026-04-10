@@ -9,11 +9,11 @@ import ForgotPassword from '../../features/auth/pages/ForgotPasswordPage';
 import ResetPassword from '../../features/auth/pages/ResetPasswordPage';
 import PortalLogin from '../../features/portal/pages/PortalLoginPage';
 import PortalSignup from '../../features/portal/pages/PortalSignupPage';
-import NavigationSettings from '../admin/NavigationSettings';
-import ApiSettings from '../admin/ApiSettings';
-import DataBackup from '../admin/DataBackup';
-import EmailMarketing from '../admin/EmailMarketing';
-import AdminSettings from '../admin/AdminSettings';
+import NavigationSettings from '../../features/adminOps/pages/NavigationSettingsPage';
+import ApiSettings from '../../features/adminOps/pages/ApiSettingsPage';
+import DataBackup from '../../features/adminOps/pages/DataBackupPage';
+import CommunicationsPage from '../../features/adminOps/pages/EmailMarketingPage';
+import AdminSettings from '../../features/adminOps/pages/AdminSettingsPage';
 import api from '../../services/api';
 import { renderWithProviders } from '../../test/testUtils';
 import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
@@ -140,10 +140,10 @@ const smokeCases: SmokeCase[] = [
     primaryActionPattern: /download backup/i,
   },
   {
-    name: 'email-marketing',
-    route: '/settings/email-marketing',
-    page: <EmailMarketing />,
-    heading: /email marketing/i,
+    name: 'communications',
+    route: '/settings/communications',
+    page: <CommunicationsPage />,
+    heading: /communications/i,
     primaryActionPattern: /admin\.mailchimp\.com\/account\/api/i,
     primaryActionRole: 'link',
   },
@@ -224,11 +224,13 @@ describe('Route UX smoke (auth/portal/settings)', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('avoids Mailchimp list and campaign requests when the integration is not configured', async () => {
-    renderWithProviders(<EmailMarketing />, { route: '/settings/email-marketing' });
+  it('avoids Mailchimp list and campaign requests when the communications hub is not configured', async () => {
+    renderWithProviders(<CommunicationsPage />, { route: '/settings/communications' });
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /mailchimp not configured/i, level: 2 })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /newsletter provider not configured/i, level: 2 })
+      ).toBeInTheDocument();
     });
 
     expect(mockApi.get).toHaveBeenCalledWith('/mailchimp/status');
@@ -259,7 +261,7 @@ describe('Route UX smoke (auth/portal/settings)', () => {
       return Promise.resolve({ data: {} });
     });
 
-    renderWithProviders(<EmailMarketing />, { route: '/settings/email-marketing' });
+    renderWithProviders(<CommunicationsPage />, { route: '/settings/communications' });
 
     await waitFor(() => {
       expect(screen.getByText(/connected to mailchimp/i)).toBeInTheDocument();

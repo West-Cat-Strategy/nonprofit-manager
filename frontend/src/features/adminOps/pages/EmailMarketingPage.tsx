@@ -28,6 +28,7 @@ import type {
 import type { Contact } from '../../../features/contacts/state';
 import AdminPanelLayout from '../components/AdminPanelLayout';
 import AdminPanelNav from '../components/AdminPanelNav';
+import EmailSettingsSection from './adminSettings/sections/EmailSettingsSection';
 
 /**
  * Status Badge Component
@@ -595,8 +596,8 @@ export default function EmailMarketing() {
   if (status && !status.configured) {
     return (
       <AdminPanelLayout
-        title="Email Marketing"
-        description="Manage your Mailchimp integration and sync contacts."
+        title="Communications"
+        description="Manage newsletter audiences, campaign sync, and transactional email."
         sidebar={<AdminPanelNav currentPath={location.pathname} />}
       >
         <div className="bg-app-accent-soft border border-app-border rounded-lg p-6">
@@ -605,9 +606,9 @@ export default function EmailMarketing() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-              <h2 className="text-lg font-medium text-app-accent-text">Mailchimp Not Configured</h2>
+              <h2 className="text-lg font-medium text-app-accent-text">Newsletter provider not configured</h2>
               <p className="mt-2 text-sm text-app-accent-text">
-                To use email marketing features, please configure your Mailchimp integration by setting the following environment variables:
+                To use the communications hub, please configure a newsletter provider before sending campaigns or syncing contacts:
               </p>
               <ul className="mt-3 text-sm text-app-accent-text list-disc list-inside space-y-1">
                 <li><code className="bg-app-accent-soft px-1 rounded">MAILCHIMP_API_KEY</code> - Your Mailchimp API key</li>
@@ -628,8 +629,8 @@ export default function EmailMarketing() {
 
   return (
     <AdminPanelLayout
-      title="Email Marketing"
-      description="Manage your Mailchimp integration and sync contacts."
+      title="Communications"
+      description="Manage newsletter audiences, campaign sync, and transactional email."
       sidebar={<AdminPanelNav currentPath={location.pathname} />}
     >
       <div className="space-y-8">
@@ -772,6 +773,17 @@ export default function EmailMarketing() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="rounded-lg border border-app-border bg-app-surface p-4">
+          <h2 className="text-lg font-medium text-app-text-heading">Transactional Email</h2>
+          <p className="mt-1 text-sm text-app-text-muted">
+            Keep the outbound mail configuration in the same communications hub as your newsletter
+            provider.
+          </p>
+        </div>
+        <EmailSettingsSection />
       </div>
 
       {/* Campaigns Section */}

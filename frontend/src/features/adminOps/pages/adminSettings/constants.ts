@@ -158,7 +158,7 @@ export const adminSettingsTabs = [
   { id: 'workspace_modules', label: 'Workspace Modules', level: 'basic' },
   { id: 'branding', label: 'Branding', level: 'basic' },
   { id: 'users', label: 'Users & Security', level: 'basic' },
-  { id: 'email', label: 'Email Settings', level: 'basic' },
+  { id: 'communications', label: 'Communications', level: 'basic' },
   { id: 'messaging', label: 'Messaging Settings', level: 'basic' },
   { id: 'outcomes', label: 'Outcome Definitions', level: 'advanced' },
   { id: 'roles', label: 'Roles & Permissions', level: 'advanced' },

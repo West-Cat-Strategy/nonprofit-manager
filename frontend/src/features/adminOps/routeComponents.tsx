@@ -14,6 +14,7 @@ export const ApiSettings = lazy(() => import('./pages/ApiSettingsPage'));
 export const NavigationSettings = lazy(() => import('./pages/NavigationSettingsPage'));
 export const DataBackup = lazy(() => import('./pages/DataBackupPage'));
 export const EmailMarketing = lazy(() => import('./pages/EmailMarketingPage'));
+export const CommunicationsPage = lazy(() => import('./pages/EmailMarketingPage'));
 export const SocialMedia = lazy(() => import('./pages/SocialMediaPage'));
 export const PortalAdminPage = lazy(() => import('./pages/portalAdmin/PortalAdminPage'));
 

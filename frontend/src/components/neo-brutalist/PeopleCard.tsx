@@ -13,14 +13,14 @@ interface PeopleCardProps {
 
 // Color mapping for Neo-Brutalist design system
 const CARD_COLORS: Record<CardColor, string> = {
-    pink: 'bg-loop-pink text-black',
-    cyan: 'bg-loop-cyan text-black',
-    yellow: 'bg-loop-yellow text-black',
+    pink: 'bg-loop-pink text-[var(--app-text-heading)]',
+    cyan: 'bg-loop-cyan text-[var(--app-text-heading)]',
+    yellow: 'bg-loop-yellow text-[var(--app-text-heading)]',
     gray: 'bg-app-surface text-app-text',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-    active: 'bg-loop-green text-black border-app-border',
+    active: 'bg-loop-green text-[var(--app-text-heading)] border-app-border',
     away: 'bg-app-surface text-app-text border-app-border',
     inactive: 'bg-app-surface text-app-text border-app-border',
 };
@@ -29,7 +29,7 @@ export default function PeopleCard({ person }: PeopleCardProps) {
     // Get card background color from data, fallback to white
     const cardBg = person.cardColor ? CARD_COLORS[person.cardColor] : 'bg-app-surface text-app-text';
     const usesLoopSurface = person.cardColor !== undefined && person.cardColor !== 'gray';
-    const secondaryTextClass = usesLoopSurface ? 'text-black/70' : 'text-app-text-muted';
+    const secondaryTextClass = usesLoopSurface ? 'text-[var(--app-text-muted)]' : 'text-app-text-muted';
 
     // Get status badge color
     const statusColor = STATUS_COLORS[person.status?.toLowerCase() || 'active'] || STATUS_COLORS.active;

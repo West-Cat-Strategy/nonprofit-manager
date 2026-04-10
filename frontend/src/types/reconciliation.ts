@@ -69,6 +69,12 @@ export interface ReconciliationItem {
 
   // Donation link
   donation_id?: string | null;
+  payment_provider?: 'stripe' | 'paypal' | 'square' | null;
+  provider_payment_id?: string | null;
+  provider_charge_id?: string | null;
+  provider_balance_transaction_id?: string | null;
+  provider_created_at?: string | null;
+  provider_status?: string | null;
 
   // Stripe transaction details
   stripe_payment_intent_id?: string | null;
@@ -116,6 +122,9 @@ export interface PaymentDiscrepancy {
 
   // Related records
   donation_id?: string | null;
+  payment_provider?: 'stripe' | 'paypal' | 'square' | null;
+  provider_payment_id?: string | null;
+  provider_charge_id?: string | null;
   stripe_payment_intent_id?: string | null;
   stripe_charge_id?: string | null;
 

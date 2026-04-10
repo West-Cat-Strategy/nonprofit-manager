@@ -57,13 +57,13 @@ export function useStaffNavigationViewModel() {
     [workspaceModules]
   );
   const desktopPrimaryItems = useMemo(
-    () => navigationPreferences.primaryItems.slice(0, 3),
+    () => (navigationPreferences.primaryItems ?? []).slice(0, 3),
     [navigationPreferences.primaryItems]
   );
   const desktopOverflowItems = useMemo(
     () => [
-      ...navigationPreferences.primaryItems.slice(3),
-      ...navigationPreferences.secondaryItems,
+      ...(navigationPreferences.primaryItems ?? []).slice(3),
+      ...(navigationPreferences.secondaryItems ?? []),
     ],
     [navigationPreferences.primaryItems, navigationPreferences.secondaryItems]
   );

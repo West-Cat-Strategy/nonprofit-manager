@@ -89,12 +89,12 @@ export const PeopleDetailContainer: React.FC<PeopleDetailContainerProps> = ({
     return (
       <div className="min-h-screen bg-[var(--app-bg)] p-6 transition-colors duration-300">
         <div className="max-w-6xl mx-auto">
-          <BrutalCard className="border-4 border-black bg-app-accent text-[var(--app-accent-foreground)] p-8 shadow-[8px_8px_0px_0px_var(--shadow-color)]">
+          <BrutalCard className="border-4 border-[var(--app-border)] bg-app-accent text-[var(--app-accent-foreground)] p-8 shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <p className="font-black uppercase text-2xl mb-6">{error}</p>
             {(backPath || onBack) && (
               <button
                 onClick={onBack || (() => window.history.back())}
-                className="bg-white text-black px-6 py-2 font-black uppercase border-4 border-black hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-[4px_4px_0px_0px_#000] transition-all"
+                className="bg-app-surface text-[var(--app-text-heading)] px-6 py-2 font-black uppercase border-4 border-[var(--app-border)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-all"
               >
                 ← Go back
               </button>
@@ -115,7 +115,7 @@ export const PeopleDetailContainer: React.FC<PeopleDetailContainerProps> = ({
                 {item.path ? (
                   <Link
                     to={item.path}
-                    className="text-[var(--app-accent)] hover:text-[var(--app-accent-text)] font-black uppercase text-sm tracking-wider"
+                    className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)] font-black uppercase text-sm tracking-wider"
                   >
                     {item.label}
                   </Link>
@@ -202,7 +202,7 @@ export const PeopleDetailContainer: React.FC<PeopleDetailContainerProps> = ({
                   >
                     {tab.label}
                     {tab.badge !== undefined && (
-                      <span className="ml-3 bg-[var(--app-accent)] text-[var(--app-accent-text)] px-3 py-1 text-xs font-black rounded-none border-2 border-black inline-block transform -rotate-3">
+                      <span className="ml-3 bg-[var(--app-accent)] text-[var(--app-accent-foreground)] px-3 py-1 text-xs font-black rounded-none border-2 border-[var(--app-border)] inline-block transform -rotate-3">
                         {tab.badge}
                       </span>
                     )}

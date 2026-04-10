@@ -102,7 +102,7 @@ const ReconciliationDashboard: React.FC = () => {
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-app-text">Payment Reconciliation</h1>
-          <p className="text-app-text-muted mt-1">Match Stripe transactions with donation records</p>
+          <p className="text-app-text-muted mt-1">Match provider transactions with donation records</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -189,7 +189,7 @@ const ReconciliationDashboard: React.FC = () => {
               </div>
             </div>
             <div>
-              <div className="text-sm text-app-text-muted">Stripe Amount</div>
+              <div className="text-sm text-app-text-muted">Provider Amount</div>
               <div className="font-semibold">
                 {formatCurrencyOrZero(latestReconciliation.stripe_balance_amount)}
               </div>

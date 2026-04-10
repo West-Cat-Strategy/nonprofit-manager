@@ -425,9 +425,10 @@ export interface NewsletterSignupComponent extends BaseComponentProps {
   description?: string;
   buttonText?: string;
   mailchimpListId?: string;
+  mauticSegmentId?: string;
   successMessage?: string;
   accountId?: string;
-  audienceMode?: 'crm' | 'mailchimp' | 'both';
+  audienceMode?: 'crm' | 'mailchimp' | 'mautic' | 'both';
   defaultTags?: string[];
 }
 

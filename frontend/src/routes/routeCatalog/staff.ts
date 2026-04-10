@@ -679,9 +679,9 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     path: '/settings/admin/users',
   }),
   adminRoute({
-    id: 'admin-settings-email',
-    title: 'Email Settings',
-    path: '/settings/admin/email',
+    id: 'admin-settings-communications',
+    title: 'Communications',
+    path: '/settings/admin/communications',
   }),
   adminRoute({
     id: 'admin-settings-messaging',
@@ -731,10 +731,10 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     adminNav: { mode: 'settings', order: 140, label: 'Data Backup' },
   }),
   settingsRoute({
-    id: 'email-marketing',
-    title: 'Email Marketing',
-    path: '/settings/email-marketing',
-    adminNav: { mode: 'settings', order: 150, label: 'Email Marketing' },
+    id: 'communications',
+    title: 'Communications',
+    path: '/settings/communications',
+    adminNav: { mode: 'settings', order: 150, label: 'Communications' },
     featureStatus: 'available',
   }),
   adminRoute({
@@ -825,6 +825,12 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     title: 'Website Content',
     section: 'Websites',
     path: '/websites/:siteId/content',
+  }),
+  staffRoute({
+    id: 'website-console-newsletters',
+    title: 'Website Newsletters',
+    section: 'Websites',
+    path: '/websites/:siteId/newsletters',
   }),
   staffRoute({
     id: 'website-console-forms',

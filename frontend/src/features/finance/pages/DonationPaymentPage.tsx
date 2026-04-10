@@ -19,7 +19,7 @@ import {
 } from '../state';
 import api from '../../../services/api';
 import PaymentForm from '../../../components/PaymentForm';
-import type { DonationPaymentData } from '../../../types/payment';
+import type { DonationPaymentData, PaymentProvider } from '../../../types/payment';
 import type { CreateDonationDTO } from '../../../types/donation';
 
 // Preset donation amounts
@@ -39,6 +39,7 @@ const DonationPayment: React.FC = () => {
   const [formData, setFormData] = useState<DonationPaymentData>({
     amount: 0,
     currency: 'usd',
+    paymentProvider: 'stripe',
     donorEmail: '',
     donorName: '',
     donorPhone: '',
@@ -63,8 +64,16 @@ const DonationPayment: React.FC = () => {
 
   // Initialize Stripe when config is loaded
   useEffect(() => {
-    if (config?.stripe.configured && config.stripe.publishableKey) {
-      setStripePromise(loadStripe(config.stripe.publishableKey));
+    if (!config) {
+      return;
+    }
+
+    if (config.enabledProviders.includes(config.defaultProvider)) {
+      setFormData((prev) => ({ ...prev, paymentProvider: config.defaultProvider }));
+    }
+
+    if (config.providers.stripe.configured && config.providers.stripe.publicKey) {
+      setStripePromise(loadStripe(config.providers.stripe.publicKey));
     }
   }, [config]);
 
@@ -111,21 +120,52 @@ const DonationPayment: React.FC = () => {
     if (!formData.donorEmail) return;
 
     try {
-      await dispatch(
+      const paymentIntent = await dispatch(
         createPaymentIntent({
           amount: formData.amount,
           currency: formData.currency,
           description: `Donation${formData.campaignName ? ` - ${formData.campaignName}` : ''}`,
           receiptEmail: formData.donorEmail,
+          provider: formData.paymentProvider,
           metadata: {
             donorName: formData.donorName || 'Anonymous',
             campaignName: formData.campaignName || '',
             designation: formData.designation || '',
             isAnonymous: formData.isAnonymous.toString(),
+            isRecurring: formData.isRecurring.toString(),
+            recurringFrequency: formData.recurringFrequency || '',
           },
         })
       ).unwrap();
-      setStep('payment');
+
+      if (formData.paymentProvider === 'stripe') {
+        setStep('payment');
+        return;
+      }
+
+      if (paymentIntent.checkoutUrl) {
+        sessionStorage.setItem(
+          'payment_checkout_context',
+          JSON.stringify({
+            provider: formData.paymentProvider,
+            paymentIntentId: paymentIntent.id,
+            checkoutSessionId: paymentIntent.providerCheckoutSessionId || paymentIntent.id,
+            amount: formData.amount,
+            currency: formData.currency,
+            donorEmail: formData.donorEmail,
+            donorName: formData.donorName || '',
+            donorPhone: formData.donorPhone || '',
+            campaignName: formData.campaignName || '',
+            designation: formData.designation || '',
+            isRecurring: formData.isRecurring,
+            recurringFrequency: formData.recurringFrequency || '',
+          })
+        );
+        window.location.assign(paymentIntent.checkoutUrl);
+        return;
+      }
+
+      throw new Error(`Provider checkout is not available for ${formData.paymentProvider}`);
     } catch {
       // Error is handled by Redux
     }
@@ -185,9 +225,13 @@ const DonationPayment: React.FC = () => {
         amount: formData.amount / 100,
         currency: formData.currency.toUpperCase(),
         donation_date: new Date().toISOString(),
-        payment_method: 'credit_card',
+        payment_method: formData.paymentProvider === 'paypal' ? 'paypal' : 'credit_card',
         payment_status: 'completed',
         transaction_id: paymentIntentId,
+        payment_provider: formData.paymentProvider,
+        provider_transaction_id: paymentIntentId,
+        provider_checkout_session_id: currentIntent?.providerCheckoutSessionId || paymentIntentId,
+        provider_subscription_id: currentIntent?.providerSubscriptionId || undefined,
         campaign_name: formData.campaignName || undefined,
         designation: formData.designation || undefined,
         is_recurring: formData.isRecurring,
@@ -226,8 +270,15 @@ const DonationPayment: React.FC = () => {
     }).format(cents / 100);
   };
 
+  const enabledProviders = config?.enabledProviders || [];
+  const providerLabels: Record<PaymentProvider, string> = {
+    stripe: 'Stripe',
+    paypal: 'PayPal',
+    square: 'Square',
+  };
+
   // Check if Stripe is configured
-  if (!config?.stripe.configured) {
+  if (enabledProviders.length === 0) {
     return (
       <div className="min-h-screen bg-app-surface-muted flex items-center justify-center p-4">
         <div className="bg-app-surface rounded-lg shadow-lg p-8 max-w-md text-center">
@@ -383,6 +434,40 @@ const DonationPayment: React.FC = () => {
           <div className="bg-app-surface rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-semibold text-app-text mb-6">Your Information</h2>
 
+            {enabledProviders.length > 1 ? (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-app-text-muted mb-2">
+                  Payment Provider
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {enabledProviders.map((provider) => (
+                    <button
+                      key={provider}
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          paymentProvider: provider,
+                        }))
+                      }
+                      className={`rounded-lg border px-4 py-3 text-left transition-colors ${
+                        formData.paymentProvider === provider
+                          ? 'border-app-accent bg-app-accent-soft text-app-accent'
+                          : 'border-app-border hover:border-app-accent'
+                      }`}
+                    >
+                      <div className="font-semibold">{providerLabels[provider]}</div>
+                      <div className="text-xs text-app-text-muted">
+                        {provider === 'stripe'
+                          ? 'Embedded card checkout'
+                          : 'Hosted provider checkout'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-app-text-muted mb-1">
@@ -487,6 +572,10 @@ const DonationPayment: React.FC = () => {
               <h2 className="text-xl font-semibold text-app-text">Payment Details</h2>
             </div>
 
+            <div className="mb-4 rounded-lg border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text-muted">
+              Processing with {providerLabels[formData.paymentProvider]}.
+            </div>
+
             <Elements
               stripe={stripePromise}
               options={{
@@ -511,9 +600,9 @@ const DonationPayment: React.FC = () => {
           </div>
         )}
 
-	        {/* Step 4: Success */}
-	        {step === 'success' && (
-	          <div className="bg-app-surface rounded-lg shadow-lg p-8 text-center">
+        {/* Step 4: Success */}
+        {step === 'success' && (
+          <div className="bg-app-surface rounded-lg shadow-lg p-8 text-center">
             <div className="w-16 h-16 bg-app-accent-soft rounded-full flex items-center justify-center mx-auto mb-6">
               <svg
                 className="h-8 w-8 text-app-accent"
@@ -529,20 +618,20 @@ const DonationPayment: React.FC = () => {
                 />
               </svg>
             </div>
-	            <h2 className="text-2xl font-bold text-app-text mb-2">Thank You!</h2>
-	            <p className="text-app-text-muted mb-6">
-	              Your donation of {formatCurrency(formData.amount)} has been processed successfully.
-	              A receipt has been sent to {formData.donorEmail}.
-	            </p>
-	            {donationRecordError && (
-	              <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg mb-6 text-left">
-	                {donationRecordError}
-	              </div>
-	            )}
-	            <div className="flex gap-4 justify-center">
-	              <button
-	                onClick={() => navigate('/donations')}
-	                className="px-6 py-2 border border-app-input-border text-app-text-muted rounded-lg hover:bg-app-surface-muted"
+            <h2 className="text-2xl font-bold text-app-text mb-2">Thank You!</h2>
+            <p className="text-app-text-muted mb-6">
+              Your donation of {formatCurrency(formData.amount)} has been processed successfully with{' '}
+              {providerLabels[formData.paymentProvider]}. A receipt has been sent to {formData.donorEmail}.
+            </p>
+            {donationRecordError && (
+              <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg mb-6 text-left">
+                {donationRecordError}
+              </div>
+            )}
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => navigate('/donations')}
+                className="px-6 py-2 border border-app-input-border text-app-text-muted rounded-lg hover:bg-app-surface-muted"
               >
                 View Donations
               </button>
@@ -552,6 +641,7 @@ const DonationPayment: React.FC = () => {
                   setFormData({
                     amount: 0,
                     currency: 'usd',
+                    paymentProvider: config?.defaultProvider || 'stripe',
                     donorEmail: '',
                     donorName: '',
                     donorPhone: '',

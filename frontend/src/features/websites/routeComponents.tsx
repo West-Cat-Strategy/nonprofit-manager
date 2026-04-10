@@ -9,6 +9,7 @@ import { lazy } from 'react';
 export const WebsitesListPage = lazy(() => import('./pages/WebsitesListPage'));
 export const WebsiteOverviewPage = lazy(() => import('./pages/WebsiteOverviewPage'));
 export const WebsiteContentPage = lazy(() => import('./pages/WebsiteContentPage'));
+export const WebsiteNewslettersPage = lazy(() => import('./pages/WebsiteNewslettersPage'));
 export const WebsiteFormsPage = lazy(() => import('./pages/WebsiteFormsPage'));
 export const WebsiteIntegrationsPage = lazy(() => import('./pages/WebsiteIntegrationsPage'));
 export const WebsitePublishingPage = lazy(() => import('./pages/WebsitePublishingPage'));

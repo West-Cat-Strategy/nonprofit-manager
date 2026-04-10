@@ -18,6 +18,9 @@ import type {
   WebsiteIntegrationStatus,
   WebsiteFacebookSettings,
   WebsiteMailchimpSettings,
+  WebsiteMauticSettings,
+  WebsiteNewsletterListPreset,
+  WebsiteNewsletterSettings,
   WebsiteOverviewSummary,
   WebsiteSearchParams,
   WebsiteSitesResponse,
@@ -127,6 +130,107 @@ export const fetchWebsiteIntegrations = createAsyncThunk<WebsiteIntegrationStatu
     }
   }
 );
+
+export const fetchWebsiteNewsletterWorkspace = createAsyncThunk<WebsiteIntegrationStatus, string>(
+  'websites/fetchNewsletterWorkspace',
+  async (siteId, { rejectWithValue }) => {
+    try {
+      return await websitesApiClient.getNewsletterWorkspace(siteId);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to load newsletter workspace'));
+    }
+  }
+);
+
+export const updateWebsiteNewsletterIntegration = createAsyncThunk<
+  WebsiteIntegrationStatus,
+  {
+    siteId: string;
+    data: {
+      provider?: WebsiteNewsletterSettings['provider'];
+      selectedAudienceId?: string | null;
+      selectedAudienceName?: string | null;
+      selectedPresetId?: string | null;
+      listPresets?: WebsiteNewsletterListPreset[];
+      lastRefreshedAt?: string | null;
+      mailchimp?: Partial<WebsiteMailchimpSettings>;
+      mautic?: Partial<WebsiteMauticSettings>;
+    };
+  }
+>('websites/updateNewsletterIntegration', async ({ siteId, data }, { rejectWithValue }) => {
+  try {
+    return await websitesApiClient.updateNewsletter(siteId, data);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, 'Failed to update newsletter settings'));
+  }
+});
+
+export const refreshWebsiteNewsletterWorkspace = createAsyncThunk<
+  WebsiteIntegrationStatus,
+  string
+>('websites/refreshNewsletterWorkspace', async (siteId, { rejectWithValue }) => {
+  try {
+    return await websitesApiClient.refreshNewsletterWorkspace(siteId);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, 'Failed to refresh newsletter workspace'));
+  }
+});
+
+export const createWebsiteNewsletterListPreset = createAsyncThunk<
+  WebsiteIntegrationStatus,
+  {
+    siteId: string;
+    data: {
+      name: string;
+      provider?: WebsiteNewsletterSettings['provider'];
+      audienceId: string;
+      audienceName?: string | null;
+      notes?: string | null;
+      defaultTags?: string[];
+      syncEnabled?: boolean;
+    };
+  }
+>('websites/createNewsletterListPreset', async ({ siteId, data }, { rejectWithValue }) => {
+  try {
+    return await websitesApiClient.createNewsletterListPreset(siteId, data);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, 'Failed to create newsletter list'));
+  }
+});
+
+export const updateWebsiteNewsletterListPreset = createAsyncThunk<
+  WebsiteIntegrationStatus,
+  {
+    siteId: string;
+    listId: string;
+    data: {
+      name?: string;
+      provider?: WebsiteNewsletterSettings['provider'];
+      audienceId?: string;
+      audienceName?: string | null;
+      notes?: string | null;
+      defaultTags?: string[];
+      syncEnabled?: boolean;
+    };
+  }
+>('websites/updateNewsletterListPreset', async ({ siteId, listId, data }, { rejectWithValue }) => {
+  try {
+    return await websitesApiClient.updateNewsletterListPreset(siteId, listId, data);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, 'Failed to update newsletter list'));
+  }
+});
+
+export const deleteWebsiteNewsletterListPreset = createAsyncThunk<
+  WebsiteIntegrationStatus,
+  { siteId: string; listId: string }
+>('websites/deleteNewsletterListPreset', async ({ siteId, listId }, { rejectWithValue }) => {
+  try {
+    return await websitesApiClient.deleteNewsletterListPreset(siteId, listId);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, 'Failed to delete newsletter list'));
+  }
+});
 
 export const updateWebsiteMailchimpIntegration = createAsyncThunk<
   WebsiteIntegrationStatus,
@@ -410,6 +514,87 @@ const websitesSlice = createSlice({
     builder
       .addCase(fetchWebsiteIntegrations.fulfilled, (state, action) => {
         state.integrations = action.payload;
+        if (state.overview) {
+          state.overview.integrations = action.payload;
+        }
+      })
+      .addCase(fetchWebsiteNewsletterWorkspace.fulfilled, (state, action) => {
+        state.integrations = action.payload;
+        if (state.overview) {
+          state.overview.integrations = action.payload;
+        }
+      })
+      .addCase(updateWebsiteNewsletterIntegration.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(updateWebsiteNewsletterIntegration.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.integrations = action.payload;
+      })
+      .addCase(updateWebsiteNewsletterIntegration.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
+      })
+      .addCase(refreshWebsiteNewsletterWorkspace.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(refreshWebsiteNewsletterWorkspace.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.integrations = action.payload;
+        if (state.overview) {
+          state.overview.integrations = action.payload;
+        }
+      })
+      .addCase(refreshWebsiteNewsletterWorkspace.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
+      })
+      .addCase(createWebsiteNewsletterListPreset.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(createWebsiteNewsletterListPreset.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.integrations = action.payload;
+        if (state.overview) {
+          state.overview.integrations = action.payload;
+        }
+      })
+      .addCase(createWebsiteNewsletterListPreset.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
+      })
+      .addCase(updateWebsiteNewsletterListPreset.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(updateWebsiteNewsletterListPreset.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.integrations = action.payload;
+        if (state.overview) {
+          state.overview.integrations = action.payload;
+        }
+      })
+      .addCase(updateWebsiteNewsletterListPreset.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
+      })
+      .addCase(deleteWebsiteNewsletterListPreset.pending, (state) => {
+        state.isSaving = true;
+        state.error = null;
+      })
+      .addCase(deleteWebsiteNewsletterListPreset.fulfilled, (state, action) => {
+        state.isSaving = false;
+        state.integrations = action.payload;
+        if (state.overview) {
+          state.overview.integrations = action.payload;
+        }
+      })
+      .addCase(deleteWebsiteNewsletterListPreset.rejected, (state, action) => {
+        state.isSaving = false;
+        state.error = action.payload as string;
       })
       .addCase(updateWebsiteMailchimpIntegration.pending, (state) => {
         state.isSaving = true;

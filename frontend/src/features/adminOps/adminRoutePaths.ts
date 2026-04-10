@@ -23,7 +23,7 @@ const adminSettingsRouteIds: Record<AdminSettingsSection, string> = {
   workspace_modules: 'admin-settings-workspace-modules',
   branding: 'admin-settings-branding',
   users: 'admin-settings-users',
-  email: 'admin-settings-email',
+  communications: 'admin-settings-communications',
   messaging: 'admin-settings-messaging',
   outcomes: 'admin-settings-outcomes',
   roles: 'admin-settings-roles',

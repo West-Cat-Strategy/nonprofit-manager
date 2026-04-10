@@ -515,12 +515,55 @@ describe('Publishing API Integration', () => {
 
     const initial = unwrap<{
       blocked: boolean;
+      newsletter: { provider: string; configured: boolean; lastSyncAt: string | null };
       mailchimp: { configured: boolean };
+      mautic: { configured: boolean };
       stripe: { configured: boolean };
     }>(initialResponse.body);
     expect(initial.blocked).toBe(false);
+    expect(typeof initial.newsletter.provider).toBe('string');
     expect(typeof initial.mailchimp.configured).toBe('boolean');
+    expect(typeof initial.mautic.configured).toBe('boolean');
     expect(typeof initial.stripe.configured).toBe('boolean');
+
+    const newsletterResponse = await withSiteConsoleAuth(
+      request(app).put(`/api/v2/sites/${activeSiteId}/integrations/newsletter`),
+      authToken,
+      accountId
+    )
+      .send({
+        provider: 'mautic',
+        mautic: {
+          baseUrl: 'https://mautic.example.org',
+          segmentId: 'seg-123',
+          username: 'api-user',
+          password: 'secret',
+          defaultTags: ['members', 'website'],
+          syncEnabled: true,
+        },
+      })
+      .expect(200);
+
+    const newsletter = unwrap<{
+      newsletter: {
+        provider?: string;
+        configured?: boolean;
+        lastSyncAt?: string | null;
+      };
+      mautic: {
+        baseUrl?: string | null;
+        segmentId?: string | null;
+        username?: string | null;
+        defaultTags?: string[];
+        syncEnabled?: boolean;
+        configured?: boolean;
+      };
+    }>(newsletterResponse.body);
+    expect(newsletter.newsletter.provider).toBe('mautic');
+    expect(newsletter.mautic.baseUrl).toBe('https://mautic.example.org');
+    expect(newsletter.mautic.segmentId).toBe('seg-123');
+    expect(newsletter.mautic.defaultTags).toEqual(['members', 'website']);
+    expect(newsletter.mautic.syncEnabled).toBe(true);
 
     const mailchimpResponse = await withSiteConsoleAuth(
       request(app).put(`/api/v2/sites/${activeSiteId}/integrations/mailchimp`),

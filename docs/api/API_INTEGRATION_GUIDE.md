@@ -401,6 +401,34 @@ Syncs contact data to Mailchimp audience.
 }
 ```
 
+## Mautic Integration
+
+### Sync Contacts
+
+**POST** `/api/v2/sites/:siteId/integrations/newsletter`
+
+Use the site-console integrations endpoint to choose `mautic` as the active newsletter provider and persist the Mautic API settings for that site.
+
+**Request:**
+```json
+{
+  "provider": "mautic",
+  "mautic": {
+    "baseUrl": "https://mautic.example.org",
+    "segmentId": "segment-id",
+    "username": "api-user",
+    "password": "api-password",
+    "defaultTags": ["newsletter", "members"],
+    "syncEnabled": true
+  }
+}
+```
+
+**Notes:**
+- Mautic must have its API enabled.
+- The app uses the configured base URL and basic-auth credentials to sync contacts into the selected segment.
+- New newsletter form submissions still create the local CRM contact first, then mirror the subscriber into Mautic when the provider is active.
+
 ---
 
 ## Webhook System

@@ -12,14 +12,24 @@ export type PaymentIntentStatus =
   | 'canceled'
   | 'succeeded';
 
+export type PaymentProvider = 'stripe' | 'paypal' | 'square';
+
+export interface PaymentProviderConfig {
+  configured: boolean;
+  publicKey?: string | null;
+  clientId?: string | null;
+  applicationId?: string | null;
+  locationId?: string | null;
+  webhookConfigured?: boolean;
+}
+
 /**
  * Payment configuration from backend
  */
 export interface PaymentConfig {
-  stripe: {
-    configured: boolean;
-    publishableKey: string | null;
-  };
+  defaultProvider: PaymentProvider;
+  enabledProviders: PaymentProvider[];
+  providers: Record<PaymentProvider, PaymentProviderConfig>;
 }
 
 /**
@@ -32,6 +42,7 @@ export interface CreatePaymentIntentRequest {
   metadata?: Record<string, string>;
   donationId?: string;
   receiptEmail?: string;
+  provider?: PaymentProvider;
 }
 
 /**
@@ -39,11 +50,16 @@ export interface CreatePaymentIntentRequest {
  */
 export interface PaymentIntentResponse {
   id: string;
-  clientSecret: string;
+  provider: PaymentProvider;
+  clientSecret: string | null;
+  checkoutUrl?: string | null;
   amount: number;
   currency: string;
   status: PaymentIntentStatus;
   created: string;
+  providerTransactionId?: string | null;
+  providerCheckoutSessionId?: string | null;
+  providerSubscriptionId?: string | null;
 }
 
 /**
@@ -54,6 +70,7 @@ export interface CreateCustomerRequest {
   name?: string;
   phone?: string;
   contactId?: string;
+  provider?: PaymentProvider;
 }
 
 /**
@@ -87,6 +104,7 @@ export interface PaymentMethodInfo {
 export interface DonationPaymentData {
   amount: number;
   currency: string;
+  paymentProvider: PaymentProvider;
   donorEmail: string;
   donorName?: string;
   donorPhone?: string;

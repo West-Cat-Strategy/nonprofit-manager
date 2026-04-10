@@ -7,9 +7,9 @@ import type { ReactNode } from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import {
   AdminSettingsSectionRoute,
+  CommunicationsPage,
   ApiSettings,
   DataBackup,
-  EmailMarketing,
   NavigationSettings,
   PortalAdminPage,
   SocialMedia,
@@ -36,8 +36,8 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
   return (
     <>
       <Route
-        path="/settings/email-marketing"
-        element={<ProtectedRoute><EmailMarketing /></ProtectedRoute>}
+        path="/settings/communications"
+        element={<ProtectedRoute><CommunicationsPage /></ProtectedRoute>}
       />
       <Route
         path="/settings/social-media"
@@ -45,7 +45,11 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       />
       <Route
         path="/email-marketing"
-        element={<ProtectedRoute><Navigate to="/settings/email-marketing" replace /></ProtectedRoute>}
+        element={<ProtectedRoute><Navigate to="/settings/communications" replace /></ProtectedRoute>}
+      />
+      <Route
+        path="/settings/email-marketing"
+        element={<ProtectedRoute><Navigate to="/settings/communications" replace /></ProtectedRoute>}
       />
       <Route
         path="/settings/api"
@@ -62,6 +66,10 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       <Route
         path="/settings/admin"
         element={<AdminRoute><Navigate to={getAdminSettingsPath('dashboard')} replace /></AdminRoute>}
+      />
+      <Route
+        path="/settings/admin/email"
+        element={<AdminRoute><Navigate to={getAdminSettingsPath('communications')} replace /></AdminRoute>}
       />
       <Route
         path="/settings/admin/portal"

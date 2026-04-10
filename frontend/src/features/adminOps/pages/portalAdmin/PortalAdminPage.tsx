@@ -5,6 +5,7 @@ import { useToast } from '../../../../contexts/useToast';
 import { useApiError } from '../../../../hooks/useApiError';
 import useConfirmDialog from '../../../../hooks/useConfirmDialog';
 import usePortalAdminRealtime from '../../../portal/admin/usePortalAdminRealtime';
+import type { PortalAdminPanel } from '../../adminRoutePaths';
 import AdminPanelLayout from '../../components/AdminPanelLayout';
 import AdminPanelNav from '../../components/AdminPanelNav';
 import PortalResetPasswordModal from '../adminSettings/components/PortalResetPasswordModal';
@@ -15,13 +16,6 @@ import AppointmentsPanel from './panels/AppointmentsPanel';
 import ConversationsPanel from './panels/ConversationsPanel';
 import SlotsPanel from './panels/SlotsPanel';
 import UsersPanel from './panels/UsersPanel';
-
-export type PortalAdminPanel =
-  | 'access'
-  | 'users'
-  | 'conversations'
-  | 'appointments'
-  | 'slots';
 
 interface PortalAdminPageProps {
   panel: PortalAdminPanel;

@@ -15,6 +15,8 @@ export type WebsiteManagedFormType =
   | 'referral-form'
   | 'event-registration';
 
+export type WebsiteNewsletterProvider = 'mailchimp' | 'mautic';
+
 export interface WebsiteSiteManagementSummary {
   status: 'healthy' | 'attention' | 'blocked';
   nextAction: {
@@ -130,7 +132,8 @@ export interface WebsiteFormOperationalConfig {
   accountId?: string | null;
   campaignId?: string | null;
   mailchimpListId?: string | null;
-  audienceMode?: 'crm' | 'mailchimp' | 'both';
+  mauticSegmentId?: string | null;
+  audienceMode?: 'crm' | 'mailchimp' | 'mautic' | 'both';
   defaultTags?: string[];
   includePhone?: boolean;
   includeMessage?: boolean;
@@ -166,9 +169,40 @@ export interface WebsiteFormDefinition {
 
 export interface WebsiteMailchimpSettings {
   audienceId?: string | null;
-  audienceMode?: 'crm' | 'mailchimp' | 'both';
+  audienceMode?: 'crm' | 'mailchimp' | 'mautic' | 'both';
   defaultTags?: string[];
   syncEnabled?: boolean;
+}
+
+export interface WebsiteMauticSettings {
+  baseUrl?: string | null;
+  segmentId?: string | null;
+  username?: string | null;
+  password?: string | null;
+  defaultTags?: string[];
+  syncEnabled?: boolean;
+}
+
+export interface WebsiteNewsletterListPreset {
+  id: string;
+  name: string;
+  provider: WebsiteNewsletterProvider;
+  audienceId: string;
+  audienceName?: string | null;
+  notes?: string | null;
+  defaultTags?: string[];
+  syncEnabled?: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface WebsiteNewsletterSettings {
+  provider?: 'mailchimp' | 'mautic';
+  selectedAudienceId?: string | null;
+  selectedAudienceName?: string | null;
+  selectedPresetId?: string | null;
+  listPresets?: WebsiteNewsletterListPreset[];
+  lastRefreshedAt?: string | null;
 }
 
 export interface WebsiteStripeSettings {
@@ -191,7 +225,9 @@ export interface WebsiteSocialSettings {
 export interface WebsiteSiteSettings {
   siteId: string;
   organizationId: string | null;
+  newsletter: WebsiteNewsletterSettings;
   mailchimp: WebsiteMailchimpSettings;
+  mautic: WebsiteMauticSettings;
   stripe: WebsiteStripeSettings;
   social: WebsiteSocialSettings;
   formDefaults: WebsiteFormOperationalConfig;
@@ -211,10 +247,37 @@ export interface WebsiteSiteSettings {
 export interface WebsiteIntegrationStatus {
   blocked: boolean;
   publishStatus: WebsiteSiteStatus;
+  newsletter: {
+    provider: 'mailchimp' | 'mautic';
+    configured: boolean;
+    selectedAudienceId: string | null;
+    selectedAudienceName: string | null;
+    selectedPresetId: string | null;
+    listPresets: WebsiteNewsletterListPreset[];
+    availableAudiences: Array<{
+      id: string;
+      name: string;
+      memberCount?: number;
+    }>;
+    audienceCount?: number;
+    lastRefreshedAt: string | null;
+    lastSyncAt: string | null;
+  };
   mailchimp: WebsiteMailchimpSettings & {
     configured: boolean;
     accountName?: string;
     listCount?: number;
+    availableAudiences: Array<{
+      id: string;
+      name: string;
+      memberCount?: number;
+    }>;
+    lastSyncAt: string | null;
+  };
+  mautic: WebsiteMauticSettings & {
+    configured: boolean;
+    baseUrl?: string;
+    segmentCount?: number;
     availableAudiences: Array<{
       id: string;
       name: string;

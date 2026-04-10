@@ -148,25 +148,31 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
               value={selectedComponent.audienceMode || 'crm'}
               onChange={(e) =>
                 update({
-                  audienceMode: e.target.value as 'crm' | 'mailchimp' | 'both',
+                  audienceMode: e.target.value as 'crm' | 'mailchimp' | 'mautic' | 'both',
                 })
               }
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             >
               <option value="crm">CRM only</option>
+              <option value="mautic">Mautic only</option>
               <option value="mailchimp">Mailchimp only</option>
-              <option value="both">CRM + Mailchimp</option>
+              <option value="both">CRM + newsletter provider</option>
             </select>
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-medium text-app-text-muted">
-              Mailchimp List ID
+              Audience ID
             </label>
             <input
               type="text"
-              value={selectedComponent.mailchimpListId || ''}
-              onChange={(e) => update({ mailchimpListId: e.target.value.trim() || undefined })}
+              value={selectedComponent.mailchimpListId || selectedComponent.mauticSegmentId || ''}
+              onChange={(e) =>
+                update({
+                  mailchimpListId: e.target.value.trim() || undefined,
+                  mauticSegmentId: e.target.value.trim() || undefined,
+                })
+              }
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
           </div>

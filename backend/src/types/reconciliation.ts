@@ -60,6 +60,14 @@ export interface ReconciliationItem {
 
   // Donation link
   donation_id?: string | null;
+  payment_provider?: 'stripe' | 'paypal' | 'square' | null;
+
+  // Provider transaction details
+  provider_payment_id?: string | null;
+  provider_charge_id?: string | null;
+  provider_balance_transaction_id?: string | null;
+  provider_created_at?: Date | string | null;
+  provider_status?: string | null;
 
   // Stripe transaction details
   stripe_payment_intent_id?: string | null;
@@ -108,6 +116,9 @@ export interface PaymentDiscrepancy {
 
   // Related records
   donation_id?: string | null;
+  payment_provider?: 'stripe' | 'paypal' | 'square' | null;
+  provider_payment_id?: string | null;
+  provider_charge_id?: string | null;
   stripe_payment_intent_id?: string | null;
   stripe_charge_id?: string | null;
 
@@ -162,6 +173,8 @@ export interface StripeBalanceTransaction {
   reconciled: boolean;
   reconciliation_id?: string | null;
   donation_id?: string | null;
+  payment_provider?: 'stripe' | 'paypal' | 'square' | null;
+  provider_payment_id?: string | null;
 
   // Sync tracking
   synced_at: Date | string;
@@ -184,6 +197,10 @@ export interface DonationWithReconciliation {
   payment_method?: string;
   payment_status: string;
   transaction_id?: string;
+  payment_provider?: 'stripe' | 'paypal' | 'square' | null;
+  provider_transaction_id?: string | null;
+  provider_checkout_session_id?: string | null;
+  provider_subscription_id?: string | null;
   campaign_name?: string;
   designation?: string;
   is_recurring: boolean;

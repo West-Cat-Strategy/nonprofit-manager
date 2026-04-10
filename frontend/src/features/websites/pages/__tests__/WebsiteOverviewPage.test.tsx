@@ -144,7 +144,17 @@ const overview = {
   integrations: {
     blocked: true,
     publishStatus: 'published',
+    newsletter: {
+      provider: 'mautic',
+      configured: true,
+      lastSyncAt: null,
+    },
     mailchimp: {
+      configured: true,
+      availableAudiences: [],
+      lastSyncAt: null,
+    },
+    mautic: {
       configured: true,
       availableAudiences: [],
       lastSyncAt: null,
@@ -157,7 +167,11 @@ const overview = {
   settings: {
     siteId: 'site-1',
     organizationId: 'org-1',
+    newsletter: {
+      provider: 'mautic',
+    },
     mailchimp: {},
+    mautic: {},
     stripe: {},
     formDefaults: {},
     formOverrides: {},

@@ -13,7 +13,7 @@ import {
   clearWebsitesError,
   fetchWebsiteIntegrations,
   fetchWebsiteOverview,
-  updateWebsiteMailchimpIntegration,
+  updateWebsiteNewsletterIntegration,
   updateWebsiteStripeIntegration,
 } from '../state';
 
@@ -24,10 +24,16 @@ const WebsiteIntegrationsPage: React.FC = () => {
   const { integrations, isSaving, isLoading, error } = useAppSelector((state) => state.websites);
   const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
   const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
+  const [newsletterProvider, setNewsletterProvider] = useState<'mailchimp' | 'mautic'>('mautic');
   const [mailchimpAudienceId, setMailchimpAudienceId] = useState('');
-  const [mailchimpMode, setMailchimpMode] = useState<'crm' | 'mailchimp' | 'both'>('crm');
   const [mailchimpTags, setMailchimpTags] = useState('');
   const [mailchimpSyncEnabled, setMailchimpSyncEnabled] = useState(true);
+  const [mauticBaseUrl, setMauticBaseUrl] = useState('');
+  const [mauticSegmentId, setMauticSegmentId] = useState('');
+  const [mauticUsername, setMauticUsername] = useState('');
+  const [mauticPassword, setMauticPassword] = useState('');
+  const [mauticTags, setMauticTags] = useState('');
+  const [mauticSyncEnabled, setMauticSyncEnabled] = useState(true);
   const [stripeAccountId, setStripeAccountId] = useState('');
   const [stripeCurrency, setStripeCurrency] = useState('usd');
   const [stripeSuggestedAmounts, setStripeSuggestedAmounts] = useState('25,50,100');
@@ -45,10 +51,16 @@ const WebsiteIntegrationsPage: React.FC = () => {
 
   useEffect(() => {
     if (!integrations) return;
+    setNewsletterProvider(integrations.newsletter.provider || 'mautic');
     setMailchimpAudienceId(integrations.mailchimp.audienceId || '');
-    setMailchimpMode(integrations.mailchimp.audienceMode || 'crm');
     setMailchimpTags((integrations.mailchimp.defaultTags || []).join(', '));
     setMailchimpSyncEnabled(integrations.mailchimp.syncEnabled ?? true);
+    setMauticBaseUrl(integrations.mautic.baseUrl || '');
+    setMauticSegmentId(integrations.mautic.segmentId || '');
+    setMauticUsername(integrations.mautic.username || '');
+    setMauticPassword(integrations.mautic.password || '');
+    setMauticTags((integrations.mautic.defaultTags || []).join(', '));
+    setMauticSyncEnabled(integrations.mautic.syncEnabled ?? true);
     setStripeAccountId(integrations.stripe.accountId || '');
     setStripeCurrency(integrations.stripe.currency || 'usd');
     setStripeSuggestedAmounts((integrations.stripe.suggestedAmounts || [25, 50, 100]).join(','));
@@ -60,33 +72,58 @@ const WebsiteIntegrationsPage: React.FC = () => {
     return null;
   }
 
-  const saveMailchimp = async () => {
+  const saveNewsletter = async () => {
     setNotice(null);
     const result = await dispatch(
-      updateWebsiteMailchimpIntegration({
+      updateWebsiteNewsletterIntegration({
         siteId,
-        data: {
-          audienceId: mailchimpAudienceId || null,
-          audienceMode: mailchimpMode,
-          defaultTags: mailchimpTags
-            .split(',')
-            .map((value) => value.trim())
-            .filter(Boolean),
-          syncEnabled: mailchimpSyncEnabled,
-        },
+        data:
+          newsletterProvider === 'mailchimp'
+            ? {
+                provider: newsletterProvider,
+                mailchimp: {
+                  audienceId: mailchimpAudienceId || null,
+                  defaultTags: mailchimpTags
+                    .split(',')
+                    .map((value) => value.trim())
+                    .filter(Boolean),
+                  syncEnabled: mailchimpSyncEnabled,
+                },
+              }
+            : {
+                provider: newsletterProvider,
+                mautic: {
+                  baseUrl: mauticBaseUrl || null,
+                  segmentId: mauticSegmentId || null,
+                  username: mauticUsername || null,
+                  password: mauticPassword || null,
+                  defaultTags: mauticTags
+                    .split(',')
+                    .map((value) => value.trim())
+                    .filter(Boolean),
+                  syncEnabled: mauticSyncEnabled,
+                },
+              },
       })
     );
-    if (updateWebsiteMailchimpIntegration.fulfilled.match(result)) {
+
+    if (updateWebsiteNewsletterIntegration.fulfilled.match(result)) {
       await dispatch(fetchWebsiteIntegrations(siteId));
       void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
-      setNotice({ tone: 'success', message: 'Mailchimp settings saved.' });
+      setNotice({
+        tone: 'success',
+        message:
+          newsletterProvider === 'mailchimp'
+            ? 'Mailchimp settings saved.'
+            : 'Mautic settings saved.',
+      });
     } else {
       setNotice({
         tone: 'error',
         message:
           typeof result.payload === 'string'
             ? result.payload
-            : 'Failed to save Mailchimp settings.',
+            : 'Failed to save newsletter settings.',
       });
     }
   };
@@ -125,7 +162,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
     <WebsiteConsoleLayout
       siteId={siteId}
       overview={overview}
-      title="Control Mailchimp audience behavior, Stripe defaults, and integration health."
+      title="Control newsletter provider behavior, Stripe defaults, and integration health."
       actions={
         <div className="flex flex-wrap gap-3">
           <WebsiteConsoleUrlAction
@@ -135,6 +172,12 @@ const WebsiteIntegrationsPage: React.FC = () => {
           >
             Open preview
           </WebsiteConsoleUrlAction>
+          <a
+            href="/settings/communications"
+            className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+          >
+            Open communications hub
+          </a>
           <a
             href={`/websites/${siteId}/forms`}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
@@ -176,13 +219,15 @@ const WebsiteIntegrationsPage: React.FC = () => {
             </div>
             <div>
               <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                Mailchimp
+                Newsletter
               </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
-                {integrations?.mailchimp.configured ? 'Configured' : 'Missing'}
+                {integrations?.newsletter.configured ? 'Configured' : 'Missing'}
               </div>
               <p className="mt-2 text-sm text-app-text-muted">
-                Powers newsletter signup and audience sync.
+                {integrations?.newsletter.provider === 'mautic'
+                  ? 'Powers newsletter signup and audience sync through Mautic.'
+                  : 'Powers newsletter signup and audience sync through Mailchimp.'}
               </p>
             </div>
             <div>
@@ -214,149 +259,204 @@ const WebsiteIntegrationsPage: React.FC = () => {
           <WebsiteConsoleStatePanel
             tone="loading"
             title="Loading integration status"
-            message="We are fetching Mailchimp, Stripe, and social tracking configuration."
+            message="We are fetching newsletter, Stripe, and social tracking configuration."
           />
         ) : null}
 
         <div className="grid gap-6 xl:grid-cols-2">
-        <section className="rounded-3xl border border-app-border bg-app-surface p-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-app-text">Mailchimp</h2>
-              <p className="text-sm text-app-text-muted">
-                Configure audience defaults for newsletter and supporter capture.
-              </p>
-              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                Powers newsletter signup, email updates, and synced archive imports.
-              </p>
+          <section className="rounded-3xl border border-app-border bg-app-surface p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-app-text">Newsletter provider</h2>
+                <p className="text-sm text-app-text-muted">
+                  Choose the audience service connected to newsletter signups.
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                  New sites prefer Mautic, while existing Mailchimp setups remain editable.
+                </p>
+              </div>
+              <div className="text-sm text-app-text-muted">
+                {integrations?.newsletter.configured ? 'Configured' : 'Not configured'}
+              </div>
             </div>
-            <div className="text-sm text-app-text-muted">
-              {integrations?.mailchimp.configured ? 'Configured' : 'Not configured'}
-            </div>
-          </div>
 
-          <div className="mt-4 grid gap-4">
-            <select
-              aria-label="Mailchimp audience"
-              value={mailchimpAudienceId}
-              onChange={(event) => setMailchimpAudienceId(event.target.value)}
-              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-            >
-              <option value="">Select audience</option>
-              {(integrations?.mailchimp.availableAudiences || []).map((audience) => (
-                <option key={audience.id} value={audience.id}>
-                  {audience.name}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="Mailchimp audience mode"
-              value={mailchimpMode}
-              onChange={(event) =>
-                setMailchimpMode(event.target.value as 'crm' | 'mailchimp' | 'both')
-              }
-              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-            >
-              <option value="crm">CRM only</option>
-              <option value="mailchimp">Mailchimp only</option>
-              <option value="both">CRM + Mailchimp</option>
-            </select>
-            <input
-              type="text"
-              aria-label="Mailchimp default tags"
-              value={mailchimpTags}
-              onChange={(event) => setMailchimpTags(event.target.value)}
-              placeholder="Default tags (comma separated)"
-              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-            />
-            <label className="flex items-center gap-3 rounded-2xl border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text">
+            <div className="mt-4 grid gap-4">
+              <select
+                aria-label="Newsletter provider"
+                value={newsletterProvider}
+                onChange={(event) =>
+                  setNewsletterProvider(event.target.value as 'mailchimp' | 'mautic')
+                }
+                className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+              >
+                <option value="mautic">Mautic</option>
+                <option value="mailchimp">Mailchimp</option>
+              </select>
+
+              {newsletterProvider === 'mailchimp' ? (
+                <>
+                  <select
+                    aria-label="Mailchimp audience"
+                    value={mailchimpAudienceId}
+                    onChange={(event) => setMailchimpAudienceId(event.target.value)}
+                    className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                  >
+                    <option value="">Select audience</option>
+                    {(integrations?.mailchimp.availableAudiences || []).map((audience) => (
+                      <option key={audience.id} value={audience.id}>
+                        {audience.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    aria-label="Mailchimp default tags"
+                    value={mailchimpTags}
+                    onChange={(event) => setMailchimpTags(event.target.value)}
+                    placeholder="Default tags (comma separated)"
+                    className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                  />
+                  <label className="flex items-center gap-3 rounded-2xl border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text">
+                    <input
+                      type="checkbox"
+                      checked={mailchimpSyncEnabled}
+                      onChange={(event) => setMailchimpSyncEnabled(event.target.checked)}
+                    />
+                    Enable Mailchimp sync for connected website forms
+                  </label>
+                </>
+              ) : (
+                <>
+                  <input
+                    type="url"
+                    aria-label="Mautic base URL"
+                    value={mauticBaseUrl}
+                    onChange={(event) => setMauticBaseUrl(event.target.value)}
+                    placeholder="https://mautic.example.org"
+                    className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                  />
+                  <input
+                    type="text"
+                    aria-label="Mautic segment ID"
+                    value={mauticSegmentId}
+                    onChange={(event) => setMauticSegmentId(event.target.value)}
+                    placeholder="Mautic segment ID"
+                    className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                  />
+                  <input
+                    type="text"
+                    aria-label="Mautic username"
+                    value={mauticUsername}
+                    onChange={(event) => setMauticUsername(event.target.value)}
+                    placeholder="Mautic API username"
+                    className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                  />
+                  <input
+                    type="password"
+                    aria-label="Mautic password"
+                    value={mauticPassword}
+                    onChange={(event) => setMauticPassword(event.target.value)}
+                    placeholder="Mautic API password"
+                    className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                  />
+                  <input
+                    type="text"
+                    aria-label="Mautic default tags"
+                    value={mauticTags}
+                    onChange={(event) => setMauticTags(event.target.value)}
+                    placeholder="Default tags (comma separated)"
+                    className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                  />
+                  <label className="flex items-center gap-3 rounded-2xl border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text">
+                    <input
+                      type="checkbox"
+                      checked={mauticSyncEnabled}
+                      onChange={(event) => setMauticSyncEnabled(event.target.checked)}
+                    />
+                    Enable Mautic sync for connected website forms
+                  </label>
+                </>
+              )}
+
+              <button
+                type="button"
+                disabled={isSaving || Boolean(overview?.site.blocked)}
+                onClick={saveNewsletter}
+                className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Save newsletter settings
+              </button>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-app-border bg-app-surface p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-app-text">Stripe</h2>
+                <p className="text-sm text-app-text-muted">
+                  Configure donation defaults used by public website donation forms.
+                </p>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                  Powers donation, recurring support, and campaign checkout flows.
+                </p>
+              </div>
+              <div className="text-sm text-app-text-muted">
+                {integrations?.stripe.configured ? 'Configured' : 'Not configured'}
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4">
               <input
-                type="checkbox"
-                checked={mailchimpSyncEnabled}
-                onChange={(event) => setMailchimpSyncEnabled(event.target.checked)}
+                type="text"
+                aria-label="Stripe destination account ID"
+                value={stripeAccountId}
+                onChange={(event) => setStripeAccountId(event.target.value)}
+                placeholder="Destination account ID"
+                className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
               />
-              Enable Mailchimp sync for connected website forms
-            </label>
-
-            <button
-              type="button"
-              disabled={isSaving || Boolean(overview?.site.blocked)}
-              onClick={saveMailchimp}
-              className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Save Mailchimp settings
-            </button>
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-app-border bg-app-surface p-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-app-text">Stripe</h2>
-              <p className="text-sm text-app-text-muted">
-                Configure donation defaults used by public website donation forms.
-              </p>
-              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                Powers donation, recurring support, and campaign checkout flows.
-              </p>
-            </div>
-            <div className="text-sm text-app-text-muted">
-              {integrations?.stripe.configured ? 'Configured' : 'Not configured'}
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-4">
-            <input
-              type="text"
-              aria-label="Stripe destination account ID"
-              value={stripeAccountId}
-              onChange={(event) => setStripeAccountId(event.target.value)}
-              placeholder="Destination account ID"
-              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-            />
-            <input
-              type="text"
-              aria-label="Stripe currency"
-              value={stripeCurrency}
-              onChange={(event) => setStripeCurrency(event.target.value)}
-              placeholder="Currency"
-              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-            />
-            <input
-              type="text"
-              aria-label="Stripe suggested amounts"
-              value={stripeSuggestedAmounts}
-              onChange={(event) => setStripeSuggestedAmounts(event.target.value)}
-              placeholder="Suggested amounts (comma separated)"
-              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-            />
-            <input
-              type="text"
-              aria-label="Stripe campaign identifier"
-              value={stripeCampaignId}
-              onChange={(event) => setStripeCampaignId(event.target.value)}
-              placeholder="Campaign identifier"
-              className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
-            />
-            <label className="flex items-center gap-3 rounded-2xl border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text">
               <input
-                type="checkbox"
-                checked={stripeRecurringDefault}
-                onChange={(event) => setStripeRecurringDefault(event.target.checked)}
+                type="text"
+                aria-label="Stripe currency"
+                value={stripeCurrency}
+                onChange={(event) => setStripeCurrency(event.target.value)}
+                placeholder="Currency"
+                className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
               />
-              Default donation forms to recurring mode
-            </label>
+              <input
+                type="text"
+                aria-label="Stripe suggested amounts"
+                value={stripeSuggestedAmounts}
+                onChange={(event) => setStripeSuggestedAmounts(event.target.value)}
+                placeholder="Suggested amounts (comma separated)"
+                className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+              />
+              <input
+                type="text"
+                aria-label="Stripe campaign identifier"
+                value={stripeCampaignId}
+                onChange={(event) => setStripeCampaignId(event.target.value)}
+                placeholder="Campaign identifier"
+                className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+              />
+              <label className="flex items-center gap-3 rounded-2xl border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text">
+                <input
+                  type="checkbox"
+                  checked={stripeRecurringDefault}
+                  onChange={(event) => setStripeRecurringDefault(event.target.checked)}
+                />
+                Default donation forms to recurring mode
+              </label>
 
-            <button
-              type="button"
-              disabled={isSaving || Boolean(overview?.site.blocked)}
-              onClick={saveStripe}
-              className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Save Stripe settings
-            </button>
-          </div>
-        </section>
+              <button
+                type="button"
+                disabled={isSaving || Boolean(overview?.site.blocked)}
+                onClick={saveStripe}
+                className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Save Stripe settings
+              </button>
+            </div>
+          </section>
         </div>
       </div>
     </WebsiteConsoleLayout>
