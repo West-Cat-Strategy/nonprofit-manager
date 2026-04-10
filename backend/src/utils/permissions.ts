@@ -4,7 +4,7 @@
  * Inspired by wc-manage permission patterns
  */
 
-import type { UserRole } from '../validations/user';
+import { normalizeRoleSlug } from '@utils/roleSlug';
 
 // Define all possible permissions in the system
 export enum Permission {
@@ -103,9 +103,11 @@ export enum Permission {
   TEMPLATE_MANAGE = 'template:manage',
 }
 
+type CanonicalPermissionRole = 'admin' | 'manager' | 'staff' | 'volunteer' | 'viewer';
+
 // Role-based permission matrix
-// Maps roles to their allowed permissions
-const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+// Maps canonical roles to their allowed permissions.
+const ROLE_PERMISSIONS: Record<CanonicalPermissionRole, Permission[]> = {
   admin: [
     // Admin has all permissions
     Permission.VOLUNTEER_VIEW,
@@ -269,8 +271,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.TEMPLATE_VIEW,
   ],
 
-  member: [
-    // Member has limited view access
+  viewer: [
+    // Viewer has limited view access
     Permission.VOLUNTEER_VIEW,
     Permission.HOURS_VIEW,
     Permission.EVENT_VIEW,
@@ -297,10 +299,11 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 /**
  * Check if a role has a specific permission
  */
-export function hasPermission(role: UserRole | string, permission: Permission | string): boolean {
-  if (!role) return false;
+export function hasPermission(role: string, permission: Permission | string): boolean {
+  const normalizedRole = normalizeRoleSlug(role);
+  if (!normalizedRole) return false;
 
-  const permissions = ROLE_PERMISSIONS[role as UserRole];
+  const permissions = ROLE_PERMISSIONS[normalizedRole as CanonicalPermissionRole];
   if (!permissions) return false;
 
   return permissions.includes(permission as Permission);
@@ -310,7 +313,7 @@ export function hasPermission(role: UserRole | string, permission: Permission | 
  * Check if a role has any of the specified permissions
  */
 export function hasAnyPermission(
-  role: UserRole | string,
+  role: string,
   permissions: (Permission | string)[]
 ): boolean {
   return permissions.some((perm) => hasPermission(role, perm));
@@ -320,7 +323,7 @@ export function hasAnyPermission(
  * Check if a role has all of the specified permissions
  */
 export function hasAllPermissions(
-  role: UserRole | string,
+  role: string,
   permissions: (Permission | string)[]
 ): boolean {
   return permissions.every((perm) => hasPermission(role, perm));
@@ -329,70 +332,77 @@ export function hasAllPermissions(
 /**
  * Get all permissions for a role
  */
-export function getPermissionsForRole(role: UserRole | string): Permission[] {
-  return ROLE_PERMISSIONS[role as UserRole] || [];
+export function getPermissionsForRole(role: string): Permission[] {
+  const normalizedRole = normalizeRoleSlug(role);
+  return normalizedRole ? ROLE_PERMISSIONS[normalizedRole as CanonicalPermissionRole] || [] : [];
 }
 
 /**
  * Check if user is admin
  */
-export function isAdmin(role: UserRole | string): boolean {
-  return role === 'admin';
+export function isAdmin(role: string): boolean {
+  return normalizeRoleSlug(role) === 'admin';
 }
 
 /**
  * Check if user is manager or above
  */
-export function isManagerOrAbove(role: UserRole | string): boolean {
-  return role === 'admin' || role === 'manager';
+export function isManagerOrAbove(role: string): boolean {
+  const normalizedRole = normalizeRoleSlug(role);
+  return normalizedRole === 'admin' || normalizedRole === 'manager';
 }
 
 /**
  * Check if user is staff or above
  */
-export function isStaffOrAbove(role: UserRole | string): boolean {
-  return role === 'admin' || role === 'manager' || role === 'staff';
+export function isStaffOrAbove(role: string): boolean {
+  const normalizedRole = normalizeRoleSlug(role);
+  return (
+    normalizedRole === 'admin' ||
+    normalizedRole === 'manager' ||
+    normalizedRole === 'staff'
+  );
 }
 
 /**
  * Check if user can perform volunteer operations
  */
-export function canManageVolunteers(role: UserRole | string): boolean {
+export function canManageVolunteers(role: string): boolean {
   return hasPermission(role, Permission.VOLUNTEER_EDIT);
 }
 
 /**
  * Check if user can approve volunteer hours
  */
-export function canApproveHours(role: UserRole | string): boolean {
+export function canApproveHours(role: string): boolean {
   return hasPermission(role, Permission.HOURS_APPROVE);
 }
 
 /**
  * Check if user can manage organization settings
  */
-export function canManageOrganization(role: UserRole | string): boolean {
+export function canManageOrganization(role: string): boolean {
   return hasPermission(role, Permission.ADMIN_ORGANIZATION);
 }
 
 /**
  * Check if user can view audit logs
  */
-export function canViewAuditLogs(role: UserRole | string): boolean {
+export function canViewAuditLogs(role: string): boolean {
   return hasPermission(role, Permission.ADMIN_AUDIT);
 }
 
 /**
  * Check if user can manage admins/users
  */
-export function canManageUsers(role: UserRole | string): boolean {
+export function canManageUsers(role: string): boolean {
   return hasPermission(role, Permission.ADMIN_USERS);
 }
 
 /**
  * Check if user can manage grants
  */
-export function canManageGrants(role: UserRole | string): boolean {
+export function canManageGrants(role: string): boolean {
   return hasAnyPermission(role, [
     Permission.GRANT_VIEW,
     Permission.GRANT_CREATE,
@@ -406,7 +416,7 @@ export function canManageGrants(role: UserRole | string): boolean {
  * Check if user can export data
  */
 export function canExportData(
-  role: UserRole | string,
+  role: string,
   dataType: 'volunteers' | 'contacts' | 'analytics'
 ): boolean {
   const permissions: Record<string, Permission> = {

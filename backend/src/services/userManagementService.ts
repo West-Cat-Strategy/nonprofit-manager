@@ -1,4 +1,5 @@
 import pool from '@config/database';
+import { normalizeRoleSlug, ROLE_SLUG_ALIASES, slugifyRoleName } from '@utils/roleSlug';
 
 export interface UserRecord {
   id: string;
@@ -36,6 +37,24 @@ interface CountRow {
   count: string;
 }
 
+const normalizeUserRole = (role: string): string => normalizeRoleSlug(role) ?? role;
+
+const getRoleLookupValues = (role: string): string[] => {
+  const normalized = normalizeRoleSlug(role);
+  if (!normalized) {
+    return [];
+  }
+
+  const lookupValues = new Set<string>([normalized, slugifyRoleName(role)]);
+  for (const [alias, canonical] of Object.entries(ROLE_SLUG_ALIASES)) {
+    if (canonical === normalized) {
+      lookupValues.add(alias);
+    }
+  }
+
+  return Array.from(lookupValues);
+};
+
 export interface ListUsersFilters {
   search?: string;
   role?: string;
@@ -63,7 +82,7 @@ export interface UpdateUserInput {
 
 export const listUsers = async (filters: ListUsersFilters): Promise<UserRecord[]> => {
   const conditions: string[] = [];
-  const params: (string | boolean)[] = [];
+  const params: unknown[] = [];
   let paramIndex = 1;
 
   if (filters.search) {
@@ -78,9 +97,12 @@ export const listUsers = async (filters: ListUsersFilters): Promise<UserRecord[]
   }
 
   if (filters.role) {
-    conditions.push(`role = $${paramIndex}`);
-    params.push(filters.role);
-    paramIndex += 1;
+    const roleValues = getRoleLookupValues(filters.role);
+    if (roleValues.length > 0) {
+      conditions.push(`role = ANY($${paramIndex}::text[])`);
+      params.push(roleValues);
+      paramIndex += 1;
+    }
   }
 
   if (typeof filters.isActive === 'boolean') {
@@ -98,7 +120,10 @@ export const listUsers = async (filters: ListUsersFilters): Promise<UserRecord[]
     params
   );
 
-  return result.rows;
+  return result.rows.map((row) => ({
+    ...row,
+    role: normalizeUserRole(row.role),
+  }));
 };
 
 export const getUserById = async (id: string): Promise<UserRecord | null> => {
@@ -109,7 +134,15 @@ export const getUserById = async (id: string): Promise<UserRecord | null> => {
     [id]
   );
 
-  return result.rows[0] ?? null;
+  const row = result.rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    role: normalizeUserRole(row.role),
+  };
 };
 
 export const findUserByEmail = async (email: string): Promise<string | null> => {
@@ -129,6 +162,7 @@ export const findUserByEmailExcludingId = async (
 };
 
 export const createUser = async (input: CreateUserInput): Promise<UserRecord> => {
+  const normalizedRole = normalizeUserRole(input.role);
   const result = await pool.query<UserRecord>(
     `INSERT INTO users (email, password_hash, first_name, last_name, role, is_active, created_at, updated_at, created_by)
      VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW(), $6)
@@ -138,17 +172,21 @@ export const createUser = async (input: CreateUserInput): Promise<UserRecord> =>
       input.passwordHash,
       input.firstName,
       input.lastName,
-      input.role,
+      normalizedRole,
       input.createdBy,
     ]
   );
 
-  return result.rows[0];
+  return {
+    ...result.rows[0],
+    role: normalizeUserRole(result.rows[0].role),
+  };
 };
 
 export const getUserRoleById = async (id: string): Promise<UserRoleRow | null> => {
   const result = await pool.query<UserRoleRow>('SELECT id, role FROM users WHERE id = $1', [id]);
-  return result.rows[0] ?? null;
+  const row = result.rows[0];
+  return row ? { ...row, role: normalizeUserRole(row.role) } : null;
 };
 
 export const countActiveAdmins = async (): Promise<number> => {
@@ -160,6 +198,7 @@ export const countActiveAdmins = async (): Promise<number> => {
 };
 
 export const updateUser = async (input: UpdateUserInput): Promise<UserRecord | null> => {
+  const normalizedRole = input.role ? normalizeUserRole(input.role) : undefined;
   const result = await pool.query<UserRecord>(
     `UPDATE users
      SET email = COALESCE($1, email),
@@ -175,14 +214,20 @@ export const updateUser = async (input: UpdateUserInput): Promise<UserRecord | n
       input.email,
       input.firstName,
       input.lastName,
-      input.role,
+      normalizedRole,
       input.isActive,
       input.modifiedBy,
       input.id,
     ]
   );
 
-  return result.rows[0] ?? null;
+  const row = result.rows[0];
+  return row
+    ? {
+        ...row,
+        role: normalizeUserRole(row.role),
+      }
+    : null;
 };
 
 export const getUserIdentityById = async (id: string): Promise<UserIdentityRow | null> => {
@@ -208,7 +253,8 @@ export const getUserRoleIdentityById = async (id: string): Promise<UserRoleIdent
     'SELECT id, role, email FROM users WHERE id = $1',
     [id]
   );
-  return result.rows[0] ?? null;
+  const row = result.rows[0];
+  return row ? { ...row, role: normalizeUserRole(row.role) } : null;
 };
 
 export const deactivateUser = async (id: string, modifiedBy: string): Promise<void> => {

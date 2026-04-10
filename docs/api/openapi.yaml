@@ -277,6 +277,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
   /admin/twilio-settings:
+    get:
+      summary: Get Twilio settings
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Twilio settings with credential presence flags
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TwilioSettingsReadPayload'
     put:
       summary: Update Twilio settings
       security:
@@ -289,17 +305,59 @@ paths:
               type: object
               additionalProperties: false
               properties:
-                accountSid: { type: string, nullable: true }
-                authToken: { type: string }
-                messagingServiceSid: { type: string, nullable: true }
-                fromPhoneNumber: { type: string, nullable: true }
+                accountSid:
+                  nullable: true
+                  oneOf:
+                    - type: string
+                      pattern: '^AC[0-9a-fA-F]{32}$'
+                    - type: string
+                      enum: ['']
+                  description: Twilio Account SID. Clear with null or an empty string.
+                authToken:
+                  type: string
+                  maxLength: 255
+                  description: Twilio Auth Token. Omit to keep the stored token or send an empty string to clear it.
+                messagingServiceSid:
+                  nullable: true
+                  oneOf:
+                    - type: string
+                      pattern: '^MG[0-9a-fA-F]{32}$'
+                    - type: string
+                      enum: ['']
+                  description: Twilio Messaging Service SID. Clear with null or an empty string.
+                fromPhoneNumber:
+                  type: string
+                  nullable: true
+                  description: From phone number (E.164). Clear with null or an empty string.
       responses:
         '200':
           description: Twilio settings updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TwilioSettingsWritePayload'
+  /admin/twilio-settings/test:
+    post:
+      summary: Test Twilio connection
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Twilio connection test result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TwilioConnectionTestPayload'
   /admin/registration-settings:
     put:
       summary: Update registration settings
@@ -1075,3 +1133,71 @@ components:
               type: string
             details:
               nullable: true
+    TwilioSettings:
+      type: object
+      required:
+        - id
+        - accountSid
+        - messagingServiceSid
+        - fromPhoneNumber
+        - isConfigured
+        - lastTestedAt
+        - lastTestSuccess
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountSid:
+          type: string
+          nullable: true
+        messagingServiceSid:
+          type: string
+          nullable: true
+        fromPhoneNumber:
+          type: string
+          nullable: true
+        isConfigured:
+          type: boolean
+        lastTestedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastTestSuccess:
+          type: boolean
+          nullable: true
+    TwilioCredentials:
+      type: object
+      required: [authToken]
+      properties:
+        authToken:
+          type: boolean
+    TwilioSettingsReadPayload:
+      type: object
+      required: [data, credentials]
+      properties:
+        data:
+          $ref: '#/components/schemas/TwilioSettings'
+        credentials:
+          $ref: '#/components/schemas/TwilioCredentials'
+    TwilioSettingsWritePayload:
+      type: object
+      required: [data, message]
+      properties:
+        data:
+          $ref: '#/components/schemas/TwilioSettings'
+        message:
+          type: string
+    TwilioConnectionTestPayload:
+      type: object
+      required: [data, message]
+      properties:
+        data:
+          type: object
+          required: [success]
+          properties:
+            success:
+              type: boolean
+            error:
+              type: string
+        message:
+          type: string

@@ -6,6 +6,7 @@
 import crypto from 'crypto';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import { normalizeRoleSlug } from '@utils/roleSlug';
 
 export interface UserInvitation {
   id: string;
@@ -61,7 +62,7 @@ const generateToken = (): string => {
 const mapRowToInvitation = (row: InvitationRow): UserInvitation => ({
   id: row.id,
   email: row.email,
-  role: row.role,
+  role: normalizeRoleSlug(row.role) ?? row.role,
   token: row.token,
   expiresAt: row.expires_at,
   acceptedAt: row.accepted_at,
@@ -86,6 +87,7 @@ export const createInvitation = async (
   const expiresInDays = data.expiresInDays || 7;
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+  const normalizedRole = normalizeRoleSlug(data.role) ?? data.role;
 
   // Check if email already has a user account
   const existingUser = await pool.query(
@@ -110,10 +112,10 @@ export const createInvitation = async (
     `INSERT INTO user_invitations (email, role, token, expires_at, message, created_by)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [data.email.toLowerCase(), data.role, token, expiresAt, data.message || null, createdBy]
+    [data.email.toLowerCase(), normalizedRole, token, expiresAt, data.message || null, createdBy]
   );
 
-  logger.info(`User invitation created for ${data.email}`, { createdBy, role: data.role });
+  logger.info(`User invitation created for ${data.email}`, { createdBy, role: normalizedRole });
 
   return mapRowToInvitation(result.rows[0]);
 };

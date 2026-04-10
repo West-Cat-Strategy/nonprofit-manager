@@ -5,6 +5,7 @@
 
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import { normalizeRoleSlug } from '@utils/roleSlug';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,7 +58,7 @@ function toModel(row: SettingsRow): RegistrationSettings {
   return {
     id: row.id,
     registrationMode: row.registration_mode,
-    defaultRole: row.default_role,
+    defaultRole: normalizeRoleSlug(row.default_role) ?? row.default_role,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -124,7 +125,7 @@ export async function updateRegistrationSettings(
   const current = await getRegistrationSettings();
 
   const mode = dto.registrationMode ?? current.registrationMode;
-  const role = dto.defaultRole ?? current.defaultRole;
+  const role = normalizeRoleSlug(dto.defaultRole ?? current.defaultRole) ?? current.defaultRole;
 
   const result = await pool.query<SettingsRow>(
     `UPDATE registration_settings

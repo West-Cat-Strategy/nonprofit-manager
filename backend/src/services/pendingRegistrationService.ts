@@ -10,6 +10,7 @@ import { PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
 import { sendMail } from '@services/emailService';
 import { getRegistrationSettings } from '@services/registrationSettingsService';
+import { normalizeRoleSlug } from '@utils/roleSlug';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -207,13 +208,14 @@ export async function approvePendingRegistration(
 
   // Get default role from settings
   const settings = await getRegistrationSettings();
+  const normalizedRole = normalizeRoleSlug(settings.defaultRole) ?? settings.defaultRole;
 
   // Create the real user with the stored password hash
   const userResult = await pool.query<UserRow>(
     `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
      RETURNING id, email, first_name, last_name, role`,
-    [pending.email, pending.password_hash, pending.first_name, pending.last_name, settings.defaultRole]
+    [pending.email, pending.password_hash, pending.first_name, pending.last_name, normalizedRole]
   );
 
   const user = userResult.rows[0];

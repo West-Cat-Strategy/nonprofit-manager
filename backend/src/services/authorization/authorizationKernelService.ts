@@ -23,6 +23,7 @@ import {
   staticPermissionSubscriber,
 } from './subscribers/staticPermissionSubscriber';
 import type { AuthorizationSubscriber } from './subscribers/types';
+import { normalizeRoleSlug } from '@utils/roleSlug';
 
 const POLICY_VERSION = 'p3-t4-auth-kernel-v1';
 
@@ -53,9 +54,11 @@ export const resolveRolesForUser = async (
   userId: string,
   primaryRole: string
 ): Promise<string[]> => {
+  const normalizedPrimaryRole = normalizeRoleSlug(primaryRole) ?? primaryRole;
+
   try {
     if (!(await hasRoleTables())) {
-      return [primaryRole];
+      return [normalizedPrimaryRole];
     }
 
     const result = await pool.query<{ name: string }>(
@@ -68,16 +71,19 @@ export const resolveRolesForUser = async (
     );
 
     if (result.rows.length === 0) {
-      return [primaryRole];
+      return [normalizedPrimaryRole];
     }
 
-    return unique([primaryRole, ...result.rows.map((row) => row.name)]);
+    return unique([
+      normalizedPrimaryRole,
+      ...result.rows.map((row) => normalizeRoleSlug(row.name) ?? row.name),
+    ]);
   } catch (error) {
     logger.warn('Failed to resolve user roles for authorization kernel; using primary role fallback', {
       userId,
       error: error instanceof Error ? error.message : String(error),
     });
-    return [primaryRole];
+    return [normalizedPrimaryRole];
   }
 };
 
@@ -113,11 +119,12 @@ const mergeContextIntoMatrix = (
 export const buildAuthorizationSnapshot = async (
   input: AuthorizationKernelInput
 ): Promise<AuthorizationSnapshot> => {
-  const roles = await resolveRolesForUser(input.userId, input.primaryRole);
+  const normalizedPrimaryRole = normalizeRoleSlug(input.primaryRole) ?? input.primaryRole;
+  const roles = await resolveRolesForUser(input.userId, normalizedPrimaryRole);
 
   const context: AuthorizationSubscriberContext = {
     userId: input.userId,
-    primaryRole: input.primaryRole,
+    primaryRole: normalizedPrimaryRole,
     roles,
     organizationId: input.organizationId,
   };
@@ -157,8 +164,10 @@ export const createRequestAuthorizationContext = (
   roles?: string[]
 ): AuthorizationRequestContext => ({
   userId,
-  primaryRole,
-  roles: unique(roles && roles.length > 0 ? roles : [primaryRole]),
+  primaryRole: normalizeRoleSlug(primaryRole) ?? primaryRole,
+  roles: unique(
+    (roles && roles.length > 0 ? roles : [primaryRole]).map((role) => normalizeRoleSlug(role) ?? role)
+  ),
   ...(organizationId ? { organizationId } : {}),
   hydratedAt: new Date().toISOString(),
 });
@@ -168,8 +177,9 @@ export const hasRoleAccess = (
   allowedRoles: string[],
   roles?: string[]
 ): boolean => {
+  const allowed = new Set(allowedRoles.map((role) => normalizeRoleSlug(role) ?? role));
   const candidates = roles && roles.length > 0 ? roles : [primaryRole];
-  return candidates.some((role) => allowedRoles.includes(role));
+  return candidates.some((role) => allowed.has(normalizeRoleSlug(role) ?? role));
 };
 
 export {

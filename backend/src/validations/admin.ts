@@ -1,9 +1,35 @@
 import { z } from 'zod';
 import { emailSchema, phoneSchema, uuidSchema, optionalStrictBooleanSchema } from './shared';
 import { WORKSPACE_MODULE_KEYS } from '@app-types/workspaceModules';
+import { userRoleSchema } from './user';
 
 const nullableString = (maxLength = 255) =>
-  z.union([z.string().trim().max(maxLength), z.null()]).optional();
+  z.preprocess((value) => {
+    if (value === undefined || value === null) {
+      return value;
+    }
+
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
+  }, z.union([z.string().max(maxLength), z.null()]).optional());
+
+const nullableTwilioSid = (prefix: 'AC' | 'MG', errorMessage: string) =>
+  z.preprocess((value) => {
+    if (value === undefined || value === null) {
+      return value;
+    }
+
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
+  }, z.string().regex(new RegExp(`^${prefix}[0-9a-fA-F]{32}$`), errorMessage).nullable().optional());
 
 const nullableEmailSetting = z.preprocess((value) => {
   if (value === undefined || value === null) {
@@ -24,7 +50,31 @@ export const adminPendingRegistrationParamsSchema = z.object({
 
 export const updateRegistrationSettingsSchema = z.object({
   registrationMode: z.enum(['disabled', 'approval_required']).optional(),
-  defaultRole: z.enum(['admin', 'manager', 'user', 'readonly']).optional(),
+  defaultRole: userRoleSchema.optional(),
+});
+
+export const adminRoleParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+export const adminRoleCreateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    description: z.string().trim().max(500).optional(),
+    permissions: z.array(z.string().trim().min(1).max(255)).optional(),
+  })
+  .strict();
+
+export const adminRoleUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    description: z.string().trim().max(500).optional(),
+    permissions: z.array(z.string().trim().min(1).max(255)).optional(),
+  })
+  .strict();
+
+export const adminUserAuditLogsParamsSchema = z.object({
+  id: uuidSchema,
 });
 
 export const rejectPendingRegistrationSchema = z.object({
@@ -33,8 +83,8 @@ export const rejectPendingRegistrationSchema = z.object({
 
 export const adminAuditLogsQuerySchema = z
   .object({
-    limit: z.coerce.number().int().min(1).max(200).optional(),
-    offset: z.coerce.number().int().min(0).max(5000).optional(),
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    offset: z.coerce.number().int().min(0).max(5000).default(0),
   })
   .strict();
 
@@ -60,10 +110,24 @@ export const updateEmailSettingsSchema = z.object({
 });
 
 export const updateTwilioSettingsSchema = z.object({
-  accountSid: nullableString(255),
+  accountSid: nullableTwilioSid('AC', 'Invalid Twilio Account SID format'),
   authToken: z.string().max(255).optional(),
-  messagingServiceSid: nullableString(255),
-  fromPhoneNumber: z.union([phoneSchema, z.null()]).optional(),
+  messagingServiceSid: nullableTwilioSid(
+    'MG',
+    'Invalid Twilio Messaging Service SID format'
+  ),
+  fromPhoneNumber: z.preprocess((value) => {
+    if (value === undefined || value === null) {
+      return value;
+    }
+
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
+  }, z.union([phoneSchema, z.null()]).optional()),
 });
 
 const settingsAddressSchema = z.object({
@@ -127,6 +191,10 @@ export type AdminPendingRegistrationParamsInput = z.infer<
   typeof adminPendingRegistrationParamsSchema
 >;
 export type UpdateRegistrationSettingsInput = z.infer<typeof updateRegistrationSettingsSchema>;
+export type AdminRoleParamsInput = z.infer<typeof adminRoleParamsSchema>;
+export type AdminRoleCreateInput = z.infer<typeof adminRoleCreateSchema>;
+export type AdminRoleUpdateInput = z.infer<typeof adminRoleUpdateSchema>;
+export type AdminUserAuditLogsParamsInput = z.infer<typeof adminUserAuditLogsParamsSchema>;
 export type RejectPendingRegistrationInput = z.infer<typeof rejectPendingRegistrationSchema>;
 export type AdminAuditLogsQueryInput = z.infer<typeof adminAuditLogsQuerySchema>;
 export type AdminPendingRegistrationsQueryInput = z.infer<

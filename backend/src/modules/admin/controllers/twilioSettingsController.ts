@@ -11,13 +11,7 @@ import { forbidden } from '@utils/responseHelpers';
 import * as twilioSettingsService from '@services/twilioSettingsService';
 import { testTwilioConnection } from '@services/twilioSmsService';
 import { sendSuccess } from '@modules/shared/http/envelope';
-
-const normalizeOptionalString = (value: unknown): string | null | undefined => {
-  if (value === undefined) return undefined;
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
-};
+import type { UpdateTwilioSettingsInput } from '@validations/admin';
 
 /**
  * GET /api/admin/twilio-settings
@@ -62,12 +56,13 @@ export const updateTwilioSettings = async (
       return forbidden(res, 'Admin access required');
     }
 
+    const body = req.body as UpdateTwilioSettingsInput;
     const updated = await twilioSettingsService.updateTwilioSettings(
       {
-        accountSid: normalizeOptionalString(req.body.accountSid),
-        authToken: typeof req.body.authToken === 'string' ? req.body.authToken : undefined,
-        messagingServiceSid: normalizeOptionalString(req.body.messagingServiceSid),
-        fromPhoneNumber: normalizeOptionalString(req.body.fromPhoneNumber),
+        accountSid: body.accountSid,
+        authToken: typeof body.authToken === 'string' ? body.authToken : undefined,
+        messagingServiceSid: body.messagingServiceSid,
+        fromPhoneNumber: body.fromPhoneNumber,
       },
       req.user.id
     );

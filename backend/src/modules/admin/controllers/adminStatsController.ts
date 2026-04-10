@@ -2,6 +2,7 @@ import { Response } from 'express';
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
+import { getAuditLogPage } from '@services/auditLogQueryService';
 import { serverError } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
@@ -81,78 +82,34 @@ export const getAdminStats = async (req: AuthRequest, res: Response) => {
 };
 
 export const getAuditLogs = async (req: AuthRequest, res: Response) => {
-    const query = (req.validatedQuery ?? req.query) as {
-        limit?: number | string;
-        offset?: number | string;
-    };
-    const parsedLimit =
-        typeof query.limit === 'number' ? query.limit : parseInt(String(query.limit ?? ''), 10);
-    const parsedOffset =
-        typeof query.offset === 'number' ? query.offset : parseInt(String(query.offset ?? ''), 10);
-    const limit = Number.isFinite(parsedLimit) ? parsedLimit : 50;
-    const offset = Number.isFinite(parsedOffset) ? parsedOffset : 0;
-
     try {
-        // Check if audit_log table exists (it might not in early dev environments without full migrations)
-        // and fallback gracefully if it doesn't to prevent crashing the admin panel
-        const tableCheck = await pool.query(
-            "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'audit_log')"
-        );
-
-        if (!tableCheck.rows[0].exists) {
-            return sendSuccess(res, { logs: [], total: 0, warning: 'Audit logging not enabled' });
-        }
-
-        const logs = await pool.query(
-            `SELECT 
-        al.id, 
-        al.table_name, 
-        al.operation, 
-        al.changed_at, 
-        u.email as changed_by_email,
-        al.changes 
-      FROM audit_log al
-      LEFT JOIN users u ON al.changed_by = u.id
-      ORDER BY al.changed_at DESC
-      LIMIT $1 OFFSET $2`,
-            [limit, offset]
-        );
-
-        const count = await pool.query('SELECT COUNT(*) FROM audit_log');
-
-        return sendSuccess(res, {
-            logs: logs.rows,
-            total: parseInt(count.rows[0].count)
+        const query = req.validatedQuery as { limit: number; offset: number } | undefined;
+        const limit = query?.limit ?? 50;
+        const offset = query?.offset ?? 0;
+        const page = await getAuditLogPage({ limit, offset });
+        return sendSuccess(res, page);
+    } catch (error) {
+        logger.error('Failed to fetch audit logs', {
+            error,
+            correlationId: req.correlationId,
         });
-    } catch {
-        // If column 'changes' doesn't exist (schema Mismatch from 002 vs 033), handle specific query error? 
-        // The migration 033 uses 'old_values', 'new_values', 'changed_fields'.
-        // Let's adjust the query to match 033 schema better.
-        try {
-            const logsRetry = await pool.query(
-                `SELECT 
-            al.id, 
-            al.table_name, 
-            al.operation, 
-            al.changed_at, 
-            u.email as changed_by_email,
-            al.changed_fields,
-            al.is_sensitive
-        FROM audit_log al
-        LEFT JOIN users u ON al.changed_by = u.id
-        ORDER BY al.changed_at DESC
-        LIMIT $1 OFFSET $2`,
-                [limit, offset]
-            );
+        return serverError(res, 'Failed to fetch audit logs');
+    }
+};
 
-            const countRetry = await pool.query('SELECT COUNT(*) FROM audit_log');
-            return sendSuccess(res, {
-                logs: logsRetry.rows,
-                total: parseInt(countRetry.rows[0].count)
-            });
-
-        } catch {
-            return serverError(res, 'Failed to fetch audit logs');
-        }
+export const getUserAuditLogs = async (req: AuthRequest, res: Response) => {
+    try {
+        const query = req.validatedQuery as { limit: number; offset: number } | undefined;
+        const limit = query?.limit ?? 50;
+        const offset = query?.offset ?? 0;
+        const params = (req.validatedParams ?? req.params) as { id: string };
+        const page = await getAuditLogPage({ limit, offset, userId: params.id });
+        return sendSuccess(res, page);
+    } catch (error) {
+        logger.error('Failed to fetch user audit logs', {
+            error,
+            correlationId: req.correlationId,
+        });
+        return serverError(res, 'Failed to fetch user audit logs');
     }
 };

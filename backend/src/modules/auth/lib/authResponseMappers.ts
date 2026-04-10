@@ -1,3 +1,4 @@
+import { normalizeRoleSlug } from '@utils/roleSlug';
 import type { NotificationSettings, ProfileRow } from './authQueries';
 
 type AuthUserInput = {
@@ -34,7 +35,7 @@ export const mapAuthUser = (
     email: user.email,
     firstName: user.first_name,
     lastName: user.last_name,
-    role: user.role,
+    role: normalizeRoleSlug(user.role) ?? user.role,
     profilePicture: user.profile_picture || null,
   };
 
@@ -60,7 +61,7 @@ export const mapProfile = (user: ProfileRow) => ({
   email: user.email,
   firstName: user.first_name,
   lastName: user.last_name,
-  role: user.role,
+  role: normalizeRoleSlug(user.role) ?? user.role,
   displayName: user.display_name || '',
   alternativeName: user.alternative_name || '',
   pronouns: user.pronouns || '',

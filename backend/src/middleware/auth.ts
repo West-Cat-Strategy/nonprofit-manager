@@ -7,6 +7,7 @@ import { forbidden, notFoundMessage, serverError, unauthorized } from '@utils/re
 import { extractToken, AUTH_COOKIE_NAME } from '@utils/cookieHelper';
 import { createRequestAuthorizationContext, hasRoleAccess } from '@services/authorization';
 import { setRequestContext } from '@config/requestContext';
+import { normalizeRoleSlug } from '@utils/roleSlug';
 
 interface JwtPayload {
   id: string;
@@ -177,10 +178,14 @@ export const authenticate = (
       }
 
       const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
+      const normalizedRole = normalizeRoleSlug(decoded.role) ?? decoded.role;
       const tokenOrganizationId = decoded.organizationId || decoded.organization_id;
       const requestedOrganizationId = getRequestedOrganizationId(req);
 
-      req.user = decoded;
+      req.user = {
+        ...decoded,
+        role: normalizedRole,
+      };
 
       let organizationId = tokenOrganizationId;
       const shouldValidateResolvedContext = shouldValidateOrganizationContext();
@@ -193,7 +198,7 @@ export const authenticate = (
           const isValid = await validateResolvedOrganization(req, res, {
             organizationId: requestedOrganizationId,
             userId: decoded.id,
-            userRole: decoded.role,
+            userRole: normalizedRole,
             source: usingExplicitOrganizationSwitch
               ? req.requestedOrganizationSource || 'header'
               : 'token',
@@ -211,7 +216,7 @@ export const authenticate = (
         const isValid = await validateResolvedOrganization(req, res, {
           organizationId: tokenOrganizationId,
           userId: decoded.id,
-          userRole: decoded.role,
+          userRole: normalizedRole,
           source: 'token',
           validateAccess: false,
         });
@@ -223,7 +228,7 @@ export const authenticate = (
       setOrganizationContext(req, organizationId, decoded.id);
       req.authorizationContext = createRequestAuthorizationContext(
         decoded.id,
-        decoded.role,
+        normalizedRole,
         organizationId
       );
       next();

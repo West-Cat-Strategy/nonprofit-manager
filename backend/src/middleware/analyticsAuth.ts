@@ -8,6 +8,7 @@ import type { AuthRequest } from './auth';
 import { logger } from '@config/logger';
 import pool from '@config/database';
 import { forbidden, unauthorized } from '@utils/responseHelpers';
+import { normalizeRoleSlug } from '@utils/roleSlug';
 
 /**
  * Analytics access levels by role
@@ -48,17 +49,7 @@ export const ANALYTICS_PERMISSIONS = {
     canViewTrends: true,
   },
   // Default app users should have at least basic (non-financial) analytics access.
-  user: {
-    canViewOrgAnalytics: true,
-    canViewAccountAnalytics: true,
-    canViewContactAnalytics: true,
-    canViewFinancialMetrics: false,
-    canViewSensitiveData: false,
-    canExportData: false,
-    canViewAnomalies: false,
-    canViewTrends: true,
-  },
-  readonly: {
+  viewer: {
     canViewOrgAnalytics: true,
     canViewAccountAnalytics: true,
     canViewContactAnalytics: true,
@@ -92,7 +83,10 @@ export function hasAnalyticsPermission(
   role: string,
   permission: AnalyticsCapability
 ): boolean {
-  const rolePermissions = ANALYTICS_PERMISSIONS[role as keyof typeof ANALYTICS_PERMISSIONS];
+  const normalizedRole = normalizeRoleSlug(role);
+  const rolePermissions = normalizedRole
+    ? ANALYTICS_PERMISSIONS[normalizedRole as keyof typeof ANALYTICS_PERMISSIONS]
+    : undefined;
   if (!rolePermissions) {
     return false;
   }

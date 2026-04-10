@@ -1,15 +1,14 @@
 import type { Pool, PoolClient } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import { RoleCatalogError } from './roleCatalogErrors';
+import { normalizeRoleSlug, ROLE_SLUG_ALIASES } from '@utils/roleSlug';
 
 export const CANONICAL_ROLE_SLUGS = ['admin', 'manager', 'staff', 'volunteer', 'viewer'] as const;
 export type CanonicalRoleSlug = (typeof CANONICAL_ROLE_SLUGS)[number];
 
-export const ROLE_SELECTOR_ALIASES: Record<string, CanonicalRoleSlug> = {
-  user: 'staff',
-  readonly: 'viewer',
-  member: 'viewer',
-};
+export const ROLE_SELECTOR_ALIASES =
+  ROLE_SLUG_ALIASES as Record<string, CanonicalRoleSlug>;
 
 const CANONICAL_ROLE_SET = new Set<string>(CANONICAL_ROLE_SLUGS);
 
@@ -72,14 +71,6 @@ export interface UpdateRoleInput {
   permissions?: string[];
 }
 
-const slugifyRoleName = (value: string): string =>
-  value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-{2,}/g, '-');
-
 const humanizePhrase = (value: string): string =>
   value
     .split(/[-_.\s]+/)
@@ -87,18 +78,11 @@ const humanizePhrase = (value: string): string =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
-export const normalizeRoleSlug = (value: string | null | undefined): string | null => {
-  if (!value) {
-    return null;
-  }
+export { normalizeRoleSlug } from '@utils/roleSlug';
 
-  const slug = slugifyRoleName(value);
-  if (!slug) {
-    return null;
-  }
-
-  return ROLE_SELECTOR_ALIASES[slug] ?? slug;
-};
+function getCanonicalRoleName(value: string): string {
+  return normalizeRoleSlug(value) ?? value;
+}
 
 export const isSystemRoleSlug = (value: string | null | undefined): boolean => {
   const normalized = normalizeRoleSlug(value);
@@ -156,14 +140,37 @@ const mapRoleRow = (row: {
   permissions: string[] | null;
 }): RoleCatalogItem => ({
   id: row.id,
-  name: row.name,
+  name: getCanonicalRoleName(row.name),
   label: humanizeRoleLabel(row.name),
   description: row.description || '',
   permissions: Array.isArray(row.permissions) ? row.permissions.filter(Boolean) : [],
-  isSystem: Boolean(row.is_system),
+  isSystem: Boolean(row.is_system) || CANONICAL_ROLE_SET.has(getCanonicalRoleName(row.name)),
   userCount: Number.parseInt(String(row.user_count ?? 0), 10) || 0,
   priority: Number.parseInt(String(row.priority ?? 0), 10) || 0,
 });
+
+const findRoleRowByNormalizedName = async (
+  db: Pool | PoolClient,
+  normalizedName: string,
+  excludeRoleId?: string
+): Promise<{ id: string; name: string } | null> => {
+  const params: unknown[] = [];
+  let whereClause = '';
+  if (excludeRoleId) {
+    params.push(excludeRoleId);
+    whereClause = 'WHERE id <> $1';
+  }
+
+  const result = await db.query<{ id: string; name: string }>(
+    `SELECT id, name
+     FROM roles
+     ${whereClause}
+     ORDER BY is_system DESC, priority DESC, name ASC`,
+    params
+  );
+
+  return result.rows.find((row) => getCanonicalRoleName(row.name) === normalizedName) ?? null;
+};
 
 const loadPermissionIds = async (
   db: Pool | PoolClient,
@@ -192,7 +199,7 @@ const ensurePermissionsExist = async (
   const missing = permissionNames.filter((permission) => !resolvedNames.has(permission));
 
   if (missing.length > 0) {
-    throw new Error(`Unknown permissions: ${missing.join(', ')}`);
+    throw new RoleCatalogError('UNKNOWN_PERMISSION', `Unknown permissions: ${missing.join(', ')}`);
   }
 };
 
@@ -296,23 +303,20 @@ export const getPermissionCatalog = async (): Promise<PermissionCatalogItem[]> =
 export const createRole = async (input: CreateRoleInput): Promise<RoleCatalogItem> => {
   const normalizedName = normalizeRoleSlug(input.name);
   if (!normalizedName) {
-    throw new Error('Role name is required');
+    throw new RoleCatalogError('INVALID_INPUT', 'Role name is required');
   }
 
   if (CANONICAL_ROLE_SET.has(normalizedName)) {
-    throw new Error('System role slugs are reserved');
+    throw new RoleCatalogError('RESERVED', 'System role slugs are reserved');
   }
 
   const description = input.description?.trim() || null;
   const permissionNames = Array.from(new Set((input.permissions || []).map((permission) => permission.trim()).filter(Boolean)));
 
   await withTransaction(async (db) => {
-    const existing = await db.query<{ id: string }>(
-      'SELECT id FROM roles WHERE name = $1',
-      [normalizedName]
-    );
-    if (existing.rows.length > 0) {
-      throw new Error('A role with this slug already exists');
+    const existing = await findRoleRowByNormalizedName(db, normalizedName);
+    if (existing) {
+      throw new RoleCatalogError('CONFLICT', 'A role with this slug already exists');
     }
 
     await ensurePermissionsExist(db, permissionNames);
@@ -372,27 +376,25 @@ export const updateRole = async (
     );
 
     if (existing.rows.length === 0) {
-      throw new Error('Role not found');
+      throw new RoleCatalogError('NOT_FOUND', 'Role not found');
     }
 
     const role = existing.rows[0];
-    const currentName = role.name;
+    const currentName = getCanonicalRoleName(role.name);
+    const currentIsSystem = Boolean(role.is_system) || CANONICAL_ROLE_SET.has(currentName as CanonicalRoleSlug);
 
-    if (role.is_system && normalizedName && normalizedName !== currentName) {
-      throw new Error('System role slugs cannot be renamed');
+    if (currentIsSystem && normalizedName && normalizedName !== currentName) {
+      throw new RoleCatalogError('RESERVED', 'System role slugs cannot be renamed');
     }
 
     if (normalizedName && normalizedName !== currentName) {
       if (CANONICAL_ROLE_SET.has(normalizedName)) {
-        throw new Error('System role slugs are reserved');
+        throw new RoleCatalogError('RESERVED', 'System role slugs are reserved');
       }
 
-      const conflict = await db.query<{ id: string }>(
-        'SELECT id FROM roles WHERE name = $1 AND id <> $2',
-        [normalizedName, roleId]
-      );
-      if (conflict.rows.length > 0) {
-        throw new Error('A role with this slug already exists');
+      const conflict = await findRoleRowByNormalizedName(db, normalizedName, roleId);
+      if (conflict) {
+        throw new RoleCatalogError('CONFLICT', 'A role with this slug already exists');
       }
 
       await db.query(
@@ -400,14 +402,14 @@ export const updateRole = async (
          SET role = $1,
              updated_at = NOW()
          WHERE role = $2`,
-        [normalizedName, currentName]
+        [normalizedName, role.name]
       );
 
       await db.query(
         `UPDATE user_invitations
          SET role = $1
          WHERE role = $2`,
-        [normalizedName, currentName]
+        [normalizedName, role.name]
       );
 
       await db.query(
@@ -415,7 +417,7 @@ export const updateRole = async (
          SET default_role = $1,
              updated_at = NOW()
          WHERE default_role = $2`,
-        [normalizedName, currentName]
+        [normalizedName, role.name]
       );
 
       await db.query('UPDATE roles SET name = $1 WHERE id = $2', [normalizedName, roleId]);
@@ -469,12 +471,13 @@ export const deleteRole = async (roleId: string): Promise<void> => {
     );
 
     if (existing.rows.length === 0) {
-      throw new Error('Role not found');
+      throw new RoleCatalogError('NOT_FOUND', 'Role not found');
     }
 
     const role = existing.rows[0];
-    if (role.is_system || CANONICAL_ROLE_SET.has(role.name)) {
-      throw new Error('System roles cannot be deleted');
+    const currentName = getCanonicalRoleName(role.name);
+    if (role.is_system || CANONICAL_ROLE_SET.has(currentName as CanonicalRoleSlug)) {
+      throw new RoleCatalogError('RESERVED', 'System roles cannot be deleted');
     }
 
     const [userCount, invitationCount, registrationCount] = await Promise.all([
@@ -506,7 +509,7 @@ export const deleteRole = async (roleId: string): Promise<void> => {
       Number.parseInt(registrationCount.rows[0]?.count ?? '0', 10);
 
     if (totalReferences > 0) {
-      throw new Error('Role is still assigned to users or invitations');
+      throw new RoleCatalogError('IN_USE', 'Role is still assigned to users or invitations');
     }
 
     await db.query('DELETE FROM roles WHERE id = $1', [roleId]);
@@ -515,7 +518,7 @@ export const deleteRole = async (roleId: string): Promise<void> => {
 
 export const getRoleNameById = async (roleId: string): Promise<string | null> => {
   const result = await pool.query<{ name: string }>('SELECT name FROM roles WHERE id = $1', [roleId]);
-  return result.rows[0]?.name ?? null;
+  return result.rows[0]?.name ? getCanonicalRoleName(result.rows[0].name) : null;
 };
 
 export const getRoleByName = async (
@@ -528,6 +531,11 @@ export const getRoleByName = async (
   }
 
   if (!(await hasRoleTables(db))) {
+    return null;
+  }
+
+  const row = await findRoleRowByNormalizedName(db, normalizedName);
+  if (!row) {
     return null;
   }
 
@@ -555,12 +563,11 @@ export const getRoleByName = async (
      LEFT JOIN user_roles ur ON ur.role_id = r.id
      LEFT JOIN role_permissions rp ON rp.role_id = r.id
      LEFT JOIN permissions p ON p.id = rp.permission_id
-     WHERE r.name = $1
+     WHERE r.id = $1
      GROUP BY r.id`,
-    [normalizedName]
+    [row.id]
   );
 
-  const row = result.rows[0];
-  return row ? mapRoleRow(row) : null;
+  const roleRow = result.rows[0];
+  return roleRow ? mapRoleRow(roleRow) : null;
 };
-
