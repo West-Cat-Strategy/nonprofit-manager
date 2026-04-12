@@ -9,7 +9,7 @@ import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
-import { getRoleSelectorItems } from '@services/roleCatalogService';
+import { getRoleSelectorItems } from '@modules/admin/usecases/roleCatalogUseCase';
 import * as userManagementService from '@services/userManagementService';
 import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';

@@ -8,7 +8,7 @@ import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { logger } from '@config/logger';
 import { forbidden } from '@utils/responseHelpers';
-import * as twilioSettingsService from '@services/twilioSettingsService';
+import * as twilioSettingsUseCase from '../usecases/twilioSettingsUseCase';
 import { testTwilioConnection } from '@services/twilioSmsService';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import type { UpdateTwilioSettingsInput } from '@validations/admin';
@@ -28,8 +28,8 @@ export const getTwilioSettings = async (
     }
 
     const [settings, credentials] = await Promise.all([
-      twilioSettingsService.getTwilioSettings(),
-      twilioSettingsService.hasStoredCredentials(),
+      twilioSettingsUseCase.getTwilioSettings(),
+      twilioSettingsUseCase.hasStoredCredentials(),
     ]);
 
     return sendSuccess(res, {
@@ -57,7 +57,7 @@ export const updateTwilioSettings = async (
     }
 
     const body = req.body as UpdateTwilioSettingsInput;
-    const updated = await twilioSettingsService.updateTwilioSettings(
+    const updated = await twilioSettingsUseCase.updateTwilioSettings(
       {
         accountSid: body.accountSid,
         authToken: typeof body.authToken === 'string' ? body.authToken : undefined,

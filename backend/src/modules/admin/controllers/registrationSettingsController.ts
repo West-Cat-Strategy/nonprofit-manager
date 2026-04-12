@@ -13,7 +13,7 @@ import {
   getRegistrationSettings,
   getRegistrationMode,
   updateRegistrationSettings,
-} from '@services/registrationSettingsService';
+} from '../usecases/registrationSettingsUseCase';
 import {
   listPendingRegistrations,
   approvePendingRegistration,

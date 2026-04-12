@@ -7,7 +7,7 @@
 import type { Response, NextFunction } from 'express';
 import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
-import * as emailSettingsService from '@services/emailSettingsService';
+import * as emailSettingsUseCase from '../usecases/emailSettingsUseCase';
 import { testSmtpConnection } from '@services/emailService';
 import { forbidden } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
@@ -36,8 +36,8 @@ export const getEmailSettings = async (
     }
 
     const [settings, credentials] = await Promise.all([
-      emailSettingsService.getEmailSettings(),
-      emailSettingsService.hasStoredCredentials(),
+      emailSettingsUseCase.getEmailSettings(),
+      emailSettingsUseCase.hasStoredCredentials(),
     ]);
 
     return sendSuccess(res, {
@@ -65,7 +65,7 @@ export const updateEmailSettings = async (
     }
 
     const body = req.body as UpdateEmailSettingsInput;
-    const updated = await emailSettingsService.updateEmailSettings(
+    const updated = await emailSettingsUseCase.updateEmailSettings(
       {
         smtpHost: body.smtpHost,
         smtpPort: body.smtpPort,
