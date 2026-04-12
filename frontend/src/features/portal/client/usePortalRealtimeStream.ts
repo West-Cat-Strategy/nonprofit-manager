@@ -31,6 +31,8 @@ export function usePortalRealtimeStream({
 }: UsePortalRealtimeStreamOptions): PortalStreamStatus {
   const [status, setStatus] = useState<PortalStreamStatus>('disabled');
   const streamRef = useRef<EventSource | null>(null);
+  const onEventRef = useRef<typeof onEvent>(onEvent);
+  onEventRef.current = onEvent;
   const realtimeEnabled = import.meta.env.VITE_PORTAL_REALTIME_ENABLED === 'true';
   const channelKey = useMemo(() => channels.join(','), [channels]);
 
@@ -69,13 +71,14 @@ export function usePortalRealtimeStream({
 
     for (const eventName of EVENT_NAMES) {
       stream.addEventListener(eventName, (event) => {
-        if (!onEvent || !(event instanceof MessageEvent)) {
+        const latestOnEvent = onEventRef.current;
+        if (!latestOnEvent || !(event instanceof MessageEvent)) {
           return;
         }
 
         try {
           const payload = JSON.parse(event.data) as PortalRealtimeEventPayload;
-          onEvent(eventName, payload);
+          latestOnEvent(eventName, payload);
         } catch {
           // Ignore malformed event payloads.
         }
@@ -88,7 +91,7 @@ export function usePortalRealtimeStream({
         streamRef.current = null;
       }
     };
-  }, [enabled, onEvent, realtimeEnabled, streamUrl]);
+  }, [enabled, realtimeEnabled, streamUrl]);
 
   return status;
 }

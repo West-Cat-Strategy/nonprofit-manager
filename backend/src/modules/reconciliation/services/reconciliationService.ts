@@ -3,7 +3,9 @@
  * Handles reconciliation between Stripe transactions and internal donation records
  */
 
+import crypto from 'crypto';
 import Stripe from 'stripe';
+import type { PoolClient } from 'pg';
 import { logger } from '@config/logger';
 import pool from '@config/database';
 import type {
@@ -94,6 +96,24 @@ const PAYMENT_DISCREPANCY_COLUMNS = `
   created_at,
   updated_at
 `;
+
+type Queryable = Pick<PoolClient, 'query'>;
+
+type ReconciliationMutationErrorCode = 'not_found' | 'no_op';
+
+const createReconciliationMutationError = (
+  code: ReconciliationMutationErrorCode,
+  message: string
+): Error & { code: ReconciliationMutationErrorCode } => Object.assign(new Error(message), { code });
+
+const normalizeComparableDate = (value: unknown): string | null => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const date = value instanceof Date ? value : new Date(value as string);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
 
 interface MatchedReconciliationBatchRow {
   donationId: string;
@@ -186,17 +206,30 @@ export async function fetchStripeBalanceTransactions(
     const startTimestamp = Math.floor(startDate.getTime() / 1000);
     const endTimestamp = Math.floor(endDate.getTime() / 1000);
 
-    // Fetch all balance transactions in the date range
-    const balanceTransactions = await stripeClient.balanceTransactions.list({
-      created: {
-        gte: startTimestamp,
-        lte: endTimestamp,
-      },
-      limit: 100,
-    });
+    let startingAfter: string | undefined;
 
-    // Add all transactions from response
-    transactions.push(...balanceTransactions.data);
+    // Fetch all balance transactions in the date range
+    while (true) {
+      const balanceTransactions = await stripeClient.balanceTransactions.list({
+        created: {
+          gte: startTimestamp,
+          lte: endTimestamp,
+        },
+        limit: 100,
+        ...(startingAfter ? { starting_after: startingAfter } : {}),
+      });
+
+      transactions.push(...balanceTransactions.data);
+
+      if (!balanceTransactions.has_more || balanceTransactions.data.length === 0) {
+        break;
+      }
+
+      startingAfter = balanceTransactions.data[balanceTransactions.data.length - 1]?.id;
+      if (!startingAfter) {
+        break;
+      }
+    }
 
     logger.info(`Fetched ${transactions.length} Stripe balance transactions`, {
       startDate,
@@ -214,6 +247,7 @@ export async function fetchStripeBalanceTransactions(
  * Save Stripe balance transactions to database
  */
 async function saveStripeBalanceTransactions(
+  queryable: Queryable,
   transactions: Stripe.BalanceTransaction[],
   reconciliationId: string
 ): Promise<void> {
@@ -238,7 +272,7 @@ async function saveStripeBalanceTransactions(
     synced_at: syncedAt,
   }));
 
-  await pool.query(
+  await queryable.query(
     `
       WITH stripe_payload AS (
         SELECT
@@ -450,6 +484,7 @@ function matchTransactions(
  * Create reconciliation items for matched transactions
  */
 async function createReconciliationItems(
+  queryable: Queryable,
   reconciliationId: string,
   matched: Array<{
     donation: any;
@@ -487,7 +522,7 @@ async function createReconciliationItems(
   });
 
   if (matchedRows.length > 0) {
-    await pool.query(
+    await queryable.query(
       `
       WITH matched_payload AS (
         SELECT
@@ -576,7 +611,7 @@ async function createReconciliationItems(
       ]
     );
 
-    await pool.query(
+    await queryable.query(
       `
       WITH donation_updates AS (
         SELECT
@@ -612,7 +647,7 @@ async function createReconciliationItems(
   }));
 
   if (unmatchedDonationRows.length > 0) {
-    await pool.query(
+    await queryable.query(
       `
       WITH unmatched_donation_payload AS (
         SELECT
@@ -667,7 +702,7 @@ async function createReconciliationItems(
   }));
 
   if (unmatchedStripeRows.length > 0) {
-    await pool.query(
+    await queryable.query(
       `
       WITH unmatched_stripe_payload AS (
         SELECT
@@ -727,8 +762,8 @@ async function createReconciliationItems(
 /**
  * Create discrepancy records
  */
-async function createDiscrepancies(reconciliationId: string): Promise<void> {
-  await pool.query(
+async function createDiscrepancies(queryable: Queryable, reconciliationId: string): Promise<void> {
+  await queryable.query(
     `
     INSERT INTO payment_discrepancies (
       reconciliation_id,
@@ -802,97 +837,123 @@ export async function createReconciliation(
   const endDate = new Date(request.end_date);
 
   try {
-    // Create reconciliation record
-    const reconciliationResult = await pool.query(
-      `
-      INSERT INTO payment_reconciliations (
-        reconciliation_number, reconciliation_type, status,
-        start_date, end_date, initiated_by, notes, started_at,
-        created_at, updated_at
-      ) VALUES ($1, $2, 'in_progress', $3, $4, $5, $6, NOW(), NOW(), NOW())
-      RETURNING *
-    `,
-      [reconciliationNumber, request.reconciliation_type, startDate, endDate, userId, request.notes]
-    );
+    const [stripeTransactions, donations] = await Promise.all([
+      fetchStripeBalanceTransactions(startDate, endDate),
+      fetchDonationsForReconciliation(startDate, endDate),
+    ]);
 
-    const reconciliation = reconciliationResult.rows[0];
-
-    logger.info(`Starting reconciliation ${reconciliation.id}`, {
-      reconciliationNumber,
-      startDate,
-      endDate,
-    });
-
-    // Fetch Stripe balance transactions
-    const stripeTransactions = await fetchStripeBalanceTransactions(startDate, endDate);
-
-    // Save Stripe transactions to database
-    await saveStripeBalanceTransactions(stripeTransactions, reconciliation.id);
-
-    // Calculate Stripe summary
     const chargeTransactions = stripeTransactions.filter((tx) => tx.type === 'charge');
     const refundTransactions = stripeTransactions.filter((tx) => tx.type === 'refund');
     const stripeBalanceAmount = chargeTransactions.reduce((sum, tx) => sum + tx.amount / 100, 0);
     const stripeTotalFees = stripeTransactions.reduce((sum, tx) => sum + tx.fee / 100, 0);
-
-    // Fetch donations
-    const donations = await fetchDonationsForReconciliation(startDate, endDate);
     const donationsTotalAmount = donations.reduce((sum, d) => sum + parseFloat(d.amount), 0);
-
-    // Match transactions
     const { matched, unmatchedDonations, unmatchedStripe } = matchTransactions(donations, stripeTransactions);
+    const reconciliationId = crypto.randomUUID();
 
-    // Create reconciliation items
-    await createReconciliationItems(reconciliation.id, matched, unmatchedDonations, unmatchedStripe);
+    const reconciliation = await withTransaction(async (client) => {
+      if (userId) {
+        await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
+      }
 
-    // Create discrepancy records
-    await createDiscrepancies(reconciliation.id);
+      const reconciliationResult = await client.query(
+        `
+        INSERT INTO payment_reconciliations (
+          id,
+          reconciliation_number, reconciliation_type, status,
+          start_date, end_date, initiated_by, notes, started_at,
+          created_at, updated_at
+        ) VALUES ($1, $2, $3, 'in_progress', $4, $5, $6, $7, NOW(), NOW(), NOW())
+        RETURNING *
+      `,
+        [
+          reconciliationId,
+          reconciliationNumber,
+          request.reconciliation_type,
+          startDate,
+          endDate,
+          userId,
+          request.notes,
+        ]
+      );
 
-    // Update reconciliation with summary data
-    const updateResult = await pool.query(
-      `
-      UPDATE payment_reconciliations SET
-        status = 'completed',
-        stripe_balance_amount = $1,
-        stripe_charge_count = $2,
-        stripe_refund_count = $3,
-        stripe_total_fees = $4,
-        donations_total_amount = $5,
-        donations_count = $6,
-        matched_count = $7,
-        unmatched_stripe_count = $8,
-        unmatched_donations_count = $9,
-        discrepancy_count = $10,
-        completed_at = NOW(),
-        updated_at = NOW()
-      WHERE id = $11
-      RETURNING *
-    `,
-      [
-        stripeBalanceAmount,
-        chargeTransactions.length,
-        refundTransactions.length,
-        stripeTotalFees,
-        donationsTotalAmount,
-        donations.length,
-        matched.length,
-        unmatchedStripe.length,
-        unmatchedDonations.length,
-        unmatchedDonations.length + unmatchedStripe.length,
-        reconciliation.id,
-      ]
-    );
+      const reconciliationRow = reconciliationResult.rows[0];
 
-    logger.info(`Completed reconciliation ${reconciliation.id}`, {
-      matched: matched.length,
-      unmatchedDonations: unmatchedDonations.length,
-      unmatchedStripe: unmatchedStripe.length,
+      logger.info(`Starting reconciliation ${reconciliationRow.id}`, {
+        reconciliationNumber,
+        startDate,
+        endDate,
+      });
+
+      await saveStripeBalanceTransactions(client, stripeTransactions, reconciliationRow.id);
+      await createReconciliationItems(client, reconciliationRow.id, matched, unmatchedDonations, unmatchedStripe);
+      await createDiscrepancies(client, reconciliationRow.id);
+
+      const updateResult = await client.query(
+        `
+        UPDATE payment_reconciliations SET
+          status = 'completed',
+          stripe_balance_amount = $1,
+          stripe_charge_count = $2,
+          stripe_refund_count = $3,
+          stripe_total_fees = $4,
+          donations_total_amount = $5,
+          donations_count = $6,
+          matched_count = $7,
+          unmatched_stripe_count = $8,
+          unmatched_donations_count = $9,
+          discrepancy_count = $10,
+          completed_at = NOW(),
+          updated_at = NOW()
+        WHERE id = $11
+        RETURNING *
+      `,
+        [
+          stripeBalanceAmount,
+          chargeTransactions.length,
+          refundTransactions.length,
+          stripeTotalFees,
+          donationsTotalAmount,
+          donations.length,
+          matched.length,
+          unmatchedStripe.length,
+          unmatchedDonations.length,
+          unmatchedDonations.length + unmatchedStripe.length,
+          reconciliationRow.id,
+        ]
+      );
+
+      logger.info(`Completed reconciliation ${reconciliationRow.id}`, {
+        matched: matched.length,
+        unmatchedDonations: unmatchedDonations.length,
+        unmatchedStripe: unmatchedStripe.length,
+      });
+
+      return updateResult.rows[0];
     });
 
-    return updateResult.rows[0];
+    return reconciliation;
   } catch (error) {
     logger.error(`Error creating reconciliation:`, error);
     throw error;
+  }
+}
+
+async function withTransaction<T>(fn: (client: Queryable) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // Ignore rollback failures while preserving the original error.
+    }
+    throw error;
+  } finally {
+    client.release();
   }
 }
 
@@ -1000,8 +1061,33 @@ export async function manualMatch(
   stripePaymentIntentId: string,
   userId?: string
 ): Promise<void> {
-  // Update donation with Stripe payment intent
-  await pool.query(
+  const currentResult = await pool.query(
+    `
+    SELECT stripe_payment_intent_id, reconciliation_status, reconciled_by
+    FROM donations
+    WHERE id = $1
+  `,
+    [donationId]
+  );
+
+  const currentDonation = currentResult.rows[0];
+  if (!currentDonation) {
+    throw createReconciliationMutationError('not_found', `Donation ${donationId} not found`);
+  }
+
+  const normalizedUserId = userId ?? null;
+  if (
+    currentDonation.stripe_payment_intent_id === stripePaymentIntentId &&
+    currentDonation.reconciliation_status === 'matched' &&
+    (currentDonation.reconciled_by ?? null) === normalizedUserId
+  ) {
+    throw createReconciliationMutationError(
+      'no_op',
+      `Donation ${donationId} is already matched to that payment intent`
+    );
+  }
+
+  const updateResult = await pool.query(
     `
     UPDATE donations SET
       stripe_payment_intent_id = $1,
@@ -1010,9 +1096,14 @@ export async function manualMatch(
       reconciled_by = $2,
       updated_at = NOW()
     WHERE id = $3
+    RETURNING id
   `,
     [stripePaymentIntentId, userId, donationId]
   );
+
+  if ((updateResult.rowCount ?? 0) === 0) {
+    throw createReconciliationMutationError('not_found', `Donation ${donationId} not found`);
+  }
 
   logger.info(`Manually matched donation ${donationId} to Stripe payment ${stripePaymentIntentId}`);
 }
@@ -1026,7 +1117,32 @@ export async function resolveDiscrepancy(
   resolutionNotes: string,
   userId?: string
 ): Promise<void> {
-  await pool.query(
+  const currentResult = await pool.query(
+    `
+    SELECT status, resolution_notes, resolved_by
+    FROM payment_discrepancies
+    WHERE id = $1
+  `,
+    [discrepancyId]
+  );
+
+  const currentDiscrepancy = currentResult.rows[0];
+  if (!currentDiscrepancy) {
+    throw createReconciliationMutationError('not_found', `Discrepancy ${discrepancyId} not found`);
+  }
+
+  if (
+    currentDiscrepancy.status === status &&
+    (currentDiscrepancy.resolution_notes ?? null) === resolutionNotes &&
+    (currentDiscrepancy.resolved_by ?? null) === (userId ?? null)
+  ) {
+    throw createReconciliationMutationError(
+      'no_op',
+      `Discrepancy ${discrepancyId} is already in the requested state`
+    );
+  }
+
+  const updateResult = await pool.query(
     `
     UPDATE payment_discrepancies SET
       status = $1,
@@ -1035,9 +1151,63 @@ export async function resolveDiscrepancy(
       resolved_by = $3,
       updated_at = NOW()
     WHERE id = $4
+    RETURNING id
   `,
     [status, resolutionNotes, userId, discrepancyId]
   );
 
+  if ((updateResult.rowCount ?? 0) === 0) {
+    throw createReconciliationMutationError('not_found', `Discrepancy ${discrepancyId} not found`);
+  }
+
   logger.info(`Resolved discrepancy ${discrepancyId} with status ${status}`);
+}
+
+/**
+ * Assign a discrepancy to a user
+ */
+export async function assignDiscrepancy(
+  discrepancyId: string,
+  assignedTo: string,
+  dueDate?: string | null
+): Promise<void> {
+  const currentResult = await pool.query(
+    `
+    SELECT assigned_to, due_date
+    FROM payment_discrepancies
+    WHERE id = $1
+  `,
+    [discrepancyId]
+  );
+
+  const currentDiscrepancy = currentResult.rows[0];
+  if (!currentDiscrepancy) {
+    throw createReconciliationMutationError('not_found', `Discrepancy ${discrepancyId} not found`);
+  }
+
+  const currentDueDate = normalizeComparableDate(currentDiscrepancy.due_date);
+  const nextDueDate = normalizeComparableDate(dueDate);
+
+  if ((currentDiscrepancy.assigned_to ?? null) === assignedTo && currentDueDate === nextDueDate) {
+    throw createReconciliationMutationError(
+      'no_op',
+      `Discrepancy ${discrepancyId} is already assigned to that user`
+    );
+  }
+
+  const updateResult = await pool.query(
+    `
+    UPDATE payment_discrepancies
+    SET assigned_to = $1, due_date = $2, updated_at = NOW()
+    WHERE id = $3
+    RETURNING id
+  `,
+    [assignedTo, dueDate || null, discrepancyId]
+  );
+
+  if ((updateResult.rowCount ?? 0) === 0) {
+    throw createReconciliationMutationError('not_found', `Discrepancy ${discrepancyId} not found`);
+  }
+
+  logger.info(`Assigned discrepancy ${discrepancyId} to ${assignedTo}`);
 }

@@ -101,13 +101,34 @@ export function useReportBuilderController() {
   const [autoDownloadedJobId, setAutoDownloadedJobId] = useState<string | null>(null);
   const [failedJobAlertId, setFailedJobAlertId] = useState<string | null>(null);
 
-  const formatGenerateError = formatApiErrorMessageWith('Failed to generate report');
-  const formatFieldsError = formatApiErrorMessageWith('Failed to load available fields');
-  const formatExportsError = formatApiErrorMessageWith('Failed to load report exports');
-  const formatExportRefreshError = formatApiErrorMessageWith('Failed to refresh report export');
-  const formatExportCreateError = formatApiErrorMessageWith('Failed to start report export');
-  const formatSavedReportError = formatApiErrorMessageWith('Failed to load saved report');
-  const formatSaveReportError = formatApiErrorMessageWith('Failed to save report');
+  const formatGenerateError = useMemo(
+    () => formatApiErrorMessageWith('Failed to generate report'),
+    []
+  );
+  const formatFieldsError = useMemo(
+    () => formatApiErrorMessageWith('Failed to load available fields'),
+    []
+  );
+  const formatExportsError = useMemo(
+    () => formatApiErrorMessageWith('Failed to load report exports'),
+    []
+  );
+  const formatExportRefreshError = useMemo(
+    () => formatApiErrorMessageWith('Failed to refresh report export'),
+    []
+  );
+  const formatExportCreateError = useMemo(
+    () => formatApiErrorMessageWith('Failed to start report export'),
+    []
+  );
+  const formatSavedReportError = useMemo(
+    () => formatApiErrorMessageWith('Failed to load saved report'),
+    []
+  );
+  const formatSaveReportError = useMemo(
+    () => formatApiErrorMessageWith('Failed to save report'),
+    []
+  );
 
   const availableFields = availableFieldsByEntity[entity] || [];
   const reportRows = currentReport?.data ?? [];

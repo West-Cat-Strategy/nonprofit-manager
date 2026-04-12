@@ -172,6 +172,17 @@ describe('WebsitePublishingPage', () => {
   });
 
   it('can publish a preview deployment and surface the preview message', async () => {
+    selectorState = {
+      ...mockState,
+      websites: {
+        ...mockState.websites,
+        lastPublishResult: {
+          target: 'preview',
+          version: 'v-preview-1',
+          previewUrl: 'https://preview.mutualaid.org?preview=true&version=v-preview-1',
+        },
+      },
+    };
     dispatchMock.mockImplementation((action: { type?: string }) => {
       if (action.type === 'websites/publishSite') {
         return Promise.resolve({
@@ -213,6 +224,9 @@ describe('WebsitePublishingPage', () => {
     expect(
       screen.getByText(/Preview published\. Use https:\/\/preview\.mutualaid\.org/i)
     ).toBeInTheDocument();
+
+    const previewLink = screen.getByRole('link', { name: 'Open preview link' });
+    expect(previewLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('renders loading state instead of a blank page while overview is unresolved', () => {

@@ -7,6 +7,7 @@ import {
 
 describe('usePersistedMessageDraft', () => {
   beforeEach(() => {
+    window.sessionStorage.clear();
     window.localStorage.clear();
   });
 
@@ -26,6 +27,8 @@ describe('usePersistedMessageDraft', () => {
     });
 
     expect(readPersistedDraft('team-messenger', 'room-1')).toBe('hello world');
+    expect(window.sessionStorage.getItem('messaging_drafts_v1')).toContain('hello world');
+    expect(window.localStorage.getItem('messaging_drafts_v1')).toBeNull();
 
     rerender({
       surface: 'portal-client' as const,
@@ -59,5 +62,6 @@ describe('usePersistedMessageDraft', () => {
 
     expect(readPersistedDraft('case-chat', 'case-1')).toBe('');
     expect(result.current.draft).toBe('');
+    expect(window.sessionStorage.getItem('messaging_drafts_v1')).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { createSelector } from 'reselect';
+import { createSelector } from '@reduxjs/toolkit';
 import { casesApiClient } from '../api/casesApiClient';
 import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import { isUrgentEquivalentPriority } from '../utils/casePriority';

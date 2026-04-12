@@ -358,6 +358,16 @@ export async function syncContact(request: SyncContactRequest): Promise<SyncResu
     };
   } catch (error) {
     logger.error('Failed to sync contact to Mailchimp', { error, request });
+    if (typeof error === 'object' && error !== null && (error as { status?: number }).status === 404) {
+      return {
+        contactId: request.contactId,
+        email: '',
+        success: false,
+        action: 'skipped',
+        error: 'Mailchimp list not found',
+        statusCode: 404,
+      };
+    }
     return {
       contactId: request.contactId,
       email: '',

@@ -186,6 +186,20 @@ describe('Mailchimp Controller', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(503);
     });
+
+    it('returns 404 when Mailchimp reports the list is missing', async () => {
+      mockRequest.params = { id: 'list_123' };
+      mockMailchimpService.isMailchimpConfigured.mockReturnValue(true);
+      mockMailchimpService.getList.mockRejectedValue({ status: 404 });
+
+      await mailchimpController.getList(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expectCanonicalError(mockJson, 'Mailchimp list not found', 'not_found');
+    });
   });
 
   describe('addMember', () => {
@@ -246,6 +260,23 @@ describe('Mailchimp Controller', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expectCanonicalError(mockJson, 'Email is required', 'bad_request');
+    });
+
+    it('returns 404 when Mailchimp reports the list is missing', async () => {
+      mockRequest.body = {
+        listId: 'list_123',
+        email: 'test@example.com',
+      };
+      mockMailchimpService.isMailchimpConfigured.mockReturnValue(true);
+      mockMailchimpService.addOrUpdateMember.mockRejectedValue({ status: 404 });
+
+      await mailchimpController.addMember(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expectCanonicalError(mockJson, 'Mailchimp list not found', 'not_found');
     });
   });
 
@@ -554,6 +585,20 @@ describe('Mailchimp Controller', () => {
 
       expect(mockStatus).toHaveBeenCalledWith(400);
     });
+
+    it('returns 404 when the list is missing', async () => {
+      mockRequest.params = { listId: 'list_123' };
+      mockMailchimpService.isMailchimpConfigured.mockReturnValue(true);
+      mockMailchimpService.getListTags.mockRejectedValue({ status: 404 });
+
+      await mailchimpController.getListTags(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expectCanonicalError(mockJson, 'Mailchimp list not found', 'not_found');
+    });
   });
 
   describe('getCampaigns', () => {
@@ -592,6 +637,20 @@ describe('Mailchimp Controller', () => {
       );
 
       expect(mockMailchimpService.getCampaigns).toHaveBeenCalledWith('list_123');
+    });
+
+    it('returns 404 when the list is missing', async () => {
+      mockRequest.query = { listId: 'list_123' };
+      mockMailchimpService.isMailchimpConfigured.mockReturnValue(true);
+      mockMailchimpService.getCampaigns.mockRejectedValue({ status: 404 });
+
+      await mailchimpController.getCampaigns(
+        mockRequest as Request,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expectCanonicalError(mockJson, 'Mailchimp list not found', 'not_found');
     });
   });
 
@@ -683,6 +742,24 @@ describe('Mailchimp Controller', () => {
       expect(mockStatus).toHaveBeenCalledWith(400);
       expectCanonicalError(mockJson, 'Segment conditions are required', 'bad_request');
     });
+
+    it('returns 404 when the list is missing', async () => {
+      mockRequest.body = {
+        listId: 'list_123',
+        name: 'Test',
+        conditions: [{ field: 'date_added', op: 'greater', value: '30' }],
+      };
+      mockMailchimpService.isMailchimpConfigured.mockReturnValue(true);
+      mockMailchimpService.createSegment.mockRejectedValue({ status: 404 });
+
+      await mailchimpController.createSegment(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expectCanonicalError(mockJson, 'Mailchimp list not found', 'not_found');
+    });
   });
 
   describe('getSegments', () => {
@@ -708,6 +785,61 @@ describe('Mailchimp Controller', () => {
 
       expect(mockMailchimpService.getSegments).toHaveBeenCalledWith('list_123');
       expect(mockJson).toHaveBeenCalledWith(mockSegments);
+    });
+  });
+
+  describe('deleteMember', () => {
+    it('returns 404 when Mailchimp reports the member is missing', async () => {
+      mockRequest.params = { listId: 'list_123', email: 'test@example.com' };
+      mockMailchimpService.isMailchimpConfigured.mockReturnValue(true);
+      mockMailchimpService.deleteMember.mockRejectedValue({ status: 404 });
+
+      await mailchimpController.deleteMember(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expectCanonicalError(mockJson, 'Mailchimp member not found', 'not_found');
+    });
+  });
+
+  describe('syncContact', () => {
+    it('returns 404 when Mailchimp reports the list is missing', async () => {
+      mockRequest.body = { contactId: 'contact-1', listId: 'list_123' };
+      mockMailchimpService.isMailchimpConfigured.mockReturnValue(true);
+      mockMailchimpService.syncContact.mockResolvedValue({
+        contactId: 'contact-1',
+        email: '',
+        success: false,
+        action: 'skipped',
+        error: 'Mailchimp list not found',
+        statusCode: 404,
+      });
+
+      await mailchimpController.syncContact(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expectCanonicalError(mockJson, 'Mailchimp list not found', 'not_found');
+    });
+  });
+
+  describe('updateMemberTags', () => {
+    it('returns 404 when Mailchimp reports the member is missing', async () => {
+      mockRequest.body = { listId: 'list_123', email: 'test@example.com' };
+      mockMailchimpService.isMailchimpConfigured.mockReturnValue(true);
+      mockMailchimpService.updateMemberTags.mockRejectedValue({ status: 404 });
+
+      await mailchimpController.updateMemberTags(
+        mockRequest as AuthRequest,
+        mockResponse as Response
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expectCanonicalError(mockJson, 'Mailchimp member not found', 'not_found');
     });
   });
 

@@ -4,6 +4,7 @@ import api from '../../../services/api';
 import type { RecurringDonationCheckoutSuccessResponse } from '../../../types/recurringDonation';
 import type { PaymentProvider } from '../../../types/payment';
 import { formatCurrency } from '../../../utils/format';
+import { resolveSafeNavigationTarget } from '../../../utils/safeUrl';
 import {
   ErrorState,
   LoadingState,
@@ -33,7 +34,7 @@ const RecurringDonationCheckoutResultPage: React.FC = () => {
     const status = searchParams.get('status');
     const planId = searchParams.get('plan_id');
     const sessionId = searchParams.get('session_id');
-    const returnTo = searchParams.get('return_to');
+    const returnTo = resolveSafeNavigationTarget(searchParams.get('return_to'));
 
     if (status === 'cancelled') {
       setResult({ kind: 'cancelled', returnUrl: returnTo });
@@ -128,10 +129,24 @@ const RecurringDonationCheckoutResultPage: React.FC = () => {
                 {PROVIDER_LABELS[result.data.plan.payment_provider || 'stripe']}.
               </p>
               <div className="flex flex-wrap gap-2">
-                <PrimaryButton onClick={() => window.location.assign(result.data.management_url)}>
+                <PrimaryButton
+                  onClick={() => {
+                    const safeManagementUrl = resolveSafeNavigationTarget(result.data.management_url);
+                    if (safeManagementUrl) {
+                      window.location.assign(safeManagementUrl);
+                    }
+                  }}
+                >
                   Manage Monthly Donation
                 </PrimaryButton>
-                <SecondaryButton onClick={() => window.location.assign(result.data.return_url)}>
+                <SecondaryButton
+                  onClick={() => {
+                    const safeReturnUrl = resolveSafeNavigationTarget(result.data.return_url);
+                    if (safeReturnUrl) {
+                      window.location.assign(safeReturnUrl);
+                    }
+                  }}
+                >
                   Return to Website
                 </SecondaryButton>
               </div>

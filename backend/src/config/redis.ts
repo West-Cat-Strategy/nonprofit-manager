@@ -11,7 +11,11 @@ const DEFAULT_DELETE_BATCH_SIZE = 200;
 export async function initializeRedis(): Promise<void> {
   const defaultRedisUrl = 'redis://localhost:6379';
   const redisUrl = process.env.REDIS_URL || defaultRedisUrl;
-  const isRedisEnabled = process.env.REDIS_ENABLED !== 'false'; // Default to enabled
+  const isTestEnv = process.env.NODE_ENV === 'test';
+  const hasExplicitTestRedisUrl = typeof process.env.REDIS_URL === 'string' && process.env.REDIS_URL.trim().length > 0;
+  const isRedisEnabled = isTestEnv
+    ? process.env.REDIS_ENABLED === 'true' && hasExplicitTestRedisUrl
+    : process.env.REDIS_ENABLED !== 'false';
 
   if (!isRedisEnabled) {
     logger.info('Redis caching is disabled');

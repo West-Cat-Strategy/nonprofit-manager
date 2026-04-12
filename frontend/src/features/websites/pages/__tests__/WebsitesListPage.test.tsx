@@ -127,6 +127,10 @@ describe('WebsitesListPage', () => {
       'href',
       'https://preview.mutualaid.org'
     );
+    expect(screen.getByRole('link', { name: 'Preview' })).toHaveAttribute(
+      'rel',
+      'noopener noreferrer'
+    );
     expect(screen.getByText('Ready')).toBeInTheDocument();
   });
 

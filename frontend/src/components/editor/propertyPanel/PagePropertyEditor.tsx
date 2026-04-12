@@ -73,7 +73,7 @@ const PagePropertyEditor: React.FC<PagePropertyEditorProps> = ({
               <a
                 href={previewTarget}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
               >
                 Preview

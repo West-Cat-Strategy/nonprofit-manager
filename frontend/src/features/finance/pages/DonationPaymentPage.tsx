@@ -21,6 +21,7 @@ import api from '../../../services/api';
 import PaymentForm from '../../../components/PaymentForm';
 import type { DonationPaymentData, PaymentProvider } from '../../../types/payment';
 import type { CreateDonationDTO } from '../../../types/donation';
+import { resolveSafeNavigationTarget } from '../../../utils/safeUrl';
 
 // Preset donation amounts
 const PRESET_AMOUNTS = [25, 50, 100, 250, 500, 1000];
@@ -144,6 +145,12 @@ const DonationPayment: React.FC = () => {
       }
 
       if (paymentIntent.checkoutUrl) {
+        const safeCheckoutUrl = resolveSafeNavigationTarget(paymentIntent.checkoutUrl);
+        if (!safeCheckoutUrl) {
+          console.error('Provider checkout URL was rejected by navigation safety checks.');
+          return;
+        }
+
         sessionStorage.setItem(
           'payment_checkout_context',
           JSON.stringify({
@@ -154,14 +161,13 @@ const DonationPayment: React.FC = () => {
             currency: formData.currency,
             donorEmail: formData.donorEmail,
             donorName: formData.donorName || '',
-            donorPhone: formData.donorPhone || '',
             campaignName: formData.campaignName || '',
             designation: formData.designation || '',
             isRecurring: formData.isRecurring,
             recurringFrequency: formData.recurringFrequency || '',
           })
         );
-        window.location.assign(paymentIntent.checkoutUrl);
+        window.location.assign(safeCheckoutUrl);
         return;
       }
 

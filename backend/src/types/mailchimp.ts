@@ -98,6 +98,7 @@ export interface SyncResult {
   success: boolean;
   action: 'added' | 'updated' | 'skipped';
   error?: string;
+  statusCode?: number;
 }
 
 /**

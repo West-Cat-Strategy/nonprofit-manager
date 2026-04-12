@@ -21,7 +21,16 @@ if (isDockerBackedRun) {
 
 const TEST_JWT_SECRET = process.env.JWT_SECRET?.trim() || 'test_jwt_secret_local_only';
 process.env.JWT_SECRET = TEST_JWT_SECRET;
-process.env.EXPOSE_AUTH_TOKENS_IN_RESPONSE = 'true';
+const EXPOSE_AUTH_TOKENS_IN_RESPONSE =
+  explicitEnv.EXPOSE_AUTH_TOKENS_IN_RESPONSE?.trim().toLowerCase() === 'true' ? 'true' : 'false';
+process.env.EXPOSE_AUTH_TOKENS_IN_RESPONSE = EXPOSE_AUTH_TOKENS_IN_RESPONSE;
+const REDIS_ENABLED =
+  explicitEnv.REDIS_ENABLED?.trim().toLowerCase() === 'true' &&
+  typeof explicitEnv.REDIS_URL === 'string' &&
+  explicitEnv.REDIS_URL.trim().length > 0
+    ? 'true'
+    : 'false';
+const REDIS_URL = explicitEnv.REDIS_URL?.trim() || '';
 
 /**
  * Playwright Configuration for Nonprofit Manager E2E Tests
@@ -65,6 +74,10 @@ const E2E_DB_NAME =
   process.env.E2E_DB_NAME || process.env.DB_NAME || process.env.TEST_DB_NAME || 'nonprofit_manager_test';
 const E2E_DB_USER = process.env.E2E_DB_USER || process.env.DB_USER || 'postgres';
 const E2E_DB_PASSWORD = process.env.E2E_DB_PASSWORD || process.env.DB_PASSWORD || 'postgres';
+const E2E_RATE_LIMIT_MAX_REQUESTS = process.env.E2E_RATE_LIMIT_MAX_REQUESTS || '1500';
+const E2E_AUTH_RATE_LIMIT_MAX_REQUESTS = process.env.E2E_AUTH_RATE_LIMIT_MAX_REQUESTS || '75';
+const E2E_REGISTRATION_MAX_ATTEMPTS = process.env.E2E_REGISTRATION_MAX_ATTEMPTS || '75';
+const E2E_MAX_LOGIN_ATTEMPTS = process.env.E2E_MAX_LOGIN_ATTEMPTS || '15';
 const clearFrontendPortCommand =
   `for p in $(lsof -ti tcp:${E2E_FRONTEND_PORT} 2>/dev/null); do kill -9 "$p" 2>/dev/null || true; done`;
 const useCompiledCiRuntime = FORCE_COMPILED_RUNTIME || (RUNNING_IN_CI && !USE_DEV_RUNTIME);
@@ -166,15 +179,14 @@ export default defineConfig({
         env: {
           NODE_ENV: 'test',
           PORT: E2E_BACKEND_PORT,
-          BYPASS_REGISTRATION_POLICY_IN_TEST:
-            process.env.BYPASS_REGISTRATION_POLICY_IN_TEST || 'true',
-          EXPOSE_AUTH_TOKENS_IN_RESPONSE: 'true',
+          EXPOSE_AUTH_TOKENS_IN_RESPONSE,
           JWT_SECRET: TEST_JWT_SECRET,
           COMPOSE_MODE: E2E_COMPOSE_MODE,
           ...(E2E_COMPOSE_PROJECT_NAME ? { COMPOSE_PROJECT_NAME: E2E_COMPOSE_PROJECT_NAME } : {}),
           ...(E2E_COMPOSE_FILES ? { COMPOSE_FILES: E2E_COMPOSE_FILES } : {}),
           COMPOSE_ENV_FILE: E2E_COMPOSE_ENV_FILE,
-          REDIS_ENABLED: 'false',
+          REDIS_ENABLED,
+          ...(REDIS_URL ? { REDIS_URL } : {}),
           CORS_ORIGIN: `${HTTP_SCHEME}${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT},${HTTP_SCHEME}localhost:${E2E_FRONTEND_PORT}`,
           DB_HOST: E2E_DB_HOST,
           DB_PORT: E2E_DB_PORT,
@@ -183,12 +195,13 @@ export default defineConfig({
           DB_PASSWORD: E2E_DB_PASSWORD,
           DB_AUTO_START: 'true',
           RATE_LIMIT_WINDOW_MS: '900000',
-          RATE_LIMIT_MAX_REQUESTS: '100000',
+          RATE_LIMIT_MAX_REQUESTS: E2E_RATE_LIMIT_MAX_REQUESTS,
           AUTH_RATE_LIMIT_WINDOW_MS: '900000',
-          AUTH_RATE_LIMIT_MAX_REQUESTS: '100000',
-          REGISTRATION_MAX_ATTEMPTS: '100000',
-          MAX_LOGIN_ATTEMPTS: '1000',
-          DISABLE_PII_MASKING_IN_TEST: 'true',
+          AUTH_RATE_LIMIT_MAX_REQUESTS: E2E_AUTH_RATE_LIMIT_MAX_REQUESTS,
+          REGISTRATION_MAX_ATTEMPTS: E2E_REGISTRATION_MAX_ATTEMPTS,
+          MAX_LOGIN_ATTEMPTS: E2E_MAX_LOGIN_ATTEMPTS,
+          BYPASS_REGISTRATION_POLICY_IN_TEST: 'false',
+          DISABLE_PII_MASKING_IN_TEST: 'false',
         },
       },
       {

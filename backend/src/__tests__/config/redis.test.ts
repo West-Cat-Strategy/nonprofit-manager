@@ -92,4 +92,17 @@ describe('redis pattern deletion helpers', () => {
     await expect(scanAndDeleteByPattern('cache:*')).resolves.toBe(0);
     expect(mockRedisClient.del).not.toHaveBeenCalled();
   });
+
+  it('stays disabled in test env unless redis is explicitly enabled with a url', async () => {
+    await closeRedis();
+    jest.clearAllMocks();
+    process.env.NODE_ENV = 'test';
+    delete process.env.REDIS_ENABLED;
+    delete process.env.REDIS_URL;
+
+    await initializeRedis();
+
+    expect(mockRedisClient.connect).not.toHaveBeenCalled();
+    expect(mockRedisClient.on).not.toHaveBeenCalled();
+  });
 });

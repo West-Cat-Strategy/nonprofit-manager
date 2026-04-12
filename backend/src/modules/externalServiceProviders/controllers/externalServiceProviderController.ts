@@ -4,7 +4,7 @@ import * as externalServiceProviderService from '@services/externalServiceProvid
 import { appendAuditLog } from '@services/auditService';
 import { logger } from '@config/logger';
 import pool from '@config/database';
-import { badRequest, serverError } from '@utils/responseHelpers';
+import { badRequest, notFoundMessage, serverError } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
 const getRequestUserAgent = (req: AuthRequest): string | null => {
@@ -111,7 +111,7 @@ export const updateExternalServiceProvider = async (req: AuthRequest, res: Respo
     );
 
     if (!provider) {
-      badRequest(res, 'No fields to update or provider not found');
+      notFoundMessage(res, 'Provider not found');
       return;
     }
 
@@ -142,7 +142,7 @@ export const deleteExternalServiceProvider = async (req: AuthRequest, res: Respo
     const { id } = req.params;
     const deleted = await externalServiceProviderService.deleteProvider(id);
     if (!deleted) {
-      badRequest(res, 'Provider not found');
+      notFoundMessage(res, 'Provider not found');
       return;
     }
 

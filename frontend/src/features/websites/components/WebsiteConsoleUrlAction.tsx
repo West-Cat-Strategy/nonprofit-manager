@@ -1,4 +1,5 @@
 import React from 'react';
+import { resolveSafeNavigationTarget } from '../../../utils/safeUrl';
 
 interface WebsiteConsoleUrlActionProps {
   href?: string | null;
@@ -15,14 +16,15 @@ const WebsiteConsoleUrlAction: React.FC<WebsiteConsoleUrlActionProps> = ({
   disabledTitle,
   external = true,
 }) => {
-  const resolvedClassName = href ? className : `${className} cursor-not-allowed opacity-60`;
+  const safeHref = href ? resolveSafeNavigationTarget(href) : null;
+  const resolvedClassName = safeHref ? className : `${className} cursor-not-allowed opacity-60`;
 
-  if (href) {
+  if (safeHref) {
     return (
       <a
-        href={href}
+        href={safeHref}
         target={external ? '_blank' : undefined}
-        rel={external ? 'noreferrer' : undefined}
+        rel={external ? 'noopener noreferrer' : undefined}
         className={resolvedClassName}
       >
         {children}

@@ -15,7 +15,7 @@ import type {
   MatchStatus,
 } from '@app-types/reconciliation';
 import pool from '@config/database';
-import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '@utils/responseHelpers';
+import { badRequest, conflict, notFoundMessage, serverError, serviceUnavailable } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
 const getRequestUserAgent = (req: AuthRequest): string | null => {
@@ -136,6 +136,14 @@ const parseQueryInteger = (value: string | number | undefined, fallback: number)
     }
   }
   return fallback;
+};
+
+const getMutationErrorCode = (error: unknown): string | undefined => {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : undefined;
 };
 
 /**
@@ -412,6 +420,15 @@ export const manualMatch = async (req: AuthRequest, res: Response): Promise<void
 
     sendSuccess(res, { message: 'Transaction matched successfully' });
   } catch (error) {
+    const mutationErrorCode = getMutationErrorCode(error);
+    if (mutationErrorCode === 'not_found') {
+      notFoundMessage(res, error instanceof Error ? error.message : 'Donation not found');
+      return;
+    }
+    if (mutationErrorCode === 'no_op') {
+      conflict(res, error instanceof Error ? error.message : 'No changes were applied');
+      return;
+    }
     logger.error('Error matching transaction:', error);
     serverError(res, 'Failed to match transaction');
   }
@@ -459,6 +476,15 @@ export const resolveDiscrepancy = async (req: AuthRequest, res: Response): Promi
 
     sendSuccess(res, { message: 'Discrepancy resolved successfully' });
   } catch (error) {
+    const mutationErrorCode = getMutationErrorCode(error);
+    if (mutationErrorCode === 'not_found') {
+      notFoundMessage(res, error instanceof Error ? error.message : 'Discrepancy not found');
+      return;
+    }
+    if (mutationErrorCode === 'no_op') {
+      conflict(res, error instanceof Error ? error.message : 'No changes were applied');
+      return;
+    }
     logger.error('Error resolving discrepancy:', error);
     serverError(res, 'Failed to resolve discrepancy');
   }
@@ -532,14 +558,7 @@ export const assignDiscrepancy = async (req: AuthRequest, res: Response): Promis
       return;
     }
 
-    await pool.query(
-      `
-      UPDATE payment_discrepancies
-      SET assigned_to = $1, due_date = $2, updated_at = NOW()
-      WHERE id = $3
-    `,
-      [assigned_to, due_date || null, id]
-    );
+    await reconciliationService.assignDiscrepancy(id, assigned_to, due_date || null);
 
     logger.info('Assigned discrepancy', {
       discrepancyId: id,
@@ -562,6 +581,15 @@ export const assignDiscrepancy = async (req: AuthRequest, res: Response): Promis
 
     sendSuccess(res, { message: 'Discrepancy assigned successfully' });
   } catch (error) {
+    const mutationErrorCode = getMutationErrorCode(error);
+    if (mutationErrorCode === 'not_found') {
+      notFoundMessage(res, error instanceof Error ? error.message : 'Discrepancy not found');
+      return;
+    }
+    if (mutationErrorCode === 'no_op') {
+      conflict(res, error instanceof Error ? error.message : 'No changes were applied');
+      return;
+    }
     logger.error('Error assigning discrepancy:', error);
     serverError(res, 'Failed to assign discrepancy');
   }

@@ -11,15 +11,27 @@ import type {
 
 const STORAGE_KEY = 'messaging_drafts_v1';
 
-const canUseStorage = (): boolean => typeof window !== 'undefined' && Boolean(window.localStorage);
+const canUseStorage = (): boolean => typeof window !== 'undefined' && Boolean(window.sessionStorage);
+
+const clearLegacyDraftStorage = (): void => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
+  if (window.localStorage.getItem(STORAGE_KEY) !== null) {
+    window.localStorage.removeItem(STORAGE_KEY);
+  }
+};
 
 const readDraftMap = (): Record<string, PersistedMessageDraft> => {
   if (!canUseStorage()) {
     return {};
   }
 
+  clearLegacyDraftStorage();
+
   try {
-    const rawValue = window.localStorage.getItem(STORAGE_KEY);
+    const rawValue = window.sessionStorage.getItem(STORAGE_KEY);
     if (!rawValue) {
       return {};
     }
@@ -35,7 +47,8 @@ const writeDraftMap = (drafts: Record<string, PersistedMessageDraft>): void => {
     return;
   }
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts));
+  clearLegacyDraftStorage();
+  window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(drafts));
 };
 
 export const buildMessagingDraftKey = (

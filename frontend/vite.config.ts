@@ -126,7 +126,7 @@ export default defineConfig({
             return 'vendor-recharts'
           }
 
-          if (hasPackage(normalizedId, '@headlessui/react') || hasPackage(normalizedId, '@heroicons/react')) {
+          if (hasPackage(normalizedId, '@heroicons/react')) {
             return 'vendor-ui'
           }
 

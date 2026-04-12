@@ -1,5 +1,8 @@
 import dotenv from 'dotenv';
+import type { PoolClient } from 'pg';
 import pool from '../src/config/database';
+
+const explicitEnv = { ...process.env };
 
 dotenv.config({ path: '.env.test.local', quiet: true });
 dotenv.config({ path: '.env.test', quiet: true });
@@ -9,10 +12,7 @@ dotenv.config({ path: '.env', quiet: true });
 jest.setTimeout(60000);
 
 process.env.NODE_ENV = 'test';
-process.env.BYPASS_REGISTRATION_POLICY_IN_TEST =
-  process.env.BYPASS_REGISTRATION_POLICY_IN_TEST || 'true';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
-process.env.REDIS_ENABLED = 'false'; // Disable Redis in tests
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'test-encryption-key';
 
 // Some service tests use DATABASE_URL directly.
@@ -22,7 +22,196 @@ process.env.DATABASE_URL = process.env.DATABASE_URL
 
 const DB_COMPAT_SETUP_FLAG = '__NONPROFIT_MANAGER_DB_COMPAT_SETUP_DONE__';
 
+type RequiredSchemaCheck = {
+  table: string;
+  columns?: string[];
+  constraints?: string[];
+};
+
+const requiredSchemaChecks: RequiredSchemaCheck[] = [
+  {
+    table: 'events',
+    columns: [
+      'is_public',
+      'is_recurring',
+      'recurrence_pattern',
+      'recurrence_interval',
+      'recurrence_end_date',
+      'registered_count',
+      'attended_count',
+    ],
+  },
+  {
+    table: 'cases',
+    columns: ['client_viewable'],
+  },
+  {
+    table: 'case_notes',
+    columns: ['visible_to_client', 'category', 'updated_at', 'updated_by'],
+  },
+  {
+    table: 'case_outcomes',
+    columns: ['outcome_definition_id', 'entry_source'],
+  },
+  {
+    table: 'case_topic_definitions',
+    columns: ['id', 'account_id', 'name', 'normalized_name', 'is_active'],
+    constraints: ['uq_case_topic_definitions_account_normalized'],
+  },
+  {
+    table: 'case_topic_events',
+    columns: ['id', 'case_id', 'account_id', 'topic_definition_id'],
+  },
+  {
+    table: 'case_documents',
+    columns: [
+      'account_id',
+      'file_name',
+      'original_filename',
+      'visible_to_client',
+      'is_active',
+      'updated_at',
+      'updated_by',
+      'created_at',
+    ],
+  },
+  {
+    table: 'volunteers',
+    columns: [
+      'availability_status',
+      'availability_notes',
+      'background_check_expiry',
+      'preferred_roles',
+      'certifications',
+      'max_hours_per_week',
+      'emergency_contact_relationship',
+      'volunteer_since',
+      'total_hours_logged',
+      'is_active',
+    ],
+    constraints: ['uq_volunteers_contact_id'],
+  },
+];
+
+const formatErrorMessage = (error: unknown): string =>
+  error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+
+const isExplicitTrue = (value: string | undefined): boolean =>
+  typeof value === 'string' && value.trim().toLowerCase() === 'true';
+
+const assertTableExists = async (dbClient: PoolClient, table: string): Promise<void> => {
+  const result = await dbClient.query<{ regclass: string | null }>(
+    'SELECT to_regclass($1) AS regclass',
+    [`public.${table}`]
+  );
+
+  if (!result.rows[0]?.regclass) {
+    throw new Error(`Missing required test table public.${table}`);
+  }
+};
+
+const assertColumnExists = async (
+  dbClient: PoolClient,
+  table: string,
+  column: string
+): Promise<void> => {
+  const result = await dbClient.query(
+    `
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = $1
+        AND column_name = $2
+      LIMIT 1
+    `,
+    [table, column]
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error(`Missing required test column public.${table}.${column}`);
+  }
+};
+
+const assertConstraintExists = async (
+  dbClient: PoolClient,
+  table: string,
+  constraint: string
+): Promise<void> => {
+  const result = await dbClient.query(
+    `
+      SELECT 1
+      FROM pg_constraint c
+      JOIN pg_class t ON t.oid = c.conrelid
+      JOIN pg_namespace n ON n.oid = t.relnamespace
+      WHERE n.nspname = 'public'
+        AND t.relname = $1
+        AND c.conname = $2
+      LIMIT 1
+    `,
+    [table, constraint]
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error(`Missing required test constraint public.${table}.${constraint}`);
+  }
+};
+
+const assertTestSchemaReady = async (dbClient: PoolClient): Promise<void> => {
+  const missing: string[] = [];
+
+  for (const requirement of requiredSchemaChecks) {
+    try {
+      await assertTableExists(dbClient, requirement.table);
+
+      for (const column of requirement.columns ?? []) {
+        await assertColumnExists(dbClient, requirement.table, column);
+      }
+
+      for (const constraint of requirement.constraints ?? []) {
+        await assertConstraintExists(dbClient, requirement.table, constraint);
+      }
+    } catch (error) {
+      missing.push(formatErrorMessage(error));
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Test database schema is not ready. Missing or incompatible objects:\n- ${missing.join(
+        '\n- '
+      )}\nRun the pending migrations instead of relying on jest.setup to repair schema drift.`
+    );
+  }
+};
+
 beforeAll(async () => {
+  const currentTestPath = expect.getState().testPath ?? '';
+  const isIntegrationTestPath =
+    currentTestPath.includes('/src/__tests__/integration/') ||
+    currentTestPath.includes('\\src\\__tests__\\integration\\');
+  const shouldVerifyTestDb = isIntegrationTestPath || process.env.REQUIRE_TEST_DB === 'true';
+
+  const shouldExposeAuthTokens =
+    explicitEnv.EXPOSE_AUTH_TOKENS_IN_RESPONSE === 'false'
+      ? false
+      : isIntegrationTestPath || isExplicitTrue(explicitEnv.EXPOSE_AUTH_TOKENS_IN_RESPONSE);
+  process.env.EXPOSE_AUTH_TOKENS_IN_RESPONSE = shouldExposeAuthTokens ? 'true' : 'false';
+
+  const shouldEnableRedis =
+    isExplicitTrue(explicitEnv.REDIS_ENABLED) && typeof explicitEnv.REDIS_URL === 'string'
+      ? explicitEnv.REDIS_URL.trim().length > 0
+      : false;
+  process.env.REDIS_ENABLED = shouldEnableRedis ? 'true' : 'false';
+  if (shouldEnableRedis && typeof explicitEnv.REDIS_URL === 'string') {
+    process.env.REDIS_URL = explicitEnv.REDIS_URL.trim();
+  } else {
+    delete process.env.REDIS_URL;
+  }
+
+  if (!shouldVerifyTestDb) {
+    return;
+  }
+
   // setupFilesAfterEnv runs for each test file, so use process-level state.
   if (process.env[DB_COMPAT_SETUP_FLAG] === 'true') {
     return;
@@ -33,158 +222,19 @@ beforeAll(async () => {
     return;
   }
 
-  process.env[DB_COMPAT_SETUP_FLAG] = 'true';
-  let dbClient;
+  let dbClient: PoolClient | undefined;
   try {
     dbClient = await pool.connect();
-  } catch {
-    // Keep pure unit suites runnable when local DB creds/ports are unavailable.
-    return;
-  }
-
-  try {
-    // Never wait indefinitely on table locks in test setup.
     await dbClient.query("SET lock_timeout TO '2000ms'");
     await dbClient.query("SET statement_timeout TO '30000ms'");
-
-    // Keep integration tests resilient when local test DB lags behind recent migrations.
-    await dbClient.query(`
-      ALTER TABLE events
-      ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT FALSE,
-      ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN NOT NULL DEFAULT FALSE,
-      ADD COLUMN IF NOT EXISTS recurrence_pattern VARCHAR(20),
-      ADD COLUMN IF NOT EXISTS recurrence_interval INTEGER,
-      ADD COLUMN IF NOT EXISTS recurrence_end_date TIMESTAMP WITH TIME ZONE,
-      ADD COLUMN IF NOT EXISTS registered_count INTEGER NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS attended_count INTEGER NOT NULL DEFAULT 0
-    `);
-
-    await dbClient.query(`
-      ALTER TABLE cases
-      ADD COLUMN IF NOT EXISTS client_viewable BOOLEAN NOT NULL DEFAULT FALSE
-    `);
-
-    await dbClient.query(`
-      ALTER TABLE case_notes
-      ADD COLUMN IF NOT EXISTS visible_to_client BOOLEAN NOT NULL DEFAULT FALSE,
-      ADD COLUMN IF NOT EXISTS category VARCHAR(100),
-      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES users(id)
-    `);
-
-    await dbClient.query(`
-      CREATE TABLE IF NOT EXISTS case_outcomes (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-        account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
-        outcome_type VARCHAR(100),
-        outcome_date DATE NOT NULL DEFAULT CURRENT_DATE,
-        notes TEXT,
-        visible_to_client BOOLEAN NOT NULL DEFAULT FALSE,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-        updated_by UUID REFERENCES users(id) ON DELETE SET NULL
-      )
-    `);
-
-    await dbClient.query(`
-      ALTER TABLE case_outcomes
-      ADD COLUMN IF NOT EXISTS outcome_definition_id UUID,
-      ADD COLUMN IF NOT EXISTS entry_source VARCHAR(32) NOT NULL DEFAULT 'manual'
-    `);
-
-    await dbClient.query(`
-      CREATE TABLE IF NOT EXISTS case_topic_definitions (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        account_id UUID REFERENCES accounts(id) ON DELETE CASCADE,
-        name VARCHAR(120) NOT NULL,
-        normalized_name VARCHAR(120) NOT NULL,
-        is_active BOOLEAN NOT NULL DEFAULT TRUE,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-        updated_by UUID REFERENCES users(id) ON DELETE SET NULL
-      )
-    `);
-
-    await dbClient.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM pg_constraint
-          WHERE conname = 'uq_case_topic_definitions_account_normalized'
-        ) THEN
-          ALTER TABLE case_topic_definitions
-          ADD CONSTRAINT uq_case_topic_definitions_account_normalized
-          UNIQUE (account_id, normalized_name);
-        END IF;
-      END $$;
-    `);
-
-    await dbClient.query(`
-      CREATE TABLE IF NOT EXISTS case_topic_events (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-        account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
-        topic_definition_id UUID NOT NULL REFERENCES case_topic_definitions(id) ON DELETE RESTRICT,
-        discussed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        notes TEXT,
-        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-        updated_by UUID REFERENCES users(id) ON DELETE SET NULL
-      )
-    `);
-
-    await dbClient.query(`
-      ALTER TABLE case_documents
-      ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
-      ADD COLUMN IF NOT EXISTS file_name VARCHAR(255),
-      ADD COLUMN IF NOT EXISTS original_filename VARCHAR(255),
-      ADD COLUMN IF NOT EXISTS visible_to_client BOOLEAN NOT NULL DEFAULT FALSE,
-      ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE,
-      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES users(id)
-    `);
-
-    await dbClient.query(`
-      ALTER TABLE case_documents
-      ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    `);
-
-    await dbClient.query(`
-      ALTER TABLE volunteers
-      ADD COLUMN IF NOT EXISTS availability_status VARCHAR(32) NOT NULL DEFAULT 'available',
-      ADD COLUMN IF NOT EXISTS availability_notes TEXT,
-      ADD COLUMN IF NOT EXISTS background_check_expiry DATE,
-      ADD COLUMN IF NOT EXISTS preferred_roles TEXT[] NOT NULL DEFAULT ARRAY[]::text[],
-      ADD COLUMN IF NOT EXISTS certifications TEXT[] NOT NULL DEFAULT ARRAY[]::text[],
-      ADD COLUMN IF NOT EXISTS max_hours_per_week INTEGER,
-      ADD COLUMN IF NOT EXISTS emergency_contact_relationship VARCHAR(120),
-      ADD COLUMN IF NOT EXISTS volunteer_since DATE,
-      ADD COLUMN IF NOT EXISTS total_hours_logged NUMERIC(10,2) NOT NULL DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE
-    `);
-
-    await dbClient.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM pg_constraint
-          WHERE conname = 'uq_volunteers_contact_id'
-        ) THEN
-          ALTER TABLE volunteers
-          ADD CONSTRAINT uq_volunteers_contact_id UNIQUE (contact_id);
-        END IF;
-      END $$;
-    `);
-  } catch {
-    // Allow pure unit tests to run without a live DB.
+    await assertTestSchemaReady(dbClient);
+    process.env[DB_COMPAT_SETUP_FLAG] = 'true';
+  } catch (error) {
+    throw new Error(
+      `Unable to prepare the test database for Jest: ${formatErrorMessage(error)}`
+    );
   } finally {
-    dbClient.release();
+    dbClient?.release();
   }
 });
 

@@ -16,7 +16,7 @@ import type {
   CreateCustomerRequest,
   WebhookEvent,
 } from '@app-types/payment';
-import { badRequest, serverError } from '@utils/responseHelpers';
+import { badRequest, notFoundMessage, serverError } from '@utils/responseHelpers';
 import { sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
 
 // Database pool
@@ -39,6 +39,15 @@ const getRequestUserAgent = (req: Request): string | null => {
 
 const getRequestIp = (req: Request): string | null => {
   return req.ip || req.connection.remoteAddress || null;
+};
+
+const isNotFoundProviderError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const code = (error as { code?: unknown }).code;
+  return code === 'not_found' || code === 'resource_missing';
 };
 
 const registerPaymentWebhookReceipt = async (
@@ -188,6 +197,10 @@ export const getPaymentIntent = async (req: Request<{ id: string }>, res: Respon
     const paymentIntent = await paymentProviderService.getPaymentIntent(id, provider as any);
     sendSuccess(res, paymentIntent);
   } catch (error) {
+    if (isNotFoundProviderError(error)) {
+      notFoundMessage(res, 'Payment intent not found');
+      return;
+    }
     logger.error('Error getting payment intent', { error });
     serverError(res, 'Failed to get payment intent');
   }
@@ -212,6 +225,10 @@ export const cancelPaymentIntent = async (req: Request<{ id: string }>, res: Res
     const paymentIntent = await paymentProviderService.cancelPaymentIntent(id, provider as any);
     sendSuccess(res, paymentIntent);
   } catch (error) {
+    if (isNotFoundProviderError(error)) {
+      notFoundMessage(res, 'Payment intent not found');
+      return;
+    }
     logger.error('Error canceling payment intent', { error });
     serverError(res, 'Failed to cancel payment intent');
   }
@@ -256,6 +273,10 @@ export const createRefund = async (req: AuthRequest, res: Response): Promise<voi
 
     sendSuccess(res, refund, 201);
   } catch (error) {
+    if (isNotFoundProviderError(error)) {
+      notFoundMessage(res, 'Refund target not found');
+      return;
+    }
     logger.error('Error creating refund', { error });
     serverError(res, 'Failed to create refund');
   }
@@ -316,6 +337,10 @@ export const getCustomer = async (req: Request<{ id: string }>, res: Response): 
     const customer = await paymentProviderService.getCustomer(id, provider as any);
     sendSuccess(res, customer);
   } catch (error) {
+    if (isNotFoundProviderError(error)) {
+      notFoundMessage(res, 'Customer not found');
+      return;
+    }
     logger.error('Error getting customer', { error });
     serverError(res, 'Failed to get customer');
   }
@@ -343,6 +368,10 @@ export const listPaymentMethods = async (
     const paymentMethods = await paymentProviderService.listPaymentMethods(customerId, provider as any);
     sendSuccess(res, paymentMethods);
   } catch (error) {
+    if (isNotFoundProviderError(error)) {
+      notFoundMessage(res, 'Customer payment methods not found');
+      return;
+    }
     logger.error('Error listing payment methods', { error });
     serverError(res, 'Failed to list payment methods');
   }

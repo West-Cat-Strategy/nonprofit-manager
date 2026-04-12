@@ -16,6 +16,7 @@ import {
 } from '@services/webhookQueryColumns';
 import type {
   WebhookEndpoint,
+  WebhookEndpointPublic,
   WebhookDelivery,
   WebhookPayload,
   WebhookEventType,
@@ -98,6 +99,40 @@ const isPrivateIp = (ip: string): boolean => {
   return false;
 };
 
+async function resolveSafeWebhookHostname(
+  hostname: string
+): Promise<{ ok: boolean; reason?: string; addresses: string[] }> {
+  if (!hostname) {
+    return { ok: false, reason: 'URL must include a hostname', addresses: [] };
+  }
+
+  if (isPrivateHost(hostname)) {
+    return { ok: false, reason: 'Host is not allowed', addresses: [] };
+  }
+
+  if (net.isIP(hostname)) {
+    if (isPrivateIp(hostname)) {
+      return { ok: false, reason: 'IP address is not allowed', addresses: [] };
+    }
+    return { ok: true, addresses: [hostname] };
+  }
+
+  try {
+    const addresses = await dns.lookup(hostname, { all: true, verbatim: true });
+    if (addresses.length === 0) {
+      return { ok: false, reason: 'Hostname did not resolve', addresses: [] };
+    }
+
+    if (addresses.some((addr) => isPrivateIp(addr.address))) {
+      return { ok: false, reason: 'Hostname resolves to a private IP', addresses: [] };
+    }
+
+    return { ok: true, addresses: addresses.map((addr) => addr.address) };
+  } catch {
+    return { ok: false, reason: 'Hostname resolution failed', addresses: [] };
+  }
+}
+
 export async function validateWebhookUrl(
   url: string
 ): Promise<{ ok: boolean; reason?: string }> {
@@ -121,32 +156,8 @@ export async function validateWebhookUrl(
     return { ok: false, reason: 'URL must include a hostname' };
   }
 
-  if (isPrivateHost(hostname)) {
-    return { ok: false, reason: 'Host is not allowed' };
-  }
-
-  if (net.isIP(hostname)) {
-    if (isPrivateIp(hostname)) {
-      return { ok: false, reason: 'IP address is not allowed' };
-    }
-    return { ok: true };
-  }
-
-  try {
-    const addresses = await dns.lookup(hostname, { all: true, verbatim: true });
-    if (addresses.length === 0) {
-      return { ok: false, reason: 'Hostname did not resolve' };
-    }
-    for (const addr of addresses) {
-      if (isPrivateIp(addr.address)) {
-        return { ok: false, reason: 'Hostname resolves to a private IP' };
-      }
-    }
-  } catch {
-    return { ok: false, reason: 'Hostname resolution failed' };
-  }
-
-  return { ok: true };
+  const resolved = await resolveSafeWebhookHostname(hostname);
+  return resolved.ok ? { ok: true } : { ok: false, reason: resolved.reason };
 }
 
 /**
@@ -186,7 +197,7 @@ export async function createWebhookEndpoint(
   );
 
   const row = result.rows[0];
-  return mapRowToEndpoint(row);
+  return mapRowToEndpoint(row, true);
 }
 
 /**
@@ -225,9 +236,9 @@ export async function getWebhookEndpoints(userId: string): Promise<WebhookEndpoi
 export async function getWebhookEndpoint(
   endpointId: string,
   userId: string
-): Promise<WebhookEndpoint | null> {
+): Promise<WebhookEndpointPublic | null> {
   const result = await pool.query(
-    `SELECT ${WEBHOOK_ENDPOINT_COLUMNS}
+    `SELECT ${WEBHOOK_ENDPOINT_SELECT_COLUMNS}
      FROM webhook_endpoints
      WHERE id = $1 AND user_id = $2`,
     [endpointId, userId]
@@ -247,7 +258,7 @@ export async function updateWebhookEndpoint(
   endpointId: string,
   userId: string,
   data: UpdateWebhookEndpointRequest
-): Promise<WebhookEndpoint | null> {
+): Promise<WebhookEndpointPublic | null> {
   const updates: string[] = [];
   const values: (string | boolean | string[] | null)[] = [];
   let paramIndex = 1;
@@ -280,7 +291,7 @@ export async function updateWebhookEndpoint(
     `UPDATE webhook_endpoints
      SET ${updates.join(', ')}
      WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
-     RETURNING ${WEBHOOK_ENDPOINT_COLUMNS}`,
+     RETURNING ${WEBHOOK_ENDPOINT_SELECT_COLUMNS}`,
     values
   );
 
@@ -387,7 +398,7 @@ export async function triggerWebhooks(
       [JSON.stringify([eventType])]
     );
 
-    const endpoints = result.rows.map(mapRowToEndpoint);
+    const endpoints = result.rows.map((row) => mapRowToEndpoint(row));
 
     // Create webhook payload
     const payload: WebhookPayload = {
@@ -461,19 +472,22 @@ async function attemptDelivery({
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT);
 
-    const response = await fetch(endpoint.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Webhook-Signature': signature,
-        'X-Webhook-Id': payload.id,
-        'X-Webhook-Event': payload.type,
-        'User-Agent': 'NonprofitManager-Webhook/1.0',
-      },
-      body: payloadString,
-      signal: controller.signal,
-      ...WEBHOOK_FETCH_OPTIONS,
-    });
+    const response = await fetch(
+      endpoint.url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Signature': signature,
+          'X-Webhook-Id': payload.id,
+          'X-Webhook-Event': payload.type,
+          'User-Agent': 'NonprofitManager-Webhook/1.0',
+        },
+        body: payloadString,
+        signal: controller.signal,
+        ...WEBHOOK_FETCH_OPTIONS,
+      } as RequestInit
+    );
 
     clearTimeout(timeoutId);
 
@@ -688,7 +702,7 @@ export async function testWebhookEndpoint(
   endpointId: string,
   userId: string
 ): Promise<WebhookTestResponse> {
-  const endpoint = await getWebhookEndpoint(endpointId, userId);
+  const endpoint = await getWebhookEndpointWithSecret(endpointId, userId);
 
   if (!endpoint) {
     return { success: false, error: 'Webhook endpoint not found' };
@@ -726,20 +740,23 @@ export async function testWebhookEndpoint(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT);
 
-    const response = await fetch(endpoint.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Webhook-Signature': signature,
-        'X-Webhook-Id': testPayload.id,
-        'X-Webhook-Event': testPayload.type,
-        'X-Webhook-Test': 'true',
-        'User-Agent': 'NonprofitManager-Webhook/1.0',
-      },
-      body: payloadString,
-      signal: controller.signal,
-      ...WEBHOOK_FETCH_OPTIONS,
-    });
+    const response = await fetch(
+      endpoint.url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Signature': signature,
+          'X-Webhook-Id': testPayload.id,
+          'X-Webhook-Event': testPayload.type,
+          'X-Webhook-Test': 'true',
+          'User-Agent': 'NonprofitManager-Webhook/1.0',
+        },
+        body: payloadString,
+        signal: controller.signal,
+        ...WEBHOOK_FETCH_OPTIONS,
+      } as RequestInit
+    );
 
     clearTimeout(timeoutId);
     const responseTime = Date.now() - startTime;
@@ -796,16 +813,17 @@ export function getAvailableWebhookEvents() {
   ];
 }
 
-/**
- * Map database row to WebhookEndpoint
- */
-function mapRowToEndpoint(row: Record<string, unknown>): WebhookEndpoint {
-  return {
+function mapRowToEndpoint(row: Record<string, unknown>, includeSecret: true): WebhookEndpoint;
+function mapRowToEndpoint(row: Record<string, unknown>, includeSecret?: false): WebhookEndpointPublic;
+function mapRowToEndpoint(
+  row: Record<string, unknown>,
+  includeSecret = false
+): WebhookEndpoint | WebhookEndpointPublic {
+  const endpoint = {
     id: row.id as string,
     userId: row.user_id as string,
     url: row.url as string,
     description: row.description as string | undefined,
-    secret: row.secret as string,
     events: (typeof row.events === 'string' ? JSON.parse(row.events) : row.events) as WebhookEventType[],
     isActive: row.is_active as boolean,
     createdAt: new Date(row.created_at as string),
@@ -813,6 +831,33 @@ function mapRowToEndpoint(row: Record<string, unknown>): WebhookEndpoint {
     lastDeliveryAt: row.last_delivery_at ? new Date(row.last_delivery_at as string) : undefined,
     lastDeliveryStatus: row.last_delivery_status as WebhookDeliveryStatus | undefined,
   };
+
+  if (!includeSecret) {
+    return endpoint;
+  }
+
+  return {
+    ...endpoint,
+    secret: row.secret as string,
+  };
+}
+
+async function getWebhookEndpointWithSecret(
+  endpointId: string,
+  userId: string
+): Promise<WebhookEndpoint | null> {
+  const result = await pool.query(
+    `SELECT ${WEBHOOK_ENDPOINT_COLUMNS}
+     FROM webhook_endpoints
+     WHERE id = $1 AND user_id = $2`,
+    [endpointId, userId]
+  );
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  return mapRowToEndpoint(result.rows[0], true);
 }
 
 /**

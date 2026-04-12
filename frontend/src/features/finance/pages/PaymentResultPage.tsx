@@ -14,6 +14,22 @@ import type { CreateDonationDTO } from '../../../types/donation';
 
 type ResultStatus = 'loading' | 'success' | 'processing' | 'failed';
 
+type StoredCheckoutContext = {
+  expiresAt?: number;
+  provider?: PaymentProvider;
+  paymentIntentId?: string;
+  checkoutSessionId?: string;
+  donorEmail?: string;
+  donorName?: string;
+  donorPhone?: string;
+  amount?: number;
+  currency?: string;
+  campaignName?: string;
+  designation?: string;
+  isRecurring?: boolean;
+  recurringFrequency?: string;
+};
+
 const PROVIDER_LABELS: Record<PaymentProvider, string> = {
   stripe: 'Stripe',
   paypal: 'PayPal',
@@ -42,38 +58,30 @@ const PaymentResult: React.FC = () => {
   const [status, setStatus] = useState<ResultStatus>('loading');
   const [message, setMessage] = useState('');
 
+  const readAndClearCheckoutContext = (): StoredCheckoutContext | null => {
+    const checkoutContextRaw = sessionStorage.getItem('payment_checkout_context');
+    sessionStorage.removeItem('payment_checkout_context');
+
+    if (!checkoutContextRaw) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(checkoutContextRaw) as StoredCheckoutContext;
+    } catch {
+      return null;
+    }
+  };
+
   const persistDonationRecord = async (
     provider: PaymentProvider,
     paymentIntentId: string,
     providerIntent: {
       providerCheckoutSessionId?: string | null;
       providerSubscriptionId?: string | null;
-    }
+    },
+    checkoutContext: StoredCheckoutContext | null
   ): Promise<void> => {
-    let checkoutContext:
-      | {
-          provider?: PaymentProvider;
-          paymentIntentId?: string;
-          checkoutSessionId?: string;
-          donorEmail?: string;
-          donorName?: string;
-          donorPhone?: string;
-          amount?: number;
-          currency?: string;
-          campaignName?: string;
-          designation?: string;
-          isRecurring?: boolean;
-          recurringFrequency?: string;
-        }
-      | null = null;
-
-    try {
-      const checkoutContextRaw = sessionStorage.getItem('payment_checkout_context');
-      checkoutContext = checkoutContextRaw ? JSON.parse(checkoutContextRaw) : null;
-    } catch {
-      checkoutContext = null;
-    }
-
     if (!checkoutContext?.donorEmail || !checkoutContext.amount) {
       return;
     }
@@ -132,19 +140,9 @@ const PaymentResult: React.FC = () => {
   };
 
   useEffect(() => {
-    let checkoutContext:
-      | { provider?: PaymentProvider; paymentIntentId?: string; checkoutSessionId?: string }
-      | null = null;
-    try {
-      const checkoutContextRaw = sessionStorage.getItem('payment_checkout_context');
-      checkoutContext = checkoutContextRaw
-        ? (JSON.parse(checkoutContextRaw) as {
-            provider?: PaymentProvider;
-            paymentIntentId?: string;
-            checkoutSessionId?: string;
-          })
-        : null;
-    } catch {
+    let checkoutContext = readAndClearCheckoutContext();
+
+    if (checkoutContext?.expiresAt && checkoutContext.expiresAt < Date.now()) {
       checkoutContext = null;
     }
     const provider = (searchParams.get('provider') || checkoutContext?.provider || 'stripe') as PaymentProvider;
@@ -190,9 +188,8 @@ const PaymentResult: React.FC = () => {
                 providerCheckoutSessionId:
                   intent.providerCheckoutSessionId || intent.id || paymentIntentId,
                 providerSubscriptionId: intent.providerSubscriptionId || null,
-              });
+              }, checkoutContext);
             }
-            sessionStorage.removeItem('payment_checkout_context');
             setStatus('success');
             setMessage(`Your ${PROVIDER_LABELS[provider]} payment was successful!`);
             dispatch(setPaymentSuccess(true));

@@ -417,7 +417,7 @@ const WebsitePublishingPage: React.FC = () => {
                         href={lastPublishResult.previewUrl}
                         className="mt-3 inline-flex text-sm font-medium text-app-accent"
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                       >
                         Open preview link
                       </a>

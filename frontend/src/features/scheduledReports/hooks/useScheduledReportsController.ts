@@ -41,12 +41,30 @@ export function useScheduledReportsController() {
   const [historyReportId, setHistoryReportId] = useState<string | null>(null);
   const [downloadingExportJobId, setDownloadingExportJobId] = useState<string | null>(null);
 
-  const formatLoadError = formatApiErrorMessageWith('Failed to fetch scheduled reports');
-  const formatCreateError = formatApiErrorMessageWith('Failed to create scheduled report');
-  const formatUpdateError = formatApiErrorMessageWith('Failed to update scheduled report');
-  const formatToggleError = formatApiErrorMessageWith('Failed to update scheduled report status');
-  const formatRunError = formatApiErrorMessageWith('Failed to run scheduled report');
-  const formatDeleteError = formatApiErrorMessageWith('Failed to delete scheduled report');
+  const formatLoadError = useMemo(
+    () => formatApiErrorMessageWith('Failed to fetch scheduled reports'),
+    []
+  );
+  const formatCreateError = useMemo(
+    () => formatApiErrorMessageWith('Failed to create scheduled report'),
+    []
+  );
+  const formatUpdateError = useMemo(
+    () => formatApiErrorMessageWith('Failed to update scheduled report'),
+    []
+  );
+  const formatToggleError = useMemo(
+    () => formatApiErrorMessageWith('Failed to update scheduled report status'),
+    []
+  );
+  const formatRunError = useMemo(
+    () => formatApiErrorMessageWith('Failed to run scheduled report'),
+    []
+  );
+  const formatDeleteError = useMemo(
+    () => formatApiErrorMessageWith('Failed to delete scheduled report'),
+    []
+  );
 
   const loadAllScheduledData = useCallback(async () => {
     try {

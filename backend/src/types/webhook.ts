@@ -87,6 +87,12 @@ export interface WebhookEndpoint {
 }
 
 /**
+ * Public webhook endpoint shape returned by list/get/update endpoints.
+ * The secret is intentionally omitted from ordinary read responses.
+ */
+export type WebhookEndpointPublic = Omit<WebhookEndpoint, 'secret'>;
+
+/**
  * Create webhook endpoint request
  */
 export interface CreateWebhookEndpointRequest {
@@ -202,7 +208,7 @@ export interface ApiKeyUsage {
 /**
  * Webhook endpoint with delivery stats
  */
-export interface WebhookEndpointWithStats extends WebhookEndpoint {
+export interface WebhookEndpointWithStats extends WebhookEndpointPublic {
   totalDeliveries: number;
   successfulDeliveries: number;
   failedDeliveries: number;

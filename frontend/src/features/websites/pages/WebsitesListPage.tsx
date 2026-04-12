@@ -310,7 +310,7 @@ const WebsitesListPage: React.FC = () => {
                     <a
                       href={spotlightSite.managementSummary.nextAction.href}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
                         spotlightSite.managementSummary.nextAction.tone
                       )}`}
@@ -488,7 +488,7 @@ const WebsitesListPage: React.FC = () => {
                             <a
                               href={nextAction.href}
                               target="_blank"
-                              rel="noreferrer"
+                              rel="noopener noreferrer"
                               className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
                                 nextAction.tone
                               )}`}
@@ -549,7 +549,7 @@ const WebsitesListPage: React.FC = () => {
                           <a
                             href={site.previewUrl}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             className="rounded-full border border-app-border px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                           >
                             Preview

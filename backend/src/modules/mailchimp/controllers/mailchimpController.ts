@@ -19,6 +19,10 @@ import type {
 import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '@utils/responseHelpers';
 import { sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
 
+const isMailchimpNotFoundError = (error: unknown): boolean => {
+  return typeof error === 'object' && error !== null && (error as { status?: number }).status === 404;
+};
+
 /**
  * Get Mailchimp configuration status
  */
@@ -70,6 +74,10 @@ export const getList = async (req: Request<{ id: string }>, res: Response): Prom
     const list = await mailchimpService.getList(id);
     res.json(list);
   } catch (error) {
+    if (isMailchimpNotFoundError(error)) {
+      notFoundMessage(res, 'Mailchimp list not found');
+      return;
+    }
     logger.error('Error getting Mailchimp list', { error });
     serverError(res, 'Failed to get Mailchimp list');
   }
@@ -107,6 +115,10 @@ export const addMember = async (req: AuthRequest, res: Response): Promise<void> 
 
     res.status(201).json(member);
   } catch (error) {
+    if (isMailchimpNotFoundError(error)) {
+      notFoundMessage(res, 'Mailchimp list not found');
+      return;
+    }
     logger.error('Error adding Mailchimp member', { error });
     serverError(res, 'Failed to add member to Mailchimp');
   }
@@ -166,6 +178,10 @@ export const deleteMember = async (req: AuthRequest, res: Response): Promise<voi
     await mailchimpService.deleteMember(listId, email);
     res.status(204).send();
   } catch (error) {
+    if (isMailchimpNotFoundError(error)) {
+      notFoundMessage(res, 'Mailchimp member not found');
+      return;
+    }
     logger.error('Error deleting Mailchimp member', { error });
     serverError(res, 'Failed to delete Mailchimp member');
   }
@@ -197,6 +213,8 @@ export const syncContact = async (req: AuthRequest, res: Response): Promise<void
 
     if (result.success) {
       res.json(result);
+    } else if (result.statusCode === 404) {
+      notFoundMessage(res, result.error || 'Mailchimp resource not found');
     } else {
       badRequest(res, result.error || 'Failed to sync contact to Mailchimp', {
         contactId: result.contactId,
@@ -204,6 +222,10 @@ export const syncContact = async (req: AuthRequest, res: Response): Promise<void
       });
     }
   } catch (error) {
+    if (isMailchimpNotFoundError(error)) {
+      notFoundMessage(res, 'Mailchimp list not found');
+      return;
+    }
     logger.error('Error syncing contact to Mailchimp', { error });
     serverError(res, 'Failed to sync contact to Mailchimp');
   }
@@ -270,6 +292,10 @@ export const updateMemberTags = async (req: AuthRequest, res: Response): Promise
     await mailchimpService.updateMemberTags({ listId, email, tagsToAdd, tagsToRemove });
     res.json({ success: true });
   } catch (error) {
+    if (isMailchimpNotFoundError(error)) {
+      notFoundMessage(res, 'Mailchimp member not found');
+      return;
+    }
     logger.error('Error updating member tags', { error });
     serverError(res, 'Failed to update member tags');
   }
@@ -295,6 +321,10 @@ export const getListTags = async (req: Request<{ listId: string }>, res: Respons
     const tags = await mailchimpService.getListTags(listId);
     res.json(tags);
   } catch (error) {
+    if (isMailchimpNotFoundError(error)) {
+      notFoundMessage(res, 'Mailchimp list not found');
+      return;
+    }
     logger.error('Error getting list tags', { error });
     serverError(res, 'Failed to get list tags');
   }
@@ -318,6 +348,10 @@ export const getCampaigns = async (req: Request, res: Response): Promise<void> =
     const campaigns = await mailchimpService.getCampaigns(listId);
     res.json(campaigns);
   } catch (error) {
+    if (isMailchimpNotFoundError(error)) {
+      notFoundMessage(res, 'Mailchimp list not found');
+      return;
+    }
     logger.error('Error getting campaigns', { error });
     serverError(res, 'Failed to get campaigns');
   }
@@ -359,6 +393,10 @@ export const createSegment = async (req: AuthRequest, res: Response): Promise<vo
 
     res.status(201).json(segment);
   } catch (error) {
+    if (isMailchimpNotFoundError(error)) {
+      notFoundMessage(res, 'Mailchimp list not found');
+      return;
+    }
     logger.error('Error creating segment', { error });
     serverError(res, 'Failed to create segment');
   }
@@ -452,6 +490,10 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
 
     res.status(201).json(campaign);
   } catch (error) {
+    if (isMailchimpNotFoundError(error)) {
+      notFoundMessage(res, 'Mailchimp list not found');
+      return;
+    }
     logger.error('Error creating campaign', { error });
     serverError(res, 'Failed to create campaign');
   }

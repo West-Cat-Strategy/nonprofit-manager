@@ -17,7 +17,6 @@ export const WEBHOOK_ENDPOINT_SELECT_COLUMNS = `
   we.user_id,
   we.url,
   we.description,
-  we.secret,
   we.events,
   we.is_active,
   we.last_delivery_at,

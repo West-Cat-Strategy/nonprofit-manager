@@ -255,7 +255,7 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
                           params.set('account_id', currentContact.account_id);
                         }
                         params.set('return_to', contactId);
-                        window.open(`/contacts/new?${params.toString()}`, '_blank');
+                        window.open(`/contacts/new?${params.toString()}`, '_blank', 'noopener,noreferrer');
                       }}
                       className="text-sm text-app-accent hover:text-app-accent-text font-medium"
                     >

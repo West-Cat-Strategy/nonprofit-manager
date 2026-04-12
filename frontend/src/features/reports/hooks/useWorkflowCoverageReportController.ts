@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import { reportsApiClient } from '../api/reportsApiClient';
 import type {
@@ -13,7 +13,10 @@ export function useWorkflowCoverageReportController() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const formatLoadError = formatApiErrorMessageWith('Failed to load workflow coverage report');
+  const formatLoadError = useMemo(
+    () => formatApiErrorMessageWith('Failed to load workflow coverage report'),
+    []
+  );
 
   useEffect(() => {
     let active = true;

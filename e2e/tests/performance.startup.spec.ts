@@ -30,32 +30,60 @@ const percentile = (values: number[], ratio: number): number => {
   return sorted[index];
 };
 
-const readThresholds = (): StartupThresholds => {
-  try {
-    const parsed = JSON.parse(fs.readFileSync(thresholdsPath, 'utf8')) as {
-      startupRequestCountCap?: number;
-      p75LoadMsCap?: number;
-      p75LoadMsBaseline?: number;
-      firstNavigationP75MsCap?: number;
-    };
-
-    return {
-      startupRequestCountBaseline: parsed.startupRequestCountBaseline,
-      startupRequestCountCap: parsed.startupRequestCountCap ?? 6,
-      p75LoadMsCap: parsed.p75LoadMsCap ?? 2000,
-      p75LoadMsBaseline: parsed.p75LoadMsBaseline ?? 0,
-      firstNavigationP75MsCap: parsed.firstNavigationP75MsCap ?? 1000,
-    };
-  } catch {
-    return {
-      startupRequestCountBaseline: undefined,
-      startupRequestCountCap: 6,
-      p75LoadMsCap: 2000,
-      p75LoadMsBaseline: 0,
-      firstNavigationP75MsCap: 1000,
-    };
+const readRequiredNumber = (value: unknown, fieldName: string): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`Startup threshold file ${thresholdsPath} is invalid: ${fieldName} must be a finite number`);
   }
+
+  return value;
 };
+
+const readOptionalNumber = (value: unknown, fieldName: string): number | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return readRequiredNumber(value, fieldName);
+};
+
+const readThresholds = (): StartupThresholds => {
+  if (!fs.existsSync(thresholdsPath)) {
+    throw new Error(`Missing startup threshold file: ${thresholdsPath}`);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fs.readFileSync(thresholdsPath, 'utf8'));
+  } catch (error) {
+    throw new Error(
+      `Unable to parse startup threshold file ${thresholdsPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error(`Startup threshold file ${thresholdsPath} must contain a JSON object`);
+  }
+
+  const thresholds = parsed as Record<string, unknown>;
+
+  return {
+    startupRequestCountBaseline: readOptionalNumber(
+      thresholds.startupRequestCountBaseline,
+      'startupRequestCountBaseline'
+    ),
+    startupRequestCountCap: readRequiredNumber(thresholds.startupRequestCountCap, 'startupRequestCountCap'),
+    p75LoadMsCap: readRequiredNumber(thresholds.p75LoadMsCap, 'p75LoadMsCap'),
+    p75LoadMsBaseline: readOptionalNumber(thresholds.p75LoadMsBaseline, 'p75LoadMsBaseline'),
+    firstNavigationP75MsCap: readRequiredNumber(
+      thresholds.firstNavigationP75MsCap,
+      'firstNavigationP75MsCap'
+    ),
+  };
+};
+
+const startupThresholds = readThresholds();
 
 const clickNavLink = async (page: Page, link: ReturnType<Page['locator']>): Promise<void> => {
   try {
@@ -80,7 +108,6 @@ test.describe('Startup Performance Guards', () => {
       lastName: 'Guard',
     });
     const email = typeof session.user?.email === 'string' ? session.user.email : fallbackEmail;
-    const thresholds = readThresholds();
 
     const requestCounts: number[] = [];
     const loadTimesMs: number[] = [];
@@ -146,16 +173,11 @@ test.describe('Startup Performance Guards', () => {
     const p75Load = percentile(loadTimesMs, 0.75);
     const p75Requests = percentile(requestCounts, 0.75);
     const p75FirstNavigationLoad = percentile(firstNavigationTimesMs, 0.75);
-    const p75LoadCap = process.env.CI
-      ? thresholds.p75LoadMsCap + 500
-      : thresholds.p75LoadMsBaseline || thresholds.p75LoadMsCap;
+    const p75LoadCap = startupThresholds.p75LoadMsBaseline ?? startupThresholds.p75LoadMsCap;
 
     expect(p75Load).toBeLessThanOrEqual(p75LoadCap);
-    expect(p75FirstNavigationLoad).toBeLessThanOrEqual(thresholds.firstNavigationP75MsCap);
-    if (process.env.CI === 'true' || process.env.CI === '1') {
-      const startupRequestCountCap = thresholds.startupRequestCountCap;
-      expect(p75Requests).toBeLessThanOrEqual(startupRequestCountCap);
-    }
+    expect(p75FirstNavigationLoad).toBeLessThanOrEqual(startupThresholds.firstNavigationP75MsCap);
+    expect(p75Requests).toBeLessThanOrEqual(startupThresholds.startupRequestCountCap);
     expect(preferencesRequestCounts).toEqual([0, 0, 0, 0, 0]);
     expect(brandingRequestCounts).toEqual([0, 0, 0, 0, 0]);
   });

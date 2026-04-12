@@ -7,6 +7,7 @@ import express from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
+import { requireRole } from '@middleware/permissions';
 import * as reconciliationController from '../controllers';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { isoDateTimeSchema, uuidSchema } from '@validations/shared';
@@ -14,6 +15,7 @@ import { isoDateTimeSchema, uuidSchema } from '@validations/shared';
 const router = express.Router();
 router.use(authenticate);
 router.use(requireActiveOrganizationContext);
+router.use(requireRole('admin', 'manager', 'staff'));
 const reconciliationTypeSchema = z.enum(['manual', 'automatic', 'scheduled']);
 const reconciliationStatusSchema = z.enum(['in_progress', 'completed', 'failed']);
 const discrepancySeveritySchema = z.enum(['low', 'medium', 'high', 'critical']);
@@ -172,7 +174,11 @@ router.get(
  * @desc    Manually match a donation to a Stripe transaction
  * @access  Private
  */
-router.post('/match', validateBody(manualMatchSchema), reconciliationController.manualMatch);
+router.post(
+  '/match',
+  validateBody(manualMatchSchema),
+  reconciliationController.manualMatch
+);
 
 /**
  * @route   PUT /api/reconciliation/discrepancies/:id/resolve

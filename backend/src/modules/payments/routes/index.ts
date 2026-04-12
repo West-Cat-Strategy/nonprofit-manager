@@ -19,6 +19,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { requireRole } from '@middleware/permissions';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import * as paymentController from '../controllers';
 import { emailSchema, uuidSchema } from '@validations/shared';
@@ -111,6 +112,7 @@ router.post(
 router.post(
   '/refunds',
   authenticate,
+  requireRole('admin', 'manager', 'staff'),
   validateBody(createRefundSchema),
   paymentController.createRefund
 );
@@ -122,6 +124,7 @@ router.post(
 router.post(
   '/customers',
   authenticate,
+  requireRole('admin', 'manager', 'staff'),
   validateBody(createCustomerSchema),
   paymentController.createCustomer
 );
@@ -133,6 +136,7 @@ router.post(
 router.get(
   '/customers/:id',
   authenticate,
+  requireRole('admin', 'manager', 'staff'),
   validateParams(customerIdParamsSchema),
   paymentController.getCustomer
 );
@@ -144,6 +148,7 @@ router.get(
 router.get(
   '/customers/:customerId/payment-methods',
   authenticate,
+  requireRole('admin', 'manager', 'staff'),
   validateParams(paymentMethodsParamsSchema),
   paymentController.listPaymentMethods
 );

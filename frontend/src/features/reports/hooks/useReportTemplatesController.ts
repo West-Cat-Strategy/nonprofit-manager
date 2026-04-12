@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import { reportsApiClient } from '../api/reportsApiClient';
 import type { ReportTemplate, TemplateCategory } from '../../../types/reportTemplate';
@@ -8,8 +8,9 @@ export function useReportTemplatesController(selectedCategory: TemplateCategory 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const formatTemplatesError = formatApiErrorMessageWith(
-    'Unable to load report templates right now.'
+  const formatTemplatesError = useMemo(
+    () => formatApiErrorMessageWith('Unable to load report templates right now.'),
+    []
   );
 
   const fetchTemplates = useCallback(async () => {
