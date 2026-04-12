@@ -198,8 +198,9 @@ export function shouldLogRequest(req: Request): boolean {
  * useful for tracing requests through log aggregation system
  */
 export function requestIdMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
-  req.requestId = req.get('x-request-id') || uuidv4();
-  res.setHeader('x-request-id', req.requestId);
+  const requestId = req.get('x-request-id') || uuidv4();
+  req.requestId = requestId;
+  res.setHeader('x-request-id', requestId);
   next();
 }
 

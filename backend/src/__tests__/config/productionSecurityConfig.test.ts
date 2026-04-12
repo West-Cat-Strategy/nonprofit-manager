@@ -93,6 +93,33 @@ describe('validateProductionSecurityConfig', () => {
     );
   });
 
+  it('treats missing PayPal and Square credentials as optional warnings', () => {
+    const result = validateProductionSecurityConfig({
+      ...baseEnv,
+      DB_HOST: 'postgres',
+      DB_AT_REST_ENCRYPTION_MODE: 'luks',
+      POSTGRES_DATA_DIR: '/srv/nonprofit-manager/postgres',
+      DB_LUKS_MAPPING_NAME: 'nonprofit-manager-db',
+      PAYPAL_CLIENT_ID: '',
+      PAYPAL_CLIENT_SECRET: '',
+      PAYPAL_WEBHOOK_ID: '',
+      SQUARE_ACCESS_TOKEN: '',
+      SQUARE_LOCATION_ID: '',
+      SQUARE_WEBHOOK_SIGNATURE_KEY: '',
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.fatalErrors).toEqual([]);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        'PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET are not configured; PayPal payments will be disabled',
+        'PAYPAL_WEBHOOK_ID is not configured; PayPal webhook handling will be disabled',
+        'SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID are not configured; Square payments will be disabled',
+        'SQUARE_WEBHOOK_SIGNATURE_KEY is not configured; Square webhook handling will be disabled',
+      ])
+    );
+  });
+
   it('is non-blocking outside production', () => {
     const result = validateProductionSecurityConfig({
       NODE_ENV: 'development',

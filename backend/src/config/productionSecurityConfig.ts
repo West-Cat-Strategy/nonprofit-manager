@@ -45,19 +45,27 @@ export function validateProductionSecurityConfig(
   }
 
   if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) {
-    errors.push('PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET must be set in production');
+    warnings.push(
+      'PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET are not configured; PayPal payments will be disabled'
+    );
   }
 
   if (!env.PAYPAL_WEBHOOK_ID) {
-    errors.push('PAYPAL_WEBHOOK_ID must be set in production');
+    warnings.push(
+      'PAYPAL_WEBHOOK_ID is not configured; PayPal webhook handling will be disabled'
+    );
   }
 
   if (!env.SQUARE_ACCESS_TOKEN || !env.SQUARE_LOCATION_ID) {
-    errors.push('SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID must be set in production');
+    warnings.push(
+      'SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID are not configured; Square payments will be disabled'
+    );
   }
 
   if (!env.SQUARE_WEBHOOK_SIGNATURE_KEY) {
-    errors.push('SQUARE_WEBHOOK_SIGNATURE_KEY must be set in production');
+    warnings.push(
+      'SQUARE_WEBHOOK_SIGNATURE_KEY is not configured; Square webhook handling will be disabled'
+    );
   }
 
   const encryptionKey = env.ENCRYPTION_KEY || '';

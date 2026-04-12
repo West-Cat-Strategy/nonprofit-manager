@@ -25,6 +25,13 @@ deploy_production_like() {
   local caddy_frontend_upstream="frontend:8001"
   local caddy_public_site_upstream="public-site:8006"
   local caddy_public_site_domain="sites.westcat.ca"
+  local use_host_caddy="${DEPLOY_USE_HOST_CADDY:-0}"
+  local -a compose_files=(
+    "$ROOT_DIR/docker-compose.yml"
+    "$ROOT_DIR/docker-compose.host-access.yml"
+  )
+  local -a compose_args=()
+  local compose_file
   if [[ "$MODE" == "staging" && -f "$ROOT_DIR/.env.staging" ]]; then
     env_file="$ROOT_DIR/.env.staging"
   fi
@@ -32,13 +39,22 @@ deploy_production_like() {
   if [[ "$MODE" == "production" ]]; then
     caddy_domain="${CADDY_DOMAIN:-westcat.ca}"
     caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-sites.westcat.ca}"
+    if [[ "$use_host_caddy" != "1" ]]; then
+      compose_files+=("$ROOT_DIR/docker-compose.caddy.yml")
+    fi
+  else
+    compose_files+=("$ROOT_DIR/docker-compose.caddy.yml")
   fi
+
+  for compose_file in "${compose_files[@]}"; do
+    compose_args+=("-f" "$compose_file")
+  done
 
   if [[ "${DEPLOY_EXECUTE:-0}" != "1" ]]; then
     echo "Deployment mode '$MODE' validated."
     echo "Set DEPLOY_EXECUTE=1 to run the deployment command."
     echo "Planned command:"
-    echo "  CADDY_DOMAIN=$caddy_domain CADDY_BACKEND_UPSTREAM=$caddy_backend_upstream CADDY_FRONTEND_UPSTREAM=$caddy_frontend_upstream CADDY_PUBLIC_SITE_UPSTREAM=$caddy_public_site_upstream CADDY_PUBLIC_SITE_DOMAIN=$caddy_public_site_domain ${COMPOSE_CMD[*]} -p ${COMPOSE_PROJECT_PROD:-nonprofit-prod} --env-file $env_file -f docker-compose.yml -f docker-compose.host-access.yml -f docker-compose.caddy.yml up -d --build --remove-orphans"
+    echo "  DEPLOY_USE_HOST_CADDY=$use_host_caddy CADDY_DOMAIN=$caddy_domain CADDY_BACKEND_UPSTREAM=$caddy_backend_upstream CADDY_FRONTEND_UPSTREAM=$caddy_frontend_upstream CADDY_PUBLIC_SITE_UPSTREAM=$caddy_public_site_upstream CADDY_PUBLIC_SITE_DOMAIN=$caddy_public_site_domain ${COMPOSE_CMD[*]} -p ${COMPOSE_PROJECT_PROD:-nonprofit-prod} --env-file $env_file ${compose_args[*]} up -d --build --remove-orphans"
     return 0
   fi
 
@@ -50,9 +66,7 @@ deploy_production_like() {
   "${COMPOSE_CMD[@]}" \
     -p "${COMPOSE_PROJECT_PROD:-nonprofit-prod}" \
     --env-file "$env_file" \
-    -f "$ROOT_DIR/docker-compose.yml" \
-    -f "$ROOT_DIR/docker-compose.host-access.yml" \
-    -f "$ROOT_DIR/docker-compose.caddy.yml" \
+    "${compose_args[@]}" \
     up -d --build --remove-orphans
 }
 
