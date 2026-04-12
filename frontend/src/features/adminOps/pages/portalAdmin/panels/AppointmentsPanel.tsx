@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 import type { PortalPanelProps } from '../panelTypes';
+=======
+import type { PortalSectionProps } from '../../adminSettings/sections/PortalSection';
+
+type PortalPanelProps = Omit<PortalSectionProps, 'visiblePanels'>;
+>>>>>>> origin/main
 
 const openCaseAppointments = (caseId: string) =>
   window.location.assign(`/cases/${caseId}?tab=appointments`);

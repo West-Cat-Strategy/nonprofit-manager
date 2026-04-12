@@ -308,7 +308,11 @@ const OutcomeDefinitionsSection = () => {
       {loading && <p className="mt-3 text-sm text-[var(--app-text-muted)]">Loading outcomes...</p>}
 
       {showModal && (
+<<<<<<< HEAD
         <div className="fixed inset-0 app-popup-backdrop z-50 flex items-center justify-center p-4">
+=======
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+>>>>>>> origin/main
           <div className="bg-[var(--app-surface)] border-2 border-[var(--app-border)] w-full max-w-xl p-6">
             <h3 className="text-lg font-black uppercase text-[var(--app-text)] mb-4">
               {editing ? 'Edit Outcome Definition' : 'Create Outcome Definition'}

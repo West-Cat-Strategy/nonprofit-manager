@@ -3,12 +3,20 @@ import { vi } from 'vitest';
 import AccountList from '../../features/accounts/pages/AccountListPage';
 import ContactList from '../../features/contacts/pages/ContactListPage';
 import VolunteerList from '../../features/volunteers/pages/VolunteerListPage';
+<<<<<<< HEAD
 import EventList from '../../features/events/pages/EventsHubPage';
+=======
+import EventList from '../engagement/events/EventList';
+>>>>>>> origin/main
 import TaskList from '../../features/tasks/pages/TaskListPage';
 import DonationList from '../../features/finance/pages/DonationListPage';
 import CaseList from '../../features/cases/pages/CaseListPage';
 import CaseCreate from '../../features/cases/pages/CaseCreatePage';
+<<<<<<< HEAD
 import NeoBrutalistDashboard from '../../features/neoBrutalist/pages/NeoBrutalistDashboardPage';
+=======
+import NeoBrutalistDashboard from '../neo-brutalist/NeoBrutalistDashboard';
+>>>>>>> origin/main
 import FollowUpsPage from '../../features/followUps/pages/FollowUpsPage';
 import OpportunitiesPage from '../../features/engagement/opportunities/pages/OpportunitiesPage';
 import AnalyticsPage from '../../features/analytics/pages/AnalyticsPage';
@@ -20,8 +28,13 @@ import ReportBuilderPage from '../../features/reports/pages/ReportBuilderPage';
 import SavedReportsPage from '../../features/savedReports/pages/SavedReportsPage';
 import ScheduledReportsPage from '../../features/scheduledReports/pages/ScheduledReportsPage';
 import ReportTemplatesPage from '../../features/reports/pages/ReportTemplatesPage';
+<<<<<<< HEAD
 import IntakeNew from '../../features/workflows/pages/IntakeNewPage';
 import InteractionNote from '../../features/workflows/pages/InteractionNotePage';
+=======
+import IntakeNew from '../workflows/IntakeNew';
+import InteractionNote from '../workflows/InteractionNote';
+>>>>>>> origin/main
 import api from '../../services/api';
 import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
 

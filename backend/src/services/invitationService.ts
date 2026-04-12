@@ -6,7 +6,10 @@
 import crypto from 'crypto';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+<<<<<<< HEAD
 import { normalizeRoleSlug } from '@utils/roleSlug';
+=======
+>>>>>>> origin/main
 
 export interface UserInvitation {
   id: string;

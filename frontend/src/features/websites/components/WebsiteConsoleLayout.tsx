@@ -16,7 +16,10 @@ interface WebsiteConsoleLayoutProps {
 const tabs = [
   { key: 'overview', label: 'Overview' },
   { key: 'content', label: 'Content' },
+<<<<<<< HEAD
   { key: 'newsletters', label: 'Newsletters' },
+=======
+>>>>>>> origin/main
   { key: 'forms', label: 'Forms' },
   { key: 'integrations', label: 'Integrations' },
   { key: 'publishing', label: 'Publishing' },
@@ -42,7 +45,11 @@ const WebsiteConsoleLayout: React.FC<WebsiteConsoleLayoutProps> = ({
   actions,
   children,
 }) => (
+<<<<<<< HEAD
   <div className="min-h-screen bg-app-bg text-app-text transition-colors">
+=======
+  <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(248,245,236,0.95),rgba(248,245,236,1))]">
+>>>>>>> origin/main
     <div className="border-b border-app-border/80 bg-app-surface/95 backdrop-blur supports-[backdrop-filter]:bg-app-surface/85">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">

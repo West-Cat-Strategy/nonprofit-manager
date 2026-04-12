@@ -28,12 +28,20 @@ function parseUrl(input: string): URL | null {
   }
 }
 
+<<<<<<< HEAD
 function hasUrlParam(url: string, key: string, expectedValue: string): boolean {
+=======
+function hasSearchQuery(url: string, searchTerm: string): boolean {
+>>>>>>> origin/main
   const parsed = parseUrl(url);
   if (!parsed) {
     return false;
   }
+<<<<<<< HEAD
   return parsed.searchParams.get(key) === expectedValue;
+=======
+  return parsed.searchParams.get('search') === searchTerm;
+>>>>>>> origin/main
 }
 
 function parseCreatedContactId(payload: unknown): string | null {
@@ -842,7 +850,11 @@ test.describe('Contacts Module', () => {
     const suffix = uniqueSuffix();
 
     await authenticatedPage.goto('/contacts/new');
+<<<<<<< HEAD
     await authenticatedPage.locator('form').getByRole('button', { name: /^cancel$/i }).click();
+=======
+    await authenticatedPage.getByRole('button', { name: /^cancel$/i }).click();
+>>>>>>> origin/main
     await expect(authenticatedPage).toHaveURL(/\/contacts$/);
 
     const { id } = await createTestContact(authenticatedPage, authToken, {
@@ -857,7 +869,11 @@ test.describe('Contacts Module', () => {
     await expect(authenticatedPage.getByRole('heading', { name: /edit contact/i })).toBeVisible({
       timeout: 30000,
     });
+<<<<<<< HEAD
     await authenticatedPage.locator('form').getByRole('button', { name: /^cancel$/i }).click();
+=======
+    await authenticatedPage.getByRole('button', { name: /^cancel$/i }).first().click();
+>>>>>>> origin/main
     await waitForContactDetailReady(authenticatedPage);
     await expect(authenticatedPage).toHaveURL(new RegExp(`/contacts/${id}$`));
   });
@@ -923,6 +939,7 @@ test.describe('Contacts Module', () => {
     await expect(authenticatedPage.getByText(/active/i).first()).toBeVisible();
   });
 
+<<<<<<< HEAD
   test('should persist contacts list filters in the URL after reload', async ({
     authenticatedPage,
     authToken,
@@ -959,6 +976,8 @@ test.describe('Contacts Module', () => {
     ).toHaveCount(1, { timeout: 15000 });
   });
 
+=======
+>>>>>>> origin/main
   test('should merge a contact into an inactive target without losing linked records', async ({
     authenticatedPage,
     authToken,
@@ -1133,14 +1152,22 @@ test.describe('Contacts Module', () => {
         response.request().method() === 'GET' &&
         response.status() === 200 &&
         url.includes('/api/v2/contacts') &&
+<<<<<<< HEAD
         hasUrlParam(url, 'search', searchTerm)
+=======
+        hasSearchQuery(url, searchTerm)
+>>>>>>> origin/main
       );
     });
     await authenticatedPage.locator('form').getByRole('button', { name: /^search$/i }).click();
     await searchRequest;
+<<<<<<< HEAD
     await expect
       .poll(() => hasUrlParam(authenticatedPage.url(), 'search', searchTerm), { timeout: 10000 })
       .toBe(true);
+=======
+    await expect.poll(() => hasSearchQuery(authenticatedPage.url(), searchTerm), { timeout: 10000 }).toBe(true);
+>>>>>>> origin/main
 
     const nextButton = authenticatedPage.getByRole('button', { name: /next/i });
     await expect(nextButton).toBeVisible({ timeout: 15000 });

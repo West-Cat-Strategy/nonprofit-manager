@@ -221,7 +221,10 @@ export interface CreateSubscriptionRequest {
 }
 
 export interface CreateCheckoutSessionRequest {
+<<<<<<< HEAD
   provider?: PaymentProvider;
+=======
+>>>>>>> origin/main
   customerId: string;
   priceId: string;
   successUrl: string;
@@ -232,11 +235,17 @@ export interface CreateCheckoutSessionRequest {
 export interface CheckoutSessionResponse {
   id: string;
   url: string;
+<<<<<<< HEAD
   provider: PaymentProvider;
   customerId: string | null;
   subscriptionId: string | null;
   status: string;
   providerTransactionId?: string | null;
+=======
+  customerId: string | null;
+  subscriptionId: string | null;
+  status: string;
+>>>>>>> origin/main
 }
 
 export interface CreateMonthlyPriceRequest {

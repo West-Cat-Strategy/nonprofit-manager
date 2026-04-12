@@ -9,5 +9,8 @@ export const preloadContactsPeopleRoute = (): Promise<unknown[]> =>
     import('./pages/ContactListPage'),
     import('./pages/ContactDetailPage'),
     import('./pages/ContactCreatePage'),
+<<<<<<< HEAD
     import('./pages/ContactPrintPage'),
+=======
+>>>>>>> origin/main
   ]);

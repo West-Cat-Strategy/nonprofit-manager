@@ -24,17 +24,23 @@ export interface Donation {
   account_id: string | null;
   contact_id: string | null;
   recurring_plan_id?: string | null;
+<<<<<<< HEAD
   payment_provider?: 'stripe' | 'paypal' | 'square' | null;
+=======
+>>>>>>> origin/main
   amount: number;
   currency: string;
   donation_date: string;
   payment_method: PaymentMethod | null;
   payment_status: PaymentStatus;
   transaction_id: string | null;
+<<<<<<< HEAD
   provider_transaction_id?: string | null;
   provider_checkout_session_id?: string | null;
   provider_subscription_id?: string | null;
   provider_customer_id?: string | null;
+=======
+>>>>>>> origin/main
   stripe_subscription_id?: string | null;
   stripe_invoice_id?: string | null;
   campaign_name: string | null;
@@ -61,17 +67,23 @@ export interface CreateDonationDTO {
   account_id?: string;
   contact_id?: string;
   recurring_plan_id?: string;
+<<<<<<< HEAD
   payment_provider?: 'stripe' | 'paypal' | 'square';
+=======
+>>>>>>> origin/main
   amount: number;
   currency?: string;
   donation_date: string;
   payment_method?: PaymentMethod;
   payment_status?: PaymentStatus;
   transaction_id?: string;
+<<<<<<< HEAD
   provider_transaction_id?: string;
   provider_checkout_session_id?: string;
   provider_subscription_id?: string;
   provider_customer_id?: string;
+=======
+>>>>>>> origin/main
   stripe_subscription_id?: string;
   stripe_invoice_id?: string;
   campaign_name?: string;
@@ -85,17 +97,23 @@ export interface UpdateDonationDTO {
   account_id?: string;
   contact_id?: string;
   recurring_plan_id?: string | null;
+<<<<<<< HEAD
   payment_provider?: 'stripe' | 'paypal' | 'square' | null;
+=======
+>>>>>>> origin/main
   amount?: number;
   currency?: string;
   donation_date?: string;
   payment_method?: PaymentMethod;
   payment_status?: PaymentStatus;
   transaction_id?: string;
+<<<<<<< HEAD
   provider_transaction_id?: string | null;
   provider_checkout_session_id?: string | null;
   provider_subscription_id?: string | null;
   provider_customer_id?: string | null;
+=======
+>>>>>>> origin/main
   stripe_subscription_id?: string | null;
   stripe_invoice_id?: string | null;
   campaign_name?: string;

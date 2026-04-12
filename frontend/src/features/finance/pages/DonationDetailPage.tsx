@@ -29,9 +29,12 @@ import {
   getSingleReceiptDisabledReason,
 } from '../utils/taxReceipts';
 
+<<<<<<< HEAD
 const formatProviderLabel = (provider?: string | null): string =>
   provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : 'Stripe';
 
+=======
+>>>>>>> origin/main
 const DonationDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -269,6 +272,7 @@ const DonationDetail: React.FC = () => {
                     <dd className="text-sm text-app-text font-mono">{donation.transaction_id}</dd>
                   </div>
                 )}
+<<<<<<< HEAD
                 <div>
                   <dt className="text-sm font-medium text-app-text-muted">Payment Provider</dt>
                   <dd className="text-sm text-app-text">
@@ -299,6 +303,8 @@ const DonationDetail: React.FC = () => {
                     </dd>
                   </div>
                 )}
+=======
+>>>>>>> origin/main
               </dl>
             </div>
 

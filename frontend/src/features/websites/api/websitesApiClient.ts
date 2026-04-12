@@ -14,9 +14,12 @@ import type {
   WebsiteIntegrationStatus,
   WebsiteFacebookSettings,
   WebsiteMailchimpSettings,
+<<<<<<< HEAD
   WebsiteMauticSettings,
   WebsiteNewsletterListPreset,
   WebsiteNewsletterSettings,
+=======
+>>>>>>> origin/main
   WebsiteOverviewSummary,
   WebsiteSearchParams,
   WebsiteSitesResponse,
@@ -76,6 +79,7 @@ export class WebsitesApiClient {
       .then((response) => response.data);
   }
 
+<<<<<<< HEAD
   getNewsletterWorkspace(siteId: string): Promise<WebsiteIntegrationStatus> {
     return api
       .get<WebsiteIntegrationStatus>(`/sites/${siteId}/newsletters`)
@@ -147,6 +151,8 @@ export class WebsitesApiClient {
       .then((response) => response.data);
   }
 
+=======
+>>>>>>> origin/main
   updateMailchimp(
     siteId: string,
     payload: Partial<WebsiteMailchimpSettings>

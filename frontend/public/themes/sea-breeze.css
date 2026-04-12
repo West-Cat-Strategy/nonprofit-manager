@@ -19,9 +19,12 @@ body.theme-sea-breeze {
   --app-accent-hover: #00796b;
   --app-accent-text: #009688;
   --app-accent-text-hover: #00796b;
+<<<<<<< HEAD
   --app-link: #009688;
   --app-link-hover: #00796b;
   --app-link-visited: #00796b;
+=======
+>>>>>>> origin/main
   --app-accent-soft: #b2dfdb;
   --app-accent-soft-hover: #80cbc4;
 
@@ -65,9 +68,12 @@ body.theme-sea-breeze {
   --app-accent-foreground: #ffffff;
   --app-accent-text: #0d7f75;
   --app-accent-text-hover: #095e58;
+<<<<<<< HEAD
   --app-link: #0d7f75;
   --app-link-hover: #095e58;
   --app-link-visited: #095e58;
+=======
+>>>>>>> origin/main
   --app-accent-soft: rgba(14, 141, 130, 0.18);
   --app-accent-soft-hover: rgba(14, 141, 130, 0.28);
   --app-hover: rgba(14, 141, 130, 0.11);
@@ -107,9 +113,12 @@ body.theme-sea-breeze.dark {
   --app-accent-hover: #26a69a;
   --app-accent-text: #b2dfdb;
   --app-accent-text-hover: #80cbc4;
+<<<<<<< HEAD
   --app-link: #b2dfdb;
   --app-link-hover: #80cbc4;
   --app-link-visited: #80cbc4;
+=======
+>>>>>>> origin/main
   --app-accent-soft: rgba(77, 182, 172, 0.2);
   --app-accent-soft-hover: rgba(77, 182, 172, 0.35);
 
@@ -140,9 +149,12 @@ body.theme-sea-breeze.dark {
   --app-accent-foreground: #03211f;
   --app-accent-text: #9bf3e4;
   --app-accent-text-hover: #c6fff6;
+<<<<<<< HEAD
   --app-link: #9bf3e4;
   --app-link-hover: #c6fff6;
   --app-link-visited: #c6fff6;
+=======
+>>>>>>> origin/main
   --app-accent-soft: rgba(99, 219, 201, 0.24);
   --app-accent-soft-hover: rgba(99, 219, 201, 0.36);
   --app-hover: rgba(116, 227, 209, 0.14);

@@ -190,7 +190,11 @@ export default function OpportunitiesPage() {
           <button
             type="button"
             onClick={() => setShowCreate((prev) => !prev)}
+<<<<<<< HEAD
             className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-4 py-2 font-bold text-[var(--app-text-heading)] shadow-[3px_3px_0px_0px_var(--shadow-color)]"
+=======
+            className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-4 py-2 font-bold text-black shadow-[3px_3px_0px_0px_var(--shadow-color)]"
+>>>>>>> origin/main
           >
             {showCreate ? 'Close' : 'New Opportunity'}
           </button>
@@ -198,11 +202,19 @@ export default function OpportunitiesPage() {
 
         {summary && (
           <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+<<<<<<< HEAD
             <div className="border-2 border-[var(--app-border)] bg-[var(--loop-blue)] p-3 text-[var(--app-text-heading)]"><p className="text-xs font-bold uppercase">Total</p><p className="text-2xl font-black">{summary.total}</p></div>
             <div className="border-2 border-[var(--app-border)] bg-[var(--loop-green)] p-3 text-[var(--app-text-heading)]"><p className="text-xs font-bold uppercase">Open</p><p className="text-2xl font-black">{summary.open}</p></div>
             <div className="border-2 border-[var(--app-border)] bg-[var(--loop-cyan)] p-3 text-[var(--app-text-heading)]"><p className="text-xs font-bold uppercase">Won</p><p className="text-2xl font-black">{summary.won}</p></div>
             <div className="border-2 border-[var(--app-border)] bg-[var(--loop-pink)] p-3 text-[var(--app-text-heading)]"><p className="text-xs font-bold uppercase">Lost</p><p className="text-2xl font-black">{summary.lost}</p></div>
             <div className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] p-3 text-[var(--app-text-heading)]"><p className="text-xs font-bold uppercase">Weighted</p><p className="text-xl font-black">{summary.weighted_amount.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })}</p></div>
+=======
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-blue)] p-3"><p className="text-xs font-bold uppercase">Total</p><p className="text-2xl font-black">{summary.total}</p></div>
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-green)] p-3"><p className="text-xs font-bold uppercase">Open</p><p className="text-2xl font-black">{summary.open}</p></div>
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-cyan)] p-3"><p className="text-xs font-bold uppercase">Won</p><p className="text-2xl font-black">{summary.won}</p></div>
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-pink)] p-3"><p className="text-xs font-bold uppercase">Lost</p><p className="text-2xl font-black">{summary.lost}</p></div>
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] p-3"><p className="text-xs font-bold uppercase">Weighted</p><p className="text-xl font-black">{summary.weighted_amount.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })}</p></div>
+>>>>>>> origin/main
           </div>
         )}
 
@@ -217,7 +229,11 @@ export default function OpportunitiesPage() {
           <button
             type="button"
             onClick={() => void addStage()}
+<<<<<<< HEAD
             className="border-2 border-[var(--app-border)] bg-[var(--loop-cyan)] px-3 py-2 font-bold text-[var(--app-text-heading)]"
+=======
+            className="border-2 border-[var(--app-border)] bg-[var(--loop-cyan)] px-3 py-2 font-bold"
+>>>>>>> origin/main
           >
             Add Stage
           </button>
@@ -408,7 +424,11 @@ export default function OpportunitiesPage() {
                         type="button"
                         onClick={() => void reorderStage(index, -1)}
                         aria-label={`Move ${stage.name} stage earlier`}
+<<<<<<< HEAD
                         className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-2 py-1 text-xs font-bold text-[var(--app-text-heading)]"
+=======
+                        className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-2 py-1 text-xs font-bold text-black"
+>>>>>>> origin/main
                       >
                         ↑
                       </button>
@@ -416,7 +436,11 @@ export default function OpportunitiesPage() {
                         type="button"
                         onClick={() => void reorderStage(index, 1)}
                         aria-label={`Move ${stage.name} stage later`}
+<<<<<<< HEAD
                         className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-2 py-1 text-xs font-bold text-[var(--app-text-heading)]"
+=======
+                        className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-2 py-1 text-xs font-bold text-black"
+>>>>>>> origin/main
                       >
                         ↓
                       </button>
@@ -438,7 +462,11 @@ export default function OpportunitiesPage() {
                           <select
                             value={opportunity.stage_id}
                             onChange={(event) => void moveStage(opportunity.id, event.target.value)}
+<<<<<<< HEAD
                             className="border-2 border-[var(--app-border)] bg-app-surface px-2 py-1 text-xs text-[var(--app-text)]"
+=======
+                            className="border-2 border-[var(--app-border)] bg-white px-2 py-1 text-xs"
+>>>>>>> origin/main
                           >
                             {stageOptions.map((option) => (
                               <option key={option.id} value={option.id}>{option.name}</option>

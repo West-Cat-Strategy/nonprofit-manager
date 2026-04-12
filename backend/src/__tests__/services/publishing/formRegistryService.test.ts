@@ -8,11 +8,15 @@ describe('FormRegistryService', () => {
   const settings: WebsiteSiteSettings = {
     siteId: 'site-1',
     organizationId: 'org-1',
+<<<<<<< HEAD
     newsletter: {
       provider: 'mautic',
     },
     mailchimp: {},
     mautic: {},
+=======
+    mailchimp: {},
+>>>>>>> origin/main
     stripe: {},
     formDefaults: {
       successMessage: 'Default success',

@@ -139,8 +139,13 @@ const ExternalServiceProviders = () => {
     <NeoBrutalistLayout pageTitle="External Service Providers">
       <div className="p-6 space-y-6">
         <BrutalCard color="yellow" className="p-6">
+<<<<<<< HEAD
           <h1 className="text-3xl font-black uppercase text-[var(--app-text-heading)]">External Service Providers</h1>
           <p className="mt-2 font-bold text-app-text-muted">
+=======
+          <h1 className="text-3xl font-black uppercase text-black">External Service Providers</h1>
+          <p className="mt-2 font-bold text-black/70">
+>>>>>>> origin/main
             Central directory for providers used across case service records.
           </p>
           <div className="mt-4 flex gap-3 flex-wrap">
@@ -150,7 +155,11 @@ const ExternalServiceProviders = () => {
         </BrutalCard>
 
         <BrutalCard color="white" className="p-6 space-y-4">
+<<<<<<< HEAD
           <h2 className="text-lg font-black uppercase text-[var(--app-text-heading)]">
+=======
+          <h2 className="text-lg font-black uppercase text-black">
+>>>>>>> origin/main
             {editingId ? 'Edit Provider' : 'Add Provider'}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -244,6 +253,7 @@ const ExternalServiceProviders = () => {
           </div>
 
           {loading ? (
+<<<<<<< HEAD
             <div className="py-8 text-center font-black uppercase text-app-text-muted">Loading providers...</div>
           ) : providers.length === 0 ? (
             <div className="py-8 text-center font-black uppercase text-app-text-muted">No providers found.</div>
@@ -255,6 +265,19 @@ const ExternalServiceProviders = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-black uppercase text-[var(--app-text-heading)]">{provider.provider_name}</h3>
+=======
+            <div className="py-8 text-center font-black uppercase text-black/60">Loading providers...</div>
+          ) : providers.length === 0 ? (
+            <div className="py-8 text-center font-black uppercase text-black/60">No providers found.</div>
+          ) : (
+            <div className="space-y-3">
+              {providers.map((provider) => (
+                <div key={provider.id} className="border-2 border-black p-4 bg-app-surface">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-black uppercase text-black">{provider.provider_name}</h3>
+>>>>>>> origin/main
                         <BrutalBadge color={provider.is_active ? 'green' : 'gray'}>
                           {provider.is_active ? 'Active' : 'Archived'}
                         </BrutalBadge>
@@ -262,11 +285,19 @@ const ExternalServiceProviders = () => {
                           <BrutalBadge color="purple">{provider.provider_type}</BrutalBadge>
                         )}
                       </div>
+<<<<<<< HEAD
                       <p className="text-xs font-bold text-app-text-muted uppercase">
                         Attached to {provider.attached_cases_count || 0} case(s) / {provider.attached_services_count || 0} service log(s)
                       </p>
                       {provider.notes && (
                         <p className="mt-1 text-sm font-medium text-app-text">{provider.notes}</p>
+=======
+                      <p className="text-xs font-bold text-black/60 uppercase">
+                        Attached to {provider.attached_cases_count || 0} case(s) / {provider.attached_services_count || 0} service log(s)
+                      </p>
+                      {provider.notes && (
+                        <p className="mt-1 text-sm font-medium text-black/80">{provider.notes}</p>
+>>>>>>> origin/main
                       )}
                     </div>
                     <div className="flex gap-2">

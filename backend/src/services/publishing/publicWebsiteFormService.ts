@@ -5,8 +5,13 @@ import type { PublishedComponent, PublishedSite } from '@app-types/publishing';
 import { AvailabilityStatus } from '@app-types/volunteer';
 import type { Activity } from '@app-types/activity';
 import type { RecurringDonationPlanStatus } from '@app-types/recurringDonation';
+<<<<<<< HEAD
 import { activityEventService, type CreateActivityEventInput } from '@services/activityEventService';
 import newsletterProviderService from '@services/newsletterProviderService';
+=======
+import { addOrUpdateMember, isMailchimpConfigured } from '@services/mailchimpService';
+import { activityEventService, type CreateActivityEventInput } from '@services/activityEventService';
+>>>>>>> origin/main
 import stripeService from '@services/stripeService';
 import { SiteManagementService } from './siteManagementService';
 import {
@@ -31,7 +36,10 @@ export interface PublicWebsiteFormResult {
   returnUrl?: string;
   paymentIntent?: Awaited<ReturnType<typeof stripeService.createPaymentIntent>>;
   mailchimpSynced?: boolean;
+<<<<<<< HEAD
   newsletterSynced?: boolean;
+=======
+>>>>>>> origin/main
   idempotentReplay?: boolean;
 }
 
@@ -378,6 +386,7 @@ export class PublicWebsiteFormService {
       'newsletter',
     ]);
     const { contactId, created } = await this.ensureContact(site, identity, defaultTags);
+<<<<<<< HEAD
     const settings = await this.siteSettings.getSettingsForSite(site);
     const audienceMode =
       (component.audienceMode as 'crm' | 'mailchimp' | 'mautic' | 'both' | undefined) ||
@@ -398,17 +407,48 @@ export class PublicWebsiteFormService {
       });
       newsletterSynced = Boolean(syncResult.success);
       mailchimpSynced = provider === 'mailchimp' && Boolean(syncResult.success);
+=======
+    const audienceMode =
+      (component.audienceMode as 'crm' | 'mailchimp' | 'both' | undefined) || 'crm';
+    let mailchimpSynced = false;
+
+    if (
+      identity.email &&
+      component.mailchimpListId &&
+      audienceMode !== 'crm' &&
+      isMailchimpConfigured()
+    ) {
+      await addOrUpdateMember({
+        listId: String(component.mailchimpListId),
+        email: identity.email,
+        status: 'subscribed',
+        mergeFields: {
+          FNAME: identity.firstName,
+          LNAME: identity.lastName,
+          PHONE: identity.phone,
+        },
+        tags: defaultTags,
+      });
+      mailchimpSynced = true;
+>>>>>>> origin/main
     }
 
     return {
       result: {
         formType: component.type,
+<<<<<<< HEAD
           message:
+=======
+        message:
+>>>>>>> origin/main
           (component.successMessage as string | undefined) ||
           'You have been added to the newsletter list.',
         contactId,
         mailchimpSynced,
+<<<<<<< HEAD
         newsletterSynced,
+=======
+>>>>>>> origin/main
       },
       resultEntityType: 'contact',
       resultEntityId: contactId,
@@ -425,8 +465,11 @@ export class PublicWebsiteFormService {
           created,
           formType: component.type,
           mailchimpSynced,
+<<<<<<< HEAD
           newsletterSynced,
           provider,
+=======
+>>>>>>> origin/main
         },
       },
     };

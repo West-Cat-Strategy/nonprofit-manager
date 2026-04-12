@@ -49,7 +49,11 @@ describe('userManagementService', () => {
       email: 'new@example.com',
       first_name: 'New',
       last_name: 'User',
+<<<<<<< HEAD
       role: 'staff',
+=======
+      role: 'user',
+>>>>>>> origin/main
       profile_picture: null,
       is_active: true,
       created_at: new Date(),
@@ -67,7 +71,10 @@ describe('userManagementService', () => {
     });
 
     expect(result).toEqual(row);
+<<<<<<< HEAD
     expect(mockQuery.mock.calls[0]?.[1]).toContain('staff');
+=======
+>>>>>>> origin/main
   });
 
   it('parses active admin count as number', async () => {

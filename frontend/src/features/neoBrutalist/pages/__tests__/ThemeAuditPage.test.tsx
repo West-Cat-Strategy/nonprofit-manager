@@ -10,6 +10,9 @@ describe('ThemeAuditPage', () => {
     expect(screen.getByRole('button', { name: 'Primary action' })).toHaveClass(
       'text-[var(--app-accent-foreground)]'
     );
+<<<<<<< HEAD
     expect(screen.getByText('Highlight')).toHaveClass('text-[var(--app-text-heading)]');
+=======
+>>>>>>> origin/main
   });
 });

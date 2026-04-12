@@ -132,7 +132,11 @@ export default function AlertConfigModal({
   };
 
   return (
+<<<<<<< HEAD
     <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop p-4">
+=======
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+>>>>>>> origin/main
       <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-app-surface shadow-xl">
         <div className="border-b border-app-border p-6">
           <h2 className="text-xl font-semibold text-app-text">

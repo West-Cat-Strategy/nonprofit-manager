@@ -29,7 +29,11 @@ const Layout = ({ children }: LayoutProps) => {
         >
           {children}
         </AppShell>
+<<<<<<< HEAD
         <TeamMessengerDock />
+=======
+        {!isMobileViewport ? <TeamMessengerDock /> : null}
+>>>>>>> origin/main
       </TeamMessengerProvider>
     </div>
   );

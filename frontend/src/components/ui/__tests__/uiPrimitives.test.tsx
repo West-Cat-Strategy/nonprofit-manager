@@ -6,7 +6,10 @@ import {
   PrimaryButton,
   SecondaryButton,
   DangerButton,
+<<<<<<< HEAD
   FormField,
+=======
+>>>>>>> origin/main
   PageHeader,
   SectionCard,
   LoadingState,
@@ -28,7 +31,11 @@ describe('ui primitives', () => {
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+<<<<<<< HEAD
     expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass('bg-red-600');
+=======
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+>>>>>>> origin/main
   });
 
   it('renders a page header with title and actions', () => {
@@ -57,11 +64,15 @@ describe('ui primitives', () => {
         <LoadingState label="Loading records..." />
         <EmptyState title="No records" description="Create one to begin" />
         <ErrorState message="Failed to load" onRetry={onRetry} />
+<<<<<<< HEAD
         <FormField label="Email address" helperText="Use your work email" error="Email is required" />
+=======
+>>>>>>> origin/main
       </div>
     );
 
     expect(screen.getByRole('heading', { level: 2, name: 'Summary' })).toBeInTheDocument();
+<<<<<<< HEAD
     expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByText('Loading records...')).toBeInTheDocument();
     expect(screen.getByText('No records')).toBeInTheDocument();
@@ -69,6 +80,10 @@ describe('ui primitives', () => {
     const emailError = screen.getByText('Email is required');
     expect(emailField).toHaveAttribute('aria-invalid', 'true');
     expect(emailField.getAttribute('aria-describedby')).toContain(emailError.id);
+=======
+    expect(screen.getByText('Loading records...')).toBeInTheDocument();
+    expect(screen.getByText('No records')).toBeInTheDocument();
+>>>>>>> origin/main
     await user.click(screen.getByRole('button', { name: 'Try again' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
@@ -94,6 +109,7 @@ describe('ui primitives', () => {
     expect(screen.getByRole('link', { name: 'Contacts' })).toHaveFocus();
   });
 
+<<<<<<< HEAD
   it('keeps side nav states readable across themes', () => {
     render(
       <MemoryRouter>
@@ -113,6 +129,8 @@ describe('ui primitives', () => {
     expect(screen.getByRole('link', { name: 'Contacts' })).toHaveClass('text-app-text');
   });
 
+=======
+>>>>>>> origin/main
   it('renders top navigation with the opaque shell surface', () => {
     render(<TopNav left={<span>Portal</span>} right={<button type="button">Account</button>} />);
 

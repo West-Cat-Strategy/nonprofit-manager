@@ -1,6 +1,10 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
+<<<<<<< HEAD
 import InteractionNote from '../../../features/workflows/pages/InteractionNotePage';
+=======
+import InteractionNote from '../InteractionNote';
+>>>>>>> origin/main
 import casesReducer from '../../../features/cases/state';
 import { resetOutcomeDefinitionsCache } from '../../../features/outcomes/hooks/useOutcomeDefinitions';
 import { renderWithProviders } from '../../../test/testUtils';

@@ -210,6 +210,7 @@ describe('ContactList page', () => {
     vi.useRealTimers();
   });
 
+<<<<<<< HEAD
   it('resets pagination to the first page when a filter changes', async () => {
     vi.useFakeTimers();
 
@@ -256,6 +257,8 @@ describe('ContactList page', () => {
     vi.useRealTimers();
   });
 
+=======
+>>>>>>> origin/main
   it('navigates to a contact detail route using the canonical contact UUID', () => {
     contactsState.contacts = [
       {

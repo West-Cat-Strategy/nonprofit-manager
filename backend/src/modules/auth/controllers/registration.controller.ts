@@ -10,7 +10,11 @@ import { conflict, forbidden } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { sendSuccess } from '@modules/shared/http/envelope';
+<<<<<<< HEAD
 import { getRegistrationMode } from '@modules/admin/usecases/registrationSettingsUseCase';
+=======
+import { getRegistrationMode } from '@services/registrationSettingsService';
+>>>>>>> origin/main
 import { createPendingRegistration } from '@services/pendingRegistrationService';
 import {
   countAdminUsers,
@@ -107,7 +111,11 @@ export const register = async (
       passwordHash: hashedPassword,
       firstName,
       lastName,
+<<<<<<< HEAD
       role: 'staff',
+=======
+      role: 'user',
+>>>>>>> origin/main
     }));
     await runStep('syncUserRole', () => syncUserRole(user.id, user.role));
 

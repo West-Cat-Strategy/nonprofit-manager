@@ -156,6 +156,7 @@ export class PortalCaseRepository {
           AND c.client_viewable = true
           AND cd.visible_to_client = true
           AND COALESCE(cd.is_active, true) = true
+<<<<<<< HEAD
 
         UNION ALL
 
@@ -176,6 +177,8 @@ export class PortalCaseRepository {
         WHERE a.case_id = $1
           AND a.contact_id = $2
           AND a.status != 'cancelled'
+=======
+>>>>>>> origin/main
       ) timeline
       WHERE (
         $3::timestamptz IS NULL

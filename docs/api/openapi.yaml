@@ -277,6 +277,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
   /admin/twilio-settings:
+<<<<<<< HEAD
     get:
       summary: Get Twilio settings
       security:
@@ -293,6 +294,8 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/TwilioSettingsReadPayload'
+=======
+>>>>>>> origin/main
     put:
       summary: Update Twilio settings
       security:
@@ -305,6 +308,7 @@ paths:
               type: object
               additionalProperties: false
               properties:
+<<<<<<< HEAD
                 accountSid:
                   nullable: true
                   oneOf:
@@ -329,12 +333,19 @@ paths:
                   type: string
                   nullable: true
                   description: From phone number (E.164). Clear with null or an empty string.
+=======
+                accountSid: { type: string, nullable: true }
+                authToken: { type: string }
+                messagingServiceSid: { type: string, nullable: true }
+                fromPhoneNumber: { type: string, nullable: true }
+>>>>>>> origin/main
       responses:
         '200':
           description: Twilio settings updated
           content:
             application/json:
               schema:
+<<<<<<< HEAD
                 allOf:
                   - $ref: '#/components/schemas/SuccessEnvelope'
                   - type: object
@@ -358,6 +369,9 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/TwilioConnectionTestPayload'
+=======
+                $ref: '#/components/schemas/SuccessEnvelope'
+>>>>>>> origin/main
   /admin/registration-settings:
     put:
       summary: Update registration settings
@@ -1133,6 +1147,7 @@ components:
               type: string
             details:
               nullable: true
+<<<<<<< HEAD
     TwilioSettings:
       type: object
       required:
@@ -1201,3 +1216,5 @@ components:
               type: string
         message:
           type: string
+=======
+>>>>>>> origin/main

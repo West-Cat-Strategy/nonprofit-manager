@@ -72,22 +72,28 @@ const overview = {
   integrations: {
     blocked: false,
     publishStatus: 'published',
+<<<<<<< HEAD
     newsletter: {
       provider: 'mailchimp',
       configured: true,
       lastSyncAt: null,
     },
+=======
+>>>>>>> origin/main
     mailchimp: {
       audienceId: 'aud-1',
       configured: true,
       availableAudiences: [],
       lastSyncAt: null,
     },
+<<<<<<< HEAD
     mautic: {
       configured: false,
       availableAudiences: [],
       lastSyncAt: null,
     },
+=======
+>>>>>>> origin/main
     stripe: {
       configured: true,
       publishableKeyConfigured: true,

@@ -19,10 +19,17 @@ export default function BrutalCard({
     onClick
 }: BrutalCardProps) {
     const colorClasses = {
+<<<<<<< HEAD
         yellow: 'bg-loop-yellow text-[var(--app-text-heading)]',
         green: 'bg-loop-green text-[var(--app-text-heading)]',
         purple: 'bg-loop-purple text-[var(--app-text-heading)]',
         pink: 'bg-loop-pink text-[var(--app-text-heading)]',
+=======
+        yellow: 'bg-loop-yellow text-black',
+        green: 'bg-loop-green text-black',
+        purple: 'bg-loop-purple text-black',
+        pink: 'bg-loop-pink text-black',
+>>>>>>> origin/main
         white: 'bg-app-surface text-app-text',
         black: 'bg-[var(--app-text-heading)] text-[var(--app-bg)]',
     };

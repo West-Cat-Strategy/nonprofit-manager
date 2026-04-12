@@ -8,7 +8,11 @@ import type {
   WebsiteSiteSummary,
 } from '../types';
 
+<<<<<<< HEAD
 type FormDependencyKey = 'crm' | 'newsletter' | 'stripe' | 'events';
+=======
+type FormDependencyKey = 'crm' | 'mailchimp' | 'stripe' | 'events';
+>>>>>>> origin/main
 
 interface FormSurfaceMeta {
   label: string;
@@ -26,9 +30,15 @@ const FORM_SURFACE_META: Record<WebsiteManagedFormType, FormSurfaceMeta> = {
   },
   'newsletter-signup': {
     label: 'Newsletter signup',
+<<<<<<< HEAD
     description: 'Subscriber capture and supporter updates route through the active newsletter provider.',
     dependencyLabel: 'Newsletter provider',
     dependencyKey: 'newsletter',
+=======
+    description: 'Subscriber capture and supporter updates route through Mailchimp.',
+    dependencyLabel: 'Mailchimp',
+    dependencyKey: 'mailchimp',
+>>>>>>> origin/main
   },
   'donation-form': {
     label: 'Donate',
@@ -72,10 +82,15 @@ const hasIntegration = (
   integrations: WebsiteIntegrationStatus
 ): boolean => {
   switch (dependencyKey) {
+<<<<<<< HEAD
     case 'newsletter':
       return Boolean(
         integrations.newsletter.configured && integrations.newsletter.selectedAudienceId
       );
+=======
+    case 'mailchimp':
+      return integrations.mailchimp.configured;
+>>>>>>> origin/main
     case 'stripe':
       return integrations.stripe.configured && integrations.stripe.publishableKeyConfigured;
     case 'crm':
@@ -89,6 +104,7 @@ const hasIntegration = (
 const EMPTY_INTEGRATIONS: WebsiteIntegrationStatus = {
   blocked: false,
   publishStatus: 'draft',
+<<<<<<< HEAD
   newsletter: {
     provider: 'mautic',
     configured: false,
@@ -101,16 +117,21 @@ const EMPTY_INTEGRATIONS: WebsiteIntegrationStatus = {
     lastRefreshedAt: null,
     lastSyncAt: null,
   },
+=======
+>>>>>>> origin/main
   mailchimp: {
     configured: false,
     availableAudiences: [],
     lastSyncAt: null,
   },
+<<<<<<< HEAD
   mautic: {
     configured: false,
     availableAudiences: [],
     lastSyncAt: null,
   },
+=======
+>>>>>>> origin/main
   stripe: {
     configured: false,
     publishableKeyConfigured: false,
@@ -255,6 +276,7 @@ const buildNextAction = (
   }
 
   if (!snapshot.readiness.integrations) {
+<<<<<<< HEAD
     const newsletterMissing =
       overview.forms.some((form) => form.formType === 'newsletter-signup') &&
       !overview.integrations.newsletter.configured;
@@ -266,6 +288,12 @@ const buildNextAction = (
       href: newsletterMissing
         ? `/websites/${overview.site.id}/newsletters`
         : `/websites/${overview.site.id}/integrations`,
+=======
+    return {
+      title: 'Connect the missing integration',
+      detail: 'One or more public CTAs still need their connected service before launch.',
+      href: `/websites/${overview.site.id}/integrations`,
+>>>>>>> origin/main
       tone: 'warning',
     };
   }
@@ -296,6 +324,7 @@ export const getFormDependencyState = (
 ): { label: string; ready: boolean; detail: string } => {
   const meta = getFormSurfaceMeta(form.formType);
   const ready = hasIntegration(meta.dependencyKey, integrations);
+<<<<<<< HEAD
   const detail =
     meta.dependencyKey === 'newsletter'
       ? ready
@@ -304,6 +333,11 @@ export const getFormDependencyState = (
       : ready
         ? `${meta.dependencyLabel} is connected for this CTA.`
         : `${meta.dependencyLabel} is not configured yet.`;
+=======
+  const detail = ready
+    ? `${meta.dependencyLabel} is connected for this CTA.`
+    : `${meta.dependencyLabel} is not configured yet.`;
+>>>>>>> origin/main
 
   return {
     label: meta.dependencyLabel,
@@ -429,6 +463,7 @@ export const deriveWebsiteManagementSnapshot = (
     });
   }
 
+<<<<<<< HEAD
   if (newsletterForms.length > 0 && !integrations.newsletter.configured) {
     attentionItems.push({
       id: 'newsletter',
@@ -437,6 +472,16 @@ export const deriveWebsiteManagementSnapshot = (
       severity: 'critical',
       href: `/websites/${overview.site.id}/newsletters`,
       actionLabel: 'Open newsletters',
+=======
+  if (newsletterForms.length > 0 && !integrations.mailchimp.configured) {
+    attentionItems.push({
+      id: 'mailchimp',
+      title: 'Newsletter signup needs Mailchimp',
+      detail: 'Newsletter capture will stay local until a Mailchimp audience is configured.',
+      severity: 'critical',
+      href: `/websites/${overview.site.id}/integrations`,
+      actionLabel: 'Open integrations',
+>>>>>>> origin/main
     });
   }
 
@@ -474,9 +519,13 @@ export const deriveWebsiteManagementSnapshot = (
   }
 
   const integrationsReady =
+<<<<<<< HEAD
     newsletterForms.every(
       () => integrations.newsletter.configured && Boolean(integrations.newsletter.selectedAudienceId)
     ) &&
+=======
+    newsletterForms.every(() => integrations.mailchimp.configured) &&
+>>>>>>> origin/main
     donationForms.every(() => integrations.stripe.configured);
   const publishReady = !overview.site.blocked && draftRoutes.length > 0;
   const snapshotWithoutNextAction: Omit<WebsiteManagementSnapshot, 'nextAction'> = {

@@ -200,6 +200,7 @@ export const normalizeWorkspaceModuleSettings = (
   return normalized;
 };
 
+<<<<<<< HEAD
 export const areWorkspaceModuleSettingsEqual = (
   left: WorkspaceModuleSettings,
   right: WorkspaceModuleSettings
@@ -208,6 +209,10 @@ export const areWorkspaceModuleSettingsEqual = (
 const exactRouteModuleMap: Partial<Record<string, WorkspaceModuleKey>> = {
   contacts: 'contacts',
   'contact-print': 'contacts',
+=======
+const exactRouteModuleMap: Partial<Record<string, WorkspaceModuleKey>> = {
+  contacts: 'contacts',
+>>>>>>> origin/main
   accounts: 'accounts',
   volunteers: 'volunteers',
   events: 'events',

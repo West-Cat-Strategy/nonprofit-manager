@@ -15,9 +15,12 @@ export type ProvisionedPortalUser = {
   firstName: string;
   lastName: string;
   contactId: string;
+<<<<<<< HEAD
   accountId: string;
   adminToken: string;
   organizationId?: string;
+=======
+>>>>>>> origin/main
 };
 
 const getApiUrl = (): string => {
@@ -152,9 +155,12 @@ export async function provisionApprovedPortalUser(
     firstName,
     lastName,
     contactId: contact.id,
+<<<<<<< HEAD
     accountId: contact.accountId,
     adminToken: adminSession.token,
     organizationId: adminOrganizationId,
+=======
+>>>>>>> origin/main
   };
 }
 

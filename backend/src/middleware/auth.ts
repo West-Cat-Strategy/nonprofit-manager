@@ -7,7 +7,10 @@ import { forbidden, notFoundMessage, serverError, unauthorized } from '@utils/re
 import { extractToken, AUTH_COOKIE_NAME } from '@utils/cookieHelper';
 import { createRequestAuthorizationContext, hasRoleAccess } from '@services/authorization';
 import { setRequestContext } from '@config/requestContext';
+<<<<<<< HEAD
 import { normalizeRoleSlug } from '@utils/roleSlug';
+=======
+>>>>>>> origin/main
 
 interface JwtPayload {
   id: string;
@@ -178,6 +181,7 @@ export const authenticate = (
       }
 
       const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
+<<<<<<< HEAD
       const normalizedRole = normalizeRoleSlug(decoded.role) ?? decoded.role;
       const tokenOrganizationId = decoded.organizationId || decoded.organization_id;
       const requestedOrganizationId = getRequestedOrganizationId(req);
@@ -186,6 +190,12 @@ export const authenticate = (
         ...decoded,
         role: normalizedRole,
       };
+=======
+      const tokenOrganizationId = decoded.organizationId || decoded.organization_id;
+      const requestedOrganizationId = getRequestedOrganizationId(req);
+
+      req.user = decoded;
+>>>>>>> origin/main
 
       let organizationId = tokenOrganizationId;
       const shouldValidateResolvedContext = shouldValidateOrganizationContext();
@@ -198,7 +208,11 @@ export const authenticate = (
           const isValid = await validateResolvedOrganization(req, res, {
             organizationId: requestedOrganizationId,
             userId: decoded.id,
+<<<<<<< HEAD
             userRole: normalizedRole,
+=======
+            userRole: decoded.role,
+>>>>>>> origin/main
             source: usingExplicitOrganizationSwitch
               ? req.requestedOrganizationSource || 'header'
               : 'token',
@@ -216,7 +230,11 @@ export const authenticate = (
         const isValid = await validateResolvedOrganization(req, res, {
           organizationId: tokenOrganizationId,
           userId: decoded.id,
+<<<<<<< HEAD
           userRole: normalizedRole,
+=======
+          userRole: decoded.role,
+>>>>>>> origin/main
           source: 'token',
           validateAccess: false,
         });
@@ -228,7 +246,11 @@ export const authenticate = (
       setOrganizationContext(req, organizationId, decoded.id);
       req.authorizationContext = createRequestAuthorizationContext(
         decoded.id,
+<<<<<<< HEAD
         normalizedRole,
+=======
+        decoded.role,
+>>>>>>> origin/main
         organizationId
       );
       next();

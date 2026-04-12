@@ -2,7 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import api from '../../../../../services/api';
 import type { ConfirmOptions } from '../../../../../hooks/useConfirmDialog';
 import type {
+<<<<<<< HEAD
   AuditLogPage,
+=======
+  AuditLog,
+>>>>>>> origin/main
   UserInvitation,
   UserSearchResult,
   UserSecurityInfo,
@@ -27,7 +31,11 @@ export const useUsersSettings = ({
   const [userSearchResults, setUserSearchResults] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserSecurityInfo | null>(null);
+<<<<<<< HEAD
   const [userAuditLogPage, setUserAuditLogPage] = useState<AuditLogPage | null>(null);
+=======
+  const [userAuditLogs, setUserAuditLogs] = useState<AuditLog[]>([]);
+>>>>>>> origin/main
 
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
@@ -36,7 +44,11 @@ export const useUsersSettings = ({
 
   const [invitations, setInvitations] = useState<UserInvitation[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
+<<<<<<< HEAD
   const [inviteRole, setInviteRole] = useState('staff');
+=======
+  const [inviteRole, setInviteRole] = useState('user');
+>>>>>>> origin/main
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteEmailDelivery, setInviteEmailDelivery] = useState<{
@@ -78,6 +90,7 @@ export const useUsersSettings = ({
 
   const fetchUserSecurityInfo = useCallback(async (userId: string) => {
     try {
+<<<<<<< HEAD
       setUserAuditLogPage(null);
       const [userResponse, logsResponse] = await Promise.all([
         api.get(`/users/${userId}`),
@@ -85,6 +98,14 @@ export const useUsersSettings = ({
       ]);
       setSelectedUser(userResponse.data);
       setUserAuditLogPage(logsResponse.data || { logs: [], total: 0 });
+=======
+      const [userResponse, logsResponse] = await Promise.all([
+        api.get(`/users/${userId}`),
+        api.get(`/admin/users/${userId}/audit-logs`).catch(() => ({ data: { logs: [] } })),
+      ]);
+      setSelectedUser(userResponse.data);
+      setUserAuditLogs(logsResponse.data.logs || []);
+>>>>>>> origin/main
       setShowSecurityModal(true);
     } catch {
       alert('Failed to load user information');
@@ -265,7 +286,11 @@ export const useUsersSettings = ({
   const resetInviteModal = useCallback(() => {
     setShowInviteModal(false);
     setInviteEmail('');
+<<<<<<< HEAD
     setInviteRole('staff');
+=======
+    setInviteRole('user');
+>>>>>>> origin/main
     setInviteMessage('');
     setInviteUrl(null);
     setInviteEmailDelivery(null);
@@ -281,8 +306,13 @@ export const useUsersSettings = ({
     setIsSearching,
     selectedUser,
     setSelectedUser,
+<<<<<<< HEAD
     userAuditLogPage,
     setUserAuditLogPage,
+=======
+    userAuditLogs,
+    setUserAuditLogs,
+>>>>>>> origin/main
     showSecurityModal,
     setShowSecurityModal,
     showResetPasswordModal,

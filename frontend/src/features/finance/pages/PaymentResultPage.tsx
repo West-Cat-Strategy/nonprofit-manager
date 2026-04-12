@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '../../../store/hooks';
+<<<<<<< HEAD
 import api from '../../../services/api';
 import { createDonation, getPaymentIntent, setPaymentSuccess } from '../state';
 import type { PaymentProvider } from '../../../types/payment';
@@ -35,6 +36,12 @@ const parseDonorName = (name: string | undefined): { first_name: string; last_na
   };
 };
 
+=======
+import { getPaymentIntent, setPaymentSuccess } from '../state';
+
+type ResultStatus = 'loading' | 'success' | 'processing' | 'failed';
+
+>>>>>>> origin/main
 const PaymentResult: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -42,6 +49,7 @@ const PaymentResult: React.FC = () => {
   const [status, setStatus] = useState<ResultStatus>('loading');
   const [message, setMessage] = useState('');
 
+<<<<<<< HEAD
   const persistDonationRecord = async (
     provider: PaymentProvider,
     paymentIntentId: string,
@@ -155,6 +163,11 @@ const PaymentResult: React.FC = () => {
       checkoutContext?.paymentIntentId ||
       checkoutContext?.checkoutSessionId;
     const redirectStatus = searchParams.get('redirect_status') || searchParams.get('status');
+=======
+  useEffect(() => {
+    const paymentIntentId = searchParams.get('payment_intent');
+    const redirectStatus = searchParams.get('redirect_status');
+>>>>>>> origin/main
 
     if (!paymentIntentId) {
       setStatus('failed');
@@ -163,6 +176,7 @@ const PaymentResult: React.FC = () => {
     }
 
     // Check the redirect status from Stripe
+<<<<<<< HEAD
     if (redirectStatus === 'succeeded' || redirectStatus === 'success' || redirectStatus === 'completed') {
       setStatus('success');
       setMessage(`Your ${PROVIDER_LABELS[provider]} payment was successful!`);
@@ -199,10 +213,35 @@ const PaymentResult: React.FC = () => {
           } else if (intent.status === 'processing') {
             setStatus('processing');
             setMessage(`Your ${PROVIDER_LABELS[provider]} payment is being processed.`);
+=======
+    if (redirectStatus === 'succeeded') {
+      setStatus('success');
+      setMessage('Your payment was successful!');
+      dispatch(setPaymentSuccess(true));
+    } else if (redirectStatus === 'processing') {
+      setStatus('processing');
+      setMessage('Your payment is being processed. You will receive a confirmation email shortly.');
+    } else if (redirectStatus === 'failed') {
+      setStatus('failed');
+      setMessage('Your payment was not successful. Please try again.');
+    } else {
+      // If no redirect_status, fetch the payment intent to check status
+      dispatch(getPaymentIntent(paymentIntentId))
+        .unwrap()
+        .then((intent) => {
+          if (intent.status === 'succeeded') {
+            setStatus('success');
+            setMessage('Your payment was successful!');
+            dispatch(setPaymentSuccess(true));
+          } else if (intent.status === 'processing') {
+            setStatus('processing');
+            setMessage('Your payment is being processed.');
+>>>>>>> origin/main
           } else {
             setStatus('failed');
             setMessage('Your payment could not be completed. Please try again.');
           }
+<<<<<<< HEAD
         } catch {
           setStatus('failed');
           setMessage('Unable to verify payment status. Please contact support.');
@@ -210,6 +249,13 @@ const PaymentResult: React.FC = () => {
       };
 
       void verifyPayment();
+=======
+        })
+        .catch(() => {
+          setStatus('failed');
+          setMessage('Unable to verify payment status. Please contact support.');
+        });
+>>>>>>> origin/main
     }
   }, [searchParams, dispatch]);
 

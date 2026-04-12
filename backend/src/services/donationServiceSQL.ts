@@ -29,11 +29,14 @@ export const DONATION_SELECT_COLUMNS = `
   d.payment_method,
   d.payment_status,
   d.transaction_id,
+<<<<<<< HEAD
   d.payment_provider,
   d.provider_transaction_id,
   d.provider_checkout_session_id,
   d.provider_subscription_id,
   d.provider_customer_id,
+=======
+>>>>>>> origin/main
   d.stripe_subscription_id,
   d.stripe_invoice_id,
   d.campaign_name,
@@ -68,11 +71,14 @@ export const DONATION_RETURNING_COLUMNS = `
   payment_method,
   payment_status,
   transaction_id,
+<<<<<<< HEAD
   payment_provider,
   provider_transaction_id,
   provider_checkout_session_id,
   provider_subscription_id,
   provider_customer_id,
+=======
+>>>>>>> origin/main
   stripe_subscription_id,
   stripe_invoice_id,
   campaign_name,

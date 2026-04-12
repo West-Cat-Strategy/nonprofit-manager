@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../../../../services/api';
+<<<<<<< HEAD
 import type { RoleSelectorItem } from '../types';
 import { getRoleDisplayLabel } from '../utils';
+=======
+>>>>>>> origin/main
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,6 +33,7 @@ interface PendingRegistration {
 // Component
 // ---------------------------------------------------------------------------
 
+<<<<<<< HEAD
 interface RegistrationSettingsSectionProps {
   roleOptions: RoleSelectorItem[];
 }
@@ -37,6 +41,9 @@ interface RegistrationSettingsSectionProps {
 export default function RegistrationSettingsSection({
   roleOptions,
 }: RegistrationSettingsSectionProps) {
+=======
+export default function RegistrationSettingsSection() {
+>>>>>>> origin/main
   const [settings, setSettings] = useState<RegistrationSettings | null>(null);
   const [pendingRegistrations, setPendingRegistrations] = useState<PendingRegistration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,6 +237,7 @@ export default function RegistrationSettingsSection({
                 id="defaultRole"
                 value={settings.defaultRole}
                 onChange={(e) => handleDefaultRoleChange(e.target.value)}
+<<<<<<< HEAD
                 disabled={saving || roleOptions.length === 0}
                 className="w-full max-w-xs px-3 py-2 border border-app-input-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
               >
@@ -245,6 +253,13 @@ export default function RegistrationSettingsSection({
                     </option>
                   ))
                 )}
+=======
+                disabled={saving}
+                className="w-full max-w-xs px-3 py-2 border border-app-input-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
+              >
+                <option value="user">User</option>
+                <option value="readonly">Read Only</option>
+>>>>>>> origin/main
               </select>
               <p className="text-xs text-app-text-muted mt-1">
                 Admins can change a user&apos;s role after approval.

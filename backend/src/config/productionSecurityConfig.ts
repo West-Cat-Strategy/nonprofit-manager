@@ -44,6 +44,7 @@ export function validateProductionSecurityConfig(
     );
   }
 
+<<<<<<< HEAD
   if (!env.PAYPAL_CLIENT_ID || !env.PAYPAL_CLIENT_SECRET) {
     errors.push('PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET must be set in production');
   }
@@ -60,6 +61,8 @@ export function validateProductionSecurityConfig(
     errors.push('SQUARE_WEBHOOK_SIGNATURE_KEY must be set in production');
   }
 
+=======
+>>>>>>> origin/main
   const encryptionKey = env.ENCRYPTION_KEY || '';
   if (encryptionKey.length < 64) {
     warnings.push(

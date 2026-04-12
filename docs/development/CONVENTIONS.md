@@ -46,7 +46,10 @@ Package-level type checking uses `npm run type-check`, not `npm run typecheck`.
 - Prefer feature-owned code under `frontend/src/features/<domain>/`.
 - Treat `frontend/src/pages/**` as compatibility or route-surface code unless the domain has not yet been migrated.
 - Keep migrated feature state out of `frontend/src/store/slices/*`.
+<<<<<<< HEAD
 - Keep the root store keyed by canonical slice names only; do not add mirrored `*V2` aliases back into `frontend/src/store/index.ts`.
+=======
+>>>>>>> origin/main
 - Prefer existing API envelope helpers and shared clients over ad hoc response parsing.
 
 ## Naming

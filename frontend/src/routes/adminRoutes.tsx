@@ -7,9 +7,15 @@ import type { ReactNode } from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import {
   AdminSettingsSectionRoute,
+<<<<<<< HEAD
   CommunicationsPage,
   ApiSettings,
   DataBackup,
+=======
+  ApiSettings,
+  DataBackup,
+  EmailMarketing,
+>>>>>>> origin/main
   NavigationSettings,
   PortalAdminPage,
   SocialMedia,
@@ -36,8 +42,13 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
   return (
     <>
       <Route
+<<<<<<< HEAD
         path="/settings/communications"
         element={<ProtectedRoute><CommunicationsPage /></ProtectedRoute>}
+=======
+        path="/settings/email-marketing"
+        element={<ProtectedRoute><EmailMarketing /></ProtectedRoute>}
+>>>>>>> origin/main
       />
       <Route
         path="/settings/social-media"
@@ -45,11 +56,15 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       />
       <Route
         path="/email-marketing"
+<<<<<<< HEAD
         element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>}
       />
       <Route
         path="/settings/email-marketing"
         element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>}
+=======
+        element={<ProtectedRoute><Navigate to="/settings/email-marketing" replace /></ProtectedRoute>}
+>>>>>>> origin/main
       />
       <Route
         path="/settings/api"
@@ -68,10 +83,13 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
         element={<AdminRoute><Navigate to={getAdminSettingsPath('dashboard')} replace /></AdminRoute>}
       />
       <Route
+<<<<<<< HEAD
         path="/settings/admin/email"
         element={<AdminRoute><Navigate to={getAdminSettingsPath('communications')} replace /></AdminRoute>}
       />
       <Route
+=======
+>>>>>>> origin/main
         path="/settings/admin/portal"
         element={<AdminRoute><Navigate to={getPortalAdminPath('access')} replace /></AdminRoute>}
       />
@@ -101,11 +119,19 @@ export function createAdminRoutes({ ProtectedRoute, AdminRoute, NeoBrutalistRout
       />
       <Route
         path="/settings/organization"
+<<<<<<< HEAD
         element={<AdminRoute><Navigate to="/dashboard" replace /></AdminRoute>}
       />
       <Route
         path="/admin/audit-logs"
         element={<AdminRoute><Navigate to="/dashboard" replace /></AdminRoute>}
+=======
+        element={<AdminRoute><Navigate to={getAdminSettingsPath('organization')} replace /></AdminRoute>}
+      />
+      <Route
+        path="/admin/audit-logs"
+        element={<AdminRoute><Navigate to={getAdminSettingsPath('audit_logs')} replace /></AdminRoute>}
+>>>>>>> origin/main
       />
       <Route
         path="/settings/backup"

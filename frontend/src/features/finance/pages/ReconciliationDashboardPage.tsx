@@ -102,7 +102,11 @@ const ReconciliationDashboard: React.FC = () => {
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-app-text">Payment Reconciliation</h1>
+<<<<<<< HEAD
           <p className="text-app-text-muted mt-1">Match provider transactions with donation records</p>
+=======
+          <p className="text-app-text-muted mt-1">Match Stripe transactions with donation records</p>
+>>>>>>> origin/main
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -189,7 +193,11 @@ const ReconciliationDashboard: React.FC = () => {
               </div>
             </div>
             <div>
+<<<<<<< HEAD
               <div className="text-sm text-app-text-muted">Provider Amount</div>
+=======
+              <div className="text-sm text-app-text-muted">Stripe Amount</div>
+>>>>>>> origin/main
               <div className="font-semibold">
                 {formatCurrencyOrZero(latestReconciliation.stripe_balance_amount)}
               </div>
@@ -358,7 +366,11 @@ const ReconciliationDashboard: React.FC = () => {
 
       {/* Create Reconciliation Modal */}
       {showCreateModal && (
+<<<<<<< HEAD
         <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center p-4 z-50">
+=======
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+>>>>>>> origin/main
           <div className="bg-app-surface rounded-lg max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-app-text mb-4">
               Create New Reconciliation

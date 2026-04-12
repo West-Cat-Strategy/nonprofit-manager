@@ -19,7 +19,11 @@ import {
 } from '../state';
 import api from '../../../services/api';
 import PaymentForm from '../../../components/PaymentForm';
+<<<<<<< HEAD
 import type { DonationPaymentData, PaymentProvider } from '../../../types/payment';
+=======
+import type { DonationPaymentData } from '../../../types/payment';
+>>>>>>> origin/main
 import type { CreateDonationDTO } from '../../../types/donation';
 
 // Preset donation amounts
@@ -433,6 +437,7 @@ const DonationPayment: React.FC = () => {
         {step === 'details' && (
           <div className="bg-app-surface rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-semibold text-app-text mb-6">Your Information</h2>
+<<<<<<< HEAD
 
             {enabledProviders.length > 1 ? (
               <div className="mb-6">
@@ -467,6 +472,8 @@ const DonationPayment: React.FC = () => {
                 </div>
               </div>
             ) : null}
+=======
+>>>>>>> origin/main
 
             <div className="space-y-4">
               <div>
@@ -570,10 +577,13 @@ const DonationPayment: React.FC = () => {
                 </svg>
               </button>
               <h2 className="text-xl font-semibold text-app-text">Payment Details</h2>
+<<<<<<< HEAD
             </div>
 
             <div className="mb-4 rounded-lg border border-app-border bg-app-surface-muted px-4 py-3 text-sm text-app-text-muted">
               Processing with {providerLabels[formData.paymentProvider]}.
+=======
+>>>>>>> origin/main
             </div>
 
             <Elements
@@ -600,9 +610,15 @@ const DonationPayment: React.FC = () => {
           </div>
         )}
 
+<<<<<<< HEAD
         {/* Step 4: Success */}
         {step === 'success' && (
           <div className="bg-app-surface rounded-lg shadow-lg p-8 text-center">
+=======
+	        {/* Step 4: Success */}
+	        {step === 'success' && (
+	          <div className="bg-app-surface rounded-lg shadow-lg p-8 text-center">
+>>>>>>> origin/main
             <div className="w-16 h-16 bg-app-accent-soft rounded-full flex items-center justify-center mx-auto mb-6">
               <svg
                 className="h-8 w-8 text-app-accent"
@@ -618,6 +634,7 @@ const DonationPayment: React.FC = () => {
                 />
               </svg>
             </div>
+<<<<<<< HEAD
             <h2 className="text-2xl font-bold text-app-text mb-2">Thank You!</h2>
             <p className="text-app-text-muted mb-6">
               Your donation of {formatCurrency(formData.amount)} has been processed successfully with{' '}
@@ -632,6 +649,22 @@ const DonationPayment: React.FC = () => {
               <button
                 onClick={() => navigate('/donations')}
                 className="px-6 py-2 border border-app-input-border text-app-text-muted rounded-lg hover:bg-app-surface-muted"
+=======
+	            <h2 className="text-2xl font-bold text-app-text mb-2">Thank You!</h2>
+	            <p className="text-app-text-muted mb-6">
+	              Your donation of {formatCurrency(formData.amount)} has been processed successfully.
+	              A receipt has been sent to {formData.donorEmail}.
+	            </p>
+	            {donationRecordError && (
+	              <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg mb-6 text-left">
+	                {donationRecordError}
+	              </div>
+	            )}
+	            <div className="flex gap-4 justify-center">
+	              <button
+	                onClick={() => navigate('/donations')}
+	                className="px-6 py-2 border border-app-input-border text-app-text-muted rounded-lg hover:bg-app-surface-muted"
+>>>>>>> origin/main
               >
                 View Donations
               </button>

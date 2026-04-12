@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../../services/api';
 import type { RecurringDonationCheckoutSuccessResponse } from '../../../types/recurringDonation';
+<<<<<<< HEAD
 import type { PaymentProvider } from '../../../types/payment';
+=======
+>>>>>>> origin/main
 import { formatCurrency } from '../../../utils/format';
 import {
   ErrorState,
@@ -19,12 +22,15 @@ type ResultState =
   | { kind: 'error'; message: string }
   | { kind: 'success'; data: RecurringDonationCheckoutSuccessResponse };
 
+<<<<<<< HEAD
 const PROVIDER_LABELS: Record<PaymentProvider, string> = {
   stripe: 'Stripe',
   paypal: 'PayPal',
   square: 'Square',
 };
 
+=======
+>>>>>>> origin/main
 const RecurringDonationCheckoutResultPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [result, setResult] = useState<ResultState>({ kind: 'loading' });
@@ -124,8 +130,12 @@ const RecurringDonationCheckoutResultPage: React.FC = () => {
                 </p>
               </div>
               <p className="text-sm text-app-text-muted">
+<<<<<<< HEAD
                 Use the donor self-service link below to update payment details or manage future billing with{' '}
                 {PROVIDER_LABELS[result.data.plan.payment_provider || 'stripe']}.
+=======
+                Use the donor self-service link below to update payment details or manage future billing in Stripe.
+>>>>>>> origin/main
               </p>
               <div className="flex flex-wrap gap-2">
                 <PrimaryButton onClick={() => window.location.assign(result.data.management_url)}>

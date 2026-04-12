@@ -1,5 +1,8 @@
 import {
+<<<<<<< HEAD
   areWorkspaceModuleSettingsEqual,
+=======
+>>>>>>> origin/main
   createDefaultWorkspaceModuleSettings,
   normalizeWorkspaceModuleSettings,
   type PartialWorkspaceModuleSettings,
@@ -20,6 +23,7 @@ const dispatchWorkspaceModuleUpdate = (): void => {
 };
 
 export const clearWorkspaceModuleAccessCache = (): void => {
+<<<<<<< HEAD
   const hadCachedValue = cachedWorkspaceModules !== null;
   cachedWorkspaceModules = null;
   if (typeof window !== 'undefined') {
@@ -30,6 +34,12 @@ export const clearWorkspaceModuleAccessCache = (): void => {
     if (hadCachedValue || hadStoredValue) {
       dispatchWorkspaceModuleUpdate();
     }
+=======
+  cachedWorkspaceModules = null;
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(STORAGE_KEY);
+    dispatchWorkspaceModuleUpdate();
+>>>>>>> origin/main
   }
 };
 
@@ -37,6 +47,7 @@ export const setWorkspaceModuleAccessCached = (
   value: PartialWorkspaceModuleSettings
 ): WorkspaceModuleSettings => {
   const normalized = normalizeWorkspaceModuleSettings(value);
+<<<<<<< HEAD
   if (cachedWorkspaceModules && areWorkspaceModuleSettingsEqual(cachedWorkspaceModules, normalized)) {
     return cachedWorkspaceModules;
   }
@@ -48,6 +59,13 @@ export const setWorkspaceModuleAccessCached = (
       window.localStorage.setItem(STORAGE_KEY, serialized);
       dispatchWorkspaceModuleUpdate();
     }
+=======
+  cachedWorkspaceModules = normalized;
+
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    dispatchWorkspaceModuleUpdate();
+>>>>>>> origin/main
   }
 
   return normalized;

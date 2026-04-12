@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import { useId } from 'react';
+=======
+>>>>>>> origin/main
 import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { classNames } from './classNames';
 
@@ -9,6 +12,7 @@ interface FieldLabelProps {
   label: string;
   required?: boolean;
   helperText?: string;
+<<<<<<< HEAD
   error?: string;
   htmlFor: string;
 }
@@ -33,10 +37,24 @@ function FieldLabel({ label, required, helperText, error, htmlFor }: FieldLabelP
           {error}
         </p>
       )}
+=======
+  htmlFor: string;
+}
+
+function FieldLabel({ label, required, helperText, htmlFor }: FieldLabelProps) {
+  return (
+    <div className="space-y-1">
+      <label htmlFor={htmlFor} className="block text-xs font-semibold uppercase tracking-wide text-app-text-label">
+        {label}
+        {required && <span className="ml-1 text-app-accent">*</span>}
+      </label>
+      {helperText && <p className="text-xs text-app-text-subtle">{helperText}</p>}
+>>>>>>> origin/main
     </div>
   );
 }
 
+<<<<<<< HEAD
 function buildFieldId(label: string, name: string | undefined, fallbackId: string): string {
   const sanitizedLabel = label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '');
   return name || `${sanitizedLabel || 'field'}-${fallbackId.replace(/:/g, '')}`;
@@ -90,6 +108,19 @@ export function FormField({
         className={classNames(baseInputClass, className)}
         {...inputProps}
       />
+=======
+interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  helperText?: string;
+}
+
+export function FormField({ label, helperText, id, required, className, ...props }: FormFieldProps) {
+  const resolvedId = id || props.name || label.toLowerCase().replace(/\s+/g, '-');
+  return (
+    <div className="space-y-1.5">
+      <FieldLabel label={label} required={required} helperText={helperText} htmlFor={resolvedId} />
+      <input id={resolvedId} required={required} className={classNames(baseInputClass, className)} {...props} />
+>>>>>>> origin/main
     </div>
   );
 }
@@ -97,6 +128,7 @@ export function FormField({
 interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
   helperText?: string;
+<<<<<<< HEAD
   error?: string;
 }
 
@@ -135,6 +167,16 @@ export function SelectField({
         className={classNames(baseInputClass, className)}
         {...selectProps}
       >
+=======
+}
+
+export function SelectField({ label, helperText, id, required, className, children, ...props }: SelectFieldProps) {
+  const resolvedId = id || props.name || label.toLowerCase().replace(/\s+/g, '-');
+  return (
+    <div className="space-y-1.5">
+      <FieldLabel label={label} required={required} helperText={helperText} htmlFor={resolvedId} />
+      <select id={resolvedId} required={required} className={classNames(baseInputClass, className)} {...props}>
+>>>>>>> origin/main
         {children}
       </select>
     </div>
@@ -144,6 +186,7 @@ export function SelectField({
 interface TextareaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
   helperText?: string;
+<<<<<<< HEAD
   error?: string;
 }
 
@@ -180,6 +223,20 @@ export function TextareaField({
         aria-describedby={describedBy}
         className={classNames(baseInputClass, 'min-h-[120px]', className)}
         {...textareaProps}
+=======
+}
+
+export function TextareaField({ label, helperText, id, required, className, ...props }: TextareaFieldProps) {
+  const resolvedId = id || props.name || label.toLowerCase().replace(/\s+/g, '-');
+  return (
+    <div className="space-y-1.5">
+      <FieldLabel label={label} required={required} helperText={helperText} htmlFor={resolvedId} />
+      <textarea
+        id={resolvedId}
+        required={required}
+        className={classNames(baseInputClass, 'min-h-[120px]', className)}
+        {...props}
+>>>>>>> origin/main
       />
     </div>
   );

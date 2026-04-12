@@ -6,7 +6,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+<<<<<<< HEAD
 import { fetchContacts, deleteContact } from '../state';
+=======
+import {
+  fetchContacts,
+  deleteContact,
+  setFilters,
+  clearFilters,
+} from '../state';
+>>>>>>> origin/main
 import type { Contact } from '../state';
 import type { ContactRoleFilter } from '../types/contracts';
 import {
@@ -54,7 +63,13 @@ const ContactList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+<<<<<<< HEAD
   const { contacts, loading, error, pagination } = useAppSelector((state) => state.contacts);
+=======
+  const { contacts, loading, error, pagination, filters } = useAppSelector(
+    (state) => state.contacts
+  );
+>>>>>>> origin/main
   const initialRoleFilter = normalizeRoleFilter(searchParams.get('type'));
 
   const {
@@ -66,6 +81,7 @@ const ContactList = () => {
   } = useBulkSelect();
 
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
+<<<<<<< HEAD
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   const debouncedSearchInput = useDebounce(searchInput, 300);
   const [roleFilter, setRoleFilter] = useState<ContactRoleFilter | ''>(
@@ -73,14 +89,30 @@ const ContactList = () => {
   );
   const [activeFilter, setActiveFilter] = useState(
     parseAllowedValue(searchParams.get('status'), STATUS_FILTER_VALUES) || ''
+=======
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
+  const debouncedSearchInput = useDebounce(searchInput, 300);
+  const [roleFilter, setRoleFilter] = useState<ContactRoleFilter | ''>(
+    initialRoleFilter || filters.role || ''
+  );
+  const [activeFilter, setActiveFilter] = useState(
+    parseAllowedValue(searchParams.get('status'), STATUS_FILTER_VALUES) ||
+      (filters.is_active === true ? 'active' : filters.is_active === false ? 'inactive' : '')
+>>>>>>> origin/main
   );
   const [currentPage, setCurrentPage] = useState(() => parsePositiveInteger(searchParams.get('page'), 1));
   const [currentLimit] = useState(() =>
     parsePositiveInteger(searchParams.get('limit'), pagination.limit || 20)
   );
+<<<<<<< HEAD
   const [sortBy] = useState(searchParams.get('sort_by') || 'created_at');
   const [sortOrder] = useState<'asc' | 'desc'>(
     parseAllowedValue(searchParams.get('sort_order'), SORT_ORDER_VALUES) || 'desc'
+=======
+  const [sortBy] = useState(searchParams.get('sort_by') || filters.sort_by || 'created_at');
+  const [sortOrder] = useState<'asc' | 'desc'>(
+    parseAllowedValue(searchParams.get('sort_order'), SORT_ORDER_VALUES) || filters.sort_order || 'desc'
+>>>>>>> origin/main
   );
   const [showImportExport, setShowImportExport] = useState(false);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
@@ -108,10 +140,13 @@ const ContactList = () => {
   }, [loadContacts]);
 
   useEffect(() => {
+<<<<<<< HEAD
     deselectAll();
   }, [currentPage, debouncedSearchInput, roleFilter, activeFilter, sortBy, sortOrder, deselectAll]);
 
   useEffect(() => {
+=======
+>>>>>>> origin/main
     const params = new URLSearchParams();
     if (searchInput) params.set('search', searchInput);
     if (roleFilter) params.set('type', roleFilter);
@@ -126,6 +161,7 @@ const ContactList = () => {
   const handleFilterChange = (filterId: string, value: string | string[]) => {
     if (filterId === 'search' && typeof value === 'string') {
       setSearchInput(value);
+<<<<<<< HEAD
       setCurrentPage(1);
     } else if (filterId === 'role' && typeof value === 'string') {
       setRoleFilter(normalizeRoleFilter(value));
@@ -133,11 +169,29 @@ const ContactList = () => {
     } else if (filterId === 'is_active' && typeof value === 'string') {
       setActiveFilter(value);
       setCurrentPage(1);
+=======
+    } else if (filterId === 'role' && typeof value === 'string') {
+      setRoleFilter(normalizeRoleFilter(value));
+    } else if (filterId === 'is_active' && typeof value === 'string') {
+      setActiveFilter(value);
+>>>>>>> origin/main
     }
   };
 
   const handleApplyFilters = () => {
     setCurrentPage(1);
+<<<<<<< HEAD
+=======
+    dispatch(
+      setFilters({
+        search: searchInput,
+        role: roleFilter,
+        is_active: activeFilter === 'active' ? true : activeFilter === 'inactive' ? false : null,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+      })
+    );
+>>>>>>> origin/main
   };
 
   const handleClearFilters = () => {
@@ -145,6 +199,10 @@ const ContactList = () => {
     setRoleFilter('');
     setActiveFilter('');
     setCurrentPage(1);
+<<<<<<< HEAD
+=======
+    dispatch(clearFilters());
+>>>>>>> origin/main
   };
 
   const handleSelectAll = () => {

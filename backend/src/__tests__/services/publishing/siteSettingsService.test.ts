@@ -123,6 +123,7 @@ describe('WebsiteSiteSettingsService', () => {
       'site-1',
       'org-1',
       JSON.stringify({
+<<<<<<< HEAD
         provider: 'mailchimp',
         selectedAudienceId: 'aud-old',
         selectedAudienceName: null,
@@ -131,13 +132,18 @@ describe('WebsiteSiteSettingsService', () => {
         lastRefreshedAt: null,
       }),
       JSON.stringify({
+=======
+>>>>>>> origin/main
         audienceId: 'aud-new',
         audienceMode: 'both',
         defaultTags: ['spring', 'donor'],
         syncEnabled: true,
       }),
       JSON.stringify({}),
+<<<<<<< HEAD
       JSON.stringify({}),
+=======
+>>>>>>> origin/main
       JSON.stringify({
         facebook: {},
       }),
@@ -152,7 +158,10 @@ describe('WebsiteSiteSettingsService', () => {
         },
       }),
       'user-1',
+<<<<<<< HEAD
       'user-1',
+=======
+>>>>>>> origin/main
     ]);
   });
 
@@ -179,6 +188,7 @@ describe('siteSettings merge helpers', () => {
   const settings = {
     siteId: 'site-1',
     organizationId: 'org-1',
+<<<<<<< HEAD
     newsletter: {
       provider: 'mautic',
     },
@@ -186,6 +196,11 @@ describe('siteSettings merge helpers', () => {
       audienceId: 'aud-1',
     },
     mautic: {},
+=======
+    mailchimp: {
+      audienceId: 'aud-1',
+    },
+>>>>>>> origin/main
     stripe: {
       currency: 'usd',
     },

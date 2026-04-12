@@ -8,7 +8,11 @@ const {
   walkFiles,
 } = require('./lib/policy-utils.ts');
 
+<<<<<<< HEAD
 const baseline = 166;
+=======
+const baseline = 165;
+>>>>>>> origin/main
 const sourceRoots = [
   path.join(repoRoot, 'backend/src/controllers'),
   path.join(repoRoot, 'backend/src/modules'),

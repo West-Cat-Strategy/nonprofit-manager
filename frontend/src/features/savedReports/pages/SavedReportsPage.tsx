@@ -222,7 +222,11 @@ function SavedReports() {
         )}
 
         {scheduleTarget && (
+<<<<<<< HEAD
           <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop p-4">
+=======
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+>>>>>>> origin/main
             <div className="w-full max-w-3xl rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface p-5 shadow-lg">
               <PageHeader
                 title="Schedule Report"
@@ -320,7 +324,11 @@ function SavedReports() {
         )}
 
         {shareTarget && (
+<<<<<<< HEAD
           <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop p-4">
+=======
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+>>>>>>> origin/main
             <div className="max-h-[90vh] w-full max-w-5xl overflow-auto rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface p-5 shadow-lg">
               <PageHeader
                 title="Share Saved Report"

@@ -1,7 +1,10 @@
 import { Pool, PoolClient } from 'pg';
 import { logger } from '@config/logger';
 import pool from '@config/database';
+<<<<<<< HEAD
 import { normalizeRoleSlug, slugifyRoleName } from '@utils/roleSlug';
+=======
+>>>>>>> origin/main
 
 type DbClient = Pool | PoolClient;
 

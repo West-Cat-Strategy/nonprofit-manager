@@ -2,11 +2,15 @@ import express from 'express';
 import { authenticate, authorize } from '@middleware/domains/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
+<<<<<<< HEAD
   createRoleHandler,
   deleteRoleHandler,
   getBranding,
   listPermissions,
   listRoles,
+=======
+  getBranding,
+>>>>>>> origin/main
   putBranding,
   getEmailSettings,
   getOrganizationSettingsHandler,
@@ -24,9 +28,14 @@ import {
   approvePendingRegistrationHandler,
   rejectPendingRegistrationHandler,
 } from '../controllers';
+<<<<<<< HEAD
 import { getAdminStats, getAuditLogs, getUserAuditLogs } from '../controllers/adminStatsController';
 import * as outcomeDefinitionController from '../controllers/outcomeDefinitionController';
 import { updateRoleHandler } from '../controllers/roleCatalogController';
+=======
+import { getAdminStats, getAuditLogs } from '../controllers/adminStatsController';
+import * as outcomeDefinitionController from '../controllers/outcomeDefinitionController';
+>>>>>>> origin/main
 import {
   createOutcomeDefinitionSchema,
   listOutcomeDefinitionsQuerySchema,
@@ -41,6 +50,7 @@ import {
   updateOrganizationSettingsSchema,
   rejectPendingRegistrationSchema,
   updateEmailSettingsSchema,
+<<<<<<< HEAD
   adminRoleCreateSchema,
   adminRoleParamsSchema,
   adminRoleUpdateSchema,
@@ -48,6 +58,14 @@ import {
   updateRegistrationSettingsSchema,
   updateTwilioSettingsSchema,
 } from '@validations/admin';
+=======
+  updateRegistrationSettingsSchema,
+  updateTwilioSettingsSchema,
+} from '@validations/admin';
+import { sendSuccess } from '@modules/shared/http/envelope';
+
+
+>>>>>>> origin/main
 const router = express.Router();
 
 router.get('/branding', authenticate, getBranding);
@@ -69,6 +87,7 @@ router.get(
   validateQuery(adminAuditLogsQuerySchema),
   getAuditLogs
 );
+<<<<<<< HEAD
 router.get(
   '/users/:id/audit-logs',
   authenticate,
@@ -77,6 +96,8 @@ router.get(
   validateQuery(adminAuditLogsQuerySchema),
   getUserAuditLogs
 );
+=======
+>>>>>>> origin/main
 
 // Email settings (admin only)
 router.get('/email-settings', authenticate, authorize('admin'), getEmailSettings);
@@ -100,6 +121,7 @@ router.put(
 );
 router.post('/twilio-settings/test', authenticate, authorize('admin'), testTwilioSettings);
 
+<<<<<<< HEAD
 // Role and permission catalog
 router.get('/roles', authenticate, authorize('admin'), listRoles);
 router.get('/permissions', authenticate, authorize('admin'), listPermissions);
@@ -125,6 +147,19 @@ router.delete(
   validateParams(adminRoleParamsSchema),
   deleteRoleHandler
 );
+=======
+// Roles endpoint - returns hardcoded role definitions
+router.get('/roles', authenticate, authorize('admin'), (_req, res) => {
+  sendSuccess(res, {
+    roles: [
+      { id: 'admin', name: 'Administrator', description: 'Full system access', permissions: ['*'] },
+      { id: 'manager', name: 'Manager', description: 'Manage users, contacts, and programs', permissions: ['manage_users', 'manage_contacts', 'manage_programs'] },
+      { id: 'user', name: 'User', description: 'Standard access to assigned areas', permissions: ['view_contacts', 'edit_contacts', 'view_programs'] },
+      { id: 'readonly', name: 'Read Only', description: 'View-only access', permissions: ['view_contacts', 'view_programs'] },
+    ],
+  });
+});
+>>>>>>> origin/main
 
 // Registration settings (admin only)
 router.get('/registration-settings', authenticate, authorize('admin'), getRegistrationSettingsHandler);

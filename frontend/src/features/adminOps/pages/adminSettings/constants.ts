@@ -110,6 +110,7 @@ export const months = [
   { value: '12', label: 'December' },
 ];
 
+<<<<<<< HEAD
 export type AdminSettingsGroup =
   | 'overview'
   | 'organization'
@@ -200,3 +201,60 @@ export const adminSettingsTabGroups: AdminSettingsTabGroup[] = [
     tabs: ['other'],
   },
 ];
+=======
+export type PermissionDefinition = {
+  key: string;
+  label: string;
+  category: string;
+};
+
+export const defaultPermissions: PermissionDefinition[] = [
+  { key: 'contacts.view', label: 'View Contacts', category: 'Contacts' },
+  { key: 'contacts.create', label: 'Create Contacts', category: 'Contacts' },
+  { key: 'contacts.edit', label: 'Edit Contacts', category: 'Contacts' },
+  { key: 'contacts.delete', label: 'Delete Contacts', category: 'Contacts' },
+  { key: 'donations.view', label: 'View Donations', category: 'Donations' },
+  { key: 'donations.create', label: 'Create Donations', category: 'Donations' },
+  { key: 'donations.edit', label: 'Edit Donations', category: 'Donations' },
+  { key: 'donations.delete', label: 'Delete Donations', category: 'Donations' },
+  { key: 'grants.view', label: 'View Grants', category: 'Grants' },
+  { key: 'grants.create', label: 'Create Grants', category: 'Grants' },
+  { key: 'grants.edit', label: 'Edit Grants', category: 'Grants' },
+  { key: 'grants.delete', label: 'Delete Grants', category: 'Grants' },
+  { key: 'grants.export', label: 'Export Grants', category: 'Grants' },
+  { key: 'volunteers.view', label: 'View Volunteers', category: 'Volunteers' },
+  { key: 'volunteers.create', label: 'Create Volunteers', category: 'Volunteers' },
+  { key: 'volunteers.edit', label: 'Edit Volunteers', category: 'Volunteers' },
+  { key: 'volunteers.delete', label: 'Delete Volunteers', category: 'Volunteers' },
+  { key: 'events.view', label: 'View Events', category: 'Events' },
+  { key: 'events.create', label: 'Create Events', category: 'Events' },
+  { key: 'events.edit', label: 'Edit Events', category: 'Events' },
+  { key: 'events.delete', label: 'Delete Events', category: 'Events' },
+  { key: 'cases.view', label: 'View Cases', category: 'Cases' },
+  { key: 'cases.create', label: 'Create Cases', category: 'Cases' },
+  { key: 'cases.edit', label: 'Edit Cases', category: 'Cases' },
+  { key: 'cases.delete', label: 'Delete Cases', category: 'Cases' },
+  { key: 'reports.view', label: 'View Reports', category: 'Reports' },
+  { key: 'reports.export', label: 'Export Reports', category: 'Reports' },
+  { key: 'outcomes.manage', label: 'Manage Outcomes', category: 'Reports' },
+  { key: 'outcomes.viewReports', label: 'View Outcomes Reports', category: 'Reports' },
+  { key: 'outcomes.tagInteraction', label: 'Tag Interaction Outcomes', category: 'Cases' },
+  { key: 'admin.users', label: 'Manage Users', category: 'Admin' },
+  { key: 'admin.roles', label: 'Manage Roles', category: 'Admin' },
+  { key: 'admin.settings', label: 'Manage Settings', category: 'Admin' },
+];
+
+export const adminSettingsTabs = [
+  { id: 'dashboard', label: 'Dashboard', level: 'basic' },
+  { id: 'organization', label: 'Organization', level: 'basic' },
+  { id: 'workspace_modules', label: 'Workspace Modules', level: 'basic' },
+  { id: 'branding', label: 'Branding', level: 'basic' },
+  { id: 'users', label: 'Users & Security', level: 'basic' },
+  { id: 'email', label: 'Email Settings', level: 'basic' },
+  { id: 'messaging', label: 'Messaging Settings', level: 'basic' },
+  { id: 'outcomes', label: 'Outcome Definitions', level: 'advanced' },
+  { id: 'roles', label: 'Roles & Permissions', level: 'advanced' },
+  { id: 'audit_logs', label: 'Audit Logs', level: 'advanced' },
+  { id: 'other', label: 'Other Settings', level: 'advanced' },
+] as const;
+>>>>>>> origin/main

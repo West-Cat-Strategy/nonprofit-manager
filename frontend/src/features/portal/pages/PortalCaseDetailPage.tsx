@@ -402,6 +402,7 @@ export default function PortalCaseDetailPage() {
                       title={event.title}
                       subtitle={event.type.toUpperCase()}
                       meta={formatDateTime(event.created_at)}
+<<<<<<< HEAD
                       badges={
                         event.type === 'appointment' && event.metadata?.status ? (
                           <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text capitalize">
@@ -409,15 +410,20 @@ export default function PortalCaseDetailPage() {
                           </span>
                         ) : undefined
                       }
+=======
+>>>>>>> origin/main
                     >
                       {event.content && (
                         <p className="mt-1 whitespace-pre-wrap text-sm text-app-text">{event.content}</p>
                       )}
+<<<<<<< HEAD
                       {event.type === 'appointment' && event.metadata?.start_time && (
                         <p className="mt-1 text-sm text-app-text-muted">
                           Scheduled: {formatDateTime(event.metadata.start_time as string)}
                         </p>
                       )}
+=======
+>>>>>>> origin/main
                     </PortalListCard>
                   ))}
                   {timelineHasMore && (

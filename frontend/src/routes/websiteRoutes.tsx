@@ -4,7 +4,10 @@ import {
   WebsiteContentPage,
   WebsiteFormsPage,
   WebsiteIntegrationsPage,
+<<<<<<< HEAD
   WebsiteNewslettersPage,
+=======
+>>>>>>> origin/main
   WebsiteOverviewPage,
   WebsitePublishingPage,
   WebsitesListPage,
@@ -35,10 +38,13 @@ export function createWebsiteRoutes(ProtectedRoute: React.ComponentType<RouteWra
         element={<ProtectedRoute><WebsiteContentPage /></ProtectedRoute>}
       />
       <Route
+<<<<<<< HEAD
         path="/websites/:siteId/newsletters"
         element={<ProtectedRoute><WebsiteNewslettersPage /></ProtectedRoute>}
       />
       <Route
+=======
+>>>>>>> origin/main
         path="/websites/:siteId/forms"
         element={<ProtectedRoute><WebsiteFormsPage /></ProtectedRoute>}
       />

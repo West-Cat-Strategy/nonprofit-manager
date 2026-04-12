@@ -4,11 +4,14 @@ import { useOrganizationSettings } from '../useOrganizationSettings';
 import { useUsersSettings } from '../useUsersSettings';
 import { useRolesSettings } from '../useRolesSettings';
 import { usePortalSettings } from '../usePortalSettings';
+<<<<<<< HEAD
 import {
   formatCanadianPhone,
   formatCanadianPostalCode,
   validatePostalCode,
 } from '../../utils';
+=======
+>>>>>>> origin/main
 import api from '../../../../../../services/api';
 
 vi.mock('../../../../../../services/api', () => ({
@@ -39,6 +42,7 @@ describe('admin settings hooks', () => {
     mockedApi.delete.mockResolvedValue({ data: {} });
   });
 
+<<<<<<< HEAD
   it('keeps the admin settings utility contract intact', () => {
     expect(formatCanadianPhone('6045551000')).toBe('(604) 555-1000');
     expect(formatCanadianPhone('16045551000')).toBe('+1 (604) 555-1000');
@@ -47,6 +51,8 @@ describe('admin settings hooks', () => {
     expect(validatePostalCode('12345', 'United States')).toBe(true);
   });
 
+=======
+>>>>>>> origin/main
   it('handles organization save-state transitions', async () => {
     const setGlobalBranding = vi.fn();
     const { result } = renderHook(() =>
@@ -250,7 +256,11 @@ describe('admin settings hooks', () => {
         email: 'user@example.com',
         firstName: 'Test',
         lastName: 'User',
+<<<<<<< HEAD
         role: 'staff',
+=======
+        role: 'user',
+>>>>>>> origin/main
         isActive: true,
         lastLoginAt: null,
         lastPasswordChange: null,
@@ -279,6 +289,7 @@ describe('admin settings hooks', () => {
   });
 
   it('handles role CRUD actions', async () => {
+<<<<<<< HEAD
     mockedApi.get.mockImplementation((url: string) => {
       if (url === '/admin/roles') {
         return Promise.resolve({ data: { roles: [] } });
@@ -290,6 +301,9 @@ describe('admin settings hooks', () => {
 
       return Promise.resolve({ data: {} });
     });
+=======
+    mockedApi.get.mockResolvedValueOnce({ data: { roles: [] } });
+>>>>>>> origin/main
     const confirm = vi.fn().mockResolvedValue(true);
     const { result } = renderHook(() => useRolesSettings(confirm));
 
@@ -297,12 +311,18 @@ describe('admin settings hooks', () => {
       result.current.setEditingRole({
         id: '',
         name: 'Coordinator',
+<<<<<<< HEAD
         label: 'Coordinator',
+=======
+>>>>>>> origin/main
         description: 'Coordinate work',
         permissions: ['users.view'],
         isSystem: false,
         userCount: 0,
+<<<<<<< HEAD
         priority: 0,
+=======
+>>>>>>> origin/main
       });
     });
 

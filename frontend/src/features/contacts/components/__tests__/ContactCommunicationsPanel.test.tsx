@@ -123,6 +123,7 @@ describe('ContactCommunicationsPanel', () => {
       });
     });
   });
+<<<<<<< HEAD
 
   it('clears filters and refetches the communications log', async () => {
     renderWithProviders(<ContactCommunicationsPanel contactId="contact-1" />);
@@ -153,4 +154,6 @@ describe('ContactCommunicationsPanel', () => {
       });
     });
   });
+=======
+>>>>>>> origin/main
 });

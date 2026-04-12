@@ -8,7 +8,10 @@ import type { AuthRequest } from './auth';
 import { logger } from '@config/logger';
 import pool from '@config/database';
 import { forbidden, unauthorized } from '@utils/responseHelpers';
+<<<<<<< HEAD
 import { normalizeRoleSlug } from '@utils/roleSlug';
+=======
+>>>>>>> origin/main
 
 /**
  * Analytics access levels by role

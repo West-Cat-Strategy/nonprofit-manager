@@ -515,6 +515,7 @@ describe('Publishing API Integration', () => {
 
     const initial = unwrap<{
       blocked: boolean;
+<<<<<<< HEAD
       newsletter: { provider: string; configured: boolean; lastSyncAt: string | null };
       mailchimp: { configured: boolean };
       mautic: { configured: boolean };
@@ -565,6 +566,15 @@ describe('Publishing API Integration', () => {
     expect(newsletter.mautic.defaultTags).toEqual(['members', 'website']);
     expect(newsletter.mautic.syncEnabled).toBe(true);
 
+=======
+      mailchimp: { configured: boolean };
+      stripe: { configured: boolean };
+    }>(initialResponse.body);
+    expect(initial.blocked).toBe(false);
+    expect(typeof initial.mailchimp.configured).toBe('boolean');
+    expect(typeof initial.stripe.configured).toBe('boolean');
+
+>>>>>>> origin/main
     const mailchimpResponse = await withSiteConsoleAuth(
       request(app).put(`/api/v2/sites/${activeSiteId}/integrations/mailchimp`),
       authToken,

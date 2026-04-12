@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
 import type { BrowserContext, Page } from '@playwright/test';
+<<<<<<< HEAD
 import { createRequire } from 'node:module';
 import path from 'node:path';
+=======
+>>>>>>> origin/main
 import '../helpers/testEnv';
 import { routeCatalog, type RouteCatalogEntry } from '../../frontend/src/routes/routeCatalog';
 import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
@@ -20,7 +23,10 @@ import {
   createTemplate,
   publishWebsiteSite,
   createWebsiteSite,
+<<<<<<< HEAD
   createWebsiteEntry,
+=======
+>>>>>>> origin/main
   deleteSavedReport,
   deleteTemplate,
   deleteWebsiteSite,
@@ -46,6 +52,7 @@ import {
 } from '../helpers/darkModeAudit';
 
 const apiURL = process.env.API_URL || 'http://127.0.0.1:3001';
+<<<<<<< HEAD
 const backendRequire = createRequire(path.resolve(__dirname, '..', '..', 'backend', 'package.json'));
 const { Client: PgClient } = backendRequire('pg') as {
   Client: new (config: {
@@ -74,10 +81,13 @@ const getTestDatabaseConfig = (): {
   user: process.env.DB_USER || process.env.E2E_DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || process.env.E2E_DB_PASSWORD || 'postgres',
 });
+=======
+>>>>>>> origin/main
 
 type TaskResponse = { id?: string; data?: { id?: string } };
 type CaseTypeRow = { id?: string };
 
+<<<<<<< HEAD
 const normalizeOrganizationId = (value: unknown): string | undefined => {
   if (typeof value !== 'string') {
     return undefined;
@@ -91,6 +101,11 @@ type StaffFixtureState = {
   accountId?: string;
   contactId?: string;
   caseContactId?: string;
+=======
+type StaffFixtureState = {
+  accountId?: string;
+  contactId?: string;
+>>>>>>> origin/main
   volunteerId?: string;
   volunteerContactId?: string;
   volunteerAssignmentId?: string;
@@ -104,8 +119,11 @@ type StaffFixtureState = {
   publishedSiteKey?: string;
   publicReportId?: string;
   publicReportToken?: string;
+<<<<<<< HEAD
   newsletterEntryId?: string;
   recurringDonationPlanId?: string;
+=======
+>>>>>>> origin/main
 };
 
 type PortalFixtureState = {
@@ -163,6 +181,7 @@ async function getCaseTypeId(page: Page, token: string): Promise<string> {
   return id;
 }
 
+<<<<<<< HEAD
 async function createRecurringDonationPlan(
   page: Page,
   token: string,
@@ -227,6 +246,8 @@ async function createRecurringDonationPlan(
   }
 }
 
+=======
+>>>>>>> origin/main
 async function createTestCase(
   page: Page,
   token: string,
@@ -421,7 +442,10 @@ async function resolveRoute(
       };
     case 'contact-detail':
     case 'contact-edit':
+<<<<<<< HEAD
     case 'contact-print':
+=======
+>>>>>>> origin/main
       if (!staffState.contactId) {
         staffState.contactId = (await createTestContact(adminPage, authToken, {
           firstName: 'Dark',
@@ -519,6 +543,7 @@ async function resolveRoute(
       };
     case 'case-detail':
     case 'case-edit':
+<<<<<<< HEAD
       if (!staffState.accountId) {
         staffState.accountId = (await createTestAccount(adminPage, authToken, {
           name: `Dark Mode Case Account ${Date.now()}`,
@@ -542,6 +567,10 @@ async function resolveRoute(
           `Dark Mode Case ${Date.now()}`,
           staffState.caseContactId
         );
+=======
+      if (!staffState.caseId) {
+        staffState.caseId = await createTestCase(adminPage, authToken, `Dark Mode Case ${Date.now()}`, staffState.contactId);
+>>>>>>> origin/main
       }
       return {
         kind: 'ready',
@@ -567,6 +596,7 @@ async function resolveRoute(
         path: href.replace(/:id\b/g, staffState.donationId),
         fixtureState: `donation ${staffState.donationId}`,
       };
+<<<<<<< HEAD
     case 'recurring-donation-detail':
     case 'recurring-donation-edit':
       if (!staffState.accountId) {
@@ -613,6 +643,11 @@ async function resolveRoute(
     case 'website-console-overview':
     case 'website-console-content':
     case 'website-console-newsletters':
+=======
+    case 'website-console-redirect':
+    case 'website-console-overview':
+    case 'website-console-content':
+>>>>>>> origin/main
     case 'website-console-forms':
     case 'website-console-integrations':
     case 'website-console-publishing':
@@ -626,6 +661,7 @@ async function resolveRoute(
           subdomain: staffState.publishedSiteKey,
         });
       }
+<<<<<<< HEAD
       if (entry.id === 'website-console-newsletters' && !staffState.newsletterEntryId) {
         staffState.newsletterEntryId = await createWebsiteEntry(adminPage, authToken, staffState.siteId, {
           title: `Dark Mode Newsletter ${Date.now()}`,
@@ -633,6 +669,8 @@ async function resolveRoute(
           bodyHtml: '<p>Dark mode newsletter fixture.</p>',
         });
       }
+=======
+>>>>>>> origin/main
       return {
         kind: 'ready',
         path: href.replace(/:siteId\b/g, staffState.siteId),

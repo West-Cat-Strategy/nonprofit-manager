@@ -26,7 +26,11 @@ export default function AdminPanelLayout({
 }: AdminPanelLayoutProps) {
   return (
     <NeoBrutalistLayout pageTitle={title.toUpperCase()}>
+<<<<<<< HEAD
       <div className={classNames('min-h-screen bg-[var(--app-bg)] p-4 pb-28 sm:p-6 sm:pb-28', className)}>
+=======
+      <div className={classNames('min-h-screen bg-[var(--app-bg)] p-4 sm:p-6', className)}>
+>>>>>>> origin/main
         <div className="mx-auto max-w-7xl space-y-6">
           <PageHeader title={title} description={description} actions={actions} badge={badge} />
           <div

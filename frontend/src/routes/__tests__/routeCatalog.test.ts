@@ -19,8 +19,13 @@ describe('routeCatalog matching', () => {
     expect(matchRouteCatalogEntry('/settings/admin/portal/access')?.id).toBe(
       'portal-admin-access'
     );
+<<<<<<< HEAD
     expect(matchRouteCatalogEntry('/settings/communications?ref=legacy')?.id).toBe(
       'communications'
+=======
+    expect(matchRouteCatalogEntry('/settings/email-marketing?ref=legacy')?.id).toBe(
+      'email-marketing'
+>>>>>>> origin/main
     );
   });
 
@@ -103,7 +108,10 @@ describe('routeCatalog matching', () => {
 
   it('builds breadcrumbs and local navigation from the route hierarchy for detail pages', () => {
     const contactDetailPath = '/contacts/11111111-1111-4111-8111-111111111111';
+<<<<<<< HEAD
     const contactPrintPath = '/contacts/11111111-1111-4111-8111-111111111111/print';
+=======
+>>>>>>> origin/main
 
     expect(
       getRouteBreadcrumbs(contactDetailPath).map(({ label, current }) => ({ label, current }))
@@ -112,6 +120,7 @@ describe('routeCatalog matching', () => {
       { label: 'Person Detail', current: true },
     ]);
 
+<<<<<<< HEAD
     expect(
       getRouteBreadcrumbs(contactPrintPath).map(({ label, current }) => ({ label, current }))
     ).toEqual([
@@ -120,6 +129,8 @@ describe('routeCatalog matching', () => {
       { label: 'Print / Export', current: true },
     ]);
 
+=======
+>>>>>>> origin/main
     const peopleLocalNav = getRouteLocalNavigation(contactDetailPath);
     expect(peopleLocalNav.map((entry) => entry.shortLabel)).toEqual(
       expect.arrayContaining(['People', 'Accounts', 'Volunteers'])

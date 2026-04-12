@@ -6,7 +6,10 @@ import { vi } from 'vitest';
 import { renderWithProviders } from '../../../test/testUtils';
 
 let AdminSettings: ComponentType;
+<<<<<<< HEAD
 const importAdminSettings = () => import('../../../features/adminOps/pages/AdminSettingsPage');
+=======
+>>>>>>> origin/main
 
 const { mockNavigate, mockedApi, mockSetBranding } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
@@ -57,7 +60,11 @@ const countGetCalls = (path: string): number =>
 
 describe('AdminSettings organization section', () => {
   beforeAll(async () => {
+<<<<<<< HEAD
     AdminSettings = (await importAdminSettings()).default;
+=======
+    AdminSettings = (await import('../../admin/AdminSettings')).default;
+>>>>>>> origin/main
   });
 
   beforeEach(() => {
@@ -82,10 +89,13 @@ describe('AdminSettings organization section', () => {
         return Promise.resolve({ data: { roles: [] } });
       }
 
+<<<<<<< HEAD
       if (url === '/admin/permissions') {
         return Promise.resolve({ data: { permissions: [] } });
       }
 
+=======
+>>>>>>> origin/main
       return Promise.resolve({ data: {} });
     });
   });
@@ -197,10 +207,13 @@ describe('AdminSettings organization section', () => {
         return Promise.resolve({ data: { roles: [] } });
       }
 
+<<<<<<< HEAD
       if (url === '/admin/permissions') {
         return Promise.resolve({ data: { permissions: [] } });
       }
 
+=======
+>>>>>>> origin/main
       return Promise.resolve({ data: {} });
     });
     mockedApi.put.mockResolvedValue({
