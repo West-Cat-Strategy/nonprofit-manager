@@ -30,7 +30,6 @@ import type {
 const emptyIntegrationStatus: WebsiteIntegrationStatus = {
   blocked: false,
   publishStatus: 'draft',
-<<<<<<< HEAD
   newsletter: {
     provider: 'mautic',
     configured: false,
@@ -43,21 +42,16 @@ const emptyIntegrationStatus: WebsiteIntegrationStatus = {
     lastRefreshedAt: null,
     lastSyncAt: null,
   },
-=======
->>>>>>> origin/main
   mailchimp: {
     configured: false,
     availableAudiences: [],
     lastSyncAt: null,
   },
-<<<<<<< HEAD
   mautic: {
     configured: false,
     availableAudiences: [],
     lastSyncAt: null,
   },
-=======
->>>>>>> origin/main
   stripe: {
     configured: false,
     publishableKeyConfigured: false,
@@ -224,11 +218,7 @@ const WebsiteFormsPage: React.FC = () => {
                 {forms.filter((form) => !getFormDependencyState(form, integrationStatus).ready).length}
               </div>
               <p className="mt-2 text-sm text-app-text-muted">
-<<<<<<< HEAD
                 These CTAs need a newsletter provider or Stripe before they feel finished.
-=======
-                These CTAs need Mailchimp or Stripe before they feel finished.
->>>>>>> origin/main
               </p>
             </div>
             <div>
@@ -393,7 +383,6 @@ const WebsiteFormsPage: React.FC = () => {
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
                         <input
                           type="text"
-<<<<<<< HEAD
                           value={
                             integrationStatus.newsletter.provider === 'mautic'
                               ? draft.mauticSegmentId || ''
@@ -411,43 +400,25 @@ const WebsiteFormsPage: React.FC = () => {
                               ? 'Mautic segment ID'
                               : 'Mailchimp audience ID'
                           }
-=======
-                          value={draft.mailchimpListId || ''}
-                          onChange={(event) =>
-                            updateDraft(form.formKey, {
-                              mailchimpListId: event.target.value || null,
-                            })
-                          }
-                          placeholder="Mailchimp audience ID"
->>>>>>> origin/main
                           className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
                         />
                         <select
                           value={draft.audienceMode || 'crm'}
                           onChange={(event) =>
                             updateDraft(form.formKey, {
-<<<<<<< HEAD
                               audienceMode: event.target.value as
                                 | 'crm'
                                 | 'mailchimp'
                                 | 'mautic'
                                 | 'both',
-=======
-                              audienceMode: event.target.value as 'crm' | 'mailchimp' | 'both',
->>>>>>> origin/main
                             })
                           }
                           className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
                         >
                           <option value="crm">CRM only</option>
-<<<<<<< HEAD
                           <option value="mautic">Mautic only</option>
                           <option value="mailchimp">Mailchimp only</option>
                           <option value="both">CRM + newsletter provider</option>
-=======
-                          <option value="mailchimp">Mailchimp only</option>
-                          <option value="both">CRM + Mailchimp</option>
->>>>>>> origin/main
                         </select>
                       </div>
                     ) : null}

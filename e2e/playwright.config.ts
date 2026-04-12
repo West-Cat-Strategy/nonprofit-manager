@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
+import path from 'path';
 
 // Preserve explicit shell-provided env (for Docker/CI entrypoints), then layer shared
 // defaults followed by local file overrides for anything the shell did not specify.
@@ -7,6 +8,17 @@ const explicitEnv = { ...process.env };
 dotenv.config({ path: '.env.test', quiet: true, override: true });
 dotenv.config({ path: '.env.test.local', quiet: true, override: true });
 Object.assign(process.env, explicitEnv);
+
+const isDockerBackedRun =
+  process.env.SKIP_WEBSERVER === '1' ||
+  process.env.API_URL?.includes(':8004') ||
+  process.env.BASE_URL?.includes(':8005');
+
+if (isDockerBackedRun) {
+  dotenv.config({ path: path.resolve(__dirname, '..', '.env.development.local'), quiet: true });
+  dotenv.config({ path: path.resolve(__dirname, '..', '.env.development'), quiet: true });
+}
+
 const TEST_JWT_SECRET = process.env.JWT_SECRET?.trim() || 'test_jwt_secret_local_only';
 process.env.JWT_SECRET = TEST_JWT_SECRET;
 process.env.EXPOSE_AUTH_TOKENS_IN_RESPONSE = 'true';

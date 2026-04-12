@@ -462,11 +462,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
 
       {/* Edit Modal */}
       {editingDocument && (
-<<<<<<< HEAD
         <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop">
-=======
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
->>>>>>> origin/main
           <div className="bg-app-surface rounded-lg shadow-xl p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Edit Document</h3>
             <form onSubmit={handleUpdateDocument} className="space-y-4">

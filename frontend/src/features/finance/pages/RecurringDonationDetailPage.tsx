@@ -19,12 +19,9 @@ import {
   SectionCard,
 } from '../../../components/ui';
 
-<<<<<<< HEAD
 const formatProviderLabel = (provider?: string | null): string =>
   provider ? provider.charAt(0).toUpperCase() + provider.slice(1) : 'Stripe';
 
-=======
->>>>>>> origin/main
 const getStatusClasses = (status: RecurringDonationPlanStatus, cancelAtPeriodEnd: boolean): string => {
   if (cancelAtPeriodEnd && status === 'active') {
     return 'bg-amber-100 text-amber-900';
@@ -267,7 +264,6 @@ const RecurringDonationDetailPage: React.FC = () => {
           </dl>
         </SectionCard>
 
-<<<<<<< HEAD
         <SectionCard title="Provider Linkage">
           <dl className="space-y-3 text-sm">
             <div>
@@ -280,34 +276,18 @@ const RecurringDonationDetailPage: React.FC = () => {
               <dt className="font-medium text-app-text">Customer ID</dt>
               <dd className="break-all font-mono text-app-text-muted">
                 {plan.provider_customer_id || plan.stripe_customer_id || 'Not linked'}
-=======
-        <SectionCard title="Stripe Linkage">
-          <dl className="space-y-3 text-sm">
-            <div>
-              <dt className="font-medium text-app-text">Customer ID</dt>
-              <dd className="break-all font-mono text-app-text-muted">
-                {plan.stripe_customer_id || 'Not linked'}
->>>>>>> origin/main
               </dd>
             </div>
             <div>
               <dt className="font-medium text-app-text">Subscription ID</dt>
               <dd className="break-all font-mono text-app-text-muted">
-<<<<<<< HEAD
                 {plan.provider_subscription_id || plan.stripe_subscription_id || 'Not linked'}
-=======
-                {plan.stripe_subscription_id || 'Not linked'}
->>>>>>> origin/main
               </dd>
             </div>
             <div>
               <dt className="font-medium text-app-text">Checkout session</dt>
               <dd className="break-all font-mono text-app-text-muted">
-<<<<<<< HEAD
                 {plan.provider_checkout_session_id || plan.stripe_checkout_session_id || 'Not linked'}
-=======
-                {plan.stripe_checkout_session_id || 'Not linked'}
->>>>>>> origin/main
               </dd>
             </div>
           </dl>

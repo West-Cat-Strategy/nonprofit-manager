@@ -27,17 +27,13 @@
   --app-accent-foreground: #ffffff;
   --app-accent-text: #2563eb;
   --app-accent-text-hover: #1d4ed8;
-<<<<<<< HEAD
   --app-link: #2563eb;
   --app-link-hover: #1d4ed8;
   --app-link-visited: #1d4ed8;
   --app-accent-soft: #dbeafe;
   --app-accent-soft-hover: #bfdbfe;
   --app-overlay-scrim: rgba(15, 23, 42, 0.32);
-=======
-  --app-accent-soft: #dbeafe;
-  --app-accent-soft-hover: #bfdbfe;
->>>>>>> origin/main
+  --app-shell-surface: #ffffff;
 
   --app-hover: #f3f4f6;
   --app-input-bg: #ffffff;
@@ -108,7 +104,6 @@ body.theme-transitioning *::after {
   border-color: var(--app-accent);
 }
 
-<<<<<<< HEAD
 body :where(a[href]) {
   color: var(--app-link);
   text-decoration-line: underline;
@@ -130,8 +125,6 @@ body :where(a[href]:focus-visible) {
   outline-offset: 2px;
 }
 
-=======
->>>>>>> origin/main
 /* GLOBAL DARK MODE (DEFAULT FALLBACK) */
 body.dark:not([class*='theme-']) {
   --app-bg: #121212;
@@ -146,17 +139,13 @@ body.dark:not([class*='theme-']) {
   --app-accent-foreground: #ffffff;
   --app-accent-text: #60a5fa;
   --app-accent-text-hover: #93c5fd;
-<<<<<<< HEAD
   --app-link: #60a5fa;
   --app-link-hover: #93c5fd;
   --app-link-visited: #93c5fd;
   --app-accent-soft: rgba(37, 99, 235, 0.2);
   --app-accent-soft-hover: rgba(37, 99, 235, 0.35);
   --app-overlay-scrim: rgba(2, 6, 23, 0.58);
-=======
-  --app-accent-soft: rgba(37, 99, 235, 0.2);
-  --app-accent-soft-hover: rgba(37, 99, 235, 0.35);
->>>>>>> origin/main
+  --app-shell-surface: #1f2937;
 
   --app-hover: #1f2937;
   --app-input-bg: #1a1a1a;
@@ -198,7 +187,6 @@ body .bg-gray-50, body .bg-gray-100, body .bg-gray-200, body .bg-gray-300 {
   background-color: var(--app-surface-muted) !important;
 }
 
-<<<<<<< HEAD
 body:not(.theme-neobrutalist) .bg-black:not([class*='bg-opacity']) {
   background-color: var(--app-text-heading) !important;
   color: var(--app-accent-foreground) !important;
@@ -237,6 +225,18 @@ body:not(.theme-neobrutalist) .border-white {
   backdrop-filter: none !important;
 }
 
+.app-shell-surface-opaque {
+  background-color: var(--app-shell-surface) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@supports (background-color: rgb(from white r g b / 1)) {
+  .app-shell-surface-opaque {
+    background-color: rgb(from var(--app-shell-surface) r g b / 1) !important;
+  }
+}
+
 .app-popup-backdrop {
   background-color: var(--app-overlay-scrim);
   backdrop-filter: blur(18px) saturate(120%);
@@ -270,18 +270,6 @@ body:not(.theme-neobrutalist) .border-white {
   color: var(--app-accent-foreground);
 }
 
-=======
-.menu-surface-opaque {
-  background-color: var(--app-surface-elevated) !important;
-  backdrop-filter: none !important;
-}
-
-.app-accent-surface {
-  background-color: var(--app-accent);
-  color: var(--app-accent-foreground);
-}
-
->>>>>>> origin/main
 .app-accent-surface a,
 .app-accent-surface svg {
   color: inherit;
@@ -318,7 +306,6 @@ body.ui-redesign input, body.ui-redesign select, body.ui-redesign textarea {
 }
 
 body.ui-redesign button { border-radius: var(--ui-radius-sm); }
-<<<<<<< HEAD
 
 .contact-print-page {
   color: #000000;
@@ -375,5 +362,3 @@ body.ui-redesign button { border-radius: var(--ui-radius-sm); }
     content: '' !important;
   }
 }
-=======
->>>>>>> origin/main

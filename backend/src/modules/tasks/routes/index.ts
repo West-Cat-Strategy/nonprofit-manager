@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
+import { requireRole } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
 import { followUpController as followUpsController } from '@modules/followUps/controllers/followUps.handlers';
@@ -88,15 +89,31 @@ export const createTasksRoutes = (mode: ResponseMode = 'v2'): Router => {
     followUpsController.getTaskFollowUps
   );
   router.get('/:id', validateParams(taskIdParamsSchema), controller.getTaskById);
-  router.post('/', validateBody(createTaskSchema), controller.createTask);
+  router.post(
+    '/',
+    validateBody(createTaskSchema),
+    requireRole('admin', 'manager', 'staff'),
+    controller.createTask
+  );
   router.put(
     '/:id',
     validateParams(taskIdParamsSchema),
     validateBody(updateTaskSchema),
+    requireRole('admin', 'manager', 'staff'),
     controller.updateTask
   );
-  router.delete('/:id', validateParams(taskIdParamsSchema), controller.deleteTask);
-  router.post('/:id/complete', validateParams(taskIdParamsSchema), controller.completeTask);
+  router.delete(
+    '/:id',
+    validateParams(taskIdParamsSchema),
+    requireRole('admin', 'manager', 'staff'),
+    controller.deleteTask
+  );
+  router.post(
+    '/:id/complete',
+    validateParams(taskIdParamsSchema),
+    requireRole('admin', 'manager', 'staff'),
+    controller.completeTask
+  );
 
   return router;
 };

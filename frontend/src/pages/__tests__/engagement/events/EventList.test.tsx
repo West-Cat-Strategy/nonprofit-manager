@@ -2,11 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type * as EventsStateModule from '../../../../features/events/state';
 import { vi } from 'vitest';
-<<<<<<< HEAD
 import EventList from '../../../../features/events/pages/EventsHubPage';
-=======
-import EventList from '../../../engagement/events/EventList';
->>>>>>> origin/main
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn();

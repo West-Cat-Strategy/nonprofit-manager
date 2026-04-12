@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -6,10 +8,7 @@ import {
   PrimaryButton,
   SecondaryButton,
   DangerButton,
-<<<<<<< HEAD
   FormField,
-=======
->>>>>>> origin/main
   PageHeader,
   SectionCard,
   LoadingState,
@@ -18,6 +17,28 @@ import {
   SideNav,
   TopNav,
 } from '../index';
+
+const themeCssFiles = [
+  'sea-breeze.css',
+  'corporate.css',
+  'clean-modern.css',
+  'glass.css',
+  'high-contrast.css',
+];
+
+function readThemeCss(filename: string): string {
+  const candidates = [
+    resolve(process.cwd(), 'public/themes', filename),
+    resolve(process.cwd(), 'frontend/public/themes', filename),
+  ];
+
+  const path = candidates.find((candidate) => existsSync(candidate));
+  if (!path) {
+    throw new Error(`Unable to locate theme stylesheet for ${filename}`);
+  }
+
+  return readFileSync(path, 'utf8');
+}
 
 describe('ui primitives', () => {
   it('renders button tone variants', () => {
@@ -31,11 +52,7 @@ describe('ui primitives', () => {
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
-<<<<<<< HEAD
     expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass('bg-red-600');
-=======
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
->>>>>>> origin/main
   });
 
   it('renders a page header with title and actions', () => {
@@ -64,15 +81,11 @@ describe('ui primitives', () => {
         <LoadingState label="Loading records..." />
         <EmptyState title="No records" description="Create one to begin" />
         <ErrorState message="Failed to load" onRetry={onRetry} />
-<<<<<<< HEAD
         <FormField label="Email address" helperText="Use your work email" error="Email is required" />
-=======
->>>>>>> origin/main
       </div>
     );
 
     expect(screen.getByRole('heading', { level: 2, name: 'Summary' })).toBeInTheDocument();
-<<<<<<< HEAD
     expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByText('Loading records...')).toBeInTheDocument();
     expect(screen.getByText('No records')).toBeInTheDocument();
@@ -80,10 +93,6 @@ describe('ui primitives', () => {
     const emailError = screen.getByText('Email is required');
     expect(emailField).toHaveAttribute('aria-invalid', 'true');
     expect(emailField.getAttribute('aria-describedby')).toContain(emailError.id);
-=======
-    expect(screen.getByText('Loading records...')).toBeInTheDocument();
-    expect(screen.getByText('No records')).toBeInTheDocument();
->>>>>>> origin/main
     await user.click(screen.getByRole('button', { name: 'Try again' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
@@ -109,7 +118,6 @@ describe('ui primitives', () => {
     expect(screen.getByRole('link', { name: 'Contacts' })).toHaveFocus();
   });
 
-<<<<<<< HEAD
   it('keeps side nav states readable across themes', () => {
     render(
       <MemoryRouter>
@@ -129,13 +137,28 @@ describe('ui primitives', () => {
     expect(screen.getByRole('link', { name: 'Contacts' })).toHaveClass('text-app-text');
   });
 
-=======
->>>>>>> origin/main
   it('renders top navigation with the opaque shell surface', () => {
     render(<TopNav left={<span>Portal</span>} right={<button type="button">Account</button>} />);
 
     expect(screen.getByText('Portal').closest('header')).toHaveClass(
-      'bg-[var(--app-shell-surface)]'
+      'app-shell-surface-opaque'
     );
+  });
+
+  it('keeps theme shell surfaces opaque in every theme stylesheet', () => {
+    for (const filename of themeCssFiles) {
+      const css = readThemeCss(filename);
+      const declarations = Array.from(
+        css.matchAll(/--app-shell-surface:\s*([^;]+);/g),
+        (match) => match[1].trim()
+      );
+
+      expect(declarations).toHaveLength(2);
+      for (const value of declarations) {
+        expect(value).not.toMatch(/\brgba?\s*\(/i);
+        expect(value).not.toMatch(/\bhsla?\s*\(/i);
+        expect(value.toLowerCase()).not.toContain('transparent');
+      }
+    }
   });
 });

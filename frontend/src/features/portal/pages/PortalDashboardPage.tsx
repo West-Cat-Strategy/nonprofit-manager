@@ -43,10 +43,7 @@ export default function PortalDashboard() {
   const recentDocuments = dashboard?.recent_documents ?? [];
   const upcomingEvents = dashboard?.upcoming_events ?? [];
   const nextAppointment = dashboard?.next_appointment ?? null;
-<<<<<<< HEAD
   const recentActivity = dashboard?.recent_activity ?? [];
-=======
->>>>>>> origin/main
   const primaryCase = activeCases[0] ?? null;
   const hasContent =
     activeCases.length > 0 ||
@@ -281,7 +278,6 @@ export default function PortalDashboard() {
             </div>
           </div>
 
-<<<<<<< HEAD
           <SectionCard
             title="Recent Activity"
             subtitle="The latest updates across all your shared cases, appointments, and documents."
@@ -313,8 +309,6 @@ export default function PortalDashboard() {
             )}
           </SectionCard>
 
-=======
->>>>>>> origin/main
           <div className="grid gap-5 lg:grid-cols-2">
             <SectionCard
               title="Recently Shared Documents"

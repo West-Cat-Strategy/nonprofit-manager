@@ -7,11 +7,7 @@ import '../helpers/testEnv';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { login, logout, clearAuth, ensureLoginViaAPI } from '../helpers/auth';
-<<<<<<< HEAD
 import { getSharedTestUser, setSharedTestUser } from '../helpers/testUser';
-=======
-import { getSharedTestUser } from '../helpers/testUser';
->>>>>>> origin/main
 
 const defaultCreds = {
   email: process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com',
@@ -134,7 +130,6 @@ test.describe('Authentication Flow', () => {
     expect(user).toBeTruthy();
   });
 
-<<<<<<< HEAD
   test('login helper honors the credentials passed by the caller', async ({ page }) => {
     const tempEmail = `e2e+login-helper-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
     const tempPassword = 'Test123!@#';
@@ -167,21 +162,6 @@ test.describe('Authentication Flow', () => {
         startupRequests.push(url);
       }
     });
-
-=======
-  test('dashboard startup does not request analytics/task summary endpoints', async ({ page }) => {
-    const startupRequests: string[] = [];
-    page.on('request', (request) => {
-      const url = request.url();
-      if (
-        /\/api\/(?:v2\/)?analytics\/summary(?:\?|$)/.test(url) ||
-        /\/api\/(?:v2\/)?tasks\/summary(?:\?|$)/.test(url)
-      ) {
-        startupRequests.push(url);
-      }
-    });
-
->>>>>>> origin/main
     await gotoDashboardWithApiAuth(page);
     await expect
       .poll(

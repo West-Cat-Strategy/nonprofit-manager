@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { renderWithProviders } from '../../../../test/testUtils';
 import PortalProfilePage from '../PortalProfilePage';
@@ -29,6 +30,7 @@ vi.mock('../../../../contexts/useToast', () => ({
 
 describe('Portal self-service pages', () => {
   it('loads and saves the portal profile form', async () => {
+    const user = userEvent.setup();
     portalGetMock.mockResolvedValueOnce({
       data: {
         success: true,
@@ -81,11 +83,27 @@ describe('Portal self-service pages', () => {
     renderWithProviders(<PortalProfilePage />);
 
     const firstNameInput = await screen.findByDisplayValue('Portal');
-    fireEvent.change(firstNameInput, { target: { value: 'Updated' } });
+    const lastNameInput = screen.getByDisplayValue('Client');
+
+    await user.clear(firstNameInput);
+    await user.type(firstNameInput, 'Updated');
+    await user.clear(lastNameInput);
+    await user.type(lastNameInput, 'Person');
+
+    expect((firstNameInput as HTMLInputElement).value).toBe('Updated');
+    expect((lastNameInput as HTMLInputElement).value).toBe('Person');
+
     fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
     await waitFor(() => {
       expect(portalPatchMock).toHaveBeenCalled();
+      expect(portalPatchMock).toHaveBeenCalledWith(
+        '/v2/portal/profile',
+        expect.objectContaining({
+          first_name: 'Updated',
+          last_name: 'Person',
+        })
+      );
       expect(showSuccessMock).toHaveBeenCalledWith('Profile updated successfully.');
     });
   });

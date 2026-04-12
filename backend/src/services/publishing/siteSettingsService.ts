@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import { randomUUID } from 'crypto';
-=======
->>>>>>> origin/main
 import { Pool } from 'pg';
 import dbPool from '@config/database';
 import type {
@@ -10,12 +7,9 @@ import type {
   WebsiteFacebookSettings,
   WebsiteFormOperationalConfig,
   WebsiteMailchimpSettings,
-<<<<<<< HEAD
   WebsiteNewsletterListPreset,
   WebsiteMauticSettings,
   WebsiteNewsletterSettings,
-=======
->>>>>>> origin/main
   WebsiteManagedFormType,
   WebsiteSocialSettings,
   WebsiteSiteSettings,
@@ -75,7 +69,6 @@ const cleanBoolean = (value: unknown): boolean | undefined => {
   return undefined;
 };
 
-<<<<<<< HEAD
 const cleanDate = (value: unknown): Date | null | undefined => {
   if (value === null) return null;
   if (value instanceof Date) return value;
@@ -86,8 +79,6 @@ const cleanDate = (value: unknown): Date | null | undefined => {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 };
 
-=======
->>>>>>> origin/main
 const normalizeMailchimpSettings = (value: unknown): WebsiteMailchimpSettings => {
   const config = asObject(value);
   return {
@@ -95,10 +86,7 @@ const normalizeMailchimpSettings = (value: unknown): WebsiteMailchimpSettings =>
     audienceMode:
       config.audienceMode === 'crm' ||
       config.audienceMode === 'mailchimp' ||
-<<<<<<< HEAD
       config.audienceMode === 'mautic' ||
-=======
->>>>>>> origin/main
       config.audienceMode === 'both'
         ? config.audienceMode
         : undefined,
@@ -107,7 +95,6 @@ const normalizeMailchimpSettings = (value: unknown): WebsiteMailchimpSettings =>
   };
 };
 
-<<<<<<< HEAD
 const normalizeNewsletterListPreset = (
   value: unknown
 ): WebsiteNewsletterListPreset | undefined => {
@@ -215,8 +202,6 @@ const normalizeNewsletterSettings = (
   };
 };
 
-=======
->>>>>>> origin/main
 const normalizeStripeSettings = (value: unknown): WebsiteStripeSettings => {
   const config = asObject(value);
   return {
@@ -255,18 +240,12 @@ const normalizeOperationalConfig = (value: unknown): WebsiteFormOperationalConfi
     campaignId: config.campaignId === null ? null : cleanString(config.campaignId),
     mailchimpListId:
       config.mailchimpListId === null ? null : cleanString(config.mailchimpListId),
-<<<<<<< HEAD
     mauticSegmentId:
       config.mauticSegmentId === null ? null : cleanString(config.mauticSegmentId),
     audienceMode:
       config.audienceMode === 'crm' ||
       config.audienceMode === 'mailchimp' ||
       config.audienceMode === 'mautic' ||
-=======
-    audienceMode:
-      config.audienceMode === 'crm' ||
-      config.audienceMode === 'mailchimp' ||
->>>>>>> origin/main
       config.audienceMode === 'both'
         ? config.audienceMode
         : undefined,
@@ -317,7 +296,6 @@ const buildDefaultSettings = (
 ): WebsiteSiteSettings => ({
   siteId,
   organizationId,
-<<<<<<< HEAD
   newsletter: {
     provider: 'mautic',
     selectedAudienceId: null,
@@ -328,9 +306,6 @@ const buildDefaultSettings = (
   },
   mailchimp: {},
   mautic: {},
-=======
-  mailchimp: {},
->>>>>>> origin/main
   stripe: {},
   social: {
     facebook: {},
@@ -387,11 +362,8 @@ export class WebsiteSiteSettingsService {
       return buildDefaultSettings(siteId, organizationId);
     }
 
-<<<<<<< HEAD
     const mailchimp = normalizeMailchimpSettings(row.mailchimp_config);
     const mautic = normalizeMauticSettings(row.mautic_config);
-=======
->>>>>>> origin/main
     const formOverridesSource = asObject(row.form_overrides);
     const formOverrides = Object.fromEntries(
       Object.entries(formOverridesSource).map(([formKey, config]) => [
@@ -403,13 +375,9 @@ export class WebsiteSiteSettingsService {
     return {
       siteId: row.site_id as string,
       organizationId: (row.organization_id as string | null) ?? organizationId,
-<<<<<<< HEAD
       newsletter: normalizeNewsletterSettings(row.newsletter_config, mailchimp, mautic),
       mailchimp,
       mautic,
-=======
-      mailchimp: normalizeMailchimpSettings(row.mailchimp_config),
->>>>>>> origin/main
       stripe: normalizeStripeSettings(row.stripe_config),
       social: normalizeSocialSettings(row.social_config),
       formDefaults: normalizeOperationalConfig(row.form_defaults),
@@ -459,13 +427,9 @@ export class WebsiteSiteSettingsService {
       `INSERT INTO website_site_settings (
          site_id,
          organization_id,
-<<<<<<< HEAD
          newsletter_config,
          mailchimp_config,
          mautic_config,
-=======
-         mailchimp_config,
->>>>>>> origin/main
          stripe_config,
          social_config,
          form_defaults,
@@ -473,7 +437,6 @@ export class WebsiteSiteSettingsService {
          conversion_tracking,
          created_by,
          updated_by
-<<<<<<< HEAD
        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (site_id)
        DO UPDATE SET
@@ -481,13 +444,6 @@ export class WebsiteSiteSettingsService {
          newsletter_config = EXCLUDED.newsletter_config,
          mailchimp_config = EXCLUDED.mailchimp_config,
          mautic_config = EXCLUDED.mautic_config,
-=======
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
-       ON CONFLICT (site_id)
-       DO UPDATE SET
-         organization_id = EXCLUDED.organization_id,
-         mailchimp_config = EXCLUDED.mailchimp_config,
->>>>>>> origin/main
          stripe_config = EXCLUDED.stripe_config,
          social_config = EXCLUDED.social_config,
          form_defaults = EXCLUDED.form_defaults,
@@ -499,23 +455,16 @@ export class WebsiteSiteSettingsService {
       [
         site.id,
         site.organizationId,
-<<<<<<< HEAD
         JSON.stringify(settings.newsletter || { provider: 'mautic' }),
         JSON.stringify(settings.mailchimp || {}),
         JSON.stringify(settings.mautic || {}),
-=======
-        JSON.stringify(settings.mailchimp || {}),
->>>>>>> origin/main
         JSON.stringify(settings.stripe || {}),
         JSON.stringify(settings.social || { facebook: {} }),
         JSON.stringify(settings.formDefaults || {}),
         JSON.stringify(settings.formOverrides || {}),
         JSON.stringify(settings.conversionTracking || DEFAULT_CONVERSION_TRACKING),
         userId,
-<<<<<<< HEAD
         userId,
-=======
->>>>>>> origin/main
       ]
     );
 
@@ -563,7 +512,6 @@ export class WebsiteSiteSettingsService {
     return this.persistSettings(site, nextSettings, userId);
   }
 
-<<<<<<< HEAD
   async updateNewsletterSettings(
     siteId: string,
     patch: Partial<WebsiteNewsletterSettings>,
@@ -741,8 +689,6 @@ export class WebsiteSiteSettingsService {
     return this.persistSettings(site, nextSettings, userId);
   }
 
-=======
->>>>>>> origin/main
   async updateStripeSettings(
     siteId: string,
     patch: Partial<WebsiteStripeSettings>,

@@ -44,7 +44,6 @@ export default function Navigation() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-<<<<<<< HEAD
   const userMenuButtonRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -55,16 +54,11 @@ export default function Navigation() {
   const previousMoreMenuOpenRef = useRef(moreMenuOpen);
   const previousMobileMenuOpenRef = useRef(mobileMenuOpen);
   const bodyOverflowRef = useRef<string | null>(null);
-=======
-  const searchButtonRef = useRef<HTMLButtonElement>(null);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
->>>>>>> origin/main
 
   const closeAllMenus = useCallback(() => {
     setMobileMenuOpen(false);
     setUserMenuOpen(false);
     setMoreMenuOpen(false);
-<<<<<<< HEAD
     setSearchOpen(false);
   }, []);
 
@@ -97,59 +91,6 @@ export default function Navigation() {
       if (event.key === 'Escape') {
         closeAllMenus();
       }
-=======
-  }, []);
-
-  const focusFirstItem = (ref: RefObject<HTMLDivElement | null>) => {
-    const item = ref.current?.querySelector<HTMLElement>(
-      'a,button,input,[tabindex]:not([tabindex="-1"])'
-    );
-    item?.focus();
-  };
-
-  const prefetchStaffPeoplePath = useCallback(() => {
-    void preloadContactsPeopleRoute();
-  }, []);
-
-  const prefetchQuickLookup = useCallback(() => {
-    void preloadNavigationQuickLookupDialog();
-  }, []);
-
-  const hasActiveDesktopOverflowItem =
-    desktopOverflowItems.some((item) => isNavItemActive(item.id, item.path)) ||
-    utilityNavLinks.some((item) => isNavItemActive(item.id, item.path));
-
-  const desktopActionButtonClass =
-    'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 sm:px-3';
-  const activeDesktopButtonClass =
-    'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover hover:text-[var(--app-accent-foreground)]';
-
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeAllMenus();
-        setSearchOpen(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [closeAllMenus]);
-
-  useEffect(() => {
-    closeAllMenus();
-  }, [closeAllMenus, currentLocation]);
-
-  useEffect(() => {
-    if (mobileMenuOpen || searchOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
->>>>>>> origin/main
     };
 
     document.addEventListener('keydown', handleEscape);
@@ -186,7 +127,6 @@ export default function Navigation() {
   }, [mobileMenuOpen, searchOpen]);
 
   useEffect(() => {
-<<<<<<< HEAD
     if (previousUserMenuOpenRef.current && !userMenuOpen) {
       userMenuButtonRef.current?.focus();
     }
@@ -217,29 +157,10 @@ export default function Navigation() {
     previousMobileMenuOpenRef.current = mobileMenuOpen;
   }, [mobileMenuOpen]);
 
-=======
-    if (userMenuOpen) {
-      focusFirstItem(userMenuRef);
-    }
-  }, [userMenuOpen]);
-
-  useEffect(() => {
-    if (moreMenuOpen) {
-      focusFirstItem(moreMenuRef);
-    }
-  }, [moreMenuOpen]);
-
-  useEffect(() => {
-    if (!searchOpen) {
-      searchButtonRef.current?.focus();
-    }
-  }, [searchOpen]);
-
->>>>>>> origin/main
   return (
     <nav
       aria-label="Global navigation"
-      className="sticky top-0 z-50 border-b border-app-border bg-[var(--app-shell-surface)] shadow-sm"
+      className="app-shell-surface-opaque sticky top-0 z-50 border-b border-app-border shadow-sm"
     >
       <div className="mx-auto flex h-14 max-w-[1920px] items-center gap-3 px-3 sm:h-16 sm:px-4 lg:px-6">
         <div className="flex min-w-0 shrink-0 items-center gap-3">
@@ -282,7 +203,6 @@ export default function Navigation() {
               className="flex min-w-0 items-center gap-1 overflow-hidden"
               role="navigation"
               aria-label="Primary navigation"
-<<<<<<< HEAD
             >
               {desktopPrimaryItems.map((item) => (
                 <Link
@@ -484,203 +404,6 @@ export default function Navigation() {
               aria-haspopup="menu"
               aria-controls="topnav-user-menu"
             >
-=======
-            >
-              {desktopPrimaryItems.map((item) => (
-                <Link
-                  key={item.id}
-                  to={item.path}
-                  onMouseEnter={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
-                  onFocus={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
-                  aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
-                  className={classNames(
-                    'inline-flex min-w-0 max-w-[9rem] items-center rounded-full border px-3 py-2 text-sm font-semibold transition xl:max-w-[11rem]',
-                    isNavItemActive(item.id, item.path)
-                      ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
-                      : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
-                  )}
-                >
-                  <span className="truncate">{item.shortLabel ?? item.name}</span>
-                </Link>
-              ))}
-            </div>
-
-            {desktopOverflowItems.length > 0 || utilityNavLinks.length > 0 ? (
-              <div className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMoreMenuOpen((open) => !open);
-                    setUserMenuOpen(false);
-                  }}
-                  className={classNames(
-                    'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition',
-                    hasActiveDesktopOverflowItem
-                      ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
-                      : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
-                  )}
-                  aria-label="More navigation"
-                  aria-expanded={moreMenuOpen}
-                  aria-haspopup="menu"
-                  aria-controls="topnav-more-menu"
-                >
-                  <span>More</span>
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-                <NavPopover
-                  open={moreMenuOpen}
-                  onClose={() => setMoreMenuOpen(false)}
-                  panelClassName="w-80 p-2"
-                  panelRef={moreMenuRef}
-                >
-                  <div id="topnav-more-menu" role="menu" aria-label="More navigation">
-                    {desktopOverflowItems.length > 0 ? (
-                      <div className="border-b border-app-border-muted px-1 pb-3">
-                        <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
-                          More modules
-                        </p>
-                        <div className="grid gap-1">
-                          {desktopOverflowItems.map((item) => (
-                            <Link
-                              key={item.id}
-                              to={item.path}
-                              role="menuitem"
-                              aria-current={
-                                isNavItemActive(item.id, item.path) ? 'page' : undefined
-                              }
-                              onMouseEnter={
-                                item.id === 'contacts' ? prefetchStaffPeoplePath : undefined
-                              }
-                              onFocus={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
-                              onClick={() => setMoreMenuOpen(false)}
-                              className={classNames(
-                                'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
-                                isNavItemActive(item.id, item.path)
-                                  ? 'bg-app-accent text-[var(--app-accent-foreground)]'
-                                  : 'text-app-text-heading hover:bg-app-surface-muted'
-                              )}
-                            >
-                              <span aria-hidden="true" className="text-base">
-                                {item.icon}
-                              </span>
-                              <span className="truncate font-medium">{item.name}</span>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                    {utilityNavLinks.length > 0 ? (
-                      <div className={desktopOverflowItems.length > 0 ? 'px-1 pt-3' : 'px-1'}>
-                        <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
-                          Workspace utilities
-                        </p>
-                        <div className="grid gap-1">
-                          {utilityNavLinks.map((link) => (
-                            <Link
-                              key={link.id}
-                              to={link.path}
-                              role="menuitem"
-                              aria-current={
-                                isNavItemActive(link.id, link.path) ? 'page' : undefined
-                              }
-                              onClick={() => setMoreMenuOpen(false)}
-                              className={classNames(
-                                'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
-                                isNavItemActive(link.id, link.path)
-                                  ? 'bg-app-accent text-[var(--app-accent-foreground)]'
-                                  : 'text-app-text-heading hover:bg-app-surface-muted'
-                              )}
-                            >
-                              <span aria-hidden="true" className="text-base">
-                                {link.icon}
-                              </span>
-                              <span className="truncate font-medium">{link.label}</span>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                </NavPopover>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            ref={searchButtonRef}
-            className={desktopActionButtonClass}
-            onClick={() => {
-              closeAllMenus();
-              setSearchOpen(true);
-            }}
-            onMouseEnter={prefetchQuickLookup}
-            onFocus={prefetchQuickLookup}
-            aria-label="Search"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <span className="hidden xl:inline">Search</span>
-          </button>
-
-          <Link
-            to={mobileAlertsLink.path}
-            aria-label={mobileAlertsLink.label}
-            aria-current={
-              isNavItemActive(mobileAlertsLink.id, mobileAlertsLink.path) ? 'page' : undefined
-            }
-            className={classNames(
-              desktopActionButtonClass,
-              isNavItemActive(mobileAlertsLink.id, mobileAlertsLink.path)
-                ? activeDesktopButtonClass
-                : ''
-            )}
-          >
-            <span aria-hidden="true">{mobileAlertsLink.icon}</span>
-            <span className="hidden xl:inline">{mobileAlertsLink.shortLabel}</span>
-          </Link>
-
-          <div className="relative hidden xl:block">
-            <button
-              type="button"
-              onClick={() => {
-                setUserMenuOpen((open) => !open);
-                setMoreMenuOpen(false);
-              }}
-              className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-1.5 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
-              aria-label="User menu"
-              aria-expanded={userMenuOpen}
-              aria-haspopup="menu"
-              aria-controls="topnav-user-menu"
-            >
->>>>>>> origin/main
               <Avatar
                 src={user?.profilePicture}
                 firstName={user?.firstName}
@@ -839,7 +562,6 @@ export default function Navigation() {
 
           <button
             type="button"
-<<<<<<< HEAD
             ref={mobileMenuButtonRef}
             onClick={() => {
               setSearchOpen(false);
@@ -847,9 +569,6 @@ export default function Navigation() {
               setMoreMenuOpen(false);
               setMobileMenuOpen((open) => !open);
             }}
-=======
-            onClick={() => setMobileMenuOpen((open) => !open)}
->>>>>>> origin/main
             className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated p-2 text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading xl:hidden"
             aria-label="Main menu"
             aria-expanded={mobileMenuOpen}
@@ -884,11 +603,7 @@ export default function Navigation() {
       {mobileMenuOpen ? (
         <>
           <div
-<<<<<<< HEAD
             className="app-popup-backdrop fixed inset-0 z-40 xl:hidden"
-=======
-            className="fixed inset-0 z-40 bg-black/45 xl:hidden"
->>>>>>> origin/main
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
@@ -907,10 +622,7 @@ export default function Navigation() {
             onToggleDarkMode={toggleDarkMode}
             primaryItems={mobileNavigationPreferences.primaryItems}
             secondaryItems={mobileNavigationPreferences.secondaryItems}
-<<<<<<< HEAD
             triggerRef={mobileMenuButtonRef}
-=======
->>>>>>> origin/main
             user={user}
             utilityNavLinks={mobileDrawerUtilityLinks}
           />

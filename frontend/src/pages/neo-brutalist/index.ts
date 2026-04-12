@@ -1,6 +1,6 @@
-export { default as NeoBrutalistDashboard } from './NeoBrutalistDashboard';
-export { default as LinkingModule } from './LinkingModule';
-export { default as OperationsBoard } from './OperationsBoard';
-export { default as OutreachCenter } from './OutreachCenter';
-export { default as PeopleDirectory } from './PeopleDirectory';
-export { default as ThemeAudit } from './ThemeAudit';
+export { default as NeoBrutalistDashboard } from '../../features/neoBrutalist/pages/NeoBrutalistDashboardPage';
+export { default as LinkingModule } from '../../features/neoBrutalist/pages/LinkingModulePage';
+export { default as OperationsBoard } from '../../features/neoBrutalist/pages/OperationsBoardPage';
+export { default as OutreachCenter } from '../../features/neoBrutalist/pages/OutreachCenterPage';
+export { default as PeopleDirectory } from '../../features/neoBrutalist/pages/PeopleDirectoryPage';
+export { default as ThemeAudit } from '../../features/neoBrutalist/pages/ThemeAuditPage';

@@ -131,10 +131,7 @@ describe('ContactMergeDialog', () => {
     await user.click(screen.getByRole('button', { name: /alex target/i }));
 
     expect(await screen.findByText(/conflicting fields/i)).toBeInTheDocument();
-<<<<<<< HEAD
     expect(screen.getByText(/selected target/i)).toBeInTheDocument();
-=======
->>>>>>> origin/main
     expect(screen.getByText('First name')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /source/i }));
@@ -156,7 +153,6 @@ describe('ContactMergeDialog', () => {
     });
     expect(onClose).not.toHaveBeenCalled();
   });
-<<<<<<< HEAD
 
   it('shows a useful empty state and closes cleanly', async () => {
     const user = userEvent.setup();
@@ -181,6 +177,4 @@ describe('ContactMergeDialog', () => {
     await user.click(screen.getByRole('button', { name: /^close$/i }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
-=======
->>>>>>> origin/main
 });

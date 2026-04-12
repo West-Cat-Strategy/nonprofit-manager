@@ -23,11 +23,7 @@ const thunkMocks = vi.hoisted(() => {
       type: 'websites/fetchIntegrations',
       payload,
     })),
-<<<<<<< HEAD
     updateWebsiteNewsletterIntegration: createAction('websites/updateNewsletterIntegration'),
-=======
-    updateWebsiteMailchimpIntegration: createAction('websites/updateMailchimpIntegration'),
->>>>>>> origin/main
     updateWebsiteStripeIntegration: createAction('websites/updateStripeIntegration'),
   };
 });
@@ -41,29 +37,21 @@ const overview = {
   },
 };
 
-<<<<<<< HEAD
 const buildState = (provider: 'mautic' | 'mailchimp') => ({
-=======
-const mockState = {
->>>>>>> origin/main
   websites: {
     integrations: {
       blocked: false,
       publishStatus: 'published',
-<<<<<<< HEAD
       newsletter: {
         provider,
         configured: true,
         lastSyncAt: null,
       },
-=======
->>>>>>> origin/main
       mailchimp: {
         audienceId: 'aud-1',
         audienceMode: 'both',
         defaultTags: ['members'],
         syncEnabled: true,
-<<<<<<< HEAD
         configured: provider === 'mailchimp',
         accountName: provider === 'mailchimp' ? 'Mailchimp Account' : undefined,
         listCount: provider === 'mailchimp' ? 2 : undefined,
@@ -92,13 +80,6 @@ const mockState = {
               ]
             : [],
         segmentCount: provider === 'mautic' ? 2 : undefined,
-=======
-        configured: true,
-        availableAudiences: [
-          { id: 'aud-1', name: 'Main Audience' },
-          { id: 'aud-2', name: 'Volunteers' },
-        ],
->>>>>>> origin/main
         lastSyncAt: null,
       },
       stripe: {
@@ -115,7 +96,6 @@ const mockState = {
     isSaving: false,
     error: null,
   },
-<<<<<<< HEAD
 });
 
 let currentState = buildState('mautic');
@@ -123,13 +103,6 @@ let currentState = buildState('mautic');
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
   useAppSelector: (selector: (state: typeof currentState) => unknown) => selector(currentState),
-=======
-};
-
-vi.mock('../../../../store/hooks', () => ({
-  useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
->>>>>>> origin/main
 }));
 
 vi.mock('../../hooks/useWebsiteOverviewLoader', () => ({
@@ -143,11 +116,7 @@ vi.mock('../../state', async () => {
     ...actual,
     clearWebsitesError: thunkMocks.clearWebsitesError,
     fetchWebsiteIntegrations: thunkMocks.fetchWebsiteIntegrations,
-<<<<<<< HEAD
     updateWebsiteNewsletterIntegration: thunkMocks.updateWebsiteNewsletterIntegration,
-=======
-    updateWebsiteMailchimpIntegration: thunkMocks.updateWebsiteMailchimpIntegration,
->>>>>>> origin/main
     updateWebsiteStripeIntegration: thunkMocks.updateWebsiteStripeIntegration,
   };
 });
@@ -155,20 +124,13 @@ vi.mock('../../state', async () => {
 describe('WebsiteIntegrationsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-<<<<<<< HEAD
     currentState = buildState('mautic');
-=======
->>>>>>> origin/main
     dispatchMock.mockImplementation(
       (action: { type?: string }) => Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
     );
   });
 
-<<<<<<< HEAD
   it('loads integration status and saves Mautic defaults by default', async () => {
-=======
-  it('loads integration status and saves Mailchimp and Stripe defaults', async () => {
->>>>>>> origin/main
     renderPage();
 
     await waitFor(() => {
@@ -177,7 +139,6 @@ describe('WebsiteIntegrationsPage', () => {
       );
     });
 
-<<<<<<< HEAD
     expect(screen.getByRole('heading', { name: 'Newsletter provider' })).toBeInTheDocument();
     expect(screen.getByLabelText('Newsletter provider')).toHaveValue('mautic');
 
@@ -185,21 +146,10 @@ describe('WebsiteIntegrationsPage', () => {
       target: { value: 'seg-2' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save newsletter settings' }));
-=======
-    expect(screen.getByText('Integration state')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Mailchimp' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Stripe' })).toBeInTheDocument();
-
-    fireEvent.change(screen.getByPlaceholderText('Default tags (comma separated)'), {
-      target: { value: 'members, donors' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save Mailchimp settings' }));
->>>>>>> origin/main
 
     await waitFor(() => {
       expect(dispatchMock).toHaveBeenCalledWith(
         expect.objectContaining({
-<<<<<<< HEAD
           type: 'websites/updateNewsletterIntegration',
           payload: {
             siteId: 'site-1',
@@ -214,31 +164,12 @@ describe('WebsiteIntegrationsPage', () => {
                 syncEnabled: true,
               }),
             },
-=======
-          type: 'websites/updateMailchimpIntegration',
-          payload: {
-            siteId: 'site-1',
-            data: expect.objectContaining({
-              audienceId: 'aud-1',
-              audienceMode: 'both',
-              defaultTags: ['members', 'donors'],
-              syncEnabled: true,
-            }),
->>>>>>> origin/main
           },
         })
       );
     });
-<<<<<<< HEAD
     expect(screen.getByText('Mautic settings saved.')).toBeInTheDocument();
 
-=======
-    expect(screen.getByText('Mailchimp settings saved.')).toBeInTheDocument();
-
-    fireEvent.change(screen.getByPlaceholderText('Currency'), {
-      target: { value: 'usd' },
-    });
->>>>>>> origin/main
     fireEvent.click(screen.getByRole('button', { name: 'Save Stripe settings' }));
 
     await waitFor(() => {
@@ -249,11 +180,7 @@ describe('WebsiteIntegrationsPage', () => {
             siteId: 'site-1',
             data: expect.objectContaining({
               accountId: 'org-1',
-<<<<<<< HEAD
               currency: 'cad',
-=======
-              currency: 'usd',
->>>>>>> origin/main
               suggestedAmounts: [20, 40, 80],
               recurringDefault: true,
               campaignId: 'spring-drive',
@@ -264,7 +191,6 @@ describe('WebsiteIntegrationsPage', () => {
     });
     expect(screen.getByText('Stripe settings saved.')).toBeInTheDocument();
   });
-<<<<<<< HEAD
 
   it('switches to Mailchimp and preserves the legacy audience settings', async () => {
     currentState = buildState('mailchimp');
@@ -307,8 +233,6 @@ describe('WebsiteIntegrationsPage', () => {
     });
     expect(screen.getByText('Mailchimp settings saved.')).toBeInTheDocument();
   });
-=======
->>>>>>> origin/main
 });
 
 function renderPage() {

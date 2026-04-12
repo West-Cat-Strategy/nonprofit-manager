@@ -1,10 +1,7 @@
 import type { Response } from 'express';
 import pool from '@config/database';
 import { requireUserSafe } from '@services/authGuardService';
-<<<<<<< HEAD
 import { normalizeRoleSlug } from '@utils/roleSlug';
-=======
->>>>>>> origin/main
 import { unauthorized } from '@utils/responseHelpers';
 import type { AuthRequest } from '@middleware/auth';
 
@@ -112,11 +109,7 @@ export const requireAuthenticatedUser = (
 
   return {
     id: guardResult.data.user.id,
-<<<<<<< HEAD
     role: normalizeRoleSlug(guardResult.data.user.role) ?? guardResult.data.user.role,
-=======
-    role: guardResult.data.user.role,
->>>>>>> origin/main
   };
 };
 
@@ -153,19 +146,12 @@ export const createAuthUser = async (input: {
   lastName: string;
   role: string;
 }): Promise<UserRow> => {
-<<<<<<< HEAD
   const normalizedRole = normalizeRoleSlug(input.role) ?? input.role;
-=======
->>>>>>> origin/main
   const result = await pool.query<UserRow>(
     `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
      RETURNING id, email, first_name, last_name, role, created_at`,
-<<<<<<< HEAD
     [input.email, input.passwordHash, input.firstName, input.lastName, normalizedRole]
-=======
-    [input.email, input.passwordHash, input.firstName, input.lastName, input.role]
->>>>>>> origin/main
   );
 
   return result.rows[0];
@@ -254,7 +240,6 @@ export const getCurrentAuthUserById = async (
     [userId]
   );
 
-<<<<<<< HEAD
   const row = result.rows[0];
   if (!row) {
     return null;
@@ -264,9 +249,6 @@ export const getCurrentAuthUserById = async (
     ...row,
     role: normalizeRoleSlug(row.role) ?? row.role,
   };
-=======
-  return result.rows[0] ?? null;
->>>>>>> origin/main
 };
 
 export const mergeUserPreferences = async (

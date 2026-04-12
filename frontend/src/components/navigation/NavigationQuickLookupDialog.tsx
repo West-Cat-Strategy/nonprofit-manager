@@ -12,15 +12,9 @@ export default function NavigationQuickLookupDialog({
   const lookup = useQuickLookup({ debounceMs: 250 });
 
   return (
-<<<<<<< HEAD
     <div className="app-popup-backdrop fixed inset-0 z-50 flex items-start justify-center p-4">
       <div
         className="app-popup-surface-translucent mt-16 w-full max-w-2xl rounded-lg shadow-xl"
-=======
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-40 p-4">
-      <div
-        className="bg-app-surface rounded-lg shadow-xl w-full max-w-2xl mt-16"
->>>>>>> origin/main
         role="dialog"
         aria-modal="true"
         aria-label="Search people"

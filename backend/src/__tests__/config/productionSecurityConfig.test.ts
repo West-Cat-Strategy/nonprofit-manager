@@ -8,15 +8,12 @@ describe('validateProductionSecurityConfig', () => {
     STRIPE_WEBHOOK_SECRET: 'whsec_live_webhook_secret',
     ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
     DB_PASSWORD: 'super-secret-db-password',
-<<<<<<< HEAD
     PAYPAL_CLIENT_ID: 'paypal-client-id',
     PAYPAL_CLIENT_SECRET: 'paypal-client-secret',
     PAYPAL_WEBHOOK_ID: 'paypal-webhook-id',
     SQUARE_ACCESS_TOKEN: 'square-access-token',
     SQUARE_LOCATION_ID: 'square-location-id',
     SQUARE_WEBHOOK_SIGNATURE_KEY: 'square-webhook-key',
-=======
->>>>>>> origin/main
   } satisfies NodeJS.ProcessEnv;
 
   it('passes for a valid managed configuration', () => {

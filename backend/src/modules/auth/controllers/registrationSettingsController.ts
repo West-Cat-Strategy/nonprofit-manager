@@ -13,11 +13,7 @@ import {
   getRegistrationSettings,
   getRegistrationMode,
   updateRegistrationSettings,
-<<<<<<< HEAD
 } from '@modules/admin/usecases/registrationSettingsUseCase';
-=======
-} from '@services/registrationSettingsService';
->>>>>>> origin/main
 import {
   listPendingRegistrations,
   approvePendingRegistration,

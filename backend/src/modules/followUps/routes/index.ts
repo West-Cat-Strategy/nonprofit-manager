@@ -2,8 +2,10 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
+import { requirePermission } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { isoDateSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
+import { Permission } from '@utils/permissions';
 import { createFollowUpsController } from '../controllers/followUps.controller';
 
 const followUpStatusSchema = z.enum(['scheduled', 'completed', 'cancelled', 'overdue']);
@@ -100,32 +102,46 @@ export const createFollowUpsRoutes = (): Router => {
   router.get('/summary', validateQuery(followUpListQuerySchema), controller.getFollowUpSummary);
   router.get('/upcoming', validateQuery(upcomingQuerySchema), controller.getUpcomingFollowUps);
   router.get('/:id', validateParams(followUpIdParamSchema), controller.getFollowUpById);
-  router.post('/', validateBody(createFollowUpSchema), controller.createFollowUp);
+  router.post(
+    '/',
+    validateBody(createFollowUpSchema),
+    requirePermission(Permission.FOLLOWUP_CREATE),
+    controller.createFollowUp
+  );
   router.put(
     '/:id',
     validateParams(followUpIdParamSchema),
     validateBody(updateFollowUpSchema),
+    requirePermission(Permission.FOLLOWUP_EDIT),
     controller.updateFollowUp
   );
   router.post(
     '/:id/complete',
     validateParams(followUpIdParamSchema),
     validateBody(completeFollowUpSchema),
+    requirePermission(Permission.FOLLOWUP_EDIT),
     controller.completeFollowUp
   );
   router.post(
     '/:id/cancel',
     validateParams(followUpIdParamSchema),
     validateBody(cancelFollowUpSchema),
+    requirePermission(Permission.FOLLOWUP_EDIT),
     controller.cancelFollowUp
   );
   router.post(
     '/:id/reschedule',
     validateParams(followUpIdParamSchema),
     validateBody(rescheduleFollowUpSchema),
+    requirePermission(Permission.FOLLOWUP_EDIT),
     controller.rescheduleFollowUp
   );
-  router.delete('/:id', validateParams(followUpIdParamSchema), controller.deleteFollowUp);
+  router.delete(
+    '/:id',
+    validateParams(followUpIdParamSchema),
+    requirePermission(Permission.FOLLOWUP_DELETE),
+    controller.deleteFollowUp
+  );
 
   return router;
 };

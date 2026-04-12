@@ -24,7 +24,6 @@ const authenticatedState = {
 };
 
 describe('ProtectedRoute workspace module gating', () => {
-<<<<<<< HEAD
   it('waits for auth bootstrap on a protected print route before redirecting', () => {
     clearWorkspaceModuleAccessCache();
 
@@ -56,8 +55,6 @@ describe('ProtectedRoute workspace module gating', () => {
     expect(screen.queryByText('Print content')).not.toBeInTheDocument();
   });
 
-=======
->>>>>>> origin/main
   it.each([
     ['/contacts', 'contacts'],
     ['/cases', 'cases'],

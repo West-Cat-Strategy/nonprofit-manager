@@ -1,4 +1,3 @@
-<<<<<<<< HEAD:frontend/src/features/neoBrutalist/pages/PeopleDirectoryPage.tsx
 /**
  * People Directory - Service Layer Integration (Phase 1 Refined)
  * 
@@ -300,6 +299,3 @@ export default function PeopleDirectory() {
         </NeoBrutalistLayout>
     );
 }
-========
-export { default } from '../../features/neoBrutalist/pages/PeopleDirectoryPage';
->>>>>>>> origin/main:frontend/src/pages/neo-brutalist/PeopleDirectory.tsx

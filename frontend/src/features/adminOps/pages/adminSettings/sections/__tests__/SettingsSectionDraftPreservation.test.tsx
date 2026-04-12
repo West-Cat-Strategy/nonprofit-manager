@@ -551,7 +551,6 @@ describe('settings section draft preservation', () => {
       );
     });
   });
-<<<<<<< HEAD
 
   it('surfaces Twilio API error details when save fails', async () => {
     const user = userEvent.setup();
@@ -591,6 +590,4 @@ describe('settings section draft preservation', () => {
       expect(toastSpy.showError).toHaveBeenCalledWith('Invalid Twilio Account SID format');
     });
   });
-=======
->>>>>>> origin/main
 });

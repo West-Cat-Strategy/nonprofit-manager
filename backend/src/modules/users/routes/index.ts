@@ -22,10 +22,7 @@ import {
   passwordSchema,
   uuidSchema,
 } from '@validations/shared';
-<<<<<<< HEAD
 import { userRoleSchema } from '@validations/user';
-=======
->>>>>>> origin/main
 
 const router = Router();
 
@@ -38,22 +35,14 @@ const createUserSchema = z.object({
   password: passwordSchema,
   firstName: z.string().trim().min(1, 'First name is required'),
   lastName: z.string().trim().min(1, 'Last name is required'),
-<<<<<<< HEAD
   role: userRoleSchema.optional(),
-=======
-  role: z.enum(['admin', 'manager', 'user', 'readonly']).optional(),
->>>>>>> origin/main
 });
 
 const updateUserSchema = z.object({
   email: emailSchema.optional(),
   firstName: z.string().trim().min(1, 'First name cannot be empty').optional(),
   lastName: z.string().trim().min(1, 'Last name cannot be empty').optional(),
-<<<<<<< HEAD
   role: userRoleSchema.optional(),
-=======
-  role: z.enum(['admin', 'manager', 'user', 'readonly']).optional(),
->>>>>>> origin/main
   isActive: optionalStrictBooleanSchema,
 });
 
@@ -64,11 +53,7 @@ const resetUserPasswordSchema = z.object({
 const listUsersQuerySchema = z
   .object({
     search: z.string().trim().max(255).optional(),
-<<<<<<< HEAD
     role: userRoleSchema.optional(),
-=======
-    role: z.enum(['admin', 'manager', 'user', 'readonly']).optional(),
->>>>>>> origin/main
     is_active: optionalStrictBooleanSchema,
   })
   .strict();

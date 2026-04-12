@@ -15,11 +15,8 @@ export type WebsiteManagedFormType =
   | 'referral-form'
   | 'event-registration';
 
-<<<<<<< HEAD
 export type WebsiteNewsletterProvider = 'mailchimp' | 'mautic';
 
-=======
->>>>>>> origin/main
 export interface WebsiteSiteManagementSummary {
   status: 'healthy' | 'attention' | 'blocked';
   nextAction: {
@@ -135,12 +132,8 @@ export interface WebsiteFormOperationalConfig {
   accountId?: string | null;
   campaignId?: string | null;
   mailchimpListId?: string | null;
-<<<<<<< HEAD
   mauticSegmentId?: string | null;
   audienceMode?: 'crm' | 'mailchimp' | 'mautic' | 'both';
-=======
-  audienceMode?: 'crm' | 'mailchimp' | 'both';
->>>>>>> origin/main
   defaultTags?: string[];
   includePhone?: boolean;
   includeMessage?: boolean;
@@ -176,16 +169,11 @@ export interface WebsiteFormDefinition {
 
 export interface WebsiteMailchimpSettings {
   audienceId?: string | null;
-<<<<<<< HEAD
   audienceMode?: 'crm' | 'mailchimp' | 'mautic' | 'both';
-=======
-  audienceMode?: 'crm' | 'mailchimp' | 'both';
->>>>>>> origin/main
   defaultTags?: string[];
   syncEnabled?: boolean;
 }
 
-<<<<<<< HEAD
 export interface WebsiteMauticSettings {
   baseUrl?: string | null;
   segmentId?: string | null;
@@ -217,8 +205,6 @@ export interface WebsiteNewsletterSettings {
   lastRefreshedAt?: string | null;
 }
 
-=======
->>>>>>> origin/main
 export interface WebsiteStripeSettings {
   accountId?: string | null;
   currency?: string;
@@ -239,13 +225,9 @@ export interface WebsiteSocialSettings {
 export interface WebsiteSiteSettings {
   siteId: string;
   organizationId: string | null;
-<<<<<<< HEAD
   newsletter: WebsiteNewsletterSettings;
   mailchimp: WebsiteMailchimpSettings;
   mautic: WebsiteMauticSettings;
-=======
-  mailchimp: WebsiteMailchimpSettings;
->>>>>>> origin/main
   stripe: WebsiteStripeSettings;
   social: WebsiteSocialSettings;
   formDefaults: WebsiteFormOperationalConfig;
@@ -265,7 +247,6 @@ export interface WebsiteSiteSettings {
 export interface WebsiteIntegrationStatus {
   blocked: boolean;
   publishStatus: WebsiteSiteStatus;
-<<<<<<< HEAD
   newsletter: {
     provider: 'mailchimp' | 'mautic';
     configured: boolean;
@@ -282,8 +263,6 @@ export interface WebsiteIntegrationStatus {
     lastRefreshedAt: string | null;
     lastSyncAt: string | null;
   };
-=======
->>>>>>> origin/main
   mailchimp: WebsiteMailchimpSettings & {
     configured: boolean;
     accountName?: string;
@@ -295,7 +274,6 @@ export interface WebsiteIntegrationStatus {
     }>;
     lastSyncAt: string | null;
   };
-<<<<<<< HEAD
   mautic: WebsiteMauticSettings & {
     configured: boolean;
     baseUrl?: string;
@@ -307,8 +285,6 @@ export interface WebsiteIntegrationStatus {
     }>;
     lastSyncAt: string | null;
   };
-=======
->>>>>>> origin/main
   stripe: WebsiteStripeSettings & {
     configured: boolean;
     publishableKeyConfigured: boolean;

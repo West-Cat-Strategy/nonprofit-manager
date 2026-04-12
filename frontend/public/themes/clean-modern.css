@@ -20,12 +20,9 @@ body.theme-clean-modern {
   --app-accent-hover: #1d4ed8;
   --app-accent-text: #1d4ed8;
   --app-accent-text-hover: #1e40af;
-<<<<<<< HEAD
   --app-link: #1d4ed8;
   --app-link-hover: #1e40af;
   --app-link-visited: #1e40af;
-=======
->>>>>>> origin/main
   --app-accent-soft: #dbeafe;
   --app-accent-soft-hover: #bfdbfe;
 
@@ -68,12 +65,9 @@ body.theme-clean-modern {
   --app-accent-foreground: #ffffff;
   --app-accent-text: #116e64;
   --app-accent-text-hover: #0b554d;
-<<<<<<< HEAD
   --app-link: #116e64;
   --app-link-hover: #0b554d;
   --app-link-visited: #0b554d;
-=======
->>>>>>> origin/main
   --app-accent-soft: rgba(21, 125, 114, 0.13);
   --app-accent-soft-hover: rgba(21, 125, 114, 0.21);
   --app-hover: rgba(15, 23, 33, 0.06);
@@ -113,12 +107,9 @@ body.theme-clean-modern.dark {
   --app-accent-hover: #2563eb;
   --app-accent-text: #93c5fd;
   --app-accent-text-hover: #bfdbfe;
-<<<<<<< HEAD
   --app-link: #93c5fd;
   --app-link-hover: #bfdbfe;
   --app-link-visited: #bfdbfe;
-=======
->>>>>>> origin/main
   --app-accent-soft: rgba(59, 130, 246, 0.2);
   --app-accent-soft-hover: rgba(59, 130, 246, 0.35);
 
@@ -152,12 +143,9 @@ body.theme-clean-modern.dark {
   --app-accent-foreground: #0d1b1a;
   --app-accent-text: #98f0dd;
   --app-accent-text-hover: #c8fff2;
-<<<<<<< HEAD
   --app-link: #98f0dd;
   --app-link-hover: #c8fff2;
   --app-link-visited: #c8fff2;
-=======
->>>>>>> origin/main
   --app-accent-soft: rgba(99, 209, 188, 0.2);
   --app-accent-soft-hover: rgba(99, 209, 188, 0.3);
   --app-hover: rgba(255, 255, 255, 0.07);
@@ -171,7 +159,7 @@ body.theme-clean-modern.dark {
   --loop-blue: #9ccbe3;
   --shadow-color: rgba(0, 0, 0, 0.36);
   --focus-ring: #9ef6e2;
-  --app-shell-surface: rgba(21, 35, 33, 0.94);
+  --app-shell-surface: #1a2a28;
   --app-shell-top: #13201f;
   --app-shell-glow: rgba(99, 209, 188, 0.18);
   --app-shell-glow-secondary: rgba(180, 231, 214, 0.1);

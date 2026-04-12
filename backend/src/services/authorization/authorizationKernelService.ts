@@ -23,10 +23,7 @@ import {
   staticPermissionSubscriber,
 } from './subscribers/staticPermissionSubscriber';
 import type { AuthorizationSubscriber } from './subscribers/types';
-<<<<<<< HEAD
 import { normalizeRoleSlug } from '@utils/roleSlug';
-=======
->>>>>>> origin/main
 
 const POLICY_VERSION = 'p3-t4-auth-kernel-v1';
 
@@ -57,17 +54,11 @@ export const resolveRolesForUser = async (
   userId: string,
   primaryRole: string
 ): Promise<string[]> => {
-<<<<<<< HEAD
   const normalizedPrimaryRole = normalizeRoleSlug(primaryRole) ?? primaryRole;
 
   try {
     if (!(await hasRoleTables())) {
       return [normalizedPrimaryRole];
-=======
-  try {
-    if (!(await hasRoleTables())) {
-      return [primaryRole];
->>>>>>> origin/main
     }
 
     const result = await pool.query<{ name: string }>(
@@ -80,7 +71,6 @@ export const resolveRolesForUser = async (
     );
 
     if (result.rows.length === 0) {
-<<<<<<< HEAD
       return [normalizedPrimaryRole];
     }
 
@@ -88,22 +78,12 @@ export const resolveRolesForUser = async (
       normalizedPrimaryRole,
       ...result.rows.map((row) => normalizeRoleSlug(row.name) ?? row.name),
     ]);
-=======
-      return [primaryRole];
-    }
-
-    return unique([primaryRole, ...result.rows.map((row) => row.name)]);
->>>>>>> origin/main
   } catch (error) {
     logger.warn('Failed to resolve user roles for authorization kernel; using primary role fallback', {
       userId,
       error: error instanceof Error ? error.message : String(error),
     });
-<<<<<<< HEAD
     return [normalizedPrimaryRole];
-=======
-    return [primaryRole];
->>>>>>> origin/main
   }
 };
 
@@ -139,20 +119,12 @@ const mergeContextIntoMatrix = (
 export const buildAuthorizationSnapshot = async (
   input: AuthorizationKernelInput
 ): Promise<AuthorizationSnapshot> => {
-<<<<<<< HEAD
   const normalizedPrimaryRole = normalizeRoleSlug(input.primaryRole) ?? input.primaryRole;
   const roles = await resolveRolesForUser(input.userId, normalizedPrimaryRole);
 
   const context: AuthorizationSubscriberContext = {
     userId: input.userId,
     primaryRole: normalizedPrimaryRole,
-=======
-  const roles = await resolveRolesForUser(input.userId, input.primaryRole);
-
-  const context: AuthorizationSubscriberContext = {
-    userId: input.userId,
-    primaryRole: input.primaryRole,
->>>>>>> origin/main
     roles,
     organizationId: input.organizationId,
   };
@@ -192,15 +164,10 @@ export const createRequestAuthorizationContext = (
   roles?: string[]
 ): AuthorizationRequestContext => ({
   userId,
-<<<<<<< HEAD
   primaryRole: normalizeRoleSlug(primaryRole) ?? primaryRole,
   roles: unique(
     (roles && roles.length > 0 ? roles : [primaryRole]).map((role) => normalizeRoleSlug(role) ?? role)
   ),
-=======
-  primaryRole,
-  roles: unique(roles && roles.length > 0 ? roles : [primaryRole]),
->>>>>>> origin/main
   ...(organizationId ? { organizationId } : {}),
   hydratedAt: new Date().toISOString(),
 });
@@ -210,14 +177,9 @@ export const hasRoleAccess = (
   allowedRoles: string[],
   roles?: string[]
 ): boolean => {
-<<<<<<< HEAD
   const allowed = new Set(allowedRoles.map((role) => normalizeRoleSlug(role) ?? role));
   const candidates = roles && roles.length > 0 ? roles : [primaryRole];
   return candidates.some((role) => allowed.has(normalizeRoleSlug(role) ?? role));
-=======
-  const candidates = roles && roles.length > 0 ? roles : [primaryRole];
-  return candidates.some((role) => allowedRoles.includes(role));
->>>>>>> origin/main
 };
 
 export {

@@ -122,11 +122,7 @@ const resolveStaffArea = (id: string, section: RouteSection): RouteArea => {
     id === 'api-settings' ||
     id === 'navigation-settings' ||
     id === 'backup-settings' ||
-<<<<<<< HEAD
     id === 'communications' ||
-=======
-    id === 'email-marketing' ||
->>>>>>> origin/main
     id === 'social-media' ||
     id.startsWith('portal-admin-')
   ) {
@@ -186,10 +182,7 @@ const routeParentIds: Record<string, string> = {
   'contact-create': 'contacts',
   'contact-detail': 'contacts',
   'contact-edit': 'contacts',
-<<<<<<< HEAD
   'contact-print': 'contact-detail',
-=======
->>>>>>> origin/main
   'account-create': 'accounts',
   'account-detail': 'accounts',
   'account-edit': 'accounts',
@@ -240,11 +233,7 @@ const routeParentIds: Record<string, string> = {
   'admin-settings-workspace-modules': 'admin-settings',
   'admin-settings-branding': 'admin-settings',
   'admin-settings-users': 'admin-settings',
-<<<<<<< HEAD
   'admin-settings-communications': 'admin-settings',
-=======
-  'admin-settings-email': 'admin-settings',
->>>>>>> origin/main
   'admin-settings-messaging': 'admin-settings',
   'admin-settings-outcomes': 'admin-settings',
   'admin-settings-roles': 'admin-settings',
@@ -258,10 +247,7 @@ const routeParentIds: Record<string, string> = {
   'website-console-redirect': 'websites',
   'website-console-overview': 'websites',
   'website-console-content': 'websites',
-<<<<<<< HEAD
   'website-console-newsletters': 'websites',
-=======
->>>>>>> origin/main
   'website-console-forms': 'websites',
   'website-console-integrations': 'websites',
   'website-console-publishing': 'websites',

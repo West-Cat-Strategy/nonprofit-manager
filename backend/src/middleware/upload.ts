@@ -5,11 +5,7 @@
 
 import multer, { FileFilterCallback } from 'multer';
 import { Request } from 'express';
-<<<<<<< HEAD
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@services/fileStorageService';
-=======
-import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@services';
->>>>>>> origin/main
 import { badRequest } from '@utils/responseHelpers';
 
 /**

@@ -2,20 +2,14 @@ import { Link } from 'react-router-dom';
 import Avatar from '../../../../../components/Avatar';
 import { getAdminSettingsPath } from '../../../adminRoutePaths';
 import type { UserInvitation, UserSearchResult } from '../types';
-<<<<<<< HEAD
 import { getRoleDisplayLabel } from '../utils';
-=======
->>>>>>> origin/main
 
 interface UsersSectionProps {
   userSearchQuery: string;
   onSearchChange: (value: string) => void;
   isSearching: boolean;
   userSearchResults: UserSearchResult[];
-<<<<<<< HEAD
   roleLabels: Record<string, string>;
-=======
->>>>>>> origin/main
   onSelectUser: (userId: string) => void;
   onShowInvite: () => void;
   onGoToRoles: () => void;
@@ -29,10 +23,7 @@ export default function UsersSection({
   onSearchChange,
   isSearching,
   userSearchResults,
-<<<<<<< HEAD
   roleLabels,
-=======
->>>>>>> origin/main
   onSelectUser,
   onShowInvite,
   onGoToRoles,
@@ -40,7 +31,6 @@ export default function UsersSection({
   onResendInvitation,
   onRevokeInvitation,
 }: UsersSectionProps) {
-<<<<<<< HEAD
   const getLabel = (role: string) => getRoleDisplayLabel(role, roleLabels);
 
   return (
@@ -51,14 +41,6 @@ export default function UsersSection({
           <p className="mt-1 text-sm text-app-text-muted">
             Search for users to manage their security settings.
           </p>
-=======
-  return (
-    <div className="space-y-6">
-      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
-        <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
-          <h2 className="text-lg font-semibold text-app-text-heading">User Lookup</h2>
-          <p className="text-sm text-app-text-muted mt-1">Search for users to manage their security settings</p>
->>>>>>> origin/main
         </div>
 
         <div className="p-6">
@@ -69,22 +51,14 @@ export default function UsersSection({
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search by name or email..."
               aria-label="Search users"
-<<<<<<< HEAD
               className="w-full rounded-lg border border-app-input-border py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
             />
             <svg
               className="absolute left-3 top-3.5 h-5 w-5 text-app-text-subtle"
-=======
-              className="w-full px-4 py-3 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent pl-10"
-            />
-            <svg
-              className="absolute left-3 top-3.5 w-5 h-5 text-app-text-subtle"
->>>>>>> origin/main
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-<<<<<<< HEAD
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -95,32 +69,17 @@ export default function UsersSection({
             {isSearching && (
               <div className="absolute right-3 top-3.5">
                 <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-app-accent" />
-=======
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            {isSearching && (
-              <div className="absolute right-3 top-3.5">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-app-accent"></div>
->>>>>>> origin/main
               </div>
             )}
           </div>
 
           {userSearchResults.length > 0 && (
-<<<<<<< HEAD
             <div className="mt-4 divide-y divide-app-border overflow-hidden rounded-lg border border-app-border">
-=======
-            <div className="mt-4 border border-app-border rounded-lg divide-y divide-app-border">
->>>>>>> origin/main
               {userSearchResults.map((user) => (
                 <button
                   type="button"
                   key={user.id}
-<<<<<<< HEAD
                   className="flex w-full cursor-pointer items-center justify-between p-4 text-left hover:bg-app-surface-muted"
-=======
-                  className="w-full p-4 hover:bg-app-surface-muted cursor-pointer flex items-center justify-between text-left"
->>>>>>> origin/main
                   onClick={() => onSelectUser(user.id)}
                 >
                   <div className="flex items-center">
@@ -139,7 +98,6 @@ export default function UsersSection({
                   </div>
                   <div className="flex items-center space-x-4">
                     <span
-<<<<<<< HEAD
                       className={`rounded-full px-2 py-1 text-xs font-medium ${
                         user.role === 'admin'
                           ? 'bg-app-accent-soft text-app-accent-text'
@@ -153,31 +111,16 @@ export default function UsersSection({
                         user.isActive
                           ? 'bg-app-accent-soft text-app-accent-text'
                           : 'bg-app-surface-muted text-app-text'
-=======
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        user.role === 'admin' ? 'bg-app-accent-soft text-app-accent-text' : 'bg-app-surface-muted text-app-text'
-                      }`}
-                    >
-                      {user.role}
-                    </span>
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        user.isActive ? 'bg-app-accent-soft text-app-accent-text' : 'bg-app-accent-soft text-app-accent-text'
->>>>>>> origin/main
                       }`}
                     >
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
-<<<<<<< HEAD
                     <svg
                       className="h-5 w-5 text-app-text-subtle"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
-=======
-                    <svg className="w-5 h-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
->>>>>>> origin/main
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
@@ -187,39 +130,25 @@ export default function UsersSection({
           )}
 
           {userSearchQuery && !isSearching && userSearchResults.length === 0 && (
-<<<<<<< HEAD
             <div className="mt-4 py-8 text-center text-app-text-muted">
-=======
-            <div className="mt-4 text-center py-8 text-app-text-muted">
->>>>>>> origin/main
               No users found matching &quot;{userSearchQuery}&quot;
             </div>
           )}
         </div>
       </div>
 
-<<<<<<< HEAD
       <div className="overflow-hidden rounded-lg border border-app-border bg-app-surface shadow-sm">
         <div className="flex items-center justify-between border-b border-app-border bg-app-surface-muted px-6 py-4">
-=======
-      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
-        <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted flex items-center justify-between">
->>>>>>> origin/main
           <h2 className="text-lg font-semibold text-app-text-heading">User Management</h2>
           <button
             type="button"
             onClick={onShowInvite}
-<<<<<<< HEAD
             className="rounded-lg bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] hover:bg-app-accent-hover"
-=======
-            className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] text-sm font-medium rounded-lg hover:bg-app-accent-hover"
->>>>>>> origin/main
           >
             Invite User
           </button>
         </div>
         <div className="p-6">
-<<<<<<< HEAD
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Link
               to={getAdminSettingsPath('users')}
@@ -238,16 +167,6 @@ export default function UsersSection({
                     strokeWidth={2}
                     d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                   />
-=======
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link
-              to={getAdminSettingsPath('users')}
-              className="flex items-center p-4 border border-app-border rounded-lg hover:bg-app-surface-muted transition-colors"
-            >
-              <div className="w-10 h-10 bg-app-accent-soft rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
->>>>>>> origin/main
                 </svg>
               </div>
               <div className="ml-4">
@@ -259,7 +178,6 @@ export default function UsersSection({
             <button
               type="button"
               onClick={onGoToRoles}
-<<<<<<< HEAD
               className="flex items-center rounded-lg border border-app-border p-4 text-left transition-colors hover:bg-app-surface-muted"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-accent-soft">
@@ -275,13 +193,6 @@ export default function UsersSection({
                     strokeWidth={2}
                     d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                   />
-=======
-              className="flex items-center p-4 border border-app-border rounded-lg hover:bg-app-surface-muted transition-colors text-left"
-            >
-              <div className="w-10 h-10 bg-app-accent-soft rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
->>>>>>> origin/main
                 </svg>
               </div>
               <div className="ml-4">
@@ -292,7 +203,6 @@ export default function UsersSection({
 
             <Link
               to={getAdminSettingsPath('audit_logs')}
-<<<<<<< HEAD
               className="flex items-center rounded-lg border border-app-border p-4 transition-colors hover:bg-app-surface-muted"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-accent-soft">
@@ -308,13 +218,6 @@ export default function UsersSection({
                     strokeWidth={2}
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
                   />
-=======
-              className="flex items-center p-4 border border-app-border rounded-lg hover:bg-app-surface-muted transition-colors"
-            >
-              <div className="w-10 h-10 bg-app-accent-soft rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-app-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
->>>>>>> origin/main
                 </svg>
               </div>
               <div className="ml-4">
@@ -326,7 +229,6 @@ export default function UsersSection({
         </div>
       </div>
 
-<<<<<<< HEAD
       <div className="overflow-hidden rounded-lg border border-app-border bg-app-surface shadow-sm">
         <div className="border-b border-app-border bg-app-surface-muted px-6 py-4">
           <h2 className="text-lg font-semibold text-app-text">Security Settings</h2>
@@ -386,47 +288,11 @@ export default function UsersSection({
                 Coming soon
               </span>
             </div>
-=======
-      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
-        <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
-          <h2 className="text-lg font-semibold text-app-text-heading">Security Settings</h2>
-          <p className="text-sm text-app-text-muted mt-1">Organization-wide security policies</p>
-        </div>
-        <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-app-border-muted">
-            <div>
-              <div className="text-sm font-medium text-app-text">Require Strong Passwords</div>
-              <div className="text-sm text-app-text-muted">Minimum 8 characters with uppercase, lowercase, and number</div>
-            </div>
-            <span className="px-2 py-1 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded-full">Enabled</span>
-          </div>
-          <div className="flex items-center justify-between py-3 border-b border-app-border-muted">
-            <div>
-              <div className="text-sm font-medium text-app-text">Account Lockout</div>
-              <div className="text-sm text-app-text-muted">Lock accounts after 5 failed login attempts</div>
-            </div>
-            <span className="px-2 py-1 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded-full">Enabled</span>
-          </div>
-          <div className="flex items-center justify-between py-3 border-b border-app-border-muted">
-            <div>
-              <div className="text-sm font-medium text-app-text">Session Timeout</div>
-              <div className="text-sm text-app-text-muted">Automatically log out after 24 hours of inactivity</div>
-            </div>
-            <span className="px-2 py-1 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded-full">24 hours</span>
-          </div>
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <div className="text-sm font-medium text-app-text">Two-Factor Authentication</div>
-              <div className="text-sm text-app-text-muted">Require 2FA for admin accounts</div>
-            </div>
-            <span className="px-2 py-1 text-xs font-medium bg-app-surface-muted text-app-text rounded-full">Coming Soon</span>
->>>>>>> origin/main
           </div>
         </div>
       </div>
 
       {invitations.length > 0 && (
-<<<<<<< HEAD
         <div className="overflow-hidden rounded-lg border border-app-border bg-app-surface shadow-sm">
           <div className="border-b border-app-border bg-app-surface-muted px-6 py-4">
             <h2 className="text-lg font-semibold text-app-text-heading">Pending Invitations</h2>
@@ -437,21 +303,10 @@ export default function UsersSection({
           <div className="divide-y divide-app-border">
             {invitations.map((invitation) => (
               <div key={invitation.id} className="flex items-center justify-between p-4">
-=======
-        <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
-          <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
-            <h2 className="text-lg font-semibold text-app-text-heading">Pending Invitations</h2>
-            <p className="text-sm text-app-text-muted mt-1">Users who have been invited but haven&apos;t created their account yet</p>
-          </div>
-          <div className="divide-y divide-app-border">
-            {invitations.map((invitation) => (
-              <div key={invitation.id} className="p-4 flex items-center justify-between">
->>>>>>> origin/main
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-app-text">{invitation.email}</span>
                     <span
-<<<<<<< HEAD
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         invitation.role === 'admin'
                           ? 'bg-app-accent-soft text-app-accent-text'
@@ -462,16 +317,6 @@ export default function UsersSection({
                     </span>
                   </div>
                   <div className="mt-1 text-sm text-app-text-muted">
-=======
-                      className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        invitation.role === 'admin' ? 'bg-app-accent-soft text-app-accent-text' : 'bg-app-surface-muted text-app-text'
-                      }`}
-                    >
-                      {invitation.role}
-                    </span>
-                  </div>
-                  <div className="text-sm text-app-text-muted mt-1">
->>>>>>> origin/main
                     Invited {new Date(invitation.createdAt).toLocaleDateString('en-CA')}
                     {invitation.createdByName && ` by ${invitation.createdByName}`}
                     {' '}•{' '}
@@ -482,22 +327,14 @@ export default function UsersSection({
                   <button
                     type="button"
                     onClick={() => onResendInvitation(invitation.id)}
-<<<<<<< HEAD
                     className="px-3 py-1.5 text-sm font-medium text-app-accent hover:text-app-accent-hover"
-=======
-                    className="px-3 py-1.5 text-sm text-app-accent hover:text-app-accent-hover font-medium"
->>>>>>> origin/main
                   >
                     Resend
                   </button>
                   <button
                     type="button"
                     onClick={() => onRevokeInvitation(invitation.id)}
-<<<<<<< HEAD
                     className="px-3 py-1.5 text-sm font-medium text-app-accent hover:text-app-accent-text"
-=======
-                    className="px-3 py-1.5 text-sm text-app-accent hover:text-app-accent-text font-medium"
->>>>>>> origin/main
                   >
                     Revoke
                   </button>
@@ -510,7 +347,4 @@ export default function UsersSection({
     </div>
   );
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/main

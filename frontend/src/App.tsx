@@ -3,10 +3,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ToastHost from './components/ToastHost';
 import PageLoader from './components/PageLoader';
-<<<<<<< HEAD
 import ErrorBoundary from './components/ErrorBoundary';
-=======
->>>>>>> origin/main
 import { useAppDispatch } from './store/hooks';
 import { initializeAuth } from './features/auth/state';
 import './App.css';
@@ -40,7 +37,6 @@ function App() {
 
   return (
     <Router>
-<<<<<<< HEAD
       <ErrorBoundary>
         <div className="min-h-screen bg-app-bg text-app-text transition-colors duration-300">
           <ThemeProvider>
@@ -51,16 +47,6 @@ function App() {
           </ThemeProvider>
         </div>
       </ErrorBoundary>
-=======
-      <div className="min-h-screen bg-app-bg text-app-text transition-colors duration-300">
-        <ThemeProvider>
-          <Suspense fallback={<AppRouteFallback />}>
-            <AppRoutes />
-          </Suspense>
-          <ToastHost />
-        </ThemeProvider>
-      </div>
->>>>>>> origin/main
     </Router>
   );
 }

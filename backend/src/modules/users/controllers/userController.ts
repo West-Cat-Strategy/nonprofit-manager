@@ -9,10 +9,7 @@ import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
-<<<<<<< HEAD
 import { getRoleSelectorItems } from '@modules/admin/usecases/roleCatalogUseCase';
-=======
->>>>>>> origin/main
 import * as userManagementService from '@services/userManagementService';
 import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
@@ -114,11 +111,7 @@ export const createUser = async (
       return forbidden(res, 'Admin access required');
     }
 
-<<<<<<< HEAD
     const { email, password, firstName, lastName, role = 'staff' } = req.body;
-=======
-    const { email, password, firstName, lastName, role = 'user' } = req.body;
->>>>>>> origin/main
 
     // Check if user already exists
     const existingUserId = await userManagementService.findUserByEmail(email);
@@ -340,16 +333,7 @@ export const getRoles = async (
     return forbidden(res, 'Admin access required');
   }
 
-<<<<<<< HEAD
   const roles = await getRoleSelectorItems();
-=======
-  const roles = [
-    { value: 'admin', label: 'Administrator', description: 'Full access to all features and settings' },
-    { value: 'manager', label: 'Manager', description: 'Can manage records but not system settings' },
-    { value: 'user', label: 'User', description: 'Standard access to view and edit records' },
-    { value: 'readonly', label: 'Read Only', description: 'Can only view records, no editing' },
-  ];
->>>>>>> origin/main
 
   return sendSuccess(res, { roles });
 };

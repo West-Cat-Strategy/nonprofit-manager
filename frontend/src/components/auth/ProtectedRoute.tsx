@@ -28,7 +28,6 @@ const WorkspaceModuleUnavailable = ({ moduleLabel }: { moduleLabel: string }) =>
 const ProtectedRouteWrapper = ({
   children,
   isAuthenticated,
-<<<<<<< HEAD
   isLoading,
   moduleLabel,
 }: ProtectedRouteProps & {
@@ -39,10 +38,6 @@ const ProtectedRouteWrapper = ({
   if (isLoading) {
     return <RouteContentFallback />;
   }
-=======
-  moduleLabel,
-}: ProtectedRouteProps & { isAuthenticated: boolean; moduleLabel: string | null }) => {
->>>>>>> origin/main
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -58,7 +53,6 @@ const ProtectedRouteWrapper = ({
 const NeoBrutalistRouteWrapper = ({
   children,
   isAuthenticated,
-<<<<<<< HEAD
   isLoading,
   moduleLabel,
 }: ProtectedRouteProps & {
@@ -69,10 +63,6 @@ const NeoBrutalistRouteWrapper = ({
   if (isLoading) {
     return <RouteContentFallback />;
   }
-=======
-  moduleLabel,
-}: ProtectedRouteProps & { isAuthenticated: boolean; moduleLabel: string | null }) => {
->>>>>>> origin/main
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -85,11 +75,7 @@ const NeoBrutalistRouteWrapper = ({
 };
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-<<<<<<< HEAD
   const { isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
-=======
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
->>>>>>> origin/main
   const location = useLocation();
   const workspaceModules = useWorkspaceModuleAccess();
   const entry = matchRouteCatalogEntry(`${location.pathname}${location.search}`);
@@ -98,26 +84,18 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     moduleKey && workspaceModules[moduleKey] === false ? entry?.title ?? 'This module' : null;
 
   return (
-<<<<<<< HEAD
     <ProtectedRouteWrapper
       isAuthenticated={isAuthenticated}
       isLoading={authLoading}
       moduleLabel={moduleLabel}
     >
-=======
-    <ProtectedRouteWrapper isAuthenticated={isAuthenticated} moduleLabel={moduleLabel}>
->>>>>>> origin/main
       {children}
     </ProtectedRouteWrapper>
   );
 };
 
 export const NeoBrutalistRoute = ({ children }: ProtectedRouteProps) => {
-<<<<<<< HEAD
   const { isAuthenticated, authLoading } = useAppSelector((state) => state.auth);
-=======
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
->>>>>>> origin/main
   const location = useLocation();
   const workspaceModules = useWorkspaceModuleAccess();
   const entry = matchRouteCatalogEntry(`${location.pathname}${location.search}`);
@@ -126,15 +104,11 @@ export const NeoBrutalistRoute = ({ children }: ProtectedRouteProps) => {
     moduleKey && workspaceModules[moduleKey] === false ? entry?.title ?? 'This module' : null;
 
   return (
-<<<<<<< HEAD
     <NeoBrutalistRouteWrapper
       isAuthenticated={isAuthenticated}
       isLoading={authLoading}
       moduleLabel={moduleLabel}
     >
-=======
-    <NeoBrutalistRouteWrapper isAuthenticated={isAuthenticated} moduleLabel={moduleLabel}>
->>>>>>> origin/main
       {children}
     </NeoBrutalistRouteWrapper>
   );

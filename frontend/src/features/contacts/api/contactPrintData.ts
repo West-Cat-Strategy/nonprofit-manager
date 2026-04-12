@@ -183,7 +183,7 @@ export const fetchContactPrintData = async (contactId: string): Promise<ContactP
       phones: getSettledValue(phonesResult, []),
       emails: getSettledValue(emailsResult, []),
       relationships: getSettledValue(relationshipsResult, []),
-      notes: getSettledValue(notesResult, []),
+      notes: getSettledValue(notesResult, { notes: [], total: 0 }).notes,
       documents: getSettledValue(documentsResult, []),
       communications: getSettledValue(communicationsResult, emptyCommunicationsResult).items,
       followUps: getSettledValue(followUpsResult, []),

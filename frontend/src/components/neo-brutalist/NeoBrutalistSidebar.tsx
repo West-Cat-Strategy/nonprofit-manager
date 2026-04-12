@@ -103,20 +103,12 @@ function ModuleButton({ to, icon, label, activeColor, active }: ModuleButtonProp
     >
       <div
         className={`flex items-center gap-3 px-4 py-3 border-2 border-[var(--app-border)] transition-all ${active
-<<<<<<< HEAD
           ? `${bgColor} text-[var(--app-text-heading)] shadow-[6px_6px_0px_0px_var(--shadow-color)]`
-=======
-          ? `${bgColor} text-black shadow-[6px_6px_0px_0px_var(--shadow-color)]`
->>>>>>> origin/main
           : 'bg-[var(--app-surface-muted)] hover:bg-[var(--app-surface)] shadow-[4px_4px_0px_0px_var(--shadow-color)]'
           }`}
       >
         <div
-<<<<<<< HEAD
           className={`w-7 h-7 flex items-center justify-center border-2 border-[var(--app-border)] ${active ? 'bg-[var(--app-text-heading)] text-[var(--app-bg)]' : 'bg-[var(--app-border)] text-[var(--app-bg)]'
-=======
-          className={`w-7 h-7 flex items-center justify-center border-2 border-[var(--app-border)] ${active ? 'bg-black text-white' : 'bg-[var(--app-border)] text-[var(--app-bg)]'
->>>>>>> origin/main
             }`}
           aria-hidden="true"
         >

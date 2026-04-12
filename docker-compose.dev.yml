@@ -1,5 +1,23 @@
 name: nonprofit-dev
 
+x-backend-dev-env: &backend-dev-env
+  NODE_ENV: test
+  HOST: 0.0.0.0
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: nonprofit_manager
+  DB_USER: postgres
+  DB_PASSWORD: postgres
+  BYPASS_REGISTRATION_POLICY_IN_TEST: "true"
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX_REQUESTS: "100000"
+  AUTH_RATE_LIMIT_WINDOW_MS: "900000"
+  AUTH_RATE_LIMIT_MAX_REQUESTS: "100000"
+  REGISTRATION_MAX_ATTEMPTS: "100000"
+  MAX_LOGIN_ATTEMPTS: "1000"
+  DISABLE_PII_MASKING_IN_TEST: "true"
+  SITE_BASE_URL: http://sites.localhost
+
 services:
   postgres:
     image: postgres:14-alpine
@@ -43,23 +61,9 @@ services:
     env_file:
       - .env.development
     environment:
-      NODE_ENV: test
-      HOST: 0.0.0.0
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_NAME: nonprofit_manager
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      BYPASS_REGISTRATION_POLICY_IN_TEST: "true"
-      RATE_LIMIT_WINDOW_MS: "900000"
-      RATE_LIMIT_MAX_REQUESTS: "100000"
-      AUTH_RATE_LIMIT_WINDOW_MS: "900000"
-      AUTH_RATE_LIMIT_MAX_REQUESTS: "100000"
-      REGISTRATION_MAX_ATTEMPTS: "100000"
-      MAX_LOGIN_ATTEMPTS: "1000"
-      DISABLE_PII_MASKING_IN_TEST: "true"
+      <<: *backend-dev-env
       CORS_ORIGIN: http://localhost:5173,http://localhost:8005,http://127.0.0.1:5173,http://127.0.0.1:8005
-      SITE_BASE_URL: http://sites.localhost
+    command: npm run dev
     ports:
       - "8004:3000"
     volumes:
@@ -71,7 +75,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health/live > /dev/null"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health/ready > /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -86,24 +90,9 @@ services:
     env_file:
       - .env.development
     environment:
-      NODE_ENV: test
-      HOST: 0.0.0.0
+      <<: *backend-dev-env
       PORT: 8006
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_NAME: nonprofit_manager
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      BYPASS_REGISTRATION_POLICY_IN_TEST: "true"
-      RATE_LIMIT_WINDOW_MS: "900000"
-      RATE_LIMIT_MAX_REQUESTS: "100000"
-      AUTH_RATE_LIMIT_WINDOW_MS: "900000"
-      AUTH_RATE_LIMIT_MAX_REQUESTS: "100000"
-      REGISTRATION_MAX_ATTEMPTS: "100000"
-      MAX_LOGIN_ATTEMPTS: "1000"
-      DISABLE_PII_MASKING_IN_TEST: "true"
       CORS_ORIGIN: http://sites.localhost,http://localhost:8006,http://127.0.0.1:8006
-      SITE_BASE_URL: http://sites.localhost
     command: npm run dev:public
     ports:
       - "8006:8006"
@@ -116,7 +105,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8006/health > /dev/null"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8006/health/ready > /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -137,9 +126,6 @@ services:
     volumes:
       - ./frontend:/app
       - frontend-dev-node-modules:/app/node_modules
-    depends_on:
-      backend-dev:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8005 > /dev/null"]
       interval: 10s

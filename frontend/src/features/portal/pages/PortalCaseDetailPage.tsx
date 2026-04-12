@@ -396,36 +396,44 @@ export default function PortalCaseDetailPage() {
                 <p className="text-sm text-app-text-muted">No visible timeline activity yet.</p>
               ) : (
                 <div className="space-y-3">
-                  {sortedTimeline.map((event) => (
-                    <PortalListCard
-                      key={`${event.type}-${event.id}`}
-                      title={event.title}
-                      subtitle={event.type.toUpperCase()}
-                      meta={formatDateTime(event.created_at)}
-<<<<<<< HEAD
-                      badges={
-                        event.type === 'appointment' && event.metadata?.status ? (
-                          <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text capitalize">
-                            {event.metadata.status as string}
-                          </span>
-                        ) : undefined
-                      }
-=======
->>>>>>> origin/main
-                    >
-                      {event.content && (
-                        <p className="mt-1 whitespace-pre-wrap text-sm text-app-text">{event.content}</p>
-                      )}
-<<<<<<< HEAD
-                      {event.type === 'appointment' && event.metadata?.start_time && (
-                        <p className="mt-1 text-sm text-app-text-muted">
-                          Scheduled: {formatDateTime(event.metadata.start_time as string)}
-                        </p>
-                      )}
-=======
->>>>>>> origin/main
-                    </PortalListCard>
-                  ))}
+                  {sortedTimeline.map((event) => {
+                    const appointmentStartTime =
+                      event.type === 'appointment' &&
+                      typeof event.metadata?.start_time === 'string'
+                        ? event.metadata.start_time
+                        : null;
+
+                    const appointmentStatus =
+                      event.type === 'appointment' &&
+                      typeof event.metadata?.status === 'string'
+                        ? event.metadata.status
+                        : null;
+
+                    return (
+                      <PortalListCard
+                        key={`${event.type}-${event.id}`}
+                        title={event.title}
+                        subtitle={event.type.toUpperCase()}
+                        meta={formatDateTime(event.created_at)}
+                        badges={
+                          appointmentStatus ? (
+                            <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text capitalize">
+                              {appointmentStatus}
+                            </span>
+                          ) : undefined
+                        }
+                      >
+                        {event.content && (
+                          <p className="mt-1 whitespace-pre-wrap text-sm text-app-text">{event.content}</p>
+                        )}
+                        {appointmentStartTime && (
+                          <p className="mt-1 text-sm text-app-text-muted">
+                            Scheduled: {formatDateTime(appointmentStartTime)}
+                          </p>
+                        )}
+                      </PortalListCard>
+                    );
+                  })}
                   {timelineHasMore && (
                     <div className="pt-2">
                       <button

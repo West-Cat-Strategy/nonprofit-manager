@@ -234,11 +234,7 @@ export default function PortalEventsPage() {
       )}
 
       {passEvent && (
-<<<<<<< HEAD
         <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop p-4">
-=======
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
->>>>>>> origin/main
           <div className="w-full max-w-md rounded-lg border border-app-border bg-app-surface p-5 shadow-xl">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>

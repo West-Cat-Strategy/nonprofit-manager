@@ -1,4 +1,3 @@
-<<<<<<<< HEAD:frontend/src/features/neoBrutalist/pages/LinkingModulePage.tsx
 /**
  * Linking Module - PARTNERSHIP MANAGEMENT
  * Uses LoopApiService, standard Loop Green theme
@@ -137,6 +136,3 @@ export default function LinkingModule() {
         </NeoBrutalistLayout>
     );
 }
-========
-export { default } from '../../features/neoBrutalist/pages/LinkingModulePage';
->>>>>>>> origin/main:frontend/src/pages/neo-brutalist/LinkingModule.tsx

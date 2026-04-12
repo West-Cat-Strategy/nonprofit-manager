@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
+import { requirePermission } from '@middleware/permissions';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
@@ -52,6 +53,7 @@ import { CaseRelationshipsUseCase } from '../usecases/caseRelationships.usecase'
 import { CaseServicesUseCase } from '../usecases/caseServices.usecase';
 import { CaseOutcomesUseCase } from '../usecases/caseOutcomes.usecase';
 import { CaseDocumentsUseCase } from '../usecases/caseDocuments.usecase';
+import { Permission } from '@utils/permissions';
 
 const casePrioritySchema = z.enum(['low', 'medium', 'high', 'urgent', 'critical']);
 const caseOutcomeSchema = z.enum([
@@ -399,9 +401,15 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.post(
     '/bulk-status',
     validateBody(bulkStatusUpdateSchema),
+    requirePermission(Permission.CASE_EDIT),
     lifecycleController.bulkUpdateCaseStatus
   );
-  router.post('/', validateBody(createCaseSchema), lifecycleController.createCase);
+  router.post(
+    '/',
+    validateBody(createCaseSchema),
+    requirePermission(Permission.CASE_CREATE),
+    lifecycleController.createCase
+  );
   router.get('/', validateQuery(caseCatalogQuerySchema), catalogController.getCases);
   router.get('/:id', validateParams(caseIdParamsSchema), catalogController.getCaseById);
   router.get(
@@ -419,39 +427,55 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id',
     validateParams(caseIdParamsSchema),
     validateBody(updateCaseSchema),
+    requirePermission(Permission.CASE_EDIT),
     lifecycleController.updateCase
   );
   router.put(
     '/:id/client-viewable',
     validateParams(caseIdParamsSchema),
     validateBody(updateCaseClientViewableSchema),
+    requirePermission(Permission.CASE_EDIT),
     lifecycleController.updateCase
   );
-  router.delete('/:id', validateParams(caseIdParamsSchema), lifecycleController.deleteCase);
+  router.delete(
+    '/:id',
+    validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_DELETE),
+    lifecycleController.deleteCase
+  );
   router.put(
     '/:id/status',
     validateParams(caseIdParamsSchema),
     validateBody(updateCaseStatusSchema),
+    requirePermission(Permission.CASE_EDIT),
     lifecycleController.updateCaseStatus
   );
   router.put(
     '/:id/reassign',
     validateParams(caseIdParamsSchema),
     validateBody(reassignCaseSchema),
+    requirePermission(Permission.CASE_EDIT),
     lifecycleController.reassignCase
   );
 
   router.get('/:id/notes', validateParams(caseIdParamsSchema), notesController.getCaseNotes);
-  router.post('/notes', validateBody(createCaseNoteSchema), notesController.createCaseNote);
+  router.post(
+    '/notes',
+    validateBody(createCaseNoteSchema),
+    requirePermission(Permission.CASE_EDIT),
+    notesController.createCaseNote
+  );
   router.put(
     '/notes/:noteId',
     validateParams(noteIdParamsSchema),
     validateBody(updateCaseNoteSchema),
+    requirePermission(Permission.CASE_EDIT),
     notesController.updateCaseNote
   );
   router.delete(
     '/notes/:noteId',
     validateParams(noteIdParamsSchema),
+    requirePermission(Permission.CASE_EDIT),
     notesController.deleteCaseNote
   );
 
@@ -464,17 +488,20 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/outcomes',
     validateParams(caseIdParamsSchema),
     validateBody(createCaseOutcomeSchema),
+    requirePermission(Permission.CASE_EDIT),
     outcomesController.createCaseOutcome
   );
   router.put(
     '/outcomes/:outcomeId',
     validateParams(outcomeIdParamsSchema),
     validateBody(updateCaseOutcomeSchema),
+    requirePermission(Permission.CASE_EDIT),
     outcomesController.updateCaseOutcome
   );
   router.delete(
     '/outcomes/:outcomeId',
     validateParams(outcomeIdParamsSchema),
+    requirePermission(Permission.CASE_EDIT),
     outcomesController.deleteCaseOutcome
   );
 
@@ -487,6 +514,7 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/topics/definitions',
     validateParams(caseIdParamsSchema),
     validateBody(createTopicDefinitionSchema),
+    requirePermission(Permission.CASE_EDIT),
     outcomesController.createCaseTopicDefinition
   );
   router.get(
@@ -498,11 +526,13 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/topics',
     validateParams(caseIdParamsSchema),
     validateBody(createTopicEventSchema),
+    requirePermission(Permission.CASE_EDIT),
     outcomesController.createCaseTopicEvent
   );
   router.delete(
     '/topics/:topicEventId',
     validateParams(topicEventIdParamsSchema),
+    requirePermission(Permission.CASE_EDIT),
     outcomesController.deleteCaseTopicEvent
   );
 
@@ -516,6 +546,7 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     validateParams(caseIdParamsSchema),
     documentUpload.single('file'),
     handleMulterError,
+    requirePermission(Permission.CASE_EDIT),
     documentsController.uploadCaseDocument
   );
   router.get(
@@ -528,11 +559,13 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/documents/:documentId',
     validateParams(documentIdParamsSchema),
     validateBody(updateCaseDocumentSchema),
+    requirePermission(Permission.CASE_EDIT),
     documentsController.updateCaseDocument
   );
   router.delete(
     '/:id/documents/:documentId',
     validateParams(documentIdParamsSchema),
+    requirePermission(Permission.CASE_EDIT),
     documentsController.deleteCaseDocument
   );
 
@@ -545,17 +578,20 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/milestones',
     validateParams(caseIdParamsSchema),
     validateBody(createCaseMilestoneSchema),
+    requirePermission(Permission.CASE_EDIT),
     milestonesController.createCaseMilestone
   );
   router.put(
     '/milestones/:milestoneId',
     validateParams(milestoneIdParamsSchema),
     validateBody(updateCaseMilestoneSchema),
+    requirePermission(Permission.CASE_EDIT),
     milestonesController.updateCaseMilestone
   );
   router.delete(
     '/milestones/:milestoneId',
     validateParams(milestoneIdParamsSchema),
+    requirePermission(Permission.CASE_EDIT),
     milestonesController.deleteCaseMilestone
   );
 
@@ -568,11 +604,13 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/relationships',
     validateParams(caseIdParamsSchema),
     validateBody(createCaseRelationshipSchema),
+    requirePermission(Permission.CASE_EDIT),
     relationshipsController.createCaseRelationship
   );
   router.delete(
     '/relationships/:relationshipId',
     validateParams(relationshipIdParamsSchema),
+    requirePermission(Permission.CASE_EDIT),
     relationshipsController.deleteCaseRelationship
   );
 
@@ -585,17 +623,20 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/services',
     validateParams(caseIdParamsSchema),
     validateBody(createCaseServiceSchema),
+    requirePermission(Permission.CASE_EDIT),
     servicesController.createCaseService
   );
   router.put(
     '/services/:serviceId',
     validateParams(serviceIdParamsSchema),
     validateBody(updateCaseServiceSchema),
+    requirePermission(Permission.CASE_EDIT),
     servicesController.updateCaseService
   );
   router.delete(
     '/services/:serviceId',
     validateParams(serviceIdParamsSchema),
+    requirePermission(Permission.CASE_EDIT),
     servicesController.deleteCaseService
   );
 
@@ -609,6 +650,7 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/portal/conversations/:threadId/messages',
     validateParams(casePortalConversationMessageParamsSchema),
     validateBody(casePortalConversationMessageSchema),
+    requirePermission(Permission.CASE_EDIT),
     replyCasePortalConversation
   );
 
@@ -616,6 +658,7 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id/portal/conversations/:threadId/resolve',
     validateParams(casePortalConversationMessageParamsSchema),
     validateBody(resolveCasePortalConversationSchema),
+    requirePermission(Permission.CASE_EDIT),
     resolvePortalConversation
   );
 
@@ -629,6 +672,7 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:caseId/interactions/:interactionId/outcomes',
     validateParams(interactionOutcomeParamsSchema),
     validateBody(updateInteractionOutcomeImpactsSchema),
+    requirePermission(Permission.CASE_EDIT),
     outcomesController.putInteractionOutcomes
   );
 

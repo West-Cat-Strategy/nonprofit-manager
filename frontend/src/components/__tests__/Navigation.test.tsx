@@ -184,7 +184,7 @@ describe('Navigation', () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     expect(screen.getByRole('navigation', { name: /global navigation/i })).toHaveClass(
-      'bg-[var(--app-shell-surface)]'
+      'app-shell-surface-opaque'
     );
     expect(screen.getByRole('link', { name: /^home$/i })).toHaveAttribute('href', '/dashboard');
     expect(screen.getByRole('link', { name: /^people$/i })).toHaveAttribute('href', '/contacts');
@@ -291,7 +291,6 @@ describe('Navigation', () => {
     );
   });
 
-<<<<<<< HEAD
   it('closes the More menu from the backdrop and restores focus to its trigger', async () => {
     const { container } = renderWithProviders(<Navigation />, { route: '/dashboard' });
 
@@ -311,8 +310,6 @@ describe('Navigation', () => {
     });
   });
 
-=======
->>>>>>> origin/main
   it('maintains user menu state and delegates logout', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
@@ -335,10 +332,7 @@ describe('Navigation', () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     const searchButton = await screen.findByRole('button', { name: /^search$/i });
-<<<<<<< HEAD
     expect(searchButton).not.toHaveFocus();
-=======
->>>>>>> origin/main
     fireEvent.click(searchButton);
     expect(await screen.findByRole('dialog', { name: /search people/i })).toBeInTheDocument();
 
@@ -348,7 +342,6 @@ describe('Navigation', () => {
     });
   });
 
-<<<<<<< HEAD
   it('opens the mobile drawer as a dialog and focuses its close button', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
@@ -361,8 +354,6 @@ describe('Navigation', () => {
     });
   });
 
-=======
->>>>>>> origin/main
   it('renders theme controls and admin actions inside the account menu', async () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 

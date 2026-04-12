@@ -431,12 +431,8 @@ export interface WebsiteFormOperationalConfig {
   accountId?: string | null;
   campaignId?: string | null;
   mailchimpListId?: string | null;
-<<<<<<< HEAD
   mauticSegmentId?: string | null;
   audienceMode?: 'crm' | 'mailchimp' | 'mautic' | 'both';
-=======
-  audienceMode?: 'crm' | 'mailchimp' | 'both';
->>>>>>> origin/main
   defaultTags?: string[];
   includePhone?: boolean;
   includeMessage?: boolean;
@@ -472,16 +468,11 @@ export interface WebsiteFormDefinition {
 
 export interface WebsiteMailchimpSettings {
   audienceId?: string | null;
-<<<<<<< HEAD
   audienceMode?: 'crm' | 'mailchimp' | 'mautic' | 'both';
-=======
-  audienceMode?: 'crm' | 'mailchimp' | 'both';
->>>>>>> origin/main
   defaultTags?: string[];
   syncEnabled?: boolean;
 }
 
-<<<<<<< HEAD
 export interface WebsiteMauticSettings {
   baseUrl?: string | null;
   segmentId?: string | null;
@@ -513,8 +504,6 @@ export interface WebsiteNewsletterSettings {
   lastRefreshedAt?: Date | null;
 }
 
-=======
->>>>>>> origin/main
 export interface WebsiteStripeSettings {
   accountId?: string | null;
   currency?: string;
@@ -544,13 +533,9 @@ export interface WebsiteConversionTrackingSettings {
 export interface WebsiteSiteSettings {
   siteId: string;
   organizationId: string | null;
-<<<<<<< HEAD
   newsletter: WebsiteNewsletterSettings;
   mailchimp: WebsiteMailchimpSettings;
   mautic: WebsiteMauticSettings;
-=======
-  mailchimp: WebsiteMailchimpSettings;
->>>>>>> origin/main
   stripe: WebsiteStripeSettings;
   social: WebsiteSocialSettings;
   formDefaults: WebsiteFormOperationalConfig;
@@ -569,7 +554,6 @@ export interface WebsiteFacebookIntegrationStatus extends WebsiteFacebookSetting
 export interface WebsiteIntegrationStatus {
   blocked: boolean;
   publishStatus: SiteStatus;
-<<<<<<< HEAD
   newsletter: {
     provider: WebsiteNewsletterProvider;
     configured: boolean;
@@ -586,8 +570,6 @@ export interface WebsiteIntegrationStatus {
     lastRefreshedAt: Date | null;
     lastSyncAt: Date | null;
   };
-=======
->>>>>>> origin/main
   mailchimp: WebsiteMailchimpSettings & {
     configured: boolean;
     accountName?: string;
@@ -599,7 +581,6 @@ export interface WebsiteIntegrationStatus {
     }>;
     lastSyncAt: Date | null;
   };
-<<<<<<< HEAD
   mautic: WebsiteMauticSettings & {
     configured: boolean;
     baseUrl?: string;
@@ -611,8 +592,6 @@ export interface WebsiteIntegrationStatus {
     }>;
     lastSyncAt: Date | null;
   };
-=======
->>>>>>> origin/main
   stripe: WebsiteStripeSettings & {
     configured: boolean;
     publishableKeyConfigured: boolean;

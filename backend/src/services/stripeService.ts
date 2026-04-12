@@ -51,20 +51,14 @@ const mapSubscription = (subscription: Stripe.Subscription): SubscriptionRespons
 
   return {
     id: sub.id,
-<<<<<<< HEAD
     provider: 'stripe',
-=======
->>>>>>> origin/main
     customerId: sub.customer,
     status: sub.status as SubscriptionResponse['status'],
     currentPeriodStart: new Date(sub.current_period_start * 1000),
     currentPeriodEnd: new Date(sub.current_period_end * 1000),
     cancelAtPeriodEnd: sub.cancel_at_period_end,
     created: new Date(sub.created * 1000),
-<<<<<<< HEAD
     providerSubscriptionId: sub.id,
-=======
->>>>>>> origin/main
   };
 };
 
@@ -446,18 +440,12 @@ export async function createCheckoutSession(
 
     return {
       id: session.id,
-<<<<<<< HEAD
       provider: 'stripe',
-=======
->>>>>>> origin/main
       url: session.url || '',
       customerId: getStripeId(session.customer as string | Stripe.Customer | Stripe.DeletedCustomer | null),
       subscriptionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
       status: session.status || 'open',
-<<<<<<< HEAD
       providerTransactionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
-=======
->>>>>>> origin/main
     };
   } catch (error) {
     logger.error('Failed to create checkout session', { error, request });
@@ -478,18 +466,12 @@ export async function getCheckoutSession(sessionId: string): Promise<CheckoutSes
 
     return {
       id: session.id,
-<<<<<<< HEAD
       provider: 'stripe',
-=======
->>>>>>> origin/main
       url: session.url || '',
       customerId: getStripeId(session.customer as string | Stripe.Customer | Stripe.DeletedCustomer | null),
       subscriptionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
       status: session.status || 'open',
-<<<<<<< HEAD
       providerTransactionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
-=======
->>>>>>> origin/main
     };
   } catch (error) {
     logger.error('Failed to retrieve checkout session', { error, sessionId });

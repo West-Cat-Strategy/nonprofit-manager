@@ -157,12 +157,8 @@ const formOperationalSettingsSchema = z
     accountId: z.union([uuidSchema, z.null()]).optional(),
     campaignId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
     mailchimpListId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
-<<<<<<< HEAD
     mauticSegmentId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
     audienceMode: z.enum(['crm', 'mailchimp', 'mautic', 'both']).optional(),
-=======
-    audienceMode: z.enum(['crm', 'mailchimp', 'both']).optional(),
->>>>>>> origin/main
     defaultTags: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
     includePhone: optionalStrictBooleanSchema,
     includeMessage: optionalStrictBooleanSchema,
@@ -178,11 +174,8 @@ const formOperationalSettingsSchema = z
   })
   .strict();
 
-<<<<<<< HEAD
 const newsletterProviderSchema = z.enum(['mailchimp', 'mautic']);
 
-=======
->>>>>>> origin/main
 const updateSiteMailchimpSettingsSchema = z
   .object({
     audienceId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
@@ -192,7 +185,6 @@ const updateSiteMailchimpSettingsSchema = z
   })
   .strict();
 
-<<<<<<< HEAD
 const updateSiteMauticSettingsSchema = z
   .object({
     baseUrl: z.union([z.string().trim().url(), z.null()]).optional(),
@@ -248,8 +240,6 @@ const createSiteNewsletterListPresetSchema = z
 
 const updateSiteNewsletterListPresetSchema = createSiteNewsletterListPresetSchema.partial().strict();
 
-=======
->>>>>>> origin/main
 const updateSiteStripeSettingsSchema = z
   .object({
     accountId: z.union([uuidSchema, z.null()]).optional(),
@@ -387,7 +377,6 @@ router.get(
   publishingController.getSiteIntegrations
 );
 
-<<<<<<< HEAD
 router.get(
   '/:siteId/newsletters',
   ...withOrganizationContext,
@@ -451,8 +440,6 @@ router.delete(
   publishingController.deleteSiteNewsletterListPreset
 );
 
-=======
->>>>>>> origin/main
 router.put(
   '/:siteId/integrations/mailchimp',
   ...withOrganizationContext,

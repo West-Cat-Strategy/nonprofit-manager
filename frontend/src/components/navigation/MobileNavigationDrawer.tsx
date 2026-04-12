@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import { useEffect, useRef, type KeyboardEvent, type RefObject } from 'react';
-=======
->>>>>>> origin/main
 import { Link } from 'react-router-dom';
 import { canAccessAdminSettings } from '../../features/auth/state/adminAccess';
 import type { NavigationItem } from '../../hooks/useNavigationPreferences';
@@ -35,15 +32,11 @@ interface MobileNavigationDrawerProps {
   onToggleDarkMode: () => void;
   primaryItems: NavigationItem[];
   secondaryItems: NavigationItem[];
-<<<<<<< HEAD
   triggerRef: RefObject<HTMLButtonElement | null>;
-=======
->>>>>>> origin/main
   user: NavigationDrawerUser | null;
   utilityNavLinks: NavigationDrawerLink[];
 }
 
-<<<<<<< HEAD
 const focusableSelectors = [
   'a[href]',
   'button:not([disabled])',
@@ -63,8 +56,6 @@ function getFocusableElements(container: HTMLDivElement | null): HTMLElement[] {
   );
 }
 
-=======
->>>>>>> origin/main
 export default function MobileNavigationDrawer({
   adminSettingsPath,
   appName,
@@ -76,15 +67,11 @@ export default function MobileNavigationDrawer({
   onToggleDarkMode,
   primaryItems,
   secondaryItems,
-<<<<<<< HEAD
   triggerRef,
-=======
->>>>>>> origin/main
   user,
   utilityNavLinks,
 }: MobileNavigationDrawerProps) {
   const canOpenAdminSettings = canAccessAdminSettings(user);
-<<<<<<< HEAD
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -152,17 +139,6 @@ export default function MobileNavigationDrawer({
         </div>
         <button
           ref={closeButtonRef}
-=======
-
-  return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[22rem] flex-col overflow-y-auto bg-app-surface shadow-xl xl:hidden">
-      <div className="flex items-center justify-between border-b border-app-border px-4 py-4">
-        <div>
-          <p className="text-sm font-semibold text-app-text-heading">{appName}</p>
-          <p className="text-xs text-app-text-muted">Staff workspace</p>
-        </div>
-        <button
->>>>>>> origin/main
           type="button"
           onClick={onClose}
           className="rounded-[var(--ui-radius-sm)] p-2 text-app-text-muted transition hover:bg-app-hover hover:text-app-text"

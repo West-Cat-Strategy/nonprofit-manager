@@ -1010,7 +1010,6 @@ export async function ensureSetupComplete(
  * Login via API with the provided credentials and land on the dashboard.
  */
 export async function login(page: Page, email: string, password: string): Promise<void> {
-<<<<<<< HEAD
   const normalizedEmail = normalizeString(email);
   const normalizedPassword = normalizeString(password);
 
@@ -1035,26 +1034,6 @@ export async function login(page: Page, email: string, password: string): Promis
   });
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/dashboard(?:[/?#]|$)/);
-=======
-  const dashboardUrl = /\/dashboard(?:[/?#]|$)/;
-  const navigationTimeoutMs = 30_000;
-
-  await page.goto('/login', { waitUntil: 'domcontentloaded' });
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', password);
-  await Promise.all([
-    page.waitForURL(dashboardUrl, { timeout: navigationTimeoutMs }),
-    page.click('button[type="submit"]'),
-  ]);
-
-  // Wait for the dashboard URL and let the caller assert on page content.
-  await expect(page).toHaveURL(dashboardUrl, { timeout: navigationTimeoutMs });
-
-  const user = await page.evaluate(() => localStorage.getItem('user'));
-  if (!user) {
-    throw new Error('Login succeeded but no user data found in localStorage');
-  }
->>>>>>> origin/main
 }
 
 /**
@@ -1697,7 +1676,6 @@ export async function ensureLoginViaAPI(
  * Logout via UI
  */
 export async function logout(page: Page): Promise<void> {
-<<<<<<< HEAD
   await page.context().clearCookies();
   await page
     .evaluate(() => {
@@ -1706,25 +1684,6 @@ export async function logout(page: Page): Promise<void> {
     })
     .catch(() => undefined);
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
-
-=======
-  // Open user menu from top navigation (supports current and legacy selectors).
-  const userMenu = page
-    .getByRole('button', { name: /user menu/i })
-    .or(page.locator('button[aria-haspopup="menu"][aria-controls="user-menu"]'))
-    .first();
-  await userMenu.click({ timeout: 7000 });
-
-  // Click logout action (supports button/menuitem variants).
-  const logoutAction = page
-    .getByRole('button', { name: /logout|sign out/i })
-    .or(page.getByRole('menuitem', { name: /logout|sign out/i }))
-    .first();
-  await logoutAction.click({ timeout: 7000 });
-
-  // Wait for redirect to login.
-  await page.waitForURL(/\/login(?:\?|$)/, { timeout: 15000 });
->>>>>>> origin/main
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
 }
 

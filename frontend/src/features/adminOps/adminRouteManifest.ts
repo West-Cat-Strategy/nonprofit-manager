@@ -19,11 +19,7 @@ export const adminSettingsRouteManifest: readonly AdminRouteManifestEntry[] = [
   { id: 'admin-settings-workspace-modules', title: 'Workspace modules', path: getAdminSettingsPath('workspace_modules') },
   { id: 'admin-settings-branding', title: 'Branding', path: getAdminSettingsPath('branding') },
   { id: 'admin-settings-users', title: 'Users', path: getAdminSettingsPath('users') },
-<<<<<<< HEAD
   { id: 'admin-settings-communications', title: 'Communications', path: getAdminSettingsPath('communications') },
-=======
-  { id: 'admin-settings-email', title: 'Email', path: getAdminSettingsPath('email') },
->>>>>>> origin/main
   { id: 'admin-settings-messaging', title: 'Messaging', path: getAdminSettingsPath('messaging') },
   { id: 'admin-settings-outcomes', title: 'Outcomes', path: getAdminSettingsPath('outcomes') },
   { id: 'admin-settings-roles', title: 'Roles', path: getAdminSettingsPath('roles') },
@@ -42,15 +38,9 @@ export const portalAdminRouteManifest: readonly AdminRouteManifestEntry[] = [
 export const adminCompatibilityRouteManifest: readonly AdminRouteRedirectEntry[] = [
   {
     id: 'legacy-email-marketing',
-<<<<<<< HEAD
     title: 'Legacy communications redirect',
     path: '/email-marketing',
     redirectsTo: '/dashboard',
-=======
-    title: 'Legacy email marketing redirect',
-    path: '/email-marketing',
-    redirectsTo: '/settings/email-marketing',
->>>>>>> origin/main
   },
   {
     id: 'legacy-admin-settings',
@@ -68,21 +58,13 @@ export const adminCompatibilityRouteManifest: readonly AdminRouteRedirectEntry[]
     id: 'legacy-organization-settings',
     title: 'Legacy organization settings redirect',
     path: '/settings/organization',
-<<<<<<< HEAD
     redirectsTo: '/dashboard',
-=======
-    redirectsTo: getAdminSettingsPath('organization'),
->>>>>>> origin/main
   },
   {
     id: 'legacy-admin-audit-logs',
     title: 'Legacy audit logs redirect',
     path: '/admin/audit-logs',
-<<<<<<< HEAD
     redirectsTo: '/dashboard',
-=======
-    redirectsTo: getAdminSettingsPath('audit_logs'),
->>>>>>> origin/main
   },
 ] as const;
 

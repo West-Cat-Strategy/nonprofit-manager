@@ -191,19 +191,12 @@ export interface PortalCaseDetail extends PortalCaseSummary {
 
 export interface PortalCaseTimelineEvent {
   id: string;
-<<<<<<< HEAD
   type: 'note' | 'outcome' | 'document' | 'appointment';
   created_at: string;
   title: string;
   content?: string | null;
   case_number?: string | null;
   case_title?: string | null;
-=======
-  type: 'note' | 'outcome' | 'document';
-  created_at: string;
-  title: string;
-  content?: string | null;
->>>>>>> origin/main
   metadata?: Record<string, unknown>;
 }
 
@@ -240,10 +233,7 @@ export interface PortalDashboardData {
   upcoming_events: PortalEvent[];
   recent_documents: PortalDocument[];
   reminders: PortalReminder[];
-<<<<<<< HEAD
   recent_activity: PortalCaseTimelineEvent[];
-=======
->>>>>>> origin/main
 }
 
 export interface PortalPointpersonCaseContext {

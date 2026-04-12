@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-alpine3.20 AS base
+FROM node:20-alpine3.20@sha256:3bc9a4c4cc25cfde1e8f946341c85f333c36517aafda829b4bb7e785e9b5995c AS base
 
 WORKDIR /app
 
@@ -11,40 +11,37 @@ COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci --no-audit --no-fund
 
-FROM deps AS build
+FROM deps AS app
 
 COPY tsconfig.json tsconfig.docker.json ./
 COPY src ./src
+
+FROM app AS build
 RUN ./node_modules/.bin/tsc -p tsconfig.docker.json && \
     ./node_modules/.bin/tsc-alias -p tsconfig.docker.json
 
-FROM base AS prod-deps
-
-COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm ci --omit=dev --no-audit --no-fund && \
-    npm cache clean --force
-
-FROM deps AS dev
+FROM app AS dev
 
 ENV NODE_ENV=development \
     PORT=3000 \
     HOST=0.0.0.0
 
-EXPOSE 3000 8009
+EXPOSE 3000 8006
 
+# Dev scripts now own the source watch loop, so the container stays thin and
+# only needs the source tree plus installed dependencies.
 CMD ["npm", "run", "dev"]
 
-FROM base AS production
+FROM build AS production
 
 ENV NODE_ENV=production \
     PORT=8000
 
-RUN mkdir -p /app/exports /app/logs /app/uploads && \
+RUN npm prune --omit=dev --no-audit --no-fund && \
+    npm cache clean --force && \
+    rm -rf src tsconfig.json tsconfig.docker.json package.json package-lock.json && \
+    mkdir -p /app/exports /app/logs /app/uploads && \
     chown node:node /app/exports /app/logs /app/uploads
-
-COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
-COPY --from=build --chown=node:node /app/dist ./dist
 
 USER node
 

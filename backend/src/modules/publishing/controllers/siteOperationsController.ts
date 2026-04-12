@@ -4,14 +4,10 @@ import type {
   PublishedSiteSearchParams,
   WebsiteFacebookSettings,
   WebsiteFormOperationalConfig,
-<<<<<<< HEAD
   WebsiteNewsletterListPreset,
   WebsiteMailchimpSettings,
   WebsiteMauticSettings,
   WebsiteNewsletterSettings,
-=======
-  WebsiteMailchimpSettings,
->>>>>>> origin/main
   WebsiteStripeSettings,
 } from '@app-types/publishing';
 import publishingService from '@services/publishing';
@@ -147,7 +143,6 @@ export const getSiteIntegrations = async (
   }
 };
 
-<<<<<<< HEAD
 export const getSiteNewsletterWorkspace = async (
   req: AuthRequest,
   res: Response,
@@ -317,8 +312,6 @@ export const refreshSiteNewsletterWorkspace = async (
 
 export const updateSiteNewsletterIntegration = updateSiteNewsletterWorkspace;
 
-=======
->>>>>>> origin/main
 export const updateSiteMailchimpIntegration = async (
   req: AuthRequest,
   res: Response,

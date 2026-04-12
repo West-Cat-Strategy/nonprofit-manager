@@ -9,12 +9,8 @@ import bcrypt from 'bcryptjs';
 import { PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
 import { sendMail } from '@services/emailService';
-<<<<<<< HEAD
 import { getRegistrationSettings } from '@modules/admin/usecases/registrationSettingsUseCase';
 import { normalizeRoleSlug } from '@utils/roleSlug';
-=======
-import { getRegistrationSettings } from '@services/registrationSettingsService';
->>>>>>> origin/main
 
 // ---------------------------------------------------------------------------
 // Types
@@ -212,21 +208,14 @@ export async function approvePendingRegistration(
 
   // Get default role from settings
   const settings = await getRegistrationSettings();
-<<<<<<< HEAD
   const normalizedRole = normalizeRoleSlug(settings.defaultRole) ?? settings.defaultRole;
-=======
->>>>>>> origin/main
 
   // Create the real user with the stored password hash
   const userResult = await pool.query<UserRow>(
     `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
      RETURNING id, email, first_name, last_name, role`,
-<<<<<<< HEAD
     [pending.email, pending.password_hash, pending.first_name, pending.last_name, normalizedRole]
-=======
-    [pending.email, pending.password_hash, pending.first_name, pending.last_name, settings.defaultRole]
->>>>>>> origin/main
   );
 
   const user = userResult.rows[0];

@@ -21,13 +21,9 @@ describe('ToastHost', () => {
   it('uses the Team Messenger offset CSS variable for bottom positioning', () => {
     const { container } = renderWithProviders(<ToastHost />);
 
-<<<<<<< HEAD
     expect(screen.getByRole('status', { name: /notifications/i })).toBeInTheDocument();
     expect(screen.getByText('Dock-safe toast')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /dismiss notification/i })).toBeInTheDocument();
-=======
-    expect(screen.getByText('Dock-safe toast')).toBeInTheDocument();
->>>>>>> origin/main
     expect(container.firstChild).toHaveStyle({
       bottom: 'calc(1rem + var(--team-messenger-toast-offset, 0px))',
     });

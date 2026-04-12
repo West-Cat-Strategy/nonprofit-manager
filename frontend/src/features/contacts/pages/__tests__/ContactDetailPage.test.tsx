@@ -134,13 +134,10 @@ describe('Contact detail route validation', () => {
     mockState.contacts.contactNotes = [];
   });
 
-<<<<<<< HEAD
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-=======
->>>>>>> origin/main
   it('renders a local invalid-link state and skips fetches for non-UUID params', () => {
     renderContactDetail('/contacts/not-a-uuid');
 
@@ -263,7 +260,6 @@ describe('Contact detail route validation', () => {
     await user.click(screen.getByRole('button', { name: /merge contact/i }));
     expect(await screen.findByText('Merge Dialog')).toBeInTheDocument();
   });
-<<<<<<< HEAD
 
   it('opens the print export in a new tab from the contact header', async () => {
     const user = userEvent.setup();
@@ -321,6 +317,4 @@ describe('Contact detail route validation', () => {
       'noopener,noreferrer'
     );
   });
-=======
->>>>>>> origin/main
 });

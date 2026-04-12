@@ -1,4 +1,3 @@
-<<<<<<<< HEAD:frontend/src/features/neoBrutalist/pages/OutreachCenterPage.tsx
 /**
  * Outreach Center - CAMPAIGN MANAGEMENT
  * Uses LoopApiService, standard Loop Purple theme
@@ -165,6 +164,3 @@ export default function OutreachCenter() {
         </NeoBrutalistLayout>
     );
 }
-========
-export { default } from '../../features/neoBrutalist/pages/OutreachCenterPage';
->>>>>>>> origin/main:frontend/src/pages/neo-brutalist/OutreachCenter.tsx

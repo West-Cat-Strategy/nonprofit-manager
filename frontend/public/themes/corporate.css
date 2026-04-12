@@ -21,12 +21,9 @@ body.theme-corporate {
   --app-accent-hover: #111827;
   --app-accent-text: #1f2937;
   --app-accent-text-hover: #111827;
-<<<<<<< HEAD
   --app-link: #1f2937;
   --app-link-hover: #111827;
   --app-link-visited: #111827;
-=======
->>>>>>> origin/main
   --app-accent-soft: #e5e7eb;
   --app-accent-soft-hover: #d1d5db;
 
@@ -71,12 +68,9 @@ body.theme-corporate {
   --app-accent-foreground: #ffffff;
   --app-accent-text: #1d4ed8;
   --app-accent-text-hover: #163ca9;
-<<<<<<< HEAD
   --app-link: #1d4ed8;
   --app-link-hover: #163ca9;
   --app-link-visited: #163ca9;
-=======
->>>>>>> origin/main
   --app-accent-soft: rgba(29, 78, 216, 0.11);
   --app-accent-soft-hover: rgba(29, 78, 216, 0.18);
   --app-hover: rgba(15, 23, 40, 0.07);
@@ -118,12 +112,9 @@ body.theme-corporate.dark {
   --app-accent-hover: #374151;
   --app-accent-text: #e5e7eb;
   --app-accent-text-hover: #f9fafb;
-<<<<<<< HEAD
   --app-link: #e5e7eb;
   --app-link-hover: #f9fafb;
   --app-link-visited: #f9fafb;
-=======
->>>>>>> origin/main
   --app-accent-soft: rgba(75, 85, 99, 0.2);
   --app-accent-soft-hover: rgba(75, 85, 99, 0.35);
 
@@ -155,12 +146,9 @@ body.theme-corporate.dark {
   --app-accent-foreground: #0f1728;
   --app-accent-text: #bfd3ff;
   --app-accent-text-hover: #e2ebff;
-<<<<<<< HEAD
   --app-link: #bfd3ff;
   --app-link-hover: #e2ebff;
   --app-link-visited: #e2ebff;
-=======
->>>>>>> origin/main
   --app-accent-soft: rgba(125, 164, 255, 0.22);
   --app-accent-soft-hover: rgba(125, 164, 255, 0.34);
   --app-hover: rgba(255, 255, 255, 0.08);
@@ -174,7 +162,7 @@ body.theme-corporate.dark {
   --loop-blue: #94b2ea;
   --shadow-color: rgba(0, 0, 0, 0.34);
   --focus-ring: #bfd3ff;
-  --app-shell-surface: rgba(22, 31, 45, 0.95);
+  --app-shell-surface: #1c2433;
   --app-shell-top: #141c28;
   --app-shell-glow: rgba(125, 164, 255, 0.2);
   --app-shell-glow-secondary: rgba(255, 255, 255, 0.08);

@@ -5,10 +5,7 @@ import { vi } from 'vitest';
 import { renderWithProviders } from '../../../test/testUtils';
 
 let AdminSettings: ComponentType;
-<<<<<<< HEAD
 const importAdminSettings = () => import('../../../features/adminOps/pages/AdminSettingsPage');
-=======
->>>>>>> origin/main
 const { mockNavigate, mockSetBranding } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
   mockSetBranding: vi.fn(),
@@ -74,10 +71,7 @@ vi.mock('../../../services/api', () => ({
       }
       if (url === '/admin/branding') return Promise.resolve({ data: {} });
       if (url === '/admin/roles') return Promise.resolve({ data: { roles: [] } });
-<<<<<<< HEAD
       if (url === '/admin/permissions') return Promise.resolve({ data: { permissions: [] } });
-=======
->>>>>>> origin/main
       return Promise.resolve({ data: {} });
     }),
   },
@@ -124,13 +118,8 @@ vi.mock('../../../features/adminOps/pages/adminSettings/sections/DashboardSectio
 vi.mock('../../../features/adminOps/pages/adminSettings/sections/AuditLogsSection', () => ({
   default: () => <div>Audit Section</div>,
 }));
-<<<<<<< HEAD
 vi.mock('../../../features/adminOps/pages/adminSettings/sections/CommunicationsSection', () => ({
   default: () => <div>Communications Section</div>,
-=======
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/EmailSettingsSection', () => ({
-  default: () => <div>Email Section</div>,
->>>>>>> origin/main
 }));
 vi.mock('../../../features/adminOps/pages/adminSettings/sections/TwilioSettingsSection', () => ({
   default: () => <div>Messaging Section</div>,
@@ -188,11 +177,7 @@ describe('AdminSettings page', () => {
     window.localStorage.clear();
     mockNavigate.mockReset();
     vi.resetModules();
-<<<<<<< HEAD
     AdminSettings = (await importAdminSettings()).default;
-=======
-    AdminSettings = (await import('../../admin/AdminSettings')).default;
->>>>>>> origin/main
   });
 
   it('renders admin settings shell and canonical portal/admin links', async () => {
@@ -212,12 +197,6 @@ describe('AdminSettings page', () => {
       'href',
       '/settings/admin/users'
     );
-<<<<<<< HEAD
-=======
-    expect(
-      screen.getByRole('tablist', { name: /admin settings sections/i }).parentElement
-    ).toHaveClass('bg-[var(--app-shell-surface)]');
->>>>>>> origin/main
   });
 
   it('renders the section directly from the canonical route path', async () => {
@@ -228,7 +207,6 @@ describe('AdminSettings page', () => {
     });
   });
 
-<<<<<<< HEAD
   it('renders the communications section directly from the canonical route path', async () => {
     renderAdminSettings('/settings/admin/communications');
 
@@ -237,8 +215,6 @@ describe('AdminSettings page', () => {
     });
   });
 
-=======
->>>>>>> origin/main
   it('auto-enables advanced mode for direct advanced-section links', async () => {
     renderAdminSettings('/settings/admin/audit_logs');
 

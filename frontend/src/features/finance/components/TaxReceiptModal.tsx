@@ -133,11 +133,7 @@ export default function TaxReceiptModal({
   };
 
   return (
-<<<<<<< HEAD
     <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop px-4 py-6">
-=======
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6">
->>>>>>> origin/main
       <div
         className="w-full max-w-2xl rounded-xl border border-app-border bg-app-surface shadow-2xl"
         role="dialog"

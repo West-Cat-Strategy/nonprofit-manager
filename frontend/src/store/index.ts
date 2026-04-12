@@ -39,68 +39,32 @@ export const rootReducer = combineReducers({
   auth: authReducer,
   accounts: accountsReducer,
   contacts: contactsReducer,
-<<<<<<< HEAD
   volunteers: volunteersReducer,
   donations: donationsReducer,
   recurringDonations: recurringDonationsReducer,
   tasks: tasksReducer,
   analytics: analyticsReducer,
-=======
-  contactsV2: contactsReducer,
-  volunteers: volunteersReducer,
-  volunteersV2: volunteersReducer,
-  donations: donationsReducer,
-  recurringDonations: recurringDonationsReducer,
-  tasks: tasksReducer,
-  tasksV2: tasksReducer,
-  analytics: analyticsReducer,
-  analyticsV2: analyticsReducer,
->>>>>>> origin/main
   payments: paymentsReducer,
   reconciliation: reconciliationReducer,
   mailchimp: mailchimpReducer,
   webhooks: webhooksReducer,
   templates: templateReducer,
   cases: casesReducer,
-<<<<<<< HEAD
   dashboard: dashboardReducer,
-=======
-  casesV2: casesReducer,
-  dashboard: dashboardReducer,
-  dashboardV2: dashboardReducer,
->>>>>>> origin/main
   alerts: alertsReducer,
   portalAuth: portalAuthReducer,
   websites: websitesReducer,
   socialMedia: socialMediaReducer,
   followUps: followUpsReducer,
-<<<<<<< HEAD
-=======
-  followUpsV2: followUpsReducer,
->>>>>>> origin/main
   opportunities: opportunitiesReducer,
   outcomesAdmin: outcomesAdminReducer,
   outcomesReports: outcomesReportsReducer,
   eventsList: eventsListReducer,
-<<<<<<< HEAD
   eventDetail: eventDetailReducer,
   eventRegistration: eventRegistrationReducer,
   eventReminders: eventRemindersReducer,
   eventMutation: eventMutationReducer,
   eventAutomation: eventAutomationReducer,
-=======
-  eventsListV2: eventsListReducer,
-  eventDetail: eventDetailReducer,
-  eventDetailV2: eventDetailReducer,
-  eventRegistration: eventRegistrationReducer,
-  eventRegistrationV2: eventRegistrationReducer,
-  eventReminders: eventRemindersReducer,
-  eventRemindersV2: eventRemindersReducer,
-  eventMutation: eventMutationReducer,
-  eventMutationV2: eventMutationReducer,
-  eventAutomation: eventAutomationReducer,
-  eventAutomationV2: eventAutomationReducer,
->>>>>>> origin/main
 });
 
 export const store = configureStore({

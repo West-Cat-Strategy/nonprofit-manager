@@ -8,23 +8,10 @@ import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { logger } from '@config/logger';
 import { forbidden } from '@utils/responseHelpers';
-<<<<<<< HEAD
 import * as twilioSettingsUseCase from '../usecases/twilioSettingsUseCase';
 import { testTwilioConnection } from '@services/twilioSmsService';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import type { UpdateTwilioSettingsInput } from '@validations/admin';
-=======
-import * as twilioSettingsService from '@services/twilioSettingsService';
-import { testTwilioConnection } from '@services/twilioSmsService';
-import { sendSuccess } from '@modules/shared/http/envelope';
-
-const normalizeOptionalString = (value: unknown): string | null | undefined => {
-  if (value === undefined) return undefined;
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
-};
->>>>>>> origin/main
 
 /**
  * GET /api/admin/twilio-settings
@@ -41,13 +28,8 @@ export const getTwilioSettings = async (
     }
 
     const [settings, credentials] = await Promise.all([
-<<<<<<< HEAD
       twilioSettingsUseCase.getTwilioSettings(),
       twilioSettingsUseCase.hasStoredCredentials(),
-=======
-      twilioSettingsService.getTwilioSettings(),
-      twilioSettingsService.hasStoredCredentials(),
->>>>>>> origin/main
     ]);
 
     return sendSuccess(res, {
@@ -74,7 +56,6 @@ export const updateTwilioSettings = async (
       return forbidden(res, 'Admin access required');
     }
 
-<<<<<<< HEAD
     const body = req.body as UpdateTwilioSettingsInput;
     const updated = await twilioSettingsUseCase.updateTwilioSettings(
       {
@@ -82,14 +63,6 @@ export const updateTwilioSettings = async (
         authToken: typeof body.authToken === 'string' ? body.authToken : undefined,
         messagingServiceSid: body.messagingServiceSid,
         fromPhoneNumber: body.fromPhoneNumber,
-=======
-    const updated = await twilioSettingsService.updateTwilioSettings(
-      {
-        accountSid: normalizeOptionalString(req.body.accountSid),
-        authToken: typeof req.body.authToken === 'string' ? req.body.authToken : undefined,
-        messagingServiceSid: normalizeOptionalString(req.body.messagingServiceSid),
-        fromPhoneNumber: normalizeOptionalString(req.body.fromPhoneNumber),
->>>>>>> origin/main
       },
       req.user.id
     );

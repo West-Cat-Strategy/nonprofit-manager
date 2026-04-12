@@ -19,12 +19,9 @@ body.theme-sea-breeze {
   --app-accent-hover: #00796b;
   --app-accent-text: #009688;
   --app-accent-text-hover: #00796b;
-<<<<<<< HEAD
   --app-link: #009688;
   --app-link-hover: #00796b;
   --app-link-visited: #00796b;
-=======
->>>>>>> origin/main
   --app-accent-soft: #b2dfdb;
   --app-accent-soft-hover: #80cbc4;
 
@@ -68,12 +65,9 @@ body.theme-sea-breeze {
   --app-accent-foreground: #ffffff;
   --app-accent-text: #0d7f75;
   --app-accent-text-hover: #095e58;
-<<<<<<< HEAD
   --app-link: #0d7f75;
   --app-link-hover: #095e58;
   --app-link-visited: #095e58;
-=======
->>>>>>> origin/main
   --app-accent-soft: rgba(14, 141, 130, 0.18);
   --app-accent-soft-hover: rgba(14, 141, 130, 0.28);
   --app-hover: rgba(14, 141, 130, 0.11);
@@ -87,7 +81,7 @@ body.theme-sea-breeze {
   --loop-blue: #c7ebf4;
   --shadow-color: rgba(14, 96, 92, 0.22);
   --focus-ring: #0e8d82;
-  --app-shell-surface: rgba(255, 255, 255, 0.94);
+  --app-shell-surface: #fcfffe;
   --app-shell-top: #f4fffd;
   --app-shell-glow: rgba(144, 235, 224, 0.5);
   --app-shell-glow-secondary: rgba(255, 255, 255, 0.86);
@@ -113,12 +107,9 @@ body.theme-sea-breeze.dark {
   --app-accent-hover: #26a69a;
   --app-accent-text: #b2dfdb;
   --app-accent-text-hover: #80cbc4;
-<<<<<<< HEAD
   --app-link: #b2dfdb;
   --app-link-hover: #80cbc4;
   --app-link-visited: #80cbc4;
-=======
->>>>>>> origin/main
   --app-accent-soft: rgba(77, 182, 172, 0.2);
   --app-accent-soft-hover: rgba(77, 182, 172, 0.35);
 
@@ -149,12 +140,9 @@ body.theme-sea-breeze.dark {
   --app-accent-foreground: #03211f;
   --app-accent-text: #9bf3e4;
   --app-accent-text-hover: #c6fff6;
-<<<<<<< HEAD
   --app-link: #9bf3e4;
   --app-link-hover: #c6fff6;
   --app-link-visited: #c6fff6;
-=======
->>>>>>> origin/main
   --app-accent-soft: rgba(99, 219, 201, 0.24);
   --app-accent-soft-hover: rgba(99, 219, 201, 0.36);
   --app-hover: rgba(116, 227, 209, 0.14);
@@ -168,7 +156,7 @@ body.theme-sea-breeze.dark {
   --loop-blue: #94dff0;
   --shadow-color: rgba(0, 0, 0, 0.42);
   --focus-ring: #83f3e5;
-  --app-shell-surface: rgba(9, 42, 39, 0.93);
+  --app-shell-surface: #103330;
   --app-shell-top: #08312e;
   --app-shell-glow: rgba(31, 141, 129, 0.35);
   --app-shell-glow-secondary: rgba(131, 243, 229, 0.16);

@@ -28,10 +28,7 @@ import type {
 import type { Contact } from '../../../features/contacts/state';
 import AdminPanelLayout from '../components/AdminPanelLayout';
 import AdminPanelNav from '../components/AdminPanelNav';
-<<<<<<< HEAD
 import EmailSettingsSection from './adminSettings/sections/EmailSettingsSection';
-=======
->>>>>>> origin/main
 
 /**
  * Status Badge Component
@@ -156,11 +153,7 @@ function SyncResultModal({
   onClose: () => void;
 }) {
   return (
-<<<<<<< HEAD
     <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50">
-=======
-    <div className="fixed inset-0 bg-app-surface-muted0 bg-opacity-75 flex items-center justify-center z-50">
->>>>>>> origin/main
       <div className="bg-app-surface rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium text-app-text-heading">Sync Complete</h3>
@@ -274,11 +267,7 @@ function CampaignCreateModal({
   };
 
   return (
-<<<<<<< HEAD
     <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50 overflow-y-auto">
-=======
-    <div className="fixed inset-0 bg-app-surface-muted0 bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
->>>>>>> origin/main
       <div className="bg-app-surface rounded-lg shadow-xl max-w-3xl w-full mx-4 my-8">
         <div className="flex justify-between items-center p-6 border-b border-app-border">
           <h3 className="text-xl font-medium text-app-text">Create Email Campaign</h3>
@@ -297,7 +286,9 @@ function CampaignCreateModal({
             </label>
             <select
               value={formData.listId}
-              onChange={(e) => setFormData({ ...formData, listId: e.target.value, segmentId: undefined })}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, listId: e.target.value, segmentId: undefined }))
+              }
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
             >
               {lists.map((list) => (
@@ -318,7 +309,10 @@ function CampaignCreateModal({
               <select
                 value={formData.segmentId || ''}
                 onChange={(e) =>
-                  setFormData({ ...formData, segmentId: e.target.value ? Number(e.target.value) : undefined })
+                  setFormData((prev) => ({
+                    ...prev,
+                    segmentId: e.target.value ? Number(e.target.value) : undefined,
+                  }))
                 }
                 className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               >
@@ -340,7 +334,7 @@ function CampaignCreateModal({
             <input
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               placeholder="Internal campaign name"
             />
@@ -355,7 +349,7 @@ function CampaignCreateModal({
             <input
               type="text"
               value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, subject: e.target.value }))}
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               placeholder="What subscribers will see in their inbox"
             />
@@ -370,7 +364,7 @@ function CampaignCreateModal({
             <input
               type="text"
               value={formData.previewText}
-              onChange={(e) => setFormData({ ...formData, previewText: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, previewText: e.target.value }))}
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               placeholder="Text displayed after subject in inbox preview"
             />
@@ -385,7 +379,7 @@ function CampaignCreateModal({
               <input
                 type="text"
                 value={formData.fromName}
-                onChange={(e) => setFormData({ ...formData, fromName: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, fromName: e.target.value }))}
                 className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                 placeholder="Your Organization"
               />
@@ -399,7 +393,7 @@ function CampaignCreateModal({
               <input
                 type="email"
                 value={formData.replyTo}
-                onChange={(e) => setFormData({ ...formData, replyTo: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, replyTo: e.target.value }))}
                 className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
                 placeholder="contact@organization.org"
               />
@@ -414,7 +408,7 @@ function CampaignCreateModal({
             </label>
             <textarea
               value={formData.htmlContent}
-              onChange={(e) => setFormData({ ...formData, htmlContent: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, htmlContent: e.target.value }))}
               rows={6}
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent font-mono text-sm"
               placeholder="<h1>Welcome!</h1><p>Your email content here...</p>"
@@ -429,7 +423,9 @@ function CampaignCreateModal({
             </label>
             <textarea
               value={formData.plainTextContent}
-              onChange={(e) => setFormData({ ...formData, plainTextContent: e.target.value })}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, plainTextContent: e.target.value }))
+              }
               rows={4}
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
               placeholder="Plain text version for email clients that don't support HTML"
@@ -444,7 +440,7 @@ function CampaignCreateModal({
             <input
               type="datetime-local"
               value={formData.sendTime || ''}
-              onChange={(e) => setFormData({ ...formData, sendTime: e.target.value })}
+              onChange={(e) => setFormData((prev) => ({ ...prev, sendTime: e.target.value }))}
               min={new Date().toISOString().slice(0, 16)}
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
             />
@@ -607,13 +603,8 @@ export default function EmailMarketing() {
   if (status && !status.configured) {
     return (
       <AdminPanelLayout
-<<<<<<< HEAD
         title="Communications"
         description="Manage newsletter audiences, campaign sync, and transactional email."
-=======
-        title="Email Marketing"
-        description="Manage your Mailchimp integration and sync contacts."
->>>>>>> origin/main
         sidebar={<AdminPanelNav currentPath={location.pathname} />}
       >
         <div className="bg-app-accent-soft border border-app-border rounded-lg p-6">
@@ -622,15 +613,9 @@ export default function EmailMarketing() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-<<<<<<< HEAD
               <h2 className="text-lg font-medium text-app-accent-text">Newsletter provider not configured</h2>
               <p className="mt-2 text-sm text-app-accent-text">
                 To use the communications hub, please configure a newsletter provider before sending campaigns or syncing contacts:
-=======
-              <h2 className="text-lg font-medium text-app-accent-text">Mailchimp Not Configured</h2>
-              <p className="mt-2 text-sm text-app-accent-text">
-                To use email marketing features, please configure your Mailchimp integration by setting the following environment variables:
->>>>>>> origin/main
               </p>
               <ul className="mt-3 text-sm text-app-accent-text list-disc list-inside space-y-1">
                 <li><code className="bg-app-accent-soft px-1 rounded">MAILCHIMP_API_KEY</code> - Your Mailchimp API key</li>
@@ -651,13 +636,8 @@ export default function EmailMarketing() {
 
   return (
     <AdminPanelLayout
-<<<<<<< HEAD
       title="Communications"
       description="Manage newsletter audiences, campaign sync, and transactional email."
-=======
-      title="Email Marketing"
-      description="Manage your Mailchimp integration and sync contacts."
->>>>>>> origin/main
       sidebar={<AdminPanelNav currentPath={location.pathname} />}
     >
       <div className="space-y-8">

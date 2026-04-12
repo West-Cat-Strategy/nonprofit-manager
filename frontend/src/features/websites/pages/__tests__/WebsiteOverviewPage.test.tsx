@@ -144,27 +144,21 @@ const overview = {
   integrations: {
     blocked: true,
     publishStatus: 'published',
-<<<<<<< HEAD
     newsletter: {
       provider: 'mautic',
       configured: true,
       lastSyncAt: null,
     },
-=======
->>>>>>> origin/main
     mailchimp: {
       configured: true,
       availableAudiences: [],
       lastSyncAt: null,
     },
-<<<<<<< HEAD
     mautic: {
       configured: true,
       availableAudiences: [],
       lastSyncAt: null,
     },
-=======
->>>>>>> origin/main
     stripe: {
       configured: true,
       publishableKeyConfigured: true,
@@ -173,15 +167,11 @@ const overview = {
   settings: {
     siteId: 'site-1',
     organizationId: 'org-1',
-<<<<<<< HEAD
     newsletter: {
       provider: 'mautic',
     },
     mailchimp: {},
     mautic: {},
-=======
-    mailchimp: {},
->>>>>>> origin/main
     stripe: {},
     formDefaults: {},
     formOverrides: {},

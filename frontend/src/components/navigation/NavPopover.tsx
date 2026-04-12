@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import { useEffect } from 'react';
-=======
->>>>>>> origin/main
 import type { ReactNode, RefObject } from 'react';
 import { classNames } from '../ui/classNames';
 
@@ -14,7 +11,6 @@ interface NavPopoverProps {
   panelRef?: RefObject<HTMLDivElement | null>;
 }
 
-<<<<<<< HEAD
 const focusableSelectors = [
   'a[href]',
   'button:not([disabled])',
@@ -24,8 +20,6 @@ const focusableSelectors = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
-=======
->>>>>>> origin/main
 export default function NavPopover({
   open,
   onClose,
@@ -34,7 +28,6 @@ export default function NavPopover({
   panelClassName,
   panelRef,
 }: NavPopoverProps) {
-<<<<<<< HEAD
   useEffect(() => {
     if (!open) {
       return;
@@ -80,23 +73,17 @@ export default function NavPopover({
     return () => container.removeEventListener('keydown', handleKeyDown);
   }, [open, panelRef]);
 
-=======
->>>>>>> origin/main
   if (!open) {
     return null;
   }
 
   return (
     <>
-<<<<<<< HEAD
       <div
         className="fixed inset-0 z-10"
         onClick={onClose}
         aria-hidden="true"
       />
-=======
-      <div className="fixed inset-0 z-10" onClick={onClose} aria-hidden="true" />
->>>>>>> origin/main
       <div
         ref={panelRef}
         className={classNames(

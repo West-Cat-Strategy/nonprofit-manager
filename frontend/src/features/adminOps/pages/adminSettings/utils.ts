@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-import type { PermissionCatalogItem, Role, RoleSelectorItem } from '../types';
+import type { PermissionCatalogItem, Role, RoleSelectorItem } from './types';
 
 const normalizeDigits = (value: string): string => value.replace(/\D/g, '');
 
@@ -14,32 +13,16 @@ export const formatCanadianPhone = (phone: string): string => {
     return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
   }
 
-=======
-export const formatCanadianPhone = (phone: string): string => {
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.length === 10) {
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-  }
-  if (cleaned.length === 11 && cleaned[0] === '1') {
-    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
-  }
->>>>>>> origin/main
   return phone;
 };
 
 export const formatCanadianPostalCode = (postalCode: string): string => {
   const cleaned = postalCode.replace(/\s/g, '').toUpperCase();
-<<<<<<< HEAD
 
   if (cleaned.length === 6) {
     return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
   }
 
-=======
-  if (cleaned.length === 6) {
-    return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
-  }
->>>>>>> origin/main
   return postalCode;
 };
 
@@ -48,7 +31,6 @@ export const validatePostalCode = (postalCode: string, country: string): boolean
     const pattern = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/;
     return pattern.test(postalCode);
   }
-<<<<<<< HEAD
 
   return true;
 };
@@ -113,7 +95,3 @@ export const groupPermissionsByCategory = (permissions: PermissionCatalogItem[])
       items: items.slice().sort((left, right) => left.label.localeCompare(right.label)),
     }));
 };
-=======
-  return true;
-};
->>>>>>> origin/main

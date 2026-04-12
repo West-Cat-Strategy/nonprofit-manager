@@ -11,12 +11,9 @@ export const paymentMethodSchema = z.enum(['cash', 'check', 'credit_card', 'debi
 
 export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
 
-<<<<<<< HEAD
 export const paymentProviderSchema = z.enum(['stripe', 'paypal', 'square']);
 export type PaymentProvider = z.infer<typeof paymentProviderSchema>;
 
-=======
->>>>>>> origin/main
 // Payment status enum
 export const paymentStatusSchema = z.enum(['pending', 'completed', 'failed', 'refunded', 'cancelled']);
 
@@ -34,7 +31,6 @@ export const createDonationSchema = z.object({
   donation_date: z.coerce.date(),
   payment_method: paymentMethodSchema.optional(),
   payment_status: paymentStatusSchema.optional(),
-<<<<<<< HEAD
   payment_provider: paymentProviderSchema.optional(),
   account_id: uuidSchema.optional(),
   contact_id: uuidSchema.optional(),
@@ -43,11 +39,6 @@ export const createDonationSchema = z.object({
   provider_checkout_session_id: z.string().max(255).optional(),
   provider_subscription_id: z.string().max(255).optional(),
   provider_customer_id: z.string().max(255).optional(),
-=======
-  account_id: uuidSchema.optional(),
-  contact_id: uuidSchema.optional(),
-  recurring_plan_id: uuidSchema.optional(),
->>>>>>> origin/main
   stripe_subscription_id: z.string().max(255).optional(),
   stripe_invoice_id: z.string().max(255).optional(),
   is_recurring: z.boolean().optional(),
@@ -66,7 +57,6 @@ export const updateDonationSchema = z.object({
   donation_date: z.coerce.date().optional(),
   payment_method: paymentMethodSchema.optional(),
   payment_status: paymentStatusSchema.optional(),
-<<<<<<< HEAD
   payment_provider: paymentProviderSchema.nullable().optional(),
   account_id: uuidSchema.optional(),
   contact_id: uuidSchema.optional(),
@@ -75,11 +65,6 @@ export const updateDonationSchema = z.object({
   provider_checkout_session_id: z.string().max(255).nullable().optional(),
   provider_subscription_id: z.string().max(255).nullable().optional(),
   provider_customer_id: z.string().max(255).nullable().optional(),
-=======
-  account_id: uuidSchema.optional(),
-  contact_id: uuidSchema.optional(),
-  recurring_plan_id: uuidSchema.nullable().optional(),
->>>>>>> origin/main
   stripe_subscription_id: z.string().max(255).nullable().optional(),
   stripe_invoice_id: z.string().max(255).nullable().optional(),
   is_recurring: z.boolean().optional(),

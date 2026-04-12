@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ContactForm } from '../../features/contacts/components/contactForm';
 import { renderWithProviders, createTestStore } from '../../test/testUtils';
 import api from '../../services/api';
@@ -106,18 +107,19 @@ describe('ContactForm', () => {
     });
 
     it('allows user to fill out basic contact info', async () => {
+      const user = userEvent.setup();
       await renderContactForm(<ContactForm mode="create" />);
 
       const firstNameInput = screen.getByLabelText(/first name \*/i) as HTMLInputElement;
-      fireEvent.change(firstNameInput, { target: { value: 'John' } });
+      await user.type(firstNameInput, 'John');
       expect(firstNameInput.value).toBe('John');
 
       const lastNameInput = screen.getByLabelText(/last name \*/i) as HTMLInputElement;
-      fireEvent.change(lastNameInput, { target: { value: 'Doe' } });
+      await user.type(lastNameInput, 'Doe');
       expect(lastNameInput.value).toBe('Doe');
 
       const emailInput = screen.getByLabelText(/^email$/i) as HTMLInputElement;
-      fireEvent.change(emailInput, { target: { value: 'john.doe@example.com' } });
+      await user.type(emailInput, 'john.doe@example.com');
       expect(emailInput.value).toBe('john.doe@example.com');
     });
 

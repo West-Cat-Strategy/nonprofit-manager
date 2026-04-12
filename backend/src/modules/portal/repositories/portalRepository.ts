@@ -187,7 +187,6 @@ export class PortalRepository {
   }
 
   async getDashboard(contactId: string, portalUserId: string): Promise<Record<string, unknown>> {
-<<<<<<< HEAD
     const [
       activeCases,
       unreadThreadsCountResult,
@@ -198,13 +197,6 @@ export class PortalRepository {
       this.cases.getPortalCases(contactId),
       this.pool.query<{ unread_threads_count: string }>(
         `SELECT COUNT(*)::text AS unread_threads_count
-=======
-    const [activeCases, unreadThreadsCountResult, recentThreadsResult, nextAppointmentResult] =
-      await Promise.all([
-        this.cases.getPortalCases(contactId),
-        this.pool.query<{ unread_threads_count: string }>(
-          `SELECT COUNT(*)::text AS unread_threads_count
->>>>>>> origin/main
            FROM portal_threads t
            WHERE t.portal_user_id = $1
              AND EXISTS (
@@ -215,17 +207,10 @@ export class PortalRepository {
                  AND pm.is_internal = false
                  AND pm.read_by_portal_at IS NULL
              )`,
-<<<<<<< HEAD
         [portalUserId]
       ),
       this.pool.query<Record<string, unknown>>(
         `SELECT
-=======
-          [portalUserId]
-        ),
-        this.pool.query<Record<string, unknown>>(
-          `SELECT
->>>>>>> origin/main
              t.id,
              t.subject,
              t.status,
@@ -250,17 +235,10 @@ export class PortalRepository {
            WHERE t.portal_user_id = $1
            ORDER BY t.last_message_at DESC
            LIMIT 3`,
-<<<<<<< HEAD
         [portalUserId]
       ),
       this.pool.query<Record<string, unknown>>(
         `SELECT
-=======
-          [portalUserId]
-        ),
-        this.pool.query<Record<string, unknown>>(
-          `SELECT
->>>>>>> origin/main
              a.id,
              a.title,
              a.description,
@@ -278,7 +256,6 @@ export class PortalRepository {
              AND a.start_time >= NOW()
            ORDER BY a.start_time ASC
            LIMIT 1`,
-<<<<<<< HEAD
         [contactId]
       ),
       this.pool.query<Record<string, unknown>>(
@@ -343,11 +320,6 @@ export class PortalRepository {
         [contactId]
       ),
     ]);
-=======
-          [contactId]
-        ),
-      ]);
->>>>>>> origin/main
 
     const [upcomingEvents, recentDocuments, reminders] = await Promise.all([
       this.resources.getPortalEvents(contactId, {
@@ -378,10 +350,7 @@ export class PortalRepository {
       upcoming_events: upcomingEvents.items,
       recent_documents: recentDocuments.items,
       reminders: reminders.items,
-<<<<<<< HEAD
       recent_activity: recentActivityResult.rows,
-=======
->>>>>>> origin/main
     };
   }
 }

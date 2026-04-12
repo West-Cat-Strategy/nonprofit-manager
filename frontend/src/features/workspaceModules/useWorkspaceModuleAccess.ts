@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react';
-<<<<<<< HEAD
 import {
   areWorkspaceModuleSettingsEqual,
   type WorkspaceModuleSettings,
 } from './catalog';
-=======
-import type { WorkspaceModuleSettings } from './catalog';
->>>>>>> origin/main
 import {
   getWorkspaceModuleAccessCachedSync,
   subscribeWorkspaceModuleAccess,
@@ -18,7 +14,6 @@ export const useWorkspaceModuleAccess = (): WorkspaceModuleSettings => {
   );
 
   useEffect(() => {
-<<<<<<< HEAD
     const nextWorkspaceModules = getWorkspaceModuleAccessCachedSync();
     setWorkspaceModules((current) =>
       areWorkspaceModuleSettingsEqual(current, nextWorkspaceModules)
@@ -28,11 +23,6 @@ export const useWorkspaceModuleAccess = (): WorkspaceModuleSettings => {
     return subscribeWorkspaceModuleAccess(() => {
       const next = getWorkspaceModuleAccessCachedSync();
       setWorkspaceModules((current) => (areWorkspaceModuleSettingsEqual(current, next) ? current : next));
-=======
-    setWorkspaceModules(getWorkspaceModuleAccessCachedSync());
-    return subscribeWorkspaceModuleAccess(() => {
-      setWorkspaceModules(getWorkspaceModuleAccessCachedSync());
->>>>>>> origin/main
     });
   }, []);
 

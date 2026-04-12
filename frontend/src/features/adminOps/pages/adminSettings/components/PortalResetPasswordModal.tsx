@@ -30,11 +30,7 @@ export default function PortalResetPasswordModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4">
-<<<<<<< HEAD
         <div className="fixed inset-0 app-popup-backdrop" onClick={onClose} />
-=======
-        <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
->>>>>>> origin/main
         <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
           <h3 className="text-lg font-semibold text-app-text mb-2">Reset Portal Password</h3>
           <p className="text-sm text-app-text-muted">

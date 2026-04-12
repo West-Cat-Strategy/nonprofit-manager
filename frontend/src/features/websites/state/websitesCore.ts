@@ -18,12 +18,9 @@ import type {
   WebsiteIntegrationStatus,
   WebsiteFacebookSettings,
   WebsiteMailchimpSettings,
-<<<<<<< HEAD
   WebsiteMauticSettings,
   WebsiteNewsletterListPreset,
   WebsiteNewsletterSettings,
-=======
->>>>>>> origin/main
   WebsiteOverviewSummary,
   WebsiteSearchParams,
   WebsiteSitesResponse,
@@ -134,7 +131,6 @@ export const fetchWebsiteIntegrations = createAsyncThunk<WebsiteIntegrationStatu
   }
 );
 
-<<<<<<< HEAD
 export const fetchWebsiteNewsletterWorkspace = createAsyncThunk<WebsiteIntegrationStatus, string>(
   'websites/fetchNewsletterWorkspace',
   async (siteId, { rejectWithValue }) => {
@@ -236,8 +232,6 @@ export const deleteWebsiteNewsletterListPreset = createAsyncThunk<
   }
 });
 
-=======
->>>>>>> origin/main
 export const updateWebsiteMailchimpIntegration = createAsyncThunk<
   WebsiteIntegrationStatus,
   { siteId: string; data: Partial<WebsiteMailchimpSettings> }
@@ -520,7 +514,6 @@ const websitesSlice = createSlice({
     builder
       .addCase(fetchWebsiteIntegrations.fulfilled, (state, action) => {
         state.integrations = action.payload;
-<<<<<<< HEAD
         if (state.overview) {
           state.overview.integrations = action.payload;
         }
@@ -602,8 +595,6 @@ const websitesSlice = createSlice({
       .addCase(deleteWebsiteNewsletterListPreset.rejected, (state, action) => {
         state.isSaving = false;
         state.error = action.payload as string;
-=======
->>>>>>> origin/main
       })
       .addCase(updateWebsiteMailchimpIntegration.pending, (state) => {
         state.isSaving = true;

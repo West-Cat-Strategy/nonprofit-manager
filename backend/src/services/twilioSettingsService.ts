@@ -40,7 +40,6 @@ interface SettingsRow {
   updated_at: Date;
 }
 
-<<<<<<< HEAD
 const TWILIO_SETTINGS_COLUMNS = [
   'id',
   'account_sid',
@@ -54,8 +53,6 @@ const TWILIO_SETTINGS_COLUMNS = [
   'updated_at',
 ].join(', ');
 
-=======
->>>>>>> origin/main
 const mapRow = (row: SettingsRow): TwilioSettings => ({
   id: row.id,
   accountSid: row.account_sid,
@@ -68,7 +65,6 @@ const mapRow = (row: SettingsRow): TwilioSettings => ({
   updatedAt: row.updated_at,
 });
 
-<<<<<<< HEAD
 const getTwilioSettingsRow = async (): Promise<SettingsRow | null> => {
   const result = await pool.query<SettingsRow>(
     `SELECT ${TWILIO_SETTINGS_COLUMNS} FROM twilio_settings ORDER BY created_at LIMIT 1`
@@ -89,42 +85,21 @@ const computeIsConfigured = (params: {
       (params.messagingServiceSid || params.fromPhoneNumber)
   );
 
-=======
->>>>>>> origin/main
 /**
  * Retrieve current Twilio settings.
  */
 export async function getTwilioSettings(): Promise<TwilioSettings | null> {
-<<<<<<< HEAD
   const row = await getTwilioSettingsRow();
   return row ? mapRow(row) : null;
-=======
-  const result = await pool.query<SettingsRow>(
-    'SELECT * FROM twilio_settings ORDER BY created_at LIMIT 1'
-  );
-
-  if (result.rows.length === 0) return null;
-  return mapRow(result.rows[0]);
->>>>>>> origin/main
 }
 
 /**
  * Check whether an auth token is currently stored (without revealing it).
  */
 export async function hasStoredCredentials(): Promise<{ authToken: boolean }> {
-<<<<<<< HEAD
   const row = await getTwilioSettingsRow();
   return {
     authToken: Boolean(row?.auth_token_encrypted),
-=======
-  const result = await pool.query<{ auth_token_encrypted: string | null }>(
-    'SELECT auth_token_encrypted FROM twilio_settings ORDER BY created_at LIMIT 1'
-  );
-
-  if (result.rows.length === 0) return { authToken: false };
-  return {
-    authToken: !!result.rows[0].auth_token_encrypted,
->>>>>>> origin/main
   };
 }
 
@@ -152,17 +127,12 @@ export async function updateTwilioSettings(
     addParam('auth_token_encrypted', data.authToken.trim() ? encrypt(data.authToken) : null);
   }
 
-<<<<<<< HEAD
-=======
-  // Recompute is_configured when config inputs were touched.
->>>>>>> origin/main
   if (
     data.accountSid !== undefined ||
     data.authToken !== undefined ||
     data.messagingServiceSid !== undefined ||
     data.fromPhoneNumber !== undefined
   ) {
-<<<<<<< HEAD
     const current = await getTwilioSettingsRow();
     const configured = computeIsConfigured({
       accountSid: data.accountSid !== undefined ? data.accountSid : current?.account_sid,
@@ -173,34 +143,6 @@ export async function updateTwilioSettings(
       fromPhoneNumber:
         data.fromPhoneNumber !== undefined ? data.fromPhoneNumber : current?.from_phone_number,
     });
-=======
-    const current = await pool.query<{
-      account_sid: string | null;
-      auth_token_encrypted: string | null;
-      messaging_service_sid: string | null;
-      from_phone_number: string | null;
-    }>(
-      `SELECT account_sid, auth_token_encrypted, messaging_service_sid, from_phone_number
-       FROM twilio_settings
-       ORDER BY created_at
-       LIMIT 1`
-    );
-    const cur = current.rows[0] || {};
-
-    const effectiveAccountSid = data.accountSid !== undefined ? data.accountSid : cur.account_sid;
-    const hasEffectiveToken =
-      data.authToken !== undefined ? Boolean(data.authToken.trim()) : Boolean(cur.auth_token_encrypted);
-    const effectiveMessagingServiceSid =
-      data.messagingServiceSid !== undefined ? data.messagingServiceSid : cur.messaging_service_sid;
-    const effectiveFromNumber =
-      data.fromPhoneNumber !== undefined ? data.fromPhoneNumber : cur.from_phone_number;
-
-    const configured = Boolean(
-      effectiveAccountSid &&
-      hasEffectiveToken &&
-      (effectiveMessagingServiceSid || effectiveFromNumber)
-    );
->>>>>>> origin/main
     addParam('is_configured', configured);
   }
 
@@ -208,28 +150,18 @@ export async function updateTwilioSettings(
   addParam('updated_at', new Date());
 
   if (setClauses.length === 0) {
-<<<<<<< HEAD
     const existing = await getTwilioSettingsRow();
     if (!existing) {
       throw new Error('Twilio settings not found');
     }
     return mapRow(existing);
-=======
-    const existing = await getTwilioSettings();
-    if (!existing) throw new Error('Twilio settings not found');
-    return existing;
->>>>>>> origin/main
   }
 
   const result = await pool.query<SettingsRow>(
     `UPDATE twilio_settings
      SET ${setClauses.join(', ')}
      WHERE id = (SELECT id FROM twilio_settings ORDER BY created_at LIMIT 1)
-<<<<<<< HEAD
      RETURNING ${TWILIO_SETTINGS_COLUMNS}`,
-=======
-     RETURNING *`,
->>>>>>> origin/main
     values
   );
 

@@ -217,11 +217,7 @@ describe('Auth API', () => {
               email: 'login@example.com',
               firstName: 'Login',
               lastName: 'User',
-<<<<<<< HEAD
               role: 'staff',
-=======
-              role: 'user',
->>>>>>> origin/main
             }),
           }),
         })

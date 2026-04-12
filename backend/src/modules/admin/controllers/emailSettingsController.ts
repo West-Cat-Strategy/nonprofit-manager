@@ -7,29 +7,11 @@
 import type { Response, NextFunction } from 'express';
 import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
-<<<<<<< HEAD
 import * as emailSettingsUseCase from '../usecases/emailSettingsUseCase';
 import { testSmtpConnection } from '@services/emailService';
 import { forbidden } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import type { UpdateEmailSettingsInput } from '@validations/admin';
-=======
-import * as emailSettingsService from '@services/emailSettingsService';
-import { testSmtpConnection } from '@services/emailService';
-import { forbidden } from '@utils/responseHelpers';
-import { sendSuccess } from '@modules/shared/http/envelope';
-
-const normalizeOptionalString = (value: unknown): string | null | undefined => {
-  if (value === undefined || value === null) {
-    return value as null | undefined;
-  }
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
-};
->>>>>>> origin/main
 
 const normalizeOptionalSecret = (value: unknown): string | undefined => {
   if (typeof value !== 'string') {
@@ -54,13 +36,8 @@ export const getEmailSettings = async (
     }
 
     const [settings, credentials] = await Promise.all([
-<<<<<<< HEAD
       emailSettingsUseCase.getEmailSettings(),
       emailSettingsUseCase.hasStoredCredentials(),
-=======
-      emailSettingsService.getEmailSettings(),
-      emailSettingsService.hasStoredCredentials(),
->>>>>>> origin/main
     ]);
 
     return sendSuccess(res, {
@@ -87,7 +64,6 @@ export const updateEmailSettings = async (
       return forbidden(res, 'Admin access required');
     }
 
-<<<<<<< HEAD
     const body = req.body as UpdateEmailSettingsInput;
     const updated = await emailSettingsUseCase.updateEmailSettings(
       {
@@ -103,22 +79,6 @@ export const updateEmailSettings = async (
         imapSecure: body.imapSecure,
         imapUser: body.imapUser,
         imapPass: normalizeOptionalSecret(body.imapPass),
-=======
-    const updated = await emailSettingsService.updateEmailSettings(
-      {
-        smtpHost: normalizeOptionalString(req.body.smtpHost),
-        smtpPort: req.body.smtpPort,
-        smtpSecure: req.body.smtpSecure,
-        smtpUser: normalizeOptionalString(req.body.smtpUser),
-        smtpPass: normalizeOptionalSecret(req.body.smtpPass),
-        smtpFromAddress: normalizeOptionalString(req.body.smtpFromAddress),
-        smtpFromName: normalizeOptionalString(req.body.smtpFromName),
-        imapHost: normalizeOptionalString(req.body.imapHost),
-        imapPort: req.body.imapPort,
-        imapSecure: req.body.imapSecure,
-        imapUser: normalizeOptionalString(req.body.imapUser),
-        imapPass: normalizeOptionalSecret(req.body.imapPass),
->>>>>>> origin/main
       },
       req.user.id
     );

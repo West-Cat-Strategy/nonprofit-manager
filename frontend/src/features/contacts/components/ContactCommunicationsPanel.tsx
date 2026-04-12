@@ -84,7 +84,6 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
     }),
     [channel, deliveryStatus, sourceType]
   );
-<<<<<<< HEAD
   const hasFilters = channel !== 'all' || sourceType !== 'all' || deliveryStatus !== 'all';
 
   const clearFilters = () => {
@@ -92,8 +91,6 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
     setSourceType('all');
     setDeliveryStatus('all');
   };
-=======
->>>>>>> origin/main
 
   const loadCommunications = useCallback(async () => {
     try {
@@ -136,7 +133,6 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
 
   if (loading) {
     return (
-<<<<<<< HEAD
       <div className="space-y-4" aria-label="Loading communications">
         <div className="flex flex-col gap-3 border-2 border-black bg-white p-4 md:flex-row md:items-end md:justify-between">
           <div className="space-y-1">
@@ -156,9 +152,6 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
             </button>
           </div>
         </div>
-=======
-      <div className="space-y-3" aria-label="Loading communications">
->>>>>>> origin/main
         {[0, 1, 2].map((index) => (
           <div
             key={index}
@@ -171,7 +164,6 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
 
   return (
     <div className="space-y-4">
-<<<<<<< HEAD
       <div className="flex flex-col gap-3 border-2 border-black bg-white p-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-1">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-black/60">
@@ -202,8 +194,6 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
         </div>
       </div>
 
-=======
->>>>>>> origin/main
       <div className="grid gap-3 md:grid-cols-3">
         <label className="text-sm font-bold text-black/70">
           Channel
@@ -272,13 +262,9 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
         <div className="border-2 border-dashed border-black/30 bg-white px-6 py-10 text-center">
           <p className="text-sm font-black uppercase text-black/60">No communications yet</p>
           <p className="mt-2 text-sm font-bold text-black/70">
-<<<<<<< HEAD
             {hasFilters
               ? 'No deliveries match the filters you selected. Clear filters to widen the log.'
               : 'Logged appointment and event reminder deliveries will appear here.'}
-=======
-            Logged appointment and event reminder deliveries will appear here.
->>>>>>> origin/main
           </p>
         </div>
       )}

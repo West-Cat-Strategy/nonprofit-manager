@@ -146,6 +146,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.post(
     '/bulk',
     validateBody(bulkUpdateContactsSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     directoryController.bulkUpdateContacts
   );
   router.post('/export', validateBody(contactExportSchema), directoryController.exportContacts);
@@ -164,6 +165,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/import/commit',
     documentUpload.single('file'),
     handleMulterError,
+    requirePermission(Permission.CONTACT_CREATE),
     directoryController.commitImport
   );
 
@@ -192,6 +194,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.post(
     '/',
     validateBody(createContactSchema),
+    requirePermission(Permission.CONTACT_CREATE),
     piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.createContact
   );
@@ -199,12 +202,14 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:id',
     validateParams(z.object({ id: uuidSchema })),
     validateBody(updateContactSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.updateContact
   );
   router.delete(
     '/:id',
     validateParams(z.object({ id: uuidSchema })),
+    requirePermission(Permission.CONTACT_DELETE),
     directoryController.deleteContact
   );
   router.get(
@@ -228,6 +233,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:contactId/notes',
     validateParams(z.object({ contactId: uuidSchema })),
     validateBody(contactNoteSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     notesController.createContactNote
   );
   router.get(
@@ -239,11 +245,13 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/notes/:noteId',
     validateParams(z.object({ noteId: uuidSchema })),
     validateBody(updateContactNoteSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     notesController.updateContactNote
   );
   router.delete(
     '/notes/:noteId',
     validateParams(z.object({ noteId: uuidSchema })),
+    requirePermission(Permission.CONTACT_EDIT),
     notesController.deleteContactNote
   );
 
@@ -256,6 +264,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:contactId/phones',
     validateParams(z.object({ contactId: uuidSchema })),
     validateBody(contactPhoneSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     phonesController.createContactPhone
   );
   router.get(
@@ -267,11 +276,13 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/phones/:phoneId',
     validateParams(z.object({ phoneId: uuidSchema })),
     validateBody(updateContactPhoneSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     phonesController.updateContactPhone
   );
   router.delete(
     '/phones/:phoneId',
     validateParams(z.object({ phoneId: uuidSchema })),
+    requirePermission(Permission.CONTACT_EDIT),
     phonesController.deleteContactPhone
   );
 
@@ -284,6 +295,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:contactId/emails',
     validateParams(z.object({ contactId: uuidSchema })),
     validateBody(contactEmailSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     emailsController.createContactEmail
   );
   router.get(
@@ -295,11 +307,13 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/emails/:emailId',
     validateParams(z.object({ emailId: uuidSchema })),
     validateBody(updateContactEmailSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     emailsController.updateContactEmail
   );
   router.delete(
     '/emails/:emailId',
     validateParams(z.object({ emailId: uuidSchema })),
+    requirePermission(Permission.CONTACT_EDIT),
     emailsController.deleteContactEmail
   );
 
@@ -312,6 +326,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/:contactId/relationships',
     validateParams(z.object({ contactId: uuidSchema })),
     validateBody(contactRelationshipSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     relationshipsController.createContactRelationship
   );
   router.get(
@@ -323,11 +338,13 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/relationships/:relationshipId',
     validateParams(z.object({ relationshipId: uuidSchema })),
     validateBody(updateContactRelationshipSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     relationshipsController.updateContactRelationship
   );
   router.delete(
     '/relationships/:relationshipId',
     validateParams(z.object({ relationshipId: uuidSchema })),
+    requirePermission(Permission.CONTACT_EDIT),
     relationshipsController.deleteContactRelationship
   );
 
@@ -341,6 +358,7 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     validateParams(z.object({ contactId: uuidSchema })),
     documentUpload.single('file'),
     handleMulterError,
+    requirePermission(Permission.CONTACT_EDIT),
     documentsController.uploadDocument
   );
   router.get(
@@ -357,11 +375,13 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
     '/documents/:documentId',
     validateParams(z.object({ documentId: uuidSchema })),
     validateBody(updateContactDocumentSchema),
+    requirePermission(Permission.CONTACT_EDIT),
     documentsController.updateDocument
   );
   router.delete(
     '/documents/:documentId',
     validateParams(z.object({ documentId: uuidSchema })),
+    requirePermission(Permission.CONTACT_EDIT),
     documentsController.deleteDocument
   );
 

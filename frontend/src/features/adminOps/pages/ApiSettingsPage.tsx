@@ -306,11 +306,7 @@ function DeliveryHistoryModal({
   onClose: () => void;
 }) {
   return (
-<<<<<<< HEAD
     <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50">
-=======
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
->>>>>>> origin/main
       <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-app-border">
           <h3 className="text-lg font-semibold">Delivery History</h3>
@@ -385,11 +381,7 @@ function NewApiKeyModal({
   };
 
   return (
-<<<<<<< HEAD
     <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50">
-=======
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
->>>>>>> origin/main
       <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-lg p-6">
         <div className="text-center mb-6">
           <div className="mx-auto w-12 h-12 bg-app-accent-soft rounded-full flex items-center justify-center mb-4">
@@ -908,11 +900,7 @@ export default function ApiSettings() {
       )}
 
       {isTesting && (
-<<<<<<< HEAD
         <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50">
-=======
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
->>>>>>> origin/main
           <div className="bg-app-surface rounded-lg p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-app-accent mx-auto mb-4"></div>
             <p className="text-app-text-muted">Sending test webhook...</p>

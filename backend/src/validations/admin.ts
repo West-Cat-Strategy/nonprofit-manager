@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { emailSchema, phoneSchema, uuidSchema, optionalStrictBooleanSchema } from './shared';
 import { WORKSPACE_MODULE_KEYS } from '@app-types/workspaceModules';
-<<<<<<< HEAD
 import { userRoleSchema } from './user';
 
 const nullableString = (maxLength = 255) =>
@@ -31,11 +30,6 @@ const nullableTwilioSid = (prefix: 'AC' | 'MG', errorMessage: string) =>
     const trimmed = value.trim();
     return trimmed.length === 0 ? null : trimmed;
   }, z.string().regex(new RegExp(`^${prefix}[0-9a-fA-F]{32}$`), errorMessage).nullable().optional());
-=======
-
-const nullableString = (maxLength = 255) =>
-  z.union([z.string().trim().max(maxLength), z.null()]).optional();
->>>>>>> origin/main
 
 const nullableEmailSetting = z.preprocess((value) => {
   if (value === undefined || value === null) {
@@ -56,7 +50,6 @@ export const adminPendingRegistrationParamsSchema = z.object({
 
 export const updateRegistrationSettingsSchema = z.object({
   registrationMode: z.enum(['disabled', 'approval_required']).optional(),
-<<<<<<< HEAD
   defaultRole: userRoleSchema.optional(),
 });
 
@@ -82,9 +75,6 @@ export const adminRoleUpdateSchema = z
 
 export const adminUserAuditLogsParamsSchema = z.object({
   id: uuidSchema,
-=======
-  defaultRole: z.enum(['admin', 'manager', 'user', 'readonly']).optional(),
->>>>>>> origin/main
 });
 
 export const rejectPendingRegistrationSchema = z.object({
@@ -93,13 +83,8 @@ export const rejectPendingRegistrationSchema = z.object({
 
 export const adminAuditLogsQuerySchema = z
   .object({
-<<<<<<< HEAD
     limit: z.coerce.number().int().min(1).max(200).default(50),
     offset: z.coerce.number().int().min(0).max(5000).default(0),
-=======
-    limit: z.coerce.number().int().min(1).max(200).optional(),
-    offset: z.coerce.number().int().min(0).max(5000).optional(),
->>>>>>> origin/main
   })
   .strict();
 
@@ -125,7 +110,6 @@ export const updateEmailSettingsSchema = z.object({
 });
 
 export const updateTwilioSettingsSchema = z.object({
-<<<<<<< HEAD
   accountSid: nullableTwilioSid('AC', 'Invalid Twilio Account SID format'),
   authToken: z.string().max(255).optional(),
   messagingServiceSid: nullableTwilioSid(
@@ -144,12 +128,6 @@ export const updateTwilioSettingsSchema = z.object({
     const trimmed = value.trim();
     return trimmed.length === 0 ? null : trimmed;
   }, z.union([phoneSchema, z.null()]).optional()),
-=======
-  accountSid: nullableString(255),
-  authToken: z.string().max(255).optional(),
-  messagingServiceSid: nullableString(255),
-  fromPhoneNumber: z.union([phoneSchema, z.null()]).optional(),
->>>>>>> origin/main
 });
 
 const settingsAddressSchema = z.object({
@@ -213,13 +191,10 @@ export type AdminPendingRegistrationParamsInput = z.infer<
   typeof adminPendingRegistrationParamsSchema
 >;
 export type UpdateRegistrationSettingsInput = z.infer<typeof updateRegistrationSettingsSchema>;
-<<<<<<< HEAD
 export type AdminRoleParamsInput = z.infer<typeof adminRoleParamsSchema>;
 export type AdminRoleCreateInput = z.infer<typeof adminRoleCreateSchema>;
 export type AdminRoleUpdateInput = z.infer<typeof adminRoleUpdateSchema>;
 export type AdminUserAuditLogsParamsInput = z.infer<typeof adminUserAuditLogsParamsSchema>;
-=======
->>>>>>> origin/main
 export type RejectPendingRegistrationInput = z.infer<typeof rejectPendingRegistrationSchema>;
 export type AdminAuditLogsQueryInput = z.infer<typeof adminAuditLogsQuerySchema>;
 export type AdminPendingRegistrationsQueryInput = z.infer<

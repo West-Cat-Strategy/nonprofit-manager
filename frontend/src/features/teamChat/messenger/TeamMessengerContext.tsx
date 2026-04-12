@@ -103,17 +103,11 @@ const sortMessages = (
 ): number => {
   const leftTime = new Date(left.created_at).getTime();
   const rightTime = new Date(right.created_at).getTime();
-<<<<<<< HEAD
   const leftId = typeof left.id === 'string' ? left.id : '';
   const rightId = typeof right.id === 'string' ? right.id : '';
 
   if (leftTime === rightTime) {
     return leftId.localeCompare(rightId);
-=======
-
-  if (leftTime === rightTime) {
-    return left.id.localeCompare(right.id);
->>>>>>> origin/main
   }
 
   return leftTime - rightTime;
@@ -133,7 +127,6 @@ const mergeRenderableMessages = (
 ): TeamMessengerRenderableMessage[] => {
   const byKey = new Map<string, TeamMessengerRenderableMessage>();
 
-<<<<<<< HEAD
   for (const [index, message] of messages.entries()) {
     const messageId = typeof message.id === 'string' ? message.id : '';
     const key =
@@ -142,13 +135,6 @@ const mergeRenderableMessages = (
         : messageId
           ? `id:${messageId}`
           : `fallback:${message.room_id}:${message.client_message_id || index}`;
-=======
-  for (const message of messages) {
-    const key =
-      message.id.startsWith(TEMP_PREFIX) && message.client_message_id
-        ? `client:${message.client_message_id}`
-        : `id:${message.id}`;
->>>>>>> origin/main
     const existing = byKey.get(key);
 
     if (!existing) {
@@ -248,7 +234,6 @@ const buildOptimisticMessage = (
 const applyPresence = (
   contacts: TeamMessengerContact[],
   presenceByUserId: Record<string, 'online' | 'offline'>
-<<<<<<< HEAD
 ): TeamMessengerContact[] => {
   let hasChanges = false;
   const nextContacts = contacts.map((contact) => {
@@ -272,18 +257,6 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
   const enabled =
     teamChatEnabled &&
     !authLoading &&
-=======
-): TeamMessengerContact[] =>
-  contacts.map((contact) => ({
-    ...contact,
-    presence_status: presenceByUserId[contact.user_id] || contact.presence_status,
-  }));
-
-export function TeamMessengerProvider({ children }: { children: ReactNode }) {
-  const { user } = useAppSelector((state) => state.auth);
-  const enabled =
-    teamChatEnabled &&
->>>>>>> origin/main
     Boolean(user?.id) &&
     ['admin', 'manager', 'staff'].includes((user?.role || '').toLowerCase());
 
@@ -389,11 +362,7 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
   }, [enabled, refreshContacts, refreshConversations]);
 
   useEffect(() => {
-<<<<<<< HEAD
     void refresh().catch(() => undefined);
-=======
-    void refresh();
->>>>>>> origin/main
   }, [refresh]);
 
   const openConversation = useCallback(
@@ -716,7 +685,6 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
   const handleConnected = useCallback((payload: TeamMessengerConnectedPayload) => {
     startTransition(() => {
       setPresenceByUserId((current) => {
-<<<<<<< HEAD
         let hasChanges = false;
         const next: Record<string, 'online' | 'offline'> = { ...current };
         for (const userId of payload.online_user_ids) {
@@ -726,13 +694,6 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
           }
         }
         return hasChanges ? next : current;
-=======
-        const next: Record<string, 'online' | 'offline'> = { ...current };
-        for (const userId of payload.online_user_ids) {
-          next[userId] = 'online';
-        }
-        return next;
->>>>>>> origin/main
       });
     });
   }, []);
@@ -750,7 +711,6 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
       if (eventName === 'team_chat.presence.updated') {
         const presence = payload as TeamMessengerPresenceState;
         startTransition(() => {
-<<<<<<< HEAD
           setPresenceByUserId((current) =>
             current[presence.user_id] === presence.status
               ? current
@@ -759,12 +719,6 @@ export function TeamMessengerProvider({ children }: { children: ReactNode }) {
                   [presence.user_id]: presence.status,
                 }
           );
-=======
-          setPresenceByUserId((current) => ({
-            ...current,
-            [presence.user_id]: presence.status,
-          }));
->>>>>>> origin/main
         });
         return;
       }

@@ -184,7 +184,6 @@ export default function ContactMergeDialog({
   };
 
   const conflictFields = preview?.fields.filter((field) => field.conflict) ?? [];
-<<<<<<< HEAD
   const selectedTarget =
     searchResults.find((contact) => contact.contact_id === selectedTargetId) ??
     preview?.target_contact ??
@@ -194,13 +193,6 @@ export default function ContactMergeDialog({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop p-4"
-=======
-  const selectedTarget = searchResults.find((contact) => contact.contact_id === selectedTargetId);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
->>>>>>> origin/main
       role="dialog"
       aria-modal="true"
       aria-label="Merge contact"
@@ -247,13 +239,9 @@ export default function ContactMergeDialog({
             <div className="space-y-2">
               {searchResults.length === 0 ? (
                 <p className="border-2 border-dashed border-black/40 bg-white px-3 py-3 text-sm font-bold text-black/60">
-<<<<<<< HEAD
                   {hasSearchAttempt
                     ? 'No matching contacts found. Try a different name, phone number, or email.'
                     : 'Search for a contact to merge into. Inactive contacts are included.'}
-=======
-                  Search for a contact to merge into. Inactive contacts are included.
->>>>>>> origin/main
                 </p>
               ) : (
                 searchResults.map((contact) => {
@@ -263,10 +251,7 @@ export default function ContactMergeDialog({
                       key={contact.contact_id}
                       type="button"
                       onClick={() => void handleSelectTarget(contact)}
-<<<<<<< HEAD
                       aria-pressed={isSelected}
-=======
->>>>>>> origin/main
                       className={`w-full border-2 border-black px-3 py-3 text-left transition ${
                         isSelected ? 'bg-yellow-200' : 'bg-white hover:bg-yellow-50'
                       }`}
@@ -290,24 +275,15 @@ export default function ContactMergeDialog({
           </div>
 
           <div className="space-y-4">
-<<<<<<< HEAD
             <div className="border-2 border-black bg-[var(--loop-yellow)] p-4">
               <p className="text-xs font-black uppercase text-black/60">Selected target</p>
-=======
-            <div className="border-2 border-black bg-white p-4">
-              <h3 className="text-sm font-black uppercase text-black/80">Survivor</h3>
->>>>>>> origin/main
               <p className="mt-1 text-lg font-black text-black">
                 {selectedTarget ? getContactDisplayName(selectedTarget) : 'Pick a target contact'}
               </p>
               <p className="text-sm font-bold text-black/70">
-<<<<<<< HEAD
                 {selectedTarget
                   ? `${selectedTarget.email || selectedTarget.phone || selectedTarget.mobile_phone || 'No contact details'}${selectedTarget.account_name ? ` • ${selectedTarget.account_name}` : ''}`
                   : 'Search and select the contact you want to keep after the merge.'}
-=======
-                {selectedTarget?.account_name || preview?.target_contact.account_name || 'Target contact will survive the merge'}
->>>>>>> origin/main
               </p>
             </div>
 
@@ -323,15 +299,12 @@ export default function ContactMergeDialog({
               </p>
             )}
 
-<<<<<<< HEAD
             {!preview && selectedTarget && !loadingPreview ? (
               <p className="border-2 border-dashed border-black/40 bg-white px-3 py-3 text-sm font-bold text-black/60">
                 The merge preview is loading or unavailable. Try selecting the target contact again.
               </p>
             ) : null}
 
-=======
->>>>>>> origin/main
             {preview && (
               <div className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-2">

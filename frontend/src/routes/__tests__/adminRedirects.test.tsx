@@ -18,11 +18,7 @@ vi.mock('../../features/adminOps/routeComponents', async () => {
     ApiSettings: () => <h1>API Settings Page</h1>,
     NavigationSettings: () => <h1>Navigation Settings Page</h1>,
     DataBackup: () => <h1>Data Backup Page</h1>,
-<<<<<<< HEAD
     CommunicationsPage: () => <h1>Communications Page</h1>,
-=======
-    EmailMarketing: () => <h1>Email Marketing Page</h1>,
->>>>>>> origin/main
     SocialMedia: () => <h1>Social Media Page</h1>,
     PortalAdminPage: ({ panel }: { panel: string }) => <h1>Portal Panel: {panel}</h1>,
     AdminSettingsSectionRoute: () => {
@@ -90,11 +86,7 @@ describe('admin route redirects', () => {
     ['/settings/admin/organization', '/settings/admin/organization'],
     ['/settings/admin/branding', '/settings/admin/branding'],
     ['/settings/admin/users', '/settings/admin/users'],
-<<<<<<< HEAD
     ['/settings/admin/communications', '/settings/admin/communications'],
-=======
-    ['/settings/admin/email', '/settings/admin/email'],
->>>>>>> origin/main
     ['/settings/admin/messaging', '/settings/admin/messaging'],
     ['/settings/admin/outcomes', '/settings/admin/outcomes'],
     ['/settings/admin/roles', '/settings/admin/roles'],
@@ -132,17 +124,10 @@ describe('admin route redirects', () => {
     expectCurrentLocation(route);
   });
 
-<<<<<<< HEAD
   it('renders canonical communications route directly', async () => {
     renderAdminRoutes('/settings/communications');
     expect(await screen.findByRole('heading', { name: /communications page/i })).toBeInTheDocument();
     expectCurrentLocation('/settings/communications');
-=======
-  it('renders canonical email marketing route directly', async () => {
-    renderAdminRoutes('/settings/email-marketing');
-    expect(await screen.findByRole('heading', { name: /email marketing page/i })).toBeInTheDocument();
-    expectCurrentLocation('/settings/email-marketing');
->>>>>>> origin/main
   });
 
   it('renders canonical social media route directly', async () => {
@@ -152,15 +137,9 @@ describe('admin route redirects', () => {
   });
 
   it.each([
-<<<<<<< HEAD
     ['/email-marketing', '/dashboard', /dashboard/i],
     ['/settings/organization', '/dashboard', /dashboard/i],
     ['/admin/audit-logs', '/dashboard', /dashboard/i],
-=======
-    ['/email-marketing', '/settings/email-marketing', /email marketing page/i],
-    ['/settings/organization', '/settings/admin/organization', /admin settings page/i],
-    ['/admin/audit-logs', '/settings/admin/audit_logs', /admin settings page/i],
->>>>>>> origin/main
   ])('redirects legacy route %s to %s', async (legacyRoute, canonicalRoute, heading) => {
     renderAdminRoutes(legacyRoute);
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();

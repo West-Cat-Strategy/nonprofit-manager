@@ -18,10 +18,7 @@ import { setAuthCookie, clearAuthCookies } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { generateCsrfToken } from '@middleware/domains/security';
 import { sendSuccess } from '@modules/shared/http/envelope';
-<<<<<<< HEAD
 import { normalizeRoleSlug } from '@utils/roleSlug';
-=======
->>>>>>> origin/main
 import {
   getDefaultOrganizationId,
   LoginRequest,
@@ -66,12 +63,8 @@ export const login = async (
     }
 
     const user = result.rows[0];
-<<<<<<< HEAD
     const normalizedRole = normalizeRoleSlug(user.role) ?? user.role;
     await syncUserRole(user.id, normalizedRole);
-=======
-    await syncUserRole(user.id, user.role);
->>>>>>> origin/main
 
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
@@ -114,11 +107,7 @@ export const login = async (
       {
         id: user.id,
         email: user.email,
-<<<<<<< HEAD
         role: normalizedRole,
-=======
-        role: user.role,
->>>>>>> origin/main
         ...(organizationId ? { organizationId } : {}),
       },
       jwtSecret,
@@ -186,11 +175,7 @@ export const getCurrentUser = async (
       email: user.email,
       firstName: user.first_name,
       lastName: user.last_name,
-<<<<<<< HEAD
       role: normalizeRoleSlug(user.role) ?? user.role,
-=======
-      role: user.role,
->>>>>>> origin/main
       profilePicture: user.profile_picture || null,
       organizationId: organizationId ?? null,
       createdAt: user.created_at,
@@ -209,11 +194,7 @@ export const checkAccess = async (
     const authUser = requireAuthenticatedUser(req, res);
     if (!authUser) return;
     const userId = authUser.id;
-<<<<<<< HEAD
     const primaryRole = normalizeRoleSlug(authUser.role) ?? authUser.role;
-=======
-    const primaryRole = authUser.role;
->>>>>>> origin/main
     const organizationId = await resolveAuthenticatedOrganizationId(req, res);
     if (organizationId === undefined) {
       return;

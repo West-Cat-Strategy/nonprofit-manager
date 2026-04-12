@@ -9,14 +9,11 @@ import Avatar from './Avatar';
 import ErrorBanner from './ErrorBanner';
 import { useApiError } from '../hooks/useApiError';
 import { validatePassword } from '../utils/validation';
-<<<<<<< HEAD
 import type { RoleSelectorItem } from '../features/adminOps/contracts';
 import {
   buildRoleLabelMap,
   getRoleDisplayLabel,
 } from '../features/adminOps/pages/adminSettings/utils';
-=======
->>>>>>> origin/main
 
 interface User {
   id: string;
@@ -225,14 +222,9 @@ export default function UserManagement() {
       case 'admin':
         return 'bg-app-accent-soft text-app-accent-text';
       case 'manager':
-<<<<<<< HEAD
       case 'staff':
       case 'volunteer':
       case 'viewer':
-=======
-        return 'bg-app-accent-soft text-app-accent-text';
-      case 'readonly':
->>>>>>> origin/main
         return 'bg-app-surface-muted text-app-text';
       default:
         return 'bg-app-accent-soft text-app-accent-text';
@@ -395,11 +387,7 @@ export default function UserManagement() {
       {showCreateModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
-<<<<<<< HEAD
             <div className="fixed inset-0 app-popup-backdrop" onClick={() => setShowCreateModal(false)} />
-=======
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowCreateModal(false)} />
->>>>>>> origin/main
             <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
               <h3 className="text-lg font-semibold text-app-text-heading mb-4">Create New User</h3>
 
@@ -416,7 +404,9 @@ export default function UserManagement() {
                     <input
                       type="text"
                       value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, firstName: e.target.value }))
+                      }
                       className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                     />
                   </div>
@@ -425,7 +415,7 @@ export default function UserManagement() {
                     <input
                       type="text"
                       value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
                       className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                     />
                   </div>
@@ -436,7 +426,7 @@ export default function UserManagement() {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                 </div>
@@ -445,7 +435,7 @@ export default function UserManagement() {
                   <label className="block text-sm font-medium text-app-text-label mb-1">Role</label>
                   <select
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   >
                     {roles.length === 0 ? (
@@ -467,7 +457,7 @@ export default function UserManagement() {
                   <input
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                   <p className="mt-1 text-xs text-app-text-muted">
@@ -480,7 +470,9 @@ export default function UserManagement() {
                   <input
                     type="password"
                     value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                    }
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                 </div>
@@ -512,11 +504,7 @@ export default function UserManagement() {
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
-<<<<<<< HEAD
             <div className="fixed inset-0 app-popup-backdrop" onClick={() => setShowEditModal(false)} />
-=======
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowEditModal(false)} />
->>>>>>> origin/main
             <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
               <h3 className="text-lg font-semibold text-app-text-heading mb-4">Edit User</h3>
 
@@ -533,7 +521,9 @@ export default function UserManagement() {
                     <input
                       type="text"
                       value={formData.firstName}
-                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, firstName: e.target.value }))
+                      }
                       className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                     />
                   </div>
@@ -542,7 +532,7 @@ export default function UserManagement() {
                     <input
                       type="text"
                       value={formData.lastName}
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
                       className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                     />
                   </div>
@@ -553,7 +543,7 @@ export default function UserManagement() {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                 </div>
@@ -562,7 +552,7 @@ export default function UserManagement() {
                   <label className="block text-sm font-medium text-app-text-label mb-1">Role</label>
                   <select
                     value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   >
                     {roles.length === 0 ? (
@@ -606,11 +596,7 @@ export default function UserManagement() {
       {showResetPasswordModal && selectedUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
-<<<<<<< HEAD
             <div className="fixed inset-0 app-popup-backdrop" onClick={() => setShowResetPasswordModal(false)} />
-=======
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowResetPasswordModal(false)} />
->>>>>>> origin/main
             <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
               <h3 className="text-lg font-semibold text-app-text-heading mb-4">
                 Reset Password for {selectedUser.firstName} {selectedUser.lastName}
@@ -628,7 +614,7 @@ export default function UserManagement() {
                   <input
                     type="password"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                   <p className="mt-1 text-xs text-app-text-muted">
@@ -641,7 +627,9 @@ export default function UserManagement() {
                   <input
                     type="password"
                     value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                    }
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
                   />
                 </div>

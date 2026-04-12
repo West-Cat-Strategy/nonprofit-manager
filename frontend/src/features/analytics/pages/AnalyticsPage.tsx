@@ -158,7 +158,7 @@ export default function Analytics() {
               label="Start Date"
               value={dateRange.start_date}
               onChange={(event) =>
-                setDateRange({ ...dateRange, start_date: event.target.value })
+                setDateRange((prev) => ({ ...prev, start_date: event.target.value }))
               }
             />
           </div>
@@ -168,7 +168,9 @@ export default function Analytics() {
               type="date"
               label="End Date"
               value={dateRange.end_date}
-              onChange={(event) => setDateRange({ ...dateRange, end_date: event.target.value })}
+              onChange={(event) =>
+                setDateRange((prev) => ({ ...prev, end_date: event.target.value }))
+              }
             />
           </div>
           <PrimaryButton onClick={handleApplyFilters}>Apply Filters</PrimaryButton>

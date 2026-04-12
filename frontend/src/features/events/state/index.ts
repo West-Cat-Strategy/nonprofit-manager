@@ -5,16 +5,6 @@ export { default as eventRemindersReducer } from './eventRemindersSlice';
 export { default as eventMutationReducer } from './eventMutationSlice';
 export { default as eventAutomationReducer } from './eventAutomationSlice';
 
-<<<<<<< HEAD
-=======
-export { default as eventsListV2Reducer } from './eventsListSlice';
-export { default as eventDetailV2Reducer } from './eventDetailSlice';
-export { default as eventRegistrationV2Reducer } from './eventRegistrationSlice';
-export { default as eventRemindersV2Reducer } from './eventRemindersSlice';
-export { default as eventMutationV2Reducer } from './eventMutationSlice';
-export { default as eventAutomationV2Reducer } from './eventAutomationSlice';
-
->>>>>>> origin/main
 export { fetchEventsListV2, fetchEventsListV2 as fetchEventsList } from './eventsListSlice';
 export { fetchEventDetailV2, fetchEventDetailV2 as fetchEventDetail } from './eventDetailSlice';
 export {

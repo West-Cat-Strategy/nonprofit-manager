@@ -75,8 +75,8 @@ export default function PortalProfile() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    if (!formData) return;
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => (prev ? { ...prev, [name]: value } : prev));
     if (e.target.name === 'phn') {
       setPhnError(null);
     }
@@ -286,7 +286,9 @@ export default function PortalProfile() {
                     {formData.profile_picture && (
                       <button
                         type="button"
-                        onClick={() => setFormData({ ...formData, profile_picture: null })}
+                        onClick={() =>
+                          setFormData((prev) => (prev ? { ...prev, profile_picture: null } : prev))
+                        }
                         className="ml-2 rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)]"
                       >
                         Remove

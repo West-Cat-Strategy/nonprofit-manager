@@ -6,10 +6,7 @@ import { DonationService } from '@services/donationService';
 import { publishingService } from '@services/publishing';
 import { SiteManagementService } from '@services/publishing/siteManagementService';
 import stripeService from '@services/stripeService';
-<<<<<<< HEAD
 import paymentProviderService from '@services/paymentProviderService';
-=======
->>>>>>> origin/main
 import type {
   RecurringDonationPlan,
   RecurringDonationPlanFilters,
@@ -19,10 +16,7 @@ import type {
   RecurringDonationCheckoutSuccessResponse,
   RecurringDonationPlanStatus,
 } from '@app-types/recurringDonation';
-<<<<<<< HEAD
 import type { PaymentProvider } from '@app-types/payment';
-=======
->>>>>>> origin/main
 
 type PlanRow = Record<string, unknown>;
 
@@ -37,10 +31,7 @@ interface CreatePublicRecurringDonationPlanInput {
   donorPhone?: string | null;
   amount: number;
   currency: string;
-<<<<<<< HEAD
   provider?: PaymentProvider;
-=======
->>>>>>> origin/main
   campaignName?: string | null;
   designation?: string | null;
   notes?: string | null;
@@ -70,14 +61,11 @@ const PLAN_SELECT = `
   rdp.designation,
   rdp.notes,
   rdp.status,
-<<<<<<< HEAD
   rdp.payment_provider,
   rdp.provider_customer_id,
   rdp.provider_subscription_id,
   rdp.provider_checkout_session_id,
   rdp.provider_checkout_url,
-=======
->>>>>>> origin/main
   rdp.stripe_customer_id,
   rdp.stripe_subscription_id,
   rdp.stripe_price_id,
@@ -124,14 +112,11 @@ const mapPlanRow = (row: PlanRow | undefined | null): RecurringDonationPlan | nu
     designation: (row.designation as string | null) ?? null,
     notes: (row.notes as string | null) ?? null,
     status: String(row.status || 'checkout_pending') as RecurringDonationPlanStatus,
-<<<<<<< HEAD
     payment_provider: (row.payment_provider as PaymentProvider | null) ?? null,
     provider_customer_id: (row.provider_customer_id as string | null) ?? null,
     provider_subscription_id: (row.provider_subscription_id as string | null) ?? null,
     provider_checkout_session_id: (row.provider_checkout_session_id as string | null) ?? null,
     provider_checkout_url: (row.provider_checkout_url as string | null) ?? null,
-=======
->>>>>>> origin/main
     stripe_customer_id: (row.stripe_customer_id as string | null) ?? null,
     stripe_subscription_id: (row.stripe_subscription_id as string | null) ?? null,
     stripe_price_id: (row.stripe_price_id as string | null) ?? null,
@@ -279,7 +264,6 @@ export class RecurringDonationService {
   private async syncPlanFromSubscription(
     plan: RecurringDonationPlan,
     subscriptionId: string,
-<<<<<<< HEAD
     customerId?: string | null,
     providerOverride?: PaymentProvider
   ): Promise<RecurringDonationPlan> {
@@ -288,17 +272,11 @@ export class RecurringDonationService {
       provider === 'stripe'
         ? await stripeService.getSubscription(subscriptionId)
         : await paymentProviderService.getSubscription(subscriptionId, provider);
-=======
-    customerId?: string | null
-  ): Promise<RecurringDonationPlan> {
-    const subscription = await stripeService.getSubscription(subscriptionId);
->>>>>>> origin/main
     const status = buildPlanStatus(subscription.status, subscription.cancelAtPeriodEnd);
 
     const result = await this.pool.query<{ id: string }>(
       `
         UPDATE recurring_donation_plans
-<<<<<<< HEAD
         SET payment_provider = COALESCE($2, payment_provider),
             provider_subscription_id = COALESCE($3, provider_subscription_id),
             provider_customer_id = COALESCE($4, provider_customer_id),
@@ -309,25 +287,13 @@ export class RecurringDonationService {
             next_billing_at = $6,
             cancel_at_period_end = $7,
             canceled_at = CASE WHEN $5 = 'canceled' THEN COALESCE(canceled_at, CURRENT_TIMESTAMP) ELSE canceled_at END,
-=======
-        SET stripe_subscription_id = $2,
-            stripe_customer_id = COALESCE($3, stripe_customer_id),
-            status = $4,
-            checkout_completed_at = COALESCE(checkout_completed_at, CURRENT_TIMESTAMP),
-            next_billing_at = $5,
-            cancel_at_period_end = $6,
-            canceled_at = CASE WHEN $4 = 'canceled' THEN COALESCE(canceled_at, CURRENT_TIMESTAMP) ELSE canceled_at END,
->>>>>>> origin/main
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
         RETURNING id
       `,
       [
         plan.recurring_plan_id,
-<<<<<<< HEAD
         provider,
-=======
->>>>>>> origin/main
         subscriptionId,
         customerId || null,
         status,
@@ -411,7 +377,6 @@ export class RecurringDonationService {
   async createPublicCheckoutPlan(
     input: CreatePublicRecurringDonationPlanInput
   ): Promise<{ plan: RecurringDonationPlan; redirect_url: string; return_url: string }> {
-<<<<<<< HEAD
     const provider = input.provider || paymentProviderService.getPaymentConfig().defaultProvider;
     const customerIdFromContact =
       provider === 'stripe' ? await this.getContactStripeCustomerId(input.contactId) : null;
@@ -437,20 +402,6 @@ export class RecurringDonationService {
       if (provider === 'stripe') {
         await this.persistContactStripeCustomerId(input.contactId, customer.id);
       }
-=======
-    const customerIdFromContact = await this.getContactStripeCustomerId(input.contactId);
-    let customerId = customerIdFromContact;
-
-    if (!customerId) {
-      const customer = await stripeService.createCustomer({
-        email: input.donorEmail,
-        name: input.donorName || undefined,
-        phone: input.donorPhone || undefined,
-        contactId: input.contactId || undefined,
-      });
-      customerId = customer.id;
-      await this.persistContactStripeCustomerId(input.contactId, customer.id);
->>>>>>> origin/main
     }
 
     const insertResult = await this.pool.query<{ id: string }>(
@@ -470,12 +421,8 @@ export class RecurringDonationService {
           designation,
           notes,
           status,
-<<<<<<< HEAD
           payment_provider,
           provider_customer_id,
-=======
-          stripe_customer_id,
->>>>>>> origin/main
           source_page_path,
           source_visitor_id,
           source_session_id,
@@ -485,11 +432,7 @@ export class RecurringDonationService {
           modified_by
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, 'monthly', $10, $11, $12, 'checkout_pending',
-<<<<<<< HEAD
           $13, $14, $15, $16, $17, $18, $19, $20, $21
-=======
-          $13, $14, $15, $16, $17, $18, $19, $19
->>>>>>> origin/main
         )
         RETURNING id
       `,
@@ -506,10 +449,7 @@ export class RecurringDonationService {
         input.campaignName || null,
         input.designation || null,
         input.notes || null,
-<<<<<<< HEAD
         provider,
-=======
->>>>>>> origin/main
         customerId,
         input.pagePath || null,
         input.visitorId || null,
@@ -517,10 +457,7 @@ export class RecurringDonationService {
         input.referrer || null,
         input.userAgent || null,
         input.userId,
-<<<<<<< HEAD
         input.userId,
-=======
->>>>>>> origin/main
       ]
     );
 
@@ -528,7 +465,6 @@ export class RecurringDonationService {
     const returnUrl = await this.getReturnUrlForPlan(plan);
 
     try {
-<<<<<<< HEAD
       if (provider === 'stripe') {
         const price = await stripeService.createMonthlyPrice({
           amount: Math.round(input.amount * 100),
@@ -596,25 +532,6 @@ export class RecurringDonationService {
         priceId: configuredPlanId,
         successUrl: `${FRONTEND_URL}/recurring-donations/checkout-result?provider=${provider}&plan_id=${encodeURIComponent(plan.recurring_plan_id)}&return_to=${encodeURIComponent(returnUrl)}`,
         cancelUrl: `${FRONTEND_URL}/recurring-donations/checkout-result?provider=${provider}&status=cancelled&plan_id=${encodeURIComponent(plan.recurring_plan_id)}&return_to=${encodeURIComponent(returnUrl)}`,
-=======
-      const price = await stripeService.createMonthlyPrice({
-        amount: Math.round(input.amount * 100),
-        currency: input.currency,
-        productName: `Monthly Donation${input.donorName ? ` - ${input.donorName}` : ''}`,
-        metadata: {
-          recurringPlanId: plan.recurring_plan_id,
-          contactId: input.contactId || '',
-          siteId: input.siteId || '',
-        },
-      });
-
-      const urls = this.buildCheckoutUrls(plan.recurring_plan_id, returnUrl);
-      const session = await stripeService.createCheckoutSession({
-        customerId,
-        priceId: price.id,
-        successUrl: urls.successUrl,
-        cancelUrl: urls.cancelUrl,
->>>>>>> origin/main
         metadata: {
           recurringPlanId: plan.recurring_plan_id,
           siteId: input.siteId || '',
@@ -630,22 +547,15 @@ export class RecurringDonationService {
       const updatedResult = await this.pool.query<{ id: string }>(
         `
           UPDATE recurring_donation_plans
-<<<<<<< HEAD
           SET payment_provider = $2,
               provider_customer_id = COALESCE($3, provider_customer_id),
               provider_subscription_id = COALESCE($4, provider_subscription_id),
               provider_checkout_session_id = COALESCE($5, provider_checkout_session_id),
               provider_checkout_url = COALESCE($6, provider_checkout_url),
-=======
-          SET stripe_price_id = $2,
-              stripe_product_id = $3,
-              stripe_checkout_session_id = $4,
->>>>>>> origin/main
               updated_at = CURRENT_TIMESTAMP
           WHERE id = $1
           RETURNING id
         `,
-<<<<<<< HEAD
         [
           plan.recurring_plan_id,
           provider,
@@ -654,9 +564,6 @@ export class RecurringDonationService {
           session.id,
           session.url,
         ]
-=======
-        [plan.recurring_plan_id, price.id, price.productId, session.id]
->>>>>>> origin/main
       );
 
       return {
@@ -687,7 +594,6 @@ export class RecurringDonationService {
       throw new Error('Recurring donation plan not found');
     }
 
-<<<<<<< HEAD
     const provider = plan.payment_provider || 'stripe';
     const session =
       provider === 'stripe'
@@ -695,10 +601,6 @@ export class RecurringDonationService {
         : await paymentProviderService.getCheckoutSession(sessionId, provider);
     const linkedSessionId = provider === 'stripe' ? plan.stripe_checkout_session_id : plan.provider_checkout_session_id;
     if (linkedSessionId && linkedSessionId !== session.id) {
-=======
-    const session = await stripeService.getCheckoutSession(sessionId);
-    if (plan.stripe_checkout_session_id && plan.stripe_checkout_session_id !== session.id) {
->>>>>>> origin/main
       throw new Error('Checkout session does not match the requested recurring donation plan');
     }
 
@@ -741,7 +643,6 @@ export class RecurringDonationService {
       throw new Error('Recurring donation management link is invalid');
     }
 
-<<<<<<< HEAD
     const provider = plan.payment_provider || 'stripe';
     const customerId = plan.provider_customer_id || plan.stripe_customer_id;
 
@@ -754,17 +655,6 @@ export class RecurringDonationService {
       provider === 'stripe'
         ? await stripeService.createBillingPortalSession(customerId, returnUrl)
         : await paymentProviderService.createBillingPortalSession(customerId, returnUrl, provider);
-=======
-    if (!plan.stripe_customer_id) {
-      throw new Error('Recurring donation plan is not connected to a Stripe customer');
-    }
-
-    const returnUrl = await this.getReturnUrlForPlan(plan);
-    const session = await stripeService.createBillingPortalSession(
-      plan.stripe_customer_id,
-      returnUrl
-    );
->>>>>>> origin/main
 
     return session.url;
   }
@@ -780,13 +670,10 @@ export class RecurringDonationService {
       return null;
     }
 
-<<<<<<< HEAD
     if (current.payment_provider && current.payment_provider !== 'stripe' && typeof data.amount === 'number' && data.amount !== current.amount) {
       throw new Error('Amount changes are only supported for Stripe recurring plans in this release');
     }
 
-=======
->>>>>>> origin/main
     let nextAmount = current.amount;
     let stripePriceId = current.stripe_price_id;
     let stripeProductId = current.stripe_product_id;
@@ -950,23 +837,16 @@ export class RecurringDonationService {
       customer?: string | null;
       subscription?: string | null;
       metadata?: Record<string, string | undefined>;
-<<<<<<< HEAD
       provider?: PaymentProvider;
-=======
->>>>>>> origin/main
     }
   ): Promise<void> {
     const planId = session.metadata?.recurringPlanId;
     const plan =
       (planId ? await this.getPlanByWhere('rdp.id = $1', [planId]) : null) ||
-<<<<<<< HEAD
       (await this.getPlanByWhere(
         'rdp.stripe_checkout_session_id = $1 OR rdp.provider_checkout_session_id = $1',
         [session.id]
       ));
-=======
-      (await this.getPlanByWhere('rdp.stripe_checkout_session_id = $1', [session.id]));
->>>>>>> origin/main
 
     if (!plan) {
       logger.warn('Recurring donation checkout completed for unknown plan', {
@@ -978,16 +858,12 @@ export class RecurringDonationService {
     let nextPlan = plan;
 
     if (session.subscription) {
-<<<<<<< HEAD
       nextPlan = await this.syncPlanFromSubscription(
         plan,
         session.subscription,
         session.customer || null,
         session.provider || plan.payment_provider || 'stripe'
       );
-=======
-      nextPlan = await this.syncPlanFromSubscription(plan, session.subscription, session.customer || null);
->>>>>>> origin/main
     }
 
     if (session.metadata?.siteId) {
@@ -1019,18 +895,13 @@ export class RecurringDonationService {
     id: string;
     customer?: string | null;
     metadata?: Record<string, string | undefined>;
-<<<<<<< HEAD
     provider?: PaymentProvider;
   }): Promise<void> {
     const provider = subscription.provider || 'stripe';
-=======
-  }): Promise<void> {
->>>>>>> origin/main
     const plan =
       (subscription.metadata?.recurringPlanId
         ? await this.getPlanByWhere('rdp.id = $1', [subscription.metadata.recurringPlanId])
         : null) ||
-<<<<<<< HEAD
       (await this.getPlanByWhere(
         'rdp.stripe_subscription_id = $1 OR rdp.provider_subscription_id = $1',
         [subscription.id]
@@ -1057,61 +928,39 @@ export class RecurringDonationService {
       subscription.customer || null,
       provider
     );
-=======
-      (await this.getPlanByWhere('rdp.stripe_subscription_id = $1', [subscription.id]));
-    if (!plan) return;
-
-    await this.syncPlanFromSubscription(plan, subscription.id, subscription.customer || null);
->>>>>>> origin/main
   }
 
   async handleSubscriptionDeleted(subscription: {
     id: string;
     customer?: string | null;
     metadata?: Record<string, string | undefined>;
-<<<<<<< HEAD
     provider?: PaymentProvider;
   }): Promise<void> {
     const provider = subscription.provider || 'stripe';
-=======
-  }): Promise<void> {
->>>>>>> origin/main
     const plan =
       (subscription.metadata?.recurringPlanId
         ? await this.getPlanByWhere('rdp.id = $1', [subscription.metadata.recurringPlanId])
         : null) ||
-<<<<<<< HEAD
       (await this.getPlanByWhere(
         'rdp.stripe_subscription_id = $1 OR rdp.provider_subscription_id = $1',
         [subscription.id]
       ));
-=======
-      (await this.getPlanByWhere('rdp.stripe_subscription_id = $1', [subscription.id]));
->>>>>>> origin/main
     if (!plan) return;
 
     await this.pool.query(
       `
         UPDATE recurring_donation_plans
         SET status = 'canceled',
-<<<<<<< HEAD
             payment_provider = COALESCE($2, payment_provider),
             provider_subscription_id = COALESCE(provider_subscription_id, $3),
             provider_customer_id = COALESCE(provider_customer_id, $4),
             stripe_customer_id = CASE WHEN $2 = 'stripe' THEN COALESCE($4, stripe_customer_id) ELSE stripe_customer_id END,
-=======
-            stripe_customer_id = COALESCE($2, stripe_customer_id),
->>>>>>> origin/main
             cancel_at_period_end = false,
             canceled_at = COALESCE(canceled_at, CURRENT_TIMESTAMP),
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-<<<<<<< HEAD
       [plan.recurring_plan_id, provider, subscription.id, subscription.customer || null]
-=======
-      [plan.recurring_plan_id, subscription.customer || null]
->>>>>>> origin/main
     );
   }
 
@@ -1124,7 +973,6 @@ export class RecurringDonationService {
     payment_intent?: string | null;
     created: number;
     status_transitions?: { paid_at?: number | null };
-<<<<<<< HEAD
     provider?: PaymentProvider;
   }): Promise<void> {
     if (!invoice.subscription) return;
@@ -1133,12 +981,6 @@ export class RecurringDonationService {
       'rdp.stripe_subscription_id = $1 OR rdp.provider_subscription_id = $1',
       [invoice.subscription]
     );
-=======
-  }): Promise<void> {
-    if (!invoice.subscription) return;
-
-    const plan = await this.getPlanByWhere('rdp.stripe_subscription_id = $1', [invoice.subscription]);
->>>>>>> origin/main
     if (!plan) {
       logger.warn('Recurring donation invoice paid for unknown subscription', {
         invoiceId: invoice.id,
@@ -1172,14 +1014,11 @@ export class RecurringDonationService {
           payment_method: 'credit_card',
           payment_status: 'completed',
           transaction_id: invoice.payment_intent || undefined,
-<<<<<<< HEAD
           payment_provider: plan.payment_provider || invoice.provider || 'stripe',
           provider_transaction_id: invoice.payment_intent || invoice.id,
           provider_subscription_id: invoice.subscription,
           provider_customer_id: invoice.customer || undefined,
           provider_checkout_session_id: plan.provider_checkout_session_id || plan.stripe_checkout_session_id || undefined,
-=======
->>>>>>> origin/main
           stripe_subscription_id: invoice.subscription,
           stripe_invoice_id: invoice.id,
           campaign_name: plan.campaign_name || undefined,
@@ -1195,12 +1034,8 @@ export class RecurringDonationService {
     const syncedPlan = await this.syncPlanFromSubscription(
       plan,
       invoice.subscription,
-<<<<<<< HEAD
       invoice.customer || null,
       invoice.provider || plan.payment_provider || 'stripe'
-=======
-      invoice.customer || null
->>>>>>> origin/main
     );
 
     await this.pool.query(
@@ -1219,7 +1054,6 @@ export class RecurringDonationService {
   async handleInvoicePaymentFailed(invoice: {
     subscription?: string | null;
     customer?: string | null;
-<<<<<<< HEAD
     provider?: PaymentProvider;
   }): Promise<void> {
     if (!invoice.subscription) return;
@@ -1228,26 +1062,16 @@ export class RecurringDonationService {
       'rdp.stripe_subscription_id = $1 OR rdp.provider_subscription_id = $1',
       [invoice.subscription]
     );
-=======
-  }): Promise<void> {
-    if (!invoice.subscription) return;
-
-    const plan = await this.getPlanByWhere('rdp.stripe_subscription_id = $1', [invoice.subscription]);
->>>>>>> origin/main
     if (!plan) return;
 
     let nextBillingAt = plan.next_billing_at;
     try {
-<<<<<<< HEAD
       const synced = await this.syncPlanFromSubscription(
         plan,
         invoice.subscription,
         invoice.customer || null,
         invoice.provider || plan.payment_provider || 'stripe'
       );
-=======
-      const synced = await this.syncPlanFromSubscription(plan, invoice.subscription, invoice.customer || null);
->>>>>>> origin/main
       nextBillingAt = synced.next_billing_at;
     } catch (error) {
       logger.warn('Failed to sync recurring donation after payment failure', {
@@ -1260,7 +1084,6 @@ export class RecurringDonationService {
       `
         UPDATE recurring_donation_plans
         SET status = 'past_due',
-<<<<<<< HEAD
             payment_provider = COALESCE($2, payment_provider),
             provider_customer_id = COALESCE(provider_customer_id, $3),
             stripe_customer_id = CASE WHEN $2 = 'stripe' THEN COALESCE($3, stripe_customer_id) ELSE stripe_customer_id END,
@@ -1269,14 +1092,6 @@ export class RecurringDonationService {
         WHERE id = $1
       `,
       [plan.recurring_plan_id, invoice.provider || plan.payment_provider || 'stripe', invoice.customer || null, nextBillingAt]
-=======
-            stripe_customer_id = COALESCE($2, stripe_customer_id),
-            next_billing_at = COALESCE($3, next_billing_at),
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-      `,
-      [plan.recurring_plan_id, invoice.customer || null, nextBillingAt]
->>>>>>> origin/main
     );
   }
 }

@@ -4,10 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { portalLogoutAsync } from '../features/portalAuth/state';
 import { AppShell, TopNav, SecondaryButton } from './ui';
-<<<<<<< HEAD
 import SkipLink from './SkipLink';
-=======
->>>>>>> origin/main
 import SurfaceContextBar from './workspace/SurfaceContextBar';
 
 interface PortalLayoutProps {
@@ -51,7 +48,6 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
           </button>
         </div>
       </details>
-<<<<<<< HEAD
     </div>
   );
 
@@ -117,70 +113,6 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
       >
         {children}
       </AppShell>
-=======
->>>>>>> origin/main
     </div>
-  );
-
-  const topNav = (
-    <TopNav
-      left={
-        <div className="min-w-0">
-          <Link
-            to="/portal"
-            className="text-base font-semibold text-app-text-heading"
-          >
-            Client Portal
-          </Link>
-          {portalUser?.email ? (
-            <p className="mt-1 max-w-[12rem] truncate text-xs text-app-text-muted sm:max-w-[16rem]">
-              {portalUser.email}
-            </p>
-          ) : null}
-        </div>
-      }
-      right={
-        <>
-          {portalAccountMenu}
-          <div className="flex items-center gap-2">
-            <Link
-              to="/portal/profile"
-              className="hidden sm:inline-flex items-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-4 py-2 text-sm font-semibold text-app-text-heading shadow-sm transition hover:bg-app-surface-muted"
-            >
-              Account
-            </Link>
-            <SecondaryButton
-              disabled={signingOut}
-              onClick={async () => {
-                setSigningOut(true);
-                try {
-                  await dispatch(portalLogoutAsync());
-                  navigate('/portal/login', { replace: true });
-                } finally {
-                  setSigningOut(false);
-                }
-              }}
-            >
-              {signingOut ? 'Signing out...' : 'Sign out'}
-            </SecondaryButton>
-          </div>
-        </>
-      }
-    />
-  );
-
-  return (
-    <AppShell
-      topNav={topNav}
-      header={
-        <SurfaceContextBar
-          showLocalNavigation={false}
-          secondaryAction={{ label: 'Account Settings', to: '/portal/profile' }}
-        />
-      }
-      contentClassName="space-y-6 rounded-[var(--ui-radius-md)] bg-app-surface p-4 shadow-sm sm:p-6"
-    >
-      {children}
-    </AppShell>
   );
 }

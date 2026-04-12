@@ -128,7 +128,6 @@ jest.mock('@services/mailchimpService', () => ({
   },
 }));
 
-<<<<<<< HEAD
 jest.mock('@services/newsletterProviderService', () => ({
   __esModule: true,
   default: {
@@ -137,8 +136,6 @@ jest.mock('@services/newsletterProviderService', () => ({
   },
 }));
 
-=======
->>>>>>> origin/main
 jest.mock('@services/publishing/publicSubmissionService', () => ({
   __mocks: {
     beginSubmission: jest.fn(),
@@ -214,7 +211,6 @@ const mailchimpModule = jest.requireMock('@services/mailchimpService') as {
   };
 };
 
-<<<<<<< HEAD
 const newsletterProviderModule = jest.requireMock('@services/newsletterProviderService') as {
   default: {
     resolveNewsletterProvider: jest.Mock;
@@ -222,8 +218,6 @@ const newsletterProviderModule = jest.requireMock('@services/newsletterProviderS
   };
 };
 
-=======
->>>>>>> origin/main
 const publicSubmissionModule = jest.requireMock('@services/publishing/publicSubmissionService') as {
   __mocks: {
     beginSubmission: jest.Mock;
@@ -343,11 +337,8 @@ describe('PublicWebsiteFormService', () => {
     operationsModule.createPaymentIntent.mockReset();
     mailchimpModule.__mocks.addOrUpdateMember.mockReset();
     mailchimpModule.__mocks.isMailchimpConfigured.mockReset();
-<<<<<<< HEAD
     newsletterProviderModule.default.resolveNewsletterProvider.mockReset();
     newsletterProviderModule.default.syncNewsletterContact.mockReset();
-=======
->>>>>>> origin/main
     publicSubmissionModule.__mocks.beginSubmission.mockReset();
     publicSubmissionModule.__mocks.markAccepted.mockReset();
     publicSubmissionModule.__mocks.markRejected.mockReset();
@@ -360,7 +351,6 @@ describe('PublicWebsiteFormService', () => {
     activityEventsModule.__mocks.recordEvent.mockResolvedValue(undefined);
   });
 
-<<<<<<< HEAD
   it('syncs newsletter signups through Mautic when the provider is set to Mautic', async () => {
     const site = {
       ...baseSite,
@@ -424,8 +414,6 @@ describe('PublicWebsiteFormService', () => {
     });
   });
 
-=======
->>>>>>> origin/main
   it('resolves site keys by UUID before falling back to host keys', async () => {
     siteManagementModule.__mocks.getPublicSiteById.mockResolvedValue(baseSite);
 

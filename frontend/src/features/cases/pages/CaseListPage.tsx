@@ -864,11 +864,7 @@ const CaseList = () => {
         </BrutalCard>
       )}
  	      {showBulkModal && (
-<<<<<<< HEAD
         <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50" role="dialog" aria-modal="true">
-=======
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-modal="true">
->>>>>>> origin/main
           <BrutalCard color="white" className="p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-black uppercase mb-4 text-black">
               Bulk Status Update ({selectedCaseIds.length} cases)

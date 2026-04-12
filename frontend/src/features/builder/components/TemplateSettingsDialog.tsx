@@ -23,11 +23,7 @@ const TemplateSettingsDialog: React.FC<TemplateSettingsDialogProps> = ({
   onSave,
   onSettingsChange,
 }) => (
-<<<<<<< HEAD
   <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50">
-=======
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
->>>>>>> origin/main
     <div className="bg-app-surface rounded-lg shadow-xl w-full max-w-lg mx-4">
       <div className="p-4 border-b border-app-border flex items-center justify-between">
         <h2 className="text-lg font-semibold text-app-text">Template Settings</h2>
