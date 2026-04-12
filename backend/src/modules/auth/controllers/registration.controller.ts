@@ -10,7 +10,7 @@ import { conflict, forbidden } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { sendSuccess } from '@modules/shared/http/envelope';
-import { getRegistrationMode } from '@services/registrationSettingsService';
+import { getRegistrationMode } from '@modules/admin/usecases/registrationSettingsUseCase';
 import { createPendingRegistration } from '@services/pendingRegistrationService';
 import {
   countAdminUsers,

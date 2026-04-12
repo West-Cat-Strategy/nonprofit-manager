@@ -3,14 +3,14 @@ import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
 import { badRequest, conflict, notFoundMessage } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
-import { isRoleCatalogError } from '@services/roleCatalogErrors';
+import { isRoleCatalogError } from '../errors/roleCatalogErrors';
 import {
   createRole,
   deleteRole,
   getPermissionCatalog,
   getRoleCatalog,
   updateRole,
-} from '@services/roleCatalogService';
+} from '../usecases/roleCatalogUseCase';
 import type {
   AdminRoleCreateInput,
   AdminRoleUpdateInput,

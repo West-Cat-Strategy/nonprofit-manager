@@ -21,4 +21,3 @@ export class RoleCatalogError extends Error {
 
 export const isRoleCatalogError = (error: unknown): error is RoleCatalogError =>
   error instanceof RoleCatalogError;
-

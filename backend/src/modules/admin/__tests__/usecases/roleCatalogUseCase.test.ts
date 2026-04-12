@@ -8,7 +8,7 @@ import {
   isSystemRoleSlug,
   normalizeRoleSlug,
   updateRole,
-} from '@services/roleCatalogService';
+} from '../../usecases/roleCatalogUseCase';
 
 jest.mock('@config/database', () => ({
   __esModule: true,
@@ -27,7 +27,7 @@ jest.mock('@config/logger', () => ({
   },
 }));
 
-describe('roleCatalogService', () => {
+describe('roleCatalogUseCase', () => {
   const mockQuery = pool.query as jest.Mock;
   const mockConnect = pool.connect as jest.Mock;
   let roleCatalogRows: Array<Record<string, unknown>>;

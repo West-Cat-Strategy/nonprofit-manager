@@ -9,7 +9,7 @@ import bcrypt from 'bcryptjs';
 import { PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
 import { sendMail } from '@services/emailService';
-import { getRegistrationSettings } from '@services/registrationSettingsService';
+import { getRegistrationSettings } from '@modules/admin/usecases/registrationSettingsUseCase';
 import { normalizeRoleSlug } from '@utils/roleSlug';
 
 // ---------------------------------------------------------------------------
