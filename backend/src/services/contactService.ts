@@ -735,7 +735,12 @@ export class ContactService {
     }
   }
 
-  async createContact(data: CreateContactDTO, userId: string, viewerRole?: ViewerRole): Promise<Contact> {
+  async createContact(
+    data: CreateContactDTO,
+    userId: string,
+    viewerRole?: ViewerRole,
+    client?: PoolClient
+  ): Promise<Contact> {
     try {
       const normalizedPhn = normalizePhn(data.phn);
       const encryptedPhn = normalizedPhn ? encrypt(normalizedPhn) : null;
@@ -744,7 +749,8 @@ export class ContactService {
       const normalizedPhone = normalizeNullableText(data.phone) ?? null;
       const normalizedMobilePhone = normalizeNullableText(data.mobile_phone) ?? null;
 
-      const result = await this.pool.query(
+      const executor = client || this.pool;
+      const result = await executor.query(
         `INSERT INTO contacts (
           account_id, first_name, preferred_name, last_name, middle_name, salutation, suffix,
           birth_date, gender, pronouns, phn_encrypted,
@@ -799,6 +805,7 @@ export class ContactService {
       );
 
       const contactId = result.rows[0].contact_id as string;
+      const executor = client || this.pool;
       await syncStructuredContactMethodsFromSummary(
         contactId,
         {
@@ -807,9 +814,9 @@ export class ContactService {
           mobile_phone: normalizedMobilePhone,
         },
         userId,
-        this.pool
+        executor
       );
-      await syncContactMethodSummaries(contactId, this.pool);
+      await syncContactMethodSummaries(contactId, executor);
 
       const createdContact = await this.getContactById(contactId, viewerRole);
       if (!createdContact) {
@@ -828,7 +835,8 @@ export class ContactService {
     contactId: string,
     data: UpdateContactDTO,
     userId: string,
-    viewerRole?: ViewerRole
+    viewerRole?: ViewerRole,
+    client?: PoolClient
   ): Promise<Contact | null> {
     try {
       const updateData: Record<string, unknown> = { ...data };
@@ -905,7 +913,8 @@ export class ContactService {
           notes, tags, is_active, created_at, updated_at, created_by, modified_by
       `;
 
-      const result = await this.pool.query(query, values);
+      const executor = client || this.pool;
+      const result = await executor.query(query, values);
 
       if (result.rows.length === 0) {
         return null;
@@ -916,8 +925,9 @@ export class ContactService {
         summarySyncInput.phone !== undefined ||
         summarySyncInput.mobile_phone !== undefined
       ) {
-        await syncStructuredContactMethodsFromSummary(contactId, summarySyncInput, userId, this.pool);
-        await syncContactMethodSummaries(contactId, this.pool);
+        const executor = client || this.pool;
+        await syncStructuredContactMethodsFromSummary(contactId, summarySyncInput, userId, executor);
+        await syncContactMethodSummaries(contactId, executor);
         return this.getContactById(contactId, viewerRole);
       }
 

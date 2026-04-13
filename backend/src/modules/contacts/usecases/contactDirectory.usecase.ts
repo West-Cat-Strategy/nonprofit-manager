@@ -14,6 +14,7 @@ import type {
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { invitationService, syncUserRole } from '@services/domains/integration';
 import { services } from '@container/services';
+import type { PoolClient } from 'pg';
 import type { ContactDirectoryPort } from '../types/ports';
 import { buildContactMergePreview } from '../shared/contactMerge';
 
@@ -52,7 +53,8 @@ export class ContactDirectoryUseCase {
   private async ensureStaffUserAccount(
     contactId: string,
     roles: string[],
-    createdBy: string
+    createdBy: string,
+    client: PoolClient
   ): Promise<{ inviteUrl?: string; role?: string } | null> {
     const targetRole = getStaffRoleForContact(roles);
     if (!targetRole) {
@@ -67,9 +69,9 @@ export class ContactDirectoryUseCase {
     const existingUser = await this.repository.findUserByEmail(contact.email);
     if (existingUser) {
       if (existingUser.role !== targetRole) {
-        await this.repository.updateUserRole(existingUser.id, targetRole);
+        await this.repository.updateUserRole(existingUser.id, targetRole, client);
       }
-      await syncUserRole(existingUser.id, targetRole, services.pool);
+      await syncUserRole(existingUser.id, targetRole, client);
       return { role: targetRole };
     }
 
@@ -80,7 +82,8 @@ export class ContactDirectoryUseCase {
           role: targetRole,
           message: `Auto-invite created from contact role assignment for ${contact.firstName} ${contact.lastName}`,
         },
-        createdBy
+        createdBy,
+        client
       );
 
       const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -165,21 +168,45 @@ export class ContactDirectoryUseCase {
       roles: undefined,
     };
 
-    const created = await this.repository.createContact(createPayload, userId, viewerRole);
-    let assignedRoles: string[] = [];
-    let staffInvitation: { inviteUrl?: string; role?: string } | null = null;
+    const client = await services.pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    if (rolesInput.length > 0) {
-      const roleRecords = await this.repository.setRolesForContact(created.contact_id, rolesInput, userId);
-      assignedRoles = roleRecords.map((role) => role.name);
-      staffInvitation = await this.ensureStaffUserAccount(created.contact_id, assignedRoles, userId);
+      const created = await this.repository.createContact(createPayload, userId, viewerRole, client);
+      let assignedRoles: string[] = [];
+      let staffInvitation: { inviteUrl?: string; role?: string } | null = null;
+
+      if (rolesInput.length > 0) {
+        const roleRecords = await this.repository.setRolesForContact(
+          created.contact_id,
+          rolesInput,
+          userId,
+          client
+        );
+        assignedRoles = roleRecords.map((role) => role.name);
+        staffInvitation = await this.ensureStaffUserAccount(
+          created.contact_id,
+          assignedRoles,
+          userId,
+          client
+        );
+      }
+
+      const finalContact = (await this.repository.getContactById(created.contact_id, viewerRole)) || created;
+
+      await client.query('COMMIT');
+
+      return {
+        ...finalContact,
+        roles: assignedRoles,
+        staffInvitation,
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    return {
-      ...created,
-      roles: assignedRoles,
-      staffInvitation,
-    };
   }
 
   async update(
@@ -189,38 +216,66 @@ export class ContactDirectoryUseCase {
     scope?: DataScopeFilter,
     viewerRole?: string
   ): Promise<(Contact & { roles: string[]; staffInvitation: { inviteUrl?: string; role?: string } | null }) | null> {
-    if (scope) {
-      const scopedContact = await this.repository.getContactByIdWithScope(contactId, scope, viewerRole);
-      if (!scopedContact) {
+    const client = await services.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      if (scope) {
+        const scopedContact = await this.repository.getContactByIdWithScope(
+          contactId,
+          scope,
+          viewerRole
+        );
+        if (!scopedContact) {
+          await client.query('ROLLBACK');
+          return null;
+        }
+      }
+
+      const rolesInput = Array.isArray(payload.roles) ? payload.roles : undefined;
+      const updatePayload: UpdateContactDTO = {
+        ...payload,
+        roles: undefined,
+      };
+
+      const updated = await this.repository.updateContact(
+        contactId,
+        updatePayload,
+        userId,
+        viewerRole,
+        client
+      );
+      if (!updated) {
+        await client.query('ROLLBACK');
         return null;
       }
+
+      const assignedRoles = rolesInput
+        ? (await this.repository.setRolesForContact(contactId, rolesInput, userId, client)).map(
+            (role) => role.name
+          )
+        : (await this.repository.getRolesForContact(contactId, client)).map((role) => role.name);
+      let staffInvitation: { inviteUrl?: string; role?: string } | null = null;
+
+      if (rolesInput && assignedRoles.length > 0) {
+        staffInvitation = await this.ensureStaffUserAccount(contactId, assignedRoles, userId, client);
+      }
+
+      const finalContact = (await this.repository.getContactById(contactId, viewerRole)) || updated;
+
+      await client.query('COMMIT');
+
+      return {
+        ...finalContact,
+        roles: assignedRoles,
+        staffInvitation,
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    const rolesInput = Array.isArray(payload.roles) ? payload.roles : undefined;
-    const updatePayload: UpdateContactDTO = {
-      ...payload,
-      roles: undefined,
-    };
-
-    const updated = await this.repository.updateContact(contactId, updatePayload, userId, viewerRole);
-    if (!updated) {
-      return null;
-    }
-
-    const assignedRoles = rolesInput
-      ? (await this.repository.setRolesForContact(contactId, rolesInput, userId)).map((role) => role.name)
-      : (await this.repository.getRolesForContact(contactId)).map((role) => role.name);
-    let staffInvitation: { inviteUrl?: string; role?: string } | null = null;
-
-    if (rolesInput && assignedRoles.length > 0) {
-      staffInvitation = await this.ensureStaffUserAccount(contactId, assignedRoles, userId);
-    }
-
-    return {
-      ...updated,
-      roles: assignedRoles,
-      staffInvitation,
-    };
   }
 
   async delete(contactId: string, userId: string, scope?: DataScopeFilter): Promise<boolean> {

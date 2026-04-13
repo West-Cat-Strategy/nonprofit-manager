@@ -134,7 +134,11 @@ export default function Register() {
 
       <ErrorBanner message={error} correlationId={details?.correlationId} className="mt-6" />
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+      <form 
+        onSubmit={handleSubmit} 
+        className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500"
+        aria-label="Registration form"
+      >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField
             id="register-first-name"

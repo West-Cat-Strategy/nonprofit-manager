@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 import { logger } from '@config/logger';
 
 export interface ContactRole {
@@ -20,8 +20,9 @@ export class ContactRoleService {
     return result.rows;
   }
 
-  async getRolesForContact(contactId: string): Promise<ContactRole[]> {
-    const result = await this.pool.query(
+  async getRolesForContact(contactId: string, client?: PoolClient): Promise<ContactRole[]> {
+    const executor = client || this.pool;
+    const result = await executor.query(
       `SELECT r.id, r.name, r.description, r.is_system
        FROM contact_role_assignments cra
        INNER JOIN contact_roles r ON r.id = cra.role_id
@@ -35,17 +36,22 @@ export class ContactRoleService {
   async setRolesForContact(
     contactId: string,
     roleNames: string[],
-    assignedBy?: string
+    assignedBy?: string,
+    externalClient?: PoolClient
   ): Promise<ContactRole[]> {
     const trimmedNames = roleNames.map((name) => name.trim()).filter(Boolean);
 
-    const client = await this.pool.connect();
+    const client = externalClient || (await this.pool.connect());
     try {
-      await client.query('BEGIN');
+      if (!externalClient) {
+        await client.query('BEGIN');
+      }
 
       if (trimmedNames.length === 0) {
         await client.query('DELETE FROM contact_role_assignments WHERE contact_id = $1', [contactId]);
-        await client.query('COMMIT');
+        if (!externalClient) {
+          await client.query('COMMIT');
+        }
         return [];
       }
 
@@ -78,15 +84,21 @@ export class ContactRoleService {
         params
       );
 
-      await client.query('COMMIT');
+      if (!externalClient) {
+        await client.query('COMMIT');
+      }
 
       return rolesResult.rows;
     } catch (error) {
-      await client.query('ROLLBACK');
+      if (!externalClient) {
+        await client.query('ROLLBACK');
+      }
       logger.error('Error setting contact roles', { error, contactId, roleNames });
       throw error;
     } finally {
-      client.release();
+      if (!externalClient) {
+        client.release();
+      }
     }
   }
 }

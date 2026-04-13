@@ -42,20 +42,21 @@ export interface ContactDirectoryPort {
   ): Promise<ContactLookupItem[]>;
   getContactTags(scope?: DataScopeFilter): Promise<string[]>;
   getContactRoles(): Promise<ContactRole[]>;
-  getRolesForContact(contactId: string): Promise<ContactRole[]>;
-  setRolesForContact(contactId: string, roles: string[], assignedBy?: string): Promise<ContactRole[]>;
+  getRolesForContact(contactId: string, client?: any): Promise<ContactRole[]>;
+  setRolesForContact(contactId: string, roles: string[], assignedBy?: string, client?: any): Promise<ContactRole[]>;
   getContactById(contactId: string, viewerRole?: string): Promise<Contact | null>;
   getContactByIdWithScope(
     contactId: string,
     scope: DataScopeFilter,
     viewerRole?: string
   ): Promise<Contact | null>;
-  createContact(payload: CreateContactDTO, userId: string, viewerRole?: string): Promise<Contact>;
+  createContact(payload: CreateContactDTO, userId: string, viewerRole?: string, client?: any): Promise<Contact>;
   updateContact(
     contactId: string,
     payload: UpdateContactDTO,
     userId: string,
-    viewerRole?: string
+    viewerRole?: string,
+    client?: any
   ): Promise<Contact | null>;
   bulkUpdateContacts(
     contactIds: string[],
@@ -77,13 +78,13 @@ export interface ContactDirectoryPort {
     scope?: DataScopeFilter,
     viewerRole?: string
   ): Promise<ContactMergeResult | null>;
-  findContactIdentity(contactId: string): Promise<{
+  findContactIdentity(contactId: string, client?: any): Promise<{
     email: string | null;
     firstName: string;
     lastName: string;
   } | null>;
-  findUserByEmail(email: string): Promise<{ id: string; role: string } | null>;
-  updateUserRole(userId: string, role: string): Promise<void>;
+  findUserByEmail(email: string, client?: any): Promise<{ id: string; role: string } | null>;
+  updateUserRole(userId: string, role: string, client?: any): Promise<void>;
 }
 
 export interface ContactNotesPort {

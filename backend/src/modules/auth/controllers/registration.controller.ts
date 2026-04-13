@@ -11,7 +11,7 @@ import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { getRegistrationMode } from '@modules/admin/usecases/registrationSettingsUseCase';
-import { createPendingRegistration } from '@services/pendingRegistrationService';
+import { createPendingRegistration } from '@modules/admin/usecases/createPendingRegistrationUseCase';
 import {
   countAdminUsers,
   getSetupUserCounts,

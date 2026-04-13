@@ -4,6 +4,7 @@
  */
 
 import crypto from 'crypto';
+import { Pool, PoolClient } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import { normalizeRoleSlug } from '@utils/roleSlug';
@@ -81,7 +82,8 @@ const mapRowToInvitation = (row: InvitationRow): UserInvitation => ({
  */
 export const createInvitation = async (
   data: CreateInvitationDTO,
-  createdBy: string
+  createdBy: string,
+  client?: PoolClient
 ): Promise<UserInvitation> => {
   const token = generateToken();
   const expiresInDays = data.expiresInDays || 7;
@@ -89,8 +91,10 @@ export const createInvitation = async (
   expiresAt.setDate(expiresAt.getDate() + expiresInDays);
   const normalizedRole = normalizeRoleSlug(data.role) ?? data.role;
 
+  const executor = client || pool;
+
   // Check if email already has a user account
-  const existingUser = await pool.query(
+  const existingUser = await executor.query(
     'SELECT id FROM users WHERE email = $1',
     [data.email.toLowerCase()]
   );
@@ -99,7 +103,7 @@ export const createInvitation = async (
   }
 
   // Check if there's already a pending invitation for this email
-  const existingInvitation = await pool.query(
+  const existingInvitation = await executor.query(
     `SELECT id FROM user_invitations
      WHERE email = $1 AND is_revoked = false AND accepted_at IS NULL AND expires_at > NOW()`,
     [data.email.toLowerCase()]
@@ -108,7 +112,7 @@ export const createInvitation = async (
     throw new Error('A pending invitation already exists for this email');
   }
 
-  const result = await pool.query<InvitationRow>(
+  const result = await executor.query<InvitationRow>(
     `INSERT INTO user_invitations (email, role, token, expires_at, message, created_by)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,

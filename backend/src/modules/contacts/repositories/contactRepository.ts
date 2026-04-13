@@ -39,12 +39,12 @@ export class ContactRepository implements ContactDirectoryPort {
     return services.contactRole.getAllRoles();
   }
 
-  async getRolesForContact(contactId: string): Promise<ContactRole[]> {
-    return services.contactRole.getRolesForContact(contactId);
+  async getRolesForContact(contactId: string, client?: any): Promise<ContactRole[]> {
+    return services.contactRole.getRolesForContact(contactId, client);
   }
 
-  async setRolesForContact(contactId: string, roles: string[], assignedBy?: string): Promise<ContactRole[]> {
-    return services.contactRole.setRolesForContact(contactId, roles, assignedBy);
+  async setRolesForContact(contactId: string, roles: string[], assignedBy?: string, client?: any): Promise<ContactRole[]> {
+    return services.contactRole.setRolesForContact(contactId, roles, assignedBy, client);
   }
 
   async getContactById(contactId: string, viewerRole?: string): Promise<Contact | null> {
@@ -59,17 +59,18 @@ export class ContactRepository implements ContactDirectoryPort {
     return services.contact.getContactByIdWithScope(contactId, scope, viewerRole);
   }
 
-  async createContact(payload: CreateContactDTO, userId: string, viewerRole?: string): Promise<Contact> {
-    return services.contact.createContact(payload, userId, viewerRole);
+  async createContact(payload: CreateContactDTO, userId: string, viewerRole?: string, client?: any): Promise<Contact> {
+    return services.contact.createContact(payload, userId, viewerRole, client);
   }
 
   async updateContact(
     contactId: string,
     payload: UpdateContactDTO,
     userId: string,
-    viewerRole?: string
+    viewerRole?: string,
+    client?: any
   ): Promise<Contact | null> {
-    return services.contact.updateContact(contactId, payload, userId, viewerRole);
+    return services.contact.updateContact(contactId, payload, userId, viewerRole, client);
   }
 
   async bulkUpdateContacts(
@@ -101,12 +102,13 @@ export class ContactRepository implements ContactDirectoryPort {
     return services.contact.mergeContacts(contactId, payload, userId, scope, viewerRole);
   }
 
-  async findContactIdentity(contactId: string): Promise<{
+  async findContactIdentity(contactId: string, client?: any): Promise<{
     email: string | null;
     firstName: string;
     lastName: string;
   } | null> {
-    const result = await services.pool.query(
+    const executor = client || services.pool;
+    const result = await executor.query(
       'SELECT email, first_name, last_name FROM contacts WHERE id = $1',
       [contactId]
     );
@@ -123,8 +125,9 @@ export class ContactRepository implements ContactDirectoryPort {
     };
   }
 
-  async findUserByEmail(email: string): Promise<{ id: string; role: string } | null> {
-    const result = await services.pool.query('SELECT id, role FROM users WHERE email = $1', [
+  async findUserByEmail(email: string, client?: any): Promise<{ id: string; role: string } | null> {
+    const executor = client || services.pool;
+    const result = await executor.query('SELECT id, role FROM users WHERE email = $1', [
       email.toLowerCase(),
     ]);
 
@@ -138,8 +141,9 @@ export class ContactRepository implements ContactDirectoryPort {
     };
   }
 
-  async updateUserRole(userId: string, role: string): Promise<void> {
-    await services.pool.query('UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2', [
+  async updateUserRole(userId: string, role: string, client?: any): Promise<void> {
+    const executor = client || services.pool;
+    await executor.query('UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2', [
       role,
       userId,
     ]);

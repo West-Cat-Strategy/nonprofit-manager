@@ -16,9 +16,13 @@ import {
 } from '../usecases/registrationSettingsUseCase';
 import {
   listPendingRegistrations,
+} from '../usecases/listPendingRegistrationsUseCase';
+import {
   approvePendingRegistration,
+} from '../usecases/approveRegistrationUseCase';
+import {
   rejectPendingRegistration,
-} from '@services/pendingRegistrationService';
+} from '../usecases/rejectRegistrationUseCase';
 
 // ---------------------------------------------------------------------------
 // Public

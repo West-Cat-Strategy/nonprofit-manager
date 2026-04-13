@@ -5,7 +5,7 @@ import pool from '../config/database';
 import { register, login, checkSetupStatus, setupFirstUser } from '../controllers/authController';
 import { AuthRequest } from '../middleware/auth';
 import { getRegistrationMode } from '../services/registrationSettingsService';
-import { createPendingRegistration } from '../services/pendingRegistrationService';
+import { createPendingRegistration } from '../modules/admin/usecases/createPendingRegistrationUseCase';
 
 jest.mock('../services/userRoleService', () => ({
   __esModule: true,
@@ -57,7 +57,7 @@ jest.mock('../services/registrationSettingsService', () => ({
 }));
 
 // Mock pending registration service used when mode is approval_required
-jest.mock('../services/pendingRegistrationService', () => ({
+jest.mock('../modules/admin/usecases/createPendingRegistrationUseCase', () => ({
   __esModule: true,
   createPendingRegistration: jest.fn().mockResolvedValue({
     id: 'pending-1',

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../../../../services/api';
+import { useToast } from '../../../../../contexts/useToast';
 import type { RoleSelectorItem } from '../types';
 import { getRoleDisplayLabel } from '../utils';
 
@@ -37,6 +38,7 @@ interface RegistrationSettingsSectionProps {
 export default function RegistrationSettingsSection({
   roleOptions,
 }: RegistrationSettingsSectionProps) {
+  const { addToast } = useToast();
   const [settings, setSettings] = useState<RegistrationSettings | null>(null);
   const [pendingRegistrations, setPendingRegistrations] = useState<PendingRegistration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,9 +89,11 @@ export default function RegistrationSettingsSection({
       });
       setSettings(response.data);
       setSaveStatus('success');
+      addToast({ message: 'Registration mode updated', variant: 'success' });
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch {
       setSaveStatus('error');
+      addToast({ message: 'Failed to update registration settings', variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -106,45 +110,50 @@ export default function RegistrationSettingsSection({
       });
       setSettings(response.data);
       setSaveStatus('success');
+      addToast({ message: 'Default role updated', variant: 'success' });
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch {
       setSaveStatus('error');
+      addToast({ message: 'Failed to update default role', variant: 'error' });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (id: string, name: string) => {
     setActionLoading(id);
     try {
       await api.post(`/admin/pending-registrations/${id}/approve`);
       setPendingRegistrations((prev) => prev.filter((r) => r.id !== id));
+      addToast({ message: `Approved registration for ${name}`, variant: 'success' });
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { error?: { message?: string } } } })
         ?.response?.data?.error?.message || 'Failed to approve registration';
-      alert(message);
+      addToast({ message, variant: 'error' });
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (id: string, name: string) => {
     setActionLoading(id);
     try {
       await api.post(`/admin/pending-registrations/${id}/reject`, {
         reason: rejectionReason || undefined,
       });
       setPendingRegistrations((prev) => prev.filter((r) => r.id !== id));
+      addToast({ message: `Rejected registration for ${name}`, variant: 'info' });
       setRejectingId(null);
       setRejectionReason('');
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { error?: { message?: string } } } })
         ?.response?.data?.error?.message || 'Failed to reject registration';
-      alert(message);
+      addToast({ message, variant: 'error' });
     } finally {
       setActionLoading(null);
     }
   };
+ bitumen
 
   // -------------------------------------------------------------------------
   // Render
@@ -164,15 +173,15 @@ export default function RegistrationSettingsSection({
   return (
     <div className="space-y-6">
       {/* Registration Mode */}
-      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
-        <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
-          <h2 className="text-lg font-semibold text-app-text-heading">Registration Settings</h2>
-          <p className="text-sm text-app-text-muted mt-1">
+      <div className="bg-app-surface-elevated/90 rounded-xl shadow-[var(--ui-elev-2)] border border-app-border-muted overflow-hidden backdrop-blur">
+        <div className="px-6 py-5 border-b border-app-border-muted bg-app-surface-muted/50">
+          <h2 className="text-xl font-display font-semibold text-app-text-heading">Registration Settings</h2>
+          <p className="text-sm text-app-text-muted mt-1.5">
             Control whether new users can self-register for an account
           </p>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-6">
           {/* Mode selector */}
           <fieldset>
             <legend className="text-sm font-medium text-app-text mb-3">Registration Mode</legend>
@@ -282,25 +291,25 @@ export default function RegistrationSettingsSection({
 
       {/* Pending Registrations Queue */}
       {settings?.registrationMode === 'approval_required' && (
-        <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
-          <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted flex items-center justify-between">
+        <div className="bg-app-surface-elevated/90 rounded-xl shadow-[var(--ui-elev-2)] border border-app-border-muted overflow-hidden backdrop-blur">
+          <div className="px-6 py-5 border-b border-app-border-muted bg-app-surface-muted/50 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-app-text-heading">
+              <h2 className="text-xl font-display font-semibold text-app-text-heading">
                 Pending Registrations
                 {pendingRegistrations.length > 0 && (
-                  <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text rounded-full">
+                  <span className="ml-3 px-2.5 py-0.5 text-xs font-semibold bg-app-accent-soft text-app-accent-text rounded-full shadow-sm">
                     {pendingRegistrations.length}
                   </span>
                 )}
               </h2>
-              <p className="text-sm text-app-text-muted mt-1">
+              <p className="text-sm text-app-text-muted mt-1.5">
                 Review and approve or reject new account requests
               </p>
             </div>
             <button
               type="button"
               onClick={fetchPending}
-              className="px-3 py-1.5 text-sm text-app-accent hover:text-app-accent-hover font-medium"
+              className="px-4 py-2 text-sm text-app-accent hover:text-app-accent-hover font-semibold transition hover:bg-app-accent-soft rounded-lg"
             >
               Refresh
             </button>
@@ -311,81 +320,97 @@ export default function RegistrationSettingsSection({
               No pending registration requests
             </div>
           ) : (
-            <div className="divide-y divide-app-border">
-              {pendingRegistrations.map((reg) => (
-                <div key={reg.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-app-text">
-                          {[reg.firstName, reg.lastName].filter(Boolean).join(' ') || reg.email}
-                        </span>
-                        {(reg.firstName || reg.lastName) && (
-                          <span className="text-sm text-app-text-muted">{reg.email}</span>
-                        )}
+            <div className="divide-y divide-app-border-muted">
+              {pendingRegistrations.map((reg) => {
+                const displayName = [reg.firstName, reg.lastName].filter(Boolean).join(' ') || reg.email;
+                return (
+                  <div 
+                    key={reg.id} 
+                    className="p-5 transition hover:bg-app-surface-muted/30 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-app-accent-soft border border-app-border-muted flex items-center justify-center text-app-accent font-semibold font-display shadow-sm">
+                          {reg.firstName ? (reg.firstName[0] + (reg.lastName ? reg.lastName[0] : '')).toUpperCase() : '?'}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-app-text text-base">
+                              {displayName}
+                            </span>
+                            {(reg.firstName || reg.lastName) && (
+                              <span className="text-sm text-app-text-muted bg-app-surface-muted px-2 py-0.5 rounded border border-app-border-muted/50">{reg.email}</span>
+                            )}
+                          </div>
+                          <div className="text-sm text-app-text-muted mt-1.5 flex items-center gap-1.5">
+                            <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Requested {new Date(reg.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}{' '}
+                            at {new Date(reg.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-sm text-app-text-muted mt-1">
-                        Requested {new Date(reg.createdAt).toLocaleDateString('en-CA')}{' '}
-                        at {new Date(reg.createdAt).toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
+
+                      {rejectingId !== reg.id && (
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(reg.id, displayName)}
+                            disabled={actionLoading === reg.id}
+                            className="px-5 py-2 text-sm font-semibold text-white bg-app-accent hover:bg-app-accent-hover rounded-xl shadow-sm transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
+                          >
+                            {actionLoading === reg.id ? 'Processing...' : 'Approve'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRejectingId(reg.id)}
+                            disabled={actionLoading === reg.id}
+                            className="px-5 py-2 text-sm font-semibold text-app-text-heading hover:bg-app-surface-muted border border-app-border-muted rounded-xl transition active:scale-[0.98] disabled:opacity-50"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    {rejectingId !== reg.id && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleApprove(reg.id)}
-                          disabled={actionLoading === reg.id}
-                          className="px-4 py-1.5 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent hover:bg-app-accent-hover rounded-lg disabled:opacity-50"
-                        >
-                          {actionLoading === reg.id ? 'Processing...' : 'Approve'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRejectingId(reg.id)}
-                          disabled={actionLoading === reg.id}
-                          className="px-4 py-1.5 text-sm font-medium text-app-accent hover:text-app-accent-text border border-app-border rounded-lg disabled:opacity-50"
-                        >
-                          Reject
-                        </button>
+                    {/* Rejection reason form */}
+                    {rejectingId === reg.id && (
+                      <div className="mt-5 p-4 bg-app-surface-muted/40 rounded-xl border border-app-border-muted/50 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-end gap-3">
+                          <div className="flex-1">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-app-text-muted mb-2">
+                              Rejection reason (optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={rejectionReason}
+                              onChange={(e) => setRejectionReason(e.target.value)}
+                              placeholder="e.g. Not a member of the organization"
+                              className="w-full px-4 py-2.5 border border-app-input-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-app-accent/30 focus:border-app-accent shadow-sm"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleReject(reg.id, displayName)}
+                            disabled={actionLoading === reg.id}
+                            className="px-5 py-2.5 text-sm font-semibold text-white bg-app-accent hover:bg-app-accent-hover rounded-xl shadow-sm transition active:scale-[0.98] disabled:opacity-50"
+                          >
+                            {actionLoading === reg.id ? 'Rejecting...' : 'Confirm Reject'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setRejectingId(null); setRejectionReason(''); }}
+                            className="px-5 py-2.5 text-sm font-semibold text-app-text-muted hover:text-app-text transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
-
-                  {/* Rejection reason form */}
-                  {rejectingId === reg.id && (
-                    <div className="mt-3 flex items-end gap-3">
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-app-text-muted mb-1">
-                          Rejection reason (optional)
-                        </label>
-                        <input
-                          type="text"
-                          value={rejectionReason}
-                          onChange={(e) => setRejectionReason(e.target.value)}
-                          placeholder="e.g. Not a member of the organization"
-                          className="w-full px-3 py-2 border border-app-input-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleReject(reg.id)}
-                        disabled={actionLoading === reg.id}
-                        className="px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] bg-app-accent hover:bg-app-accent-hover rounded-lg disabled:opacity-50"
-                      >
-                        {actionLoading === reg.id ? 'Rejecting...' : 'Confirm Reject'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setRejectingId(null); setRejectionReason(''); }}
-                        className="px-4 py-2 text-sm font-medium text-app-text-muted hover:text-app-text"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
