@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Application } from 'express';
 import { authenticate } from '@middleware/domains/auth';
 import { requireWorkspaceModuleEnabled } from '@middleware/requireWorkspaceModuleEnabled';
 import { portalV2Routes } from '@modules/portal';
@@ -113,3 +113,12 @@ mountWorkspaceModuleRoutes(
 );
 mountWorkspaceModuleRoutes('/reconciliation', 'reconciliation', reconciliationV2Routes);
 mountWorkspaceModuleRoutes('/alerts', 'alerts', alertsV2Routes);
+
+export function registerV2Routes(app: Application): void {
+  const v2Enabled = process.env.API_V2_ENABLED !== 'false';
+  if (!v2Enabled) {
+    return;
+  }
+
+  app.use('/api/v2', apiV2Routes);
+}

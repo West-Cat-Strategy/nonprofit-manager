@@ -17,7 +17,7 @@ import { metricsMiddleware, metricsRouter } from './middleware/metrics';
 import { orgContextMiddleware } from './middleware/orgContext';
 import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
-import { registerApiRoutes } from '@routes/registrars';
+import { registerV2Routes } from '@routes/v2';
 import { setPaymentPool } from '@modules/payments';
 import { renderPublishedWebsite } from '@modules/publishing/controllers';
 import pool from './config/database';
@@ -268,7 +268,7 @@ app.use('/api', legacyApiTombstoneMiddleware);
 app.use('/metrics', metricsRouter);
 
 // API Routes
-registerApiRoutes(app);
+registerV2Routes(app);
 
 // Serve published websites by host/path after API routes are mounted.
 app.get(/.*/, (req, res, next) => {
