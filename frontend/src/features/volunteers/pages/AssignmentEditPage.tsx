@@ -8,7 +8,7 @@ export const AssignmentEdit: React.FC = () => {
   const { volunteerId, assignmentId } = useParams<{ volunteerId: string; assignmentId: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { assignments, loading, error } = useAppSelector((state) => state.volunteers);
+  const { assignments, loading, error } = useAppSelector((state) => state.volunteers.assignments);
 
   useEffect(() => {
     if (volunteerId) {

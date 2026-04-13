@@ -44,7 +44,7 @@ const AccountList = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { accounts, loading, error, pagination, filters } = useAppSelector(
-    (state) => state.accounts
+    (state) => state.accounts.list
   );
 
   const {

@@ -32,7 +32,7 @@ const availabilityBadge: Record<string, string> = {
 
 const VolunteerWidget = ({ stats, showDetailedView = false }: VolunteerWidgetProps) => {
   const dispatch = useAppDispatch();
-  const { volunteers, loading } = useAppSelector((state) => state.volunteers);
+  const { volunteers, loading } = useAppSelector((state) => state.volunteers.list);
 
   useEffect(() => {
     if (!stats && volunteers.length === 0) {

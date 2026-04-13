@@ -42,7 +42,7 @@ const VolunteerList = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { volunteers, loading, error, pagination, filters } = useAppSelector(
-    (state) => state.volunteers
+    (state) => state.volunteers.list
   );
 
   const {

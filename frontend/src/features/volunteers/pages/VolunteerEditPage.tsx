@@ -8,7 +8,7 @@ export const VolunteerEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentVolunteer, loading, error } = useAppSelector((state) => state.volunteers);
+  const { currentVolunteer, loading, error } = useAppSelector((state) => state.volunteers.core);
 
   useEffect(() => {
     if (id) {

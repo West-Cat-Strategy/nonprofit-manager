@@ -8,7 +8,7 @@ export const AccountEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentAccount, loading, error } = useAppSelector((state) => state.accounts);
+  const { currentAccount, loading, error } = useAppSelector((state) => state.accounts.core);
 
   useEffect(() => {
     if (id) {

@@ -19,9 +19,10 @@ const VolunteerDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentVolunteer, assignments, loading, error } = useAppSelector(
-    (state) => state.volunteers
-  );
+  const { currentVolunteer, loading: coreLoading, error: coreError } = useAppSelector((state) => state.volunteers.core);
+  const { assignments, loading: assignmentsLoading, error: assignmentsError } = useAppSelector((state) => state.volunteers.assignments);
+  const loading = coreLoading || assignmentsLoading;
+  const error = coreError || assignmentsError;
 
   const [activeTab, setActiveTab] = useState<
     'info' | 'assignments' | 'calendar' | 'timetracker' | 'activity'
