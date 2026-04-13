@@ -1,14 +1,14 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import CaseNotes from '../CaseNotes';
-import { resetOutcomeDefinitionsCache } from '../../features/outcomes/hooks/useOutcomeDefinitions';
-import { renderWithProviders } from '../../test/testUtils';
+import CaseNotes from '../CaseNotesPanel';
+import { resetOutcomeDefinitionsCache } from '../../../outcomes/hooks/useOutcomeDefinitions';
+import { renderWithProviders } from '../../../../test/testUtils';
 
 const listCaseNotesMock = vi.fn();
 const listOutcomeDefinitionsMock = vi.fn();
 const createCaseNoteMock = vi.fn();
 
-vi.mock('../../features/cases/api/casesApiClient', () => ({
+vi.mock('../../api/casesApiClient', () => ({
   casesApiClient: {
     listCaseNotes: (...args: unknown[]) => listCaseNotesMock(...args),
     listOutcomeDefinitions: (...args: unknown[]) => listOutcomeDefinitionsMock(...args),
@@ -18,14 +18,14 @@ vi.mock('../../features/cases/api/casesApiClient', () => ({
   },
 }));
 
-vi.mock('../../contexts/useToast', () => ({
+vi.mock('../../../../contexts/useToast', () => ({
   useToast: () => ({
     showSuccess: vi.fn(),
     showError: vi.fn(),
   }),
 }));
 
-describe('CaseNotes component', () => {
+describe('CaseNotesPanel component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetOutcomeDefinitionsCache();

@@ -1,11 +1,11 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import ContactNotes from '../ContactNotes';
-import contactsReducer from '../../features/contacts/state';
-import casesReducer from '../../features/cases/state';
-import { resetOutcomeDefinitionsCache } from '../../features/outcomes/hooks/useOutcomeDefinitions';
-import { renderWithProviders } from '../../test/testUtils';
-import api from '../../services/api';
+import ContactNotes from '../ContactNotesPanel';
+import contactsReducer from '../../state';
+import casesReducer from '../../../cases/state';
+import { resetOutcomeDefinitionsCache } from '../../../outcomes/hooks/useOutcomeDefinitions';
+import { renderWithProviders } from '../../../../test/testUtils';
+import api from '../../../../services/api';
 
 const listOutcomeDefinitionsMock = vi.fn();
 
@@ -18,13 +18,13 @@ vi.mock('../../services/api', () => ({
   },
 }));
 
-vi.mock('../../features/cases/api/casesApiClient', () => ({
+vi.mock('../../../cases/api/casesApiClient', () => ({
   casesApiClient: {
     listOutcomeDefinitions: (...args: unknown[]) => listOutcomeDefinitionsMock(...args),
   },
 }));
 
-vi.mock('../../contexts/useToast', () => ({
+vi.mock('../../../../contexts/useToast', () => ({
   useToast: () => ({
     showSuccess: vi.fn(),
     showError: vi.fn(),
@@ -78,7 +78,7 @@ const renderContactNotes = () => {
   });
 };
 
-describe('ContactNotes', () => {
+describe('ContactNotesPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetOutcomeDefinitionsCache();

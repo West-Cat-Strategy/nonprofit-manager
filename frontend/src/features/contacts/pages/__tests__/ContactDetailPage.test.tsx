@@ -10,10 +10,19 @@ const dispatchMock = vi.fn();
 
 const mockState = {
   contacts: {
-    currentContact: null,
-    loading: false,
-    error: null,
-    contactNotes: [],
+    core: {
+      currentContact: null,
+      loading: false,
+      error: null,
+    },
+    notes: {
+      contactNotes: [],
+      notesLoading: false,
+    },
+    list: {
+      contacts: [],
+      loading: false,
+    },
   },
 };
 
@@ -128,10 +137,10 @@ function renderContactDetail(route: string) {
 describe('Contact detail route validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockState.contacts.currentContact = null;
-    mockState.contacts.loading = false;
-    mockState.contacts.error = null;
-    mockState.contacts.contactNotes = [];
+    mockState.contacts.core.currentContact = null;
+    mockState.contacts.core.loading = false;
+    mockState.contacts.core.error = null;
+    mockState.contacts.notes.contactNotes = [];
   });
 
   afterEach(() => {

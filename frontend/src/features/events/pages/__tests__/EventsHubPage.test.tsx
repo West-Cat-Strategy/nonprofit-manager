@@ -1,37 +1,39 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import type * as EventsStateModule from '../../../../features/events/state';
+import type * as EventsStateModule from '../../state';
 import { vi } from 'vitest';
 import EventList from '../EventsHubPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn();
 const state = {
-  eventsList: {
-    events: [],
-    total: 0,
-    page: 1,
-    limit: 20,
-    totalPages: 1,
-    loading: false,
-    error: null,
-  },
-  eventDetail: {
-    event: null,
-    loading: false,
-    error: null,
-  },
-  eventRegistration: {
-    registrations: [],
-    loading: false,
-    actionLoading: false,
-    error: null,
-  },
-  eventReminders: {
-    sending: false,
-    lastSummary: null,
-    error: null,
-  },
+  events: {
+    list: {
+      events: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+      loading: false,
+      error: null,
+    },
+    detail: {
+      event: null,
+      loading: false,
+      error: null,
+    },
+    registration: {
+      registrations: [],
+      loading: false,
+      actionLoading: false,
+      error: null,
+    },
+    reminders: {
+      sending: false,
+      lastSummary: null,
+      error: null,
+    },
+  }
 };
 
 vi.mock('../../../../store/hooks', () => ({
@@ -39,7 +41,7 @@ vi.mock('../../../../store/hooks', () => ({
   useAppSelector: (selector: (s: typeof state) => unknown) => selector(state),
 }));
 
-vi.mock('../../../../features/events/state', async (importOriginal) => {
+vi.mock('../../state', async (importOriginal) => {
   const actual = await importOriginal<typeof EventsStateModule>();
   return {
     ...actual,

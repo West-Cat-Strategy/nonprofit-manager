@@ -8,10 +8,17 @@ const dispatchMock = vi.fn();
 
 const mockState = {
   contacts: {
-    relationships: [],
-    relationshipsLoading: false,
-    contacts: [],
-    currentContact: null,
+    relationships: {
+      relationships: [],
+      relationshipsLoading: false,
+    },
+    list: {
+      contacts: [],
+      loading: false,
+    },
+    core: {
+      currentContact: null,
+    },
   },
 };
 

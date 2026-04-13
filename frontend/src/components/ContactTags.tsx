@@ -11,7 +11,7 @@ interface ContactTagsProps {
 
 const ContactTags = ({ contactId, tags = [] }: ContactTagsProps) => {
   const dispatch = useAppDispatch();
-  const { availableTags } = useAppSelector((state) => state.contacts);
+  const { availableTags } = useAppSelector((state) => state.contacts.list);
   const { showSuccess, showError } = useToast();
   const [tagInput, setTagInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);

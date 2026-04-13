@@ -9,15 +9,19 @@ describe('root store shape', () => {
 
     expect(keys).toContain('contacts');
     expect(keys).toContain('volunteers');
-    expect(keys).toContain('eventsList');
+    expect(keys).toContain('events');
+    expect(keys).not.toContain('eventsList');
     expect(keys).not.toContain('contactsV2');
     expect(keys).not.toContain('volunteersV2');
-    expect(keys).not.toContain('eventsListV2');
   });
 
-  it('keeps test preloaded state normalization as a no-op', () => {
-    const state = { contacts: { total: 1 } } as Parameters<typeof normalizeRootState>[0];
+  it('transforms legacy flat preloaded state to modular nested state', () => {
+    const state = { 
+      eventsList: { contacts: [] } 
+    };
 
-    expect(normalizeRootState(state)).toBe(state);
+    const normalized = normalizeRootState(state);
+    expect(normalized.events.list).toEqual(state.eventsList);
+    expect(normalized.eventsList).toBeUndefined();
   });
 });

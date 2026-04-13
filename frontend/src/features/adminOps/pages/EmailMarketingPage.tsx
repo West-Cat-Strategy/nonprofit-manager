@@ -485,7 +485,7 @@ export default function EmailMarketing() {
   const dispatch = useAppDispatch();
   const { status, lists, selectedList, campaigns, segments, syncResult, isLoading, isSyncing, error } =
     useAppSelector((state) => state.mailchimp);
-  const { contacts } = useAppSelector((state) => state.contacts);
+  const { contacts } = useAppSelector((state) => state.contacts.list);
   const isMailchimpConfigured = status?.configured === true;
 
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
