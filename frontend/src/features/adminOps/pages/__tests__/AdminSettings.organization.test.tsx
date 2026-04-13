@@ -3,10 +3,10 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
-import { renderWithProviders } from '../../../test/testUtils';
+import { renderWithProviders } from '../../../../test/testUtils';
 
 let AdminSettings: ComponentType;
-const importAdminSettings = () => import('../../../features/adminOps/pages/AdminSettingsPage');
+const importAdminSettings = () => import('../AdminSettingsPage');
 
 const { mockNavigate, mockedApi, mockSetBranding } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
@@ -28,19 +28,19 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../../services/api', () => ({
+vi.mock('../../../../services/api', () => ({
   default: mockedApi,
 }));
 
-vi.mock('../../../contexts/useToast', () => ({
+vi.mock('../../../../contexts/useToast', () => ({
   useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn() }),
 }));
 
-vi.mock('../../../contexts/BrandingContext', () => ({
+vi.mock('../../../../contexts/BrandingContext', () => ({
   useBranding: () => ({ setBranding: mockSetBranding }),
 }));
 
-vi.mock('../../../hooks/useUnsavedChangesGuard', () => ({
+vi.mock('../../../../hooks/useUnsavedChangesGuard', () => ({
   useUnsavedChangesGuard: vi.fn(),
 }));
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import PublicReportSnapshotPage from '../../../features/savedReports/pages/PublicReportSnapshotPage';
-import { savedReportsApiClient } from '../../../features/savedReports/api/savedReportsApiClient';
+import PublicReportSnapshotPage from '../PublicReportSnapshotPage';
+import { savedReportsApiClient } from '../../api/savedReportsApiClient';
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -11,7 +11,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../../features/savedReports/api/savedReportsApiClient', () => ({
+vi.mock('../../api/savedReportsApiClient', () => ({
   savedReportsApiClient: {
     fetchPublicReportMetadata: vi.fn(),
     downloadPublicReportSnapshot: vi.fn(),

@@ -1,9 +1,9 @@
 import type * as ReactRouterDom from 'react-router-dom';
 import { screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import NeoBrutalistDashboard from '../../features/neoBrutalist/pages/NeoBrutalistDashboardPage';
-import api from '../../services/api';
-import { renderWithProviders, createTestStore } from '../../test/testUtils';
+import NeoBrutalistDashboard from '../NeoBrutalistDashboardPage';
+import api from '../../../../services/api';
+import { renderWithProviders, createTestStore } from '../../../../test/testUtils';
 
 const mockNavigate = vi.fn();
 
@@ -15,8 +15,8 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../services/api');
-vi.mock('../../hooks/useDashboardSettings', () => ({
+vi.mock('../../../../services/api');
+vi.mock('../../../../hooks/useDashboardSettings', () => ({
   useDashboardSettings: () => ({
     settings: {
       showWorkspaceSummary: true,
@@ -43,7 +43,7 @@ vi.mock('../../hooks/useDashboardSettings', () => ({
     isLoading: false,
   }),
 }));
-vi.mock('../../hooks/useNavigationPreferences', () => ({
+vi.mock('../../../../hooks/useNavigationPreferences', () => ({
   useNavigationPreferences: () => ({
     pinnedItems: [
       {
@@ -106,7 +106,7 @@ vi.mock('../../hooks/useNavigationPreferences', () => ({
     ],
   }),
 }));
-vi.mock('../../components/dashboard', () => ({
+vi.mock('../../../../components/dashboard', () => ({
   DashboardCustomizer: () => <div>Dashboard Customizer</div>,
   QuickActionsWidget: () => <section>Quick Actions Widget</section>,
   QuickLookupWidget: () => <section>Quick Lookup Widget</section>,

@@ -1,10 +1,10 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type * as ReactRouterDom from 'react-router-dom';
-import Login from '../../features/auth/pages/LoginPage';
-import { authService } from '../../services/authService';
-import { primeStaffSession } from '../../features/auth/utils/primeStaffSession';
-import { renderWithProviders, createTestStore } from '../../test/testUtils';
+import Login from '../LoginPage';
+import { authService } from '../../../../services/authService';
+import { primeStaffSession } from '../../utils/primeStaffSession';
+import { renderWithProviders, createTestStore } from '../../../../test/testUtils';
 import { vi } from 'vitest';
 
 const mockNavigate = vi.fn();
@@ -17,13 +17,13 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../services/authService', () => ({
+vi.mock('../../../../services/authService', () => ({
   authService: {
     login: vi.fn(),
   },
 }));
 
-vi.mock('../../features/auth/utils/primeStaffSession', () => ({
+vi.mock('../../utils/primeStaffSession', () => ({
   primeStaffSession: vi.fn(async ({ user, organizationId }) => ({
     user,
     organizationId: organizationId ?? null,

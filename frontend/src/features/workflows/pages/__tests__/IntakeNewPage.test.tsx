@@ -1,7 +1,7 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import IntakeNew from '../../../features/workflows/pages/IntakeNewPage';
-import { renderWithProviders } from '../../../test/testUtils';
+import IntakeNew from '../IntakeNewPage';
+import { renderWithProviders } from '../../../../test/testUtils';
 
 const navigateMock = vi.fn();
 
@@ -13,7 +13,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../../features/contacts/components/contactForm', () => ({
+vi.mock('../../../../features/contacts/components/contactForm', () => ({
   ContactForm: ({ onCreated }: { onCreated: (contact: unknown) => void }) => (
     <button
       type="button"
@@ -31,7 +31,7 @@ vi.mock('../../../features/contacts/components/contactForm', () => ({
   ),
 }));
 
-vi.mock('../../../components/CaseForm', () => ({
+vi.mock('../../../../components/CaseForm', () => ({
   default: ({ initialData }: { initialData?: { contact_id?: string } }) => (
     <div data-testid="case-form">{initialData?.contact_id || 'no-contact'}</div>
   ),

@@ -2,10 +2,10 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { ComponentType } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
-import { renderWithProviders } from '../../../test/testUtils';
+import { renderWithProviders } from '../../../../test/testUtils';
 
 let AdminSettings: ComponentType;
-const importAdminSettings = () => import('../../../features/adminOps/pages/AdminSettingsPage');
+const importAdminSettings = () => import('../AdminSettingsPage');
 const { mockNavigate, mockSetBranding } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
   mockSetBranding: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../../services/api', () => ({
+vi.mock('../../../../services/api', () => ({
   default: {
     get: vi.fn((url: string) => {
       if (url === '/admin/organization-settings') {
@@ -77,26 +77,26 @@ vi.mock('../../../services/api', () => ({
   },
 }));
 
-vi.mock('../../../contexts/useToast', () => ({
+vi.mock('../../../../contexts/useToast', () => ({
   useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn() }),
 }));
-vi.mock('../../../contexts/BrandingContext', () => ({
+vi.mock('../../../../contexts/BrandingContext', () => ({
   useBranding: () => ({ setBranding: mockSetBranding }),
 }));
-vi.mock('../../../hooks/useUnsavedChangesGuard', () => ({
+vi.mock('../../../../hooks/useUnsavedChangesGuard', () => ({
   useUnsavedChangesGuard: vi.fn(),
 }));
 
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/OrganizationSection', () => ({
+vi.mock('../adminSettings/sections/OrganizationSection', () => ({
   default: () => <div>Organization Section</div>,
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/WorkspaceModulesSection', () => ({
+vi.mock('../adminSettings/sections/WorkspaceModulesSection', () => ({
   default: () => <div>Workspace Modules Section</div>,
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/BrandingSection', () => ({
+vi.mock('../adminSettings/sections/BrandingSection', () => ({
   default: () => <div>Branding Section</div>,
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/UsersSection', () => ({
+vi.mock('../adminSettings/sections/UsersSection', () => ({
   default: ({ onGoToRoles }: { onGoToRoles: () => void }) => (
     <div>
       <div>Users Section</div>
@@ -106,35 +106,35 @@ vi.mock('../../../features/adminOps/pages/adminSettings/sections/UsersSection', 
     </div>
   ),
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/RolesSection', () => ({
+vi.mock('../adminSettings/sections/RolesSection', () => ({
   default: () => <div>Roles Section</div>,
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/OtherSettingsSection', () => ({
+vi.mock('../adminSettings/sections/OtherSettingsSection', () => ({
   default: () => <div>Other Section</div>,
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/DashboardSection', () => ({
+vi.mock('../adminSettings/sections/DashboardSection', () => ({
   default: () => <div>Dashboard Section</div>,
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/AuditLogsSection', () => ({
+vi.mock('../adminSettings/sections/AuditLogsSection', () => ({
   default: () => <div>Audit Section</div>,
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/CommunicationsSection', () => ({
+vi.mock('../adminSettings/sections/CommunicationsSection', () => ({
   default: () => <div>Communications Section</div>,
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/TwilioSettingsSection', () => ({
+vi.mock('../adminSettings/sections/TwilioSettingsSection', () => ({
   default: () => <div>Messaging Section</div>,
 }));
 vi.mock(
-  '../../../features/adminOps/pages/adminSettings/sections/RegistrationSettingsSection',
+  '../adminSettings/sections/RegistrationSettingsSection',
   () => ({ default: () => <div>Registration Section</div> })
 );
 vi.mock(
-  '../../../features/adminOps/pages/adminSettings/sections/OutcomeDefinitionsSection',
+  '../adminSettings/sections/OutcomeDefinitionsSection',
   () => ({
     default: () => <div>Outcomes Section</div>,
   })
 );
-vi.mock('../../../features/adminOps/pages/adminSettings/sections/PortalSection', () => ({
+vi.mock('../adminSettings/sections/PortalSection', () => ({
   default: () => (
     <div>
       <h2>Portal Operations</h2>
@@ -143,11 +143,11 @@ vi.mock('../../../features/adminOps/pages/adminSettings/sections/PortalSection',
     </div>
   ),
 }));
-vi.mock('../../../features/adminOps/pages/adminSettings/components/UserSecurityModal', () => ({
+vi.mock('../adminSettings/components/UserSecurityModal', () => ({
   default: () => null,
 }));
 vi.mock(
-  '../../../features/adminOps/pages/adminSettings/components/PortalResetPasswordModal',
+  '../adminSettings/components/PortalResetPasswordModal',
   () => ({ default: () => null })
 );
 

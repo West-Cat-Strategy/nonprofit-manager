@@ -1,11 +1,11 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type * as ReactRouterDom from 'react-router-dom';
 import { vi } from 'vitest';
-import Setup from '../../features/auth/pages/SetupPage';
-import api from '../../services/api';
-import { getStaffBootstrapSnapshot } from '../../services/bootstrap/staffBootstrap';
-import { primeStaffSession } from '../../features/auth/utils/primeStaffSession';
-import { createTestStore, renderWithProviders } from '../../test/testUtils';
+import Setup from '../SetupPage';
+import api from '../../../../services/api';
+import { getStaffBootstrapSnapshot } from '../../../../services/bootstrap/staffBootstrap';
+import { primeStaffSession } from '../../utils/primeStaffSession';
+import { createTestStore, renderWithProviders } from '../../../../test/testUtils';
 
 const mockNavigate = vi.fn();
 
@@ -17,18 +17,18 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('../../services/api', () => ({
+vi.mock('../../../../services/api', () => ({
   default: {
     post: vi.fn(),
     get: vi.fn(),
   },
 }));
 
-vi.mock('../../services/bootstrap/staffBootstrap', () => ({
+vi.mock('../../../../services/bootstrap/staffBootstrap', () => ({
   getStaffBootstrapSnapshot: vi.fn(),
 }));
 
-vi.mock('../../features/auth/utils/primeStaffSession', () => ({
+vi.mock('../../utils/primeStaffSession', () => ({
   primeStaffSession: vi.fn(async ({ user, organizationId }) => ({
     user,
     organizationId: organizationId ?? null,
