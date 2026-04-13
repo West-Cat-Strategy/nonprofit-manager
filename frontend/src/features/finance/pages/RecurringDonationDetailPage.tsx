@@ -55,7 +55,7 @@ const RecurringDonationDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { selectedPlan: plan, loading, error } = useAppSelector(
-    (state) => state.recurringDonations
+    (state) => state.finance.recurring
   );
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 

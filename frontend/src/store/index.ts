@@ -11,12 +11,7 @@ import mailchimpReducer from '../features/mailchimp/state';
 import webhooksReducer from '../features/webhooks/state';
 import alertsReducer from '../features/alerts/state';
 import portalAuthReducer from '../features/portalAuth/state';
-import {
-  donationsReducer,
-  paymentsReducer,
-  recurringDonationsReducer,
-  reconciliationReducer,
-} from '../features/finance/state';
+import financeReducer from '../features/finance/state';
 import templateReducer from '../features/builder/state';
 import casesReducer from '../features/cases/state';
 import contactsReducer from '../features/contacts/state';
@@ -25,14 +20,7 @@ import {
   outcomesReportsReducer,
 } from '../features/outcomes/state';
 import websitesReducer from '../features/websites/state';
-import {
-  eventAutomationReducer,
-  eventDetailReducer,
-  eventMutationReducer,
-  eventRegistrationReducer,
-  eventRemindersReducer,
-  eventsListReducer,
-} from '../features/events/state';
+import eventsReducer from '../features/events/state';
 import socialMediaReducer from '../features/socialMedia/state';
 
 export const rootReducer = combineReducers({
@@ -40,12 +28,9 @@ export const rootReducer = combineReducers({
   accounts: accountsReducer,
   contacts: contactsReducer,
   volunteers: volunteersReducer,
-  donations: donationsReducer,
-  recurringDonations: recurringDonationsReducer,
+  finance: financeReducer,
   tasks: tasksReducer,
   analytics: analyticsReducer,
-  payments: paymentsReducer,
-  reconciliation: reconciliationReducer,
   mailchimp: mailchimpReducer,
   webhooks: webhooksReducer,
   templates: templateReducer,
@@ -59,12 +44,7 @@ export const rootReducer = combineReducers({
   opportunities: opportunitiesReducer,
   outcomesAdmin: outcomesAdminReducer,
   outcomesReports: outcomesReportsReducer,
-  eventsList: eventsListReducer,
-  eventDetail: eventDetailReducer,
-  eventRegistration: eventRegistrationReducer,
-  eventReminders: eventRemindersReducer,
-  eventMutation: eventMutationReducer,
-  eventAutomation: eventAutomationReducer,
+  events: eventsReducer,
 });
 
 export const store = configureStore({

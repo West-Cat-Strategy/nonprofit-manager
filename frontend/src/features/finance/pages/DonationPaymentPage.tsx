@@ -32,7 +32,7 @@ const DonationPayment: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const { config, currentIntent, isProcessing, error, paymentSuccess } = useAppSelector(
-    (state) => state.payments
+    (state) => state.finance.payments
   );
 
   // Form state

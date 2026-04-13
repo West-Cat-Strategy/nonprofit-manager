@@ -1,52 +1,25 @@
-export {
-  clearError as clearDonationsError,
-  clearSelectedDonation,
-  createDonation,
-  default as donationsReducer,
-  deleteDonation,
-  fetchDonationById,
-  fetchDonations,
-  fetchDonationSummary,
-  issueAnnualTaxReceipt,
-  issueTaxReceipt,
-  downloadTaxReceiptPdf,
-  markReceiptSent,
-  updateDonation,
-} from './donationsCore';
-export {
-  cancelRecurringDonationPlan,
-  clearRecurringDonationError,
-  clearSelectedRecurringDonation,
-  fetchRecurringDonationPlanById,
-  fetchRecurringDonationPlans,
-  generateRecurringDonationManagementLink,
-  reactivateRecurringDonationPlan,
-  default as recurringDonationsReducer,
-  updateRecurringDonationPlan,
-} from './recurringDonationsCore';
-export {
-  cancelPaymentIntent,
-  clearCurrentIntent,
-  clearPaymentError,
-  createPaymentIntent,
-  default as paymentsReducer,
-  fetchPaymentConfig,
-  getPaymentIntent,
-  setPaymentSuccess,
-  setProcessing,
-} from './paymentsCore';
-export {
-  assignDiscrepancy,
-  clearCurrentReconciliation,
-  clearError as clearReconciliationError,
-  createReconciliation,
-  default as reconciliationReducer,
-  fetchAllDiscrepancies,
-  fetchReconciliationById,
-  fetchReconciliationDashboard,
-  fetchReconciliationDiscrepancies,
-  fetchReconciliationItems,
-  fetchReconciliations,
-  manualMatchTransaction,
-  resolveDiscrepancy,
-} from './reconciliationCore';
+import { combineReducers } from '@reduxjs/toolkit';
+import donationsReducer from './donationsCore';
+import recurringDonationsReducer from './recurringDonationsCore';
+import paymentsReducer from './paymentsCore';
+import reconciliationReducer from './reconciliationCore';
+
+const financeReducer = combineReducers({
+  donations: donationsReducer,
+  recurring: recurringDonationsReducer,
+  payments: paymentsReducer,
+  reconciliation: reconciliationReducer,
+});
+
+export default financeReducer;
+
+export * from './donationsCore';
+export * from './recurringDonationsCore';
+export * from './paymentsCore';
+export * from './reconciliationCore';
+
+// Selectors
+export const selectDonations = (state: any) => state.finance.donations;
+export const selectRecurringDonations = (state: any) => state.finance.recurring;
+export const selectPayments = (state: any) => state.finance.payments;
+export const selectReconciliation = (state: any) => state.finance.reconciliation;

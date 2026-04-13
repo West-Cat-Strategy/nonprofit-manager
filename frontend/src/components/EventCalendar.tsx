@@ -10,7 +10,7 @@ interface EventCalendarProps {
 
 export default function EventCalendar({ onEventClick }: EventCalendarProps) {
   const dispatch = useAppDispatch();
-  const listState = useAppSelector((state) => state.eventsList);
+  const listState = useAppSelector((state) => state.events.list);
 
   const handleMonthRangeChange = useCallback(
     ({ startDate, endDate }: { startDate: string; endDate: string }) => {

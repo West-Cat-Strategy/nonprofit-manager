@@ -14,7 +14,7 @@ import type { UpdateDonationDTO } from '../../../types/donation';
 const DonationEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
-  const { selectedDonation, loading, error } = useAppSelector((state) => state.donations);
+  const { selectedDonation, loading, error } = useAppSelector((state) => state.finance.donations);
 
   useEffect(() => {
     if (id) {

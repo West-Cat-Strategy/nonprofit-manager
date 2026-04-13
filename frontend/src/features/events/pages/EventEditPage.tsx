@@ -11,7 +11,7 @@ import { updateEventV2 } from '../state/eventMutationSlice';
 export default function EventEditPage() {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
-  const detailState = useAppSelector((state) => state.eventDetail);
+  const detailState = useAppSelector((state) => state.events.detail);
 
   useEffect(() => {
     if (id) {

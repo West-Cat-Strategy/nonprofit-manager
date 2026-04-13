@@ -71,7 +71,7 @@ const RecurringDonationListPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const { plans, pagination, loading, error } = useAppSelector(
-    (state) => state.recurringDonations
+    (state) => state.finance.recurring
   );
 
   const [search, setSearch] = useState(() => searchParams.get('search') || '');

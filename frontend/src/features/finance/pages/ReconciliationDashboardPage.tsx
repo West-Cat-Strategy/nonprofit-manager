@@ -25,7 +25,7 @@ const ReconciliationDashboard: React.FC = () => {
     loading,
     creating,
     error,
-  } = useAppSelector((state) => state.reconciliation);
+  } = useAppSelector((state) => state.finance.reconciliation);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState<CreateReconciliationRequest>({

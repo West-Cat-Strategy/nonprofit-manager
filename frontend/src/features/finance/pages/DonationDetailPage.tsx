@@ -37,7 +37,7 @@ const DonationDetail: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showError, showSuccess } = useToast();
-  const { selectedDonation: donation, loading } = useAppSelector((state) => state.donations);
+  const { selectedDonation: donation, loading } = useAppSelector((state) => state.finance.donations);
   const [receiptModalMode, setReceiptModalMode] = useState<'single' | 'annual' | null>(null);
   const [defaultDeliveryMode, setDefaultDeliveryMode] =
     useState<TaxReceiptDeliveryMode>('download');

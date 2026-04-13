@@ -20,7 +20,7 @@ const RecurringDonationEditPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { selectedPlan: plan, loading, error } = useAppSelector(
-    (state) => state.recurringDonations
+    (state) => state.finance.recurring
   );
   const [amount, setAmount] = useState('');
   const [campaignName, setCampaignName] = useState('');

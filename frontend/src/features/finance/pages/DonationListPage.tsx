@@ -69,7 +69,7 @@ const DonationList: React.FC = () => {
   const dispatch = useAppDispatch();
   const { showError, showSuccess } = useToast();
   const { donations, pagination, totalAmount, averageAmount, loading, error } = useAppSelector(
-    (state) => state.donations
+    (state) => state.finance.donations
   );
   const [receiptModalDonation, setReceiptModalDonation] = useState<Donation | null>(null);
   const [receiptModalMode, setReceiptModalMode] = useState<'single' | 'annual' | null>(null);

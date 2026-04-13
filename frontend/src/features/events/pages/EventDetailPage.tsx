@@ -40,10 +40,10 @@ export default function EventDetailPage() {
   const { showError, showSuccess } = useToast();
   const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
 
-  const detailState = useAppSelector((state) => state.eventDetail);
-  const registrationState = useAppSelector((state) => state.eventRegistration);
-  const remindersState = useAppSelector((state) => state.eventReminders);
-  const automationState = useAppSelector((state) => state.eventAutomation);
+  const detailState = useAppSelector((state) => state.events.detail);
+  const registrationState = useAppSelector((state) => state.events.registration);
+  const remindersState = useAppSelector((state) => state.events.reminders);
+  const automationState = useAppSelector((state) => state.events.automation);
 
   const [activeTab, setActiveTab] = useState<'info' | 'registrations'>('info');
   const [registrationsTabLoaded, setRegistrationsTabLoaded] = useState(false);
