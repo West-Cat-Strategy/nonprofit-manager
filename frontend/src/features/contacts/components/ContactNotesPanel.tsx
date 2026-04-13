@@ -43,7 +43,7 @@ const emptyNoteDraft = (): ContactNoteDraft => ({
 
 const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: ContactNotesProps) => {
   const dispatch = useAppDispatch();
-  const { contactNotes, notesLoading } = useAppSelector((state) => state.contacts);
+  const { contactNotes, notesLoading } = useAppSelector((state) => state.contacts.notes);
   const contactCases = useAppSelector((state) => selectCasesByContact(state, contactId));
   const {
     outcomeDefinitions,

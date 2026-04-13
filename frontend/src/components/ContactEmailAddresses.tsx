@@ -17,7 +17,7 @@ interface ContactEmailAddressesProps {
 
 const ContactEmailAddresses = ({ contactId }: ContactEmailAddressesProps) => {
   const dispatch = useAppDispatch();
-  const { emails, emailsLoading } = useAppSelector((state) => state.contacts);
+  const { emails, emailsLoading } = useAppSelector((state) => state.contacts.comms);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;

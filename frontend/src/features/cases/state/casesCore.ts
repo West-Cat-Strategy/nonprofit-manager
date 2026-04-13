@@ -1,77 +1,132 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { createSelector } from '@reduxjs/toolkit';
 import { casesApiClient } from '../api/casesApiClient';
 import { formatApiErrorMessageWith } from '../../../utils/apiError';
-import { isUrgentEquivalentPriority } from '../utils/casePriority';
 import type {
-  CasesState,
   CaseWithDetails,
   CreateCaseDTO,
   UpdateCaseDTO,
-  CaseFilter,
-  CreateCaseNoteDTO,
   UpdateCaseStatusDTO,
-  CaseStatusType,
-  CaseNote,
-  CreateCaseMilestoneDTO,
-  UpdateCaseMilestoneDTO,
-  BulkStatusUpdateDTO,
   ReassignCaseDTO,
-  CreateCaseRelationshipDTO,
-  CreateCaseServiceDTO,
-  UpdateCaseServiceDTO,
 } from '../../../types/case';
-import type {
-  InteractionOutcomeImpact,
-  UpdateInteractionOutcomesInput,
-} from '../../../types/outcomes';
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
 const CONTACT_CASE_CACHE_TTL_MS = 2 * 60 * 1000;
 
-const initialState: CasesState = {
-  cases: [],
+export interface CasesCoreState {
+  currentCase: CaseWithDetails | null;
+  caseTypes: any[];
+  caseStatuses: any[];
+  contactCasesByContactId: Record<string, {
+    cases: any[];
+    loading: boolean;
+    error: string | null;
+    fetchedAt: number | null;
+  }>;
+  loading: boolean;
+  error: string | null;
+}
+
+const initialState: CasesCoreState = {
   currentCase: null,
   caseTypes: [],
   caseStatuses: [],
-  caseNotes: [],
-  caseMilestones: [],
-  caseRelationships: [],
-  caseServices: [],
-  caseOutcomeDefinitions: [],
-  interactionOutcomeImpacts: {},
-  summary: null,
-  total: 0,
+  contactCasesByContactId: {},
   loading: false,
   error: null,
-  outcomesLoading: false,
-  outcomesSaving: false,
-  outcomesError: null,
-  filters: {
-    page: 1,
-    limit: 20,
-    sort_by: 'created_at',
-    sort_order: 'desc',
-  },
-  selectedCaseIds: [],
-  contactCasesByContactId: {},
 };
 
 // Async Thunks
-
-export const fetchCases = createAsyncThunk(
-  'cases/fetchCases',
-  async (filters: CaseFilter = {}, { rejectWithValue }) => {
+export const fetchCaseById = createAsyncThunk(
+  'casesCore/fetchCaseById',
+  async (id: string, { rejectWithValue }) => {
     try {
-      return await casesApiClient.listCases(filters);
+      return await casesApiClient.getCase(id);
     } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch cases'));
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch case'));
+    }
+  }
+);
+
+export const createCase = createAsyncThunk(
+  'casesCore/createCase',
+  async (data: CreateCaseDTO, { rejectWithValue }) => {
+    try {
+      return await casesApiClient.createCase(data);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create case'));
+    }
+  }
+);
+
+export const updateCase = createAsyncThunk(
+  'casesCore/updateCase',
+  async ({ id, data }: { id: string; data: UpdateCaseDTO }, { rejectWithValue }) => {
+    try {
+      return await casesApiClient.updateCase(id, data);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update case'));
+    }
+  }
+);
+
+export const deleteCase = createAsyncThunk(
+  'casesCore/deleteCase',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await casesApiClient.deleteCase(id);
+      return id;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete case'));
+    }
+  }
+);
+
+export const updateCaseStatus = createAsyncThunk(
+  'casesCore/updateCaseStatus',
+  async ({ id, data }: { id: string; data: UpdateCaseStatusDTO }, { rejectWithValue }) => {
+    try {
+      return await casesApiClient.updateCaseStatus(id, data);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update status'));
+    }
+  }
+);
+
+export const fetchCaseTypes = createAsyncThunk(
+  'casesCore/fetchCaseTypes',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await casesApiClient.getCaseTypes();
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch case types'));
+    }
+  }
+);
+
+export const fetchCaseStatuses = createAsyncThunk(
+  'casesCore/fetchCaseStatuses',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await casesApiClient.getCaseStatuses();
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch statuses'));
+    }
+  }
+);
+
+export const reassignCase = createAsyncThunk(
+  'casesCore/reassignCase',
+  async ({ id, data }: { id: string; data: ReassignCaseDTO }, { rejectWithValue }) => {
+    try {
+      return await casesApiClient.reassignCase(id, data);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to reassign case'));
     }
   }
 );
 
 export const fetchCasesByContact = createAsyncThunk(
-  'cases/fetchCasesByContact',
+  'casesCore/fetchCasesByContact',
   async (contactId: string, { rejectWithValue }) => {
     try {
       const payload = await casesApiClient.listCases({
@@ -93,457 +148,30 @@ export const fetchCasesByContact = createAsyncThunk(
   },
   {
     condition: (contactId, { getState }) => {
-      const state = getState() as { cases?: CasesState };
-      const cachedEntry = state.cases?.contactCasesByContactId?.[contactId];
-      if (!cachedEntry) {
-        return true;
-      }
-      if (cachedEntry.loading) {
-        return false;
-      }
-      if (!cachedEntry.fetchedAt) {
-        return true;
-      }
+      const state = getState() as { cases?: { core: CasesCoreState } };
+      const cachedEntry = state.cases?.core?.contactCasesByContactId?.[contactId];
+      if (!cachedEntry) return true;
+      if (cachedEntry.loading) return false;
+      if (!cachedEntry.fetchedAt) return true;
       return Date.now() - cachedEntry.fetchedAt > CONTACT_CASE_CACHE_TTL_MS;
     },
   }
 );
 
-export const fetchCaseById = createAsyncThunk(
-  'cases/fetchCaseById',
-  async (id: string, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.getCase(id);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch case'));
-    }
-  }
-);
-
-export const createCase = createAsyncThunk(
-  'cases/createCase',
-  async (data: CreateCaseDTO, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.createCase(data);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to create case'));
-    }
-  }
-);
-
-export const updateCase = createAsyncThunk(
-  'cases/updateCase',
-  async ({ id, data }: { id: string; data: UpdateCaseDTO }, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.updateCase(id, data);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to update case'));
-    }
-  }
-);
-
-export const deleteCase = createAsyncThunk(
-  'cases/deleteCase',
-  async (id: string, { rejectWithValue }) => {
-    try {
-      await casesApiClient.deleteCase(id);
-      return id;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to delete case'));
-    }
-  }
-);
-
-export const updateCaseStatus = createAsyncThunk(
-  'cases/updateCaseStatus',
-  async ({ id, data }: { id: string; data: UpdateCaseStatusDTO }, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.updateCaseStatus(id, data);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to update status'));
-    }
-  }
-);
-
-export const fetchCaseNotes = createAsyncThunk(
-  'cases/fetchCaseNotes',
-  async (caseId: string, { rejectWithValue }) => {
-    try {
-      const result = await casesApiClient.listCaseNotes(caseId);
-      return result.notes;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch notes'));
-    }
-  }
-);
-
-export const createCaseNote = createAsyncThunk(
-  'cases/createCaseNote',
-  async (data: CreateCaseNoteDTO, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.createCaseNote(data);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to create note'));
-    }
-  }
-);
-
-export const fetchCaseOutcomeDefinitions = createAsyncThunk(
-  'cases/fetchCaseOutcomeDefinitions',
-  async (includeInactive: boolean = false, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.listOutcomeDefinitions(includeInactive);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch outcome definitions'));
-    }
-  }
-);
-
-export const fetchInteractionOutcomes = createAsyncThunk(
-  'cases/fetchInteractionOutcomes',
-  async (
-    { caseId, interactionId }: { caseId: string; interactionId: string },
-    { rejectWithValue }
-  ) => {
-    try {
-      const impacts = await casesApiClient.getInteractionOutcomes(caseId, interactionId);
-      return {
-        interactionId,
-        impacts,
-      };
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch interaction outcomes'));
-    }
-  }
-);
-
-export const saveInteractionOutcomes = createAsyncThunk(
-  'cases/saveInteractionOutcomes',
-  async (
-    {
-      caseId,
-      interactionId,
-      data,
-    }: {
-      caseId: string;
-      interactionId: string;
-      data: UpdateInteractionOutcomesInput;
-    },
-    { rejectWithValue }
-  ) => {
-    try {
-      const impacts = await casesApiClient.updateInteractionOutcomes(caseId, interactionId, data);
-      return {
-        interactionId,
-        impacts,
-      };
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to save interaction outcomes'));
-    }
-  }
-);
-
-export const fetchCaseTypes = createAsyncThunk(
-  'cases/fetchCaseTypes',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.getCaseTypes();
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch case types'));
-    }
-  }
-);
-
-export const fetchCaseStatuses = createAsyncThunk(
-  'cases/fetchCaseStatuses',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.getCaseStatuses();
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch statuses'));
-    }
-  }
-);
-
-export const fetchCaseSummary = createAsyncThunk(
-  'cases/fetchCaseSummary',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.getCaseSummary();
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch summary'));
-    }
-  }
-);
-
-// Milestones
-
-export const fetchCaseMilestones = createAsyncThunk(
-  'cases/fetchCaseMilestones',
-  async (caseId: string, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.listCaseMilestones(caseId);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch milestones'));
-    }
-  }
-);
-
-export const createCaseMilestone = createAsyncThunk(
-  'cases/createCaseMilestone',
-  async ({ caseId, data }: { caseId: string; data: CreateCaseMilestoneDTO }, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.createCaseMilestone(caseId, data);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to create milestone'));
-    }
-  }
-);
-
-export const updateCaseMilestone = createAsyncThunk(
-  'cases/updateCaseMilestone',
-  async ({ milestoneId, data }: { milestoneId: string; data: UpdateCaseMilestoneDTO }, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.updateCaseMilestone(milestoneId, data);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to update milestone'));
-    }
-  }
-);
-
-export const deleteCaseMilestone = createAsyncThunk(
-  'cases/deleteCaseMilestone',
-  async (milestoneId: string, { rejectWithValue }) => {
-    try {
-      await casesApiClient.deleteCaseMilestone(milestoneId);
-      return milestoneId;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to delete milestone'));
-    }
-  }
-);
-
-// Bulk & reassignment
-
-export const bulkUpdateCaseStatus = createAsyncThunk(
-  'cases/bulkUpdateStatus',
-  async (data: BulkStatusUpdateDTO, { rejectWithValue }) => {
-    try {
-      const payload = await casesApiClient.bulkUpdateStatus(data);
-      return {
-        ...(payload as Record<string, unknown>),
-        case_ids: data.case_ids,
-        new_status_id: data.new_status_id,
-      };
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to bulk update status'));
-    }
-  }
-);
-
-export const reassignCase = createAsyncThunk(
-  'cases/reassignCase',
-  async ({ id, data }: { id: string; data: ReassignCaseDTO }, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.reassignCase(id, data);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to reassign case'));
-    }
-  }
-);
-
-// Relationships
-
-export const fetchCaseRelationships = createAsyncThunk(
-  'cases/fetchCaseRelationships',
-  async (caseId: string, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.listCaseRelationships(caseId);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch relationships'));
-    }
-  }
-);
-
-export const createCaseRelationship = createAsyncThunk(
-  'cases/createCaseRelationship',
-  async ({ caseId, data }: { caseId: string; data: CreateCaseRelationshipDTO }, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.createCaseRelationship(caseId, data);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to create relationship'));
-    }
-  }
-);
-
-export const deleteCaseRelationship = createAsyncThunk(
-  'cases/deleteCaseRelationship',
-  async (relationshipId: string, { rejectWithValue }) => {
-    try {
-      await casesApiClient.deleteCaseRelationship(relationshipId);
-      return relationshipId;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to delete relationship'));
-    }
-  }
-);
-
-// Services
-
-export const fetchCaseServices = createAsyncThunk(
-  'cases/fetchCaseServices',
-  async (caseId: string, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.listCaseServices(caseId);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to fetch services'));
-    }
-  }
-);
-
-export const createCaseService = createAsyncThunk(
-  'cases/createCaseService',
-  async ({ caseId, data }: { caseId: string; data: CreateCaseServiceDTO }, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.createCaseService(caseId, data);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to create service'));
-    }
-  }
-);
-
-export const updateCaseService = createAsyncThunk(
-  'cases/updateCaseService',
-  async ({ serviceId, data }: { serviceId: string; data: UpdateCaseServiceDTO }, { rejectWithValue }) => {
-    try {
-      return await casesApiClient.updateCaseService(serviceId, data);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to update service'));
-    }
-  }
-);
-
-export const deleteCaseService = createAsyncThunk(
-  'cases/deleteCaseService',
-  async (serviceId: string, { rejectWithValue }) => {
-    try {
-      await casesApiClient.deleteCaseService(serviceId);
-      return serviceId;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to delete service'));
-    }
-  }
-);
-
-// Slice
-
-const applyImpactsToCaseNote = (
-  state: CasesState,
-  interactionId: string,
-  impacts: InteractionOutcomeImpact[]
-) => {
-  if (!state.interactionOutcomeImpacts) {
-    state.interactionOutcomeImpacts = {};
-  }
-  state.interactionOutcomeImpacts[interactionId] = impacts;
-
-  const noteIndex = state.caseNotes.findIndex((note: CaseNote) => note.id === interactionId);
-  if (noteIndex !== -1) {
-    state.caseNotes[noteIndex] = {
-      ...state.caseNotes[noteIndex],
-      outcome_impacts: impacts,
-    };
-  }
-};
-
-const casesSlice = createSlice({
-  name: 'cases',
+const casesCoreSlice = createSlice({
+  name: 'casesCore',
   initialState,
   reducers: {
-    setFilters: (state, action) => {
-      state.filters = { ...state.filters, ...action.payload };
-    },
-    clearFilters: (state) => {
-      state.filters = initialState.filters;
-    },
     clearCurrentCase: (state) => {
       state.currentCase = null;
-      state.caseNotes = [];
-      state.caseMilestones = [];
-      state.caseRelationships = [];
-      state.caseServices = [];
-      state.interactionOutcomeImpacts = {};
+      state.error = null;
     },
     clearError: (state) => {
       state.error = null;
-      state.outcomesError = null;
-    },
-    toggleCaseSelection: (state, action) => {
-      const caseId = action.payload as string;
-      const idx = state.selectedCaseIds.indexOf(caseId);
-      if (idx === -1) {
-        state.selectedCaseIds.push(caseId);
-      } else {
-        state.selectedCaseIds.splice(idx, 1);
-      }
-    },
-    selectAllCases: (state) => {
-      state.selectedCaseIds = state.cases.map((c) => c.id);
-    },
-    clearCaseSelection: (state) => {
-      state.selectedCaseIds = [];
     },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch Cases
-      .addCase(fetchCases.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchCases.fulfilled, (state, action) => {
-        state.loading = false;
-        state.cases = action.payload.cases;
-        state.total = action.payload.total;
-      })
-      .addCase(fetchCases.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Fetch Cases By Contact (scoped cache for contact detail surfaces)
-      .addCase(fetchCasesByContact.pending, (state, action) => {
-        const contactId = action.meta.arg;
-        const existing = state.contactCasesByContactId?.[contactId];
-        state.contactCasesByContactId = state.contactCasesByContactId ?? {};
-        state.contactCasesByContactId[contactId] = {
-          cases: existing?.cases ?? [],
-          loading: true,
-          error: null,
-          fetchedAt: existing?.fetchedAt ?? null,
-        };
-      })
-      .addCase(fetchCasesByContact.fulfilled, (state, action) => {
-        state.contactCasesByContactId = state.contactCasesByContactId ?? {};
-        state.contactCasesByContactId[action.payload.contactId] = {
-          cases: action.payload.cases,
-          loading: false,
-          error: null,
-          fetchedAt: action.payload.fetchedAt,
-        };
-      })
-      .addCase(fetchCasesByContact.rejected, (state, action) => {
-        const rejectedPayload = action.payload as { contactId?: string; message?: string } | undefined;
-        const contactId = rejectedPayload?.contactId ?? action.meta.arg;
-        const existing = state.contactCasesByContactId?.[contactId];
-        state.contactCasesByContactId = state.contactCasesByContactId ?? {};
-        state.contactCasesByContactId[contactId] = {
-          cases: existing?.cases ?? [],
-          loading: false,
-          error: rejectedPayload?.message ?? 'Failed to fetch contact cases',
-          fetchedAt: existing?.fetchedAt ?? null,
-        };
-      })
-      // Fetch Case By ID
       .addCase(fetchCaseById.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -556,394 +184,68 @@ const casesSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Create Case
-      .addCase(createCase.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(createCase.fulfilled, (state, action) => {
+      .addCase(createCase.fulfilled, (state) => {
         state.loading = false;
-        state['cases'].unshift(action.payload);
-        state.total += 1;
-      })
-      .addCase(createCase.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Update Case
-      .addCase(updateCase.pending, (state) => {
-        state.loading = true;
-        state.error = null;
       })
       .addCase(updateCase.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.cases.findIndex((c: CaseWithDetails) => c.id === action.payload.id);
-        if (index !== -1) {
-          state.cases[index] = action.payload;
-        }
         if (state.currentCase?.id === action.payload.id) {
           state.currentCase = action.payload;
         }
       })
-      .addCase(updateCase.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Delete Case
-      .addCase(deleteCase.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
       .addCase(deleteCase.fulfilled, (state, action) => {
         state.loading = false;
-        state['cases'] = state['cases'].filter((c) => c.id !== action.payload);
-        state.total -= 1;
         if (state.currentCase?.id === action.payload) {
           state.currentCase = null;
         }
       })
-      .addCase(deleteCase.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Update Case Status
-      .addCase(updateCaseStatus.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
       .addCase(updateCaseStatus.fulfilled, (state, action) => {
-        state.loading = false;
-        const index = state['cases'].findIndex((c) => c.id === action.payload.id);
-        if (index !== -1) {
-          state['cases'][index] = action.payload;
-        }
         if (state.currentCase?.id === action.payload.id) {
           state.currentCase = action.payload;
         }
       })
-      .addCase(updateCaseStatus.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Fetch Case Notes
-      .addCase(fetchCaseNotes.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchCaseNotes.fulfilled, (state, action) => {
-        state.loading = false;
-        state.caseNotes = action.payload;
-        state.interactionOutcomeImpacts = action.payload.reduce<Record<string, InteractionOutcomeImpact[]>>(
-          (acc, note) => {
-            acc[note.id] = note.outcome_impacts || [];
-            return acc;
-          },
-          {}
-        );
-      })
-      .addCase(fetchCaseNotes.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Create Case Note
-      .addCase(createCaseNote.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(createCaseNote.fulfilled, (state, action) => {
-        state.loading = false;
-        state.caseNotes.unshift(action.payload);
-        if (state.currentCase) {
-          state.currentCase.notes_count = (state.currentCase.notes_count || 0) + 1;
-        }
-      })
-      .addCase(createCaseNote.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Fetch case outcome definitions
-      .addCase(fetchCaseOutcomeDefinitions.pending, (state) => {
-        state.outcomesLoading = true;
-        state.outcomesError = null;
-      })
-      .addCase(fetchCaseOutcomeDefinitions.fulfilled, (state, action) => {
-        state.outcomesLoading = false;
-        state.caseOutcomeDefinitions = action.payload;
-      })
-      .addCase(fetchCaseOutcomeDefinitions.rejected, (state, action) => {
-        state.outcomesLoading = false;
-        state.outcomesError = action.payload as string;
-      })
-      // Fetch interaction outcomes
-      .addCase(fetchInteractionOutcomes.pending, (state) => {
-        state.outcomesLoading = true;
-        state.outcomesError = null;
-      })
-      .addCase(fetchInteractionOutcomes.fulfilled, (state, action) => {
-        state.outcomesLoading = false;
-        applyImpactsToCaseNote(state, action.payload.interactionId, action.payload.impacts);
-      })
-      .addCase(fetchInteractionOutcomes.rejected, (state, action) => {
-        state.outcomesLoading = false;
-        state.outcomesError = action.payload as string;
-      })
-      // Save interaction outcomes
-      .addCase(saveInteractionOutcomes.pending, (state) => {
-        state.outcomesSaving = true;
-        state.outcomesError = null;
-      })
-      .addCase(saveInteractionOutcomes.fulfilled, (state, action) => {
-        state.outcomesSaving = false;
-        applyImpactsToCaseNote(state, action.payload.interactionId, action.payload.impacts);
-      })
-      .addCase(saveInteractionOutcomes.rejected, (state, action) => {
-        state.outcomesSaving = false;
-        state.outcomesError = action.payload as string;
-      })
-      // Fetch Case Types
       .addCase(fetchCaseTypes.fulfilled, (state, action) => {
         state.caseTypes = action.payload;
       })
-      // Fetch Case Statuses
       .addCase(fetchCaseStatuses.fulfilled, (state, action) => {
         state.caseStatuses = action.payload;
       })
-      // Fetch Case Summary
-      .addCase(fetchCaseSummary.fulfilled, (state, action) => {
-        state.summary = action.payload;
-      })
-      // Fetch Milestones
-      .addCase(fetchCaseMilestones.fulfilled, (state, action) => {
-        state.caseMilestones = action.payload;
-      })
-      // Create Milestone
-      .addCase(createCaseMilestone.fulfilled, (state, action) => {
-        state.caseMilestones.push(action.payload);
-      })
-      // Update Milestone
-      .addCase(updateCaseMilestone.fulfilled, (state, action) => {
-        const idx = state.caseMilestones.findIndex((m) => m.id === action.payload.id);
-        if (idx !== -1) {
-          state.caseMilestones[idx] = action.payload;
-        }
-      })
-      // Delete Milestone
-      .addCase(deleteCaseMilestone.fulfilled, (state, action) => {
-        state.caseMilestones = state.caseMilestones.filter((m) => m.id !== action.payload);
-      })
-      // Bulk Update Status
-      .addCase(bulkUpdateCaseStatus.fulfilled, (state) => {
-        state.selectedCaseIds = [];
-      })
-      // Reassign Case
       .addCase(reassignCase.fulfilled, (state, action) => {
-        const idx = state['cases'].findIndex((c) => c.id === action.payload.id);
-        if (idx !== -1) {
-          state['cases'][idx] = action.payload;
-        }
         if (state.currentCase?.id === action.payload.id) {
           state.currentCase = action.payload;
         }
       })
-      // Fetch Relationships
-      .addCase(fetchCaseRelationships.fulfilled, (state, action) => {
-        state.caseRelationships = action.payload;
+      .addCase(fetchCasesByContact.pending, (state, action) => {
+        const contactId = action.meta.arg;
+        const existing = state.contactCasesByContactId[contactId];
+        state.contactCasesByContactId[contactId] = {
+          cases: existing?.cases ?? [],
+          loading: true,
+          error: null,
+          fetchedAt: existing?.fetchedAt ?? null,
+        };
       })
-      // Create Relationship
-      .addCase(createCaseRelationship.fulfilled, (state, action) => {
-        state.caseRelationships.unshift(action.payload);
+      .addCase(fetchCasesByContact.fulfilled, (state, action) => {
+        state.contactCasesByContactId[action.payload.contactId] = {
+          cases: action.payload.cases,
+          loading: false,
+          error: null,
+          fetchedAt: action.payload.fetchedAt,
+        };
       })
-      // Delete Relationship
-      .addCase(deleteCaseRelationship.fulfilled, (state, action) => {
-        state.caseRelationships = state.caseRelationships.filter((r) => r.id !== action.payload);
-      })
-      // Fetch Services
-      .addCase(fetchCaseServices.fulfilled, (state, action) => {
-        state.caseServices = action.payload;
-      })
-      // Create Service
-      .addCase(createCaseService.fulfilled, (state, action) => {
-        state.caseServices.unshift(action.payload);
-        if (state.currentCase) {
-          state.currentCase.services_count = (state.currentCase.services_count || 0) + 1;
-        }
-      })
-      // Update Service
-      .addCase(updateCaseService.fulfilled, (state, action) => {
-        const idx = state.caseServices.findIndex((s) => s.id === action.payload.id);
-        if (idx !== -1) {
-          state.caseServices[idx] = action.payload;
-        }
-      })
-      // Delete Service
-      .addCase(deleteCaseService.fulfilled, (state, action) => {
-        state.caseServices = state.caseServices.filter((s) => s.id !== action.payload);
-        if (state.currentCase) {
-          state.currentCase.services_count = Math.max(0, (state.currentCase.services_count || 0) - 1);
-        }
+      .addCase(fetchCasesByContact.rejected, (state, action) => {
+        const rejectedPayload = action.payload as { contactId?: string; message?: string } | undefined;
+        const contactId = rejectedPayload?.contactId ?? action.meta.arg;
+        const existing = state.contactCasesByContactId[contactId];
+        state.contactCasesByContactId[contactId] = {
+          cases: existing?.cases ?? [],
+          loading: false,
+          error: rejectedPayload?.message ?? 'Failed to fetch contact cases',
+          fetchedAt: existing?.fetchedAt ?? null,
+        };
       });
   },
 });
 
-export const { setFilters, clearFilters, clearCurrentCase, clearError, toggleCaseSelection, selectAllCases, clearCaseSelection } = casesSlice.actions;
-export default casesSlice.reducer;
-
-// Selectors
-const isClosedStatus = (status?: CaseStatusType) => status === 'closed' || status === 'cancelled';
-const isActiveStatus = (status?: CaseStatusType) => !isClosedStatus(status);
-const parseDate = (value?: string | null) => {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-const incrementPriorityCount = (
-  counts: { low: number; medium: number; high: number; urgent: number },
-  priority: CaseWithDetails['priority']
-) => {
-  switch (priority) {
-    case 'low':
-      counts.low += 1;
-      break;
-    case 'medium':
-      counts.medium += 1;
-      break;
-    case 'high':
-      counts.high += 1;
-      break;
-    case 'urgent':
-    case 'critical':
-      counts.urgent += 1;
-      break;
-    default:
-      break;
-  }
-};
-
-// Base selector
-const selectCasesState = (state: { cases: CasesState }) => state.cases;
-const selectCasesList = createSelector([selectCasesState], (state) => state['cases']);
-const selectContactCasesByContactId = createSelector(
-  [selectCasesState],
-  (state) => state.contactCasesByContactId ?? {}
-);
-
-/**
- * Select cases assigned to a specific user
- */
-export const selectCasesByAssignee = createSelector(
-  [selectCasesList, (_, userId: string) => userId],
-  (cases, userId) => cases.filter((case_) => case_.assigned_to === userId)
-);
-
-/**
- * Select cases for a specific contact
- */
-export const selectCasesByContact = createSelector(
-  [selectCasesList, selectContactCasesByContactId, (_, contactId: string) => contactId],
-  (cases, scopedCasesByContactId, contactId) => {
-    const scopedCases = scopedCasesByContactId[contactId];
-    if (scopedCases?.fetchedAt !== null && scopedCases?.fetchedAt !== undefined) {
-      return scopedCases.cases;
-    }
-    return cases.filter((case_) => case_.contact_id === contactId);
-  }
-);
-
-/**
- * Select urgent cases
- */
-export const selectUrgentCases = createSelector(
-  [selectCasesList],
-  (cases) => cases.filter((case_) => case_.is_urgent || isUrgentEquivalentPriority(case_.priority))
-);
-
-/**
- * Select overdue cases (due_date is past and case is not closed)
- */
-export const selectOverdueCases = createSelector(
-  [selectCasesList],
-  (cases) => {
-    const now = new Date();
-    return cases.filter((case_) => {
-      if (!isActiveStatus(case_.status_type)) return false;
-      const dueDate = parseDate(case_.due_date);
-      if (!dueDate) return false;
-      return dueDate < now;
-    });
-  }
-);
-
-/**
- * Select cases due within a specified number of days
- */
-export const selectCasesDueWithinDays = createSelector(
-  [selectCasesList, (_, days: number = 7) => days],
-  (cases, days) => {
-    const now = new Date();
-    const futureDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-
-    return cases.filter((case_) => {
-      if (!isActiveStatus(case_.status_type)) return false;
-      const dueDate = parseDate(case_.due_date);
-      if (!dueDate) return false;
-      return dueDate >= now && dueDate <= futureDate;
-    });
-  }
-);
-
-/**
- * Select cases due this week (memoized version of selectCasesDueWithinDays with 7 days)
- */
-export const selectCasesDueThisWeek = createSelector(
-  [selectCasesList],
-  (cases) => {
-    const now = new Date();
-    const futureDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    return cases.filter((case_) => {
-      if (!isActiveStatus(case_.status_type)) return false;
-      const dueDate = parseDate(case_.due_date);
-      if (!dueDate) return false;
-      return dueDate >= now && dueDate <= futureDate;
-    });
-  }
-);
-
-/**
- * Select unassigned cases
- */
-export const selectUnassignedCases = createSelector(
-  [selectCasesList],
-  (cases) => cases.filter((case_) => !case_.assigned_to && isActiveStatus(case_.status_type))
-);
-
-/**
- * Select active cases (not closed or cancelled)
- */
-export const selectActiveCases = createSelector(
-  [selectCasesList],
-  (cases) => cases.filter((case_) => isActiveStatus(case_.status_type))
-);
-
-/**
- * Count cases by priority (memoized)
- */
-export const selectCasesByPriority = createSelector(
-  [selectCasesList],
-  (cases) => {
-    const counts = {
-      low: 0,
-      medium: 0,
-      high: 0,
-      urgent: 0,
-    };
-
-    cases.forEach((case_) => {
-      if (isActiveStatus(case_.status_type)) {
-        incrementPriorityCount(counts, case_.priority);
-      }
-    });
-
-    return counts;
-  }
-);
+export const { clearCurrentCase, clearError } = casesCoreSlice.actions;
+export default casesCoreSlice.reducer;

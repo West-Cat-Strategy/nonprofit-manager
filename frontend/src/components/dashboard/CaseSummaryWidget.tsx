@@ -18,7 +18,7 @@ interface CaseSummaryWidgetProps {
 
 const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProps) => {
   const dispatch = useAppDispatch();
-  const summary = useAppSelector((state) => state.cases.summary);
+  const summary = useAppSelector((state) => state.cases.list.summary);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(summary === null);
   const initialSummaryExistsRef = useRef(summary !== null);

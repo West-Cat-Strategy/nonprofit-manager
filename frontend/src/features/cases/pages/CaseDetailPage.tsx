@@ -93,9 +93,9 @@ const CaseDetail = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
-  const { currentCase, caseStatuses, caseMilestones, caseOutcomeDefinitions, loading, error } = useAppSelector(
-    (state) => state.cases
-  );
+  const { currentCase, caseStatuses, loading, error } = useAppSelector((state) => state.cases.core);
+  const { milestones: caseMilestones } = useAppSelector((state) => state.cases.management);
+  const { outcomeDefinitions: caseOutcomeDefinitions } = useAppSelector((state) => state.cases.notes);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
 
   const requestedTab = searchParams.get('tab');

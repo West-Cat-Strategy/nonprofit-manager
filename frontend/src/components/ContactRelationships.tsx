@@ -20,9 +20,9 @@ const ContactRelationships = ({ contactId }: ContactRelationshipsProps) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
-  const { relationships, relationshipsLoading, contacts, currentContact } = useAppSelector(
-    (state) => state.contacts
-  );
+  const { relationships, relationshipsLoading } = useAppSelector((state) => state.contacts.relationships);
+  const { contacts } = useAppSelector((state) => state.contacts.list);
+  const { currentContact } = useAppSelector((state) => state.contacts.core);
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
 

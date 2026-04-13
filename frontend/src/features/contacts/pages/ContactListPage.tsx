@@ -54,7 +54,7 @@ const ContactList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { contacts, loading, error, pagination } = useAppSelector((state) => state.contacts);
+  const { contacts, loading, error, pagination } = useAppSelector((state) => state.contacts.list);
   const initialRoleFilter = normalizeRoleFilter(searchParams.get('type'));
 
   const {

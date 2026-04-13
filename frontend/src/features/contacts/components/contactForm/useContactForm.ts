@@ -36,9 +36,8 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   const { dialogState, confirm, handleConfirm, handleCancel: handleConfirmCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
-  const { relationships, relationshipsLoading, contacts, availableTags } = useAppSelector(
-    (state) => state.contacts
-  );
+  const { relationships, relationshipsLoading } = useAppSelector((state) => state.contacts.relationships);
+  const { contacts, availableTags } = useAppSelector((state) => state.contacts.list);
   const [availableRoles, setAvailableRoles] = useState<ContactRole[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
 

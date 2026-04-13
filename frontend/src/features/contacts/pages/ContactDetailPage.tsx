@@ -41,7 +41,8 @@ const ContactDetail = () => {
   const hasValidId = isUuid(id);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentContact, loading, error, contactNotes } = useAppSelector((state) => state.contacts);
+  const { currentContact, loading, error } = useAppSelector((state) => state.contacts.core);
+  const { contactNotes } = useAppSelector((state) => state.contacts.notes);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [openNoteForm, setOpenNoteForm] = useState(false);

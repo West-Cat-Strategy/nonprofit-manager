@@ -44,7 +44,7 @@ const CaseForm = ({
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
-  const { caseTypes, loading, error } = useAppSelector((state) => state.cases);
+  const { caseTypes, loading, error } = useAppSelector((state) => state.cases.core);
 
   const isEditMode = Boolean(caseId);
 

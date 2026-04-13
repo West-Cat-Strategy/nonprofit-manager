@@ -15,7 +15,7 @@ export const ContactEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { currentContact, loading, error } = useAppSelector((state) => state.contacts);
+  const { currentContact, loading, error } = useAppSelector((state) => state.contacts.core);
   const contactPath = id ? `/contacts/${id}` : '/contacts';
   const handleCancel = () => navigate(contactPath, { replace: true });
 

@@ -53,11 +53,10 @@ const CaseList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
-  const { cases, total, loading, error, filters, caseTypes, caseStatuses } = useAppSelector(
-    (state) => state.cases
+  const { cases, total, loading, error, filters, selectedCaseIds, summary } = useAppSelector(
+    (state) => state.cases.list
   );
-  const summary = useAppSelector((state) => state.cases.summary);
-  const selectedCaseIds = useAppSelector((state) => state.cases.selectedCaseIds);
+  const { caseTypes, caseStatuses } = useAppSelector((state) => state.cases.core);
   const hasInitializedFromUrl = useRef(false);
 
   const [searchTerm, setSearchTerm] = useState(filters.search || '');
