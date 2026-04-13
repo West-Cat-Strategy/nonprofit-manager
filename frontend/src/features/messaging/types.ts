@@ -1,11 +1,13 @@
+import type { MessageSendState } from '@nonprofit-manager/contracts/messaging';
+
+export type { MessageSendState } from '@nonprofit-manager/contracts/messaging';
+
 export type MessagingSurface =
   | 'team-messenger'
   | 'case-chat'
   | 'portal-admin'
   | 'portal-case'
   | 'portal-client';
-
-export type MessageSendState = 'sending' | 'failed' | 'sent';
 
 export interface PersistedMessageDraft {
   key: string;

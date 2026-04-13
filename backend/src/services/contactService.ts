@@ -805,7 +805,7 @@ export class ContactService {
       );
 
       const contactId = result.rows[0].contact_id as string;
-      const executor = client || this.pool;
+      const syncExecutor = client || this.pool;
       await syncStructuredContactMethodsFromSummary(
         contactId,
         {
@@ -814,9 +814,9 @@ export class ContactService {
           mobile_phone: normalizedMobilePhone,
         },
         userId,
-        executor
+        syncExecutor
       );
-      await syncContactMethodSummaries(contactId, executor);
+      await syncContactMethodSummaries(contactId, syncExecutor);
 
       const createdContact = await this.getContactById(contactId, viewerRole);
       if (!createdContact) {
@@ -925,9 +925,9 @@ export class ContactService {
         summarySyncInput.phone !== undefined ||
         summarySyncInput.mobile_phone !== undefined
       ) {
-        const executor = client || this.pool;
-        await syncStructuredContactMethodsFromSummary(contactId, summarySyncInput, userId, executor);
-        await syncContactMethodSummaries(contactId, executor);
+        const syncExecutor = client || this.pool;
+        await syncStructuredContactMethodsFromSummary(contactId, summarySyncInput, userId, syncExecutor);
+        await syncContactMethodSummaries(contactId, syncExecutor);
         return this.getContactById(contactId, viewerRole);
       }
 

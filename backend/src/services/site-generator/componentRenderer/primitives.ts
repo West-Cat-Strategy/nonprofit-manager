@@ -1,8 +1,11 @@
-import type { PublishedComponent, PublishedTheme } from '@app-types/publishing';
+import type { PublishedTheme, RenderablePublishedComponent } from '@app-types/publishing';
 import { escapeHtml } from '../escapeHtml';
 import { sanitizeRenderableUrl } from '../urlSanitizer';
 
-export function generateHeading(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateHeading(
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string {
   const level = (component.level as number) || 2;
   const tag = `h${level}`;
   const align = (component.align as string) || 'left';
@@ -22,7 +25,7 @@ export function generateHeading(component: PublishedComponent, theme: PublishedT
   return `<${tag} style="text-align: ${align}; color: ${color}; font-family: ${theme.typography.headingFontFamily}; font-size: ${sizeMap[level] || sizeMap[2]}; max-width: 30ch; margin: ${margin}; letter-spacing: -0.02em;">${escapeHtml(content)}</${tag}>`;
 }
 
-export function generateText(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateText(component: RenderablePublishedComponent, theme: PublishedTheme): string {
   const align = (component.align as string) || 'left';
   const color = (component.color as string) || theme.colors.text;
   const content = component.content as string;
@@ -32,10 +35,15 @@ export function generateText(component: PublishedComponent, theme: PublishedThem
   return `<p style="text-align: ${align}; color: ${color}; font-family: ${theme.typography.fontFamily}; line-height: ${theme.typography.lineHeight}; max-width: 70ch; margin: ${margin}; font-size: 1rem;">${escapeHtml(content)}</p>`;
 }
 
-export function generateButton(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateButton(
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string {
   const text = (component.text as string) || 'Button';
   const url =
-    sanitizeRenderableUrl((component.href as string) || (component.url as string) || '#') || '#';
+    sanitizeRenderableUrl(
+      (component.href as string | undefined) || (component.url as string | undefined) || '#'
+    ) || '#';
   const variant = (component.variant as string) || 'primary';
   const size = (component.size as string) || 'md';
   const fullWidth = component.fullWidth as boolean;
@@ -58,7 +66,10 @@ export function generateButton(component: PublishedComponent, theme: PublishedTh
   return `<a href="${escapeHtml(url)}" class="btn btn--${escapeHtml(variant)}" ${dataAttributes} style="${style}">${escapeHtml(text)}</a>`;
 }
 
-export function generateDivider(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateDivider(
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string {
   const color = (component.color as string) || theme.colors.border;
   const thickness = (component.thickness as string) || '1px';
   const width = (component.width as string) || '100%';
@@ -66,12 +77,12 @@ export function generateDivider(component: PublishedComponent, theme: PublishedT
   return `<hr style="border: none; border-top: ${thickness} solid ${color}; width: ${width}; margin: 1rem auto;">`;
 }
 
-export function generateSpacer(component: PublishedComponent): string {
+export function generateSpacer(component: RenderablePublishedComponent): string {
   const height = (component.height as string) || '2rem';
   return `<div style="height: ${height}"></div>`;
 }
 
-export function generateStats(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateStats(component: RenderablePublishedComponent, theme: PublishedTheme): string {
   const items = (component.items as Array<{ id: string; value: string; label: string }>) || [];
   const columns = (component.columns as number) || 4;
 
@@ -88,7 +99,10 @@ export function generateStats(component: PublishedComponent, theme: PublishedThe
       </div>`;
 }
 
-export function generateTestimonial(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateTestimonial(
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string {
   const quote = (component.quote as string) || '';
   const author = (component.author as string) || '';
   const title = component.title as string;

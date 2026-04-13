@@ -13,6 +13,7 @@ import {
   clearWebsitesError,
   fetchWebsiteIntegrations,
   fetchWebsiteOverview,
+  selectWebsiteIntegrations,
   updateWebsiteNewsletterIntegration,
   updateWebsiteStripeIntegration,
 } from '../state';
@@ -21,8 +22,14 @@ const WebsiteIntegrationsPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const dispatch = useAppDispatch();
   const overview = useWebsiteOverviewLoader(siteId, 30);
-  const { integrations, isSaving, isLoading, error } = useAppSelector((state) => state.websites);
-  const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
+  const integrations = useAppSelector(selectWebsiteIntegrations);
+  const { isSaving, isLoading, error } = useAppSelector((state) => ({
+    isSaving: state.websites.isSaving,
+    isLoading: state.websites.isLoading,
+    error: state.websites.error,
+  }));
+  const managementSnapshot =
+    overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
   const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
   const [newsletterProvider, setNewsletterProvider] = useState<'mailchimp' | 'mautic'>('mautic');
   const [mailchimpAudienceId, setMailchimpAudienceId] = useState('');
@@ -231,9 +238,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
               </p>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
-                Stripe
-              </div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">Stripe</div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
                 {integrations?.stripe.configured ? 'Configured' : 'Missing'}
               </div>

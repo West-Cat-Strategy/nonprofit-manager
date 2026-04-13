@@ -8,14 +8,11 @@ const dispatchMock = vi.fn();
 
 const thunkMocks = vi.hoisted(() => {
   const createAction = (type: string) =>
-    Object.assign(
-      (payload?: unknown) => ({ type, payload }),
-      {
-        fulfilled: {
-          match: (action: { type?: string }) => action?.type === `${type}/fulfilled`,
-        },
-      }
-    );
+    Object.assign((payload?: unknown) => ({ type, payload }), {
+      fulfilled: {
+        match: (action: { type?: string }) => action?.type === `${type}/fulfilled`,
+      },
+    });
 
   return {
     clearWebsitesError: vi.fn(() => ({ type: 'websites/clearError' })),
@@ -35,28 +32,34 @@ const overview = {
 
 const mockState = {
   websites: {
-    forms: [
-      {
-        formKey: 'contact-form-1',
-        componentId: 'contact-form-1',
-        formType: 'contact-form',
-        title: 'Contact form',
-        pageId: 'page-1',
-        pageName: 'Home',
-        pageSlug: 'home',
-        pageType: 'static',
-        routePattern: '/',
-        path: '/',
-        live: true,
-        blocked: false,
-        sourceConfig: {},
-        operationalSettings: {
-          heading: 'Talk to us',
-          successMessage: 'Old success',
-          defaultTags: ['supporter'],
+    overview: null,
+    currentSiteData: {
+      siteId: 'site-1',
+      forms: [
+        {
+          formKey: 'contact-form-1',
+          componentId: 'contact-form-1',
+          formType: 'contact-form',
+          title: 'Contact form',
+          pageId: 'page-1',
+          pageName: 'Home',
+          pageSlug: 'home',
+          pageType: 'static',
+          routePattern: '/',
+          path: '/',
+          live: true,
+          blocked: false,
+          sourceConfig: {},
+          operationalSettings: {
+            heading: 'Talk to us',
+            successMessage: 'Old success',
+            defaultTags: ['supporter'],
+          },
         },
-      },
-    ],
+      ],
+      integrations: null,
+      analytics: null,
+    },
     isLoading: false,
     isSaving: false,
     error: null,
@@ -86,8 +89,8 @@ vi.mock('../../state', async () => {
 describe('WebsiteFormsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    dispatchMock.mockImplementation(
-      (action: { type?: string }) => Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
+    dispatchMock.mockImplementation((action: { type?: string }) =>
+      Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
     );
   });
 

@@ -8,14 +8,11 @@ const dispatchMock = vi.fn();
 
 const thunkMocks = vi.hoisted(() => {
   const createAction = (type: string) =>
-    Object.assign(
-      (payload?: unknown) => ({ type, payload }),
-      {
-        fulfilled: {
-          match: (action: { type?: string }) => action?.type === `${type}/fulfilled`,
-        },
-      }
-    );
+    Object.assign((payload?: unknown) => ({ type, payload }), {
+      fulfilled: {
+        match: (action: { type?: string }) => action?.type === `${type}/fulfilled`,
+      },
+    });
 
   return {
     clearWebsitesError: vi.fn(() => ({ type: 'websites/clearError' })),
@@ -52,57 +49,63 @@ const overview = {
 
 const currentState = {
   websites: {
-    integrations: {
-      blocked: false,
-      publishStatus: 'published',
-      newsletter: {
-        provider: 'mautic',
-        configured: true,
-        selectedAudienceId: 'seg-1',
-        selectedAudienceName: 'Supporters',
-        selectedPresetId: 'preset-1',
-        availableAudiences: [
-          { id: 'seg-1', name: 'Supporters', memberCount: 42 },
-          { id: 'seg-2', name: 'Monthly Donors', memberCount: 12 },
-        ],
-        listPresets: [
-          {
-            id: 'preset-1',
-            name: 'Supporters',
-            provider: 'mautic',
-            audienceId: 'seg-1',
-            audienceName: 'Supporters',
-            notes: 'Primary supporters',
-            defaultTags: ['newsletter'],
-            syncEnabled: true,
-          },
-        ],
-        lastRefreshedAt: '2026-04-01T00:00:00.000Z',
+    overview: null,
+    currentSiteData: {
+      siteId: 'site-1',
+      forms: [],
+      integrations: {
+        blocked: false,
+        publishStatus: 'published',
+        newsletter: {
+          provider: 'mautic',
+          configured: true,
+          selectedAudienceId: 'seg-1',
+          selectedAudienceName: 'Supporters',
+          selectedPresetId: 'preset-1',
+          availableAudiences: [
+            { id: 'seg-1', name: 'Supporters', memberCount: 42 },
+            { id: 'seg-2', name: 'Monthly Donors', memberCount: 12 },
+          ],
+          listPresets: [
+            {
+              id: 'preset-1',
+              name: 'Supporters',
+              provider: 'mautic',
+              audienceId: 'seg-1',
+              audienceName: 'Supporters',
+              notes: 'Primary supporters',
+              defaultTags: ['newsletter'],
+              syncEnabled: true,
+            },
+          ],
+          lastRefreshedAt: '2026-04-01T00:00:00.000Z',
+        },
+        mailchimp: {
+          audienceId: 'aud-1',
+          configured: false,
+          availableAudiences: [],
+          lastSyncAt: null,
+        },
+        mautic: {
+          baseUrl: 'https://mautic.example.org',
+          segmentId: 'seg-1',
+          username: 'api-user',
+          password: 'api-pass',
+          defaultTags: ['supporters'],
+          syncEnabled: true,
+          configured: true,
+          availableAudiences: [
+            { id: 'seg-1', name: 'Supporters', memberCount: 42 },
+            { id: 'seg-2', name: 'Monthly Donors', memberCount: 12 },
+          ],
+          lastSyncAt: null,
+        },
+        stripe: {
+          configured: true,
+          publishableKeyConfigured: true,
+        },
       },
-      mailchimp: {
-        audienceId: 'aud-1',
-        configured: false,
-        availableAudiences: [],
-        lastSyncAt: null,
-      },
-      mautic: {
-        baseUrl: 'https://mautic.example.org',
-        segmentId: 'seg-1',
-        username: 'api-user',
-        password: 'api-pass',
-        defaultTags: ['supporters'],
-        syncEnabled: true,
-        configured: true,
-        availableAudiences: [
-          { id: 'seg-1', name: 'Supporters', memberCount: 42 },
-          { id: 'seg-2', name: 'Monthly Donors', memberCount: 12 },
-        ],
-        lastSyncAt: null,
-      },
-      stripe: {
-        configured: true,
-        publishableKeyConfigured: true,
-      },
+      analytics: null,
     },
     isLoading: false,
     isSaving: false,
@@ -138,8 +141,8 @@ vi.mock('../../state', async () => {
 describe('WebsiteNewslettersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    dispatchMock.mockImplementation(
-      (action: { type?: string }) => Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
+    dispatchMock.mockImplementation((action: { type?: string }) =>
+      Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
     );
   });
 

@@ -160,6 +160,7 @@ export function convertToPublishedTheme(theme: TemplateTheme): PublishedTheme {
       sm: theme.shadows.sm,
       md: theme.shadows.md,
       lg: theme.shadows.lg,
+      xl: theme.shadows.xl,
     },
   };
 }
@@ -176,7 +177,7 @@ export function convertToPublishedPage(page: TemplatePage): PublishedPage {
     pageType: page.pageType,
     collection: page.collection,
     routePattern: page.routePattern,
-    sections: (page.sections || []) as unknown as PublishedSection[],
+    sections: (page.sections || []) as PublishedSection[],
     seo: page.seo || {
       title: page.name,
       description: '',

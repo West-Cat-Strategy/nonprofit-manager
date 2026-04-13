@@ -1,4 +1,8 @@
-import type { PublishedComponent, PublishedSection, PublishedTheme } from '@app-types/publishing';
+import type {
+  PublishedSection,
+  PublishedTheme,
+  RenderablePublishedComponent,
+} from '@app-types/publishing';
 import { escapeHtml } from './escapeHtml';
 import {
   generateButton,
@@ -46,10 +50,16 @@ const resolveGridTemplateColumns = (columns: Array<{ width?: string }> | undefin
   return tracks.join(' ');
 };
 
-const renderNestedComponents = (components: PublishedComponent[], theme: PublishedTheme): string =>
+const renderNestedComponents = (
+  components: RenderablePublishedComponent[],
+  theme: PublishedTheme
+): string =>
   components.map((nestedComponent) => generateComponentHtml(nestedComponent, theme)).join('\n');
 
-const generateHeroComponent = (component: PublishedComponent, theme: PublishedTheme): string => {
+const generateHeroComponent = (
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string => {
   const backgroundColor = (component.backgroundColor as string) || theme.colors.surface;
   const backgroundImage = sanitizeRenderableUrl(component.backgroundImage as string);
   const overlay = component.overlay !== false && Boolean(backgroundImage);
@@ -69,13 +79,20 @@ const generateHeroComponent = (component: PublishedComponent, theme: PublishedTh
       ${backgroundImage ? `<div aria-hidden="true" style="position: absolute; inset: 0; background-image: url('${backgroundImage}'); background-size: cover; background-position: center;"></div>` : ''}
       ${overlay ? `<div aria-hidden="true" style="position: absolute; inset: 0; background: ${overlayColor}; opacity: ${overlayOpacity};"></div>` : ''}
       <div style="position: relative; z-index: 1; width: 100%;">
-        ${renderNestedComponents((component.components as PublishedComponent[]) || [], theme)}
+        ${renderNestedComponents(
+          (component.components as RenderablePublishedComponent[]) || [],
+          theme
+        )}
       </div>
     </div>`;
 };
 
-const generateColumnsComponent = (component: PublishedComponent, theme: PublishedTheme): string => {
-  const columns = (component.columns as Array<{ width?: string; components?: PublishedComponent[] }>) || [];
+const generateColumnsComponent = (
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string => {
+  const columns =
+    (component.columns as Array<{ width?: string; components?: RenderablePublishedComponent[] }>) || [];
   const gap = (component.gap as string) || '1.5rem';
   const templateColumns = resolveGridTemplateColumns(columns);
 
@@ -85,14 +102,20 @@ const generateColumnsComponent = (component: PublishedComponent, theme: Publishe
         .map(
           (column) => `
           <div class="columns-column" style="min-width: 0;">
-            ${renderNestedComponents((column.components as PublishedComponent[]) || [], theme)}
+            ${renderNestedComponents(
+              (column.components as RenderablePublishedComponent[]) || [],
+              theme
+            )}
           </div>`
         )
         .join('\n')}
     </div>`;
 };
 
-const generateCardComponent = (component: PublishedComponent, theme: PublishedTheme): string => {
+const generateCardComponent = (
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string => {
   const image = sanitizeRenderableUrl(component.image as string);
   const imageAlt = (component.imageAlt as string) || (component.title as string) || '';
   const title = (component.title as string) || '';
@@ -112,7 +135,10 @@ const generateCardComponent = (component: PublishedComponent, theme: PublishedTh
     </article>`;
 };
 
-const generatePricingComponent = (component: PublishedComponent, theme: PublishedTheme): string => {
+const generatePricingComponent = (
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string => {
   const tiers = (component.tiers as Array<Record<string, unknown>>) || [];
   const columns = (component.columns as number) || Math.min(Math.max(tiers.length, 2), 4);
 
@@ -143,7 +169,10 @@ const generatePricingComponent = (component: PublishedComponent, theme: Publishe
     </div>`;
 };
 
-const generateFAQComponent = (component: PublishedComponent, theme: PublishedTheme): string => {
+const generateFAQComponent = (
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string => {
   const items = (component.items as Array<Record<string, unknown>>) || [];
   const expandFirst = component.expandFirst === true;
 
@@ -163,7 +192,10 @@ const generateFAQComponent = (component: PublishedComponent, theme: PublishedThe
     </div>`;
 };
 
-const generateTeamComponent = (component: PublishedComponent, theme: PublishedTheme): string => {
+const generateTeamComponent = (
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string => {
   const members = (component.members as Array<Record<string, unknown>>) || [];
   const columns = (component.columns as number) || Math.min(Math.max(members.length, 2), 4);
   const showBio = component.showBio !== false;
@@ -187,14 +219,14 @@ const generateTeamComponent = (component: PublishedComponent, theme: PublishedTh
                 <p style="margin: 0.25rem 0 0; color: ${theme.colors.primary}; font-weight: ${theme.typography.fontWeightMedium};">${escapeHtml(String(member.role || ''))}</p>
               </div>
               ${showBio && member.bio ? `<p style="margin: 0; color: ${theme.colors.textMuted}; line-height: ${theme.typography.lineHeight};">${escapeHtml(String(member.bio))}</p>` : ''}
-              ${showSocial && socialLinks.length ? generateSocialLinks({ id: `team-${String(member.id || 'member')}`, type: 'social-links', links: socialLinks, align: 'center' } as PublishedComponent) : ''}
+              ${showSocial && socialLinks.length ? generateSocialLinks({ id: `team-${String(member.id || 'member')}`, type: 'social-links', links: socialLinks, align: 'center' } as RenderablePublishedComponent) : ''}
             </article>`;
         })
         .join('\n')}
     </div>`;
 };
 
-const generateLogoGridComponent = (component: PublishedComponent): string => {
+const generateLogoGridComponent = (component: RenderablePublishedComponent): string => {
   const logos = (component.logos as Array<Record<string, unknown>>) || [];
   const columns = (component.columns as number) || Math.min(Math.max(logos.length, 3), 6);
   const grayscale = component.grayscale !== false;
@@ -221,7 +253,10 @@ const generateLogoGridComponent = (component: PublishedComponent): string => {
     </div>`;
 };
 
-const generateMapComponent = (component: PublishedComponent, theme: PublishedTheme): string => {
+const generateMapComponent = (
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string => {
   const address = typeof component.address === 'string' ? component.address.trim() : '';
   const latitude = typeof component.latitude === 'number' ? component.latitude : null;
   const longitude = typeof component.longitude === 'number' ? component.longitude : null;
@@ -269,12 +304,17 @@ export function generateSectionHtml(section: PublishedSection, theme: PublishedT
   return `
     <section class="site-section" ${styleAttr}>
       <div class="section-container" style="max-width: ${maxWidth}; margin: 0 auto;">
-        ${section.components.map((component) => generateComponentHtml(component, theme)).join('\n')}
+        ${section.components
+          .map((component) => generateComponentHtml(component as RenderablePublishedComponent, theme))
+          .join('\n')}
       </div>
     </section>`;
 }
 
-export function generateComponentHtml(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateComponentHtml(
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string {
   switch (component.type) {
     case 'heading':
       return generateHeading(component, theme);

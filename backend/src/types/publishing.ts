@@ -5,10 +5,13 @@
 
 import type {
   MigrationStatus,
+  PageComponent,
+  PageSection,
   PageCollectionType,
   SiteKind,
   TemplateStatus,
   TemplatePageType,
+  TemplateTheme,
 } from '@app-types/websiteBuilder';
 
 // Published Site Status
@@ -52,42 +55,7 @@ export interface PublishedContent {
 }
 
 // Published Theme (snapshot of theme at publish time)
-export interface PublishedTheme {
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    background: string;
-    surface: string;
-    text: string;
-    textMuted: string;
-    border: string;
-    error: string;
-    success: string;
-    warning: string;
-  };
-  typography: {
-    fontFamily: string;
-    headingFontFamily: string;
-    baseFontSize: string;
-    lineHeight: string;
-    headingLineHeight: string;
-    fontWeightNormal: number;
-    fontWeightMedium: number;
-    fontWeightBold: number;
-  };
-  borderRadius: {
-    sm: string;
-    md: string;
-    lg: string;
-    full: string;
-  };
-  shadows: {
-    sm: string;
-    md: string;
-    lg: string;
-  };
-}
+export type PublishedTheme = Omit<TemplateTheme, 'spacing'>;
 
 // Published Page
 export interface PublishedPage {
@@ -102,26 +70,17 @@ export interface PublishedPage {
   seo: PublishedPageSEO;
 }
 
-// Published Section
-export interface PublishedSection {
-  id: string;
-  name: string;
-  components: PublishedComponent[];
-  backgroundColor?: string;
-  backgroundImage?: string;
-  paddingTop?: string;
-  paddingBottom?: string;
-  paddingLeft?: string;
-  paddingRight?: string;
-  maxWidth?: string;
-}
-
 // Published Component (generic, stores all component data)
-export interface PublishedComponent {
-  id: string;
-  type: string;
-  [key: string]: unknown;
-}
+export type PublishedComponent = PageComponent & {
+  url?: string;
+  priority?: boolean;
+};
+
+export type RenderablePublishedComponent = PublishedComponent & Record<string, unknown>;
+
+export type PublishedSection = Omit<PageSection, 'components'> & {
+  components: PublishedComponent[];
+};
 
 export type WebsiteNewsletterProvider = 'mailchimp' | 'mautic';
 

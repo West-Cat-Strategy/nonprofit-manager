@@ -33,7 +33,61 @@ import type {
 const getErrorMessage = (error: unknown, fallbackMessage: string) =>
   formatApiErrorMessageWith(fallbackMessage)(error);
 
-const initialState: WebsiteState = {
+type WebsiteCurrentSiteData = {
+  siteId: string | null;
+  forms: WebsiteFormDefinition[];
+  integrations: WebsiteIntegrationStatus | null;
+  analytics: WebsiteConversionMetrics | null;
+};
+
+export type WebsitesCoreState = Omit<WebsiteState, 'forms' | 'integrations' | 'analytics'> & {
+  currentSiteData: WebsiteCurrentSiteData;
+};
+
+const buildEmptyCurrentSiteData = (): WebsiteCurrentSiteData => ({
+  siteId: null,
+  forms: [],
+  integrations: null,
+  analytics: null,
+});
+
+const syncCurrentSiteDataFromOverview = (
+  state: WebsitesCoreState,
+  overview: WebsiteOverviewSummary
+) => {
+  state.currentSiteData = {
+    siteId: overview.site.id,
+    forms: overview.forms,
+    integrations: overview.integrations,
+    analytics: overview.conversionMetrics,
+  };
+};
+
+const updateCurrentSiteData = (
+  state: WebsitesCoreState,
+  siteId: string | null | undefined,
+  patch: Partial<WebsiteCurrentSiteData>
+) => {
+  const resolvedSiteId = siteId ?? state.currentSiteData.siteId ?? state.currentSiteId;
+  if (!resolvedSiteId) {
+    return;
+  }
+
+  const existingData =
+    state.currentSiteData.siteId === resolvedSiteId
+      ? state.currentSiteData
+      : buildEmptyCurrentSiteData();
+
+  state.currentSiteId = resolvedSiteId;
+  state.currentSiteData = {
+    siteId: resolvedSiteId,
+    forms: patch.forms ?? existingData.forms,
+    integrations: patch.integrations ?? existingData.integrations,
+    analytics: patch.analytics ?? existingData.analytics,
+  };
+};
+
+const initialState: WebsitesCoreState = {
   sites: [],
   pagination: {
     total: 0,
@@ -48,10 +102,8 @@ const initialState: WebsiteState = {
     sortOrder: 'desc',
   },
   overview: null,
+  currentSiteData: buildEmptyCurrentSiteData(),
   funnel: null,
-  forms: [],
-  integrations: null,
-  analytics: null,
   entries: [],
   deployment: null,
   versions: null,
@@ -80,7 +132,7 @@ export const fetchWebsiteSites = createAsyncThunk<
   WebsiteSearchParams | undefined
 >('websites/fetchSites', async (params, { getState, rejectWithValue }) => {
   try {
-    const state = getState() as { websites: WebsiteState };
+    const state = getState() as { websites: WebsitesCoreState };
     return await websitesApiClient.listSites(params || state.websites.searchParams);
   } catch (error) {
     return rejectWithValue(getErrorMessage(error, 'Failed to load websites'));
@@ -165,16 +217,16 @@ export const updateWebsiteNewsletterIntegration = createAsyncThunk<
   }
 });
 
-export const refreshWebsiteNewsletterWorkspace = createAsyncThunk<
-  WebsiteIntegrationStatus,
-  string
->('websites/refreshNewsletterWorkspace', async (siteId, { rejectWithValue }) => {
-  try {
-    return await websitesApiClient.refreshNewsletterWorkspace(siteId);
-  } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to refresh newsletter workspace'));
+export const refreshWebsiteNewsletterWorkspace = createAsyncThunk<WebsiteIntegrationStatus, string>(
+  'websites/refreshNewsletterWorkspace',
+  async (siteId, { rejectWithValue }) => {
+    try {
+      return await websitesApiClient.refreshNewsletterWorkspace(siteId);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to refresh newsletter workspace'));
+    }
   }
-});
+);
 
 export const createWebsiteNewsletterListPreset = createAsyncThunk<
   WebsiteIntegrationStatus,
@@ -321,17 +373,17 @@ export const updateWebsiteEntry = createAsyncThunk<
   }
 });
 
-export const deleteWebsiteEntry = createAsyncThunk<
-  string,
-  { siteId: string; entryId: string }
->('websites/deleteEntry', async ({ siteId, entryId }, { rejectWithValue }) => {
-  try {
-    await websitesApiClient.deleteEntry(siteId, entryId);
-    return entryId;
-  } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to delete website entry'));
+export const deleteWebsiteEntry = createAsyncThunk<string, { siteId: string; entryId: string }>(
+  'websites/deleteEntry',
+  async ({ siteId, entryId }, { rejectWithValue }) => {
+    try {
+      await websitesApiClient.deleteEntry(siteId, entryId);
+      return entryId;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete website entry'));
+    }
   }
-});
+);
 
 export const syncWebsiteMailchimpEntries = createAsyncThunk<
   WebsiteEntry[],
@@ -400,16 +452,16 @@ export const rollbackWebsiteVersion = createAsyncThunk<
   }
 });
 
-export const unpublishWebsiteSite = createAsyncThunk<
-  WebsiteOverviewSummary['site'],
-  string
->('websites/unpublishSite', async (siteId, { rejectWithValue }) => {
-  try {
-    return await websitesApiClient.unpublishSite(siteId);
-  } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to unpublish website'));
+export const unpublishWebsiteSite = createAsyncThunk<WebsiteOverviewSummary['site'], string>(
+  'websites/unpublishSite',
+  async (siteId, { rejectWithValue }) => {
+    try {
+      return await websitesApiClient.unpublishSite(siteId);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to unpublish website'));
+    }
   }
-});
+);
 
 export const invalidateWebsiteCache = createAsyncThunk<
   { invalidated: boolean; siteId: string },
@@ -478,9 +530,7 @@ const websitesSlice = createSlice({
         state.isLoading = false;
         state.overview = action.payload;
         state.currentSiteId = action.payload.site.id;
-        state.forms = action.payload.forms;
-        state.integrations = action.payload.integrations;
-        state.analytics = action.payload.conversionMetrics;
+        syncCurrentSiteDataFromOverview(state, action.payload);
       })
       .addCase(fetchWebsiteOverview.rejected, (state, action) => {
         state.isLoading = false;
@@ -489,7 +539,7 @@ const websitesSlice = createSlice({
 
     builder
       .addCase(fetchWebsiteForms.fulfilled, (state, action) => {
-        state.forms = action.payload;
+        updateCurrentSiteData(state, action.meta.arg, { forms: action.payload });
       })
       .addCase(updateWebsiteForm.pending, (state) => {
         state.isSaving = true;
@@ -497,10 +547,19 @@ const websitesSlice = createSlice({
       })
       .addCase(updateWebsiteForm.fulfilled, (state, action) => {
         state.isSaving = false;
-        state.forms = state.forms.map((form) =>
-          form.formKey === action.payload.formKey ? action.payload : form
-        );
-        if (state.overview) {
+        const currentForms =
+          state.currentSiteData.siteId === action.meta.arg.siteId
+            ? state.currentSiteData.forms
+            : [];
+        updateCurrentSiteData(state, action.meta.arg.siteId, {
+          forms: currentForms.map((form) =>
+            form.formKey === action.payload.formKey ? action.payload : form
+          ),
+        });
+        if (
+          state.overview?.site.id === action.meta.arg.siteId &&
+          state.overview.forms.some((form) => form.formKey === action.payload.formKey)
+        ) {
           state.overview.forms = state.overview.forms.map((form) =>
             form.formKey === action.payload.formKey ? action.payload : form
           );
@@ -513,14 +572,14 @@ const websitesSlice = createSlice({
 
     builder
       .addCase(fetchWebsiteIntegrations.fulfilled, (state, action) => {
-        state.integrations = action.payload;
-        if (state.overview) {
+        updateCurrentSiteData(state, action.meta.arg, { integrations: action.payload });
+        if (state.overview?.site.id === action.meta.arg) {
           state.overview.integrations = action.payload;
         }
       })
       .addCase(fetchWebsiteNewsletterWorkspace.fulfilled, (state, action) => {
-        state.integrations = action.payload;
-        if (state.overview) {
+        updateCurrentSiteData(state, action.meta.arg, { integrations: action.payload });
+        if (state.overview?.site.id === action.meta.arg) {
           state.overview.integrations = action.payload;
         }
       })
@@ -530,7 +589,10 @@ const websitesSlice = createSlice({
       })
       .addCase(updateWebsiteNewsletterIntegration.fulfilled, (state, action) => {
         state.isSaving = false;
-        state.integrations = action.payload;
+        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
+        if (state.overview?.site.id === action.meta.arg.siteId) {
+          state.overview.integrations = action.payload;
+        }
       })
       .addCase(updateWebsiteNewsletterIntegration.rejected, (state, action) => {
         state.isSaving = false;
@@ -542,8 +604,8 @@ const websitesSlice = createSlice({
       })
       .addCase(refreshWebsiteNewsletterWorkspace.fulfilled, (state, action) => {
         state.isSaving = false;
-        state.integrations = action.payload;
-        if (state.overview) {
+        updateCurrentSiteData(state, action.meta.arg, { integrations: action.payload });
+        if (state.overview?.site.id === action.meta.arg) {
           state.overview.integrations = action.payload;
         }
       })
@@ -557,8 +619,8 @@ const websitesSlice = createSlice({
       })
       .addCase(createWebsiteNewsletterListPreset.fulfilled, (state, action) => {
         state.isSaving = false;
-        state.integrations = action.payload;
-        if (state.overview) {
+        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
+        if (state.overview?.site.id === action.meta.arg.siteId) {
           state.overview.integrations = action.payload;
         }
       })
@@ -572,8 +634,8 @@ const websitesSlice = createSlice({
       })
       .addCase(updateWebsiteNewsletterListPreset.fulfilled, (state, action) => {
         state.isSaving = false;
-        state.integrations = action.payload;
-        if (state.overview) {
+        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
+        if (state.overview?.site.id === action.meta.arg.siteId) {
           state.overview.integrations = action.payload;
         }
       })
@@ -587,8 +649,8 @@ const websitesSlice = createSlice({
       })
       .addCase(deleteWebsiteNewsletterListPreset.fulfilled, (state, action) => {
         state.isSaving = false;
-        state.integrations = action.payload;
-        if (state.overview) {
+        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
+        if (state.overview?.site.id === action.meta.arg.siteId) {
           state.overview.integrations = action.payload;
         }
       })
@@ -602,8 +664,8 @@ const websitesSlice = createSlice({
       })
       .addCase(updateWebsiteMailchimpIntegration.fulfilled, (state, action) => {
         state.isSaving = false;
-        state.integrations = action.payload;
-        if (state.overview) {
+        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
+        if (state.overview?.site.id === action.meta.arg.siteId) {
           state.overview.integrations = action.payload;
         }
       })
@@ -617,8 +679,8 @@ const websitesSlice = createSlice({
       })
       .addCase(updateWebsiteStripeIntegration.fulfilled, (state, action) => {
         state.isSaving = false;
-        state.integrations = action.payload;
-        if (state.overview) {
+        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
+        if (state.overview?.site.id === action.meta.arg.siteId) {
           state.overview.integrations = action.payload;
         }
       })
@@ -632,8 +694,8 @@ const websitesSlice = createSlice({
       })
       .addCase(updateWebsiteFacebookIntegration.fulfilled, (state, action) => {
         state.isSaving = false;
-        state.integrations = action.payload;
-        if (state.overview) {
+        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
+        if (state.overview?.site.id === action.meta.arg.siteId) {
           state.overview.integrations = action.payload;
         }
       })
@@ -643,8 +705,8 @@ const websitesSlice = createSlice({
       });
 
     builder.addCase(fetchWebsiteAnalytics.fulfilled, (state, action) => {
-      state.analytics = action.payload;
-      if (state.overview) {
+      updateCurrentSiteData(state, action.meta.arg.siteId, { analytics: action.payload });
+      if (state.overview?.site.id === action.meta.arg.siteId) {
         state.overview.conversionMetrics = action.payload;
       }
     });

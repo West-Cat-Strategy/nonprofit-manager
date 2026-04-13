@@ -7,7 +7,7 @@ import type {
   OutcomeDefinition,
   OutcomeUpdateMode,
 } from './outcomes';
-import type { MessageSendState } from '../features/messaging/types';
+import type { MessageSendState } from '@nonprofit-manager/contracts/messaging';
 
 export type CasePriority = 'low' | 'medium' | 'high' | 'urgent' | 'critical';
 export type CaseSource = 'phone' | 'email' | 'walk-in' | 'referral' | 'web' | 'other';

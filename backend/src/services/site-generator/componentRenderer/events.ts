@@ -1,4 +1,4 @@
-import type { PublishedComponent, PublishedTheme } from '@app-types/publishing';
+import type { PublishedTheme, RenderablePublishedComponent } from '@app-types/publishing';
 import { escapeHtml } from '../escapeHtml';
 
 const DEFAULT_EMPTY_MESSAGE = 'No public events are available right now.';
@@ -25,7 +25,7 @@ const resolveLayout = (value: unknown): 'list' | 'grid' | 'calendar' => {
   return 'grid';
 };
 
-const resolveEventType = (component: PublishedComponent): string | undefined => {
+const resolveEventType = (component: RenderablePublishedComponent): string | undefined => {
   const eventType = typeof component.eventType === 'string' ? component.eventType.trim() : '';
   if (eventType.length > 0) {
     return eventType;
@@ -35,7 +35,10 @@ const resolveEventType = (component: PublishedComponent): string | undefined => 
   return legacyTag.length > 0 ? legacyTag : undefined;
 };
 
-export function generateEventList(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateEventList(
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string {
   const maxEvents = Math.min(parsePositiveInt(component.maxEvents, 6), 50);
   const layout = resolveLayout(component.layout);
   const showPastEvents = component.showPastEvents === true;

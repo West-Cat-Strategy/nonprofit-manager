@@ -1,7 +1,10 @@
 import { Pool } from 'pg';
 import dbPool from '@config/database';
 import { services } from '@container/services';
-import type { PublishedComponent, PublishedSite } from '@app-types/publishing';
+import type {
+  PublishedSite,
+  RenderablePublishedComponent,
+} from '@app-types/publishing';
 import { AvailabilityStatus } from '@app-types/volunteer';
 import type { Activity } from '@app-types/activity';
 import type { RecurringDonationPlanStatus } from '@app-types/recurringDonation';
@@ -143,19 +146,21 @@ export class PublicWebsiteFormService {
   private findComponentById(
     site: PublishedSite,
     componentId: string
-  ): PublishedComponent | null {
+  ): RenderablePublishedComponent | null {
     if (!site.publishedContent) {
       return null;
     }
 
-    const search = (components: PublishedComponent[]): PublishedComponent | null => {
+    const search = (
+      components: RenderablePublishedComponent[]
+    ): RenderablePublishedComponent | null => {
       for (const component of components) {
         if (component.id === componentId) {
           return component;
         }
 
         const nestedComponents = Array.isArray(component.components)
-          ? (component.components as PublishedComponent[])
+          ? (component.components as RenderablePublishedComponent[])
           : [];
         const nestedMatch = nestedComponents.length > 0 ? search(nestedComponents) : null;
         if (nestedMatch) {
@@ -163,10 +168,12 @@ export class PublicWebsiteFormService {
         }
 
         const nestedColumns = Array.isArray(component.columns)
-          ? (component.columns as Array<{ components?: PublishedComponent[] }>)
+          ? (component.columns as Array<{ components?: RenderablePublishedComponent[] }>)
           : [];
         for (const column of nestedColumns) {
-          const columnComponents = Array.isArray(column.components) ? column.components : [];
+          const columnComponents = Array.isArray(column.components)
+            ? (column.components as RenderablePublishedComponent[])
+            : [];
           const columnMatch = search(columnComponents);
           if (columnMatch) {
             return columnMatch;
@@ -179,7 +186,7 @@ export class PublicWebsiteFormService {
 
     for (const page of site.publishedContent.pages) {
       for (const section of page.sections) {
-        const match = search(section.components);
+        const match = search(section.components as RenderablePublishedComponent[]);
         if (match) {
           return match;
         }
@@ -303,7 +310,9 @@ export class PublicWebsiteFormService {
     throw new Error(`No active case type is available for ${site.name} referrals`);
   }
 
-  private requireSupportedFormType(component: PublishedComponent): SupportedPublicWebsiteFormType {
+  private requireSupportedFormType(
+    component: RenderablePublishedComponent
+  ): SupportedPublicWebsiteFormType {
     if (
       component.type === 'contact-form' ||
       component.type === 'newsletter-signup' ||
@@ -332,7 +341,7 @@ export class PublicWebsiteFormService {
 
   private async handleContactForm(
     site: PublishedSite,
-    component: PublishedComponent,
+    component: RenderablePublishedComponent,
     identity: ContactIdentity
   ): Promise<PublicWebsiteFormSubmissionOutcome> {
     const defaultTags = appendUniqueTags(
@@ -371,7 +380,7 @@ export class PublicWebsiteFormService {
 
   private async handleNewsletterSignup(
     site: PublishedSite,
-    component: PublishedComponent,
+    component: RenderablePublishedComponent,
     identity: ContactIdentity
   ): Promise<PublicWebsiteFormSubmissionOutcome> {
     const defaultTags = appendUniqueTags((component.defaultTags as string[] | undefined) || [], [
@@ -434,7 +443,7 @@ export class PublicWebsiteFormService {
 
   private async handleVolunteerInterest(
     site: PublishedSite,
-    component: PublishedComponent,
+    component: RenderablePublishedComponent,
     identity: ContactIdentity,
     payload: Record<string, unknown>
   ): Promise<PublicWebsiteFormSubmissionOutcome> {
@@ -505,7 +514,7 @@ export class PublicWebsiteFormService {
 
   private async handleReferralForm(
     site: PublishedSite,
-    component: PublishedComponent,
+    component: RenderablePublishedComponent,
     identity: ContactIdentity,
     payload: Record<string, unknown>
   ): Promise<PublicWebsiteFormSubmissionOutcome> {
@@ -595,7 +604,7 @@ export class PublicWebsiteFormService {
 
   private async handleDonationForm(
     site: PublishedSite,
-    component: PublishedComponent,
+    component: RenderablePublishedComponent,
     identity: ContactIdentity,
     payload: Record<string, unknown>,
     formKey: string,

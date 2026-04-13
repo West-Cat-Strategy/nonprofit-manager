@@ -1,9 +1,12 @@
-import type { PublishedComponent, PublishedTheme } from '@app-types/publishing';
+import type { PublishedTheme, RenderablePublishedComponent } from '@app-types/publishing';
 import { escapeHtml } from '../escapeHtml';
 import { getSocialIcon } from '../socialIcons';
 import { sanitizeRenderableUrl } from '../urlSanitizer';
 
-export function generateContactForm(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateContactForm(
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string {
   const submitText = (component.submitText as string) || 'Send Message';
   const includePhone = component.includePhone !== false;
   const includeMessage = component.includeMessage !== false;
@@ -34,7 +37,10 @@ export function generateContactForm(component: PublishedComponent, theme: Publis
       </form>`;
 }
 
-export function generateNewsletterSignup(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateNewsletterSignup(
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string {
   const buttonText = (component.buttonText as string) || 'Subscribe';
 
   return `
@@ -44,7 +50,10 @@ export function generateNewsletterSignup(component: PublishedComponent, theme: P
       </form>`;
 }
 
-export function generateDonationForm(component: PublishedComponent, theme: PublishedTheme): string {
+export function generateDonationForm(
+  component: RenderablePublishedComponent,
+  theme: PublishedTheme
+): string {
   const amounts = (component.suggestedAmounts as number[]) || [25, 50, 100, 250];
   const allowCustom = component.allowCustomAmount !== false;
 
@@ -64,7 +73,7 @@ export function generateDonationForm(component: PublishedComponent, theme: Publi
       </form>`;
 }
 
-export function generateSocialLinks(component: PublishedComponent): string {
+export function generateSocialLinks(component: RenderablePublishedComponent): string {
   const links = (component.links as Array<{ platform: string; url: string }>) || [];
   const align = (component.align as string) || 'center';
 

@@ -8,16 +8,14 @@ import {
   WebsiteConsoleUrlAction,
 } from '../components';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
-import {
-  formatWebsiteConsoleDate,
-  getWebsiteConsoleUrlTarget,
-} from '../lib/websiteConsole';
+import { formatWebsiteConsoleDate, getWebsiteConsoleUrlTarget } from '../lib/websiteConsole';
 import {
   clearWebsitesError,
   createWebsiteNewsletterListPreset,
   fetchWebsiteNewsletterWorkspace,
   fetchWebsiteOverview,
   refreshWebsiteNewsletterWorkspace,
+  selectWebsiteIntegrations,
   updateWebsiteNewsletterIntegration,
   updateWebsiteNewsletterListPreset,
   deleteWebsiteNewsletterListPreset,
@@ -36,7 +34,12 @@ const WebsiteNewslettersPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const dispatch = useAppDispatch();
   const overview = useWebsiteOverviewLoader(siteId, 30);
-  const { integrations, isSaving, isLoading, error } = useAppSelector((state) => state.websites);
+  const integrations = useAppSelector(selectWebsiteIntegrations);
+  const { isSaving, isLoading, error } = useAppSelector((state) => ({
+    isSaving: state.websites.isSaving,
+    isLoading: state.websites.isLoading,
+    error: state.websites.error,
+  }));
   const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
   const [newsletterProvider, setNewsletterProvider] = useState<'mailchimp' | 'mautic'>('mautic');
   const [selectedAudienceId, setSelectedAudienceId] = useState('');
@@ -61,7 +64,9 @@ const WebsiteNewslettersPage: React.FC = () => {
     setNewsletterProvider(integrations.newsletter.provider || 'mautic');
     setSelectedAudienceId(
       integrations.newsletter.selectedAudienceId ||
-        integrations.newsletter.listPresets.find((preset) => preset.id === integrations.newsletter.selectedPresetId)?.audienceId ||
+        integrations.newsletter.listPresets.find(
+          (preset) => preset.id === integrations.newsletter.selectedPresetId
+        )?.audienceId ||
         integrations.mailchimp.audienceId ||
         integrations.mautic.segmentId ||
         ''
@@ -79,7 +84,8 @@ const WebsiteNewslettersPage: React.FC = () => {
     [integrations?.newsletter.listPresets]
   );
   const activePreset = listPresets.find((preset) => preset.id === selectedPresetId) || null;
-  const activeAudience = availableAudiences.find((audience) => audience.id === selectedAudienceId) || null;
+  const activeAudience =
+    availableAudiences.find((audience) => audience.id === selectedAudienceId) || null;
   const filteredAudiences = useMemo(
     () =>
       availableAudiences.filter((audience) => {
@@ -91,13 +97,16 @@ const WebsiteNewslettersPage: React.FC = () => {
   const filteredPresets = useMemo(
     () =>
       listPresets.filter((preset) => {
-        const haystack = `${preset.name} ${preset.audienceName || ''} ${preset.notes || ''} ${preset.provider}`.toLowerCase();
+        const haystack =
+          `${preset.name} ${preset.audienceName || ''} ${preset.notes || ''} ${preset.provider}`.toLowerCase();
         return haystack.includes(presetSearch.trim().toLowerCase());
       }),
     [listPresets, presetSearch]
   );
-  const selectedAudienceSummary = selectedAudienceName || activeAudience?.name || selectedAudienceId || 'No audience selected';
-  const activePresetAudience = activePreset?.audienceName || activeAudience?.name || 'No saved preset selected';
+  const selectedAudienceSummary =
+    selectedAudienceName || activeAudience?.name || selectedAudienceId || 'No audience selected';
+  const activePresetAudience =
+    activePreset?.audienceName || activeAudience?.name || 'No saved preset selected';
 
   if (!siteId) {
     return null;
@@ -149,13 +158,16 @@ const WebsiteNewslettersPage: React.FC = () => {
         tone: 'error',
         message:
           typeof result.payload === 'string'
-            ? result.payload : 'Failed to refresh newsletter workspace.',
+            ? result.payload
+            : 'Failed to refresh newsletter workspace.',
       });
     }
   };
 
   const savePreset = async () => {
-    const audience = availableAudiences.find((entry) => entry.id === presetDraft.audienceId || entry.id === selectedAudienceId);
+    const audience = availableAudiences.find(
+      (entry) => entry.id === presetDraft.audienceId || entry.id === selectedAudienceId
+    );
     if (!presetDraft.name.trim()) return;
 
     setNotice(null);
@@ -202,9 +214,7 @@ const WebsiteNewslettersPage: React.FC = () => {
       setNotice({
         tone: 'error',
         message:
-          typeof result.payload === 'string'
-            ? result.payload
-            : 'Failed to save newsletter list.',
+          typeof result.payload === 'string' ? result.payload : 'Failed to save newsletter list.',
       });
     }
   };
@@ -219,8 +229,7 @@ const WebsiteNewslettersPage: React.FC = () => {
       setNotice({
         tone: 'error',
         message:
-          typeof result.payload === 'string'
-            ? result.payload : 'Failed to delete newsletter list.',
+          typeof result.payload === 'string' ? result.payload : 'Failed to delete newsletter list.',
       });
     }
   };
@@ -315,7 +324,9 @@ const WebsiteNewslettersPage: React.FC = () => {
         <section className="rounded-3xl border border-app-border bg-app-surface p-5">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div>
-              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">Provider</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Provider
+              </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
                 {newsletterProvider === 'mautic' ? 'Mautic' : 'Mailchimp'}
               </div>
@@ -329,7 +340,9 @@ const WebsiteNewslettersPage: React.FC = () => {
                 {selectedAudienceSummary}
               </div>
               <p className="mt-2 text-sm text-app-text-muted">
-                {integrations?.newsletter.configured ? 'Ready for signup traffic.' : 'Pick an audience and connect credentials.'}
+                {integrations?.newsletter.configured
+                  ? 'Ready for signup traffic.'
+                  : 'Pick an audience and connect credentials.'}
               </p>
             </div>
             <div>
@@ -408,7 +421,9 @@ const WebsiteNewslettersPage: React.FC = () => {
                 aria-label="Active audience"
                 value={selectedAudienceId}
                 onChange={(event) => {
-                  const audience = filteredAudiences.find((entry) => entry.id === event.target.value);
+                  const audience = filteredAudiences.find(
+                    (entry) => entry.id === event.target.value
+                  );
                   setSelectedAudienceId(event.target.value);
                   setSelectedAudienceName(audience?.name || '');
                   setSelectedPresetId('');
@@ -467,7 +482,9 @@ const WebsiteNewslettersPage: React.FC = () => {
                 type="text"
                 aria-label="List name"
                 value={presetDraft.name}
-                onChange={(event) => setPresetDraft((current) => ({ ...current, name: event.target.value }))}
+                onChange={(event) =>
+                  setPresetDraft((current) => ({ ...current, name: event.target.value }))
+                }
                 placeholder="List name"
                 className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
               />
@@ -560,7 +577,9 @@ const WebsiteNewslettersPage: React.FC = () => {
               <article
                 key={preset.id}
                 className={`rounded-2xl border p-4 ${
-                  preset.id === selectedPresetId ? 'border-app-accent bg-app-surface-muted' : 'border-app-border bg-app-surface-muted'
+                  preset.id === selectedPresetId
+                    ? 'border-app-accent bg-app-surface-muted'
+                    : 'border-app-border bg-app-surface-muted'
                 }`}
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -583,7 +602,8 @@ const WebsiteNewslettersPage: React.FC = () => {
                       <p className="mt-1 text-sm text-app-text-subtle">{preset.notes}</p>
                     ) : null}
                     <p className="mt-1 text-xs text-app-text-subtle">
-                      Updated {formatWebsiteConsoleDate(preset.updatedAt || preset.createdAt || null)}
+                      Updated{' '}
+                      {formatWebsiteConsoleDate(preset.updatedAt || preset.createdAt || null)}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -634,9 +654,7 @@ const WebsiteNewslettersPage: React.FC = () => {
               <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
                 Selected list
               </div>
-              <div className="mt-2 text-lg font-semibold text-app-text">
-                {activePresetAudience}
-              </div>
+              <div className="mt-2 text-lg font-semibold text-app-text">{activePresetAudience}</div>
               <p className="mt-2 text-sm text-app-text-muted">
                 {activePreset
                   ? `This preset targets ${activePreset.audienceId}.`

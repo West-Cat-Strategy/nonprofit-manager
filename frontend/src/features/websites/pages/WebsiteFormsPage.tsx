@@ -18,6 +18,8 @@ import {
   clearWebsitesError,
   fetchWebsiteForms,
   fetchWebsiteOverview,
+  selectWebsiteForms,
+  selectWebsiteIntegrations,
   updateWebsiteForm,
 } from '../state';
 import type {
@@ -68,8 +70,15 @@ const WebsiteFormsPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
   const dispatch = useAppDispatch();
   const overview = useWebsiteOverviewLoader(siteId, 30);
-  const { forms, isSaving, isLoading, error } = useAppSelector((state) => state.websites);
-  const managementSnapshot = overview?.managementSnapshot ??
+  const forms = useAppSelector(selectWebsiteForms);
+  const integrations = useAppSelector(selectWebsiteIntegrations);
+  const { isSaving, isLoading, error } = useAppSelector((state) => ({
+    isSaving: state.websites.isSaving,
+    isLoading: state.websites.isLoading,
+    error: state.websites.error,
+  }));
+  const managementSnapshot =
+    overview?.managementSnapshot ??
     deriveWebsiteManagementSnapshot(
       overview ? ({ ...overview, forms } as WebsiteOverviewSummary) : overview
     );
@@ -97,7 +106,7 @@ const WebsiteFormsPage: React.FC = () => {
     void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
   };
 
-  const integrationStatus = overview?.integrations ?? emptyIntegrationStatus;
+  const integrationStatus = integrations ?? overview?.integrations ?? emptyIntegrationStatus;
 
   const groupedForms = useMemo(() => {
     const groups = new Map<string, WebsiteFormDefinition[]>();
@@ -108,10 +117,7 @@ const WebsiteFormsPage: React.FC = () => {
     return Array.from(groups.entries());
   }, [forms]);
 
-  const updateDraft = (
-    formKey: string,
-    patch: Partial<WebsiteFormOperationalConfig>
-  ) => {
+  const updateDraft = (formKey: string, patch: Partial<WebsiteFormOperationalConfig>) => {
     setDrafts((current) => ({
       ...current,
       [formKey]: {
@@ -138,7 +144,8 @@ const WebsiteFormsPage: React.FC = () => {
     } else {
       setNotice({
         tone: 'error',
-        message: typeof result.payload === 'string' ? result.payload : 'Failed to save form settings.',
+        message:
+          typeof result.payload === 'string' ? result.payload : 'Failed to save form settings.',
       });
     }
   };
@@ -204,7 +211,10 @@ const WebsiteFormsPage: React.FC = () => {
                 Ready CTAs
               </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
-                {forms.filter((form) => getFormDependencyState(form, integrationStatus).ready).length}
+                {
+                  forms.filter((form) => getFormDependencyState(form, integrationStatus).ready)
+                    .length
+                }
               </div>
               <p className="mt-2 text-sm text-app-text-muted">
                 Forms whose required integration is already configured.
@@ -215,7 +225,10 @@ const WebsiteFormsPage: React.FC = () => {
                 Missing dependencies
               </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
-                {forms.filter((form) => !getFormDependencyState(form, integrationStatus).ready).length}
+                {
+                  forms.filter((form) => !getFormDependencyState(form, integrationStatus).ready)
+                    .length
+                }
               </div>
               <p className="mt-2 text-sm text-app-text-muted">
                 These CTAs need a newsletter provider or Stripe before they feel finished.
@@ -302,7 +315,9 @@ const WebsiteFormsPage: React.FC = () => {
                             {form.blocked ? 'Read-only' : 'Editable override'}
                           </span>
                         </div>
-                        <p className="mt-2 text-xs text-app-text-subtle">{dependencyState.detail}</p>
+                        <p className="mt-2 text-xs text-app-text-subtle">
+                          {dependencyState.detail}
+                        </p>
                       </div>
                       <button
                         type="button"

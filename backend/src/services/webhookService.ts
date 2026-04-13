@@ -160,6 +160,84 @@ export async function validateWebhookUrl(
   return resolved.ok ? { ok: true } : { ok: false, reason: resolved.reason };
 }
 
+export interface WebhookSendRequestOptions {
+  url: string;
+  payload: string;
+  headers: Record<string, string>;
+}
+
+export interface WebhookSendRequestResult {
+  ok: boolean;
+  blocked: boolean;
+  responseTime: number;
+  statusCode?: number;
+  responseBody?: string;
+  error?: string;
+}
+
+export async function sendWebhookRequest(
+  options: WebhookSendRequestOptions
+): Promise<WebhookSendRequestResult> {
+  const startTime = Date.now();
+  const validation = await validateWebhookUrl(options.url);
+  if (!validation.ok) {
+    return {
+      ok: false,
+      blocked: true,
+      responseTime: Date.now() - startTime,
+      error: validation.reason || 'Webhook URL blocked',
+    };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT);
+
+  try {
+    const response = await fetch(
+      options.url,
+      {
+        method: 'POST',
+        headers: options.headers,
+        body: options.payload,
+        signal: controller.signal,
+        ...WEBHOOK_FETCH_OPTIONS,
+      } as RequestInit
+    );
+
+    const responseBody = await response.text().catch(() => '');
+    const responseTime = Date.now() - startTime;
+
+    if (response.status >= 300 && response.status < 400) {
+      return {
+        ok: false,
+        blocked: false,
+        statusCode: response.status,
+        responseBody: truncateResponseBody(responseBody),
+        responseTime,
+        error: 'Redirect responses are not allowed for webhook delivery',
+      };
+    }
+
+    return {
+      ok: response.ok,
+      blocked: false,
+      statusCode: response.status,
+      responseBody: truncateResponseBody(responseBody),
+      responseTime,
+      error: response.ok ? undefined : `HTTP ${response.status}`,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      blocked: false,
+      responseTime: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /**
  * Generate a secure webhook secret
  */
@@ -458,10 +536,21 @@ async function attemptDelivery({
   const signature = signPayload(payloadString, endpoint.secret);
 
   try {
-    const validation = await validateWebhookUrl(endpoint.url);
-    if (!validation.ok) {
+    const result = await sendWebhookRequest({
+      url: endpoint.url,
+      payload: payloadString,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Webhook-Signature': signature,
+        'X-Webhook-Id': payload.id,
+        'X-Webhook-Event': payload.type,
+        'User-Agent': 'NonprofitManager-Webhook/1.0',
+      },
+    });
+
+    if (result.blocked) {
       await updateDeliveryStatus(deliveryId, 'dead_letter', {
-        responseBody: validation.reason || 'Webhook URL blocked',
+        responseBody: result.error || 'Webhook URL blocked',
         attempts: Math.max(existingAttempts + 1, MAX_RETRY_ATTEMPTS),
         nextRetryAt: null,
       });
@@ -469,34 +558,10 @@ async function attemptDelivery({
       return;
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT);
-
-    const response = await fetch(
-      endpoint.url,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Signature': signature,
-          'X-Webhook-Id': payload.id,
-          'X-Webhook-Event': payload.type,
-          'User-Agent': 'NonprofitManager-Webhook/1.0',
-        },
-        body: payloadString,
-        signal: controller.signal,
-        ...WEBHOOK_FETCH_OPTIONS,
-      } as RequestInit
-    );
-
-    clearTimeout(timeoutId);
-
-    const responseBody = await response.text().catch(() => '');
-
-    if (response.ok) {
+    if (result.ok) {
       await updateDeliveryStatus(deliveryId, 'success', {
-        responseStatus: response.status,
-        responseBody: truncateResponseBody(responseBody),
+        responseStatus: result.statusCode,
+        responseBody: result.responseBody,
         deliveredAt: new Date(),
         attempts: existingAttempts + 1,
         nextRetryAt: null,
@@ -506,13 +571,13 @@ async function attemptDelivery({
       return;
     }
 
-    if (response.status >= 300 && response.status < 400) {
+    if (result.statusCode && result.statusCode >= 300 && result.statusCode < 400) {
       await handleDeliveryFailure(
         deliveryId,
         endpoint.id,
         existingAttempts,
-        response.status,
-        'Redirect responses are not allowed for webhook delivery'
+        result.statusCode,
+        result.error
       );
       return;
     }
@@ -521,8 +586,8 @@ async function attemptDelivery({
       deliveryId,
       endpoint.id,
       existingAttempts,
-      response.status,
-      responseBody
+      result.statusCode,
+      result.responseBody ?? result.error
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -725,61 +790,48 @@ export async function testWebhookEndpoint(
 
   const payloadString = JSON.stringify(testPayload);
   const signature = signPayload(payloadString, endpoint.secret);
-  const startTime = Date.now();
 
   try {
-    const validation = await validateWebhookUrl(endpoint.url);
-    if (!validation.ok) {
+    const result = await sendWebhookRequest({
+      url: endpoint.url,
+      payload: payloadString,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Webhook-Signature': signature,
+        'X-Webhook-Id': testPayload.id,
+        'X-Webhook-Event': testPayload.type,
+        'X-Webhook-Test': 'true',
+        'User-Agent': 'NonprofitManager-Webhook/1.0',
+      },
+    });
+
+    if (result.blocked) {
       return {
         success: false,
-        responseTime: Date.now() - startTime,
-        error: validation.reason || 'Webhook URL blocked',
+        responseTime: result.responseTime,
+        error: result.error || 'Webhook URL blocked',
       };
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT);
-
-    const response = await fetch(
-      endpoint.url,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Signature': signature,
-          'X-Webhook-Id': testPayload.id,
-          'X-Webhook-Event': testPayload.type,
-          'X-Webhook-Test': 'true',
-          'User-Agent': 'NonprofitManager-Webhook/1.0',
-        },
-        body: payloadString,
-        signal: controller.signal,
-        ...WEBHOOK_FETCH_OPTIONS,
-      } as RequestInit
-    );
-
-    clearTimeout(timeoutId);
-    const responseTime = Date.now() - startTime;
-
-    if (response.status >= 300 && response.status < 400) {
+    if (result.statusCode && result.statusCode >= 300 && result.statusCode < 400) {
       return {
         success: false,
-        statusCode: response.status,
-        responseTime,
-        error: 'Redirect responses are not allowed for webhook delivery',
+        statusCode: result.statusCode,
+        responseTime: result.responseTime,
+        error: result.error || 'Redirect responses are not allowed for webhook delivery',
       };
     }
 
     return {
-      success: response.ok,
-      statusCode: response.status,
-      responseTime,
-      error: response.ok ? undefined : `HTTP ${response.status}`,
+      success: result.ok,
+      statusCode: result.statusCode,
+      responseTime: result.responseTime,
+      error: result.ok ? undefined : result.error || `HTTP ${result.statusCode}`,
     };
   } catch (error) {
     return {
       success: false,
-      responseTime: Date.now() - startTime,
+      responseTime: 0,
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }

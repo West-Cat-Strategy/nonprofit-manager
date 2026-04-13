@@ -2,8 +2,8 @@ import { randomUUID } from 'crypto';
 import { Pool } from 'pg';
 import dbPool from '@config/database';
 import type {
-  PublishedComponent,
   PublishedSite,
+  RenderablePublishedComponent,
   WebsiteFacebookSettings,
   WebsiteFormOperationalConfig,
   WebsiteMailchimpSettings,
@@ -328,22 +328,22 @@ export const mergeWebsiteFormOperationalConfig = (
 });
 
 export const mergeManagedComponentConfig = (
-  component: PublishedComponent,
+  component: RenderablePublishedComponent,
   settings: WebsiteSiteSettings
-): PublishedComponent => {
+): RenderablePublishedComponent => {
   if (!MANAGED_FORM_TYPES.has(component.type as WebsiteManagedFormType)) {
     return component;
   }
 
   const operationalConfig = mergeWebsiteFormOperationalConfig(
-    component,
+    component as Record<string, unknown>,
     settings,
     component.id
   );
   return {
     ...component,
     ...operationalConfig,
-  };
+  } as RenderablePublishedComponent;
 };
 
 export class WebsiteSiteSettingsService {

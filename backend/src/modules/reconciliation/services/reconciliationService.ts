@@ -100,6 +100,7 @@ const PAYMENT_DISCREPANCY_COLUMNS = `
 type Queryable = Pick<PoolClient, 'query'>;
 
 type ReconciliationMutationErrorCode = 'not_found' | 'no_op';
+const MATCH_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const createReconciliationMutationError = (
   code: ReconciliationMutationErrorCode,
@@ -392,10 +393,27 @@ async function fetchDonationsForReconciliation(
   return result.rows;
 }
 
+const getChargeReferenceId = (tx: Stripe.BalanceTransaction): string | null =>
+  typeof tx.source === 'string' ? tx.source : null;
+
+const getAmountBucketKey = (amountCents: number, currency?: string | null): string =>
+  `${(currency || 'unknown').toLowerCase()}:${amountCents}`;
+
+const getDayBucket = (value: Date): number => Math.floor(value.getTime() / MATCH_WINDOW_MS);
+
+const getDonationAmountCents = (value: unknown): number | null => {
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value));
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return Math.round(parsed * 100);
+};
+
 /**
  * Match Stripe transactions to donations
  */
-function matchTransactions(
+export function matchTransactions(
   donations: any[],
   stripeTransactions: Stripe.BalanceTransaction[]
 ): {
@@ -408,75 +426,122 @@ function matchTransactions(
     transaction: Stripe.BalanceTransaction;
     confidence: MatchConfidence;
   }> = [];
-  const unmatchedDonations = [...donations];
-  const unmatchedStripe = [...stripeTransactions];
+  const unmatchedDonations: any[] = [];
+  const usedStripeTransactionIds = new Set<string>();
 
-  // Filter to only charge transactions
   const chargeTransactions = stripeTransactions.filter((tx) => tx.type === 'charge');
+  const chargeLookup = new Map<string, Stripe.BalanceTransaction>();
+  const amountBuckets = new Map<string, Map<number, Stripe.BalanceTransaction[]>>();
 
-  // Match by Stripe payment intent ID or charge ID (high confidence)
-  for (let i = unmatchedDonations.length - 1; i >= 0; i--) {
-    const donation = unmatchedDonations[i];
+  for (const tx of chargeTransactions) {
+    const referenceId = getChargeReferenceId(tx);
+    if (referenceId && !chargeLookup.has(referenceId)) {
+      chargeLookup.set(referenceId, tx);
+    }
 
-    if (donation.stripe_payment_intent_id || donation.stripe_charge_id) {
-      const txIndex = chargeTransactions.findIndex((tx) => {
-        const sourceId = tx.source as string;
-        return (
-          sourceId === donation.stripe_payment_intent_id ||
-          sourceId === donation.stripe_charge_id ||
-          tx.id === donation.stripe_charge_id
-        );
-      });
+    if (!chargeLookup.has(tx.id)) {
+      chargeLookup.set(tx.id, tx);
+    }
 
-      if (txIndex !== -1) {
-        matched.push({
-          donation,
-          transaction: chargeTransactions[txIndex],
-          confidence: 'high',
-        });
-        unmatchedDonations.splice(i, 1);
-        const stripeIndex = unmatchedStripe.indexOf(chargeTransactions[txIndex]);
-        if (stripeIndex !== -1) {
-          unmatchedStripe.splice(stripeIndex, 1);
+    const txAmountKey = getAmountBucketKey(tx.amount, tx.currency);
+    const txDayBucket = getDayBucket(new Date(tx.created * 1000));
+    const amountBucket = amountBuckets.get(txAmountKey) ?? new Map<number, Stripe.BalanceTransaction[]>();
+    const dayBucket = amountBucket.get(txDayBucket) ?? [];
+    dayBucket.push(tx);
+    amountBucket.set(txDayBucket, dayBucket);
+    amountBuckets.set(txAmountKey, amountBucket);
+  }
+
+  const findHighConfidenceMatch = (donation: any): Stripe.BalanceTransaction | null => {
+    for (const candidateId of [
+      donation.stripe_payment_intent_id,
+      donation.stripe_charge_id,
+    ]) {
+      if (typeof candidateId !== 'string' || candidateId.length === 0) {
+        continue;
+      }
+
+      const transaction = chargeLookup.get(candidateId);
+      if (transaction && !usedStripeTransactionIds.has(transaction.id)) {
+        return transaction;
+      }
+    }
+
+    return null;
+  };
+
+  const findMediumConfidenceMatch = (donation: any): Stripe.BalanceTransaction | null => {
+    const donationAmountCents = getDonationAmountCents(donation.amount);
+    if (donationAmountCents === null) {
+      return null;
+    }
+
+    const donationDate = new Date(donation.donation_date);
+    if (Number.isNaN(donationDate.getTime())) {
+      return null;
+    }
+
+    const amountKey = getAmountBucketKey(donationAmountCents, donation.currency);
+    const amountBucket = amountBuckets.get(amountKey);
+    if (!amountBucket) {
+      return null;
+    }
+
+    const donationDayBucket = getDayBucket(donationDate);
+    for (const dayBucket of [donationDayBucket - 1, donationDayBucket, donationDayBucket + 1]) {
+      const candidates = amountBucket.get(dayBucket);
+      if (!candidates || candidates.length === 0) {
+        continue;
+      }
+
+      for (const transaction of candidates) {
+        if (usedStripeTransactionIds.has(transaction.id)) {
+          continue;
+        }
+
+        const transactionDate = new Date(transaction.created * 1000);
+        const amountMatches = Math.abs(donationAmountCents - transaction.amount) <= 1;
+        const dateWithinWindow = Math.abs(donationDate.getTime() - transactionDate.getTime()) < MATCH_WINDOW_MS;
+
+        if (amountMatches && dateWithinWindow) {
+          return transaction;
         }
       }
     }
-  }
 
-  // Match by amount and date (medium confidence)
-  for (let i = unmatchedDonations.length - 1; i >= 0; i--) {
-    const donation = unmatchedDonations[i];
-    const donationAmount = parseFloat(donation.amount);
-    const donationDate = new Date(donation.donation_date);
+    return null;
+  };
 
-    for (let j = 0; j < unmatchedStripe.length; j++) {
-      const tx = unmatchedStripe[j];
-      if (tx.type !== 'charge') continue;
-
-      const txAmount = tx.amount / 100;
-      const txDate = new Date(tx.created * 1000);
-
-      // Match if amount is the same and date is within 24 hours
-      const amountMatches = Math.abs(donationAmount - txAmount) < 0.01;
-      const dateWithin24Hours = Math.abs(donationDate.getTime() - txDate.getTime()) < 24 * 60 * 60 * 1000;
-
-      if (amountMatches && dateWithin24Hours) {
-        matched.push({
-          donation,
-          transaction: tx,
-          confidence: 'medium',
-        });
-        unmatchedDonations.splice(i, 1);
-        unmatchedStripe.splice(j, 1);
-        break;
-      }
+  for (const donation of donations) {
+    const highConfidenceMatch = findHighConfidenceMatch(donation);
+    if (highConfidenceMatch) {
+      matched.push({
+        donation,
+        transaction: highConfidenceMatch,
+        confidence: 'high',
+      });
+      usedStripeTransactionIds.add(highConfidenceMatch.id);
+      continue;
     }
+
+    const mediumConfidenceMatch = findMediumConfidenceMatch(donation);
+    if (mediumConfidenceMatch) {
+      matched.push({
+        donation,
+        transaction: mediumConfidenceMatch,
+        confidence: 'medium',
+      });
+      usedStripeTransactionIds.add(mediumConfidenceMatch.id);
+      continue;
+    }
+
+    unmatchedDonations.push(donation);
   }
 
   return {
     matched,
     unmatchedDonations,
-    unmatchedStripe: unmatchedStripe.filter((tx) => tx.type === 'charge'),
+    unmatchedStripe: chargeTransactions.filter((tx) => !usedStripeTransactionIds.has(tx.id)),
   };
 }
 

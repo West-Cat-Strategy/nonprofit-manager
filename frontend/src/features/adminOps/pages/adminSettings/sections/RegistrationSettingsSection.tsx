@@ -153,7 +153,6 @@ export default function RegistrationSettingsSection({
       setActionLoading(null);
     }
   };
- bitumen
 
   // -------------------------------------------------------------------------
   // Render

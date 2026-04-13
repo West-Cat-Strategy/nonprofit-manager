@@ -9,6 +9,7 @@ import type {
   PublishedSection,
   PublishedSite,
   PublishedTheme,
+  RenderablePublishedComponent,
 } from '@app-types/publishing';
 import type { WebsiteEntry } from '@app-types/websiteBuilder';
 import type { WebsiteEntryService } from '@services/publishing/websiteEntryService';
@@ -358,7 +359,7 @@ export class PublicSiteRenderer {
         );
       }
       default:
-        return generateComponentHtml(component, theme);
+        return generateComponentHtml(component as RenderablePublishedComponent, theme);
     }
   }
 

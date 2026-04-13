@@ -1,4 +1,4 @@
-import type { PublishedComponent, PublishedSite } from '@app-types/publishing';
+import type { PublishedSite, RenderablePublishedComponent } from '@app-types/publishing';
 import {
   mergeManagedComponentConfig,
   WebsiteSiteSettingsService,
@@ -10,18 +10,18 @@ export class PublicSiteRenderableSiteBuilder {
   constructor(private readonly siteSettings: WebsiteSiteSettingsService) {}
 
   private mergeComponentSettings(
-    component: PublishedComponent,
+    component: RenderablePublishedComponent,
     settings: PublicSiteSettings
-  ): PublishedComponent {
+  ): RenderablePublishedComponent {
     const withSettings = mergeManagedComponentConfig(component, settings);
-    const componentRecord = withSettings as PublishedComponent & {
-      components?: PublishedComponent[];
-      columns?: Array<{ components?: PublishedComponent[] }>;
+    const componentRecord = withSettings as RenderablePublishedComponent & {
+      components?: RenderablePublishedComponent[];
+      columns?: Array<{ components?: RenderablePublishedComponent[] }>;
     };
 
     if (Array.isArray(componentRecord.components)) {
       componentRecord.components = componentRecord.components.map((nested) =>
-        this.mergeComponentSettings(nested, settings)
+        this.mergeComponentSettings(nested as RenderablePublishedComponent, settings)
       );
     }
 
@@ -29,12 +29,14 @@ export class PublicSiteRenderableSiteBuilder {
       componentRecord.columns = componentRecord.columns.map((column) => ({
         ...column,
         components: Array.isArray(column.components)
-          ? column.components.map((nested) => this.mergeComponentSettings(nested, settings))
+          ? column.components.map((nested) =>
+              this.mergeComponentSettings(nested as RenderablePublishedComponent, settings)
+            )
           : [],
       }));
     }
 
-    return componentRecord;
+    return componentRecord as RenderablePublishedComponent;
   }
 
   async buildRenderableSite(site: PublishedSite): Promise<PublishedSite> {
@@ -53,7 +55,7 @@ export class PublicSiteRenderableSiteBuilder {
           sections: page.sections.map((section) => ({
             ...section,
             components: section.components.map((component) =>
-              this.mergeComponentSettings(component, settings)
+              this.mergeComponentSettings(component as RenderablePublishedComponent, settings)
             ),
           })),
         })),

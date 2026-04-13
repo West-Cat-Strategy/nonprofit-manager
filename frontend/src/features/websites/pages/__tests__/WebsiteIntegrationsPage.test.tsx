@@ -8,14 +8,11 @@ const dispatchMock = vi.fn();
 
 const thunkMocks = vi.hoisted(() => {
   const createAction = (type: string) =>
-    Object.assign(
-      (payload?: unknown) => ({ type, payload }),
-      {
-        fulfilled: {
-          match: (action: { type?: string }) => action?.type === `${type}/fulfilled`,
-        },
-      }
-    );
+    Object.assign((payload?: unknown) => ({ type, payload }), {
+      fulfilled: {
+        match: (action: { type?: string }) => action?.type === `${type}/fulfilled`,
+      },
+    });
 
   return {
     clearWebsitesError: vi.fn(() => ({ type: 'websites/clearError' })),
@@ -39,58 +36,64 @@ const overview = {
 
 const buildState = (provider: 'mautic' | 'mailchimp') => ({
   websites: {
-    integrations: {
-      blocked: false,
-      publishStatus: 'published',
-      newsletter: {
-        provider,
-        configured: true,
-        lastSyncAt: null,
+    overview: null,
+    currentSiteData: {
+      siteId: 'site-1',
+      forms: [],
+      integrations: {
+        blocked: false,
+        publishStatus: 'published',
+        newsletter: {
+          provider,
+          configured: true,
+          lastSyncAt: null,
+        },
+        mailchimp: {
+          audienceId: 'aud-1',
+          audienceMode: 'both',
+          defaultTags: ['members'],
+          syncEnabled: true,
+          configured: provider === 'mailchimp',
+          accountName: provider === 'mailchimp' ? 'Mailchimp Account' : undefined,
+          listCount: provider === 'mailchimp' ? 2 : undefined,
+          availableAudiences:
+            provider === 'mailchimp'
+              ? [
+                  { id: 'aud-1', name: 'Main Audience' },
+                  { id: 'aud-2', name: 'Volunteers' },
+                ]
+              : [],
+          lastSyncAt: null,
+        },
+        mautic: {
+          baseUrl: 'https://mautic.example.org',
+          segmentId: 'seg-1',
+          username: 'api-user',
+          password: 'api-pass',
+          defaultTags: ['supporters'],
+          syncEnabled: provider === 'mautic',
+          configured: provider === 'mautic',
+          availableAudiences:
+            provider === 'mautic'
+              ? [
+                  { id: 'seg-1', name: 'Newsletter Supporters' },
+                  { id: 'seg-2', name: 'Monthly Donors' },
+                ]
+              : [],
+          segmentCount: provider === 'mautic' ? 2 : undefined,
+          lastSyncAt: null,
+        },
+        stripe: {
+          accountId: 'org-1',
+          currency: 'cad',
+          suggestedAmounts: [20, 40, 80],
+          recurringDefault: true,
+          campaignId: 'spring-drive',
+          configured: true,
+          publishableKeyConfigured: true,
+        },
       },
-      mailchimp: {
-        audienceId: 'aud-1',
-        audienceMode: 'both',
-        defaultTags: ['members'],
-        syncEnabled: true,
-        configured: provider === 'mailchimp',
-        accountName: provider === 'mailchimp' ? 'Mailchimp Account' : undefined,
-        listCount: provider === 'mailchimp' ? 2 : undefined,
-        availableAudiences:
-          provider === 'mailchimp'
-            ? [
-                { id: 'aud-1', name: 'Main Audience' },
-                { id: 'aud-2', name: 'Volunteers' },
-              ]
-            : [],
-        lastSyncAt: null,
-      },
-      mautic: {
-        baseUrl: 'https://mautic.example.org',
-        segmentId: 'seg-1',
-        username: 'api-user',
-        password: 'api-pass',
-        defaultTags: ['supporters'],
-        syncEnabled: provider === 'mautic',
-        configured: provider === 'mautic',
-        availableAudiences:
-          provider === 'mautic'
-            ? [
-                { id: 'seg-1', name: 'Newsletter Supporters' },
-                { id: 'seg-2', name: 'Monthly Donors' },
-              ]
-            : [],
-        segmentCount: provider === 'mautic' ? 2 : undefined,
-        lastSyncAt: null,
-      },
-      stripe: {
-        accountId: 'org-1',
-        currency: 'cad',
-        suggestedAmounts: [20, 40, 80],
-        recurringDefault: true,
-        campaignId: 'spring-drive',
-        configured: true,
-        publishableKeyConfigured: true,
-      },
+      analytics: null,
     },
     isLoading: false,
     isSaving: false,
@@ -125,8 +128,8 @@ describe('WebsiteIntegrationsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     currentState = buildState('mautic');
-    dispatchMock.mockImplementation(
-      (action: { type?: string }) => Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
+    dispatchMock.mockImplementation((action: { type?: string }) =>
+      Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
     );
   });
 

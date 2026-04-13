@@ -1,15 +1,15 @@
-import type { PublishedComponent } from '@app-types/publishing';
+import type { RenderablePublishedComponent } from '@app-types/publishing';
 import { imageOptimizationService } from '../../imageOptimizationService';
 import { escapeHtml } from '../escapeHtml';
 import { sanitizeRenderableUrl } from '../urlSanitizer';
 
-export function generateImage(component: PublishedComponent): string {
+export function generateImage(component: RenderablePublishedComponent): string {
   const src = sanitizeRenderableUrl((component.src as string) || '') || '';
   const alt = (component.alt as string) || '';
   const width = (component.width as string) || '100%';
   const height = (component.height as string) || 'auto';
   const caption = component.caption as string;
-  const priority = component.priority as boolean;
+  const priority = component.priority === true;
 
   if (!src) {
     return '<div class="image-placeholder" style="background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 0.5rem; padding: 3rem; text-align: center; color: #64748b; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center;"><svg style="width: 2.5rem; height: 2.5rem; margin-bottom: 0.75rem; color: #94a3b8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span style="font-weight: 500;">Image Placeholder</span><span style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">Add content in editor</span></div>';
@@ -44,7 +44,7 @@ export function generateImage(component: PublishedComponent): string {
       </figure>`;
 }
 
-export function generateGallery(component: PublishedComponent): string {
+export function generateGallery(component: RenderablePublishedComponent): string {
   const items = (component.items as Array<{ id: string; src: string; alt?: string; caption?: string }>) || [];
   const columns = (component.columns as number) || 3;
 
@@ -79,7 +79,7 @@ export function generateGallery(component: PublishedComponent): string {
       </div>`;
 }
 
-export function generateVideo(component: PublishedComponent): string {
+export function generateVideo(component: RenderablePublishedComponent): string {
   const src = sanitizeRenderableUrl((component.src as string) || '') || '';
   const provider = (component.provider as string) || 'youtube';
   const aspectRatio = (component.aspectRatio as string) || '16/9';

@@ -4,7 +4,7 @@
  */
 
 import crypto from 'crypto';
-import { Pool, PoolClient } from 'pg';
+import { PoolClient } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import { normalizeRoleSlug } from '@utils/roleSlug';

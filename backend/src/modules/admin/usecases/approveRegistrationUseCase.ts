@@ -6,8 +6,6 @@ import { getRegistrationSettings } from './registrationSettingsUseCase';
 import { normalizeRoleSlug } from '@utils/roleSlug';
 import * as repo from '../repositories/pendingRegistrationRepository';
 
-const ADMIN_NOTIFICATION_BATCH_SIZE = 4;
-
 export async function approvePendingRegistration(
   id: string,
   reviewedBy: string
