@@ -1,6 +1,6 @@
 # Feature Matrix
 
-**Last Updated**: 2026-03-19
+**Last Updated**: 2026-04-13
 
 Master status of all features in nonprofit-manager.
 
@@ -39,12 +39,12 @@ For **detailed feature specifications**, see linked documentation files.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **People Database** | ✅ | Backend | [PEOPLE_MODULE_ENHANCEMENTS.md](PEOPLE_MODULE_ENHANCEMENTS.md) | `backend/src/controllers/peopleController.ts` | Core CRM functionality |
+| **People Database** | ✅ | Backend | [PEOPLE_MODULE_ENHANCEMENTS.md](PEOPLE_MODULE_ENHANCEMENTS.md) | `backend/src/modules/contacts/routes/index.ts` | Core CRM functionality |
 | Contact Information | ✅ | Backend | Same | - | Stores names, emails, phone |
 | Custom Fields | ✅ | Backend | Same | - | User-defined attributes |
 | Relationship Tracking | ✅ | Backend | Same | - | Links between contacts |
 | Notes & History | ✅ | Backend | Same | - | Activity log per contact |
-| Search & Filter | ✅ | Frontend | Same | `frontend/src/components/features/PeopleSearch.tsx` | Find contacts quickly |
+| Search & Filter | ✅ | Frontend | Same | `frontend/src/features/people/components/PeopleListContainer.tsx` | Find contacts quickly |
 | Import/Export | 🟡 | Backend | [API_REFERENCE_EXPORT.md](../api/API_REFERENCE_EXPORT.md) | - | CSV import/export in progress |
 | Bulk Actions | 📋 | Frontend | Same | - | Batch update planned |
 
@@ -52,10 +52,10 @@ For **detailed feature specifications**, see linked documentation files.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **Volunteer Portal** | ✅ | Frontend | [VOLUNTEER_COMPONENTS_STATUS.md](VOLUNTEER_COMPONENTS_STATUS.md) | `frontend/src/pages/VolunteerPortal.tsx` | Self-service volunteer portal |
+| **Volunteer Management UI** | ✅ | Frontend | [VOLUNTEER_COMPONENTS_STATUS.md](VOLUNTEER_COMPONENTS_STATUS.md) | `frontend/src/features/volunteers/pages/VolunteerListPage.tsx` | Volunteer list/detail/assignment workflows |
 | Sign-Up Form | ✅ | Frontend | Same | - | Public volunteer registration |
 | Availability Calendar | ✅ | Frontend | Same | - | Schedule management |
-| Volunteer Opportunity Management | ✅ | Backend | [PEOPLE_MODULE_ENHANCEMENTS.md](PEOPLE_MODULE_ENHANCEMENTS.md) | `backend/src/controllers/volunteerController.ts` | Track volunteer opportunities |
+| Volunteer Opportunity Management | ✅ | Backend | [PEOPLE_MODULE_ENHANCEMENTS.md](PEOPLE_MODULE_ENHANCEMENTS.md) | `backend/src/modules/volunteers/routes/index.ts` | Track volunteer opportunities |
 | Hour Tracking | ✅ | Frontend | [VOLUNTEER_COMPONENTS_STATUS.md](VOLUNTEER_COMPONENTS_STATUS.md) | - | Log volunteer hours |
 | Matching Algorithm | 🟡 | Backend | Same | - | Match volunteers to opportunities |
 | Recognition/Badges | 📋 | Frontend | Same | - | Gamification features planned |
@@ -64,38 +64,38 @@ For **detailed feature specifications**, see linked documentation files.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **Event CRUD** | ✅ | Backend | [API_REFERENCE_EVENTS.md](../api/API_REFERENCE_EVENTS.md) | `backend/src/controllers/eventController.ts` | Create, update, delete events |
-| Event Details | ✅ | Frontend | Same | `frontend/src/pages/EventDetail.tsx` | View event information |
+| **Event CRUD** | ✅ | Backend | [API_REFERENCE_EVENTS.md](../api/API_REFERENCE_EVENTS.md) | `backend/src/modules/events/routes/index.ts` | Create, update, delete events |
+| Event Details | ✅ | Frontend | Same | `frontend/src/features/events/pages/EventDetailPage.tsx` | View event information |
 | Capacity Management | ✅ | Backend | Same | - | Control registration limits |
-| Registration Form | ✅ | Frontend | Same | `frontend/src/components/EventRegistration.tsx` | Attendee sign-up |
+| Event Registrations | ✅ | Frontend | Same | `frontend/src/features/events/components/EventRegistrationsPanel.tsx` | Attendee registration and check-in |
 | Attendee List | ✅ | Backend | Same | - | View registrations |
 | Check-In/QR Codes | ✅ | Backend/Frontend | Same | `backend/src/modules/events/routes/index.ts` | Manual + QR token scan check-in with metadata |
 | Reminders | ✅ | Backend | Same | `backend/src/services/eventReminderAutomationService.ts` | Manual + automated reminder lifecycle complete |
-| Portal Appointment Ops/Reminders | ✅ | Backend/Frontend | [API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md) | `backend/src/controllers/portalAdminController.ts` | Admin inbox, reminder history/manual send, and appointment check-in |
+| Portal Appointment Ops/Reminders | ✅ | Backend/Frontend | [API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md) | `backend/src/modules/portalAdmin/controllers/portalAdminController.ts` | Admin inbox, reminder history/manual send, and appointment check-in |
 
 ### Financial Management
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **Donation Tracking** | ✅ | Backend | [API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md#stripe-integration) | `backend/src/controllers/donationController.ts` | Record and manage donations |
+| **Donation Tracking** | ✅ | Backend | [API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md#stripe-integration) | `backend/src/modules/donations/routes/index.ts` | Record and manage donations |
 | Stripe Integration | ✅ | Backend | Same | - | Process credit card payments |
 | Recurring Donations | ✅ | Backend | Same | - | Subscription management |
 | Receipt Generation | ✅ | Backend | - | - | Email donation receipts |
 | Tax Documents | 📋 | Backend | - | - | Generate tax statements |
 | Fundraising Goals | ✅ | Frontend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | - | Track progress toward goals |
-| Campaign Tracking | ✅ | Backend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | - | Organize donations by campaign |
+| Campaign Tracking | ✅ | Backend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | `backend/src/modules/donations/routes/index.ts` | Organize donations by campaign |
 
 ### Reporting & Analytics
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **Report Generation** | ✅ | Backend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | `backend/src/services/reportService.ts` | Create custom reports |
+| **Report Generation** | ✅ | Backend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | `backend/src/modules/reports/routes/index.ts` | Create custom reports |
 | Export to CSV | ✅ | Backend | [API_REFERENCE_EXPORT.md](../api/API_REFERENCE_EXPORT.md) | - | Download data as CSV |
 | Export to Excel | ✅ | Backend | Same | - | Excel .xlsx format |
 | PDF Generation | 🟡 | Backend | Same | - | PDF export in progress |
 | Templates | ✅ | Backend | [TEMPLATE_SYSTEM.md](TEMPLATE_SYSTEM.md) | - | Pre-built report templates |
-| Scheduled Reports | ✅ | Backend/Frontend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | `backend/src/services/scheduledReportService.ts` | Recurring delivery with run logs and run-now controls |
-| Analytics Dashboard | ✅ | Frontend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | - | Real-time metrics and graphs |
+| Scheduled Reports | ✅ | Backend/Frontend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | `backend/src/modules/scheduledReports/routes/index.ts` | Recurring delivery with run logs and run-now controls |
+| Analytics Dashboard | ✅ | Frontend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `frontend/src/features/neoBrutalist/pages/NeoBrutalistDashboardPage.tsx` | Real-time metrics and graphs |
 | Trend Analysis | 🟡 | Backend | [API_REFERENCE_EXPORT.md](../api/API_REFERENCE_EXPORT.md) | - | Historical trends in progress |
 | Outcomes Report | 🟡 | Backend/Frontend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/modules/reports/services/outcomesReportService.ts` | Outcome totals, unique clients, and time-series reporting |
 
@@ -112,12 +112,12 @@ For **detailed feature specifications**, see linked documentation files.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **Customizable Dashboard** | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | `frontend/src/features/neoBrutalist/pages/NeoBrutalistDashboardPage.tsx` | User-configurable dashboard |
+| **Customizable Dashboard** | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | `frontend/src/features/dashboard/pages/CustomDashboardPage.tsx` | User-configurable dashboard |
 | Widget System | ✅ | Frontend | Same | - | Add/remove/configure widgets |
-| Multiple Dashboards | ✅ | Backend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | - | Save different dashboard configs |
+| Multiple Dashboards | ✅ | Backend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `backend/src/modules/dashboard/routes/index.ts` | Save different dashboard configs |
 | Widget Types | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | - | Key metrics, charts, tables, etc. |
 | Performance Metrics | ✅ | Backend | - | - | System health indicators |
-| Alerts & Monitoring | ✅ | Backend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | - | Configurable alert rules |
+| Alerts & Monitoring | ✅ | Backend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `backend/src/modules/alerts/routes/index.ts` | Configurable alert rules |
 
 ### Integration & Automation
 
@@ -138,10 +138,10 @@ For **detailed feature specifications**, see linked documentation files.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **Case Management** | 🟡 | Backend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | - | Client case tracking |
+| **Case Management** | 🟡 | Backend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/modules/cases/routes/index.ts` | Client case tracking |
 | Case Files | 🟡 | Backend | Same | - | Document storage (in progress) |
 | Case Status Workflow | 🟡 | Backend | Same | - | Workflow engine (in progress) |
-| Task Assignment | 🟡 | Backend | [TASK_MANAGEMENT.md](TASK_MANAGEMENT.md) | - | Assign work to staff |
+| Task Assignment | 🟡 | Backend | [TASK_MANAGEMENT.md](TASK_MANAGEMENT.md) | `backend/src/modules/tasks/routes/index.ts` | Assign work to staff |
 | Follow-up Lifecycle | ✅ | Backend/Frontend | [FOLLOW_UP_LIFECYCLE.md](FOLLOW_UP_LIFECYCLE.md) | `backend/src/services/followUpService.ts` | Global and nested follow-up management with recurrence support |
 | Notes & Timeline | 🟡 | Backend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | - | Activity tracking |
 | Outcomes Tracking | 🟡 | Backend/Frontend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/services/outcomeImpactService.ts` | Tag case note interactions with configurable outcomes |

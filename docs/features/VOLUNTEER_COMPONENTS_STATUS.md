@@ -1,6 +1,7 @@
 # Volunteer Components - Status Report
 
 **Date**: 2026-02-02
+**Last Updated**: 2026-04-13
 **Status**: ✅ All Components Complete
 **Phase**: Week 1 - Core Module Completion
 
@@ -18,7 +19,7 @@ All volunteer management components required by the Week 1 roadmap are **already
 
 **File**: `frontend/src/components/AvailabilityCalendar.tsx` (332 lines)
 **Created**: February 1, 2026
-**Integrated**: Yes (VolunteerDetail page)
+**Integrated**: Yes (VolunteerDetailPage)
 
 **Features**:
 - Monthly calendar view
@@ -48,7 +49,7 @@ All volunteer management components required by the Week 1 roadmap are **already
 
 **File**: `frontend/src/components/TimeTracker.tsx` (321 lines)
 **Created**: February 1, 2026
-**Integrated**: Yes (VolunteerDetail page)
+**Integrated**: Yes (VolunteerDetailPage)
 
 **Features**:
 - Real-time timer for tracking hours
@@ -121,9 +122,9 @@ All volunteer management components required by the Week 1 roadmap are **already
 
 ## Integration Status
 
-### VolunteerDetail Page
+### Volunteer Detail Page
 
-**File**: `frontend/src/pages/VolunteerDetail.tsx`
+**File**: `frontend/src/features/volunteers/pages/VolunteerDetailPage.tsx`
 
 Both AvailabilityCalendar and TimeTracker are imported and rendered:
 
@@ -164,7 +165,7 @@ VolunteerHoursWidget is available as a dashboard widget:
 - [x] AvailabilityCalendar component exists
 - [x] TimeTracker component exists
 - [x] VolunteerHoursWidget exists
-- [x] Components imported in VolunteerDetail page
+- [x] Components imported in VolunteerDetailPage
 - [x] Components properly typed with TypeScript
 - [x] Components use Tailwind CSS styling
 - [x] Components have loading states
@@ -179,7 +180,7 @@ VolunteerHoursWidget is available as a dashboard widget:
 ### Data Flow
 
 ```
-VolunteerDetail Page
+VolunteerDetailPage
         │
         ├─► AvailabilityCalendar
         │   ├─ Props: assignments, availabilityStatus
@@ -395,4 +396,4 @@ All volunteer management components are **complete and production-ready**. The c
 **Last Updated**: 2026-02-02
 **Status**: ✅ All Components Complete
 **Files**: 3 components, ~726 lines of code
-**Integration**: VolunteerDetail page + Dashboard system
+**Integration**: VolunteerDetailPage + Dashboard system

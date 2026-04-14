@@ -1,6 +1,6 @@
 # Frontend Service
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-13
 
 This guide covers the frontend application only. For the full contributor path, start at [../README.md](../README.md).
 
@@ -12,8 +12,8 @@ Current structure is centered on:
 
 - `src/features/` for feature-owned code
 - `src/routes/` for route composition
-- `src/pages/` for compatibility or route-facing wrappers where still needed
-- `src/store/` for the root store and any remaining shared legacy wiring
+- `src/pages/` for legacy compatibility paths only
+- `src/store/` for the root store and shared state wiring
 
 ## Runtime Modes
 
@@ -61,7 +61,7 @@ Repo-root equivalents:
 
 - Prefer feature-owned code under `src/features/<domain>/`.
 - Keep migrated feature state out of `src/store/slices/*`.
-- Treat `src/pages/**` as compatibility or route-surface code unless the existing domain still uses it as the active implementation boundary.
+- Treat `src/pages/**` as a legacy compatibility path; new runtime pages belong in `src/features/**`.
 - Use the current API envelope helpers and shared client abstractions instead of ad hoc response parsing.
 
 ## Related Docs

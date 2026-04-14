@@ -1,5 +1,7 @@
 # Theme Implementation Plans
 
+**Last Updated:** 2026-04-13
+
 This document outlines the step-by-step plan to implement three new UI themes for the Nonprofit Manager application: **Sea Breeze**, **Corporate Minimalist**, and **Dark Glassmorphism**.
 
 ## Prerequisites: Theme Engine Refactor
@@ -69,7 +71,7 @@ export default {
 **Goal:** Allow users to switch themes from the settings page seamlessly.
 
 **Action:**
-- **Remove:** The old "Dark Mode" card at the bottom of `frontend/src/pages/UserSettings.tsx`.
+- **Remove:** The old "Dark Mode" card at the bottom of `frontend/src/features/adminOps/pages/UserSettingsPage.tsx`.
 - **Insert:** The new `ThemeSelector` component at the **TOP** of the settings container (just below the "Top Actions Pane").
 
 ### 5. Refactor `frontend/src/App.tsx`

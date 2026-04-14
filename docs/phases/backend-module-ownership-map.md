@@ -1,6 +1,6 @@
 # Backend Module Ownership Map (Compatibility-Aware)
 
-**Updated:** March 19, 2026
+**Updated:** April 13, 2026
 
 ## Module-owned contract boundaries (canonical)
 
@@ -54,10 +54,11 @@ Financial feature ownership is split across module domains below; the `finance` 
 
 ## Compatibility shims expected in this phase
 
-- `backend/src/routes/payments.ts` is the remaining compatibility adapter with v1 deprecation headers.
+- `backend/src/modules/payments/routes/index.ts` is the canonical payment route implementation.
+- The legacy `/api/payments/*` surface is tombstoned; no root `backend/src/routes/payments.ts` shim file remains in the current tree.
 - The other top-level legacy route shims under `backend/src/routes/*.ts` were retired during `P4-T1R7D` after importer and runtime-mount sweeps confirmed no remaining callers.
 - Backend payment controller/domain export shims were retired during `P4-T1R7` once all in-repo callers moved to module entrypoints.
-- `P4-T1R8E` retired dead controller-domain indexes, unused root controllers, and removable leaf service facades; `backend/src/routes/payments.ts` remains the lone route-level compatibility bridge and new backend shim categories should not be added.
+- `P4-T1R8E` retired dead controller-domain indexes, unused root controllers, and removable leaf service facades; new backend shim categories should not be added.
 
 ## Active task ownership context
 

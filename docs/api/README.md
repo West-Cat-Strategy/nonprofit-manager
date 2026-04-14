@@ -1,6 +1,6 @@
 # API Documentation Index
 
-**Last Updated**: 2026-03-19
+**Last Updated**: 2026-04-13
 
 Master index for all nonprofit-manager API endpoints and integration documentation.
 
@@ -25,6 +25,7 @@ Looking for a specific endpoint? Use this table:
 | **Dashboard & Alerts** | Dashboard config, alert management | [API_REFERENCE_DASHBOARD_ALERTS.md](API_REFERENCE_DASHBOARD_ALERTS.md) |
 | **Events** | Event CRUD, registrations, management | [API_REFERENCE_EVENTS.md](API_REFERENCE_EVENTS.md) |
 | **Portal Appointments** | Portal appointment booking + admin inbox/reminders/check-in | [API_REFERENCE_PORTAL_APPOINTMENTS.md](API_REFERENCE_PORTAL_APPOINTMENTS.md) |
+| **Administration** | Branding, organization settings, registration, roles, email, Twilio | [openapi.yaml](openapi.yaml) |
 | **Reporting & Export** | Report generation, CSV/Excel export, analytics | [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md) |
 | **Backup & Restore** | Database backup, restore, data recovery | [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md) |
 | **Payments & Integrations** | Stripe integration, Mailchimp sync, webhooks | [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md) |
@@ -88,6 +89,23 @@ Portal and admin operations for appointments, reminders, and check-in.
   - `GET /api/v2/portal/admin/appointments/:id/reminders` — Reminder jobs/history
   - `POST /api/v2/portal/admin/appointments/:id/reminders/send` — Manual reminder send
   - `POST /api/v2/portal/admin/appointments/:id/check-in` — Admin appointment check-in
+
+#### Administration
+
+Admin settings endpoints for branding, organization settings, registration controls, roles, permissions, email, and Twilio.
+
+- **File**: [openapi.yaml](openapi.yaml)
+- **Endpoints**:
+  - `GET /api/v2/admin/branding` — Get branding configuration
+  - `PUT /api/v2/admin/branding` — Update branding configuration
+  - `GET /api/v2/admin/organization-settings` — Get organization settings
+  - `PUT /api/v2/admin/organization-settings` — Update organization settings
+  - `GET /api/v2/admin/registration-settings` — Get registration settings
+  - `PUT /api/v2/admin/registration-settings` — Update registration settings
+  - `GET /api/v2/admin/roles` and `GET /api/v2/admin/permissions` — Catalog role/permission data
+  - `POST /api/v2/admin/roles` — Create a role
+  - `GET /api/v2/admin/email-settings` / `PUT /api/v2/admin/email-settings` / `POST /api/v2/admin/email-settings/test`
+  - `GET /api/v2/admin/twilio-settings` / `PUT /api/v2/admin/twilio-settings` / `POST /api/v2/admin/twilio-settings/test`
 
 #### Reporting & Analytics
 
@@ -247,11 +265,13 @@ You can copy-paste these examples directly into your terminal.
 
 ### Authentication
 
-All endpoints require:
+Most examples in this index use:
 
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
+
+Browser shells should bootstrap through `GET /auth/bootstrap` or `GET /portal/auth/bootstrap` and then rely on the session cookie. Bearer tokens remain supported for API/test clients where the endpoint docs say so.
 
 See [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#authentication) for auth details.
 

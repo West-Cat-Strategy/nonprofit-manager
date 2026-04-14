@@ -1,6 +1,6 @@
 # Nonprofit Manager
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-13
 
 Nonprofit Manager is a full-stack TypeScript platform for nonprofit operations: people and case management, events and volunteers, fundraising, client portal workflows, analytics, and website publishing.
 
@@ -76,6 +76,7 @@ Use these as the main active references:
 - [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for coding-agent rules and repo guardrails
 - [backend/README.md](backend/README.md) and [frontend/README.md](frontend/README.md) for service-specific guidance
 - [docs/testing/TESTING.md](docs/testing/TESTING.md) and [e2e/README.md](e2e/README.md) for test guidance
+- [docs/README.md](docs/README.md) for the short docs landing page
 - [docs/api/README.md](docs/api/README.md) for API reference entry points
 - [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) for deployment guidance
 - [scripts/README.md](scripts/README.md) for the root helper-script index

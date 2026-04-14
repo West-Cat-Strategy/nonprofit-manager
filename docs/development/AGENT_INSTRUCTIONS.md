@@ -1,6 +1,6 @@
 # Agent Instructions For Nonprofit Manager
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-13
 
 This file is for coding agents and contributors making repository changes.
 
@@ -49,7 +49,7 @@ This file is for coding agents and contributors making repository changes.
 ### Frontend
 
 - Feature-owned frontend code lives under `frontend/src/features/<domain>/`.
-- `frontend/src/pages/**` is a compatibility surface unless the repo already treats a page as canonical.
+- `frontend/src/pages/**` is a legacy compatibility path; active runtime pages belong in `frontend/src/features/**`.
 - Migrated features should read state from feature-owned state packages, not legacy `store/slices` imports.
 
 ## Validation, Auth, And Responses
@@ -109,6 +109,7 @@ Coverage thresholds are enforced by repo config. Do not restate a blanket percen
 ## Documentation Expectations
 
 - Treat [../../README.md](../../README.md) as the contributor start page.
+- Treat [../README.md](../README.md) as the short docs landing page.
 - Treat [../INDEX.md](../INDEX.md) as the catalog, not the onboarding entry point.
 - Use relative links in docs.
 - Verify commands and ports from the repo before documenting them.

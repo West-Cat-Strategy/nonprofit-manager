@@ -1,6 +1,6 @@
 # Contributing to Nonprofit Manager
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-13
 
 Use this guide when you are contributing code, docs, or release support to Nonprofit Manager.
 

@@ -1,6 +1,6 @@
 # Case Client Visibility and Files
 
-**Last Updated:** 2026-03-03
+**Last Updated:** 2026-04-13
 **Applies To:** `/api/v2/cases/*`, `/api/v2/portal/cases/*`
 
 ## Purpose
@@ -171,7 +171,7 @@ Backend integration:
 
 Frontend tests:
 - `frontend/src/components/__tests__/CaseNotes.test.tsx`
-- `frontend/src/pages/__tests__/portal/PortalCases.test.tsx`
+- `frontend/src/features/portal/pages/__tests__/PortalCasesPage.test.tsx`
 
 Playwright:
 - `e2e/tests/portal-cases-visibility.spec.ts`

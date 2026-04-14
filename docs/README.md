@@ -1,6 +1,6 @@
 # Documentation Directory
 
-**Last Updated**: 2026-04-07
+**Last Updated**: 2026-04-13
 
 Use this directory for detailed reference material. It is a short landing page, not the contributor onboarding path.
 

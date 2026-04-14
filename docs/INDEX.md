@@ -1,16 +1,17 @@
 # Documentation Index
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-13
 
 This file is the full documentation catalog. If you are starting work in the repository, begin with [../README.md](../README.md) first.
 
 ## Recommended Reading Order
 
 1. [../README.md](../README.md)
-2. [development/GETTING_STARTED.md](development/GETTING_STARTED.md)
-3. [../CONTRIBUTING.md](../CONTRIBUTING.md)
-4. [development/CONVENTIONS.md](development/CONVENTIONS.md)
-5. [development/ARCHITECTURE.md](development/ARCHITECTURE.md)
+2. [docs/README.md](README.md)
+3. [development/GETTING_STARTED.md](development/GETTING_STARTED.md)
+4. [../CONTRIBUTING.md](../CONTRIBUTING.md)
+5. [development/CONVENTIONS.md](development/CONVENTIONS.md)
+6. [development/ARCHITECTURE.md](development/ARCHITECTURE.md)
 
 Tracked work starts in [phases/planning-and-progress.md](phases/planning-and-progress.md).
 Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
