@@ -42,6 +42,7 @@ Working rules:
 
 - Sign out tracked work in the workboard before editing code or docs.
 - Keep one active task per agent by default; only split work when the task explicitly documents a coordinated parallel path.
+- For modularization work that needs subagents, follow [docs/development/SUBAGENT_MODULARIZATION_GUIDE.md](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md) and document the temporary coordinated exception before parallel edits begin.
 - Use task IDs in commits and PR titles so work stays traceable.
 - Move work to Blocked or Review as soon as the status changes, and record the reason and next step.
 - Before marking work Done, follow the validation and review expectations in [CONTRIBUTING.md](CONTRIBUTING.md).

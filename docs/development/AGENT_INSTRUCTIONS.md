@@ -11,6 +11,7 @@ This file is for coding agents and contributors making repository changes.
 3. Preserve existing user changes in the worktree unless the task requires touching them.
 4. Prefer repo-native validation commands and policies over ad hoc checks.
 5. Update active docs when commands, ports, workflows, or contracts change.
+6. When modularization work needs parallel lanes, follow [SUBAGENT_MODULARIZATION_GUIDE.md](SUBAGENT_MODULARIZATION_GUIDE.md) and keep one lead owner on shared registrars, catalogs, and workboard state.
 
 ## Current Stack
 
@@ -83,6 +84,7 @@ This file is for coding agents and contributors making repository changes.
 - Service-specific guidance: [../../backend/README.md](../../backend/README.md) and [../../frontend/README.md](../../frontend/README.md)
 - Testing guidance: [../testing/TESTING.md](../testing/TESTING.md) and [../../e2e/README.md](../../e2e/README.md)
 - The workboard in [../phases/planning-and-progress.md](../phases/planning-and-progress.md) is the source of truth for tracked ownership and status changes.
+- Use [SUBAGENT_MODULARIZATION_GUIDE.md](SUBAGENT_MODULARIZATION_GUIDE.md) when a tracked modularization task needs a coordinated multi-agent exception.
 - Repo-local contributor skills are versioned under [../../.codex/skills/](../../.codex/skills/) and should be updated in-repo when contributor workflow guidance changes.
 
 ## Validation Commands
@@ -123,6 +125,7 @@ Coverage thresholds are enforced by repo config. Do not restate a blanket percen
 - Register new `/api/v2` routes through the module export path.
 - Keep controllers thin and data access out of controllers.
 - Add or update backend tests near the affected behavior.
+- In coordinated parallel work, keep shared registrar edits in lead-owned files and split delegated work by module boundary, not by arbitrary file chunks.
 
 ### Frontend Work
 
@@ -130,6 +133,7 @@ Coverage thresholds are enforced by repo config. Do not restate a blanket percen
 - Wire routes through the current route composition layer.
 - Keep state ownership in the feature package when the domain is already migrated.
 - Add or update frontend tests with the change.
+- In coordinated parallel work, split by feature lane, keep `frontend/src/routes/**` lead-owned unless explicitly assigned, and do not reintroduce `frontend/src/pages/**`.
 
 ### Docs Work
 

@@ -127,6 +127,7 @@ const ContactDetail = () => {
       description={contactDescription}
       metadata={contactMetadata}
       actions={contactActions}
+      enableStickyTitle
     >
       {currentContact.tags && currentContact.tags.length > 0 ? (
         <BrutalCard color="white" className="p-4">

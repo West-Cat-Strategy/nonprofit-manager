@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-04-13
+**Last Updated:** 2026-04-14
 
 This file is the full documentation catalog. If you are starting work in the repository, begin with [../README.md](../README.md) first.
 
@@ -48,6 +48,7 @@ Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 | [development/CONVENTIONS.md](development/CONVENTIONS.md) | Code, validation, and workflow conventions |
 | [development/ARCHITECTURE.md](development/ARCHITECTURE.md) | Architecture decisions and current system shape |
 | [development/AGENT_INSTRUCTIONS.md](development/AGENT_INSTRUCTIONS.md) | Coding-agent guardrails for this repo |
+| [development/SUBAGENT_MODULARIZATION_GUIDE.md](development/SUBAGENT_MODULARIZATION_GUIDE.md) | Coordinated parallel-work guide for tracked modularization tasks |
 | [development/TROUBLESHOOTING.md](development/TROUBLESHOOTING.md) | Common development issues |
 | [development/RELEASE_CHECKLIST.md](development/RELEASE_CHECKLIST.md) | Release and handoff checklist |
 | [../backend/README.md](../backend/README.md) | Backend-specific development guide |

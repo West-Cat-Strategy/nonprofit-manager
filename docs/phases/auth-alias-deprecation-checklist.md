@@ -40,10 +40,13 @@ Legacy compatibility aliases currently accepted:
 - Structured log event emitted: `auth.alias_input_used`
   - fields: `route`, `aliasFields`, `correlationId`, `userAgent`, `timestamp`
 - Guardrail test coverage added: `backend/src/__tests__/modules/auth/aliasUsageTelemetry.test.ts`
+- Operations workflow for daily ratio tracking: [AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md)
 
 ## Deprecation Execution Checklist
 - [x] Add report artifact for alias usage trend.
   Current report: [AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](AUTH_ALIAS_USAGE_REPORT_2026-04-14.md)
+- [x] Document the Kibana query/dashboard workflow for daily alias ratios.
+  Current guide: [AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md)
 - [ ] Publish deprecation notice in release notes/docs with cutoff date.
 - [ ] Add CI/policy guard to block reintroduction of retired alias keys after cutoff.
 - [ ] Remove alias keys from Zod schemas and transforms.

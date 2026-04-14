@@ -26,6 +26,7 @@ Use narrower guides only when your change needs them:
 If your task is tracked, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before you start editing. The workboard is the source of truth for ownership, status, blockers, and handoff state.
 
 - Keep one active task per agent by default unless the workboard documents a coordinated exception.
+- For tracked modularization work that needs parallel lanes, follow [docs/development/SUBAGENT_MODULARIZATION_GUIDE.md](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md) and document the coordinated exception before code edits start.
 - Use task IDs in commits and pull request titles when the work is tracked.
 - Move work to `Blocked` or `Review` as soon as the status changes, with a short reason and next step.
 
@@ -44,6 +45,7 @@ Keep setup details in [docs/development/GETTING_STARTED.md](docs/development/GET
 - Prefer repo-root `make` targets over ad hoc command combinations.
 - Keep docs synchronized when commands, ports, workflows, contracts, or navigation change.
 - Use the current repo patterns instead of reintroducing retired ones.
+- In coordinated modularization work, keep one lead owner for shared seams such as the workboard, backend v2 registrar, frontend route catalogs, and final integration validation.
 
 For implementation-specific rules, defer to [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) and [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md).
 

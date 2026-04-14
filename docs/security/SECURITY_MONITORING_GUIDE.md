@@ -158,6 +158,48 @@ actions:
 # → Alert, require additional 2FA
 ```
 
+### Auth Alias Deprecation Monitoring
+
+Legacy snake_case auth input aliases are still accepted on:
+
+- `/api/v2/auth/register`
+- `/api/v2/auth/setup`
+- `/api/v2/auth/password`
+
+The production query/dashboard workflow for this deprecation gate lives in [../phases/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](../phases/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md).
+
+Use the existing structured alias event as the numerator:
+
+```text
+message:"auth.alias_input_used" and route:("/api/v2/auth/register" or "/api/v2/auth/setup" or "/api/v2/auth/password")
+```
+
+Use the shared response log as the denominator:
+
+```text
+message:"Outgoing response" and (
+  (method:"POST" and path:("/api/v2/auth/register" or "/api/v2/auth/setup")) or
+  (method:"PUT" and path:"/api/v2/auth/password")
+)
+```
+
+Track one daily ratio per route:
+
+```text
+alias_requests / total_requests
+```
+
+Dashboard guidance:
+
+- Build one Lens ratio panel per tracked route.
+- Use `timestamp` as the day bucket.
+- Show the metric as a percent with enough precision to catch near-zero residual use.
+- Add a detail table filtered to `message:"auth.alias_input_used"` so operators can inspect `aliasFields`, `correlationId`, and `userAgent`.
+
+Operational rule:
+
+- The alias-removal gate is satisfied only after 30 consecutive days where all three route ratios are exactly `0` and no approved integrator exception remains.
+
 ---
 
 ## Data Access Monitoring
