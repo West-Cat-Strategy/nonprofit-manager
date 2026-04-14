@@ -27,6 +27,7 @@ export * from './contactNotesSlice';
 export * from './contactCommunicationsSlice';
 export * from './contactRelationshipsSlice';
 export * from './contactDocumentsSlice';
+export * from './contactCases';
 
 // Selectors to abstract nested state structure
 export const selectContactsBase = (state: { contacts: ContactsState }) => state.contacts.core;

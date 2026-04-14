@@ -129,6 +129,7 @@ describe('Publishing API Integration', () => {
   let blockedSiteId: string;
   let analyticsSiteId: string;
   const createdContactIds: string[] = [];
+  const createdDonationIds: string[] = [];
 
   beforeAll(async () => {
     const suffix = unique();
@@ -319,6 +320,10 @@ describe('Publishing API Integration', () => {
   });
 
   afterAll(async () => {
+    if (createdDonationIds.length > 0) {
+      await pool.query('DELETE FROM donations WHERE id = ANY($1::uuid[])', [createdDonationIds]);
+    }
+
     if (createdContactIds.length > 0) {
       await pool.query('DELETE FROM contacts WHERE id = ANY($1::uuid[])', [createdContactIds]);
     }
@@ -503,6 +508,56 @@ describe('Publishing API Integration', () => {
     expect(publicResult.contactId).toBeTruthy();
     if (publicResult.contactId) {
       createdContactIds.push(publicResult.contactId);
+    }
+  });
+
+  it('submits public donation forms with the configured payment provider', async () => {
+    await withSiteConsoleAuth(
+      request(app).put(`/api/v2/sites/${activeSiteId}/integrations/stripe`),
+      authToken,
+      accountId
+    )
+      .send({
+        provider: 'paypal',
+        accountId,
+        currency: 'cad',
+        suggestedAmounts: [25, 50, 100],
+        recurringDefault: false,
+      })
+      .expect(200);
+
+    const publicSubmitResponse = await request(app)
+      .post(`/api/v2/public/forms/${activeSiteId}/donation-form-1/submit`)
+      .send({
+        first_name: 'Grace',
+        last_name: 'Hopper',
+        email: `publishing-donation-${unique()}@example.com`,
+        amount: 50,
+      })
+      .expect(201);
+
+    const publicResult = unwrap<{ donationId?: string; contactId?: string; message: string }>(
+      publicSubmitResponse.body
+    );
+    expect(publicResult.message).toBe('Donation started.');
+    expect(publicResult.donationId).toBeTruthy();
+    expect(publicResult.contactId).toBeTruthy();
+
+    if (publicResult.contactId) {
+      createdContactIds.push(publicResult.contactId);
+    }
+
+    if (publicResult.donationId) {
+      createdDonationIds.push(publicResult.donationId);
+      const donationResult = await pool.query<{
+        payment_provider: string | null;
+        is_recurring: boolean;
+      }>('SELECT payment_provider, is_recurring FROM donations WHERE id = $1', [publicResult.donationId]);
+
+      expect(donationResult.rows[0]).toMatchObject({
+        payment_provider: 'paypal',
+        is_recurring: false,
+      });
     }
   });
 

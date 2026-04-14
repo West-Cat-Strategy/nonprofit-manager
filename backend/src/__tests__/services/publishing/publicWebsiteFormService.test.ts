@@ -1,6 +1,6 @@
 import type { Pool } from 'pg';
 import { PublicWebsiteFormService } from '@services/publishing/publicWebsiteFormService';
-import stripeService from '@services/stripeService';
+import { paymentProviderService } from '@services/paymentProviderService';
 
 jest.mock('@services/publishing/siteManagementService', () => ({
   __mocks: {
@@ -95,10 +95,10 @@ jest.mock('@container/services', () => ({
   },
 }));
 
-jest.mock('@services/stripeService', () => ({
+jest.mock('@services/paymentProviderService', () => ({
   __esModule: true,
-  default: {
-    isStripeConfigured: jest.fn(),
+  paymentProviderService: {
+    isProviderConfigured: jest.fn(),
     createPaymentIntent: jest.fn(),
   },
 }));
@@ -202,7 +202,7 @@ const servicesModule = jest.requireMock('@container/services') as {
   };
 };
 
-const operationsModule = stripeService as jest.Mocked<typeof stripeService>;
+const paymentProviderModule = paymentProviderService as jest.Mocked<typeof paymentProviderService>;
 
 const mailchimpModule = jest.requireMock('@services/mailchimpService') as {
   __mocks: {
@@ -333,8 +333,8 @@ describe('PublicWebsiteFormService', () => {
     servicesModule.__mocks.createDonation.mockReset();
     servicesModule.__mocks.createPublicCheckoutPlan.mockReset();
     servicesModule.__mocks.createCase.mockReset();
-    operationsModule.isStripeConfigured.mockReset();
-    operationsModule.createPaymentIntent.mockReset();
+    paymentProviderModule.isProviderConfigured.mockReset();
+    paymentProviderModule.createPaymentIntent.mockReset();
     mailchimpModule.__mocks.addOrUpdateMember.mockReset();
     mailchimpModule.__mocks.isMailchimpConfigured.mockReset();
     newsletterProviderModule.default.resolveNewsletterProvider.mockReset();
@@ -343,7 +343,7 @@ describe('PublicWebsiteFormService', () => {
     publicSubmissionModule.__mocks.markAccepted.mockReset();
     publicSubmissionModule.__mocks.markRejected.mockReset();
     activityEventsModule.__mocks.recordEvent.mockReset();
-    operationsModule.isStripeConfigured.mockReturnValue(false);
+    paymentProviderModule.isProviderConfigured.mockReturnValue(false);
     mailchimpModule.__mocks.isMailchimpConfigured.mockReturnValue(false);
     publicSubmissionModule.__mocks.beginSubmission.mockResolvedValue({ submissionId: 'submission-1' });
     publicSubmissionModule.__mocks.markAccepted.mockResolvedValue(undefined);
@@ -722,7 +722,7 @@ describe('PublicWebsiteFormService', () => {
       redirect_url: 'https://checkout.stripe.com/pay/test-session',
       return_url: 'https://site.example.org/donate',
     });
-    operationsModule.isStripeConfigured.mockReturnValue(true);
+    paymentProviderModule.isProviderConfigured.mockReturnValue(true);
 
     const result = await service.submitForm(
       site as never,
@@ -778,6 +778,158 @@ describe('PublicWebsiteFormService', () => {
         auditMetadata: expect.objectContaining({
           recurringPlanId: 'plan-1',
         }),
+      })
+    );
+  });
+
+  it('uses the configured donation provider when monthly giving is selected from website settings', async () => {
+    const site = {
+      ...baseSite,
+      publishedContent: {
+        ...baseSite.publishedContent,
+        pages: [
+          {
+            ...baseSite.publishedContent.pages[0],
+            sections: [
+              {
+                id: 'section-1',
+                name: 'Forms',
+                components: [
+                  {
+                    id: 'donation-form-1',
+                    type: 'donation-form',
+                    recurringDefault: true,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          site_id: 'site-1',
+          organization_id: 'org-1',
+          newsletter_config: { provider: 'mautic' },
+          mailchimp_config: {},
+          mautic_config: {},
+          stripe_config: { provider: 'paypal' },
+          social_config: { facebook: {} },
+          form_defaults: {},
+          form_overrides: {},
+          conversion_tracking: {},
+          created_at: '2026-03-01T00:00:00.000Z',
+          updated_at: '2026-03-01T00:00:00.000Z',
+        },
+      ],
+    });
+    servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
+    servicesModule.__mocks.createPublicCheckoutPlan.mockResolvedValue({
+      plan: {
+        recurring_plan_id: 'plan-2',
+        status: 'checkout_pending',
+      },
+      redirect_url: 'https://checkout.example.org/pay/test-session',
+      return_url: 'https://site.example.org/donate',
+    });
+    paymentProviderModule.isProviderConfigured.mockReturnValue(true);
+
+    const result = await service.submitForm(site as never, 'donation-form-1', {
+      first_name: 'Ada',
+      last_name: 'Lovelace',
+      email: 'Ada@example.com',
+      amount: '25',
+      recurring: 'true',
+    });
+
+    expect(servicesModule.__mocks.createPublicCheckoutPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: 'paypal',
+        organizationId: 'org-1',
+        contactId: 'contact-1',
+      })
+    );
+    expect(result).toEqual({
+      formType: 'donation-form',
+      message: 'Redirecting you to secure checkout...',
+      contactId: 'contact-1',
+      recurringPlanId: 'plan-2',
+      recurringPlanStatus: 'checkout_pending',
+      redirectUrl: 'https://checkout.example.org/pay/test-session',
+      returnUrl: 'https://site.example.org/donate',
+    });
+  });
+
+  it('prefers a donation form provider override over the site default provider', async () => {
+    const site = {
+      ...baseSite,
+      publishedContent: {
+        ...baseSite.publishedContent,
+        pages: [
+          {
+            ...baseSite.publishedContent.pages[0],
+            sections: [
+              {
+                id: 'section-1',
+                name: 'Forms',
+                components: [
+                  {
+                    id: 'donation-form-1',
+                    type: 'donation-form',
+                    provider: 'square',
+                    recurringDefault: true,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          site_id: 'site-1',
+          organization_id: 'org-1',
+          newsletter_config: { provider: 'mautic' },
+          mailchimp_config: {},
+          mautic_config: {},
+          stripe_config: { provider: 'paypal' },
+          social_config: { facebook: {} },
+          form_defaults: {},
+          form_overrides: {},
+          conversion_tracking: {},
+          created_at: '2026-03-01T00:00:00.000Z',
+          updated_at: '2026-03-01T00:00:00.000Z',
+        },
+      ],
+    });
+    servicesModule.__mocks.createContact.mockResolvedValue({ contact_id: 'contact-1' });
+    servicesModule.__mocks.createPublicCheckoutPlan.mockResolvedValue({
+      plan: {
+        recurring_plan_id: 'plan-3',
+        status: 'checkout_pending',
+      },
+      redirect_url: 'https://checkout.example.org/pay/test-session',
+      return_url: 'https://site.example.org/donate',
+    });
+    paymentProviderModule.isProviderConfigured.mockReturnValue(true);
+
+    await service.submitForm(site as never, 'donation-form-1', {
+      first_name: 'Ada',
+      last_name: 'Lovelace',
+      email: 'Ada@example.com',
+      amount: '25',
+      recurring: 'true',
+    });
+
+    expect(servicesModule.__mocks.createPublicCheckoutPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: 'square',
       })
     );
   });

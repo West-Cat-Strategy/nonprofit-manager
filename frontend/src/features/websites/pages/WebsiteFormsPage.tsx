@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import type { PaymentProvider } from '../../../types/payment';
 import {
   WebsiteConsoleLayout,
   WebsiteConsoleNotice,
@@ -231,7 +232,8 @@ const WebsiteFormsPage: React.FC = () => {
                 }
               </div>
               <p className="mt-2 text-sm text-app-text-muted">
-                These CTAs need a newsletter provider or Stripe before they feel finished.
+                These CTAs need a newsletter provider or donation provider before they feel
+                finished.
               </p>
             </div>
             <div>
@@ -449,6 +451,20 @@ const WebsiteFormsPage: React.FC = () => {
                           placeholder="Currency (CAD, USD)"
                           className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
                         />
+                        <select
+                          aria-label="Donation provider"
+                          value={draft.provider || integrationStatus.stripe.provider || 'stripe'}
+                          onChange={(event) =>
+                            updateDraft(form.formKey, {
+                              provider: event.target.value as PaymentProvider,
+                            })
+                          }
+                          className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+                        >
+                          <option value="stripe">Stripe</option>
+                          <option value="paypal">PayPal</option>
+                          <option value="square">Square</option>
+                        </select>
                         <input
                           type="text"
                           value={draft.campaignId || ''}

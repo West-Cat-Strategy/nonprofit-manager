@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Pool } from 'pg';
 import dbPool from '@config/database';
+import type { PaymentProvider } from '@app-types/payment';
 import type {
   PublishedSite,
   RenderablePublishedComponent,
@@ -68,6 +69,9 @@ const cleanBoolean = (value: unknown): boolean | undefined => {
   if (typeof value === 'boolean') return value;
   return undefined;
 };
+
+const normalizePaymentProvider = (value: unknown): PaymentProvider | undefined =>
+  value === 'stripe' || value === 'paypal' || value === 'square' ? value : undefined;
 
 const cleanDate = (value: unknown): Date | null | undefined => {
   if (value === null) return null;
@@ -206,6 +210,7 @@ const normalizeStripeSettings = (value: unknown): WebsiteStripeSettings => {
   const config = asObject(value);
   return {
     accountId: config.accountId === null ? null : cleanString(config.accountId),
+    provider: normalizePaymentProvider(config.provider),
     currency: cleanString(config.currency)?.toLowerCase(),
     suggestedAmounts: cleanNumberArray(config.suggestedAmounts),
     recurringDefault: cleanBoolean(config.recurringDefault),
@@ -238,6 +243,7 @@ const normalizeOperationalConfig = (value: unknown): WebsiteFormOperationalConfi
     successMessage: cleanString(config.successMessage),
     accountId: config.accountId === null ? null : cleanString(config.accountId),
     campaignId: config.campaignId === null ? null : cleanString(config.campaignId),
+    provider: normalizePaymentProvider(config.provider),
     mailchimpListId:
       config.mailchimpListId === null ? null : cleanString(config.mailchimpListId),
     mauticSegmentId:
@@ -306,7 +312,9 @@ const buildDefaultSettings = (
   },
   mailchimp: {},
   mautic: {},
-  stripe: {},
+  stripe: {
+    provider: 'stripe',
+  },
   social: {
     facebook: {},
   },
@@ -322,9 +330,9 @@ export const mergeWebsiteFormOperationalConfig = (
   settings: WebsiteSiteSettings,
   formKey: string
 ): WebsiteFormOperationalConfig => ({
-  ...normalizeOperationalConfig(sourceConfig),
-  ...settings.formDefaults,
-  ...(settings.formOverrides[formKey] || {}),
+  ...stripUndefined(normalizeOperationalConfig(sourceConfig)),
+  ...stripUndefined(settings.formDefaults),
+  ...stripUndefined(settings.formOverrides[formKey] || {}),
 });
 
 export const mergeManagedComponentConfig = (

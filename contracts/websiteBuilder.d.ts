@@ -19,6 +19,7 @@ export type PageCollectionType = 'events' | 'newsletters';
 export type WebsiteEntryKind = 'newsletter';
 export type WebsiteEntrySource = 'native' | 'mailchimp';
 export type WebsiteEntryStatus = 'draft' | 'published' | 'archived';
+export type PaymentProvider = 'stripe' | 'paypal' | 'square';
 export type RegistrationStatusValue =
   | 'registered'
   | 'waitlisted'
@@ -368,6 +369,7 @@ export interface DonationFormComponent extends BaseComponentProps {
   heading?: string;
   description?: string;
   submitText?: string;
+  provider?: PaymentProvider;
   suggestedAmounts?: number[];
   allowCustomAmount?: boolean;
   recurringOption?: boolean;

@@ -156,6 +156,99 @@ describe('WebsiteSiteSettingsService', () => {
     ]);
   });
 
+  it('persists donation provider defaults when Stripe settings include a payment provider', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            mailchimp_config: {},
+            stripe_config: {},
+            form_defaults: {},
+            form_overrides: {},
+            conversion_tracking: {},
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-01T00:00:00.000Z',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            site_id: 'site-1',
+            organization_id: 'org-1',
+            mailchimp_config: {},
+            stripe_config: {
+              provider: 'paypal',
+              currency: 'usd',
+              recurringDefault: true,
+              campaignId: 'spring-drive',
+            },
+            form_defaults: {},
+            form_overrides: {},
+            conversion_tracking: {},
+            created_at: '2026-03-01T00:00:00.000Z',
+            updated_at: '2026-03-06T00:00:00.000Z',
+          },
+        ],
+      });
+
+    const result = await service.updateStripeSettings(
+      'site-1',
+      {
+        provider: 'paypal',
+        currency: 'usd',
+        recurringDefault: true,
+        campaignId: 'spring-drive',
+      },
+      'user-1',
+      'org-1'
+    );
+
+    expect(result.stripe).toEqual({
+      provider: 'paypal',
+      currency: 'usd',
+      recurringDefault: true,
+      campaignId: 'spring-drive',
+    });
+    expect(mockQuery.mock.calls[1]?.[1]).toEqual([
+      'site-1',
+      'org-1',
+      JSON.stringify({
+        provider: 'mautic',
+        selectedAudienceId: null,
+        selectedAudienceName: null,
+        selectedPresetId: null,
+        listPresets: [],
+        lastRefreshedAt: null,
+      }),
+      JSON.stringify({}),
+      JSON.stringify({}),
+      JSON.stringify({
+        provider: 'paypal',
+        currency: 'usd',
+        recurringDefault: true,
+        campaignId: 'spring-drive',
+      }),
+      JSON.stringify({
+        facebook: {},
+      }),
+      JSON.stringify({}),
+      JSON.stringify({}),
+      JSON.stringify({
+        enabled: true,
+        events: {
+          formSubmit: true,
+          donation: true,
+          eventRegister: true,
+        },
+      }),
+      'user-1',
+      'user-1',
+    ]);
+  });
+
   it('blocks settings mutations for sites awaiting organization assignment', async () => {
     siteManagementModule.__mocks.getSite.mockResolvedValue({
       ...baseSite,

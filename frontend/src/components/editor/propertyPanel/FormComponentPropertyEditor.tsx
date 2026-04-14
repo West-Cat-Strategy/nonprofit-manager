@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PageComponent } from '../../../types/websiteBuilder';
+import type { PaymentProvider } from '../../../types/payment';
 
 interface FormComponentPropertyEditorProps {
   selectedComponent: PageComponent;
@@ -202,6 +203,25 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
               rows={3}
               className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">
+              Donation Provider
+            </label>
+            <select
+              value={selectedComponent.provider || 'stripe'}
+              onChange={(e) =>
+                update({
+                  provider: e.target.value as PaymentProvider,
+                })
+              }
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            >
+              <option value="stripe">Stripe</option>
+              <option value="paypal">PayPal</option>
+              <option value="square">Square</option>
+            </select>
           </div>
 
           <div>

@@ -20,10 +20,23 @@ describe('routeCatalog matching', () => {
     );
     expect(matchRouteCatalogEntry('/settings/email-marketing')?.id).toBe('email-marketing');
     expect(
-      getRouteLocalNavigation('/settings/email-marketing').find(
-        (entry) => entry.id === 'communications'
-      )?.isActive
-    ).toBe(true);
+      getRouteBreadcrumbs('/settings/email-marketing').map(({ label, current }) => ({
+        label,
+        current: Boolean(current),
+      }))
+    ).toEqual([
+      { label: 'Communications', current: false },
+      { label: 'Email Marketing', current: true },
+    ]);
+    expect(
+      getRouteBreadcrumbs('/settings/email-marketing?ref=legacy').map(({ label, current }) => ({
+        label,
+        current: Boolean(current),
+      }))
+    ).toEqual([
+      { label: 'Communications', current: false },
+      { label: 'Email Marketing', current: true },
+    ]);
   });
 
   it('matches canonical and dynamic routes', () => {

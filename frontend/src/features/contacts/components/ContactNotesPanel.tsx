@@ -7,7 +7,7 @@ import {
   deleteContactNote,
   updateContactNote,
 } from '../state';
-import { selectCasesByContact } from '../../cases/state';
+import { selectContactCasesByContact } from '../state/contactCases';
 import OutcomeTagSelector from '../../outcomes/components/OutcomeTagSelector';
 import { useOutcomeDefinitions } from '../../outcomes/hooks/useOutcomeDefinitions';
 import { buildOutcomeImpactPayload } from '../../outcomes/utils/outcomeSelection';
@@ -44,7 +44,7 @@ const emptyNoteDraft = (): ContactNoteDraft => ({
 const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: ContactNotesProps) => {
   const dispatch = useAppDispatch();
   const { contactNotes, notesLoading } = useAppSelector((state) => state.contacts.notes);
-  const contactCases = useAppSelector((state) => selectCasesByContact(state, contactId));
+  const contactCases = useAppSelector((state) => selectContactCasesByContact(state, contactId));
   const {
     outcomeDefinitions,
     canTagOutcomes,

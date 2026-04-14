@@ -2,12 +2,29 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import ContactNotes from '../ContactNotesPanel';
 import contactsReducer from '../../state';
-import casesReducer from '../../../cases/state';
 import { resetOutcomeDefinitionsCache } from '../../../outcomes/hooks/useOutcomeDefinitions';
 import { renderWithProviders } from '../../../../test/testUtils';
 import api from '../../../../services/api';
 
 const listOutcomeDefinitionsMock = vi.fn();
+
+const caseItem = {
+  id: 'case-1',
+  case_number: 'CASE-001',
+  contact_id: 'contact-1',
+  case_type_id: 'type-1',
+  status_id: 'status-1',
+  priority: 'medium',
+  title: 'Housing support',
+  intake_date: '2026-03-01',
+  is_urgent: false,
+  client_viewable: false,
+  requires_followup: false,
+  created_at: '2026-03-01T00:00:00.000Z',
+  updated_at: '2026-03-01T00:00:00.000Z',
+} as const;
+
+const contactCases = [caseItem];
 
 vi.mock('../../services/api', () => ({
   default: {
@@ -16,6 +33,10 @@ vi.mock('../../services/api', () => ({
     put: vi.fn(),
     delete: vi.fn(),
   },
+}));
+
+vi.mock('../../state/contactCases', () => ({
+  selectContactCasesByContact: () => contactCases,
 }));
 
 vi.mock('../../../cases/api/casesApiClient', () => ({
@@ -40,40 +61,12 @@ const mockApi = api as {
 
 const createEnvelope = <T,>(data: T) => ({ data: { success: true as const, data } });
 
-const caseItem = {
-  id: 'case-1',
-  case_number: 'CASE-001',
-  contact_id: 'contact-1',
-  case_type_id: 'type-1',
-  status_id: 'status-1',
-  priority: 'medium',
-  title: 'Housing support',
-  intake_date: '2026-03-01',
-  is_urgent: false,
-  client_viewable: false,
-  requires_followup: false,
-  created_at: '2026-03-01T00:00:00.000Z',
-  updated_at: '2026-03-01T00:00:00.000Z',
-} as const;
-
 const renderContactNotes = () => {
   const contactsState = contactsReducer(undefined, { type: '@@INIT' });
-  const casesState = casesReducer(undefined, { type: '@@INIT' });
 
   return renderWithProviders(<ContactNotes contactId="contact-1" />, {
     preloadedState: {
       contacts: contactsState,
-      cases: {
-        ...casesState,
-        contactCasesByContactId: {
-          'contact-1': {
-            cases: [caseItem],
-            fetchedAt: Date.now(),
-            loading: false,
-            error: null,
-          },
-        },
-      },
     },
   });
 };

@@ -14,10 +14,8 @@ vi.mock('../../api/contactsApiClient', () => ({
   },
 }));
 
-vi.mock('../../../cases/api/casesApiClient', () => ({
-  casesApiClient: {
-    sendCaseAppointmentReminder: (...args: unknown[]) => sendAppointmentReminderMock(...args),
-  },
+vi.mock('../../api/contactCommunicationsActions', () => ({
+  resendContactAppointmentReminder: (...args: unknown[]) => sendAppointmentReminderMock(...args),
 }));
 
 vi.mock('../../../../contexts/useToast', () => ({

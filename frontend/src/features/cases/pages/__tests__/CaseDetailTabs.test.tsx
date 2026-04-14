@@ -121,6 +121,7 @@ vi.mock('../../../../features/cases/state', () => ({
   deleteCase: (id: string) => ({ type: 'case/delete', payload: id }),
   clearCurrentCase: () => ({ type: 'case/clearCurrent' }),
   fetchCaseStatuses: () => ({ type: 'case/fetchStatuses' }),
+  fetchCasesByContact: (payload: unknown) => ({ type: 'case/fetchCasesByContact', payload }),
   fetchCaseMilestones: (id: string) => ({ type: 'case/fetchMilestones', payload: id }),
   fetchCaseOutcomeDefinitions: (includeInactive?: boolean) => ({
     type: 'case/fetchOutcomeDefinitions',

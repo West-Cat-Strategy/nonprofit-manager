@@ -290,8 +290,8 @@ export const buildManagementSnapshot = (
   if (forms.some((form) => form.formType === 'donation-form') && !integrations.stripe.configured) {
     addAttentionItem({
       id: 'stripe',
-      title: 'Donation forms need Stripe',
-      detail: 'Donation and recurring support actions are waiting on Stripe configuration.',
+      title: 'Donation forms need a payment provider',
+      detail: 'Donation and recurring support actions are waiting on the selected provider.',
       severity: 'critical',
       href: `/websites/${site.id}/integrations`,
       actionLabel: 'Open integrations',

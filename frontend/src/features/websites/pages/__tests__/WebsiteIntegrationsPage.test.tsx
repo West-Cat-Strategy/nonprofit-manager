@@ -34,7 +34,7 @@ const overview = {
   },
 };
 
-const buildState = (provider: 'mautic' | 'mailchimp') => ({
+const buildState = (provider: 'mautic' | 'mailchimp', donationProvider: 'stripe' | 'paypal' | 'square' = 'stripe') => ({
   websites: {
     overview: null,
     currentSiteData: {
@@ -85,6 +85,7 @@ const buildState = (provider: 'mautic' | 'mailchimp') => ({
         },
         stripe: {
           accountId: 'org-1',
+          provider: donationProvider,
           currency: 'cad',
           suggestedAmounts: [20, 40, 80],
           recurringDefault: true,
@@ -127,13 +128,13 @@ vi.mock('../../state', async () => {
 describe('WebsiteIntegrationsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    currentState = buildState('mautic');
+    currentState = buildState('mautic', 'paypal');
     dispatchMock.mockImplementation((action: { type?: string }) =>
       Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
     );
   });
 
-  it('loads integration status and saves Mautic defaults by default', async () => {
+  it('loads integration status and saves donation provider defaults', async () => {
     renderPage();
 
     await waitFor(() => {
@@ -144,6 +145,7 @@ describe('WebsiteIntegrationsPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Newsletter provider' })).toBeInTheDocument();
     expect(screen.getByLabelText('Newsletter provider')).toHaveValue('mautic');
+    expect(screen.getByLabelText('Donation provider')).toHaveValue('paypal');
 
     fireEvent.change(screen.getByLabelText('Mautic segment ID'), {
       target: { value: 'seg-2' },
@@ -173,7 +175,10 @@ describe('WebsiteIntegrationsPage', () => {
     });
     expect(screen.getByText('Mautic settings saved.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save Stripe settings' }));
+    fireEvent.change(screen.getByLabelText('Donation provider'), {
+      target: { value: 'square' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save donation settings' }));
 
     await waitFor(() => {
       expect(dispatchMock).toHaveBeenCalledWith(
@@ -183,6 +188,7 @@ describe('WebsiteIntegrationsPage', () => {
             siteId: 'site-1',
             data: expect.objectContaining({
               accountId: 'org-1',
+              provider: 'square',
               currency: 'cad',
               suggestedAmounts: [20, 40, 80],
               recurringDefault: true,
@@ -192,7 +198,7 @@ describe('WebsiteIntegrationsPage', () => {
         })
       );
     });
-    expect(screen.getByText('Stripe settings saved.')).toBeInTheDocument();
+    expect(screen.getByText('Donation provider settings saved.')).toBeInTheDocument();
   });
 
   it('switches to Mailchimp and preserves the legacy audience settings', async () => {

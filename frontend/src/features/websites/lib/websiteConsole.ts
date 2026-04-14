@@ -32,8 +32,8 @@ const FORM_SURFACE_META: Record<WebsiteManagedFormType, FormSurfaceMeta> = {
   },
   'donation-form': {
     label: 'Donate',
-    description: 'Donation amounts and recurring support depend on Stripe.',
-    dependencyLabel: 'Stripe',
+    description: 'Donation amounts and recurring support depend on the selected payment provider.',
+    dependencyLabel: 'Donation provider',
     dependencyKey: 'stripe',
   },
   'volunteer-interest-form': {
@@ -77,7 +77,7 @@ const hasIntegration = (
         integrations.newsletter.configured && integrations.newsletter.selectedAudienceId
       );
     case 'stripe':
-      return integrations.stripe.configured && integrations.stripe.publishableKeyConfigured;
+      return integrations.stripe.configured;
     case 'crm':
     case 'events':
       return true;
@@ -443,8 +443,8 @@ export const deriveWebsiteManagementSnapshot = (
   if (donationForms.length > 0 && !integrations.stripe.configured) {
     attentionItems.push({
       id: 'stripe',
-      title: 'Donation forms need Stripe',
-      detail: 'Donation and recurring support actions are waiting on Stripe configuration.',
+      title: 'Donation forms need a payment provider',
+      detail: 'Donation and recurring support actions are waiting on the selected provider.',
       severity: 'critical',
       href: `/websites/${overview.site.id}/integrations`,
       actionLabel: 'Open integrations',

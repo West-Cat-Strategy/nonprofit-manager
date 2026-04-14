@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { clearCurrentContact, fetchContactById, fetchContactNotes } from '../state';
+import { fetchContactCasesByContact, selectContactCasesByContact } from '../state/contactCases';
 import type { Contact } from '../state';
-import { fetchCasesByContact, selectCasesByContact } from '../../cases/state';
 import type { ContactNote } from '../../../types/contact';
 import { BrutalBadge, BrutalButton } from '../../../components/neo-brutalist';
 import { isUuid } from '../../../utils/uuid';
@@ -65,7 +65,9 @@ export const useContactDetailPage = () => {
       contactNotes: notes.contactNotes ?? contactsModule?.contactNotes ?? [],
     };
   });
-  const contactCases = useAppSelector((state) => (hasValidId && id ? selectCasesByContact(state, id) : []));
+  const contactCases = useAppSelector((state) =>
+    hasValidId && id ? selectContactCasesByContact(state, id) : []
+  );
 
   const [activeTab, setActiveTab] = useState<ContactDetailTab>('overview');
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -78,7 +80,7 @@ export const useContactDetailPage = () => {
     }
 
     dispatch(fetchContactById(id));
-    dispatch(fetchCasesByContact(id));
+    dispatch(fetchContactCasesByContact(id));
     dispatch(fetchContactNotes(id));
   }, [dispatch, hasValidId, id]);
 

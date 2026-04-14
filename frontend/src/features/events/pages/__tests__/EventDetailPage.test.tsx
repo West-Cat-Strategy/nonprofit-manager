@@ -10,40 +10,42 @@ const dispatchMock = vi.fn();
 const navigateMock = vi.fn();
 
 const mockState = {
-  eventDetail: {
-    loading: false,
-    event: {
-      event_id: 'event-123',
-      event_name: 'Spring Gala',
-      description: 'Fundraising night',
-      event_type: 'fundraiser',
-      status: 'planned',
-      is_public: true,
-      is_recurring: false,
-      start_date: '2026-06-01T18:00:00.000Z',
-      end_date: '2026-06-01T20:00:00.000Z',
-      registered_count: 3,
+  events: {
+    detail: {
+      loading: false,
+      event: {
+        event_id: 'event-123',
+        event_name: 'Spring Gala',
+        description: 'Fundraising night',
+        event_type: 'fundraiser',
+        status: 'planned',
+        is_public: true,
+        is_recurring: false,
+        start_date: '2026-06-01T18:00:00.000Z',
+        end_date: '2026-06-01T20:00:00.000Z',
+        registered_count: 3,
+      },
     },
-  },
-  eventRegistration: {
-    registrations: [],
-    loading: false,
-    actionLoading: false,
-    error: null,
-  },
-  eventReminders: {
-    sending: false,
-    lastSummary: null,
-    error: null,
-  },
-  eventAutomation: {
-    automations: [],
-    loading: false,
-    creating: false,
-    cancelling: false,
-    syncing: false,
-    lastCancelledAutomationId: null,
-    error: null,
+    registration: {
+      registrations: [],
+      loading: false,
+      actionLoading: false,
+      error: null,
+    },
+    reminders: {
+      sending: false,
+      lastSummary: null,
+      error: null,
+    },
+    automation: {
+      automations: [],
+      loading: false,
+      creating: false,
+      cancelling: false,
+      syncing: false,
+      lastCancelledAutomationId: null,
+      error: null,
+    },
   },
 };
 

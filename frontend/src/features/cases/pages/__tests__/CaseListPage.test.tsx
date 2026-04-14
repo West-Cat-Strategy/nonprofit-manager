@@ -148,6 +148,7 @@ vi.mock('../../../../features/cases/state', () => ({
   fetchCaseSummary: () => ({ type: 'cases/fetchSummary' }),
   fetchCaseTypes: () => ({ type: 'cases/fetchTypes' }),
   fetchCaseStatuses: () => ({ type: 'cases/fetchStatuses' }),
+  fetchCasesByContact: (payload: unknown) => ({ type: 'cases/fetchCasesByContact', payload }),
   setFilters: (payload: unknown) => ({ type: 'cases/setFilters', payload }),
   clearFilters: () => ({ type: 'cases/clearFilters' }),
   toggleCaseSelection: (payload: unknown) => ({ type: 'cases/toggleSelection', payload }),

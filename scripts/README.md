@@ -1,6 +1,6 @@
 # Script Index
 
-**Last Updated:** 2026-04-13
+**Last Updated:** 2026-04-14
 
 This directory contains the repo-local helpers used by the Makefile, deployment scripts, and docs workflow.
 Prefer the `make` targets when they exist. Call the scripts directly when you need the narrower entrypoint.
@@ -26,6 +26,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [test-auth.js](test-auth.js) | Probe public login/setup pages and the auth API. | `./scripts/test-auth-flow.sh` |
 | [daily-security-report.py](daily-security-report.py) | Generate a lightweight security-status report from repo checks. | `python3 scripts/daily-security-report.py` |
 | [e2e-port-preflight.sh](e2e-port-preflight.sh) | Reserve or clean up the ports used by the Playwright harness. | `e2e` package scripts |
+| [e2e-playwright.sh](e2e-playwright.sh) | Apply the repo's standard host or Docker Playwright defaults before running the lock wrapper. | `e2e` package scripts |
 | [e2e-run-with-lock.sh](e2e-run-with-lock.sh) | Run Playwright with the shared lock and port safeguards. | `e2e` package scripts |
 
 ## Policy Checks

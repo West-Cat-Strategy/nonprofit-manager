@@ -10,6 +10,7 @@ import { requireActiveOrganizationContext } from '@middleware/requireActiveOrgan
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as publishingController from '../controllers';
 import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
+import { paymentProviderSchema } from '@validations/donation';
 
 const router = Router();
 const withOrganizationContext = [authenticate, requireActiveOrganizationContext] as const;
@@ -156,6 +157,7 @@ const formOperationalSettingsSchema = z
     successMessage: z.string().trim().max(500).optional(),
     accountId: z.union([uuidSchema, z.null()]).optional(),
     campaignId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
+    provider: paymentProviderSchema.optional(),
     mailchimpListId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
     mauticSegmentId: z.union([z.string().trim().min(1).max(255), z.null()]).optional(),
     audienceMode: z.enum(['crm', 'mailchimp', 'mautic', 'both']).optional(),
@@ -243,6 +245,7 @@ const updateSiteNewsletterListPresetSchema = createSiteNewsletterListPresetSchem
 const updateSiteStripeSettingsSchema = z
   .object({
     accountId: z.union([uuidSchema, z.null()]).optional(),
+    provider: paymentProviderSchema.optional(),
     currency: z.string().trim().min(3).max(10).optional(),
     suggestedAmounts: z.array(z.coerce.number().positive()).max(12).optional(),
     recurringDefault: optionalStrictBooleanSchema,

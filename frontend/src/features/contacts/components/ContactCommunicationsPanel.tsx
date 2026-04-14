@@ -8,7 +8,7 @@ import type {
   ContactCommunicationSourceType,
 } from '../../../types/contact';
 import { formatDateTime } from '../../../utils/format';
-import { casesApiClient } from '../../cases/api/casesApiClient';
+import { resendContactAppointmentReminder } from '../api/contactCommunicationsActions';
 import { contactsApiClient } from '../api/contactsApiClient';
 
 interface ContactCommunicationsPanelProps {
@@ -117,7 +117,7 @@ export default function ContactCommunicationsPanel({ contactId }: ContactCommuni
 
     try {
       setSendingId(item.id);
-      await casesApiClient.sendCaseAppointmentReminder(item.action.appointment_id, {
+      await resendContactAppointmentReminder(item.action.appointment_id, {
         sendEmail: item.channel === 'email',
         sendSms: item.channel === 'sms',
       });

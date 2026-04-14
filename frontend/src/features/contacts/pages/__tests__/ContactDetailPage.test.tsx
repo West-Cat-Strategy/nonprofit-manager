@@ -7,6 +7,7 @@ import ContactDetail from '../ContactDetailPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn();
+const contactCases = [];
 
 const mockState = {
   contacts: {
@@ -49,53 +50,9 @@ vi.mock('../../../../features/contacts/state', () => ({
   fetchContactNotes: (id: string) => ({ type: 'contacts/fetchNotes', payload: id }),
 }));
 
-vi.mock('../../../../features/cases/state', () => ({
-  default: () => ({
-    cases: [],
-    currentCase: null,
-    caseTypes: [],
-    caseStatuses: [],
-    caseNotes: [],
-    caseMilestones: [],
-    caseRelationships: [],
-    caseServices: [],
-    caseOutcomeDefinitions: [],
-    interactionOutcomeImpacts: {},
-    summary: null,
-    total: 0,
-    loading: false,
-    error: null,
-    outcomesLoading: false,
-    outcomesSaving: false,
-    outcomesError: null,
-    filters: { page: 1, limit: 20, sort_by: 'created_at', sort_order: 'desc' },
-    selectedCaseIds: [],
-    contactCasesByContactId: {},
-  }),
-  casesV2Reducer: () => ({
-    cases: [],
-    currentCase: null,
-    caseTypes: [],
-    caseStatuses: [],
-    caseNotes: [],
-    caseMilestones: [],
-    caseRelationships: [],
-    caseServices: [],
-    caseOutcomeDefinitions: [],
-    interactionOutcomeImpacts: {},
-    summary: null,
-    total: 0,
-    loading: false,
-    error: null,
-    outcomesLoading: false,
-    outcomesSaving: false,
-    outcomesError: null,
-    filters: { page: 1, limit: 20, sort_by: 'created_at', sort_order: 'desc' },
-    selectedCaseIds: [],
-    contactCasesByContactId: {},
-  }),
-  fetchCasesByContact: (id: string) => ({ type: 'cases/fetchByContact', payload: id }),
-  selectCasesByContact: () => [],
+vi.mock('../../../../features/contacts/state/contactCases', () => ({
+  fetchContactCasesByContact: (id: string) => ({ type: 'contacts/fetchCasesByContact', payload: id }),
+  selectContactCasesByContact: () => contactCases,
 }));
 
 vi.mock('../../../../components/neo-brutalist', () => ({
@@ -157,7 +114,7 @@ describe('Contact detail route validation', () => {
       payload: 'not-a-uuid',
     });
     expect(dispatchMock).not.toHaveBeenCalledWith({
-      type: 'cases/fetchByContact',
+      type: 'contacts/fetchCasesByContact',
       payload: 'not-a-uuid',
     });
     expect(dispatchMock).not.toHaveBeenCalledWith({

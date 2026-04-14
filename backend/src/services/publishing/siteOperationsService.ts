@@ -17,7 +17,7 @@ import { newsletterProviderService } from '@services/domains/integration';
 import mailchimpService from '@services/mailchimpService';
 import mauticService from '@services/mauticService';
 import { mapRowToTemplate } from '@services/template/helpers';
-import stripeService from '@services/stripeService';
+import { paymentProviderService } from '@services/paymentProviderService';
 import { socialMediaService } from '@modules/socialMedia';
 import { FormRegistryService, formRegistryService } from './formRegistryService';
 import { SiteAnalyticsService } from './siteAnalyticsService';
@@ -402,6 +402,8 @@ export class SiteOperationsService {
       }
     }
 
+    const donationProvider = settings.stripe.provider || 'stripe';
+
     return {
       blocked: site.migrationStatus === 'needs_assignment',
       publishStatus: site.status,
@@ -448,7 +450,8 @@ export class SiteOperationsService {
       },
       stripe: {
         ...settings.stripe,
-        configured: stripeService.isStripeConfigured(),
+        provider: donationProvider,
+        configured: paymentProviderService.isProviderConfigured(donationProvider),
         publishableKeyConfigured: Boolean(process.env.STRIPE_PUBLISHABLE_KEY),
       },
       social: {

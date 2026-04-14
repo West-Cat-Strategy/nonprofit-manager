@@ -103,6 +103,7 @@ export function createNewComponent(type: ComponentType): PageComponent {
     },
     'donation-form': {
       type: 'donation-form',
+      provider: 'stripe',
       suggestedAmounts: [25, 50, 100, 250],
       allowCustomAmount: true,
       recurringOption: true,

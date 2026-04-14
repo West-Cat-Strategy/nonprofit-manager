@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
 import type * as WebsitesStateModule from '../../state';
@@ -30,7 +30,7 @@ const overview = {
   },
 };
 
-const mockState = {
+const buildState = (donationProvider: 'stripe' | 'paypal' | 'square' = 'stripe') => ({
   websites: {
     overview: null,
     currentSiteData: {
@@ -56,19 +56,79 @@ const mockState = {
             defaultTags: ['supporter'],
           },
         },
+        {
+          formKey: 'donation-form-1',
+          componentId: 'donation-form-1',
+          formType: 'donation-form',
+          title: 'Donation form',
+          pageId: 'page-1',
+          pageName: 'Home',
+          pageSlug: 'home',
+          pageType: 'static',
+          routePattern: '/',
+          path: '/',
+          live: true,
+          blocked: false,
+          sourceConfig: {},
+          operationalSettings: {
+            heading: 'Support the work',
+            currency: 'cad',
+            provider: donationProvider,
+            recurringDefault: true,
+            suggestedAmounts: [25, 50, 100],
+          },
+        },
       ],
-      integrations: null,
+      integrations: {
+        blocked: false,
+        publishStatus: 'published',
+        newsletter: {
+          provider: 'mautic',
+          configured: true,
+          selectedAudienceId: 'seg-1',
+          selectedAudienceName: 'Supporters',
+          selectedPresetId: null,
+          listPresets: [],
+          availableAudiences: [],
+          audienceCount: 0,
+          lastRefreshedAt: null,
+          lastSyncAt: null,
+        },
+        mailchimp: {
+          configured: false,
+          availableAudiences: [],
+          lastSyncAt: null,
+        },
+        mautic: {
+          configured: true,
+          availableAudiences: [],
+          lastSyncAt: null,
+        },
+        stripe: {
+          provider: donationProvider,
+          configured: true,
+          publishableKeyConfigured: true,
+        },
+        social: {
+          facebook: {
+            lastSyncAt: null,
+            lastSyncError: null,
+          },
+        },
+      },
       analytics: null,
     },
     isLoading: false,
     isSaving: false,
     error: null,
   },
-};
+});
+
+let currentState = buildState();
 
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
+  useAppSelector: (selector: (state: typeof currentState) => unknown) => selector(currentState),
 }));
 
 vi.mock('../../hooks/useWebsiteOverviewLoader', () => ({
@@ -89,6 +149,7 @@ vi.mock('../../state', async () => {
 describe('WebsiteFormsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    currentState = buildState();
     dispatchMock.mockImplementation((action: { type?: string }) =>
       Promise.resolve({ type: `${action.type}/fulfilled`, payload: action })
     );
@@ -106,10 +167,12 @@ describe('WebsiteFormsPage', () => {
     expect(screen.getByText('Connected CTAs')).toBeInTheDocument();
     expect(screen.getByText('Contact form')).toBeInTheDocument();
     expect(screen.getByText(/Public CTA: Contact \/ referral/i)).toBeInTheDocument();
-    fireEvent.change(screen.getByPlaceholderText('Success message'), {
+    const contactCard = screen.getByText('Contact form').closest('article');
+    expect(contactCard).not.toBeNull();
+    fireEvent.change(within(contactCard as HTMLElement).getByPlaceholderText('Success message'), {
       target: { value: 'Thanks for reaching out.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save form settings' }));
+    fireEvent.click(within(contactCard as HTMLElement).getByRole('button', { name: 'Save form settings' }));
 
     await waitFor(() => {
       expect(dispatchMock).toHaveBeenCalledWith(
@@ -128,6 +191,47 @@ describe('WebsiteFormsPage', () => {
       );
     });
     expect(screen.getByText('Form settings saved.')).toBeInTheDocument();
+  });
+
+  it('saves donation form provider defaults alongside the recurring checkout settings', async () => {
+    currentState = buildState('paypal');
+    renderPage();
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'websites/fetchForms', payload: 'site-1' })
+      );
+    });
+
+    fireEvent.change(screen.getByLabelText('Donation provider'), {
+      target: { value: 'square' },
+    });
+    const donationCard = screen.getByText('Donation form').closest('article');
+    expect(donationCard).not.toBeNull();
+    fireEvent.change(within(donationCard as HTMLElement).getByPlaceholderText('Currency (CAD, USD)'), {
+      target: { value: 'usd' },
+    });
+    fireEvent.click(
+      within(donationCard as HTMLElement).getByRole('button', { name: 'Save form settings' })
+    );
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'websites/updateForm',
+          payload: {
+            siteId: 'site-1',
+            formKey: 'donation-form-1',
+            data: expect.objectContaining({
+              heading: 'Support the work',
+              currency: 'usd',
+              provider: 'square',
+              recurringDefault: true,
+            }),
+          },
+        })
+      );
+    });
   });
 });
 

@@ -48,6 +48,12 @@ const writeDraftMap = (drafts: Record<string, PersistedMessageDraft>): void => {
   }
 
   clearLegacyDraftStorage();
+
+  if (Object.keys(drafts).length === 0) {
+    window.sessionStorage.removeItem(STORAGE_KEY);
+    return;
+  }
+
   window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(drafts));
 };
 

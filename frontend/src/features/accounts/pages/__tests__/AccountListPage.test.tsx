@@ -11,15 +11,17 @@ const { dispatchMock, importExportModalMock } = vi.hoisted(() => ({
 
 const state = {
   accounts: {
-    accounts: [],
-    loading: false,
-    error: null,
-    pagination: { total: 0, page: 1, limit: 20, total_pages: 1 },
-    filters: {
-      search: '',
-      account_type: '',
-      category: '',
-      is_active: true,
+    list: {
+      accounts: [],
+      loading: false,
+      error: null,
+      pagination: { total: 0, page: 1, limit: 20, total_pages: 1 },
+      filters: {
+        search: '',
+        account_type: '',
+        category: '',
+        is_active: true,
+      },
     },
   },
 };

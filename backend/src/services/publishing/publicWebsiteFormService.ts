@@ -5,9 +5,10 @@ import type { PublishedSite, RenderablePublishedComponent } from '@app-types/pub
 import { AvailabilityStatus } from '@app-types/volunteer';
 import type { Activity } from '@app-types/activity';
 import type { RecurringDonationPlanStatus } from '@app-types/recurringDonation';
+import type { PaymentProvider } from '@app-types/payment';
 import { activityEventService, type CreateActivityEventInput } from '@services/activityEventService';
 import newsletterProviderService from '@services/newsletterProviderService';
-import stripeService from '@services/stripeService';
+import { paymentProviderService } from '@services/paymentProviderService';
 import { SiteManagementService } from './siteManagementService';
 import {
   PublicSubmissionConflictError,
@@ -40,7 +41,7 @@ export interface PublicWebsiteFormResult {
   recurringPlanStatus?: RecurringDonationPlanStatus;
   redirectUrl?: string;
   returnUrl?: string;
-  paymentIntent?: Awaited<ReturnType<typeof stripeService.createPaymentIntent>>;
+  paymentIntent?: Awaited<ReturnType<typeof paymentProviderService.createPaymentIntent>>;
   mailchimpSynced?: boolean;
   newsletterSynced?: boolean;
   idempotentReplay?: boolean;
@@ -462,9 +463,44 @@ export class PublicWebsiteFormService {
     };
   }
 
+  private resolveDonationProvider(
+    component: RenderablePublishedComponent,
+    settings: Awaited<ReturnType<WebsiteSiteSettingsService['getPublicSettings']>>
+  ): PaymentProvider {
+    const provider = (component as Record<string, unknown>).provider;
+    if (provider === 'stripe' || provider === 'paypal' || provider === 'square') {
+      return provider;
+    }
+
+    const configuredProvider = settings.stripe.provider;
+    if (
+      configuredProvider === 'stripe' ||
+      configuredProvider === 'paypal' ||
+      configuredProvider === 'square'
+    ) {
+      return configuredProvider;
+    }
+
+    return 'stripe';
+  }
+
+  private resolveDonationAccountId(
+    component: RenderablePublishedComponent,
+    site: PublishedSite,
+    settings: Awaited<ReturnType<WebsiteSiteSettingsService['getPublicSettings']>>
+  ): string | undefined {
+    return (
+      (component.accountId as string | undefined) ||
+      settings.stripe.accountId ||
+      site.organizationId ||
+      undefined
+    );
+  }
+
   private async handleDonationForm(
     site: PublishedSite,
     component: RenderablePublishedComponent,
+    settings: Awaited<ReturnType<WebsiteSiteSettingsService['getPublicSettings']>>,
     identity: ContactIdentity,
     payload: Record<string, unknown>,
     formKey: string,
@@ -491,22 +527,25 @@ export class PublicWebsiteFormService {
     const normalizedAmount = Number(amountValue.toFixed(2));
     const campaignName =
       typeof component.campaignId === 'string' ? component.campaignId : undefined;
+    const provider = this.resolveDonationProvider(component, settings);
+    const accountId = this.resolveDonationAccountId(component, site, settings);
+    const providerLabel =
+      provider === 'paypal' ? 'PayPal' : provider === 'square' ? 'Square' : 'Stripe';
 
     if (recurringDefault) {
       if (!identity.email) {
         throw new Error('Email is required for monthly donations');
       }
 
-      if (!stripeService.isStripeConfigured()) {
-        throw new Error('Monthly donations require Stripe to be configured');
+      if (!paymentProviderService.isProviderConfigured(provider)) {
+        throw new Error(`Monthly donations require ${providerLabel} to be configured`);
       }
 
       const { contactId } = await this.ensureContact(site, identity, ['donor']);
 
       const checkoutPlan = await services.recurringDonation.createPublicCheckoutPlan({
         organizationId: site.organizationId,
-        accountId:
-          (component.accountId as string | undefined) || site.organizationId || undefined,
+        accountId,
         contactId,
         siteId: site.id,
         formKey,
@@ -515,6 +554,7 @@ export class PublicWebsiteFormService {
         donorPhone: identity.phone,
         amount: normalizedAmount,
         currency,
+        provider,
         campaignName,
         designation: typeof payload.designation === 'string' ? payload.designation : undefined,
         notes: identity.message,
@@ -562,7 +602,7 @@ export class PublicWebsiteFormService {
 
     const donation = await services.donation.createDonation(
       {
-        account_id: (component.accountId as string | undefined) || site.organizationId || undefined,
+        account_id: accountId,
         contact_id: contactId,
         amount: normalizedAmount,
         currency,
@@ -571,6 +611,7 @@ export class PublicWebsiteFormService {
         payment_status: 'pending',
         notes: identity.message,
         campaign_name: campaignName,
+        payment_provider: provider,
         is_recurring: recurringDefault,
         recurring_frequency: recurringDefault ? 'monthly' : 'one_time',
       },
@@ -578,13 +619,14 @@ export class PublicWebsiteFormService {
     );
 
     let paymentIntent: PublicWebsiteFormResult['paymentIntent'];
-    if (identity.email && stripeService.isStripeConfigured()) {
-      paymentIntent = await stripeService.createPaymentIntent({
+    if (identity.email && paymentProviderService.isProviderConfigured(provider)) {
+      paymentIntent = await paymentProviderService.createPaymentIntent({
         amount: Math.round(amountValue * 100),
         currency: currency.toLowerCase(),
         description: `Donation via ${site.name}`,
         donationId: donation.donation_id,
         receiptEmail: identity.email,
+        provider,
         metadata: {
           siteId: site.id,
           formKey,
@@ -682,7 +724,7 @@ export class PublicWebsiteFormService {
           this.handleVolunteerInterest(site, component, identity, payload),
         'referral-form': () => this.handleReferralForm(site, component, identity, payload),
         'donation-form': () =>
-          this.handleDonationForm(site, component, identity, payload, formKey, context),
+          this.handleDonationForm(site, component, settings, identity, payload, formKey, context),
       };
 
       const outcome = await submitters[formType]();

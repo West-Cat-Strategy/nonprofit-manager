@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/e2e-playwright.sh <host|docker> [--direct|--locked] <playwright command...>
+
+Apply the repo's standard Playwright runtime defaults, then run the shared
+lock/preflight wrapper or the command directly.
+EOF
+}
+
+if [[ $# -lt 2 ]]; then
+  usage >&2
+  exit 2
+fi
+
+mode="$1"
+shift
+
+run_mode="locked"
+case "${1:-}" in
+  --direct)
+    run_mode="direct"
+    shift
+    ;;
+  --locked)
+    run_mode="locked"
+    shift
+    ;;
+esac
+
+if [[ $# -lt 1 ]]; then
+  usage >&2
+  exit 2
+fi
+
+case "$mode" in
+  host)
+    export E2E_PORT_ACTION="${E2E_PORT_ACTION:-kill}"
+    export E2E_PUBLIC_SITE_PORT="${E2E_PUBLIC_SITE_PORT:-3001}"
+    export BASE_URL="${BASE_URL:-http://127.0.0.1:5173}"
+    export API_URL="${API_URL:-http://127.0.0.1:3001}"
+    export SKIP_WEBSERVER="${SKIP_WEBSERVER:-0}"
+    export E2E_USE_DEV_RUNTIME="${E2E_USE_DEV_RUNTIME:-0}"
+    export E2E_COMPOSE_MODE="${E2E_COMPOSE_MODE:-ci}"
+    export PW_REUSE_EXISTING_SERVER="${PW_REUSE_EXISTING_SERVER:-1}"
+    ;;
+  docker)
+    export DB_HOST="${DB_HOST:-127.0.0.1}"
+    export DB_PORT="${DB_PORT:-8002}"
+    export DB_NAME="${DB_NAME:-nonprofit_manager}"
+    export DB_USER="${DB_USER:-postgres}"
+    export DB_PASSWORD="${DB_PASSWORD:-postgres}"
+    export E2E_DB_HOST="${E2E_DB_HOST:-127.0.0.1}"
+    export E2E_DB_PORT="${E2E_DB_PORT:-8002}"
+    export E2E_DB_NAME="${E2E_DB_NAME:-nonprofit_manager}"
+    export E2E_DB_USER="${E2E_DB_USER:-postgres}"
+    export E2E_DB_PASSWORD="${E2E_DB_PASSWORD:-postgres}"
+    export E2E_PUBLIC_SITE_PORT="${E2E_PUBLIC_SITE_PORT:-8006}"
+    export E2E_RUNNER_ACTION="${E2E_RUNNER_ACTION:-kill}"
+    export E2E_PORT_ACTION="${E2E_PORT_ACTION:-warn}"
+    export E2E_BACKEND_PORT="${E2E_BACKEND_PORT:-8004}"
+    export E2E_FRONTEND_PORT="${E2E_FRONTEND_PORT:-8005}"
+    export BASE_URL="${BASE_URL:-http://127.0.0.1:8005}"
+    export API_URL="${API_URL:-http://127.0.0.1:8004}"
+    export SKIP_WEBSERVER="${SKIP_WEBSERVER:-1}"
+    export PW_REUSE_EXISTING_SERVER="${PW_REUSE_EXISTING_SERVER:-1}"
+    ;;
+  *)
+    echo "Unknown mode: $mode" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
+
+cd "$PROJECT_ROOT/e2e"
+if [[ "$run_mode" == "direct" ]]; then
+  exec "$@"
+fi
+
+exec "$PROJECT_ROOT/scripts/e2e-run-with-lock.sh" "$@"

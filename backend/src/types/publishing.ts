@@ -13,6 +13,7 @@ import type {
   TemplatePageType,
   TemplateTheme,
 } from '@app-types/websiteBuilder';
+import type { PaymentProvider } from '@app-types/payment';
 
 // Published Site Status
 export type SiteStatus = 'draft' | 'published' | 'maintenance' | 'suspended';
@@ -389,6 +390,7 @@ export interface WebsiteFormOperationalConfig {
   successMessage?: string;
   accountId?: string | null;
   campaignId?: string | null;
+  provider?: PaymentProvider;
   mailchimpListId?: string | null;
   mauticSegmentId?: string | null;
   audienceMode?: 'crm' | 'mailchimp' | 'mautic' | 'both';
@@ -465,6 +467,7 @@ export interface WebsiteNewsletterSettings {
 
 export interface WebsiteStripeSettings {
   accountId?: string | null;
+  provider?: PaymentProvider;
   currency?: string;
   suggestedAmounts?: number[];
   recurringDefault?: boolean;

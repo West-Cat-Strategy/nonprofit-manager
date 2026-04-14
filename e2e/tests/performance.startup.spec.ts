@@ -84,6 +84,8 @@ const readThresholds = (): StartupThresholds => {
 };
 
 const startupThresholds = readThresholds();
+const apiURL = process.env.API_URL || 'http://127.0.0.1:3001';
+const apiOrigin = new URL(apiURL).origin;
 
 const clickNavLink = async (page: Page, link: ReturnType<Page['locator']>): Promise<void> => {
   try {
@@ -124,18 +126,30 @@ test.describe('Startup Performance Guards', () => {
       let requestPhase: 'startup' | 'first-navigation' | 'done' = 'startup';
       const trackRequest = (request: { url: () => string }) => {
         const url = request.url();
+        const parsedUrl = new URL(url);
+        const isBackendApiRequest =
+          parsedUrl.origin === apiOrigin && parsedUrl.pathname.startsWith('/api/');
         const isLoginBootstrapRequest =
+          isBackendApiRequest &&
           page.url().includes('/login') &&
           loginBootstrapRequestPatterns.some((pattern) => pattern.test(url));
 
-        if (/\/api\/(?:v2\/)?auth\/preferences(?:\?|$)/.test(url) && requestPhase !== 'done') {
+        if (
+          isBackendApiRequest &&
+          /\/api\/(?:v2\/)?auth\/preferences(?:\?|$)/.test(url) &&
+          requestPhase !== 'done'
+        ) {
           preferencesRequests += 1;
         }
-        if (/\/api\/(?:v2\/)?admin\/branding(?:\?|$)/.test(url) && requestPhase !== 'done') {
+        if (
+          isBackendApiRequest &&
+          /\/api\/(?:v2\/)?admin\/branding(?:\?|$)/.test(url) &&
+          requestPhase !== 'done'
+        ) {
           brandingRequests += 1;
         }
 
-        if (url.includes('/api/') && !isLoginBootstrapRequest) {
+        if (isBackendApiRequest && !isLoginBootstrapRequest) {
           if (requestPhase === 'startup') {
             startupRequests.add(url.replace(/\?.*$/, ''));
           }

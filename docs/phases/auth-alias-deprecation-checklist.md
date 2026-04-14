@@ -42,7 +42,8 @@ Legacy compatibility aliases currently accepted:
 - Guardrail test coverage added: `backend/src/__tests__/modules/auth/aliasUsageTelemetry.test.ts`
 
 ## Deprecation Execution Checklist
-- [ ] Add dashboard/report artifact for alias usage trend.
+- [x] Add report artifact for alias usage trend.
+  Current report: [AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](AUTH_ALIAS_USAGE_REPORT_2026-04-14.md)
 - [ ] Publish deprecation notice in release notes/docs with cutoff date.
 - [ ] Add CI/policy guard to block reintroduction of retired alias keys after cutoff.
 - [ ] Remove alias keys from Zod schemas and transforms.

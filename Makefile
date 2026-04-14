@@ -34,6 +34,7 @@ COMPOSE_PROD_ARGS := -p $(COMPOSE_PROJECT_PROD) --env-file $(PROD_ENV_FILE) -f d
 COMPOSE_DEV_ARGS := -p $(COMPOSE_PROJECT_DEV) -f docker-compose.dev.yml
 COMPOSE_DEV_CADDY_ARGS := $(COMPOSE_DEV_ARGS) -f docker-compose.caddy.yml
 COMPOSE_CI_INFRA_ARGS := -p $(COMPOSE_PROJECT_CI) -f docker-compose.yml -f docker-compose.host-access.yml -f docker-compose.ci.yml
+E2E_NPM_RUN := cd e2e && npm run
 
 #------------------------------------------------------------------------------
 # Help
@@ -411,7 +412,7 @@ test:
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
 	cd frontend && npm test -- --run
 	@echo "$(BLUE)Running Playwright E2E tests (all browsers)...$(RESET)"
-	cd e2e && npm run test:ci
+	$(E2E_NPM_RUN) test:ci
 	@echo "$(GREEN)Tests complete!$(RESET)"
 
 test-coverage:
@@ -424,7 +425,7 @@ test-coverage:
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
 	cd frontend && npm test -- --run --coverage
 	@echo "$(BLUE)Running Playwright E2E smoke tests...$(RESET)"
-	cd e2e && npm run test:smoke
+	$(E2E_NPM_RUN) test:smoke
 	@echo "$(GREEN)Coverage reports generated!$(RESET)"
 
 test-backend:
@@ -438,7 +439,7 @@ test-frontend:
 test-e2e:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
-	cd e2e && npm run test:ci
+	$(E2E_NPM_RUN) test:ci
 
 quality-baseline:
 	@./scripts/quality-baseline.sh

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import type { PaymentProvider } from '../../../types/payment';
 import {
   WebsiteConsoleLayout,
   WebsiteConsoleNotice,
@@ -32,6 +33,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
     overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
   const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
   const [newsletterProvider, setNewsletterProvider] = useState<'mailchimp' | 'mautic'>('mautic');
+  const [donationProvider, setDonationProvider] = useState<PaymentProvider>('stripe');
   const [mailchimpAudienceId, setMailchimpAudienceId] = useState('');
   const [mailchimpTags, setMailchimpTags] = useState('');
   const [mailchimpSyncEnabled, setMailchimpSyncEnabled] = useState(true);
@@ -59,6 +61,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
   useEffect(() => {
     if (!integrations) return;
     setNewsletterProvider(integrations.newsletter.provider || 'mautic');
+    setDonationProvider(integrations.stripe.provider || 'stripe');
     setMailchimpAudienceId(integrations.mailchimp.audienceId || '');
     setMailchimpTags((integrations.mailchimp.defaultTags || []).join(', '));
     setMailchimpSyncEnabled(integrations.mailchimp.syncEnabled ?? true);
@@ -142,6 +145,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
         siteId,
         data: {
           accountId: stripeAccountId || null,
+          provider: donationProvider,
           currency: stripeCurrency,
           suggestedAmounts: stripeSuggestedAmounts
             .split(',')
@@ -155,12 +159,14 @@ const WebsiteIntegrationsPage: React.FC = () => {
     if (updateWebsiteStripeIntegration.fulfilled.match(result)) {
       await dispatch(fetchWebsiteIntegrations(siteId));
       void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
-      setNotice({ tone: 'success', message: 'Stripe settings saved.' });
+      setNotice({ tone: 'success', message: 'Donation provider settings saved.' });
     } else {
       setNotice({
         tone: 'error',
         message:
-          typeof result.payload === 'string' ? result.payload : 'Failed to save Stripe settings.',
+          typeof result.payload === 'string'
+            ? result.payload
+            : 'Failed to save donation provider settings.',
       });
     }
   };
@@ -169,7 +175,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
     <WebsiteConsoleLayout
       siteId={siteId}
       overview={overview}
-      title="Control newsletter provider behavior, Stripe defaults, and integration health."
+      title="Control newsletter provider behavior, donation provider defaults, and integration health."
       actions={
         <div className="flex flex-wrap gap-3">
           <WebsiteConsoleUrlAction
@@ -238,12 +244,18 @@ const WebsiteIntegrationsPage: React.FC = () => {
               </p>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">Stripe</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-app-text-subtle">
+                Donation provider
+              </div>
               <div className="mt-2 text-3xl font-semibold text-app-text">
                 {integrations?.stripe.configured ? 'Configured' : 'Missing'}
               </div>
               <p className="mt-2 text-sm text-app-text-muted">
-                Powers public donations and recurring support.
+                {integrations?.stripe.provider === 'paypal'
+                  ? 'PayPal powers public donations and recurring support.'
+                  : integrations?.stripe.provider === 'square'
+                    ? 'Square powers public donations and recurring support.'
+                    : 'Stripe powers public donations and recurring support.'}
               </p>
             </div>
             <div>
@@ -397,9 +409,9 @@ const WebsiteIntegrationsPage: React.FC = () => {
           <section className="rounded-3xl border border-app-border bg-app-surface p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-app-text">Stripe</h2>
+                <h2 className="text-lg font-semibold text-app-text">Donation provider</h2>
                 <p className="text-sm text-app-text-muted">
-                  Configure donation defaults used by public website donation forms.
+                  Configure the provider and donation defaults used by public website donation forms.
                 </p>
                 <p className="mt-2 text-xs uppercase tracking-[0.18em] text-app-text-subtle">
                   Powers donation, recurring support, and campaign checkout flows.
@@ -411,6 +423,18 @@ const WebsiteIntegrationsPage: React.FC = () => {
             </div>
 
             <div className="mt-4 grid gap-4">
+              <select
+                aria-label="Donation provider"
+                value={donationProvider}
+                onChange={(event) =>
+                  setDonationProvider(event.target.value as PaymentProvider)
+                }
+                className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
+              >
+                <option value="stripe">Stripe</option>
+                <option value="paypal">PayPal</option>
+                <option value="square">Square</option>
+              </select>
               <input
                 type="text"
                 aria-label="Stripe destination account ID"
@@ -458,7 +482,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
                 onClick={saveStripe}
                 className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Save Stripe settings
+                Save donation settings
               </button>
             </div>
           </section>
