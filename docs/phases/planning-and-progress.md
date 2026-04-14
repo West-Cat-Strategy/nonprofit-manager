@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** Phase 4 - Modularity Refactor  
-**Live Snapshot:** 42 active rows: 0 In Progress, 1 Blocked, 34 Review, 7 Ready.
+**Live Snapshot:** 39 active rows: 0 In Progress, 1 Blocked, 31 Review, 7 Ready.
 **History:** Historical roadmap, logs, trackers, and legacy reference sections moved to [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md).
 
 ## 🤝 Coordination
@@ -32,7 +32,6 @@
 | P4-T9H | Staff backend efficiency wave (stable contracts, query-path + search/index refactor) | Phase 4 | Blocked | Codex | Mar 15, 2026 | TBD | main (implementation-size closure is green on 2026-04-14 and the previously cited targeted route/messaging/contacts/accounts/cases/events/finance frontend Vitest slices now pass; the current strict-closure blocker is the repo-wide `make ci-full` rerun failing at the UI audit baseline step (`9434/8570/35` expected vs `9439/8576/35`) after the rescue-wave changes settle in one pass) |
 | P4-T35 | Compact workspace shell navigation and responsive overflow | Phase 4 | Review | Codex | Apr 7, 2026 | TBD | main (shell-specific verification passed on 2026-04-13: desktop compact-nav Chromium slice green, `npm run test:docker:ci:mobile` green; broader alerts/contacts/grants Chromium failures rerouted to `P4-T1R4W3A` / `P4-T38` / `P4-T29`) |
 | P4-T1R4 | Wave 2+ rollout prep (reports/analytics/dashboard then ops/comms surfaces) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization |
-| P4-T1R4W3A | Wave 3 prep: alerts modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 5, 2026 | Mar 5, 2026 | codex/p4-wave-close-direct-cutover (carries `P4-T35` alerts import regression from `frontend/src/features/alerts/pages/AlertsConfigPage.tsx:21` / `e2e/tests/alerts.spec.ts:12`) |
 | P4-T1R4W3B | Wave 3 prep: activities modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
 | P4-T1R4W3C | Wave 3 prep: webhooks modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
 | P4-T1R4W3D | Wave 3 prep: mailchimp modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
@@ -56,8 +55,6 @@
 | P4-T16 | Dependency maintenance refresh (backend/frontend/e2e/data-intake) | Phase 4 | Review | Codex | Mar 14, 2026 | Mar 14, 2026 | main |
 | P4-T31 | Dockerfile refactor and build optimization follow-up | Phase 4 | Review | Codex | Apr 11, 2026 | TBD | main |
 | P4-T32 | Multi-type / multi-outcome cases refactor | Phase 4 | Review | Codex | Mar 29, 2026 | TBD | main |
-| P4-T40 | LUKS-aware production deploy wrapper alignment | Phase 4 | Review | Codex | Apr 13, 2026 | TBD | main |
-| P4-T41 | Live Docker auth/setup CORS origin alignment | Phase 4 | Review | Codex | Apr 13, 2026 | TBD | main |
 | P4-T7 | Full app UI/UX replacement (all themes, all routes) | Phase 4 | Ready | — | — | TBD | — |
 | P4-T7C | Core app pages migration (people/engagement/finance/analytics/admin/builder/workflows) | Phase 4 | Ready | — | — | TBD | — |
 | P4-T7E | Accessibility + interaction hardening | Phase 4 | Ready | — | — | TBD | — |
