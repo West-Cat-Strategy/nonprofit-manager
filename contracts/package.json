@@ -3,5 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "sideEffects": false,
-  "types": "./index.d.ts"
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts"
+    },
+    "./messaging": {
+      "types": "./messaging.d.ts"
+    },
+    "./websiteBuilder": {
+      "types": "./websiteBuilder.d.ts"
+    }
+  }
 }

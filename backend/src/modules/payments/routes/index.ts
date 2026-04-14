@@ -2,15 +2,16 @@
  * MODULE-OWNERSHIP: payments routes
  *
  * Route behavior for payment endpoints is owned by this module.
- * The legacy surface remains in `backend/src/routes/payments.ts` and only adapts
- * legacy v1 mounting to this route module.
+ * Legacy `/api/payments/*` requests are intentionally handled by the central
+ * tombstone layer; no root `backend/src/routes/payments.ts` shim remains.
  *
  * What replaced:
- * - Legacy payment routing previously resolved directly in `backend/src/routes/payments.ts`
- *   (now moved to `createPaymentsRoutes`).
+ * - Root payment shim mounting was retired after callers moved to the module
+ *   entrypoint and legacy requests were redirected to the tombstone contract.
  *
  * Why kept:
- * - Preserve `/api/payments` compatibility while v1 migration and policy validation are complete.
+ * - Preserve the canonical `/api/v2/payments/*` route implementation while the
+ *   tombstone contract continues to provide migration guidance for legacy callers.
  *
  * Sunset target:
  * - P4-T1R7 / 2026-06-30 (or earlier after policy-clean migration).

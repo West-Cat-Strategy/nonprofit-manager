@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** Phase 4 - Modularity Refactor  
-**Live Snapshot:** 82 active rows: 15 In Progress, 13 Blocked, 49 Review, 5 Ready.  
+**Live Snapshot:** 82 active rows: 12 In Progress, 11 Blocked, 54 Review, 5 Ready.  
 **History:** Historical roadmap, logs, trackers, and legacy reference sections moved to [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md).
 
 ## 🤝 Coordination
@@ -22,9 +22,6 @@
 
 | ID | Task | Phase | Status | Owner | Started | Target | PR/Branch |
 |----|------|-------|--------|-------|---------|--------|-----------|
-| P4-T1 | Full-stack modularity refactor recovery (dual-stack modularization waves) | Phase 4 | In Progress | Codex | Mar 17, 2026 | TBD | main |
-| P4-T1R4W3G | Wave 3 prep: remaining admin/portal operational surfaces modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | In Progress | Codex | Apr 9, 2026 | TBD | main |
-| P4-T1R7 | Compatibility hardening + ownership-map ratchet sweep for remaining seams (`payments`, `finance`, `builder`, `opportunities` seams) | Phase 4 | In Progress | Codex | Mar 11, 2026 | Jun 30, 2026 | main |
 | P4-T7E-DARK | Whole-app dark-mode accessibility remediation + route-audit closure | Phase 4 | In Progress | Codex | Mar 11, 2026 | TBD | main |
 | P4-T9A | Efficiency remediation pack (Top 15 findings) | Phase 4 | In Progress | Codex | Mar 5, 2026 | TBD | main |
 | P4-T9E | Cross-surface startup + navigation efficiency wave | Phase 4 | In Progress | Codex | Mar 7, 2026 | TBD | codex/p4-t9e-startup-navigation-wave |
@@ -38,8 +35,6 @@
 | P4-T43 | Contacts/cases paired module split follow-up | Phase 4 | In Progress | Codex | Apr 13, 2026 | TBD | main |
 | P4-T44 | Root script wrapper refactor (shared shell helpers, compose/E2E cleanup, dead duplicate removal) | Phase 4 | In Progress | Codex | Apr 13, 2026 | TBD | main |
 | P4-T1R4C | Wave 2 contract alignment + e2e updates (`/api/v2/*` wave-2 surfaces) | Phase 4 | Blocked | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization (closure artifact pending) |
-| P4-T1R7C | Scoped verification + importer sweep for the cases/contacts/outcomes wave | Phase 4 | Blocked | Codex | Mar 15, 2026 | TBD | main (blocked by P4-T18 build error) |
-| P4-T1R7D | Remaining dead shim and wrapper retirement (`backend/src/routes/*`, orphan frontend page/route wrappers) | Phase 4 | Blocked | Codex | Mar 15, 2026 | Mar 15, 2026 | main (dead shim retirement pending) |
 | P4-T5 | Structural refactor wave (validation/auth/envelope/frontend/docs guardrails) | Phase 4 | Blocked | Codex | Mar 2, 2026 | Mar 2, 2026 | main (repo-wide lint/typecheck drift) |
 | P4-T7C-ADMIN-UX | Admin panels UI/UX refresh + portal route split + settings redirect integrity | Phase 4 | Blocked | Codex | Mar 3, 2026 | TBD | main (admin UX split blocked) |
 | P4-T7C-EVTPUB | Website builder public events page + live event-list rendering | Phase 4 | Blocked | Codex | Mar 3, 2026 | TBD | main (public events page blocked) |
@@ -50,6 +45,7 @@
 | P4-T9H | Staff backend efficiency wave (stable contracts, query-path + search/index refactor) | Phase 4 | Blocked | Codex | Mar 15, 2026 | TBD | main (lint gate blocked) |
 | P4-T16A | Detached package retirement + backend dependency pruning (`data-intake`, `csv-writer`, `otplib`) | Phase 4 | Blocked | Codex | Mar 15, 2026 | Mar 15, 2026 | main (package retirement blocked) |
 | P4-T35 | Compact workspace shell navigation and responsive overflow | Phase 4 | Blocked | Codex | Apr 7, 2026 | TBD | main (Docker/Postgres for Playwright) |
+| P4-T1 | Full-stack modularity refactor recovery (dual-stack modularization waves) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main ([closeout](P4-T1_CLOSEOUT_2026-04-13.md)) |
 | P4-T1R4 | Wave 2+ rollout prep (reports/analytics/dashboard then ops/comms surfaces) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization |
 | P4-T1R4A | Wave 2 backend modules + dual-stack wrappers (`analytics/reports/saved-reports/scheduled-reports/dashboard/follow-ups`) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization |
 | P4-T1R4B | Wave 2 frontend feature migration + slice shim cutover (analytics/reporting/dashboard/follow-ups) | Phase 4 | Review | Codex | Mar 2, 2026 | main | main |
@@ -60,8 +56,12 @@
 | P4-T1R4W3D | Wave 3 prep: mailchimp modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
 | P4-T1R4W3E | Wave 3 prep: invitations modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
 | P4-T1R4W3F | Wave 3 prep: meetings modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
+| P4-T1R4W3G | Wave 3 prep: remaining admin/portal operational surfaces modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Apr 9, 2026 | TBD | main ([closeout](P4-T1_CLOSEOUT_2026-04-13.md)) |
 | P4-T1R7A | Backend contacts/cases/outcomes seam extraction (module-owned contact-note + outcomes-report orchestration) | Phase 4 | Review | Codex | Mar 14, 2026 | TBD | main |
 | P4-T1R7B | Frontend notes/report feature ownership cutover (`ContactNotes`, `CaseNotes`, `InteractionNote`, `OutcomesReport`) | Phase 4 | Review | Codex | Mar 14, 2026 | TBD | main |
+| P4-T1R7C | Scoped verification + importer sweep for the cases/contacts/outcomes wave | Phase 4 | Review | Codex | Mar 15, 2026 | TBD | main ([closeout](P4-T1_CLOSEOUT_2026-04-13.md)) |
+| P4-T1R7D | Remaining dead shim and wrapper retirement (`backend/src/routes/*`, orphan frontend page/route wrappers) | Phase 4 | Review | Codex | Mar 15, 2026 | Mar 15, 2026 | main ([closeout](P4-T1_CLOSEOUT_2026-04-13.md)) |
+| P4-T1R7 | Compatibility hardening + ownership-map ratchet sweep for remaining seams (`payments`, `finance`, `builder`, `opportunities` seams) | Phase 4 | Review | Codex | Mar 11, 2026 | Jun 30, 2026 | main ([closeout](P4-T1_CLOSEOUT_2026-04-13.md)) |
 | P4-T1R8 | Repo-wide modularization sweep (frontend ownership inversion + route/policy/docs closure + publishing/runtime consolidation) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
 | P4-T1R8A | Frontend ownership inversion (`pages/**` residual seams + shared UI/service relocation) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
 | P4-T1R8B | Route/store composition cleanup (thin root routes + feature-owned selectors/export surfaces) | Phase 4 | Review | Codex | Mar 18, 2026 | TBD | main |
@@ -104,4 +104,3 @@
 | P4-T7E | Accessibility + interaction hardening | Phase 4 | Ready | — | — | TBD | — |
 | P4-T9 | Setup and launch stabilization + test expansion | Phase 4 | Ready | — | — | TBD | main |
 | P4-T10 | PHN collection + encrypted access (contacts, portal profile, vital stats, ingest mapping) | Phase 4 | Ready | — | — | TBD | codex/p4-t10-phn-collection-encryption |
-

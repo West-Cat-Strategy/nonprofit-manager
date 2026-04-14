@@ -19,7 +19,8 @@ import { badRequest, noContent, notFoundMessage, serverError, unauthorized } fro
 import { sendSuccess } from '@modules/shared/http/envelope';
 
 const stripApiKeyHash = <T extends { keyHash?: string }>(apiKey: T): Omit<T, 'keyHash'> => {
-  const { keyHash: _hash, ...safeKey } = apiKey;
+  const safeKey = { ...apiKey };
+  delete safeKey.keyHash;
   return safeKey;
 };
 

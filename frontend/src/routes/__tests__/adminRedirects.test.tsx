@@ -165,12 +165,12 @@ describe('admin route redirects', () => {
   });
 
   it.each([
-    ['/email-marketing', '/dashboard', /dashboard/i],
-    ['/settings/organization', '/dashboard', /dashboard/i],
-    ['/admin/audit-logs', '/dashboard', /dashboard/i],
-  ])('redirects legacy route %s to %s', async (legacyRoute, canonicalRoute, heading) => {
+    ['/email-marketing', '/dashboard'],
+    ['/settings/organization', '/dashboard'],
+    ['/admin/audit-logs', '/dashboard'],
+  ])('redirects legacy route %s to %s', async (legacyRoute, canonicalRoute) => {
     renderAdminRoutes(legacyRoute);
-    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+    expect(await screen.findByText(canonicalRoute)).toBeInTheDocument();
     expectCurrentLocation(canonicalRoute);
   });
 });
