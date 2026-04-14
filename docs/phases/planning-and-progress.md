@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** Phase 4 - Modularity Refactor  
-**Live Snapshot:** 82 active rows: 12 In Progress, 11 Blocked, 54 Review, 5 Ready.  
+**Live Snapshot:** 83 active rows: 12 In Progress, 3 Blocked, 62 Review, 6 Ready.  
 **History:** Historical roadmap, logs, trackers, and legacy reference sections moved to [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md).
 
 ## 🤝 Coordination
@@ -34,21 +34,14 @@
 | P4-T39A | Backend reliability hardening (reconciliation, payments, webhooks) | Phase 4 | In Progress | Antigravity | Apr 11, 2026 | TBD | main |
 | P4-T43 | Contacts/cases paired module split follow-up | Phase 4 | In Progress | Codex | Apr 13, 2026 | TBD | main |
 | P4-T44 | Root script wrapper refactor (shared shell helpers, compose/E2E cleanup, dead duplicate removal) | Phase 4 | In Progress | Codex | Apr 13, 2026 | TBD | main |
-| P4-T1R4C | Wave 2 contract alignment + e2e updates (`/api/v2/*` wave-2 surfaces) | Phase 4 | Blocked | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization (closure artifact pending) |
-| P4-T5 | Structural refactor wave (validation/auth/envelope/frontend/docs guardrails) | Phase 4 | Blocked | Codex | Mar 2, 2026 | Mar 2, 2026 | main (repo-wide lint/typecheck drift) |
-| P4-T7C-ADMIN-UX | Admin panels UI/UX refresh + portal route split + settings redirect integrity | Phase 4 | Blocked | Codex | Mar 3, 2026 | TBD | main (admin UX split blocked) |
-| P4-T7C-EVTPUB | Website builder public events page + live event-list rendering | Phase 4 | Blocked | Codex | Mar 3, 2026 | TBD | main (public events page blocked) |
-| P4-T7C-RPT1 | Reporting module expansion (builder UX + scheduled management + saved-report sharing/public snapshots) | Phase 4 | Blocked | Codex | Mar 3, 2026 | TBD | main (reporting expansion blocked) |
-| P4-T7D | Portal + auth/public pages migration | Phase 4 | Blocked | Codex | Mar 3, 2026 | TBD | main (portal/auth migration blocked) |
-| P4-T7F | Regression tests + docs update | Phase 4 | Blocked | Codex | Mar 4, 2026 | Mar 4, 2026 | main (regression docs/tests blocked) |
-| P4-T7G | Appointments/reminders/check-in infrastructure upgrade (admin-first; links: P3-T1, P3-T2C, P3-T2E) | Phase 4 | Blocked | Codex | Mar 3, 2026 | TBD | main (appointments/reminders infra blocked) |
-| P4-T9H | Staff backend efficiency wave (stable contracts, query-path + search/index refactor) | Phase 4 | Blocked | Codex | Mar 15, 2026 | TBD | main (lint gate blocked) |
-| P4-T16A | Detached package retirement + backend dependency pruning (`data-intake`, `csv-writer`, `otplib`) | Phase 4 | Blocked | Codex | Mar 15, 2026 | Mar 15, 2026 | main (package retirement blocked) |
-| P4-T35 | Compact workspace shell navigation and responsive overflow | Phase 4 | Blocked | Codex | Apr 7, 2026 | TBD | main (Docker/Postgres for Playwright) |
+| P4-T5 | Structural refactor wave (validation/auth/envelope/frontend/docs guardrails) | Phase 4 | Blocked | Codex | Mar 2, 2026 | Mar 2, 2026 | main (repo-wide implementation-size policy drift) |
+| P4-T9H | Staff backend efficiency wave (stable contracts, query-path + search/index refactor) | Phase 4 | Blocked | Codex | Mar 15, 2026 | TBD | main (strict closure blocked by implementation-size policy gate) |
+| P4-T35 | Compact workspace shell navigation and responsive overflow | Phase 4 | Blocked | Codex | Apr 7, 2026 | TBD | main (Docker Playwright CI reaches app stack; unrelated Chromium failures in alerts/contacts/grants slices) |
 | P4-T1 | Full-stack modularity refactor recovery (dual-stack modularization waves) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main ([closeout](P4-T1_CLOSEOUT_2026-04-13.md)) |
 | P4-T1R4 | Wave 2+ rollout prep (reports/analytics/dashboard then ops/comms surfaces) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization |
 | P4-T1R4A | Wave 2 backend modules + dual-stack wrappers (`analytics/reports/saved-reports/scheduled-reports/dashboard/follow-ups`) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization |
 | P4-T1R4B | Wave 2 frontend feature migration + slice shim cutover (analytics/reporting/dashboard/follow-ups) | Phase 4 | Review | Codex | Mar 2, 2026 | main | main |
+| P4-T1R4C | Wave 2 contract alignment + e2e updates (`/api/v2/*` wave-2 surfaces) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization ([closeout](P4-T1R4C_CLOSEOUT_2026-04-13.md)) |
 | P4-T1R4D | Wave 3 decision lock and workboard subtask seeding (alerts/activities/webhooks/mailchimp/invitations/meetings/admin+portal ops) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
 | P4-T1R4W3A | Wave 3 prep: alerts modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 5, 2026 | Mar 5, 2026 | codex/p4-wave-close-direct-cutover |
 | P4-T1R4W3B | Wave 3 prep: activities modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
@@ -77,12 +70,18 @@
 | P4-T6D | Portal secondary pages hardening + verification | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | codex/p4-t6-workflow-ux |
 | P4-T7A | Design token + theme system replacement | Phase 4 | Review | Codex | Mar 3, 2026 | Mar 3, 2026 | codex/p4-t7-ui-ux-full-replacement |
 | P4-T7B | Global app shell + navigation replacement | Phase 4 | Review | Codex | Mar 8, 2026 | TBD | main |
+| P4-T7C-ADMIN-UX | Admin panels UI/UX refresh + portal route split + settings redirect integrity | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | main (scoped route + redirect verification 2026-04-13) |
+| P4-T7C-EVTPUB | Website builder public events page + live event-list rendering | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | main (public events + runtime event-list verification 2026-04-13) |
 | P4-T7C-PROFILE | Staff profile settings avatar flow hardening (`/settings/user` + `/api/v2/auth/profile`) | Phase 4 | Review | Codex | Mar 11, 2026 | Mar 11, 2026 | main |
+| P4-T7C-RPT1 | Reporting module expansion (builder UX + scheduled management + saved-report sharing/public snapshots) | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | main (saved/scheduled/public-report verification 2026-04-13) |
 | P4-T7C-WEB2 | Website builder v2 org-scope, public runtime, and nonprofit data integrations | Phase 4 | Review | Codex | Mar 5, 2026 | Mar 5, 2026 | codex/p4-t7i-staff-ux-audit |
 | P4-T7C-WEB3 | Website site console + conversion stack (overview/content/forms/integrations/publishing + site-aware builder launch) | Phase 4 | Review | Codex | Mar 6, 2026 | Mar 7, 2026 | codex/p4-t7i-staff-ux-audit |
+| P4-T7D | Portal + auth/public pages migration | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | main (portal/auth verification 2026-04-13) |
 | P4-T7E-INPUT | Whole-app input draft-preservation audit + hydration guardrails (admin settings + builder modal confirmed-risk surfaces) | Phase 4 | Review | Codex | Mar 11, 2026 | Mar 11, 2026 | main |
 | P4-T7E-STAFFQA | Staff behavioral verification + regression hardening | Phase 4 | Review | Codex | Mar 11, 2026 | Mar 11, 2026 | main |
 | P4-T7E-VALID | Strict request-validation hardening + fresh-install SMTP defaults (email normalization, boolean/date parsers, admin email guidance) | Phase 4 | Review | Codex | Mar 12, 2026 | Mar 12, 2026 | main |
+| P4-T7F | Regression tests + docs update | Phase 4 | Review | Codex | Mar 4, 2026 | Mar 4, 2026 | main (docs + scoped regression verification 2026-04-13) |
+| P4-T7G | Appointments/reminders/check-in infrastructure upgrade (admin-first; links: P3-T1, P3-T2C, P3-T2E) | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | main (appointments/reminders/check-in verification 2026-04-13) |
 | P4-T7H | Menus + admin settings UX redesign (pinned navigation + admin quick actions + legacy route cleanup) | Phase 4 | Review | Codex | Mar 5, 2026 | Mar 5, 2026 | codex/p4-t7h-menu-admin-redesign |
 | P4-T7J | Reporting + navigation modularization (feature-owned report controllers + route-catalog/nav composition split) | Phase 4 | Review | Codex | Mar 15, 2026 | TBD | main |
 | P4-T9G | Staff data-load hydration hardening (stale filter sanitization + canonical load errors) | Phase 4 | Review | Codex | Mar 11, 2026 | Mar 11, 2026 | main |
@@ -91,6 +90,7 @@
 | P4-T14 | Staff help center manual (HTML quick start + stable workflow guides) | Phase 4 | Review | Codex | Mar 11, 2026 | Mar 11, 2026 | main |
 | P4-T15 | README-centric development documentation restructure | Phase 4 | Review | Codex | Mar 11, 2026 | Mar 11, 2026 | main |
 | P4-T16 | Dependency maintenance refresh (backend/frontend/e2e/data-intake) | Phase 4 | Review | Codex | Mar 14, 2026 | Mar 14, 2026 | main |
+| P4-T16A | Detached package retirement + backend dependency pruning (`data-intake`, `csv-writer`) | Phase 4 | Review | Codex | Mar 15, 2026 | Mar 15, 2026 | main (unused package retirement verified; `otplib` split to P4-T16B) |
 | P4-T31 | Dockerfile refactor and build optimization follow-up | Phase 4 | Review | Codex | Apr 11, 2026 | TBD | main |
 | P4-T32 | Multi-type / multi-outcome cases refactor | Phase 4 | Review | Codex | Mar 29, 2026 | TBD | main |
 | P4-T33 | Website console management cockpit upgrade | Phase 4 | Review | Codex | Mar 29, 2026 | TBD | main |
@@ -104,3 +104,4 @@
 | P4-T7E | Accessibility + interaction hardening | Phase 4 | Ready | — | — | TBD | — |
 | P4-T9 | Setup and launch stabilization + test expansion | Phase 4 | Ready | — | — | TBD | main |
 | P4-T10 | PHN collection + encrypted access (contacts, portal profile, vital stats, ingest mapping) | Phase 4 | Ready | — | — | TBD | codex/p4-t10-phn-collection-encryption |
+| P4-T16B | MFA/TOTP dependency replacement for auth flows + tests (`@otplib/preset-default` retirement) | Phase 4 | Ready | — | — | TBD | — |

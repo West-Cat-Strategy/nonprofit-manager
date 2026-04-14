@@ -2,7 +2,7 @@
 
 Date: 2026-03-15  
 Task: `P4-T9H`  
-Status: `Blocked` (implementation complete, perf evidence captured, and the strict closure rerun is now blocked by an out-of-scope backend lint failure)
+Status: `Blocked` (implementation complete, perf evidence captured, and the strict closure rerun is now blocked by repo-wide implementation-size policy drift after clearing the initdb/manifest mismatch)
 
 ## Delivered Scope
 
@@ -19,24 +19,39 @@ Status: `Blocked` (implementation complete, perf evidence captured, and the stri
 ## Verification Completed
 
 - `cd frontend && npm test -- --run` -> pass (`137` files, `1127` tests)
-- `make db-verify` -> pass; migration `075_staff_backend_efficiency_search_indexes.sql` verifies cleanly
+- `make db-verify` -> pass; migration `075_staff_backend_efficiency_search_indexes.sql` verifies cleanly, and the 2026-04-13 rerun confirmed the initdb/manifest sync for `089_case_topic_definitions_constraint_alignment.sql`
+- `make typecheck` -> pass
 - `cd e2e && npm run test:smoke` -> pass (`2` passed)
 - The earlier intake/contact-form route-smoke blocker recorded in this report is stale; the full frontend Vitest gate now passes on `main`
 
 ## Strict Closure Blocker
 
-The strict closure rerun resumed after the already-green gates above and stopped at the new first failing command:
+The earlier `backend/src/services/donationService.ts` `no-useless-assignment` failure recorded in this report is now stale.
+
+On 2026-04-13, the repo-wide initdb/manifest blocker was cleared by syncing `database/initdb/000_init.sql` with `database/migrations/manifest.tsv`, so the strict closure rerun moved forward to the next failing gate:
 
 - `make ci-full`
 
-It now fails immediately in an out-of-scope backend lint path:
+It now fails in the repo-wide implementation-size policy step:
 
-- `backend/src/services/donationService.ts:334`
-  - `no-useless-assignment`: value assigned to `paramCount` is not used in subsequent statements
-- `backend/src/services/donationService.ts:573`
-  - `no-useless-assignment`: value assigned to `paramCount` is not used in subsequent statements
+- `backend/src/modules/contacts/services/contactMergeService.ts`
+  - `1467` lines exceeds the `900`-line cap
+- `backend/src/modules/recurringDonations/services/recurringDonationService.ts`
+  - `1101` lines exceeds baseline `930`
+- `backend/src/services/publishing/publicWebsiteFormService.ts`
+  - `901` lines exceeds the `900`-line cap
+- `backend/src/services/publishing/siteOperationsService.ts`
+  - `990` lines exceeds baseline `918`
+- `backend/src/services/webhookService.ts`
+  - `950` lines exceeds the `900`-line cap
+- `frontend/src/components/editor/EditorCanvas.tsx`
+  - `1071` lines exceeds baseline `1069`
+- `frontend/src/features/adminOps/pages/EmailMarketingPage.tsx`
+  - `984` lines exceeds the `900`-line cap
+- `frontend/src/features/websites/state/websitesCore.ts`
+  - `905` lines exceeds the `900`-line cap
 
-Because this repo-wide backend lint failure sits outside the staff search/list efficiency surfaces, `P4-T9H` remains blocked until the owning stream clears that gate. No task-owned contract or query-path regression surfaced in this closure pass.
+Because this repo-wide implementation-size failure sits outside the staff search/list efficiency surfaces, `P4-T9H` remains blocked until the owning stream clears that gate. No task-owned contract or query-path regression surfaced in this closure pass.
 
 ## Performance Artifacts
 
@@ -71,6 +86,6 @@ Plan notes:
 
 ## Next Step
 
-1. Route or resolve the unrelated backend lint failure in `backend/src/services/donationService.ts`.
+1. Route or resolve the unrelated implementation-size policy failures listed above.
 2. Rerun `make ci-full`.
 3. If that full CI gate passes, move `P4-T9H` to review using the existing perf artifacts; run a standalone `cd e2e && npm run test:ci` only if repo policy changes to require it after a green `make ci-full`.

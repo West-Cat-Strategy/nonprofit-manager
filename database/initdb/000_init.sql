@@ -219,7 +219,8 @@ VALUES
     ('085_case_type_and_outcome_assignments.sql', '085', '085_case_type_and_outcome_assignments.sql'),
     ('086_imported_case_contact_org_backfill.sql', '086', '086_imported_case_contact_org_backfill.sql'),
     ('087_newsletter_provider_settings.sql', '087', '087_newsletter_provider_settings.sql'),
-    ('088_provider_agnostic_payment_columns.sql', '088', '088_provider_agnostic_payment_columns.sql')
+    ('088_provider_agnostic_payment_columns.sql', '088', '088_provider_agnostic_payment_columns.sql'),
+    ('089_case_topic_definitions_constraint_alignment.sql', '089', '089_case_topic_definitions_constraint_alignment.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;
