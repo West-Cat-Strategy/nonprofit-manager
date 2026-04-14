@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** Phase 4 - Modularity Refactor  
-**Live Snapshot:** 39 active rows: 0 In Progress, 0 Blocked, 32 Review, 7 Ready.
+**Live Snapshot:** 40 active rows: 1 In Progress, 0 Blocked, 32 Review, 7 Ready.
 **History:** Historical roadmap, logs, trackers, and legacy reference sections moved to [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md).
 
 ## 🤝 Coordination
@@ -23,6 +23,7 @@
 
 | ID | Task | Phase | Status | Owner | Started | Target | PR/Branch |
 |----|------|-------|--------|-------|---------|--------|-----------|
+| P4-T45 | Security hardening wave (auth/session invalidation, API-key/webhook controls, CORS fail-closed, public-form intake tightening) | Phase 4 | In Progress | Codex | Apr 14, 2026 | TBD | codex/p4-t45-security-hardening |
 | P4-T7E-DARK | Whole-app dark-mode accessibility remediation + route-audit closure | Phase 4 | Review | Codex | Mar 11, 2026 | TBD | main (Docker-backed Chromium dark-mode audit passed on 2026-04-14; no code changes were required once the app stack was available) |
 | P4-T30 | Dependency review and multi-package upgrade pass | Phase 4 | Review | Codex | Mar 28, 2026 | TBD | codex/p4-t30-dependency-upgrades (recorded dependency-upgrade commits are already on `main`; the shared frontend validation debt that was holding honest closure now passes in targeted route/messaging/accounts/cases/events/finance slices, so remaining review is task bookkeeping and broader repo gates) |
 | P4-T37 | Organizational admin panel refactor + canonical role wiring | Phase 4 | Review | Codex | Apr 10, 2026 | TBD | main (closure note: manifest cleanup plus canonical role normalization are captured in [P4-T37_T38_CLOSEOUT_2026-04-14.md](P4-T37_T38_CLOSEOUT_2026-04-14.md); frontend type-check, the targeted admin/settings Vitest slice (`8` files, `68` tests), and docs link validation passed on 2026-04-14; the repo-wide `make ci-full` rerun is now green on 2026-04-14 after the shared `P4-T9H` dependency-audit follow-up, so there is no standing shared blocker against this row) |

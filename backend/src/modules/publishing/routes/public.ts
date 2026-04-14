@@ -46,19 +46,22 @@ const publicWebsiteFormParamsSchema = z.object({
 
 const publicWebsiteFormBodySchema = z
   .object({
-    name: z.string().trim().optional(),
     first_name: z.string().trim().optional(),
     last_name: z.string().trim().optional(),
     email: emailSchema.optional(),
     phone: z.string().trim().optional(),
     message: z.string().trim().optional(),
     notes: z.string().trim().optional(),
+    subject: z.string().trim().optional(),
+    referral_source: z.string().trim().optional(),
+    urgent: optionalStrictBooleanSchema,
     amount: z.union([z.coerce.number().positive(), z.string().trim()]).optional(),
     recurring: optionalStrictBooleanSchema,
     availability: z.string().trim().optional(),
-    skills: z.array(z.string().trim()).optional(),
+    visitorId: z.string().trim().optional(),
+    sessionId: z.string().trim().optional(),
   })
-  .passthrough();
+  .strict();
 
 const newslettersRouter = Router();
 newslettersRouter.get('/', validateQuery(publicNewsletterListQuerySchema), listPublicNewsletters);

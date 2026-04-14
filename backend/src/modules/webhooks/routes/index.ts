@@ -6,9 +6,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { requirePermission } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as webhookController from '../controllers';
 import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
+import { API_KEY_MANAGED_SCOPES } from '@app-types/webhook';
+import { Permission } from '@utils/permissions';
 
 const router = Router();
 
@@ -53,13 +56,13 @@ const dateStringSchema = isoDateTimeSchema;
 
 const createApiKeySchema = z.object({
   name: z.string().min(1, 'API key name is required').max(100),
-  scopes: z.array(z.string()).min(1, 'At least one scope is required'),
+  scopes: z.array(z.enum(API_KEY_MANAGED_SCOPES)).min(1, 'At least one scope is required'),
   expiresAt: dateStringSchema.optional(),
 });
 
 const updateApiKeySchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  scopes: z.array(z.string()).min(1).optional(),
+  scopes: z.array(z.enum(API_KEY_MANAGED_SCOPES)).min(1).optional(),
   status: z.enum(['active', 'revoked']).optional(),
 });
 
@@ -71,6 +74,8 @@ const apiKeyUsageQuerySchema = z
 
 // All routes require authentication
 router.use(authenticate);
+router.use('/endpoints', requirePermission(Permission.ADMIN_SETTINGS));
+router.use('/api-keys', requirePermission(Permission.ADMIN_SETTINGS));
 
 // ==================== Webhook Event Info ====================
 

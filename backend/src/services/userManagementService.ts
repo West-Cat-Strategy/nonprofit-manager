@@ -206,6 +206,12 @@ export const updateUser = async (input: UpdateUserInput): Promise<UserRecord | n
          last_name = COALESCE($3, last_name),
          role = COALESCE($4, role),
          is_active = COALESCE($5, is_active),
+         auth_revision = CASE
+           WHEN COALESCE($4, role) IS DISTINCT FROM role
+             OR COALESCE($5, is_active) IS DISTINCT FROM is_active
+           THEN COALESCE(auth_revision, 0) + 1
+           ELSE COALESCE(auth_revision, 0)
+         END,
          updated_at = NOW(),
          modified_by = $6
      WHERE id = $7
@@ -242,7 +248,10 @@ export const updateUserPassword = async (
 ): Promise<void> => {
   await pool.query(
     `UPDATE users
-     SET password_hash = $1, updated_at = NOW(), modified_by = $2
+     SET password_hash = $1,
+         auth_revision = COALESCE(auth_revision, 0) + 1,
+         updated_at = NOW(),
+         modified_by = $2
      WHERE id = $3`,
     [passwordHash, modifiedBy, id]
   );
@@ -260,7 +269,10 @@ export const getUserRoleIdentityById = async (id: string): Promise<UserRoleIdent
 export const deactivateUser = async (id: string, modifiedBy: string): Promise<void> => {
   await pool.query(
     `UPDATE users
-     SET is_active = false, updated_at = NOW(), modified_by = $1
+     SET is_active = false,
+         auth_revision = COALESCE(auth_revision, 0) + 1,
+         updated_at = NOW(),
+         modified_by = $1
      WHERE id = $2`,
     [modifiedBy, id]
   );

@@ -31,6 +31,8 @@ export interface UserRow {
   created_at: Date;
   profile_picture?: string | null;
   preferences?: Record<string, unknown>;
+  is_active?: boolean;
+  auth_revision?: number;
   mfa_totp_enabled?: boolean;
   mfa_required_by_role?: boolean;
 }
@@ -370,8 +372,12 @@ export const updateUserPasswordHash = async (
   userId: string,
   passwordHash: string
 ): Promise<void> => {
-  await pool.query(`UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`, [
-    passwordHash,
-    userId,
-  ]);
+  await pool.query(
+    `UPDATE users
+     SET password_hash = $1,
+         auth_revision = COALESCE(auth_revision, 0) + 1,
+         updated_at = NOW()
+     WHERE id = $2`,
+    [passwordHash, userId]
+  );
 };

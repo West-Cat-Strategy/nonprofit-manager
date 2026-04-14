@@ -79,7 +79,7 @@ describe('webhookService.validateWebhookUrl', () => {
   it('allows hostnames resolving to public IPs', async () => {
     mockLookup.mockResolvedValueOnce([{ address: '93.184.216.34', family: 4 }]);
     await expect(webhookService.validateWebhookUrl('HTTPS://example.com/hook')).resolves.toEqual(
-      expect.objectContaining({ ok: true })
+      expect.objectContaining({ ok: true, addresses: ['93.184.216.34'] })
     );
   });
 

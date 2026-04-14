@@ -21,6 +21,7 @@ import { registerV2Routes } from '@routes/v2';
 import { setPaymentPool } from '@modules/payments';
 import { renderPublishedWebsite } from '@modules/publishing/controllers';
 import pool from './config/database';
+import { createCorsOptions, resolveTrustProxy } from './config/requestSecurity';
 import { validateProductionSecurityConfig } from './config/productionSecurityConfig';
 
 if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
@@ -89,21 +90,7 @@ const resolveConnectSrc = (developmentFallback: string): string[] => {
     : ["'self'", developmentFallback];
 };
 
-const resolveTrustProxy = (): boolean | number | string => {
-  const raw = (process.env.TRUST_PROXY || '').trim().toLowerCase();
-  if (!raw) {
-    return false;
-  }
-  if (raw === 'true') return true;
-  if (raw === 'false') return false;
-  const asNumber = Number(raw);
-  if (Number.isInteger(asNumber) && asNumber >= 0) {
-    return asNumber;
-  }
-  return raw;
-};
-
-app.set('trust proxy', resolveTrustProxy());
+app.set('trust proxy', resolveTrustProxy(process.env.TRUST_PROXY));
 
 // Security Middleware
 app.use(
@@ -165,60 +152,15 @@ app.use(compression({
   },
 }));
 
-const normalizeOrigin = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) return trimmed;
-  if (trimmed === '*') return trimmed;
-
-  try {
-    return new URL(trimmed).origin.toLowerCase();
-  } catch {
-    return trimmed.toLowerCase();
-  }
-};
-
 // CORS configuration
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
-  .split(',')
-  .map((origin) => normalizeOrigin(origin))
-  .filter(Boolean);
-
-// In production, require at least one allowed origin to be configured
-if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
-  logger.error('CORS_ORIGIN must be configured in production');
-  process.exit(1);
-}
-
-const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps, curl, or same-site requests)
-    if (!origin) return callback(null, true);
-
-    const normalizedOrigin = normalizeOrigin(origin);
-
-    // Only allow configured origins
-    if (process.env.NODE_ENV === 'development' || 
-        allowedOrigins.includes(normalizedOrigin) || 
-        allowedOrigins.includes('*')) {
-      callback(null, true);
-    } else {
-      logger.warn(`CORS request from unauthorized origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
+const corsOptions = createCorsOptions({
+  nodeEnv: process.env.NODE_ENV,
+  corsOrigin: process.env.CORS_ORIGIN,
+  fallbackOrigins: ['http://localhost:5173'],
+  onDeniedOrigin: (origin) => {
+    logger.warn(`CORS request from unauthorized origin: ${origin}`);
   },
-  // Only allow credentials from same-origin or explicitly listed origins
-  credentials: true,
-  // Allowed methods
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
-  // Allowed headers
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Organization-Id'],
-  // Expose headers to client
-  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
-  // Cache preflight for 24 hours (in seconds)
-  maxAge: 86400,
-  // Treat Origin header strictly
-  optionsSuccessStatus: 200,
-};
+});
 app.use(cors(corsOptions));
 
 // Stripe webhook needs raw body - must be before json parsing

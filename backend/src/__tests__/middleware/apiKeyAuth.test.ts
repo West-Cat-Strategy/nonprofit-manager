@@ -7,6 +7,7 @@ jest.mock('@services/apiKeyService', () => ({
   validateApiKey: jest.fn(),
   incrementRateLimit: jest.fn(),
   logApiKeyUsage: jest.fn(),
+  hasScope: jest.fn(),
 }));
 
 jest.mock('@config/logger', () => ({
@@ -47,6 +48,7 @@ describe('apiKeyAuth middleware', () => {
   const validateApiKeyMock = apiKeyService.validateApiKey as jest.Mock;
   const incrementRateLimitMock = (apiKeyService as any).incrementRateLimit as jest.Mock;
   const logApiKeyUsageMock = (apiKeyService as any).logApiKeyUsage as jest.Mock;
+  const hasScopeMock = (apiKeyService as any).hasScope as jest.Mock;
   const unauthorizedMock = unauthorized as jest.Mock;
   const forbiddenMock = forbidden as jest.Mock;
 
@@ -56,6 +58,9 @@ describe('apiKeyAuth middleware', () => {
     forbiddenMock.mockReturnValue(undefined);
     incrementRateLimitMock.mockResolvedValue(undefined);
     logApiKeyUsageMock.mockResolvedValue(undefined);
+    hasScopeMock.mockImplementation((apiKey: { scopes: string[] }, requiredScope: string) =>
+      apiKey.scopes.includes(requiredScope) || apiKey.scopes.includes('admin') || apiKey.scopes.includes('*')
+    );
   });
 
   it('returns unauthorized when the request has no API key', async () => {
@@ -169,7 +174,7 @@ describe('apiKeyAuth middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('enforces API key scopes and allows wildcard scopes', () => {
+  it('enforces API key scopes and allows wildcard or admin scopes', () => {
     const noKeyReq = createRequest();
     const noKeyRes = createResponse();
     const noKeyNext = jest.fn();
@@ -200,6 +205,14 @@ describe('apiKeyAuth middleware', () => {
     const wildcardNext = jest.fn();
     validateApiKeyScope('read:contacts')(wildcardReq, wildcardRes, wildcardNext);
     expect(wildcardNext).toHaveBeenCalled();
+
+    const adminReq = createRequest({
+      apiKey: { id: 'key-5', organizationId: 'org-5', scopes: ['admin'] },
+    });
+    const adminRes = createResponse();
+    const adminNext = jest.fn();
+    validateApiKeyScope('read:contacts')(adminReq, adminRes, adminNext);
+    expect(adminNext).toHaveBeenCalled();
   });
 
   it('auditApiKeyUsage logs when request is authenticated with an API key', async () => {

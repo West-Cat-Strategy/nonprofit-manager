@@ -38,6 +38,88 @@ const getStripeId = (value: string | StripeResourceWithId | null): string | null
   return typeof value === 'string' ? value : value.id || null;
 };
 
+type StripeErrorContext = {
+  name?: string;
+  message?: string;
+  type?: string;
+  code?: string;
+  statusCode?: number;
+  requestId?: string;
+};
+
+const summarizeStripeError = (error: unknown): StripeErrorContext => {
+  if (error instanceof Error) {
+    const stripeError = error as Error & {
+      type?: string;
+      code?: string;
+      statusCode?: number;
+      requestId?: string;
+    };
+    return {
+      name: stripeError.name,
+      message: stripeError.message,
+      type: stripeError.type,
+      code: stripeError.code,
+      statusCode: stripeError.statusCode,
+      requestId: stripeError.requestId,
+    };
+  }
+
+  return {
+    message: typeof error === 'string' ? error : 'Unknown error',
+  };
+};
+
+const summarizeRequestMetadataKeys = (metadata?: Record<string, unknown>): string[] =>
+  metadata ? Object.keys(metadata) : [];
+
+const summarizePaymentIntentRequest = (request: CreatePaymentIntentRequest): Record<string, unknown> => ({
+  amount: request.amount,
+  currency: request.currency || 'usd',
+  customerId: request.customerId || null,
+  donationId: request.donationId || null,
+  hasDescription: Boolean(request.description),
+  hasReceiptEmail: Boolean(request.receiptEmail),
+  metadataKeys: summarizeRequestMetadataKeys(request.metadata),
+});
+
+const summarizeRefundRequest = (request: RefundRequest): Record<string, unknown> => ({
+  paymentIntentId: request.paymentIntentId,
+  amount: request.amount ?? null,
+  reason: request.reason ?? null,
+});
+
+const summarizeCustomerRequest = (request: CreateCustomerRequest): Record<string, unknown> => ({
+  contactId: request.contactId || null,
+  hasEmail: Boolean(request.email),
+  hasName: Boolean(request.name),
+  hasPhone: Boolean(request.phone),
+  metadataKeys: summarizeRequestMetadataKeys(request.metadata),
+});
+
+const summarizeMonthlyPriceRequest = (request: CreateMonthlyPriceRequest): Record<string, unknown> => ({
+  amount: request.amount,
+  currency: request.currency,
+  productId: request.productId || null,
+  hasProductName: Boolean(request.productName),
+  metadataKeys: summarizeRequestMetadataKeys(request.metadata),
+});
+
+const summarizeSubscriptionRequest = (request: CreateSubscriptionRequest): Record<string, unknown> => ({
+  customerId: request.customerId,
+  priceId: request.priceId,
+  hasPaymentMethod: Boolean(request.paymentMethodId),
+  metadataKeys: summarizeRequestMetadataKeys(request.metadata),
+});
+
+const summarizeCheckoutSessionRequest = (
+  request: CreateCheckoutSessionRequest
+): Record<string, unknown> => ({
+  customerId: request.customerId,
+  priceId: request.priceId,
+  metadataKeys: summarizeRequestMetadataKeys(request.metadata),
+});
+
 const mapSubscription = (subscription: Stripe.Subscription): SubscriptionResponse => {
   const sub = subscription as unknown as {
     id: string;
@@ -140,7 +222,10 @@ export async function createPaymentIntent(
       providerCheckoutSessionId: paymentIntent.id,
     };
   } catch (error) {
-    logger.error('Failed to create payment intent', { error, request });
+    logger.error('Failed to create payment intent', {
+      error: summarizeStripeError(error),
+      request: summarizePaymentIntentRequest(request),
+    });
     throw error;
   }
 }
@@ -167,7 +252,10 @@ export async function getPaymentIntent(paymentIntentId: string): Promise<Payment
       providerCheckoutSessionId: paymentIntent.id,
     };
   } catch (error) {
-    logger.error('Failed to retrieve payment intent', { error, paymentIntentId });
+    logger.error('Failed to retrieve payment intent', {
+      error: summarizeStripeError(error),
+      paymentIntentId,
+    });
     throw error;
   }
 }
@@ -196,7 +284,10 @@ export async function cancelPaymentIntent(paymentIntentId: string): Promise<Paym
       providerCheckoutSessionId: paymentIntent.id,
     };
   } catch (error) {
-    logger.error('Failed to cancel payment intent', { error, paymentIntentId });
+    logger.error('Failed to cancel payment intent', {
+      error: summarizeStripeError(error),
+      paymentIntentId,
+    });
     throw error;
   }
 }
@@ -238,7 +329,10 @@ export async function createRefund(request: RefundRequest): Promise<RefundRespon
       created: new Date(refund.created * 1000),
     };
   } catch (error) {
-    logger.error('Failed to create refund', { error, request });
+    logger.error('Failed to create refund', {
+      error: summarizeStripeError(error),
+      request: summarizeRefundRequest(request),
+    });
     throw error;
   }
 }
@@ -268,7 +362,11 @@ export async function createCustomer(request: CreateCustomerRequest): Promise<Cu
 
     const customer = await client.customers.create(params);
 
-    logger.info('Customer created', { customerId: customer.id, email: customer.email });
+    logger.info('Customer created', {
+      customerId: customer.id,
+      hasEmail: Boolean(customer.email),
+      hasPhone: Boolean(customer.phone),
+    });
 
     return {
       id: customer.id,
@@ -278,7 +376,10 @@ export async function createCustomer(request: CreateCustomerRequest): Promise<Cu
       created: new Date(customer.created * 1000),
     };
   } catch (error) {
-    logger.error('Failed to create customer', { error, request });
+    logger.error('Failed to create customer', {
+      error: summarizeStripeError(error),
+      request: summarizeCustomerRequest(request),
+    });
     throw error;
   }
 }
@@ -318,7 +419,10 @@ export async function createMonthlyPrice(
       currency: price.currency,
     };
   } catch (error) {
-    logger.error('Failed to create monthly price', { error, request });
+    logger.error('Failed to create monthly price', {
+      error: summarizeStripeError(error),
+      request: summarizeMonthlyPriceRequest(request),
+    });
     throw error;
   }
 }
@@ -344,7 +448,10 @@ export async function getCustomer(customerId: string): Promise<CustomerResponse>
       created: new Date(customer.created * 1000),
     };
   } catch (error) {
-    logger.error('Failed to retrieve customer', { error, customerId });
+    logger.error('Failed to retrieve customer', {
+      error: summarizeStripeError(error),
+      customerId,
+    });
     throw error;
   }
 }
@@ -374,7 +481,10 @@ export async function listPaymentMethods(customerId: string): Promise<PaymentMet
         : undefined,
     }));
   } catch (error) {
-    logger.error('Failed to list payment methods', { error, customerId });
+    logger.error('Failed to list payment methods', {
+      error: summarizeStripeError(error),
+      customerId,
+    });
     throw error;
   }
 }
@@ -411,7 +521,10 @@ export async function createSubscription(
 
     return mapSubscription(subscription);
   } catch (error) {
-    logger.error('Failed to create subscription', { error, request });
+    logger.error('Failed to create subscription', {
+      error: summarizeStripeError(error),
+      request: summarizeSubscriptionRequest(request),
+    });
     throw error;
   }
 }
@@ -448,7 +561,10 @@ export async function createCheckoutSession(
       providerTransactionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
     };
   } catch (error) {
-    logger.error('Failed to create checkout session', { error, request });
+    logger.error('Failed to create checkout session', {
+      error: summarizeStripeError(error),
+      request: summarizeCheckoutSessionRequest(request),
+    });
     throw error;
   }
 }
@@ -474,7 +590,10 @@ export async function getCheckoutSession(sessionId: string): Promise<CheckoutSes
       providerTransactionId: getStripeId(session.subscription as string | Stripe.Subscription | null),
     };
   } catch (error) {
-    logger.error('Failed to retrieve checkout session', { error, sessionId });
+    logger.error('Failed to retrieve checkout session', {
+      error: summarizeStripeError(error),
+      sessionId,
+    });
     throw error;
   }
 }
@@ -489,7 +608,10 @@ export async function getSubscription(subscriptionId: string): Promise<Subscript
     const subscription = await client.subscriptions.retrieve(subscriptionId);
     return mapSubscription(subscription);
   } catch (error) {
-    logger.error('Failed to retrieve subscription', { error, subscriptionId });
+    logger.error('Failed to retrieve subscription', {
+      error: summarizeStripeError(error),
+      subscriptionId,
+    });
     throw error;
   }
 }
@@ -523,7 +645,11 @@ export async function updateSubscriptionPrice(
 
     return mapSubscription(updated);
   } catch (error) {
-    logger.error('Failed to update subscription price', { error, subscriptionId, priceId });
+    logger.error('Failed to update subscription price', {
+      error: summarizeStripeError(error),
+      subscriptionId,
+      priceId,
+    });
     throw error;
   }
 }
@@ -545,7 +671,7 @@ export async function setSubscriptionCancelAtPeriodEnd(
     return mapSubscription(subscription);
   } catch (error) {
     logger.error('Failed to update subscription cancellation state', {
-      error,
+      error: summarizeStripeError(error),
       subscriptionId,
       cancelAtPeriodEnd,
     });
@@ -572,7 +698,10 @@ export async function createBillingPortalSession(
       url: session.url,
     };
   } catch (error) {
-    logger.error('Failed to create billing portal session', { error, customerId, returnUrl });
+    logger.error('Failed to create billing portal session', {
+      error: summarizeStripeError(error),
+      customerId,
+    });
     throw error;
   }
 }
@@ -604,7 +733,10 @@ export async function cancelSubscription(
 
     return mapSubscription(subscription);
   } catch (error) {
-    logger.error('Failed to cancel subscription', { error, subscriptionId });
+    logger.error('Failed to cancel subscription', {
+      error: summarizeStripeError(error),
+      subscriptionId,
+    });
     throw error;
   }
 }
@@ -634,7 +766,9 @@ export function constructWebhookEvent(
       livemode: event.livemode,
     };
   } catch (error) {
-    logger.error('Webhook signature verification failed', { error });
+    logger.error('Webhook signature verification failed', {
+      error: summarizeStripeError(error),
+    });
     throw error;
   }
 }

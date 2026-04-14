@@ -1,19 +1,23 @@
 import * as bcrypt from 'bcryptjs';
 import { Response } from 'express';
 import { validationResult } from 'express-validator';
-import pool from '../config/database';
+import pool from '@config/database';
 import { register, checkSetupStatus, setupFirstUser } from '../modules/auth/controllers/registration.controller';
 import { login } from '../modules/auth/controllers/session.controller';
 import { AuthRequest } from '../middleware/auth';
-import { getRegistrationMode } from '../modules/admin/usecases/registrationSettingsUseCase';
-import { createPendingRegistration } from '../modules/admin/usecases/createPendingRegistrationUseCase';
+import { getRegistrationMode } from '@modules/admin/usecases/registrationSettingsUseCase';
+import { createPendingRegistration } from '@modules/admin/usecases/createPendingRegistrationUseCase';
 
-jest.mock('../services/userRoleService', () => ({
+jest.mock('@utils/sessionTokens', () => ({
+  issueAppSessionToken: jest.fn().mockReturnValue('mock-auth-token'),
+}));
+
+jest.mock('@services/domains/integration', () => ({
   __esModule: true,
   syncUserRole: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('../config/database', () => ({
+jest.mock('@config/database', () => ({
   __esModule: true,
   default: {
     query: jest.fn(),
@@ -30,35 +34,35 @@ jest.mock('express-validator', () => ({
   validationResult: jest.fn(),
 }));
 
-jest.mock('../middleware/accountLockout', () => ({
+jest.mock('@middleware/accountLockout', () => ({
   trackLoginAttempt: jest.fn().mockResolvedValue(undefined),
   isAccountLocked: jest.fn().mockResolvedValue({ locked: false }),
 }));
 
-jest.mock('../utils/cookieHelper', () => ({
+jest.mock('@utils/cookieHelper', () => ({
   setAuthCookie: jest.fn(),
   clearAuthCookies: jest.fn(),
 }));
 
-jest.mock('../utils/authResponse', () => ({
+jest.mock('@utils/authResponse', () => ({
   buildAuthTokenResponse: jest.fn().mockReturnValue({}),
   shouldExposeAuthTokensInResponse: jest.fn().mockReturnValue(false),
 }));
 
-jest.mock('../middleware/csrf', () => ({
+jest.mock('@middleware/domains/security', () => ({
   generateCsrfToken: jest.fn().mockReturnValue('mock-csrf-token'),
   doubleCsrfProtection: jest.fn((_req: unknown, _res: unknown, next: () => void) => next()),
 }));
 
 // Mock registration settings — default to allowing direct registration (not 'disabled')
 // so the existing register tests continue to work as before.
-jest.mock('../modules/admin/usecases/registrationSettingsUseCase', () => ({
+jest.mock('@modules/admin/usecases/registrationSettingsUseCase', () => ({
   __esModule: true,
   getRegistrationMode: jest.fn().mockResolvedValue('approval_required'),
 }));
 
 // Mock pending registration service used when mode is approval_required
-jest.mock('../modules/admin/usecases/createPendingRegistrationUseCase', () => ({
+jest.mock('@modules/admin/usecases/createPendingRegistrationUseCase', () => ({
   __esModule: true,
   createPendingRegistration: jest.fn().mockResolvedValue({
     id: 'pending-1',

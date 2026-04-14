@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '@config/jwt';
-import { PASSWORD, JWT } from '@config/constants';
+import { PASSWORD } from '@config/constants';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logPortalActivity } from '@services/domains/integration';
@@ -11,6 +9,7 @@ import { badRequest, conflict, forbidden, notFoundMessage, unauthorized } from '
 import { clearPortalAuthCookie, setPortalAuthCookie } from '@utils/cookieHelper';
 import { shouldExposeAuthTokensInResponse } from '@utils/authResponse';
 import { sendSuccess } from '@modules/shared/http/envelope';
+import { issuePortalSessionToken } from '@utils/sessionTokens';
 
 interface PortalSignupRequest {
   email: string;
@@ -37,16 +36,7 @@ const mapPortalSessionUser = (user: {
 });
 
 const buildPortalToken = (payload: { id: string; email: string; contactId: string | null }) => {
-  return jwt.sign(
-    {
-      id: payload.id,
-      email: payload.email,
-      contactId: payload.contactId,
-      type: 'portal' as const,
-    },
-    getJwtSecret(),
-    { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
-  );
+  return issuePortalSessionToken(payload);
 };
 
 export const portalSignup = async (

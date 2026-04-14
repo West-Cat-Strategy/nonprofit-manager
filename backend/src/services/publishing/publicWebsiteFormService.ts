@@ -31,6 +31,57 @@ import {
   UUID_PATTERN,
 } from './publicWebsiteFormServiceHelpers';
 
+const PUBLIC_FORM_ALLOWED_FIELDS: Record<SupportedPublicWebsiteFormType, ReadonlySet<string>> = {
+  'contact-form': new Set(['first_name', 'last_name', 'email', 'phone', 'message']),
+  'newsletter-signup': new Set(['first_name', 'last_name', 'email']),
+  'volunteer-interest-form': new Set([
+    'first_name',
+    'last_name',
+    'email',
+    'phone',
+    'availability',
+    'message',
+  ]),
+  'referral-form': new Set([
+    'first_name',
+    'last_name',
+    'email',
+    'phone',
+    'subject',
+    'referral_source',
+    'notes',
+    'urgent',
+  ]),
+  'donation-form': new Set(['first_name', 'last_name', 'email', 'phone', 'amount', 'recurring']),
+};
+
+const isPrimitiveFormValue = (value: unknown): value is string | number | boolean | null =>
+  value === null || ['string', 'number', 'boolean'].includes(typeof value);
+
+const sanitizePublicFormPayload = (
+  formType: SupportedPublicWebsiteFormType,
+  payload: Record<string, unknown>
+): Record<string, unknown> => {
+  const allowedFields = PUBLIC_FORM_ALLOWED_FIELDS[formType];
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(payload)) {
+    if (allowedFields.has(key) && isPrimitiveFormValue(value)) {
+      sanitized[key] = value;
+    }
+  }
+
+  return sanitized;
+};
+
+const splitDelimitedList = (value: string | undefined): string[] =>
+  value
+    ? value
+        .split(/[\n,;]+/)
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0)
+    : [];
+
 export interface PublicWebsiteFormResult {
   formType: string;
   message: string;
@@ -320,6 +371,7 @@ export class PublicWebsiteFormService {
       [contactId]
     );
 
+    const skills = splitDelimitedList(typeof payload.message === 'string' ? payload.message : undefined);
     const volunteerRecord =
       volunteer.rows[0] ||
       (await services.volunteer.createVolunteer(
@@ -328,9 +380,7 @@ export class PublicWebsiteFormService {
           availability_status: AvailabilityStatus.LIMITED,
           availability_notes:
             typeof payload.availability === 'string' ? payload.availability : undefined,
-          skills: Array.isArray(payload.skills)
-            ? payload.skills.filter((value): value is string => typeof value === 'string')
-            : undefined,
+          skills: skills.length > 0 ? skills : undefined,
         },
         site.ownerUserId || site.userId
       ));
@@ -365,9 +415,7 @@ export class PublicWebsiteFormService {
         metadata: {
           availability:
             typeof payload.availability === 'string' ? payload.availability : undefined,
-          skills: Array.isArray(payload.skills)
-            ? payload.skills.filter((value): value is string => typeof value === 'string')
-            : [],
+          skills,
         },
       },
     };
@@ -388,17 +436,12 @@ export class PublicWebsiteFormService {
     const referralSource =
       typeof payload.referral_source === 'string' && payload.referral_source.trim().length > 0
         ? payload.referral_source.trim()
-        : typeof payload.source === 'string' && payload.source.trim().length > 0
-          ? payload.source.trim()
-          : undefined;
+        : undefined;
     const title =
       typeof payload.subject === 'string' && payload.subject.trim().length > 0
         ? payload.subject.trim()
         : `Referral intake for ${identity.firstName} ${identity.lastName}`.trim();
-    const description =
-      identity.message ||
-      (typeof payload.description === 'string' ? payload.description.trim() : undefined) ||
-      undefined;
+    const description = identity.message || undefined;
     const caseRecord = await services.case.createCase(
       {
         contact_id: contactId,
@@ -406,11 +449,7 @@ export class PublicWebsiteFormService {
         case_type_id: caseTypeId,
         title,
         description,
-        priority:
-          typeof payload.priority === 'string' &&
-          ['low', 'medium', 'high', 'urgent', 'critical'].includes(payload.priority)
-            ? (payload.priority as 'low' | 'medium' | 'high' | 'urgent' | 'critical')
-            : 'medium',
+        priority: 'medium',
         source: 'referral',
         referral_source: referralSource,
         intake_data: {
@@ -423,10 +462,7 @@ export class PublicWebsiteFormService {
           siteId: site.id,
         },
         tags: defaultTags,
-        is_urgent:
-          isTruthyFlag(payload.urgent) ||
-          isTruthyFlag(payload.is_urgent) ||
-          (typeof payload.priority === 'string' && payload.priority === 'urgent'),
+        is_urgent: isTruthyFlag(payload.urgent),
         client_viewable: false,
       },
       site.ownerUserId || site.userId
@@ -556,7 +592,6 @@ export class PublicWebsiteFormService {
         currency,
         provider,
         campaignName,
-        designation: typeof payload.designation === 'string' ? payload.designation : undefined,
         notes: identity.message,
         userId: site.ownerUserId || site.userId,
         pagePath: context.pagePath || null,
@@ -684,8 +719,8 @@ export class PublicWebsiteFormService {
     const settings = await this.siteSettings.getPublicSettings(site.id);
     const component = mergeManagedComponentConfig(sourceComponent, settings);
     const formType = requireSupportedPublicWebsiteFormType(component);
-
-    const identity = toIdentity(payload);
+    const publicPayload = sanitizePublicFormPayload(formType, payload);
+    const identity = toIdentity(publicPayload);
 
     let submissionId: string | null = null;
 
@@ -696,7 +731,7 @@ export class PublicWebsiteFormService {
         submissionType: formType,
         formKey,
         idempotencyKey: context.idempotencyKey,
-        payload,
+        payload: publicPayload,
         ipAddress: context.ipAddress,
         userAgent: context.userAgent,
         auditMetadata: this.buildAuditMetadata(context, {
@@ -721,10 +756,11 @@ export class PublicWebsiteFormService {
         'contact-form': () => this.handleContactForm(site, component, identity),
         'newsletter-signup': () => this.handleNewsletterSignup(site, component, identity),
         'volunteer-interest-form': () =>
-          this.handleVolunteerInterest(site, component, identity, payload),
-        'referral-form': () => this.handleReferralForm(site, component, identity, payload),
+          this.handleVolunteerInterest(site, component, identity, publicPayload),
+        'referral-form': () =>
+          this.handleReferralForm(site, component, identity, publicPayload),
         'donation-form': () =>
-          this.handleDonationForm(site, component, settings, identity, payload, formKey, context),
+          this.handleDonationForm(site, component, settings, identity, publicPayload, formKey, context),
       };
 
       const outcome = await submitters[formType]();

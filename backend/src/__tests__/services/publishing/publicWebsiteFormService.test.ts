@@ -579,6 +579,12 @@ describe('PublicWebsiteFormService', () => {
       referral_source: 'Community Partner',
       notes: 'Needs support this week.',
       urgent: 'true',
+      source: 'legacy-source',
+      priority: 'critical',
+      designation: 'hidden-donation-designation',
+      skills: ['case work', 'crisis response'],
+      visitorId: 'visitor-1',
+      sessionId: 'session-1',
     });
 
     expect(servicesModule.__mocks.createContact).toHaveBeenCalledWith(
@@ -607,6 +613,42 @@ describe('PublicWebsiteFormService', () => {
         client_viewable: false,
       }),
       'owner-1'
+    );
+    expect(publicSubmissionModule.__mocks.beginSubmission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: {
+          first_name: 'Grace',
+          last_name: 'Hopper',
+          email: 'grace@example.com',
+          phone: '(604) 555-1212',
+          subject: 'Housing referral',
+          referral_source: 'Community Partner',
+          notes: 'Needs support this week.',
+          urgent: 'true',
+        },
+      })
+    );
+    expect(servicesModule.__mocks.createCase.mock.calls[0]?.[0].intake_data).toEqual(
+      expect.objectContaining({
+        first_name: 'Grace',
+        last_name: 'Hopper',
+        email: 'grace@example.com',
+        phone: '(604) 555-1212',
+        subject: 'Housing referral',
+        referral_source: 'Community Partner',
+        notes: 'Needs support this week.',
+        urgent: 'true',
+        submitted_at: expect.any(String),
+      })
+    );
+    expect(servicesModule.__mocks.createCase.mock.calls[0]?.[0].intake_data).not.toHaveProperty(
+      'source'
+    );
+    expect(servicesModule.__mocks.createCase.mock.calls[0]?.[0].intake_data).not.toHaveProperty(
+      'priority'
+    );
+    expect(servicesModule.__mocks.createCase.mock.calls[0]?.[0].intake_data).not.toHaveProperty(
+      'designation'
     );
     expect(result).toEqual({
       formType: 'referral-form',

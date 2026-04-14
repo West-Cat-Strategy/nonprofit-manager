@@ -1,10 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '@config/jwt';
 import { unauthorized } from '@utils/responseHelpers';
 import { extractToken, PORTAL_AUTH_COOKIE_NAME } from '@utils/cookieHelper';
+import {
+  PORTAL_SESSION_TOKEN_ISSUER,
+  verifyTokenWithOptionalIssuer,
+  type PortalSessionTokenPayload,
+} from '@utils/sessionTokens';
 
-interface PortalJwtPayload {
+interface PortalJwtPayload extends PortalSessionTokenPayload {
   id: string;
   email: string;
   contactId: string | null;
@@ -27,7 +30,10 @@ export const authenticatePortal = (
     if (!token) {
       return unauthorized(res, 'No token provided');
     }
-    const decoded = jwt.verify(token, getJwtSecret()) as PortalJwtPayload;
+    const decoded = verifyTokenWithOptionalIssuer<PortalJwtPayload>(
+      token,
+      PORTAL_SESSION_TOKEN_ISSUER
+    );
 
     if (decoded.type !== 'portal') {
       return unauthorized(res, 'Invalid token type');

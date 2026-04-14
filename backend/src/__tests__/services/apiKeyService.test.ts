@@ -104,6 +104,17 @@ describe('apiKeyService', () => {
       ]);
     });
 
+    it('rejects privileged scopes before hitting the database', async () => {
+      await expect(
+        apiKeyService.createApiKey('org-1', 'user-1', {
+          name: 'Bad Key',
+          scopes: ['admin' as any],
+        })
+      ).rejects.toThrow(apiKeyService.InvalidApiKeyScopesError);
+
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+
     it('generates unique plaintext keys on each call', async () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [{ id: 'key-1', created_at: new Date() }] })
@@ -236,6 +247,25 @@ describe('apiKeyService', () => {
       expect(result).toEqual(expect.objectContaining({ status: 'revoked', isActive: false }));
       expect(String(mockQuery.mock.calls[0][0])).toContain('organization_id = $3');
       expect(mockQuery.mock.calls[0][1]).toEqual([false, 'key-uuid', 'org-1']);
+    });
+
+    it('rejects scope upgrades that fall outside the managed allowlist', async () => {
+      await expect(
+        apiKeyService.updateApiKey('key-uuid', 'org-1', {
+          scopes: ['*' as any],
+        })
+      ).rejects.toThrow(apiKeyService.InvalidApiKeyScopesError);
+
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getAvailableScopes', () => {
+    it('omits privileged scopes from the managed contract', () => {
+      const scopes = apiKeyService.getAvailableScopes().map((entry) => entry.scope);
+
+      expect(scopes).not.toContain('admin');
+      expect(scopes).not.toContain('*');
     });
   });
 

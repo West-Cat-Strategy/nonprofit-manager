@@ -1,9 +1,16 @@
-import jwt from 'jsonwebtoken';
 import { Response } from 'express';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 
-jest.mock('jsonwebtoken', () => ({
-  verify: jest.fn(),
+jest.mock('@config/database', () => ({
+  __esModule: true,
+  default: {
+    query: jest.fn(),
+  },
+}));
+
+jest.mock('@utils/sessionTokens', () => ({
+  APP_SESSION_TOKEN_ISSUER: 'nonprofit-manager-app',
+  verifyTokenWithOptionalIssuer: jest.fn(),
 }));
 
 const createMockResponse = () => {
@@ -15,18 +22,25 @@ const createMockResponse = () => {
   return res;
 };
 
+const pool = jest.requireMock('@config/database').default as {
+  query: jest.Mock;
+};
+const { verifyTokenWithOptionalIssuer } = jest.requireMock('@utils/sessionTokens') as {
+  verifyTokenWithOptionalIssuer: jest.Mock;
+};
+
 describe('auth middleware', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   describe('authenticate', () => {
-    it('rejects when no auth header is present', () => {
+    it('rejects when no auth header is present', async () => {
       const req = { headers: {} } as AuthRequest;
       const res = createMockResponse() as unknown as Response;
       const next = jest.fn();
 
-      authenticate(req, res, next);
+      await authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith(
@@ -41,18 +55,18 @@ describe('auth middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('rejects when token is invalid', () => {
+    it('rejects when token is invalid', async () => {
       const req = {
         headers: { authorization: 'Bearer bad-token' },
       } as AuthRequest;
       const res = createMockResponse() as unknown as Response;
       const next = jest.fn();
 
-      (jwt.verify as jest.Mock).mockImplementation(() => {
+      verifyTokenWithOptionalIssuer.mockImplementation(() => {
         throw new Error('invalid');
       });
 
-      authenticate(req, res, next);
+      await authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith(
@@ -67,25 +81,93 @@ describe('auth middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('sets req.user and calls next for valid token', () => {
+    it('rejects portal tokens on staff routes', async () => {
+      const req = {
+        headers: { authorization: 'Bearer portal-token' },
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      verifyTokenWithOptionalIssuer.mockReturnValue({
+        id: 'user-1',
+        email: 'portal@example.com',
+        role: 'member',
+        type: 'portal',
+      });
+
+      await authenticate(req, res, next);
+
+      expect(pool.query).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('rejects tokens when the auth revision no longer matches', async () => {
+      const req = {
+        headers: { authorization: 'Bearer stale-token' },
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      verifyTokenWithOptionalIssuer.mockReturnValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        role: 'admin',
+        type: 'app',
+        authRevision: 0,
+      });
+      pool.query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'user-1',
+            email: 'db@example.com',
+            role: 'manager',
+            is_active: true,
+            auth_revision: 3,
+          },
+        ],
+      });
+
+      await authenticate(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('sets req.user from the database snapshot and calls next for valid tokens', async () => {
       const req = {
         headers: { authorization: 'Bearer good-token' },
       } as AuthRequest;
       const res = createMockResponse() as unknown as Response;
       const next = jest.fn();
 
-      (jwt.verify as jest.Mock).mockReturnValue({
+      verifyTokenWithOptionalIssuer.mockReturnValue({
         id: 'user-1',
-        email: 'test@example.com',
+        email: 'token@example.com',
         role: 'admin',
+        type: 'app',
+        authRevision: 2,
+      });
+      pool.query.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'user-1',
+            email: 'db@example.com',
+            role: 'manager',
+            is_active: true,
+            auth_revision: 2,
+          },
+        ],
       });
 
-      authenticate(req, res, next);
+      await authenticate(req, res, next);
 
       expect(req.user).toEqual({
         id: 'user-1',
-        email: 'test@example.com',
-        role: 'admin',
+        email: 'db@example.com',
+        role: 'manager',
+        type: 'app',
+        authRevision: 2,
       });
       expect(next).toHaveBeenCalled();
     });

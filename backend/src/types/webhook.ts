@@ -54,21 +54,26 @@ export type ApiKeyStatus = 'active' | 'revoked' | 'expired';
 /**
  * API key scope/permissions
  */
-export type ApiKeyScope =
-  | 'read:contacts'
-  | 'write:contacts'
-  | 'read:donations'
-  | 'write:donations'
-  | 'read:events'
-  | 'write:events'
-  | 'read:volunteers'
-  | 'write:volunteers'
-  | 'read:tasks'
-  | 'write:tasks'
-  | 'read:reports'
-  | 'read:analytics'
-  | 'admin'
-  | '*';
+export const API_KEY_MANAGED_SCOPES = [
+  'read:contacts',
+  'write:contacts',
+  'read:donations',
+  'write:donations',
+  'read:events',
+  'write:events',
+  'read:volunteers',
+  'write:volunteers',
+  'read:tasks',
+  'write:tasks',
+  'read:reports',
+  'read:analytics',
+] as const;
+
+export const API_KEY_PRIVILEGED_SCOPES = ['admin', '*'] as const;
+
+export type ApiKeyManagedScope = (typeof API_KEY_MANAGED_SCOPES)[number];
+export type ApiKeyPrivilegedScope = (typeof API_KEY_PRIVILEGED_SCOPES)[number];
+export type ApiKeyScope = ApiKeyManagedScope | ApiKeyPrivilegedScope;
 
 /**
  * Webhook endpoint configuration
@@ -171,7 +176,7 @@ export interface ApiKey {
  */
 export interface CreateApiKeyRequest {
   name: string;
-  scopes: ApiKeyScope[];
+  scopes: ApiKeyManagedScope[];
   expiresAt?: Date; // Optional expiration
 }
 
@@ -187,7 +192,7 @@ export interface CreateApiKeyResponse extends Omit<ApiKey, 'keyHash'> {
  */
 export interface UpdateApiKeyRequest {
   name?: string;
-  scopes?: ApiKeyScope[];
+  scopes?: ApiKeyManagedScope[];
   status?: ApiKeyStatus;
 }
 

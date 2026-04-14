@@ -1,20 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import pool from '@config/database';
-import { getJwtSecret } from '@config/jwt';
 import { logger } from '@config/logger';
 import { forbidden, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 import { extractToken, AUTH_COOKIE_NAME } from '@utils/cookieHelper';
 import { createRequestAuthorizationContext, hasRoleAccess } from '@services/authorization';
 import { setRequestContext } from '@config/requestContext';
 import { normalizeRoleSlug } from '@utils/roleSlug';
+import {
+  APP_SESSION_TOKEN_ISSUER,
+  verifyTokenWithOptionalIssuer,
+  type AppSessionTokenPayload,
+} from '@utils/sessionTokens';
 
-interface JwtPayload {
+interface JwtPayload extends AppSessionTokenPayload {
   id: string;
   email: string;
   role: string;
   organizationId?: string;
   organization_id?: string;
+  type?: 'app' | 'portal' | 'mfa';
+  authRevision?: number;
 }
 
 export type RequestedOrganizationSource = 'header' | 'query' | 'param';
@@ -24,6 +29,14 @@ type ResolvedOrganizationSource = RequestedOrganizationSource | 'token';
 interface AccountContextRow {
   id: string;
   is_active: boolean;
+}
+
+interface AuthSessionUserRow {
+  id: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+  auth_revision: number;
 }
 
 export interface AuthRequest
@@ -177,13 +190,33 @@ export const authenticate = (
         return unauthorized(res, 'No token provided');
       }
 
-      const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
-      const normalizedRole = normalizeRoleSlug(decoded.role) ?? decoded.role;
+      const decoded = verifyTokenWithOptionalIssuer<JwtPayload>(token, APP_SESSION_TOKEN_ISSUER);
+      if (decoded.type && decoded.type !== 'app') {
+        return unauthorized(res, 'Invalid or expired token');
+      }
+
+      const sessionResult = await pool.query<AuthSessionUserRow>(
+        `SELECT id, email, role, is_active, COALESCE(auth_revision, 0) AS auth_revision
+         FROM users
+         WHERE id = $1`,
+        [decoded.id]
+      );
+      const sessionUser = sessionResult.rows[0];
+      if (!sessionUser || !sessionUser.is_active) {
+        return unauthorized(res, 'Invalid or expired token');
+      }
+
+      if ((decoded.authRevision ?? 0) !== Number(sessionUser.auth_revision || 0)) {
+        return unauthorized(res, 'Invalid or expired token');
+      }
+
+      const normalizedRole = normalizeRoleSlug(sessionUser.role) ?? sessionUser.role;
       const tokenOrganizationId = decoded.organizationId || decoded.organization_id;
       const requestedOrganizationId = getRequestedOrganizationId(req);
 
       req.user = {
         ...decoded,
+        email: sessionUser.email,
         role: normalizedRole,
       };
 
@@ -197,7 +230,7 @@ export const authenticate = (
         if (usingExplicitOrganizationSwitch || shouldValidateResolvedContext) {
           const isValid = await validateResolvedOrganization(req, res, {
             organizationId: requestedOrganizationId,
-            userId: decoded.id,
+            userId: sessionUser.id,
             userRole: normalizedRole,
             source: usingExplicitOrganizationSwitch
               ? req.requestedOrganizationSource || 'header'
@@ -215,7 +248,7 @@ export const authenticate = (
       } else if (tokenOrganizationId && shouldValidateResolvedContext) {
         const isValid = await validateResolvedOrganization(req, res, {
           organizationId: tokenOrganizationId,
-          userId: decoded.id,
+          userId: sessionUser.id,
           userRole: normalizedRole,
           source: 'token',
           validateAccess: false,
@@ -225,9 +258,9 @@ export const authenticate = (
         }
       }
 
-      setOrganizationContext(req, organizationId, decoded.id);
+      setOrganizationContext(req, organizationId, sessionUser.id);
       req.authorizationContext = createRequestAuthorizationContext(
-        decoded.id,
+        sessionUser.id,
         normalizedRole,
         organizationId
       );

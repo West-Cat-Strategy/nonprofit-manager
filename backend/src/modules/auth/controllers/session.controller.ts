@@ -1,12 +1,9 @@
 import { Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import pool from '@config/database';
 import { logger } from '@config/logger';
-import { getJwtSecret } from '@config/jwt';
 import { AuthRequest } from '@middleware/auth';
 import { trackLoginAttempt } from '@middleware/accountLockout';
-import { JWT } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
 import {
   buildAuthorizationSnapshot,
@@ -19,6 +16,7 @@ import { buildAuthTokenResponse } from '@utils/authResponse';
 import { generateCsrfToken } from '@middleware/domains/security';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { normalizeRoleSlug } from '@utils/roleSlug';
+import { issueAppSessionToken } from '@utils/sessionTokens';
 import {
   getDefaultOrganizationId,
   LoginRequest,
@@ -42,7 +40,9 @@ export const login = async (
     const result = await pool.query<UserRow>(
       `SELECT 
         u.id, u.email, u.password_hash, u.first_name, u.last_name, u.role, 
-        u.profile_picture, u.mfa_totp_enabled,
+        u.profile_picture, COALESCE(u.is_active, true) AS is_active,
+        COALESCE(u.auth_revision, 0) AS auth_revision,
+        u.mfa_totp_enabled,
         COALESCE(bool_or(r.mfa_required), FALSE) as mfa_required_by_role
       FROM users u
       LEFT JOIN user_roles ur ON u.id = ur.user_id
@@ -64,6 +64,18 @@ export const login = async (
 
     const user = result.rows[0];
     const normalizedRole = normalizeRoleSlug(user.role) ?? user.role;
+
+    if (user.is_active === false) {
+      await trackLoginAttempt(normalizedEmail, false, user.id, clientIp);
+      logger.warn('Login failed: user inactive', {
+        email: normalizedEmail,
+        userId: user.id,
+        ip: clientIp,
+        correlationId,
+      });
+      return unauthorized(res, 'Invalid credentials');
+    }
+
     await syncUserRole(user.id, normalizedRole);
 
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
@@ -92,7 +104,12 @@ export const login = async (
       logger.info(`MFA required for user: ${user.email}`, { ip: clientIp, correlationId });
       const organizationId = await getDefaultOrganizationId();
       return sendSuccess(res, {
-        ...issueTotpMfaChallenge(user),
+        ...issueTotpMfaChallenge({
+          id: user.id,
+          email: user.email,
+          role: normalizedRole,
+          authRevision: user.auth_revision ?? 0,
+        }),
         organizationId,
         user: mapAuthUser(user),
       });
@@ -101,18 +118,13 @@ export const login = async (
     await trackLoginAttempt(normalizedEmail, true, user.id, clientIp);
 
     const organizationId = await getDefaultOrganizationId();
-    const jwtSecret = getJwtSecret();
-
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: normalizedRole,
-        ...(organizationId ? { organizationId } : {}),
-      },
-      jwtSecret,
-      { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
-    );
+    const token = issueAppSessionToken({
+      id: user.id,
+      email: user.email,
+      role: normalizedRole,
+      organizationId,
+      authRevision: user.auth_revision ?? 0,
+    });
 
     logger.info(`User logged in: ${user.email}`, { ip: clientIp, correlationId });
 

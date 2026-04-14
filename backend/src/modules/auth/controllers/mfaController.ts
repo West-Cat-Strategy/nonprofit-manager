@@ -1,23 +1,26 @@
 import { Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import pool from '@config/database';
-import { getJwtSecret } from '@config/jwt';
 import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
 import { trackLoginAttempt } from '@middleware/accountLockout';
-import { JWT, TIME } from '@config/constants';
 import { decrypt, encrypt } from '@utils/encryption';
 import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { authenticator } from '@otplib/preset-default';
 import { sendSuccess } from '@modules/shared/http/envelope';
+import { normalizeRoleSlug } from '@utils/roleSlug';
+import {
+  MFA_TOKEN_ISSUER,
+  issueAppSessionToken,
+  issueTotpMfaToken,
+  verifyTokenWithOptionalIssuer,
+} from '@utils/sessionTokens';
 import { getDefaultOrganizationId } from '../lib/authQueries';
 
 const TOTP_PERIOD_SECONDS = 30;
 const TOTP_WINDOW = 1;
-const MFA_TOKEN_EXPIRY = Math.floor(TIME.FIVE_MINUTES / 1000);
 const TOTP_ISSUER = process.env.TOTP_ISSUER || 'Nonprofit Manager';
 
 interface TotpUserRow {
@@ -31,6 +34,8 @@ interface TotpUserRow {
   mfa_totp_enabled?: boolean;
   mfa_totp_secret_enc?: string | null;
   mfa_totp_pending_secret_enc?: string | null;
+  is_active?: boolean;
+  auth_revision?: number;
 }
 
 const normalizeTotpCode = (code: string) => code.replace(/\s+/g, '');
@@ -43,29 +48,17 @@ const loadOtplib = async () => {
 };
 
 const issueAuthTokens = (
-  user: { id: string; email: string; role: string },
+  user: { id: string; email: string; role: string; auth_revision?: number },
   organizationId?: string | null
 ) => {
-  const jwtSecret = getJwtSecret();
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      ...(organizationId ? { organizationId } : {}),
-    },
-    jwtSecret,
-    { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
-  );
-};
-
-const issueMfaToken = (user: { id: string; email: string; role: string }) => {
-  const jwtSecret = getJwtSecret();
-  return jwt.sign(
-    { id: user.id, email: user.email, role: user.role, type: 'mfa', method: 'totp' },
-    jwtSecret,
-    { expiresIn: MFA_TOKEN_EXPIRY }
-  );
+  const normalizedRole = normalizeRoleSlug(user.role) ?? user.role;
+  return issueAppSessionToken({
+    id: user.id,
+    email: user.email,
+    role: normalizedRole,
+    organizationId,
+    authRevision: user.auth_revision ?? 0,
+  });
 };
 
 export const getSecurityOverview = async (
@@ -258,9 +251,16 @@ export const completeTotpLogin = async (
     const code = rawCode ?? legacyToken ?? '';
     const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
 
-    let decoded: { id: string; email: string; role: string; type?: string; method?: string };
+    let decoded: {
+      id: string;
+      email: string;
+      role: string;
+      type?: string;
+      method?: string;
+      authRevision?: number;
+    };
     try {
-      decoded = jwt.verify(mfaToken, getJwtSecret()) as typeof decoded;
+      decoded = verifyTokenWithOptionalIssuer<typeof decoded>(mfaToken, MFA_TOKEN_ISSUER);
     } catch {
       return unauthorized(res, 'Invalid or expired MFA token');
     }
@@ -274,7 +274,10 @@ export const completeTotpLogin = async (
     }
 
     const userResult = await pool.query<TotpUserRow>(
-      `SELECT id, email, role, first_name, last_name, profile_picture, mfa_totp_enabled, mfa_totp_secret_enc
+      `SELECT id, email, role, first_name, last_name, profile_picture,
+              COALESCE(is_active, true) AS is_active,
+              COALESCE(auth_revision, 0) AS auth_revision,
+              mfa_totp_enabled, mfa_totp_secret_enc
        FROM users WHERE id = $1`,
       [decoded.id]
     );
@@ -284,6 +287,16 @@ export const completeTotpLogin = async (
     }
 
     const user = userResult.rows[0];
+    if (user.is_active === false) {
+      await trackLoginAttempt(email, false, user.id, clientIp);
+      return unauthorized(res, 'Invalid credentials');
+    }
+
+    if ((decoded.authRevision ?? 0) !== (user.auth_revision ?? 0)) {
+      await trackLoginAttempt(email, false, user.id, clientIp);
+      return unauthorized(res, 'Invalid or expired MFA token');
+    }
+
     if (!user.mfa_totp_enabled || !user.mfa_totp_secret_enc) {
       await trackLoginAttempt(email, false, user.id, clientIp);
       return badRequest(res, '2FA is not enabled for this user');
@@ -310,7 +323,7 @@ export const completeTotpLogin = async (
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        role: user.role,
+        role: normalizeRoleSlug(user.role) ?? user.role,
         profilePicture: user.profile_picture || null,
       },
     });
@@ -319,8 +332,19 @@ export const completeTotpLogin = async (
   }
 };
 
-export const issueTotpMfaChallenge = (user: { id: string; email: string; role: string }) => {
-  const mfaToken = issueMfaToken(user);
+export const issueTotpMfaChallenge = (user: {
+  id: string;
+  email: string;
+  role: string;
+  authRevision?: number;
+}) => {
+  const normalizedRole = normalizeRoleSlug(user.role) ?? user.role;
+  const mfaToken = issueTotpMfaToken({
+    id: user.id,
+    email: user.email,
+    role: normalizedRole,
+    authRevision: user.authRevision ?? 0,
+  });
   return {
     mfaRequired: true as const,
     method: 'totp' as const,

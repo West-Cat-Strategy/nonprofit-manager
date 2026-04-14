@@ -7,8 +7,10 @@ import { getJwtSecret } from '../../config/jwt';
 
 describe('Webhooks API Integration', () => {
   let userId: string;
+  let managerUserId: string;
   let organizationId: string;
   let authToken: string;
+  let managerAuthToken: string;
 
   const safeDelete = async (query: string, params: unknown[]) => {
     try {
@@ -18,8 +20,11 @@ describe('Webhooks API Integration', () => {
     }
   };
 
-  const authed = (method: 'get' | 'post' | 'put' | 'delete', path: string) =>
-    request(app)[method](path).set('Authorization', `Bearer ${authToken}`);
+  const authed = (
+    method: 'get' | 'post' | 'put' | 'delete',
+    path: string,
+    token = authToken
+  ) => request(app)[method](path).set('Authorization', `Bearer ${token}`);
 
   beforeAll(async () => {
     userId = randomUUID();
@@ -30,6 +35,14 @@ describe('Webhooks API Integration', () => {
       `INSERT INTO users (id, email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, TRUE, NOW(), NOW())`,
       [userId, email, 'integration-test-hash', 'Webhook', 'Tester', 'admin']
+    );
+
+    managerUserId = randomUUID();
+    const managerEmail = `webhooks-manager-${Date.now()}@example.com`;
+    await pool.query(
+      `INSERT INTO users (id, email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, TRUE, NOW(), NOW())`,
+      [managerUserId, managerEmail, 'integration-test-hash', 'Webhook', 'Manager', 'manager']
     );
 
     await pool.query(
@@ -58,6 +71,17 @@ describe('Webhooks API Integration', () => {
       getJwtSecret(),
       { expiresIn: '1h' }
     );
+
+    managerAuthToken = jwt.sign(
+      {
+        id: managerUserId,
+        email: managerEmail,
+        role: 'manager',
+        organizationId,
+      },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
   });
 
   afterAll(async () => {
@@ -76,6 +100,7 @@ describe('Webhooks API Integration', () => {
     );
     await safeDelete('DELETE FROM webhook_endpoints WHERE user_id = $1', [userId]);
     await safeDelete('DELETE FROM accounts WHERE id = $1', [organizationId]);
+    await safeDelete('DELETE FROM users WHERE id = $1', [managerUserId]);
     await safeDelete('DELETE FROM users WHERE id = $1', [userId]);
   });
 
@@ -85,6 +110,17 @@ describe('Webhooks API Integration', () => {
 
   it('requires authentication for API key listing', async () => {
     await request(app).get('/api/v2/webhooks/api-keys').expect(401);
+  });
+
+  it('denies non-admin access to webhook management routes', async () => {
+    await authed('get', '/api/v2/webhooks/endpoints', managerAuthToken).expect(403);
+    await authed('post', '/api/v2/webhooks/api-keys', managerAuthToken)
+      .send({
+        name: 'Denied Key',
+        scopes: ['read:contacts'],
+      })
+      .expect(403);
+    await authed('get', '/api/v2/webhooks/api-keys/scopes', managerAuthToken).expect(403);
   });
 
   it('supports webhook endpoint create, get, and update without exposing the secret on readback', async () => {
@@ -160,6 +196,12 @@ describe('Webhooks API Integration', () => {
       })
     );
 
+    const availableScopes = await authed('get', '/api/v2/webhooks/api-keys/scopes').expect(200);
+    expect(Array.isArray(availableScopes.body.data)).toBe(true);
+    expect(availableScopes.body.data.map((entry: { scope: string }) => entry.scope)).not.toContain(
+      'admin'
+    );
+
     const keyId = created.body.data.id as string;
 
     const listed = await authed('get', '/api/v2/webhooks/api-keys').expect(200);
@@ -210,5 +252,14 @@ describe('Webhooks API Integration', () => {
         isActive: false,
       })
     );
+  });
+
+  it('rejects privileged scopes in API key creation requests', async () => {
+    await authed('post', '/api/v2/webhooks/api-keys')
+      .send({
+        name: 'Invalid Scope Key',
+        scopes: ['admin'],
+      })
+      .expect(400);
   });
 });

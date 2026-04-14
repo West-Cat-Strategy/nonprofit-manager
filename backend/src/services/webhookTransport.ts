@@ -1,5 +1,6 @@
 import dns from 'dns/promises';
 import net from 'net';
+import { Agent, interceptors } from 'undici';
 
 const WEBHOOK_TIMEOUT = 30000;
 const WEBHOOK_FETCH_OPTIONS = { redirect: 'manual' as const };
@@ -56,6 +57,45 @@ const isPrivateIp = (ip: string): boolean => {
   return false;
 };
 
+const toAddressInfo = (address: string): { address: string; family: 4 | 6; ttl: number } => ({
+  address,
+  family: net.isIP(address) === 6 ? 6 : 4,
+  ttl: 0,
+});
+
+export const createPinnedWebhookLookup =
+  (addresses: string[]) =>
+  (
+    _origin: URL,
+    _options: unknown,
+    callback: (error: Error | null, addresses: Array<{ address: string; family: 4 | 6; ttl: number }>) => void
+  ): void => {
+    if (addresses.length === 0) {
+      callback(new Error('Hostname did not resolve'), []);
+      return;
+    }
+
+    callback(null, addresses.map(toAddressInfo));
+  };
+
+const createPinnedWebhookDispatcher = (addresses: string[]): Agent =>
+  new Agent({
+    interceptors: {
+      Agent: [
+        interceptors.dns({
+          maxTTL: 0,
+          lookup: createPinnedWebhookLookup(addresses),
+        }),
+      ],
+      Client: [
+        interceptors.dns({
+          maxTTL: 0,
+          lookup: createPinnedWebhookLookup(addresses),
+        }),
+      ],
+    },
+  });
+
 async function resolveSafeWebhookHostname(
   hostname: string
 ): Promise<{ ok: boolean; reason?: string; addresses: string[] }> {
@@ -90,9 +130,14 @@ async function resolveSafeWebhookHostname(
   }
 }
 
-export async function validateWebhookUrl(
-  url: string
-): Promise<{ ok: boolean; reason?: string }> {
+export interface WebhookUrlValidationResult {
+  ok: boolean;
+  reason?: string;
+  hostname?: string;
+  addresses?: string[];
+}
+
+export async function validateWebhookUrl(url: string): Promise<WebhookUrlValidationResult> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -114,7 +159,9 @@ export async function validateWebhookUrl(
   }
 
   const resolved = await resolveSafeWebhookHostname(hostname);
-  return resolved.ok ? { ok: true } : { ok: false, reason: resolved.reason };
+  return resolved.ok
+    ? { ok: true, hostname, addresses: resolved.addresses }
+    : { ok: false, reason: resolved.reason, hostname };
 }
 
 export interface WebhookSendRequestOptions {
@@ -146,20 +193,21 @@ export async function sendWebhookRequest(
     };
   }
 
+  const dispatcher = createPinnedWebhookDispatcher(validation.addresses ?? []);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT);
 
   try {
-    const response = await fetch(
-      options.url,
-      {
-        method: 'POST',
-        headers: options.headers,
-        body: options.payload,
-        signal: controller.signal,
-        ...WEBHOOK_FETCH_OPTIONS,
-      } as RequestInit
-    );
+    const requestInit = {
+      method: 'POST',
+      headers: options.headers,
+      body: options.payload,
+      signal: controller.signal,
+      dispatcher,
+      ...WEBHOOK_FETCH_OPTIONS,
+    } as unknown as RequestInit;
+
+    const response = await fetch(options.url, requestInit);
 
     const responseBody = await response.text().catch(() => '');
     const responseTime = Date.now() - startTime;
@@ -192,5 +240,6 @@ export async function sendWebhookRequest(
     };
   } finally {
     clearTimeout(timeoutId);
+    await dispatcher.close().catch(() => undefined);
   }
 }

@@ -1,4 +1,5 @@
 import request from 'supertest';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
@@ -260,6 +261,80 @@ describe('Auth API Integration Tests', () => {
       await request(app)
         .get('/api/v2/auth/me')
         .set('Authorization', 'InvalidFormat')
+        .expect(401);
+    });
+
+    it('invalidates an existing token after a role change bumps auth revision', async () => {
+      const email = `auth-role-revision-${unique()}@example.com`;
+      const password = 'RoleRevision123!';
+
+      const registerResponse = await request(app)
+        .post('/api/v2/auth/register')
+        .send({
+          email,
+          password,
+          password_confirm: password,
+          first_name: 'Role',
+          last_name: 'Revision',
+        })
+        .expect(201);
+
+      const currentToken = registerResponse.body.token;
+      const userResult = await pool.query<{ id: string; auth_revision: number }>(
+        'SELECT id, COALESCE(auth_revision, 0) AS auth_revision FROM users WHERE email = $1',
+        [email]
+      );
+      const user = userResult.rows[0];
+
+      await pool.query(
+        `UPDATE users
+         SET role = 'manager',
+             auth_revision = COALESCE(auth_revision, 0) + 1,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [user.id]
+      );
+
+      await request(app)
+        .get('/api/v2/auth/me')
+        .set('Authorization', `Bearer ${currentToken}`)
+        .expect(401);
+    });
+
+    it('invalidates an existing token after a password change bumps auth revision', async () => {
+      const email = `auth-password-revision-${unique()}@example.com`;
+      const password = 'PasswordRevision123!';
+
+      const registerResponse = await request(app)
+        .post('/api/v2/auth/register')
+        .send({
+          email,
+          password,
+          password_confirm: password,
+          first_name: 'Password',
+          last_name: 'Revision',
+        })
+        .expect(201);
+
+      const currentToken = registerResponse.body.token;
+      const userResult = await pool.query<{ id: string }>(
+        'SELECT id FROM users WHERE email = $1',
+        [email]
+      );
+      const updatedPasswordHash = await bcrypt.hash('NewPasswordRevision123!', 10);
+
+      await pool.query(
+        `UPDATE users
+         SET password_hash = $2,
+             auth_revision = COALESCE(auth_revision, 0) + 1,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [userResult.rows[0].id, updatedPasswordHash]
+      );
+
+      await request(app)
+        .get('/api/v2/auth/me')
+        .set('Authorization', `Bearer ${currentToken}`)
         .expect(401);
     });
   });

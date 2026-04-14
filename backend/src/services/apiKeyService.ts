@@ -6,8 +6,10 @@
 import crypto from 'crypto';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import { API_KEY_MANAGED_SCOPES } from '@app-types/webhook';
 import type {
   ApiKey,
+  ApiKeyManagedScope,
   ApiKeyScope,
   ApiKeyStatus,
   CreateApiKeyRequest,
@@ -19,6 +21,15 @@ import type {
 
 const API_KEY_PREFIX = 'npm_'; // nonprofit-manager prefix
 const KEY_LENGTH = 32;
+const MANAGED_SCOPE_SET = new Set<string>(API_KEY_MANAGED_SCOPES);
+
+export class InvalidApiKeyScopesError extends Error {
+  constructor(scopes: readonly string[], message?: string) {
+    super(message || `Invalid API key scopes: ${scopes.join(', ')}`);
+    this.name = 'InvalidApiKeyScopesError';
+    Object.setPrototypeOf(this, InvalidApiKeyScopesError.prototype);
+  }
+}
 
 const deriveApiKeyStatus = (row: Record<string, unknown>): ApiKeyStatus => {
   const expiresAtValue = row.expires_at ? new Date(String(row.expires_at)) : null;
@@ -52,6 +63,19 @@ function hashApiKey(key: string): string {
   return crypto.createHash('sha256').update(key).digest('hex');
 }
 
+function normalizeManagedScopes(scopes: readonly string[]): ApiKeyManagedScope[] {
+  if (scopes.length === 0) {
+    throw new InvalidApiKeyScopesError(scopes, 'At least one API key scope is required');
+  }
+
+  const invalidScopes = scopes.filter((scope) => !MANAGED_SCOPE_SET.has(scope));
+  if (invalidScopes.length > 0) {
+    throw new InvalidApiKeyScopesError(invalidScopes);
+  }
+
+  return Array.from(new Set(scopes)) as ApiKeyManagedScope[];
+}
+
 /**
  * Create a new API key
  */
@@ -60,6 +84,7 @@ export async function createApiKey(
   createdByUserId: string,
   data: CreateApiKeyRequest
 ): Promise<CreateApiKeyResponse> {
+  const scopes = normalizeManagedScopes(data.scopes);
   const { key, keyPrefix, keyHash } = generateApiKey();
 
   const result = await pool.query(
@@ -83,7 +108,7 @@ export async function createApiKey(
       null,
       keyPrefix,
       keyHash,
-      data.scopes,
+      scopes,
       data.expiresAt || null,
     ]
   );
@@ -98,7 +123,7 @@ export async function createApiKey(
     description: null,
     key, // Only returned on creation
     keyPrefix,
-    scopes: data.scopes,
+    scopes,
     isActive: true,
     status: data.expiresAt && data.expiresAt.getTime() <= Date.now() ? 'expired' : 'active',
     rateLimitRequests: 1000,
@@ -231,7 +256,7 @@ export async function updateApiKey(
   data: UpdateApiKeyRequest
 ): Promise<ApiKey | null> {
   const updates: string[] = [];
-  const values: (string | ApiKeyScope[] | boolean | null)[] = [];
+  const values: unknown[] = [];
   let paramIndex = 1;
 
   if (data.name !== undefined) {
@@ -239,8 +264,9 @@ export async function updateApiKey(
     values.push(data.name);
   }
   if (data.scopes !== undefined) {
+    const scopes = normalizeManagedScopes(data.scopes);
     updates.push(`scopes = $${paramIndex++}`);
-    values.push(data.scopes);
+    values.push(scopes);
   }
   if (data.status !== undefined) {
     updates.push(`is_active = $${paramIndex++}`);
@@ -379,7 +405,6 @@ export function getAvailableScopes() {
     { scope: 'write:tasks', name: 'Write Tasks', description: 'Create and update tasks' },
     { scope: 'read:reports', name: 'Read Reports', description: 'View and run reports' },
     { scope: 'read:analytics', name: 'Read Analytics', description: 'View analytics data' },
-    { scope: 'admin', name: 'Full Access', description: 'Complete API access (use with caution)' },
   ];
 }
 
@@ -465,4 +490,5 @@ export default {
   getApiKeyUsage,
   getAvailableScopes,
   cleanupExpiredKeys,
+  InvalidApiKeyScopesError,
 };

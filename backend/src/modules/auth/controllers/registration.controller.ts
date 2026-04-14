@@ -1,15 +1,14 @@
 import { Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { logger } from '@config/logger';
-import { getJwtSecret } from '@config/jwt';
 import { AuthRequest } from '@middleware/auth';
-import { JWT, PASSWORD } from '@config/constants';
+import { PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
 import { conflict, forbidden } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { sendSuccess } from '@modules/shared/http/envelope';
+import { issueAppSessionToken } from '@utils/sessionTokens';
 import { getRegistrationMode } from '@modules/admin/usecases/registrationSettingsUseCase';
 import { createPendingRegistration } from '@modules/admin/usecases/createPendingRegistrationUseCase';
 import {
@@ -112,17 +111,13 @@ export const register = async (
     await runStep('syncUserRole', () => syncUserRole(user.id, user.role));
 
     const organizationId = await runStep('getDefaultOrganizationId', () => getDefaultOrganizationId());
-    const jwtSecret = getJwtSecret();
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        ...(organizationId ? { organizationId } : {}),
-      },
-      jwtSecret,
-      { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
-    );
+    const token = issueAppSessionToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      organizationId,
+      authRevision: 0,
+    });
 
     logger.info(`User registered: ${user.email}`);
     setAuthCookie(res, token);
@@ -197,17 +192,13 @@ export const setupFirstUser = async (
     const orgName = trimmedOrgName && trimmedOrgName.length > 0 ? trimmedOrgName : defaultOrgName;
     const organizationId = await createOrganizationAccount(orgName, user.id);
 
-    const jwtSecret = getJwtSecret();
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        ...(organizationId ? { organizationId } : {}),
-      },
-      jwtSecret,
-      { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
-    );
+    const token = issueAppSessionToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      organizationId,
+      authRevision: 0,
+    });
 
     logger.info(`First admin user created: ${email}`);
     setAuthCookie(res, token);

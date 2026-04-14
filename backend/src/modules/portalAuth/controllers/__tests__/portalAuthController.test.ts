@@ -1,11 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import * as portalAuthController from '../portalAuthController';
 import * as portalAuthService from '@services/portalAuthService';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { logPortalActivity } from '@services/domains/integration';
-import { getJwtSecret } from '@config/jwt';
 import { shouldExposeAuthTokensInResponse } from '@utils/authResponse';
 import { clearPortalAuthCookie, setPortalAuthCookie } from '@utils/cookieHelper';
 
@@ -14,12 +12,8 @@ jest.mock('bcryptjs', () => ({
   compare: jest.fn(),
 }));
 
-jest.mock('jsonwebtoken', () => ({
-  sign: jest.fn(),
-}));
-
-jest.mock('@config/jwt', () => ({
-  getJwtSecret: jest.fn().mockReturnValue('test-jwt-secret'),
+jest.mock('@utils/sessionTokens', () => ({
+  issuePortalSessionToken: jest.fn(),
 }));
 
 jest.mock('@middleware/accountLockout', () => ({
@@ -55,14 +49,15 @@ jest.mock('@services/portalAuthService', () => ({
 
 const mockBcryptHash = bcrypt.hash as jest.Mock;
 const mockBcryptCompare = bcrypt.compare as jest.Mock;
-const mockJwtSign = jwt.sign as jest.Mock;
 const mockTrackLoginAttempt = trackLoginAttempt as jest.Mock;
 const mockLogPortalActivity = logPortalActivity as jest.Mock;
-const mockGetJwtSecret = getJwtSecret as jest.Mock;
 const mockShouldExposeAuthTokensInResponse = shouldExposeAuthTokensInResponse as jest.Mock;
 const mockSetPortalAuthCookie = setPortalAuthCookie as jest.Mock;
 const mockClearPortalAuthCookie = clearPortalAuthCookie as jest.Mock;
 const mockPortalAuthService = portalAuthService as jest.Mocked<typeof portalAuthService>;
+const { issuePortalSessionToken } = jest.requireMock('@utils/sessionTokens') as {
+  issuePortalSessionToken: jest.Mock;
+};
 
 type PortalAuthUser = {
   id: string;
@@ -107,7 +102,7 @@ describe('portalAuthController', () => {
     mockResponse = createMockResponse() as unknown as Response;
     mockNext = jest.fn();
     mockShouldExposeAuthTokensInResponse.mockReturnValue(false);
-    mockJwtSign.mockReturnValue('portal-token');
+    issuePortalSessionToken.mockReturnValue('portal-token');
     mockBcryptHash.mockResolvedValue('hashed-password');
     mockBcryptCompare.mockResolvedValue(true);
   });
@@ -369,17 +364,11 @@ describe('portalAuthController', () => {
 
       await portalAuthController.portalLogin(req as Request, mockResponse, mockNext);
 
-      expect(mockJwtSign).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'portal-user-1',
-          email: 'member@example.com',
-          contactId: 'contact-1',
-          type: 'portal',
-        }),
-        'test-jwt-secret',
-        expect.objectContaining({ expiresIn: expect.any(String) })
-      );
-      expect(mockGetJwtSecret).toHaveBeenCalled();
+      expect(issuePortalSessionToken).toHaveBeenCalledWith({
+        id: 'portal-user-1',
+        email: 'member@example.com',
+        contactId: 'contact-1',
+      });
       expect(mockSetPortalAuthCookie).toHaveBeenCalledWith(mockResponse, 'portal-token');
       expect(mockPortalAuthService.updatePortalUserLastLogin).toHaveBeenCalledWith('portal-user-1');
       expect(mockTrackLoginAttempt).toHaveBeenCalledWith(
@@ -622,7 +611,11 @@ describe('portalAuthController', () => {
       });
       expect(mockPortalAuthService.markPortalInvitationAccepted).toHaveBeenCalledWith('invitation-1');
       expect(mockSetPortalAuthCookie).toHaveBeenCalledWith(mockResponse, 'portal-token');
-      expect(mockGetJwtSecret).toHaveBeenCalled();
+      expect(issuePortalSessionToken).toHaveBeenCalledWith({
+        id: 'portal-user-2',
+        email: 'invitee@example.com',
+        contactId: 'contact-2',
+      });
       expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(201);
       expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
         expect.objectContaining({

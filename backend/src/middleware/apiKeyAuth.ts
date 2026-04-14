@@ -16,6 +16,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '@config/logger';
 import * as apiKeyService from '@services/apiKeyService';
+import type { ApiKey, ApiKeyScope } from '@app-types/webhook';
 import { unauthorized, forbidden } from '@utils/responseHelpers';
 
 export interface ApiKeyRequest extends Request {
@@ -120,7 +121,10 @@ export const validateApiKeyScope = (requiredScope: string) => {
       return forbidden(res, 'API key authentication required');
     }
 
-    const hasScope = req.apiKey.scopes.includes(requiredScope) || req.apiKey.scopes.includes('*');
+    const hasScope = apiKeyService.hasScope(
+      { scopes: req.apiKey.scopes } as ApiKey,
+      requiredScope as ApiKeyScope
+    );
 
     if (!hasScope) {
       logger.warn('API key lacks required scope', {

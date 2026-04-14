@@ -15,13 +15,12 @@ import { getWebAuthnConfig } from '@config/webauthn';
 import { AuthRequest } from '@middleware/auth';
 import { TIME } from '@config/constants';
 import { fromBase64Url, toBase64Url } from '@utils/base64url';
-import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '@config/jwt';
-import { JWT } from '@config/constants';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
+import { normalizeRoleSlug } from '@utils/roleSlug';
+import { issueAppSessionToken } from '@utils/sessionTokens';
 
 const CHALLENGE_TTL_MS = TIME.FIVE_MINUTES;
 
@@ -33,6 +32,8 @@ interface UserRow {
   role: string;
   profile_picture?: string | null;
   mfa_totp_enabled?: boolean;
+  is_active?: boolean;
+  auth_revision?: number;
 }
 
 interface CredentialRow {
@@ -58,22 +59,17 @@ interface ChallengeRow {
 }
 
 const issueAuthTokens = (
-  user: { id: string; email: string; role: string },
+  user: { id: string; email: string; role: string; auth_revision?: number },
   organizationId?: string | null
 ) => {
-  const jwtSecret = getJwtSecret();
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      ...(organizationId ? { organizationId } : {}),
-    },
-    jwtSecret,
-    {
-      expiresIn: JWT.ACCESS_TOKEN_EXPIRY,
-    }
-  );
+  const normalizedRole = normalizeRoleSlug(user.role) ?? user.role;
+  return issueAppSessionToken({
+    id: user.id,
+    email: user.email,
+    role: normalizedRole,
+    organizationId,
+    authRevision: user.auth_revision ?? 0,
+  });
 };
 
 const getDefaultOrganizationId = async (): Promise<string | null> => {
@@ -272,13 +268,20 @@ export const loginOptions = async (
     const { email }: { email: string } = req.body;
 
     const userResult = await pool.query<UserRow>(
-      'SELECT id, email, first_name, last_name, role FROM users WHERE email = $1',
+      `SELECT id, email, first_name, last_name, role,
+              COALESCE(is_active, true) AS is_active,
+              COALESCE(auth_revision, 0) AS auth_revision
+       FROM users
+       WHERE email = $1`,
       [email]
     );
     if (userResult.rows.length === 0) {
       return notFoundMessage(res, 'No passkeys registered for this user');
     }
     const user = userResult.rows[0];
+    if (user.is_active === false) {
+      return notFoundMessage(res, 'No passkeys registered for this user');
+    }
 
     const credResult = await pool.query<Pick<CredentialRow, 'credential_id' | 'transports'>>(
       'SELECT credential_id, transports FROM user_webauthn_credentials WHERE user_id = $1',
@@ -342,13 +345,20 @@ export const loginVerify = async (
     }
 
     const userResult = await pool.query<UserRow>(
-      'SELECT id, email, first_name, last_name, role, profile_picture FROM users WHERE id = $1',
+      `SELECT id, email, first_name, last_name, role, profile_picture,
+              COALESCE(is_active, true) AS is_active,
+              COALESCE(auth_revision, 0) AS auth_revision
+       FROM users
+       WHERE id = $1`,
       [challenge.user_id]
     );
     if (userResult.rows.length === 0) {
       return unauthorized(res, 'Invalid credentials');
     }
     const user = userResult.rows[0];
+    if (user.is_active === false) {
+      return unauthorized(res, 'Invalid credentials');
+    }
     if (user.email.toLowerCase() !== email.toLowerCase()) {
       return unauthorized(res, 'Invalid credentials');
     }
@@ -408,7 +418,7 @@ export const loginVerify = async (
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        role: user.role,
+        role: normalizeRoleSlug(user.role) ?? user.role,
         profilePicture: user.profile_picture || null,
       },
     });

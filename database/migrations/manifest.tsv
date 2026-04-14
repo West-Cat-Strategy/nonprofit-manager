@@ -89,3 +89,4 @@
 087	087_newsletter_provider_settings.sql	
 088	088_provider_agnostic_payment_columns.sql	
 089	089_case_topic_definitions_constraint_alignment.sql	
+090	090_auth_session_security_hardening.sql	

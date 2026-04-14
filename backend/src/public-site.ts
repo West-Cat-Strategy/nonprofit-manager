@@ -17,6 +17,7 @@ import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/cor
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
 import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
 import { validateBody, validateParams } from './middleware/zodValidation';
+import { createCorsOptions, resolveTrustProxy } from './config/requestSecurity';
 import { validateProductionSecurityConfig } from './config/productionSecurityConfig';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import pool from './config/database';
@@ -70,17 +71,7 @@ const resolveConnectSrc = (developmentFallback: string): string[] => {
     : ["'self'", developmentFallback];
 };
 
-const resolveTrustProxy = (): boolean | number | string => {
-  const raw = (process.env.TRUST_PROXY || '').trim().toLowerCase();
-  if (!raw) return false;
-  if (raw === 'true') return true;
-  if (raw === 'false') return false;
-  const asNumber = Number(raw);
-  if (Number.isInteger(asNumber) && asNumber >= 0) return asNumber;
-  return raw;
-};
-
-app.set('trust proxy', resolveTrustProxy());
+app.set('trust proxy', resolveTrustProxy(process.env.TRUST_PROXY));
 
 app.use(
   helmet({
@@ -124,44 +115,14 @@ app.use(
   })
 );
 
-const normalizeOrigin = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) return trimmed;
-  if (trimmed === '*') return trimmed;
-  try {
-    return new URL(trimmed).origin.toLowerCase();
-  } catch {
-    return trimmed.toLowerCase();
-  }
-};
-
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:8006,http://127.0.0.1:8006')
-  .split(',')
-  .map((origin) => normalizeOrigin(origin))
-  .filter(Boolean);
-
-const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin) return callback(null, true);
-    const normalizedOrigin = normalizeOrigin(origin);
-    if (
-      process.env.NODE_ENV === 'development' ||
-      allowedOrigins.includes(normalizedOrigin) ||
-      allowedOrigins.includes('*')
-    ) {
-      callback(null, true);
-    } else {
-      logger.warn(`CORS request from unauthorized origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
+const corsOptions = createCorsOptions({
+  nodeEnv: process.env.NODE_ENV,
+  corsOrigin: process.env.CORS_ORIGIN,
+  fallbackOrigins: ['http://localhost:8006', 'http://127.0.0.1:8006'],
+  onDeniedOrigin: (origin) => {
+    logger.warn(`CORS request from unauthorized origin: ${origin}`);
   },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Organization-Id'],
-  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
-  maxAge: 86400,
-  optionsSuccessStatus: 200,
-};
+});
 app.use(cors(corsOptions));
 
 app.use(cookieParser());

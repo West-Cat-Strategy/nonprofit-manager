@@ -11,9 +11,30 @@ scan_audit() {
   fi
 }
 
+create_gitleaks_scan_root() {
+  local scan_root
+  scan_root="$(mktemp -d "${TMPDIR:-/tmp}/nonprofit-manager-gitleaks.XXXXXX")"
+
+  while IFS= read -r -d '' file; do
+    local source_path="$PROJECT_ROOT/$file"
+    local target_path="$scan_root/$file"
+    mkdir -p "$(dirname "$target_path")"
+    cp -p "$source_path" "$target_path"
+  done < <(git -C "$PROJECT_ROOT" ls-files -co --exclude-standard -z)
+
+  printf '%s' "$scan_root"
+}
+
 scan_secrets_with_gitleaks() {
+  local scan_root
+  scan_root="$(create_gitleaks_scan_root)"
+  trap "rm -rf -- '$scan_root'" RETURN
+
   if command -v gitleaks >/dev/null 2>&1; then
-    run gitleaks detect --no-git --no-banner --redact --source . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore
+    (
+      cd "$scan_root"
+      run gitleaks detect --no-git --no-banner --redact --source . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore
+    )
     return 0
   fi
 
@@ -24,7 +45,7 @@ scan_secrets_with_gitleaks() {
     fi
 
     run docker run --rm \
-      -v "$PROJECT_ROOT:/repo" \
+      -v "$scan_root:/repo" \
       -w /repo \
       ghcr.io/gitleaks/gitleaks:latest \
       detect --no-git --no-banner --redact --source . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore
