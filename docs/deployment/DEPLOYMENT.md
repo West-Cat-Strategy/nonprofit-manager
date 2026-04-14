@@ -116,7 +116,8 @@ sudo certbot certonly --standalone -d westcat.ca
 ```
 
 2. **Run the VPS overlay** so Caddy is the only public ingress.
-   For self-hosted PostgreSQL on a LUKS mount, use the `docker-compose.db-encrypted.yml` overlay.
+   The production deploy wrapper automatically appends `docker-compose.db-encrypted.yml` when `DB_AT_REST_ENCRYPTION_MODE=luks` is visible to the deploy shell environment or loaded from the env file.
+   For a local diagnostic pass, keep `DB_AT_REST_ENCRYPTION_MODE` set in your shell or in `.env.production`; the wrapper reads either source before Compose starts, so `DEPLOY_EXECUTE=0 ./scripts/deploy.sh production` will show the overlay selection.
 
 3. **Key Points:**
    - Enable HTTP/2 for better performance
@@ -167,7 +168,7 @@ If using Cloudflare or similar:
   - `DB_HOST` must point at the external provider, not a local `postgres` container.
   - Local `./scripts/db-backup.sh` is intentionally blocked in this mode; use provider-managed backups instead.
 - `luks`
-  - Use self-hosted PostgreSQL with the `docker-compose.db-encrypted.yml` overlay.
+  - Use self-hosted PostgreSQL with the `docker-compose.db-encrypted.yml` overlay; `scripts/deploy.sh production` adds it automatically when LUKS mode is active.
   - Required env: `POSTGRES_DATA_DIR` as an absolute host path on the unlocked LUKS mount and `DB_LUKS_MAPPING_NAME`.
   - `BACKUP_DIR` must be an absolute path on the same encrypted mount; repo-local backup paths are rejected in production.
   - The production deploy and verification scripts validate the LUKS mapper, the mounted host path, and the Postgres bind mount before reporting success.

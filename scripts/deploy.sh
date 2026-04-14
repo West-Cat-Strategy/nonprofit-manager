@@ -32,8 +32,21 @@ deploy_production_like() {
   )
   local -a compose_args=()
   local compose_file
+
   if [[ "$MODE" == "staging" && -f "$ROOT_DIR/.env.staging" ]]; then
     env_file="$ROOT_DIR/.env.staging"
+  fi
+
+  local db_at_rest_mode="${DB_AT_REST_ENCRYPTION_MODE:-}"
+  if [[ -z "$db_at_rest_mode" && -f "$env_file" ]]; then
+    db_at_rest_mode="$(
+      grep -E '^DB_AT_REST_ENCRYPTION_MODE=' "$env_file" | tail -n1 | cut -d= -f2-
+    )"
+  fi
+  db_at_rest_mode="${db_at_rest_mode,,}"
+
+  if [[ "$db_at_rest_mode" == "luks" ]]; then
+    compose_files+=("$ROOT_DIR/docker-compose.db-encrypted.yml")
   fi
 
   if [[ "$MODE" == "production" ]]; then
