@@ -7,7 +7,7 @@
 .PHONY: help install lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-auth-guards lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-coverage quality-baseline check-links build clean clean-local clean-all \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
-        docker-build docker-up docker-up-dev docker-up-tools docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
+        docker-build docker-up docker-up-dev docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
         db-migrate db-verify clean hooks test-e2e
 
 # Colors for output
@@ -28,11 +28,10 @@ COMPOSE_PROJECT_DEV ?= nonprofit-dev
 COMPOSE_PROJECT_CI ?= nonprofit-ci
 BACKEND_DOCKER_IMAGE ?= nonprofit-manager-backend:latest
 FRONTEND_DOCKER_IMAGE ?= nonprofit-manager-frontend:latest
-LEGACY_COMPOSE_STACK_FILES := docker-compose.yml docker-compose.tools.yml docker-compose.caddy.yml docker-compose.host-access.yml docker-compose.ci.yml docker-compose.db-encrypted.yml docker-compose.vps.yml docker-compose.plausible.yml docker-compose.elk.yml
+DOCKER_CONTRACTS_BUILD_CONTEXT ?= --build-context contracts=contracts
 
 COMPOSE_PROD_ARGS := -p $(COMPOSE_PROJECT_PROD) --env-file $(PROD_ENV_FILE) -f docker-compose.yml
 COMPOSE_DEV_ARGS := -p $(COMPOSE_PROJECT_DEV) -f docker-compose.dev.yml
-COMPOSE_DEV_TOOLS_ARGS := $(COMPOSE_DEV_ARGS) -f docker-compose.tools.yml --profile tools
 COMPOSE_DEV_CADDY_ARGS := $(COMPOSE_DEV_ARGS) -f docker-compose.caddy.yml
 COMPOSE_CI_INFRA_ARGS := -p $(COMPOSE_PROJECT_CI) -f docker-compose.yml -f docker-compose.host-access.yml -f docker-compose.ci.yml
 
@@ -50,7 +49,6 @@ help:
 	@echo "  make dev            Start the optional compose dev stack"
 	@echo "  make docker-up-dev  Start the optional compose dev stack (hot reload)"
 	@echo "  make docker-up      Start the compose stack"
-	@echo "  make docker-up-tools Start the compose stack with tools profile"
 	@echo "  make docker-up-caddy Start the dev compose stack behind Caddy"
 	@echo "  make docker-down    Stop the optional compose dev stack"
 	@echo "  make docker-logs    View optional compose dev stack logs"
@@ -131,45 +129,42 @@ dev: docker-up-dev
 
 docker-up:
 	@missing=0; \
-	for file in $(LEGACY_COMPOSE_STACK_FILES); do \
+	for file in docker-compose.yml; do \
 	  if [ ! -f "$$file" ]; then \
 	    echo "$(YELLOW)Required compose manifest missing: $$file$(RESET)"; \
 	    missing=1; \
 	  fi; \
 	done; \
 	if [ $$missing -ne 0 ]; then \
-	  echo "$(RED)Compose stack target is unavailable until the manifests are restored.$(RESET)"; \
+	  echo "$(RED)Compose stack target is unavailable until the manifest is restored.$(RESET)"; \
 	  exit 1; \
 	fi
 	$(DOCKER_COMPOSE) $(COMPOSE_PROD_ARGS) up -d
 
 docker-up-dev:
-	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) up -d
-
-docker-up-tools:
 	@missing=0; \
-	for file in $(LEGACY_COMPOSE_STACK_FILES); do \
+	for file in docker-compose.dev.yml; do \
 	  if [ ! -f "$$file" ]; then \
 	    echo "$(YELLOW)Required compose manifest missing: $$file$(RESET)"; \
 	    missing=1; \
 	  fi; \
 	done; \
 	if [ $$missing -ne 0 ]; then \
-	  echo "$(RED)Compose stack target is unavailable until the manifests are restored.$(RESET)"; \
+	  echo "$(RED)Compose dev stack is unavailable until the manifest is restored.$(RESET)"; \
 	  exit 1; \
 	fi
-	$(DOCKER_COMPOSE) $(COMPOSE_DEV_TOOLS_ARGS) up -d
+	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) up -d
 
 docker-up-caddy:
 	@missing=0; \
-	for file in $(LEGACY_COMPOSE_STACK_FILES); do \
+	for file in docker-compose.dev.yml docker-compose.caddy.yml Caddyfile; do \
 	  if [ ! -f "$$file" ]; then \
 	    echo "$(YELLOW)Required compose manifest missing: $$file$(RESET)"; \
 	    missing=1; \
 	  fi; \
 	done; \
 	if [ $$missing -ne 0 ]; then \
-	  echo "$(RED)Compose stack target is unavailable until the manifests are restored.$(RESET)"; \
+	  echo "$(RED)Compose caddy stack is unavailable until the manifests are restored.$(RESET)"; \
 	  exit 1; \
 	fi
 	CADDY_BACKEND_UPSTREAM=host.docker.internal:8004 \
@@ -180,25 +175,47 @@ docker-up-caddy:
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) up -d
 
 docker-down:
+	@missing=0; \
+	for file in docker-compose.dev.yml; do \
+	  if [ ! -f "$$file" ]; then \
+	    echo "$(YELLOW)Required compose manifest missing: $$file$(RESET)"; \
+	    missing=1; \
+	  fi; \
+	done; \
+	if [ $$missing -ne 0 ]; then \
+	  echo "$(RED)Compose dev stack is unavailable until the manifest is restored.$(RESET)"; \
+	  exit 1; \
+	fi
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) down --remove-orphans
 	@echo "$(YELLOW)Only the compose dev stack can be stopped from this checkout.$(RESET)"
 
 docker-logs:
+	@missing=0; \
+	for file in docker-compose.dev.yml; do \
+	  if [ ! -f "$$file" ]; then \
+	    echo "$(YELLOW)Required compose manifest missing: $$file$(RESET)"; \
+	    missing=1; \
+	  fi; \
+	done; \
+	if [ $$missing -ne 0 ]; then \
+	  echo "$(RED)Compose dev stack is unavailable until the manifest is restored.$(RESET)"; \
+	  exit 1; \
+	fi
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) logs -f
 
 docker-build:
-	docker build -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
-	docker build -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
+	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
+	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
 	@echo "$(GREEN)Docker images built!$(RESET)"
 
 docker-rebuild:
-	docker build --no-cache -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
-	docker build --no-cache -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
+	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) --no-cache -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
+	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) --no-cache -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
 	@echo "$(GREEN)Docker images rebuilt without cache!$(RESET)"
 
 docker-validate:
-	docker build --pull --no-cache -f backend/Dockerfile backend
-	docker build --pull --no-cache -f frontend/Dockerfile frontend
+	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) --pull --no-cache -f backend/Dockerfile backend
+	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) --pull --no-cache -f frontend/Dockerfile frontend
 	@echo "$(GREEN)Dockerfile validation complete!$(RESET)"
 
 #------------------------------------------------------------------------------

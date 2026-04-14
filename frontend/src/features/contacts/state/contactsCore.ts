@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { contactsApiClient } from '../api/contactsApiClient';
-import type { Contact, ContactMergeRequest } from '../../../types/contact';
+import type { Contact, ContactMergePreview, ContactMergeRequest } from '../../../types/contact';
 import type { ContactMutationPayload } from '../types/contracts';
 
 export interface ContactsCoreState {
@@ -48,6 +48,26 @@ export const mergeContact = createAsyncThunk(
   'contactsCore/mergeContact',
   async ({ contactId, payload }: { contactId: string; payload: ContactMergeRequest }) => {
     return await contactsApiClient.mergeContact(contactId, payload);
+  }
+);
+
+export const searchContactsForMerge = createAsyncThunk(
+  'contactsCore/searchContactsForMerge',
+  async (query: { search: string; limit?: number }): Promise<Contact[]> => {
+    return await contactsApiClient.searchContactsForMerge(query);
+  }
+);
+
+export const fetchContactMergePreview = createAsyncThunk(
+  'contactsCore/fetchContactMergePreview',
+  async ({
+    contactId,
+    targetContactId,
+  }: {
+    contactId: string;
+    targetContactId: string;
+  }): Promise<ContactMergePreview> => {
+    return await contactsApiClient.getContactMergePreview(contactId, targetContactId);
   }
 );
 

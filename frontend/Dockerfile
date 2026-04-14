@@ -12,16 +12,24 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
 
 FROM deps AS app
 
-COPY index.html grants-smoke.html postcss.config.js tailwind.config.js tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts ./
+COPY index.html grants-smoke.html postcss.config.js tailwind.config.js vite.config.ts ./
 COPY public ./public
 COPY src ./src
+# Keep the shared contracts package available for type-checking without
+# widening the main frontend build context.
+COPY --from=contracts /package.json ./node_modules/@nonprofit-manager/contracts/package.json
+COPY --from=contracts /index.d.ts ./node_modules/@nonprofit-manager/contracts/index.d.ts
+COPY --from=contracts /messaging.d.ts ./node_modules/@nonprofit-manager/contracts/messaging.d.ts
+COPY --from=contracts /websiteBuilder.d.ts ./node_modules/@nonprofit-manager/contracts/websiteBuilder.d.ts
 
 FROM app AS build
 
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
-RUN npm run build
+# The repo-level type-check path covers TS validation; the image build only
+# needs the production asset bundle.
+RUN ./node_modules/.bin/vite build
 
 FROM app AS dev
 

@@ -158,6 +158,11 @@ export const fetchCasesByContact = createAsyncThunk(
   }
 );
 
+export const selectCasesByContact = (
+  state: { cases?: { core: CasesCoreState } },
+  contactId: string
+): CaseWithDetails[] => state.cases?.core?.contactCasesByContactId?.[contactId]?.cases ?? [];
+
 const casesCoreSlice = createSlice({
   name: 'casesCore',
   initialState,

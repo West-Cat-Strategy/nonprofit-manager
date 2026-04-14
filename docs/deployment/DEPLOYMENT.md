@@ -404,8 +404,8 @@ make docker-validate
 If you want the raw Docker commands instead:
 
 ```bash
-docker build -f backend/Dockerfile -t nonprofit-manager-backend:latest backend
-docker build -f frontend/Dockerfile -t nonprofit-manager-frontend:latest frontend
+docker build --build-context contracts=contracts -f backend/Dockerfile -t nonprofit-manager-backend:latest backend
+docker build --build-context contracts=contracts -f frontend/Dockerfile -t nonprofit-manager-frontend:latest frontend
 ```
 
 ### 4. Publish or Run the Images

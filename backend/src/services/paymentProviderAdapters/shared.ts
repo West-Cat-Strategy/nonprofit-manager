@@ -230,7 +230,7 @@ export async function fetchWithTimeout(
     } as RequestInit & { dispatcher: Agent });
   } catch (error) {
     if (timeoutElapsed() || (error instanceof Error && error.name === 'AbortError')) {
-      throw new Error(`Payment provider request timed out after ${PAYMENT_PROVIDER_REQUEST_TIMEOUT_MS}ms`, {
+      throw Object.assign(new Error(`Payment provider request timed out after ${PAYMENT_PROVIDER_REQUEST_TIMEOUT_MS}ms`), {
         cause: error,
       });
     }
@@ -256,7 +256,7 @@ async function readJsonResponse<T>(response: Response, context: string): Promise
   try {
     return JSON.parse(text) as T;
   } catch (error) {
-    throw new Error(`${context} returned invalid JSON: ${text.slice(0, 1000)}`, {
+    throw Object.assign(new Error(`${context} returned invalid JSON: ${text.slice(0, 1000)}`), {
       cause: error,
     });
   }

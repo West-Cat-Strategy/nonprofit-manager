@@ -15,10 +15,22 @@ FROM deps AS app
 
 COPY tsconfig.json tsconfig.docker.json ./
 COPY src ./src
+# Keep the shared contracts package available for type-checking without
+# widening the main backend build context.
+COPY --from=contracts /package.json ./node_modules/@nonprofit-manager/contracts/package.json
+COPY --from=contracts /index.d.ts ./node_modules/@nonprofit-manager/contracts/index.d.ts
+COPY --from=contracts /messaging.d.ts ./node_modules/@nonprofit-manager/contracts/messaging.d.ts
+COPY --from=contracts /websiteBuilder.d.ts ./node_modules/@nonprofit-manager/contracts/websiteBuilder.d.ts
 
 FROM app AS build
 RUN ./node_modules/.bin/tsc -p tsconfig.docker.json && \
     ./node_modules/.bin/tsc-alias -p tsconfig.docker.json
+
+FROM base AS production-deps
+
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm ci --omit=dev --no-audit --no-fund
 
 FROM app AS dev
 
@@ -32,15 +44,16 @@ EXPOSE 3000 8006
 # only needs the source tree plus installed dependencies.
 CMD ["npm", "run", "dev"]
 
-FROM build AS production
+# Build the final runtime image from a clean base so build layers stay out of it.
+FROM base AS production
 
 ENV NODE_ENV=production \
     PORT=8000
 
-RUN npm prune --omit=dev --no-audit --no-fund && \
-    npm cache clean --force && \
-    rm -rf src tsconfig.json tsconfig.docker.json package.json package-lock.json && \
-    mkdir -p /app/exports /app/logs /app/uploads && \
+COPY --from=production-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist ./dist
+
+RUN mkdir -p /app/exports /app/logs /app/uploads && \
     chown node:node /app/exports /app/logs /app/uploads
 
 USER node

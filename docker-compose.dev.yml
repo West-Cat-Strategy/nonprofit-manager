@@ -18,6 +18,9 @@ x-backend-dev-env: &backend-dev-env
   DISABLE_PII_MASKING_IN_TEST: "true"
   SITE_BASE_URL: http://sites.localhost
 
+x-contracts-build-contexts: &contracts-build-contexts
+  contracts: ./contracts
+
 services:
   postgres:
     image: postgres:14-alpine
@@ -56,6 +59,7 @@ services:
     build:
       context: ./backend
       target: dev
+      additional_contexts: *contracts-build-contexts
     restart: unless-stopped
     init: true
     env_file:
@@ -85,6 +89,7 @@ services:
     build:
       context: ./backend
       target: dev
+      additional_contexts: *contracts-build-contexts
     restart: unless-stopped
     init: true
     env_file:
@@ -115,6 +120,7 @@ services:
     build:
       context: ./frontend
       target: dev
+      additional_contexts: *contracts-build-contexts
     restart: unless-stopped
     init: true
     environment:
