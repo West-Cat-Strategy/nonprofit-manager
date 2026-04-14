@@ -46,7 +46,7 @@ test.describe('Publishing Workflows', () => {
 
       await expect(authenticatedPage).toHaveURL(new RegExp(`/websites/${siteId}/overview$`));
       await expect(
-        authenticatedPage.getByRole('article').getByRole('heading', { name: siteName })
+        authenticatedPage.locator('#main-content').getByRole('heading', { level: 1, name: siteName })
       ).toBeVisible();
 
       await authenticatedPage.locator('#main-content').getByRole('link', { name: 'Open Builder' }).click();

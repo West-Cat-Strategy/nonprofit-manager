@@ -3,6 +3,7 @@
  * Displays all volunteers with advanced filtering, bulk operations, and import/export
  */
 
+import { createSelector } from '@reduxjs/toolkit';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -55,36 +56,38 @@ type VolunteerListSlice = Partial<VolunteersListState> & {
   list?: Partial<VolunteersListState>;
 };
 
-const resolveVolunteerListState = (
-  state: { volunteers?: VolunteerListSlice } | undefined
-): VolunteersListState => {
-  const volunteersState = state?.volunteers;
-  const listState = volunteersState?.list;
+const selectVolunteersModule = (state: { volunteers?: VolunteerListSlice } | undefined) => state?.volunteers;
 
-  if (listState) {
+const resolveVolunteerListState = createSelector(
+  [selectVolunteersModule],
+  (volunteersState): VolunteersListState => {
+    const listState = volunteersState?.list;
+
+    if (listState) {
+      return {
+        volunteers: listState.volunteers ?? [],
+        loading: listState.loading ?? false,
+        error: listState.error ?? null,
+        pagination: listState.pagination ?? EMPTY_PAGINATION,
+        filters: {
+          ...EMPTY_FILTERS,
+          ...listState.filters,
+        },
+      };
+    }
+
     return {
-      volunteers: listState.volunteers ?? [],
-      loading: listState.loading ?? false,
-      error: listState.error ?? null,
-      pagination: listState.pagination ?? EMPTY_PAGINATION,
+      volunteers: volunteersState?.volunteers ?? [],
+      loading: volunteersState?.loading ?? false,
+      error: volunteersState?.error ?? null,
+      pagination: volunteersState?.pagination ?? EMPTY_PAGINATION,
       filters: {
         ...EMPTY_FILTERS,
-        ...listState.filters,
+        ...volunteersState?.filters,
       },
     };
   }
-
-  return {
-    volunteers: volunteersState?.volunteers ?? [],
-    loading: volunteersState?.loading ?? false,
-    error: volunteersState?.error ?? null,
-    pagination: volunteersState?.pagination ?? EMPTY_PAGINATION,
-    filters: {
-      ...EMPTY_FILTERS,
-      ...volunteersState?.filters,
-    },
-  };
-};
+);
 
 const VolunteerList = () => {
   const dispatch = useAppDispatch();

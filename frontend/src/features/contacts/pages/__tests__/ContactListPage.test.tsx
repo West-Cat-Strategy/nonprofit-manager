@@ -26,13 +26,18 @@ const { contactsState, dispatchMock, importExportModalMock } = vi.hoisted(() => 
 }));
 const navigateMock = vi.hoisted(() => vi.fn());
 
-const state = {
-  contacts: contactsState,
-};
+const buildState = () => ({
+  contacts: {
+    ...contactsState,
+    contacts: [...contactsState.contacts],
+    pagination: { ...contactsState.pagination },
+    filters: { ...contactsState.filters },
+  },
+});
 
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (s: typeof state) => unknown) => selector(state),
+  useAppSelector: (selector: (s: ReturnType<typeof buildState>) => unknown) => selector(buildState()),
 }));
 
 vi.mock('react-router-dom', async () => {

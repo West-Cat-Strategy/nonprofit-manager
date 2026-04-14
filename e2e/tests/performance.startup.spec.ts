@@ -2,7 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { clearAuth, ensureLoginViaAPI, login } from '../helpers/auth';
+import { clearAuth, ensureEffectiveAdminLoginViaAPI, ensureLoginViaAPI, login } from '../helpers/auth';
+import { getSharedTestUser } from '../helpers/testUser';
 
 type StartupThresholds = {
   startupRequestCountCap: number;
@@ -103,13 +104,34 @@ test.describe('Startup Performance Guards', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Startup guard thresholds are calibrated for Chromium CI runtime.');
 
   test('login to dashboard startup remains within request and p75 thresholds', async ({ page }) => {
-    const password = 'Test123!@#';
+    const sharedUser = getSharedTestUser();
+    let password = 'Test123!@#';
     const fallbackEmail = `e2e+perf-startup-${Date.now()}@example.com`;
     const session = await ensureLoginViaAPI(page, fallbackEmail, password, {
       firstName: 'Perf',
       lastName: 'Guard',
+    }).catch(async (error) => {
+      if (
+        !(error instanceof Error) ||
+        !/fallback user creation failed|admin bootstrap failed before shared-user fallback/i.test(
+          error.message
+        )
+      ) {
+        throw error;
+      }
+
+      return ensureEffectiveAdminLoginViaAPI(page, {
+        firstName: 'Perf',
+        lastName: 'Guard',
+        organizationName: 'E2E Organization',
+      });
     });
     const email = typeof session.user?.email === 'string' ? session.user.email : fallbackEmail;
+    const sessionPassword =
+      'password' in session && typeof session.password === 'string' && session.password.length > 0
+        ? session.password
+        : undefined;
+    password = sessionPassword || sharedUser.password || password;
 
     const requestCounts: number[] = [];
     const loadTimesMs: number[] = [];

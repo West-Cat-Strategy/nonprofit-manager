@@ -23,6 +23,8 @@ import type {
   UpdateContactPhoneDTO,
 } from '../../../types/contact';
 
+export type { Contact } from '../../../types/contact';
+
 export type ContactRoleFilter =
   | 'client'
   | 'donor'

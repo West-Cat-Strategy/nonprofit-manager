@@ -16,7 +16,20 @@ export default financeReducer;
 export * from './donationsCore';
 export * from './recurringDonationsCore';
 export * from './paymentsCore';
-export * from './reconciliationCore';
+export {
+  assignDiscrepancy,
+  clearCurrentReconciliation,
+  clearError as clearReconciliationError,
+  createReconciliation,
+  fetchAllDiscrepancies,
+  fetchReconciliationById,
+  fetchReconciliationDashboard,
+  fetchReconciliationDiscrepancies,
+  fetchReconciliations,
+  fetchReconciliationItems,
+  manualMatchTransaction,
+  resolveDiscrepancy,
+} from './reconciliationCore';
 
 // Selectors
 export const selectDonations = (state: any) => state.finance.donations;

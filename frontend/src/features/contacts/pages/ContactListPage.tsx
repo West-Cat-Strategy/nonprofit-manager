@@ -66,7 +66,9 @@ const ContactList = () => {
         columns={columns}
         mobileCardRenderer={renderContactCard}
         pagination={{
-          ...pagination,
+          total: pagination.total,
+          page: pagination.page,
+          limit: pagination.limit,
           totalPages: pagination.total_pages,
         }}
         onPageChange={setCurrentPage}

@@ -38,7 +38,7 @@ interface RegistrationSettingsSectionProps {
 export default function RegistrationSettingsSection({
   roleOptions,
 }: RegistrationSettingsSectionProps) {
-  const { addToast } = useToast();
+  const { pushToast } = useToast();
   const [settings, setSettings] = useState<RegistrationSettings | null>(null);
   const [pendingRegistrations, setPendingRegistrations] = useState<PendingRegistration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,11 +89,11 @@ export default function RegistrationSettingsSection({
       });
       setSettings(response.data);
       setSaveStatus('success');
-      addToast({ message: 'Registration mode updated', variant: 'success' });
+      pushToast({ message: 'Registration mode updated', variant: 'success' });
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch {
       setSaveStatus('error');
-      addToast({ message: 'Failed to update registration settings', variant: 'error' });
+      pushToast({ message: 'Failed to update registration settings', variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -110,11 +110,11 @@ export default function RegistrationSettingsSection({
       });
       setSettings(response.data);
       setSaveStatus('success');
-      addToast({ message: 'Default role updated', variant: 'success' });
+      pushToast({ message: 'Default role updated', variant: 'success' });
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch {
       setSaveStatus('error');
-      addToast({ message: 'Failed to update default role', variant: 'error' });
+      pushToast({ message: 'Failed to update default role', variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -125,11 +125,11 @@ export default function RegistrationSettingsSection({
     try {
       await api.post(`/admin/pending-registrations/${id}/approve`);
       setPendingRegistrations((prev) => prev.filter((r) => r.id !== id));
-      addToast({ message: `Approved registration for ${name}`, variant: 'success' });
+      pushToast({ message: `Approved registration for ${name}`, variant: 'success' });
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { error?: { message?: string } } } })
         ?.response?.data?.error?.message || 'Failed to approve registration';
-      addToast({ message, variant: 'error' });
+      pushToast({ message, variant: 'error' });
     } finally {
       setActionLoading(null);
     }
@@ -142,13 +142,13 @@ export default function RegistrationSettingsSection({
         reason: rejectionReason || undefined,
       });
       setPendingRegistrations((prev) => prev.filter((r) => r.id !== id));
-      addToast({ message: `Rejected registration for ${name}`, variant: 'info' });
+      pushToast({ message: `Rejected registration for ${name}`, variant: 'info' });
       setRejectingId(null);
       setRejectionReason('');
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { error?: { message?: string } } } })
         ?.response?.data?.error?.message || 'Failed to reject registration';
-      addToast({ message, variant: 'error' });
+      pushToast({ message, variant: 'error' });
     } finally {
       setActionLoading(null);
     }

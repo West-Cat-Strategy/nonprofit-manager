@@ -16,12 +16,10 @@ import type {
   GrantApplication,
   GrantApplicationStatusUpdateDTO,
   GrantAward,
-  GrantAwardStatus,
   GrantCalendarItem,
   GrantDisbursement,
   GrantDocument,
   GrantFunder,
-  GrantJurisdiction,
   GrantProgram,
   GrantReport,
   RecipientOrganization,
@@ -212,9 +210,6 @@ const BOOLEAN_OPTIONS: SelectOption[] = [
   { value: 'true', label: 'Yes' },
   { value: 'false', label: 'No' },
 ];
-
-const isAwardStatus = (value: string | undefined): value is GrantAwardStatus =>
-  Boolean(value && GRANT_AWARD_STATUSES.includes(value as GrantAwardStatus));
 
 export const toOptions = <T,>(
   items: T[],

@@ -875,6 +875,7 @@ authTest.describe('Staff text visibility and link audit', () => {
       if (linkConfig.scope === 'more-button') {
         continue;
       }
+      await link.scrollIntoViewIfNeeded();
       await link.click();
       await waitForAppRoute(authenticatedPage);
 
@@ -927,6 +928,7 @@ base.describe('Portal text visibility and link audit', () => {
       const link = page.getByRole('link', { name: toNamePattern(linkConfig.label) }).first();
 
       await expect(link, `missing visible portal nav link for ${linkConfig.label}`).toBeVisible();
+      await link.scrollIntoViewIfNeeded();
       await link.click();
       await waitForAppRoute(page);
 

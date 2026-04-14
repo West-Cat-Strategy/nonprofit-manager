@@ -111,7 +111,7 @@ const AccountList = () => {
     const params = new URLSearchParams();
     if (searchInput) params.set('search', searchInput);
     if (accountTypeFilter) params.set('type', accountTypeFilter);
-    if (statusFilter) params.set('status', statusFilter);
+    if (statusFilter && statusFilter !== 'active') params.set('status', statusFilter);
     if (categoryFilter) params.set('category', categoryFilter);
     if (currentPage > 1) params.set('page', String(currentPage));
     if (currentLimit !== 20) params.set('limit', String(currentLimit));

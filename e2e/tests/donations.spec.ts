@@ -162,9 +162,28 @@ test.describe('Donations Module', () => {
     });
     await authenticatedPage.getByRole('button', { name: 'Edit' }).click();
     await authenticatedPage.waitForURL(new RegExp(`/donations/${donationId}/edit$`));
+    await expect(authenticatedPage.getByRole('heading', { name: /edit donation/i })).toBeVisible({
+      timeout: 15000,
+    });
+    const donationDateInput = authenticatedPage.locator('input[name="donation_date"]');
+    await expect(donationDateInput).toBeVisible({ timeout: 15000 });
+    const paymentStatusSelect = authenticatedPage.locator('select[name="payment_status"]');
+    await expect(paymentStatusSelect).toBeVisible({ timeout: 15000 });
 
-    await authenticatedPage.selectOption('select[name="payment_status"]', 'completed');
+    if (!(await donationDateInput.inputValue())) {
+      await donationDateInput.fill('2026-01-15T14:00');
+    }
+    await paymentStatusSelect.selectOption('completed');
+
+    const updateResponsePromise = authenticatedPage.waitForResponse(
+      (response) =>
+        response.url().includes(`/api/v2/donations/${donationId}`) &&
+        response.request().method() === 'PUT',
+      { timeout: 15000 }
+    );
     await authenticatedPage.click('button[type="submit"]');
+    const updateResponse = await updateResponsePromise;
+    expect(updateResponse.ok()).toBeTruthy();
 
     await authenticatedPage.waitForURL('/donations');
     await authenticatedPage.goto(`/donations/${donationId}`);

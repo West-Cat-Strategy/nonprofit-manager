@@ -1,19 +1,21 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 import { casesApiClient } from '../api/casesApiClient';
 import type {
-  Case,
-  CaseFilter,
   BulkStatusUpdateDTO,
+  CaseFilter,
+  CaseSummary,
+  CaseWithDetails,
 } from '../../../types/case';
 
 export interface CasesListState {
-  cases: Case[];
+  cases: CaseWithDetails[];
   total: number;
   loading: boolean;
   error: string | null;
   filters: CaseFilter;
   selectedCaseIds: string[];
-  summary: any | null; // Adjust type as needed
+  summary: CaseSummary | null;
 }
 
 const initialState: CasesListState = {
@@ -48,9 +50,8 @@ export const fetchCaseSummary = createAsyncThunk(
 export const bulkUpdateCaseStatus = createAsyncThunk(
   'casesList/bulkUpdateStatus',
   async (data: BulkStatusUpdateDTO) => {
-    const payload = await casesApiClient.bulkUpdateStatus(data);
+    await casesApiClient.bulkUpdateStatus(data);
     return {
-      ...payload,
       case_ids: data.case_ids,
       new_status_id: data.new_status_id,
     };
@@ -61,8 +62,8 @@ const casesListSlice = createSlice({
   name: 'casesList',
   initialState,
   reducers: {
-    setFilters: (state, action) => {
-      state.filters = { ...state.filters, ...action.payload };
+    setFilters: (state, action: PayloadAction<Partial<CaseFilter>>) => {
+      Object.assign(state.filters, action.payload);
     },
     clearFilters: (state) => {
       state.filters = initialState.filters;

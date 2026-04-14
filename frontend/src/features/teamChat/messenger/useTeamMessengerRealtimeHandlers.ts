@@ -1,6 +1,5 @@
 import { startTransition, useCallback, type Dispatch, type SetStateAction } from 'react';
 import {
-  buildConversationMap,
   mergeConversationSummary,
   mergeConversationSummaryForEvent,
   mergeRenderableMessages,

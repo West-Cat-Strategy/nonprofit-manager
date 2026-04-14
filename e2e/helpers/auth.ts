@@ -229,6 +229,26 @@ const normalizeAuthUser = (value: unknown): AuthUser | undefined => {
 const resolveOrganizationIdFromUser = (user: AuthUser | undefined): string | undefined =>
   normalizeOrganizationId(user?.organizationId) || normalizeOrganizationId(user?.organization_id);
 
+const withResolvedOrganizationIds = (
+  user: AuthUser | undefined,
+  organizationId: string | undefined
+): AuthUser | undefined => {
+  if (!user) {
+    return undefined;
+  }
+
+  const resolvedOrganizationId = organizationId || resolveOrganizationIdFromUser(user);
+  if (!resolvedOrganizationId) {
+    return user;
+  }
+
+  return {
+    ...user,
+    organizationId: resolvedOrganizationId,
+    organization_id: resolvedOrganizationId,
+  };
+};
+
 const toBase64Url = (value: string): string =>
   Buffer.from(value, 'utf8')
     .toString('base64')
@@ -328,6 +348,7 @@ const getAuthCachePaths = () => {
     sharedUserFile: path.join(cacheDir, 'test-user.json'),
     sharedUserLockFile: path.join(cacheDir, 'test-user.lock'),
     effectiveAdminFile: path.join(cacheDir, 'effective-admin.json'),
+    effectiveAdminSessionFile: path.join(cacheDir, 'effective-admin-session.json'),
   };
 };
 
@@ -348,6 +369,12 @@ const writeReadyAuthCache = (email: string): void => {
 type CachedAuthCredentials = {
   email: string;
   password: string;
+};
+
+type CachedEffectiveAdminSession = CachedAuthCredentials & {
+  token: string;
+  organizationId?: string;
+  user?: AuthUser;
 };
 
 const readCachedAuthCredentials = (filePath: string): CachedAuthCredentials | null => {
@@ -391,6 +418,65 @@ const writeEffectiveAdminCache = (email: string, password: string): void => {
 const clearEffectiveAdminCache = (): void => {
   const { effectiveAdminFile } = getAuthCachePaths();
   unlinkIfExists(effectiveAdminFile);
+};
+
+const readEffectiveAdminSessionCache = (): CachedEffectiveAdminSession | null => {
+  const { effectiveAdminSessionFile } = getAuthCachePaths();
+
+  try {
+    const payload = JSON.parse(fs.readFileSync(effectiveAdminSessionFile, 'utf8')) as {
+      email?: unknown;
+      password?: unknown;
+      token?: unknown;
+      organizationId?: unknown;
+      user?: unknown;
+    };
+    const email = normalizeString(payload.email);
+    const password = normalizeString(payload.password);
+    const token = normalizeString(payload.token);
+    const organizationId = normalizeOrganizationId(payload.organizationId);
+    const user = normalizeAuthUser(payload.user);
+    if (!email || !password || !token || !user) {
+      return null;
+    }
+    return {
+      email,
+      password,
+      token,
+      organizationId,
+      user,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeEffectiveAdminSessionCache = (session: AuthSession): void => {
+  const email = normalizeString(session.email);
+  const password = normalizeString(session.password);
+  const token = normalizeString(session.token);
+  const user = normalizeAuthUser(session.user);
+  const organizationId =
+    normalizeOrganizationId(session.user?.organizationId) ||
+    normalizeOrganizationId(session.user?.organization_id) ||
+    getOrganizationIdFromToken(session.token);
+
+  if (!email || !password || !token || !user) {
+    return;
+  }
+
+  const { cacheDir, effectiveAdminSessionFile } = getAuthCachePaths();
+  fs.mkdirSync(cacheDir, { recursive: true });
+  fs.writeFileSync(
+    effectiveAdminSessionFile,
+    JSON.stringify({ email, password, token, organizationId, user, at: Date.now() }),
+    { encoding: 'utf8' }
+  );
+};
+
+const clearEffectiveAdminSessionCache = (): void => {
+  const { effectiveAdminSessionFile } = getAuthCachePaths();
+  unlinkIfExists(effectiveAdminSessionFile);
 };
 
 export const invalidateSharedAuthCaches = (options: { clearLocks?: boolean } = {}): void => {
@@ -713,6 +799,15 @@ const getCurrentAdminSession = async (page: Page): Promise<AuthSession | null> =
     return null;
   }
 
+  const organizationId =
+    bootstrapSession.organizationId ||
+    resolveOrganizationIdFromUser(bootstrapSession.user) ||
+    getOrganizationIdFromToken(token);
+  const user = withResolvedOrganizationIds(bootstrapSession.user, organizationId);
+  if (!user) {
+    return null;
+  }
+
   const email =
     normalizeString(bootstrapSession.user?.email) ||
     process.env.TEST_USER_EMAIL?.trim() ||
@@ -731,7 +826,7 @@ const getCurrentAdminSession = async (page: Page): Promise<AuthSession | null> =
 
   return {
     token,
-    user: bootstrapSession.user,
+    user,
     email,
     password,
     isAdmin: true,
@@ -1169,6 +1264,19 @@ export async function ensureAdminLoginViaAPI(
     return session;
   };
 
+  const loginExistingSession = async (
+    email: string,
+    password: string
+  ): Promise<AuthSession> => {
+    const loginResult = await loginViaAPI(page, email, password);
+    const session = toSession(
+      await ensureOrganizationBackedSession(page, email, password, loginResult),
+      email,
+      password
+    );
+    return session;
+  };
+
   if (strictAdminAuth) {
     try {
       return await loginAndValidateAdminSession(adminEmail, adminPassword);
@@ -1211,11 +1319,7 @@ export async function ensureAdminLoginViaAPI(
     sharedUser.email.toLowerCase() !== adminEmail.toLowerCase()
   ) {
     try {
-      const sharedSession = await ensureLoginViaAPI(page, sharedUser.email, sharedUser.password, {
-        firstName: profile?.firstName || 'Admin',
-        lastName: profile?.lastName || 'User',
-      });
-      const normalizedSharedSession = toSession(sharedSession, sharedUser.email, sharedUser.password);
+      const normalizedSharedSession = await loginExistingSession(sharedUser.email, sharedUser.password);
       if (normalizedSharedSession.isAdmin) {
         const setupStatus = await waitForSetupStatus(page);
         if (!setupStatus.setupRequired) {
@@ -1269,10 +1373,65 @@ export async function ensureEffectiveAdminLoginViaAPI(
   const bootstrapValidationFailureMessage =
     'Elevated admin fallback session failed cookie-backed /auth/bootstrap validation';
 
+  const normalizeAdminSession = async (session: AuthSession): Promise<AuthSession> => {
+    const organizationId =
+      resolveOrganizationIdFromUser(normalizeAuthUser(session.user)) ||
+      getOrganizationIdFromToken(session.token) ||
+      (await getSessionOrganizationId(page));
+    const user = withResolvedOrganizationIds(normalizeAuthUser(session.user), organizationId);
+
+    if (!user) {
+      return session;
+    }
+
+    return {
+      ...session,
+      user,
+    };
+  };
+
   const establishEffectiveAdminSession = async (): Promise<AuthSession> => {
     const currentAdminSession = await getCurrentAdminSession(page);
     if (currentAdminSession) {
-      return currentAdminSession;
+      const normalizedCurrentAdminSession = await normalizeAdminSession(currentAdminSession);
+      writeEffectiveAdminCache(
+        normalizedCurrentAdminSession.email,
+        normalizedCurrentAdminSession.password
+      );
+      writeEffectiveAdminSessionCache(normalizedCurrentAdminSession);
+      return normalizedCurrentAdminSession;
+    }
+
+    const cachedEffectiveAdminSession = readEffectiveAdminSessionCache();
+    if (cachedEffectiveAdminSession) {
+      const restoredSession = await primeValidatedBrowserAuthSession(
+        page,
+        {
+          token: cachedEffectiveAdminSession.token,
+          organizationId: cachedEffectiveAdminSession.organizationId,
+          user: cachedEffectiveAdminSession.user,
+        },
+        { replaceCookie: true }
+      ).catch(() => null);
+
+      if (restoredSession && isAdminRole(restoredSession.user?.role)) {
+        const restoredAuthSession = await normalizeAdminSession({
+          token: cachedEffectiveAdminSession.token,
+          user: {
+            ...cachedEffectiveAdminSession.user,
+            ...restoredSession.user,
+          },
+          email: cachedEffectiveAdminSession.email,
+          password: cachedEffectiveAdminSession.password,
+          isAdmin: true,
+        });
+        writeEffectiveAdminCache(restoredAuthSession.email, restoredAuthSession.password);
+        writeEffectiveAdminSessionCache(restoredAuthSession);
+        return restoredAuthSession;
+      }
+
+      clearEffectiveAdminSessionCache();
+      clearEffectiveAdminCache();
     }
 
     const strictAdminAuth = isStrictAdminAuthRequired();
@@ -1280,43 +1439,37 @@ export async function ensureEffectiveAdminLoginViaAPI(
     let strictAdminError: unknown;
 
     if (!strictAdminAuth) {
-      const setupStatus = await getSetupStatusOrNull(page, { attempts: 3, delayMs: 200 });
-      if (setupStatus && !setupStatus.setupRequired) {
+      try {
+        session = await ensureAdminLoginViaAPI(page, profile);
+      } catch (error) {
+        strictAdminError = error;
+        const latestSetupStatus = await waitForSetupStatus(page);
+        if (latestSetupStatus.setupRequired) {
+          throw error;
+        }
+
         const sharedUser = getSharedTestUser();
-        const sharedSession = await ensureLoginViaAPI(page, sharedUser.email, sharedUser.password, {
-          firstName: profile?.firstName || 'Admin',
-          lastName: profile?.lastName || 'User',
-        });
+        let fallbackSession: ApiLoginResult;
+        try {
+          fallbackSession = await loginViaAPI(page, sharedUser.email, sharedUser.password).then(
+            async (loginResult) =>
+              ensureOrganizationBackedSession(page, sharedUser.email, sharedUser.password, loginResult)
+          );
+        } catch (fallbackError) {
+          const primaryMessage = error instanceof Error ? error.message : String(error);
+          const fallbackMessage =
+            fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          throw new Error(
+            `Admin bootstrap failed before shared-user fallback. Primary error: ${primaryMessage}. Shared-user fallback error for ${sharedUser.email}: ${fallbackMessage}`
+          );
+        }
 
         session = {
-          ...sharedSession,
+          ...fallbackSession,
           email: sharedUser.email,
           password: sharedUser.password,
-          isAdmin: isAdminRole(sharedSession.user?.role),
+          isAdmin: isAdminRole(fallbackSession.user?.role),
         };
-      } else {
-        try {
-          session = await ensureAdminLoginViaAPI(page, profile);
-        } catch (error) {
-          strictAdminError = error;
-          const latestSetupStatus = await waitForSetupStatus(page);
-          if (latestSetupStatus.setupRequired) {
-            throw error;
-          }
-
-          const sharedUser = getSharedTestUser();
-          const fallbackSession = await ensureLoginViaAPI(page, sharedUser.email, sharedUser.password, {
-            firstName: profile?.firstName || 'Admin',
-            lastName: profile?.lastName || 'User',
-          });
-
-          session = {
-            ...fallbackSession,
-            email: sharedUser.email,
-            password: sharedUser.password,
-            isAdmin: isAdminRole(fallbackSession.user?.role),
-          };
-        }
       }
     } else {
       try {
@@ -1336,7 +1489,10 @@ export async function ensureEffectiveAdminLoginViaAPI(
     }
 
     if (session.isAdmin) {
-      return session;
+      const normalizedSession = await normalizeAdminSession(session);
+      writeEffectiveAdminCache(normalizedSession.email, normalizedSession.password);
+      writeEffectiveAdminSessionCache(normalizedSession);
+      return normalizedSession;
     }
 
     const jwtSecret = resolveJwtSecret();
@@ -1439,6 +1595,7 @@ export async function ensureEffectiveAdminLoginViaAPI(
     });
     writeReadyAuthCache(session.email);
     writeEffectiveAdminCache(session.email, session.password);
+    writeEffectiveAdminSessionCache(elevatedSession);
 
     if (strictAdminError) {
       const strictErrorMessage =
@@ -1464,6 +1621,7 @@ export async function ensureEffectiveAdminLoginViaAPI(
       }
 
       invalidateSharedAuthCaches({ clearLocks: true });
+      clearEffectiveAdminSessionCache();
       await clearAuth(page);
     }
   }
@@ -1593,7 +1751,7 @@ export async function ensureLoginViaAPI(
       const isRateLimited =
         registerMessage.toLowerCase().includes('too many registration attempts') ||
         registerMessage.toLowerCase().includes('rate limit');
-      if (!isDuplicate && !isRateLimited) {
+      if (!isDuplicate && !isRateLimited && !isInvalidCredentialError(registerError)) {
         // Registration can fail after user creation side-effects; try login once before hard-failing.
         try {
           const loginAfterError = await attemptLogin();
@@ -1717,6 +1875,93 @@ export async function getAuthToken(page: Page): Promise<string | null> {
   return await page.evaluate(() => localStorage.getItem('token') || localStorage.getItem('user'));
 }
 
+async function createManagedTestUser(
+  page: Page,
+  user: TestUser
+): Promise<{ id: string; email: string }> {
+  const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
+  const adminSession = await ensureEffectiveAdminLoginViaAPI(page, {
+    firstName: 'Admin',
+    lastName: 'User',
+    organizationName: 'E2E Organization',
+  });
+  const organizationId =
+    resolveOrganizationIdFromUser(adminSession.user) || getOrganizationIdFromToken(adminSession.token);
+  const csrfToken = await fetchCsrfTokenForSession(page, adminSession.token, organizationId);
+  const headers = {
+    Authorization: `Bearer ${adminSession.token}`,
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': csrfToken,
+    ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
+    Cookie: '',
+  };
+
+  const response = await withNetworkRetry(() =>
+    page.request.post(`${apiURL}/api/v2/users`, {
+      headers,
+      data: {
+        email: user.email,
+        password: user.password,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: 'staff',
+      },
+    })
+  );
+
+  if (!response.ok()) {
+    if (response.status() === 409) {
+      const lookupResponse = await withNetworkRetry(() =>
+        page.request.get(`${apiURL}/api/v2/users?search=${encodeURIComponent(user.email)}`, {
+          headers,
+        })
+      );
+
+      if (!lookupResponse.ok()) {
+        throw new Error(
+          `Failed to fetch existing user ${user.email} after conflict (${lookupResponse.status()}): ${await lookupResponse.text()}`
+        );
+      }
+
+      const lookupPayload = unwrapApiData<{
+        users?: Array<{ id?: string; email?: string }>;
+      }>(await lookupResponse.json());
+      const existingUser =
+        lookupPayload.users?.find(
+          (entry) =>
+            typeof entry.email === 'string' && entry.email.toLowerCase() === user.email.toLowerCase()
+        ) || lookupPayload.users?.[0];
+
+      if (!existingUser?.id) {
+        throw new Error(
+          `Existing user lookup missing id for ${user.email}: ${JSON.stringify(lookupPayload)}`
+        );
+      }
+
+      return {
+        id: existingUser.id,
+        email: existingUser.email || user.email,
+      };
+    }
+
+    throw new Error(
+      `Failed to create managed test user ${user.email} (${response.status()}): ${await response.text()}`
+    );
+  }
+
+  const payload = unwrapApiData<{ id?: string; email?: string }>(await response.json());
+  if (!payload.id) {
+    throw new Error(
+      `Managed test user creation response missing id for ${user.email}: ${JSON.stringify(payload)}`
+    );
+  }
+
+  return {
+    id: payload.id,
+    email: payload.email || user.email,
+  };
+}
+
 /**
  * Create test user via API
  */
@@ -1724,6 +1969,10 @@ export async function createTestUser(
   page: Page,
   user: TestUser
 ): Promise<{ id: string; email: string }> {
+  if (process.env.BYPASS_REGISTRATION_POLICY_IN_TEST !== 'true') {
+    return createManagedTestUser(page, user);
+  }
+
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
 
   const response = await page.request.post(`${apiURL}/api/v2/auth/register`, {

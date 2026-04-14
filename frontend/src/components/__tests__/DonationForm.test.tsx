@@ -173,6 +173,36 @@ describe('DonationForm', () => {
       expect(campaignInput.value).toBe('Annual Fund');
     });
 
+    it('normalizes Date-backed donation dates for edit mode', () => {
+      const donationWithDateObject = {
+        ...mockDonation,
+        donation_date: new Date('2026-01-15T14:00:00Z') as unknown as string,
+      };
+
+      renderWithProviders(
+        <DonationForm onSubmit={mockOnSubmit} donation={donationWithDateObject} isEdit />
+      );
+
+      const donationDateInput = screen.getByLabelText(/donation date/i) as HTMLInputElement;
+      expect(donationDateInput.value).toMatch(/^2026-01-15T14:00$/);
+    });
+
+    it('normalizes date-like objects with ISO methods for edit mode', () => {
+      const donationWithIsoMethod = {
+        ...mockDonation,
+        donation_date: {
+          toISOString: () => '2026-01-15T14:00:00.000Z',
+        } as unknown as string,
+      };
+
+      renderWithProviders(
+        <DonationForm onSubmit={mockOnSubmit} donation={donationWithIsoMethod} isEdit />
+      );
+
+      const donationDateInput = screen.getByLabelText(/donation date/i) as HTMLInputElement;
+      expect(donationDateInput.value).toMatch(/^2026-01-15T14:00$/);
+    });
+
     it('allows user to modify form fields', () => {
       renderWithProviders(<DonationForm onSubmit={mockOnSubmit} donation={mockDonation} isEdit />);
 

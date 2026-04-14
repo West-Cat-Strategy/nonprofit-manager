@@ -19,6 +19,11 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+interface FieldAccessContext {
+  tableName?: string;
+  userRole?: string;
+}
+
 const shouldBypassPIIMaskingForTests = (): boolean =>
   process.env.NODE_ENV === 'test' && process.env.DISABLE_PII_MASKING_IN_TEST === 'true';
 
@@ -55,7 +60,10 @@ export function piiFieldAccessControl(piiService: PIIService, tableName?: string
       res.json = function (data: any) {
         // Apply field-level access control to response data synchronously
         if (data && typeof data === 'object') {
-          data = applyFieldAccessControlSync(data, rules);
+          data = applyFieldAccessControlSync(data, rules, {
+            tableName: effectiveTableName,
+            userRole,
+          });
         }
 
         return originalJson(data);
@@ -74,10 +82,11 @@ export function piiFieldAccessControl(piiService: PIIService, tableName?: string
  */
 function applyFieldAccessControlSync(
   data: any,
-  rules: Map<string, any>
+  rules: Map<string, any>,
+  context: FieldAccessContext
 ): any {
   if (Array.isArray(data)) {
-    return data.map((item) => applyFieldAccessControlSync(item, rules));
+    return data.map((item) => applyFieldAccessControlSync(item, rules, context));
   }
 
   if (data === null || typeof data !== 'object') {
@@ -93,23 +102,27 @@ function applyFieldAccessControlSync(
     }
 
     const rule = rules?.get(key);
-    const accessLevel = rule?.accessLevel || (isSensitiveField(key) ? 'masked' : 'full');
+    const accessLevel = rule?.accessLevel || getDefaultAccessLevel(key, context);
 
     if (accessLevel === 'none') {
       continue; // Skip the field entirely
     }
 
     if (accessLevel === 'masked' && value !== null && value !== undefined) {
+      if (typeof value === 'boolean') {
+        controlled[key] = value;
+        continue;
+      }
       const pattern = rule?.maskingPattern || 'partial';
       controlled[key] = maskFieldByType(key, value, pattern);
     } else {
       // Recursively process nested objects
       if (value && typeof value === 'object' && !Array.isArray(value)) {
-        controlled[key] = applyFieldAccessControlSync(value, rules);
+        controlled[key] = applyFieldAccessControlSync(value, rules, context);
       } else if (Array.isArray(value)) {
         controlled[key] = value.map((item) =>
           item && typeof item === 'object' 
-            ? applyFieldAccessControlSync(item, rules) 
+            ? applyFieldAccessControlSync(item, rules, context) 
             : item
         );
       } else {
@@ -119,6 +132,38 @@ function applyFieldAccessControlSync(
   }
 
   return controlled;
+}
+
+const PRIVILEGED_CONTACT_PII_ROLES = new Set(['admin']);
+const PRIVILEGED_CONTACT_PII_FIELDS = new Set(['email', 'phone', 'mobile_phone', 'birth_date']);
+
+function normalizeRole(role: string | undefined): string | undefined {
+  if (typeof role !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = role.trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function getDefaultAccessLevel(fieldName: string, context: FieldAccessContext): 'full' | 'masked' {
+  if (!isSensitiveField(fieldName)) {
+    return 'full';
+  }
+
+  const normalizedRole = normalizeRole(context.userRole);
+  const normalizedFieldName = fieldName.toLowerCase();
+
+  if (
+    context.tableName === 'contacts' &&
+    normalizedRole &&
+    PRIVILEGED_CONTACT_PII_ROLES.has(normalizedRole) &&
+    PRIVILEGED_CONTACT_PII_FIELDS.has(normalizedFieldName)
+  ) {
+    return 'full';
+  }
+
+  return 'masked';
 }
 
 /**

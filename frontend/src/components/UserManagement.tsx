@@ -388,8 +388,18 @@ export default function UserManagement() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4">
             <div className="fixed inset-0 app-popup-backdrop" onClick={() => setShowCreateModal(false)} />
-            <div className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold text-app-text-heading mb-4">Create New User</h3>
+            <div
+              className="relative bg-app-surface rounded-lg shadow-xl max-w-md w-full p-6"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-user-modal-title"
+            >
+              <h3
+                id="create-user-modal-title"
+                className="text-lg font-semibold text-app-text-heading mb-4"
+              >
+                Create New User
+              </h3>
 
               <ErrorBanner
                 message={formError}
@@ -400,8 +410,14 @@ export default function UserManagement() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-app-text-label mb-1">First Name</label>
+                    <label
+                      htmlFor="create-user-first-name"
+                      className="block text-sm font-medium text-app-text-label mb-1"
+                    >
+                      First Name
+                    </label>
                     <input
+                      id="create-user-first-name"
                       type="text"
                       value={formData.firstName}
                       onChange={(e) =>
@@ -411,8 +427,14 @@ export default function UserManagement() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-app-text-label mb-1">Last Name</label>
+                    <label
+                      htmlFor="create-user-last-name"
+                      className="block text-sm font-medium text-app-text-label mb-1"
+                    >
+                      Last Name
+                    </label>
                     <input
+                      id="create-user-last-name"
                       type="text"
                       value={formData.lastName}
                       onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
@@ -422,8 +444,14 @@ export default function UserManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-app-text-label mb-1">Email</label>
+                  <label
+                    htmlFor="create-user-email"
+                    className="block text-sm font-medium text-app-text-label mb-1"
+                  >
+                    Email
+                  </label>
                   <input
+                    id="create-user-email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
@@ -432,8 +460,14 @@ export default function UserManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-app-text-label mb-1">Role</label>
+                  <label
+                    htmlFor="create-user-role"
+                    className="block text-sm font-medium text-app-text-label mb-1"
+                  >
+                    Role
+                  </label>
                   <select
+                    id="create-user-role"
                     value={formData.role}
                     onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
                     className="w-full px-3 py-2 border border-app-input-border rounded-lg bg-app-input-bg text-app-text focus:outline-none focus:ring-2 focus:ring-app-accent"
@@ -453,8 +487,14 @@ export default function UserManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-app-text-label mb-1">Password</label>
+                  <label
+                    htmlFor="create-user-password"
+                    className="block text-sm font-medium text-app-text-label mb-1"
+                  >
+                    Password
+                  </label>
                   <input
+                    id="create-user-password"
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
@@ -466,8 +506,14 @@ export default function UserManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-app-text-label mb-1">Confirm Password</label>
+                  <label
+                    htmlFor="create-user-confirm-password"
+                    className="block text-sm font-medium text-app-text-label mb-1"
+                  >
+                    Confirm Password
+                  </label>
                   <input
+                    id="create-user-confirm-password"
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) =>

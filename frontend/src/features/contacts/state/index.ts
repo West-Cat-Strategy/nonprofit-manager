@@ -20,6 +20,7 @@ export type ContactsState = ReturnType<typeof contactsReducer>;
 export default contactsReducer;
 export { contactsReducer };
 
+export type { Contact } from '../types/contracts';
 // Re-export thunks and actions for convenient access
 export * from './contactsCore';
 export * from './contactsListSlice';

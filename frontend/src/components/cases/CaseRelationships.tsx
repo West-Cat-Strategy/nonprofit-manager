@@ -7,7 +7,11 @@ import {
 } from '../../features/cases/state';
 import { casesApiClient } from '../../features/cases/api/casesApiClient';
 import { BrutalButton, BrutalCard, BrutalBadge } from '../neo-brutalist';
-import type { RelationshipType, CreateCaseRelationshipDTO } from '../../types/case';
+import type {
+    CaseRelationship,
+    CreateCaseRelationshipDTO,
+    RelationshipType,
+} from '../../types/case';
 import ConfirmDialog from '../ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../hooks/useConfirmDialog';
 
@@ -21,16 +25,29 @@ interface CaseSearchResult {
     title: string;
 }
 
+type CaseRelationshipsSelectorState = {
+    cases: {
+        management?: {
+            relationships?: CaseRelationship[];
+        };
+        relationships?: CaseRelationship[];
+    };
+};
+
+const selectCaseRelationships = (
+    state: CaseRelationshipsSelectorState
+): CaseRelationship[] => {
+    const managementRelationships = state.cases.management?.relationships;
+    if (managementRelationships !== undefined) {
+        return managementRelationships;
+    }
+
+    return state.cases.relationships ?? [];
+};
+
 const CaseRelationships = ({ caseId }: CaseRelationshipsProps) => {
     const dispatch = useAppDispatch();
-    const caseRelationships = useAppSelector((state) => {
-        const managementRelationships = state.cases.management?.relationships;
-        if (managementRelationships !== undefined) {
-            return managementRelationships;
-        }
-
-        return state.cases.relationships ?? [];
-    });
+    const caseRelationships = useAppSelector(selectCaseRelationships);
     const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
     const [isAdding, setIsAdding] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');

@@ -2,6 +2,7 @@
 
 **Date:** 2026-04-13  
 **Task moved to Review:** `P4-T1R4C`
+**Shared closeout coverage reused for 2026-04-14 workboard closure:** `P4-T1R4A`
 
 ## Summary
 
@@ -9,6 +10,7 @@
 - Reconfirmed that the wave-2 backend routers for analytics, dashboard, follow-ups, reports, saved reports, and scheduled reports all construct without placeholder dependency injection.
 - Reconfirmed representative auth-guard behavior for module-owned `/api/v2/*` wave-2 surfaces, including `/api/v2/follow-ups` and `/api/v2/scheduled-reports`.
 - Revalidated adjacent portal/auth/public-reporting coverage in the same backend pass so the workboard move reflects current route-contract evidence rather than a stale blocker note.
+- That same route-construction and `/api/v2/*` guard evidence also backs the 2026-04-14 closure of `P4-T1R4A`, the paired wave-2 backend modules + dual-stack wrapper row.
 
 ## Contract Notes
 
@@ -36,3 +38,8 @@
 
 - This checkout does not include `backend/.env.test.local`; backend integration reruns need either that local file or explicit test-DB environment variables matching `backend/.env.test.example`.
 - Repo-wide lint is still blocked by unrelated implementation-size policy drift, so this closeout uses the scoped backend verification matrix above rather than a green `make ci-full`.
+
+## 2026-04-14 Addendum
+
+- `P4-T1R4A` closes with this shared artifact because the verified analytics, dashboard, follow-ups, reports, saved reports, and scheduled reports router construction is the proof chain for the wave-2 backend modular row.
+- The complementary frontend and planning rows removed in the same batch are preserved in [P4_CLOSEOUT_BATCH_2026-04-14.md](P4_CLOSEOUT_BATCH_2026-04-14.md).

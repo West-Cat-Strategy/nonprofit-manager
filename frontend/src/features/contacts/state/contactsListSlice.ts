@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { contactsApiClient } from '../api/contactsApiClient';
-import type { Contact, ContactsListQuery, ContactRoleFilter } from '../types/contracts';
+import type { ContactsListQuery, ContactRoleFilter } from '../types/contracts';
+import type { Contact } from '../../../types/contact';
 import { deleteContact } from './contactsCore';
 
 export interface ContactsListState {
@@ -128,7 +129,7 @@ const contactsListSlice = createSlice({
           state.pagination.page = state.pagination.total_pages;
         }
       })
-      .addCase(bulkUpdateContacts.fulfilled, (state, action) => {
+      .addCase(bulkUpdateContacts.fulfilled, () => {
         // Handle local update if needed, but usually list is refreshed
       });
   },

@@ -4,7 +4,220 @@ import {
   provisionApprovedPortalUser,
 } from "../helpers/portal";
 import { ensureEffectiveAdminLoginViaAPI } from "../helpers/auth";
+import {
+  createTestAccount,
+  createTestContact,
+  createTestDonation,
+  createTestEvent,
+  getAuthHeaders,
+} from "../helpers/database";
+import { unwrapSuccess } from "../helpers/apiEnvelope";
 import type { ConsoleMessage, Locator, Page } from "@playwright/test";
+
+const apiURL = process.env.API_URL || "http://localhost:3001";
+
+const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+const normalizeOrganizationId = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
+  const segments = token.split(".");
+  if (segments.length < 2) {
+    return null;
+  }
+
+  try {
+    const payload = segments[1];
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    return JSON.parse(Buffer.from(padded, "base64").toString("utf8")) as Record<
+      string,
+      unknown
+    >;
+  } catch {
+    return null;
+  }
+};
+
+const getTokenOrganizationId = (token: string): string | undefined => {
+  const payload = decodeJwtPayload(token);
+  if (!payload) {
+    return undefined;
+  }
+
+  return (
+    normalizeOrganizationId(payload.organizationId) ||
+    normalizeOrganizationId(payload.organization_id)
+  );
+};
+
+async function resolveOrganizationId(
+  page: Page,
+  token: string,
+): Promise<string | undefined> {
+  const localStorageOrganizationId = await page
+    .evaluate(() => localStorage.getItem("organizationId"))
+    .catch(() => null);
+
+  return (
+    normalizeOrganizationId(localStorageOrganizationId) ||
+    getTokenOrganizationId(token)
+  );
+}
+
+async function getFirstCaseTypeId(page: Page, token: string): Promise<string> {
+  const headers = await getAuthHeaders(page, token);
+  const response = await page.request.get(`${apiURL}/api/v2/cases/types`, {
+    headers,
+  });
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to fetch case types (${response.status()}): ${await response.text()}`,
+    );
+  }
+
+  const payload = unwrapSuccess<{
+    types?: Array<{ id?: string; case_type_id?: string }>;
+    data?: Array<{ id?: string; case_type_id?: string }>;
+    items?: Array<{ id?: string; case_type_id?: string }>;
+  }>(await response.json());
+
+  const typeEntries = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.types)
+      ? payload.types
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : [];
+  const firstType = typeEntries.find((entry) => Boolean(entry?.id || entry?.case_type_id));
+  const firstTypeId = firstType?.id || firstType?.case_type_id;
+
+  if (!firstTypeId) {
+    throw new Error(`No case types available. Payload: ${JSON.stringify(payload)}`);
+  }
+
+  return firstTypeId;
+}
+
+async function createTaskRecord(
+  page: Page,
+  token: string,
+  subject: string,
+): Promise<void> {
+  const headers = await getAuthHeaders(page, token);
+  const response = await page.request.post(`${apiURL}/api/v2/tasks`, {
+    headers,
+    data: {
+      subject,
+      status: "not_started",
+      priority: "normal",
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to create mobile task fixture (${response.status()}): ${await response.text()}`,
+    );
+  }
+}
+
+async function createCaseRecord(
+  page: Page,
+  token: string,
+  title: string,
+  contactId: string,
+): Promise<void> {
+  const organizationId = await resolveOrganizationId(page, token);
+  if (!organizationId) {
+    throw new Error("Unable to resolve organization context for mobile case fixture");
+  }
+
+  const caseTypeId = await getFirstCaseTypeId(page, token);
+  const headers = await getAuthHeaders(page, token);
+  const response = await page.request.post(`${apiURL}/api/v2/cases`, {
+    headers,
+    data: {
+      contact_id: contactId,
+      account_id: organizationId,
+      case_type_id: caseTypeId,
+      title,
+      description: "Mobile UX regression fixture",
+      priority: "medium",
+      is_urgent: false,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to create mobile case fixture (${response.status()}): ${await response.text()}`,
+    );
+  }
+
+  await expect
+    .poll(
+      async () => {
+        const readHeaders = await getAuthHeaders(page, token);
+        const listResponse = await page.request.get(
+          `${apiURL}/api/v2/cases?limit=25&search=${encodeURIComponent(title)}`,
+          { headers: readHeaders },
+        );
+        if (!listResponse.ok()) {
+          return false;
+        }
+
+        const payload = unwrapSuccess<{
+          cases?: Array<{ title?: string }>;
+          data?: { cases?: Array<{ title?: string }> };
+        }>(await listResponse.json());
+        const cases = Array.isArray(payload?.cases)
+          ? payload.cases
+          : Array.isArray(payload?.data?.cases)
+            ? payload.data.cases
+            : [];
+        return cases.some((entry) => entry?.title === title);
+      },
+      { timeout: 15000, intervals: [500, 1000, 1500] },
+    )
+    .toBe(true);
+}
+
+async function seedMobileCardFixtures(page: Page, token: string): Promise<void> {
+  const suffix = uniqueSuffix();
+  const organizationId = await resolveOrganizationId(page, token);
+  const account = await createTestAccount(page, token, {
+    name: `Mobile Account ${suffix}`,
+    accountType: "organization",
+    category: "other",
+  });
+  const contact = await createTestContact(page, token, {
+    firstName: "Mobile",
+    lastName: `Contact ${suffix}`,
+    email: `mobile.contact.${suffix}@example.com`,
+    accountId: organizationId || account.id,
+  });
+
+  await Promise.all([
+    createTaskRecord(page, token, `Mobile Task ${suffix}`),
+    createCaseRecord(page, token, `Mobile Case ${suffix}`, contact.id),
+    createTestEvent(page, token, {
+      name: `Mobile Event ${suffix}`,
+    }),
+    createTestDonation(page, token, {
+      accountId: account.id,
+      amount: 25,
+    }),
+  ]);
+}
 
 const benignConsolePatterns = [
   /favicon\.ico/i,
@@ -495,11 +708,13 @@ test.describe("UI/UX regression flows", () => {
 
   test("mobile staff routes use compact cards and avoid horizontal overflow", async ({
     authenticatedPage,
+    authToken,
   }, testInfo) => {
     test.skip(!/^Mobile /.test(testInfo.project.name), "Mobile-only coverage");
 
     const runtimeIssues = trackRuntimeIssues(authenticatedPage);
     await authenticatedPage.setViewportSize({ width: 390, height: 844 });
+    await seedMobileCardFixtures(authenticatedPage, authToken);
 
     await authenticatedPage.goto("/dashboard");
 
@@ -543,7 +758,7 @@ test.describe("UI/UX regression flows", () => {
       ).toBeVisible();
       await expect(
         authenticatedPage.getByTestId(check.cardTestId).first(),
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 15000 });
       await expectNoHorizontalOverflow(authenticatedPage, check.path);
     }
 

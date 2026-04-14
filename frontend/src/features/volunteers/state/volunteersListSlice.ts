@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { volunteersApiClient } from '../api/volunteersApiClient';
+import { deleteVolunteer } from './volunteersCore';
 import type {
   Volunteer,
   VolunteersListQuery,
@@ -94,6 +95,28 @@ const volunteersListSlice = createSlice({
       .addCase(fetchVolunteersBySkills.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch volunteers by skills';
+      })
+      .addCase(deleteVolunteer.fulfilled, (state, action) => {
+        const deletedVolunteerId = action.payload;
+        const nextVolunteers = state.volunteers.filter(
+          (volunteer) => volunteer.volunteer_id !== deletedVolunteerId
+        );
+        const removedCount = state.volunteers.length - nextVolunteers.length;
+
+        if (removedCount === 0) {
+          return;
+        }
+
+        state.volunteers = nextVolunteers;
+        const nextTotal = Math.max(0, state.pagination.total - removedCount);
+        state.pagination.total = nextTotal;
+        state.pagination.total_pages =
+          state.pagination.limit > 0
+            ? Math.max(1, Math.ceil(nextTotal / state.pagination.limit))
+            : state.pagination.total_pages;
+        if (state.pagination.page > state.pagination.total_pages) {
+          state.pagination.page = state.pagination.total_pages;
+        }
       });
   },
 });

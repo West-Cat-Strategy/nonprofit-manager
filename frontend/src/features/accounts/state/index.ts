@@ -9,6 +9,7 @@ const accountsReducer = combineReducers({
 
 export default accountsReducer;
 
+export type { Account } from '../types/contracts';
 export * from './accountsCore';
 export * from './accountsListSlice';
 

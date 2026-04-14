@@ -260,6 +260,20 @@ export default function PortalCalendarPage() {
     setSelectedDate(parseISO(entry.start));
   }, []);
 
+  const handleMonthRangeChange = useCallback((range: { startDate: string; endDate: string }) => {
+    setVisibleRange((current) => {
+      if (
+        current &&
+        current.startDate === range.startDate &&
+        current.endDate === range.endDate
+      ) {
+        return current;
+      }
+
+      return range;
+    });
+  }, []);
+
   const handleRegisterEvent = async (eventId: string) => {
     setSavingEntryId(`event:${eventId}`);
     try {
@@ -468,9 +482,7 @@ export default function PortalCalendarPage() {
               selectedEntryId={selectedEntryId}
               onDateSelect={handleSelectDate}
               onEntryClick={handleSelectEntry}
-              onMonthRangeChange={(range) => {
-                setVisibleRange(range);
-              }}
+              onMonthRangeChange={handleMonthRangeChange}
             />
 
             <div className="space-y-4">

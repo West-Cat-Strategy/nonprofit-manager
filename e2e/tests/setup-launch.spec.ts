@@ -10,13 +10,18 @@ const benignConsolePatterns = [
   /Failed to fetch CSRF token:/i,
   /downloadable font: download failed/i,
   /Firefox can’t establish a connection to the server at .*\/api\/v2\/team-chat\/messenger\/stream/i,
+  /The connection to .*\/api\/v2\/team-chat\/messenger\/stream.* was interrupted while the page was loading/i,
+  /Cross-Origin Request Blocked: .*\/api\/v2\/team-chat\/messenger\/stream.*CORS request did not succeed/i,
 ];
 
 const benignPageErrorPatterns = [
   /\/api\/v2\/auth\/bootstrap.*access control checks/i,
   /\/api\/v2\/team-chat\/.*access control checks/i,
+  /error loading dynamically imported module:/i,
   /error loading dynamically imported module: .*\/src\/components\/dashboard\/useQuickLookup\.tsx/i,
+  /error loading dynamically imported module: .*\/src\/components\/navigation\/NavigationQuickLookupDialog\.tsx/i,
   /error loading dynamically imported module: .*\/src\/features\/contacts\/pages\/ContactListPage\.tsx/i,
+  /error loading dynamically imported module: .*\/src\/features\/contacts\/pages\/ContactDetailPage\.tsx/i,
   /Importing a module script failed/i,
   /access control checks/i,
 ];

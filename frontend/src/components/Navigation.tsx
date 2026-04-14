@@ -256,7 +256,7 @@ export default function Navigation() {
                 <NavPopover
                   open={moreMenuOpen}
                   onClose={() => setMoreMenuOpen(false)}
-                  panelClassName="w-80 p-2"
+                  panelClassName="max-h-[min(28rem,calc(100vh-6rem))] w-80 overflow-y-auto p-2"
                   panelRef={moreMenuRef}
                 >
                   <div id="topnav-more-menu" role="menu" aria-label="More navigation">

@@ -1,3 +1,4 @@
+import { createSelector } from '@reduxjs/toolkit';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -36,16 +37,51 @@ type ContactListPagination = {
   total_pages: number;
 };
 
-type ContactListSlice = {
-  contacts?: Contact[];
-  loading?: boolean;
-  error?: string | null;
-  pagination?: ContactListPagination;
+type ContactListResolvedState = {
+  contacts: Contact[];
+  loading: boolean;
+  error: string | null;
+  pagination: ContactListPagination;
 };
+
+type ContactListSlice = Partial<ContactListResolvedState>;
 
 type ContactListState = {
   list?: ContactListSlice;
 } & ContactListSlice;
+
+type ContactListFilterField = {
+  id: string;
+  label: string;
+  type: 'text' | 'select';
+  value: string;
+  options?: Array<{ value: string; label: string }>;
+  placeholder?: string;
+  ariaLabel?: string;
+};
+
+const EMPTY_CONTACT_LIST_PAGINATION: ContactListPagination = {
+  total: 0,
+  page: 1,
+  limit: 20,
+  total_pages: 1,
+};
+
+const selectContactListModule = (state: { contacts?: ContactListState }) => state.contacts;
+
+const resolveContactListState = createSelector(
+  [selectContactListModule],
+  (contactsModule): ContactListResolvedState => {
+    const source = contactsModule?.list ?? contactsModule;
+
+    return {
+      contacts: source?.contacts ?? [],
+      loading: source?.loading ?? false,
+      error: source?.error ?? null,
+      pagination: source?.pagination ?? EMPTY_CONTACT_LIST_PAGINATION,
+    };
+  }
+);
 
 const normalizeRoleFilter = (value: string | null | undefined): ContactRoleFilter | '' => {
   if (!value) {
@@ -59,10 +95,7 @@ export const useContactListPage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { contacts, loading, error, pagination } = useAppSelector((state) => {
-    const contactsModule = state.contacts as ContactListState;
-    return contactsModule?.list ?? contactsModule;
-  });
+  const { contacts, loading, error, pagination } = useAppSelector(resolveContactListState);
   const initialRoleFilter = normalizeRoleFilter(searchParams.get('type'));
 
   const {
@@ -342,12 +375,12 @@ export const useContactListPage = () => {
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-app-text-muted">
           {contact.tags && contact.tags.length > 0
-            ? contact.tags.slice(0, 2).map((tag) => (
+          ? contact.tags.slice(0, 2).map((tag: string) => (
                 <span key={tag} className="rounded-full border border-app-border px-2 py-0.5">
                   {tag}
                 </span>
               ))
-            : null}
+          : null}
           {contact.mobile_phone && <span>📱 {contact.mobile_phone}</span>}
         </div>
         <p className="text-xs font-medium text-app-text-subtle">Use actions to open the full record.</p>
@@ -429,7 +462,7 @@ export const useContactListPage = () => {
             { value: 'inactive', label: 'Inactive' },
           ],
         },
-      ],
+      ] as ContactListFilterField[],
       activeFilterCount: [searchInput, roleFilter, activeFilter].filter((f) => f).length,
       isCollapsed: filterCollapsed,
     },

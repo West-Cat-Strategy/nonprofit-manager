@@ -11,6 +11,7 @@ const volunteersReducer = combineReducers({
 
 export default volunteersReducer;
 
+export type { Volunteer, VolunteerAssignment } from '../types/contracts';
 export * from './volunteersCore';
 export * from './volunteersListSlice';
 export * from './volunteerAssignmentsSlice';

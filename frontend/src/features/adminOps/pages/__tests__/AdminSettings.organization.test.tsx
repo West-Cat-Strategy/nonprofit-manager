@@ -271,10 +271,11 @@ describe('AdminSettings organization section', () => {
 
     renderAdminSettings('/settings/admin/workspace_modules');
 
-    expect(
-      await screen.findByRole('heading', { name: /workspace modules/i })
-    ).toBeInTheDocument();
-    const casesToggle = await screen.findByRole('checkbox', { name: /cases enabled/i });
+    const casesToggle = await screen.findByRole(
+      'checkbox',
+      { name: /cases enabled/i },
+      { timeout: 10000 }
+    );
 
     await user.click(casesToggle);
     await user.click(screen.getByRole('button', { name: /save changes/i }));

@@ -52,11 +52,11 @@ const getDatabaseConfig = (): {
   user: string;
   password: string;
 } => ({
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: Number(process.env.DB_PORT || '8002'),
-  database: process.env.DB_NAME || 'nonprofit_manager',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  host: process.env.DB_HOST || process.env.E2E_DB_HOST || '127.0.0.1',
+  port: Number(process.env.DB_PORT || process.env.E2E_DB_PORT || '8012'),
+  database: process.env.DB_NAME || process.env.E2E_DB_NAME || 'nonprofit_manager_test',
+  user: process.env.DB_USER || process.env.E2E_DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || process.env.E2E_DB_PASSWORD || 'postgres',
 });
 
 const unwrapBody = <T>(body: unknown): T =>

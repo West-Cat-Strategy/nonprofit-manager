@@ -22,6 +22,86 @@ const secondaryButtonClassName =
 const primaryButtonClassName =
   'app-focus-ring rounded-md bg-app-accent px-6 py-2 text-[var(--app-accent-foreground)] hover:bg-app-accent-hover focus:outline-none disabled:opacity-50';
 
+const toDateTimeLocalValue = (value: unknown): string => {
+  if (!value) {
+    return '';
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 16);
+  }
+
+  if (typeof value === 'number') {
+    const parsedNumberDate = new Date(value);
+    return Number.isNaN(parsedNumberDate.getTime())
+      ? ''
+      : parsedNumberDate.toISOString().slice(0, 16);
+  }
+
+  if (typeof value !== 'string') {
+    const dateLikeValue = value as {
+      toISOString?: () => string;
+      toISO?: () => string;
+      valueOf?: () => unknown;
+      toString?: () => string;
+      value?: unknown;
+      date?: unknown;
+    };
+
+    if (typeof dateLikeValue.toISOString === 'function') {
+      return toDateTimeLocalValue(dateLikeValue.toISOString());
+    }
+
+    if (typeof dateLikeValue.toISO === 'function') {
+      return toDateTimeLocalValue(dateLikeValue.toISO());
+    }
+
+    if ('value' in dateLikeValue) {
+      const resolvedValue = toDateTimeLocalValue(dateLikeValue.value);
+      if (resolvedValue) {
+        return resolvedValue;
+      }
+    }
+
+    if ('date' in dateLikeValue) {
+      const resolvedDate = toDateTimeLocalValue(dateLikeValue.date);
+      if (resolvedDate) {
+        return resolvedDate;
+      }
+    }
+
+    if (typeof dateLikeValue.valueOf === 'function') {
+      const rawValue = dateLikeValue.valueOf();
+      if (rawValue !== value) {
+        const resolvedFromValueOf = toDateTimeLocalValue(rawValue);
+        if (resolvedFromValueOf) {
+          return resolvedFromValueOf;
+        }
+      }
+    }
+
+    if (typeof dateLikeValue.toString === 'function') {
+      const stringValue = dateLikeValue.toString();
+      if (stringValue && stringValue !== '[object Object]') {
+        return toDateTimeLocalValue(stringValue);
+      }
+    }
+
+    return '';
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+    return value;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) {
+    return value.slice(0, 16);
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 16);
+};
+
 const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit = false }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -48,7 +128,7 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
         contact_id: donation.contact_id || undefined,
         amount: Number.isFinite(parsedAmount) ? parsedAmount : 0,
         currency: donation.currency,
-        donation_date: donation.donation_date.substring(0, 16),
+        donation_date: toDateTimeLocalValue(donation.donation_date),
         payment_method: donation.payment_method || undefined,
         payment_status: donation.payment_status,
         transaction_id: donation.transaction_id || undefined,

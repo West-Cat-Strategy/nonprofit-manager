@@ -36,4 +36,4 @@ Captured fields:
 
 ## Next Step
 
-Build or document the production-facing dashboard/query that rolls `auth.alias_input_used` into a daily usage ratio for the three tracked auth endpoints.
+Carry the production-facing dashboard/query work under `P4-T9I` in [planning-and-progress.md](planning-and-progress.md) so `auth.alias_input_used` rolls into a daily usage ratio for the three tracked auth endpoints without reopening `P4-T9A`.

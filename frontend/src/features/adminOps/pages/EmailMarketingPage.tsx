@@ -20,6 +20,7 @@ import {
 } from '../../mailchimp/state';
 import { fetchContacts } from '../../../features/contacts/state';
 import type {
+  MailchimpCampaign,
   MailchimpList,
   CreateCampaignRequest,
 } from '../../../types/mailchimp';

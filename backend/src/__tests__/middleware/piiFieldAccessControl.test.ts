@@ -38,7 +38,7 @@ describe('piiFieldAccessControl middleware', () => {
 
   it('masks sensitive fields recursively for authenticated users', async () => {
     const req = {
-      user: { id: 'user-1', email: 'user@example.com', role: 'manager' },
+      user: { id: 'user-1', email: 'user@example.com', role: 'user' },
       path: '/contacts/123',
     } as unknown as Request;
     const { res, originalJson } = createResponse();
@@ -51,6 +51,8 @@ describe('piiFieldAccessControl middleware', () => {
       email: 'alice@example.com',
       phone: '6045551234',
       token: 'abcd',
+      do_not_email: false,
+      do_not_phone: true,
       nested: { mobile_phone: '7785559999' },
       items: [{ emergency_contact_phone: '2504443333' }],
     });
@@ -59,14 +61,48 @@ describe('piiFieldAccessControl middleware', () => {
       email: 'a***@example.com',
       phone: '***-***-1234',
       token: 'a***',
+      do_not_email: false,
+      do_not_phone: true,
       nested: { mobile_phone: '***-***-9999' },
       items: [{ emergency_contact_phone: '***-***-3333' }],
     });
   });
 
+  it('keeps privileged contact detail fields readable when fallback DB rules are absent', async () => {
+    const req = {
+      user: { id: 'user-1', email: 'admin@example.com', role: 'admin' },
+      path: '/contacts/123',
+    } as unknown as Request;
+    const { res, originalJson } = createResponse();
+    const next = jest.fn() as NextFunction;
+
+    await piiFieldAccessControl(piiService)(req as any, res, next);
+    expect(next).toHaveBeenCalled();
+
+    (res.json as any)({
+      email: 'alice@example.com',
+      phone: '6045551234',
+      mobile_phone: '7785559999',
+      birth_date: '1986-07-09',
+      do_not_email: false,
+      do_not_phone: false,
+      token: 'abcd',
+    });
+
+    expect(originalJson).toHaveBeenCalledWith({
+      email: 'alice@example.com',
+      phone: '6045551234',
+      mobile_phone: '7785559999',
+      birth_date: '1986-07-09',
+      do_not_email: false,
+      do_not_phone: false,
+      token: 'a***',
+    });
+  });
+
   it('leaves count fields untouched while masking nearby sensitive fields', async () => {
     const req = {
-      user: { id: 'user-1', email: 'user@example.com', role: 'manager' },
+      user: { id: 'user-1', email: 'user@example.com', role: 'user' },
       path: '/contacts/123',
     } as unknown as Request;
     const { res, originalJson } = createResponse();
