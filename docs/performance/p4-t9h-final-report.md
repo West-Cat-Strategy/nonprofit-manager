@@ -2,7 +2,7 @@
 
 Date: 2026-03-15  
 Task: `P4-T9H`  
-Status: `Blocked` (implementation complete, perf evidence captured, and the strict closure rerun is now blocked by repo-wide implementation-size policy drift after clearing the initdb/manifest mismatch)
+Status: `Done` (strict closure rerun passed on 2026-04-14; performance evidence remains authoritative)
 
 ## Delivered Scope
 
@@ -24,34 +24,24 @@ Status: `Blocked` (implementation complete, perf evidence captured, and the stri
 - `cd e2e && npm run test:smoke` -> pass (`2` passed)
 - The earlier intake/contact-form route-smoke blocker recorded in this report is stale; the full frontend Vitest gate now passes on `main`
 
-## Strict Closure Blocker
+## Strict Closure Rerun
 
-The earlier `backend/src/services/donationService.ts` `no-useless-assignment` failure recorded in this report is now stale.
+The earlier lint, implementation-size, and UI-audit blocker notes recorded in this report are now stale.
 
-On 2026-04-13, the repo-wide initdb/manifest blocker was cleared by syncing `database/initdb/000_init.sql` with `database/migrations/manifest.tsv`, so the strict closure rerun moved forward to the next failing gate:
+On 2026-04-14, the repo-wide strict closure rerun completed successfully:
 
-- `make ci-full`
+- `make ci-full` -> pass
 
-It now fails in the repo-wide implementation-size policy step:
+The only fresh blocker uncovered during the rescue pass was the security-audit leg. That was resolved without changing the delivered staff search/list scope:
 
-- `backend/src/modules/contacts/services/contactMergeService.ts`
-  - `1467` lines exceeds the `900`-line cap
-- `backend/src/modules/recurringDonations/services/recurringDonationService.ts`
-  - `1101` lines exceeds baseline `930`
-- `backend/src/services/publishing/publicWebsiteFormService.ts`
-  - `901` lines exceeds the `900`-line cap
-- `backend/src/services/publishing/siteOperationsService.ts`
-  - `990` lines exceeds baseline `918`
-- `backend/src/services/webhookService.ts`
-  - `950` lines exceeds the `900`-line cap
-- `frontend/src/components/editor/EditorCanvas.tsx`
-  - `1071` lines exceeds baseline `1069`
-- `frontend/src/features/adminOps/pages/EmailMarketingPage.tsx`
-  - `984` lines exceeds the `900`-line cap
-- `frontend/src/features/websites/state/websitesCore.ts`
-  - `905` lines exceeds the `900`-line cap
+- `backend/package.json` / `backend/package-lock.json`
+  - `nodemailer` upgraded from `^8.0.4` to `^8.0.5`
+- `frontend/package.json` / `frontend/package-lock.json`
+  - `axios` upgraded from `^1.14.0` to `^1.15.0`
+- Workspace lockfiles
+  - `follow-redirects` updated to `1.16.0`
 
-Because this repo-wide implementation-size failure sits outside the staff search/list efficiency surfaces, `P4-T9H` remains blocked until the owning stream clears that gate. No task-owned contract or query-path regression surfaced in this closure pass.
+No task-owned contract, query-path, or performance regression surfaced in the final rerun.
 
 ## Performance Artifacts
 
@@ -82,10 +72,8 @@ Plan notes:
 
 ## Related Closure Notes
 
-`make ci-full` already contains the full Playwright `test:ci` gate in this repo, so the ordered closure sequence did not require a standalone `cd e2e && npm run test:ci` rerun after this failure. The sequence now stops earlier at backend lint.
+`make ci-full` already contains the full Playwright `test:ci` gate in this repo, so the strict closure rerun did not require a standalone `cd e2e && npm run test:ci` follow-up after the green pass.
 
 ## Next Step
 
-1. Route or resolve the unrelated implementation-size policy failures listed above.
-2. Rerun `make ci-full`.
-3. If that full CI gate passes, move `P4-T9H` to review using the existing perf artifacts; run a standalone `cd e2e && npm run test:ci` only if repo policy changes to require it after a green `make ci-full`.
+Move `P4-T9H` to Review using this report plus the existing performance artifacts as the row-local evidence package.
