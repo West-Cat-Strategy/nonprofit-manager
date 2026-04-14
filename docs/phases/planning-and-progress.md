@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** Phase 4 - Modularity Refactor  
-**Live Snapshot:** 83 active rows: 12 In Progress, 3 Blocked, 62 Review, 6 Ready.  
+**Live Snapshot:** 83 active rows: 12 In Progress, 1 Blocked, 64 Review, 6 Ready.  
 **History:** Historical roadmap, logs, trackers, and legacy reference sections moved to [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md).
 
 ## 🤝 Coordination
@@ -25,25 +25,25 @@
 | P4-T7E-DARK | Whole-app dark-mode accessibility remediation + route-audit closure | Phase 4 | In Progress | Codex | Mar 11, 2026 | TBD | main |
 | P4-T9A | Efficiency remediation pack (Top 15 findings) | Phase 4 | In Progress | Codex | Mar 5, 2026 | TBD | main |
 | P4-T9E | Cross-surface startup + navigation efficiency wave | Phase 4 | In Progress | Codex | Mar 7, 2026 | TBD | codex/p4-t9e-startup-navigation-wave |
-| P4-T18 | Provider-agnostic donation processing via website forms + Stripe/PayPal/Square | Phase 4 | In Progress | Codex | Mar 15, 2026 | TBD | main |
-| P4-T29 | Internal grants tracking platform | Phase 4 | In Progress | Codex | Mar 20, 2026 | TBD | main |
+| P4-T18 | Provider-agnostic donation processing via website forms + Stripe/PayPal/Square | Phase 4 | In Progress | Codex | Mar 15, 2026 | TBD | main (carries `P4-T9H` `lint-implementation-size` unblock for `recurringDonationService.ts` and `publicWebsiteFormService.ts`) |
+| P4-T29 | Internal grants tracking platform | Phase 4 | In Progress | Codex | Mar 20, 2026 | TBD | main (carries `P4-T35` grants smoke-harness Chromium regression from `e2e/tests/grants.spec.ts:561`) |
 | P4-T30 | Dependency review and multi-package upgrade pass | Phase 4 | In Progress | Codex | Mar 28, 2026 | TBD | codex/p4-t30-dependency-upgrades |
 | P4-T37 | Organizational admin panel refactor + canonical role wiring | Phase 4 | In Progress | Antigravity | Apr 10, 2026 | TBD | main |
-| P4-T38 | Contacts module redesign + legacy alignment | Phase 4 | In Progress | Antigravity | Apr 10, 2026 | TBD | main |
+| P4-T38 | Contacts module redesign + legacy alignment | Phase 4 | In Progress | Antigravity | Apr 10, 2026 | TBD | main (carries `P4-T35` contacts delete-from-list Chromium regression from `e2e/tests/contacts.spec.ts:1082` and `P4-T9H` `lint-implementation-size` unblock for `contactMergeService.ts`) |
 | P4-T39 | Reliability and efficiency remediation sweep | Phase 4 | In Progress | Codex | Apr 11, 2026 | TBD | main |
-| P4-T39A | Backend reliability hardening (reconciliation, payments, webhooks) | Phase 4 | In Progress | Antigravity | Apr 11, 2026 | TBD | main |
+| P4-T39A | Backend reliability hardening (reconciliation, payments, webhooks) | Phase 4 | In Progress | Antigravity | Apr 11, 2026 | TBD | main (carries `P4-T9H` `lint-implementation-size` unblock for `webhookService.ts`) |
 | P4-T43 | Contacts/cases paired module split follow-up | Phase 4 | In Progress | Codex | Apr 13, 2026 | TBD | main |
 | P4-T44 | Root script wrapper refactor (shared shell helpers, compose/E2E cleanup, dead duplicate removal) | Phase 4 | In Progress | Codex | Apr 13, 2026 | TBD | main |
-| P4-T5 | Structural refactor wave (validation/auth/envelope/frontend/docs guardrails) | Phase 4 | Blocked | Codex | Mar 2, 2026 | Mar 2, 2026 | main (repo-wide implementation-size policy drift) |
-| P4-T9H | Staff backend efficiency wave (stable contracts, query-path + search/index refactor) | Phase 4 | Blocked | Codex | Mar 15, 2026 | TBD | main (strict closure blocked by implementation-size policy gate) |
-| P4-T35 | Compact workspace shell navigation and responsive overflow | Phase 4 | Blocked | Codex | Apr 7, 2026 | TBD | main (Docker Playwright CI reaches app stack; unrelated Chromium failures in alerts/contacts/grants slices) |
+| P4-T5 | Structural refactor wave (validation/auth/envelope/frontend/docs guardrails) | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | main (former implementation-size blocker cleared on 2026-04-13: `UserSettingsPage.tsx` is `930` lines against baseline `931`, and `PortalSection.tsx` is `165` lines) |
+| P4-T9H | Staff backend efficiency wave (stable contracts, query-path + search/index refactor) | Phase 4 | Blocked | Codex | Mar 15, 2026 | TBD | main (strict closure blocked by `lint-implementation-size`: `P4-T38` `contactMergeService.ts`; `P4-T18` `recurringDonationService.ts` + `publicWebsiteFormService.ts`; `P4-T33` `siteOperationsService.ts` + `websitesCore.ts`; `P4-T39A` `webhookService.ts`; `P4-T7C-WEB3` `EditorCanvas.tsx`; `P4-T36` `EmailMarketingPage.tsx`) |
+| P4-T35 | Compact workspace shell navigation and responsive overflow | Phase 4 | Review | Codex | Apr 7, 2026 | TBD | main (shell-specific verification passed on 2026-04-13: desktop compact-nav Chromium slice green, `npm run test:docker:ci:mobile` green; broader alerts/contacts/grants Chromium failures rerouted to `P4-T1R4W3A` / `P4-T38` / `P4-T29`) |
 | P4-T1 | Full-stack modularity refactor recovery (dual-stack modularization waves) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main ([closeout](P4-T1_CLOSEOUT_2026-04-13.md)) |
 | P4-T1R4 | Wave 2+ rollout prep (reports/analytics/dashboard then ops/comms surfaces) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization |
 | P4-T1R4A | Wave 2 backend modules + dual-stack wrappers (`analytics/reports/saved-reports/scheduled-reports/dashboard/follow-ups`) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization |
 | P4-T1R4B | Wave 2 frontend feature migration + slice shim cutover (analytics/reporting/dashboard/follow-ups) | Phase 4 | Review | Codex | Mar 2, 2026 | main | main |
 | P4-T1R4C | Wave 2 contract alignment + e2e updates (`/api/v2/*` wave-2 surfaces) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | codex/p4-t1r4-wave2-modularization ([closeout](P4-T1R4C_CLOSEOUT_2026-04-13.md)) |
 | P4-T1R4D | Wave 3 decision lock and workboard subtask seeding (alerts/activities/webhooks/mailchimp/invitations/meetings/admin+portal ops) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
-| P4-T1R4W3A | Wave 3 prep: alerts modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 5, 2026 | Mar 5, 2026 | codex/p4-wave-close-direct-cutover |
+| P4-T1R4W3A | Wave 3 prep: alerts modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 5, 2026 | Mar 5, 2026 | codex/p4-wave-close-direct-cutover (carries `P4-T35` alerts import regression from `frontend/src/features/alerts/pages/AlertsConfigPage.tsx:21` / `e2e/tests/alerts.spec.ts:12`) |
 | P4-T1R4W3B | Wave 3 prep: activities modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
 | P4-T1R4W3C | Wave 3 prep: webhooks modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
 | P4-T1R4W3D | Wave 3 prep: mailchimp modularization package (backend module + wrapper + frontend feature + tests/policies) | Phase 4 | Review | Codex | Mar 17, 2026 | TBD | main |
@@ -75,7 +75,7 @@
 | P4-T7C-PROFILE | Staff profile settings avatar flow hardening (`/settings/user` + `/api/v2/auth/profile`) | Phase 4 | Review | Codex | Mar 11, 2026 | Mar 11, 2026 | main |
 | P4-T7C-RPT1 | Reporting module expansion (builder UX + scheduled management + saved-report sharing/public snapshots) | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | main (saved/scheduled/public-report verification 2026-04-13) |
 | P4-T7C-WEB2 | Website builder v2 org-scope, public runtime, and nonprofit data integrations | Phase 4 | Review | Codex | Mar 5, 2026 | Mar 5, 2026 | codex/p4-t7i-staff-ux-audit |
-| P4-T7C-WEB3 | Website site console + conversion stack (overview/content/forms/integrations/publishing + site-aware builder launch) | Phase 4 | Review | Codex | Mar 6, 2026 | Mar 7, 2026 | codex/p4-t7i-staff-ux-audit |
+| P4-T7C-WEB3 | Website site console + conversion stack (overview/content/forms/integrations/publishing + site-aware builder launch) | Phase 4 | Review | Codex | Mar 6, 2026 | Mar 7, 2026 | codex/p4-t7i-staff-ux-audit (carries `P4-T9H` `lint-implementation-size` unblock for `EditorCanvas.tsx`) |
 | P4-T7D | Portal + auth/public pages migration | Phase 4 | Review | Codex | Mar 3, 2026 | TBD | main (portal/auth verification 2026-04-13) |
 | P4-T7E-INPUT | Whole-app input draft-preservation audit + hydration guardrails (admin settings + builder modal confirmed-risk surfaces) | Phase 4 | Review | Codex | Mar 11, 2026 | Mar 11, 2026 | main |
 | P4-T7E-STAFFQA | Staff behavioral verification + regression hardening | Phase 4 | Review | Codex | Mar 11, 2026 | Mar 11, 2026 | main |
@@ -93,9 +93,9 @@
 | P4-T16A | Detached package retirement + backend dependency pruning (`data-intake`, `csv-writer`) | Phase 4 | Review | Codex | Mar 15, 2026 | Mar 15, 2026 | main (unused package retirement verified; `otplib` split to P4-T16B) |
 | P4-T31 | Dockerfile refactor and build optimization follow-up | Phase 4 | Review | Codex | Apr 11, 2026 | TBD | main |
 | P4-T32 | Multi-type / multi-outcome cases refactor | Phase 4 | Review | Codex | Mar 29, 2026 | TBD | main |
-| P4-T33 | Website console management cockpit upgrade | Phase 4 | Review | Codex | Mar 29, 2026 | TBD | main |
+| P4-T33 | Website console management cockpit upgrade | Phase 4 | Review | Codex | Mar 29, 2026 | TBD | main (carries `P4-T9H` `lint-implementation-size` unblock for `siteOperationsService.ts` and `websitesCore.ts`) |
 | P4-T34 | Repo-local Codex skill suite for contributor workflows | Phase 4 | Review | Codex | Apr 1, 2026 | TBD | main |
-| P4-T36 | Newsletter + communications hub UX upgrade | Phase 4 | Review | Codex | Apr 10, 2026 | TBD | main |
+| P4-T36 | Newsletter + communications hub UX upgrade | Phase 4 | Review | Codex | Apr 10, 2026 | TBD | main (carries `P4-T9H` `lint-implementation-size` unblock for `EmailMarketingPage.tsx`) |
 | P4-T40 | LUKS-aware production deploy wrapper alignment | Phase 4 | Review | Codex | Apr 13, 2026 | TBD | main |
 | P4-T41 | Live Docker auth/setup CORS origin alignment | Phase 4 | Review | Codex | Apr 13, 2026 | TBD | main |
 | P4-T42 | Repo-local Codex skill suite rebuild | Phase 4 | Review | Codex | Apr 13, 2026 | TBD | main |
