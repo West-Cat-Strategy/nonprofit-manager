@@ -1,62 +1,78 @@
 # Contributing to Nonprofit Manager
 
-**Last Updated:** 2026-04-13
+**Last Updated:** 2026-04-14
 
-Use this guide when you are contributing code, docs, or release support to Nonprofit Manager.
+Use this guide when you are contributing code, documentation, validation, or release support to Nonprofit Manager. The root [README.md](README.md) is the product overview; this file is the contributor and developer workflow guide.
 
 ## Start Here
 
-Read these in order before you make changes:
+Read these in order before making changes:
 
-1. [README.md](README.md)
-2. [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md)
-3. [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md)
-4. [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md)
-5. [docs/testing/TESTING.md](docs/testing/TESTING.md)
+1. [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for environment setup and runtime choice
+2. [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md) for code, docs, and workflow conventions
+3. [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for repo guardrails
+4. [docs/testing/TESTING.md](docs/testing/TESTING.md) for the validation matrix and runtime-aware test guidance
+5. [docs/INDEX.md](docs/INDEX.md) for the full documentation catalog
 
-If the work is tracked, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before you start. The workboard is the source of truth for status, ownership, and blockers.
+Use narrower guides only when your change needs them:
+
+- [backend/README.md](backend/README.md) for backend module and API work
+- [frontend/README.md](frontend/README.md) for frontend feature and route work
+- [e2e/README.md](e2e/README.md) for Playwright and browser validation
+- [scripts/README.md](scripts/README.md) for root helper scripts
+
+## Tracked Work
+
+If your task is tracked, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before you start editing. The workboard is the source of truth for ownership, status, blockers, and handoff state.
+
+- Keep one active task per agent by default unless the workboard documents a coordinated exception.
+- Use task IDs in commits and pull request titles when the work is tracked.
+- Move work to `Blocked` or `Review` as soon as the status changes, with a short reason and next step.
+
+## Setup And Runtime
+
+Keep setup details in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) instead of duplicating them here.
+
+- Choose a runtime before debugging and stay consistent while you work.
+- Do not assume Docker dev, direct runtime, and Playwright use the same ports or env settings.
+- Verify commands, ports, and environment guidance from the repo before documenting them as fact.
 
 ## Working Agreement
 
-- Keep changes scoped to the task you signed out.
-- Preserve unrelated user edits in the worktree.
-- Prefer the repo-native `make` targets and check matrices over ad hoc validation.
-- Keep active docs in sync with command, port, or workflow changes.
+- Keep changes scoped to the task you picked up.
+- Preserve unrelated user edits already present in the worktree.
+- Prefer repo-root `make` targets over ad hoc command combinations.
+- Keep docs synchronized when commands, ports, workflows, contracts, or navigation change.
+- Use the current repo patterns instead of reintroducing retired ones.
+
+For implementation-specific rules, defer to [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) and [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md).
 
 ## Validation
 
-Use the smallest validation set that still covers your change:
+Use the smallest validation set that still covers your change.
 
-```bash
-make lint
-make typecheck
-make test
-```
+| Change Type | Recommended Commands |
+|---|---|
+| Docs-only | `make check-links` |
+| Docs with API wording/examples | `make check-links` and `make lint-doc-api-versioning` |
+| Smaller scoped code change | `./scripts/select-checks.sh --base HEAD~1 --mode fast` |
+| Broader code change | `make lint`, `make typecheck`, and `make test` |
+| Full confidence pass | `make ci`, `make ci-fast`, or `make ci-full` as appropriate |
 
-For docs-only changes:
-
-```bash
-make check-links
-make lint-doc-api-versioning
-```
-
-For smaller mixed changes, use the selector helper:
-
-```bash
-./scripts/select-checks.sh --base HEAD~1 --mode fast
-```
+Prefer root commands first. Use package-level scripts only when the change is narrow enough that a package-specific check is the clearest fit.
 
 ## Documentation Hygiene
 
-- Keep repo links relative in Markdown docs.
-- Use `/api/v2/*` in active API docs unless you are documenting a health alias or compatibility exception.
-- Treat `docs/INDEX.md` as the catalog and [docs/README.md](docs/README.md) as the short docs landing page.
-- Use [scripts/README.md](scripts/README.md) when you need the root helper-script index.
-- Call out runtime-specific ports explicitly instead of implying one universal local setup.
-- Keep root `make` commands as the primary contributor interface and use package scripts only for narrower checks.
+- Keep Markdown links relative.
+- Treat [docs/INDEX.md](docs/INDEX.md) as the documentation catalog.
+- Treat [docs/README.md](docs/README.md) as the short docs landing page.
+- Treat [scripts/README.md](scripts/README.md) as the helper-script index.
+- Use `/api/v2/*` in active API docs unless you are documenting a health alias or another documented compatibility exception.
+- Keep the root [README.md](README.md) user-facing; contributor onboarding belongs here and in `docs/development/*`.
 
-## When You Finish
+## Before You Hand Off
 
-- Update the workboard if you touched a tracked task.
-- Add concise notes about any remaining risk or follow-up.
-- Run the relevant validation commands before handing off.
+- Update the workboard if the task is tracked.
+- Run the relevant validation commands for the change you made.
+- Call out remaining risk, follow-up work, or assumptions in your handoff.
+- Mention the runtime you used if it affects ports, environment setup, or observed behavior.
