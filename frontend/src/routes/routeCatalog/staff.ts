@@ -740,7 +740,19 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     id: 'communications',
     title: 'Communications',
     path: '/settings/communications',
-    adminNav: { mode: 'settings', order: 150, label: 'Communications' },
+    adminNav: {
+      mode: 'settings',
+      order: 150,
+      label: 'Communications',
+      matchPrefixes: ['/settings/email-marketing'],
+    },
+    featureStatus: 'available',
+  }),
+  settingsRoute({
+    id: 'email-marketing',
+    title: 'Email Marketing',
+    path: '/settings/email-marketing',
+    parentId: 'communications',
     featureStatus: 'available',
   }),
   adminRoute({

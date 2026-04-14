@@ -6,7 +6,6 @@ import { useLocation } from 'react-router-dom';
 import AppRoutes from '../index';
 import { createTestStore, renderWithProviders } from '../../test/testUtils';
 import { useSetupCheck } from '../../hooks/useSetupCheck';
-import { preloadAuthenticatedShellBootstrap } from '../../services/bootstrap/authenticatedShellBootstrap';
 
 const { mockSetBranding } = vi.hoisted(() => ({
   mockSetBranding: vi.fn(),
@@ -14,10 +13,6 @@ const { mockSetBranding } = vi.hoisted(() => ({
 
 vi.mock('../../hooks/useSetupCheck', () => ({
   useSetupCheck: vi.fn(),
-}));
-
-vi.mock('../../services/bootstrap/authenticatedShellBootstrap', () => ({
-  preloadAuthenticatedShellBootstrap: vi.fn(),
 }));
 
 vi.mock('../../services/api', () => ({
@@ -47,9 +42,8 @@ vi.mock('../../components/Layout', () => ({
 
 vi.mock('../../features/adminOps/routeComponents', async () => {
   const { Navigate, useLocation, useParams } = await import('react-router-dom');
-  const { getAdminSettingsPath, parseAdminSettingsSection } = await import(
-    '../../features/adminOps/adminRoutePaths'
-  );
+  const { getAdminSettingsPath, parseAdminSettingsSection } =
+    await import('../../features/adminOps/adminRoutePaths');
 
   const AdminSettings = () => <h1>Admin Settings Page</h1>;
 
@@ -105,7 +99,6 @@ vi.mock('../../hooks/useNavigationPreferences', () => ({
 }));
 
 const mockUseSetupCheck = vi.mocked(useSetupCheck);
-const mockPreloadAuthenticatedShellBootstrap = vi.mocked(preloadAuthenticatedShellBootstrap);
 
 const LocationProbe = () => {
   const location = useLocation();
@@ -145,17 +138,6 @@ const renderAppRoutes = (
 describe('AppRoutes setup startup redirects', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPreloadAuthenticatedShellBootstrap.mockResolvedValue({
-      preferences: null,
-      branding: {
-        appName: 'Nonprofit Manager',
-        appIcon: null,
-        favicon: null,
-        logoUrl: null,
-        colorScheme: 'default',
-        customColors: {},
-      },
-    });
     mockUseSetupCheck.mockReturnValue({
       setupRequired: null,
       loading: false,
@@ -170,9 +152,7 @@ describe('AppRoutes setup startup redirects', () => {
     expect(
       await screen.findByRole('heading', { name: /build your nonprofit workspace in minutes/i })
     ).toBeInTheDocument();
-    expect(
-      mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === true)
-    ).toBe(true);
+    expect(mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === true)).toBe(true);
   });
 
   it('redirects /setup to /login when setup is resolved as complete', async () => {
@@ -203,9 +183,7 @@ describe('AppRoutes setup startup redirects', () => {
     expect(
       await screen.findByRole('heading', { name: /build your nonprofit workspace in minutes/i })
     ).toBeInTheDocument();
-    expect(
-      mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === true)
-    ).toBe(true);
+    expect(mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === true)).toBe(true);
   });
 
   it('keeps /login usable when setup status fetch failed', async () => {
@@ -222,13 +200,20 @@ describe('AppRoutes setup startup redirects', () => {
     expect(
       await screen.findByRole('heading', { name: /client portal login/i })
     ).toBeInTheDocument();
-    expect(
-      mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === false)
-    ).toBe(true);
+    expect(mockUseSetupCheck.mock.calls.some((call) => call[0]?.enabled === false)).toBe(true);
   });
 
   it('sends unauthenticated legacy settings routes through the destination auth guard', async () => {
     renderAppRoutes('/email-marketing', {
+      authLoading: false,
+      isAuthenticated: false,
+    });
+
+    expect(await screen.findByTestId('location')).toHaveTextContent('/login');
+  });
+
+  it('sends unauthenticated canonical settings routes through the destination auth guard', async () => {
+    renderAppRoutes('/settings/email-marketing', {
       authLoading: false,
       isAuthenticated: false,
     });

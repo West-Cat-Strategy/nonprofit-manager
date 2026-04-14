@@ -317,8 +317,8 @@ export async function getWebhookEndpoint(
 ): Promise<WebhookEndpointPublic | null> {
   const result = await pool.query(
     `SELECT ${WEBHOOK_ENDPOINT_SELECT_COLUMNS}
-     FROM webhook_endpoints
-     WHERE id = $1 AND user_id = $2`,
+     FROM webhook_endpoints we
+     WHERE we.id = $1 AND we.user_id = $2`,
     [endpointId, userId]
   );
 
@@ -366,9 +366,9 @@ export async function updateWebhookEndpoint(
   values.push(endpointId, userId);
 
   const result = await pool.query(
-    `UPDATE webhook_endpoints
+    `UPDATE webhook_endpoints we
      SET ${updates.join(', ')}
-     WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
+     WHERE we.id = $${paramIndex++} AND we.user_id = $${paramIndex}
      RETURNING ${WEBHOOK_ENDPOINT_SELECT_COLUMNS}`,
     values
   );

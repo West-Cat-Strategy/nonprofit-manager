@@ -20,13 +20,26 @@ import type {
 const API_KEY_PREFIX = 'npm_'; // nonprofit-manager prefix
 const KEY_LENGTH = 32;
 
+const deriveApiKeyStatus = (row: Record<string, unknown>): ApiKeyStatus => {
+  const expiresAtValue = row.expires_at ? new Date(String(row.expires_at)) : null;
+  if (
+    expiresAtValue &&
+    !Number.isNaN(expiresAtValue.getTime()) &&
+    expiresAtValue.getTime() <= Date.now()
+  ) {
+    return 'expired';
+  }
+
+  return row.is_active === false ? 'revoked' : 'active';
+};
+
 /**
  * Generate a secure API key
  */
 function generateApiKey(): { key: string; keyPrefix: string; keyHash: string } {
   const randomBytes = crypto.randomBytes(KEY_LENGTH);
   const key = `${API_KEY_PREFIX}${randomBytes.toString('hex')}`;
-  const keyPrefix = key.substring(0, 12); // npm_XXXXXXXX
+  const keyPrefix = key.substring(0, 10); // npm_XXXXXX
   const keyHash = crypto.createHash('sha256').update(key).digest('hex');
 
   return { key, keyPrefix, keyHash };
@@ -43,21 +56,34 @@ function hashApiKey(key: string): string {
  * Create a new API key
  */
 export async function createApiKey(
-  userId: string,
+  organizationId: string,
+  createdByUserId: string,
   data: CreateApiKeyRequest
 ): Promise<CreateApiKeyResponse> {
   const { key, keyPrefix, keyHash } = generateApiKey();
 
   const result = await pool.query(
-    `INSERT INTO api_keys (user_id, name, key_prefix, key_hash, scopes, status, expires_at)
-     VALUES ($1, $2, $3, $4, $5, 'active', $6)
+    `INSERT INTO api_keys (
+       organization_id,
+       created_by,
+       name,
+       description,
+       key_prefix,
+       key_hash,
+       scopes,
+       is_active,
+       expires_at
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8)
      RETURNING id, created_at`,
     [
-      userId,
+      organizationId,
+      createdByUserId,
       data.name,
+      null,
       keyPrefix,
       keyHash,
-      JSON.stringify(data.scopes),
+      data.scopes,
       data.expiresAt || null,
     ]
   );
@@ -66,31 +92,41 @@ export async function createApiKey(
 
   return {
     id: row.id,
+    organizationId,
+    createdBy: createdByUserId,
     name: data.name,
+    description: null,
     key, // Only returned on creation
     keyPrefix,
     scopes: data.scopes,
+    isActive: true,
+    status: data.expiresAt && data.expiresAt.getTime() <= Date.now() ? 'expired' : 'active',
+    rateLimitRequests: 1000,
+    rateLimitIntervalMs: 3600000,
     expiresAt: data.expiresAt,
+    lastUsedAt: undefined,
     createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.created_at),
+    userId: createdByUserId,
   };
 }
 
 /**
- * Get all API keys for a user (without the actual key)
+ * Get all API keys for an organization (without the actual key)
  */
-export async function getApiKeys(userId: string): Promise<ApiKeyWithStats[]> {
+export async function getApiKeys(organizationId: string): Promise<ApiKeyWithStats[]> {
   const result = await pool.query(
     `SELECT
        ak.*,
-       COUNT(aku.id) as total_requests,
-       COUNT(CASE WHEN aku.created_at > NOW() - INTERVAL '30 days' THEN 1 END) as requests_this_month,
-       AVG(aku.response_time) as average_response_time
+       COUNT(akul.id) as total_requests,
+       COUNT(*) FILTER (WHERE akul.created_at > NOW() - INTERVAL '30 days') as requests_this_month,
+       COALESCE(AVG(akul.response_time_ms), 0) as average_response_time
      FROM api_keys ak
-     LEFT JOIN api_key_usage aku ON ak.id = aku.api_key_id
-     WHERE ak.user_id = $1
+     LEFT JOIN api_key_usage_log akul ON ak.id = akul.api_key_id
+     WHERE ak.organization_id = $1
      GROUP BY ak.id
      ORDER BY ak.created_at DESC`,
-    [userId]
+    [organizationId]
   );
 
   return result.rows.map(mapRowToApiKeyWithStats);
@@ -101,11 +137,11 @@ export async function getApiKeys(userId: string): Promise<ApiKeyWithStats[]> {
  */
 export async function getApiKeyById(
   keyId: string,
-  userId: string
+  organizationId: string
 ): Promise<ApiKey | null> {
   const result = await pool.query(
-    'SELECT * FROM api_keys WHERE id = $1 AND user_id = $2',
-    [keyId, userId]
+    'SELECT * FROM api_keys WHERE id = $1 AND organization_id = $2',
+    [keyId, organizationId]
   );
 
   if (result.rows.length === 0) {
@@ -126,10 +162,11 @@ export async function validateApiKey(key: string): Promise<ApiKey | null> {
   const keyHash = hashApiKey(key);
 
   const result = await pool.query(
-    `SELECT * FROM api_keys
+    `SELECT *
+     FROM api_keys
      WHERE key_hash = $1
-     AND status = 'active'
-     AND (expires_at IS NULL OR expires_at > NOW())`,
+       AND is_active = true
+       AND (expires_at IS NULL OR expires_at > NOW())`,
     [keyHash]
   );
 
@@ -147,11 +184,27 @@ export async function validateApiKey(key: string): Promise<ApiKey | null> {
 }
 
 /**
+ * Track API key requests in the org-scoped rate limit table.
+ * Enforcement remains outside this remediation slice.
+ */
+export async function incrementRateLimit(apiKeyId: string): Promise<void> {
+  await pool.query(
+    `INSERT INTO api_key_rate_limit_state (api_key_id, request_count, window_start_at, updated_at)
+     VALUES ($1, 1, NOW(), NOW())
+     ON CONFLICT (api_key_id)
+     DO UPDATE SET
+       request_count = api_key_rate_limit_state.request_count + 1,
+       updated_at = NOW()`,
+    [apiKeyId]
+  );
+}
+
+/**
  * Check if an API key has the required scope
  */
 export function hasScope(apiKey: ApiKey, requiredScope: ApiKeyScope): boolean {
   // Admin scope has access to everything
-  if (apiKey.scopes.includes('admin')) {
+  if (apiKey.scopes.includes('admin') || apiKey.scopes.includes('*')) {
     return true;
   }
 
@@ -162,7 +215,7 @@ export function hasScope(apiKey: ApiKey, requiredScope: ApiKeyScope): boolean {
  * Check if an API key has any of the required scopes
  */
 export function hasAnyScope(apiKey: ApiKey, requiredScopes: ApiKeyScope[]): boolean {
-  if (apiKey.scopes.includes('admin')) {
+  if (apiKey.scopes.includes('admin') || apiKey.scopes.includes('*')) {
     return true;
   }
 
@@ -174,11 +227,11 @@ export function hasAnyScope(apiKey: ApiKey, requiredScopes: ApiKeyScope[]): bool
  */
 export async function updateApiKey(
   keyId: string,
-  userId: string,
+  organizationId: string,
   data: UpdateApiKeyRequest
 ): Promise<ApiKey | null> {
   const updates: string[] = [];
-  const values: (string | string[] | ApiKeyStatus | null)[] = [];
+  const values: (string | ApiKeyScope[] | boolean | null)[] = [];
   let paramIndex = 1;
 
   if (data.name !== undefined) {
@@ -187,24 +240,24 @@ export async function updateApiKey(
   }
   if (data.scopes !== undefined) {
     updates.push(`scopes = $${paramIndex++}`);
-    values.push(JSON.stringify(data.scopes));
+    values.push(data.scopes);
   }
   if (data.status !== undefined) {
-    updates.push(`status = $${paramIndex++}`);
-    values.push(data.status);
+    updates.push(`is_active = $${paramIndex++}`);
+    values.push(data.status === 'active');
   }
 
   if (updates.length === 0) {
-    return getApiKeyById(keyId, userId);
+    return getApiKeyById(keyId, organizationId);
   }
 
   updates.push(`updated_at = NOW()`);
-  values.push(keyId, userId);
+  values.push(keyId, organizationId);
 
   const result = await pool.query(
     `UPDATE api_keys
      SET ${updates.join(', ')}
-     WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
+     WHERE id = $${paramIndex++} AND organization_id = $${paramIndex}
      RETURNING *`,
     values
   );
@@ -221,14 +274,14 @@ export async function updateApiKey(
  */
 export async function revokeApiKey(
   keyId: string,
-  userId: string
+  organizationId: string
 ): Promise<boolean> {
   const result = await pool.query(
     `UPDATE api_keys
-     SET status = 'revoked', updated_at = NOW()
-     WHERE id = $1 AND user_id = $2 AND status = 'active'
+     SET is_active = FALSE, updated_at = NOW()
+     WHERE id = $1 AND organization_id = $2 AND is_active = TRUE
      RETURNING id`,
-    [keyId, userId]
+    [keyId, organizationId]
   );
 
   return (result.rowCount ?? 0) > 0;
@@ -239,14 +292,11 @@ export async function revokeApiKey(
  */
 export async function deleteApiKey(
   keyId: string,
-  userId: string
+  organizationId: string
 ): Promise<boolean> {
-  // First delete usage records
-  await pool.query('DELETE FROM api_key_usage WHERE api_key_id = $1', [keyId]);
-
   const result = await pool.query(
-    'DELETE FROM api_keys WHERE id = $1 AND user_id = $2',
-    [keyId, userId]
+    'DELETE FROM api_keys WHERE id = $1 AND organization_id = $2',
+    [keyId, organizationId]
   );
 
   return (result.rowCount ?? 0) > 0;
@@ -266,7 +316,7 @@ export async function logApiKeyUsage(
 ): Promise<void> {
   try {
     await pool.query(
-      `INSERT INTO api_key_usage (api_key_id, endpoint, method, status_code, response_time, ip_address, user_agent)
+      `INSERT INTO api_key_usage_log (api_key_id, endpoint, method, status_code, response_time_ms, ip_address, user_agent)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [apiKeyId, endpoint, method, statusCode, responseTime, ipAddress || null, userAgent || null]
     );
@@ -281,17 +331,18 @@ export async function logApiKeyUsage(
  */
 export async function getApiKeyUsage(
   keyId: string,
-  userId: string,
+  organizationId: string,
   limit = 100
 ): Promise<ApiKeyUsage[]> {
-  // First verify the key belongs to the user
-  const key = await getApiKeyById(keyId, userId);
+  // First verify the key belongs to the organization.
+  const key = await getApiKeyById(keyId, organizationId);
   if (!key) {
     return [];
   }
 
   const result = await pool.query(
-    `SELECT * FROM api_key_usage
+    `SELECT *
+     FROM api_key_usage_log
      WHERE api_key_id = $1
      ORDER BY created_at DESC
      LIMIT $2`,
@@ -304,7 +355,7 @@ export async function getApiKeyUsage(
     endpoint: row.endpoint,
     method: row.method,
     statusCode: row.status_code,
-    responseTime: row.response_time,
+    responseTime: Number(row.response_time_ms) || 0,
     ipAddress: row.ip_address,
     userAgent: row.user_agent,
     createdAt: new Date(row.created_at),
@@ -338,8 +389,8 @@ export function getAvailableScopes() {
 export async function cleanupExpiredKeys(): Promise<number> {
   const result = await pool.query(
     `UPDATE api_keys
-     SET status = 'expired', updated_at = NOW()
-     WHERE status = 'active'
+     SET is_active = false, updated_at = NOW()
+     WHERE is_active = true
      AND expires_at IS NOT NULL
      AND expires_at < NOW()`
   );
@@ -353,16 +404,22 @@ export async function cleanupExpiredKeys(): Promise<number> {
 function mapRowToApiKey(row: Record<string, unknown>): ApiKey {
   return {
     id: row.id as string,
-    userId: row.user_id as string,
+    organizationId: row.organization_id as string,
+    createdBy: (row.created_by as string | null) ?? '',
     name: row.name as string,
+    description: (row.description as string | null) ?? null,
     keyPrefix: row.key_prefix as string,
     keyHash: row.key_hash as string,
     scopes: (typeof row.scopes === 'string' ? JSON.parse(row.scopes) : row.scopes) as ApiKeyScope[],
-    status: row.status as ApiKeyStatus,
+    isActive: row.is_active as boolean,
+    status: deriveApiKeyStatus(row),
+    rateLimitRequests: Number(row.rate_limit_requests) || 0,
+    rateLimitIntervalMs: Number(row.rate_limit_interval_ms) || 0,
     expiresAt: row.expires_at ? new Date(row.expires_at as string) : undefined,
     lastUsedAt: row.last_used_at ? new Date(row.last_used_at as string) : undefined,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
+    userId: (row.created_by as string | null) ?? undefined,
   };
 }
 
@@ -372,11 +429,16 @@ function mapRowToApiKey(row: Record<string, unknown>): ApiKey {
 function mapRowToApiKeyWithStats(row: Record<string, unknown>): ApiKeyWithStats {
   return {
     id: row.id as string,
-    userId: row.user_id as string,
+    organizationId: row.organization_id as string,
+    createdBy: (row.created_by as string | null) ?? '',
     name: row.name as string,
+    description: (row.description as string | null) ?? null,
     keyPrefix: row.key_prefix as string,
     scopes: (typeof row.scopes === 'string' ? JSON.parse(row.scopes) : row.scopes) as ApiKeyScope[],
-    status: row.status as ApiKeyStatus,
+    isActive: row.is_active as boolean,
+    status: deriveApiKeyStatus(row),
+    rateLimitRequests: Number(row.rate_limit_requests) || 0,
+    rateLimitIntervalMs: Number(row.rate_limit_interval_ms) || 0,
     expiresAt: row.expires_at ? new Date(row.expires_at as string) : undefined,
     lastUsedAt: row.last_used_at ? new Date(row.last_used_at as string) : undefined,
     createdAt: new Date(row.created_at as string),
@@ -384,6 +446,7 @@ function mapRowToApiKeyWithStats(row: Record<string, unknown>): ApiKeyWithStats 
     totalRequests: parseInt(row.total_requests as string) || 0,
     requestsThisMonth: parseInt(row.requests_this_month as string) || 0,
     averageResponseTime: parseFloat(row.average_response_time as string) || 0,
+    userId: (row.created_by as string | null) ?? undefined,
   };
 }
 
@@ -392,6 +455,7 @@ export default {
   getApiKeys,
   getApiKeyById,
   validateApiKey,
+  incrementRateLimit,
   hasScope,
   hasAnyScope,
   updateApiKey,

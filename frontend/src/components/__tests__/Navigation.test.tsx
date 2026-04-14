@@ -3,12 +3,7 @@ import { vi } from 'vitest';
 import Navigation from '../Navigation';
 import { renderWithProviders } from '../../test/testUtils';
 
-const {
-  handleLogoutMock,
-  setThemeMock,
-  toggleDarkModeMock,
-  viewModelRef,
-} = vi.hoisted(() => ({
+const { handleLogoutMock, setThemeMock, toggleDarkModeMock, viewModelRef } = vi.hoisted(() => ({
   handleLogoutMock: vi.fn(),
   setThemeMock: vi.fn(),
   toggleDarkModeMock: vi.fn(),
@@ -198,16 +193,13 @@ describe('Navigation', () => {
     expect(screen.queryByRole('button', { name: /admin quick actions/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /more navigation/i }));
-    expect(screen.getByRole('menuitem', { name: /^tasks$/i })).toHaveAttribute('href', '/tasks');
-    expect(screen.getByRole('menuitem', { name: /^websites$/i })).toHaveAttribute(
-      'href',
-      '/websites'
-    );
-    expect(screen.getByRole('menuitem', { name: /^analytics$/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^tasks$/i })).toHaveAttribute('href', '/tasks');
+    expect(screen.getByRole('link', { name: /^websites$/i })).toHaveAttribute('href', '/websites');
+    expect(screen.getByRole('link', { name: /^analytics$/i })).toHaveAttribute(
       'href',
       '/analytics'
     );
-    expect(screen.getByRole('menuitem', { name: /^reports$/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^reports$/i })).toHaveAttribute(
       'href',
       '/reports/builder'
     );
@@ -285,10 +277,7 @@ describe('Navigation', () => {
     expect(moreButton).toHaveClass('border-app-accent', 'bg-app-accent');
 
     fireEvent.click(moreButton);
-    expect(screen.getByRole('menuitem', { name: /^tasks$/i })).toHaveAttribute(
-      'aria-current',
-      'page'
-    );
+    expect(screen.getByRole('link', { name: /^tasks$/i })).toHaveAttribute('aria-current', 'page');
   });
 
   it('closes the More menu from the backdrop and restores focus to its trigger', async () => {
@@ -366,6 +355,8 @@ describe('Navigation', () => {
     expect(screen.getByRole('menuitem', { name: /switch to dark/i })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /editorial ops/i })).toBeInTheDocument();
     expect(screen.getByText(/warm operational surfaces, serif headlines/i)).toBeInTheDocument();
-    expect(screen.getByText(/a softer contemporary workspace with calm depth/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/a softer contemporary workspace with calm depth/i)
+    ).toBeInTheDocument();
   });
 });

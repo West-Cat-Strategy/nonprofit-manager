@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-run() {
-  echo "==> $*"
-  "$@"
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
 scan_audit() {
   local dir="$1"
@@ -28,7 +24,7 @@ scan_secrets_with_gitleaks() {
     fi
 
     run docker run --rm \
-      -v "$ROOT_DIR:/repo" \
+      -v "$PROJECT_ROOT:/repo" \
       -w /repo \
       ghcr.io/gitleaks/gitleaks:latest \
       detect --no-git --no-banner --redact --source . --config .gitleaks.toml --gitleaks-ignore-path .gitleaksignore
@@ -39,7 +35,7 @@ scan_secrets_with_gitleaks() {
   return 1
 }
 
-cd "$ROOT_DIR"
+cd "$PROJECT_ROOT"
 
 scan_audit backend
 scan_audit frontend

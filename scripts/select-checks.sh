@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+
 mode="fast"
 base=""
 files_arg=""
@@ -36,14 +39,9 @@ done
 
 if [[ -z "$files_arg" ]]; then
   if [[ -n "$base" ]]; then
-    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-      mapfile -t changed_files < <(git diff --name-only "${base}...HEAD")
-    else
-      echo "scripts/select-checks.sh: git repository metadata is unavailable; pass --files explicitly." >&2
-      exit 2
-    fi
+    mapfile -t changed_files < <(git -C "$PROJECT_ROOT" diff --name-only "${base}...HEAD")
   else
-    mapfile -t changed_files < <(git diff --name-only HEAD~1...HEAD 2>/dev/null || true)
+    mapfile -t changed_files < <(git -C "$PROJECT_ROOT" diff --name-only HEAD~1...HEAD 2>/dev/null || true)
   fi
 else
   mapfile -t changed_files < <(printf '%s\n' "$files_arg" | tr ' ' '\n' | sed '/^$/d')
@@ -133,8 +131,8 @@ else
   if [[ $has_backend -eq 1 || $has_scripts -eq 1 ]]; then
     commands+=("make lint" "make typecheck")
   fi
-  if [[ $has_frontend -eq 1 ]]; then
-    commands+=("cd frontend && npm run type-check")
+  if [[ $has_frontend -eq 1 && $has_backend -eq 0 && $has_scripts -eq 0 ]]; then
+    commands+=("cd frontend && npm run lint" "cd frontend && npm run type-check")
   fi
   if [[ $has_e2e -eq 1 ]]; then
     commands+=("cd e2e && npm run test:smoke")

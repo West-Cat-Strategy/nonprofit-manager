@@ -1,20 +1,3 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import {
-  fetchCaseById,
-  updateCase,
-  updateCaseStatus,
-  deleteCase,
-  clearCurrentCase,
-  fetchCaseStatuses,
-  fetchCaseMilestones,
-  fetchCaseOutcomeDefinitions,
-  createCaseMilestone,
-  updateCaseMilestone,
-  deleteCaseMilestone,
-} from '../state';
-import { useToast } from '../../../contexts/useToast';
 import { BrutalBadge, BrutalButton, BrutalCard, NeoBrutalistLayout } from '../../../components/neo-brutalist';
 import CaseNotes from '../components/CaseNotesPanel';
 import CaseDocuments from '../../../components/CaseDocuments';
@@ -26,131 +9,74 @@ import CasePortalConversations from '../../../components/cases/CasePortalConvers
 import CaseTimeline from '../../../components/cases/CaseTimeline';
 import CaseOutcomesTopics from '../../../components/cases/CaseOutcomesTopics';
 import CaseAppointments from '../../../components/cases/CaseAppointments';
-import type { CaseStatusType, CaseMilestone, CaseStatus } from '../../../types/case';
-import type { OutcomeDefinition } from '../../../types/outcomes';
+import type { CaseMilestone } from '../../../types/case';
 import ConfirmDialog from '../../../components/ConfirmDialog';
-import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import { getCasePriorityBadgeColor } from '../utils/casePriority';
 import CaseTeamChatPanel from '../../teamChat/components/CaseTeamChatPanel';
 import CaseDetailTabs from '../components/CaseDetailTabs';
 import CaseStatusChangeModal from '../components/CaseStatusChangeModal';
-import { isUuid } from '../../../utils/uuid';
-import { formatCaseOutcomeLabel, summarizeLabels } from '../utils/caseClassification';
-
-type TabType =
-  | 'overview'
-  | 'timeline'
-  | 'notes'
-  | 'outcomes_topics'
-  | 'documents'
-  | 'milestones'
-  | 'followups'
-  | 'relationships'
-  | 'services'
-  | 'team_chat'
-  | 'portal'
-  | 'appointments';
-
-const teamChatEnabled = import.meta.env.VITE_TEAM_CHAT_ENABLED !== 'false';
-const validTabs: TabType[] = [
-  'overview',
-  'timeline',
-  'notes',
-  'outcomes_topics',
-  'documents',
-  'milestones',
-  'followups',
-  'relationships',
-  'services',
-  'team_chat',
-  'portal',
-  'appointments',
-];
-
-const resolveTab = (requestedTab: string | null): TabType => {
-  if (!requestedTab) return 'overview';
-  if (!validTabs.includes(requestedTab as TabType)) return 'overview';
-  if (requestedTab === 'team_chat' && !teamChatEnabled) return 'overview';
-  return requestedTab as TabType;
-};
-
-const getProgressWidthClass = (value: number): string => {
-  if (value <= 0) return 'w-0';
-  if (value < 12.5) return 'w-1/12';
-  if (value < 25) return 'w-1/4';
-  if (value < 37.5) return 'w-1/3';
-  if (value < 50) return 'w-1/2';
-  if (value < 62.5) return 'w-7/12';
-  if (value < 75) return 'w-3/4';
-  if (value < 87.5) return 'w-10/12';
-  return 'w-full';
-};
+import { useCaseDetailPage } from '../hooks/useCaseDetailPage';
 
 const CaseDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const hasValidId = isUuid(id);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { showSuccess, showError } = useToast();
-  const { currentCase, caseStatuses, loading, error } = useAppSelector((state) => state.cases.core);
-  const { milestones: caseMilestones } = useAppSelector((state) => state.cases.management);
-  const { outcomeDefinitions: caseOutcomeDefinitions } = useAppSelector((state) => state.cases.notes);
-  const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
-
-  const requestedTab = searchParams.get('tab');
-  const initialTab: TabType = resolveTab(requestedTab);
-  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
-  const [isChangingStatus, setIsChangingStatus] = useState(false);
-  const [newStatusId, setNewStatusId] = useState('');
-  const [statusChangeNotes, setStatusChangeNotes] = useState('');
-  const [statusOutcomeDefinitionIds, setStatusOutcomeDefinitionIds] = useState<string[]>([]);
-  const [statusOutcomeVisibility, setStatusOutcomeVisibility] = useState(false);
-
-  const [showMilestoneForm, setShowMilestoneForm] = useState(false);
-  const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
-  const [milestoneName, setMilestoneName] = useState('');
-  const [milestoneDescription, setMilestoneDescription] = useState('');
-  const [milestoneDueDate, setMilestoneDueDate] = useState('');
-  const [milestoneCompleted, setMilestoneCompleted] = useState(false);
-  const [timelineRefreshKey, setTimelineRefreshKey] = useState(0);
-  const caseTypeLabels = summarizeLabels(
-    currentCase?.case_type_names?.length
-      ? currentCase.case_type_names
-      : currentCase?.case_type_name
-        ? [currentCase.case_type_name]
-        : [],
-    3
-  );
-  const caseOutcomeLabels = summarizeLabels(
-    currentCase?.case_outcome_values?.length
-      ? currentCase.case_outcome_values.map((value) => formatCaseOutcomeLabel(value))
-      : currentCase?.outcome
-        ? [formatCaseOutcomeLabel(currentCase.outcome)]
-        : [],
-    3
-  );
-  const caseProvenance = currentCase?.provenance ?? null;
-
-  useEffect(() => {
-    if (hasValidId) {
-      dispatch(fetchCaseById(id));
-      dispatch(fetchCaseStatuses());
-      dispatch(fetchCaseMilestones(id));
-      dispatch(fetchCaseOutcomeDefinitions(false));
-    }
-  }, [dispatch, hasValidId, id]);
-
-  useEffect(() => {
-    return () => {
-      dispatch(clearCurrentCase());
-    };
-  }, [dispatch]);
-
-  useEffect(() => {
-    const nextTab = resolveTab(requestedTab);
-    setActiveTab((current) => (current === nextTab ? current : nextTab));
-  }, [requestedTab]);
+  const {
+    id,
+    hasValidId,
+    currentCase,
+    caseStatuses,
+    loading,
+    error,
+    caseMilestones,
+    dialogState,
+    handleConfirm,
+    handleCancel,
+    activeTab,
+    setActiveTabWithUrl,
+    isChangingStatus,
+    setIsChangingStatus,
+    newStatusId,
+    setNewStatusId,
+    statusChangeNotes,
+    setStatusChangeNotes,
+    statusOutcomeDefinitionIds,
+    setStatusOutcomeDefinitionIds,
+    statusOutcomeVisibility,
+    setStatusOutcomeVisibility,
+    showMilestoneForm,
+    setShowMilestoneForm,
+    editingMilestone,
+    milestoneName,
+    setMilestoneName,
+    milestoneDescription,
+    setMilestoneDescription,
+    milestoneDueDate,
+    setMilestoneDueDate,
+    milestoneCompleted,
+    setMilestoneCompleted,
+    timelineRefreshKey,
+    caseTypeLabels,
+    caseOutcomeLabels,
+    caseProvenance,
+    activeOutcomeDefinitions,
+    selectedStatusRequiresOutcome,
+    tabs,
+    completedMilestones,
+    getProgressWidthClass,
+    getStatusTypeBadgeColor,
+    handleNavigateBack,
+    handleNavigateEdit,
+    handleOpenNotes,
+    handleOpenDocuments,
+    handleToggleClientViewable,
+    handleDelete,
+    closeStatusChangeModal,
+    resetMilestoneForm,
+    handleStatusChange,
+    handleEditMilestone,
+    handleSaveMilestone,
+    handleDeleteMilestone,
+    handleToggleMilestoneComplete,
+    refreshCaseArtifacts,
+  } = useCaseDetailPage();
 
   if (id && !hasValidId) {
     return (
@@ -159,224 +85,17 @@ const CaseDetail = () => {
           <div className="text-center">
             <div className="text-4xl mb-4">🔗</div>
             <h2 className="text-xl font-black uppercase text-black mb-2">Invalid Case Link</h2>
-            <p className="font-bold text-black/70 mb-4">This case link is invalid. Please return to the Cases list and try again.</p>
-            <BrutalButton onClick={() => navigate('/cases')} variant="primary">Back to Cases</BrutalButton>
+            <p className="font-bold text-black/70 mb-4">
+              This case link is invalid. Please return to the Cases list and try again.
+            </p>
+            <BrutalButton onClick={handleNavigateBack} variant="primary">
+              Back to Cases
+            </BrutalButton>
           </div>
         </BrutalCard>
       </div>
     );
   }
-
-  const setActiveTabWithUrl = (tab: TabType) => {
-    setActiveTab(tab);
-    const params = new URLSearchParams(searchParams);
-    if (tab === 'overview') {
-      params.delete('tab');
-    } else {
-      params.set('tab', tab);
-    }
-    setSearchParams(params, { replace: true });
-  };
-
-  const handleStatusChange = async () => {
-    if (!id || !newStatusId) return;
-
-    const nextStatus = caseStatuses.find((status: CaseStatus) => status.id === newStatusId);
-    const requiresOutcome =
-      nextStatus?.status_type === 'review' ||
-      nextStatus?.status_type === 'closed' ||
-      nextStatus?.status_type === 'cancelled';
-
-    if (!statusChangeNotes.trim()) {
-      showError('Status change notes are required');
-      return;
-    }
-
-    if (requiresOutcome && statusOutcomeDefinitionIds.length === 0) {
-      showError('Select at least one outcome for this status change');
-      return;
-    }
-
-    try {
-      await dispatch(
-        updateCaseStatus({
-          id,
-          data: {
-            new_status_id: newStatusId,
-            notes: statusChangeNotes.trim(),
-            outcome_definition_ids: requiresOutcome ? statusOutcomeDefinitionIds : undefined,
-            outcome_visibility: requiresOutcome ? statusOutcomeVisibility : undefined,
-          },
-        })
-      ).unwrap();
-
-      showSuccess('Status updated successfully');
-      closeStatusChangeModal();
-      dispatch(fetchCaseById(id));
-      setTimelineRefreshKey((value) => value + 1);
-    } catch (err) {
-      console.error('Failed to update status:', err);
-      showError('Failed to update status');
-    }
-  };
-
-  const closeStatusChangeModal = () => {
-    setIsChangingStatus(false);
-    setNewStatusId('');
-    setStatusChangeNotes('');
-    setStatusOutcomeDefinitionIds([]);
-    setStatusOutcomeVisibility(false);
-  };
-
-  const resetMilestoneForm = () => {
-    setShowMilestoneForm(false);
-    setEditingMilestone(null);
-    setMilestoneName('');
-    setMilestoneDescription('');
-    setMilestoneDueDate('');
-    setMilestoneCompleted(false);
-  };
-
-  const handleEditMilestone = (milestone: CaseMilestone) => {
-    setEditingMilestone(milestone);
-    setMilestoneName(milestone.milestone_name);
-    setMilestoneDescription(milestone.description || '');
-    setMilestoneDueDate(milestone.due_date ? milestone.due_date.split('T')[0] : '');
-    setMilestoneCompleted(milestone.is_completed);
-    setShowMilestoneForm(true);
-  };
-
-  const handleSaveMilestone = async () => {
-    if (!id || !milestoneName.trim()) return;
-
-    try {
-      if (editingMilestone) {
-        await dispatch(updateCaseMilestone({
-          milestoneId: editingMilestone.id,
-          data: {
-            milestone_name: milestoneName,
-            description: milestoneDescription || undefined,
-            due_date: milestoneDueDate || undefined,
-            is_completed: milestoneCompleted,
-          },
-        })).unwrap();
-        showSuccess('Milestone updated');
-      } else {
-        await dispatch(createCaseMilestone({
-          caseId: id,
-          data: {
-            milestone_name: milestoneName,
-            description: milestoneDescription || undefined,
-            due_date: milestoneDueDate || undefined,
-          },
-        })).unwrap();
-        showSuccess('Milestone created');
-      }
-      resetMilestoneForm();
-      dispatch(fetchCaseMilestones(id));
-    } catch (err) {
-      console.error('Failed to save milestone:', err);
-      showError('Failed to save milestone');
-    }
-  };
-
-  const handleDeleteMilestone = async (milestoneId: string) => {
-    if (!id) return;
-    const confirmed = await confirm(confirmPresets.delete('Milestone'));
-    if (!confirmed) return;
-    try {
-      await dispatch(deleteCaseMilestone(milestoneId)).unwrap();
-      showSuccess('Milestone deleted');
-      dispatch(fetchCaseMilestones(id));
-    } catch (err) {
-      console.error('Failed to delete milestone:', err);
-      showError('Failed to delete milestone');
-    }
-  };
-
-  const handleToggleMilestoneComplete = async (milestone: CaseMilestone) => {
-    if (!id) return;
-    try {
-      await dispatch(updateCaseMilestone({
-        milestoneId: milestone.id,
-        data: { is_completed: !milestone.is_completed },
-      })).unwrap();
-      dispatch(fetchCaseMilestones(id));
-    } catch (err) {
-      console.error('Failed to toggle milestone:', err);
-      showError('Failed to update milestone');
-    }
-  };
-
-  const getMilestoneStatusColor = (isCompleted: boolean): 'green' | 'gray' => {
-    return isCompleted ? 'green' : 'gray';
-  };
-
-  const refreshCaseArtifacts = () => {
-    if (!id) return;
-    dispatch(fetchCaseById(id));
-    setTimelineRefreshKey((value) => value + 1);
-  };
-
-  const activeOutcomeDefinitions = (caseOutcomeDefinitions || []).filter((definition: OutcomeDefinition) => definition.is_active);
-  const selectedStatusDefinition = caseStatuses.find((status: CaseStatus) => status.id === newStatusId);
-  const selectedStatusRequiresOutcome =
-    selectedStatusDefinition?.status_type === 'review' ||
-    selectedStatusDefinition?.status_type === 'closed' ||
-    selectedStatusDefinition?.status_type === 'cancelled';
-
-  const handleToggleClientViewable = async () => {
-    if (!id || !currentCase) return;
-
-    try {
-      await dispatch(
-        updateCase({
-          id,
-          data: {
-            client_viewable: !currentCase.client_viewable,
-          },
-        })
-      ).unwrap();
-      dispatch(fetchCaseById(id));
-      showSuccess(
-        !currentCase.client_viewable
-          ? 'Case is now visible in client portal'
-          : 'Case is now hidden from client portal'
-      );
-    } catch (err) {
-      console.error('Failed to update client visibility:', err);
-      showError('Failed to update client visibility');
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!id) return;
-    const confirmed = await confirm(confirmPresets.delete('Case'));
-    if (!confirmed) return;
-
-    try {
-      await dispatch(deleteCase(id)).unwrap();
-      showSuccess('Case deleted successfully');
-      navigate('/cases');
-    } catch (err) {
-      console.error('Failed to delete case:', err);
-      showError('Failed to delete case');
-    }
-  };
-
-  const getStatusTypeBadgeColor = (
-    statusType?: CaseStatusType
-  ): 'purple' | 'green' | 'yellow' | 'gray' | 'red' => {
-    if (!statusType) return 'gray';
-    const colors: Record<CaseStatusType, 'purple' | 'green' | 'yellow' | 'gray' | 'red'> = {
-      intake: 'purple',
-      active: 'green',
-      review: 'yellow',
-      closed: 'gray',
-      cancelled: 'red',
-    };
-    return colors[statusType];
-  };
 
   if (loading && !currentCase) {
     return (
@@ -402,7 +121,7 @@ const CaseDetail = () => {
               <div className="text-4xl mb-4">⚠️</div>
               <h2 className="text-xl font-black uppercase text-black mb-2">Error</h2>
               <p className="font-bold text-black/70 mb-4">{error}</p>
-              <BrutalButton onClick={() => navigate('/cases')} variant="secondary">
+              <BrutalButton onClick={handleNavigateBack} variant="secondary">
                 Back to Cases
               </BrutalButton>
             </div>
@@ -423,7 +142,7 @@ const CaseDetail = () => {
               <p className="font-bold text-black/70 mb-4">
                 The case you're looking for doesn't exist or has been removed.
               </p>
-              <BrutalButton onClick={() => navigate('/cases')} variant="primary">
+              <BrutalButton onClick={handleNavigateBack} variant="primary">
                 Back to Cases
               </BrutalButton>
             </div>
@@ -433,23 +152,6 @@ const CaseDetail = () => {
     );
   }
 
-  const completedMilestones = caseMilestones.filter((m: CaseMilestone) => m.is_completed).length;
-
-  const tabs: Array<{ key: TabType; label: string; count?: number }> = [
-    { key: 'overview', label: 'Overview' },
-    { key: 'timeline', label: 'Timeline' },
-    { key: 'notes', label: 'Notes', count: currentCase.notes_count || 0 },
-    { key: 'outcomes_topics', label: 'Outcomes + Topics' },
-    { key: 'documents', label: 'Documents', count: currentCase.documents_count || 0 },
-    { key: 'milestones', label: 'Milestones', count: caseMilestones.length },
-    { key: 'relationships', label: 'Relationships' },
-    { key: 'services', label: 'Services', count: currentCase.services_count || 0 },
-    ...(teamChatEnabled ? [{ key: 'team_chat' as TabType, label: 'Case Chat' }] : []),
-    { key: 'portal', label: 'Portal' },
-    { key: 'appointments', label: 'Appointments' },
-    { key: 'followups', label: 'Follow-ups' },
-  ];
-
   return (
     <NeoBrutalistLayout pageTitle="Case Details">
       <div className="p-6 space-y-6">
@@ -457,7 +159,7 @@ const CaseDetail = () => {
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <button
-                onClick={() => navigate('/cases')}
+                onClick={handleNavigateBack}
                 className="text-sm font-black uppercase text-black/70 hover:text-black mb-2 flex items-center gap-1"
                 aria-label="Back to cases"
               >
@@ -494,15 +196,15 @@ const CaseDetail = () => {
                 Client Viewable
               </label>
               <div className="flex gap-2">
-                <BrutalButton onClick={() => setActiveTabWithUrl('notes')} variant="primary" size="sm">
+                <BrutalButton onClick={handleOpenNotes} variant="primary" size="sm">
                   Add Note
                 </BrutalButton>
-                <BrutalButton onClick={() => setActiveTabWithUrl('documents')} variant="secondary" size="sm">
+                <BrutalButton onClick={handleOpenDocuments} variant="secondary" size="sm">
                   Upload Document
                 </BrutalButton>
               </div>
               <div className="flex gap-2">
-                <BrutalButton onClick={() => navigate(`/cases/${id}/edit`)} variant="secondary">
+                <BrutalButton onClick={handleNavigateEdit} variant="secondary">
                   Edit
                 </BrutalButton>
                 <BrutalButton onClick={handleDelete} variant="danger">
@@ -938,7 +640,7 @@ const CaseDetail = () => {
                                 }`}>
                                 {milestone.milestone_name}
                               </h4>
-                              <BrutalBadge color={getMilestoneStatusColor(milestone.is_completed)} size="sm">
+                              <BrutalBadge color={milestone.is_completed ? 'green' : 'gray'} size="sm">
                                 {milestone.is_completed ? 'Complete' : 'Pending'}
                               </BrutalBadge>
                             </div>
@@ -981,7 +683,7 @@ const CaseDetail = () => {
             </div>
           )}
 
-          {teamChatEnabled && activeTab === 'team_chat' && id && (
+          {activeTab === 'team_chat' && id && (
             <div id="panel-team-chat" role="tabpanel" aria-labelledby="tab-team-chat">
               <CaseTeamChatPanel caseId={id} />
             </div>

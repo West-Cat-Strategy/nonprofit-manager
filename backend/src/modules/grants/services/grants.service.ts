@@ -1,19 +1,17 @@
-import { randomInt } from 'crypto';
 import { Pool } from 'pg';
 import pool from '@config/database';
 import { buildTabularExport, type GeneratedTabularFile } from '@modules/shared/export/tabularExport';
 import { getOffset, resolveSort } from '@utils/queryHelpers';
 import type {
   CreateGrantActivityLogDTO,
+  CreateGrantFunderDTO,
   CreateGrantApplicationDTO,
   CreateGrantAwardDTO,
   CreateGrantDisbursementDTO,
   CreateGrantDocumentDTO,
-  CreateGrantFunderDTO,
   CreateGrantProgramDTO,
   CreateGrantReportDTO,
   CreateFundedProgramDTO,
-  CreateRecipientOrganizationDTO,
   FundedProgram,
   GrantActivityLog,
   GrantApplication,
@@ -25,7 +23,6 @@ import type {
   GrantFunder,
   GrantJurisdiction,
   GrantListFilters,
-  GrantPagination,
   GrantProgram,
   GrantProgramStatus,
   GrantRecipientStatus,
@@ -34,6 +31,7 @@ import type {
   GrantSummary,
   PaginatedGrantResult,
   RecipientOrganization,
+  CreateRecipientOrganizationDTO,
   UpdateGrantApplicationDTO,
   UpdateGrantAwardDTO,
   UpdateGrantDisbursementDTO,
@@ -44,111 +42,40 @@ import type {
   UpdateFundedProgramDTO,
   UpdateRecipientOrganizationDTO,
 } from '@app-types/grant';
-
-type QueryClient = Pick<Pool, 'query'>;
-type Row = Record<string, any>;
-
-const toNumber = (value: unknown, fallback = 0): number => {
-  if (value === null || value === undefined || value === '') {
-    return fallback;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const toNullableNumber = (value: unknown): number | null => {
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
-const toNullableString = (value: unknown): string | null => {
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  return String(value);
-};
-
-const toIsoString = (value: unknown): string => {
-  if (value === null || value === undefined || value === '') {
-    return '';
-  }
-
-  const date = value instanceof Date ? value : new Date(String(value));
-  return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
-};
-
-const toNullableIsoString = (value: unknown): string | null => {
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-
-  return toIsoString(value);
-};
-
-const toJsonObject = (value: unknown): Record<string, unknown> => {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-
-  if (typeof value === 'string' && value.trim().length > 0) {
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>;
-      }
-    } catch {
-      // Fall through to the empty object.
-    }
-  }
-
-  return {};
-};
-
-const normalizeGrantNumber = (prefix: string): string => {
-  const now = new Date();
-  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(
-    now.getDate()
-  ).padStart(2, '0')}`;
-  const sequence = String(randomInt(0, 100000)).padStart(5, '0');
-  return `${prefix}-${stamp}-${sequence}`;
-};
-
-const buildPagination = (
-  page: number,
-  limit: number,
-  total: number
-): GrantPagination => ({
-  page,
-  limit,
-  total,
-  total_pages: limit > 0 ? Math.ceil(total / limit) : 0,
-});
-
-const addSearchCondition = (
-  conditions: string[],
-  values: unknown[],
-  columns: string[],
-  search?: string
-): void => {
-  if (!search || search.trim().length === 0) {
-    return;
-  }
-
-  values.push(`%${search.trim()}%`);
-  const placeholder = `$${values.length}`;
-  conditions.push(`(${columns.map((column) => `${column} ILIKE ${placeholder}`).join(' OR ')})`);
-};
+import { GrantsPortfolioService } from './grantsPortfolioService';
+import {
+  addSearchCondition,
+  buildPagination,
+  normalizeGrantNumber,
+  toIsoString,
+  toJsonObject,
+  toNullableIsoString,
+  toNullableNumber,
+  toNullableString,
+  toNumber,
+  type GrantPaginateOptions,
+  type GrantQueryClient,
+  type GrantRow,
+} from './grantsShared';
 
 export class GrantsService {
-  constructor(private readonly db: Pool) {}
+  private readonly portfolioService: GrantsPortfolioService;
 
-  private async withTransaction<T>(callback: (client: QueryClient) => Promise<T>): Promise<T> {
+  constructor(private readonly db: Pool) {
+    this.portfolioService = new GrantsPortfolioService({
+      db,
+      paginate: this.paginate.bind(this),
+      fetchById: this.fetchById.bind(this),
+      deleteById: this.deleteById.bind(this),
+      recordActivity: this.recordActivity.bind(this),
+      mapFunder: this.mapFunder.bind(this),
+      mapProgram: this.mapProgram.bind(this),
+      mapRecipient: this.mapRecipient.bind(this),
+      mapFundedProgram: this.mapFundedProgram.bind(this),
+    });
+  }
+
+  private async withTransaction<T>(callback: (client: GrantQueryClient) => Promise<T>): Promise<T> {
     const client = await this.db.connect();
     try {
       await client.query('BEGIN');
@@ -164,12 +91,12 @@ export class GrantsService {
   }
 
   private async fetchById<T>(
-    query: QueryClient,
+    query: GrantQueryClient,
     sql: string,
     values: unknown[],
-    mapper: (row: Row) => T
+    mapper: (row: GrantRow) => T
   ): Promise<T | null> {
-    const result = await query.query<Row>(sql, values);
+    const result = await query.query<GrantRow>(sql, values);
     if (result.rows.length === 0) {
       return null;
     }
@@ -177,17 +104,7 @@ export class GrantsService {
     return mapper(result.rows[0]);
   }
 
-  private async paginate<T>(options: {
-    client?: QueryClient;
-    baseFrom: string;
-    selectColumns: string;
-    conditions: string[];
-    values: unknown[];
-    orderBy: string;
-    page: number;
-    limit: number;
-    mapper: (row: Row) => T;
-  }): Promise<PaginatedGrantResult<T>> {
+  private async paginate<T>(options: GrantPaginateOptions<T>): Promise<PaginatedGrantResult<T>> {
     const query = options.client ?? this.db;
     const whereSql = options.conditions.length > 0 ? `WHERE ${options.conditions.join(' AND ')}` : '';
 
@@ -198,7 +115,7 @@ export class GrantsService {
     const total = Number(countResult.rows[0]?.count ?? 0);
 
     const offset = getOffset(options.page, options.limit);
-    const rows = await query.query<Row>(
+    const rows = await query.query<GrantRow>(
       `SELECT ${options.selectColumns}
        FROM ${options.baseFrom}
        ${whereSql}
@@ -226,7 +143,7 @@ export class GrantsService {
   }
 
   private async recordActivity(
-    client: QueryClient,
+    client: GrantQueryClient,
     organizationId: string,
     userId: string | null,
     data: CreateGrantActivityLogDTO
@@ -257,7 +174,7 @@ export class GrantsService {
   }
 
   private async refreshGrantRollup(
-    client: QueryClient,
+    client: GrantQueryClient,
     organizationId: string,
     grantId: string,
     userId: string | null
@@ -323,7 +240,7 @@ export class GrantsService {
     });
   }
 
-  private mapFunder(row: Row): GrantFunder {
+  private mapFunder(row: GrantRow): GrantFunder {
     return {
       id: row.id,
       organization_id: row.organization_id,
@@ -345,7 +262,7 @@ export class GrantsService {
     };
   }
 
-  private mapProgram(row: Row): GrantProgram {
+  private mapProgram(row: GrantRow): GrantProgram {
     return {
       id: row.id,
       organization_id: row.organization_id,
@@ -371,7 +288,7 @@ export class GrantsService {
     };
   }
 
-  private mapRecipient(row: Row): RecipientOrganization {
+  private mapRecipient(row: GrantRow): RecipientOrganization {
     return {
       id: row.id,
       organization_id: row.organization_id,
@@ -398,7 +315,7 @@ export class GrantsService {
     };
   }
 
-  private mapFundedProgram(row: Row): FundedProgram {
+  private mapFundedProgram(row: GrantRow): FundedProgram {
     return {
       id: row.id,
       organization_id: row.organization_id,
@@ -422,7 +339,7 @@ export class GrantsService {
     };
   }
 
-  private mapApplication(row: Row): GrantApplication {
+  private mapApplication(row: GrantRow): GrantApplication {
     return {
       id: row.id,
       organization_id: row.organization_id,
@@ -454,7 +371,7 @@ export class GrantsService {
     };
   }
 
-  private mapGrant(row: Row): GrantAward {
+  private mapGrant(row: GrantRow): GrantAward {
     return {
       id: row.id,
       organization_id: row.organization_id,
@@ -496,7 +413,7 @@ export class GrantsService {
     };
   }
 
-  private mapDisbursement(row: Row): GrantDisbursement {
+  private mapDisbursement(row: GrantRow): GrantDisbursement {
     return {
       id: row.id,
       organization_id: row.organization_id,
@@ -518,7 +435,7 @@ export class GrantsService {
     };
   }
 
-  private mapReport(row: Row): GrantReport {
+  private mapReport(row: GrantRow): GrantReport {
     return {
       id: row.id,
       organization_id: row.organization_id,
@@ -541,7 +458,7 @@ export class GrantsService {
     };
   }
 
-  private mapDocument(row: Row): GrantDocument {
+  private mapDocument(row: GrantRow): GrantDocument {
     return {
       id: row.id,
       organization_id: row.organization_id,
@@ -562,7 +479,7 @@ export class GrantsService {
     };
   }
 
-  private mapActivity(row: Row): GrantActivityLog {
+  private mapActivity(row: GrantRow): GrantActivityLog {
     return {
       id: row.id,
       organization_id: row.organization_id,
@@ -577,7 +494,7 @@ export class GrantsService {
     };
   }
 
-  private mapCalendarItem(row: Row): GrantCalendarItem {
+  private mapCalendarItem(row: GrantRow): GrantCalendarItem {
     return {
       id: row.id,
       grant_id: row.grant_id,
@@ -693,7 +610,7 @@ export class GrantsService {
          ORDER BY jurisdiction ASC`,
         values
       ),
-      this.db.query<Row>(
+      this.db.query<GrantRow>(
         `SELECT
            log.*,
            g.grant_number,
@@ -705,7 +622,7 @@ export class GrantsService {
          LIMIT 10`,
         [organizationId]
       ),
-      this.db.query<Row>(
+      this.db.query<GrantRow>(
         `SELECT *
          FROM (
            SELECT
@@ -849,65 +766,11 @@ export class GrantsService {
     organizationId: string,
     filters: GrantListFilters = {}
   ): Promise<PaginatedGrantResult<GrantFunder>> {
-    const values: unknown[] = [organizationId];
-    const conditions = ['f.organization_id = $1'];
-    addSearchCondition(conditions, values, ['f.name', 'f.funder_type', 'f.contact_name'], filters.search);
-
-    if (filters.jurisdiction) {
-      values.push(filters.jurisdiction);
-      conditions.push(`f.jurisdiction = $${values.length}`);
-    }
-
-    if (filters.status === 'active') {
-      conditions.push('f.active = true');
-    } else if (filters.status === 'inactive' || filters.status === 'archived') {
-      conditions.push('f.active = false');
-    }
-
-    const page = filters.page ?? 1;
-    const limit = filters.limit ?? 20;
-    const sort = resolveSort(
-      filters.sort_by,
-      filters.sort_order,
-      {
-        name: 'f.name',
-        jurisdiction: 'f.jurisdiction',
-        active: 'f.active',
-        created_at: 'f.created_at',
-        updated_at: 'f.updated_at',
-      },
-      'name'
-    );
-
-    return this.paginate({
-      baseFrom: 'grant_funders f',
-      selectColumns: `
-        f.*,
-        COALESCE((SELECT COUNT(*) FROM grants g WHERE g.organization_id = f.organization_id AND g.funder_id = f.id), 0)::text AS grant_count,
-        COALESCE((SELECT SUM(amount) FROM grants g WHERE g.organization_id = f.organization_id AND g.funder_id = f.id), 0)::text AS total_amount
-      `,
-      conditions,
-      values,
-      orderBy: `${sort.sortColumn} ${sort.sortOrder}, f.name ASC`,
-      page,
-      limit,
-      mapper: (row) => this.mapFunder(row),
-    });
+    return this.portfolioService.listFunders(organizationId, filters);
   }
 
   async getFunderById(organizationId: string, id: string): Promise<GrantFunder | null> {
-    return this.fetchById(
-      this.db,
-      `SELECT
-         f.*,
-         COALESCE((SELECT COUNT(*) FROM grants g WHERE g.organization_id = f.organization_id AND g.funder_id = f.id), 0)::text AS grant_count,
-         COALESCE((SELECT SUM(amount) FROM grants g WHERE g.organization_id = f.organization_id AND g.funder_id = f.id), 0)::text AS total_amount
-       FROM grant_funders f
-       WHERE f.organization_id = $1
-         AND f.id = $2`,
-      [organizationId, id],
-      (row) => this.mapFunder(row)
-    );
+    return this.portfolioService.getFunderById(organizationId, id);
   }
 
   async createFunder(
@@ -915,47 +778,7 @@ export class GrantsService {
     userId: string,
     data: CreateGrantFunderDTO
   ): Promise<GrantFunder> {
-    const result = await this.db.query<Row>(
-      `INSERT INTO grant_funders (
-         organization_id,
-         name,
-         jurisdiction,
-         funder_type,
-         contact_name,
-         contact_email,
-         contact_phone,
-         website,
-         notes,
-         active,
-         created_by,
-         modified_by
-       )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, true), $11, $11)
-       RETURNING *`,
-      [
-        organizationId,
-        data.name,
-        data.jurisdiction,
-        data.funder_type ?? null,
-        data.contact_name ?? null,
-        data.contact_email ?? null,
-        data.contact_phone ?? null,
-        data.website ?? null,
-        data.notes ?? null,
-        data.active ?? true,
-        userId,
-      ]
-    );
-
-    const row = result.rows[0];
-    await this.recordActivity(this.db, organizationId, userId, {
-      entity_type: 'funder',
-      entity_id: row.id,
-      action: 'created',
-      notes: `Created funder ${data.name}`,
-      metadata: { name: data.name, jurisdiction: data.jurisdiction },
-    });
-    return this.mapFunder(row);
+    return this.portfolioService.createFunder(organizationId, userId, data);
   }
 
   async updateFunder(
@@ -964,145 +787,22 @@ export class GrantsService {
     userId: string,
     data: UpdateGrantFunderDTO
   ): Promise<GrantFunder | null> {
-    const result = await this.db.query<Row>(
-      `UPDATE grant_funders
-       SET
-         name = COALESCE($3, name),
-         jurisdiction = COALESCE($4, jurisdiction),
-         funder_type = COALESCE($5, funder_type),
-         contact_name = COALESCE($6, contact_name),
-         contact_email = COALESCE($7, contact_email),
-         contact_phone = COALESCE($8, contact_phone),
-         website = COALESCE($9, website),
-         notes = COALESCE($10, notes),
-         active = COALESCE($11, active),
-         modified_by = $12,
-         updated_at = NOW()
-       WHERE organization_id = $1
-         AND id = $2
-       RETURNING *`,
-      [
-        organizationId,
-        id,
-        data.name ?? null,
-        data.jurisdiction ?? null,
-        data.funder_type ?? null,
-        data.contact_name ?? null,
-        data.contact_email ?? null,
-        data.contact_phone ?? null,
-        data.website ?? null,
-        data.notes ?? null,
-        data.active ?? null,
-        userId,
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return null;
-    }
-
-    const funder = this.mapFunder(result.rows[0]);
-    await this.recordActivity(this.db, organizationId, userId, {
-      entity_type: 'funder',
-      entity_id: id,
-      action: 'updated',
-      notes: `Updated funder ${funder.name}`,
-      metadata: { funder_id: id },
-    });
-    return funder;
+    return this.portfolioService.updateFunder(organizationId, id, userId, data);
   }
 
   async deleteFunder(organizationId: string, id: string, userId: string | null): Promise<boolean> {
-    const existing = await this.getFunderById(organizationId, id);
-    const deleted = await this.deleteById('grant_funders', organizationId, id);
-    if (deleted) {
-      await this.recordActivity(this.db, organizationId, userId, {
-        entity_type: 'funder',
-        entity_id: id,
-        action: 'deleted',
-        notes: existing ? `Deleted funder ${existing.name}` : 'Deleted funder',
-        metadata: { funder_id: id },
-      });
-    }
-    return deleted;
+    return this.portfolioService.deleteFunder(organizationId, id, userId);
   }
 
   async listPrograms(
     organizationId: string,
     filters: GrantListFilters = {}
   ): Promise<PaginatedGrantResult<GrantProgram>> {
-    const values: unknown[] = [organizationId];
-    const conditions = ['gp.organization_id = $1'];
-    addSearchCondition(conditions, values, ['gp.name', 'gp.program_code'], filters.search);
-
-    if (filters.funder_id) {
-      values.push(filters.funder_id);
-      conditions.push(`gp.funder_id = $${values.length}`);
-    }
-
-    if (filters.jurisdiction) {
-      values.push(filters.jurisdiction);
-      conditions.push(`gp.jurisdiction = $${values.length}`);
-    }
-
-    if (filters.status) {
-      values.push(filters.status);
-      conditions.push(`gp.status = $${values.length}`);
-    }
-
-    if (filters.fiscal_year) {
-      values.push(filters.fiscal_year);
-      conditions.push(`COALESCE(gp.fiscal_year, '') = $${values.length}`);
-    }
-
-    const page = filters.page ?? 1;
-    const limit = filters.limit ?? 20;
-    const sort = resolveSort(
-      filters.sort_by,
-      filters.sort_order,
-      {
-        name: 'gp.name',
-        fiscal_year: 'gp.fiscal_year',
-        status: 'gp.status',
-        application_due_at: 'gp.application_due_at',
-        award_date: 'gp.award_date',
-        updated_at: 'gp.updated_at',
-      },
-      'updated_at'
-    );
-
-    return this.paginate({
-      baseFrom: 'grant_programs gp LEFT JOIN grant_funders f ON f.id = gp.funder_id',
-      selectColumns: `
-        gp.*,
-        f.name AS funder_name,
-        COALESCE((SELECT COUNT(*) FROM grants g WHERE g.organization_id = gp.organization_id AND g.program_id = gp.id), 0)::text AS grant_count,
-        COALESCE((SELECT SUM(amount) FROM grants g WHERE g.organization_id = gp.organization_id AND g.program_id = gp.id), 0)::text AS total_amount
-      `,
-      conditions,
-      values,
-      orderBy: `${sort.sortColumn} ${sort.sortOrder}, gp.name ASC`,
-      page,
-      limit,
-      mapper: (row) => this.mapProgram(row),
-    });
+    return this.portfolioService.listPrograms(organizationId, filters);
   }
 
   async getProgramById(organizationId: string, id: string): Promise<GrantProgram | null> {
-    return this.fetchById(
-      this.db,
-      `SELECT
-         gp.*,
-         f.name AS funder_name,
-         COALESCE((SELECT COUNT(*) FROM grants g WHERE g.organization_id = gp.organization_id AND g.program_id = gp.id), 0)::text AS grant_count,
-         COALESCE((SELECT SUM(amount) FROM grants g WHERE g.organization_id = gp.organization_id AND g.program_id = gp.id), 0)::text AS total_amount
-       FROM grant_programs gp
-       LEFT JOIN grant_funders f ON f.id = gp.funder_id
-       WHERE gp.organization_id = $1
-         AND gp.id = $2`,
-      [organizationId, id],
-      (row) => this.mapProgram(row)
-    );
+    return this.portfolioService.getProgramById(organizationId, id);
   }
 
   async createProgram(
@@ -1110,53 +810,7 @@ export class GrantsService {
     userId: string,
     data: CreateGrantProgramDTO
   ): Promise<GrantProgram> {
-    const result = await this.db.query<Row>(
-      `INSERT INTO grant_programs (
-         organization_id,
-         funder_id,
-         name,
-         program_code,
-         fiscal_year,
-         jurisdiction,
-         status,
-         application_open_at,
-         application_due_at,
-         award_date,
-         expiry_date,
-         total_budget,
-         notes,
-         created_by,
-         modified_by
-       )
-       VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, 'draft'), $8, $9, $10, $11, $12, $13, $14, $14)
-       RETURNING *`,
-      [
-        organizationId,
-        data.funder_id,
-        data.name,
-        data.program_code ?? null,
-        data.fiscal_year ?? null,
-        data.jurisdiction,
-        data.status ?? 'draft',
-        data.application_open_at ?? null,
-        data.application_due_at ?? null,
-        data.award_date ?? null,
-        data.expiry_date ?? null,
-        data.total_budget ?? null,
-        data.notes ?? null,
-        userId,
-      ]
-    );
-
-    const program = this.mapProgram(result.rows[0]);
-    await this.recordActivity(this.db, organizationId, userId, {
-      entity_type: 'program',
-      entity_id: program.id,
-      action: 'created',
-      notes: `Created grant program ${program.name}`,
-      metadata: { funder_id: program.funder_id, jurisdiction: program.jurisdiction },
-    });
-    return program;
+    return this.portfolioService.createProgram(organizationId, userId, data);
   }
 
   async updateProgram(
@@ -1165,147 +819,25 @@ export class GrantsService {
     userId: string,
     data: UpdateGrantProgramDTO
   ): Promise<GrantProgram | null> {
-    const result = await this.db.query<Row>(
-      `UPDATE grant_programs
-       SET
-         funder_id = COALESCE($3, funder_id),
-         name = COALESCE($4, name),
-         program_code = COALESCE($5, program_code),
-         fiscal_year = COALESCE($6, fiscal_year),
-         jurisdiction = COALESCE($7, jurisdiction),
-         status = COALESCE($8, status),
-         application_open_at = COALESCE($9, application_open_at),
-         application_due_at = COALESCE($10, application_due_at),
-         award_date = COALESCE($11, award_date),
-         expiry_date = COALESCE($12, expiry_date),
-         total_budget = COALESCE($13, total_budget),
-         notes = COALESCE($14, notes),
-         modified_by = $15,
-         updated_at = NOW()
-       WHERE organization_id = $1
-         AND id = $2
-       RETURNING *`,
-      [
-        organizationId,
-        id,
-        data.funder_id ?? null,
-        data.name ?? null,
-        data.program_code ?? null,
-        data.fiscal_year ?? null,
-        data.jurisdiction ?? null,
-        data.status ?? null,
-        data.application_open_at ?? null,
-        data.application_due_at ?? null,
-        data.award_date ?? null,
-        data.expiry_date ?? null,
-        data.total_budget ?? null,
-        data.notes ?? null,
-        userId,
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return null;
-    }
-
-    const program = this.mapProgram(result.rows[0]);
-    await this.recordActivity(this.db, organizationId, userId, {
-      entity_type: 'program',
-      entity_id: id,
-      action: 'updated',
-      notes: `Updated grant program ${program.name}`,
-      metadata: { program_id: id },
-    });
-    return program;
+    return this.portfolioService.updateProgram(organizationId, id, userId, data);
   }
 
   async deleteProgram(organizationId: string, id: string, userId: string | null): Promise<boolean> {
-    const existing = await this.getProgramById(organizationId, id);
-    const deleted = await this.deleteById('grant_programs', organizationId, id);
-    if (deleted) {
-      await this.recordActivity(this.db, organizationId, userId, {
-        entity_type: 'program',
-        entity_id: id,
-        action: 'deleted',
-        notes: existing ? `Deleted grant program ${existing.name}` : 'Deleted grant program',
-        metadata: { program_id: id },
-      });
-    }
-    return deleted;
+    return this.portfolioService.deleteProgram(organizationId, id, userId);
   }
 
   async listRecipients(
     organizationId: string,
     filters: GrantListFilters = {}
   ): Promise<PaginatedGrantResult<RecipientOrganization>> {
-    const values: unknown[] = [organizationId];
-    const conditions = ['r.organization_id = $1'];
-    addSearchCondition(conditions, values, ['r.name', 'r.legal_name', 'r.contact_name'], filters.search);
-
-    if (filters.jurisdiction) {
-      values.push(filters.jurisdiction);
-      conditions.push(`r.jurisdiction = $${values.length}`);
-    }
-
-    if (filters.status) {
-      if (filters.status === 'active') {
-        conditions.push('r.active = true');
-      } else if (filters.status === 'inactive' || filters.status === 'archived') {
-        conditions.push('r.active = false');
-      } else {
-        values.push(filters.status);
-        conditions.push(`r.status = $${values.length}`);
-      }
-    }
-
-    const page = filters.page ?? 1;
-    const limit = filters.limit ?? 20;
-    const sort = resolveSort(
-      filters.sort_by,
-      filters.sort_order,
-      {
-        name: 'r.name',
-        status: 'r.status',
-        active: 'r.active',
-        updated_at: 'r.updated_at',
-      },
-      'updated_at'
-    );
-
-    return this.paginate({
-      baseFrom: 'recipient_organizations r',
-      selectColumns: `
-        r.*,
-        COALESCE((SELECT COUNT(*) FROM funded_programs fp WHERE fp.organization_id = r.organization_id AND fp.recipient_organization_id = r.id), 0)::text AS funded_program_count,
-        COALESCE((SELECT COUNT(*) FROM grants g WHERE g.organization_id = r.organization_id AND g.recipient_organization_id = r.id), 0)::text AS grant_count,
-        COALESCE((SELECT SUM(amount) FROM grants g WHERE g.organization_id = r.organization_id AND g.recipient_organization_id = r.id), 0)::text AS total_amount
-      `,
-      conditions,
-      values,
-      orderBy: `${sort.sortColumn} ${sort.sortOrder}, r.name ASC`,
-      page,
-      limit,
-      mapper: (row) => this.mapRecipient(row),
-    });
+    return this.portfolioService.listRecipients(organizationId, filters);
   }
 
   async getRecipientById(
     organizationId: string,
     id: string
   ): Promise<RecipientOrganization | null> {
-    return this.fetchById(
-      this.db,
-      `SELECT
-         r.*,
-         COALESCE((SELECT COUNT(*) FROM funded_programs fp WHERE fp.organization_id = r.organization_id AND fp.recipient_organization_id = r.id), 0)::text AS funded_program_count,
-         COALESCE((SELECT COUNT(*) FROM grants g WHERE g.organization_id = r.organization_id AND g.recipient_organization_id = r.id), 0)::text AS grant_count,
-         COALESCE((SELECT SUM(amount) FROM grants g WHERE g.organization_id = r.organization_id AND g.recipient_organization_id = r.id), 0)::text AS total_amount
-       FROM recipient_organizations r
-       WHERE r.organization_id = $1
-         AND r.id = $2`,
-      [organizationId, id],
-      (row) => this.mapRecipient(row)
-    );
+    return this.portfolioService.getRecipientById(organizationId, id);
   }
 
   async createRecipient(
@@ -1313,53 +845,7 @@ export class GrantsService {
     userId: string,
     data: CreateRecipientOrganizationDTO
   ): Promise<RecipientOrganization> {
-    const result = await this.db.query<Row>(
-      `INSERT INTO recipient_organizations (
-         organization_id,
-         name,
-         legal_name,
-         jurisdiction,
-         province,
-         city,
-         contact_name,
-         contact_email,
-         contact_phone,
-         website,
-         status,
-         notes,
-         active,
-         created_by,
-         modified_by
-       )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'active'), $12, COALESCE($13, true), $14, $14)
-       RETURNING *`,
-      [
-        organizationId,
-        data.name,
-        data.legal_name ?? null,
-        data.jurisdiction ?? null,
-        data.province ?? null,
-        data.city ?? null,
-        data.contact_name ?? null,
-        data.contact_email ?? null,
-        data.contact_phone ?? null,
-        data.website ?? null,
-        data.status ?? 'active',
-        data.notes ?? null,
-        data.active ?? true,
-        userId,
-      ]
-    );
-
-    const recipient = this.mapRecipient(result.rows[0]);
-    await this.recordActivity(this.db, organizationId, userId, {
-      entity_type: 'recipient',
-      entity_id: recipient.id,
-      action: 'created',
-      notes: `Created recipient ${recipient.name}`,
-      metadata: { recipient_id: recipient.id },
-    });
-    return recipient;
+    return this.portfolioService.createRecipient(organizationId, userId, data);
   }
 
   async updateRecipient(
@@ -1368,58 +854,7 @@ export class GrantsService {
     userId: string,
     data: UpdateRecipientOrganizationDTO
   ): Promise<RecipientOrganization | null> {
-    const result = await this.db.query<Row>(
-      `UPDATE recipient_organizations
-       SET
-         name = COALESCE($3, name),
-         legal_name = COALESCE($4, legal_name),
-         jurisdiction = COALESCE($5, jurisdiction),
-         province = COALESCE($6, province),
-         city = COALESCE($7, city),
-         contact_name = COALESCE($8, contact_name),
-         contact_email = COALESCE($9, contact_email),
-         contact_phone = COALESCE($10, contact_phone),
-         website = COALESCE($11, website),
-         status = COALESCE($12, status),
-         notes = COALESCE($13, notes),
-         active = COALESCE($14, active),
-         modified_by = $15,
-         updated_at = NOW()
-       WHERE organization_id = $1
-         AND id = $2
-       RETURNING *`,
-      [
-        organizationId,
-        id,
-        data.name ?? null,
-        data.legal_name ?? null,
-        data.jurisdiction ?? null,
-        data.province ?? null,
-        data.city ?? null,
-        data.contact_name ?? null,
-        data.contact_email ?? null,
-        data.contact_phone ?? null,
-        data.website ?? null,
-        data.status ?? null,
-        data.notes ?? null,
-        data.active ?? null,
-        userId,
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return null;
-    }
-
-    const recipient = this.mapRecipient(result.rows[0]);
-    await this.recordActivity(this.db, organizationId, userId, {
-      entity_type: 'recipient',
-      entity_id: id,
-      action: 'updated',
-      notes: `Updated recipient ${recipient.name}`,
-      metadata: { recipient_id: id },
-    });
-    return recipient;
+    return this.portfolioService.updateRecipient(organizationId, id, userId, data);
   }
 
   async deleteRecipient(
@@ -1427,91 +862,21 @@ export class GrantsService {
     id: string,
     userId: string | null
   ): Promise<boolean> {
-    const existing = await this.getRecipientById(organizationId, id);
-    const deleted = await this.deleteById('recipient_organizations', organizationId, id);
-    if (deleted) {
-      await this.recordActivity(this.db, organizationId, userId, {
-        entity_type: 'recipient',
-        entity_id: id,
-        action: 'deleted',
-        notes: existing ? `Deleted recipient ${existing.name}` : 'Deleted recipient',
-        metadata: { recipient_id: id },
-      });
-    }
-    return deleted;
+    return this.portfolioService.deleteRecipient(organizationId, id, userId);
   }
 
   async listFundedPrograms(
     organizationId: string,
     filters: GrantListFilters = {}
   ): Promise<PaginatedGrantResult<FundedProgram>> {
-    const values: unknown[] = [organizationId];
-    const conditions = ['fp.organization_id = $1'];
-    addSearchCondition(conditions, values, ['fp.name', 'fp.description', 'r.name'], filters.search);
-
-    if (filters.recipient_organization_id) {
-      values.push(filters.recipient_organization_id);
-      conditions.push(`fp.recipient_organization_id = $${values.length}`);
-    }
-
-    if (filters.status) {
-      values.push(filters.status);
-      conditions.push(`fp.status = $${values.length}`);
-    }
-
-    const page = filters.page ?? 1;
-    const limit = filters.limit ?? 20;
-    const sort = resolveSort(
-      filters.sort_by,
-      filters.sort_order,
-      {
-        name: 'fp.name',
-        status: 'fp.status',
-        start_date: 'fp.start_date',
-        end_date: 'fp.end_date',
-        updated_at: 'fp.updated_at',
-      },
-      'updated_at'
-    );
-
-    return this.paginate({
-      baseFrom: 'funded_programs fp LEFT JOIN recipient_organizations r ON r.id = fp.recipient_organization_id LEFT JOIN users u ON u.id = fp.owner_user_id',
-      selectColumns: `
-        fp.*,
-        r.name AS recipient_name,
-        u.first_name || ' ' || u.last_name AS owner_name,
-        COALESCE((SELECT COUNT(*) FROM grants g WHERE g.organization_id = fp.organization_id AND g.funded_program_id = fp.id), 0)::text AS grant_count,
-        COALESCE((SELECT SUM(amount) FROM grants g WHERE g.organization_id = fp.organization_id AND g.funded_program_id = fp.id), 0)::text AS total_amount
-      `,
-      conditions,
-      values,
-      orderBy: `${sort.sortColumn} ${sort.sortOrder}, fp.name ASC`,
-      page,
-      limit,
-      mapper: (row) => this.mapFundedProgram(row),
-    });
+    return this.portfolioService.listFundedPrograms(organizationId, filters);
   }
 
   async getFundedProgramById(
     organizationId: string,
     id: string
   ): Promise<FundedProgram | null> {
-    return this.fetchById(
-      this.db,
-      `SELECT
-         fp.*,
-         r.name AS recipient_name,
-         u.first_name || ' ' || u.last_name AS owner_name,
-         COALESCE((SELECT COUNT(*) FROM grants g WHERE g.organization_id = fp.organization_id AND g.funded_program_id = fp.id), 0)::text AS grant_count,
-         COALESCE((SELECT SUM(amount) FROM grants g WHERE g.organization_id = fp.organization_id AND g.funded_program_id = fp.id), 0)::text AS total_amount
-       FROM funded_programs fp
-       LEFT JOIN recipient_organizations r ON r.id = fp.recipient_organization_id
-       LEFT JOIN users u ON u.id = fp.owner_user_id
-       WHERE fp.organization_id = $1
-         AND fp.id = $2`,
-      [organizationId, id],
-      (row) => this.mapFundedProgram(row)
-    );
+    return this.portfolioService.getFundedProgramById(organizationId, id);
   }
 
   async createFundedProgram(
@@ -1519,47 +884,7 @@ export class GrantsService {
     userId: string,
     data: CreateFundedProgramDTO
   ): Promise<FundedProgram> {
-    const result = await this.db.query<Row>(
-      `INSERT INTO funded_programs (
-         organization_id,
-         recipient_organization_id,
-         name,
-         description,
-         owner_user_id,
-         status,
-         start_date,
-         end_date,
-         budget,
-         notes,
-         created_by,
-         modified_by
-       )
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'planned'), $7, $8, $9, $10, $11, $11)
-       RETURNING *`,
-      [
-        organizationId,
-        data.recipient_organization_id,
-        data.name,
-        data.description ?? null,
-        data.owner_user_id ?? null,
-        data.status ?? 'planned',
-        data.start_date ?? null,
-        data.end_date ?? null,
-        data.budget ?? null,
-        data.notes ?? null,
-        userId,
-      ]
-    );
-
-    const program = this.mapFundedProgram(result.rows[0]);
-    await this.recordActivity(this.db, organizationId, userId, {
-      entity_type: 'funded_program',
-      entity_id: program.id,
-      action: 'created',
-      notes: `Created funded program ${program.name}`,
-      metadata: { recipient_organization_id: program.recipient_organization_id },
-    });
-    return program;
+    return this.portfolioService.createFundedProgram(organizationId, userId, data);
   }
 
   async updateFundedProgram(
@@ -1568,52 +893,7 @@ export class GrantsService {
     userId: string,
     data: UpdateFundedProgramDTO
   ): Promise<FundedProgram | null> {
-    const result = await this.db.query<Row>(
-      `UPDATE funded_programs
-       SET
-         recipient_organization_id = COALESCE($3, recipient_organization_id),
-         name = COALESCE($4, name),
-         description = COALESCE($5, description),
-         owner_user_id = COALESCE($6, owner_user_id),
-         status = COALESCE($7, status),
-         start_date = COALESCE($8, start_date),
-         end_date = COALESCE($9, end_date),
-         budget = COALESCE($10, budget),
-         notes = COALESCE($11, notes),
-         modified_by = $12,
-         updated_at = NOW()
-       WHERE organization_id = $1
-         AND id = $2
-       RETURNING *`,
-      [
-        organizationId,
-        id,
-        data.recipient_organization_id ?? null,
-        data.name ?? null,
-        data.description ?? null,
-        data.owner_user_id ?? null,
-        data.status ?? null,
-        data.start_date ?? null,
-        data.end_date ?? null,
-        data.budget ?? null,
-        data.notes ?? null,
-        userId,
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return null;
-    }
-
-    const fundedProgram = this.mapFundedProgram(result.rows[0]);
-    await this.recordActivity(this.db, organizationId, userId, {
-      entity_type: 'funded_program',
-      entity_id: id,
-      action: 'updated',
-      notes: `Updated funded program ${fundedProgram.name}`,
-      metadata: { funded_program_id: id },
-    });
-    return fundedProgram;
+    return this.portfolioService.updateFundedProgram(organizationId, id, userId, data);
   }
 
   async deleteFundedProgram(
@@ -1621,18 +901,7 @@ export class GrantsService {
     id: string,
     userId: string | null
   ): Promise<boolean> {
-    const existing = await this.getFundedProgramById(organizationId, id);
-    const deleted = await this.deleteById('funded_programs', organizationId, id);
-    if (deleted) {
-      await this.recordActivity(this.db, organizationId, userId, {
-        entity_type: 'funded_program',
-        entity_id: id,
-        action: 'deleted',
-        notes: existing ? `Deleted funded program ${existing.name}` : 'Deleted funded program',
-        metadata: { funded_program_id: id },
-      });
-    }
-    return deleted;
+    return this.portfolioService.deleteFundedProgram(organizationId, id, userId);
   }
 
   async listApplications(
@@ -1733,7 +1002,7 @@ export class GrantsService {
     data: CreateGrantApplicationDTO
   ): Promise<GrantApplication> {
     const applicationNumber = data.application_number || normalizeGrantNumber('APP');
-    const result = await this.db.query<Row>(
+    const result = await this.db.query<GrantRow>(
       `INSERT INTO grant_applications (
          organization_id,
          application_number,
@@ -1799,7 +1068,7 @@ export class GrantsService {
     userId: string,
     data: UpdateGrantApplicationDTO
   ): Promise<GrantApplication | null> {
-    const result = await this.db.query<Row>(
+    const result = await this.db.query<GrantRow>(
       `UPDATE grant_applications
        SET
          application_number = COALESCE($3, application_number),
@@ -1910,7 +1179,7 @@ export class GrantsService {
     data: CreateGrantAwardDTO
   ): Promise<{ application: GrantApplication; grant: GrantAward } | null> {
     return this.withTransaction(async (client) => {
-      const applicationResult = await client.query<Row>(
+      const applicationResult = await client.query<GrantRow>(
         `SELECT *
          FROM grant_applications
          WHERE organization_id = $1
@@ -1925,7 +1194,7 @@ export class GrantsService {
 
       const application = this.mapApplication(applicationResult.rows[0]);
       const grantNumber = data.grant_number || normalizeGrantNumber('GRT');
-      const grantResult = await client.query<Row>(
+      const grantResult = await client.query<GrantRow>(
         `INSERT INTO grants (
            organization_id,
            grant_number,
@@ -1982,7 +1251,7 @@ export class GrantsService {
       );
 
       const grant = this.mapGrant(grantResult.rows[0]);
-      const updatedApplication = await client.query<Row>(
+      const updatedApplication = await client.query<GrantRow>(
         `UPDATE grant_applications
          SET
            grant_id = $3,
@@ -2163,7 +1432,7 @@ export class GrantsService {
   ): Promise<GrantAward> {
     return this.withTransaction(async (client) => {
       const grantNumber = data.grant_number || normalizeGrantNumber('GRT');
-      const result = await client.query<Row>(
+      const result = await client.query<GrantRow>(
         `INSERT INTO grants (
            organization_id,
            grant_number,
@@ -2259,7 +1528,7 @@ export class GrantsService {
     userId: string,
     data: UpdateGrantAwardDTO
   ): Promise<GrantAward | null> {
-    const result = await this.db.query<Row>(
+    const result = await this.db.query<GrantRow>(
       `UPDATE grants
        SET
          grant_number = COALESCE($3, grant_number),
@@ -2438,7 +1707,7 @@ export class GrantsService {
     data: CreateGrantDisbursementDTO
   ): Promise<GrantDisbursement> {
     return this.withTransaction(async (client) => {
-      const result = await client.query<Row>(
+      const result = await client.query<GrantRow>(
         `INSERT INTO grant_disbursements (
            organization_id,
            grant_id,
@@ -2494,7 +1763,7 @@ export class GrantsService {
     data: UpdateGrantDisbursementDTO
   ): Promise<GrantDisbursement | null> {
     return this.withTransaction(async (client) => {
-      const result = await client.query<Row>(
+      const result = await client.query<GrantRow>(
         `UPDATE grant_disbursements
          SET
            grant_id = COALESCE($3, grant_id),
@@ -2660,7 +1929,7 @@ export class GrantsService {
     data: CreateGrantReportDTO
   ): Promise<GrantReport> {
     return this.withTransaction(async (client) => {
-      const result = await client.query<Row>(
+      const result = await client.query<GrantRow>(
         `INSERT INTO grant_reports (
            organization_id,
            grant_id,
@@ -2718,7 +1987,7 @@ export class GrantsService {
     data: UpdateGrantReportDTO
   ): Promise<GrantReport | null> {
     return this.withTransaction(async (client) => {
-      const result = await client.query<Row>(
+      const result = await client.query<GrantRow>(
         `UPDATE grant_reports
          SET
            grant_id = COALESCE($3, grant_id),
@@ -2880,7 +2149,7 @@ export class GrantsService {
     userId: string,
     data: CreateGrantDocumentDTO
   ): Promise<GrantDocument> {
-    const result = await this.db.query<Row>(
+    const result = await this.db.query<GrantRow>(
       `INSERT INTO grant_documents (
          organization_id,
          grant_id,
@@ -2934,7 +2203,7 @@ export class GrantsService {
     userId: string,
     data: UpdateGrantDocumentDTO
   ): Promise<GrantDocument | null> {
-    const result = await this.db.query<Row>(
+    const result = await this.db.query<GrantRow>(
       `UPDATE grant_documents
        SET
          grant_id = COALESCE($3, grant_id),
@@ -3073,7 +2342,7 @@ export class GrantsService {
       outerConditions.push(`due_at <= $${values.length}`);
     }
 
-    const result = await this.db.query<Row>(
+    const result = await this.db.query<GrantRow>(
       `SELECT *
        FROM (
          SELECT

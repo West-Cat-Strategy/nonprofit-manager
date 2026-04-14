@@ -50,11 +50,11 @@ which psql
 
 **Easiest way to get started with zero configuration.**
 
-### 1. Start Database Container
+### 1. Start the Optional Compose Dev Stack
 
 ```bash
 # From project root
-docker compose -f docker-compose.dev.yml up postgres -d
+make dev
 ```
 
 This automatically:
@@ -63,6 +63,9 @@ This automatically:
 - Loads starter bootstrap data from `database/initdb/000_init.sql` (templates, theme presets, data scopes, and outcome definitions only)
 - Sets up persistent volume for data storage
 - Exposes PostgreSQL on `localhost:8002`
+- Starts the rest of the optional dev stack, including the backend and frontend
+
+If you only need the repository-owned database bootstrap or verification path, use `make db-migrate` and `make db-verify` below instead of invoking migration files directly.
 
 **Default Credentials:**
 - **Host:** `localhost`
@@ -107,14 +110,10 @@ For a no-user demo bundle that still preserves first-time setup flow, use:
 docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/seeds/004_mock_data_no_users.sql
 ```
 
-### 4. Stop Database
+### 4. Stop the Optional Compose Dev Stack
 
 ```bash
-# Stop but keep data
-docker compose -f docker-compose.dev.yml stop postgres
-
-# Stop and remove container (data persists in volume)
-docker compose -f docker-compose.dev.yml down
+make docker-down
 ```
 
 ---
@@ -174,30 +173,29 @@ psql -U postgres -l | grep nonprofit_manager
 
 ## Running Migrations
 
+For Docker-backed or compose-backed environments, the canonical repo path is `make db-migrate` to bootstrap the database contract and `make db-verify` to validate the isolated test database contract.
+
 ### Docker Environment
 
 Migrations run automatically on first startup via `docker-entrypoint-initdb.d`.
 
-**To manually re-run migrations:**
+**To manually replay the canonical bootstrap contract against a disposable database, use the repo bootstrap script or the init file instead of hand-picking migration files:**
 ```bash
-# Connect to running container
-docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/migrations/001_initial_schema.sql
-docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/migrations/002_audit_logs.sql
+make db-migrate
 ```
 
 ### Native PostgreSQL
 
-**Run all migrations in order:**
+**Run the canonical bootstrap contract in manifest order:**
 ```bash
 # From project root
-psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.sql
-psql -U postgres -d nonprofit_manager -f database/migrations/002_audit_logs.sql
+psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 ```
 
 **Run migrations with connection string:**
 ```bash
 psql "postgresql://postgres:your_password@localhost:5432/nonprofit_manager" \
-  -f database/migrations/001_initial_schema.sql
+  -f database/initdb/000_init.sql
 ```
 
 **Check migration status:**
@@ -215,6 +213,7 @@ Seed behavior differs by file. None of these files run during the default bootst
 - `database/seeds/004_mock_data_no_users.sql` preserves first-time setup behavior (`/setup`).
 - `database/seeds/005_kingdom_hearts_mock_data.sql` is a themed optional demo bundle.
 - `database/seeds/001_default_users.sql` is placeholder-oriented and not the recommended dev seed path.
+- `database/seeds/008_outcome_definitions.sql` provides starter outcome definitions and is loaded by the default bootstrap path.
 
 ### Docker Environment
 
@@ -269,7 +268,7 @@ docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql 
 psql -U postgres -d nonprofit_manager -c "\dt"
 ```
 
-**Expected Tables (10 total):**
+**Core-table sanity check:**
 - `users`
 - `accounts`
 - `contacts`
@@ -280,6 +279,8 @@ psql -U postgres -d nonprofit_manager -c "\dt"
 - `donations`
 - `tasks`
 - `activities`
+
+This is a smoke test, not an exhaustive inventory. Feature-specific tables, junction tables, and migration-only support tables also exist in the live schema.
 
 ### 3. Verify Foreign Keys and Indexes
 
@@ -313,15 +314,14 @@ make db-verify
 
 **Using Docker:**
 ```bash
-docker compose -f docker-compose.dev.yml up postgres -d
+make dev
 docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/seeds/003_mock_data.sql
 ```
 
 **Using Native PostgreSQL:**
 ```bash
 createdb nonprofit_manager
-psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.sql
-psql -U postgres -d nonprofit_manager -f database/migrations/002_audit_logs.sql
+psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 psql -U postgres -d nonprofit_manager -f database/seeds/003_mock_data.sql
 ```
 
@@ -331,29 +331,21 @@ psql -U postgres -d nonprofit_manager -f database/seeds/003_mock_data.sql
 
 **Docker:**
 ```bash
-# Stop and remove container
-docker compose -f docker-compose.dev.yml down postgres
-
-# Remove volume (deletes data)
-docker volume rm nonprofit-manager_postgres_data_dev
-
-# Restart fresh
-docker compose -f docker-compose.dev.yml up postgres -d
+docker compose -p nonprofit-dev -f docker-compose.dev.yml down -v
 ```
 
 **Native:**
 ```bash
 dropdb nonprofit_manager
 createdb nonprofit_manager
-psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.sql
-psql -U postgres -d nonprofit_manager -f database/migrations/002_audit_logs.sql
+psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 ```
 
 ### Scenario 3: Apply New Migration
 
 **Docker:**
 ```bash
-docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < database/migrations/003_new_migration.sql
+make db-migrate
 ```
 
 **Native:**
@@ -462,7 +454,7 @@ psql -U postgres -d nonprofit_manager -c "\dt"
 
 # If needed, drop all tables and re-run migrations
 psql -U postgres -d nonprofit_manager -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.sql
+psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 ```
 
 ### Problem: Port 8002 already in use

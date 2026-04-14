@@ -1,4 +1,4 @@
-import { ExportService } from '@services';
+import { ExportService } from '@services/exportService';
 
 describe('ExportService', () => {
   const exportService = new ExportService();

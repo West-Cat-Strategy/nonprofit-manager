@@ -67,7 +67,8 @@ export type ApiKeyScope =
   | 'write:tasks'
   | 'read:reports'
   | 'read:analytics'
-  | 'admin';
+  | 'admin'
+  | '*';
 
 /**
  * Webhook endpoint configuration
@@ -147,16 +148,22 @@ export interface WebhookPayload {
  */
 export interface ApiKey {
   id: string;
-  userId: string;
+  organizationId: string;
+  createdBy: string;
   name: string;
-  keyPrefix: string; // First 8 chars of the key for identification
+  description?: string | null;
+  keyPrefix: string; // First 10 chars of the key for identification
   keyHash: string; // Hashed key for verification
   scopes: ApiKeyScope[];
+  isActive: boolean;
   status: ApiKeyStatus;
+  rateLimitRequests: number;
+  rateLimitIntervalMs: number;
   expiresAt?: Date;
   lastUsedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  userId?: string; // Compatibility alias for legacy callers
 }
 
 /**
@@ -171,14 +178,8 @@ export interface CreateApiKeyRequest {
 /**
  * Create API key response (includes the plain key - only shown once)
  */
-export interface CreateApiKeyResponse {
-  id: string;
-  name: string;
+export interface CreateApiKeyResponse extends Omit<ApiKey, 'keyHash'> {
   key: string; // The actual API key - only returned on creation
-  keyPrefix: string;
-  scopes: ApiKeyScope[];
-  expiresAt?: Date;
-  createdAt: Date;
 }
 
 /**

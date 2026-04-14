@@ -1,11 +1,11 @@
 /**
  * API Key Authentication Middleware
- * 
+ *
  * Authenticates requests using API keys instead of JWT tokens.
  * Supports:
- * - Authorization header: "Bearer app_XXXXX"
- * - Query parameter: ?api_key=app_XXXXX
- * 
+ * - Authorization header: "Bearer npm_XXXXX"
+ * - Query parameter: ?api_key=npm_XXXXX
+ *
  * Performs:
  * - Key validation
  * - Scope checking
@@ -28,10 +28,10 @@ export interface ApiKeyRequest extends Request {
 
 /**
  * Extract API key from request
- * 
+ *
  * Supports:
- * - Authorization header: "Bearer app_XXXXX"
- * - Query parameter: ?api_key=app_XXXXX
+ * - Authorization header: "Bearer npm_XXXXX"
+ * - Query parameter: ?api_key=npm_XXXXX
  */
 function extractApiKey(req: Request): string | null {
   // Check Authorization header
@@ -50,7 +50,7 @@ function extractApiKey(req: Request): string | null {
 
 /**
  * API Key authentication middleware
- * 
+ *
  * Usage in routes:
  * router.get('/api/data', authenticateApiKey, validateApiKeyScope('data:read'), controller);
  */
@@ -73,31 +73,31 @@ export const authenticateApiKey = async (req: ApiKeyRequest, res: Response, next
       return unauthorized(res, 'Invalid API key');
     }
 
-    // Increment rate limit counter
-    // Cast to any for properties not in the base ApiKey type but potentially used
-    await (apiKeyService as any).incrementRateLimit?.(validation.id);
+    await apiKeyService.incrementRateLimit(validation.id);
 
     // Attach API key info to request
     req.apiKey = {
       id: validation.id,
-      organizationId: (validation as any).organizationId || (validation as any).userId,
+      organizationId: validation.organizationId,
       scopes: validation.scopes || [],
     };
 
-    // LogAPI key usage
+    // Log API key usage after the response payload is sent.
     const start = Date.now();
     const originalJson = res.json.bind(res);
-    res.json = function (data: any) {
+    res.json = function (data: unknown) {
       const responseTime = Date.now() - start;
-      (apiKeyService as any).logApiKeyUsage(
-        validation.id,
-        req.path,
-        req.method,
-        res.statusCode,
-        responseTime,
-        req.ip || 'unknown',
-        req.get('user-agent') || 'unknown'
-      ).catch((err: any) => logger.error('Failed to log API key usage', { err }));
+      apiKeyService
+        .logApiKeyUsage(
+          validation.id,
+          req.originalUrl?.split('?')[0] || req.path,
+          req.method,
+          res.statusCode,
+          responseTime,
+          req.ip || 'unknown',
+          req.get('user-agent') || 'unknown'
+        )
+        .catch((err: unknown) => logger.error('Failed to log API key usage', { err }));
       return originalJson(data);
     };
 
@@ -110,7 +110,7 @@ export const authenticateApiKey = async (req: ApiKeyRequest, res: Response, next
 
 /**
  * Middleware to check API key scopes
- * 
+ *
  * Usage:
  * router.get('/api/data', authenticateApiKey, validateApiKeyScope('data:read'), controller);
  */

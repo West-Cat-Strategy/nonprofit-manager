@@ -75,7 +75,7 @@ services:
     environment:
       <<: *runtime-env
       PORT: ${BACKEND_PORT:-8000}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8001}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8001,http://127.0.0.1:8001}
       API_ORIGIN: ${API_ORIGIN:-http://localhost:8000}
       SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.westcat.ca}
     command: ["node", "dist/index.js"]

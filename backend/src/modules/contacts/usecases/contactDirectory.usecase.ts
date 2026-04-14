@@ -61,7 +61,7 @@ export class ContactDirectoryUseCase {
       return null;
     }
 
-    const contact = await this.repository.findContactIdentity(contactId);
+    const contact = await this.repository.findContactIdentity(contactId, client);
     if (!contact?.email) {
       throw new Error('Staff roles require a contact email to create an account');
     }
@@ -192,12 +192,10 @@ export class ContactDirectoryUseCase {
         );
       }
 
-      const finalContact = (await this.repository.getContactById(created.contact_id, viewerRole)) || created;
-
       await client.query('COMMIT');
 
       return {
-        ...finalContact,
+        ...created,
         roles: assignedRoles,
         staffInvitation,
       };
@@ -261,12 +259,10 @@ export class ContactDirectoryUseCase {
         staffInvitation = await this.ensureStaffUserAccount(contactId, assignedRoles, userId, client);
       }
 
-      const finalContact = (await this.repository.getContactById(contactId, viewerRole)) || updated;
-
       await client.query('COMMIT');
 
       return {
-        ...finalContact,
+        ...updated,
         roles: assignedRoles,
         staffInvitation,
       };

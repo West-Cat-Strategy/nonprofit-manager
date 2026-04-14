@@ -89,6 +89,9 @@ describe('webhookService secret exposure', () => {
 
     const endpoint = await webhookService.getWebhookEndpoint('endpoint-1', 'user-1');
 
+    expect(String(mockQuery.mock.calls[0][0])).toContain('FROM webhook_endpoints we');
+    expect(String(mockQuery.mock.calls[0][0])).toContain('WHERE we.id = $1 AND we.user_id = $2');
+
     expect(endpoint).toEqual(
       expect.objectContaining({
         id: 'endpoint-1',
@@ -111,6 +114,11 @@ describe('webhookService secret exposure', () => {
     const endpoint = await webhookService.updateWebhookEndpoint('endpoint-1', 'user-1', {
       url: 'https://example.org/new-webhook',
     });
+
+    expect(String(mockQuery.mock.calls[0][0])).toContain('UPDATE webhook_endpoints we');
+    expect(String(mockQuery.mock.calls[0][0])).toContain(
+      'WHERE we.id = $2 AND we.user_id = $3'
+    );
 
     expect(endpoint).toEqual(
       expect.objectContaining({

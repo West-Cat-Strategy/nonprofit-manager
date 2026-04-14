@@ -6,7 +6,7 @@
 import { Pool } from 'pg';
 import { AlertsRepository } from '@modules/alerts/repositories/alerts.repository';
 import { AlertsUseCase } from '@modules/alerts/usecases/alerts.usecase';
-import type { CreateAlertDTO } from '../types/alert';
+import type { CreateAlertDTO } from '../modules/alerts/types';
 
 jest.mock('pg', () => {
   const mockPool = {

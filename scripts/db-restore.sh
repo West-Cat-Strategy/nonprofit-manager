@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "$ROOT_DIR/scripts/lib/config.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
 BACKUP_FILE="${1:-${DB_BACKUP_FILE:-}}"
 DB_NAME="${DB_NAME:-nonprofit_manager}"
@@ -11,6 +11,12 @@ DB_PASSWORD="${DB_PASSWORD:-postgres}"
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-8002}"
 DB_SERVICE="${DB_SERVICE:-postgres}"
+DB_COMPOSE_PROJECT="${COMPOSE_PROJECT_DEV}"
+DB_COMPOSE_FILE="$PROJECT_ROOT/docker-compose.dev.yml"
+
+compose_db() {
+  compose_exec_with_project_files "$DB_COMPOSE_PROJECT" "$DB_COMPOSE_FILE" -- "$DB_SERVICE" "$@"
+}
 
 if [[ -z "$BACKUP_FILE" ]]; then
   echo "Usage: scripts/db-restore.sh <backup-file.gz>" >&2
@@ -35,22 +41,8 @@ restore_stream() {
   fi
 }
 
-compose_exec() {
-  local project_name="${COMPOSE_PROJECT_NAME:-${COMPOSE_PROJECT_DEV:-nonprofit-dev}}"
-  local compose_files="${COMPOSE_FILES:-$ROOT_DIR/docker-compose.dev.yml}"
-  local -a compose_args=(-p "$project_name")
-  local file
-
-  for file in $compose_files; do
-    compose_args+=(-f "$file")
-  done
-
-  compose_args+=(exec -T "$DB_SERVICE")
-  "${COMPOSE_CMD[@]}" "${compose_args[@]}" "$@"
-}
-
 if [[ "$DB_HOST" == "postgres" ]]; then
-  restore_stream | compose_exec psql -U "$DB_USER" -d "$DB_NAME"
+  restore_stream | compose_db psql -U "$DB_USER" -d "$DB_NAME"
 else
   restore_stream | PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME"
 fi

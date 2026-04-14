@@ -17,6 +17,8 @@ COPY public ./public
 COPY src ./src
 # Keep the shared contracts package available for type-checking without
 # widening the main frontend build context.
+# This image expects the shared `contracts` build context that make docker-build
+# and make docker-validate pass through via Docker Buildx additional contexts.
 COPY --from=contracts /package.json ./node_modules/@nonprofit-manager/contracts/package.json
 COPY --from=contracts /index.d.ts ./node_modules/@nonprofit-manager/contracts/index.d.ts
 COPY --from=contracts /messaging.d.ts ./node_modules/@nonprofit-manager/contracts/messaging.d.ts

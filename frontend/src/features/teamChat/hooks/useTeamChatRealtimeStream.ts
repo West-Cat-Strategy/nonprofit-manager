@@ -31,6 +31,12 @@ export function useTeamChatRealtimeStream<TPayload>({
 }: UseTeamChatRealtimeStreamOptions<TPayload>): TeamChatRealtimeStreamStatus {
   const [status, setStatus] = useState<TeamChatRealtimeStreamStatus>('disabled');
   const streamRef = useRef<EventSource | null>(null);
+  const onConnectedRef = useRef<typeof onConnected>(onConnected);
+  const onEventRef = useRef<typeof onEvent>(onEvent);
+  const eventNamesRef = useRef(eventNames);
+  onConnectedRef.current = onConnected;
+  onEventRef.current = onEvent;
+  eventNamesRef.current = eventNames;
   const realtimeEnabled = import.meta.env.VITE_TEAM_CHAT_REALTIME_ENABLED !== 'false';
   const channelKey = useMemo(() => channels.join(','), [channels]);
   const eventKey = useMemo(() => eventNames.join(','), [eventNames]);
@@ -70,12 +76,13 @@ export function useTeamChatRealtimeStream<TPayload>({
     };
 
     stream.addEventListener('connected', (event) => {
-      if (!onConnected || !(event instanceof MessageEvent)) {
+      const latestOnConnected = onConnectedRef.current;
+      if (!latestOnConnected || !(event instanceof MessageEvent)) {
         return;
       }
 
       try {
-        onConnected(
+        latestOnConnected(
           JSON.parse(event.data) as {
             connection_id: string;
             channels: string[];
@@ -87,14 +94,15 @@ export function useTeamChatRealtimeStream<TPayload>({
       }
     });
 
-    for (const eventName of eventNames) {
+    for (const eventName of eventNamesRef.current) {
       stream.addEventListener(eventName, (event) => {
-        if (!onEvent || !(event instanceof MessageEvent)) {
+        const latestOnEvent = onEventRef.current;
+        if (!latestOnEvent || !(event instanceof MessageEvent)) {
           return;
         }
 
         try {
-          onEvent(eventName, JSON.parse(event.data) as TPayload);
+          latestOnEvent(eventName, JSON.parse(event.data) as TPayload);
         } catch {
           // Ignore malformed payloads.
         }
@@ -107,7 +115,7 @@ export function useTeamChatRealtimeStream<TPayload>({
         streamRef.current = null;
       }
     };
-  }, [enabled, eventKey, eventNames, onConnected, onEvent, realtimeEnabled, streamUrl]);
+  }, [enabled, eventKey, realtimeEnabled, streamUrl]);
 
   return status;
 }

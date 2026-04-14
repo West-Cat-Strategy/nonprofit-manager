@@ -72,14 +72,14 @@ describe('apiKeyAuth middleware', () => {
   it('returns unauthorized when API key validation fails', async () => {
     validateApiKeyMock.mockResolvedValue(null);
     const req = createRequest({
-      headers: { authorization: 'Bearer app_invalid' },
+      headers: { authorization: 'Bearer npm_invalid' },
     });
     const res = createResponse();
     const next = jest.fn();
 
     await authenticateApiKey(req, res, next);
 
-    expect(validateApiKeyMock).toHaveBeenCalledWith('app_invalid');
+    expect(validateApiKeyMock).toHaveBeenCalledWith('npm_invalid');
     expect(logger.warn).toHaveBeenCalledWith(
       'API key validation failed',
       expect.objectContaining({ ip: '127.0.0.1' })
@@ -91,11 +91,11 @@ describe('apiKeyAuth middleware', () => {
   it('attaches API key context and logs usage on successful authentication', async () => {
     validateApiKeyMock.mockResolvedValue({
       id: 'key-1',
-      userId: 'org-1',
-      scopes: ['reports:read'],
+      organizationId: 'org-1',
+      scopes: ['read:reports'],
     });
     const req = createRequest({
-      headers: { authorization: 'Bearer app_valid' },
+      headers: { authorization: 'Bearer npm_valid' },
       path: '/api/v2/reports',
       method: 'POST',
     });
@@ -108,7 +108,7 @@ describe('apiKeyAuth middleware', () => {
     expect(req.apiKey).toEqual({
       id: 'key-1',
       organizationId: 'org-1',
-      scopes: ['reports:read'],
+      scopes: ['read:reports'],
     });
     expect(next).toHaveBeenCalled();
 
@@ -136,7 +136,7 @@ describe('apiKeyAuth middleware', () => {
     logApiKeyUsageMock.mockRejectedValueOnce(new Error('usage logging failed'));
 
     const req = createRequest({
-      query: { api_key: 'app_from_query' },
+      query: { api_key: 'npm_from_query' },
     });
     const res = createResponse();
     const next = jest.fn();
@@ -154,7 +154,7 @@ describe('apiKeyAuth middleware', () => {
   it('returns unauthorized when validation throws unexpectedly', async () => {
     validateApiKeyMock.mockRejectedValueOnce(new Error('validation crashed'));
     const req = createRequest({
-      headers: { authorization: 'Bearer app_crash' },
+      headers: { authorization: 'Bearer npm_crash' },
     });
     const res = createResponse();
     const next = jest.fn();
@@ -173,23 +173,23 @@ describe('apiKeyAuth middleware', () => {
     const noKeyReq = createRequest();
     const noKeyRes = createResponse();
     const noKeyNext = jest.fn();
-    validateApiKeyScope('contacts:read')(noKeyReq, noKeyRes, noKeyNext);
+    validateApiKeyScope('read:contacts')(noKeyReq, noKeyRes, noKeyNext);
     expect(forbiddenMock).toHaveBeenCalledWith(noKeyRes, 'API key authentication required');
     expect(noKeyNext).not.toHaveBeenCalled();
 
     const insufficientReq = createRequest({
-      apiKey: { id: 'key-3', organizationId: 'org-3', scopes: ['contacts:write'] },
+      apiKey: { id: 'key-3', organizationId: 'org-3', scopes: ['write:contacts'] },
     });
     const insufficientRes = createResponse();
     const insufficientNext = jest.fn();
-    validateApiKeyScope('contacts:read')(insufficientReq, insufficientRes, insufficientNext);
+    validateApiKeyScope('read:contacts')(insufficientReq, insufficientRes, insufficientNext);
     expect(logger.warn).toHaveBeenCalledWith(
       'API key lacks required scope',
-      expect.objectContaining({ apiKeyId: 'key-3', requiredScope: 'contacts:read' })
+      expect.objectContaining({ apiKeyId: 'key-3', requiredScope: 'read:contacts' })
     );
     expect(forbiddenMock).toHaveBeenCalledWith(
       insufficientRes,
-      'This API key does not have the "contacts:read" scope'
+      'This API key does not have the "read:contacts" scope'
     );
     expect(insufficientNext).not.toHaveBeenCalled();
 
@@ -198,14 +198,14 @@ describe('apiKeyAuth middleware', () => {
     });
     const wildcardRes = createResponse();
     const wildcardNext = jest.fn();
-    validateApiKeyScope('anything:read')(wildcardReq, wildcardRes, wildcardNext);
+    validateApiKeyScope('read:contacts')(wildcardReq, wildcardRes, wildcardNext);
     expect(wildcardNext).toHaveBeenCalled();
   });
 
   it('auditApiKeyUsage logs when request is authenticated with an API key', async () => {
     const reqWithKey = createRequest({
-      query: { api_key: 'app_key' },
-      apiKey: { id: 'key-5', organizationId: 'org-5', scopes: ['reports:read'] },
+      query: { api_key: 'npm_key' },
+      apiKey: { id: 'key-5', organizationId: 'org-5', scopes: ['read:reports'] },
       method: 'PATCH',
       path: '/api/v2/resource',
     });

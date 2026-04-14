@@ -1,14 +1,5 @@
-/**
- * ContactDetail Page
- * Page for viewing a contact's full details with neo-brutalist styling
- */
-
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchContactById, clearCurrentContact, fetchContactNotes } from '../state';
-import { fetchCasesByContact, selectCasesByContact } from '../../cases/state';
-import { BrutalBadge, BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
+import { Link, useNavigate } from 'react-router-dom';
+import { BrutalBadge, BrutalCard } from '../../../components/neo-brutalist';
 import ContactPhoneNumbers from '../../../components/ContactPhoneNumbers';
 import ContactEmailAddresses from '../../../components/ContactEmailAddresses';
 import ContactRelationships from '../../../components/ContactRelationships';
@@ -16,7 +7,6 @@ import ContactNotes from '../components/ContactNotesPanel';
 import ContactTags from '../../../components/ContactTags';
 import ContactTasksPanel from '../components/ContactTasksPanel';
 import ContactMergeDialog from '../components/ContactMergeDialog';
-import type { ContactNote } from '../../../types/contact';
 import ContactActivityPanel from '../components/ContactActivityPanel';
 import ContactCommunicationsPanel from '../components/ContactCommunicationsPanel';
 import ContactFollowUpsPanel from '../components/ContactFollowUpsPanel';
@@ -24,54 +14,34 @@ import ContactDocumentsPanel from '../components/ContactDocumentsPanel';
 import ContactPaymentsPanel from '../components/ContactPaymentsPanel';
 import ContactPageShell from '../components/ContactPageShell';
 import { formatDate, formatDateOnly, getAgeFromDateOnly } from '../../../utils/format';
-import { isUuid } from '../../../utils/uuid';
-
-type TabType =
-  | 'overview'
-  | 'notes'
-  | 'tasks'
-  | 'activity'
-  | 'communications'
-  | 'followups'
-  | 'documents'
-  | 'payments';
+import { useContactDetailPage } from '../hooks/useContactDetailPage';
 
 const ContactDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const hasValidId = isUuid(id);
+  const {
+    id,
+    hasValidId,
+    currentContact,
+    loading,
+    error,
+    contactCases,
+    activeTab,
+    setActiveTab,
+    showAlertModal,
+    setShowAlertModal,
+    openNoteForm,
+    setOpenNoteForm,
+    showMergeDialog,
+    setShowMergeDialog,
+    alertNotes,
+    tabs,
+    snapshotItems,
+    fullName,
+    contactDescription,
+    contactMetadata,
+    contactActions,
+    handleNavigateBack,
+  } = useContactDetailPage();
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { currentContact, loading, error } = useAppSelector((state) => state.contacts.core);
-  const { contactNotes } = useAppSelector((state) => state.contacts.notes);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
-  const [showAlertModal, setShowAlertModal] = useState(false);
-  const [openNoteForm, setOpenNoteForm] = useState(false);
-  const [showMergeDialog, setShowMergeDialog] = useState(false);
-
-  // Get cases for this contact
-  const contactCases = useAppSelector((state) => (hasValidId ? selectCasesByContact(state, id) : []));
-
-  useEffect(() => {
-    if (hasValidId) {
-      dispatch(fetchContactById(id));
-      dispatch(fetchCasesByContact(id));
-      dispatch(fetchContactNotes(id));
-    }
-  }, [hasValidId, id, dispatch]);
-
-  useEffect(() => {
-    return () => {
-      dispatch(clearCurrentContact());
-    };
-  }, [dispatch]);
-
-  // Show alert modal when alert notes exist
-  const alertNotes = contactNotes.filter((n: ContactNote) => n.is_alert);
-  useEffect(() => {
-    if (alertNotes.length > 0) {
-      setShowAlertModal(true);
-    }
-  }, [alertNotes.length]);
 
   const renderStateShell = (
     tone: 'green' | 'purple' | 'yellow' | 'pink' | 'white',
@@ -83,7 +53,7 @@ const ContactDetail = () => {
     <ContactPageShell
       tone={tone}
       backLabel={backLabel}
-      onBack={() => navigate('/contacts')}
+      onBack={handleNavigateBack}
       title={title}
       description={description}
     >
@@ -111,7 +81,7 @@ const ContactDetail = () => {
       <ContactPageShell
         tone="white"
         backLabel="Back to People"
-        onBack={() => navigate('/contacts')}
+        onBack={handleNavigateBack}
         title="Loading Contact"
         description="Fetching the latest contact details..."
       >
@@ -145,115 +115,14 @@ const ContactDetail = () => {
     );
   }
 
-  const displayFirstName = currentContact.preferred_name || currentContact.first_name;
-  const fullName = `${currentContact.salutation ? currentContact.salutation + ' ' : ''}${displayFirstName} ${currentContact.middle_name ? currentContact.middle_name + ' ' : ''}${currentContact.last_name}`;
-
   const formatDateOrDash = (dateString: string | null) =>
     dateString ? formatDateOnly(dateString) : '-';
-
-  const tabs: { id: TabType; label: string; count?: number }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'notes', label: 'Notes', count: currentContact.note_count || 0 },
-    { id: 'tasks', label: 'Tasks' },
-    { id: 'activity', label: 'Activity' },
-    { id: 'communications', label: 'Communications' },
-    { id: 'followups', label: 'Follow-ups' },
-    { id: 'documents', label: 'Documents' },
-    { id: 'payments', label: 'Payments' },
-  ];
-
-  const snapshotItems = [
-    { label: 'Notes', value: currentContact.note_count || 0 },
-    { label: 'Cases', value: contactCases.length },
-    { label: 'Relationships', value: currentContact.relationship_count || 0 },
-    { label: 'Emails', value: currentContact.email_count || 0 },
-    { label: 'Phones', value: currentContact.phone_count || 0 },
-  ];
-
-  const roleBadgeColor = (role: string): 'green' | 'blue' | 'purple' | 'yellow' | 'red' | 'gray' => {
-    if (role === 'Donor') return 'green';
-    if (role === 'Staff' || role === 'Executive Director') return 'blue';
-    if (role === 'Volunteer') return 'purple';
-    if (role === 'Board Member') return 'yellow';
-    if (role === 'Client') return 'red';
-    return 'gray';
-  };
-
-  const contactDescription = (
-    <div className="space-y-1">
-      {currentContact.job_title ? (
-        <p>
-          {currentContact.job_title}
-          {currentContact.department ? ` - ${currentContact.department}` : ''}
-        </p>
-      ) : null}
-      {currentContact.account_name ? (
-        <p className="text-black/60 dark:text-white/70">Organization: {currentContact.account_name}</p>
-      ) : null}
-    </div>
-  );
-
-  const contactMetadata = (
-    <>
-      <BrutalBadge color={currentContact.is_active ? 'green' : 'gray'} size="sm">
-        {currentContact.is_active ? 'Active' : 'Inactive'}
-      </BrutalBadge>
-      {currentContact.pronouns ? (
-        <BrutalBadge color="gray" size="sm">
-          {currentContact.pronouns}
-        </BrutalBadge>
-      ) : null}
-      {currentContact.roles?.map((role: string) => (
-        <BrutalBadge key={role} color={roleBadgeColor(role)} size="sm">
-          {role}
-        </BrutalBadge>
-      ))}
-    </>
-  );
-
-  const contactActions = (
-    <>
-      <BrutalButton
-        onClick={() => {
-          if (!id) {
-            return;
-          }
-
-          window.open(`/contacts/${id}/print`, '_blank', 'noopener,noreferrer');
-        }}
-        variant="secondary"
-      >
-        Print / Export
-      </BrutalButton>
-      <BrutalButton
-        onClick={() => {
-          setActiveTab('notes');
-          setOpenNoteForm(true);
-        }}
-        variant="secondary"
-      >
-        Add Note
-      </BrutalButton>
-      <BrutalButton onClick={() => setActiveTab('followups')} variant="secondary">
-        Schedule Follow-up
-      </BrutalButton>
-      <BrutalButton onClick={() => setActiveTab('communications')} variant="secondary">
-        Communications
-      </BrutalButton>
-      <BrutalButton onClick={() => setShowMergeDialog(true)} variant="secondary">
-        Merge Contact
-      </BrutalButton>
-      <BrutalButton onClick={() => navigate(`/contacts/${id}/edit`)} variant="primary">
-        Edit Contact
-      </BrutalButton>
-    </>
-  );
 
   return (
     <ContactPageShell
       tone="purple"
       backLabel="Back to People"
-      onBack={() => navigate('/contacts')}
+      onBack={handleNavigateBack}
       title={fullName}
       description={contactDescription}
       metadata={contactMetadata}
@@ -622,7 +491,7 @@ const ContactDetail = () => {
               <h2 className="text-xl font-black uppercase text-white">Alert Notes</h2>
             </div>
             <div className="p-6 space-y-4">
-              {alertNotes.map((note: ContactNote) => (
+              {alertNotes.map((note) => (
                 <div key={note.id} className="border-2 border-app-border bg-app-accent-soft p-4 rounded">
                   {note.subject && (
                     <div className="font-black text-black mb-1">{note.subject}</div>

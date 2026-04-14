@@ -12,14 +12,12 @@ import NeoBrutalistDashboard from '../../features/neoBrutalist/pages/NeoBrutalis
 import FollowUpsPage from '../../features/followUps/pages/FollowUpsPage';
 import OpportunitiesPage from '../../features/engagement/opportunities/pages/OpportunitiesPage';
 import AnalyticsPage from '../../features/analytics/pages/AnalyticsPage';
-import AlertsConfigPage from '../../features/alerts/pages/AlertsConfigPage';
-import AlertHistoryPage from '../../features/alerts/pages/AlertHistoryPage';
-import AlertInstancesPage from '../../features/alerts/pages/AlertInstancesPage';
 import OutcomesReportPage from '../../features/reports/pages/OutcomesReportPage';
 import ReportBuilderPage from '../../features/reports/pages/ReportBuilderPage';
 import SavedReportsPage from '../../features/savedReports/pages/SavedReportsPage';
 import ScheduledReportsPage from '../../features/scheduledReports/pages/ScheduledReportsPage';
 import ReportTemplatesPage from '../../features/reports/pages/ReportTemplatesPage';
+import WebsitesListPage from '../../features/websites/pages/WebsitesListPage';
 import IntakeNew from '../../features/workflows/pages/IntakeNewPage';
 import InteractionNote from '../../features/workflows/pages/InteractionNotePage';
 import api from '../../services/api';
@@ -177,26 +175,11 @@ const smokeCases: SmokeCase[] = [
     primaryActionPattern: /apply filters/i,
   },
   {
-    name: 'alerts-overview',
-    route: '/alerts',
-    page: <AlertsConfigPage />,
-    heading: 'Alerts',
-    primaryActionPattern: /create alert/i,
-  },
-  {
-    name: 'alerts-instances',
-    route: '/alerts/instances',
-    page: <AlertInstancesPage />,
-    heading: /triggered alerts/i,
-    primaryActionPattern: /configure alerts/i,
-    primaryActionRole: 'link',
-  },
-  {
-    name: 'alerts-history',
-    route: '/alerts/history',
-    page: <AlertHistoryPage />,
-    heading: /alert history/i,
-    primaryActionPattern: /edit alert rules/i,
+    name: 'websites',
+    route: '/websites',
+    page: <WebsitesListPage />,
+    heading: 'Websites',
+    primaryActionPattern: /open template builder/i,
     primaryActionRole: 'link',
   },
   {
@@ -532,6 +515,17 @@ describe('Route UX smoke', () => {
               total_events: { current: 0, previous: 0, change: 0, change_percent: 0 },
               volunteer_hours: { current: 0, previous: 0, change: 0, change_percent: 0 },
             },
+          },
+        });
+      }
+      if (url.startsWith('/sites')) {
+        return Promise.resolve({
+          data: {
+            sites: [],
+            total: 0,
+            page: 1,
+            limit: 20,
+            totalPages: 0,
           },
         });
       }

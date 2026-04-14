@@ -18,7 +18,7 @@ jest.mock('../../config/database', () => ({
   },
 }));
 
-import { webhookService } from '@services';
+import * as webhookService from '@services/webhookService';
 
 describe('webhookService delivery behavior', () => {
   beforeEach(() => {

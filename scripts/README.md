@@ -1,6 +1,6 @@
 # Script Index
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-13
 
 This directory contains the repo-local helpers used by the Makefile, deployment scripts, and docs workflow.
 Prefer the `make` targets when they exist. Call the scripts directly when you need the narrower entrypoint.
@@ -11,14 +11,14 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 |---|---|---|
 | [check-links.sh](check-links.sh) | Validate repo Markdown and HTML links used by the active docs. | `make check-links` |
 | [check-doc-api-versioning.ts](check-doc-api-versioning.ts) | Enforce active-doc `/api/v2` wording and catch stale API-version references. | `make lint-doc-api-versioning` |
-| [ci.sh](ci.sh) | Root CI wrapper that backs the `make ci*` targets. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` |
-| [local-ci.sh](local-ci.sh) | Orchestrate lint, type-check, tests, coverage, and build checks. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` |
+| [ci.sh](ci.sh) | Root CI wrapper that backs the `make ci*` targets and coverage flows. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` / `make test-coverage` |
+| [local-ci.sh](local-ci.sh) | Orchestrate lint, type-check, tests, coverage, and build checks. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` / `make test-coverage` |
 | [quality-baseline.sh](quality-baseline.sh) | Run the static quality baseline checks used by the repo's policy gates. | `make quality-baseline` |
 | [security-scan.sh](security-scan.sh) | Run dependency and secret scanning. | `make security-scan` |
-| [db-migrate.sh](db-migrate.sh) | Apply or inspect canonical database migrations. | `make db-migrate` / `make db-verify` |
+| [db-migrate.sh](db-migrate.sh) | Bootstrap or start the local database contract and isolated test database. | `make db-migrate` |
 | [db-backup.sh](db-backup.sh) | Back up the Postgres data volume through the compose contract. | Manual ops / scheduled backups |
 | [db-restore.sh](db-restore.sh) | Restore a database backup through the compose contract. | Manual ops / recovery |
-| [verify-migrations.sh](verify-migrations.sh) | Verify the isolated `_test` database contract. | `make db-verify` |
+| [verify-migrations.sh](verify-migrations.sh) | Verify the isolated `_test` database contract and manifest parity. | `make db-verify` |
 | [deploy.sh](deploy.sh) | Run the local, staging, or production deployment wrapper. | `make deploy-local` / `make deploy-staging` / `make deploy` |
 | [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-local git hooks. | `make hooks` |
 | [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files. | `./scripts/select-checks.sh` |
@@ -53,7 +53,10 @@ If you just need a quick repo check, start with:
 make lint
 make typecheck
 make test
+make test-coverage
 ```
+
+`make test-coverage` is the coverage-focused companion to `make test`: it runs backend and frontend coverage plus Playwright smoke tests. The full Playwright CI matrix stays gated to the default browser projects; `Mobile Safari` and `Tablet` remain manual/ad hoc projects that you can run explicitly when needed.
 
 If your change is docs-only, use:
 

@@ -1,7 +1,3 @@
 services:
-  postgres:
-    restart: unless-stopped
-
   redis:
-    restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]

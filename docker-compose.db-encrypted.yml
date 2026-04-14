@@ -4,7 +4,3 @@ services:
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_AT_REST_ENCRYPTION_MODE: luks
-
-  postgres:
-    environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}

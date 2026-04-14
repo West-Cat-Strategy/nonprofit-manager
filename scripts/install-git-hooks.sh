@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HOOKS_DIR="$ROOT_DIR/.git/hooks"
-SOURCE_HOOKS_DIR="$ROOT_DIR/scripts/hooks"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+
+HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
+SOURCE_HOOKS_DIR="$PROJECT_ROOT/scripts/hooks"
 
 if [[ ! -d "$HOOKS_DIR" ]]; then
   echo "Git hooks directory not found at $HOOKS_DIR" >&2

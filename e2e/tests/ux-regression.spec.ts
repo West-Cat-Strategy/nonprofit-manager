@@ -262,10 +262,18 @@ test.describe("UI/UX regression flows", () => {
     const primaryNav = authenticatedPage
       .locator('[aria-label="Primary navigation"]')
       .first();
-    const moreButton = authenticatedPage.locator('button[aria-label="More navigation"]');
-    const userMenuButton = authenticatedPage.locator('button[aria-label="User menu"]');
-    const mainMenuButton = authenticatedPage.locator('button[aria-label="Main menu"]');
-    const searchButton = authenticatedPage.locator('button[aria-label="Search"]');
+    const moreButton = authenticatedPage.locator(
+      'button[aria-label="More navigation"]',
+    );
+    const userMenuButton = authenticatedPage.locator(
+      'button[aria-label="User menu"]',
+    );
+    const mainMenuButton = authenticatedPage.locator(
+      'button[aria-label="Main menu"]',
+    );
+    const searchButton = authenticatedPage.locator(
+      'button[aria-label="Search"]',
+    );
     const alertsLink = authenticatedPage.locator('a[aria-label="Alerts"]');
 
     await authenticatedPage.setViewportSize({ width: 1024, height: 900 });
@@ -279,11 +287,22 @@ test.describe("UI/UX regression flows", () => {
     await expect(alertsLink).toBeVisible();
 
     await mainMenuButton.click();
-    await expect(authenticatedPage.getByText(/^primary$/i).first()).toBeVisible();
-    await expect(authenticatedPage.getByText(/^more modules$/i).first()).toBeVisible();
-    await expect(authenticatedPage.getByText(/^utilities$/i).first()).toBeVisible();
-    await expect(authenticatedPage.getByText(/^account$/i).first()).toBeVisible();
-    await expectNoHorizontalOverflow(authenticatedPage, "dashboard shell at 1024px");
+    await expect(
+      authenticatedPage.getByText(/^primary$/i).first(),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText(/^more modules$/i).first(),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText(/^utilities$/i).first(),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText(/^account$/i).first(),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(
+      authenticatedPage,
+      "dashboard shell at 1024px",
+    );
     const compactNavHeight = await globalNav.evaluate((element) =>
       Math.round(element.getBoundingClientRect().height),
     );
@@ -317,18 +336,22 @@ test.describe("UI/UX regression flows", () => {
 
     await moreButton.click();
     await expect(
-      authenticatedPage.getByRole("menuitem", { name: /^tasks$/i }).first(),
+      authenticatedPage.getByRole("link", { name: /^tasks$/i }).first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole("menuitem", { name: /^analytics$/i }).first(),
+      authenticatedPage.getByRole("link", { name: /^analytics$/i }).first(),
     ).toBeVisible();
 
     await userMenuButton.click();
     await expect(
-      authenticatedPage.getByRole("menuitem", { name: /admin settings/i }).first(),
+      authenticatedPage
+        .getByRole("menuitem", { name: /admin settings/i })
+        .first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole("menuitem", { name: /switch to (light|dark)/i }).first(),
+      authenticatedPage
+        .getByRole("menuitem", { name: /switch to (light|dark)/i })
+        .first(),
     ).toBeVisible();
 
     await searchButton.click();
@@ -339,7 +362,10 @@ test.describe("UI/UX regression flows", () => {
       .getByRole("button", { name: /close search dialog/i })
       .click();
     await expect(searchButton).toBeFocused();
-    await expectNoHorizontalOverflow(authenticatedPage, "dashboard shell at 1280px");
+    await expectNoHorizontalOverflow(
+      authenticatedPage,
+      "dashboard shell at 1280px",
+    );
 
     const fullNavHeight = await globalNav.evaluate((element) =>
       Math.round(element.getBoundingClientRect().height),
@@ -396,9 +422,9 @@ test.describe("UI/UX regression flows", () => {
     await expect(
       authenticatedPage.getByRole("link", { name: /people/i }).first(),
     ).toBeVisible();
-    await expect(
-      authenticatedPage.getByText(/search workspace/i),
-    ).toHaveCount(0);
+    await expect(authenticatedPage.getByText(/search workspace/i)).toHaveCount(
+      0,
+    );
     await expectNoHorizontalOverflow(
       authenticatedPage,
       "mobile dashboard navigation drawer",
@@ -446,7 +472,8 @@ test.describe("UI/UX regression flows", () => {
         page.getByRole("button", { name }).first(),
       );
       const submit =
-        (await waitForAnyVisibleLocator(page, submitCandidates)) ?? submitCandidates[0];
+        (await waitForAnyVisibleLocator(page, submitCandidates)) ??
+        submitCandidates[0];
 
       await expect(input).toBeVisible();
       await expect(submit).toBeVisible();
@@ -476,9 +503,16 @@ test.describe("UI/UX regression flows", () => {
 
     await authenticatedPage.goto("/dashboard");
 
-    const mainContentBox = await authenticatedPage.locator("#main-content").boundingBox();
-    const headingBox = await authenticatedPage.locator("main h1").first().boundingBox();
-    expect(mainContentBox?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(200);
+    const mainContentBox = await authenticatedPage
+      .locator("#main-content")
+      .boundingBox();
+    const headingBox = await authenticatedPage
+      .locator("main h1")
+      .first()
+      .boundingBox();
+    expect(mainContentBox?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(
+      200,
+    );
     expect(headingBox?.y ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(260);
     await expectNoHorizontalOverflow(authenticatedPage, "/dashboard");
 
@@ -487,7 +521,11 @@ test.describe("UI/UX regression flows", () => {
       heading: RegExp;
       cardTestId: string;
     }> = [
-      { path: "/contacts", heading: /people/i, cardTestId: "mobile-contact-card" },
+      {
+        path: "/contacts",
+        heading: /people/i,
+        cardTestId: "mobile-contact-card",
+      },
       { path: "/tasks", heading: /tasks/i, cardTestId: "mobile-task-card" },
       { path: "/cases", heading: /cases/i, cardTestId: "mobile-case-card" },
       { path: "/events", heading: /events/i, cardTestId: "mobile-event-card" },

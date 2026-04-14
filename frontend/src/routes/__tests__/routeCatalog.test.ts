@@ -13,15 +13,17 @@ import { createDefaultWorkspaceModuleSettings } from '../../features/workspaceMo
 describe('routeCatalog matching', () => {
   it('matches canonical routes and keeps query strings attached to canonical paths', () => {
     expect(matchRouteCatalogEntry('/settings/admin/users')?.id).toBe('admin-settings-users');
-    expect(matchRouteCatalogEntry('/settings/admin/users?foo=1')?.id).toBe(
-      'admin-settings-users'
-    );
-    expect(matchRouteCatalogEntry('/settings/admin/portal/access')?.id).toBe(
-      'portal-admin-access'
-    );
+    expect(matchRouteCatalogEntry('/settings/admin/users?foo=1')?.id).toBe('admin-settings-users');
+    expect(matchRouteCatalogEntry('/settings/admin/portal/access')?.id).toBe('portal-admin-access');
     expect(matchRouteCatalogEntry('/settings/communications?ref=legacy')?.id).toBe(
       'communications'
     );
+    expect(matchRouteCatalogEntry('/settings/email-marketing')?.id).toBe('email-marketing');
+    expect(
+      getRouteLocalNavigation('/settings/email-marketing').find(
+        (entry) => entry.id === 'communications'
+      )?.isActive
+    ).toBe(true);
   });
 
   it('matches canonical and dynamic routes', () => {
@@ -51,9 +53,7 @@ describe('routeCatalog matching', () => {
   });
 
   it('includes Websites in the staff navigation and resolves the module hub route', () => {
-    expect(
-      getStaffNavigationEntries({}, createDefaultWorkspaceModuleSettings())
-    ).toEqual(
+    expect(getStaffNavigationEntries({}, createDefaultWorkspaceModuleSettings())).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'websites',
@@ -72,18 +72,18 @@ describe('routeCatalog matching', () => {
   });
 
   it('walks the Websites route family to a terminal ancestor chain', () => {
-    expect(collectRouteAncestors(matchRouteCatalogEntry('/websites'))?.map((entry) => entry.id)).toEqual([
-      'websites',
-    ]);
+    expect(
+      collectRouteAncestors(matchRouteCatalogEntry('/websites'))?.map((entry) => entry.id)
+    ).toEqual(['websites']);
     expect(
       collectRouteAncestors(matchRouteCatalogEntry('/websites/example-site/overview')).map(
         (entry) => entry.id
       )
     ).toEqual(['website-console-overview', 'websites']);
     expect(
-      collectRouteAncestors(matchRouteCatalogEntry('/website-builder/example-template/preview')).map(
-        (entry) => entry.id
-      )
+      collectRouteAncestors(
+        matchRouteCatalogEntry('/website-builder/example-template/preview')
+      ).map((entry) => entry.id)
     ).toEqual(['website-builder-preview', 'website-builder', 'websites']);
   });
 
@@ -94,8 +94,9 @@ describe('routeCatalog matching', () => {
       ['c', { id: 'c', parentId: 'a' }],
     ]);
 
-    const chain = walkRouteParentChain(cyclicNodes.get('a') ?? null, (entry) =>
-      cyclicNodes.get(entry.parentId ?? '') ?? null
+    const chain = walkRouteParentChain(
+      cyclicNodes.get('a') ?? null,
+      (entry) => cyclicNodes.get(entry.parentId ?? '') ?? null
     );
 
     expect(chain.map((entry) => entry.id)).toEqual(['a', 'b', 'c']);

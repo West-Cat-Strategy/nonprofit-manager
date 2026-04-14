@@ -1,5 +1,6 @@
-import { AnalyticsService } from '@services';
+import { AnalyticsService } from '@services/analytics';
 import { Pool } from 'pg';
+import { getCached, setCached } from '@config/redis';
 
 // Mock the logger
 jest.mock('../../config/logger', () => ({
@@ -9,6 +10,11 @@ jest.mock('../../config/logger', () => ({
     warn: jest.fn(),
     debug: jest.fn(),
   },
+}));
+
+jest.mock('@config/redis', () => ({
+  getCached: jest.fn().mockResolvedValue(null),
+  setCached: jest.fn().mockResolvedValue(undefined),
 }));
 
 // Helper to create query matcher for complex tests with parallel queries
@@ -30,6 +36,8 @@ describe('AnalyticsService', () => {
   let analyticsService: AnalyticsService;
   let mockPool: jest.Mocked<Pool>;
   let mockQuery: jest.Mock;
+  const mockGetCached = getCached as jest.MockedFunction<typeof getCached>;
+  const mockSetCached = setCached as jest.MockedFunction<typeof setCached>;
 
   beforeEach(() => {
     mockQuery = jest.fn();
@@ -37,6 +45,8 @@ describe('AnalyticsService', () => {
       query: mockQuery,
     } as unknown as jest.Mocked<Pool>;
     analyticsService = new AnalyticsService(mockPool);
+    mockGetCached.mockResolvedValue(null);
+    mockSetCached.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -159,6 +169,9 @@ describe('AnalyticsService', () => {
       expect(result.attendance_rate).toBe(0.8);
       expect(result.by_event_type).toHaveProperty('fundraiser');
       expect(result.recent_events).toHaveLength(1);
+      const [recentEventsQuery] = mockQuery.mock.calls[2] as [string];
+      expect(recentEventsQuery).toContain('e.name as event_name');
+      expect(recentEventsQuery).not.toContain('e.event_name');
     });
 
     it('should calculate attendance rate correctly', async () => {
@@ -253,6 +266,45 @@ describe('AnalyticsService', () => {
       const result = await analyticsService.getVolunteerMetrics('contact-123');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getEventAttendanceTrends', () => {
+    it('should query event trends with the current events schema and cache the results', async () => {
+      const now = new Date();
+      const month = now.toISOString().slice(0, 7);
+
+      mockQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            month,
+            total_events: '2',
+            total_registrations: '8',
+            total_attendance: '5',
+            capacity_utilization: '20',
+            attendance_rate: '62.5',
+          },
+        ],
+      });
+
+      const result = await analyticsService.getEventAttendanceTrends(1);
+
+      expect(mockQuery).toHaveBeenCalledTimes(1);
+      const [query] = mockQuery.mock.calls[0] as [string];
+      expect(query).toContain('SUM(e.capacity)');
+      expect(query).not.toContain('max_attendees');
+      expect(result).toEqual([
+        {
+          month,
+          total_events: 2,
+          total_registrations: 8,
+          total_attendance: 5,
+          capacity_utilization: 20,
+          attendance_rate: 62.5,
+        },
+      ]);
+      expect(mockGetCached).toHaveBeenCalledWith('analytics:event-trends:1');
+      expect(mockSetCached).toHaveBeenCalledWith('analytics:event-trends:1', result, 600);
     });
   });
 

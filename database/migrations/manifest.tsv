@@ -86,8 +86,6 @@
 084	084_imported_import_staging.sql	
 085	085_case_type_and_outcome_assignments.sql	
 086	086_imported_case_contact_org_backfill.sql	
-<<<<<<< HEAD
 087	087_newsletter_provider_settings.sql	
 088	088_provider_agnostic_payment_columns.sql	
-=======
->>>>>>> origin/main
+089	089_case_topic_definitions_constraint_alignment.sql	

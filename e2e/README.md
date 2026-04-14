@@ -1,6 +1,6 @@
 # E2E Tests
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-13
 
 Playwright tests live here. For the overall testing strategy, see [../docs/testing/TESTING.md](../docs/testing/TESTING.md).
 
@@ -58,6 +58,8 @@ npm run test:report
 - `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services on `8005/8004/8006`
 - `npm run test:docker:audit`: dedicated Chromium dark-mode route audit against Docker-hosted services on `8005/8004/8006`
 - `npm run test:report`: open the HTML report
+
+`Mobile Safari` and `Tablet` are defined in `playwright.config.ts` for manual/ad hoc `--project` runs. They are intentionally excluded from the CI wrappers above.
 
 ## Docker App Stack Runtime
 

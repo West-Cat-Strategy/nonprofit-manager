@@ -9,9 +9,10 @@ This file is the active test command map for nonprofit-manager. Use it with [../
 | Layer | Primary Command | Notes |
 |------|------------------|-------|
 | Repo-wide validation | `make test` | Runs backend, frontend, and Playwright on the CI-style local stack |
+| Coverage variant | `make test-coverage` | Runs backend/frontend coverage and Playwright smoke tests |
 | Backend unit/integration | `cd backend && npm test` / `cd backend && npm run test:integration` | `npm test` prepares the CI-style test DB before running the full Jest suite |
 | Frontend unit/component | `cd frontend && npm test -- --run` | Frontend uses Vitest |
-| E2E | `cd e2e && npm test` | Playwright starts frontend/backend by default; use `npm run test:docker` against `make docker-up-dev` |
+| E2E | `cd e2e && npm test` | Playwright starts frontend/backend by default; use `npm run test:docker` against `make docker-up-dev`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. |
 | Docs validation | `make check-links` and `make lint-doc-api-versioning` | Use when docs changed |
 
 ## Runtime Matrix
@@ -33,11 +34,13 @@ make typecheck
 make test
 ```
 
-Broader release-facing commands:
+Coverage and release commands:
 
 ```bash
 make ci
+make test-coverage
 make ci-full
+make ci-unit
 ```
 
 ## Package-Level Commands

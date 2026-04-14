@@ -53,7 +53,7 @@ Database migrations are stored in `database/migrations/` and are ordered by `dat
 - Include rollback instructions in comments when possible
 
 ### Seeds
-Seed data is stored in `database/seeds/` and contains optional demo/test data for development and testing environments. The default init path loads starter bootstrap data only and does not include the demo contact bundle.
+Seed data is stored in `database/seeds/` and contains optional demo/test data for development and testing environments. The default init path loads only the starter bootstrap data from `database/initdb/000_init.sql` and does not include the demo contact bundle.
 
 **Available Seeds:**
 - `001_default_users.sql` - Default admin and test users
@@ -63,9 +63,10 @@ Seed data is stored in `database/seeds/` and contains optional demo/test data fo
 - `005_kingdom_hearts_mock_data.sql` - Optional specialized demo bundle
 - `006_theme_presets.sql` - UI theme configurations
 - `007_data_scopes.sql` - Data access scope definitions
+- `008_outcome_definitions.sql` - Default outcome definitions used by case tracking and reporting
 
 ### Initialization
-The `database/initdb/000_init.sql` script runs all migrations and starter bootstrap seeds in the correct order for development environments.
+The `database/initdb/000_init.sql` script runs the canonical migration chain in manifest order and loads only the starter bootstrap seeds (`002_starter_templates.sql`, `006_theme_presets.sql`, `007_data_scopes.sql`, and `008_outcome_definitions.sql`) for development environments.
 
 ## Migration Management
 

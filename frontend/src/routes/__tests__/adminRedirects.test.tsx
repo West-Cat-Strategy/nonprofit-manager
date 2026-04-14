@@ -6,11 +6,21 @@ import { createAdminRoutes } from '../adminRoutes';
 
 vi.mock('../../features/adminOps/routeComponents', async () => {
   const { Navigate, useLocation, useParams } = await import('react-router-dom');
-  const { getAdminSettingsPath, parseAdminSettingsSection } = await import(
-    '../../features/adminOps/adminRoutePaths'
-  );
+  const { getAdminSettingsPath, parseAdminSettingsSection } =
+    await import('../../features/adminOps/adminRoutePaths');
 
   const AdminSettings = () => <h1>Admin Settings Page</h1>;
+  const CommunicationsPage = () => {
+    const location = useLocation();
+
+    return (
+      <h1>
+        {location.pathname.includes('email-marketing')
+          ? 'Email Marketing Page'
+          : 'Communications Page'}
+      </h1>
+    );
+  };
 
   return {
     AdminSettings,
@@ -18,7 +28,7 @@ vi.mock('../../features/adminOps/routeComponents', async () => {
     ApiSettings: () => <h1>API Settings Page</h1>,
     NavigationSettings: () => <h1>Navigation Settings Page</h1>,
     DataBackup: () => <h1>Data Backup Page</h1>,
-    CommunicationsPage: () => <h1>Communications Page</h1>,
+    CommunicationsPage,
     SocialMedia: () => <h1>Social Media Page</h1>,
     PortalAdminPage: ({ panel }: { panel: string }) => <h1>Portal Panel: {panel}</h1>,
     AdminSettingsSectionRoute: () => {
@@ -77,7 +87,9 @@ const expectCurrentLocation = (expected: string) => {
 describe('admin route redirects', () => {
   it('redirects /settings/admin to the dashboard section', async () => {
     renderAdminRoutes('/settings/admin');
-    expect(await screen.findByRole('heading', { name: /admin settings page/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /admin settings page/i })
+    ).toBeInTheDocument();
     expectCurrentLocation('/settings/admin/dashboard');
   });
 
@@ -94,19 +106,25 @@ describe('admin route redirects', () => {
     ['/settings/admin/other', '/settings/admin/other'],
   ])('renders canonical admin section route %s', async (route, canonicalRoute) => {
     renderAdminRoutes(route);
-    expect(await screen.findByRole('heading', { name: /admin settings page/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /admin settings page/i })
+    ).toBeInTheDocument();
     expectCurrentLocation(canonicalRoute);
   });
 
   it('redirects invalid admin section slugs to dashboard', async () => {
     renderAdminRoutes('/settings/admin/not-a-real-section?foo=1');
-    expect(await screen.findByRole('heading', { name: /admin settings page/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /admin settings page/i })
+    ).toBeInTheDocument();
     expectCurrentLocation('/settings/admin/dashboard?foo=1');
   });
 
   it('redirects /settings/admin/portal to portal access panel', async () => {
     renderAdminRoutes('/settings/admin/portal');
-    expect(await screen.findByRole('heading', { name: /portal panel: access/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /portal panel: access/i })
+    ).toBeInTheDocument();
     expectCurrentLocation('/settings/admin/portal/access');
   });
 
@@ -126,8 +144,18 @@ describe('admin route redirects', () => {
 
   it('renders canonical communications route directly', async () => {
     renderAdminRoutes('/settings/communications');
-    expect(await screen.findByRole('heading', { name: /communications page/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /communications page/i })
+    ).toBeInTheDocument();
     expectCurrentLocation('/settings/communications');
+  });
+
+  it('renders canonical email marketing route directly', async () => {
+    renderAdminRoutes('/settings/email-marketing');
+    expect(
+      await screen.findByRole('heading', { name: /email marketing page/i })
+    ).toBeInTheDocument();
+    expectCurrentLocation('/settings/email-marketing');
   });
 
   it('renders canonical social media route directly', async () => {

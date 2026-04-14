@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { EventService } from '@services';
+import { EventService } from '@modules/events/services/eventService';
 import { EventType, EventStatus, RegistrationStatus } from '../../types/event';
 import { sendMail } from '@services/emailService';
 import { getEmailSettings } from '@services/emailSettingsService';

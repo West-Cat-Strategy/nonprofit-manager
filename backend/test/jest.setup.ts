@@ -197,6 +197,12 @@ beforeAll(async () => {
       : isIntegrationTestPath || isExplicitTrue(explicitEnv.EXPOSE_AUTH_TOKENS_IN_RESPONSE);
   process.env.EXPOSE_AUTH_TOKENS_IN_RESPONSE = shouldExposeAuthTokens ? 'true' : 'false';
 
+  const shouldBypassRegistrationPolicy =
+    explicitEnv.BYPASS_REGISTRATION_POLICY_IN_TEST === 'false'
+      ? false
+      : isIntegrationTestPath || isExplicitTrue(explicitEnv.BYPASS_REGISTRATION_POLICY_IN_TEST);
+  process.env.BYPASS_REGISTRATION_POLICY_IN_TEST = shouldBypassRegistrationPolicy ? 'true' : 'false';
+
   const shouldEnableRedis =
     isExplicitTrue(explicitEnv.REDIS_ENABLED) && typeof explicitEnv.REDIS_URL === 'string'
       ? explicitEnv.REDIS_URL.trim().length > 0

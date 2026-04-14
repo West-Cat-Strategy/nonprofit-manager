@@ -1,22 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+
 LOCK_FILE="${E2E_LOCK_FILE:-${E2E_CI_LOCK_FILE:-/tmp/nonprofit-manager-e2e.lock}}"
 ACTION="${1:-warn}"
+
+export E2E_LOCK_FILE="$LOCK_FILE"
 
 if [[ ! -f "$LOCK_FILE" ]]; then
   echo "No E2E lock file present at $LOCK_FILE"
   exit 0
 fi
 
-metadata="$(cat "$LOCK_FILE" 2>/dev/null || true)"
-lock_pid="${metadata%%:*}"
-lock_pid="${lock_pid//[^0-9]/}"
-lock_pgid=""
-if [[ "$metadata" == *:* ]]; then
-  lock_pgid="${metadata#*:}"
-  lock_pgid="${lock_pgid//[^0-9]/}"
-fi
+lock_pid="$(e2e_read_lock_pid)"
+lock_pgid="$(e2e_read_lock_pgid)"
 
 if [[ -z "$lock_pid" ]]; then
   rm -f "$LOCK_FILE"
@@ -24,7 +23,7 @@ if [[ -z "$lock_pid" ]]; then
   exit 0
 fi
 
-if kill -0 "$lock_pid" 2>/dev/null; then
+if e2e_pid_is_alive "$lock_pid"; then
   if [[ "$ACTION" == "kill" ]]; then
     if [[ -n "$lock_pgid" ]]; then
       kill -TERM -- "-$lock_pgid" 2>/dev/null || true
@@ -46,4 +45,3 @@ fi
 
 rm -f "$LOCK_FILE"
 echo "Removed stale E2E lock file: $LOCK_FILE"
-

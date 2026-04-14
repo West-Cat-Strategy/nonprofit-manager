@@ -7,12 +7,17 @@
  */
 
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
+import { getJwtSecret } from '../../config/jwt';
 
 describe('Analytics API Integration Tests', () => {
   let authToken: string;
   let testUserId: string;
+  const createdContactIds: string[] = [];
+  const createdEventIds: string[] = [];
+  const createdRegistrationIds: string[] = [];
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const unwrap = <T>(body: unknown): T => {
     if (body && typeof body === 'object' && 'data' in (body as Record<string, unknown>)) {
@@ -32,11 +37,42 @@ describe('Analytics API Integration Tests', () => {
       last_name: 'Test',
     });
 
-    authToken = registerResponse.body.token;
-    testUserId = registerResponse.body.user.id;
+    const registerPayload = unwrap<{
+      token?: string;
+      user?: { id: string; email: string; role: string };
+      organizationId?: string;
+    }>(registerResponse.body);
+
+    const registeredUser = registerPayload.user;
+    if (!registeredUser?.id) {
+      throw new Error('Failed to register analytics test user');
+    }
+
+    testUserId = registeredUser.id;
+    authToken = jwt.sign(
+      {
+        id: registeredUser.id,
+        email: registeredUser.email ?? email,
+        role: 'viewer',
+        organizationId: registerPayload.organizationId,
+      },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
   });
 
   afterAll(async () => {
+    if (createdRegistrationIds.length > 0) {
+      await pool.query('DELETE FROM event_registrations WHERE id = ANY($1::uuid[])', [
+        createdRegistrationIds,
+      ]);
+    }
+    if (createdEventIds.length > 0) {
+      await pool.query('DELETE FROM events WHERE id = ANY($1::uuid[])', [createdEventIds]);
+    }
+    if (createdContactIds.length > 0) {
+      await pool.query('DELETE FROM contacts WHERE id = ANY($1::uuid[])', [createdContactIds]);
+    }
     // Clean up test user - must delete in order to respect foreign keys
     if (testUserId) {
       await pool.query('DELETE FROM users WHERE id = $1', [testUserId]);
@@ -204,6 +240,92 @@ describe('Analytics API Integration Tests', () => {
             expect(trends[0]).toHaveProperty('assignments');
           }
         }
+      });
+    });
+
+    describe('GET /api/v2/analytics/trends/event-attendance', () => {
+      it('should return event attendance trends for the current events schema', async () => {
+        const contactResult = await pool.query<{ id: string }>(
+          `INSERT INTO contacts (first_name, last_name, email)
+           VALUES ('Analytics', 'Registrant', $1)
+           RETURNING id`,
+          [`analytics-event-${unique()}@example.com`]
+        );
+        const contactId = contactResult.rows[0].id;
+        createdContactIds.push(contactId);
+
+        const eventResult = await pool.query<{ id: string }>(
+          `INSERT INTO events (name, event_type, start_date, end_date, capacity)
+           VALUES ($1, 'community', NOW() - interval '1 day', NOW() + interval '1 hour', 40)
+           RETURNING id`,
+          [`Analytics Trend Event ${unique()}`]
+        );
+        const eventId = eventResult.rows[0].id;
+        createdEventIds.push(eventId);
+
+        const checkedInRegistrationResult = await pool.query<{ id: string }>(
+          `INSERT INTO event_registrations (
+             event_id,
+             contact_id,
+             registration_status,
+             checked_in,
+             check_in_time
+           ) VALUES ($1, $2, 'registered', true, NOW())
+           RETURNING id`,
+          [eventId, contactId]
+        );
+        createdRegistrationIds.push(checkedInRegistrationResult.rows[0].id);
+
+        const attendeeContactResult = await pool.query<{ id: string }>(
+          `INSERT INTO contacts (first_name, last_name, email)
+           VALUES ('Analytics', 'Waitlist', $1)
+           RETURNING id`,
+          [`analytics-event-waitlist-${unique()}@example.com`]
+        );
+        const attendeeContactId = attendeeContactResult.rows[0].id;
+        createdContactIds.push(attendeeContactId);
+
+        const registeredOnlyResult = await pool.query<{ id: string }>(
+          `INSERT INTO event_registrations (event_id, contact_id, registration_status, checked_in)
+           VALUES ($1, $2, 'registered', false)
+           RETURNING id`,
+          [eventId, attendeeContactId]
+        );
+        createdRegistrationIds.push(registeredOnlyResult.rows[0].id);
+
+        const response = await request(app)
+          .get('/api/v2/analytics/trends/event-attendance?months=1')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        const trends = unwrap<
+          Array<{
+            month: string;
+            total_events: number;
+            total_registrations: number;
+            total_attendance: number;
+            capacity_utilization: number;
+            attendance_rate: number;
+          }>
+        >(response.body);
+
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const currentMonthTrend = trends.find((trend) => trend.month === currentMonth);
+
+        expect(currentMonthTrend).toBeDefined();
+        expect(currentMonthTrend).toEqual(
+          expect.objectContaining({
+            month: currentMonth,
+            total_events: expect.any(Number),
+            total_registrations: expect.any(Number),
+            total_attendance: expect.any(Number),
+            capacity_utilization: expect.any(Number),
+            attendance_rate: expect.any(Number),
+          })
+        );
+        expect(currentMonthTrend!.total_events).toBeGreaterThanOrEqual(1);
+        expect(currentMonthTrend!.total_registrations).toBeGreaterThanOrEqual(2);
+        expect(currentMonthTrend!.total_attendance).toBeGreaterThanOrEqual(1);
       });
     });
   });

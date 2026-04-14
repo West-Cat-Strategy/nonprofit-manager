@@ -54,7 +54,8 @@ export type ApiKeyScope =
   | 'write:tasks'
   | 'read:reports'
   | 'read:analytics'
-  | 'admin';
+  | 'admin'
+  | '*';
 
 /**
  * Webhook endpoint

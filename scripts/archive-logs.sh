@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ARCHIVE_DIR="${ARCHIVE_DIR:-$ROOT_DIR/tmp/security-archives}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+ARCHIVE_DIR="${ARCHIVE_DIR:-$PROJECT_ROOT/tmp/security-archives}"
 TIMESTAMP="${TIMESTAMP:-$(date -u +%Y%m%d-%H%M%SZ)}"
 ARCHIVE_BASENAME="logs-${TIMESTAMP}.tar.gz"
 ARCHIVE_PATH="$ARCHIVE_DIR/$ARCHIVE_BASENAME"
@@ -11,11 +12,11 @@ ENCRYPTED_PATH="${ARCHIVE_PATH%.tar.gz}.tar.gz.enc"
 mkdir -p "$ARCHIVE_DIR"
 
 sources=(
-  "$ROOT_DIR/backend/logs"
-  "$ROOT_DIR/tmp/e2e-runner"
-  "$ROOT_DIR/docs/ui/app-ux-audit.md"
-  "$ROOT_DIR/docs/ui/app-ux-audit.json"
-  "$ROOT_DIR/docs/performance/artifacts/p4-t9h"
+  "$PROJECT_ROOT/backend/logs"
+  "$PROJECT_ROOT/tmp/e2e-runner"
+  "$PROJECT_ROOT/docs/ui/app-ux-audit.md"
+  "$PROJECT_ROOT/docs/ui/app-ux-audit.json"
+  "$PROJECT_ROOT/docs/performance/artifacts/p4-t9h"
 )
 
 existing_sources=()
@@ -30,7 +31,7 @@ if [[ "${#existing_sources[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-tar -czf "$ARCHIVE_PATH" -C "$ROOT_DIR" "${existing_sources[@]#"$ROOT_DIR/"}"
+tar -czf "$ARCHIVE_PATH" -C "$PROJECT_ROOT" "${existing_sources[@]#"$PROJECT_ROOT/"}"
 
 if [[ -n "${ARCHIVE_ENCRYPTION_KEY:-}" ]]; then
   openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:ARCHIVE_ENCRYPTION_KEY -in "$ARCHIVE_PATH" -out "$ENCRYPTED_PATH"
@@ -39,4 +40,3 @@ if [[ -n "${ARCHIVE_ENCRYPTION_KEY:-}" ]]; then
 else
   echo "Archived logs to $ARCHIVE_PATH"
 fi
-

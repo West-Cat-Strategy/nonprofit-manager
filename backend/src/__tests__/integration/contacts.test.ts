@@ -1,11 +1,15 @@
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
+import { getJwtSecret } from '../../config/jwt';
 import { ContactService } from '../../services/contactService';
 
 describe('Contact API Integration Tests', () => {
   let authToken: string;
   let staffAuthToken: string;
+  let viewerAuthToken: string;
+  let adminAuthToken: string;
   let testAccountId: string;
   let creatorUserId: string;
   let staffUserId: string;
@@ -45,13 +49,18 @@ describe('Contact API Integration Tests', () => {
     withAuthToken(authToken, req);
   const withStaffAuth = (req: ReturnType<typeof request>): ReturnType<typeof request> =>
     withAuthToken(staffAuthToken, req);
+  const withViewerAuth = (req: ReturnType<typeof request>): ReturnType<typeof request> =>
+    withAuthToken(viewerAuthToken, req);
+  const withAdminAuth = (req: ReturnType<typeof request>): ReturnType<typeof request> =>
+    withAuthToken(adminAuthToken, req);
 
   beforeAll(async () => {
     // Register and login
+    const email = `contact-test-${unique()}@example.com`;
     const registerResponse = await request(app)
       .post('/api/v2/auth/register')
       .send({
-        email: `contact-test-${unique()}@example.com`,
+        email,
         password: sharedPassword,
         password_confirm: sharedPassword,
         first_name: 'Contact',
@@ -79,6 +88,27 @@ describe('Contact API Integration Tests', () => {
     );
     creatorUserId = accountOwnerResult.rows[0]?.created_by || '';
     expect(creatorUserId).toBeTruthy();
+
+    viewerAuthToken = jwt.sign(
+      {
+        id: creatorUserId,
+        email,
+        role: 'viewer',
+        organizationId: testAccountId,
+      },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
+    adminAuthToken = jwt.sign(
+      {
+        id: creatorUserId,
+        email,
+        role: 'admin',
+        organizationId: testAccountId,
+      },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
 
     const staffEmail = `contact-staff-${unique()}@example.com`;
     await request(app)
@@ -550,7 +580,7 @@ describe('Contact API Integration Tests', () => {
       const staffPayload = payloadFromResponse<{ phn: string | null }>(staffViewResponse.body);
       expect(staffPayload.phn).toBe('0987654321');
 
-      const nonStaffViewResponse = await withAuth(request(app)
+      const nonStaffViewResponse = await withViewerAuth(request(app)
         .get(`/api/v2/contacts/${contactId}`))
         .expect(200);
       const nonStaffPayload = payloadFromResponse<{ phn: string | null }>(nonStaffViewResponse.body);
@@ -924,7 +954,7 @@ describe('Contact API Integration Tests', () => {
       const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
 
       // Delete returns 204 No Content
-      await withStaffAuth(request(app)
+      await withAdminAuth(request(app)
         .delete(`/api/v2/contacts/${contactId}`)
       )
         .expect(204);
@@ -939,7 +969,7 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('should return 404 for non-existent contact', async () => {
-      await withStaffAuth(request(app)
+      await withAdminAuth(request(app)
         .delete('/api/v2/contacts/00000000-0000-0000-0000-000000000000')
       )
         .expect(404);

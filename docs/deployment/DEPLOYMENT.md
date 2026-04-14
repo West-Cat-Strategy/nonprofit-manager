@@ -508,7 +508,20 @@ server {
 
 ## Database Migration
 
-### Initial Setup
+### Canonical Repo Flow
+
+For compose-backed environments, use the repo helpers instead of hand-running migration files:
+
+```bash
+make db-migrate
+make db-verify
+```
+
+`make db-migrate` brings up or inspects the current database contract, and `make db-verify` validates the isolated `_test` database against the migration manifest.
+
+### Manual PostgreSQL Setup
+
+If you are managing PostgreSQL directly, apply the bootstrap contract explicitly:
 
 ```bash
 # Connect to PostgreSQL
@@ -524,9 +537,8 @@ GRANT ALL PRIVILEGES ON DATABASE nonprofit_manager TO nonprofit_user;
 # Exit psql
 \q
 
-# Run migrations
-psql -U nonprofit_user -d nonprofit_manager -f database/migrations/001_initial_schema.sql
-psql -U nonprofit_user -d nonprofit_manager -f database/migrations/002_audit_logs.sql
+# Run the bootstrap contract
+psql -U nonprofit_user -d nonprofit_manager -f database/initdb/000_init.sql
 ```
 
 ### Future Migrations

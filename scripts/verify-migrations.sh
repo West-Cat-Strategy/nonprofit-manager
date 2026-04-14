@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "$ROOT_DIR/scripts/lib/common.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
 DB_NAME="${DB_NAME:-nonprofit_manager_test}"
 DB_USER="${DB_USER:-postgres}"
@@ -22,7 +22,7 @@ if [[ "$DB_AUTO_START" != "0" ]]; then
     DB_NAME="$DB_NAME" \
     DB_PORT="$DB_PORT" \
     DB_PASSWORD="$DB_PASSWORD" \
-    "$ROOT_DIR/scripts/db-migrate.sh" >/dev/null
+    "$PROJECT_ROOT/scripts/db-migrate.sh" >/dev/null
 fi
 
 if [[ "$DB_DRY_RUN" == "1" ]]; then
@@ -34,7 +34,7 @@ verify_with_psql -c 'SELECT 1;' >/dev/null
 echo "✓ Database connection successful"
 
 mapfile -t expected_migrations < <(
-  awk -F '\t' 'BEGIN { OFS="\t" } /^[0-9]/ { print $2 }' "$ROOT_DIR/database/migrations/manifest.tsv"
+  awk -F '\t' 'BEGIN { OFS="\t" } /^[0-9]/ { print $2 }' "$PROJECT_ROOT/database/migrations/manifest.tsv"
 )
 
 mapfile -t applied_migrations < <(

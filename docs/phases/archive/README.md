@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-02-18
 
-This directory contains historical phase completion reports and session summaries.
+This directory contains historical phase completion reports, session summaries, and workboard history snapshots.
 
 ---
 
@@ -65,7 +65,8 @@ This is the single source of truth for:
 - `WEEK1_COMPONENT_TESTING_COMPLETE.md` — Component test completion
 - `WEEK1_INTEGRATION_TESTING_COMPLETE.md` — Integration test completion
 - `EVENT_MODULE_COMPLETION.md` — Event module work
- - `SESSION_LOG_FEB_2026.md` — Archived session logs & recently completed dump (from planning-and-progress.md)
+- `SESSION_LOG_FEB_2026.md` — Archived session logs & recently completed dump (from planning-and-progress.md)
+- `WORKBOARD_HISTORY_2026.md` — Historical workboard sections trimmed from the live planner (roadmap, logs, trackers, and legacy reference material)
 
 **Status**: ✅ Complete (completed early 2026)
 

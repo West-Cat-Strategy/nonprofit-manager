@@ -78,7 +78,7 @@ export class EventAnalyticsService {
       const recentQuery =
         entityType === 'account'
           ? `
-            SELECT e.id as event_id, e.event_name, e.start_date as event_date, er.registration_status as status
+            SELECT e.id as event_id, e.name as event_name, e.start_date as event_date, er.registration_status as status
             FROM event_registrations er
             JOIN events e ON er.event_id = e.id
             JOIN contacts c ON er.contact_id = c.id
@@ -87,7 +87,7 @@ export class EventAnalyticsService {
             LIMIT 5
           `
           : `
-            SELECT e.id as event_id, e.event_name, e.start_date as event_date, er.registration_status as status
+            SELECT e.id as event_id, e.name as event_name, e.start_date as event_date, er.registration_status as status
             FROM event_registrations er
             JOIN events e ON er.event_id = e.id
             WHERE er.contact_id = $1
@@ -153,10 +153,10 @@ export class EventAnalyticsService {
           COUNT(DISTINCT e.id) as total_events,
           COUNT(er.id) as total_registrations,
           COUNT(er.id) FILTER (WHERE er.checked_in = true) as total_attendance,
-          COALESCE(SUM(e.max_attendees), 0) as total_capacity,
+          COALESCE(SUM(e.capacity), 0) as total_capacity,
           CASE
-            WHEN SUM(e.max_attendees) > 0
-            THEN (COUNT(er.id)::float / SUM(e.max_attendees)::float) * 100
+            WHEN SUM(e.capacity) > 0
+            THEN (COUNT(er.id)::float / SUM(e.capacity)::float) * 100
             ELSE 0
           END as capacity_utilization,
           CASE

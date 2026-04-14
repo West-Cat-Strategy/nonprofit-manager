@@ -107,6 +107,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/086_imported_case_contact_org_backfill.sql
 \i /migrations/087_newsletter_provider_settings.sql
 \i /migrations/088_provider_agnostic_payment_columns.sql
+\i /migrations/089_case_topic_definitions_constraint_alignment.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',

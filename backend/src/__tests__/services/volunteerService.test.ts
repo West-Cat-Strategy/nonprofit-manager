@@ -1,4 +1,4 @@
-import { VolunteerService } from '@services';
+import { VolunteerService } from '@services/volunteerService';
 import { Pool } from 'pg';
 import { BackgroundCheckStatus, AvailabilityStatus } from '../../types/volunteer';
 

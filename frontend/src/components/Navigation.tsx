@@ -1,12 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type RefObject,
-} from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from './Avatar';
 import NavPopover from './navigation/NavPopover';
@@ -278,7 +270,6 @@ export default function Navigation() {
                             <Link
                               key={item.id}
                               to={item.path}
-                              role="menuitem"
                               aria-current={
                                 isNavItemActive(item.id, item.path) ? 'page' : undefined
                               }
@@ -313,7 +304,6 @@ export default function Navigation() {
                             <Link
                               key={link.id}
                               to={link.path}
-                              role="menuitem"
                               aria-current={
                                 isNavItemActive(link.id, link.path) ? 'page' : undefined
                               }
@@ -341,11 +331,11 @@ export default function Navigation() {
           </div>
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="relative z-20 ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             ref={searchButtonRef}
-            className={desktopActionButtonClass}
+            className={classNames(desktopActionButtonClass, 'relative z-20')}
             onClick={() => {
               closeAllMenus();
               setSearchOpen(true);
@@ -379,6 +369,7 @@ export default function Navigation() {
             }
             className={classNames(
               desktopActionButtonClass,
+              'relative z-20',
               isNavItemActive(mobileAlertsLink.id, mobileAlertsLink.path)
                 ? activeDesktopButtonClass
                 : ''
@@ -389,16 +380,16 @@ export default function Navigation() {
           </Link>
 
           <div className="relative hidden xl:block">
-                <button
-                  type="button"
-                  ref={userMenuButtonRef}
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setSearchOpen(false);
-                    setUserMenuOpen((open) => !open);
-                    setMoreMenuOpen(false);
-                  }}
-              className="inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-1.5 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+            <button
+              type="button"
+              ref={userMenuButtonRef}
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setSearchOpen(false);
+                setUserMenuOpen((open) => !open);
+                setMoreMenuOpen(false);
+              }}
+              className="relative z-20 inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-1.5 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
               aria-label="User menu"
               aria-expanded={userMenuOpen}
               aria-haspopup="menu"

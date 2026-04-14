@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Shared script configuration helpers for Nonprofit Manager.
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$CONFIG_DIR/../.." && pwd)"
 
 if docker compose version >/dev/null 2>&1; then
   COMPOSE_CMD=(docker compose)
@@ -11,6 +11,9 @@ elif docker-compose version >/dev/null 2>&1; then
 else
   COMPOSE_CMD=(docker compose)
 fi
+
+COMPOSE_PROJECT_DEV="${COMPOSE_PROJECT_DEV:-nonprofit-dev}"
+COMPOSE_PROJECT_PROD="${COMPOSE_PROJECT_PROD:-nonprofit-prod}"
 
 repo_root() {
   printf '%s\n' "$PROJECT_ROOT"
@@ -41,12 +44,50 @@ compose_with_project() {
   "${COMPOSE_CMD[@]}" -p "$project_name" "$@"
 }
 
+compose_with_project_files() {
+  local project_name="$1"
+  shift
+
+  local -a compose_args=(-p "$project_name")
+
+  while [[ $# -gt 0 && "$1" != "--" ]]; do
+    compose_args+=(-f "$1")
+    shift
+  done
+
+  if [[ $# -gt 0 && "$1" == "--" ]]; then
+    shift
+  fi
+
+  "${COMPOSE_CMD[@]}" "${compose_args[@]}" "$@"
+}
+
 compose_exec() {
   local project_name="$1"
   local compose_file="$2"
   local service="$3"
   shift 3
-  "${COMPOSE_CMD[@]}" -p "$project_name" -f "$compose_file" exec -T "$service" "$@"
+  compose_exec_with_project_files "$project_name" "$compose_file" -- "$service" "$@"
+}
+
+compose_exec_with_project_files() {
+  local project_name="$1"
+  shift
+
+  local -a compose_args=(-p "$project_name")
+  while [[ $# -gt 0 && "$1" != "--" ]]; do
+    compose_args+=(-f "$1")
+    shift
+  done
+
+  if [[ $# -gt 0 && "$1" == "--" ]]; then
+    shift
+  fi
+
+  local service="$1"
+  shift
+
+  "${COMPOSE_CMD[@]}" "${compose_args[@]}" exec -T "$service" "$@"
 }
 
 compose_up() {
@@ -54,4 +95,3 @@ compose_up() {
   shift
   "${COMPOSE_CMD[@]}" -p "$project_name" "$@" up -d
 }
-

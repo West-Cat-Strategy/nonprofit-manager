@@ -2,9 +2,10 @@ import * as bcrypt from 'bcryptjs';
 import { Response } from 'express';
 import { validationResult } from 'express-validator';
 import pool from '../config/database';
-import { register, login, checkSetupStatus, setupFirstUser } from '../controllers/authController';
+import { register, checkSetupStatus, setupFirstUser } from '../modules/auth/controllers/registration.controller';
+import { login } from '../modules/auth/controllers/session.controller';
 import { AuthRequest } from '../middleware/auth';
-import { getRegistrationMode } from '../services/registrationSettingsService';
+import { getRegistrationMode } from '../modules/admin/usecases/registrationSettingsUseCase';
 import { createPendingRegistration } from '../modules/admin/usecases/createPendingRegistrationUseCase';
 
 jest.mock('../services/userRoleService', () => ({
@@ -51,7 +52,7 @@ jest.mock('../middleware/csrf', () => ({
 
 // Mock registration settings — default to allowing direct registration (not 'disabled')
 // so the existing register tests continue to work as before.
-jest.mock('../services/registrationSettingsService', () => ({
+jest.mock('../modules/admin/usecases/registrationSettingsUseCase', () => ({
   __esModule: true,
   getRegistrationMode: jest.fn().mockResolvedValue('approval_required'),
 }));

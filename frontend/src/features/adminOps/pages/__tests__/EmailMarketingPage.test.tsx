@@ -15,7 +15,12 @@ vi.mock('../../../../services/api', () => ({
 }));
 
 vi.mock('../../components/AdminPanelLayout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  default: ({ children, title }: { children: React.ReactNode; title?: string }) => (
+    <div>
+      {title ? <h1>{title}</h1> : null}
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock('../../components/AdminPanelNav', () => ({
@@ -82,7 +87,7 @@ describe('EmailMarketingPage', () => {
   it('keeps the campaign title input stable while typing', async () => {
     const user = userEvent.setup();
     renderWithProviders(<EmailMarketingPage />, {
-      route: '/admin/email-marketing',
+      route: '/settings/email-marketing',
     });
 
     const newCampaignButton = await screen.findByRole('button', { name: /new campaign/i });
@@ -100,5 +105,13 @@ describe('EmailMarketingPage', () => {
     await user.type(titleInput, 'Spring Appeal');
 
     expect(titleInput.value).toBe('Spring Appeal');
+  });
+
+  it('uses the email marketing title on the canonical settings route', async () => {
+    renderWithProviders(<EmailMarketingPage />, {
+      route: '/settings/email-marketing',
+    });
+
+    expect(await screen.findByRole('heading', { name: /email marketing/i })).toBeInTheDocument();
   });
 });

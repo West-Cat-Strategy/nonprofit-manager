@@ -18,6 +18,35 @@ import { PAGINATION } from '@config/constants';
 import { badRequest, noContent, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
+const stripApiKeyHash = <T extends { keyHash?: string }>(apiKey: T): Omit<T, 'keyHash'> => {
+  const { keyHash: _hash, ...safeKey } = apiKey;
+  return safeKey;
+};
+
+const resolveApiKeyContext = (
+  req: AuthRequest,
+  res: Response
+): { organizationId: string; userId: string } | null => {
+  const organizationId =
+    req.organizationId ||
+    req.accountId ||
+    req.tenantId ||
+    req.user?.organizationId ||
+    req.user?.organization_id;
+  if (!organizationId) {
+    badRequest(res, 'Organization context required');
+    return null;
+  }
+
+  const userId = req.user?.id;
+  if (!userId) {
+    unauthorized(res, 'User not authenticated');
+    return null;
+  }
+
+  return { organizationId, userId };
+};
+
 // ==================== Webhook Endpoints ====================
 
 /**
@@ -291,17 +320,16 @@ export const getAvailableWebhookEvents = async (_req: AuthRequest, res: Response
 // ==================== API Keys ====================
 
 /**
- * Get all API keys for the current user
+ * Get all API keys for the current organization
  */
 export const getApiKeys = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveApiKeyContext(req, res);
+    if (!context) {
       return;
     }
 
-    const keys = await apiKeyService.getApiKeys(userId);
+    const keys = await apiKeyService.getApiKeys(context.organizationId);
     sendSuccess(res, keys);
   } catch (error) {
     logger.error('Error getting API keys', { error });
@@ -314,9 +342,8 @@ export const getApiKeys = async (req: AuthRequest, res: Response): Promise<void>
  */
 export const createApiKey = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveApiKeyContext(req, res);
+    if (!context) {
       return;
     }
 
@@ -332,7 +359,7 @@ export const createApiKey = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    const key = await apiKeyService.createApiKey(userId, {
+    const key = await apiKeyService.createApiKey(context.organizationId, context.userId, {
       name,
       scopes,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
@@ -350,26 +377,21 @@ export const createApiKey = async (req: AuthRequest, res: Response): Promise<voi
  */
 export const getApiKey = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveApiKeyContext(req, res);
+    if (!context) {
       return;
     }
 
     const { id } = req.params;
 
-    const key = await apiKeyService.getApiKeyById(id, userId);
+    const key = await apiKeyService.getApiKeyById(id, context.organizationId);
 
     if (!key) {
       notFoundMessage(res, 'API key not found');
       return;
     }
 
-    // Don't return the hash
-    // Omit keyHash from response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { keyHash: _hash, ...safeKey } = key;
-    sendSuccess(res, safeKey);
+    sendSuccess(res, stripApiKeyHash(key));
   } catch (error) {
     logger.error('Error getting API key', { error });
     serverError(res, 'Failed to get API key');
@@ -381,27 +403,22 @@ export const getApiKey = async (req: AuthRequest, res: Response): Promise<void> 
  */
 export const updateApiKey = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveApiKeyContext(req, res);
+    if (!context) {
       return;
     }
 
     const { id } = req.params;
     const data = req.body as UpdateApiKeyRequest;
 
-    const key = await apiKeyService.updateApiKey(id, userId, data);
+    const key = await apiKeyService.updateApiKey(id, context.organizationId, data);
 
     if (!key) {
       notFoundMessage(res, 'API key not found');
       return;
     }
 
-    // Don't return the hash
-    // Omit keyHash from response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { keyHash: _hash, ...safeKey } = key;
-    sendSuccess(res, safeKey);
+    sendSuccess(res, stripApiKeyHash(key));
   } catch (error) {
     logger.error('Error updating API key', { error });
     serverError(res, 'Failed to update API key');
@@ -413,15 +430,14 @@ export const updateApiKey = async (req: AuthRequest, res: Response): Promise<voi
  */
 export const revokeApiKey = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveApiKeyContext(req, res);
+    if (!context) {
       return;
     }
 
     const { id } = req.params;
 
-    const revoked = await apiKeyService.revokeApiKey(id, userId);
+    const revoked = await apiKeyService.revokeApiKey(id, context.organizationId);
 
     if (!revoked) {
       notFoundMessage(res, 'API key not found or already revoked');
@@ -440,15 +456,14 @@ export const revokeApiKey = async (req: AuthRequest, res: Response): Promise<voi
  */
 export const deleteApiKey = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveApiKeyContext(req, res);
+    if (!context) {
       return;
     }
 
     const { id } = req.params;
 
-    const deleted = await apiKeyService.deleteApiKey(id, userId);
+    const deleted = await apiKeyService.deleteApiKey(id, context.organizationId);
 
     if (!deleted) {
       notFoundMessage(res, 'API key not found');
@@ -467,9 +482,8 @@ export const deleteApiKey = async (req: AuthRequest, res: Response): Promise<voi
  */
 export const getApiKeyUsage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      unauthorized(res, 'User not authenticated');
+    const context = resolveApiKeyContext(req, res);
+    if (!context) {
       return;
     }
 
@@ -484,7 +498,7 @@ export const getApiKeyUsage = async (req: AuthRequest, res: Response): Promise<v
     const limit =
       Number.isFinite(parsedLimit) ? parsedLimit : PAGINATION.WEBHOOK_DELIVERY_DEFAULT_LIMIT;
 
-    const usage = await apiKeyService.getApiKeyUsage(id, userId, limit);
+    const usage = await apiKeyService.getApiKeyUsage(id, context.organizationId, limit);
     sendSuccess(res, usage);
   } catch (error) {
     logger.error('Error getting API key usage', { error });

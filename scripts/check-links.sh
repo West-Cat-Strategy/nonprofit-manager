@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
-python3 - "$ROOT_DIR" <<'PY'
+python3 - "$PROJECT_ROOT" <<'PY'
 import re
 import sys
 from pathlib import Path

@@ -7,7 +7,7 @@ import {
   getCacheControlHeader,
   SiteCacheService,
   siteCacheService,
-} from '@services';
+} from '@services/siteCacheService';
 import * as redisConfig from '@config/redis';
 
 describe('SiteCacheService', () => {

@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
-run() {
-  echo "==> $*"
-  "$@"
-}
-
-cd "$ROOT_DIR"
+cd "$PROJECT_ROOT"
 
 run node scripts/check-rate-limit-key-policy.ts
 run node scripts/check-success-envelope-policy.ts

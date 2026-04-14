@@ -2,7 +2,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
 CALLER_SET_DB_HOST="${DB_HOST+x}"
@@ -20,6 +19,12 @@ TEST_CONTAINER_NAME="${DB_TEST_CONTAINER_NAME:-nonprofit-manager-test-postgres}"
 TEST_VOLUME_NAME="${DB_TEST_VOLUME_NAME:-nonprofit-manager-test-postgres-data}"
 TEST_IMAGE="${DB_TEST_IMAGE:-postgres:14-alpine}"
 STATUS_ONLY=0
+DEV_COMPOSE_PROJECT="${COMPOSE_PROJECT_DEV}"
+DEV_COMPOSE_FILE="$PROJECT_ROOT/docker-compose.dev.yml"
+
+dev_compose() {
+  compose_with_project_files "$DEV_COMPOSE_PROJECT" "$DEV_COMPOSE_FILE" -- "$@"
+}
 
 if [[ "${1:-}" == "--status" ]]; then
   STATUS_ONLY=1
@@ -89,12 +94,12 @@ wait_for_host_connection() {
 
 ensure_dev_database() {
   local container_id
-  container_id="$(docker compose -p nonprofit-dev -f "$PROJECT_ROOT/docker-compose.dev.yml" ps -q postgres 2>/dev/null || true)"
+  container_id="$(dev_compose ps -q postgres 2>/dev/null || true)"
 
   if [[ -z "$container_id" ]]; then
     log_info "Starting Docker development database services..."
-    docker compose -p nonprofit-dev -f "$PROJECT_ROOT/docker-compose.dev.yml" up -d postgres redis
-    container_id="$(docker compose -p nonprofit-dev -f "$PROJECT_ROOT/docker-compose.dev.yml" ps -q postgres 2>/dev/null || true)"
+    dev_compose up -d postgres redis
+    container_id="$(dev_compose ps -q postgres 2>/dev/null || true)"
   fi
 
   if [[ -z "$container_id" ]]; then
@@ -169,7 +174,7 @@ show_status() {
   fi
 
   local container_id
-  container_id="$(docker compose -p nonprofit-dev -f "$PROJECT_ROOT/docker-compose.dev.yml" ps -q postgres 2>/dev/null || true)"
+  container_id="$(dev_compose ps -q postgres 2>/dev/null || true)"
   if [[ -z "$container_id" ]]; then
     log_warn "Development postgres service is not running."
     return 1

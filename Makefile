@@ -4,11 +4,11 @@
 # This replaces GitHub Actions with local commands.
 # All CI/CD operations can be run locally or via git hooks.
 
-.PHONY: help install lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-auth-guards lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-coverage quality-baseline check-links build clean clean-local clean-all \
+.PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-coverage quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-up-dev docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
-        db-migrate db-verify clean hooks test-e2e
+        db-migrate db-verify hooks
 
 # Colors for output
 BLUE := \033[34m
@@ -43,25 +43,33 @@ help:
 	@echo ""
 	@echo "$(GREEN)Development:$(RESET)"
 	@echo "  make install        Install all dependencies"
+	@echo "  make install-dev    Install dependencies plus git hooks and dev tooling"
 	@echo "  make docker-build   Build backend/frontend Docker images directly"
 	@echo "  make docker-validate Validate both Dockerfiles with clean direct builds"
 	@echo "  make docker-rebuild Rebuild backend/frontend Docker images without cache"
 	@echo "  make dev            Start the optional compose dev stack"
+	@echo "  make docker-up      Start the production compose stack"
 	@echo "  make docker-up-dev  Start the optional compose dev stack (hot reload)"
-	@echo "  make docker-up      Start the compose stack"
 	@echo "  make docker-up-caddy Start the dev compose stack behind Caddy"
 	@echo "  make docker-down    Stop the optional compose dev stack"
 	@echo "  make docker-logs    View optional compose dev stack logs"
+	@echo "  make build-backend  Build the backend package"
+	@echo "  make build-frontend Build the frontend package"
+	@echo "  make test-backend   Run backend tests only"
+	@echo "  make test-frontend  Run frontend tests only"
+	@echo "  make test-e2e       Run E2E tests only"
 	@echo ""
 	@echo "$(GREEN)Quality Checks:$(RESET)"
 	@echo "  make lint           Run linters on all projects"
 	@echo "  make lint-express-validator Enforce no express-validator production usage"
 	@echo "  make lint-controller-sql Enforce controller->service SQL boundary ratchet"
+	@echo "  make lint-query-contract Enforce query-contract policy"
 	@echo "  make lint-v2-module-ownership Enforce module-only imports in v2 registrar"
 	@echo "  make lint-module-boundary Enforce migrated modules do not import legacy controllers"
 	@echo "  make lint-module-route-proxy Enforce migrated module routes do not proxy @routes/*"
 	@echo "  make lint-canonical-module-imports Enforce canonical module paths over legacy controller/service shims"
 	@echo "  make lint-implementation-size Enforce implementation file size ratchet against baseline"
+	@echo "  make lint-migration-manifest Enforce migration manifest policy"
 	@echo "  make lint-frontend-feature-boundary Enforce feature-page boundary ratchet"
 	@echo "  make lint-frontend-legacy-slice-imports Enforce migrated features do not import store/slices"
 	@echo "  make lint-frontend-legacy-page-paths Enforce deleted legacy page implementations stay removed"
@@ -70,16 +78,16 @@ help:
 	@echo "  make lint-route-catalog-drift Enforce routeCatalog stays aligned with registered routes"
 	@echo "  make lint-fix       Run linters and auto-fix issues"
 	@echo "  make typecheck      Run TypeScript type checking"
-	@echo "  make test           Run all unit tests"
-	@echo "  make test-coverage  Run tests with coverage report"
+	@echo "  make test           Run backend, frontend, and Playwright E2E tests"
+	@echo "  make test-coverage  Run backend/frontend coverage + Playwright smoke tests"
 	@echo "  make quality-baseline Generate code quality baseline report"
 	@echo "  make check-links    Validate markdown links"
 	@echo ""
 	@echo "$(GREEN)CI Pipelines:$(RESET)"
 	@echo "  make ci             Run full CI (lint + typecheck + test + build)"
 	@echo "  make ci-fast        Run quick CI (lint + typecheck only)"
-	@echo "  make ci-full        Run CI with coverage and security audit"
-	@echo "  make ci-unit        Run CI with unit-test coverage (no integration tests)"
+	@echo "  make ci-full        Run coverage-focused CI + security audit"
+	@echo "  make ci-unit        Run coverage-focused CI with unit tests only"
 	@echo ""
 	@echo "$(GREEN)Security:$(RESET)"
 	@echo "  make security-audit Run npm audit on all projects"
@@ -93,12 +101,14 @@ help:
 	@echo "  make deploy         Deploy to production server"
 	@echo ""
 	@echo "$(GREEN)Database:$(RESET)"
-	@echo "  make db-migrate     Run database migrations"
-	@echo "  make db-verify      Verify migration files"
+	@echo "  make db-migrate     Bootstrap or inspect the local database contract"
+	@echo "  make db-verify      Verify the isolated test database contract"
 	@echo ""
 	@echo "$(GREEN)Setup:$(RESET)"
 	@echo "  make hooks          Install git hooks for local CI"
 	@echo "  make clean          Clean build artifacts"
+	@echo "  make clean-local    Remove local build and runtime artifacts"
+	@echo "  make clean-all      Remove build artifacts and node_modules"
 
 #------------------------------------------------------------------------------
 # Installation
@@ -394,8 +404,8 @@ typecheck:
 test:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
-	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
-	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
+	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests...$(RESET)"
 	cd backend && npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
@@ -407,8 +417,8 @@ test:
 test-coverage:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
-	@echo "$(BLUE)Applying pending database migrations...$(RESET)"
-	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
+	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
 	cd backend && npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
@@ -419,7 +429,7 @@ test-coverage:
 
 test-backend:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
-	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
 	cd backend && npm test -- --runInBand
 
 test-frontend:
@@ -427,7 +437,7 @@ test-frontend:
 
 test-e2e:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
-	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci COMPOSE_ENV_FILE=$(DEV_ENV_FILE) COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_CI) COMPOSE_FILES="docker-compose.yml docker-compose.host-access.yml docker-compose.ci.yml" ./scripts/db-migrate.sh
+	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
 	cd e2e && npm run test:ci
 
 quality-baseline:
@@ -501,25 +511,25 @@ ci-fast:
 ci-full:
 	@echo ""
 	@echo "$(BLUE)========================================$(RESET)"
-	@echo "$(BLUE)  Running Full CI + Security$(RESET)"
+	@echo "$(BLUE)  Running Coverage-Focused CI + Security Audit$(RESET)"
 	@echo "$(BLUE)========================================$(RESET)"
 	@echo ""
 	@./scripts/local-ci.sh --build --audit --coverage
 	@echo ""
 	@echo "$(GREEN)========================================$(RESET)"
-	@echo "$(GREEN)  Full CI Pipeline Passed!$(RESET)"
+	@echo "$(GREEN)  Coverage-Focused CI Pipeline Passed!$(RESET)"
 	@echo "$(GREEN)========================================$(RESET)"
 
 ci-unit:
 	@echo ""
 	@echo "$(BLUE)========================================$(RESET)"
-	@echo "$(BLUE)  Running Unit CI + Coverage$(RESET)"
+	@echo "$(BLUE)  Running Unit-Only Coverage CI$(RESET)"
 	@echo "$(BLUE)========================================$(RESET)"
 	@echo ""
 	@./scripts/local-ci.sh --build --coverage --unit-only
 	@echo ""
 	@echo "$(GREEN)========================================$(RESET)"
-	@echo "$(GREEN)  Unit CI Pipeline Passed!$(RESET)"
+	@echo "$(GREEN)  Unit-Only Coverage CI Pipeline Passed!$(RESET)"
 	@echo "$(GREEN)========================================$(RESET)"
 
 #------------------------------------------------------------------------------

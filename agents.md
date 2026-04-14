@@ -1,522 +1,90 @@
 # Agents in Nonprofit Manager
 
-## TL;DR
+This page explains the three meanings of "agents" in this repo. It is an orientation page, not the canonical source for coding rules, task status, or implementation details.
 
-This codebase uses **"agents"** in three distinct ways:
+1. Developer agents: AI assistants contributing code and docs under repo rules.
+2. Multi-agent coordination: the task workflow for parallel contributors.
+3. User-agent tracking: browser/client metadata captured for analytics and security.
 
-1. **Developer Agents** — AI assistants (like GitHub Copilot) that contribute code following specific architecture patterns, validation rules, and security guidelines
-2. **Multi-Agent Coordination** — A task management protocol enabling multiple developers/agents to work in parallel without conflicts
-3. **User-Agent Tracking** — HTTP browser/client identification for analytics, security monitoring, and activity logging
-
-**There are no autonomous AI agents** running independently. The architecture uses traditional service/controller patterns with middleware layers for validation, authentication, and error handling.
-
----
+There are no autonomous AI agents running independently in the application. The codebase uses normal service/controller patterns plus middleware, jobs, and external integrations.
 
 ## Quick Navigation
 
-- [Developer Agent Guidelines](#developer-agent-guidelines) — How AI assistants should work on this project
-- [Multi-Agent Coordination Protocol](#multi-agent-coordination-protocol) — Task management and parallel work
-- [User-Agent Tracking System](#user-agent-tracking-system) — Browser/client identification for analytics
-- [Integration Patterns](#integration-patterns) — Systems that perform autonomous-like actions (webhooks, external services)
+- [Developer Agents](#developer-agents)
+- [Multi-Agent Coordination](#multi-agent-coordination)
+- [User-Agent Tracking](#user-agent-tracking)
+- [Integration Patterns](#integration-patterns)
+- [Canonical References](#canonical-references)
 
----
+## Developer Agents
 
-## Developer Agent Guidelines
+Start with the canonical repo docs:
 
-### Overview
+- [README.md](README.md) for the contributor start page and runtime matrix.
+- [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for coding-agent guardrails.
+- [CONTRIBUTING.md](CONTRIBUTING.md) for branch, review, and handoff workflow.
+- [docs/INDEX.md](docs/INDEX.md) for the full documentation catalog.
 
-Developer agents are AI assistants contributing code to the nonprofit-manager project. Full guidelines are in [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md).
+Repo-specific reminders:
 
-### Tech Stack Requirements
+- Keep active backend code under `backend/src/modules/<domain>/` and active frontend code under `frontend/src/features/<domain>/`.
+- Active API surfaces use `/api/v2/*`; health aliases remain documented exceptions.
+- Validate input with Zod and the repo validation middleware, and use the current auth-guard helpers rather than legacy `require*OrError` wrappers in new work.
+- For auth and permission behavior, treat [backend/src/services/authGuardService.ts](backend/src/services/authGuardService.ts) and [backend/src/utils/permissions.ts](backend/src/utils/permissions.ts) as implementation sources of truth.
+- Preserve the canonical response envelopes and keep docs, commands, and ports aligned with current repo behavior.
+- When implementation details matter, defer to the owning service README or the relevant docs section instead of duplicating policy here.
 
-**Backend:**
-- TypeScript with strict null checking
-- Node.js with Express.js
-- PostgreSQL with `pg` service-layer queries
-- Jest for unit tests
-- Zod for runtime validation
+## Multi-Agent Coordination
 
-**Frontend:**
-- React with TypeScript
-- Vite for bundling
-- Tailwind CSS for styling
-- Vitest for unit tests
-- Playwright for E2E tests
+The live workboard is [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md). Treat it as the source of truth for tracked work, status changes, ownership, and blockers.
 
-**DevOps:**
-- Docker & Docker Compose for local development
-- Local CI/CD via `Makefile` targets (`make ci`, `make ci-fast`, `make ci-full`, `make ci-unit`)
-- PostgreSQL + Redis for services
+Working rules:
 
-### Code Standards
+- Sign out tracked work in the workboard before editing code or docs.
+- Keep one active task per agent by default; only split work when the task explicitly documents a coordinated parallel path.
+- Use task IDs in commits and PR titles so work stays traceable.
+- Move work to Blocked or Review as soon as the status changes, and record the reason and next step.
+- Before marking work Done, follow the validation and review expectations in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-**Architecture Pattern:**
-```
-Route → Controller → Service → Database
-     ↓       ↓          ↓
-Validation  Auth   Business Logic
-```
+This page intentionally does not duplicate the current phase, active subtasks, or next-ready task list.
 
-**Directory Structure:**
-```
-backend/src/
-  ├── routes/          # HTTP endpoint definitions
-  ├── controllers/     # Request handlers (40+ files)
-  ├── services/        # Business logic (40+ files)
-  ├── middleware/      # Cross-cutting concerns
-  ├── types/           # TypeScript interfaces
-  ├── config/          # Configuration management
-  ├── utils/           # Shared utilities
-  └── __tests__/       # Unit tests
-```
+## User-Agent Tracking
 
-### Validation Strategy
+The app records HTTP `User-Agent` values as browser/client metadata for analytics, support, and security monitoring. Treat them as operational metadata, not as a secret.
 
-- **Framework:** Zod for runtime type validation
-- **Location:** Middleware layer before controller execution
-- **Status:** Route-level Zod middleware is active across legacy and v2 route surfaces, with policy checks enforcing param/body/query coverage for critical routes.
-- **Coverage:** All inputs must be validated with explicit Zod schemas
-- **Error Format:** Standardized validation error responses
+| Area | Code | Purpose |
+|---|---|---|
+| Portal activity | [backend/src/services/portalActivityService.ts](backend/src/services/portalActivityService.ts) | Logs portal interaction events |
+| API key usage | [backend/src/services/apiKeyService.ts](backend/src/services/apiKeyService.ts) | Tracks API key consumption by client |
+| Auth activity | [backend/src/modules/portalAuth/controllers/portalAuthController.ts](backend/src/modules/portalAuth/controllers/portalAuthController.ts) | Records authentication attempts and sessions |
+| Publishing events | [backend/src/modules/publishing/controllers/publishingController.ts](backend/src/modules/publishing/controllers/publishingController.ts) | Tracks publishing actions |
+| Portal actions | [backend/src/modules/portal/controllers/resources.controller.ts](backend/src/modules/portal/controllers/resources.controller.ts) | Logs portal document and resource actions |
 
-**Example:**
-```typescript
-const updateSettingsSchema = z.object({
-  webhookUrl: z.string().url().optional(),
-  alertThreshold: z.number().min(0).max(100).optional(),
-});
+Typical uses:
 
-export const updateSettingsHandler = async (
-  req: AuthRequest,
-  res: Response
-): Promise<void> => {
-  const { data, error } = validateRequest(req.body, updateSettingsSchema);
-  if (error) return sendValidationError(res, error);
-  // ... handler logic
-};
-```
-
-### Authentication & Authorization
-
-**Auth Guards Service:** [backend/src/services/authGuardService.ts](backend/src/services/authGuardService.ts)
-
-Helper functions for checking user permissions:
-- `requireUserSafe()` / `requireUserStrict()` — User must be authenticated
-- `requireRoleSafe(req, roles...)` / `requireRoleStrict(req, roles...)` — User must have specific role
-- `requirePermissionSafe(req, permission)` / `requirePermissionStrict(req, permission)` — User must have permission
-- Legacy wrappers (`require*OrError`) remain only for backward compatibility and should not be used in new/updated controllers
-- `canAccessOrganization(user, orgId)` — Organization access check
-
-**Permission System:**
-- **45+ granular permissions** across 5 roles
-- Roles: Admin, Manager, Coordinator, Volunteer, Donor
-- Permissions stored in database, checked at request-time
-- Middleware: [backend/src/middleware/permissions.ts](backend/src/middleware/permissions.ts)
-
-### Rate Limiting
-
-**Strategy:** Hybrid Redis + in-memory endpoint limiters:
-1. Global API limiter
-2. Authentication limiter
-3. Password-reset limiter
-4. Registration limiter
-
-**Implementation:** [backend/src/middleware/rateLimiter.ts](backend/src/middleware/rateLimiter.ts)
-
-### Testing Requirements
-
-**Unit Tests:**
-- Coverage thresholds are enforced by repo configuration (see [backend/jest.config.ts](backend/jest.config.ts) and [frontend/vite.config.ts](frontend/vite.config.ts))
-- Jest configuration: [backend/jest.config.ts](backend/jest.config.ts)
-- Run tests: `npm test` in backend/
-
-**E2E Tests:**
-- Playwright for end-to-end testing
-- Configuration: [e2e/playwright.config.ts](e2e/playwright.config.ts)
-- Test coverage: 69 comprehensive E2E tests
-- Run tests: `npm test` in e2e/ root
-
-**CI/CD:**
-- Local CI pipeline via `make ci`, `make ci-fast`, `make ci-full`, and `make ci-unit`
-- Services: PostgreSQL + Redis + Backend (+ frontend/e2e checks when selected)
-- Requirements:
-  - All unit tests pass
-  - All E2E tests pass
-  - No lint/TypeScript errors
-
-### API Design Patterns
-
-**Request/Response Format:**
-```typescript
-// Success Response
-{
-  success: true,
-  data: { /* response data */ }
-}
-
-// Error Response
-{
-  success: false,
-  error: {
-    code: "VALIDATION_ERROR" | "AUTH_ERROR" | "NOT_FOUND" | ...,
-    message: "Human-readable message",
-    details?: { /* field-level details */ }
-  }
-}
-```
-
-**Endpoint Naming:**
-- `GET /api/resource` — List resources
-- `GET /api/resource/:id` — Get one resource
-- `POST /api/resource` — Create resource
-- `PUT /api/resource/:id` — Update resource
-- `DELETE /api/resource/:id` — Delete resource
-- `POST /api/resource/:id/action` — Custom action
-
-### Security Guidelines
-
-**SSRF Protection:**
-- Validate URLs before making external requests
-- Webhook service prevents private IPs (10.0.0.0/8, 127.0.0.1, etc.)
-- DNS lookups validated against IP ranges
-
-**PII/Sensitive Data:**
-- Middleware: [backend/src/middleware/piiFieldAccessControl.ts](backend/src/middleware/piiFieldAccessControl.ts)
-- Sensitive fields require explicit permission checks
-- Logs never contain PII (structured logging patterns)
-
-**Secrets Management:**
-- Environment variables for all credentials
-- Never commit `.env` files
-- Use `.env.example` for template documentation
-
----
-
-## Multi-Agent Coordination Protocol
-
-### Overview
-
-Multiple developers or AI agents can work in parallel on this project using a structured task management system. The **Workboard** in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) coordinates all work.
-
-### Task Lifecycle
-
-```
-Backlog → Ready → In Progress → Blocked/Review → Done
-  ↓        ↓         ↓              ↓             ↓
- Needs   Planned   Active Work   Waiting       Complete
- refinement      by one agent    for help/review
-```
-
-**Task ID Format:** `P{phase}-T{task}.{subtask}-{code}`
-
-Example: `P2-T8.2-VALID` = Phase 2, Task 8, Subtask 2, Validation work
-
-### Rules of Engagement
-
-#### 1. Sign-Out Tasks Before Starting
-
-Before implementing a task, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md):
-
-```markdown
-| P2-T8 | Migrate volunteer routes to Zod validation | In Progress | @agent-name | P2-T8 | ... |
-```
-
-- Change status to "In Progress"
-- Add your agent/developer identifier in assignee column
-- Update task ID in git column
-
-#### 2. One Task Per Agent At A Time
-
-- One "In Progress" task per agent by default; coordinated parent+subtask concurrency is allowed when explicitly linked
-- Switch tasks only when previous task is "Done" or "Blocked"
-- If blocked, document blocker and escalate
-
-#### 3. Use Task IDs in Git
-
-All commits should reference task ID:
-
-```bash
-git commit -m "P2-T8: Migrate volunteer routes to Zod validation
-
-- Added zod schemas for volunteer endpoints
-- Updated controller handlers with validation middleware
-- Added validation tests"
-```
-
-PR titles follow format: `[P2-T8] Volunteer routes validation`
-
-#### 4. Update Status Changes
-
-When task status changes:
-- Update Workboard immediately in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md)
-- Add comment with status reason if transitioning to "Blocked" or "Review"
-- Post update in team communication channel
-
-#### 5. Blocker Escalation
-
-When blocked, document:
-- **What:** Specific problem blocking progress
-- **Why:** Root cause or dependency
-- **Next Step:** What's needed to unblock (answer, approval, other PR to merge first)
-
-Example blocker:
-```
-| P2-T9 | Standardize error responses | Blocked | @agent | P2-T9 | Waiting on P2-T8 merge |
-```
-
-#### 6. Code Review Requirements
-
-Before marking task "Done":
-- All unit tests pass locally
-- All E2E tests pass locally
-- Code follows patterns from [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md)
-- No TypeScript errors or linting issues
-- Create PR with task ID in title
-- Get approval from project maintainer
-
-### Workboard Navigation
-
-**Current Workboard Location:** [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md)
-
-**Columns:**
-- Task ID
-- Description
-- Status (Backlog / Ready / In Progress / Blocked / Review / Done)
-- Assignee
-- PR/Commit Reference
-- Notes/Blockers
-
-**Current Phase:** Phase 4 - Modularity Refactor (In Progress, with active Phase 3 stream as of March 1, 2026)  
-**Workboard Location:** [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) (single source of truth)
-
-**Archived Phase documentation:** Old PHASE_1/2 and WEEK completion files have been archived to [docs/phases/archive/](docs/phases/archive/) to reduce confusion. See [docs/phases/archive/README.md](docs/phases/archive/README.md) for details.
-
-**Next Ready Tasks:**
-- P2-T11: Migrate event routes to Zod validation
-- P2-T12: Migrate task routes to Zod validation
-- P2-T13: Migrate account routes to Zod validation
-- P2-T14: Migrate remaining routes to Zod (cases, meetings, invitations, etc.)
-- P2-T15: Add validation to cases.ts
-
-### Merge Strategy
-
-**Requirements for merge:**
-1. All status checks pass (CI/CD pipeline)
-2. Code review approval from maintainer
-3. Task marked "Review" in Workboard
-4. No merge conflicts
-5. Commit history is clean (squash if needed)
-
-**Post-Merge:**
-- Update task status to "Done" in Workboard
-- Close associated PR
-- Remove branch
-
----
-
-## User-Agent Tracking System
-
-### Overview
-
-The application tracks HTTP `User-Agent` headers to understand browser/client behavior for analytics, security monitoring, and quality assurance.
-
-### Where User-Agent Is Tracked
-
-| Service | File | Purpose |
-|---------|------|---------|
-| Portal Activity | [backend/src/services/portalActivityService.ts](backend/src/services/portalActivityService.ts#L25-L32) | Log user interactions on portal |
-| API Key Usage | [backend/src/services/apiKeyService.ts](backend/src/services/apiKeyService.ts#L269) | Track API key consumption by client |
-| Auth Activity | [backend/src/modules/portalAuth/controllers/portalAuthController.ts](backend/src/modules/portalAuth/controllers/portalAuthController.ts#L136) | Log authentication attempts and sessions |
-| Publishing Events | [backend/src/modules/publishing/controllers/publishingController.ts](backend/src/modules/publishing/controllers/publishingController.ts#L286) | Track publishing actions |
-| Portal Actions | [backend/src/modules/portal/controllers/resources.controller.ts](backend/src/modules/portal/controllers/resources.controller.ts#L96) | Log portal document/resource actions |
-
-### Database Schema
-
-**Table: `portal_activity_logs`**
-```sql
-CREATE TABLE portal_activity_logs (
-  id UUID PRIMARY KEY,
-  user_id UUID NOT NULL,
-  activity_type VARCHAR(50),
-  user_agent TEXT,  -- ← Browser/Client identification
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-**Table: `api_key_usage`**
-```sql
-CREATE TABLE api_key_usage (
-  id UUID PRIMARY KEY,
-  api_key_id UUID,
-  user_agent TEXT,  -- ← Client identification
-  bytes_used INTEGER,
-  timestamp TIMESTAMP DEFAULT NOW()
-);
-```
-
-### Type Definitions
-
-**WebhookPayload:** [backend/src/types/webhook.ts](backend/src/types/webhook.ts#L190)
-
-```typescript
-interface WebhookPayload {
-  timestamp: string;
-  eventType: string;
-  organizationId: string;
-  userId: string;
-  userAgent?: string;  // ← Optional field for delivery tracking
-  data: Record<string, unknown>;
-}
-```
-
-### Usage Examples
-
-**Capturing User-Agent:**
-```typescript
-// In controller handler
-const userAgent = req.headers['user-agent'] || 'Unknown';
-
-await portalActivityService.logActivity({
-  userId: req.user.id,
-  activityType: 'PAGE_VIEW',
-  userAgent,  // ← Captured here
-  data: { page: '/dashboard' }
-});
-```
-
-**Querying User-Agent Data:**
-```typescript
-// Analytics query
-const activitiesByClient = await db.portalActivityLogs.groupBy({
-  by: ['user_agent'],
-  _count: true,
-  where: { createdAt: { gte: last30days } }
-});
-```
-
-### Analytics Use Cases
-
-1. **Browser Compatibility:** Track which browsers/versions are commonly used
-2. **Client Distribution:** Identify mobile vs desktop usage patterns
-3. **Bot Detection:** Flag suspicious user-agents for security
-4. **API Client Type:** Segment API usage by client (iOS app, web, third-party integrations)
-5. **Support Debugging:** Match user-agent from logs when users report issues
-
-### Security Considerations
-
-- User-Agent is **not sensitive data** (publicly sent by all browsers)
-- Useful for **fraud detection** (unusual user-agent changes for same user)
-- Enable **rate limiting per user-agent** to prevent bot abuse
-- Log user-agent in **security events** for incident investigation
-
----
+- Browser compatibility and client distribution analysis
+- Bot detection and unusual-client monitoring
+- Support debugging when a user reports a browser-specific issue
+- API client segmentation for web, mobile, and third-party integrations
 
 ## Integration Patterns
 
-### Overview
+Some services behave like automated delivery systems, but they are still ordinary services, not autonomous agents.
 
-While not autonomous agents, these systems perform autonomous-like actions in response to events through autonomous delivery mechanisms.
+- Webhooks: [backend/src/services/webhookService.ts](backend/src/services/webhookService.ts) and [backend/src/services/webhookRetrySchedulerService.ts](backend/src/services/webhookRetrySchedulerService.ts) handle async delivery, retries, signatures, and failure handling.
+- External service providers: [backend/src/services/externalServiceProviderService.ts](backend/src/services/externalServiceProviderService.ts) manages provider CRUD, configuration, and usage tracking for integrations.
+- For the security and operational contract around these flows, see [docs/security/SECURITY_MONITORING_GUIDE.md](docs/security/SECURITY_MONITORING_GUIDE.md).
 
-### Webhook Delivery System
+## Canonical References
 
-**Services:** [backend/src/services/webhookService.ts](backend/src/services/webhookService.ts), [backend/src/services/webhookRetrySchedulerService.ts](backend/src/services/webhookRetrySchedulerService.ts)
-
-**Purpose:** Event-driven delivery of notifications to external systems
-
-**Features:**
-
-| Feature | Details |
-|---------|---------|
-| **Async Delivery** | Non-blocking, background queue processing |
-| **Retry Strategy** | 5 retry attempts with exponential backoff |
-| **Retry Delays** | 1m → 5m → 15m → 1h → 2h (total: ~7 hours) |
-| **Retry Worker** | Interval runner with row-claiming (`FOR UPDATE SKIP LOCKED`) to avoid duplicate processing |
-| **Timeout** | 30 seconds per delivery attempt |
-| **Signature** | HMAC-SHA256 signing for authenticity |
-| **SSRF Protection** | DNS validation, private IP blocking |
-
-**Supported Events:**
-- Donation received
-- Event registration
-- Volunteer sign-up
-- Organization changes
-- Admin actions
-
-**Security:**
-```typescript
-// Private IP ranges blocked:
-- 10.0.0.0/8 (private networks)
-- 127.0.0.1 (localhost)
-- 169.254.0.0/16 (link-local)
-- 172.16.0.0/12 (private networks)
-- 192.168.0.0/16 (private networks)
-
-// Signature validation in client:
-const signature = createHmac('sha256', webhookSecret)
-  .update(JSON.stringify(payload))
-  .digest('hex');
-```
-
-**Workflow:**
-1. Event occurs in system (donation received, registration submitted)
-2. Webhook service adds delivery to background queue
-3. Worker picks up delivery from queue
-4. Validates webhook URL (DNS, IP range)
-5. Sends signed POST request with 30s timeout
-6. On failure, schedule retry with exponential backoff
-7. After 5 failed attempts, mark delivery as "failed"
-
-**Scheduler flags:**
-- `WEBHOOK_RETRY_SCHEDULER_ENABLED`
-- `WEBHOOK_RETRY_SCHEDULER_INTERVAL_MS`
-- `WEBHOOK_RETRY_SCHEDULER_BATCH_SIZE`
-
-### External Service Provider Integration
-
-**Service:** [backend/src/services/externalServiceProviderService.ts](backend/src/services/externalServiceProviderService.ts)
-
-**Purpose:** Manage integrations with third-party services (email, CRM, payment processors)
-
-**Operations:**
-
-| Operation | Function |
-|-----------|----------|
-| **Create** | Register new external service provider |
-| **Read** | Fetch provider configuration |
-| **Update** | Modify provider settings |
-| **Delete** | Remove provider integration |
-| **Search** | Find providers by type, status, etc. |
-| **Activity** | Track how many connected services use each provider |
-
-**Provider Types:**
-- Email service providers (SendGrid, Mailgun, etc.)
-- CRM systems (Salesforce, HubSpot, etc.)
-- Payment processors (Stripe, PayPal, etc.)
-- Analytics services (Google Analytics, Plausible, etc.)
-
-**Example Flow:**
-1. Admin configures Stripe as payment provider
-2. Service stores provider config (API key, webhook secret)
-3. When donation comes in, system uses provider to process payment
-4. Provider integration handles retry logic and error reporting
-
----
-
-## Related Documentation
-
-- **[docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md)** — Detailed guidelines for AI developer agents
-- **[docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md)** — Workboard and task coordination
-- **[docs/development/](docs/development/)** — Architecture, API design, database guidelines
-- **[docs/security/SECURITY_MONITORING_GUIDE.md](docs/security/SECURITY_MONITORING_GUIDE.md)** — Security patterns and monitoring
-- **[README.md](README.md)** — Project overview and getting started
-
----
-
-## Summary
-
-The nonprofit-manager codebase uses "agents" in three complementary ways:
-
-1. **Developer agents** work following strict architectural patterns, validation rules, and security guidelines
-2. **Multiple agents coordinate** through a task management protocol to prevent conflicts
-3. **User-agent tracking** provides visibility into browser behavior for analytics and security
-
-The actual implementation uses traditional service/controller patterns enriched with webhooks and external service integrations that provide autonomous-like capabilities for event delivery and third-party synchronization.
+- [README.md](README.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [docs/README.md](docs/README.md)
+- [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md)
+- [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md)
+- [docs/INDEX.md](docs/INDEX.md)
+- [backend/README.md](backend/README.md)
+- [frontend/README.md](frontend/README.md)
+- [docs/testing/TESTING.md](docs/testing/TESTING.md)
+- [docs/features/FEATURE_MATRIX.md](docs/features/FEATURE_MATRIX.md)
+- [docs/security/SECURITY_MONITORING_GUIDE.md](docs/security/SECURITY_MONITORING_GUIDE.md)

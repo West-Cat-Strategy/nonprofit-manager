@@ -1,19 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
 usage() {
   cat <<'EOF'
 Usage: scripts/ci.sh [--fast] [--audit] [--coverage] [--build] [--unit-only] [--db-verify]
 
 Run the repo-local validation flow that backs the Makefile CI targets.
-EOF
-}
 
-run() {
-  echo "==> $*"
-  "$@"
+  --coverage    Run the coverage-focused test path (backend/frontend coverage plus Playwright smoke)
+  --unit-only   Run backend/frontend unit coverage only, skipping integration and Playwright
+EOF
 }
 
 fast=0
@@ -61,7 +60,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-cd "$ROOT_DIR"
+cd "$PROJECT_ROOT"
 
 if [[ "$db_verify" -eq 1 ]]; then
   run env \
@@ -98,4 +97,3 @@ fi
 if [[ "$audit" -eq 1 ]]; then
   run make security-audit
 fi
-

@@ -15,6 +15,8 @@ FROM deps AS app
 
 COPY tsconfig.json tsconfig.docker.json ./
 COPY src ./src
+# This image expects the shared `contracts` build context that make docker-build
+# and make docker-validate pass through via Docker Buildx additional contexts.
 # Keep the shared contracts package available for type-checking without
 # widening the main backend build context.
 COPY --from=contracts /package.json ./node_modules/@nonprofit-manager/contracts/package.json
