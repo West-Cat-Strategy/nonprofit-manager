@@ -17,6 +17,7 @@ const routeCatalogFiles = [
 const compatibilityRoutes = new Set([
   '/email-marketing',
   '/settings/admin',
+  '/settings/admin/email',
   '/settings/admin/portal',
   '/settings/organization',
   '/admin/audit-logs',

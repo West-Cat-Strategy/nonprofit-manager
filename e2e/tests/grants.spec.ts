@@ -567,12 +567,17 @@ test.describe('Grants workspace', () => {
       selectors: ['h1:has-text("Grants")'],
     });
 
+    const filtersSection = authenticatedPage
+      .locator('section')
+      .filter({ has: authenticatedPage.getByRole('heading', { name: /filters$/i }) })
+      .first();
+
     await expect(authenticatedPage.getByRole('heading', { name: 'Grants' })).toBeVisible();
-    await expect(authenticatedPage.getByLabel('Search')).toBeVisible();
-    await expect(authenticatedPage.getByLabel('Status')).toBeVisible();
-    await expect(authenticatedPage.getByLabel('Jurisdiction')).toBeVisible();
-    await expect(authenticatedPage.getByLabel('Page Size')).toBeVisible();
-    await expect(authenticatedPage.getByRole('button', { name: 'Clear filters' })).toBeVisible();
+    await expect(filtersSection.getByLabel('Search')).toBeVisible();
+    await expect(filtersSection.getByLabel('Status')).toBeVisible();
+    await expect(filtersSection.getByLabel('Jurisdiction')).toBeVisible();
+    await expect(filtersSection.getByLabel('Page Size')).toBeVisible();
+    await expect(filtersSection.getByRole('button', { name: 'Clear filters' })).toBeVisible();
     await expect(authenticatedPage.getByRole('columnheader', { name: 'Program' })).toBeVisible();
     await expect(authenticatedPage.getByRole('columnheader', { name: 'Recipient' })).toBeVisible();
   });

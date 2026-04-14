@@ -6,7 +6,7 @@ import PortalAdminPage from './PortalAdminPage';
 let currentPath = '/settings/admin/portal/access';
 
 const usePortalSettingsMock = vi.fn();
-const usePortalAdminRealtimeMock = vi.fn();
+const portalAdminRealtimeMock = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   useLocation: () => ({
@@ -74,7 +74,7 @@ vi.mock('../../../../hooks/useConfirmDialog', () => ({
 }));
 
 vi.mock('../../../portal/admin/usePortalAdminRealtime', () => ({
-  default: (...args: unknown[]) => usePortalAdminRealtimeMock(...args),
+  default: (...args: unknown[]) => portalAdminRealtimeMock(...args),
 }));
 
 vi.mock('../adminSettings/hooks/usePortalSettings', () => ({
@@ -239,7 +239,7 @@ describe('PortalAdminPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     usePortalSettingsMock.mockReturnValue(createPortalSettingsState());
-    usePortalAdminRealtimeMock.mockReturnValue(createPortalAdminRealtimeState());
+    portalAdminRealtimeMock.mockReturnValue(createPortalAdminRealtimeState());
   });
 
   it.each([
@@ -292,7 +292,7 @@ describe('PortalAdminPage', () => {
       expect(usePortalSettingsMock).toHaveBeenCalledWith(
         expect.objectContaining({ activeSection: 'portal' })
       );
-      expect(usePortalAdminRealtimeMock).toHaveBeenCalledWith(
+      expect(portalAdminRealtimeMock).toHaveBeenCalledWith(
         expect.objectContaining({ active: true })
       );
     }

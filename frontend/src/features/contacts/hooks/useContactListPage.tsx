@@ -92,10 +92,15 @@ export const useContactListPage = () => {
   );
   const [showImportExport, setShowImportExport] = useState(false);
   const [filterCollapsed, setFilterCollapsed] = useState(false);
+  const [hiddenDeletedContactIds, setHiddenDeletedContactIds] = useState<string[]>([]);
 
   const resolvedIsActive =
     activeFilter === 'active' ? true : activeFilter === 'inactive' ? false : undefined;
   const hasActiveFilters = Boolean(searchInput || roleFilter || activeFilter);
+  const visibleContacts =
+    resolvedIsActive === false
+      ? contacts
+      : contacts.filter((contact) => !hiddenDeletedContactIds.includes(contact.contact_id));
 
   const loadContacts = useCallback(() => {
     dispatch(
@@ -156,10 +161,10 @@ export const useContactListPage = () => {
   };
 
   const handleSelectAll = () => {
-    if (selectedCount === contacts.length) {
+    if (selectedCount === visibleContacts.length) {
       deselectAll();
     } else {
-      selectAll(contacts.map((c) => c.contact_id));
+      selectAll(visibleContacts.map((contact) => contact.contact_id));
     }
   };
 
@@ -174,9 +179,10 @@ export const useContactListPage = () => {
 
     const ids = Array.from(selectedIds);
     for (const id of ids) {
-      await dispatch(deleteContact(id));
+      await dispatch(deleteContact(id)).unwrap();
     }
 
+    setHiddenDeletedContactIds((current) => Array.from(new Set([...current, ...ids])));
     deselectAll();
     loadContacts();
   };
@@ -273,7 +279,10 @@ export const useContactListPage = () => {
                 confirmPresets.delete(`${row.first_name} ${row.last_name}`)
               );
               if (confirmed) {
-                dispatch(deleteContact(row.contact_id));
+                await dispatch(deleteContact(row.contact_id)).unwrap();
+                setHiddenDeletedContactIds((current) =>
+                  current.includes(row.contact_id) ? current : [...current, row.contact_id]
+                );
               }
             }}
             className="px-2 py-1 border border-app-border rounded text-app-text text-xs font-mono hover:bg-app-accent-soft hover:text-app-accent-text transition"
@@ -348,7 +357,7 @@ export const useContactListPage = () => {
   );
 
   return {
-    contacts,
+    contacts: visibleContacts,
     loading,
     error,
     pagination,

@@ -590,6 +590,21 @@ describe('Auth API Integration Tests', () => {
   });
 
   describe('Account Lockout', () => {
+    const previousLockoutFlag = process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST;
+
+    beforeAll(() => {
+      process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST = 'true';
+    });
+
+    afterAll(() => {
+      if (previousLockoutFlag === undefined) {
+        delete process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST;
+        return;
+      }
+
+      process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST = previousLockoutFlag;
+    });
+
     it('should lock account after multiple failed login attempts', async () => {
       const lockoutEmail = `lockout-${unique()}@example.com`;
 

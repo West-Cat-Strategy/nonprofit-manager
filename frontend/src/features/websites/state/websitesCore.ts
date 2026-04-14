@@ -1,6 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import type { WebsiteEntry } from '../../../types/websiteBuilder';
 import { websitesApiClient } from '../api/websitesApiClient';
 import type {
@@ -29,92 +28,18 @@ import type {
   WebsiteVersionHistory,
   WebsiteStripeSettings,
 } from '../types/contracts';
-
-const getErrorMessage = (error: unknown, fallbackMessage: string) =>
-  formatApiErrorMessageWith(fallbackMessage)(error);
-
-type WebsiteCurrentSiteData = {
-  siteId: string | null;
-  forms: WebsiteFormDefinition[];
-  integrations: WebsiteIntegrationStatus | null;
-  analytics: WebsiteConversionMetrics | null;
-};
+import {
+  buildInitialWebsitesCoreState,
+  getWebsiteErrorMessage,
+  syncCurrentSiteDataFromOverview,
+  updateCurrentSiteData,
+  type WebsiteCurrentSiteData,
+} from './websitesCoreHelpers';
 
 export type WebsitesCoreState = Omit<WebsiteState, 'forms' | 'integrations' | 'analytics'> & {
   currentSiteData: WebsiteCurrentSiteData;
 };
-
-const buildEmptyCurrentSiteData = (): WebsiteCurrentSiteData => ({
-  siteId: null,
-  forms: [],
-  integrations: null,
-  analytics: null,
-});
-
-const syncCurrentSiteDataFromOverview = (
-  state: WebsitesCoreState,
-  overview: WebsiteOverviewSummary
-) => {
-  state.currentSiteData = {
-    siteId: overview.site.id,
-    forms: overview.forms,
-    integrations: overview.integrations,
-    analytics: overview.conversionMetrics,
-  };
-};
-
-const updateCurrentSiteData = (
-  state: WebsitesCoreState,
-  siteId: string | null | undefined,
-  patch: Partial<WebsiteCurrentSiteData>
-) => {
-  const resolvedSiteId = siteId ?? state.currentSiteData.siteId ?? state.currentSiteId;
-  if (!resolvedSiteId) {
-    return;
-  }
-
-  const existingData =
-    state.currentSiteData.siteId === resolvedSiteId
-      ? state.currentSiteData
-      : buildEmptyCurrentSiteData();
-
-  state.currentSiteId = resolvedSiteId;
-  state.currentSiteData = {
-    siteId: resolvedSiteId,
-    forms: patch.forms ?? existingData.forms,
-    integrations: patch.integrations ?? existingData.integrations,
-    analytics: patch.analytics ?? existingData.analytics,
-  };
-};
-
-const initialState: WebsitesCoreState = {
-  sites: [],
-  pagination: {
-    total: 0,
-    page: 1,
-    limit: 20,
-    totalPages: 0,
-  },
-  searchParams: {
-    page: 1,
-    limit: 20,
-    sortBy: 'createdAt',
-    sortOrder: 'desc',
-  },
-  overview: null,
-  currentSiteData: buildEmptyCurrentSiteData(),
-  funnel: null,
-  entries: [],
-  deployment: null,
-  versions: null,
-  lastPublishResult: null,
-  currentSiteId: null,
-  isLoading: false,
-  isSaving: false,
-  error: null,
-  funnelLoading: false,
-  funnelError: null,
-};
+const initialState: WebsitesCoreState = buildInitialWebsitesCoreState();
 
 export const createWebsiteSite = createAsyncThunk<
   CreateWebsiteSiteResponse,
@@ -123,7 +48,7 @@ export const createWebsiteSite = createAsyncThunk<
   try {
     return await websitesApiClient.createSite(payload);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to create website'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to create website'));
   }
 });
 
@@ -135,7 +60,7 @@ export const fetchWebsiteSites = createAsyncThunk<
     const state = getState() as { websites: WebsitesCoreState };
     return await websitesApiClient.listSites(params || state.websites.searchParams);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to load websites'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load websites'));
   }
 });
 
@@ -146,7 +71,7 @@ export const fetchWebsiteOverview = createAsyncThunk<
   try {
     return await websitesApiClient.getOverview(siteId, period);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to load website overview'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load website overview'));
   }
 });
 
@@ -156,7 +81,7 @@ export const fetchWebsiteForms = createAsyncThunk<WebsiteFormDefinition[], strin
     try {
       return await websitesApiClient.getForms(siteId);
     } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to load website forms'));
+      return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load website forms'));
     }
   }
 );
@@ -168,7 +93,7 @@ export const updateWebsiteForm = createAsyncThunk<
   try {
     return await websitesApiClient.updateForm(siteId, formKey, data);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to update website form'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update website form'));
   }
 });
 
@@ -178,7 +103,7 @@ export const fetchWebsiteIntegrations = createAsyncThunk<WebsiteIntegrationStatu
     try {
       return await websitesApiClient.getIntegrations(siteId);
     } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to load integrations'));
+      return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load integrations'));
     }
   }
 );
@@ -189,7 +114,7 @@ export const fetchWebsiteNewsletterWorkspace = createAsyncThunk<WebsiteIntegrati
     try {
       return await websitesApiClient.getNewsletterWorkspace(siteId);
     } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to load newsletter workspace'));
+      return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load newsletter workspace'));
     }
   }
 );
@@ -213,18 +138,18 @@ export const updateWebsiteNewsletterIntegration = createAsyncThunk<
   try {
     return await websitesApiClient.updateNewsletter(siteId, data);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to update newsletter settings'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update newsletter settings'));
   }
 });
 
 export const refreshWebsiteNewsletterWorkspace = createAsyncThunk<WebsiteIntegrationStatus, string>(
   'websites/refreshNewsletterWorkspace',
   async (siteId, { rejectWithValue }) => {
-    try {
-      return await websitesApiClient.refreshNewsletterWorkspace(siteId);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to refresh newsletter workspace'));
-    }
+  try {
+    return await websitesApiClient.refreshNewsletterWorkspace(siteId);
+  } catch (error) {
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to refresh newsletter workspace'));
+  }
   }
 );
 
@@ -246,7 +171,7 @@ export const createWebsiteNewsletterListPreset = createAsyncThunk<
   try {
     return await websitesApiClient.createNewsletterListPreset(siteId, data);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to create newsletter list'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to create newsletter list'));
   }
 });
 
@@ -269,7 +194,7 @@ export const updateWebsiteNewsletterListPreset = createAsyncThunk<
   try {
     return await websitesApiClient.updateNewsletterListPreset(siteId, listId, data);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to update newsletter list'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update newsletter list'));
   }
 });
 
@@ -280,7 +205,7 @@ export const deleteWebsiteNewsletterListPreset = createAsyncThunk<
   try {
     return await websitesApiClient.deleteNewsletterListPreset(siteId, listId);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to delete newsletter list'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to delete newsletter list'));
   }
 });
 
@@ -291,7 +216,7 @@ export const updateWebsiteMailchimpIntegration = createAsyncThunk<
   try {
     return await websitesApiClient.updateMailchimp(siteId, data);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to update Mailchimp settings'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update Mailchimp settings'));
   }
 });
 
@@ -302,7 +227,7 @@ export const updateWebsiteStripeIntegration = createAsyncThunk<
   try {
     return await websitesApiClient.updateStripe(siteId, data);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to update Stripe settings'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update Stripe settings'));
   }
 });
 
@@ -313,7 +238,7 @@ export const updateWebsiteFacebookIntegration = createAsyncThunk<
   try {
     return await websitesApiClient.updateFacebook(siteId, data);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to update Facebook settings'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update Facebook settings'));
   }
 });
 
@@ -324,7 +249,7 @@ export const fetchWebsiteAnalytics = createAsyncThunk<
   try {
     return await websitesApiClient.getAnalytics(siteId, period);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to load analytics summary'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load analytics summary'));
   }
 });
 
@@ -335,7 +260,7 @@ export const fetchWebsiteConversionFunnel = createAsyncThunk<
   try {
     return await websitesApiClient.getConversionFunnel(siteId, windowDays);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to load conversion funnel'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load conversion funnel'));
   }
 });
 
@@ -347,7 +272,7 @@ export const fetchWebsiteEntries = createAsyncThunk<
     const result = await websitesApiClient.listEntries(siteId, source, status);
     return result.items;
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to load website content'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load website content'));
   }
 });
 
@@ -358,7 +283,7 @@ export const createWebsiteEntry = createAsyncThunk<
   try {
     return await websitesApiClient.createEntry(siteId, data);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to create website entry'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to create website entry'));
   }
 });
 
@@ -369,7 +294,7 @@ export const updateWebsiteEntry = createAsyncThunk<
   try {
     return await websitesApiClient.updateEntry(siteId, entryId, data);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to update website entry'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update website entry'));
   }
 });
 
@@ -380,7 +305,7 @@ export const deleteWebsiteEntry = createAsyncThunk<string, { siteId: string; ent
       await websitesApiClient.deleteEntry(siteId, entryId);
       return entryId;
     } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to delete website entry'));
+      return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to delete website entry'));
     }
   }
 );
@@ -393,7 +318,7 @@ export const syncWebsiteMailchimpEntries = createAsyncThunk<
     const result = await websitesApiClient.syncMailchimpEntries(siteId, listId);
     return result.items;
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to sync Mailchimp entries'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to sync Mailchimp entries'));
   }
 });
 
@@ -403,7 +328,7 @@ export const fetchWebsiteDeployment = createAsyncThunk<WebsiteDeploymentInfo, st
     try {
       return await websitesApiClient.getDeployment(siteId);
     } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to load publishing status'));
+      return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load publishing status'));
     }
   }
 );
@@ -415,7 +340,7 @@ export const fetchWebsiteVersions = createAsyncThunk<
   try {
     return await websitesApiClient.getVersionHistory(siteId, limit);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to load website versions'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to load website versions'));
   }
 });
 
@@ -426,7 +351,7 @@ export const updateWebsiteSite = createAsyncThunk<
   try {
     return await websitesApiClient.updateSite(siteId, data);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to update website settings'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to update website settings'));
   }
 });
 
@@ -437,7 +362,7 @@ export const publishWebsiteSite = createAsyncThunk<
   try {
     return await websitesApiClient.publishSite(payload);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to publish website'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to publish website'));
   }
 });
 
@@ -448,7 +373,7 @@ export const rollbackWebsiteVersion = createAsyncThunk<
   try {
     return await websitesApiClient.rollbackVersion(siteId, version);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to roll back website version'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to roll back website version'));
   }
 });
 
@@ -458,7 +383,7 @@ export const unpublishWebsiteSite = createAsyncThunk<WebsiteOverviewSummary['sit
     try {
       return await websitesApiClient.unpublishSite(siteId);
     } catch (error) {
-      return rejectWithValue(getErrorMessage(error, 'Failed to unpublish website'));
+      return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to unpublish website'));
     }
   }
 );
@@ -470,7 +395,7 @@ export const invalidateWebsiteCache = createAsyncThunk<
   try {
     return await websitesApiClient.invalidateCache(siteId);
   } catch (error) {
-    return rejectWithValue(getErrorMessage(error, 'Failed to refresh website cache'));
+    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to refresh website cache'));
   }
 });
 

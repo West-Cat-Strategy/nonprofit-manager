@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { contactsApiClient } from '../api/contactsApiClient';
 import type { Contact, ContactsListQuery, ContactRoleFilter } from '../types/contracts';
+import { deleteContact } from './contactsCore';
 
 export interface ContactsListState {
   contacts: Contact[];
@@ -106,6 +107,26 @@ const contactsListSlice = createSlice({
       })
       .addCase(fetchContactTags.fulfilled, (state, action) => {
         state.availableTags = action.payload || [];
+      })
+      .addCase(deleteContact.fulfilled, (state, action) => {
+        const deletedContactId = action.payload;
+        const nextContacts = state.contacts.filter((contact) => contact.contact_id !== deletedContactId);
+        const removedCount = state.contacts.length - nextContacts.length;
+
+        if (removedCount === 0) {
+          return;
+        }
+
+        state.contacts = nextContacts;
+        const nextTotal = Math.max(0, state.pagination.total - removedCount);
+        state.pagination.total = nextTotal;
+        state.pagination.total_pages =
+          state.pagination.limit > 0
+            ? Math.max(1, Math.ceil(nextTotal / state.pagination.limit))
+            : state.pagination.total_pages;
+        if (state.pagination.page > state.pagination.total_pages) {
+          state.pagination.page = state.pagination.total_pages;
+        }
       })
       .addCase(bulkUpdateContacts.fulfilled, (state, action) => {
         // Handle local update if needed, but usually list is refreshed
