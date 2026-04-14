@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** Phase 4 - Modularity Refactor  
-**Live Snapshot:** 83 active rows: 12 In Progress, 1 Blocked, 64 Review, 6 Ready.  
+**Live Snapshot:** 83 active rows: 13 In Progress, 1 Blocked, 63 Review, 6 Ready.  
 **History:** Historical roadmap, logs, trackers, and legacy reference sections moved to [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md).
 
 ## 🤝 Coordination
@@ -98,7 +98,7 @@
 | P4-T36 | Newsletter + communications hub UX upgrade | Phase 4 | Review | Codex | Apr 10, 2026 | TBD | main (carries `P4-T9H` `lint-implementation-size` unblock for `EmailMarketingPage.tsx`) |
 | P4-T40 | LUKS-aware production deploy wrapper alignment | Phase 4 | Review | Codex | Apr 13, 2026 | TBD | main |
 | P4-T41 | Live Docker auth/setup CORS origin alignment | Phase 4 | Review | Codex | Apr 13, 2026 | TBD | main |
-| P4-T42 | Repo-local Codex skill suite rebuild | Phase 4 | Review | Codex | Apr 13, 2026 | TBD | main |
+| P4-T42 | Repo-local Codex skill suite rebuild | Phase 4 | In Progress | Codex | Apr 13, 2026 | TBD | main |
 | P4-T7 | Full app UI/UX replacement (all themes, all routes) | Phase 4 | Ready | — | — | TBD | — |
 | P4-T7C | Core app pages migration (people/engagement/finance/analytics/admin/builder/workflows) | Phase 4 | Ready | — | — | TBD | — |
 | P4-T7E | Accessibility + interaction hardening | Phase 4 | Ready | — | — | TBD | — |
