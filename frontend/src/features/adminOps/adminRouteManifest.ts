@@ -1,77 +1,211 @@
 import {
   getAdminSettingsPath,
   getPortalAdminPath,
+  type AdminSettingsSection,
+  type PortalAdminPanel,
 } from './adminRoutePaths';
+import { adminSettingsTabs } from './pages/adminSettings/constants';
 
-export type AdminRouteManifestEntry = {
+export type AdminRouteWrapper = 'protected' | 'admin' | 'neoBrutalist';
+
+export type AdminRoutePageView =
+  | 'communications'
+  | 'socialMedia'
+  | 'api'
+  | 'navigation'
+  | 'user'
+  | 'backup';
+
+type AdminRouteBaseEntry = {
   id: string;
   title: string;
   path: string;
+  wrapper: AdminRouteWrapper;
 };
 
-export type AdminRouteRedirectEntry = AdminRouteManifestEntry & {
+type AdminRoutePageEntry = AdminRouteBaseEntry & {
+  kind: 'page';
+  view: AdminRoutePageView;
+};
+
+type AdminRouteRedirectEntry = AdminRouteBaseEntry & {
+  kind: 'redirect';
   redirectsTo: string;
 };
 
-export const adminSettingsRouteManifest: readonly AdminRouteManifestEntry[] = [
-  { id: 'admin-settings-dashboard', title: 'Admin settings dashboard', path: getAdminSettingsPath('dashboard') },
-  { id: 'admin-settings-organization', title: 'Organization settings', path: getAdminSettingsPath('organization') },
-  { id: 'admin-settings-workspace-modules', title: 'Workspace modules', path: getAdminSettingsPath('workspace_modules') },
-  { id: 'admin-settings-branding', title: 'Branding', path: getAdminSettingsPath('branding') },
-  { id: 'admin-settings-users', title: 'Users', path: getAdminSettingsPath('users') },
-  { id: 'admin-settings-communications', title: 'Communications', path: getAdminSettingsPath('communications') },
-  { id: 'admin-settings-messaging', title: 'Messaging', path: getAdminSettingsPath('messaging') },
-  { id: 'admin-settings-outcomes', title: 'Outcomes', path: getAdminSettingsPath('outcomes') },
-  { id: 'admin-settings-roles', title: 'Roles', path: getAdminSettingsPath('roles') },
-  { id: 'admin-settings-audit-logs', title: 'Audit logs', path: getAdminSettingsPath('audit_logs') },
-  { id: 'admin-settings-other', title: 'Other', path: getAdminSettingsPath('other') },
-] as const;
+type AdminRouteSectionEntry = AdminRouteBaseEntry & {
+  kind: 'section';
+  sections: readonly AdminSettingsSection[];
+};
 
-export const portalAdminRouteManifest: readonly AdminRouteManifestEntry[] = [
-  { id: 'portal-admin-access', title: 'Portal access', path: getPortalAdminPath('access') },
-  { id: 'portal-admin-users', title: 'Portal users', path: getPortalAdminPath('users') },
-  { id: 'portal-admin-conversations', title: 'Portal conversations', path: getPortalAdminPath('conversations') },
-  { id: 'portal-admin-appointments', title: 'Portal appointments', path: getPortalAdminPath('appointments') },
-  { id: 'portal-admin-slots', title: 'Portal slots', path: getPortalAdminPath('slots') },
-] as const;
+type AdminRoutePortalPanelEntry = AdminRouteBaseEntry & {
+  kind: 'portal-panel';
+  panel: PortalAdminPanel;
+};
 
-export const adminCompatibilityRouteManifest: readonly AdminRouteRedirectEntry[] = [
+export type AdminRouteManifestEntry =
+  | AdminRoutePageEntry
+  | AdminRouteRedirectEntry
+  | AdminRouteSectionEntry
+  | AdminRoutePortalPanelEntry;
+
+const adminSettingsSections: readonly AdminSettingsSection[] = adminSettingsTabs.map(
+  (tab) => tab.id
+);
+
+export const adminRouteManifest = [
+  {
+    id: 'admin-settings-communications',
+    title: 'Communications settings',
+    path: '/settings/communications',
+    wrapper: 'protected',
+    kind: 'page',
+    view: 'communications',
+  },
+  {
+    id: 'admin-settings-email-marketing',
+    title: 'Email marketing settings',
+    path: '/settings/email-marketing',
+    wrapper: 'protected',
+    kind: 'page',
+    view: 'communications',
+  },
+  {
+    id: 'admin-settings-social-media',
+    title: 'Social media settings',
+    path: '/settings/social-media',
+    wrapper: 'admin',
+    kind: 'page',
+    view: 'socialMedia',
+  },
+  {
+    id: 'admin-settings-api',
+    title: 'API settings',
+    path: '/settings/api',
+    wrapper: 'protected',
+    kind: 'page',
+    view: 'api',
+  },
+  {
+    id: 'admin-settings-navigation',
+    title: 'Navigation settings',
+    path: '/settings/navigation',
+    wrapper: 'protected',
+    kind: 'page',
+    view: 'navigation',
+  },
+  {
+    id: 'admin-settings-user',
+    title: 'User settings',
+    path: '/settings/user',
+    wrapper: 'neoBrutalist',
+    kind: 'page',
+    view: 'user',
+  },
+  {
+    id: 'admin-settings-backup',
+    title: 'Data backup',
+    path: '/settings/backup',
+    wrapper: 'admin',
+    kind: 'page',
+    view: 'backup',
+  },
   {
     id: 'legacy-email-marketing',
     title: 'Legacy communications redirect',
     path: '/email-marketing',
+    wrapper: 'protected',
+    kind: 'redirect',
     redirectsTo: '/dashboard',
   },
   {
     id: 'legacy-admin-settings',
     title: 'Legacy admin settings redirect',
     path: '/settings/admin',
+    wrapper: 'admin',
+    kind: 'redirect',
     redirectsTo: getAdminSettingsPath('dashboard'),
+  },
+  {
+    id: 'legacy-admin-email-settings',
+    title: 'Legacy admin email settings redirect',
+    path: '/settings/admin/email',
+    wrapper: 'admin',
+    kind: 'redirect',
+    redirectsTo: getAdminSettingsPath('communications'),
   },
   {
     id: 'legacy-admin-portal',
     title: 'Legacy portal admin redirect',
     path: '/settings/admin/portal',
+    wrapper: 'admin',
+    kind: 'redirect',
     redirectsTo: getPortalAdminPath('access'),
   },
   {
     id: 'legacy-organization-settings',
     title: 'Legacy organization settings redirect',
     path: '/settings/organization',
+    wrapper: 'admin',
+    kind: 'redirect',
     redirectsTo: '/dashboard',
   },
   {
     id: 'legacy-admin-audit-logs',
     title: 'Legacy audit logs redirect',
     path: '/admin/audit-logs',
+    wrapper: 'admin',
+    kind: 'redirect',
     redirectsTo: '/dashboard',
   },
-] as const;
-
-export const adminRouteManifest = {
-  settings: adminSettingsRouteManifest,
-  portal: portalAdminRouteManifest,
-  compatibility: adminCompatibilityRouteManifest,
-} as const;
+  {
+    id: 'portal-admin-access',
+    title: 'Portal access',
+    path: getPortalAdminPath('access'),
+    wrapper: 'admin',
+    kind: 'portal-panel',
+    panel: 'access',
+  },
+  {
+    id: 'portal-admin-users',
+    title: 'Portal users',
+    path: getPortalAdminPath('users'),
+    wrapper: 'admin',
+    kind: 'portal-panel',
+    panel: 'users',
+  },
+  {
+    id: 'portal-admin-conversations',
+    title: 'Portal conversations',
+    path: getPortalAdminPath('conversations'),
+    wrapper: 'admin',
+    kind: 'portal-panel',
+    panel: 'conversations',
+  },
+  {
+    id: 'portal-admin-appointments',
+    title: 'Portal appointments',
+    path: getPortalAdminPath('appointments'),
+    wrapper: 'admin',
+    kind: 'portal-panel',
+    panel: 'appointments',
+  },
+  {
+    id: 'portal-admin-slots',
+    title: 'Portal slots',
+    path: getPortalAdminPath('slots'),
+    wrapper: 'admin',
+    kind: 'portal-panel',
+    panel: 'slots',
+  },
+  {
+    id: 'admin-settings-section-route',
+    title: 'Admin settings section route',
+    path: '/settings/admin/:section',
+    wrapper: 'admin',
+    kind: 'section',
+    sections: adminSettingsSections,
+  },
+] as const satisfies readonly AdminRouteManifestEntry[];
 
 export default adminRouteManifest;

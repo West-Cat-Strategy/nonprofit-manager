@@ -5,21 +5,22 @@
 
 import type { ReactNode } from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import { adminRouteManifest } from '../features/adminOps/adminRouteManifest';
-import type { PortalAdminPanel } from '../features/adminOps/adminRoutePaths';
+import {
+  adminRouteManifest,
+  type AdminRouteManifestEntry,
+  type AdminRoutePageView,
+  type AdminRouteWrapper,
+} from '../features/adminOps/adminRouteManifest';
 import {
   AdminSettingsSectionRoute,
-  CommunicationsPage,
   ApiSettings,
+  CommunicationsPage,
   DataBackup,
   NavigationSettings,
   PortalAdminPage,
   SocialMedia,
   UserSettings,
 } from '../features/adminOps/routeComponents';
-import { getAdminSettingsPath } from '../features/adminOps/adminRoutePaths';
-
-// Lazy load admin pages
 
 interface RouteWrapperProps {
   children: ReactNode;
@@ -31,20 +32,30 @@ interface AdminRouteProps {
   NeoBrutalistRoute: React.ComponentType<RouteWrapperProps>;
 }
 
-const [
-  legacyEmailMarketingRoute,
-  legacyAdminSettingsRoute,
-  legacyAdminPortalRoute,
-  legacyOrganizationSettingsRoute,
-  legacyAuditLogsRoute,
-] = adminRouteManifest.compatibility;
+const pageComponentByView: Record<AdminRoutePageView, React.ComponentType> = {
+  communications: CommunicationsPage,
+  socialMedia: SocialMedia,
+  api: ApiSettings,
+  navigation: NavigationSettings,
+  user: UserSettings,
+  backup: DataBackup,
+};
 
-const portalPanelByRouteId: Record<string, PortalAdminPanel> = {
-  'portal-admin-access': 'access',
-  'portal-admin-users': 'users',
-  'portal-admin-conversations': 'conversations',
-  'portal-admin-appointments': 'appointments',
-  'portal-admin-slots': 'slots',
+const renderRouteElement = (entry: AdminRouteManifestEntry): ReactNode => {
+  switch (entry.kind) {
+    case 'page': {
+      const Page = pageComponentByView[entry.view];
+      return <Page />;
+    }
+    case 'redirect':
+      return <Navigate to={entry.redirectsTo} replace />;
+    case 'portal-panel':
+      return <PortalAdminPage panel={entry.panel} />;
+    case 'section':
+      return <AdminSettingsSectionRoute />;
+    default:
+      return null;
+  }
 };
 
 export function createAdminRoutes({
@@ -52,131 +63,25 @@ export function createAdminRoutes({
   AdminRoute,
   NeoBrutalistRoute,
 }: AdminRouteProps) {
+  const wrapperByKind: Record<AdminRouteWrapper, React.ComponentType<RouteWrapperProps>> = {
+    protected: ProtectedRoute,
+    admin: AdminRoute,
+    neoBrutalist: NeoBrutalistRoute,
+  };
+
   return (
     <>
-      <Route
-        path="/settings/communications"
-        element={
-          <ProtectedRoute>
-            <CommunicationsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/email-marketing"
-        element={
-          <ProtectedRoute>
-            <CommunicationsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/social-media"
-        element={
-          <AdminRoute>
-            <SocialMedia />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/settings/api"
-        element={
-          <ProtectedRoute>
-            <ApiSettings />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/navigation"
-        element={
-          <ProtectedRoute>
-            <NavigationSettings />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/user"
-        element={
-          <NeoBrutalistRoute>
-            <UserSettings />
-          </NeoBrutalistRoute>
-        }
-      />
-      <Route
-        path={legacyEmailMarketingRoute.path}
-        element={
-          <ProtectedRoute>
-            <Navigate to={legacyEmailMarketingRoute.redirectsTo} replace />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={legacyAdminSettingsRoute.path}
-        element={
-          <AdminRoute>
-            <Navigate to={legacyAdminSettingsRoute.redirectsTo} replace />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/settings/admin/email"
-        element={
-          <AdminRoute>
-            <Navigate to={getAdminSettingsPath('communications')} replace />
-          </AdminRoute>
-        }
-      />
-      {adminRouteManifest.portal.map((entry) => (
-        <Route
-          key={entry.id}
-          path={entry.path}
-          element={
-            <AdminRoute>
-              <PortalAdminPage panel={portalPanelByRouteId[entry.id]} />
-            </AdminRoute>
-          }
-        />
-      ))}
-      <Route
-        path="/settings/admin/:section"
-        element={
-          <AdminRoute>
-            <AdminSettingsSectionRoute />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path={legacyAdminPortalRoute.path}
-        element={
-          <AdminRoute>
-            <Navigate to={legacyAdminPortalRoute.redirectsTo} replace />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path={legacyOrganizationSettingsRoute.path}
-        element={
-          <AdminRoute>
-            <Navigate to={legacyOrganizationSettingsRoute.redirectsTo} replace />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/settings/backup"
-        element={
-          <AdminRoute>
-            <DataBackup />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path={legacyAuditLogsRoute.path}
-        element={
-          <AdminRoute>
-            <Navigate to={legacyAuditLogsRoute.redirectsTo} replace />
-          </AdminRoute>
-        }
-      />
+      {adminRouteManifest.map((entry) => {
+        const Wrapper = wrapperByKind[entry.wrapper];
+
+        return (
+          <Route
+            key={entry.id}
+            path={entry.path}
+            element={<Wrapper>{renderRouteElement(entry)}</Wrapper>}
+          />
+        );
+      })}
     </>
   );
 }

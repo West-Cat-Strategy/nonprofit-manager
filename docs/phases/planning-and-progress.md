@@ -1,14 +1,14 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** Phase 4 - Modularity Refactor  
-**Live Snapshot:** 42 active rows: 2 In Progress, 1 Blocked, 32 Review, 7 Ready.
+**Live Snapshot:** 42 active rows: 0 In Progress, 1 Blocked, 34 Review, 7 Ready.
 **History:** Historical roadmap, logs, trackers, and legacy reference sections moved to [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md).
 
 ## 🤝 Coordination
 
 - Update this file before editing tracked work.
 - Keep one active task per agent by default unless a coordinated exception is documented here.
-- Coordinated exception, 2026-04-14: the in-progress rescue wave is split across parallel frontend, backend/integrations, scripts/skills, and validation tracks; Codex has taken over closure of `P4-T37` and `P4-T38`, while `P4-T39A` remains backend-owned by Antigravity.
+- Coordinated exception, 2026-04-14: the rescue wave is split across parallel frontend, backend/integrations, scripts/skills, and validation tracks; Codex has closed `P4-T37` and `P4-T38` to Review, while `P4-T39A` remains backend-owned by Antigravity.
 - Move blocked work to Blocked with a reason and next step.
 - Use task IDs in commits and PR titles.
 
@@ -25,8 +25,8 @@
 |----|------|-------|--------|-------|---------|--------|-----------|
 | P4-T7E-DARK | Whole-app dark-mode accessibility remediation + route-audit closure | Phase 4 | Review | Codex | Mar 11, 2026 | TBD | main (Docker-backed Chromium dark-mode audit passed on 2026-04-14; no code changes were required once the app stack was available) |
 | P4-T30 | Dependency review and multi-package upgrade pass | Phase 4 | Review | Codex | Mar 28, 2026 | TBD | codex/p4-t30-dependency-upgrades (recorded dependency-upgrade commits are already on `main`; the shared frontend validation debt that was holding honest closure now passes in targeted route/messaging/accounts/cases/events/finance slices, so remaining review is task bookkeeping and broader repo gates) |
-| P4-T37 | Organizational admin panel refactor + canonical role wiring | Phase 4 | In Progress | Codex | Apr 10, 2026 | TBD | main (Codex takeover on 2026-04-14 to finish manifest-driven admin/portal route wiring, canonical frontend role normalization, and closure validation) |
-| P4-T38 | Contacts module redesign + legacy alignment | Phase 4 | In Progress | Codex | Apr 10, 2026 | TBD | main (Codex takeover on 2026-04-14 to finish the feature-owned documents/case-association seam, close the remaining contacts->cases ownership leak, and rerun closure validation; former `P4-T35` contacts delete-from-list Chromium regression from `e2e/tests/contacts.spec.ts:1082` and former `P4-T9H` implementation-size unblock for `contactMergeService.ts` cleared on 2026-04-14) |
+| P4-T37 | Organizational admin panel refactor + canonical role wiring | Phase 4 | Review | Codex | Apr 10, 2026 | TBD | main (closure note: manifest cleanup plus canonical role normalization are captured in [P4-T37_T38_CLOSEOUT_2026-04-14.md](P4-T37_T38_CLOSEOUT_2026-04-14.md); frontend type-check, the targeted admin/settings Vitest slice (`8` files, `68` tests), and docs link validation passed on 2026-04-14; repo-wide `make ci-full` remains blocked by the existing `P4-T9H` UI-audit baseline mismatch rather than a row-local regression) |
+| P4-T38 | Contacts module redesign + legacy alignment | Phase 4 | Review | Codex | Apr 10, 2026 | TBD | main (closure note: contacts ownership cleanup, the feature-owned documents/case-association seam, and the remaining contacts->cases boundary cleanup are captured in [P4-T37_T38_CLOSEOUT_2026-04-14.md](P4-T37_T38_CLOSEOUT_2026-04-14.md); frontend type-check, the targeted contacts Vitest slice (`6` files, `14` tests), backend type-check, and `documents.controller` Jest coverage (`1` suite, `3` tests) passed on 2026-04-14; repo-wide `make ci-full` remains blocked by the existing `P4-T9H` UI-audit baseline mismatch rather than a row-local regression) |
 | P4-T44 | Root script wrapper refactor (shared shell helpers, compose/E2E cleanup, dead duplicate removal) | Phase 4 | Review | Codex | Apr 13, 2026 | TBD | main (`scripts/e2e-playwright.sh` now centralizes host/docker Playwright defaults, `e2e/package.json` uses the shared wrapper, `Makefile` reuses a shared E2E npm-run entry, and shell syntax checks are green on 2026-04-14) |
 | P4-T5 | Structural refactor wave (validation/auth/envelope/frontend/docs guardrails) | Phase 4 | Review | Codex | Mar 2, 2026 | Mar 2, 2026 | main (former implementation-size blocker cleared on 2026-04-13: `UserSettingsPage.tsx` is `930` lines against baseline `931`, and `PortalSection.tsx` is `165` lines) |
 | P4-T9H | Staff backend efficiency wave (stable contracts, query-path + search/index refactor) | Phase 4 | Blocked | Codex | Mar 15, 2026 | TBD | main (implementation-size closure is green on 2026-04-14 and the previously cited targeted route/messaging/contacts/accounts/cases/events/finance frontend Vitest slices now pass; the current strict-closure blocker is the repo-wide `make ci-full` rerun failing at the UI audit baseline step (`9434/8570/35` expected vs `9439/8576/35`) after the rescue-wave changes settle in one pass) |

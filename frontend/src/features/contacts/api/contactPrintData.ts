@@ -12,8 +12,8 @@ import type {
   ContactRelationship,
 } from '../../../types/contact';
 import { contactsApiClient } from './contactsApiClient';
-import { casesApiClient } from '../../cases/api/casesApiClient';
 import { followUpsApiClient } from '../../followUps/api/followUpsApiClient';
+import { listContactCasesForContact } from './contactCasesApi';
 import type { FollowUp } from '../../../types/followup';
 
 export interface ContactPrintActivityItem {
@@ -117,7 +117,7 @@ export const fetchContactPrintData = async (contactId: string): Promise<ContactP
     contactsApiClient.listDocuments(contactId),
     contactsApiClient.listCommunications(contactId, { limit: 100 }),
     followUpsApiClient.fetchEntityFollowUps('contact', contactId),
-    casesApiClient.listCases({ contactId, limit: 100, sortBy: 'updated_at', sortOrder: 'desc' }),
+    listContactCasesForContact(contactId),
     fetchContactActivity(contactId),
     fetchContactPayments(contactId),
   ]);
@@ -131,15 +131,6 @@ export const fetchContactPrintData = async (contactId: string): Promise<ContactP
     total: 0,
     filters: {},
   } satisfies ContactCommunicationsResult;
-
-  const emptyCasesResponse = {
-    cases: [],
-    total: 0,
-    pagination: {
-      page: 1,
-      limit: 100,
-    },
-  };
 
   const sectionErrors: Partial<Record<ContactPrintSectionKey, string>> = {};
 
@@ -187,7 +178,7 @@ export const fetchContactPrintData = async (contactId: string): Promise<ContactP
       documents: getSettledValue(documentsResult, []),
       communications: getSettledValue(communicationsResult, emptyCommunicationsResult).items,
       followUps: getSettledValue(followUpsResult, []),
-      cases: getSettledValue(casesResult, emptyCasesResponse).cases,
+      cases: getSettledValue(casesResult, []),
       activity: getSettledValue(activityResult, []),
       payments: getSettledValue(paymentsResult, []),
     },

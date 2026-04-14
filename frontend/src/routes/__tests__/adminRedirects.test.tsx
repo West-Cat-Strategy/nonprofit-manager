@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { adminRouteManifest } from '../../features/adminOps/adminRouteManifest';
+import { getAdminSettingsPath } from '../../features/adminOps/adminRoutePaths';
 import { createAdminRoutes } from '../adminRoutes';
 
 vi.mock('../../features/adminOps/routeComponents', async () => {
@@ -85,7 +86,19 @@ const expectCurrentLocation = (expected: string) => {
   expect(probes[probes.length - 1]).toHaveTextContent(expected);
 };
 
+const isKind =
+  <Kind extends (typeof adminRouteManifest)[number]['kind']>(kind: Kind) =>
+  (
+    entry: (typeof adminRouteManifest)[number]
+  ): entry is Extract<(typeof adminRouteManifest)[number], { kind: Kind }> =>
+    entry.kind === kind;
+
 describe('admin route redirects', () => {
+  const pageRoutes = adminRouteManifest.filter(isKind('page'));
+  const redirectRoutes = adminRouteManifest.filter(isKind('redirect'));
+  const portalRoutes = adminRouteManifest.filter(isKind('portal-panel'));
+  const sectionRoute = adminRouteManifest.find(isKind('section'));
+
   it('redirects /settings/admin to the dashboard section', async () => {
     renderAdminRoutes('/settings/admin');
     expect(
@@ -94,14 +107,47 @@ describe('admin route redirects', () => {
     expectCurrentLocation('/settings/admin/dashboard');
   });
 
-  it.each([
-    ...adminRouteManifest.settings.map(({ path }) => [path, path] as const),
-  ])('renders canonical admin section route %s', async (route, canonicalRoute) => {
+  it.each(
+    sectionRoute?.sections.map((section) => [getAdminSettingsPath(section), section] as const) ?? []
+  )('renders canonical admin section route %s', async (route) => {
     renderAdminRoutes(route);
     expect(
       await screen.findByRole('heading', { name: /admin settings page/i })
     ).toBeInTheDocument();
-    expectCurrentLocation(canonicalRoute);
+    expectCurrentLocation(route);
+  });
+
+  it.each(pageRoutes.map(({ path }) => [path] as const))(
+    'renders canonical admin page route %s',
+    async (route) => {
+      renderAdminRoutes(route);
+
+      const headingName = route.includes('email-marketing')
+        ? /email marketing page/i
+        : route.includes('communications')
+          ? /communications page/i
+          : route.includes('social-media')
+            ? /social media page/i
+            : route.includes('/api')
+              ? /api settings page/i
+              : route.includes('/navigation')
+                ? /navigation settings page/i
+                : route.includes('/user')
+                  ? /user settings page/i
+                  : /data backup page/i;
+
+      expect(await screen.findByRole('heading', { name: headingName })).toBeInTheDocument();
+      expectCurrentLocation(route);
+    }
+  );
+
+  it('verifies route wrapper metadata is present for canonical page routes', () => {
+    const wrappers = new Map(pageRoutes.map((entry) => [entry.path, entry.wrapper]));
+
+    expect(wrappers.get('/settings/communications')).toBe('protected');
+    expect(wrappers.get('/settings/email-marketing')).toBe('protected');
+    expect(wrappers.get('/settings/social-media')).toBe('admin');
+    expect(wrappers.get('/settings/user')).toBe('neoBrutalist');
   });
 
   it('redirects invalid admin section slugs to dashboard', async () => {
@@ -120,17 +166,16 @@ describe('admin route redirects', () => {
     expectCurrentLocation('/settings/admin/portal/access');
   });
 
-  it.each([
-    ...adminRouteManifest.portal.map(({ id, path }) =>
-      [path, id.replace('portal-admin-', '')] as const
-    ),
-  ])('renders portal panel route %s', async (route, panel) => {
-    renderAdminRoutes(route);
-    expect(
-      await screen.findByRole('heading', { name: new RegExp(`portal panel: ${panel}`, 'i') })
-    ).toBeInTheDocument();
-    expectCurrentLocation(route);
-  });
+  it.each(portalRoutes.map(({ path, panel }) => [path, panel] as const))(
+    'renders portal panel route %s',
+    async (route, panel) => {
+      renderAdminRoutes(route);
+      expect(
+        await screen.findByRole('heading', { name: new RegExp(`portal panel: ${panel}`, 'i') })
+      ).toBeInTheDocument();
+      expectCurrentLocation(route);
+    }
+  );
 
   it('renders canonical communications route directly', async () => {
     renderAdminRoutes('/settings/communications');
@@ -154,13 +199,14 @@ describe('admin route redirects', () => {
     expectCurrentLocation('/settings/social-media');
   });
 
-  it.each([
-    ...adminRouteManifest.compatibility.map(({ path, redirectsTo }) => [path, redirectsTo] as const),
-  ])('redirects legacy route %s to %s', async (legacyRoute, canonicalRoute) => {
-    renderAdminRoutes(legacyRoute);
-    expect(await screen.findByText(canonicalRoute)).toBeInTheDocument();
-    expectCurrentLocation(canonicalRoute);
-  });
+  it.each(redirectRoutes.map(({ path, redirectsTo }) => [path, redirectsTo] as const))(
+    'redirects legacy route %s to %s',
+    async (legacyRoute, canonicalRoute) => {
+      renderAdminRoutes(legacyRoute);
+      expect(await screen.findByText(canonicalRoute)).toBeInTheDocument();
+      expectCurrentLocation(canonicalRoute);
+    }
+  );
 
   it('redirects legacy admin email settings to communications', async () => {
     renderAdminRoutes('/settings/admin/email');

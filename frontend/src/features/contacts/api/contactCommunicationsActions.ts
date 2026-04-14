@@ -1,8 +1,8 @@
-import { casesApiClient } from '../../cases/api/casesApiClient';
+import { sendContactAppointmentReminder } from './contactCasesApi';
 
 export const resendContactAppointmentReminder = async (
   appointmentId: string,
   options: { sendEmail?: boolean; sendSms?: boolean; customMessage?: string }
 ): Promise<void> => {
-  await casesApiClient.sendCaseAppointmentReminder(appointmentId, options);
+  await sendContactAppointmentReminder(appointmentId, options);
 };

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { ContactForm } from '../../contacts/components/contactForm';
-import { fetchCases, selectCasesByContact } from '../../cases/state';
+import { fetchContactCasesByContact, selectContactCasesByContact } from '../../contacts/state/contactCases';
 import { createContactNote } from '../../contacts/state';
 import OutcomeTagSelector from '../../outcomes/components/OutcomeTagSelector';
 import { useOutcomeDefinitions } from '../../outcomes/hooks/useOutcomeDefinitions';
@@ -21,7 +21,7 @@ type InteractionNoteDraft = CreateContactNoteDTO & {
 };
 
 const emailRegex = /\S+@\S+\.\S+/;
-const EMPTY_CASES: ReturnType<typeof selectCasesByContact> = [];
+const EMPTY_CASES: ReturnType<typeof selectContactCasesByContact> = [];
 
 const emptyNoteDraft = (): InteractionNoteDraft => ({
   note_type: 'note',
@@ -52,14 +52,14 @@ export default function InteractionNotePage() {
   const lookup = useQuickLookup({ debounceMs: 250 });
 
   const contactCases = useAppSelector((state) =>
-    selectedContact ? selectCasesByContact(state, selectedContact.contact_id) : EMPTY_CASES
+    selectedContact ? selectContactCasesByContact(state, selectedContact.contact_id) : EMPTY_CASES
   );
 
   const [noteForm, setNoteForm] = useState<InteractionNoteDraft>(emptyNoteDraft);
 
   useEffect(() => {
     if (selectedContact) {
-      dispatch(fetchCases({ contact_id: selectedContact.contact_id, limit: 50 }));
+      dispatch(fetchContactCasesByContact(selectedContact.contact_id));
     }
   }, [dispatch, selectedContact]);
 

@@ -10,6 +10,7 @@ import ErrorBanner from './ErrorBanner';
 import { useApiError } from '../hooks/useApiError';
 import { validatePassword } from '../utils/validation';
 import type { RoleSelectorItem } from '../features/adminOps/contracts';
+import { normalizeRoleSlug } from '../features/auth/state/roleNormalization';
 import {
   buildRoleLabelMap,
   getRoleDisplayLabel,
@@ -202,7 +203,7 @@ export default function UserManagement() {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      role: normalizeRoleSlug(user.role) ?? user.role,
       password: '',
       confirmPassword: '',
     });
@@ -218,7 +219,7 @@ export default function UserManagement() {
   };
 
   const getRoleBadgeColor = (role: string) => {
-    switch (role) {
+    switch (normalizeRoleSlug(role)) {
       case 'admin':
         return 'bg-app-accent-soft text-app-accent-text';
       case 'manager':

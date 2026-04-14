@@ -1,10 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { BrutalBadge, BrutalCard } from '../../../components/neo-brutalist';
-import ContactPhoneNumbers from '../../../components/ContactPhoneNumbers';
-import ContactEmailAddresses from '../../../components/ContactEmailAddresses';
-import ContactRelationships from '../../../components/ContactRelationships';
+import ContactPhoneNumbers from '../components/ContactPhoneNumbers';
+import ContactEmailAddresses from '../components/ContactEmailAddresses';
+import ContactRelationships from '../components/ContactRelationships';
 import ContactNotes from '../components/ContactNotesPanel';
-import ContactTags from '../../../components/ContactTags';
+import ContactTags from '../components/ContactTags';
 import ContactTasksPanel from '../components/ContactTasksPanel';
 import ContactMergeDialog from '../components/ContactMergeDialog';
 import ContactActivityPanel from '../components/ContactActivityPanel';

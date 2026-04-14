@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useNavigationPreferences } from '../../../hooks/useNavigationPreferences';
+import { isAdminRole } from '../../auth/state/roleNormalization';
 import { useAppSelector } from '../../../store/hooks';
 import { getAdminSettingsPath } from '../adminRoutePaths';
 import AdminPanelLayout from '../components/AdminPanelLayout';
@@ -27,7 +28,7 @@ export default function NavigationSettings() {
     maxPinnedItems,
   } = useNavigationPreferences();
   const { user } = useAppSelector((state) => state.auth);
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = isAdminRole(user?.role);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 

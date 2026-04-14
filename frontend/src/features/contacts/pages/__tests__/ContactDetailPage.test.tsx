@@ -66,12 +66,11 @@ vi.mock('../../../../components/neo-brutalist', () => ({
 }));
 
 vi.mock('../../../../components/PaymentHistory', () => ({ default: () => <div>Payments</div> }));
-vi.mock('../../../../components/ContactPhoneNumbers', () => ({ default: () => <div>Phones</div> }));
-vi.mock('../../../../components/ContactEmailAddresses', () => ({ default: () => <div>Emails</div> }));
-vi.mock('../../../../components/ContactRelationships', () => ({ default: () => <div>Relationships</div> }));
+vi.mock('../../components/ContactPhoneNumbers', () => ({ default: () => <div>Phones</div> }));
+vi.mock('../../components/ContactEmailAddresses', () => ({ default: () => <div>Emails</div> }));
+vi.mock('../../components/ContactRelationships', () => ({ default: () => <div>Relationships</div> }));
 vi.mock('../../components/ContactNotesPanel', () => ({ default: () => <div>Notes</div> }));
-vi.mock('../../../../components/ContactDocuments', () => ({ default: () => <div>Documents</div> }));
-vi.mock('../../../../components/ContactTags', () => ({ default: () => <div>Tags</div> }));
+vi.mock('../../components/ContactTags', () => ({ default: () => <div>Tags</div> }));
 vi.mock('../../components/ContactTasksPanel', () => ({ default: () => <div>Tasks Panel</div> }));
 vi.mock('../../components/ContactActivityPanel', () => ({ default: () => <div>Activity Panel</div> }));
 vi.mock('../../components/ContactCommunicationsPanel', () => ({ default: () => <div>Communications Panel</div> }));

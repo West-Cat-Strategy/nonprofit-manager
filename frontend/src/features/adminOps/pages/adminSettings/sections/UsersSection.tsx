@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import Avatar from '../../../../../components/Avatar';
+import { normalizeRoleSlug } from '../../../../auth/state/roleNormalization';
 import { getAdminSettingsPath } from '../../../adminRoutePaths';
 import type { UserInvitation, UserSearchResult } from '../types';
 import { getRoleDisplayLabel } from '../utils';
@@ -75,57 +76,66 @@ export default function UsersSection({
 
           {userSearchResults.length > 0 && (
             <div className="mt-4 divide-y divide-app-border overflow-hidden rounded-lg border border-app-border">
-              {userSearchResults.map((user) => (
-                <button
-                  type="button"
-                  key={user.id}
-                  className="flex w-full cursor-pointer items-center justify-between p-4 text-left hover:bg-app-surface-muted"
-                  onClick={() => onSelectUser(user.id)}
-                >
-                  <div className="flex items-center">
-                    <Avatar
-                      src={user.profilePicture}
-                      firstName={user.firstName}
-                      lastName={user.lastName}
-                      size="md"
-                    />
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-app-text">
-                        {user.firstName} {user.lastName}
+              {userSearchResults.map((user) => {
+                const normalizedRole = normalizeRoleSlug(user.role);
+
+                return (
+                  <button
+                    type="button"
+                    key={user.id}
+                    className="flex w-full cursor-pointer items-center justify-between p-4 text-left hover:bg-app-surface-muted"
+                    onClick={() => onSelectUser(user.id)}
+                  >
+                    <div className="flex items-center">
+                      <Avatar
+                        src={user.profilePicture}
+                        firstName={user.firstName}
+                        lastName={user.lastName}
+                        size="md"
+                      />
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-app-text">
+                          {user.firstName} {user.lastName}
+                        </div>
+                        <div className="text-sm text-app-text-muted">{user.email}</div>
                       </div>
-                      <div className="text-sm text-app-text-muted">{user.email}</div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-medium ${
-                        user.role === 'admin'
-                          ? 'bg-app-accent-soft text-app-accent-text'
-                          : 'bg-app-surface-muted text-app-text'
-                      }`}
-                    >
-                      {getLabel(user.role)}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-medium ${
-                        user.isActive
-                          ? 'bg-app-accent-soft text-app-accent-text'
-                          : 'bg-app-surface-muted text-app-text'
-                      }`}
-                    >
-                      {user.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                    <svg
-                      className="h-5 w-5 text-app-text-subtle"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </button>
-              ))}
+                    <div className="flex items-center space-x-4">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          normalizedRole === 'admin'
+                            ? 'bg-app-accent-soft text-app-accent-text'
+                            : 'bg-app-surface-muted text-app-text'
+                        }`}
+                      >
+                        {getLabel(user.role)}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          user.isActive
+                            ? 'bg-app-accent-soft text-app-accent-text'
+                            : 'bg-app-surface-muted text-app-text'
+                        }`}
+                      >
+                        {user.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                      <svg
+                        className="h-5 w-5 text-app-text-subtle"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -301,50 +311,53 @@ export default function UsersSection({
             </p>
           </div>
           <div className="divide-y divide-app-border">
-            {invitations.map((invitation) => (
-              <div key={invitation.id} className="flex items-center justify-between p-4">
-                <div>
+            {invitations.map((invitation) => {
+              const normalizedRole = normalizeRoleSlug(invitation.role);
+
+              return (
+                <div key={invitation.id} className="flex items-center justify-between p-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-app-text">{invitation.email}</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          normalizedRole === 'admin'
+                            ? 'bg-app-accent-soft text-app-accent-text'
+                            : 'bg-app-surface-muted text-app-text'
+                        }`}
+                      >
+                        {getLabel(invitation.role)}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-sm text-app-text-muted">
+                      Invited {new Date(invitation.createdAt).toLocaleDateString('en-CA')}
+                      {invitation.createdByName && ` by ${invitation.createdByName}`}
+                      {' '}•{' '}
+                      Expires {new Date(invitation.expiresAt).toLocaleDateString('en-CA')}
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-app-text">{invitation.email}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        invitation.role === 'admin'
-                          ? 'bg-app-accent-soft text-app-accent-text'
-                          : 'bg-app-surface-muted text-app-text'
-                      }`}
+                    <button
+                      type="button"
+                      onClick={() => onResendInvitation(invitation.id)}
+                      className="px-3 py-1.5 text-sm font-medium text-app-accent hover:text-app-accent-hover"
                     >
-                      {getLabel(invitation.role)}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-sm text-app-text-muted">
-                    Invited {new Date(invitation.createdAt).toLocaleDateString('en-CA')}
-                    {invitation.createdByName && ` by ${invitation.createdByName}`}
-                    {' '}•{' '}
-                    Expires {new Date(invitation.expiresAt).toLocaleDateString('en-CA')}
+                      Resend
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRevokeInvitation(invitation.id)}
+                      className="px-3 py-1.5 text-sm font-medium text-app-accent hover:text-app-accent-text"
+                    >
+                      Revoke
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onResendInvitation(invitation.id)}
-                    className="px-3 py-1.5 text-sm font-medium text-app-accent hover:text-app-accent-hover"
-                  >
-                    Resend
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onRevokeInvitation(invitation.id)}
-                    className="px-3 py-1.5 text-sm font-medium text-app-accent hover:text-app-accent-text"
-                  >
-                    Revoke
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
     </div>
   );
 }
-

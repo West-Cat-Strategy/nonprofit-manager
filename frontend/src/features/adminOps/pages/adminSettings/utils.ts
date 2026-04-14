@@ -1,4 +1,5 @@
 import type { PermissionCatalogItem, Role, RoleSelectorItem } from './types';
+import { normalizeRoleSlug } from '../../../auth/state/roleNormalization';
 
 const normalizeDigits = (value: string): string => value.replace(/\D/g, '');
 
@@ -63,19 +64,36 @@ export const buildRoleLabelMap = (roles: RoleLike[]): Record<string, string> => 
 
   for (const role of roles) {
     const key = 'name' in role ? role.name : role.value;
-    if (key) {
-      labels[key] = role.label;
+    const normalizedKey = normalizeRoleSlug(key);
+    if (normalizedKey) {
+      labels[normalizedKey] = role.label;
     }
   }
 
   return labels;
 };
 
-export const getRoleDisplayLabel = (role: string, roleLabels: Record<string, string>): string =>
-  roleLabels[role] ||
-  LEGACY_ROLE_DISPLAY_LABELS[role] ||
-  DEFAULT_ROLE_DISPLAY_LABELS[role] ||
-  humanizePhrase(role);
+export const getRoleDisplayLabel = (role: string, roleLabels: Record<string, string>): string => {
+  const normalizedRole = normalizeRoleSlug(role);
+
+  if (normalizedRole && roleLabels[normalizedRole]) {
+    return roleLabels[normalizedRole];
+  }
+
+  if (roleLabels[role]) {
+    return roleLabels[role];
+  }
+
+  if (normalizedRole && LEGACY_ROLE_DISPLAY_LABELS[normalizedRole]) {
+    return LEGACY_ROLE_DISPLAY_LABELS[normalizedRole];
+  }
+
+  if (normalizedRole && DEFAULT_ROLE_DISPLAY_LABELS[normalizedRole]) {
+    return DEFAULT_ROLE_DISPLAY_LABELS[normalizedRole];
+  }
+
+  return humanizePhrase(normalizedRole ?? role);
+};
 
 export const groupPermissionsByCategory = (permissions: PermissionCatalogItem[]) => {
   const grouped = permissions.reduce<Record<string, PermissionCatalogItem[]>>((acc, permission) => {
