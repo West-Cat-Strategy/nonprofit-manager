@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { adminRouteManifest } from '../../features/adminOps/adminRouteManifest';
 import { createAdminRoutes } from '../adminRoutes';
 
 vi.mock('../../features/adminOps/routeComponents', async () => {
@@ -94,16 +95,7 @@ describe('admin route redirects', () => {
   });
 
   it.each([
-    ['/settings/admin/dashboard', '/settings/admin/dashboard'],
-    ['/settings/admin/organization', '/settings/admin/organization'],
-    ['/settings/admin/branding', '/settings/admin/branding'],
-    ['/settings/admin/users', '/settings/admin/users'],
-    ['/settings/admin/communications', '/settings/admin/communications'],
-    ['/settings/admin/messaging', '/settings/admin/messaging'],
-    ['/settings/admin/outcomes', '/settings/admin/outcomes'],
-    ['/settings/admin/roles', '/settings/admin/roles'],
-    ['/settings/admin/audit_logs', '/settings/admin/audit_logs'],
-    ['/settings/admin/other', '/settings/admin/other'],
+    ...adminRouteManifest.settings.map(({ path }) => [path, path] as const),
   ])('renders canonical admin section route %s', async (route, canonicalRoute) => {
     renderAdminRoutes(route);
     expect(
@@ -129,11 +121,9 @@ describe('admin route redirects', () => {
   });
 
   it.each([
-    ['/settings/admin/portal/access', 'access'],
-    ['/settings/admin/portal/users', 'users'],
-    ['/settings/admin/portal/conversations', 'conversations'],
-    ['/settings/admin/portal/appointments', 'appointments'],
-    ['/settings/admin/portal/slots', 'slots'],
+    ...adminRouteManifest.portal.map(({ id, path }) =>
+      [path, id.replace('portal-admin-', '')] as const
+    ),
   ])('renders portal panel route %s', async (route, panel) => {
     renderAdminRoutes(route);
     expect(
@@ -165,12 +155,16 @@ describe('admin route redirects', () => {
   });
 
   it.each([
-    ['/email-marketing', '/dashboard'],
-    ['/settings/organization', '/dashboard'],
-    ['/admin/audit-logs', '/dashboard'],
+    ...adminRouteManifest.compatibility.map(({ path, redirectsTo }) => [path, redirectsTo] as const),
   ])('redirects legacy route %s to %s', async (legacyRoute, canonicalRoute) => {
     renderAdminRoutes(legacyRoute);
     expect(await screen.findByText(canonicalRoute)).toBeInTheDocument();
     expectCurrentLocation(canonicalRoute);
+  });
+
+  it('redirects legacy admin email settings to communications', async () => {
+    renderAdminRoutes('/settings/admin/email');
+    expect(await screen.findByText('/settings/admin/communications')).toBeInTheDocument();
+    expectCurrentLocation('/settings/admin/communications');
   });
 });

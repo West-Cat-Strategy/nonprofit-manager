@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchCaseSummary } from '../../features/cases/state';
 import WidgetContainer from './WidgetContainer';
+import type { CaseSummary } from '../../types/case';
 import type { DashboardWidget } from '../../types/dashboard';
 
 interface CaseSummaryWidgetProps {
@@ -16,9 +17,21 @@ interface CaseSummaryWidgetProps {
   onRemove: () => void;
 }
 
+type CaseSummarySlice = {
+  summary?: CaseSummary | null;
+  list?: {
+    summary?: CaseSummary | null;
+  };
+};
+
+const resolveCaseSummary = (state: { cases?: CaseSummarySlice } | undefined): CaseSummary | null => {
+  const casesState = state?.cases;
+  return casesState?.list?.summary ?? casesState?.summary ?? null;
+};
+
 const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProps) => {
   const dispatch = useAppDispatch();
-  const summary = useAppSelector((state) => state.cases.list.summary);
+  const summary = useAppSelector(resolveCaseSummary);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(summary === null);
   const initialSummaryExistsRef = useRef(summary !== null);

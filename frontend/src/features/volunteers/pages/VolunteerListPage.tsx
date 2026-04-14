@@ -12,7 +12,7 @@ import {
   setFilters,
   clearFilters,
 } from '../state';
-import type { Volunteer } from '../state';
+import type { Volunteer, VolunteersListState } from '../state';
 import {
   VOLUNTEER_AVAILABILITY_STATUS_VALUES,
   VOLUNTEER_BACKGROUND_CHECK_STATUS_VALUES,
@@ -36,13 +36,62 @@ import {
 } from '../../../utils/persistedFilters';
 
 const SORT_ORDER_VALUES = ['asc', 'desc'] as const;
+const EMPTY_PAGINATION: VolunteersListState['pagination'] = {
+  total: 0,
+  page: 1,
+  limit: 20,
+  total_pages: 1,
+};
+
+const EMPTY_FILTERS: VolunteersListState['filters'] = {
+  search: '',
+  skills: [],
+  availability_status: '',
+  background_check_status: '',
+  is_active: true,
+};
+
+type VolunteerListSlice = Partial<VolunteersListState> & {
+  list?: Partial<VolunteersListState>;
+};
+
+const resolveVolunteerListState = (
+  state: { volunteers?: VolunteerListSlice } | undefined
+): VolunteersListState => {
+  const volunteersState = state?.volunteers;
+  const listState = volunteersState?.list;
+
+  if (listState) {
+    return {
+      volunteers: listState.volunteers ?? [],
+      loading: listState.loading ?? false,
+      error: listState.error ?? null,
+      pagination: listState.pagination ?? EMPTY_PAGINATION,
+      filters: {
+        ...EMPTY_FILTERS,
+        ...listState.filters,
+      },
+    };
+  }
+
+  return {
+    volunteers: volunteersState?.volunteers ?? [],
+    loading: volunteersState?.loading ?? false,
+    error: volunteersState?.error ?? null,
+    pagination: volunteersState?.pagination ?? EMPTY_PAGINATION,
+    filters: {
+      ...EMPTY_FILTERS,
+      ...volunteersState?.filters,
+    },
+  };
+};
 
 const VolunteerList = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { volunteers, loading, error, pagination, filters } = useAppSelector(
-    (state) => state.volunteers.list
+    resolveVolunteerListState
   );
 
   const {

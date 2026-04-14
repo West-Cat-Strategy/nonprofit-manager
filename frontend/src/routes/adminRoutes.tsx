@@ -5,6 +5,8 @@
 
 import type { ReactNode } from 'react';
 import { Navigate, Route } from 'react-router-dom';
+import { adminRouteManifest } from '../features/adminOps/adminRouteManifest';
+import type { PortalAdminPanel } from '../features/adminOps/adminRoutePaths';
 import {
   AdminSettingsSectionRoute,
   CommunicationsPage,
@@ -15,7 +17,7 @@ import {
   SocialMedia,
   UserSettings,
 } from '../features/adminOps/routeComponents';
-import { getAdminSettingsPath, getPortalAdminPath } from '../features/adminOps/adminRoutePaths';
+import { getAdminSettingsPath } from '../features/adminOps/adminRoutePaths';
 
 // Lazy load admin pages
 
@@ -28,6 +30,22 @@ interface AdminRouteProps {
   AdminRoute: React.ComponentType<RouteWrapperProps>;
   NeoBrutalistRoute: React.ComponentType<RouteWrapperProps>;
 }
+
+const [
+  legacyEmailMarketingRoute,
+  legacyAdminSettingsRoute,
+  legacyAdminPortalRoute,
+  legacyOrganizationSettingsRoute,
+  legacyAuditLogsRoute,
+] = adminRouteManifest.compatibility;
+
+const portalPanelByRouteId: Record<string, PortalAdminPanel> = {
+  'portal-admin-access': 'access',
+  'portal-admin-users': 'users',
+  'portal-admin-conversations': 'conversations',
+  'portal-admin-appointments': 'appointments',
+  'portal-admin-slots': 'slots',
+};
 
 export function createAdminRoutes({
   ProtectedRoute,
@@ -61,14 +79,6 @@ export function createAdminRoutes({
         }
       />
       <Route
-        path="/email-marketing"
-        element={
-          <ProtectedRoute>
-            <Navigate to="/dashboard" replace />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/settings/api"
         element={
           <ProtectedRoute>
@@ -93,10 +103,18 @@ export function createAdminRoutes({
         }
       />
       <Route
-        path="/settings/admin"
+        path={legacyEmailMarketingRoute.path}
+        element={
+          <ProtectedRoute>
+            <Navigate to={legacyEmailMarketingRoute.redirectsTo} replace />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={legacyAdminSettingsRoute.path}
         element={
           <AdminRoute>
-            <Navigate to={getAdminSettingsPath('dashboard')} replace />
+            <Navigate to={legacyAdminSettingsRoute.redirectsTo} replace />
           </AdminRoute>
         }
       />
@@ -108,54 +126,17 @@ export function createAdminRoutes({
           </AdminRoute>
         }
       />
-      <Route
-        path="/settings/admin/portal"
-        element={
-          <AdminRoute>
-            <Navigate to={getPortalAdminPath('access')} replace />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/settings/admin/portal/access"
-        element={
-          <AdminRoute>
-            <PortalAdminPage panel="access" />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/settings/admin/portal/users"
-        element={
-          <AdminRoute>
-            <PortalAdminPage panel="users" />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/settings/admin/portal/conversations"
-        element={
-          <AdminRoute>
-            <PortalAdminPage panel="conversations" />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/settings/admin/portal/appointments"
-        element={
-          <AdminRoute>
-            <PortalAdminPage panel="appointments" />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/settings/admin/portal/slots"
-        element={
-          <AdminRoute>
-            <PortalAdminPage panel="slots" />
-          </AdminRoute>
-        }
-      />
+      {adminRouteManifest.portal.map((entry) => (
+        <Route
+          key={entry.id}
+          path={entry.path}
+          element={
+            <AdminRoute>
+              <PortalAdminPage panel={portalPanelByRouteId[entry.id]} />
+            </AdminRoute>
+          }
+        />
+      ))}
       <Route
         path="/settings/admin/:section"
         element={
@@ -165,18 +146,18 @@ export function createAdminRoutes({
         }
       />
       <Route
-        path="/settings/organization"
+        path={legacyAdminPortalRoute.path}
         element={
           <AdminRoute>
-            <Navigate to="/dashboard" replace />
+            <Navigate to={legacyAdminPortalRoute.redirectsTo} replace />
           </AdminRoute>
         }
       />
       <Route
-        path="/admin/audit-logs"
+        path={legacyOrganizationSettingsRoute.path}
         element={
           <AdminRoute>
-            <Navigate to="/dashboard" replace />
+            <Navigate to={legacyOrganizationSettingsRoute.redirectsTo} replace />
           </AdminRoute>
         }
       />
@@ -185,6 +166,14 @@ export function createAdminRoutes({
         element={
           <AdminRoute>
             <DataBackup />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path={legacyAuditLogsRoute.path}
+        element={
+          <AdminRoute>
+            <Navigate to={legacyAuditLogsRoute.redirectsTo} replace />
           </AdminRoute>
         }
       />

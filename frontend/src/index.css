@@ -84,6 +84,13 @@ body.theme-transitioning *::after {
 .font-display { font-family: var(--font-display); }
 .font-body { font-family: var(--font-body); }
 
+.docpanel-label { color: var(--app-text-label); }
+.docpanel-muted { color: var(--app-text-muted); }
+.docpanel-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
 .brutal-form-select {
   background-image:
     linear-gradient(45deg, transparent 50%, currentColor 50%),

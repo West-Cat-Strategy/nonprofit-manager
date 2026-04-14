@@ -2,6 +2,7 @@ import {
   getAdminSettingsPath,
   getPortalAdminPath,
 } from '../adminRoutePaths';
+import { normalizeRoleSlug } from '../../auth/state/roleNormalization';
 
 export type AdminQuickActionId =
   | 'admin-hub'
@@ -93,14 +94,16 @@ const roleActionIds: Record<string, AdminQuickActionId[]> = {
   ],
   manager: ['organization', 'api-settings', 'communications', 'navigation'],
   coordinator: ['communications', 'navigation'],
+  staff: [],
   user: [],
+  viewer: [],
   readonly: [],
   donor: [],
   volunteer: [],
 };
 
 export const getAdminQuickActionsForRole = (role?: string): AdminQuickAction[] => {
-  const normalizedRole = role?.toLowerCase() ?? 'user';
+  const normalizedRole = normalizeRoleSlug(role) ?? 'user';
   const ids = roleActionIds[normalizedRole] ?? roleActionIds.user;
   return ids.map((id) => actionMap[id]);
 };
