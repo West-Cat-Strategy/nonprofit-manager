@@ -40,8 +40,62 @@ export enum RegistrationStatus {
   NO_SHOW = 'no_show',
 }
 
+export type EventMutationScope = 'occurrence' | 'future_occurrences' | 'series';
+export type EventEnrollmentScope = 'occurrence' | 'series';
+export type ConfirmationEmailStatus = 'pending' | 'sent' | 'failed' | 'skipped';
+
+export interface EventOccurrence {
+  occurrence_id: string;
+  event_id: string;
+  series_id?: string | null;
+  sequence_index: number;
+  occurrence_index?: number;
+  scheduled_start_date: Date;
+  scheduled_end_date: Date;
+  start_date: Date;
+  end_date: Date;
+  status: EventStatus;
+  event_name: string;
+  occurrence_name?: string;
+  description: string | null;
+  location_name: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state_province: string | null;
+  postal_code: string | null;
+  country: string | null;
+  capacity: number | null;
+  registered_count: number;
+  attended_count: number;
+  waitlist_enabled: boolean;
+  public_checkin_enabled: boolean;
+  public_checkin_pin_configured: boolean;
+  public_checkin_pin_required?: boolean;
+  public_checkin_pin_rotated_at: Date | null;
+  is_exception: boolean;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string | null;
+  modified_by: string | null;
+}
+
+export interface EventSeriesEnrollment {
+  enrollment_id: string;
+  event_id: string;
+  contact_id: string;
+  registration_status: RegistrationStatus;
+  enrollment_scope: EventEnrollmentScope;
+  notes: string | null;
+  created_at: Date;
+  updated_at: Date;
+  created_by: string | null;
+  modified_by: string | null;
+}
+
 export interface Event {
   event_id: string;
+  series_id?: string | null;
   event_name: string;
   description: string | null;
   event_type: EventType;
@@ -65,8 +119,15 @@ export interface Event {
 
   // Capacity tracking
   capacity: number | null;
+  waitlist_enabled: boolean;
   registered_count: number;
   attended_count: number;
+  occurrence_count?: number;
+  next_occurrence_id?: string | null;
+  next_occurrence_start_date?: Date | null;
+  next_occurrence_end_date?: Date | null;
+  next_occurrence_status?: EventStatus | null;
+  occurrences?: EventOccurrence[];
 
   // Lifecycle tracking
   created_at: Date;
@@ -95,6 +156,7 @@ export interface CreateEventDTO {
   postal_code?: string;
   country?: string;
   capacity?: number;
+  waitlist_enabled?: boolean;
 }
 
 export interface UpdateEventDTO {
@@ -117,6 +179,7 @@ export interface UpdateEventDTO {
   postal_code?: string;
   country?: string;
   capacity?: number;
+  waitlist_enabled?: boolean;
 }
 
 export interface EventFilters {
@@ -126,6 +189,31 @@ export interface EventFilters {
   is_public?: boolean;
   start_date?: Date;
   end_date?: Date;
+}
+
+export interface EventOccurrenceFilters {
+  event_id?: string;
+  start_date?: Date;
+  end_date?: Date;
+  include_cancelled?: boolean;
+}
+
+export interface UpdateEventOccurrenceDTO {
+  event_name?: string;
+  description?: string;
+  status?: EventStatus;
+  start_date?: Date;
+  end_date?: Date;
+  location_name?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state_province?: string;
+  postal_code?: string;
+  country?: string;
+  capacity?: number;
+  waitlist_enabled?: boolean;
+  public_checkin_enabled?: boolean;
 }
 
 export type { PaginationParams } from './pagination';
@@ -150,14 +238,21 @@ export interface EventAttendanceSummary {
 export interface EventRegistration {
   registration_id: string;
   event_id: string;
+  occurrence_id: string;
   contact_id: string;
   case_id?: string | null;
+  series_enrollment_id?: string | null;
   registration_status: RegistrationStatus;
+  waitlist_position?: number | null;
   checked_in: boolean;
   check_in_time: Date | null;
   checked_in_by: string | null;
   check_in_method: 'manual' | 'qr';
   check_in_token: string;
+  confirmation_email_status?: ConfirmationEmailStatus | null;
+  confirmation_email_sent_at?: Date | null;
+  confirmation_email_error?: string | null;
+  confirmation_email_last_error?: string | null;
   notes: string | null;
   created_at: Date;
   updated_at: Date;
@@ -166,13 +261,22 @@ export interface EventRegistration {
   contact_name?: string;
   contact_email?: string;
   event_name?: string;
+  occurrence_name?: string | null;
+  occurrence_index?: number | null;
+  occurrence_label?: string | null;
+  occurrence_start_date?: Date;
+  occurrence_end_date?: Date;
+  occurrence_status?: EventStatus;
 }
 
 export interface CreateRegistrationDTO {
   event_id: string;
+  occurrence_id?: string;
   contact_id: string;
   case_id?: string;
   registration_status?: RegistrationStatus;
+  enrollment_scope?: EventEnrollmentScope;
+  send_confirmation_email?: boolean;
   notes?: string;
 }
 
@@ -182,11 +286,18 @@ export interface UpdateRegistrationDTO {
   check_in_time?: Date;
   checked_in_by?: string | null;
   check_in_method?: 'manual' | 'qr';
+  case_id?: string | null;
   notes?: string;
+}
+
+export interface EventRegistrationMutationContext {
+  actorUserId?: string | null;
+  source?: string;
 }
 
 export interface RegistrationFilters {
   event_id?: string;
+  occurrence_id?: string;
   contact_id?: string;
   registration_status?: RegistrationStatus;
   checked_in?: boolean;
@@ -205,12 +316,14 @@ export interface CheckInOptions {
 
 export interface EventCheckInSettings {
   event_id: string;
+  occurrence_id: string;
   public_checkin_enabled: boolean;
   public_checkin_pin_configured: boolean;
   public_checkin_pin_rotated_at: Date | null;
 }
 
 export interface UpdateEventCheckInSettingsDTO {
+  occurrence_id?: string;
   public_checkin_enabled: boolean;
 }
 
@@ -219,12 +332,15 @@ export interface RotateEventCheckInPinResult extends EventCheckInSettings {
 }
 
 export interface EventWalkInCheckInDTO {
+  occurrence_id?: string;
   first_name: string;
   last_name: string;
   email?: string;
   phone?: string;
   notes?: string;
   registration_status?: RegistrationStatus;
+  enrollment_scope?: EventEnrollmentScope;
+  send_confirmation_email?: boolean;
 }
 
 export interface EventWalkInCheckInResult {
@@ -237,12 +353,21 @@ export interface EventWalkInCheckInResult {
 
 export interface PublicEventCheckInInfo {
   event_id: string;
+  occurrence_id: string;
+  series_id?: string | null;
+  series_name?: string | null;
   event_name: string;
   description: string | null;
   event_type: EventType;
   status: EventStatus;
   start_date: Date;
   end_date: Date;
+  occurrence_name?: string | null;
+  occurrence_label?: string | null;
+  occurrence_index?: number | null;
+  occurrence_count?: number | null;
+  occurrence_start_date?: Date | null;
+  occurrence_end_date?: Date | null;
   location_name: string | null;
   public_checkin_enabled: boolean;
   public_checkin_pin_required: boolean;
@@ -252,6 +377,7 @@ export interface PublicEventCheckInInfo {
 }
 
 export interface PublicEventCheckInDTO {
+  occurrence_id?: string;
   first_name: string;
   last_name: string;
   email?: string;
@@ -281,34 +407,53 @@ export interface PublicEventsQuery {
 export interface PublicEventListItem {
   event_id: string;
   slug: string;
+  series_id?: string | null;
+  series_name?: string | null;
   event_name: string;
   description: string | null;
   event_type: EventType;
   status: EventStatus;
   start_date: Date;
   end_date: Date;
+  occurrence_id?: string | null;
+  occurrence_name?: string | null;
+  occurrence_label?: string | null;
+  occurrence_index?: number | null;
+  occurrence_start_date?: Date | null;
+  occurrence_end_date?: Date | null;
   location_name: string | null;
   city: string | null;
   state_province: string | null;
   country: string | null;
   capacity: number | null;
+  waitlist_enabled: boolean;
   registered_count: number;
+  occurrence_count: number;
+  next_occurrence_id: string | null;
+  next_occurrence_start_date: Date | null;
+  next_occurrence_end_date: Date | null;
+  next_occurrence_status: EventStatus | null;
 }
 
 export interface PublicEventDetail extends PublicEventListItem {
   address_line1: string | null;
   address_line2: string | null;
   postal_code: string | null;
+  default_occurrence_id: string | null;
+  occurrences: EventOccurrence[];
   is_registration_open: boolean;
 }
 
 export interface PublicEventRegistrationDTO {
+  occurrence_id?: string;
   first_name: string;
   last_name: string;
   email: string;
   phone?: string;
   notes?: string;
   registration_status?: RegistrationStatus;
+  enrollment_scope?: EventEnrollmentScope;
+  send_confirmation_email?: boolean;
 }
 
 export interface PublicEventRegistrationResult {
@@ -317,6 +462,16 @@ export interface PublicEventRegistrationResult {
   registration: EventRegistration;
   created_contact: boolean;
   created_registration: boolean;
+}
+
+export interface EventConfirmationEmailResult {
+  registration_id: string;
+  event_id: string;
+  occurrence_id: string | null;
+  status: ConfirmationEmailStatus;
+  message: string;
+  sent_at: Date | null;
+  qr_code_url?: string | null;
 }
 
 export interface PublicEventsPageInfo {
@@ -343,6 +498,7 @@ export interface PublicEventsListResult extends PublicEventsListData {
 }
 
 export interface SendEventRemindersDTO {
+  occurrence_id?: string;
   sendEmail?: boolean;
   sendSms?: boolean;
   customMessage?: string;
@@ -380,6 +536,7 @@ export type EventReminderAttemptStatus =
 export interface EventReminderAutomation {
   id: string;
   event_id: string;
+  occurrence_id: string | null;
   timing_type: EventReminderTimingType;
   relative_minutes_before: number | null;
   absolute_send_at: Date | null;
@@ -400,6 +557,7 @@ export interface EventReminderAutomation {
 }
 
 export interface CreateEventReminderAutomationDTO {
+  occurrenceId?: string;
   timingType: EventReminderTimingType;
   relativeMinutesBefore?: number;
   absoluteSendAt?: Date;
@@ -410,6 +568,7 @@ export interface CreateEventReminderAutomationDTO {
 }
 
 export interface UpdateEventReminderAutomationDTO {
+  occurrenceId?: string | null;
   timingType?: EventReminderTimingType;
   relativeMinutesBefore?: number;
   absoluteSendAt?: Date;

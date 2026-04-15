@@ -4,6 +4,8 @@ import type {
   EventWalkInCheckInDTO,
   CreateRegistrationDTO,
   EventFilters,
+  EventConfirmationEmailResult,
+  EventMutationScope,
   RotateEventCheckInPinResult,
   EventRegistration,
   PaginationParams,
@@ -89,6 +91,9 @@ const getValidatedQuery = (req: AuthRequest): Record<string, unknown> =>
 const getValidatedParams = (req: AuthRequest): Record<string, string> =>
   (req.validatedParams ?? req.params) as Record<string, string>;
 
+const resolveMutationScope = (value: unknown): EventMutationScope =>
+  value === 'future_occurrences' || value === 'series' ? value : 'occurrence';
+
 export const createEventsController = (
   catalogUseCase: EventCatalogUseCase,
   registrationUseCase: EventRegistrationUseCase,
@@ -147,6 +152,13 @@ export const createEventsController = (
     return registration;
   };
 
+  const isValidationRegistrationError = (message: string): boolean =>
+    message === 'No fields to update' ||
+    message === 'Event is at full capacity' ||
+    message === 'Occurrence not found' ||
+    message === 'Case must belong to the same contact as the registration' ||
+    message.startsWith('Checked-in attendees cannot be moved to');
+
   const getEvents = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
 
@@ -193,6 +205,42 @@ export const createEventsController = (
     }
   };
 
+  const getOccurrences = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
+
+    try {
+      const query = getValidatedQuery(req);
+      const rows = await catalogUseCase.listOccurrences(
+        {
+          event_id: typeof query.event_id === 'string' ? query.event_id : undefined,
+          start_date: (query.start_date as Date | undefined) ?? (query.from as Date | undefined),
+          end_date: (query.end_date as Date | undefined) ?? (query.to as Date | undefined),
+          include_cancelled: parseBooleanQuery(query.include_cancelled),
+        },
+        getScopeFilter(req)
+      );
+      sendSuccess(res, rows);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  const getOccurrence = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
+
+    try {
+      const params = getValidatedParams(req);
+      const occurrence = await catalogUseCase.getOccurrenceById(params.occurrenceId, getScopeFilter(req));
+      if (!occurrence) {
+        sendError(res, 'OCCURRENCE_NOT_FOUND', 'Occurrence not found', 404);
+        return;
+      }
+      sendSuccess(res, occurrence);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   const getSummary = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     if (!ensurePermission(req, res, Permission.EVENT_VIEW)) return;
 
@@ -209,13 +257,33 @@ export const createEventsController = (
 
     try {
       const params = getValidatedParams(req);
+      const query = getValidatedQuery(req);
       const eventRaw = await catalogUseCase.getById(params.id, getScopeFilter(req));
       if (!eventRaw) {
         sendError(res, 'EVENT_NOT_FOUND', 'Event not found', 404);
         return;
       }
+      const occurrenceId = typeof query.occurrence_id === 'string' ? query.occurrence_id : undefined;
+      const occurrence = occurrenceId
+        ? await catalogUseCase.getOccurrenceById(occurrenceId, getScopeFilter(req))
+        : null;
 
-      const event = eventRaw as EventCalendarPayload;
+      const event = (occurrence
+        ? {
+            event_id: eventRaw.event_id,
+            event_name: occurrence.occurrence_name ?? occurrence.event_name,
+            description: occurrence.description ?? eventRaw.description,
+            start_date: occurrence.start_date,
+            end_date: occurrence.end_date,
+            location_name: occurrence.location_name,
+            address_line1: occurrence.address_line1,
+            address_line2: occurrence.address_line2,
+            city: occurrence.city,
+            state_province: occurrence.state_province,
+            postal_code: occurrence.postal_code,
+            country: occurrence.country,
+          }
+        : eventRaw) as EventCalendarPayload;
       const startDate = new Date(event.start_date);
       const endDate = new Date(event.end_date);
 
@@ -231,7 +299,9 @@ export const createEventsController = (
       const description = event.description ? escapeIcsText(event.description) : null;
       const location = buildEventLocation(event);
       const escapedLocation = location ? escapeIcsText(location) : null;
-      const uid = `${event.event_id}@nonprofit-manager`;
+      const uid = occurrenceId
+        ? `${event.event_id}:${occurrenceId}@nonprofit-manager`
+        : `${event.event_id}@nonprofit-manager`;
 
       const lines: string[] = [
         'BEGIN:VCALENDAR',
@@ -257,7 +327,9 @@ export const createEventsController = (
 
       lines.push('END:VEVENT', 'END:VCALENDAR');
 
-      const fileName = `event-${event.event_id}.ics`;
+      const fileName = occurrenceId
+        ? `event-${event.event_id}-${occurrenceId}.ics`
+        : `event-${event.event_id}.ics`;
       const calendarIcs = `${lines.join('\r\n')}\r\n`;
 
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
@@ -302,6 +374,48 @@ export const createEventsController = (
     }
   };
 
+  const updateOccurrence = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
+    try {
+      const params = getValidatedParams(req);
+      const query = getValidatedQuery(req);
+      const scopedOccurrence = await catalogUseCase.getOccurrenceById(
+        params.occurrenceId,
+        getScopeFilter(req)
+      );
+      if (!scopedOccurrence) {
+        const unscopedOccurrence = await catalogUseCase.getOccurrenceById(params.occurrenceId);
+        if (unscopedOccurrence) {
+          sendError(res, 'FORBIDDEN', 'Occurrence is outside your data scope', 403);
+        } else {
+          sendError(res, 'OCCURRENCE_NOT_FOUND', 'Occurrence not found', 404);
+        }
+        return;
+      }
+
+      const updated = await catalogUseCase.updateOccurrence(
+        params.occurrenceId,
+        req.body,
+        resolveMutationScope(query.scope),
+        req.user!.id
+      );
+
+      if (!updated) {
+        sendError(res, 'OCCURRENCE_NOT_FOUND', 'Occurrence not found', 404);
+        return;
+      }
+
+      sendSuccess(res, updated);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Occurrence not found') {
+        sendError(res, 'OCCURRENCE_NOT_FOUND', error.message, 404);
+        return;
+      }
+      next(error);
+    }
+  };
+
   const deleteEvent = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     if (!ensurePermission(req, res, Permission.EVENT_DELETE)) return;
 
@@ -331,6 +445,7 @@ export const createEventsController = (
         if (!canAccess) return;
 
         const filters: RegistrationFilters = {
+          occurrence_id: typeof query.occurrence_id === 'string' ? query.occurrence_id : undefined,
           registration_status: parseRegistrationStatus(query.registration_status ?? query.status),
           checked_in: parseBooleanQuery(query.checked_in),
         };
@@ -363,11 +478,18 @@ export const createEventsController = (
         ...(req.body as CreateRegistrationDTO),
         event_id: params.id,
       };
-      const registration = await registrationUseCase.register(data);
+      const registration = await registrationUseCase.register(data, {
+        actorUserId: req.user?.id ?? null,
+        source: 'staff',
+      });
       sendSuccess(res, registration, 201);
     } catch (error) {
       if (error instanceof Error && error.message.includes('already registered')) {
         sendError(res, 'ALREADY_REGISTERED', error.message, 409);
+        return;
+      }
+      if (error instanceof Error && isValidationRegistrationError(error.message)) {
+        sendError(res, 'VALIDATION_ERROR', error.message, 400);
         return;
       }
       next(error);
@@ -384,7 +506,11 @@ export const createEventsController = (
 
       const updated = await registrationUseCase.update(
         registration.registration_id,
-        req.body as UpdateRegistrationDTO
+        req.body as UpdateRegistrationDTO,
+        {
+          actorUserId: req.user?.id ?? null,
+          source: 'staff',
+        }
       );
       if (!updated) {
         sendError(res, 'REGISTRATION_NOT_FOUND', 'Registration not found', 404);
@@ -392,6 +518,16 @@ export const createEventsController = (
       }
       sendSuccess(res, updated);
     } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'Registration not found') {
+          sendError(res, 'REGISTRATION_NOT_FOUND', error.message, 404);
+          return;
+        }
+        if (isValidationRegistrationError(error.message)) {
+          sendError(res, 'VALIDATION_ERROR', error.message, 400);
+          return;
+        }
+      }
       next(error);
     }
   };
@@ -404,7 +540,11 @@ export const createEventsController = (
       const canAccess = await ensureEventAccess(params.id, req, res);
       if (!canAccess) return;
 
-      const settings = await registrationUseCase.getCheckInSettings(params.id);
+      const query = getValidatedQuery(req);
+      const settings = await registrationUseCase.getCheckInSettings(
+        params.id,
+        typeof query.occurrence_id === 'string' ? query.occurrence_id : undefined
+      );
       if (!settings) {
         sendError(res, 'EVENT_NOT_FOUND', 'Event not found', 404);
         return;
@@ -452,7 +592,9 @@ export const createEventsController = (
       const canAccess = await ensureEventAccess(params.id, req, res);
       if (!canAccess) return;
 
-      const updated = await registrationUseCase.rotateCheckInPin(params.id, req.user!.id);
+      const bodyOccurrenceId =
+        req.body && typeof req.body.occurrence_id === 'string' ? req.body.occurrence_id : undefined;
+      const updated = await registrationUseCase.rotateCheckInPin(params.id, req.user!.id, bodyOccurrenceId);
       const response: RotateEventCheckInPinResult = updated;
       sendSuccess(res, response);
     } catch (error) {
@@ -573,7 +715,8 @@ export const createEventsController = (
         if (
           error.message === 'Event is at full capacity' ||
           error.message === 'Event is not accepting check-ins' ||
-          error.message.includes('Check-in is available')
+          error.message.includes('Check-in is available') ||
+          error.message.includes('cannot be checked in')
         ) {
           sendError(res, 'CHECKIN_ERROR', error.message, 400);
           return;
@@ -594,6 +737,33 @@ export const createEventsController = (
       await registrationUseCase.cancel(registration.registration_id);
       res.status(204).send();
     } catch (error) {
+      next(error);
+    }
+  };
+
+  const sendConfirmationEmail = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    if (!ensurePermission(req, res, Permission.EVENT_EDIT)) return;
+
+    try {
+      const params = getValidatedParams(req);
+      const registration = await ensureRegistrationEventAccess(params.id, req, res);
+      if (!registration) return;
+
+      const result = await registrationUseCase.sendConfirmationEmail(
+        registration.registration_id,
+        req.user?.id ?? null
+      );
+      const response: EventConfirmationEmailResult = result;
+      sendSuccess(res, response);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Registration not found') {
+        sendError(res, 'REGISTRATION_NOT_FOUND', error.message, 404);
+        return;
+      }
       next(error);
     }
   };
@@ -645,6 +815,7 @@ export const createEventsController = (
       if (!canAccess) return;
 
       const payload: CreateEventReminderAutomationDTO = {
+        occurrenceId: req.body.occurrenceId,
         timingType: req.body.timingType,
         relativeMinutesBefore: req.body.relativeMinutesBefore,
         absoluteSendAt: parseOptionalDateInput(req.body.absoluteSendAt),
@@ -670,6 +841,7 @@ export const createEventsController = (
       if (!canAccess) return;
 
       const payload: UpdateEventReminderAutomationDTO = {
+        occurrenceId: req.body.occurrenceId,
         timingType: req.body.timingType,
         relativeMinutesBefore: req.body.relativeMinutesBefore,
         absoluteSendAt: parseOptionalDateInput(req.body.absoluteSendAt),
@@ -721,6 +893,7 @@ export const createEventsController = (
       const itemsRaw: Array<Record<string, unknown>> = Array.isArray(req.body?.items) ? req.body.items : [];
       const payload: SyncEventReminderAutomationsDTO = {
         items: itemsRaw.map((item: Record<string, unknown>) => ({
+          occurrenceId: typeof item.occurrenceId === 'string' ? item.occurrenceId : undefined,
           timingType: item.timingType as CreateEventReminderAutomationDTO['timingType'],
           relativeMinutesBefore:
             typeof item.relativeMinutesBefore === 'number' ? item.relativeMinutesBefore : undefined,
@@ -742,10 +915,13 @@ export const createEventsController = (
   return {
     getEvents,
     getEvent,
+    getOccurrences,
+    getOccurrence,
     getSummary,
     downloadCalendarIcs,
     createEvent,
     updateEvent,
+    updateOccurrence,
     deleteEvent,
     listRegistrations,
     register,
@@ -758,6 +934,7 @@ export const createEventsController = (
     scanCheckInGlobal,
     walkInCheckIn,
     cancelRegistration,
+    sendConfirmationEmail,
     sendReminders,
     listAutomations,
     createAutomation,

@@ -225,6 +225,11 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   );
 
   router.get(
+    '/:contactId/notes/timeline',
+    validateParams(z.object({ contactId: uuidSchema })),
+    notesController.getContactNotesTimeline
+  );
+  router.get(
     '/:contactId/notes',
     validateParams(z.object({ contactId: uuidSchema })),
     notesController.getContactNotes

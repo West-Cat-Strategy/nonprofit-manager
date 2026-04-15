@@ -5,6 +5,7 @@
 
 interface EventData {
   event_id: string;
+  occurrence_id?: string | null;
   event_name: string;
   description?: string | null;
   start_date: string;
@@ -125,8 +126,12 @@ export const generateYahooCalendarUrl = (event: EventData): string => {
 /**
  * Get .ics download URL from API
  */
-export const getIcsDownloadUrl = (eventId: string): string => {
-  return `/api/v2/events/${eventId}/calendar.ics`;
+export const getIcsDownloadUrl = (eventId: string, occurrenceId?: string): string => {
+  if (!occurrenceId) {
+    return `/api/v2/events/${eventId}/calendar.ics`;
+  }
+
+  return `/api/v2/events/${eventId}/calendar.ics?occurrence_id=${encodeURIComponent(occurrenceId)}`;
 };
 
 export default {

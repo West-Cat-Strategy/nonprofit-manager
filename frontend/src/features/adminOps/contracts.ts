@@ -56,6 +56,26 @@ export interface Role {
   priority: number;
 }
 
+export interface AdminGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  roles: string[];
+  memberCount: number;
+  isSystem: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface OrganizationAccount {
+  id: string;
+  name: string;
+  label?: string;
+  description?: string | null;
+  isDefault?: boolean;
+  isActive?: boolean;
+}
+
 export interface RoleSelectorItem {
   value: string;
   label: string;
@@ -83,6 +103,10 @@ export interface UserSearchResult {
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
+  groups?: string[];
+  organizationAccess?: string[];
+  mfaTotpEnabled?: boolean;
+  passkeyCount?: number;
 }
 
 export interface UserSecurityInfo {
@@ -99,6 +123,17 @@ export interface UserSecurityInfo {
   isLocked: boolean;
   createdAt: string;
   updatedAt: string;
+  groups?: string[];
+  organizationAccess?: string[];
+  mfaTotpEnabled?: boolean;
+  passkeyCount?: number;
+}
+
+export interface UserAccessInfo {
+  groups: string[];
+  organizationAccess: string[];
+  mfaTotpEnabled: boolean;
+  passkeyCount: number;
 }
 
 export interface AuditLog {
@@ -146,6 +181,18 @@ export interface PortalSignupRequest {
   contact_id?: string | null;
   first_name?: string | null;
   last_name?: string | null;
+}
+
+export interface PendingRegistration {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedAt: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  hasStagedPasskeys?: boolean;
 }
 
 export interface PortalInvitation {

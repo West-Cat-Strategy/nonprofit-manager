@@ -7,11 +7,12 @@
 import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { logger } from '@config/logger';
-import { forbidden } from '@utils/responseHelpers';
+import { guardWithPermission } from '@services/authGuardService';
 import * as twilioSettingsUseCase from '../usecases/twilioSettingsUseCase';
 import { testTwilioConnection } from '@services/twilioSmsService';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import type { UpdateTwilioSettingsInput } from '@validations/admin';
+import { Permission } from '@utils/permissions';
 
 /**
  * GET /api/admin/twilio-settings
@@ -23,9 +24,7 @@ export const getTwilioSettings = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithPermission(req, res, Permission.ADMIN_SETTINGS)) return;
 
     const [settings, credentials] = await Promise.all([
       twilioSettingsUseCase.getTwilioSettings(),
@@ -52,9 +51,9 @@ export const updateTwilioSettings = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithPermission(req, res, Permission.ADMIN_SETTINGS)) return;
+    const userId = req.user?.id;
+    if (!userId) return;
 
     const body = req.body as UpdateTwilioSettingsInput;
     const updated = await twilioSettingsUseCase.updateTwilioSettings(
@@ -64,7 +63,7 @@ export const updateTwilioSettings = async (
         messagingServiceSid: body.messagingServiceSid,
         fromPhoneNumber: body.fromPhoneNumber,
       },
-      req.user.id
+      userId
     );
 
     return sendSuccess(res, { data: updated, message: 'Twilio settings updated' });
@@ -84,9 +83,7 @@ export const testTwilioSettings = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithPermission(req, res, Permission.ADMIN_SETTINGS)) return;
 
     const result = await testTwilioConnection();
 

@@ -192,6 +192,25 @@ export function guardWithRole(req: AuthRequest, res: Response, ...allowedRoles: 
   return true;
 }
 
+export function guardWithPermission(
+  req: AuthRequest,
+  res: Response,
+  permission: Permission | string
+): boolean {
+  const guardResult = requirePermissionSafe(req, permission);
+  if (guardResult.ok) {
+    return true;
+  }
+
+  if (guardResult.error.code === 'unauthorized') {
+    sendUnauthorized(res, guardResult.error.message);
+    return false;
+  }
+
+  sendForbidden(res, guardResult.error.message);
+  return false;
+}
+
 /**
  * Extract user safely from request
  */

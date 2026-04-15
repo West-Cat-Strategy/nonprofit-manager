@@ -7,6 +7,7 @@ import type {
   ContactCommunicationsResult,
   ContactLookupItem,
   ContactNote,
+  ContactNotesTimelineResponse,
   ContactRelationship,
   ContactRole,
   ContactPhoneNumber,
@@ -89,6 +90,7 @@ export interface ContactDirectoryPort {
 
 export interface ContactNotesPort {
   list(contactId: string, limit?: number, offset?: number): Promise<{ notes: ContactNote[]; total: number }>;
+  listTimeline(contactId: string): Promise<ContactNotesTimelineResponse>;
   getById(noteId: string): Promise<ContactNote | null>;
   create(contactId: string, payload: CreateContactNoteDTO, userId: string): Promise<ContactNote>;
   update(noteId: string, payload: UpdateContactNoteDTO, userId?: string): Promise<ContactNote | null>;

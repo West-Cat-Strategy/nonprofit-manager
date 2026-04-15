@@ -15,6 +15,7 @@ import {
   getRoles,
 } from '../controllers';
 import { authenticate } from '@middleware/domains/auth';
+import { requirePermission } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   emailSchema,
@@ -23,6 +24,7 @@ import {
   uuidSchema,
 } from '@validations/shared';
 import { userRoleSchema } from '@validations/user';
+import { Permission } from '@utils/permissions';
 
 const router = Router();
 
@@ -44,6 +46,7 @@ const updateUserSchema = z.object({
   lastName: z.string().trim().min(1, 'Last name cannot be empty').optional(),
   role: userRoleSchema.optional(),
   isActive: optionalStrictBooleanSchema,
+  isLocked: optionalStrictBooleanSchema,
 });
 
 const resetUserPasswordSchema = z.object({
@@ -55,11 +58,13 @@ const listUsersQuerySchema = z
     search: z.string().trim().max(255).optional(),
     role: userRoleSchema.optional(),
     is_active: optionalStrictBooleanSchema,
+    limit: z.coerce.number().int().min(1).max(100).optional(),
   })
   .strict();
 
 // All routes require authentication
 router.use(authenticate);
+router.use(requirePermission(Permission.ADMIN_USERS));
 
 // Get available roles
 router.get('/roles', getRoles);

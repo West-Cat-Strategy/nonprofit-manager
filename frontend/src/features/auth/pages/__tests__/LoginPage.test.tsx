@@ -23,6 +23,12 @@ vi.mock('../../../../services/authService', () => ({
   },
 }));
 
+vi.mock('../../../../services/api', () => ({
+  default: {
+    get: vi.fn().mockResolvedValue({ data: { registrationEnabled: true } }),
+  },
+}));
+
 vi.mock('../../utils/primeStaffSession', () => ({
   primeStaffSession: vi.fn(async ({ user, organizationId }) => ({
     user,
@@ -51,6 +57,15 @@ describe('Login page', () => {
     expect(submitButton).toBeInTheDocument();
     expect(submitButton).toHaveTextContent(/^sign in$/i);
     expect(submitButton).toBeEnabled();
+  });
+
+  it('shows the registration link when self-registration is enabled', async () => {
+    renderLogin();
+
+    expect(await screen.findByRole('link', { name: /create one/i })).toHaveAttribute(
+      'href',
+      '/register'
+    );
   });
 
   it('renders the primary login button with accent token classes', () => {

@@ -3,17 +3,86 @@ import {
   CreateEventDTO,
   Event,
   EventFilters,
+  EventMutationScope,
+  EventOccurrence,
   PaginationParams,
   PaginatedEvents,
+  UpdateEventOccurrenceDTO,
   UpdateEventDTO,
 } from '@app-types/event';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { resolveSort } from '@utils/queryHelpers';
 import { cancelPendingAutomationsForEvent } from '@services/eventReminderAutomationService';
+import { EventOccurrenceService } from './eventOccurrenceService';
 import { QueryValue } from './shared';
 
+const EVENT_SUMMARY_SELECT = `
+  SELECT
+    e.id as event_id,
+    e.id as series_id,
+    e.name as event_name,
+    e.description,
+    e.event_type,
+    e.status,
+    e.is_public,
+    e.is_recurring,
+    e.recurrence_pattern,
+    e.recurrence_interval,
+    e.recurrence_end_date,
+    e.start_date,
+    e.end_date,
+    e.location_name,
+    e.address_line1,
+    e.address_line2,
+    e.city,
+    e.state_province,
+    e.postal_code,
+    e.country,
+    e.capacity,
+    e.waitlist_enabled,
+    e.registered_count,
+    e.attended_count,
+    COALESCE(occurrence_counts.occurrence_count, 0)::int as occurrence_count,
+    next_occurrence.occurrence_id as next_occurrence_id,
+    next_occurrence.start_date as next_occurrence_start_date,
+    next_occurrence.end_date as next_occurrence_end_date,
+    next_occurrence.status as next_occurrence_status,
+    e.created_at,
+    e.updated_at,
+    e.created_by,
+    e.modified_by
+  FROM events e
+  LEFT JOIN LATERAL (
+    SELECT COUNT(*)::int as occurrence_count
+    FROM event_occurrences eo_count
+    WHERE eo_count.event_id = e.id
+  ) occurrence_counts ON true
+  LEFT JOIN LATERAL (
+    SELECT
+      eo.id as occurrence_id,
+      eo.start_date,
+      eo.end_date,
+      eo.status
+    FROM event_occurrences eo
+    WHERE eo.event_id = e.id
+      AND eo.status <> 'cancelled'
+    ORDER BY
+      CASE WHEN eo.end_date >= NOW() THEN 0 ELSE 1 END,
+      CASE WHEN eo.end_date >= NOW() THEN eo.start_date END ASC NULLS LAST,
+      CASE WHEN eo.end_date < NOW() THEN eo.start_date END DESC NULLS LAST
+    LIMIT 1
+  ) next_occurrence ON true
+`;
+
 export class EventCatalogService {
-  constructor(private readonly pool: Pool) {}
+  private readonly occurrences: EventOccurrenceService;
+
+  constructor(
+    private readonly pool: Pool,
+    occurrences?: EventOccurrenceService
+  ) {
+    this.occurrences = occurrences ?? new EventOccurrenceService(pool);
+  }
 
   async getEvents(
     filters: EventFilters = {},
@@ -29,98 +98,86 @@ export class EventCatalogService {
     let paramCount = 1;
 
     if (search) {
-      conditions.push(`(name ILIKE $${paramCount} OR description ILIKE $${paramCount})`);
+      conditions.push(`(e.name ILIKE $${paramCount} OR COALESCE(e.description, '') ILIKE $${paramCount})`);
       params.push(`%${search}%`);
       paramCount += 1;
     }
 
     if (event_type) {
-      conditions.push(`event_type = $${paramCount}`);
+      conditions.push(`e.event_type = $${paramCount}`);
       params.push(event_type);
       paramCount += 1;
     }
 
     if (status) {
-      conditions.push(`status = $${paramCount}`);
+      conditions.push(`e.status = $${paramCount}`);
       params.push(status);
       paramCount += 1;
     }
 
     if (typeof is_public === 'boolean') {
-      conditions.push(`is_public = $${paramCount}`);
+      conditions.push(`e.is_public = $${paramCount}`);
       params.push(is_public);
       paramCount += 1;
     }
 
     if (start_date) {
-      conditions.push(`start_date >= $${paramCount}`);
+      conditions.push(`COALESCE(next_occurrence.start_date, e.start_date) >= $${paramCount}`);
       params.push(start_date);
       paramCount += 1;
     }
 
     if (end_date) {
-      conditions.push(`end_date <= $${paramCount}`);
+      conditions.push(`COALESCE(next_occurrence.end_date, e.end_date) <= $${paramCount}`);
       params.push(end_date);
       paramCount += 1;
     }
 
     if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
-      conditions.push(`created_by = ANY($${paramCount}::uuid[])`);
+      conditions.push(`e.created_by = ANY($${paramCount}::uuid[])`);
       params.push(scope.createdByUserIds);
+      paramCount += 1;
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const countResult = await this.pool.query(`SELECT COUNT(*) FROM events ${whereClause}`, params);
-    const total = Number.parseInt(countResult.rows[0].count, 10);
+    const countResult = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text as count
+       FROM events e
+       LEFT JOIN LATERAL (
+         SELECT eo.start_date, eo.end_date
+         FROM event_occurrences eo
+         WHERE eo.event_id = e.id
+           AND eo.status <> 'cancelled'
+         ORDER BY
+           CASE WHEN eo.end_date >= NOW() THEN 0 ELSE 1 END,
+           CASE WHEN eo.end_date >= NOW() THEN eo.start_date END ASC NULLS LAST,
+           CASE WHEN eo.end_date < NOW() THEN eo.start_date END DESC NULLS LAST
+         LIMIT 1
+       ) next_occurrence ON true
+       ${whereClause}`,
+      params
+    );
+    const total = Number.parseInt(countResult.rows[0]?.count ?? '0', 10);
 
     const sortColumnMap: Record<string, string> = {
-      start_date: 'start_date',
-      end_date: 'end_date',
-      created_at: 'created_at',
-      updated_at: 'updated_at',
-      name: 'name',
-      status: 'status',
-      event_type: 'event_type',
+      start_date: 'COALESCE(next_occurrence.start_date, e.start_date)',
+      end_date: 'COALESCE(next_occurrence.end_date, e.end_date)',
+      created_at: 'e.created_at',
+      updated_at: 'e.updated_at',
+      name: 'e.name',
+      status: 'e.status',
+      event_type: 'e.event_type',
     };
-    const { sortColumn, sortOrder } = resolveSort(sort_by, sort_order, sortColumnMap, 'start_date');
+    const { sortColumn, sortOrder } = resolveSort(sort_by, sort_order, sortColumnMap, 'COALESCE(next_occurrence.start_date, e.start_date)');
 
-    const dataQuery = `
-      SELECT
-        id as event_id,
-        name as event_name,
-        description,
-        event_type,
-        status,
-        is_public,
-        is_recurring,
-        recurrence_pattern,
-        recurrence_interval,
-        recurrence_end_date,
-        start_date,
-        end_date,
-        location_name,
-        address_line1,
-        address_line2,
-        city,
-        state_province,
-        postal_code,
-        country,
-        capacity,
-        registered_count,
-        attended_count,
-        created_at,
-        updated_at,
-        created_by,
-        modified_by
-      FROM events
-      ${whereClause}
-      ORDER BY ${sortColumn} ${sortOrder}
-      LIMIT $${paramCount} OFFSET $${paramCount + 1}
-    `;
-
-    params.push(limit, offset);
-    const dataResult = await this.pool.query(dataQuery, params);
+    const dataResult = await this.pool.query<Event>(
+      `${EVENT_SUMMARY_SELECT}
+       ${whereClause}
+       ORDER BY ${sortColumn} ${sortOrder}, e.id ${sortOrder}
+       LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
+      [...params, limit, offset]
+    );
 
     return {
       data: dataResult.rows,
@@ -134,49 +191,31 @@ export class EventCatalogService {
   }
 
   async getEventById(eventId: string, scope?: DataScopeFilter): Promise<Event | null> {
-    const baseQuery = `
-      SELECT
-        id as event_id,
-        name as event_name,
-        description,
-        event_type,
-        status,
-        is_public,
-        is_recurring,
-        recurrence_pattern,
-        recurrence_interval,
-        recurrence_end_date,
-        start_date,
-        end_date,
-        location_name,
-        address_line1,
-        address_line2,
-        city,
-        state_province,
-        postal_code,
-        country,
-        capacity,
-        registered_count,
-        attended_count,
-        created_at,
-        updated_at,
-        created_by,
-        modified_by
-      FROM events
-      WHERE id = $1
-    `;
-
     const params: QueryValue[] = [eventId];
-    const conditions: string[] = [];
+    const conditions = ['e.id = $1'];
 
     if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
-      conditions.push(`created_by = ANY($2::uuid[])`);
+      conditions.push(`e.created_by = ANY($${params.length + 1}::uuid[])`);
       params.push(scope.createdByUserIds);
     }
 
-    const query = conditions.length > 0 ? `${baseQuery} AND ${conditions.join(' AND ')}` : baseQuery;
-    const result = await this.pool.query(query, params);
-    return result.rows[0] || null;
+    const result = await this.pool.query<Event>(
+      `${EVENT_SUMMARY_SELECT}
+       WHERE ${conditions.join(' AND ')}
+       LIMIT 1`,
+      params
+    );
+
+    const row = result.rows[0] ?? null;
+    if (!row) {
+      return null;
+    }
+
+    const occurrences = await this.occurrences.getOccurrencesForEvent(eventId, { include_cancelled: true }, scope);
+    return {
+      ...row,
+      occurrences,
+    };
   }
 
   async getEventAttendanceSummary(
@@ -198,25 +237,13 @@ export class EventCatalogService {
       999
     );
 
-    const upcomingQuery = `
-      SELECT COUNT(*)::int as upcoming_events
-      FROM events
-      WHERE start_date >= $1
-        AND status NOT IN ('cancelled', 'completed')
-    `;
-
-    const monthSummaryQuery = `
-      SELECT
-        COUNT(*)::int as total_this_month,
-        COALESCE(AVG(attended_count), 0)::float as avg_attendance
-      FROM events
-      WHERE start_date >= $1
-        AND start_date <= $2
-    `;
-
     const scopeCondition =
       scope?.createdByUserIds && scope.createdByUserIds.length > 0
-        ? ' AND created_by = ANY($3::uuid[])'
+        ? ' AND e.created_by = ANY($2::uuid[])'
+        : '';
+    const monthScopeCondition =
+      scope?.createdByUserIds && scope.createdByUserIds.length > 0
+        ? ' AND e.created_by = ANY($3::uuid[])'
         : '';
 
     const upcomingParams: QueryValue[] = [referenceDate];
@@ -228,8 +255,26 @@ export class EventCatalogService {
     }
 
     const [upcomingResult, monthResult] = await Promise.all([
-      this.pool.query(`${upcomingQuery}${scopeCondition}`, upcomingParams),
-      this.pool.query(`${monthSummaryQuery}${scopeCondition}`, monthParams),
+      this.pool.query<{ upcoming_events: number }>(
+        `SELECT COUNT(*)::int as upcoming_events
+         FROM event_occurrences eo
+         INNER JOIN events e ON e.id = eo.event_id
+         WHERE eo.start_date >= $1
+           AND eo.status NOT IN ('cancelled', 'completed')
+           ${scopeCondition}`,
+        upcomingParams
+      ),
+      this.pool.query<{ total_this_month: number; avg_attendance: number }>(
+        `SELECT
+           COUNT(*)::int as total_this_month,
+           COALESCE(AVG(eo.attended_count), 0)::float as avg_attendance
+         FROM event_occurrences eo
+         INNER JOIN events e ON e.id = eo.event_id
+         WHERE eo.start_date >= $1
+           AND eo.start_date <= $2
+           ${monthScopeCondition}`,
+        monthParams
+      ),
     ]);
 
     return {
@@ -240,49 +285,18 @@ export class EventCatalogService {
   }
 
   async createEvent(eventData: CreateEventDTO, userId: string): Promise<Event> {
-    const {
-      event_name,
-      description,
-      event_type,
-      status = 'planned',
-      is_public = false,
-      is_recurring = false,
-      recurrence_pattern,
-      recurrence_interval,
-      recurrence_end_date,
-      start_date,
-      end_date,
-      location_name,
-      address_line1,
-      address_line2,
-      city,
-      state_province,
-      postal_code,
-      country,
-      capacity,
-    } = eventData;
-    const normalizedRecurrencePattern = is_recurring ? recurrence_pattern || null : null;
-    const normalizedRecurrenceInterval = is_recurring ? recurrence_interval || 1 : null;
-    const normalizedRecurrenceEndDate = is_recurring ? recurrence_end_date || null : null;
+    const client = await this.pool.connect();
 
-    const result = await this.pool.query(
-      `INSERT INTO events (
-        name, description, event_type, status, is_public, is_recurring, recurrence_pattern,
-        recurrence_interval, recurrence_end_date, start_date, end_date,
-        location_name, address_line1, address_line2, city, state_province,
-        postal_code, country, capacity, created_by, modified_by
-      )
-      VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $20
-      )
-      RETURNING
-        id as event_id,
-        name as event_name,
+    try {
+      await client.query('BEGIN');
+
+      const {
+        event_name,
         description,
         event_type,
-        status,
-        is_public,
-        is_recurring,
+        status = 'planned',
+        is_public = false,
+        is_recurring = false,
         recurrence_pattern,
         recurrence_interval,
         recurrence_end_date,
@@ -296,131 +310,199 @@ export class EventCatalogService {
         postal_code,
         country,
         capacity,
-        registered_count,
-        attended_count,
-        created_at,
-        updated_at,
-        created_by,
-        modified_by`,
-      [
-        event_name,
-        description || null,
-        event_type,
-        status,
-        is_public,
-        is_recurring,
-        normalizedRecurrencePattern,
-        normalizedRecurrenceInterval,
-        normalizedRecurrenceEndDate,
-        start_date,
-        end_date,
-        location_name || null,
-        address_line1 || null,
-        address_line2 || null,
-        city || null,
-        state_province || null,
-        postal_code || null,
-        country || null,
-        capacity || null,
-        userId,
-      ]
-    );
+        waitlist_enabled = true,
+      } = eventData;
 
-    return result.rows[0];
+      const normalizedRecurrencePattern = is_recurring ? recurrence_pattern || null : null;
+      const normalizedRecurrenceInterval = is_recurring ? recurrence_interval || 1 : null;
+      const normalizedRecurrenceEndDate = is_recurring ? recurrence_end_date || null : null;
+
+      const result = await client.query<{ event_id: string }>(
+        `INSERT INTO events (
+          name, description, event_type, status, is_public, is_recurring, recurrence_pattern,
+          recurrence_interval, recurrence_end_date, start_date, end_date,
+          location_name, address_line1, address_line2, city, state_province,
+          postal_code, country, capacity, waitlist_enabled, created_by, modified_by
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $21
+        )
+        RETURNING id as event_id`,
+        [
+          event_name,
+          description || null,
+          event_type,
+          status,
+          is_public,
+          is_recurring,
+          normalizedRecurrencePattern,
+          normalizedRecurrenceInterval,
+          normalizedRecurrenceEndDate,
+          start_date,
+          end_date,
+          location_name || null,
+          address_line1 || null,
+          address_line2 || null,
+          city || null,
+          state_province || null,
+          postal_code || null,
+          country || null,
+          capacity || null,
+          waitlist_enabled,
+          userId,
+        ]
+      );
+
+      const eventId = result.rows[0]?.event_id;
+      if (!eventId) {
+        throw new Error('Failed to create event');
+      }
+
+      await this.occurrences.syncOccurrencesForEvent(eventId, client);
+      await client.query('COMMIT');
+
+      const created = await this.getEventById(eventId);
+      if (!created) {
+        throw new Error('Event not found');
+      }
+
+      return created;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async updateEvent(eventId: string, eventData: UpdateEventDTO, userId: string): Promise<Event> {
     const normalizedData: UpdateEventDTO = { ...eventData };
-    const fields: string[] = [];
-    const values: QueryValue[] = [];
-    let paramCount = 1;
+    const client = await this.pool.connect();
 
-    Object.entries(normalizedData).forEach(([key, value]) => {
-      if (value !== undefined) {
-        fields.push(`${key === 'event_name' ? 'name' : key} = $${paramCount}`);
-        values.push(value);
-        paramCount += 1;
+    try {
+      await client.query('BEGIN');
+
+      const fields: string[] = [];
+      const values: QueryValue[] = [];
+      let paramCount = 1;
+
+      Object.entries(normalizedData).forEach(([key, value]) => {
+        if (value !== undefined) {
+          fields.push(`${key === 'event_name' ? 'name' : key} = $${paramCount}`);
+          values.push(value as QueryValue);
+          paramCount += 1;
+        }
+      });
+
+      if (normalizedData.is_recurring === false) {
+        fields.push(`recurrence_pattern = $${paramCount++}`);
+        values.push(null);
+        fields.push(`recurrence_interval = $${paramCount++}`);
+        values.push(null);
+        fields.push(`recurrence_end_date = $${paramCount++}`);
+        values.push(null);
       }
-    });
 
-    if (normalizedData.is_recurring === false) {
-      fields.push(`recurrence_pattern = $${paramCount}`);
-      values.push(null);
-      paramCount += 1;
-      fields.push(`recurrence_interval = $${paramCount}`);
-      values.push(null);
-      paramCount += 1;
-      fields.push(`recurrence_end_date = $${paramCount}`);
-      values.push(null);
-      paramCount += 1;
+      if (fields.length === 0) {
+        throw new Error('No fields to update');
+      }
+
+      fields.push(`modified_by = $${paramCount++}`);
+      values.push(userId);
+      fields.push('updated_at = CURRENT_TIMESTAMP');
+      values.push(eventId);
+
+      const result = await client.query<{ status: string; start_date: Date }>(
+        `UPDATE events
+         SET ${fields.join(', ')}
+         WHERE id = $${paramCount}
+         RETURNING status, start_date`,
+        values
+      );
+
+      const updatedRow = result.rows[0];
+      if (!updatedRow) {
+        throw new Error('Event not found');
+      }
+
+      await this.occurrences.syncOccurrencesForEvent(eventId, client);
+
+      if (updatedRow.status === 'cancelled' || updatedRow.status === 'completed') {
+        await cancelPendingAutomationsForEvent(eventId, `event_status_${updatedRow.status}`, userId);
+      } else if (new Date(updatedRow.start_date).getTime() <= Date.now()) {
+        await cancelPendingAutomationsForEvent(eventId, 'event_start_passed', userId);
+      }
+
+      await client.query('COMMIT');
+
+      const updated = await this.getEventById(eventId);
+      if (!updated) {
+        throw new Error('Event not found');
+      }
+
+      return updated;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    if (fields.length === 0) {
-      throw new Error('No fields to update');
-    }
-
-    fields.push(`modified_by = $${paramCount}`);
-    values.push(userId);
-    paramCount += 1;
-    fields.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(eventId);
-
-    const result = await this.pool.query(
-      `UPDATE events
-       SET ${fields.join(', ')}
-       WHERE id = $${paramCount}
-       RETURNING
-         id as event_id,
-         name as event_name,
-         description,
-         event_type,
-         status,
-         is_public,
-         is_recurring,
-         recurrence_pattern,
-         recurrence_interval,
-         recurrence_end_date,
-         start_date,
-         end_date,
-         location_name,
-         address_line1,
-         address_line2,
-         city,
-         state_province,
-         postal_code,
-         country,
-         capacity,
-         registered_count,
-         attended_count,
-         created_at,
-         updated_at,
-         created_by,
-         modified_by`,
-      values
-    );
-
-    const updated = result.rows[0] as Event | undefined;
-    if (!updated) {
-      throw new Error('Event not found');
-    }
-
-    if (updated.status === 'cancelled' || updated.status === 'completed') {
-      await cancelPendingAutomationsForEvent(eventId, `event_status_${updated.status}`, userId);
-    } else if (new Date(updated.start_date).getTime() <= Date.now()) {
-      await cancelPendingAutomationsForEvent(eventId, 'event_start_passed', userId);
-    }
-
-    return updated;
   }
 
   async deleteEvent(eventId: string, userId: string): Promise<void> {
-    await this.pool.query(
-      `UPDATE events
-       SET status = 'cancelled', modified_by = $1, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2`,
-      [userId, eventId]
-    );
+    const client = await this.pool.connect();
 
-    await cancelPendingAutomationsForEvent(eventId, 'event_deleted', userId);
+    try {
+      await client.query('BEGIN');
+
+      await client.query(
+        `UPDATE events
+         SET status = 'cancelled', modified_by = $1, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2`,
+        [userId, eventId]
+      );
+
+      await client.query(
+        `UPDATE event_occurrences
+         SET status = 'cancelled',
+             modified_by = $1,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE event_id = $2`,
+        [userId, eventId]
+      );
+
+      await client.query('COMMIT');
+      await cancelPendingAutomationsForEvent(eventId, 'event_deleted', userId);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async listOccurrences(
+    filters: {
+      event_id?: string;
+      start_date?: Date;
+      end_date?: Date;
+      include_cancelled?: boolean;
+    } = {},
+    scope?: DataScopeFilter
+  ): Promise<EventOccurrence[]> {
+    return this.occurrences.listOccurrences(filters, scope);
+  }
+
+  async getOccurrenceById(occurrenceId: string, scope?: DataScopeFilter): Promise<EventOccurrence | null> {
+    return this.occurrences.getOccurrenceById(occurrenceId, scope);
+  }
+
+  async updateOccurrence(
+    occurrenceId: string,
+    data: UpdateEventOccurrenceDTO,
+    scope: EventMutationScope,
+    userId: string
+  ): Promise<EventOccurrence | null> {
+    return this.occurrences.updateOccurrence(occurrenceId, data, scope, userId);
   }
 }

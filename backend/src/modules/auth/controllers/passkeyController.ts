@@ -20,7 +20,13 @@ import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelper
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { normalizeRoleSlug } from '@utils/roleSlug';
-import { issueAppSessionToken } from '@utils/sessionTokens';
+import {
+  issueAppSessionToken,
+  PENDING_REGISTRATION_TOKEN_ISSUER,
+  type PendingRegistrationTokenPayload,
+  verifyTokenWithOptionalIssuer,
+} from '@utils/sessionTokens';
+import * as pendingRegistrationRepository from '@modules/admin/repositories/pendingRegistrationRepository';
 
 const CHALLENGE_TTL_MS = TIME.FIVE_MINUTES;
 
@@ -82,6 +88,26 @@ const getDefaultOrganizationId = async (): Promise<string | null> => {
      LIMIT 1`
   );
   return result.rows[0]?.id || null;
+};
+
+const readPendingRegistrationFromToken = async (
+  registrationToken: string
+): Promise<pendingRegistrationRepository.PendingRegistrationRow | null> => {
+  try {
+    const payload = verifyTokenWithOptionalIssuer<PendingRegistrationTokenPayload>(
+      registrationToken,
+      PENDING_REGISTRATION_TOKEN_ISSUER
+    );
+    const pendingRegistrationId =
+      typeof payload.pendingRegistrationId === 'string' ? payload.pendingRegistrationId : null;
+    if (!pendingRegistrationId) {
+      return null;
+    }
+
+    return pendingRegistrationRepository.getPendingRegistrationById(pendingRegistrationId, false);
+  } catch {
+    return null;
+  }
 };
 
 export const listPasskeys = async (
@@ -252,6 +278,136 @@ export const registrationVerify = async (
         createdAt: inserted.rows[0].created_at,
         lastUsedAt: inserted.rows[0].last_used_at,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const pendingRegistrationOptions = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { rpID, rpName } = getWebAuthnConfig();
+    const { registrationToken, email }: { registrationToken: string; email: string } = req.body;
+
+    const pending = await readPendingRegistrationFromToken(registrationToken);
+    if (!pending || pending.status !== 'pending') {
+      return badRequest(res, 'Invalid or expired registration token');
+    }
+    if (pending.email.toLowerCase() !== email.trim().toLowerCase()) {
+      return badRequest(res, 'Registration token does not match this email address');
+    }
+
+    const stagedCredentials =
+      await pendingRegistrationRepository.listPendingRegistrationCredentials(pending.id);
+
+    const options = await generateRegistrationOptions({
+      rpID,
+      rpName,
+      userID: Buffer.from(pending.id),
+      userName: pending.email,
+      attestationType: 'none',
+      authenticatorSelection: {
+        residentKey: 'preferred',
+        userVerification: 'preferred',
+      },
+      excludeCredentials: stagedCredentials.map((credential) => ({
+        id: credential.credential_id,
+      })),
+    });
+
+    const challenge =
+      await pendingRegistrationRepository.insertPendingRegistrationChallenge({
+        pendingRegistrationId: pending.id,
+        challenge: options.challenge,
+        type: 'registration',
+        expiresInMs: CHALLENGE_TTL_MS,
+      });
+
+    return res.json({ challengeId: challenge.id, options });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const pendingRegistrationVerify = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { origins, rpID } = getWebAuthnConfig();
+    const {
+      registrationToken,
+      challengeId,
+      credential,
+      name,
+    }: {
+      registrationToken: string;
+      challengeId: string;
+      credential: RegistrationResponseJSON;
+      name?: string | null;
+    } = req.body;
+
+    const pending = await readPendingRegistrationFromToken(registrationToken);
+    if (!pending || pending.status !== 'pending') {
+      return badRequest(res, 'Invalid or expired registration token');
+    }
+
+    const challenge = await pendingRegistrationRepository.getPendingRegistrationChallengeById(
+      challengeId
+    );
+    if (!challenge) {
+      return badRequest(res, 'Invalid or expired challenge');
+    }
+    if (challenge.type !== 'registration' || challenge.pending_registration_id !== pending.id) {
+      return badRequest(res, 'Invalid or expired challenge');
+    }
+    if (new Date() > new Date(challenge.expires_at)) {
+      await pendingRegistrationRepository.deletePendingRegistrationChallenge(challengeId);
+      return badRequest(res, 'Invalid or expired challenge');
+    }
+
+    const verification = await verifyRegistrationResponse({
+      response: credential,
+      expectedChallenge: challenge.challenge,
+      expectedOrigin: origins,
+      expectedRPID: rpID,
+      requireUserVerification: false,
+    });
+
+    if (!verification.verified || !verification.registrationInfo) {
+      return badRequest(res, 'Passkey registration failed');
+    }
+
+    const info = verification.registrationInfo;
+    const credentialId = info.credential.id;
+    if (
+      (await pendingRegistrationRepository.pendingCredentialExists(credentialId)) ||
+      (await pendingRegistrationRepository.userCredentialExists(credentialId))
+    ) {
+      return badRequest(res, 'This passkey is already registered');
+    }
+
+    await pendingRegistrationRepository.insertPendingRegistrationCredential({
+      pendingRegistrationId: pending.id,
+      credentialId,
+      publicKey: toBase64Url(info.credential.publicKey),
+      counter: info.credential.counter,
+      transports: credential.response.transports || null,
+      deviceType: info.credentialDeviceType || null,
+      backedUp:
+        typeof info.credentialBackedUp === 'boolean' ? info.credentialBackedUp : null,
+      name: name || null,
+    });
+    await pendingRegistrationRepository.deletePendingRegistrationChallenge(challengeId);
+
+    return res.status(201).json({
+      message: 'Passkey staged successfully',
+      hasStagedPasskeys: true,
     });
   } catch (error) {
     next(error);

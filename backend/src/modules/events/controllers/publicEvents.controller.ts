@@ -75,6 +75,7 @@ const normalizeQuery = (req: Request): PublicEventsQuery => {
 const mapCheckInError = (res: Response, error: Error): boolean => {
   if (
     error.message === 'Event not found' ||
+    error.message === 'Occurrence not found' ||
     error.message === 'Public check-in is not enabled for this event'
   ) {
     sendError(res, 'EVENT_NOT_FOUND', 'Event check-in is unavailable', 404);
@@ -98,7 +99,8 @@ const mapCheckInError = (res: Response, error: Error): boolean => {
 
   if (
     error.message === 'Event is not accepting check-ins' ||
-    error.message.includes('Check-in is available')
+    error.message.includes('Check-in is available') ||
+    error.message.includes('cannot be checked in')
   ) {
     sendError(res, 'CHECKIN_CLOSED', error.message, 400);
     return true;
@@ -108,7 +110,7 @@ const mapCheckInError = (res: Response, error: Error): boolean => {
 };
 
 const mapRegistrationError = (res: Response, error: Error): boolean => {
-  if (error.message === 'Event not found') {
+  if (error.message === 'Event not found' || error.message === 'Occurrence not found') {
     sendError(res, 'EVENT_NOT_FOUND', 'Event is unavailable', 404);
     return true;
   }
@@ -269,7 +271,11 @@ export const createPublicEventsController = ({
   const getCheckInInfo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const params = getValidatedParams(req);
-      const info = await registrationUseCase.getPublicCheckInInfo(params.id);
+      const query = getValidatedQuery(req);
+      const info = await registrationUseCase.getPublicCheckInInfo(
+        params.id,
+        typeof query.occurrence_id === 'string' ? query.occurrence_id : undefined
+      );
       if (!info) {
         sendError(res, 'EVENT_NOT_FOUND', 'Event check-in is unavailable', 404);
         return;

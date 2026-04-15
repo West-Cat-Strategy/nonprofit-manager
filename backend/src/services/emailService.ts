@@ -64,6 +64,7 @@ export interface SendMailOptions {
     filename: string;
     content: Buffer | string;
     contentType?: string;
+    cid?: string;
   }>;
 }
 

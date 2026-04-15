@@ -2,9 +2,11 @@ import type {
   CreateEventDTO,
   CreateEventReminderAutomationDTO,
   Event,
+  EventConfirmationEmailResult,
   EventCheckInSettings,
   EventReminderAutomation,
   EventRegistration,
+  EventOccurrence,
   EventReminderSummary,
   EventWalkInCheckInDTO,
   EventWalkInCheckInResult,
@@ -17,6 +19,7 @@ import type {
   SyncEventReminderAutomationsDTO,
   UpdateEventCheckInSettingsDTO,
   UpdateEventDTO,
+  UpdateRegistrationDTO,
 } from '../../../types/event';
 
 export interface EventListQuery {
@@ -33,27 +36,37 @@ export interface EventListQuery {
   accumulateAllPages?: boolean;
 }
 
+export interface EventOccurrenceQuery {
+  from?: string;
+  to?: string;
+  eventId?: string;
+  includeCancelled?: boolean;
+}
+
 export interface EventCatalogPort {
   listEvents(query?: EventListQuery): Promise<PaginatedEvents>;
   getEventById(eventId: string): Promise<Event>;
+  listEventOccurrences(query?: EventOccurrenceQuery): Promise<EventOccurrence[]>;
 }
 
 export interface EventRegistrationPort {
   listEventRegistrations(eventId: string, filters?: RegistrationFilters): Promise<EventRegistration[]>;
   registerContact(eventId: string, contactId: string): Promise<void>;
+  updateRegistration(registrationId: string, payload: UpdateRegistrationDTO): Promise<EventRegistration>;
   checkInRegistration(registrationId: string): Promise<EventRegistration>;
   scanCheckIn(eventId: string, token: string): Promise<EventRegistration>;
   scanCheckInGlobal(token: string): Promise<EventRegistration>;
-  getCheckInSettings(eventId: string): Promise<EventCheckInSettings>;
+  getCheckInSettings(eventId: string, occurrenceId?: string): Promise<EventCheckInSettings>;
   updateCheckInSettings(
     eventId: string,
     payload: UpdateEventCheckInSettingsDTO
   ): Promise<EventCheckInSettings>;
-  rotateCheckInPin(eventId: string): Promise<RotateEventCheckInPinResult>;
+  rotateCheckInPin(eventId: string, occurrenceId?: string): Promise<RotateEventCheckInPinResult>;
   walkInCheckIn(eventId: string, payload: EventWalkInCheckInDTO): Promise<EventWalkInCheckInResult>;
-  getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo>;
+  getPublicCheckInInfo(eventId: string, occurrenceId?: string): Promise<PublicEventCheckInInfo>;
   submitPublicCheckIn(eventId: string, payload: PublicEventCheckInDTO): Promise<PublicEventCheckInResult>;
   cancelRegistration(registrationId: string): Promise<void>;
+  sendRegistrationConfirmationEmail(registrationId: string): Promise<EventConfirmationEmailResult>;
 }
 
 export interface EventMutationPort {

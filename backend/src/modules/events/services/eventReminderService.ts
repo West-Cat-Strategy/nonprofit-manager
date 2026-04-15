@@ -21,6 +21,7 @@ export class EventReminderService {
 
   private async recordReminderDelivery(args: {
     eventId: string;
+    occurrenceId?: string | null;
     registrationId: string;
     channel: 'email' | 'sms';
     recipient: string;
@@ -35,6 +36,7 @@ export class EventReminderService {
       await this.pool.query(
         `INSERT INTO event_reminder_deliveries (
           event_id,
+          occurrence_id,
           registration_id,
           channel,
           recipient,
@@ -48,6 +50,7 @@ export class EventReminderService {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           args.eventId,
+          args.occurrenceId || null,
           args.registrationId,
           args.channel,
           args.recipient,
@@ -62,6 +65,7 @@ export class EventReminderService {
     } catch (error) {
       logger.warn('Failed to record event reminder delivery', {
         eventId: args.eventId,
+        occurrenceId: args.occurrenceId,
         registrationId: args.registrationId,
         channel: args.channel,
         status: args.status,
@@ -86,10 +90,18 @@ export class EventReminderService {
     }
 
     const eventResult = await this.pool.query<EventReminderEventRow>(
-      `SELECT id, name, start_date, end_date, location_name
-       FROM events
-       WHERE id = $1`,
-      [eventId]
+      `SELECT
+         e.id,
+         e.name,
+         COALESCE(eo.start_date, e.start_date) as start_date,
+         COALESCE(eo.end_date, e.end_date) as end_date,
+         COALESCE(eo.location_name, e.location_name) as location_name
+       FROM events e
+       LEFT JOIN event_occurrences eo
+         ON eo.id = $2
+        AND eo.event_id = e.id
+       WHERE e.id = $1`,
+      [eventId, reminderOptions.occurrence_id || null]
     );
 
     if (eventResult.rows.length === 0) {
@@ -109,9 +121,10 @@ export class EventReminderService {
        FROM event_registrations er
        JOIN contacts c ON c.id = er.contact_id
        WHERE er.event_id = $1
+         AND ($2::uuid IS NULL OR er.occurrence_id = $2)
          AND er.registration_status IN ('registered', 'confirmed')
        ORDER BY er.created_at ASC`,
-      [eventId]
+      [eventId, reminderOptions.occurrence_id || null]
     );
 
     const recipients = registrationsResult.rows;
@@ -175,6 +188,7 @@ export class EventReminderService {
           emailSummary.skipped += 1;
           await this.recordReminderDelivery({
             eventId,
+            occurrenceId: reminderOptions.occurrence_id || null,
             registrationId: recipient.registration_id,
             channel: 'email',
             recipient: recipientEmail || fallbackRecipient,
@@ -189,6 +203,7 @@ export class EventReminderService {
           emailSummary.skipped += 1;
           await this.recordReminderDelivery({
             eventId,
+            occurrenceId: reminderOptions.occurrence_id || null,
             registrationId: recipient.registration_id,
             channel: 'email',
             recipient: fallbackRecipient,
@@ -203,6 +218,7 @@ export class EventReminderService {
           emailSummary.skipped += 1;
           await this.recordReminderDelivery({
             eventId,
+            occurrenceId: reminderOptions.occurrence_id || null,
             registrationId: recipient.registration_id,
             channel: 'email',
             recipient: recipientEmail,
@@ -250,6 +266,7 @@ export class EventReminderService {
 
           await this.recordReminderDelivery({
             eventId,
+            occurrenceId: reminderOptions.occurrence_id || null,
             registrationId: recipient.registration_id,
             channel: 'email',
             recipient: recipientEmail,
@@ -271,6 +288,7 @@ export class EventReminderService {
           smsSummary.skipped += 1;
           await this.recordReminderDelivery({
             eventId,
+            occurrenceId: reminderOptions.occurrence_id || null,
             registrationId: recipient.registration_id,
             channel: 'sms',
             recipient: phone || fallbackRecipient,
@@ -285,6 +303,7 @@ export class EventReminderService {
           smsSummary.skipped += 1;
           await this.recordReminderDelivery({
             eventId,
+            occurrenceId: reminderOptions.occurrence_id || null,
             registrationId: recipient.registration_id,
             channel: 'sms',
             recipient: fallbackRecipient,
@@ -299,6 +318,7 @@ export class EventReminderService {
           smsSummary.skipped += 1;
           await this.recordReminderDelivery({
             eventId,
+            occurrenceId: reminderOptions.occurrence_id || null,
             registrationId: recipient.registration_id,
             channel: 'sms',
             recipient: phone,
@@ -323,6 +343,7 @@ export class EventReminderService {
 
           await this.recordReminderDelivery({
             eventId,
+            occurrenceId: reminderOptions.occurrence_id || null,
             registrationId: recipient.registration_id,
             channel: 'sms',
             recipient: smsResult.normalizedTo || phone,

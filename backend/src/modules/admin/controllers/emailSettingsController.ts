@@ -9,9 +9,10 @@ import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
 import * as emailSettingsUseCase from '../usecases/emailSettingsUseCase';
 import { testSmtpConnection } from '@services/emailService';
-import { forbidden } from '@utils/responseHelpers';
+import { guardWithPermission } from '@services/authGuardService';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import type { UpdateEmailSettingsInput } from '@validations/admin';
+import { Permission } from '@utils/permissions';
 
 const normalizeOptionalSecret = (value: unknown): string | undefined => {
   if (typeof value !== 'string') {
@@ -31,9 +32,7 @@ export const getEmailSettings = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithPermission(req, res, Permission.ADMIN_SETTINGS)) return;
 
     const [settings, credentials] = await Promise.all([
       emailSettingsUseCase.getEmailSettings(),
@@ -60,9 +59,9 @@ export const updateEmailSettings = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithPermission(req, res, Permission.ADMIN_SETTINGS)) return;
+    const userId = req.user?.id;
+    if (!userId) return;
 
     const body = req.body as UpdateEmailSettingsInput;
     const updated = await emailSettingsUseCase.updateEmailSettings(
@@ -80,7 +79,7 @@ export const updateEmailSettings = async (
         imapUser: body.imapUser,
         imapPass: normalizeOptionalSecret(body.imapPass),
       },
-      req.user.id
+      userId
     );
 
     return sendSuccess(res, { data: updated, message: 'Email settings updated' });
@@ -100,9 +99,7 @@ export const testEmailSettings = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
+    if (!guardWithPermission(req, res, Permission.ADMIN_SETTINGS)) return;
 
     const result = await testSmtpConnection();
 

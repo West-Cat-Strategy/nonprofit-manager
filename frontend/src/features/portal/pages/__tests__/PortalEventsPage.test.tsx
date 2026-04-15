@@ -22,11 +22,20 @@ vi.mock('../../client/usePortalEventsList', () => ({
         name: 'Community Workshop',
         description: 'Bring your pass',
         event_type: 'community',
+        series_id: 'series-1',
+        occurrence_id: 'occurrence-2',
+        occurrence_name: 'Week 2',
+        occurrence_index: 2,
+        occurrence_count: 6,
+        occurrence_start_date: '2026-06-10T18:00:00.000Z',
+        occurrence_end_date: '2026-06-10T20:00:00.000Z',
         start_date: '2026-06-10T18:00:00.000Z',
         end_date: '2026-06-10T20:00:00.000Z',
         location_name: 'Main Hall',
         registration_id: 'reg-1',
-        registration_status: 'registered',
+        registration_status: 'confirmed',
+        confirmation_email_status: 'sent',
+        confirmation_email_sent_at: '2026-06-09T16:00:00.000Z',
         check_in_token: 'qr-pass-token',
         checked_in: false,
         check_in_time: null,
@@ -59,8 +68,26 @@ vi.mock('../../client/usePortalEventsList', () => ({
         checked_in: true,
         check_in_time: '2026-06-12T18:10:00.000Z',
       },
+      {
+        id: 'event-4',
+        name: 'Waitlisted Session',
+        description: 'Capacity reached',
+        event_type: 'community',
+        occurrence_id: 'occurrence-4',
+        occurrence_name: 'Week 4',
+        occurrence_index: 4,
+        occurrence_count: 6,
+        start_date: '2026-06-13T18:00:00.000Z',
+        end_date: '2026-06-13T20:00:00.000Z',
+        location_name: 'Training Room',
+        registration_id: 'reg-4',
+        registration_status: 'waitlisted',
+        check_in_token: 'qr-pass-waitlisted-token',
+        checked_in: false,
+        check_in_time: null,
+      },
     ],
-    total: 2,
+    total: 4,
     hasMore: false,
     loading: false,
     loadingMore: false,
@@ -95,6 +122,8 @@ describe('PortalEventsPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Event QR Pass')).toBeInTheDocument();
+      expect(screen.getAllByText('Week 2').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Confirmation sent').length).toBeGreaterThan(0);
       expect(screen.getByRole('button', { name: 'Download PNG' })).toBeInTheDocument();
     });
   });
@@ -144,5 +173,19 @@ describe('PortalEventsPage', () => {
     expect(anchor.href).toContain('data:image/png;base64,portal-qr');
 
     createElementSpy.mockRestore();
+  });
+
+  it('hides QR passes for waitlisted registrations', () => {
+    renderWithProviders(<PortalEventsPage />);
+
+    const waitlistedCard = screen.getByText('Waitlisted Session').closest('li');
+    expect(waitlistedCard).not.toBeNull();
+    expect(
+      within(waitlistedCard as HTMLElement).queryByRole('button', { name: 'QR Pass' })
+    ).toBeNull();
+    expect(within(waitlistedCard as HTMLElement).getByText('Waitlisted')).toBeInTheDocument();
+    expect(
+      within(waitlistedCard as HTMLElement).getByRole('button', { name: 'Cancel waitlist' })
+    ).toBeInTheDocument();
   });
 });

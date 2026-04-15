@@ -90,3 +90,5 @@
 088	088_provider_agnostic_payment_columns.sql	
 089	089_case_topic_definitions_constraint_alignment.sql	
 090	090_auth_session_security_hardening.sql	
+091	091_event_occurrences_series_overhaul.sql	
+092	092_pending_registration_passkeys_and_policy_groups.sql	

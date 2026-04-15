@@ -1,6 +1,6 @@
 /**
  * User Management Controller
- * Handles CRUD operations for users (admin only)
+ * Handles CRUD operations for users.
  */
 
 import { Response, NextFunction } from 'express';
@@ -8,33 +8,63 @@ import bcrypt from 'bcryptjs';
 import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD } from '@config/constants';
+import { getAccountLockoutStatus, setAccountLockState } from '@middleware/accountLockout';
 import { syncUserRole } from '@services/domains/integration';
+import {
+  getUserAccessOverview,
+  getUsersAccessOverview,
+  seedDefaultOrganizationAccess,
+} from '@services/accountAccessService';
 import { getRoleSelectorItems } from '@modules/admin/usecases/roleCatalogUseCase';
 import * as userManagementService from '@services/userManagementService';
-import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
+import type { UserRecord } from '@services/userManagementService';
+import { badRequest, conflict, notFoundMessage } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
-/**
- * GET /api/users
- * List all users (admin only)
- */
+const serializeManagedUser = (
+  user: UserRecord,
+  accessOverview: Awaited<ReturnType<typeof getUserAccessOverview>>,
+  securityState?: Awaited<ReturnType<typeof getAccountLockoutStatus>>
+) => ({
+  id: user.id,
+  email: user.email,
+  firstName: user.first_name,
+  lastName: user.last_name,
+  role: user.role,
+  profilePicture: user.profile_picture || null,
+  isActive: user.is_active,
+  createdAt: user.created_at,
+  updatedAt: user.updated_at,
+  lastLoginAt: null,
+  lastPasswordChange: null,
+  failedLoginAttempts: securityState?.failedLoginAttempts ?? 0,
+  isLocked: securityState?.isLocked ?? false,
+  groups: accessOverview.groups,
+  organizationAccess: accessOverview.organizationAccess,
+  mfaTotpEnabled: accessOverview.mfaTotpEnabled,
+  passkeyCount: accessOverview.passkeyCount,
+});
+
 export const listUsers = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    // Check if user is admin
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
-
     const query = (req.validatedQuery ?? req.query) as {
       search?: string;
       role?: string;
       is_active?: boolean | string;
+      limit?: number | string;
     };
-    const users = (await userManagementService.listUsers({
+    const limit =
+      typeof query.limit === 'number'
+        ? query.limit
+        : typeof query.limit === 'string'
+          ? Number.parseInt(query.limit, 10) || undefined
+          : undefined;
+
+    const users = await userManagementService.listUsers({
       search: typeof query.search === 'string' ? query.search : undefined,
       role: typeof query.role === 'string' ? query.role : undefined,
       isActive:
@@ -43,151 +73,122 @@ export const listUsers = async (
           : typeof query.is_active === 'string'
             ? query.is_active === 'true'
             : undefined,
-    })).map((user) => ({
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      role: user.role,
-      profilePicture: user.profile_picture || null,
-      isActive: user.is_active,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
-    }));
+    });
+    const limitedUsers = typeof limit === 'number' ? users.slice(0, limit) : users;
+    const accessOverviewByUserId = await getUsersAccessOverview(
+      limitedUsers.map((user) => user.id)
+    );
 
-    return sendSuccess(res, { users, total: users.length });
+    return sendSuccess(res, {
+      users: limitedUsers.map((user) =>
+        serializeManagedUser(
+          user,
+          accessOverviewByUserId[user.id] ?? {
+            groups: [],
+            organizationAccess: [],
+            mfaTotpEnabled: false,
+            passkeyCount: 0,
+          }
+        )
+      ),
+      total: users.length,
+    });
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * GET /api/users/:id
- * Get a single user by ID (admin only)
- */
 export const getUser = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
-
     const { id } = req.params;
     const user = await userManagementService.getUserById(id);
     if (!user) {
       return notFoundMessage(res, 'User not found');
     }
 
-    return sendSuccess(res, {
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      role: user.role,
-      profilePicture: user.profile_picture || null,
-      isActive: user.is_active,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
-    });
+    const [accessOverview, securityState] = await Promise.all([
+      getUserAccessOverview(user.id),
+      getAccountLockoutStatus(user.email),
+    ]);
+
+    return sendSuccess(res, serializeManagedUser(user, accessOverview, securityState));
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * POST /api/users
- * Create a new user (admin only)
- */
 export const createUser = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
-
     const { email, password, firstName, lastName, role = 'staff' } = req.body;
 
-    // Check if user already exists
     const existingUserId = await userManagementService.findUserByEmail(email);
     if (existingUserId) {
       return conflict(res, 'User with this email already exists');
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, PASSWORD.BCRYPT_SALT_ROUNDS);
-
-    // Create user
     const user = await userManagementService.createUser({
       email,
       passwordHash: hashedPassword,
       firstName,
       lastName,
       role,
-      createdBy: req.user.id,
+      createdBy: req.user!.id,
     });
 
     await syncUserRole(user.id, user.role);
+    await seedDefaultOrganizationAccess({
+      userId: user.id,
+      role: user.role,
+      grantedBy: req.user!.id,
+    });
 
-    logger.info(`User created by admin: ${user.email}`, { adminId: req.user.id });
+    const accessOverview = await getUserAccessOverview(user.id);
 
-    return sendSuccess(
-      res,
-      {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role,
-        profilePicture: user.profile_picture || null,
-        isActive: user.is_active,
-        createdAt: user.created_at,
-        updatedAt: user.updated_at,
-      },
-      201
-    );
+    logger.info(`User created by admin: ${user.email}`, { adminId: req.user!.id });
+
+    return sendSuccess(res, serializeManagedUser(user, accessOverview), 201);
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * PUT /api/users/:id
- * Update a user (admin only)
- */
 export const updateUser = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
-
     const { id } = req.params;
-    const { email, firstName, lastName, role, isActive } = req.body;
+    const { email, firstName, lastName, role, isActive, isLocked } = req.body as {
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+      role?: string;
+      isActive?: boolean;
+      isLocked?: boolean;
+    };
 
-    // Check if user exists
-    const existingUser = await userManagementService.getUserRoleById(id);
+    const existingUser = await userManagementService.getUserRoleIdentityById(id);
     if (!existingUser) {
       return notFoundMessage(res, 'User not found');
     }
 
-    // Prevent demoting the last admin
-    if (existingUser.role === 'admin' && role !== 'admin') {
+    if (existingUser.role === 'admin' && role && role !== 'admin') {
       const adminCount = await userManagementService.countActiveAdmins();
       if (adminCount <= 1) {
         return badRequest(res, 'Cannot demote the last admin user');
       }
     }
 
-    // Prevent deactivating the last admin
     if (existingUser.role === 'admin' && isActive === false) {
       const adminCount = await userManagementService.countActiveAdmins();
       if (adminCount <= 1) {
@@ -195,7 +196,6 @@ export const updateUser = async (
       }
     }
 
-    // Check for email conflict
     if (email) {
       const emailCheckId = await userManagementService.findUserByEmailExcludingId(email, id);
       if (emailCheckId) {
@@ -210,7 +210,7 @@ export const updateUser = async (
       lastName,
       role,
       isActive,
-      modifiedBy: req.user.id,
+      modifiedBy: req.user!.id,
     });
     if (!user) {
       return notFoundMessage(res, 'User not found');
@@ -220,53 +220,51 @@ export const updateUser = async (
       await syncUserRole(user.id, user.role);
     }
 
-    logger.info(`User updated by admin: ${user.email}`, { adminId: req.user.id, userId: id });
+    if (typeof isLocked === 'boolean') {
+      if (email && email !== existingUser.email) {
+        await setAccountLockState(existingUser.email, false, user.id);
+      }
+      const lockIdentifier = email ?? existingUser.email;
+      await setAccountLockState(lockIdentifier, isLocked, user.id);
+    }
 
-    return sendSuccess(res, {
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      role: user.role,
-      profilePicture: user.profile_picture || null,
-      isActive: user.is_active,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
+    const [accessOverview, securityState] = await Promise.all([
+      getUserAccessOverview(user.id),
+      getAccountLockoutStatus(email ?? user.email),
+    ]);
+
+    logger.info(`User updated by admin: ${user.email}`, {
+      adminId: req.user!.id,
+      userId: id,
     });
+
+    return sendSuccess(res, serializeManagedUser(user, accessOverview, securityState));
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * PUT /api/users/:id/password
- * Reset a user's password (admin only)
- */
 export const resetUserPassword = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
-
     const { id } = req.params;
     const { password } = req.body;
 
-    // Check if user exists
     const existingUser = await userManagementService.getUserIdentityById(id);
     if (!existingUser) {
       return notFoundMessage(res, 'User not found');
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(password, PASSWORD.BCRYPT_SALT_ROUNDS);
+    await userManagementService.updateUserPassword(id, hashedPassword, req.user!.id);
 
-    await userManagementService.updateUserPassword(id, hashedPassword, req.user.id);
-
-    logger.info(`Password reset by admin for user: ${existingUser.email}`, { adminId: req.user.id, userId: id });
+    logger.info(`Password reset by admin for user: ${existingUser.email}`, {
+      adminId: req.user!.id,
+      userId: id,
+    });
 
     return sendSuccess(res, { message: 'Password reset successfully' });
   } catch (error) {
@@ -274,34 +272,23 @@ export const resetUserPassword = async (
   }
 };
 
-/**
- * DELETE /api/users/:id
- * Delete a user (admin only) - soft delete by deactivating
- */
 export const deleteUser = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (req.user?.role !== 'admin') {
-      return forbidden(res, 'Admin access required');
-    }
-
     const { id } = req.params;
 
-    // Prevent self-deletion
-    if (id === req.user.id) {
+    if (id === req.user!.id) {
       return badRequest(res, 'Cannot delete your own account');
     }
 
-    // Check if user exists and their role
     const existingUser = await userManagementService.getUserRoleIdentityById(id);
     if (!existingUser) {
       return notFoundMessage(res, 'User not found');
     }
 
-    // Prevent deleting the last admin
     if (existingUser.role === 'admin') {
       const adminCount = await userManagementService.countActiveAdmins();
       if (adminCount <= 1) {
@@ -309,10 +296,12 @@ export const deleteUser = async (
       }
     }
 
-    // Soft delete - just deactivate the user
-    await userManagementService.deactivateUser(id, req.user.id);
+    await userManagementService.deactivateUser(id, req.user!.id);
 
-    logger.info(`User deactivated by admin: ${existingUser.email}`, { adminId: req.user.id, userId: id });
+    logger.info(`User deactivated by admin: ${existingUser.email}`, {
+      adminId: req.user!.id,
+      userId: id,
+    });
 
     return sendSuccess(res, { message: 'User deactivated successfully' });
   } catch (error) {
@@ -320,20 +309,15 @@ export const deleteUser = async (
   }
 };
 
-/**
- * GET /api/users/roles
- * Get available user roles
- */
 export const getRoles = async (
-  req: AuthRequest,
+  _req: AuthRequest,
   res: Response,
-  _next: NextFunction
+  next: NextFunction
 ): Promise<Response | void> => {
-  if (req.user?.role !== 'admin') {
-    return forbidden(res, 'Admin access required');
+  try {
+    const roles = await getRoleSelectorItems();
+    return sendSuccess(res, { roles });
+  } catch (error) {
+    next(error);
   }
-
-  const roles = await getRoleSelectorItems();
-
-  return sendSuccess(res, { roles });
 };

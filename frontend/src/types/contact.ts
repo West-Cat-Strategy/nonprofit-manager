@@ -248,6 +248,52 @@ export interface ContactNote {
   outcome_impacts?: InteractionOutcomeImpact[];
 }
 
+export type ContactNoteTimelineSource = 'contact_note' | 'case_note' | 'event_activity';
+
+export interface ContactNoteTimelineCounts {
+  all: number;
+  contact_notes: number;
+  case_notes: number;
+  event_activity: number;
+}
+
+export interface ContactNoteTimelineItem {
+  id: string;
+  source_type: ContactNoteTimelineSource;
+  editable: boolean;
+  note_type: string | null;
+  activity_type: string | null;
+  title: string | null;
+  content: string | null;
+  is_internal: boolean;
+  is_important: boolean;
+  is_pinned: boolean;
+  is_alert: boolean;
+  is_portal_visible: boolean;
+  created_at: string;
+  updated_at: string | null;
+  created_by: string | null;
+  created_by_first_name?: string | null;
+  created_by_last_name?: string | null;
+  case_id: string | null;
+  case_number?: string | null;
+  case_title?: string | null;
+  event_id: string | null;
+  event_name?: string | null;
+  registration_id?: string | null;
+  registration_status?: string | null;
+  previous_registration_status?: string | null;
+  next_registration_status?: string | null;
+  checked_in?: boolean | null;
+  check_in_method?: string | null;
+  outcome_impacts?: InteractionOutcomeImpact[];
+}
+
+export interface ContactNotesTimelineResponse {
+  items: ContactNoteTimelineItem[];
+  counts: ContactNoteTimelineCounts;
+}
+
 export interface CreateContactNoteDTO {
   case_id?: string;
   note_type?: ContactNoteType;

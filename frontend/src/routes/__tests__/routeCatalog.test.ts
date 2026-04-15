@@ -14,6 +14,7 @@ describe('routeCatalog matching', () => {
   it('matches canonical routes and keeps query strings attached to canonical paths', () => {
     expect(matchRouteCatalogEntry('/settings/admin/users')?.id).toBe('admin-settings-users');
     expect(matchRouteCatalogEntry('/settings/admin/users?foo=1')?.id).toBe('admin-settings-users');
+    expect(matchRouteCatalogEntry('/settings/admin/groups')?.id).toBe('admin-settings-groups');
     expect(matchRouteCatalogEntry('/settings/admin/portal/access')?.id).toBe('portal-admin-access');
     expect(matchRouteCatalogEntry('/settings/communications?ref=legacy')?.id).toBe(
       'communications'
@@ -81,6 +82,23 @@ describe('routeCatalog matching', () => {
     expect(matchRouteCatalogEntry('/websites')?.id).toBe('websites');
     expect(getRouteLocalNavigation('/websites').some((entry) => entry.id === 'websites')).toBe(
       true
+    );
+  });
+
+  it('exposes the events calendar as a first-class staff navigation entry', () => {
+    expect(matchRouteCatalogEntry('/events/calendar')?.id).toBe('events-calendar');
+
+    expect(
+      getRouteLocalNavigation('/events/calendar').map((entry) => ({
+        id: entry.id,
+        shortLabel: entry.shortLabel,
+        isActive: entry.isActive,
+      }))
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'events', shortLabel: 'Events', isActive: false }),
+        expect.objectContaining({ id: 'events-calendar', shortLabel: 'Calendar', isActive: true }),
+      ])
     );
   });
 

@@ -7,6 +7,8 @@ import {
   loginSchema,
   registerSchema,
   changePasswordSchema,
+  pendingPasskeyRegistrationOptionsSchema,
+  pendingPasskeyRegistrationVerifySchema,
   passwordResetRequestSchema,
   setupFirstUserSchema,
   twoFactorVerifySchema,
@@ -203,6 +205,31 @@ describe('Authentication Schemas', () => {
         const result = registerSchema.safeParse(data);
         expect(result.success).toBe(shouldPass);
       });
+    });
+  });
+
+  describe('pendingPasskeyRegistration schemas', () => {
+    it('accepts pending passkey registration options input', () => {
+      const result = pendingPasskeyRegistrationOptionsSchema.safeParse({
+        registrationToken: 'pending-token',
+        email: 'Pending.User@example.com',
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.email).toBe('pending.user@example.com');
+      }
+    });
+
+    it('accepts pending passkey registration verification input', () => {
+      const result = pendingPasskeyRegistrationVerifySchema.safeParse({
+        registrationToken: 'pending-token',
+        challengeId: 'challenge-id',
+        credential: { id: 'credential-id' },
+        name: 'Pending User',
+      });
+
+      expect(result.success).toBe(true);
     });
   });
 

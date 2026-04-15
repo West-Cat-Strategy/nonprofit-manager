@@ -13,6 +13,10 @@ import type {
   CreateRegistrationDTO,
   Event,
   EventCheckInSettings,
+  EventConfirmationEmailResult,
+  EventMutationScope,
+  EventOccurrence,
+  EventRegistrationMutationContext,
   EventFilters,
   EventRegistration,
   EventReminderSummary,
@@ -33,6 +37,7 @@ import type {
   SendEventRemindersContext,
   SendEventRemindersDTO,
   UpdateEventCheckInSettingsDTO,
+  UpdateEventOccurrenceDTO,
   UpdateEventDTO,
   UpdateRegistrationDTO,
 } from '@app-types/event';
@@ -67,6 +72,34 @@ export class EventService {
 
   async getEventById(eventId: string, scope?: DataScopeFilter): Promise<Event | null> {
     return this.catalog.getEventById(eventId, scope);
+  }
+
+  async listEventOccurrences(
+    filters: {
+      event_id?: string;
+      start_date?: Date;
+      end_date?: Date;
+      include_cancelled?: boolean;
+    } = {},
+    scope?: DataScopeFilter
+  ): Promise<EventOccurrence[]> {
+    return this.catalog.listOccurrences(filters, scope);
+  }
+
+  async getEventOccurrenceById(
+    occurrenceId: string,
+    scope?: DataScopeFilter
+  ): Promise<EventOccurrence | null> {
+    return this.catalog.getOccurrenceById(occurrenceId, scope);
+  }
+
+  async updateEventOccurrence(
+    occurrenceId: string,
+    data: UpdateEventOccurrenceDTO,
+    scope: EventMutationScope,
+    userId: string
+  ): Promise<EventOccurrence | null> {
+    return this.catalog.updateOccurrence(occurrenceId, data, scope, userId);
   }
 
   async getEventAttendanceSummary(
@@ -115,15 +148,19 @@ export class EventService {
     return this.registration.getRegistrationByTokenGlobal(token, scope);
   }
 
-  async registerContact(registrationData: CreateRegistrationDTO): Promise<EventRegistration> {
-    return this.registration.registerContact(registrationData);
+  async registerContact(
+    registrationData: CreateRegistrationDTO,
+    context?: EventRegistrationMutationContext
+  ): Promise<EventRegistration> {
+    return this.registration.registerContact(registrationData, context);
   }
 
   async updateRegistration(
     registrationId: string,
-    updateData: UpdateRegistrationDTO
+    updateData: UpdateRegistrationDTO,
+    context?: EventRegistrationMutationContext
   ): Promise<EventRegistration> {
-    return this.registration.updateRegistration(registrationId, updateData);
+    return this.registration.updateRegistration(registrationId, updateData, context);
   }
 
   async checkInAttendee(registrationId: string, options: CheckInOptions = {}): Promise<CheckInResult> {
@@ -134,8 +171,8 @@ export class EventService {
     return this.registration.cancelRegistration(registrationId);
   }
 
-  async getEventCheckInSettings(eventId: string): Promise<EventCheckInSettings | null> {
-    return this.registration.getEventCheckInSettings(eventId);
+  async getEventCheckInSettings(eventId: string, occurrenceId?: string): Promise<EventCheckInSettings | null> {
+    return this.registration.getEventCheckInSettings(eventId, occurrenceId);
   }
 
   async updateEventCheckInSettings(
@@ -146,8 +183,12 @@ export class EventService {
     return this.registration.updateEventCheckInSettings(eventId, data, userId);
   }
 
-  async rotateEventCheckInPin(eventId: string, userId: string): Promise<RotateEventCheckInPinResult> {
-    return this.registration.rotateEventCheckInPin(eventId, userId);
+  async rotateEventCheckInPin(
+    eventId: string,
+    userId: string,
+    occurrenceId?: string
+  ): Promise<RotateEventCheckInPinResult> {
+    return this.registration.rotateEventCheckInPin(eventId, userId, occurrenceId);
   }
 
   async walkInCheckIn(
@@ -158,8 +199,15 @@ export class EventService {
     return this.registration.walkInCheckIn(eventId, data, checkedInBy);
   }
 
-  async getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo | null> {
-    return this.publicEvents.getPublicCheckInInfo(eventId);
+  async sendRegistrationConfirmationEmail(
+    registrationId: string,
+    sentBy: string | null
+  ): Promise<EventConfirmationEmailResult> {
+    return this.registration.sendRegistrationConfirmationEmail(registrationId, sentBy);
+  }
+
+  async getPublicCheckInInfo(eventId: string, occurrenceId?: string): Promise<PublicEventCheckInInfo | null> {
+    return this.publicEvents.getPublicCheckInInfo(eventId, occurrenceId);
   }
 
   async submitPublicCheckIn(

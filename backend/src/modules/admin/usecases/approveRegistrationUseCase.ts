@@ -1,6 +1,7 @@
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import { syncUserRole } from '@services/domains/integration';
+import { seedDefaultOrganizationAccess } from '@services/accountAccessService';
 import { sendMail } from '@services/emailService';
 import { getRegistrationSettings } from './registrationSettingsUseCase';
 import { normalizeRoleSlug } from '@utils/roleSlug';
@@ -56,6 +57,15 @@ export async function approvePendingRegistration(
 
     // Sync role (internal integration)
     await syncUserRole(user.id, user.role, client);
+    await seedDefaultOrganizationAccess(
+      {
+        userId: user.id,
+        role: user.role,
+        grantedBy: reviewedBy,
+      },
+      client
+    );
+    await repo.attachPendingRegistrationCredentialsToUser(id, user.id, client);
 
     // Mark pending as approved
     await repo.updatePendingStatus(id, 'approved', reviewedBy, null, client);

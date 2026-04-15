@@ -22,6 +22,7 @@ export type ActivityType =
   | 'volunteer_assigned'
   | 'event_created'
   | 'event_registration'
+  | 'event_registration_updated'
   | 'event_check_in'
   | 'contact_created'
   | 'contact_updated'

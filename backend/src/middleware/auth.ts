@@ -3,7 +3,11 @@ import pool from '@config/database';
 import { logger } from '@config/logger';
 import { forbidden, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 import { extractToken, AUTH_COOKIE_NAME } from '@utils/cookieHelper';
-import { createRequestAuthorizationContext, hasRoleAccess } from '@services/authorization';
+import {
+  createRequestAuthorizationContext,
+  hasRoleAccess,
+  resolveRolesForUser,
+} from '@services/authorization';
 import { setRequestContext } from '@config/requestContext';
 import { normalizeRoleSlug } from '@utils/roleSlug';
 import {
@@ -259,10 +263,12 @@ export const authenticate = (
       }
 
       setOrganizationContext(req, organizationId, sessionUser.id);
+      const resolvedRoles = await resolveRolesForUser(sessionUser.id, normalizedRole);
       req.authorizationContext = createRequestAuthorizationContext(
         sessionUser.id,
         normalizedRole,
-        organizationId
+        organizationId,
+        resolvedRoles
       );
       next();
     } catch {

@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import type { EventReminderSummary } from '../../../types/event';
+import type { EventReminderSummary, SendEventRemindersDTO } from '../../../types/event';
 import { eventsApiClient } from '../api/eventsApiClient';
 
 interface EventRemindersState {
@@ -21,11 +21,7 @@ export const sendEventRemindersV2 = createAsyncThunk(
     payload,
   }: {
     eventId: string;
-    payload: {
-      sendEmail?: boolean;
-      sendSms?: boolean;
-      customMessage?: string;
-    };
+    payload: SendEventRemindersDTO;
   }) => eventsApiClient.sendManualReminders(eventId, payload)
 );
 

@@ -53,6 +53,32 @@ describe('AdminPanelNav', () => {
     expect(screen.getByRole('link', { name: /navigation/i })).toHaveClass('bg-app-accent');
   });
 
+  it('shows admin links for users with permission-based admin access', () => {
+    renderWithProviders(<AdminPanelNav currentPath="/settings/admin/users" />, {
+      preloadedState: {
+        auth: {
+          user: {
+            id: 'user-3',
+            email: 'manager@example.com',
+            firstName: 'Manager',
+            lastName: 'User',
+            role: 'manager',
+            permissions: ['admin.settings.manage', 'reports.view'],
+          },
+          isAuthenticated: true,
+          authLoading: false,
+          loading: false,
+        },
+      },
+    });
+
+    expect(screen.getByRole('link', { name: /admin settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /admin settings/i })).toHaveAttribute(
+      'href',
+      '/settings/admin/dashboard'
+    );
+  });
+
   it('renders portal mode links and active panel state', () => {
     renderWithProviders(
       <AdminPanelNav currentPath="/settings/admin/portal/appointments" mode="portal" />,

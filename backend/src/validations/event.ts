@@ -29,6 +29,8 @@ export const eventTypeSchema = z.enum([
 export const recurrencePatternSchema = z.enum(['daily', 'weekly', 'monthly', 'yearly']);
 export const reminderTimingTypeSchema = z.enum(['relative', 'absolute']);
 export const checkInMethodSchema = z.enum(['manual', 'qr']);
+export const eventMutationScopeSchema = z.enum(['occurrence', 'future_occurrences', 'series']);
+export const eventEnrollmentScopeSchema = z.enum(['occurrence', 'series']);
 
 // Event status enums
 export const eventStatusSchema = z.enum([
@@ -69,6 +71,7 @@ export const createEventSchema = z
     postal_code: z.string().max(20).optional(),
     country: z.string().max(100).optional(),
     capacity: z.coerce.number().int().positive().optional(),
+    waitlist_enabled: optionalStrictBooleanSchema.default(true),
     status: eventStatusSchema.default('planned'),
     is_public: optionalStrictBooleanSchema.default(false),
     is_recurring: optionalStrictBooleanSchema.default(false),
@@ -108,6 +111,7 @@ export const updateEventSchema = z
     postal_code: z.string().max(20).optional(),
     country: z.string().max(100).optional(),
     capacity: z.coerce.number().int().positive().optional(),
+    waitlist_enabled: optionalStrictBooleanSchema,
     status: eventStatusSchema.optional(),
     is_public: optionalStrictBooleanSchema,
     is_recurring: optionalStrictBooleanSchema,
@@ -187,6 +191,16 @@ export const eventIdParamsSchema = z.object({
   id: uuidSchema,
 });
 
+export const eventOccurrenceParamsSchema = z.object({
+  occurrenceId: uuidSchema,
+});
+
+export const eventMutationScopeQuerySchema = z
+  .object({
+    scope: eventMutationScopeSchema.optional(),
+  })
+  .strict();
+
 export const publicEventSlugParamsSchema = z.object({
   slug: z
     .string()
@@ -230,6 +244,7 @@ export type UpdateEventRegistrationInput = z.infer<typeof updateEventRegistratio
 
 export const listEventRegistrationsQuerySchema = z
   .object({
+    occurrence_id: uuidSchema.optional(),
     status: registrationStatusSchema.optional(),
     registration_status: registrationStatusSchema.optional(),
     checked_in: optionalStrictBooleanSchema,
@@ -239,6 +254,7 @@ export const listEventRegistrationsQuerySchema = z
 export const listRegistrationsQuerySchema = z
   .object({
     event_id: uuidSchema.optional(),
+    occurrence_id: uuidSchema.optional(),
     contact_id: uuidSchema.optional(),
     status: registrationStatusSchema.optional(),
     registration_status: registrationStatusSchema.optional(),
@@ -246,11 +262,35 @@ export const listRegistrationsQuerySchema = z
   })
   .strict();
 
+export const listEventOccurrencesQuerySchema = z
+  .object({
+    from: z.coerce.date().optional(),
+    to: z.coerce.date().optional(),
+    start_date: z.coerce.date().optional(),
+    end_date: z.coerce.date().optional(),
+    include_cancelled: optionalStrictBooleanSchema,
+  })
+  .strict();
+
+export const listOccurrencesQuerySchema = z
+  .object({
+    event_id: uuidSchema.optional(),
+    from: z.coerce.date().optional(),
+    to: z.coerce.date().optional(),
+    start_date: z.coerce.date().optional(),
+    end_date: z.coerce.date().optional(),
+    include_cancelled: optionalStrictBooleanSchema,
+  })
+  .strict();
+
 export const createRegistrationSchema = z
   .object({
     contact_id: uuidSchema,
+    occurrence_id: uuidSchema.optional(),
     case_id: uuidSchema.optional(),
     registration_status: registrationStatusSchema.optional(),
+    enrollment_scope: eventEnrollmentScopeSchema.optional(),
+    send_confirmation_email: optionalStrictBooleanSchema,
     notes: z.string().max(1000).optional(),
   })
   .strict();
@@ -258,12 +298,14 @@ export const createRegistrationSchema = z
 export const updateRegistrationSchema = z
   .object({
     registration_status: registrationStatusSchema.optional(),
+    case_id: z.union([uuidSchema, z.null()]).optional(),
     notes: z.string().max(1000).optional(),
   })
   .strict();
 
 export const sendRemindersSchema = z
   .object({
+    occurrence_id: uuidSchema.optional(),
     sendEmail: optionalStrictBooleanSchema,
     sendSms: optionalStrictBooleanSchema,
     customMessage: z.string().max(500).optional(),
@@ -272,6 +314,7 @@ export const sendRemindersSchema = z
 
 export const createAutomationSchema = z
   .object({
+    occurrenceId: uuidSchema.optional(),
     timingType: reminderTimingTypeSchema,
     relativeMinutesBefore: z.coerce.number().int().min(1).optional(),
     absoluteSendAt: z.string().datetime().optional(),
@@ -284,6 +327,7 @@ export const createAutomationSchema = z
 
 export const updateAutomationSchema = z
   .object({
+    occurrenceId: z.union([uuidSchema, z.null()]).optional(),
     timingType: reminderTimingTypeSchema.optional(),
     relativeMinutesBefore: z.coerce.number().int().min(1).optional(),
     absoluteSendAt: z.string().datetime().optional(),
@@ -309,6 +353,7 @@ export const eventCheckInScanSchema = z
 
 export const updateEventCheckInSettingsSchema = z
   .object({
+    occurrence_id: uuidSchema.optional(),
     public_checkin_enabled: strictBooleanSchema,
   })
   .strict();
@@ -321,12 +366,15 @@ export const globalEventCheckInScanSchema = z
 
 export const eventWalkInCheckInSchema = z
   .object({
+    occurrence_id: uuidSchema.optional(),
     first_name: z.string().trim().min(1).max(100),
     last_name: z.string().trim().min(1).max(100),
     email: emailSchema.optional(),
     phone: phoneSchema.optional(),
     notes: z.string().max(1000).optional(),
     registration_status: registrationStatusSchema.optional(),
+    enrollment_scope: eventEnrollmentScopeSchema.optional(),
+    send_confirmation_email: optionalStrictBooleanSchema,
   })
   .strict()
   .refine((data) => Boolean(data.email || data.phone), {
@@ -336,6 +384,7 @@ export const eventWalkInCheckInSchema = z
 
 export const publicEventCheckInSchema = z
   .object({
+    occurrence_id: uuidSchema.optional(),
     first_name: z.string().trim().min(1).max(100),
     last_name: z.string().trim().min(1).max(100),
     email: emailSchema.optional(),
@@ -353,16 +402,57 @@ export const publicEventCheckInSchema = z
     path: ['email'],
   });
 
+export const publicEventOccurrenceQuerySchema = z
+  .object({
+    occurrence_id: uuidSchema.optional(),
+  })
+  .strict();
+
 export const publicEventRegistrationSchema = z
   .object({
+    occurrence_id: uuidSchema.optional(),
     first_name: z.string().trim().min(1).max(100),
     last_name: z.string().trim().min(1).max(100),
     email: emailSchema,
     phone: phoneSchema.optional(),
     notes: z.string().max(1000).optional(),
     registration_status: registrationStatusSchema.optional(),
+    enrollment_scope: eventEnrollmentScopeSchema.optional(),
+    send_confirmation_email: optionalStrictBooleanSchema,
   })
   .strict();
+
+export const updateOccurrenceSchema = z
+  .object({
+    event_name: z.string().trim().min(1).max(255).optional(),
+    description: z.string().max(2000).optional(),
+    status: eventStatusSchema.optional(),
+    start_date: z.coerce.date().optional(),
+    end_date: z.coerce.date().optional(),
+    location_name: z.string().max(255).optional(),
+    address_line1: z.string().max(255).optional(),
+    address_line2: z.string().max(255).optional(),
+    city: z.string().max(100).optional(),
+    state_province: z.string().max(100).optional(),
+    postal_code: z.string().max(20).optional(),
+    country: z.string().max(100).optional(),
+    capacity: z.coerce.number().int().positive().optional(),
+    waitlist_enabled: optionalStrictBooleanSchema,
+    public_checkin_enabled: optionalStrictBooleanSchema,
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (data.start_date && data.end_date) {
+        return data.start_date < data.end_date;
+      }
+      return true;
+    },
+    {
+      message: 'End date must be after start date',
+      path: ['end_date'],
+    }
+  );
 
 // Re-export shared schemas
 export { uuidSchema } from './shared';

@@ -155,6 +155,9 @@ test.describe('Events Module', () => {
     const registration = registrationBody?.data ?? registrationBody;
     const registrationId = registration.registration_id || registration.id;
     expect(registrationId).toBeTruthy();
+    if (typeof registration.occurrence_id === 'string' && registration.occurrence_id.length > 0) {
+      expect(registration.occurrence_id).toContain('occurrence');
+    }
 
     const checkInResponse = await authenticatedPage.request.post(
       `${apiURL}/api/v2/events/registrations/${registrationId}/checkin`,

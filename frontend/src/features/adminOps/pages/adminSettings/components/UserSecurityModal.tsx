@@ -87,7 +87,7 @@ export default function UserSecurityModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 rounded-lg bg-app-surface-muted p-4">
+            <div className="grid grid-cols-1 gap-4 rounded-lg bg-app-surface-muted p-4 md:grid-cols-2 xl:grid-cols-4">
               <div>
                 <p className="text-xs uppercase tracking-wide text-app-text-muted">Last Login</p>
                 <p className="text-sm font-medium text-app-text">
@@ -120,6 +120,31 @@ export default function UserSecurityModal({
                 </p>
                 <p className="text-sm font-medium text-app-text">
                   {new Date(selectedUser.createdAt).toLocaleString('en-CA')}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-app-text-muted">Groups</p>
+                <p className="text-sm font-medium text-app-text">
+                  {selectedUser.groups?.length ? selectedUser.groups.join(', ') : 'None assigned'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-app-text-muted">
+                  Organization Access
+                </p>
+                <p className="text-sm font-medium text-app-text">
+                  {selectedUser.organizationAccess?.length
+                    ? selectedUser.organizationAccess.join(', ')
+                    : 'None assigned'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-app-text-muted">
+                  Passkeys / MFA
+                </p>
+                <p className="text-sm font-medium text-app-text">
+                  {selectedUser.mfaTotpEnabled ? '2FA enabled' : '2FA disabled'} ·{' '}
+                  {selectedUser.passkeyCount ? `${selectedUser.passkeyCount} passkeys` : 'No passkeys'}
                 </p>
               </div>
             </div>

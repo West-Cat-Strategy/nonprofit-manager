@@ -18,6 +18,8 @@ import {
   twoFactorSetupSchema,
   twoFactorDisableSchema,
   passkeyRegistrationVerifySchema,
+  pendingPasskeyRegistrationOptionsSchema,
+  pendingPasskeyRegistrationVerifySchema,
   passkeyLoginOptionsSchema,
   passkeyLoginVerifySchema,
   setupFirstUserSchema,
@@ -53,6 +55,8 @@ import {
   listPasskeys,
   loginOptions as passkeyLoginOptions,
   loginVerify as passkeyLoginVerify,
+  pendingRegistrationOptions as pendingPasskeyRegistrationOptions,
+  pendingRegistrationVerify as pendingPasskeyRegistrationVerify,
   registrationOptions as passkeyRegistrationOptions,
   registrationVerify as passkeyRegistrationVerify,
 } from '../controllers/passkeys.controller';
@@ -186,6 +190,18 @@ export const createAuthRoutes = (_mode: ResponseMode = 'v2'): Router => {
     authenticate,
     validateBody(passkeyRegistrationVerifySchema),
     passkeyRegistrationVerify
+  );
+  router.post(
+    '/passkeys/pending/options',
+    registrationLimiterMiddleware,
+    validateBody(pendingPasskeyRegistrationOptionsSchema),
+    pendingPasskeyRegistrationOptions
+  );
+  router.post(
+    '/passkeys/pending/verify',
+    registrationLimiterMiddleware,
+    validateBody(pendingPasskeyRegistrationVerifySchema),
+    pendingPasskeyRegistrationVerify
   );
   router.post(
     '/passkeys/login/options',

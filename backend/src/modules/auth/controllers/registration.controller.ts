@@ -4,11 +4,12 @@ import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD } from '@config/constants';
 import { syncUserRole } from '@services/domains/integration';
+import { seedDefaultOrganizationAccess, upsertUserOrganizationAccess } from '@services/accountAccessService';
 import { conflict, forbidden } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse } from '@utils/authResponse';
 import { sendSuccess } from '@modules/shared/http/envelope';
-import { issueAppSessionToken } from '@utils/sessionTokens';
+import { issueAppSessionToken, issuePendingRegistrationToken } from '@utils/sessionTokens';
 import { getRegistrationMode } from '@modules/admin/usecases/registrationSettingsUseCase';
 import { createPendingRegistration } from '@modules/admin/usecases/createPendingRegistrationUseCase';
 import {
@@ -66,12 +67,27 @@ export const register = async (
 
       if (registrationMode === 'approval_required') {
         try {
-          await runStep('createPendingRegistration', () => createPendingRegistration({
+          const pending = await runStep('createPendingRegistration', () => createPendingRegistration({
             email,
             password,
             firstName,
             lastName,
           }));
+
+          return sendSuccess(
+            res,
+            {
+              message:
+                'Your registration request has been submitted and is awaiting admin approval. You will receive an email once your account is approved.',
+              pendingApproval: true,
+              registrationToken: issuePendingRegistrationToken({
+                pendingRegistrationId: pending.id,
+              }),
+              passkeySetupAllowed: true,
+              hasStagedPasskeys: Boolean(pending.has_staged_passkeys),
+            },
+            202
+          );
         } catch (err: unknown) {
           if (err instanceof Error && err.message.includes('already pending')) {
             return conflict(res, err.message);
@@ -81,16 +97,6 @@ export const register = async (
           }
           throw err;
         }
-
-        return sendSuccess(
-          res,
-          {
-            message:
-              'Your registration request has been submitted and is awaiting admin approval. You will receive an email once your account is approved.',
-            pendingApproval: true,
-          },
-          202
-        );
       }
     }
 
@@ -109,8 +115,16 @@ export const register = async (
       role: 'staff',
     }));
     await runStep('syncUserRole', () => syncUserRole(user.id, user.role));
-
-    const organizationId = await runStep('getDefaultOrganizationId', () => getDefaultOrganizationId());
+    const organizationId =
+      (await runStep('seedDefaultOrganizationAccess', () =>
+        seedDefaultOrganizationAccess(
+          {
+            userId: user.id,
+            role: user.role,
+            grantedBy: user.id,
+          }
+        ))) ??
+      (await runStep('getDefaultOrganizationId', () => getDefaultOrganizationId()));
     const token = issueAppSessionToken({
       id: user.id,
       email: user.email,
@@ -191,6 +205,14 @@ export const setupFirstUser = async (
     const defaultOrgName = process.env.ORG_DEFAULT_NAME || 'Default Organization';
     const orgName = trimmedOrgName && trimmedOrgName.length > 0 ? trimmedOrgName : defaultOrgName;
     const organizationId = await createOrganizationAccount(orgName, user.id);
+    if (organizationId) {
+      await upsertUserOrganizationAccess({
+        userId: user.id,
+        accountId: organizationId,
+        accessLevel: 'admin',
+        grantedBy: user.id,
+      });
+    }
 
     const token = issueAppSessionToken({
       id: user.id,

@@ -10,6 +10,7 @@ import { createPendingRegistration } from '@modules/admin/usecases/createPending
 
 jest.mock('@utils/sessionTokens', () => ({
   issueAppSessionToken: jest.fn().mockReturnValue('mock-auth-token'),
+  issuePendingRegistrationToken: jest.fn().mockReturnValue('mock-pending-registration-token'),
 }));
 
 jest.mock('@services/domains/integration', () => ({
@@ -114,6 +115,9 @@ describe('Auth API', () => {
           success: true,
           data: expect.objectContaining({
             pendingApproval: true,
+            registrationToken: 'mock-pending-registration-token',
+            passkeySetupAllowed: true,
+            hasStagedPasskeys: false,
           }),
         })
       );

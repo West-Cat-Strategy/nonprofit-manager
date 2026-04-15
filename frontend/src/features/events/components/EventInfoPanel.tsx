@@ -1,8 +1,11 @@
-import type { Event } from '../../../types/event';
+import type { Event, EventOccurrence } from '../../../types/event';
 import { formatDateTime } from '../../../utils/format';
+import { getEventOccurrenceLabel, getOccurrenceDateRange } from '../utils/occurrences';
 
 interface EventInfoPanelProps {
   event: Event;
+  occurrences?: EventOccurrence[];
+  selectedOccurrence?: EventOccurrence | null;
 }
 
 const formatEventDateTime = (date: string): string => {
@@ -11,11 +14,43 @@ const formatEventDateTime = (date: string): string => {
   return `${weekday}, ${formatDateTime(date)}`;
 };
 
-export default function EventInfoPanel({ event }: EventInfoPanelProps) {
+export default function EventInfoPanel({ event, occurrences = [], selectedOccurrence }: EventInfoPanelProps) {
   const capacityPercentage = event.capacity ? ((event.registered_count || 0) / event.capacity) * 100 : 0;
+  const nextOccurrence = selectedOccurrence ?? occurrences[0] ?? null;
 
   return (
     <div className="space-y-6 rounded-lg bg-app-surface p-6 shadow-md">
+      {event.is_recurring && occurrences.length > 0 && (
+        <div className="rounded-lg border border-app-border bg-app-surface-muted p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold">Series Overview</h3>
+              <p className="mt-1 text-sm text-app-text-muted">
+                {occurrences.length} planned occurrence{occurrences.length === 1 ? '' : 's'} in this series.
+              </p>
+            </div>
+            <span className="rounded-full bg-app-accent-soft px-3 py-1 text-xs font-semibold text-app-accent-text">
+              {event.occurrence_count ?? occurrences.length} occurrence
+              {(event.occurrence_count ?? occurrences.length) === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          {nextOccurrence && (
+            <div className="mt-3 rounded-md border border-app-border bg-app-surface p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-muted">
+                Selected occurrence
+              </p>
+              <p className="mt-1 font-medium text-app-text">
+                {getEventOccurrenceLabel(nextOccurrence)}
+              </p>
+              <p className="mt-1 text-sm text-app-text-muted">
+                {getOccurrenceDateRange(nextOccurrence)}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {event.description && (
         <div>
           <h3 className="mb-2 text-lg font-semibold">Description</h3>
@@ -43,6 +78,11 @@ export default function EventInfoPanel({ event }: EventInfoPanelProps) {
           </p>
           {event.recurrence_end_date && (
             <p className="text-app-text-muted">Ends: {formatEventDateTime(event.recurrence_end_date)}</p>
+          )}
+          {nextOccurrence && (
+            <p className="mt-1 text-app-text-muted">
+              Next occurrence: {getEventOccurrenceLabel(nextOccurrence)}
+            </p>
           )}
         </div>
       )}

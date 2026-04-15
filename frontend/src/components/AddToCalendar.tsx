@@ -13,6 +13,7 @@ import {
 
 interface EventData {
   event_id: string;
+  occurrence_id?: string | null;
   event_name: string;
   description?: string | null;
   start_date: string;
@@ -81,7 +82,7 @@ const AddToCalendar: React.FC<AddToCalendarProps> = ({ event, className = '' }) 
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
       ),
-      url: getIcsDownloadUrl(event.event_id),
+      url: getIcsDownloadUrl(event.event_id, event.occurrence_id ?? undefined),
       download: true,
     },
   ];

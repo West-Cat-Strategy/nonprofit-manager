@@ -20,6 +20,11 @@ import type {
   PortalEvent,
   PortalPointpersonContext,
 } from '../types/contracts';
+import {
+  getPortalEventDateRange,
+  getPortalEventOccurrenceLabel,
+  getPortalEventRegistrationLabel,
+} from '../utils/eventDisplay';
 
 type CalendarFilter = 'all' | 'events' | 'appointments' | 'slots';
 
@@ -53,13 +58,15 @@ const entryKindLabel: Record<PortalCalendarEntryMeta['kind'], string> = {
   slot: 'Open Slot',
 };
 
-const normalizeEventEntry = (event: PortalEvent): BookingCalendarEntry<PortalCalendarEntryMeta> => ({
+const normalizeEventEntry = (
+  event: PortalEvent
+): BookingCalendarEntry<PortalCalendarEntryMeta> => ({
   id: `event:${event.id}`,
   kind: 'event',
   title: event.name,
-  start: event.start_date,
-  end: event.end_date,
-  status: event.registration_id ? event.registration_status ?? 'registered' : event.event_type,
+  start: event.occurrence_start_date ?? event.start_date,
+  end: event.occurrence_end_date ?? event.end_date,
+  status: event.registration_id ? (event.registration_status ?? 'registered') : event.event_type,
   location: event.location_name,
   metadata: { kind: 'event', event },
 });
@@ -93,18 +100,19 @@ const normalizeSlotEntry = (
 export default function PortalCalendarPage() {
   const { showSuccess, showError } = useToast();
   const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
-  const {
-    selectedCaseId,
-    setSelectedCaseId,
-    clearSelectedCaseId,
-  } = usePersistentPortalCaseContext();
+  const { selectedCaseId, setSelectedCaseId, clearSelectedCaseId } =
+    usePersistentPortalCaseContext();
 
   const [context, setContext] = useState<PortalPointpersonContext | null>(null);
-  const [calendarEntries, setCalendarEntries] = useState<BookingCalendarEntry<PortalCalendarEntryMeta>[]>([]);
+  const [calendarEntries, setCalendarEntries] = useState<
+    BookingCalendarEntry<PortalCalendarEntryMeta>[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [visibleRange, setVisibleRange] = useState<{ startDate: string; endDate: string } | null>(null);
+  const [visibleRange, setVisibleRange] = useState<{ startDate: string; endDate: string } | null>(
+    null
+  );
   const [filter, setFilter] = useState<CalendarFilter>('all');
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
@@ -126,8 +134,12 @@ export default function PortalCalendarPage() {
     const caseIds = new Set(payload.cases.map((entry) => entry.case_id));
     const nextCaseId =
       (selectedCaseId && caseIds.has(selectedCaseId) ? selectedCaseId : null) ||
-      (payload.selected_case_id && caseIds.has(payload.selected_case_id) ? payload.selected_case_id : null) ||
-      (payload.default_case_id && caseIds.has(payload.default_case_id) ? payload.default_case_id : null) ||
+      (payload.selected_case_id && caseIds.has(payload.selected_case_id)
+        ? payload.selected_case_id
+        : null) ||
+      (payload.default_case_id && caseIds.has(payload.default_case_id)
+        ? payload.default_case_id
+        : null) ||
       payload.cases[0]?.case_id ||
       '';
 
@@ -233,7 +245,8 @@ export default function PortalCalendarPage() {
       return calendarEntries;
     }
 
-    const wantedKind = filter === 'events' ? 'event' : filter === 'appointments' ? 'appointment' : 'slot';
+    const wantedKind =
+      filter === 'events' ? 'event' : filter === 'appointments' ? 'appointment' : 'slot';
     return calendarEntries.filter((entry) => entry.kind === wantedKind);
   }, [calendarEntries, filter]);
 
@@ -262,11 +275,7 @@ export default function PortalCalendarPage() {
 
   const handleMonthRangeChange = useCallback((range: { startDate: string; endDate: string }) => {
     setVisibleRange((current) => {
-      if (
-        current &&
-        current.startDate === range.startDate &&
-        current.endDate === range.endDate
-      ) {
+      if (current && current.startDate === range.startDate && current.endDate === range.endDate) {
         return current;
       }
 
@@ -403,7 +412,8 @@ export default function PortalCalendarPage() {
     }
   };
 
-  const selectedEvent = selectedEntry?.metadata.kind === 'event' ? selectedEntry.metadata.event : null;
+  const selectedEvent =
+    selectedEntry?.metadata.kind === 'event' ? selectedEntry.metadata.event : null;
   const selectedAppointment =
     selectedEntry?.metadata.kind === 'appointment' ? selectedEntry.metadata.appointment : null;
   const selectedSlot = selectedEntry?.metadata.kind === 'slot' ? selectedEntry.metadata.slot : null;
@@ -427,12 +437,14 @@ export default function PortalCalendarPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
-                  {([
-                    ['all', 'All'],
-                    ['events', 'Events'],
-                    ['appointments', 'Appointments'],
-                    ['slots', 'Open slots'],
-                  ] as const).map(([value, label]) => (
+                  {(
+                    [
+                      ['all', 'All'],
+                      ['events', 'Events'],
+                      ['appointments', 'Appointments'],
+                      ['slots', 'Open slots'],
+                    ] as const
+                  ).map(([value, label]) => (
                     <button
                       key={value}
                       type="button"
@@ -448,7 +460,8 @@ export default function PortalCalendarPage() {
                   ))}
                 </div>
                 <p className="text-sm text-app-text-muted">
-                  Select a date to review everything scheduled for that day, or click an item for actions.
+                  Select a date to review everything scheduled for that day, or click an item for
+                  actions.
                 </p>
               </div>
 
@@ -493,7 +506,8 @@ export default function PortalCalendarPage() {
                       {selectedDate ? format(selectedDate, 'EEEE, MMMM d') : 'Selected day'}
                     </h2>
                     <p className="text-sm text-app-text-muted">
-                      {selectedDateEntries.length} item{selectedDateEntries.length === 1 ? '' : 's'} on this date
+                      {selectedDateEntries.length} item{selectedDateEntries.length === 1 ? '' : 's'}{' '}
+                      on this date
                     </p>
                   </div>
                   <div className="flex gap-2 text-xs">
@@ -553,13 +567,17 @@ export default function PortalCalendarPage() {
                       <div className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">
                         {entryKindLabel[selectedEntry.metadata.kind]}
                       </div>
-                      <h2 className="mt-1 text-xl font-semibold text-app-text">{selectedEntry.title}</h2>
+                      <h2 className="mt-1 text-xl font-semibold text-app-text">
+                        {selectedEntry.title}
+                      </h2>
                       <div className="mt-2 text-sm text-app-text-muted">
                         {format(parseISO(selectedEntry.start), 'PPP p')}
                         {selectedEntry.end ? ` - ${format(parseISO(selectedEntry.end), 'p')}` : ''}
                       </div>
                       {selectedEntry.location && (
-                        <div className="mt-1 text-sm text-app-text-muted">{selectedEntry.location}</div>
+                        <div className="mt-1 text-sm text-app-text-muted">
+                          {selectedEntry.location}
+                        </div>
                       )}
                     </div>
 
@@ -569,14 +587,44 @@ export default function PortalCalendarPage() {
                           <p className="text-sm text-app-text-muted">{selectedEvent.description}</p>
                         )}
                         <div className="flex flex-wrap gap-2">
+                          {getPortalEventOccurrenceLabel(selectedEvent) && (
+                            <span className="rounded-full bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
+                              {getPortalEventOccurrenceLabel(selectedEvent)}
+                            </span>
+                          )}
+                          {getPortalEventRegistrationLabel(selectedEvent.registration_status) && (
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs ${
+                                selectedEvent.registration_status === 'confirmed'
+                                  ? 'bg-app-accent-soft text-app-accent-text'
+                                  : selectedEvent.registration_status === 'waitlisted'
+                                    ? 'bg-yellow-100 text-yellow-900'
+                                    : 'bg-app-surface-muted text-app-text-muted'
+                              }`}
+                            >
+                              {getPortalEventRegistrationLabel(selectedEvent.registration_status)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-app-text-muted">
+                          {getPortalEventDateRange(selectedEvent)}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
                           {selectedEvent.registration_id ? (
                             <button
                               type="button"
                               onClick={() => void handleCancelEvent(selectedEvent.id)}
-                              disabled={savingEntryId === selectedEntry.id || selectedEvent.checked_in === true}
+                              disabled={
+                                savingEntryId === selectedEntry.id ||
+                                selectedEvent.checked_in === true
+                              }
                               className="rounded-md border border-app-input-border px-3 py-2 text-sm text-app-text disabled:opacity-60"
                             >
-                              {savingEntryId === selectedEntry.id ? 'Saving...' : 'Cancel registration'}
+                              {savingEntryId === selectedEntry.id
+                                ? 'Saving...'
+                                : selectedEvent.registration_status === 'waitlisted'
+                                  ? 'Cancel waitlist'
+                                  : 'Cancel registration'}
                             </button>
                           ) : (
                             <button
@@ -619,7 +667,9 @@ export default function PortalCalendarPage() {
                     {selectedAppointment && (
                       <>
                         {selectedAppointment.description && (
-                          <p className="text-sm text-app-text-muted">{selectedAppointment.description}</p>
+                          <p className="text-sm text-app-text-muted">
+                            {selectedAppointment.description}
+                          </p>
                         )}
                         <p className="text-sm text-app-text-muted">
                           Status: {selectedAppointment.status}
@@ -659,7 +709,10 @@ export default function PortalCalendarPage() {
 
                 <form className="space-y-3" onSubmit={handleRequestSubmit}>
                   <div className="space-y-1">
-                    <label htmlFor="portal-appointment-title" className="text-sm font-medium text-app-text">
+                    <label
+                      htmlFor="portal-appointment-title"
+                      className="text-sm font-medium text-app-text"
+                    >
                       Appointment title
                     </label>
                     <input
@@ -667,7 +720,9 @@ export default function PortalCalendarPage() {
                       type="text"
                       required
                       value={requestForm.title}
-                      onChange={(entry) => setRequestForm((current) => ({ ...current, title: entry.target.value }))}
+                      onChange={(entry) =>
+                        setRequestForm((current) => ({ ...current, title: entry.target.value }))
+                      }
                       placeholder="Appointment title"
                       className="w-full rounded-md border border-app-input-border px-3 py-2"
                     />
@@ -683,7 +738,10 @@ export default function PortalCalendarPage() {
                       id="portal-appointment-description"
                       value={requestForm.description}
                       onChange={(entry) =>
-                        setRequestForm((current) => ({ ...current, description: entry.target.value }))
+                        setRequestForm((current) => ({
+                          ...current,
+                          description: entry.target.value,
+                        }))
                       }
                       placeholder="Optional details"
                       rows={3}
@@ -692,7 +750,10 @@ export default function PortalCalendarPage() {
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1">
-                      <label htmlFor="portal-appointment-start" className="text-sm font-medium text-app-text">
+                      <label
+                        htmlFor="portal-appointment-start"
+                        className="text-sm font-medium text-app-text"
+                      >
                         Preferred start
                       </label>
                       <input
@@ -700,13 +761,19 @@ export default function PortalCalendarPage() {
                         type="datetime-local"
                         value={requestForm.start_time}
                         onChange={(entry) =>
-                          setRequestForm((current) => ({ ...current, start_time: entry.target.value }))
+                          setRequestForm((current) => ({
+                            ...current,
+                            start_time: entry.target.value,
+                          }))
                         }
                         className="w-full rounded-md border border-app-input-border px-3 py-2"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label htmlFor="portal-appointment-end" className="text-sm font-medium text-app-text">
+                      <label
+                        htmlFor="portal-appointment-end"
+                        className="text-sm font-medium text-app-text"
+                      >
                         Preferred end
                       </label>
                       <input
@@ -714,14 +781,20 @@ export default function PortalCalendarPage() {
                         type="datetime-local"
                         value={requestForm.end_time}
                         onChange={(entry) =>
-                          setRequestForm((current) => ({ ...current, end_time: entry.target.value }))
+                          setRequestForm((current) => ({
+                            ...current,
+                            end_time: entry.target.value,
+                          }))
                         }
                         className="w-full rounded-md border border-app-input-border px-3 py-2"
                       />
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <label htmlFor="portal-appointment-location" className="text-sm font-medium text-app-text">
+                    <label
+                      htmlFor="portal-appointment-location"
+                      className="text-sm font-medium text-app-text"
+                    >
                       Location
                     </label>
                     <input

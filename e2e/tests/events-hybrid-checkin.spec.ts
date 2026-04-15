@@ -129,6 +129,10 @@ test.describe('Events Hybrid Check-In', () => {
         event_name: eventName,
         event_type: 'community',
         is_public: true,
+        is_recurring: true,
+        recurrence_pattern: 'weekly',
+        recurrence_interval: 1,
+        recurrence_end_date: new Date(now + 14 * 24 * 60 * 60 * 1000).toISOString(),
         start_date: startDate,
         end_date: endDate,
         location_name: 'Main Hall',
@@ -218,6 +222,7 @@ test.describe('Events Hybrid Check-In', () => {
     const registrations = unwrapList<{
       contact_id: string;
       check_in_token?: string | null;
+      occurrence_id?: string | null;
     }>(await registrationsResponse.json());
     const portalRegistration = registrations.find(
       (registration) => registration.contact_id === portalUser.contactId
@@ -226,6 +231,9 @@ test.describe('Events Hybrid Check-In', () => {
       throw new Error(
         `Portal attendee registration token not found for contact ${portalUser.contactId}`
       );
+    }
+    if (typeof portalRegistration.occurrence_id === 'string' && portalRegistration.occurrence_id.length > 0) {
+      expect(portalRegistration.occurrence_id).toContain('occurrence');
     }
 
     await authenticatedPage.goto('/events/check-in');

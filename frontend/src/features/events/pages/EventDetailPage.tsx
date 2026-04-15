@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AddToCalendar from '../../../components/AddToCalendar';
 import ConfirmDialog from '../../../components/ConfirmDialog';
@@ -11,10 +11,14 @@ import { getUserTimezoneCached } from '../../../services/userPreferencesService'
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import type {
   CreateEventReminderAutomationDTO,
+  EventBatchScope,
   EventCheckInSettings,
+  Event,
   EventReminderAutomation,
+  UpdateRegistrationDTO,
 } from '../../../types/event';
 import EventInfoPanel from '../components/EventInfoPanel';
+import EventSchedulePanel from '../components/EventSchedulePanel';
 import { eventsApiClient } from '../api/eventsApiClient';
 import {
   cancelEventAutomationV2,
@@ -25,10 +29,15 @@ import {
   fetchEventDetailV2,
   fetchEventRegistrationsV2,
   sendEventRemindersV2,
+  updateEventRegistrationV2,
 } from '../state';
 import { clearEventDetailV2 } from '../state/eventDetailSlice';
 import { clearEventRegistrationsV2 } from '../state/eventRegistrationSlice';
 import { clearEventRemindersStateV2 } from '../state/eventRemindersSlice';
+import {
+  buildEventOccurrences,
+  getEventOccurrenceById,
+} from '../utils/occurrences';
 import { getBrowserTimeZone } from '../utils/reminderTime';
 
 const EventRegistrationsPanel = lazy(() => import('../components/EventRegistrationsPanel'));
@@ -45,15 +54,62 @@ export default function EventDetailPage() {
   const remindersState = useAppSelector((state) => state.events.reminders);
   const automationState = useAppSelector((state) => state.events.automation);
 
-  const [activeTab, setActiveTab] = useState<'info' | 'registrations'>('info');
-  const [registrationsTabLoaded, setRegistrationsTabLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'registrations'>('overview');
   const [organizationTimezone, setOrganizationTimezone] = useState(getBrowserTimeZone());
   const [checkInSettings, setCheckInSettings] = useState<EventCheckInSettings | null>(null);
   const [checkInSettingsLoading, setCheckInSettingsLoading] = useState(false);
+  const [selectedOccurrenceId, setSelectedOccurrenceId] = useState<string | null>(null);
+  const [batchScope, setBatchScope] = useState<EventBatchScope>('occurrence');
+  const automationsLoadedForEventId = useRef<string | null>(null);
+
+  const event = detailState.event;
+  const eventOccurrences = useMemo(() => buildEventOccurrences(event), [event]);
+  const selectedOccurrence = useMemo(
+    () => getEventOccurrenceById(eventOccurrences, selectedOccurrenceId),
+    [eventOccurrences, selectedOccurrenceId]
+  );
+  const metaDescription =
+    selectedOccurrence && event
+      ? `${event.event_name} · ${selectedOccurrence.occurrence_name ?? 'Selected occurrence'}`
+      : event?.description
+        ? event.description
+        : event?.event_name
+          ? `Join us for ${event.event_name}`
+          : undefined;
+  const calendarEvent = useMemo<Event | null>(() => {
+    if (!event) {
+      return null;
+    }
+
+    if (!selectedOccurrence) {
+      return event;
+    }
+
+    const occurrenceLabel =
+      selectedOccurrence.occurrence_name && selectedOccurrence.occurrence_name !== event.event_name
+        ? `${event.event_name} · ${selectedOccurrence.occurrence_name}`
+        : event.event_name;
+
+    return {
+      ...event,
+      occurrence_id: selectedOccurrence.occurrence_id,
+      event_name: occurrenceLabel,
+      start_date: selectedOccurrence.start_date,
+      end_date: selectedOccurrence.end_date,
+      location_name: selectedOccurrence.location_name ?? event.location_name,
+      address_line1: selectedOccurrence.address_line1 ?? event.address_line1,
+      address_line2: selectedOccurrence.address_line2 ?? event.address_line2,
+      city: selectedOccurrence.city ?? event.city,
+      state_province: selectedOccurrence.state_province ?? event.state_province,
+      postal_code: selectedOccurrence.postal_code ?? event.postal_code,
+      country: selectedOccurrence.country ?? event.country,
+      next_occurrence_id: selectedOccurrence.occurrence_id,
+    };
+  }, [event, selectedOccurrence]);
 
   useDocumentMeta({
-    title: detailState.event?.event_name,
-    description: detailState.event?.description || `Join us for ${detailState.event?.event_name}`,
+    title: event?.event_name,
+    description: metaDescription,
     url: `/events/${id}`,
     type: 'event',
   });
@@ -80,9 +136,11 @@ export default function EventDetailPage() {
     if (!id) return;
 
     dispatch(fetchEventDetailV2(id));
-    setRegistrationsTabLoaded(false);
     setCheckInSettings(null);
     setCheckInSettingsLoading(false);
+    setSelectedOccurrenceId(null);
+    setBatchScope('occurrence');
+    automationsLoadedForEventId.current = null;
 
     return () => {
       dispatch(clearEventDetailV2());
@@ -92,13 +150,46 @@ export default function EventDetailPage() {
   }, [dispatch, id]);
 
   useEffect(() => {
-    if (!id || activeTab !== 'registrations' || registrationsTabLoaded) return;
+    if (!eventOccurrences.length) {
+      setSelectedOccurrenceId(null);
+      return;
+    }
 
-    dispatch(fetchEventRegistrationsV2(id));
+    const nextSelected =
+      eventOccurrences.find((occurrence) => occurrence.occurrence_id === selectedOccurrenceId) ??
+      (event?.next_occurrence_id
+        ? eventOccurrences.find((occurrence) => occurrence.occurrence_id === event.next_occurrence_id)
+        : null) ??
+      eventOccurrences[0];
+
+    if (nextSelected && nextSelected.occurrence_id !== selectedOccurrenceId) {
+      setSelectedOccurrenceId(nextSelected.occurrence_id);
+    }
+  }, [event?.next_occurrence_id, eventOccurrences, selectedOccurrenceId]);
+
+  useEffect(() => {
+    if (!id || activeTab !== 'registrations') return;
+    if (automationsLoadedForEventId.current === id) return;
+
     dispatch(fetchEventAutomationsV2(id));
+    automationsLoadedForEventId.current = id;
+  }, [activeTab, dispatch, id]);
+
+  useEffect(() => {
+    if (!id || activeTab !== 'registrations') return;
+    if (eventOccurrences.length > 0 && !selectedOccurrence) return;
+
+    dispatch(
+      fetchEventRegistrationsV2({
+        eventId: id,
+        filters: selectedOccurrence?.occurrence_id
+          ? { occurrence_id: selectedOccurrence.occurrence_id }
+          : undefined,
+      })
+    );
     setCheckInSettingsLoading(true);
     void eventsApiClient
-      .getCheckInSettings(id)
+      .getCheckInSettings(id, selectedOccurrence?.occurrence_id ?? undefined)
       .then((settings) => {
         setCheckInSettings(settings);
       })
@@ -108,19 +199,34 @@ export default function EventDetailPage() {
       .finally(() => {
         setCheckInSettingsLoading(false);
       });
-    setRegistrationsTabLoaded(true);
-  }, [activeTab, dispatch, id, registrationsTabLoaded]);
+  }, [
+    activeTab,
+    dispatch,
+    eventOccurrences.length,
+    id,
+    selectedOccurrence,
+    selectedOccurrence?.occurrence_id,
+  ]);
 
   const refreshDetailData = () => {
     if (!id) return;
     dispatch(fetchEventDetailV2(id));
-    dispatch(fetchEventRegistrationsV2(id));
+    dispatch(
+      fetchEventRegistrationsV2({
+        eventId: id,
+        filters: selectedOccurrence?.occurrence_id
+          ? { occurrence_id: selectedOccurrence.occurrence_id }
+          : undefined,
+      })
+    );
   };
 
   const handleCheckIn = async (registrationId: string) => {
     const confirmed = await confirm({
       title: 'Check In Attendee',
-      message: 'Check in this attendee?',
+      message: selectedOccurrence
+        ? `Check in this attendee for ${selectedOccurrence.occurrence_name ?? 'the selected occurrence'}?`
+        : 'Check in this attendee?',
       confirmLabel: 'Check In',
       variant: 'warning',
     });
@@ -150,6 +256,17 @@ export default function EventDetailPage() {
       refreshDetailData();
     } catch {
       showError('Failed to cancel registration');
+    }
+  };
+
+  const handleUpdateRegistration = async (registrationId: string, payload: UpdateRegistrationDTO) => {
+    try {
+      await dispatch(updateEventRegistrationV2({ registrationId, payload })).unwrap();
+      showSuccess('Registration updated');
+      refreshDetailData();
+    } catch (error) {
+      showError('Failed to update registration');
+      throw error;
     }
   };
 
@@ -185,7 +302,15 @@ export default function EventDetailPage() {
     if (!confirmed) return;
 
     try {
-      const summary = await dispatch(sendEventRemindersV2({ eventId: id, payload })).unwrap();
+      const summary = await dispatch(
+        sendEventRemindersV2({
+          eventId: id,
+          payload: {
+            ...payload,
+            occurrence_id: selectedOccurrence?.occurrence_id ?? undefined,
+          },
+        })
+      ).unwrap();
       showSuccess(`Reminders processed. Email sent: ${summary.email.sent}, SMS sent: ${summary.sms.sent}.`);
       if (summary.warnings.length > 0) {
         showError(summary.warnings[0]);
@@ -219,7 +344,15 @@ export default function EventDetailPage() {
     if (!id) return;
 
     try {
-      await dispatch(createEventAutomationV2({ eventId: id, payload })).unwrap();
+      await dispatch(
+        createEventAutomationV2({
+          eventId: id,
+          payload: {
+            ...payload,
+            occurrenceId: selectedOccurrence?.occurrence_id ?? payload.occurrenceId,
+          },
+        })
+      ).unwrap();
       showSuccess('Automated reminder scheduled');
       await dispatch(fetchEventAutomationsV2(id));
     } catch {
@@ -231,6 +364,7 @@ export default function EventDetailPage() {
     if (!id) return;
 
     const updated = await eventsApiClient.updateCheckInSettings(id, {
+      occurrence_id: selectedOccurrence?.occurrence_id ?? undefined,
       public_checkin_enabled: enabled,
     });
     setCheckInSettings(updated);
@@ -241,9 +375,10 @@ export default function EventDetailPage() {
       throw new Error('Event ID is missing');
     }
 
-    const rotated = await eventsApiClient.rotateCheckInPin(id);
+    const rotated = await eventsApiClient.rotateCheckInPin(id, selectedOccurrence?.occurrence_id ?? undefined);
     setCheckInSettings({
       event_id: rotated.event_id,
+      occurrence_id: rotated.occurrence_id,
       public_checkin_enabled: rotated.public_checkin_enabled,
       public_checkin_pin_configured: rotated.public_checkin_pin_configured,
       public_checkin_pin_rotated_at: rotated.public_checkin_pin_rotated_at,
@@ -251,7 +386,17 @@ export default function EventDetailPage() {
     return rotated.pin;
   };
 
-  if (detailState.loading || !detailState.event) {
+  const handleSendConfirmationEmail = async (registrationId: string) => {
+    try {
+      const response = await eventsApiClient.sendRegistrationConfirmationEmail(registrationId);
+      showSuccess(response.message || 'Confirmation email sent');
+      refreshDetailData();
+    } catch {
+      showError('Failed to send confirmation email');
+    }
+  };
+
+  if (detailState.loading || !event) {
     return (
       <NeoBrutalistLayout pageTitle="EVENTS">
         <div className="p-6 text-center">Loading event details...</div>
@@ -259,15 +404,13 @@ export default function EventDetailPage() {
     );
   }
 
-  const event = detailState.event;
-
   return (
     <NeoBrutalistLayout pageTitle="EVENTS">
       <div className="p-6">
-        <div className="mb-6 flex items-start justify-between">
-          <div>
+        <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-4xl">
             <h1 className="mb-2 text-3xl font-bold">{event.event_name}</h1>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <span className="rounded-full bg-app-accent-soft px-3 py-1 text-sm font-semibold text-app-accent-text">
                 {event.event_type}
               </span>
@@ -279,14 +422,19 @@ export default function EventDetailPage() {
               </span>
               {event.is_recurring && (
                 <span className="rounded-full border border-app-accent bg-app-accent-soft px-3 py-1 text-sm font-semibold text-app-accent-text">
-                  Recurring
+                  Recurring series
+                </span>
+              )}
+              {selectedOccurrence && (
+                <span className="rounded-full border border-app-border bg-app-surface px-3 py-1 text-sm font-semibold text-app-text">
+                  {selectedOccurrence.occurrence_name ?? 'Selected occurrence'}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <AddToCalendar event={event} />
+          <div className="flex flex-wrap gap-2">
+            {calendarEvent ? <AddToCalendar event={calendarEvent} /> : null}
             <SocialShare
               data={{
                 url: `/events/${event.event_id}`,
@@ -294,6 +442,13 @@ export default function EventDetailPage() {
                 description: event.description || `Join us for ${event.event_name}`,
               }}
             />
+            <button
+              type="button"
+              onClick={() => navigate('/events/calendar')}
+              className="rounded-md border border-app-border bg-app-surface px-4 py-2 hover:bg-app-surface-muted"
+            >
+              Open Calendar
+            </button>
             <button
               type="button"
               onClick={() => navigate(`/events/${id}/edit`)}
@@ -315,14 +470,25 @@ export default function EventDetailPage() {
           <nav className="flex gap-4" aria-label="Event detail sections">
             <button
               type="button"
-              onClick={() => setActiveTab('info')}
+              onClick={() => setActiveTab('overview')}
               className={`border-b-2 px-4 py-2 font-medium ${
-                activeTab === 'info'
+                activeTab === 'overview'
                   ? 'border-app-accent text-app-accent'
                   : 'border-transparent text-app-text-muted hover:text-app-text-muted'
               }`}
             >
-              Event Info
+              Overview
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('schedule')}
+              className={`border-b-2 px-4 py-2 font-medium ${
+                activeTab === 'schedule'
+                  ? 'border-app-accent text-app-accent'
+                  : 'border-transparent text-app-text-muted hover:text-app-text-muted'
+              }`}
+            >
+              Schedule
             </button>
             <button
               type="button"
@@ -333,18 +499,46 @@ export default function EventDetailPage() {
                   : 'border-transparent text-app-text-muted hover:text-app-text-muted'
               }`}
             >
-              Registrations ({event.registered_count})
+              Registrations ({registrationState.registrations.length || event.registered_count})
             </button>
           </nav>
         </div>
 
-        {activeTab === 'info' && <EventInfoPanel event={event} />}
+        {activeTab === 'overview' && (
+          <EventInfoPanel
+            event={event}
+            occurrences={eventOccurrences}
+            selectedOccurrence={selectedOccurrence}
+          />
+        )}
+
+        {activeTab === 'schedule' && (
+          <EventSchedulePanel
+            event={event}
+            occurrences={eventOccurrences}
+            selectedOccurrenceId={selectedOccurrence?.occurrence_id ?? null}
+            batchScope={batchScope}
+            onSelectOccurrence={setSelectedOccurrenceId}
+            onChangeBatchScope={setBatchScope}
+            onOpenCalendar={() => navigate('/events/calendar')}
+            onOpenSeriesEditor={() => navigate(`/events/${event.event_id}/edit`)}
+          />
+        )}
 
         {activeTab === 'registrations' && (
-          <Suspense fallback={<div className="rounded-md border border-app-border bg-app-surface p-4 text-center text-sm text-app-text-muted">Loading registrations...</div>}>
+          <Suspense
+            fallback={
+              <div className="rounded-md border border-app-border bg-app-surface p-4 text-center text-sm text-app-text-muted">
+                Loading registrations...
+              </div>
+            }
+          >
             <EventRegistrationsPanel
               eventId={event.event_id}
-              eventStartDate={event.start_date}
+              eventStartDate={selectedOccurrence?.start_date ?? event.start_date}
+              selectedOccurrence={selectedOccurrence}
+              occurrenceOptions={eventOccurrences}
+              batchScope={batchScope}
               organizationTimezone={organizationTimezone}
               registrations={registrationState.registrations}
               checkInSettings={checkInSettings}
@@ -357,13 +551,17 @@ export default function EventDetailPage() {
               automationsLoading={automationState.loading}
               automationsBusy={automationState.cancelling || automationState.creating}
               onCheckIn={handleCheckIn}
+              onUpdateRegistration={handleUpdateRegistration}
               onScanCheckIn={handleScanCheckIn}
               onCancelRegistration={handleCancelRegistration}
               onSendReminders={handleSendReminders}
               onUpdateCheckInSettings={handleUpdateCheckInSettings}
               onRotateCheckInPin={handleRotateCheckInPin}
+              onSendConfirmationEmail={handleSendConfirmationEmail}
               onCancelAutomation={handleCancelAutomation}
               onCreateAutomation={handleCreateAutomation}
+              onChangeBatchScope={setBatchScope}
+              onSelectOccurrence={setSelectedOccurrenceId}
             />
           </Suspense>
         )}

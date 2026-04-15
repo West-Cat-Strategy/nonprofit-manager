@@ -5,6 +5,7 @@ import type {
   ContactDocument,
   ContactEmailAddress,
   ContactNote,
+  ContactNotesTimelineResponse,
   ContactMergePreview,
   ContactMergeRequest,
   ContactMergeResult,
@@ -95,6 +96,7 @@ export interface ContactsApiClientPort {
   }): Promise<{ updated: number; contact_ids: string[] }>;
   listCommunications(contactId: string, query?: ContactCommunicationQuery): Promise<ContactCommunicationsResult>;
   listNotes(contactId: string): Promise<{ notes: ContactNote[]; total: number }>;
+  listNoteTimeline(contactId: string): Promise<ContactNotesTimelineResponse>;
   getNote(noteId: string): Promise<ContactNote>;
   createNote(contactId: string, payload: CreateContactNoteDTO): Promise<ContactNote>;
   updateNote(noteId: string, payload: UpdateContactNoteDTO): Promise<ContactNote>;

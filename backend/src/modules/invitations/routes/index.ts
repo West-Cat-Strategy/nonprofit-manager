@@ -15,6 +15,7 @@ import {
   resendInvitation,
 } from '../controllers';
 import { authenticate } from '@middleware/domains/auth';
+import { requirePermission } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
   emailSchema,
@@ -23,6 +24,7 @@ import {
   optionalStrictBooleanSchema,
 } from '@validations/shared';
 import { userRoleSchema } from '@validations/user';
+import { Permission } from '@utils/permissions';
 
 const router = Router();
 
@@ -83,6 +85,7 @@ router.post(
 
 // All routes below require authentication
 router.use(authenticate);
+router.use(requirePermission(Permission.ADMIN_USERS));
 
 /**
  * GET /api/invitations

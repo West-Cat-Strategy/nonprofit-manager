@@ -6,12 +6,16 @@ import type {
   CheckInResult,
   CreateEventDTO,
   Event,
+  EventRegistrationMutationContext,
   EventAttendanceSummary,
   CreateEventReminderAutomationDTO,
   CreateRegistrationDTO,
   EventCheckInSettings,
+  EventConfirmationEmailResult,
   EventRegistration,
   EventFilters,
+  EventMutationScope,
+  EventOccurrence,
   EventWalkInCheckInDTO,
   EventWalkInCheckInResult,
   EventReminderSummary,
@@ -29,6 +33,7 @@ import type {
   RotateEventCheckInPinResult,
   SendEventRemindersDTO,
   UpdateEventCheckInSettingsDTO,
+  UpdateEventOccurrenceDTO,
   SyncEventReminderAutomationsDTO,
   UpdateEventDTO,
   UpdateEventReminderAutomationDTO,
@@ -40,6 +45,9 @@ type EventServicePort = Pick<
   EventService,
   | 'getEvents'
   | 'getEventById'
+  | 'listEventOccurrences'
+  | 'getEventOccurrenceById'
+  | 'updateEventOccurrence'
   | 'createEvent'
   | 'updateEvent'
   | 'deleteEvent'
@@ -60,6 +68,7 @@ type EventServicePort = Pick<
   | 'listPublicEventsByOwner'
   | 'getPublicEventBySlug'
   | 'submitPublicRegistration'
+  | 'sendRegistrationConfirmationEmail'
   | 'getPublicCheckInInfo'
   | 'submitPublicCheckIn'
   | 'sendEventReminders'
@@ -74,6 +83,31 @@ export class EventRepository {
 
   getEventById(eventId: string, scope?: DataScopeFilter): Promise<Event | null> {
     return this.eventService.getEventById(eventId, scope);
+  }
+
+  listEventOccurrences(
+    filters: {
+      event_id?: string;
+      start_date?: Date;
+      end_date?: Date;
+      include_cancelled?: boolean;
+    },
+    scope?: DataScopeFilter
+  ): Promise<EventOccurrence[]> {
+    return this.eventService.listEventOccurrences(filters, scope);
+  }
+
+  getEventOccurrenceById(occurrenceId: string, scope?: DataScopeFilter): Promise<EventOccurrence | null> {
+    return this.eventService.getEventOccurrenceById(occurrenceId, scope);
+  }
+
+  updateEventOccurrence(
+    occurrenceId: string,
+    data: UpdateEventOccurrenceDTO,
+    scope: EventMutationScope,
+    userId: string
+  ): Promise<EventOccurrence | null> {
+    return this.eventService.updateEventOccurrence(occurrenceId, data, scope, userId);
   }
 
   createEvent(data: CreateEventDTO, userId: string): Promise<Event> {
@@ -112,12 +146,19 @@ export class EventRepository {
     return this.eventService.getRegistrationByToken(eventId, token);
   }
 
-  registerContact(data: CreateRegistrationDTO): Promise<EventRegistration> {
-    return this.eventService.registerContact(data);
+  registerContact(
+    data: CreateRegistrationDTO,
+    context?: EventRegistrationMutationContext
+  ): Promise<EventRegistration> {
+    return this.eventService.registerContact(data, context);
   }
 
-  updateRegistration(registrationId: string, data: UpdateRegistrationDTO): Promise<EventRegistration> {
-    return this.eventService.updateRegistration(registrationId, data);
+  updateRegistration(
+    registrationId: string,
+    data: UpdateRegistrationDTO,
+    context?: EventRegistrationMutationContext
+  ): Promise<EventRegistration> {
+    return this.eventService.updateRegistration(registrationId, data, context);
   }
 
   checkInAttendee(registrationId: string, options?: CheckInOptions): Promise<CheckInResult> {
@@ -128,8 +169,8 @@ export class EventRepository {
     return this.eventService.cancelRegistration(registrationId);
   }
 
-  getEventCheckInSettings(eventId: string): Promise<EventCheckInSettings | null> {
-    return this.eventService.getEventCheckInSettings(eventId);
+  getEventCheckInSettings(eventId: string, occurrenceId?: string): Promise<EventCheckInSettings | null> {
+    return this.eventService.getEventCheckInSettings(eventId, occurrenceId);
   }
 
   updateEventCheckInSettings(
@@ -140,8 +181,12 @@ export class EventRepository {
     return this.eventService.updateEventCheckInSettings(eventId, data, userId);
   }
 
-  rotateEventCheckInPin(eventId: string, userId: string): Promise<RotateEventCheckInPinResult> {
-    return this.eventService.rotateEventCheckInPin(eventId, userId);
+  rotateEventCheckInPin(
+    eventId: string,
+    userId: string,
+    occurrenceId?: string
+  ): Promise<RotateEventCheckInPinResult> {
+    return this.eventService.rotateEventCheckInPin(eventId, userId, occurrenceId);
   }
 
   walkInCheckIn(
@@ -167,8 +212,15 @@ export class EventRepository {
     return this.eventService.submitPublicRegistration(eventId, data);
   }
 
-  getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo | null> {
-    return this.eventService.getPublicCheckInInfo(eventId);
+  sendRegistrationConfirmationEmail(
+    registrationId: string,
+    sentBy: string | null
+  ): Promise<EventConfirmationEmailResult> {
+    return this.eventService.sendRegistrationConfirmationEmail(registrationId, sentBy);
+  }
+
+  getPublicCheckInInfo(eventId: string, occurrenceId?: string): Promise<PublicEventCheckInInfo | null> {
+    return this.eventService.getPublicCheckInInfo(eventId, occurrenceId);
   }
 
   submitPublicCheckIn(eventId: string, data: PublicEventCheckInDTO): Promise<PublicEventCheckInResult> {

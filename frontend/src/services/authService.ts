@@ -42,6 +42,9 @@ export interface RegisterResponse {
   user?: AuthUser;
   organizationId?: string | null;
   pendingApproval?: boolean;
+  registrationToken?: string | null;
+  passkeySetupAllowed?: boolean;
+  hasStagedPasskeys?: boolean;
 }
 
 export type CurrentUserResponse = AuthUser & {
@@ -81,6 +84,30 @@ export const authService = {
     credential: unknown;
   }): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>('/auth/passkeys/login/verify', params);
+    return response.data;
+  },
+
+  pendingPasskeyRegistrationOptions: async (params: {
+    registrationToken: string;
+    email: string;
+  }): Promise<{ challengeId: string; options: unknown }> => {
+    const response = await api.post<{ challengeId: string; options: unknown }>(
+      '/auth/passkeys/pending/options',
+      params
+    );
+    return response.data;
+  },
+
+  pendingPasskeyRegistrationVerify: async (params: {
+    registrationToken: string;
+    challengeId: string;
+    credential: unknown;
+    name?: string | null;
+  }): Promise<{ message?: string; hasStagedPasskeys?: boolean }> => {
+    const response = await api.post<{ message?: string; hasStagedPasskeys?: boolean }>(
+      '/auth/passkeys/pending/verify',
+      params
+    );
     return response.data;
   },
 

@@ -4,7 +4,10 @@ import type {
   Event,
   EventAttendanceSummary,
   CreateEventDTO,
+  EventMutationScope,
+  EventOccurrence,
   PaginatedEvents,
+  UpdateEventOccurrenceDTO,
   PublicEventsListData,
   PublicEventsQuery,
   PublicEventDetail,
@@ -22,6 +25,31 @@ export class EventCatalogUseCase {
 
   getById(eventId: string, scope?: DataScopeFilter): Promise<Event | null> {
     return this.repository.getEventById(eventId, scope);
+  }
+
+  listOccurrences(
+    filters: {
+      event_id?: string;
+      start_date?: Date;
+      end_date?: Date;
+      include_cancelled?: boolean;
+    },
+    scope?: DataScopeFilter
+  ): Promise<EventOccurrence[]> {
+    return this.repository.listEventOccurrences(filters, scope);
+  }
+
+  getOccurrenceById(occurrenceId: string, scope?: DataScopeFilter): Promise<EventOccurrence | null> {
+    return this.repository.getEventOccurrenceById(occurrenceId, scope);
+  }
+
+  updateOccurrence(
+    occurrenceId: string,
+    data: UpdateEventOccurrenceDTO,
+    scope: EventMutationScope,
+    userId: string
+  ): Promise<EventOccurrence | null> {
+    return this.repository.updateEventOccurrence(occurrenceId, data, scope, userId);
   }
 
   listPublicByOwner(ownerUserId: string, query: PublicEventsQuery): Promise<PublicEventsListData> {

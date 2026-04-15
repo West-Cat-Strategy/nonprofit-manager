@@ -6,10 +6,22 @@ export interface PortalEvent {
   description?: string;
   start_date: string;
   end_date: string;
+  series_id?: string | null;
+  series_name?: string | null;
+  occurrence_id?: string | null;
+  occurrence_name?: string | null;
+  occurrence_label?: string | null;
+  occurrence_index?: number | null;
+  occurrence_count?: number | null;
+  occurrence_start_date?: string | null;
+  occurrence_end_date?: string | null;
   location_name?: string;
   event_type?: string;
   registration_id?: string | null;
   registration_status?: string | null;
+  confirmation_email_status?: 'pending' | 'sent' | 'failed' | 'skipped' | null;
+  confirmation_email_sent_at?: string | null;
+  confirmation_email_last_error?: string | null;
   check_in_token?: string | null;
   checked_in?: boolean | null;
   check_in_time?: string | null;
@@ -280,6 +292,10 @@ export interface PortalApiClient {
   getCaseTimeline(caseId: string, query?: PortalCaseTimelineQuery): Promise<PortalCaseTimelinePage>;
   listCaseDocuments(caseId: string): Promise<PortalCaseDocument[]>;
   uploadCaseDocument(caseId: string, formData: FormData): Promise<PortalCaseDocument>;
-  getCaseDocumentDownloadUrl(caseId: string, documentId: string, disposition?: 'inline' | 'attachment'): string;
+  getCaseDocumentDownloadUrl(
+    caseId: string,
+    documentId: string,
+    disposition?: 'inline' | 'attachment'
+  ): string;
   getDocumentDownloadUrl(documentId: string, disposition?: 'inline' | 'attachment'): string;
 }

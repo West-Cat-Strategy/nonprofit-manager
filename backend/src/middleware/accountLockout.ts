@@ -67,6 +67,39 @@ const getLoginAttempt = async (identifier: string): Promise<LoginAttempt | null>
   return loginAttempts.get(key) || null;
 };
 
+const setLoginAttempt = async (identifier: string, attempt: LoginAttempt): Promise<void> => {
+  const key = identifier.toLowerCase();
+  const redis = getRedisClient();
+  const redisKey = `${LOCKOUT_KEY_PREFIX}${key}`;
+
+  if (redis?.isReady) {
+    await redis.hSet(redisKey, {
+      userId: attempt.userId,
+      attempts: String(attempt.attempts),
+      lockedUntil: attempt.lockedUntil ? String(attempt.lockedUntil.getTime()) : '',
+    });
+    await redis.expire(redisKey, Math.ceil(ACCOUNT_LOCKOUT_DURATION_MS / 1000));
+    return;
+  }
+
+  loginAttempts.set(key, attempt);
+  attemptCreationTimes.set(key, Date.now());
+};
+
+const clearLoginAttempt = async (identifier: string): Promise<void> => {
+  const key = identifier.toLowerCase();
+  const redis = getRedisClient();
+  const redisKey = `${LOCKOUT_KEY_PREFIX}${key}`;
+
+  if (redis?.isReady) {
+    await redis.del(redisKey);
+    return;
+  }
+
+  loginAttempts.delete(key);
+  attemptCreationTimes.delete(key);
+};
+
 /**
  * Track failed login attempts and lock accounts if threshold is exceeded
  */
@@ -81,16 +114,10 @@ export const trackLoginAttempt = async (
   }
   const key = identifier.toLowerCase();
   const redis = getRedisClient();
-  const redisKey = `${LOCKOUT_KEY_PREFIX}${key}`;
 
   if (success) {
     // Clear attempts on successful login
-    if (redis?.isReady) {
-      await redis.del(redisKey);
-    } else {
-      loginAttempts.delete(key);
-      attemptCreationTimes.delete(key);
-    }
+    await clearLoginAttempt(identifier);
 
     // Log successful login for audit
     if (userId) {
@@ -160,17 +187,7 @@ export const trackLoginAttempt = async (
     });
   }
 
-  if (redis?.isReady) {
-    await redis.hSet(redisKey, {
-      userId: attempt.userId,
-      attempts: String(attempt.attempts),
-      lockedUntil: attempt.lockedUntil ? String(attempt.lockedUntil.getTime()) : '',
-    });
-    // Ensure lockout data expires eventually in Redis
-    await redis.expire(redisKey, Math.ceil(ACCOUNT_LOCKOUT_DURATION_MS / 1000));
-  } else {
-    loginAttempts.set(key, attempt);
-  }
+  await setLoginAttempt(identifier, attempt);
 
   // Log failed login for audit
   if (userId) {
@@ -195,10 +212,7 @@ export const trackLoginAttempt = async (
  * Check if an account is locked
  */
 export const isAccountLocked = async (identifier: string): Promise<boolean> => {
-  const redis = getRedisClient();
   const attempt = await getLoginAttempt(identifier);
-  const key = identifier.toLowerCase();
-  const redisKey = `${LOCKOUT_KEY_PREFIX}${key}`;
 
   if (!attempt || !attempt.lockedUntil) {
     return false;
@@ -206,12 +220,7 @@ export const isAccountLocked = async (identifier: string): Promise<boolean> => {
 
   // Check if lockout period has expired
   if (new Date() > attempt.lockedUntil) {
-    if (redis?.isReady) {
-      await redis.del(redisKey);
-    } else {
-      loginAttempts.delete(key);
-      attemptCreationTimes.delete(key);
-    }
+    await clearLoginAttempt(identifier);
     return false;
   }
 
@@ -230,6 +239,45 @@ export const getLockoutTimeRemaining = async (identifier: string): Promise<numbe
 
   const remaining = attempt.lockedUntil.getTime() - Date.now();
   return Math.ceil(remaining / 60000); // Convert to minutes
+};
+
+export const getAccountLockoutStatus = async (
+  identifier: string
+): Promise<{ failedLoginAttempts: number; isLocked: boolean; lockedUntil: Date | null }> => {
+  const attempt = await getLoginAttempt(identifier);
+  if (!attempt) {
+    return {
+      failedLoginAttempts: 0,
+      isLocked: false,
+      lockedUntil: null,
+    };
+  }
+
+  const isLocked = await isAccountLocked(identifier);
+  const nextAttempt = isLocked ? attempt : await getLoginAttempt(identifier);
+
+  return {
+    failedLoginAttempts: nextAttempt?.attempts ?? 0,
+    isLocked,
+    lockedUntil: isLocked ? nextAttempt?.lockedUntil ?? null : null,
+  };
+};
+
+export const setAccountLockState = async (
+  identifier: string,
+  locked: boolean,
+  userId?: string
+): Promise<void> => {
+  if (!locked) {
+    await clearLoginAttempt(identifier);
+    return;
+  }
+
+  await setLoginAttempt(identifier, {
+    userId: userId ?? '',
+    attempts: MAX_LOGIN_ATTEMPTS,
+    lockedUntil: new Date(Date.now() + ACCOUNT_LOCKOUT_DURATION_MS),
+  });
 };
 
 /**

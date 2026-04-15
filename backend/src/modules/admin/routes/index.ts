@@ -1,32 +1,57 @@
 import express from 'express';
-import { authenticate, authorize } from '@middleware/domains/auth';
+import { authenticate } from '@middleware/domains/auth';
+import { requirePermission } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
+  approvePendingRegistrationHandler,
+  createPolicyGroupHandler,
   createRoleHandler,
+  deletePolicyGroupHandler,
   deleteRoleHandler,
-  getBranding,
+    getBranding,
+    getEmailSettings,
+    getOrganizationSettingsHandler,
+    getRegistrationSettingsHandler,
+    getTwilioSettings,
+    getUserAccessHandler,
+  listOrganizationAccountsHandler,
+  listPendingRegistrationsHandler,
   listPermissions,
+  listPolicyGroupsHandler,
   listRoles,
   putBranding,
-  getEmailSettings,
-  getOrganizationSettingsHandler,
+  rejectPendingRegistrationHandler,
+  testEmailSettings,
+  testTwilioSettings,
   updateEmailSettings,
   updateOrganizationSettingsHandler,
-  testEmailSettings,
-  getTwilioSettings,
-  updateTwilioSettings,
-  testTwilioSettings,
-} from '../controllers';
-import {
-  getRegistrationSettingsHandler,
+  updatePolicyGroupHandler,
   updateRegistrationSettingsHandler,
-  listPendingRegistrationsHandler,
-  approvePendingRegistrationHandler,
-  rejectPendingRegistrationHandler,
+  updateRoleHandler,
+  updateTwilioSettings,
+  updateUserAccessHandler,
 } from '../controllers';
 import { getAdminStats, getAuditLogs, getUserAuditLogs } from '../controllers/adminStatsController';
 import * as outcomeDefinitionController from '../controllers/outcomeDefinitionController';
-import { updateRoleHandler } from '../controllers/roleCatalogController';
+import {
+  adminAuditLogsQuerySchema,
+  adminPendingRegistrationsQuerySchema,
+  adminPendingRegistrationParamsSchema,
+  adminPolicyGroupCreateSchema,
+  adminPolicyGroupParamsSchema,
+  adminPolicyGroupUpdateSchema,
+  adminRoleCreateSchema,
+  adminRoleParamsSchema,
+  adminRoleUpdateSchema,
+  adminUserAccessBodySchema,
+  adminUserAccessParamsSchema,
+  adminUserAuditLogsParamsSchema,
+  rejectPendingRegistrationSchema,
+  updateEmailSettingsSchema,
+  updateOrganizationSettingsSchema,
+  updateRegistrationSettingsSchema,
+  updateTwilioSettingsSchema,
+} from '@validations/admin';
 import {
   createOutcomeDefinitionSchema,
   listOutcomeDefinitionsQuerySchema,
@@ -34,86 +59,97 @@ import {
   reorderOutcomeDefinitionsSchema,
   updateOutcomeDefinitionSchema,
 } from '@validations/outcomeDefinition';
-import {
-  adminAuditLogsQuerySchema,
-  adminPendingRegistrationsQuerySchema,
-  adminPendingRegistrationParamsSchema,
-  updateOrganizationSettingsSchema,
-  rejectPendingRegistrationSchema,
-  updateEmailSettingsSchema,
-  adminRoleCreateSchema,
-  adminRoleParamsSchema,
-  adminRoleUpdateSchema,
-  adminUserAuditLogsParamsSchema,
-  updateRegistrationSettingsSchema,
-  updateTwilioSettingsSchema,
-} from '@validations/admin';
+import { Permission } from '@utils/permissions';
+
 const router = express.Router();
 
-router.get('/branding', authenticate, getBranding);
-router.put('/branding', authenticate, authorize('admin'), putBranding);
-router.get('/organization-settings', authenticate, authorize('admin'), getOrganizationSettingsHandler);
+router.get('/branding', authenticate, requirePermission(Permission.ADMIN_BRANDING), getBranding);
+router.put('/branding', authenticate, requirePermission(Permission.ADMIN_BRANDING), putBranding);
+
+router.get(
+  '/organization-settings',
+  authenticate,
+  requirePermission(Permission.ADMIN_ORGANIZATION),
+  getOrganizationSettingsHandler
+);
 router.put(
   '/organization-settings',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_ORGANIZATION),
   validateBody(updateOrganizationSettingsSchema),
   updateOrganizationSettingsHandler
 );
 
-router.get('/stats', authenticate, authorize('admin'), getAdminStats);
+router.get('/stats', authenticate, requirePermission(Permission.ADMIN_AUDIT), getAdminStats);
 router.get(
   '/audit-logs',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_AUDIT),
   validateQuery(adminAuditLogsQuerySchema),
   getAuditLogs
 );
 router.get(
   '/users/:id/audit-logs',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_AUDIT),
   validateParams(adminUserAuditLogsParamsSchema),
   validateQuery(adminAuditLogsQuerySchema),
   getUserAuditLogs
 );
 
-// Email settings (admin only)
-router.get('/email-settings', authenticate, authorize('admin'), getEmailSettings);
+router.get(
+  '/email-settings',
+  authenticate,
+  requirePermission(Permission.ADMIN_SETTINGS),
+  getEmailSettings
+);
 router.put(
   '/email-settings',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_SETTINGS),
   validateBody(updateEmailSettingsSchema),
   updateEmailSettings
 );
-router.post('/email-settings/test', authenticate, authorize('admin'), testEmailSettings);
+router.post(
+  '/email-settings/test',
+  authenticate,
+  requirePermission(Permission.ADMIN_SETTINGS),
+  testEmailSettings
+);
 
-// Twilio settings (admin only)
-router.get('/twilio-settings', authenticate, authorize('admin'), getTwilioSettings);
+router.get(
+  '/twilio-settings',
+  authenticate,
+  requirePermission(Permission.ADMIN_SETTINGS),
+  getTwilioSettings
+);
 router.put(
   '/twilio-settings',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_SETTINGS),
   validateBody(updateTwilioSettingsSchema),
   updateTwilioSettings
 );
-router.post('/twilio-settings/test', authenticate, authorize('admin'), testTwilioSettings);
+router.post(
+  '/twilio-settings/test',
+  authenticate,
+  requirePermission(Permission.ADMIN_SETTINGS),
+  testTwilioSettings
+);
 
-// Role and permission catalog
-router.get('/roles', authenticate, authorize('admin'), listRoles);
-router.get('/permissions', authenticate, authorize('admin'), listPermissions);
+router.get('/roles', authenticate, requirePermission(Permission.ADMIN_USERS), listRoles);
+router.get('/permissions', authenticate, requirePermission(Permission.ADMIN_USERS), listPermissions);
 router.post(
   '/roles',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_USERS),
   validateBody(adminRoleCreateSchema),
   createRoleHandler
 );
 router.put(
   '/roles/:id',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_USERS),
   validateParams(adminRoleParamsSchema),
   validateBody(adminRoleUpdateSchema),
   updateRoleHandler
@@ -121,46 +157,94 @@ router.put(
 router.delete(
   '/roles/:id',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_USERS),
   validateParams(adminRoleParamsSchema),
   deleteRoleHandler
 );
 
-// Registration settings (admin only)
-router.get('/registration-settings', authenticate, authorize('admin'), getRegistrationSettingsHandler);
+router.get('/groups', authenticate, requirePermission(Permission.ADMIN_USERS), listPolicyGroupsHandler);
+router.post(
+  '/groups',
+  authenticate,
+  requirePermission(Permission.ADMIN_USERS),
+  validateBody(adminPolicyGroupCreateSchema),
+  createPolicyGroupHandler
+);
+router.put(
+  '/groups/:id',
+  authenticate,
+  requirePermission(Permission.ADMIN_USERS),
+  validateParams(adminPolicyGroupParamsSchema),
+  validateBody(adminPolicyGroupUpdateSchema),
+  updatePolicyGroupHandler
+);
+router.delete(
+  '/groups/:id',
+  authenticate,
+  requirePermission(Permission.ADMIN_USERS),
+  validateParams(adminPolicyGroupParamsSchema),
+  deletePolicyGroupHandler
+);
+
+router.get(
+  '/users/:id/access',
+  authenticate,
+  requirePermission(Permission.ADMIN_USERS),
+  validateParams(adminUserAccessParamsSchema),
+  getUserAccessHandler
+);
+router.put(
+  '/users/:id/access',
+  authenticate,
+  requirePermission(Permission.ADMIN_USERS),
+  validateParams(adminUserAccessParamsSchema),
+  validateBody(adminUserAccessBodySchema),
+  updateUserAccessHandler
+);
+router.get(
+  '/organization-accounts',
+  authenticate,
+  requirePermission(Permission.ADMIN_USERS),
+  listOrganizationAccountsHandler
+);
+
+router.get(
+  '/registration-settings',
+  authenticate,
+  requirePermission(Permission.ADMIN_SETTINGS),
+  getRegistrationSettingsHandler
+);
 router.put(
   '/registration-settings',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_SETTINGS),
   validateBody(updateRegistrationSettingsSchema),
   updateRegistrationSettingsHandler
 );
 
-// Pending registrations (admin only)
 router.get(
   '/pending-registrations',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_USERS),
   validateQuery(adminPendingRegistrationsQuerySchema),
   listPendingRegistrationsHandler
 );
 router.post(
   '/pending-registrations/:id/approve',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_USERS),
   validateParams(adminPendingRegistrationParamsSchema),
   approvePendingRegistrationHandler
 );
 router.post(
   '/pending-registrations/:id/reject',
   authenticate,
-  authorize('admin'),
+  requirePermission(Permission.ADMIN_USERS),
   validateParams(adminPendingRegistrationParamsSchema),
   validateBody(rejectPendingRegistrationSchema),
   rejectPendingRegistrationHandler
 );
 
-// Outcome definitions (permission guarded at controller level)
 router.get(
   '/outcomes',
   authenticate,
@@ -198,7 +282,6 @@ router.post(
   validateBody(reorderOutcomeDefinitionsSchema),
   outcomeDefinitionController.reorderOutcomeDefinitions
 );
-
 
 export default router;
 

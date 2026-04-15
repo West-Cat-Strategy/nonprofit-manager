@@ -113,11 +113,61 @@ describe('authService.passkeyLoginVerify', () => {
   });
 });
 
+// ─── pendingPasskeyRegistrationOptions ────────────────────────────────────────
+
+describe('authService.pendingPasskeyRegistrationOptions', () => {
+  it('POSTs to /auth/passkeys/pending/options with registration token and email', async () => {
+    const payload = { challengeId: 'ch-pending', options: {} };
+    vi.mocked(api.post).mockResolvedValueOnce({ data: payload });
+
+    const result = await authService.pendingPasskeyRegistrationOptions({
+      registrationToken: 'reg-token',
+      email: 'new@example.com',
+    });
+
+    expect(api.post).toHaveBeenCalledWith('/auth/passkeys/pending/options', {
+      registrationToken: 'reg-token',
+      email: 'new@example.com',
+    });
+    expect(result).toEqual(payload);
+  });
+});
+
+// ─── pendingPasskeyRegistrationVerify ───────────────────────────────────────
+
+describe('authService.pendingPasskeyRegistrationVerify', () => {
+  it('POSTs to /auth/passkeys/pending/verify and returns response data', async () => {
+    const payload = { message: 'Passkey staged', hasStagedPasskeys: true };
+    vi.mocked(api.post).mockResolvedValueOnce({ data: payload });
+
+    const result = await authService.pendingPasskeyRegistrationVerify({
+      registrationToken: 'reg-token',
+      challengeId: 'ch-pending',
+      credential: { id: 'cred-id' },
+      name: 'New User',
+    });
+
+    expect(api.post).toHaveBeenCalledWith('/auth/passkeys/pending/verify', {
+      registrationToken: 'reg-token',
+      challengeId: 'ch-pending',
+      credential: { id: 'cred-id' },
+      name: 'New User',
+    });
+    expect(result).toEqual(payload);
+  });
+});
+
 // ─── register ─────────────────────────────────────────────────────────────────
 
 describe('authService.register', () => {
-  it('POSTs to /auth/register and returns message + user', async () => {
-    const payload = { message: 'User created', user: mockUser };
+  it('POSTs to /auth/register and returns message + pending approval metadata', async () => {
+    const payload = {
+      message: 'User created',
+      pendingApproval: true,
+      registrationToken: 'reg-token',
+      passkeySetupAllowed: true,
+      hasStagedPasskeys: false,
+    };
     vi.mocked(api.post).mockResolvedValueOnce({ data: payload });
 
     const result = await authService.register({
@@ -136,6 +186,8 @@ describe('authService.register', () => {
       lastName: 'User',
     });
     expect(result.message).toBe('User created');
+    expect(result.pendingApproval).toBe(true);
+    expect(result.registrationToken).toBe('reg-token');
   });
 });
 

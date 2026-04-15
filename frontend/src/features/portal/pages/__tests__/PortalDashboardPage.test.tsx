@@ -62,6 +62,11 @@ describe('PortalDashboardPage', () => {
         {
           id: 'event-1',
           name: 'Client Orientation',
+          series_id: 'series-1',
+          occurrence_id: 'occurrence-1',
+          occurrence_name: 'Orientation Session',
+          occurrence_index: 1,
+          occurrence_count: 3,
           start_date: '2026-03-17T18:00:00.000Z',
           end_date: '2026-03-17T20:00:00.000Z',
           registration_id: 'reg-1',
@@ -94,6 +99,7 @@ describe('PortalDashboardPage', () => {
     expect(await screen.findByText('Resume A Shared Case')).toBeInTheDocument();
     expect(screen.getByText('Need help with paperwork')).toBeInTheDocument();
     expect(screen.getByText('Welcome Packet')).toBeInTheDocument();
+    expect(screen.getByText('Client Orientation • Orientation Session')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('link', { name: /resume case workspace/i }));
 

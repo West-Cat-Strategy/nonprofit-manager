@@ -1,4 +1,5 @@
 import { BrutalBadge, BrutalButton, BrutalCard, NeoBrutalistLayout } from '../../../components/neo-brutalist';
+import { Link } from 'react-router-dom';
 import CaseNotes from '../components/CaseNotesPanel';
 import CaseDocuments from '../../../components/CaseDocuments';
 import FollowUpList from '../../../components/FollowUpList';
@@ -316,8 +317,21 @@ const CaseDetail = () => {
                       Client
                     </dt>
                     <dd className="text-sm font-bold text-black dark:text-white">
-                      {currentCase.contact_first_name} {currentCase.contact_last_name}
+                      <Link
+                        to={`/contacts/${currentCase.contact_id}`}
+                        className="underline decoration-2 underline-offset-2 hover:text-[var(--loop-green)]"
+                      >
+                        {currentCase.contact_first_name} {currentCase.contact_last_name}
+                      </Link>
                     </dd>
+                    <div className="mt-2">
+                      <Link
+                        to={`/contacts/${currentCase.contact_id}`}
+                        className="inline-flex border-2 border-black bg-[var(--loop-yellow)] px-3 py-1 text-xs font-black uppercase text-black hover:bg-[var(--loop-green)]"
+                      >
+                        Open Contact Record
+                      </Link>
+                    </div>
                   </div>
                   {currentCase.contact_email && (
                     <div>

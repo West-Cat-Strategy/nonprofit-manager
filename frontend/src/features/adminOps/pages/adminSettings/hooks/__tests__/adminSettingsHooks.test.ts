@@ -278,6 +278,138 @@ describe('admin settings hooks', () => {
     expect(setFormErrorFromError).not.toHaveBeenCalled();
   });
 
+  it('loads user access details and saves access assignments', async () => {
+    mockedApi.get.mockImplementation((url: string) => {
+      if (url === '/users/user-1') {
+        return Promise.resolve({
+          data: {
+            id: 'user-1',
+            email: 'user@example.com',
+            firstName: 'Test',
+            lastName: 'User',
+            role: 'staff',
+            isActive: true,
+            lastLoginAt: null,
+            lastPasswordChange: null,
+            failedLoginAttempts: 0,
+            isLocked: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      }
+
+      if (url === '/admin/users/user-1/access') {
+        return Promise.resolve({
+          data: {
+            groups: ['group-1'],
+            organizationAccess: ['org-1'],
+            mfaTotpEnabled: true,
+            passkeyCount: 2,
+          },
+        });
+      }
+
+      if (url === '/admin/groups') {
+        return Promise.resolve({ data: { groups: [] } });
+      }
+
+      if (url === '/admin/organization-accounts') {
+        return Promise.resolve({ data: { organizationAccounts: [] } });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+
+    const { result } = renderHook(() =>
+      useUsersSettings({
+        activeSection: 'users',
+        confirm: vi.fn().mockResolvedValue(true),
+        setFormErrorFromError: vi.fn(),
+        clearFormError: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await result.current.fetchUserAccessInfo('user-1');
+    });
+
+    expect(result.current.showAccessModal).toBe(true);
+    expect(result.current.selectedUser?.groups).toEqual(['group-1']);
+    expect(result.current.userAccessDraft.groups).toEqual(['group-1']);
+
+    act(() => {
+      result.current.setUserAccessDraft({
+        groups: ['group-1', 'group-2'],
+        organizationAccess: ['org-1'],
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleSaveUserAccess();
+    });
+
+    expect(mockedApi.put).toHaveBeenCalledWith('/admin/users/user-1/access', {
+      groups: ['group-1', 'group-2'],
+      organizationAccess: ['org-1'],
+    });
+  });
+
+  it('handles group CRUD actions', async () => {
+    mockedApi.get.mockImplementation((url: string) => {
+      if (url === '/admin/groups') {
+        return Promise.resolve({ data: { groups: [] } });
+      }
+
+      if (url === '/admin/organization-accounts') {
+        return Promise.resolve({ data: { organizationAccounts: [] } });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+
+    const confirm = vi.fn().mockResolvedValue(true);
+    const { result } = renderHook(() =>
+      useUsersSettings({
+        activeSection: 'groups',
+        confirm,
+        setFormErrorFromError: vi.fn(),
+        clearFormError: vi.fn(),
+      })
+    );
+
+    act(() => {
+      result.current.openCreateGroup();
+      result.current.setGroupEditor({
+        id: '',
+        name: 'Volunteer Leads',
+        description: 'Volunteer access bundle',
+        roles: ['staff'],
+        memberCount: 0,
+        isSystem: false,
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleSaveGroup();
+    });
+
+    expect(mockedApi.post).toHaveBeenCalledWith(
+      '/admin/groups',
+      expect.objectContaining({
+        name: 'Volunteer Leads',
+        roles: ['staff'],
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleDeleteGroup('group-1');
+    });
+
+    expect(confirm).toHaveBeenCalled();
+    expect(mockedApi.delete).toHaveBeenCalledWith('/admin/groups/group-1');
+  });
+
   it('handles role CRUD actions', async () => {
     mockedApi.get.mockImplementation((url: string) => {
       if (url === '/admin/roles') {

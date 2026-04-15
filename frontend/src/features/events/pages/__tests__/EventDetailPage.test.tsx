@@ -24,6 +24,48 @@ const mockState = {
         start_date: '2026-06-01T18:00:00.000Z',
         end_date: '2026-06-01T20:00:00.000Z',
         registered_count: 3,
+        occurrences: [
+          {
+            occurrence_id: 'occurrence-1',
+            event_id: 'event-123',
+            series_id: 'event-123',
+            occurrence_index: 1,
+            occurrence_name: 'Opening night',
+            start_date: '2026-06-01T18:00:00.000Z',
+            end_date: '2026-06-01T20:00:00.000Z',
+            status: 'planned',
+            capacity: 50,
+            registered_count: 3,
+            attended_count: 0,
+            location_name: 'Grand Hall',
+            address_line1: null,
+            address_line2: null,
+            city: 'Vancouver',
+            state_province: 'BC',
+            postal_code: null,
+            country: 'Canada',
+          },
+          {
+            occurrence_id: 'occurrence-2',
+            event_id: 'event-123',
+            series_id: 'event-123',
+            occurrence_index: 2,
+            occurrence_name: 'Closing night',
+            start_date: '2026-06-08T18:00:00.000Z',
+            end_date: '2026-06-08T20:00:00.000Z',
+            status: 'planned',
+            capacity: 50,
+            registered_count: 2,
+            attended_count: 0,
+            location_name: 'Grand Hall',
+            address_line1: null,
+            address_line2: null,
+            city: 'Vancouver',
+            state_province: 'BC',
+            postal_code: null,
+            country: 'Canada',
+          },
+        ],
       },
     },
     registration: {
@@ -123,6 +165,10 @@ vi.mock('../../components/EventInfoPanel', () => ({
   default: () => <div data-testid="event-info">Event info panel</div>,
 }));
 
+vi.mock('../../components/EventSchedulePanel', () => ({
+  default: () => <div data-testid="event-schedule">Event schedule panel</div>,
+}));
+
 vi.mock('../../components/EventRegistrationsPanel', () => ({
   default: () => <div data-testid="event-registrations">Event registrations panel</div>,
 }));
@@ -149,6 +195,9 @@ describe('EventDetailPage deferred registrations loading', () => {
 
   it('fetches only event detail on initial info-tab render', async () => {
     renderWithProviders(<EventDetailPage />);
+
+    expect(await screen.findByRole('button', { name: 'Overview' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Schedule' })).toBeInTheDocument();
 
     await waitFor(() => {
       const actionTypes = dispatchMock.mock.calls.map(([action]) => action.type);

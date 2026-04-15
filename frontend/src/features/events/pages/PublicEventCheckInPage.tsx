@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { eventsApiClient } from '../api/eventsApiClient';
 import type { PublicEventCheckInInfo, PublicEventCheckInResult } from '../../../types/event';
 import { PrimaryButton, PublicPageShell, SectionCard } from '../../../components/ui';
@@ -25,14 +25,32 @@ const initialFormState: CheckInFormState = {
 const formatDateRange = (startDate: string, endDate: string): string =>
   `${new Date(startDate).toLocaleString()} - ${new Date(endDate).toLocaleString()}`;
 
+const getOccurrenceLabel = (eventInfo: PublicEventCheckInInfo): string | null => {
+  if (eventInfo.occurrence_label && eventInfo.occurrence_label.trim().length > 0) {
+    return eventInfo.occurrence_label.trim();
+  }
+
+  if (eventInfo.occurrence_index != null && eventInfo.occurrence_count != null) {
+    return `Occurrence ${eventInfo.occurrence_index} of ${eventInfo.occurrence_count}`;
+  }
+
+  if (eventInfo.occurrence_index != null) {
+    return `Occurrence ${eventInfo.occurrence_index}`;
+  }
+
+  return eventInfo.occurrence_id ? 'Single occurrence' : null;
+};
+
 export default function PublicEventCheckInPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [eventInfo, setEventInfo] = useState<PublicEventCheckInInfo | null>(null);
   const [formState, setFormState] = useState<CheckInFormState>(initialFormState);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PublicEventCheckInResult | null>(null);
+  const requestedOccurrenceId = searchParams.get('occurrence_id') || undefined;
 
   useEffect(() => {
     const loadInfo = async () => {
@@ -44,7 +62,7 @@ export default function PublicEventCheckInPage() {
 
       try {
         setError(null);
-        const info = await eventsApiClient.getPublicCheckInInfo(id);
+        const info = await eventsApiClient.getPublicCheckInInfo(id, requestedOccurrenceId);
         setEventInfo(info);
       } catch (requestError) {
         const parsed = parseApiError(requestError, 'Event check-in is unavailable.');
@@ -55,11 +73,15 @@ export default function PublicEventCheckInPage() {
     };
 
     void loadInfo();
-  }, [id]);
+  }, [id, requestedOccurrenceId]);
 
   const checkInDisabledReason = useMemo(() => {
     if (!eventInfo) return null;
-    if (!eventInfo.checkin_open) return 'Check-in is currently closed for this event.';
+    if (!eventInfo.checkin_open) {
+      return eventInfo.occurrence_id
+        ? 'Check-in is currently closed for this occurrence.'
+        : 'Check-in is currently closed for this event.';
+    }
     return null;
   }, [eventInfo]);
 
@@ -79,6 +101,7 @@ export default function PublicEventCheckInPage() {
 
     try {
       const payload = {
+        occurrence_id: requestedOccurrenceId,
         first_name: formState.first_name.trim(),
         last_name: formState.last_name.trim(),
         email: formState.email.trim() || undefined,
@@ -126,11 +149,32 @@ export default function PublicEventCheckInPage() {
         <SectionCard title="Event details" subtitle="Review the event timing before you sign in.">
           {eventInfo ? (
             <div className="space-y-3 text-sm text-app-text-muted">
+              {eventInfo.series_name ? (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                    Series
+                  </p>
+                  <p className="mt-1 text-sm text-app-text">{eventInfo.series_name}</p>
+                </div>
+              ) : null}
+              {getOccurrenceLabel(eventInfo) ? (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+                    Occurrence
+                  </p>
+                  <p className="mt-1 text-sm text-app-text">{getOccurrenceLabel(eventInfo)}</p>
+                </div>
+              ) : null}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
                   Date and time
                 </p>
-                <p className="mt-1 text-sm text-app-text">{formatDateRange(eventInfo.start_date, eventInfo.end_date)}</p>
+                <p className="mt-1 text-sm text-app-text">
+                  {formatDateRange(
+                    eventInfo.occurrence_start_date || eventInfo.start_date,
+                    eventInfo.occurrence_end_date || eventInfo.end_date
+                  )}
+                </p>
               </div>
               {eventInfo.location_name ? (
                 <div>
@@ -151,11 +195,16 @@ export default function PublicEventCheckInPage() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-app-text-muted">Event details are unavailable for this link.</p>
+            <p className="text-sm text-app-text-muted">
+              Event details are unavailable for this link.
+            </p>
           )}
         </SectionCard>
 
-        <SectionCard title="Attendee sign-in" subtitle="Enter attendee details and the staff PIN to check in.">
+        <SectionCard
+          title="Attendee sign-in"
+          subtitle="Enter attendee details and the staff PIN to check in."
+        >
           {checkInDisabledReason ? (
             <div className="mb-4 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-muted p-3 text-sm text-app-text-muted">
               {checkInDisabledReason}

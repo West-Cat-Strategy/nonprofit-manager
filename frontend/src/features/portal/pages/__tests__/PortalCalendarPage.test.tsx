@@ -84,12 +84,19 @@ describe('PortalCalendarPage', () => {
         name: 'Community Visit',
         description: 'Meet the outreach team',
         event_type: 'community',
+        series_id: 'series-1',
+        occurrence_id: 'occurrence-2',
+        occurrence_name: 'Week 2',
+        occurrence_index: 2,
+        occurrence_count: 4,
+        occurrence_start_date: start.toISOString(),
+        occurrence_end_date: end.toISOString(),
         start_date: start.toISOString(),
         end_date: end.toISOString(),
         location_name: 'Main Hall',
-        registration_id: null,
-        registration_status: null,
-        check_in_token: null,
+        registration_id: 'reg-1',
+        registration_status: 'waitlisted',
+        check_in_token: 'portal-pass-token',
         checked_in: null,
         check_in_time: null,
       },
@@ -154,6 +161,19 @@ describe('PortalCalendarPage', () => {
 
     await waitFor(() => {
       expect(bookAppointmentSlotMock).toHaveBeenCalledWith('slot-1', { case_id: 'case-1' });
+    });
+  });
+
+  it('shows occurrence and waitlist details for event entries', async () => {
+    renderWithProviders(<PortalCalendarPage />);
+
+    expect(await screen.findByText('Community Visit')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Community Visit'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Week 2')).toBeInTheDocument();
+      expect(screen.getByText('Waitlisted')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Cancel waitlist' })).toBeInTheDocument();
     });
   });
 });

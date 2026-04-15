@@ -17,6 +17,11 @@ export interface User {
   lastName: string;
   role: string;
   profilePicture?: string | null;
+  permissions?: string[];
+  groups?: string[];
+  organizationAccess?: string[];
+  mfaTotpEnabled?: boolean;
+  passkeyCount?: number;
 }
 
 interface AuthState {

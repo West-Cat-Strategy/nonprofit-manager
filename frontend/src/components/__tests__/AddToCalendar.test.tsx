@@ -10,7 +10,12 @@ vi.mock('../../utils/calendar', () => ({
   generateGoogleCalendarUrl: vi.fn((event) => `https://google.com/calendar?event=${event.event_id}`),
   generateOutlookCalendarUrl: vi.fn((event) => `HTTPS://outlook.com/calendar?event=${event.event_id}`),
   generateYahooCalendarUrl: vi.fn((event) => `HTTPS://yahoo.com/calendar?event=${event.event_id}`),
-  getIcsDownloadUrl: vi.fn((eventId) => `/api/v2/events/${eventId}/calendar.ics`),
+  getIcsDownloadUrl: vi.fn(
+    (eventId, occurrenceId) =>
+      occurrenceId
+        ? `/api/v2/events/${eventId}/calendar.ics?occurrence_id=${occurrenceId}`
+        : `/api/v2/events/${eventId}/calendar.ics`
+  ),
 }));
 
 describe('AddToCalendar', () => {
@@ -155,7 +160,7 @@ describe('AddToCalendar', () => {
     expect(icsLink).toHaveAttribute('target', '_self');
     expect(icsLink).not.toHaveAttribute('rel');
 
-    expect(calendarUtils.getIcsDownloadUrl).toHaveBeenCalledWith(mockEvent.event_id);
+    expect(calendarUtils.getIcsDownloadUrl).toHaveBeenCalledWith(mockEvent.event_id, undefined);
   });
 
   it('should close dropdown when calendar option is clicked', () => {

@@ -8,9 +8,13 @@ import { formatApiErrorMessage } from '../../../utils/apiError';
 import { portalV2ApiClient } from '../api/portalApiClient';
 import usePortalEventsList from '../client/usePortalEventsList';
 import type { PortalEvent } from '../types/contracts';
-
-const formatDateRange = (startDate: string, endDate: string): string =>
-  `${new Date(startDate).toLocaleString()} - ${new Date(endDate).toLocaleString()}`;
+import {
+  canShowPortalEventQrPass,
+  getPortalEventConfirmationLabel,
+  getPortalEventDateRange,
+  getPortalEventOccurrenceLabel,
+  getPortalEventRegistrationLabel,
+} from '../utils/eventDisplay';
 
 export default function PortalEventsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,6 +75,14 @@ export default function PortalEventsPage() {
     if (!passEvent?.checked_in || !passEvent.check_in_time) return null;
     return new Date(passEvent.check_in_time).toLocaleString();
   }, [passEvent]);
+
+  const passOccurrenceLabel = passEvent ? getPortalEventOccurrenceLabel(passEvent) : null;
+  const passRegistrationLabel = passEvent
+    ? getPortalEventRegistrationLabel(passEvent.registration_status)
+    : null;
+  const passConfirmationLabel = passEvent
+    ? getPortalEventConfirmationLabel(passEvent.confirmation_email_status)
+    : null;
 
   const handleRegister = async (eventId: string) => {
     setSavingEventId(eventId);
@@ -145,17 +157,22 @@ export default function PortalEventsPage() {
       {!loading && !error && events.length > 0 && (
         <ul className="space-y-3">
           {events.map((event) => {
-            const isRegistered = Boolean(event.registration_id);
+            const hasRegistration = Boolean(event.registration_id);
             const isCheckedIn = Boolean(event.checked_in);
             const checkedInTime = event.check_in_time
               ? new Date(event.check_in_time).toLocaleString()
               : null;
+            const occurrenceLabel = getPortalEventOccurrenceLabel(event);
+            const registrationLabel = getPortalEventRegistrationLabel(event.registration_status);
+            const confirmationLabel = getPortalEventConfirmationLabel(
+              event.confirmation_email_status
+            );
 
             return (
               <li key={event.id}>
                 <PortalListCard
                   title={event.name}
-                  subtitle={formatDateRange(event.start_date, event.end_date)}
+                  subtitle={getPortalEventDateRange(event)}
                   meta={event.location_name || 'Location provided by staff'}
                   badges={
                     <>
@@ -164,7 +181,30 @@ export default function PortalEventsPage() {
                           {event.event_type}
                         </span>
                       )}
-                      {isRegistered && (
+                      {occurrenceLabel && (
+                        <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
+                          {occurrenceLabel}
+                        </span>
+                      )}
+                      {registrationLabel && (
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs ${
+                            event.registration_status === 'confirmed'
+                              ? 'bg-app-accent-soft text-app-accent-text'
+                              : event.registration_status === 'waitlisted'
+                                ? 'bg-yellow-100 text-yellow-900'
+                                : 'bg-app-surface-muted text-app-text-muted'
+                          }`}
+                        >
+                          {registrationLabel}
+                        </span>
+                      )}
+                      {confirmationLabel && (
+                        <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
+                          {confirmationLabel}
+                        </span>
+                      )}
+                      {hasRegistration && !registrationLabel && (
                         <span className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text">
                           Registered
                         </span>
@@ -177,9 +217,9 @@ export default function PortalEventsPage() {
                     </>
                   }
                   actions={
-                    isRegistered ? (
+                    hasRegistration ? (
                       <div className="flex gap-2">
-                        {event.check_in_token && (
+                        {canShowPortalEventQrPass(event) && (
                           <button
                             type="button"
                             onClick={() => setPassEvent(event)}
@@ -194,7 +234,11 @@ export default function PortalEventsPage() {
                           disabled={savingEventId === event.id || isCheckedIn}
                           className="rounded border border-app-input-border px-3 py-1 text-xs disabled:opacity-60"
                         >
-                          {savingEventId === event.id ? 'Saving...' : 'Cancel'}
+                          {savingEventId === event.id
+                            ? 'Saving...'
+                            : event.registration_status === 'waitlisted'
+                              ? 'Cancel waitlist'
+                              : 'Cancel'}
                         </button>
                       </div>
                     ) : (
@@ -209,9 +253,13 @@ export default function PortalEventsPage() {
                     )
                   }
                 >
-                  {event.description && <p className="text-sm text-app-text-muted">{event.description}</p>}
+                  {event.description && (
+                    <p className="text-sm text-app-text-muted">{event.description}</p>
+                  )}
                   {isCheckedIn && checkedInTime && (
-                    <p className="mt-2 text-xs text-app-text-muted">Checked in at {checkedInTime}</p>
+                    <p className="mt-2 text-xs text-app-text-muted">
+                      Checked in at {checkedInTime}
+                    </p>
                   )}
                 </PortalListCard>
               </li>
@@ -240,6 +288,15 @@ export default function PortalEventsPage() {
               <div>
                 <h2 className="text-lg font-semibold text-app-text">Event QR Pass</h2>
                 <p className="text-xs text-app-text-muted">{passEvent.name}</p>
+                {passOccurrenceLabel && (
+                  <p className="mt-1 text-xs text-app-text-muted">{passOccurrenceLabel}</p>
+                )}
+                {passRegistrationLabel && (
+                  <p className="mt-1 text-xs text-app-text-muted">{passRegistrationLabel}</p>
+                )}
+                {passConfirmationLabel && (
+                  <p className="mt-1 text-xs text-app-text-muted">{passConfirmationLabel}</p>
+                )}
               </div>
               <button
                 type="button"
@@ -252,7 +309,11 @@ export default function PortalEventsPage() {
 
             <div className="rounded-md border border-app-border bg-white p-3">
               {passQrDataUrl ? (
-                <img src={passQrDataUrl} alt="Event check-in QR pass" className="mx-auto h-64 w-64" />
+                <img
+                  src={passQrDataUrl}
+                  alt="Event check-in QR pass"
+                  className="mx-auto h-64 w-64"
+                />
               ) : (
                 <div className="flex h-64 items-center justify-center text-xs text-app-text-muted">
                   Generating QR pass...
@@ -261,9 +322,12 @@ export default function PortalEventsPage() {
             </div>
 
             <div className="mt-3 space-y-1 text-xs text-app-text-muted">
-              <p>{formatDateRange(passEvent.start_date, passEvent.end_date)}</p>
+              <p>{getPortalEventDateRange(passEvent)}</p>
               {passEvent.location_name && <p>{passEvent.location_name}</p>}
               {checkedInLabel && <p>Checked in at {checkedInLabel}</p>}
+              {passEvent.registration_status === 'waitlisted' && (
+                <p>This registration is waitlisted, so QR check-in is not available yet.</p>
+              )}
             </div>
 
             <div className="mt-4 flex gap-2">
@@ -278,7 +342,9 @@ export default function PortalEventsPage() {
               {passEvent.check_in_token && (
                 <button
                   type="button"
-                  onClick={() => void navigator.clipboard?.writeText(passEvent.check_in_token || '')}
+                  onClick={() =>
+                    void navigator.clipboard?.writeText(passEvent.check_in_token || '')
+                  }
                   className="rounded border border-app-input-border px-3 py-2 text-xs"
                 >
                   Copy Token

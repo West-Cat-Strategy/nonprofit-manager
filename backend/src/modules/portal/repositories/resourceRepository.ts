@@ -1,6 +1,5 @@
 import { Pool } from 'pg';
 import {
-  PORTAL_EVENT_COLUMNS,
   PortalListOrder,
   PortalPagedResult,
   PortalRepositorySupport,
@@ -27,7 +26,7 @@ export class PortalResourceRepository {
     const { limit, offset } = this.support.normalizeOffsetPage(query);
     const search = this.support.normalizeSearch(query?.search);
     const sortColumns: Record<'start_date' | 'name' | 'created_at', string> = {
-      start_date: 'e.start_date',
+      start_date: 'COALESCE(reg.occurrence_start_date, next_occurrence.start_date, e.start_date)',
       name: 'LOWER(e.name)',
       created_at: 'e.created_at',
     };
@@ -40,9 +39,43 @@ export class PortalResourceRepository {
     const totalResult = await this.pool.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count
        FROM events e
-       WHERE e.start_date >= NOW()
-         AND ($2::timestamptz IS NULL OR e.start_date >= $2)
-         AND ($3::timestamptz IS NULL OR e.start_date <= $3)
+       LEFT JOIN LATERAL (
+         SELECT
+           eo.id as occurrence_id,
+           eo.event_name as occurrence_name,
+           eo.sequence_index + 1 as occurrence_index,
+           eo.start_date,
+           eo.end_date
+         FROM event_occurrences eo
+         WHERE eo.event_id = e.id
+           AND eo.status NOT IN ('cancelled', 'completed')
+         ORDER BY
+           CASE WHEN eo.end_date >= NOW() THEN 0 ELSE 1 END,
+           CASE WHEN eo.end_date >= NOW() THEN eo.start_date END ASC NULLS LAST,
+           CASE WHEN eo.end_date < NOW() THEN eo.start_date END DESC NULLS LAST
+         LIMIT 1
+       ) next_occurrence ON true
+       LEFT JOIN LATERAL (
+         SELECT
+           reg.id as registration_id,
+           reg.occurrence_id,
+           eo.event_name as occurrence_name,
+           eo.sequence_index + 1 as occurrence_index,
+           eo.start_date as occurrence_start_date,
+           eo.end_date as occurrence_end_date
+         FROM event_registrations reg
+         INNER JOIN event_occurrences eo ON eo.id = reg.occurrence_id
+         WHERE reg.event_id = e.id
+           AND reg.contact_id = $1
+         ORDER BY
+           CASE WHEN eo.end_date >= NOW() THEN 0 ELSE 1 END,
+           CASE WHEN eo.end_date >= NOW() THEN eo.start_date END ASC NULLS LAST,
+           CASE WHEN eo.end_date < NOW() THEN eo.start_date END DESC NULLS LAST
+         LIMIT 1
+       ) reg ON true
+       WHERE COALESCE(reg.occurrence_end_date, next_occurrence.end_date, e.end_date) >= NOW()
+         AND ($2::timestamptz IS NULL OR COALESCE(reg.occurrence_start_date, next_occurrence.start_date, e.start_date) >= $2)
+         AND ($3::timestamptz IS NULL OR COALESCE(reg.occurrence_start_date, next_occurrence.start_date, e.start_date) <= $3)
          AND e.status NOT IN ('cancelled', 'completed')
          AND (
            e.is_public = true
@@ -63,30 +96,93 @@ export class PortalResourceRepository {
 
     const result = await this.pool.query<Record<string, unknown>>(
       `SELECT
-         ${PORTAL_EVENT_COLUMNS},
-         er.registration_id,
-         er.registration_status,
-         er.check_in_token,
-         er.checked_in,
-         er.check_in_time,
-         er.check_in_method
+         e.id,
+         e.name,
+         e.description,
+         e.start_date,
+         e.end_date,
+         e.location_name,
+         e.event_type,
+         e.id as series_id,
+         e.name as series_name,
+         COALESCE(reg.occurrence_id, next_occurrence.occurrence_id) as occurrence_id,
+         COALESCE(reg.occurrence_name, next_occurrence.occurrence_name) as occurrence_name,
+         CASE
+           WHEN occurrence_counts.occurrence_count > 1 THEN
+             CASE
+               WHEN COALESCE(reg.occurrence_name, next_occurrence.occurrence_name) IS NOT NULL
+                    AND COALESCE(reg.occurrence_name, next_occurrence.occurrence_name) <> e.name
+                 THEN COALESCE(reg.occurrence_name, next_occurrence.occurrence_name)
+               WHEN COALESCE(reg.occurrence_index, next_occurrence.occurrence_index) IS NOT NULL
+                 THEN CONCAT('Occurrence ', COALESCE(reg.occurrence_index, next_occurrence.occurrence_index))
+               ELSE NULL
+             END
+           ELSE NULL
+         END as occurrence_label,
+         COALESCE(reg.occurrence_index, next_occurrence.occurrence_index) as occurrence_index,
+         COALESCE(occurrence_counts.occurrence_count, 0)::int as occurrence_count,
+         COALESCE(reg.occurrence_start_date, next_occurrence.start_date) as occurrence_start_date,
+         COALESCE(reg.occurrence_end_date, next_occurrence.end_date) as occurrence_end_date,
+         reg.registration_id,
+         reg.registration_status,
+         reg.confirmation_email_status,
+         reg.confirmation_email_sent_at,
+         reg.confirmation_email_last_error,
+         reg.check_in_token,
+         reg.checked_in,
+         reg.check_in_time,
+         reg.check_in_method
        FROM events e
+       LEFT JOIN LATERAL (
+         SELECT COUNT(*)::int as occurrence_count
+         FROM event_occurrences eo_count
+         WHERE eo_count.event_id = e.id
+       ) occurrence_counts ON true
+       LEFT JOIN LATERAL (
+         SELECT
+           eo.id as occurrence_id,
+           eo.event_name as occurrence_name,
+           eo.sequence_index + 1 as occurrence_index,
+           eo.start_date,
+           eo.end_date
+         FROM event_occurrences eo
+         WHERE eo.event_id = e.id
+           AND eo.status NOT IN ('cancelled', 'completed')
+         ORDER BY
+           CASE WHEN eo.end_date >= NOW() THEN 0 ELSE 1 END,
+           CASE WHEN eo.end_date >= NOW() THEN eo.start_date END ASC NULLS LAST,
+           CASE WHEN eo.end_date < NOW() THEN eo.start_date END DESC NULLS LAST
+         LIMIT 1
+       ) next_occurrence ON true
        LEFT JOIN LATERAL (
          SELECT
            reg.id AS registration_id,
+           reg.occurrence_id,
            reg.registration_status,
+           reg.confirmation_email_status,
+           reg.confirmation_email_sent_at,
+           reg.confirmation_email_error as confirmation_email_last_error,
            reg.check_in_token,
            reg.checked_in,
            reg.check_in_time,
-           reg.check_in_method
+           reg.check_in_method,
+           eo.event_name as occurrence_name,
+           eo.sequence_index + 1 as occurrence_index,
+           eo.start_date as occurrence_start_date,
+           eo.end_date as occurrence_end_date
          FROM event_registrations reg
+         INNER JOIN event_occurrences eo ON eo.id = reg.occurrence_id
          WHERE reg.event_id = e.id
            AND reg.contact_id = $1
+         ORDER BY
+           CASE WHEN eo.end_date >= NOW() THEN 0 ELSE 1 END,
+           CASE WHEN eo.end_date >= NOW() THEN eo.start_date END ASC NULLS LAST,
+           CASE WHEN eo.end_date < NOW() THEN eo.start_date END DESC NULLS LAST
          LIMIT 1
-       ) er ON true
-       WHERE e.start_date >= NOW()
-         AND ($2::timestamptz IS NULL OR e.start_date >= $2)
-         AND ($3::timestamptz IS NULL OR e.start_date <= $3)
+       ) reg ON true
+       WHERE COALESCE(reg.occurrence_end_date, next_occurrence.end_date, e.end_date) >= NOW()
+         AND ($2::timestamptz IS NULL OR COALESCE(reg.occurrence_start_date, next_occurrence.start_date, e.start_date) >= $2)
+         AND ($3::timestamptz IS NULL OR COALESCE(reg.occurrence_start_date, next_occurrence.start_date, e.start_date) <= $3)
          AND e.status NOT IN ('cancelled', 'completed')
          AND (
            e.is_public = true
@@ -114,9 +210,24 @@ export class PortalResourceRepository {
 
   async getEventForPortalRegistration(eventId: string): Promise<Record<string, unknown> | null> {
     const result = await this.pool.query(
-      `SELECT id, is_public, start_date, status
-       FROM events
-       WHERE id = $1`,
+      `SELECT
+         e.id,
+         e.is_public,
+         e.status,
+         COALESCE(next_occurrence.start_date, e.start_date) as start_date
+       FROM events e
+       LEFT JOIN LATERAL (
+         SELECT eo.start_date
+         FROM event_occurrences eo
+         WHERE eo.event_id = e.id
+           AND eo.status NOT IN ('cancelled', 'completed')
+         ORDER BY
+           CASE WHEN eo.end_date >= NOW() THEN 0 ELSE 1 END,
+           CASE WHEN eo.end_date >= NOW() THEN eo.start_date END ASC NULLS LAST,
+           CASE WHEN eo.end_date < NOW() THEN eo.start_date END DESC NULLS LAST
+         LIMIT 1
+       ) next_occurrence ON true
+       WHERE e.id = $1`,
       [eventId]
     );
 
@@ -125,9 +236,16 @@ export class PortalResourceRepository {
 
   async getPortalRegistrationByEvent(eventId: string, contactId: string): Promise<string | null> {
     const result = await this.pool.query(
-      `SELECT id
-       FROM event_registrations
-       WHERE event_id = $1 AND contact_id = $2`,
+      `SELECT reg.id
+       FROM event_registrations reg
+       INNER JOIN event_occurrences eo ON eo.id = reg.occurrence_id
+       WHERE reg.event_id = $1
+         AND reg.contact_id = $2
+       ORDER BY
+         CASE WHEN eo.end_date >= NOW() THEN 0 ELSE 1 END,
+         CASE WHEN eo.end_date >= NOW() THEN eo.start_date END ASC NULLS LAST,
+         CASE WHEN eo.end_date < NOW() THEN eo.start_date END DESC NULLS LAST
+       LIMIT 1`,
       [eventId, contactId]
     );
 

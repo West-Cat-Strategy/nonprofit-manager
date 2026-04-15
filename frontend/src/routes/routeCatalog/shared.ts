@@ -233,6 +233,7 @@ const routeParentIds: Record<string, string> = {
   'admin-settings-workspace-modules': 'admin-settings',
   'admin-settings-branding': 'admin-settings',
   'admin-settings-users': 'admin-settings',
+  'admin-settings-groups': 'admin-settings',
   'admin-settings-communications': 'admin-settings',
   'admin-settings-messaging': 'admin-settings',
   'admin-settings-outcomes': 'admin-settings',

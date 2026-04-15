@@ -57,6 +57,10 @@ export const adminRoleParamsSchema = z.object({
   id: uuidSchema,
 });
 
+export const adminPolicyGroupParamsSchema = z.object({
+  id: uuidSchema,
+});
+
 export const adminRoleCreateSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
@@ -70,6 +74,33 @@ export const adminRoleUpdateSchema = z
     name: z.string().trim().min(1).max(120).optional(),
     description: z.string().trim().max(500).optional(),
     permissions: z.array(z.string().trim().min(1).max(255)).optional(),
+  })
+  .strict();
+
+export const adminPolicyGroupCreateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    description: z.string().trim().max(500).nullable().optional(),
+    roles: z.array(userRoleSchema).max(50).optional(),
+  })
+  .strict();
+
+export const adminPolicyGroupUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    description: z.string().trim().max(500).nullable().optional(),
+    roles: z.array(userRoleSchema).max(50).optional(),
+  })
+  .strict();
+
+export const adminUserAccessParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+export const adminUserAccessBodySchema = z
+  .object({
+    groups: z.array(uuidSchema).optional(),
+    organizationAccess: z.array(uuidSchema).optional(),
   })
   .strict();
 
@@ -192,8 +223,13 @@ export type AdminPendingRegistrationParamsInput = z.infer<
 >;
 export type UpdateRegistrationSettingsInput = z.infer<typeof updateRegistrationSettingsSchema>;
 export type AdminRoleParamsInput = z.infer<typeof adminRoleParamsSchema>;
+export type AdminPolicyGroupParamsInput = z.infer<typeof adminPolicyGroupParamsSchema>;
 export type AdminRoleCreateInput = z.infer<typeof adminRoleCreateSchema>;
 export type AdminRoleUpdateInput = z.infer<typeof adminRoleUpdateSchema>;
+export type AdminPolicyGroupCreateInput = z.infer<typeof adminPolicyGroupCreateSchema>;
+export type AdminPolicyGroupUpdateInput = z.infer<typeof adminPolicyGroupUpdateSchema>;
+export type AdminUserAccessParamsInput = z.infer<typeof adminUserAccessParamsSchema>;
+export type AdminUserAccessBodyInput = z.infer<typeof adminUserAccessBodySchema>;
 export type AdminUserAuditLogsParamsInput = z.infer<typeof adminUserAuditLogsParamsSchema>;
 export type RejectPendingRegistrationInput = z.infer<typeof rejectPendingRegistrationSchema>;
 export type AdminAuditLogsQueryInput = z.infer<typeof adminAuditLogsQuerySchema>;

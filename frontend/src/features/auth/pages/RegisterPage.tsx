@@ -11,6 +11,8 @@ import { useAppDispatch } from '../../../store/hooks';
 import { setCredentials } from '../state';
 import { primeStaffSession } from '../utils/primeStaffSession';
 
+type PendingPasskeyState = 'idle' | 'loading' | 'complete';
+
 export default function Register() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -19,6 +21,11 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(false);
+  const [registrationToken, setRegistrationToken] = useState<string | null>(null);
+  const [passkeySetupAllowed, setPasskeySetupAllowed] = useState(false);
+  const [hasStagedPasskeys, setHasStagedPasskeys] = useState(false);
+  const [pendingPasskeyState, setPendingPasskeyState] = useState<PendingPasskeyState>('idle');
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
   const { error, details, setFromError, clear } = useApiError({ notify: true });
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -27,9 +34,16 @@ export default function Register() {
     document.title = 'Register | Nonprofit Manager';
   }, []);
 
+  const normalizedEmail = email.trim().toLowerCase();
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     clear();
+    setPasskeyError(null);
+    setHasStagedPasskeys(false);
+    setPendingPasskeyState('idle');
+    setRegistrationToken(null);
+    setPasskeySetupAllowed(false);
 
     if (password !== confirmPassword) {
       setFromError(new Error('Passwords do not match'), 'Passwords do not match');
@@ -47,7 +61,10 @@ export default function Register() {
       };
       const response = await authService.register(payload);
 
-      if ('pendingApproval' in response && (response as { pendingApproval?: boolean }).pendingApproval) {
+      if (response.pendingApproval) {
+        setRegistrationToken(response.registrationToken ?? null);
+        setPasskeySetupAllowed(Boolean(response.passkeySetupAllowed && response.registrationToken));
+        setHasStagedPasskeys(Boolean(response.hasStagedPasskeys));
         setPendingApproval(true);
         return;
       }
@@ -63,6 +80,16 @@ export default function Register() {
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 202 || err.response?.data?.pendingApproval) {
+          setRegistrationToken((err.response?.data as { registrationToken?: string | null } | undefined)?.registrationToken ?? null);
+          setPasskeySetupAllowed(
+            Boolean(
+              (err.response?.data as { passkeySetupAllowed?: boolean } | undefined)?.passkeySetupAllowed &&
+                (err.response?.data as { registrationToken?: string | null } | undefined)?.registrationToken
+            )
+          );
+          setHasStagedPasskeys(
+            Boolean((err.response?.data as { hasStagedPasskeys?: boolean } | undefined)?.hasStagedPasskeys)
+          );
           setPendingApproval(true);
           return;
         }
@@ -89,6 +116,47 @@ export default function Register() {
     }
   };
 
+  const handlePendingPasskeySetup = async () => {
+    clear();
+    setPasskeyError(null);
+
+    if (!registrationToken) {
+      setPasskeyError('Missing registration token. Please submit the form again.');
+      return;
+    }
+
+    setPendingPasskeyState('loading');
+
+    try {
+      const { startRegistration } = await import('@simplewebauthn/browser');
+      const { challengeId, options } = await authService.pendingPasskeyRegistrationOptions({
+        registrationToken,
+        email: normalizedEmail,
+      });
+      const credential = await startRegistration(options as never);
+      const response = await authService.pendingPasskeyRegistrationVerify({
+        registrationToken,
+        challengeId,
+        credential,
+        name: [firstName, lastName].filter(Boolean).join(' ') || undefined,
+      });
+      setHasStagedPasskeys(Boolean(response.hasStagedPasskeys ?? true));
+      setPendingPasskeyState('complete');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setPasskeyError('Passkey setup failed. You can still finish later after approval.');
+      } else {
+        setPasskeyError('Passkey setup failed. You can still finish later after approval.');
+      }
+    } finally {
+      setPendingPasskeyState('idle');
+    }
+  };
+
+  const pendingPasskeyCopy = hasStagedPasskeys
+    ? 'A passkey has been staged for this request. It will become available after an administrator approves your account.'
+    : 'Optional: add a passkey now so it is ready once your account is approved.';
+
   if (pendingApproval) {
     return (
       <AuthHeroShell
@@ -100,15 +168,55 @@ export default function Register() {
           'Use the same email address to sign in after approval.',
         ]}
       >
-        <p className="text-sm text-app-text">
-          Your registration request has been submitted and is awaiting admin approval.
-        </p>
-        <Link
-          to="/login"
-          className="mt-6 inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover"
-        >
-          Back to Login
-        </Link>
+        <div className="space-y-4">
+          <p className="text-sm text-app-text">
+            Your registration request has been submitted and is awaiting admin approval.
+          </p>
+          {hasStagedPasskeys && !passkeySetupAllowed && (
+            <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3 text-sm text-app-text-muted">
+              A passkey has already been staged for this request and will activate after approval.
+            </div>
+          )}
+          {passkeySetupAllowed && (
+            <div className="rounded-2xl border border-app-border bg-app-surface p-4">
+              <p className="text-sm font-semibold text-app-text-heading">Optional passkey setup</p>
+              <p className="mt-1 text-sm text-app-text-muted">{pendingPasskeyCopy}</p>
+              {passkeyError && (
+                <p className="mt-3 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {passkeyError}
+                </p>
+              )}
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => void handlePendingPasskeySetup()}
+                  disabled={pendingPasskeyState === 'loading' || hasStagedPasskeys}
+                  className="inline-flex items-center justify-center rounded-xl bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] transition hover:bg-app-accent-hover disabled:opacity-50"
+                >
+                  {pendingPasskeyState === 'loading'
+                    ? 'Opening passkey setup...'
+                    : hasStagedPasskeys
+                      ? 'Passkey staged'
+                      : 'Set up passkey'}
+                </button>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover"
+                >
+                  Continue to login
+                </Link>
+              </div>
+            </div>
+          )}
+          {!passkeySetupAllowed && (
+            <Link
+              to="/login"
+              className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover"
+            >
+              Back to Login
+            </Link>
+          )}
+        </div>
       </AuthHeroShell>
     );
   }

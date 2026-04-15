@@ -4,5 +4,7 @@ export * from './twilioSettingsController';
 export * from './registrationSettingsController';
 export * from './adminStatsController';
 export * from './roleCatalogController';
+export * from './policyGroupController';
+export * from './userAccessController';
 export * from './organizationSettingsController';
 export * as outcomeDefinitionController from './outcomeDefinitionController';

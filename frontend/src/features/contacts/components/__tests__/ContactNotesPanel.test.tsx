@@ -60,6 +60,34 @@ const mockApi = api as {
 };
 
 const createEnvelope = <T,>(data: T) => ({ data: { success: true as const, data } });
+const createTimelineResponse = (items: unknown[] = []) =>
+  createEnvelope({
+    items,
+    counts: {
+      all: items.length,
+      contact_notes: items.filter(
+        (item) =>
+          typeof item === 'object' &&
+          item !== null &&
+          'source_type' in item &&
+          (item as { source_type?: string }).source_type === 'contact_note'
+      ).length,
+      case_notes: items.filter(
+        (item) =>
+          typeof item === 'object' &&
+          item !== null &&
+          'source_type' in item &&
+          (item as { source_type?: string }).source_type === 'case_note'
+      ).length,
+      event_activity: items.filter(
+        (item) =>
+          typeof item === 'object' &&
+          item !== null &&
+          'source_type' in item &&
+          (item as { source_type?: string }).source_type === 'event_activity'
+      ).length,
+    },
+  });
 
 const renderContactNotes = () => {
   const contactsState = contactsReducer(undefined, { type: '@@INIT' });
@@ -89,7 +117,7 @@ describe('ContactNotesPanel', () => {
         updated_at: '2026-01-01T00:00:00.000Z',
       },
     ]);
-    mockApi.get.mockResolvedValue(createEnvelope({ notes: [], total: 0 }));
+    mockApi.get.mockResolvedValue(createTimelineResponse());
     mockApi.post.mockResolvedValue(
       createEnvelope({
         id: 'note-1',
@@ -136,7 +164,7 @@ describe('ContactNotesPanel', () => {
     renderContactNotes();
 
     await waitFor(() => {
-      expect(mockApi.get).toHaveBeenCalledWith('/v2/contacts/contact-1/notes');
+      expect(mockApi.get).toHaveBeenCalledWith('/v2/contacts/contact-1/notes/timeline');
     });
 
     fireEvent.click(screen.getByRole('button', { name: /\+ add note/i }));
@@ -171,49 +199,55 @@ describe('ContactNotesPanel', () => {
 
   it('posts outcome impacts for case-linked notes and renders saved outcome chips', async () => {
     mockApi.get.mockResolvedValueOnce(
-      createEnvelope({
-        notes: [
-          {
-            id: 'note-existing',
-            contact_id: 'contact-1',
-            case_id: 'case-1',
-            note_type: 'note',
-            subject: null,
-            content: 'Existing note',
-            is_internal: false,
-            is_important: false,
-            is_pinned: false,
-            is_alert: false,
-            is_portal_visible: false,
-            portal_visible_at: null,
-            portal_visible_by: null,
-            attachments: null,
-            created_at: '2026-03-10T00:00:00.000Z',
-            updated_at: '2026-03-10T00:00:00.000Z',
-            created_by: 'user-1',
-            outcome_impacts: [
-              {
-                id: 'impact-existing',
-                interaction_id: 'note-existing',
-                outcome_definition_id: 'outcome-1',
-                impact: true,
-                attribution: 'DIRECT',
-                intensity: null,
-                evidence_note: null,
-                created_by_user_id: 'user-1',
-                created_at: '2026-03-10T00:00:00.000Z',
-                updated_at: '2026-03-10T00:00:00.000Z',
-                outcome_definition: {
-                  id: 'outcome-1',
-                  key: 'maintained_employment',
-                  name: 'Maintained employment',
-                },
+      createTimelineResponse([
+        {
+          id: 'note-existing',
+          source_type: 'contact_note',
+          note_type: 'note',
+          title: null,
+          content: 'Existing note',
+          case_id: 'case-1',
+          case_number: 'CASE-001',
+          case_title: 'Housing support',
+          event_id: null,
+          event_name: null,
+          activity_type: null,
+          registration_status: null,
+          previous_registration_status: null,
+          next_registration_status: null,
+          checked_in: false,
+          check_in_method: null,
+          is_internal: false,
+          is_important: false,
+          is_pinned: false,
+          is_alert: false,
+          is_portal_visible: false,
+          created_at: '2026-03-10T00:00:00.000Z',
+          updated_at: '2026-03-10T00:00:00.000Z',
+          created_by: 'user-1',
+          created_by_first_name: 'Staff',
+          created_by_last_name: 'Member',
+          outcome_impacts: [
+            {
+              id: 'impact-existing',
+              interaction_id: 'note-existing',
+              outcome_definition_id: 'outcome-1',
+              impact: true,
+              attribution: 'DIRECT',
+              intensity: null,
+              evidence_note: null,
+              created_by_user_id: 'user-1',
+              created_at: '2026-03-10T00:00:00.000Z',
+              updated_at: '2026-03-10T00:00:00.000Z',
+              outcome_definition: {
+                id: 'outcome-1',
+                key: 'maintained_employment',
+                name: 'Maintained employment',
               },
-            ],
-          },
-        ],
-        total: 1,
-      })
+            },
+          ],
+        },
+      ])
     );
 
     renderContactNotes();

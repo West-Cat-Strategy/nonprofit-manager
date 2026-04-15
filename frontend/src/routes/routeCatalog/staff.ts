@@ -164,6 +164,15 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     title: 'Event Calendar',
     section: 'Engagement',
     path: '/events/calendar',
+    staffNav: {
+      group: 'secondary',
+      order: 55,
+      label: 'Calendar',
+      shortLabel: 'Calendar',
+      ariaLabel: 'Open the events calendar',
+      icon: '🗓️',
+      pinnedEligible: true,
+    },
   }),
   staffRoute({
     id: 'events-check-in',
@@ -683,6 +692,11 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     id: 'admin-settings-users',
     title: 'Users & Security',
     path: '/settings/admin/users',
+  }),
+  adminRoute({
+    id: 'admin-settings-groups',
+    title: 'Groups & Policy',
+    path: '/settings/admin/groups',
   }),
   adminRoute({
     id: 'admin-settings-communications',

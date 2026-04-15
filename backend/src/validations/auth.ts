@@ -217,6 +217,26 @@ export const passkeyRegistrationVerifySchema = z.object({
 
 export type PasskeyRegistrationVerifyInput = z.infer<typeof passkeyRegistrationVerifySchema>;
 
+export const pendingPasskeyRegistrationOptionsSchema = z.object({
+  registrationToken: z.string().trim().min(1, 'Registration token is required'),
+  email: emailSchema,
+});
+
+export type PendingPasskeyRegistrationOptionsInput = z.infer<
+  typeof pendingPasskeyRegistrationOptionsSchema
+>;
+
+export const pendingPasskeyRegistrationVerifySchema = z.object({
+  registrationToken: z.string().trim().min(1, 'Registration token is required'),
+  challengeId: z.string().min(1, 'Challenge ID is required'),
+  credential: z.unknown().refine((val) => val !== null && val !== undefined, 'Credential is required'),
+  name: z.string().trim().max(100).nullable().optional(),
+});
+
+export type PendingPasskeyRegistrationVerifyInput = z.infer<
+  typeof pendingPasskeyRegistrationVerifySchema
+>;
+
 // Passkey Login Options
 export const passkeyLoginOptionsSchema = z.object({
   email: emailSchema,

@@ -1,18 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import {
-  fetchContactNotes,
-  createContactNote,
-  deleteContactNote,
-  updateContactNote,
-} from '../state';
+import { createContactNote, deleteContactNote, updateContactNote } from '../state';
 import { selectContactCasesByContact } from '../state/contactCases';
+import { contactsApiClient } from '../api/contactsApiClient';
 import OutcomeTagSelector from '../../outcomes/components/OutcomeTagSelector';
 import { useOutcomeDefinitions } from '../../outcomes/hooks/useOutcomeDefinitions';
 import { buildOutcomeImpactPayload } from '../../outcomes/utils/outcomeSelection';
 import { useToast } from '../../../contexts/useToast';
-import type { CreateContactNoteDTO, UpdateContactNoteDTO, ContactNoteType } from '../../../types/contact';
+import type {
+  ContactNoteTimelineCounts,
+  ContactNoteTimelineItem,
+  CreateContactNoteDTO,
+  UpdateContactNoteDTO,
+  ContactNoteType,
+} from '../../../types/contact';
 import { NOTE_TYPES } from '../../../types/contact';
 import { getNoteIcon, getNoteTypeLabel, formatNoteDate } from '../../../utils/notes';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
@@ -28,6 +30,8 @@ type ContactNoteDraft = CreateContactNoteDTO & {
   outcome_definition_ids: string[];
 };
 
+type NotesSourceFilter = 'all' | 'contact_note' | 'case_note' | 'event_activity';
+
 const emptyNoteDraft = (): ContactNoteDraft => ({
   note_type: 'note',
   subject: '',
@@ -41,9 +45,76 @@ const emptyNoteDraft = (): ContactNoteDraft => ({
   outcome_definition_ids: [],
 });
 
+const emptyTimelineCounts: ContactNoteTimelineCounts = {
+  all: 0,
+  contact_notes: 0,
+  case_notes: 0,
+  event_activity: 0,
+};
+
+const sourceFilterOptions: Array<{
+  value: NotesSourceFilter;
+  label: string;
+  countKey: keyof ContactNoteTimelineCounts;
+}> = [
+  { value: 'all', label: 'All', countKey: 'all' },
+  { value: 'contact_note', label: 'My Notes', countKey: 'contact_notes' },
+  { value: 'case_note', label: 'Case Notes', countKey: 'case_notes' },
+  { value: 'event_activity', label: 'Event Activity', countKey: 'event_activity' },
+];
+
+const getSourceBadge = (item: ContactNoteTimelineItem): string => {
+  switch (item.source_type) {
+    case 'case_note':
+      return 'Case Note';
+    case 'event_activity':
+      return 'Event Activity';
+    default:
+      return 'Contact Note';
+  }
+};
+
+const getEventActivityBadge = (item: ContactNoteTimelineItem): string => {
+  switch (item.activity_type) {
+    case 'event_registration_updated':
+      return 'Status';
+    case 'event_check_in':
+      return 'Check-In';
+    default:
+      return 'RSVP';
+  }
+};
+
+const getTimelineTitle = (item: ContactNoteTimelineItem): string => {
+  if (item.source_type === 'event_activity') {
+    return item.title || item.event_name || 'Event activity';
+  }
+
+  if (item.title?.trim()) {
+    return item.title;
+  }
+
+  return getNoteTypeLabel((item.note_type as ContactNoteType) || 'note');
+};
+
+const getTimelineIcon = (item: ContactNoteTimelineItem): string => {
+  if (item.source_type === 'event_activity') {
+    switch (item.activity_type) {
+      case 'event_check_in':
+        return '✓';
+      case 'event_registration_updated':
+        return '↻';
+      default:
+        return '◦';
+    }
+  }
+
+  return getNoteIcon((item.note_type as ContactNoteType) || 'note');
+};
+
 const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: ContactNotesProps) => {
   const dispatch = useAppDispatch();
-  const { contactNotes, notesLoading } = useAppSelector((state) => state.contacts.notes);
+  const { notesLoading } = useAppSelector((state) => state.contacts.notes);
   const contactCases = useAppSelector((state) => selectContactCasesByContact(state, contactId));
   const {
     outcomeDefinitions,
@@ -56,12 +127,31 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [submitMode, setSubmitMode] = useState<'close' | 'another'>('close');
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<ContactNoteType | 'all'>('all');
+  const [sourceFilter, setSourceFilter] = useState<NotesSourceFilter>('all');
   const [newNote, setNewNote] = useState<ContactNoteDraft>(emptyNoteDraft);
+  const [timelineItems, setTimelineItems] = useState<ContactNoteTimelineItem[]>([]);
+  const [timelineCounts, setTimelineCounts] = useState<ContactNoteTimelineCounts>(emptyTimelineCounts);
+  const [timelineLoading, setTimelineLoading] = useState(true);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
+
+  const loadTimeline = useCallback(async () => {
+    try {
+      setTimelineLoading(true);
+      setTimelineError(null);
+      const response = await contactsApiClient.listNoteTimeline(contactId);
+      setTimelineItems(response.items || []);
+      setTimelineCounts(response.counts || emptyTimelineCounts);
+    } catch (error) {
+      console.error('Failed to load contact note timeline:', error);
+      setTimelineError('Failed to load notes timeline');
+    } finally {
+      setTimelineLoading(false);
+    }
+  }, [contactId]);
 
   useEffect(() => {
-    dispatch(fetchContactNotes(contactId));
-  }, [dispatch, contactId]);
+    void loadTimeline();
+  }, [loadTimeline]);
 
   useEffect(() => {
     if (openOnMount) {
@@ -92,8 +182,8 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
     }));
   };
 
-  const handleSubmitNote = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitNote = async (event: FormEvent) => {
+    event.preventDefault();
 
     if (!newNote.content?.trim()) {
       showError('Please enter note content');
@@ -126,6 +216,7 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
         })
       ).unwrap();
 
+      await loadTimeline();
       showSuccess('Note added successfully');
       setNewNote(emptyNoteDraft());
       setIsAddingNote(submitMode === 'another');
@@ -142,6 +233,7 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
 
     try {
       await dispatch(deleteContactNote(noteId)).unwrap();
+      await loadTimeline();
       showSuccess('Note deleted');
     } catch (error) {
       console.error('Failed to delete note:', error);
@@ -152,6 +244,7 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
   const handleToggleFlag = async (noteId: string, updates: Partial<UpdateContactNoteDTO>) => {
     try {
       await dispatch(updateContactNote({ noteId, data: updates })).unwrap();
+      await loadTimeline();
       showSuccess('Note updated');
     } catch (error) {
       console.error('Failed to update note:', error);
@@ -159,25 +252,46 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
     }
   };
 
-  // Sort notes: pinned first, then alerts, then by date
-  const sortedNotes = [...contactNotes].sort((a, b) => {
-    if (a.is_pinned && !b.is_pinned) return -1;
-    if (!a.is_pinned && b.is_pinned) return 1;
-    if (a.is_alert && !b.is_alert) return -1;
-    if (!a.is_alert && b.is_alert) return 1;
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  const filteredTimelineItems = useMemo(() => {
+    const needle = searchTerm.trim().toLowerCase();
 
-  const filteredNotes = sortedNotes.filter((note) => {
-    if (typeFilter !== 'all' && note.note_type !== typeFilter) return false;
-    if (!searchTerm.trim()) return true;
-    const haystack = `${note.subject || ''} ${note.content || ''}`.toLowerCase();
-    return haystack.includes(searchTerm.trim().toLowerCase());
-  });
+    return [...timelineItems]
+      .sort((left, right) => {
+        if (left.is_pinned && !right.is_pinned) return -1;
+        if (!left.is_pinned && right.is_pinned) return 1;
+        if (left.is_alert && !right.is_alert) return -1;
+        if (!left.is_alert && right.is_alert) return 1;
+        return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+      })
+      .filter((item) => {
+        if (sourceFilter !== 'all' && item.source_type !== sourceFilter) {
+          return false;
+        }
+
+        if (!needle) {
+          return true;
+        }
+
+        const haystack = [
+          item.title,
+          item.content,
+          item.case_number,
+          item.case_title,
+          item.event_name,
+          item.registration_status,
+          item.previous_registration_status,
+          item.next_registration_status,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        return haystack.includes(needle);
+      });
+  }, [searchTerm, sourceFilter, timelineItems]);
 
   return (
     <div className="space-y-6">
-      {/* Quick Templates */}
       <div className="flex flex-wrap gap-2">
         {noteTemplates.map((template) => (
           <button
@@ -190,30 +304,32 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
         <input
           type="text"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search notes..."
-          className="flex-1 px-3 py-2 border-2 border-black text-sm font-bold"
-        />
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as ContactNoteType | 'all')}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          placeholder="Search notes, cases, or events..."
           className="px-3 py-2 border-2 border-black text-sm font-bold"
-        >
-          <option value="all">All Types</option>
-          {NOTE_TYPES.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
+        />
+        <div className="flex flex-wrap gap-2">
+          {sourceFilterOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setSourceFilter(option.value)}
+              className={`px-3 py-2 text-xs font-black uppercase border-2 border-black transition ${
+                sourceFilter === option.value
+                  ? 'bg-[var(--loop-yellow)] text-black'
+                  : 'bg-app-surface text-black'
+              }`}
+            >
+              {option.label} ({timelineCounts[option.countKey]})
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
-      {/* Add Note Button */}
       {!isAddingNote && (
         <button
           onClick={() => setIsAddingNote(true)}
@@ -223,12 +339,10 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
         </button>
       )}
 
-      {/* Add Note Form */}
       {isAddingNote && (
         <form onSubmit={handleSubmitNote} className="bg-app-surface rounded-lg border border-app-border p-4">
           <h3 className="text-lg font-semibold mb-4">Add Note</h3>
 
-          {/* Note Type */}
           <div className="mb-4">
             <label
               htmlFor="contact-note-type"
@@ -239,8 +353,11 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
             <select
               id="contact-note-type"
               value={newNote.note_type}
-              onChange={(e) =>
-                setNewNote((prev) => ({ ...prev, note_type: e.target.value as ContactNoteType }))
+              onChange={(event) =>
+                setNewNote((prev) => ({
+                  ...prev,
+                  note_type: event.target.value as ContactNoteType,
+                }))
               }
               title="Select note type"
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
@@ -253,7 +370,6 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
             </select>
           </div>
 
-          {/* Case Association */}
           {contactCases.length > 0 && (
             <div className="mb-4">
               <label
@@ -265,11 +381,11 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
               <select
                 id="contact-note-case"
                 value={newNote.case_id || ''}
-                onChange={(e) =>
+                onChange={(event) =>
                   setNewNote((prev) => ({
                     ...prev,
-                    case_id: e.target.value || undefined,
-                    outcome_definition_ids: e.target.value ? prev.outcome_definition_ids : [],
+                    case_id: event.target.value || undefined,
+                    outcome_definition_ids: event.target.value ? prev.outcome_definition_ids : [],
                   }))
                 }
                 title="Select case to associate with this note"
@@ -305,7 +421,6 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
             </div>
           )}
 
-          {/* Subject */}
           <div className="mb-4">
             <label
               htmlFor="contact-note-subject"
@@ -317,13 +432,12 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
               id="contact-note-subject"
               type="text"
               value={newNote.subject || ''}
-              onChange={(e) => setNewNote((prev) => ({ ...prev, subject: e.target.value }))}
+              onChange={(event) => setNewNote((prev) => ({ ...prev, subject: event.target.value }))}
               placeholder="Brief summary (optional)"
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
             />
           </div>
 
-          {/* Content */}
           <div className="mb-4">
             <label
               htmlFor="contact-note-content"
@@ -334,7 +448,7 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
             <textarea
               id="contact-note-content"
               value={newNote.content}
-              onChange={(e) => setNewNote((prev) => ({ ...prev, content: e.target.value }))}
+              onChange={(event) => setNewNote((prev) => ({ ...prev, content: event.target.value }))}
               rows={4}
               required
               placeholder="Enter note details..."
@@ -342,13 +456,14 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
             />
           </div>
 
-          {/* Checkboxes */}
           <div className="mb-4 space-y-2">
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={newNote.is_internal}
-                onChange={(e) => setNewNote((prev) => ({ ...prev, is_internal: e.target.checked }))}
+                onChange={(event) =>
+                  setNewNote((prev) => ({ ...prev, is_internal: event.target.checked }))
+                }
                 className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
               />
               <span className="text-sm text-app-text-muted">Internal note (staff only)</span>
@@ -357,8 +472,8 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
               <input
                 type="checkbox"
                 checked={Boolean(newNote.is_portal_visible)}
-                onChange={(e) =>
-                  setNewNote((prev) => ({ ...prev, is_portal_visible: e.target.checked }))
+                onChange={(event) =>
+                  setNewNote((prev) => ({ ...prev, is_portal_visible: event.target.checked }))
                 }
                 className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
               />
@@ -368,8 +483,8 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
               <input
                 type="checkbox"
                 checked={newNote.is_important}
-                onChange={(e) =>
-                  setNewNote((prev) => ({ ...prev, is_important: e.target.checked }))
+                onChange={(event) =>
+                  setNewNote((prev) => ({ ...prev, is_important: event.target.checked }))
                 }
                 className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
               />
@@ -379,7 +494,9 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
               <input
                 type="checkbox"
                 checked={newNote.is_pinned}
-                onChange={(e) => setNewNote((prev) => ({ ...prev, is_pinned: e.target.checked }))}
+                onChange={(event) =>
+                  setNewNote((prev) => ({ ...prev, is_pinned: event.target.checked }))
+                }
                 className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
               />
               <span className="text-sm text-app-text-muted">Pin to top</span>
@@ -388,14 +505,17 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
               <input
                 type="checkbox"
                 checked={newNote.is_alert}
-                onChange={(e) => setNewNote((prev) => ({ ...prev, is_alert: e.target.checked }))}
+                onChange={(event) =>
+                  setNewNote((prev) => ({ ...prev, is_alert: event.target.checked }))
+                }
                 className="rounded border-app-input-border text-app-accent focus:ring-app-accent"
               />
-              <span className="text-sm text-app-text-muted">Mark as alert (shows popup when viewing contact)</span>
+              <span className="text-sm text-app-text-muted">
+                Mark as alert (shows popup when viewing contact)
+              </span>
             </label>
           </div>
 
-          {/* Form Actions */}
           <div className="flex justify-end gap-3">
             <button
               type="button"
@@ -424,165 +544,220 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
         </form>
       )}
 
-      {/* Notes Timeline */}
       <div className="space-y-4">
-        {notesLoading && contactNotes.length === 0 && (
+        {timelineLoading && (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-app-accent mx-auto"></div>
-            <p className="text-app-text-muted mt-2">Loading notes...</p>
+            <p className="text-app-text-muted mt-2">Loading notes timeline...</p>
           </div>
         )}
 
-        {!notesLoading && contactNotes.length === 0 && (
+        {!timelineLoading && timelineError && (
+          <div className="rounded-lg border border-app-border bg-app-accent-soft p-4">
+            <p className="text-sm font-semibold text-app-accent-text">{timelineError}</p>
+            <button
+              type="button"
+              onClick={() => void loadTimeline()}
+              className="mt-3 rounded border border-black bg-white px-3 py-2 text-xs font-black uppercase"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!timelineLoading && !timelineError && filteredTimelineItems.length === 0 && (
           <div className="text-center py-12 bg-app-surface-muted rounded-lg">
             <div className="text-app-text-subtle text-4xl mb-2">📝</div>
-            <p className="text-app-text-muted">No notes yet</p>
+            <p className="text-app-text-muted">No matching notes yet</p>
             <p className="text-sm text-app-text-muted mt-1">
-              Add your first note to start tracking activity
+              Contact notes, linked case notes, and event updates will appear here.
             </p>
           </div>
         )}
 
-        {filteredNotes.map((note) => (
-          <div
-            key={note.id}
-            className={`bg-app-surface rounded-lg border p-4 ${
-              note.is_alert
+        {!timelineLoading &&
+          !timelineError &&
+          filteredTimelineItems.map((item) => {
+            const isContactNote = item.source_type === 'contact_note';
+            const cardClass = isContactNote
+              ? item.is_alert
                 ? 'border-app-border bg-app-accent-soft'
-                : note.is_important
+                : item.is_important
                 ? 'border-app-border bg-app-accent-soft'
-                : note.is_pinned
+                : item.is_pinned
                 ? 'border-app-accent bg-app-accent-soft'
                 : 'border-app-border'
-            }`}
-          >
-            {/* Note Header */}
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{getNoteIcon(note.note_type)}</span>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-app-text">
-                      {getNoteTypeLabel(note.note_type)}
-                    </span>
-                    {note.is_pinned && (
-                      <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded">
-                        Pinned
-                      </span>
-                    )}
-                    {note.is_internal && (
-                      <span className="px-2 py-0.5 text-xs bg-app-surface-muted text-app-text-muted rounded">
-                        Internal
-                      </span>
-                    )}
-                    {note.is_portal_visible && (
-                      <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded">
-                        Shared in portal
-                      </span>
-                    )}
-                    {note.is_important && (
-                      <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded">
+              : 'border-app-border';
+
+            return (
+              <div key={item.id} className={`bg-app-surface rounded-lg border p-4 ${cardClass}`}>
+                <div className="flex items-start justify-between gap-4 mb-2">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">{getTimelineIcon(item)}</span>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 text-xs bg-app-surface-muted text-app-text-muted rounded uppercase font-black">
+                          {getSourceBadge(item)}
+                        </span>
+                        {item.source_type === 'event_activity' ? (
+                          <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded uppercase font-black">
+                            {getEventActivityBadge(item)}
+                          </span>
+                        ) : (
+                          <span className="font-medium text-app-text">
+                            {getNoteTypeLabel((item.note_type as ContactNoteType) || 'note')}
+                          </span>
+                        )}
+                        {item.is_pinned && (
+                          <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded">
+                            Pinned
+                          </span>
+                        )}
+                        {item.is_internal && (
+                          <span className="px-2 py-0.5 text-xs bg-app-surface-muted text-app-text-muted rounded">
+                            Internal
+                          </span>
+                        )}
+                        {item.is_portal_visible && (
+                          <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded">
+                            Shared in portal
+                          </span>
+                        )}
+                        {item.is_important && (
+                          <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded">
+                            Important
+                          </span>
+                        )}
+                        {item.is_alert && (
+                          <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded font-semibold">
+                            Alert
+                          </span>
+                        )}
+                        {item.registration_status && item.source_type === 'event_activity' && (
+                          <span className="px-2 py-0.5 text-xs bg-app-surface-muted text-app-text-muted rounded uppercase font-black">
+                            {item.registration_status.replace('_', ' ')}
+                          </span>
+                        )}
+                        {item.previous_registration_status && item.next_registration_status && (
+                          <span className="px-2 py-0.5 text-xs bg-app-surface-muted text-app-text-muted rounded uppercase font-black">
+                            {item.previous_registration_status.replace('_', ' ')} →{' '}
+                            {item.next_registration_status.replace('_', ' ')}
+                          </span>
+                        )}
+                        {item.checked_in && (
+                          <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded uppercase font-black">
+                            Checked in{item.check_in_method ? ` (${item.check_in_method})` : ''}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-app-text-muted">
+                        {[item.created_by_first_name, item.created_by_last_name].filter(Boolean).join(' ') ||
+                          'System'}{' '}
+                        • {formatNoteDate(item.created_at)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {isContactNote && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleFlag(item.id, { is_pinned: !item.is_pinned })}
+                        className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
+                          item.is_pinned
+                            ? 'border-app-accent text-app-accent-text'
+                            : 'border-app-input-border text-app-text-muted'
+                        }`}
+                        title="Toggle pin"
+                      >
+                        Pin
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleToggleFlag(item.id, { is_important: !item.is_important })
+                        }
+                        className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
+                          item.is_important
+                            ? 'border-app-border text-app-accent-text'
+                            : 'border-app-input-border text-app-text-muted'
+                        }`}
+                        title="Toggle important"
+                      >
                         Important
-                      </span>
-                    )}
-                    {note.is_alert && (
-                      <span className="px-2 py-0.5 text-xs bg-app-accent-soft text-app-accent-text rounded font-semibold">
+                      </button>
+                      <button
+                        onClick={() => handleToggleFlag(item.id, { is_alert: !item.is_alert })}
+                        className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
+                          item.is_alert
+                            ? 'border-app-border text-app-accent-text'
+                            : 'border-app-input-border text-app-text-muted'
+                        }`}
+                        title="Toggle alert"
+                      >
                         Alert
+                      </button>
+                      <button
+                        onClick={() => handleDeleteNote(item.id)}
+                        className="text-app-text-subtle hover:text-app-accent transition"
+                        title="Delete note"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="font-medium text-app-text mb-2">{getTimelineTitle(item)}</div>
+
+                {item.content && (
+                  <div className="text-app-text-muted whitespace-pre-wrap">{item.content}</div>
+                )}
+
+                {(item.outcome_impacts || []).length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(item.outcome_impacts || []).map((impact) => (
+                      <span
+                        key={impact.id}
+                        className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text"
+                      >
+                        {impact.outcome_definition?.name || impact.outcome_definition_id}
                       </span>
+                    ))}
+                  </div>
+                )}
+
+                {(item.case_id || item.event_id) && (
+                  <div className="mt-3 pt-3 border-t border-app-border flex flex-wrap gap-2">
+                    {item.case_id && (
+                      <Link
+                        to={`/cases/${item.case_id}`}
+                        className="inline-flex items-center rounded border border-app-border bg-app-surface-muted px-3 py-1.5 text-xs font-black uppercase text-app-text hover:bg-app-hover"
+                      >
+                        Open Case {item.case_number ? `(${item.case_number})` : ''}
+                      </Link>
+                    )}
+                    {item.event_id && (
+                      <Link
+                        to={`/events/${item.event_id}`}
+                        className="inline-flex items-center rounded border border-app-border bg-app-surface-muted px-3 py-1.5 text-xs font-black uppercase text-app-text hover:bg-app-hover"
+                      >
+                        Open Event
+                      </Link>
                     )}
                   </div>
-                  <div className="text-sm text-app-text-muted">
-                    {note.created_by_first_name} {note.created_by_last_name} •{' '}
-                    {formatNoteDate(note.created_at)}
-                  </div>
-                </div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleToggleFlag(note.id, { is_pinned: !note.is_pinned })}
-                  className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
-                    note.is_pinned ? 'border-app-accent text-app-accent-text' : 'border-app-input-border text-app-text-muted'
-                  }`}
-                  title="Toggle pin"
-                >
-                  Pin
-                </button>
-                <button
-                  onClick={() => handleToggleFlag(note.id, { is_important: !note.is_important })}
-                  className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
-                    note.is_important ? 'border-app-border text-app-accent-text' : 'border-app-input-border text-app-text-muted'
-                  }`}
-                  title="Toggle important"
-                >
-                  Important
-                </button>
-                <button
-                  onClick={() => handleToggleFlag(note.id, { is_alert: !note.is_alert })}
-                  className={`text-xs font-bold uppercase px-2 py-1 border rounded ${
-                    note.is_alert ? 'border-app-border text-app-accent-text' : 'border-app-input-border text-app-text-muted'
-                  }`}
-                  title="Toggle alert"
-                >
-                  Alert
-                </button>
-                <button
-                  onClick={() => handleDeleteNote(note.id)}
-                  className="text-app-text-subtle hover:text-app-accent transition"
-                  title="Delete note"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Note Subject */}
-            {note.subject && <div className="font-medium text-app-text mb-2">{note.subject}</div>}
-
-            {/* Note Content */}
-            <div className="text-app-text-muted whitespace-pre-wrap">{note.content}</div>
-
-            {(note.outcome_impacts || []).length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(note.outcome_impacts || []).map((impact) => (
-                  <span
-                    key={impact.id}
-                    className="rounded bg-app-accent-soft px-2 py-0.5 text-xs text-app-accent-text"
-                  >
-                    {impact.outcome_definition?.name || impact.outcome_definition_id}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Case Association */}
-            {note.case_id && (
-              <div className="mt-3 pt-3 border-t border-app-border text-sm">
-                <span className="text-app-text-muted">Associated with case: </span>
-                <Link
-                  to={`/cases/${note.case_id}`}
-                  className="text-app-accent hover:text-app-accent-hover font-medium"
-                >
-                  {note.case_number || note.case_title || 'View Case'}
-                </Link>
-              </div>
-            )}
-          </div>
-        ))}
+            );
+          })}
       </div>
 
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        {...dialogState}
-        onConfirm={handleConfirm}
-        onCancel={handleCancel}
-      />
+      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 };

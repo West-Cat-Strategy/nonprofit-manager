@@ -1,5 +1,6 @@
 import type {
   ContactNote,
+  ContactNotesTimelineResponse,
   CreateContactNoteDTO,
   UpdateContactNoteDTO,
 } from '@app-types/contact';
@@ -9,12 +10,17 @@ import {
   deleteContactNote,
   getContactNoteById,
   getContactNotes,
+  getContactNotesTimeline,
   updateContactNote,
 } from './contactNotesQueries';
 
 export class ContactNotesRepository implements ContactNotesPort {
   async list(contactId: string, limit?: number, offset?: number): Promise<{ notes: ContactNote[]; total: number }> {
     return getContactNotes(contactId, limit, offset);
+  }
+
+  async listTimeline(contactId: string): Promise<ContactNotesTimelineResponse> {
+    return getContactNotesTimeline(contactId);
   }
 
   async getById(noteId: string): Promise<ContactNote | null> {

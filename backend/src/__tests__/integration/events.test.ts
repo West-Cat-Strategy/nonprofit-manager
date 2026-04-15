@@ -12,6 +12,7 @@ describe('Event API Integration Tests', () => {
   const createdContactIds: string[] = [];
   const createdScopedEventIds: string[] = [];
   const createdScopedRegistrationIds: string[] = [];
+  const createdCaseIds: string[] = [];
   const createdUserIds: string[] = [];
   const createdTemplateIds: string[] = [];
   const createdSiteIds: string[] = [];
@@ -50,10 +51,21 @@ describe('Event API Integration Tests', () => {
   });
 
   afterAll(async () => {
+    if (createdContactIds.length > 0) {
+      await pool.query(
+        `DELETE FROM activity_events
+         WHERE related_entity_type = 'contact'
+           AND related_entity_id = ANY($1::uuid[])`,
+        [createdContactIds]
+      );
+    }
     if (createdScopedRegistrationIds.length > 0) {
       await pool.query('DELETE FROM event_registrations WHERE id = ANY($1::uuid[])', [
         createdScopedRegistrationIds,
       ]);
+    }
+    if (createdCaseIds.length > 0) {
+      await pool.query('DELETE FROM cases WHERE id = ANY($1::uuid[])', [createdCaseIds]);
     }
     if (createdScopedEventIds.length > 0) {
       await pool.query('DELETE FROM events WHERE id = ANY($1::uuid[])', [createdScopedEventIds]);
@@ -547,7 +559,265 @@ describe('Event API Integration Tests', () => {
     });
   });
 
+  describe('PUT /api/v2/events/registrations/:id', () => {
+    it('updates status, notes, and linked case while recording activity and active counts', async () => {
+      const createEventResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: 'Registration Update Event',
+          event_type: 'community',
+          capacity: 5,
+          start_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+        })
+        .expect(201);
+
+      const eventId = unwrap<{ event_id: string }>(createEventResponse.body).event_id;
+
+      const [primaryContactResult, otherContactResult] = await Promise.all([
+        pool.query<{ id: string }>(
+          `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
+           VALUES ('Registration', 'Owner', $1, NULL, NULL)
+           RETURNING id`,
+          [`registration-owner-${unique()}@example.com`]
+        ),
+        pool.query<{ id: string }>(
+          `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
+           VALUES ('Registration', 'Other', $1, NULL, NULL)
+           RETURNING id`,
+          [`registration-other-${unique()}@example.com`]
+        ),
+      ]);
+      const contactId = primaryContactResult.rows[0].id;
+      const otherContactId = otherContactResult.rows[0].id;
+      createdContactIds.push(contactId, otherContactId);
+
+      const caseTypeResult = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM case_types
+         WHERE is_active = true
+         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         LIMIT 1`
+      );
+      const caseStatusResult = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM case_statuses
+         WHERE is_active = true
+         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         LIMIT 1`
+      );
+
+      const primaryCaseId = (
+        await pool.query<{ id: string }>(
+          `INSERT INTO cases (
+             case_number,
+             contact_id,
+             account_id,
+             case_type_id,
+             status_id,
+             title,
+             created_by,
+             modified_by
+           ) VALUES ($1, $2, NULL, $3, $4, $5, $6, $6)
+           RETURNING id`,
+          [
+            `CASE-EVENT-${unique()}`,
+            contactId,
+            caseTypeResult.rows[0].id,
+            caseStatusResult.rows[0].id,
+            'Registration Update Case',
+            adminUserId,
+          ]
+        )
+      ).rows[0].id;
+      const otherCaseId = (
+        await pool.query<{ id: string }>(
+          `INSERT INTO cases (
+             case_number,
+             contact_id,
+             account_id,
+             case_type_id,
+             status_id,
+             title,
+             created_by,
+             modified_by
+           ) VALUES ($1, $2, NULL, $3, $4, $5, $6, $6)
+           RETURNING id`,
+          [
+            `CASE-EVENT-${unique()}`,
+            otherContactId,
+            caseTypeResult.rows[0].id,
+            caseStatusResult.rows[0].id,
+            'Other Contact Case',
+            adminUserId,
+          ]
+        )
+      ).rows[0].id;
+      createdCaseIds.push(primaryCaseId, otherCaseId);
+
+      const registrationResponse = await request(app)
+        .post(`/api/v2/events/${eventId}/register`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          contact_id: contactId,
+          registration_status: 'waitlisted',
+          notes: 'Initial waitlist note',
+        })
+        .expect(201);
+
+      const registration = unwrap<{ registration_id: string }>(registrationResponse.body);
+      createdScopedRegistrationIds.push(registration.registration_id);
+      createdScopedEventIds.push(eventId);
+
+      const updateResponse = await request(app)
+        .put(`/api/v2/events/registrations/${registration.registration_id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          registration_status: 'confirmed',
+          notes: 'Priority guest',
+          case_id: primaryCaseId,
+        })
+        .expect(200);
+
+      const updatedRegistration = unwrap<{
+        registration_status: string;
+        notes: string | null;
+        case_id: string | null;
+      }>(updateResponse.body);
+      expect(updatedRegistration).toEqual(
+        expect.objectContaining({
+          registration_status: 'confirmed',
+          notes: 'Priority guest',
+          case_id: primaryCaseId,
+        })
+      );
+
+      const eventCounts = await pool.query<{ registered_count: number }>(
+        'SELECT registered_count FROM events WHERE id = $1',
+        [eventId]
+      );
+      expect(eventCounts.rows[0].registered_count).toBe(1);
+
+      const activityRows = await pool.query<{
+        activity_type: string;
+        actor_user_id: string | null;
+        metadata: {
+          previousStatus?: string;
+          nextStatus?: string;
+          caseId?: string;
+          eventId?: string;
+        };
+      }>(
+        `SELECT activity_type, actor_user_id, metadata
+         FROM activity_events
+         WHERE related_entity_type = 'contact'
+           AND related_entity_id = $1::uuid
+           AND activity_type = 'event_registration_updated'
+         ORDER BY occurred_at DESC
+         LIMIT 1`,
+        [contactId]
+      );
+
+      expect(activityRows.rows[0]).toEqual(
+        expect.objectContaining({
+          activity_type: 'event_registration_updated',
+          actor_user_id: adminUserId,
+          metadata: expect.objectContaining({
+            previousStatus: 'waitlisted',
+            nextStatus: 'confirmed',
+            caseId: primaryCaseId,
+            eventId,
+          }),
+        })
+      );
+
+      const invalidCaseResponse = await request(app)
+        .put(`/api/v2/events/registrations/${registration.registration_id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ case_id: otherCaseId })
+        .expect(400);
+
+      expect(invalidCaseResponse.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: expect.stringMatching(/same contact/i),
+        },
+      });
+    });
+  });
+
   describe('check-in window and status guardrails', () => {
+    it.each(['waitlisted', 'no_show'] as const)(
+      'rejects manual and scan check-in for %s registrations',
+      async (registrationStatus) => {
+        const createEventResponse = await request(app)
+          .post('/api/v2/events')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            event_name: `${registrationStatus} Registration Guardrail Event`,
+            event_type: 'community',
+            start_date: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            end_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+          })
+          .expect(201);
+
+        const eventId = unwrap<{ event_id: string }>(createEventResponse.body).event_id;
+        createdScopedEventIds.push(eventId);
+
+        const contactResult = await pool.query<{ id: string }>(
+          `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
+           VALUES ('Guardrail', 'Registration', $1, NULL, NULL)
+           RETURNING id`,
+          [`registration-guardrail-${registrationStatus}-${unique()}@example.com`]
+        );
+        const contactId = contactResult.rows[0].id;
+        createdContactIds.push(contactId);
+
+        const registrationResponse = await request(app)
+          .post(`/api/v2/events/${eventId}/register`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            contact_id: contactId,
+            registration_status: registrationStatus,
+          })
+          .expect(201);
+
+        const registration = unwrap<{ registration_id: string; check_in_token: string }>(
+          registrationResponse.body
+        );
+        createdScopedRegistrationIds.push(registration.registration_id);
+
+        const manualResponse = await request(app)
+          .post(`/api/v2/events/registrations/${registration.registration_id}/check-in`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(400);
+
+        expect(manualResponse.body).toMatchObject({
+          success: false,
+          error: {
+            code: 'CHECKIN_ERROR',
+            message: expect.stringMatching(/cannot be checked in/i),
+          },
+        });
+
+        const scanResponse = await request(app)
+          .post(`/api/v2/events/${eventId}/check-in/scan`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({ token: registration.check_in_token })
+          .expect(400);
+
+        expect(scanResponse.body).toMatchObject({
+          success: false,
+          error: {
+            code: 'CHECKIN_ERROR',
+            message: expect.stringMatching(/cannot be checked in/i),
+          },
+        });
+      }
+    );
+
     it('rejects manual check-in before the event window opens', async () => {
       const createEventResponse = await request(app)
         .post('/api/v2/events')
@@ -1045,6 +1315,7 @@ describe('Event API Integration Tests', () => {
         .expect(201);
 
       const eventId = unwrap<{ event_id: string }>(createEventResponse.body).event_id;
+      createdScopedEventIds.push(eventId);
 
       const rotateResponse = await request(app)
         .post(`/api/v2/events/${eventId}/check-in/pin/rotate`)
@@ -1107,5 +1378,67 @@ describe('Event API Integration Tests', () => {
       const idempotentSecond = unwrap<{ status: string }>(idempotentSecondResponse.body);
       expect(idempotentSecond.status).toBe('already_checked_in');
     });
+
+    it.each(['waitlisted', 'no_show'] as const)(
+      'rejects kiosk check-in for %s registrations',
+      async (registrationStatus) => {
+        const createEventResponse = await request(app)
+          .post('/api/v2/events')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            event_name: `Public ${registrationStatus} Event`,
+            event_type: 'community',
+            is_public: true,
+            start_date: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            end_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+          })
+          .expect(201);
+
+        const eventId = unwrap<{ event_id: string }>(createEventResponse.body).event_id;
+        createdScopedEventIds.push(eventId);
+
+        const rotateResponse = await request(app)
+          .post(`/api/v2/events/${eventId}/check-in/pin/rotate`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+        const rotated = unwrap<{ pin: string }>(rotateResponse.body);
+        const blockedEmail = `public-blocked-${registrationStatus}-${unique()}@example.com`;
+
+        const contactResult = await pool.query<{ id: string }>(
+          `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
+           VALUES ('Public', 'Blocked', $1, NULL, NULL)
+           RETURNING id`,
+          [blockedEmail]
+        );
+        const contactId = contactResult.rows[0].id;
+        createdContactIds.push(contactId);
+
+        const registrationResult = await pool.query<{ id: string }>(
+          `INSERT INTO event_registrations (event_id, contact_id, registration_status)
+           VALUES ($1, $2, $3)
+           RETURNING id`,
+          [eventId, contactId, registrationStatus]
+        );
+        createdScopedRegistrationIds.push(registrationResult.rows[0].id);
+
+        const response = await request(app)
+          .post(`/api/v2/public/events/${eventId}/check-in`)
+          .send({
+            first_name: 'Public',
+            last_name: 'Blocked',
+            email: blockedEmail,
+            pin: rotated.pin,
+          })
+          .expect(400);
+
+        expect(response.body).toMatchObject({
+          success: false,
+          error: {
+            code: 'CHECKIN_CLOSED',
+            message: expect.stringMatching(/cannot be checked in/i),
+          },
+        });
+      }
+    );
   });
 });

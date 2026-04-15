@@ -35,6 +35,15 @@ describe('PublicEventsPage', () => {
             description: 'First event',
             event_type: 'community',
             status: 'planned',
+            series_id: 'series-1',
+            series_name: 'Community Dinner Series',
+            occurrence_id: 'occurrence-1',
+            occurrence_name: 'Opening Night',
+            occurrence_label: 'Opening Night',
+            occurrence_index: 1,
+            occurrence_count: 6,
+            occurrence_start_date: '2026-04-01T18:00:00.000Z',
+            occurrence_end_date: '2026-04-01T20:00:00.000Z',
             start_date: '2026-04-01T18:00:00.000Z',
             end_date: '2026-04-01T20:00:00.000Z',
             location_name: 'Main Hall',
@@ -56,6 +65,9 @@ describe('PublicEventsPage', () => {
             description: 'Second event',
             event_type: 'volunteer',
             status: 'planned',
+            occurrence_id: 'occurrence-2',
+            occurrence_index: 2,
+            occurrence_count: 6,
             start_date: '2026-04-03T18:00:00.000Z',
             end_date: '2026-04-03T20:00:00.000Z',
             location_name: 'Outreach Hub',
@@ -108,17 +120,20 @@ describe('PublicEventsPage', () => {
       target: { value: 'gala' },
     });
 
-    await waitFor(() => {
-      expect(listPublicEventsBySiteMock).toHaveBeenLastCalledWith(
-        'alpha-site',
-        expect.objectContaining({
-          search: 'gala',
-          event_type: 'fundraiser',
-          include_past: true,
-          offset: 0,
-          limit: 12,
-        })
-      );
-    }, { timeout: 4000 });
+    await waitFor(
+      () => {
+        expect(listPublicEventsBySiteMock).toHaveBeenLastCalledWith(
+          'alpha-site',
+          expect.objectContaining({
+            search: 'gala',
+            event_type: 'fundraiser',
+            include_past: true,
+            offset: 0,
+            limit: 12,
+          })
+        );
+      },
+      { timeout: 4000 }
+    );
   });
 });

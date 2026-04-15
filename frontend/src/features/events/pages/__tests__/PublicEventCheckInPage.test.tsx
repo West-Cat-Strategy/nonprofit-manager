@@ -23,6 +23,10 @@ vi.mock('../../api/eventsApiClient', () => ({
 }));
 
 describe('PublicEventCheckInPage', () => {
+  const expectedOccurrenceRange = `${new Date('2026-06-10T18:30:00.000Z').toLocaleString()} - ${new Date(
+    '2026-06-10T20:30:00.000Z'
+  ).toLocaleString()}`;
+
   beforeEach(() => {
     getPublicCheckInInfoMock.mockResolvedValue({
       event_id: 'event-123',
@@ -30,8 +34,17 @@ describe('PublicEventCheckInPage', () => {
       description: 'Test event',
       event_type: 'community',
       status: 'planned',
+      series_id: 'series-1',
+      series_name: 'Community Dinner Series',
+      occurrence_id: 'occurrence-1',
+      occurrence_name: 'Week 1',
+      occurrence_label: 'Week 1',
+      occurrence_index: 1,
+      occurrence_count: 4,
       start_date: '2026-06-10T18:00:00.000Z',
       end_date: '2026-06-10T20:00:00.000Z',
+      occurrence_start_date: '2026-06-10T18:30:00.000Z',
+      occurrence_end_date: '2026-06-10T20:30:00.000Z',
       location_name: 'Main Hall',
       public_checkin_enabled: true,
       public_checkin_pin_required: true,
@@ -53,6 +66,9 @@ describe('PublicEventCheckInPage', () => {
     renderWithProviders(<PublicEventCheckInPage />);
 
     await screen.findByText('Community Dinner');
+    expect(screen.getByText('Community Dinner Series')).toBeInTheDocument();
+    expect(screen.getByText('Week 1')).toBeInTheDocument();
+    expect(screen.getByText(expectedOccurrenceRange)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('First name'), {
       target: { value: 'Avery' },
@@ -71,6 +87,7 @@ describe('PublicEventCheckInPage', () => {
 
     await waitFor(() => {
       expect(submitPublicCheckInMock).toHaveBeenCalledWith('event-123', {
+        occurrence_id: undefined,
         first_name: 'Avery',
         last_name: 'Client',
         email: 'avery@example.com',
@@ -125,6 +142,7 @@ describe('PublicEventCheckInPage', () => {
       description: 'Test event',
       event_type: 'community',
       status: 'planned',
+      occurrence_id: 'occurrence-1',
       start_date: '2026-06-10T18:00:00.000Z',
       end_date: '2026-06-10T20:00:00.000Z',
       location_name: 'Main Hall',
@@ -138,7 +156,9 @@ describe('PublicEventCheckInPage', () => {
     renderWithProviders(<PublicEventCheckInPage />);
 
     await screen.findByText('Community Dinner');
-    expect(screen.getByText('Check-in is currently closed for this event.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Check-in is currently closed for this occurrence.')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Complete check-in' })).toBeDisabled();
   });
 
@@ -148,8 +168,7 @@ describe('PublicEventCheckInPage', () => {
         data: {
           error: {
             code: 'CHECKIN_CLOSED',
-            message:
-              'Check-in is available 180 minutes before start until 240 minutes after end.',
+            message: 'Check-in is available 180 minutes before start until 240 minutes after end.',
           },
         },
       },
@@ -175,7 +194,9 @@ describe('PublicEventCheckInPage', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText('Check-in is available 180 minutes before start until 240 minutes after end.')
+        screen.getByText(
+          'Check-in is available 180 minutes before start until 240 minutes after end.'
+        )
       ).toBeInTheDocument();
     });
   });

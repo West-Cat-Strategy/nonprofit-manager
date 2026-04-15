@@ -6,6 +6,8 @@ import { serverError } from '@utils/responseHelpers';
 import { getOrganizationBrandingConfig } from '@modules/admin/lib/brandingStore';
 import { findOrganizationSettings } from '@modules/admin/lib/organizationSettingsStore';
 import { createDefaultWorkspaceModulesConfig } from '@app-types/workspaceModules';
+import { buildAuthorizationSnapshot } from '@services/authorization';
+import { getUserAccessOverview } from '@services/accountAccessService';
 import {
   getCurrentAuthUserById,
   getUserPreferences,
@@ -90,6 +92,17 @@ export const getBootstrap = async (
       getOrganizationBrandingConfig(),
       organizationId ? findOrganizationSettings(organizationId) : Promise.resolve(null),
     ]);
+    const [authorizationSnapshot, accessOverview] = await Promise.all([
+      buildAuthorizationSnapshot({
+        userId: user.id,
+        primaryRole: user.role,
+        organizationId: organizationId ?? undefined,
+      }),
+      getUserAccessOverview(user.id),
+    ]);
+    const permissions = Object.entries(authorizationSnapshot.matrix.staticPermissions)
+      .filter(([, decision]) => decision.allowed)
+      .map(([permission]) => permission);
 
     return sendSuccess(res, {
       user: {
@@ -99,6 +112,11 @@ export const getBootstrap = async (
         lastName: user.last_name,
         role: user.role,
         profilePicture: user.profile_picture || null,
+        permissions,
+        groups: accessOverview.groups,
+        organizationAccess: accessOverview.organizationAccess,
+        mfaTotpEnabled: accessOverview.mfaTotpEnabled,
+        passkeyCount: accessOverview.passkeyCount,
       },
       organizationId: organizationId ?? null,
       branding,

@@ -7,6 +7,7 @@ import { SectionCard, StatCard } from '../../../components/ui';
 import { portalV2ApiClient } from '../api/portalApiClient';
 import type { PortalDashboardData } from '../types/contracts';
 import { usePersistentPortalCaseContext } from '../../../hooks/usePersistentPortalCaseContext';
+import { getPortalEventOccurrenceLabel } from '../utils/eventDisplay';
 
 const formatDateTime = (value?: string | null): string => {
   if (!value) return 'Not scheduled';
@@ -74,7 +75,9 @@ export default function PortalDashboard() {
             <StatCard
               label="Shared Cases"
               value={activeCases.length}
-              trend={primaryCase ? `Most recent: ${primaryCase.title}` : 'No active shared cases yet'}
+              trend={
+                primaryCase ? `Most recent: ${primaryCase.title}` : 'No active shared cases yet'
+              }
             />
             <StatCard
               label="Unread Conversations"
@@ -97,7 +100,15 @@ export default function PortalDashboard() {
             <StatCard
               label="Upcoming Events"
               value={upcomingEvents.length}
-              trend={upcomingEvents[0] ? upcomingEvents[0].name : 'No upcoming events'}
+              trend={
+                upcomingEvents[0]
+                  ? `${upcomingEvents[0].name}${
+                      getPortalEventOccurrenceLabel(upcomingEvents[0])
+                        ? ` • ${getPortalEventOccurrenceLabel(upcomingEvents[0])}`
+                        : ''
+                    }`
+                  : 'No upcoming events'
+              }
             />
           </div>
 
@@ -148,7 +159,10 @@ export default function PortalDashboard() {
               title="Resume A Shared Case"
               subtitle="Each case workspace keeps its timeline, documents, appointments, and related conversations together."
               actions={
-                <Link to="/portal/cases" className="text-sm font-medium text-app-accent hover:underline">
+                <Link
+                  to="/portal/cases"
+                  className="text-sm font-medium text-app-accent hover:underline"
+                >
                   View all cases
                 </Link>
               }
@@ -203,7 +217,10 @@ export default function PortalDashboard() {
                 title="Recent Conversations"
                 subtitle="Unread or recently updated conversations with your assigned staff."
                 actions={
-                  <Link to="/portal/messages" className="text-sm font-medium text-app-accent hover:underline">
+                  <Link
+                    to="/portal/messages"
+                    className="text-sm font-medium text-app-accent hover:underline"
+                  >
                     Open messages
                   </Link>
                 }
@@ -247,7 +264,11 @@ export default function PortalDashboard() {
                   <PortalListCard
                     title={nextAppointment?.title || 'No appointment scheduled'}
                     subtitle={nextAppointment?.case_title || 'Appointments'}
-                    meta={nextAppointment ? formatDateTime(nextAppointment.start_time) : 'Request or book one when needed'}
+                    meta={
+                      nextAppointment
+                        ? formatDateTime(nextAppointment.start_time)
+                        : 'Request or book one when needed'
+                    }
                     badges={
                       nextAppointment?.status ? (
                         <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted capitalize">
@@ -264,14 +285,16 @@ export default function PortalDashboard() {
                   {reminders.length === 0 ? (
                     <p className="text-sm text-app-text-muted">No reminders are due yet.</p>
                   ) : (
-                    reminders.slice(0, 3).map((reminder) => (
-                      <PortalListCard
-                        key={`${reminder.type}-${reminder.id}`}
-                        title={reminder.title}
-                        subtitle={reminder.type.toUpperCase()}
-                        meta={formatDateTime(reminder.date)}
-                      />
-                    ))
+                    reminders
+                      .slice(0, 3)
+                      .map((reminder) => (
+                        <PortalListCard
+                          key={`${reminder.type}-${reminder.id}`}
+                          title={reminder.title}
+                          subtitle={reminder.type.toUpperCase()}
+                          meta={formatDateTime(reminder.date)}
+                        />
+                      ))
                   )}
                 </div>
               </SectionCard>
@@ -314,7 +337,10 @@ export default function PortalDashboard() {
               title="Recently Shared Documents"
               subtitle="Staff-shared documents available in your portal."
               actions={
-                <Link to="/portal/documents" className="text-sm font-medium text-app-accent hover:underline">
+                <Link
+                  to="/portal/documents"
+                  className="text-sm font-medium text-app-accent hover:underline"
+                >
                   View documents
                 </Link>
               }
@@ -338,7 +364,9 @@ export default function PortalDashboard() {
                         </a>
                       }
                     >
-                      {doc.description && <p className="text-sm text-app-text-muted">{doc.description}</p>}
+                      {doc.description && (
+                        <p className="text-sm text-app-text-muted">{doc.description}</p>
+                      )}
                     </PortalListCard>
                   ))}
                 </div>
@@ -349,7 +377,10 @@ export default function PortalDashboard() {
               title="Upcoming Events"
               subtitle="Published events and registrations that matter to you."
               actions={
-                <Link to="/portal/events" className="text-sm font-medium text-app-accent hover:underline">
+                <Link
+                  to="/portal/events"
+                  className="text-sm font-medium text-app-accent hover:underline"
+                >
                   View events
                 </Link>
               }
@@ -372,7 +403,9 @@ export default function PortalDashboard() {
                         ) : undefined
                       }
                     >
-                      {event.description && <p className="text-sm text-app-text-muted">{event.description}</p>}
+                      {event.description && (
+                        <p className="text-sm text-app-text-muted">{event.description}</p>
+                      )}
                     </PortalListCard>
                   ))}
                 </div>

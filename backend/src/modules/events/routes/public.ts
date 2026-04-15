@@ -6,6 +6,7 @@ import { validateBody, validateParams, validateQuery } from '@middleware/zodVali
 import {
   eventIdParamsSchema,
   publicEventCheckInSchema,
+  publicEventOccurrenceQuerySchema,
   publicEventRegistrationSchema,
   publicEventSlugParamsSchema,
   publicEventsQuerySchema,
@@ -45,6 +46,7 @@ export const createPublicEventsV2Routes = (): Router => {
   publicEventsV2Routes.get(
     '/:id/check-in',
     validateParams(eventIdParamsSchema),
+    validateQuery(publicEventOccurrenceQuerySchema),
     controller.getCheckInInfo
   );
 

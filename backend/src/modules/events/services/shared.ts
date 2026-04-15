@@ -1,6 +1,6 @@
 import { Pool, type PoolClient } from 'pg';
 import { logger } from '@config/logger';
-import type { ReminderChannelSummary } from '@app-types/event';
+import { RegistrationStatus, type ReminderChannelSummary } from '@app-types/event';
 import {
   activityEventService,
   type CreateActivityEventInput,
@@ -34,6 +34,32 @@ export interface EventCheckInWindowEventRow {
   capacity: number | null;
   registered_count: number;
 }
+
+export const isRegistrationCountedAsActive = (
+  status: RegistrationStatus | string | null | undefined
+): boolean => status === RegistrationStatus.REGISTERED || status === RegistrationStatus.CONFIRMED;
+
+export const getRegistrationCountDelta = (
+  previousStatus: RegistrationStatus | string | null | undefined,
+  nextStatus: RegistrationStatus | string | null | undefined
+): number =>
+  (isRegistrationCountedAsActive(nextStatus) ? 1 : 0) -
+  (isRegistrationCountedAsActive(previousStatus) ? 1 : 0);
+
+export const assertRegistrationCheckInAllowed = (
+  status: RegistrationStatus | string | null | undefined
+): void => {
+  switch (status) {
+    case RegistrationStatus.WAITLISTED:
+      throw new Error('Waitlisted registrations cannot be checked in');
+    case RegistrationStatus.NO_SHOW:
+      throw new Error('No-show registrations cannot be checked in');
+    case RegistrationStatus.CANCELLED:
+      throw new Error('Cancelled registrations cannot be checked in');
+    default:
+      return;
+  }
+};
 
 interface EventContactRow {
   id: string;

@@ -8,6 +8,21 @@ describe('canAccessAdminSettings', () => {
     expect(canAccessAdminSettings({ role: 'Admin' })).toBe(true);
   });
 
+  it('allows users with admin settings permissions', () => {
+    expect(
+      canAccessAdminSettings({
+        role: 'manager',
+        permissions: ['admin.settings.manage', 'reports.view'],
+      })
+    ).toBe(true);
+    expect(
+      canAccessAdminSettings({
+        role: 'staff',
+        permissions: ['admin.users.view'],
+      })
+    ).toBe(true);
+  });
+
   it('rejects non-admin and missing users', () => {
     expect(canAccessAdminSettings({ role: 'manager' })).toBe(false);
     expect(canAccessAdminSettings({ role: 'user' })).toBe(false);

@@ -6,6 +6,8 @@ import { renderWithProviders } from '../../../../test/testUtils';
 import type { EventRegistration } from '../../../../types/event';
 import EventRegistrationsPanel from '../EventRegistrationsPanel';
 
+const listCasesMock = vi.fn();
+
 vi.mock('qrcode', () => ({
   default: {
     toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,mock'),
@@ -25,6 +27,12 @@ vi.mock('@zxing/browser', () => ({
   },
 }));
 
+vi.mock('../../../cases/api/casesApiClient', () => ({
+  casesApiClient: {
+    listCases: (...args: unknown[]) => listCasesMock(...args),
+  },
+}));
+
 const baseRegistration: EventRegistration = {
   registration_id: 'registration-1',
   event_id: 'event-1',
@@ -36,6 +44,7 @@ const baseRegistration: EventRegistration = {
   check_in_method: 'manual',
   check_in_token: 'manual-token-123',
   notes: null,
+  case_id: null,
   created_at: '2026-03-02T18:00:00.000Z',
   updated_at: '2026-03-02T18:00:00.000Z',
   contact_name: 'Casey Contact',
@@ -46,6 +55,8 @@ const setup = (overrides?: Partial<ComponentProps<typeof EventRegistrationsPanel
   const onScanCheckIn = vi.fn().mockResolvedValue(undefined);
   const onUpdateCheckInSettings = vi.fn().mockResolvedValue(undefined);
   const onRotateCheckInPin = vi.fn().mockResolvedValue('123456');
+  const onUpdateRegistration = vi.fn().mockResolvedValue(undefined);
+  const onSendConfirmationEmail = vi.fn().mockResolvedValue(undefined);
 
   const props: ComponentProps<typeof EventRegistrationsPanel> = {
     eventId: 'event-1',
@@ -67,25 +78,43 @@ const setup = (overrides?: Partial<ComponentProps<typeof EventRegistrationsPanel
     automationsLoading: false,
     automationsBusy: false,
     onCheckIn: vi.fn().mockResolvedValue(undefined),
+    onUpdateRegistration,
     onCancelRegistration: vi.fn().mockResolvedValue(undefined),
     onSendReminders: vi.fn().mockResolvedValue(undefined),
     onUpdateCheckInSettings,
     onRotateCheckInPin,
     onScanCheckIn,
+    onSendConfirmationEmail,
     onCancelAutomation: vi.fn().mockResolvedValue(undefined),
     onCreateAutomation: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 
   renderWithProviders(<EventRegistrationsPanel {...props} />);
-  return { onScanCheckIn, onUpdateCheckInSettings, onRotateCheckInPin };
+  return {
+    onScanCheckIn,
+    onUpdateCheckInSettings,
+    onRotateCheckInPin,
+    onUpdateRegistration,
+    onSendConfirmationEmail,
+  };
 };
 
 describe('EventRegistrationsPanel', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     Object.defineProperty(globalThis.navigator, 'mediaDevices', {
       configurable: true,
       value: { getUserMedia: vi.fn() },
+    });
+    listCasesMock.mockResolvedValue({
+      cases: [
+        {
+          id: 'case-1',
+          case_number: 'CASE-001',
+          title: 'Housing support',
+        },
+      ],
     });
   });
 
@@ -142,5 +171,70 @@ describe('EventRegistrationsPanel', () => {
     expect(screen.getByLabelText('Enable public kiosk')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Rotate PIN' })).toBeDisabled();
+  });
+
+  it('opens the manage flow, loads cases, and saves registration updates', async () => {
+    const { onUpdateRegistration } = setup();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Manage' }));
+
+    await waitFor(() => {
+      expect(listCasesMock).toHaveBeenCalledWith({
+        contactId: 'contact-1',
+        limit: 100,
+      });
+    });
+
+    fireEvent.change(screen.getByLabelText('Status'), {
+      target: { value: 'confirmed' },
+    });
+    fireEvent.change(screen.getByLabelText('Linked Case'), {
+      target: { value: 'case-1' },
+    });
+    fireEvent.change(screen.getByLabelText('Internal Notes'), {
+      target: { value: 'Arriving with spouse' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => {
+      expect(onUpdateRegistration).toHaveBeenCalledWith('registration-1', {
+        registration_status: 'confirmed',
+        notes: 'Arriving with spouse',
+        case_id: 'case-1',
+        occurrence_id: undefined,
+        scope: 'occurrence',
+      });
+    });
+
+    expect(await screen.findByText('Registration updated.')).toBeInTheDocument();
+  });
+
+  it('shows that waitlisted contacts cannot be checked in', () => {
+    setup({
+      registrations: [
+        {
+          ...baseRegistration,
+          registration_id: 'registration-2',
+          registration_status: 'waitlisted',
+        },
+      ],
+    });
+
+    expect(screen.queryByRole('button', { name: 'Check In' })).not.toBeInTheDocument();
+    expect(screen.getByText('Waitlisted contacts cannot check in')).toBeInTheDocument();
+  });
+
+  it('surfaces batch scope controls and confirmation email actions', async () => {
+    const { onSendConfirmationEmail } = setup();
+
+    expect(screen.getByRole('button', { name: 'This occurrence' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Whole series' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send QR Email' }));
+
+    await waitFor(() => {
+      expect(onSendConfirmationEmail).toHaveBeenCalledWith('registration-1');
+    });
   });
 });

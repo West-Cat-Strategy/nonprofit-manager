@@ -5,6 +5,7 @@ import { getJwtSecret } from '@config/jwt';
 export const APP_SESSION_TOKEN_ISSUER = 'nonprofit-manager-app';
 export const PORTAL_SESSION_TOKEN_ISSUER = 'nonprofit-manager-portal';
 export const MFA_TOKEN_ISSUER = 'nonprofit-manager-mfa';
+export const PENDING_REGISTRATION_TOKEN_ISSUER = 'nonprofit-manager-pending-registration';
 
 export interface AppSessionTokenPayload {
   id: string;
@@ -33,6 +34,12 @@ export interface MfaSessionTokenPayload {
   type?: 'mfa';
   method?: 'totp';
   authRevision?: number;
+  iss?: string;
+}
+
+export interface PendingRegistrationTokenPayload {
+  pendingRegistrationId: string;
+  type?: 'pending_registration';
   iss?: string;
 }
 
@@ -110,5 +117,21 @@ export const issueTotpMfaToken = (input: {
     {
       expiresIn: Math.floor(TIME.FIVE_MINUTES / 1000),
       issuer: MFA_TOKEN_ISSUER,
+    }
+  );
+
+export const issuePendingRegistrationToken = (input: {
+  pendingRegistrationId: string;
+  expiresInSeconds?: number;
+}): string =>
+  jwt.sign(
+    {
+      pendingRegistrationId: input.pendingRegistrationId,
+      type: 'pending_registration' as const,
+    },
+    getJwtSecret(),
+    {
+      expiresIn: input.expiresInSeconds ?? Math.floor(TIME.FIFTEEN_MINUTES / 1000),
+      issuer: PENDING_REGISTRATION_TOKEN_ISSUER,
     }
   );

@@ -1,5 +1,6 @@
 import type {
   ContactNote,
+  ContactNotesTimelineResponse,
   CreateContactNoteDTO,
   UpdateContactNoteDTO,
 } from '@app-types/contact';
@@ -10,6 +11,10 @@ export class ContactNotesUseCase {
 
   list(contactId: string, limit?: number, offset?: number): Promise<{ notes: ContactNote[]; total: number }> {
     return this.repository.list(contactId, limit, offset);
+  }
+
+  listTimeline(contactId: string): Promise<ContactNotesTimelineResponse> {
+    return this.repository.listTimeline(contactId);
   }
 
   getById(noteId: string): Promise<ContactNote | null> {

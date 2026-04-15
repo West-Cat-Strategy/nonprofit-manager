@@ -125,6 +125,7 @@ export type AdminSettingsTab = {
     | 'workspace_modules'
     | 'branding'
     | 'users'
+    | 'groups'
     | 'communications'
     | 'messaging'
     | 'outcomes'
@@ -154,6 +155,7 @@ export const adminSettingsTabs: AdminSettingsTab[] = [
   },
   { id: 'branding', label: 'Branding', level: 'basic', group: 'organization' },
   { id: 'users', label: 'Users & Security', level: 'basic', group: 'people_access' },
+  { id: 'groups', label: 'Groups & Policy', level: 'advanced', group: 'people_access' },
   { id: 'communications', label: 'Communications', level: 'basic', group: 'communications' },
   { id: 'messaging', label: 'Messaging Settings', level: 'basic', group: 'communications' },
   { id: 'outcomes', label: 'Outcome Definitions', level: 'advanced', group: 'governance' },
@@ -178,8 +180,8 @@ export const adminSettingsTabGroups: AdminSettingsTabGroup[] = [
   {
     id: 'people_access',
     label: 'People & Access',
-    description: 'Users, roles, invitations, and registration controls',
-    tabs: ['users', 'roles'],
+    description: 'Users, access, groups, roles, and registration controls',
+    tabs: ['users', 'groups', 'roles'],
   },
   {
     id: 'communications',

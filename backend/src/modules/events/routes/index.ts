@@ -9,14 +9,18 @@ import {
   createRegistrationSchema,
   eventAutomationParamsSchema,
   eventCheckInScanSchema,
+  eventMutationScopeQuerySchema,
+  eventOccurrenceParamsSchema,
   eventWalkInCheckInSchema,
   eventIdParamsSchema,
   globalEventCheckInScanSchema,
+  listOccurrencesQuerySchema,
   listEventRegistrationsQuerySchema,
   listEventsQuerySchema,
   listRegistrationsQuerySchema,
   sendRemindersSchema,
   syncAutomationsSchema,
+  updateOccurrenceSchema,
   updateEventCheckInSettingsSchema,
   updateAutomationSchema,
   updateEventSchema,
@@ -41,6 +45,19 @@ export const createEventsV2Routes = (): Router => {
   eventsV2Routes.use(loadDataScope('events'));
 
   eventsV2Routes.get('/', validateQuery(listEventsQuerySchema), controller.getEvents);
+  eventsV2Routes.get('/occurrences', validateQuery(listOccurrencesQuerySchema), controller.getOccurrences);
+  eventsV2Routes.get(
+    '/occurrences/:occurrenceId',
+    validateParams(eventOccurrenceParamsSchema),
+    controller.getOccurrence
+  );
+  eventsV2Routes.patch(
+    '/occurrences/:occurrenceId',
+    validateParams(eventOccurrenceParamsSchema),
+    validateQuery(eventMutationScopeQuerySchema),
+    validateBody(updateOccurrenceSchema),
+    controller.updateOccurrence
+  );
 
   eventsV2Routes.get('/summary', controller.getSummary);
   eventsV2Routes.get('/registrations', validateQuery(listRegistrationsQuerySchema), controller.listRegistrations);
@@ -50,6 +67,11 @@ export const createEventsV2Routes = (): Router => {
 
   eventsV2Routes.post('/registrations/:id/check-in', validateParams(eventIdParamsSchema), controller.checkIn);
   eventsV2Routes.post('/registrations/:id/checkin', validateParams(eventIdParamsSchema), controller.checkIn);
+  eventsV2Routes.post(
+    '/registrations/:id/confirmation-email/send',
+    validateParams(eventIdParamsSchema),
+    controller.sendConfirmationEmail
+  );
   eventsV2Routes.put(
     '/registrations/:id',
     validateParams(eventIdParamsSchema),

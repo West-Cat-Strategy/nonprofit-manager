@@ -72,6 +72,8 @@ vi.mock('../../../../services/api', () => ({
       if (url === '/admin/branding') return Promise.resolve({ data: {} });
       if (url === '/admin/roles') return Promise.resolve({ data: { roles: [] } });
       if (url === '/admin/permissions') return Promise.resolve({ data: { permissions: [] } });
+      if (url === '/admin/groups') return Promise.resolve({ data: { groups: [] } });
+      if (url === '/admin/organization-accounts') return Promise.resolve({ data: { organizationAccounts: [] } });
       return Promise.resolve({ data: {} });
     }),
   },
@@ -97,14 +99,20 @@ vi.mock('../adminSettings/sections/BrandingSection', () => ({
   default: () => <div>Branding Section</div>,
 }));
 vi.mock('../adminSettings/sections/UsersSection', () => ({
-  default: ({ onGoToRoles }: { onGoToRoles: () => void }) => (
+  default: ({ onGoToRoles, onGoToGroups }: { onGoToRoles: () => void; onGoToGroups: () => void }) => (
     <div>
       <div>Users Section</div>
       <button type="button" onClick={onGoToRoles}>
         Go to Roles
       </button>
+      <button type="button" onClick={onGoToGroups}>
+        Go to Groups
+      </button>
     </div>
   ),
+}));
+vi.mock('../adminSettings/sections/GroupsSection', () => ({
+  default: () => <div>Groups Section</div>,
 }));
 vi.mock('../adminSettings/sections/RolesSection', () => ({
   default: () => <div>Roles Section</div>,
@@ -215,6 +223,14 @@ describe('AdminSettings page', () => {
     });
   });
 
+  it('renders the groups section directly from the canonical route path', async () => {
+    renderAdminSettings('/settings/admin/groups');
+
+    await waitFor(() => {
+      expect(screen.getByText('Groups Section')).toBeInTheDocument();
+    });
+  });
+
   it('auto-enables advanced mode for direct advanced-section links', async () => {
     renderAdminSettings('/settings/admin/audit_logs');
 
@@ -268,6 +284,24 @@ describe('AdminSettings page', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       {
         pathname: '/settings/admin/roles',
+        search: '',
+      },
+      undefined
+    );
+  });
+
+  it('navigates to the new groups workspace from the users section', async () => {
+    renderAdminSettings('/settings/admin/users');
+
+    await waitFor(() => {
+      expect(screen.getByText('Users Section')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /go to groups/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      {
+        pathname: '/settings/admin/groups',
         search: '',
       },
       undefined

@@ -50,6 +50,22 @@ const hasRoleTables = async (): Promise<boolean> => {
   return Boolean(row?.roles_table && row?.user_roles_table);
 };
 
+const hasPolicyGroupTables = async (): Promise<boolean> => {
+  const result = await pool.query<{
+    policy_groups_table: string | null;
+    policy_group_roles_table: string | null;
+    user_policy_groups_table: string | null;
+  }>(
+    `SELECT
+       to_regclass('public.policy_groups') as policy_groups_table,
+       to_regclass('public.policy_group_roles') as policy_group_roles_table,
+       to_regclass('public.user_policy_groups') as user_policy_groups_table`
+  );
+
+  const row = result.rows[0];
+  return Boolean(row?.policy_groups_table && row?.policy_group_roles_table && row?.user_policy_groups_table);
+};
+
 export const resolveRolesForUser = async (
   userId: string,
   primaryRole: string
@@ -61,7 +77,7 @@ export const resolveRolesForUser = async (
       return [normalizedPrimaryRole];
     }
 
-    const result = await pool.query<{ name: string }>(
+    const directRolesPromise = pool.query<{ name: string }>(
       `SELECT r.name
        FROM user_roles ur
        INNER JOIN roles r ON r.id = ur.role_id
@@ -69,14 +85,27 @@ export const resolveRolesForUser = async (
        ORDER BY r.priority DESC, r.name ASC`,
       [userId]
     );
+    const groupRolesPromise = (await hasPolicyGroupTables())
+      ? pool.query<{ name: string }>(
+          `SELECT DISTINCT r.name
+           FROM user_policy_groups upg
+           INNER JOIN policy_group_roles pgr ON pgr.policy_group_id = upg.policy_group_id
+           INNER JOIN roles r ON r.id = pgr.role_id
+           WHERE upg.user_id = $1
+           ORDER BY r.name ASC`,
+          [userId]
+        )
+      : Promise.resolve({ rows: [] as Array<{ name: string }> });
+    const [directRoles, groupRoles] = await Promise.all([directRolesPromise, groupRolesPromise]);
 
-    if (result.rows.length === 0) {
+    if (directRoles.rows.length === 0 && groupRoles.rows.length === 0) {
       return [normalizedPrimaryRole];
     }
 
     return unique([
       normalizedPrimaryRole,
-      ...result.rows.map((row) => normalizeRoleSlug(row.name) ?? row.name),
+      ...directRoles.rows.map((row) => normalizeRoleSlug(row.name) ?? row.name),
+      ...groupRoles.rows.map((row) => normalizeRoleSlug(row.name) ?? row.name),
     ]);
   } catch (error) {
     logger.warn('Failed to resolve user roles for authorization kernel; using primary role fallback', {

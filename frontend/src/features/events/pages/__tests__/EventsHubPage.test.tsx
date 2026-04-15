@@ -57,7 +57,8 @@ describe('EventList page', () => {
   it('renders events hub and dispatches list fetch on search update', async () => {
     renderWithProviders(<EventList />);
 
-    expect(screen.getByRole('heading', { name: 'Events' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Events calendar command center/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Calendar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create Event' })).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText('Search events...'), {

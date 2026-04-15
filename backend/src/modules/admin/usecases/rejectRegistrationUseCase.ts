@@ -1,3 +1,4 @@
+import pool from '@config/database';
 import { logger } from '@config/logger';
 import { sendMail } from '@services/emailService';
 import * as repo from '../repositories/pendingRegistrationRepository';
@@ -17,7 +18,27 @@ export async function rejectPendingRegistration(
     throw new Error(`Registration has already been ${pending.status}`);
   }
 
-  const updated = await repo.updatePendingStatus(id, 'rejected', reviewedBy, reason ?? null);
+  const client = await pool.connect();
+  const updated = await (async () => {
+    try {
+      await client.query('BEGIN');
+      await repo.deletePendingRegistrationPasskeyData(id, client);
+      const row = await repo.updatePendingStatus(
+        id,
+        'rejected',
+        reviewedBy,
+        reason ?? null,
+        client
+      );
+      await client.query('COMMIT');
+      return row;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  })();
 
   logger.info(`Pending registration rejected: ${pending.email} by user ${reviewedBy}`);
 

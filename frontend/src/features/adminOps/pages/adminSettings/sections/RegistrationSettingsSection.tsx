@@ -25,6 +25,7 @@ interface PendingRegistration {
   reviewedAt: string | null;
   rejectionReason: string | null;
   createdAt: string;
+  hasStagedPasskeys?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -348,6 +349,11 @@ export default function RegistrationSettingsSection({
                             Requested {new Date(reg.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}{' '}
                             at {new Date(reg.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                           </div>
+                          {reg.hasStagedPasskeys ? (
+                            <div className="mt-2 inline-flex rounded-full bg-app-accent-soft px-2.5 py-0.5 text-xs font-medium text-app-accent-text">
+                              Passkey staged
+                            </div>
+                          ) : null}
                         </div>
                       </div>
 

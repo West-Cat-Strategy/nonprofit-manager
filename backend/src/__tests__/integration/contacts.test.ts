@@ -148,9 +148,22 @@ describe('Contact API Integration Tests', () => {
   });
 
   afterAll(async () => {
-    // Clean up - delete contacts first due to foreign key constraint
+    // Clean up account-scoped records before removing the account and contacts
     if (createdAppointmentIds.length > 0) {
       await pool.query('DELETE FROM appointments WHERE id = ANY($1::uuid[])', [createdAppointmentIds]);
+    }
+    if (testAccountId) {
+      await pool.query(
+        `DELETE FROM activity_events
+         WHERE related_entity_type = 'contact'
+           AND related_entity_id IN (SELECT id FROM contacts WHERE account_id = $1)`,
+        [testAccountId]
+      );
+      await pool.query('DELETE FROM contact_notes WHERE contact_id IN (SELECT id FROM contacts WHERE account_id = $1)', [testAccountId]);
+      await pool.query('DELETE FROM case_notes WHERE case_id IN (SELECT id FROM cases WHERE account_id = $1)', [
+        testAccountId,
+      ]);
+      await pool.query('DELETE FROM cases WHERE account_id = $1', [testAccountId]);
     }
     if (createdEventIds.length > 0) {
       await pool.query('DELETE FROM events WHERE id = ANY($1::uuid[])', [createdEventIds]);
@@ -768,6 +781,257 @@ describe('Contact API Integration Tests', () => {
       expect(payload.total).toBe(1);
       expect(payload.items).toEqual([expect.objectContaining({ channel: 'sms' })]);
       expect(payload.filters.channel).toBe('sms');
+    });
+  });
+
+  describe('GET /api/v2/contacts/:id/notes/timeline', () => {
+    it('returns mixed contact notes, case notes, and event activity in reverse chronological order', async () => {
+      const suffix = unique();
+      const contactCreateResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Timeline',
+          last_name: 'Tester',
+          email: `timeline-${suffix}@example.com`,
+        }))
+        .expect(201);
+
+      const contactId = payloadFromResponse<{ contact_id: string }>(contactCreateResponse.body).contact_id;
+
+      const caseTypeResult = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM case_types
+         WHERE is_active = true
+         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         LIMIT 1`
+      );
+      const caseStatusResult = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM case_statuses
+         WHERE is_active = true
+         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         LIMIT 1`
+      );
+
+      const caseId = (
+        await pool.query<{ id: string }>(
+          `INSERT INTO cases (
+             case_number,
+             contact_id,
+             account_id,
+             case_type_id,
+             status_id,
+             title,
+             assigned_to,
+             created_by,
+             modified_by,
+             created_at,
+             updated_at
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $7, NOW(), NOW())
+           RETURNING id`,
+          [
+            `CASE-TL-${suffix}`,
+            contactId,
+            testAccountId,
+            caseTypeResult.rows[0].id,
+            caseStatusResult.rows[0].id,
+            'Timeline Case',
+            staffUserId,
+          ]
+        )
+      ).rows[0].id;
+
+      const contactNoteId = (
+        await pool.query<{ id: string }>(
+          `INSERT INTO contact_notes (
+             contact_id,
+             case_id,
+             note_type,
+             subject,
+             content,
+             is_internal,
+             is_important,
+             is_pinned,
+             is_alert,
+             is_portal_visible,
+             attachments,
+             created_by,
+             created_at,
+             updated_at
+           ) VALUES (
+             $1,
+             $2,
+             'note',
+             'Contact timeline note',
+             'Contact note content',
+             false,
+             false,
+             true,
+             false,
+             false,
+             NULL,
+             $3,
+             $4,
+             $4
+           )
+           RETURNING id`,
+          [contactId, caseId, staffUserId, '2026-04-10T10:00:00.000Z']
+        )
+      ).rows[0].id;
+
+      const caseNoteId = (
+        await pool.query<{ id: string }>(
+          `INSERT INTO case_notes (
+             case_id,
+             note_type,
+             subject,
+             content,
+             is_internal,
+             visible_to_client,
+             is_important,
+             created_by,
+             updated_by,
+             created_at,
+             updated_at
+           ) VALUES (
+             $1,
+             'note',
+             'Case timeline note',
+             'Case note content',
+             true,
+             false,
+             true,
+             $2,
+             $2,
+             $3,
+             $3
+           )
+           RETURNING id`,
+          [caseId, staffUserId, '2026-04-11T10:00:00.000Z']
+        )
+      ).rows[0].id;
+
+      const eventId = (
+        await pool.query<{ id: string }>(
+          `INSERT INTO events (
+             name,
+             event_type,
+             start_date,
+             end_date,
+             location_name,
+             created_by,
+             modified_by
+           ) VALUES (
+             $1,
+             'community',
+             NOW() + interval '5 days',
+             NOW() + interval '5 days 2 hours',
+             'Community Hall',
+             $2,
+             $2
+           )
+           RETURNING id`,
+          [`Timeline Event ${suffix}`, staffUserId]
+        )
+      ).rows[0].id;
+      createdEventIds.push(eventId);
+
+      await pool.query(
+        `INSERT INTO activity_events (
+           organization_id,
+           site_id,
+           activity_type,
+           title,
+           description,
+           actor_user_id,
+           actor_name,
+           entity_type,
+           entity_id,
+           related_entity_type,
+           related_entity_id,
+           metadata,
+           occurred_at
+         ) VALUES (
+           $1,
+           NULL,
+           'event_registration_updated',
+           'Timeline Event RSVP',
+           'Registration status changed from registered to confirmed',
+           $2,
+           NULL,
+           'event',
+           $3,
+           'contact',
+           $4,
+           $5::jsonb,
+           $6
+         )`,
+        [
+          testAccountId,
+          staffUserId,
+          eventId,
+          contactId,
+          JSON.stringify({
+            eventId,
+            eventName: `Timeline Event ${suffix}`,
+            caseId,
+            caseNumber: `CASE-TL-${suffix}`,
+            caseTitle: 'Timeline Case',
+            registrationStatus: 'confirmed',
+            previousStatus: 'registered',
+            nextStatus: 'confirmed',
+          }),
+          '2026-04-12T10:00:00.000Z',
+        ]
+      );
+
+      const response = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${contactId}/notes/timeline`))
+        .expect(200);
+
+      const payload = payloadFromResponse<{
+        items: Array<{
+          id: string;
+          source_type: string;
+          event_id: string | null;
+          event_name: string | null;
+          case_id: string | null;
+          case_number: string | null;
+          previous_registration_status: string | null;
+          next_registration_status: string | null;
+        }>;
+        counts: {
+          all: number;
+          contact_notes: number;
+          case_notes: number;
+          event_activity: number;
+        };
+      }>(response.body);
+
+      expect(payload.counts).toEqual({
+        all: 3,
+        contact_notes: 1,
+        case_notes: 1,
+        event_activity: 1,
+      });
+      expect(payload.items.map((item) => item.source_type)).toEqual([
+        'event_activity',
+        'case_note',
+        'contact_note',
+      ]);
+      expect(payload.items[0]).toEqual(
+        expect.objectContaining({
+          event_id: eventId,
+          event_name: `Timeline Event ${suffix}`,
+          case_id: caseId,
+          case_number: `CASE-TL-${suffix}`,
+          previous_registration_status: 'registered',
+          next_registration_status: 'confirmed',
+        })
+      );
+      expect(payload.items[1].id).toBe(caseNoteId);
+      expect(payload.items[2].id).toBe(contactNoteId);
     });
   });
 

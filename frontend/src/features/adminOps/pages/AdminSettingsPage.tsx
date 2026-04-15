@@ -1,6 +1,6 @@
 /**
  * Admin Settings Page
- * Thin orchestration shell for organization settings, users, roles, and security.
+ * Thin orchestration shell for organization settings, users, groups, roles, and security.
  */
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
@@ -24,6 +24,8 @@ import {
   adminSettingsTabs,
 } from './adminSettings/constants';
 import PortalOperationsCard from './adminSettings/components/PortalOperationsCard';
+import GroupEditorModal from './adminSettings/components/GroupEditorModal';
+import UserAccessModal from './adminSettings/components/UserAccessModal';
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
 import InviteUserModal from './adminSettings/components/InviteUserModal';
 import RoleEditorModal from './adminSettings/components/RoleEditorModal';
@@ -42,6 +44,7 @@ const WorkspaceModulesSection = lazy(
 );
 const BrandingSection = lazy(() => import('./adminSettings/sections/BrandingSection'));
 const UsersSection = lazy(() => import('./adminSettings/sections/UsersSection'));
+const GroupsSection = lazy(() => import('./adminSettings/sections/GroupsSection'));
 const RolesSection = lazy(() => import('./adminSettings/sections/RolesSection'));
 const OtherSettingsSection = lazy(() => import('./adminSettings/sections/OtherSettingsSection'));
 const DashboardSection = lazy(() => import('./adminSettings/sections/DashboardSection'));
@@ -142,6 +145,8 @@ export default function AdminSettings() {
     setUserAuditLogPage,
     showSecurityModal,
     setShowSecurityModal,
+    showAccessModal,
+    setShowAccessModal,
     showResetPasswordModal,
     setShowResetPasswordModal,
     showResetEmailModal,
@@ -167,6 +172,7 @@ export default function AdminSettings() {
     newEmail,
     setNewEmail,
     fetchUserSecurityInfo,
+    fetchUserAccessInfo,
     handleResetUserPassword,
     handleResetUserEmail,
     handleToggleUserLock,
@@ -174,6 +180,22 @@ export default function AdminSettings() {
     handleRevokeInvitation,
     handleResendInvitation,
     resetInviteModal,
+    groups,
+    groupEditor,
+    setGroupEditor,
+    showGroupModal,
+    groupLoading,
+    organizationAccounts,
+    userAccessDraft,
+    setUserAccessDraft,
+    savingUserAccess,
+    savingGroup,
+    openCreateGroup,
+    openEditGroup,
+    handleSaveGroup,
+    handleDeleteGroup,
+    resetGroupModal,
+    handleSaveUserAccess,
   } = useUsersSettings({
     activeSection,
     confirm,
@@ -310,6 +332,15 @@ export default function AdminSettings() {
     setUserAuditLogPage(null);
   };
 
+  const handleCloseAccessModal = () => {
+    setShowAccessModal(false);
+    setSelectedUser(null);
+    setUserAccessDraft({
+      groups: [],
+      organizationAccess: [],
+    });
+  };
+
   const handleOpenResetEmail = () => {
     if (!selectedUser) {
       return;
@@ -344,7 +375,7 @@ export default function AdminSettings() {
     return (
       <AdminPanelLayout
         title="Admin Settings"
-        description="Configure organization settings, branding, users, roles, and security."
+        description="Configure organization settings, branding, users, groups, roles, and security."
         sidebar={<AdminPanelNav currentPath={location.pathname} />}
       >
         <div className="flex min-h-[240px] items-center justify-center">
@@ -416,16 +447,30 @@ export default function AdminSettings() {
               userSearchResults={userSearchResults}
               roleLabels={roleLabels}
               onSelectUser={fetchUserSecurityInfo}
+              onOpenAccess={fetchUserAccessInfo}
               onShowInvite={() => setShowInviteModal(true)}
               onGoToRoles={() => setActiveSection('roles')}
+              onGoToGroups={() => setActiveSection('groups')}
               invitations={invitations}
               onResendInvitation={handleResendInvitation}
               onRevokeInvitation={handleRevokeInvitation}
+              organizationAccounts={organizationAccounts}
             />
             <div className="mt-6">
               <RegistrationSettingsSection roleOptions={roleOptions} />
             </div>
           </>
+        );
+      case 'groups':
+        return (
+          <GroupsSection
+            groups={groups}
+            roleOptions={roleOptions}
+            loading={groupLoading}
+            onCreateGroup={openCreateGroup}
+            onEditGroup={openEditGroup}
+            onDeleteGroup={handleDeleteGroup}
+          />
         );
       case 'roles':
         return (
@@ -455,10 +500,10 @@ export default function AdminSettings() {
   return (
     <AdminPanelLayout
       title="Admin Settings"
-      description="Configure organization settings, branding, users, roles, and security."
+      description="Configure organization settings, branding, users, groups, roles, and security."
       badge={
         <span className="border-2 border-[var(--app-border)] bg-[var(--loop-purple)] px-3 py-1 text-xs font-bold uppercase text-black">
-          Admin Only
+          Privileged Access
         </span>
       }
       sidebar={<AdminPanelNav currentPath={location.pathname} />}
@@ -600,6 +645,16 @@ export default function AdminSettings() {
         onClose={handleCloseRoleModal}
       />
 
+      <GroupEditorModal
+        open={showGroupModal}
+        group={groupEditor}
+        roleOptions={roleOptions}
+        onGroupChange={(nextGroup) => setGroupEditor(nextGroup)}
+        onSave={handleSaveGroup}
+        onClose={resetGroupModal}
+        isSaving={savingGroup}
+      />
+
       <InviteUserModal
         open={showInviteModal}
         email={inviteEmail}
@@ -619,6 +674,25 @@ export default function AdminSettings() {
         onClose={resetInviteModal}
         onReset={resetInviteModal}
         onCopyLink={handleCopyInviteLink}
+      />
+
+      <UserAccessModal
+        open={showAccessModal}
+        user={selectedUser}
+        groups={groups}
+        organizationAccounts={organizationAccounts}
+        draftGroups={userAccessDraft.groups}
+        draftOrganizationAccess={userAccessDraft.organizationAccess}
+        onDraftGroupsChange={(nextGroups) =>
+          setUserAccessDraft((prev) => ({ ...prev, groups: nextGroups }))
+        }
+        onDraftOrganizationAccessChange={(nextOrganizationAccess) =>
+          setUserAccessDraft((prev) => ({ ...prev, organizationAccess: nextOrganizationAccess }))
+        }
+        onSave={handleSaveUserAccess}
+        onClose={handleCloseAccessModal}
+        isSaving={savingUserAccess}
+        error={formError}
       />
 
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />

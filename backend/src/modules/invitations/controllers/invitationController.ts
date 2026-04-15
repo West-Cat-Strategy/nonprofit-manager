@@ -11,10 +11,10 @@ import { logger } from '@config/logger';
 import { getJwtSecret } from '@config/jwt';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD, JWT } from '@config/constants';
+import { seedDefaultOrganizationAccess } from '@services/accountAccessService';
 import { invitationService, syncUserRole } from '../services/invitationService';
 import { getEmailSettings, sendInvitationEmail } from '../services/invitationEmailService';
 import { badRequest, conflict, notFoundMessage } from '@utils/responseHelpers';
-import { guardWithRole } from '@services/authGuardService';
 
 /**
  * POST /api/invitations
@@ -26,8 +26,6 @@ export const createInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (!guardWithRole(req, res, 'admin')) return;
-
     const { email, role, message, expiresInDays, sendEmail = false } = req.body as {
       email: string;
       role: string;
@@ -109,8 +107,6 @@ export const getInvitations = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (!guardWithRole(req, res, 'admin')) return;
-
     const query = (req.validatedQuery ?? req.query) as {
       includeExpired?: boolean | string;
       includeAccepted?: boolean | string;
@@ -151,8 +147,6 @@ export const getInvitationById = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (!guardWithRole(req, res, 'admin')) return;
-
     const { id } = req.params;
     const invitation = await invitationService.getInvitationById(id);
 
@@ -235,6 +229,11 @@ export const acceptInvitation = async (
     const newUser = userResult.rows[0];
 
     await syncUserRole(newUser.id, newUser.role);
+    await seedDefaultOrganizationAccess({
+      userId: newUser.id,
+      role: newUser.role,
+      grantedBy: invitation.createdBy,
+    });
 
     // Mark invitation as accepted
     await invitationService.markInvitationAccepted(invitation.id, newUser.id);
@@ -282,8 +281,6 @@ export const revokeInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (!guardWithRole(req, res, 'admin')) return;
-
     const { id } = req.params;
     const invitation = await invitationService.revokeInvitation(id, req.user!.id);
 
@@ -307,8 +304,6 @@ export const resendInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    if (!guardWithRole(req, res, 'admin')) return;
-
     const { id } = req.params;
     const invitation = await invitationService.resendInvitation(id, req.user!.id);
 

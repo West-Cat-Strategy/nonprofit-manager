@@ -3,6 +3,8 @@ export {
   listPasskeys,
   loginOptions,
   loginVerify,
+  pendingRegistrationOptions,
+  pendingRegistrationVerify,
   registrationOptions,
   registrationVerify,
 } from './passkeyController';

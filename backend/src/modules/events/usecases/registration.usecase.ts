@@ -1,6 +1,8 @@
 import type {
   CheckInOptions,
   CheckInResult,
+  EventConfirmationEmailResult,
+  EventRegistrationMutationContext,
   EventCheckInSettings,
   CreateRegistrationDTO,
   EventRegistration,
@@ -42,12 +44,19 @@ export class EventRegistrationUseCase {
     return this.repository.getRegistrationByTokenGlobal(token, scope);
   }
 
-  register(data: CreateRegistrationDTO): Promise<EventRegistration> {
-    return this.repository.registerContact(data);
+  register(
+    data: CreateRegistrationDTO,
+    context?: EventRegistrationMutationContext
+  ): Promise<EventRegistration> {
+    return this.repository.registerContact(data, context);
   }
 
-  update(registrationId: string, data: UpdateRegistrationDTO): Promise<EventRegistration> {
-    return this.repository.updateRegistration(registrationId, data);
+  update(
+    registrationId: string,
+    data: UpdateRegistrationDTO,
+    context?: EventRegistrationMutationContext
+  ): Promise<EventRegistration> {
+    return this.repository.updateRegistration(registrationId, data, context);
   }
 
   checkIn(registrationId: string, options?: CheckInOptions): Promise<CheckInResult> {
@@ -58,8 +67,8 @@ export class EventRegistrationUseCase {
     return this.repository.cancelRegistration(registrationId);
   }
 
-  getCheckInSettings(eventId: string): Promise<EventCheckInSettings | null> {
-    return this.repository.getEventCheckInSettings(eventId);
+  getCheckInSettings(eventId: string, occurrenceId?: string): Promise<EventCheckInSettings | null> {
+    return this.repository.getEventCheckInSettings(eventId, occurrenceId);
   }
 
   updateCheckInSettings(
@@ -70,8 +79,12 @@ export class EventRegistrationUseCase {
     return this.repository.updateEventCheckInSettings(eventId, data, userId);
   }
 
-  rotateCheckInPin(eventId: string, userId: string): Promise<RotateEventCheckInPinResult> {
-    return this.repository.rotateEventCheckInPin(eventId, userId);
+  rotateCheckInPin(
+    eventId: string,
+    userId: string,
+    occurrenceId?: string
+  ): Promise<RotateEventCheckInPinResult> {
+    return this.repository.rotateEventCheckInPin(eventId, userId, occurrenceId);
   }
 
   walkInCheckIn(
@@ -89,8 +102,18 @@ export class EventRegistrationUseCase {
     return this.repository.submitPublicRegistration(eventId, data);
   }
 
-  getPublicCheckInInfo(eventId: string): Promise<PublicEventCheckInInfo | null> {
-    return this.repository.getPublicCheckInInfo(eventId);
+  sendConfirmationEmail(
+    registrationId: string,
+    sentBy: string | null
+  ): Promise<EventConfirmationEmailResult> {
+    return this.repository.sendRegistrationConfirmationEmail(registrationId, sentBy);
+  }
+
+  getPublicCheckInInfo(
+    eventId: string,
+    occurrenceId?: string
+  ): Promise<PublicEventCheckInInfo | null> {
+    return this.repository.getPublicCheckInInfo(eventId, occurrenceId);
   }
 
   submitPublicCheckIn(eventId: string, data: PublicEventCheckInDTO): Promise<PublicEventCheckInResult> {

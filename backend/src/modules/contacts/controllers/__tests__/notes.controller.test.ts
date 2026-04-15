@@ -32,6 +32,7 @@ const createResponse = (): Response =>
 describe('contact notes controller', () => {
   const useCase = {
     list: jest.fn(),
+    listTimeline: jest.fn(),
     getById: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
@@ -120,6 +121,38 @@ describe('contact notes controller', () => {
     expect(useCase.create).toHaveBeenCalledWith('contact-1', { content: 'Saved note' }, 'user-1');
     expect(mockSendData).toHaveBeenCalledWith(res, 'v2', { id: 'note-1', content: 'Saved note' }, 201);
     expect(mockSendFailure).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns the mixed notes timeline response', async () => {
+    useCase.listTimeline.mockResolvedValueOnce({
+      items: [],
+      counts: {
+        all: 0,
+        contact_notes: 0,
+        case_notes: 0,
+        event_activity: 0,
+      },
+    });
+
+    const req = {
+      params: { contactId: 'contact-1' },
+    } as any;
+    const res = createResponse();
+    const next = jest.fn();
+
+    await controller.getContactNotesTimeline(req, res, next);
+
+    expect(useCase.listTimeline).toHaveBeenCalledWith('contact-1');
+    expect(mockSendData).toHaveBeenCalledWith(res, 'v2', {
+      items: [],
+      counts: {
+        all: 0,
+        contact_notes: 0,
+        case_notes: 0,
+        event_activity: 0,
+      },
+    });
     expect(next).not.toHaveBeenCalled();
   });
 });

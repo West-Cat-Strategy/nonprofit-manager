@@ -4,6 +4,7 @@ import AccountList from '../../features/accounts/pages/AccountListPage';
 import ContactList from '../../features/contacts/pages/ContactListPage';
 import VolunteerList from '../../features/volunteers/pages/VolunteerListPage';
 import EventList from '../../features/events/pages/EventsHubPage';
+import EventCalendarPage from '../../features/events/pages/EventCalendarPage';
 import TaskList from '../../features/tasks/pages/TaskListPage';
 import DonationList from '../../features/finance/pages/DonationListPage';
 import CaseList from '../../features/cases/pages/CaseListPage';
@@ -42,6 +43,10 @@ vi.mock('recharts', () => {
     Legend: () => null,
   };
 });
+
+vi.mock('../../features/auth/state/adminAccess', () => ({
+  canAccessAdminSettings: () => false,
+}));
 
 const mockApi = api as unknown as {
   get: ReturnType<typeof vi.fn>;
@@ -94,7 +99,14 @@ const smokeCases: SmokeCase[] = [
     name: 'events',
     route: '/events',
     page: <EventList />,
-    heading: 'Events',
+    heading: /Events calendar command center/i,
+    primaryActionPattern: /create event/i,
+  },
+  {
+    name: 'events-calendar',
+    route: '/events/calendar',
+    page: <EventCalendarPage />,
+    heading: /Events Calendar/i,
     primaryActionPattern: /create event/i,
   },
   {

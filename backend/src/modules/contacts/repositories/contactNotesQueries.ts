@@ -8,6 +8,8 @@ import { logger } from '@config/logger';
 import * as contactNoteOutcomeImpactService from '../services/contactNoteOutcomeImpactService';
 import type {
   ContactNote,
+  ContactNoteTimelineItem,
+  ContactNotesTimelineResponse,
   CreateContactNoteDTO,
   UpdateContactNoteDTO,
 } from '@app-types/contact';
@@ -63,6 +65,40 @@ const CONTACT_NOTE_SELECT_WITH_OUTCOMES = `
   LEFT JOIN cases c ON cn.case_id = c.id
 `;
 
+const CASE_NOTE_OUTCOME_IMPACTS_JSON = `
+  COALESCE((
+    SELECT json_agg(
+      json_build_object(
+        'id', ioi.id,
+        'interaction_id', ioi.interaction_id,
+        'outcome_definition_id', ioi.outcome_definition_id,
+        'impact', ioi.impact,
+        'attribution', ioi.attribution,
+        'intensity', ioi.intensity,
+        'evidence_note', ioi.evidence_note,
+        'created_by_user_id', ioi.created_by_user_id,
+        'created_at', ioi.created_at,
+        'updated_at', ioi.updated_at,
+        'outcome_definition', json_build_object(
+          'id', od.id,
+          'key', od.key,
+          'name', od.name,
+          'description', od.description,
+          'category', od.category,
+          'is_active', od.is_active,
+          'is_reportable', od.is_reportable,
+          'sort_order', od.sort_order
+        )
+      )
+      ORDER BY od.sort_order ASC, od.name ASC
+    )
+    FROM interaction_outcome_impacts ioi
+    INNER JOIN outcome_definitions od
+      ON od.id = ioi.outcome_definition_id
+    WHERE ioi.interaction_id = csn.id
+  ), '[]'::json) AS outcome_impacts
+`;
+
 const CONTACT_NOTE_CASE_SELECT_WITH_OUTCOMES = `
   SELECT
     cn.*,
@@ -75,6 +111,12 @@ const CONTACT_NOTE_CASE_SELECT_WITH_OUTCOMES = `
   LEFT JOIN users u ON cn.created_by = u.id
   LEFT JOIN contacts ct ON cn.contact_id = ct.id
 `;
+
+const CONTACT_TIMELINE_EVENT_ACTIVITY_TYPES = [
+  'event_registration',
+  'event_registration_updated',
+  'event_check_in',
+] as const;
 
 const getContactNoteByIdQuery = async (
   db: PgExecutor,
@@ -256,6 +298,211 @@ export async function getContactNotes(
   } catch (error) {
     logger.error('Error getting contact notes:', error);
     throw Object.assign(new Error('Failed to retrieve contact notes'), { cause: error });
+  }
+}
+
+export async function getContactNotesTimeline(
+  contactId: string
+): Promise<ContactNotesTimelineResponse> {
+  try {
+    const countsResult = await pool.query<{
+      contact_notes: string;
+      case_notes: string;
+      event_activity: string;
+    }>(
+      `
+      SELECT
+        (SELECT COUNT(*)::text FROM contact_notes WHERE contact_id = $1) AS contact_notes,
+        (
+          SELECT COUNT(*)::text
+          FROM case_notes csn
+          INNER JOIN cases c ON c.id = csn.case_id
+          WHERE c.contact_id = $1
+        ) AS case_notes,
+        (
+          SELECT COUNT(*)::text
+          FROM activity_events ae
+          WHERE ae.related_entity_type = 'contact'
+            AND ae.related_entity_id = $1::uuid
+            AND ae.activity_type = ANY($2::text[])
+        ) AS event_activity
+      `,
+      [contactId, [...CONTACT_TIMELINE_EVENT_ACTIVITY_TYPES]]
+    );
+
+    const timelineResult = await pool.query<ContactNoteTimelineItem>(
+      `
+      SELECT *
+      FROM (
+        SELECT
+          cn.id,
+          'contact_note'::text AS source_type,
+          true AS editable,
+          cn.note_type::text AS note_type,
+          NULL::text AS activity_type,
+          cn.subject AS title,
+          cn.content,
+          cn.is_internal,
+          cn.is_important,
+          cn.is_pinned,
+          cn.is_alert,
+          cn.is_portal_visible,
+          cn.created_at,
+          cn.updated_at,
+          cn.created_by,
+          u.first_name AS created_by_first_name,
+          u.last_name AS created_by_last_name,
+          cn.case_id,
+          c.case_number,
+          c.title AS case_title,
+          NULL::uuid AS event_id,
+          NULL::text AS event_name,
+          NULL::uuid AS registration_id,
+          NULL::text AS registration_status,
+          NULL::text AS previous_registration_status,
+          NULL::text AS next_registration_status,
+          NULL::boolean AS checked_in,
+          NULL::text AS check_in_method,
+          ${CONTACT_NOTE_OUTCOME_IMPACTS_JSON}
+        FROM contact_notes cn
+        LEFT JOIN users u ON u.id = cn.created_by
+        LEFT JOIN cases c ON c.id = cn.case_id
+        WHERE cn.contact_id = $1
+
+        UNION ALL
+
+        SELECT
+          csn.id,
+          'case_note'::text AS source_type,
+          false AS editable,
+          csn.note_type::text AS note_type,
+          NULL::text AS activity_type,
+          csn.subject AS title,
+          csn.content,
+          csn.is_internal,
+          csn.is_important,
+          false AS is_pinned,
+          false AS is_alert,
+          csn.visible_to_client AS is_portal_visible,
+          csn.created_at,
+          csn.updated_at,
+          csn.created_by,
+          cu.first_name AS created_by_first_name,
+          cu.last_name AS created_by_last_name,
+          csn.case_id,
+          c.case_number,
+          c.title AS case_title,
+          NULL::uuid AS event_id,
+          NULL::text AS event_name,
+          NULL::uuid AS registration_id,
+          NULL::text AS registration_status,
+          NULL::text AS previous_registration_status,
+          NULL::text AS next_registration_status,
+          NULL::boolean AS checked_in,
+          NULL::text AS check_in_method,
+          ${CASE_NOTE_OUTCOME_IMPACTS_JSON}
+        FROM case_notes csn
+        INNER JOIN cases c ON c.id = csn.case_id
+        LEFT JOIN users cu ON cu.id = csn.created_by
+        WHERE c.contact_id = $1
+
+        UNION ALL
+
+        SELECT
+          ae.id,
+          'event_activity'::text AS source_type,
+          false AS editable,
+          NULL::text AS note_type,
+          ae.activity_type::text AS activity_type,
+          COALESCE(NULLIF(ae.metadata->>'eventName', ''), e.name, ae.title) AS title,
+          CASE
+            WHEN ae.activity_type = 'event_registration_updated' THEN
+              COALESCE(
+                NULLIF(ae.description, ''),
+                CASE
+                  WHEN ae.metadata->>'previousStatus' IS NOT NULL AND ae.metadata->>'nextStatus' IS NOT NULL THEN
+                    CONCAT(
+                      'Registration status changed from ',
+                      ae.metadata->>'previousStatus',
+                      ' to ',
+                      ae.metadata->>'nextStatus'
+                    )
+                  WHEN ae.metadata->>'nextStatus' IS NOT NULL THEN
+                    CONCAT('Registration status updated to ', ae.metadata->>'nextStatus')
+                  ELSE
+                    'Registration updated'
+                END
+              )
+            WHEN ae.activity_type = 'event_check_in' THEN
+              COALESCE(NULLIF(ae.description, ''), 'Checked in to the event')
+            ELSE
+              COALESCE(NULLIF(ae.description, ''), 'Registered for the event')
+          END AS content,
+          false AS is_internal,
+          false AS is_important,
+          false AS is_pinned,
+          false AS is_alert,
+          false AS is_portal_visible,
+          ae.occurred_at AS created_at,
+          ae.occurred_at AS updated_at,
+          ae.actor_user_id AS created_by,
+          COALESCE(au.first_name, NULLIF(ae.actor_name, '')) AS created_by_first_name,
+          au.last_name AS created_by_last_name,
+          COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) AS case_id,
+          COALESCE(linked_case.case_number, NULLIF(ae.metadata->>'caseNumber', '')) AS case_number,
+          COALESCE(linked_case.title, NULLIF(ae.metadata->>'caseTitle', '')) AS case_title,
+          COALESCE(e.id, er.event_id, NULLIF(ae.metadata->>'eventId', '')::uuid) AS event_id,
+          COALESCE(e.name, NULLIF(ae.metadata->>'eventName', '')) AS event_name,
+          NULLIF(ae.metadata->>'registrationId', '')::uuid AS registration_id,
+          COALESCE(ae.metadata->>'registrationStatus', er.registration_status) AS registration_status,
+          ae.metadata->>'previousStatus' AS previous_registration_status,
+          ae.metadata->>'nextStatus' AS next_registration_status,
+          CASE
+            WHEN ae.metadata->>'checkedIn' IS NOT NULL THEN (ae.metadata->>'checkedIn')::boolean
+            ELSE er.checked_in
+          END AS checked_in,
+          COALESCE(ae.metadata->>'method', ae.metadata->>'checkInMethod', er.check_in_method) AS check_in_method,
+          '[]'::json AS outcome_impacts
+        FROM activity_events ae
+        LEFT JOIN event_registrations er
+          ON er.id = NULLIF(ae.metadata->>'registrationId', '')::uuid
+        LEFT JOIN events e
+          ON e.id = ae.entity_id
+        LEFT JOIN cases linked_case
+          ON linked_case.id = COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id)
+        LEFT JOIN users au
+          ON au.id = ae.actor_user_id
+        WHERE ae.related_entity_type = 'contact'
+          AND ae.related_entity_id = $1::uuid
+          AND ae.activity_type = ANY($2::text[])
+      ) timeline
+      ORDER BY timeline.created_at DESC, timeline.id DESC
+      LIMIT 200
+      `,
+      [contactId, [...CONTACT_TIMELINE_EVENT_ACTIVITY_TYPES]]
+    );
+
+    const rawCounts = countsResult.rows[0] || {
+      contact_notes: '0',
+      case_notes: '0',
+      event_activity: '0',
+    };
+    const counts = {
+      contact_notes: Number.parseInt(rawCounts.contact_notes || '0', 10),
+      case_notes: Number.parseInt(rawCounts.case_notes || '0', 10),
+      event_activity: Number.parseInt(rawCounts.event_activity || '0', 10),
+    };
+
+    return {
+      items: timelineResult.rows,
+      counts: {
+        all: counts.contact_notes + counts.case_notes + counts.event_activity,
+        ...counts,
+      },
+    };
+  } catch (error) {
+    logger.error('Error getting contact notes timeline:', error);
+    throw Object.assign(new Error('Failed to retrieve contact notes timeline'), { cause: error });
   }
 }
 

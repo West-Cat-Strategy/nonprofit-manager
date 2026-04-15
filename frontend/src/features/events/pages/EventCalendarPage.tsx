@@ -15,14 +15,19 @@ import { canAccessAdminSettings } from '../../auth/state/adminAccess';
 import { useToast } from '../../../contexts/useToast';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
 import { useAppSelector } from '../../../store/hooks';
-import type { Event } from '../../../types/event';
+import type { Event, EventOccurrence } from '../../../types/event';
 import { formatApiErrorMessage } from '../../../utils/apiError';
 import { eventsApiClient } from '../api/eventsApiClient';
+import {
+  buildEventOccurrences,
+  getEventOccurrenceLabel,
+  getOccurrenceDateRange,
+} from '../utils/occurrences';
 
 type CalendarFilter = 'all' | 'events' | 'appointments' | 'slots';
 
 type StaffCalendarEntryMeta =
-  | { kind: 'event'; event: Event }
+  | { kind: 'event'; event: Event; occurrence: EventOccurrence }
   | { kind: 'appointment'; appointment: PortalAdminAppointmentInboxItem }
   | { kind: 'slot'; slot: PortalAppointmentSlot };
 
@@ -40,15 +45,18 @@ const formatEventType = (type: string): string =>
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
-const normalizeEventEntry = (event: Event): BookingCalendarEntry<StaffCalendarEntryMeta> => ({
-  id: `event:${event.event_id}`,
+const normalizeEventEntry = (
+  event: Event,
+  occurrence: EventOccurrence
+): BookingCalendarEntry<StaffCalendarEntryMeta> => ({
+  id: `event:${event.event_id}:${occurrence.occurrence_id}`,
   kind: 'event',
-  title: event.event_name,
-  start: event.start_date,
-  end: event.end_date,
-  status: event.status,
-  location: event.location_name,
-  metadata: { kind: 'event', event },
+  title: getEventOccurrenceLabel(occurrence),
+  start: occurrence.start_date,
+  end: occurrence.end_date,
+  status: occurrence.status,
+  location: occurrence.location_name || event.location_name,
+  metadata: { kind: 'event', event, occurrence },
 });
 
 const normalizeAppointmentEntry = (
@@ -89,7 +97,7 @@ export default function EventCalendarPage() {
   const [error, setError] = useState<string | null>(null);
   const [visibleRange, setVisibleRange] = useState<{ startDate: string; endDate: string } | null>(null);
   const [calendarEntries, setCalendarEntries] = useState<BookingCalendarEntry<StaffCalendarEntryMeta>[]>([]);
-  const [filter, setFilter] = useState<CalendarFilter>('all');
+  const [filter, setFilter] = useState<CalendarFilter>('events');
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [savingEntryId, setSavingEntryId] = useState<string | null>(null);
@@ -121,8 +129,12 @@ export default function EventCalendarPage() {
             : Promise.resolve([]),
         ]);
 
+        const eventEntries = (events.data || []).flatMap((event) =>
+          buildEventOccurrences(event).map((occurrence) => normalizeEventEntry(event, occurrence))
+        );
+
         const nextEntries = [
-          ...(events.data || []).map(normalizeEventEntry),
+          ...eventEntries,
           ...appointments.map(normalizeAppointmentEntry),
           ...slots.map(normalizeSlotEntry),
         ].sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime());
@@ -268,9 +280,14 @@ export default function EventCalendarPage() {
   };
 
   const selectedEvent = selectedEntry?.metadata.kind === 'event' ? selectedEntry.metadata.event : null;
+  const selectedOccurrence =
+    selectedEntry?.metadata.kind === 'event' ? selectedEntry.metadata.occurrence : null;
   const selectedAppointment =
     selectedEntry?.metadata.kind === 'appointment' ? selectedEntry.metadata.appointment : null;
   const selectedSlot = selectedEntry?.metadata.kind === 'slot' ? selectedEntry.metadata.slot : null;
+  const handleMonthRangeChange = useCallback((range: { startDate: string; endDate: string }) => {
+    setVisibleRange(range);
+  }, []);
 
   return (
     <NeoBrutalistLayout pageTitle="CALENDAR">
@@ -278,12 +295,12 @@ export default function EventCalendarPage() {
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-app-text">
-              {isAdmin ? 'Booking Calendar' : 'Event Calendar'}
+              {isAdmin ? 'Booking Calendar' : 'Events Calendar'}
             </h1>
             <p className="mt-1 text-sm text-app-text-muted">
               {isAdmin
-                ? 'Manage events, appointment requests, and open booking slots in one calendar.'
-                : 'View and manage upcoming events. Appointment scheduling remains admin-only.'}
+                ? 'Manage event occurrences, appointment requests, and open booking slots in one calendar.'
+                : 'Plan event occurrences first. Appointment scheduling remains admin-only.'}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -336,6 +353,11 @@ export default function EventCalendarPage() {
           </div>
         ) : null}
 
+        <div className="mb-4 rounded-lg border border-app-border bg-app-surface-muted p-4 text-sm text-app-text-muted">
+          Event entries are occurrence-aware here. Select an item to inspect the series context, then jump to the
+          event detail page for registration work.
+        </div>
+
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <BookingCalendarView
@@ -345,9 +367,7 @@ export default function EventCalendarPage() {
               selectedEntryId={selectedEntryId}
               onDateSelect={handleSelectDate}
               onEntryClick={handleSelectEntry}
-              onMonthRangeChange={(range) => {
-                setVisibleRange(range);
-              }}
+              onMonthRangeChange={handleMonthRangeChange}
             />
           </div>
 
@@ -423,7 +443,17 @@ export default function EventCalendarPage() {
                         <span className="rounded-full bg-app-accent-soft px-2 py-1 text-xs text-app-accent-text">
                           {formatEventType(selectedEvent.event_type)}
                         </span>
+                        {selectedOccurrence && (
+                          <span className="rounded-full bg-app-surface-muted px-2 py-1 text-xs text-app-text-muted">
+                            {getEventOccurrenceLabel(selectedOccurrence)}
+                          </span>
+                        )}
                       </div>
+                      {selectedOccurrence && (
+                        <p className="mt-2 text-sm text-app-text-muted">
+                          {getOccurrenceDateRange(selectedOccurrence)}
+                        </p>
+                      )}
                       <div className="flex gap-2 pt-2">
                         <button
                           type="button"

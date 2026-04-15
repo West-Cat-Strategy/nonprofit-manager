@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import Avatar from '../../../../../components/Avatar';
 import { normalizeRoleSlug } from '../../../../auth/state/roleNormalization';
 import { getAdminSettingsPath } from '../../../adminRoutePaths';
-import type { UserInvitation, UserSearchResult } from '../types';
+import type { OrganizationAccount, UserInvitation, UserSearchResult } from '../types';
 import { getRoleDisplayLabel } from '../utils';
 
 interface UsersSectionProps {
@@ -12,12 +12,18 @@ interface UsersSectionProps {
   userSearchResults: UserSearchResult[];
   roleLabels: Record<string, string>;
   onSelectUser: (userId: string) => void;
+  onOpenAccess: (userId: string) => void;
   onShowInvite: () => void;
   onGoToRoles: () => void;
+  onGoToGroups: () => void;
   invitations: UserInvitation[];
   onResendInvitation: (invitationId: string) => void;
   onRevokeInvitation: (invitationId: string) => void;
+  organizationAccounts: OrganizationAccount[];
 }
+
+const getCountLabel = (count: number, singular: string, plural: string) =>
+  `${count} ${count === 1 ? singular : plural}`;
 
 export default function UsersSection({
   userSearchQuery,
@@ -26,11 +32,14 @@ export default function UsersSection({
   userSearchResults,
   roleLabels,
   onSelectUser,
+  onOpenAccess,
   onShowInvite,
   onGoToRoles,
+  onGoToGroups,
   invitations,
   onResendInvitation,
   onRevokeInvitation,
+  organizationAccounts,
 }: UsersSectionProps) {
   const getLabel = (role: string) => getRoleDisplayLabel(role, roleLabels);
 
@@ -38,9 +47,9 @@ export default function UsersSection({
     <div className="space-y-6">
       <div className="overflow-hidden rounded-lg border border-app-border bg-app-surface shadow-sm">
         <div className="border-b border-app-border bg-app-surface-muted px-6 py-4">
-          <h2 className="text-lg font-semibold text-app-text-heading">User Lookup</h2>
+          <h2 className="text-lg font-semibold text-app-text-heading">Account Lookup</h2>
           <p className="mt-1 text-sm text-app-text-muted">
-            Search for users to manage their security settings.
+            Search for staff accounts, open access details, and jump into security actions.
           </p>
         </div>
 
@@ -52,7 +61,7 @@ export default function UsersSection({
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search by name or email..."
               aria-label="Search users"
-              className="w-full rounded-lg border border-app-input-border py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
+              className="w-full rounded-lg border border-app-input-border py-3 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-app-accent"
             />
             <svg
               className="absolute left-3 top-3.5 h-5 w-5 text-app-text-subtle"
@@ -80,13 +89,15 @@ export default function UsersSection({
                 const normalizedRole = normalizeRoleSlug(user.role);
 
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={user.id}
-                    className="flex w-full cursor-pointer items-center justify-between p-4 text-left hover:bg-app-surface-muted"
-                    onClick={() => onSelectUser(user.id)}
+                    className="flex w-full flex-col gap-4 p-4 text-left hover:bg-app-surface-muted lg:flex-row lg:items-center lg:justify-between"
                   >
-                    <div className="flex items-center">
+                    <button
+                      type="button"
+                      className="flex items-center text-left"
+                      onClick={() => onSelectUser(user.id)}
+                    >
                       <Avatar
                         src={user.profilePicture}
                         firstName={user.firstName}
@@ -99,8 +110,8 @@ export default function UsersSection({
                         </div>
                         <div className="text-sm text-app-text-muted">{user.email}</div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
+                    </button>
+                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
                           normalizedRole === 'admin'
@@ -110,30 +121,36 @@ export default function UsersSection({
                       >
                         {getLabel(user.role)}
                       </span>
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          user.isActive
-                            ? 'bg-app-accent-soft text-app-accent-text'
-                            : 'bg-app-surface-muted text-app-text'
-                        }`}
-                      >
+                      <span className="rounded-full bg-app-surface-muted px-2 py-1 text-xs font-medium text-app-text">
                         {user.isActive ? 'Active' : 'Inactive'}
                       </span>
-                      <svg
-                        className="h-5 w-5 text-app-text-subtle"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                      <span className="rounded-full bg-app-accent-soft px-2 py-1 text-xs font-medium text-app-accent-text">
+                        {getCountLabel(user.groups?.length ?? 0, 'group', 'groups')}
+                      </span>
+                      <span className="rounded-full bg-app-accent-soft px-2 py-1 text-xs font-medium text-app-accent-text">
+                        {getCountLabel(
+                          user.organizationAccess?.length ?? 0,
+                          'account',
+                          'accounts'
+                        )}
+                      </span>
+                      <span className="rounded-full bg-app-surface-muted px-2 py-1 text-xs font-medium text-app-text">
+                        {user.passkeyCount ? `${user.passkeyCount} passkeys` : 'No passkeys'}
+                      </span>
+                      {user.mfaTotpEnabled ? (
+                        <span className="rounded-full bg-app-surface-muted px-2 py-1 text-xs font-medium text-app-text">
+                          2FA enabled
+                        </span>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => onOpenAccess(user.id)}
+                        className="rounded-lg border border-app-border px-3 py-1.5 text-xs font-medium text-app-text hover:bg-app-surface-muted"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
+                        Manage Access
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -149,7 +166,12 @@ export default function UsersSection({
 
       <div className="overflow-hidden rounded-lg border border-app-border bg-app-surface shadow-sm">
         <div className="flex items-center justify-between border-b border-app-border bg-app-surface-muted px-6 py-4">
-          <h2 className="text-lg font-semibold text-app-text-heading">User Management</h2>
+          <div>
+            <h2 className="text-lg font-semibold text-app-text-heading">Account Management</h2>
+            <p className="mt-1 text-sm text-app-text-muted">
+              Administer users, roles, access groups, and audit trails from one workspace.
+            </p>
+          </div>
           <button
             type="button"
             onClick={onShowInvite}
@@ -159,7 +181,7 @@ export default function UsersSection({
           </button>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <Link
               to={getAdminSettingsPath('users')}
               className="flex items-center rounded-lg border border-app-border p-4 transition-colors hover:bg-app-surface-muted"
@@ -180,10 +202,36 @@ export default function UsersSection({
                 </svg>
               </div>
               <div className="ml-4">
-                <div className="text-sm font-medium text-app-text">All Users</div>
-                <div className="text-sm text-app-text-muted">View and manage all users</div>
+                <div className="text-sm font-medium text-app-text">Users</div>
+                <div className="text-sm text-app-text-muted">Search, invite, and manage accounts</div>
               </div>
             </Link>
+
+            <button
+              type="button"
+              onClick={onGoToGroups}
+              className="flex items-center rounded-lg border border-app-border p-4 text-left transition-colors hover:bg-app-surface-muted"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-accent-soft">
+                <svg
+                  className="h-6 w-6 text-app-accent"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <div className="text-sm font-medium text-app-text">Groups</div>
+                <div className="text-sm text-app-text-muted">Bundle access into policy groups</div>
+              </div>
+            </button>
 
             <button
               type="button"
@@ -206,7 +254,7 @@ export default function UsersSection({
                 </svg>
               </div>
               <div className="ml-4">
-                <div className="text-sm font-medium text-app-text">Roles &amp; Permissions</div>
+                <div className="text-sm font-medium text-app-text">Roles</div>
                 <div className="text-sm text-app-text-muted">Manage access levels</div>
               </div>
             </button>
@@ -236,66 +284,49 @@ export default function UsersSection({
               </div>
             </Link>
           </div>
+
+          {organizationAccounts.length > 0 && (
+            <p className="mt-4 text-sm text-app-text-muted">
+              {organizationAccounts.length}{' '}
+              {organizationAccounts.length === 1 ? 'organization account' : 'organization accounts'}{' '}
+              available for access assignment.
+            </p>
+          )}
         </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-app-border bg-app-surface shadow-sm">
         <div className="border-b border-app-border bg-app-surface-muted px-6 py-4">
-          <h2 className="text-lg font-semibold text-app-text">Security Settings</h2>
+          <h2 className="text-lg font-semibold text-app-text">Access Policies</h2>
           <p className="mt-1 text-sm text-app-text-muted">
-            Organization-wide policies are read-only here and managed by the auth layer.
+            Groups and invitations are managed here while registration approval remains in the
+            registration section below.
           </p>
         </div>
         <div className="space-y-4 p-6">
           <div className="rounded-lg border border-app-border bg-app-surface-muted p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="text-sm font-medium text-app-text">Require Strong Passwords</div>
+                <div className="text-sm font-medium text-app-text">Organization Access</div>
                 <div className="text-sm text-app-text-muted">
-                  Minimum 8 characters with uppercase, lowercase, and number.
+                  Assign users to organization accounts and shared workspaces.
                 </div>
               </div>
               <span className="rounded-full bg-app-accent-soft px-2 py-1 text-xs font-medium text-app-accent-text">
-                Enforced
+                Managed in Access
               </span>
             </div>
           </div>
           <div className="rounded-lg border border-app-border bg-app-surface-muted p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="text-sm font-medium text-app-text">Account Lockout</div>
+                <div className="text-sm font-medium text-app-text">Group Policies</div>
                 <div className="text-sm text-app-text-muted">
-                  Lock accounts after 5 failed login attempts.
+                  Bundle role access into reusable groups, then assign those groups to users.
                 </div>
               </div>
               <span className="rounded-full bg-app-accent-soft px-2 py-1 text-xs font-medium text-app-accent-text">
-                Enforced
-              </span>
-            </div>
-          </div>
-          <div className="rounded-lg border border-app-border bg-app-surface-muted p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-sm font-medium text-app-text">Session Timeout</div>
-                <div className="text-sm text-app-text-muted">
-                  Automatically log out after 24 hours of inactivity.
-                </div>
-              </div>
-              <span className="rounded-full bg-app-surface px-2 py-1 text-xs font-medium text-app-text">
-                Managed by session policy
-              </span>
-            </div>
-          </div>
-          <div className="rounded-lg border border-app-border bg-app-surface-muted p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-sm font-medium text-app-text">Two-Factor Authentication</div>
-                <div className="text-sm text-app-text-muted">
-                  Require 2FA for admin accounts.
-                </div>
-              </div>
-              <span className="rounded-full bg-app-surface px-2 py-1 text-xs font-medium text-app-text-muted">
-                Coming soon
+                Managed in Groups
               </span>
             </div>
           </div>

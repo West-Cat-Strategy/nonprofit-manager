@@ -41,6 +41,19 @@ export const createContactNotesController = (
     }
   };
 
+  const getContactNotesTimeline = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const timeline = await useCase.listTimeline(req.params.contactId);
+      sendData(res, mode, timeline);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   const getContactNoteById = async (
     req: AuthRequest,
     res: Response,
@@ -126,6 +139,7 @@ export const createContactNotesController = (
 
   return {
     getContactNotes,
+    getContactNotesTimeline,
     getContactNoteById,
     createContactNote,
     updateContactNote,

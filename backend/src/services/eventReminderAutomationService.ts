@@ -34,6 +34,7 @@ export interface AutomationAttemptResult {
 interface EventReminderAutomationRow {
   id: string;
   event_id: string;
+  occurrence_id: string | null;
   timing_type: EventReminderTimingType;
   relative_minutes_before: number | null;
   absolute_send_at: Date | null;
@@ -72,6 +73,7 @@ interface NormalizedReminderInput {
 const mapRow = (row: EventReminderAutomationRow): EventReminderAutomation => ({
   id: row.id,
   event_id: row.event_id,
+  occurrence_id: row.occurrence_id,
   timing_type: row.timing_type,
   relative_minutes_before: row.relative_minutes_before,
   absolute_send_at: row.absolute_send_at,
@@ -179,6 +181,7 @@ export async function listEventReminderAutomations(
 const createAutomationQuery = `
   INSERT INTO event_reminder_automations (
     event_id,
+    occurrence_id,
     timing_type,
     relative_minutes_before,
     absolute_send_at,
@@ -190,16 +193,18 @@ const createAutomationQuery = `
     created_by,
     modified_by
   )
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9, $9)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10, $10)
   RETURNING *
 `;
 
 const buildCreateAutomationParams = (
   eventId: string,
+  occurrenceId: string | null,
   normalized: NormalizedReminderInput,
   userId: string
 ): QueryValue[] => [
   eventId,
+  occurrenceId,
   normalized.timingType,
   normalized.relativeMinutesBefore,
   normalized.absoluteSendAt,
@@ -219,7 +224,7 @@ const createEventReminderAutomationTx = async (
   const normalized = normalizeReminderInput(dto);
   const result = await client.query<EventReminderAutomationRow>(
     createAutomationQuery,
-    buildCreateAutomationParams(eventId, normalized, userId)
+    buildCreateAutomationParams(eventId, dto.occurrenceId ?? null, normalized, userId)
   );
 
   return mapRow(result.rows[0]);
@@ -234,7 +239,7 @@ export async function createEventReminderAutomation(
 
   const result = await pool.query<EventReminderAutomationRow>(
     createAutomationQuery,
-    buildCreateAutomationParams(eventId, normalized, userId)
+    buildCreateAutomationParams(eventId, dto.occurrenceId ?? null, normalized, userId)
   );
 
   return mapRow(result.rows[0]);
@@ -268,21 +273,23 @@ export async function updateEventReminderAutomation(
   const result = await pool.query<EventReminderAutomationRow>(
     `UPDATE event_reminder_automations
      SET timing_type = $1,
-         relative_minutes_before = $2,
-         absolute_send_at = $3,
-         send_email = $4,
-         send_sms = $5,
-         custom_message = $6,
-         timezone = $7,
-         is_active = $8,
-         modified_by = $9,
+         occurrence_id = $2,
+         relative_minutes_before = $3,
+         absolute_send_at = $4,
+         send_email = $5,
+         send_sms = $6,
+         custom_message = $7,
+         timezone = $8,
+         is_active = $9,
+         modified_by = $10,
          updated_at = NOW()
-     WHERE id = $10
-       AND event_id = $11
+     WHERE id = $11
+       AND event_id = $12
        AND attempted_at IS NULL
      RETURNING *`,
     [
       normalized.timingType,
+      dto.occurrenceId ?? current.occurrence_id ?? null,
       normalized.relativeMinutesBefore,
       normalized.absoluteSendAt,
       normalized.sendEmail,
@@ -403,13 +410,14 @@ export async function cancelPendingAutomationsForNonSendableEvents(
        SELECT era.id
        FROM event_reminder_automations era
        JOIN events e ON e.id = era.event_id
+       LEFT JOIN event_occurrences eo ON eo.id = era.occurrence_id
        WHERE era.is_active = true
          AND era.attempted_at IS NULL
          AND (
-           e.status IN ('cancelled', 'completed')
-           OR e.start_date <= NOW()
+           COALESCE(eo.status, e.status) IN ('cancelled', 'completed')
+           OR COALESCE(eo.start_date, e.start_date) <= NOW()
          )
-       ORDER BY e.start_date ASC
+       ORDER BY COALESCE(eo.start_date, e.start_date) ASC
        LIMIT $1
      )
      UPDATE event_reminder_automations era
@@ -475,23 +483,24 @@ export async function claimDueAutomations(
          era.id,
          CASE
            WHEN era.timing_type = 'absolute' THEN era.absolute_send_at
-           ELSE e.start_date - (era.relative_minutes_before * INTERVAL '1 minute')
+           ELSE COALESCE(eo.start_date, e.start_date) - (era.relative_minutes_before * INTERVAL '1 minute')
          END AS due_at
        FROM event_reminder_automations era
        INNER JOIN events e ON e.id = era.event_id
+       LEFT JOIN event_occurrences eo ON eo.id = era.occurrence_id
        WHERE era.is_active = true
          AND era.attempted_at IS NULL
          AND (
            era.processing_started_at IS NULL
            OR era.processing_started_at < NOW() - ($2::int * INTERVAL '1 minute')
          )
-         AND e.status NOT IN ('cancelled', 'completed')
-         AND e.start_date > NOW()
+         AND COALESCE(eo.status, e.status) NOT IN ('cancelled', 'completed')
+         AND COALESCE(eo.start_date, e.start_date) > NOW()
          AND (
            (era.timing_type = 'absolute' AND era.absolute_send_at <= NOW())
            OR (
              era.timing_type = 'relative'
-             AND e.start_date - (era.relative_minutes_before * INTERVAL '1 minute') <= NOW()
+             AND COALESCE(eo.start_date, e.start_date) - (era.relative_minutes_before * INTERVAL '1 minute') <= NOW()
            )
          )
        ORDER BY due_at ASC
@@ -509,11 +518,12 @@ export async function claimDueAutomations(
      SELECT
        claimed.*,
        due.due_at,
-       e.start_date AS event_start_date,
-       e.status AS event_status
+       COALESCE(eo.start_date, e.start_date) AS event_start_date,
+       COALESCE(eo.status, e.status) AS event_status
      FROM claimed
      INNER JOIN due ON due.id = claimed.id
      INNER JOIN events e ON e.id = claimed.event_id
+     LEFT JOIN event_occurrences eo ON eo.id = claimed.occurrence_id
      ORDER BY due.due_at ASC`,
     [limit, PROCESSING_STALE_TIMEOUT_MINUTES]
   );

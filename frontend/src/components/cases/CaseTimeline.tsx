@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { casesApiClient } from '../../features/cases/api/casesApiClient';
 import { useToast } from '../../contexts/useToast';
 import CaseProvenanceSummary from './CaseProvenanceSummary';
@@ -76,7 +77,7 @@ const getTimelineMeta = (event: CaseTimelineEvent): string[] => {
     case 'attendance':
       return [
         typeof metadata.registration_status === 'string'
-          ? `Registration: ${metadata.registration_status}`
+          ? `Registration: ${String(metadata.registration_status).replace('_', ' ')}`
           : '',
         typeof metadata.checked_in === 'boolean'
           ? metadata.checked_in
@@ -84,7 +85,13 @@ const getTimelineMeta = (event: CaseTimelineEvent): string[] => {
             : 'Not checked in'
           : '',
         typeof metadata.check_in_method === 'string'
-          ? `Method: ${metadata.check_in_method}`
+          ? `Check-in method: ${metadata.check_in_method}`
+          : '',
+        typeof metadata.check_in_time === 'string'
+          ? `Checked in at: ${formatMetadataDate(metadata.check_in_time)}`
+          : '',
+        typeof metadata.event_name === 'string'
+          ? `Event: ${metadata.event_name}`
           : '',
       ].filter(Boolean);
     case 'outcome':
@@ -158,6 +165,9 @@ const CaseTimeline = ({ caseId, refreshKey, provenance }: CaseTimelineProps) => 
 
   const renderTimelineEvent = (event: CaseTimelineEvent) => {
     const metadataDetails = getTimelineMeta(event);
+    const metadata = event.metadata || {};
+    const eventId = typeof metadata.event_id === 'string' ? metadata.event_id : null;
+    const relatedCaseId = typeof metadata.case_id === 'string' ? metadata.case_id : null;
 
     return (
       <div key={`${event.type}-${event.id}`} className="rounded-lg border border-app-border bg-app-surface p-4">
@@ -188,6 +198,26 @@ const CaseTimeline = ({ caseId, refreshKey, provenance }: CaseTimelineProps) => 
                 {detail}
               </span>
             ))}
+          </div>
+        )}
+        {(event.type === 'attendance' && (eventId || relatedCaseId)) && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {eventId && (
+              <Link
+                to={`/events/${eventId}`}
+                className="rounded border border-app-border bg-app-surface-muted px-3 py-1.5 text-xs font-black uppercase text-app-text hover:bg-app-hover"
+              >
+                Open Event
+              </Link>
+            )}
+            {relatedCaseId && relatedCaseId !== caseId && (
+              <Link
+                to={`/cases/${relatedCaseId}`}
+                className="rounded border border-app-border bg-app-surface-muted px-3 py-1.5 text-xs font-black uppercase text-app-text hover:bg-app-hover"
+              >
+                Open Related Case
+              </Link>
+            )}
           </div>
         )}
         {(event.first_name || event.last_name) && (

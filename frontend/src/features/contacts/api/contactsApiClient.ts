@@ -7,6 +7,7 @@ import type {
   ContactDocument,
   ContactEmailAddress,
   ContactNote,
+  ContactNotesTimelineResponse,
   ContactMergePreview,
   ContactMergeRequest,
   ContactMergeResult,
@@ -165,6 +166,13 @@ export class ContactsApiClient implements ContactsApiClientPort {
 
   async listNotes(contactId: string): Promise<{ notes: ContactNote[]; total: number }> {
     const response = await api.get<ApiEnvelope<{ notes: ContactNote[]; total: number }>>(`/v2/contacts/${contactId}/notes`);
+    return unwrapApiData(response.data);
+  }
+
+  async listNoteTimeline(contactId: string): Promise<ContactNotesTimelineResponse> {
+    const response = await api.get<ApiEnvelope<ContactNotesTimelineResponse>>(
+      `/v2/contacts/${contactId}/notes/timeline`
+    );
     return unwrapApiData(response.data);
   }
 
