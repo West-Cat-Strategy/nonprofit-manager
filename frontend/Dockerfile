@@ -7,8 +7,9 @@ WORKDIR /app
 FROM base AS deps
 
 COPY package.json package-lock.json ./
+COPY --from=contracts / /contracts
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm ci --no-audit --no-fund
+    npm install --no-package-lock --no-audit --no-fund
 
 FROM deps AS app
 

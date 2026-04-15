@@ -26,7 +26,7 @@ export const errorHandler = (
     correlationId: req.correlationId,
   });
 
-  const statusCode = err.statusCode || 500;
+  const statusCode = err.statusCode || (err.message === 'Not allowed by CORS' ? 403 : 500);
   const isClientError = statusCode >= 400 && statusCode < 500;
 
   const defaultCode = isClientError ? 'request_error' : 'server_error';

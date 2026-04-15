@@ -11,6 +11,17 @@ if [[ -z "$MODE" ]]; then
   exit 2
 fi
 
+get_env_file_value() {
+  local file="$1"
+  local key="$2"
+
+  if [[ ! -f "$file" ]]; then
+    return 0
+  fi
+
+  awk -F= -v key="$key" '$1 == key { sub(/^[^=]+=/, "", $0); print $0; exit }' "$file"
+}
+
 require_cmd docker
 validate_production_db_at_rest_contract
 
@@ -48,8 +59,16 @@ deploy_production_like() {
   fi
 
   if [[ "$MODE" == "production" ]]; then
-    caddy_domain="${CADDY_DOMAIN:-westcat.ca}"
-    caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-sites.westcat.ca}"
+    caddy_domain="${CADDY_DOMAIN:-$(get_env_file_value "$env_file" CADDY_DOMAIN)}"
+    caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-$(get_env_file_value "$env_file" CADDY_PUBLIC_SITE_DOMAIN)}"
+    caddy_domain="${caddy_domain:-westcat.ca}"
+    caddy_public_site_domain="${caddy_public_site_domain:-sites.westcat.ca}"
+
+    if [[ "$caddy_domain" == "$caddy_public_site_domain" ]]; then
+      caddy_public_site_domain="sites.${caddy_domain}"
+      log_warn "CADDY_PUBLIC_SITE_DOMAIN matched CADDY_DOMAIN; using fallback $caddy_public_site_domain."
+    fi
+
     if [[ "$use_host_caddy" != "1" ]]; then
       compose_files+=("$PROJECT_ROOT/docker-compose.caddy.yml")
     else
