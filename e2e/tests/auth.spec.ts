@@ -6,14 +6,16 @@
 import '../helpers/testEnv';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { login, logout, clearAuth, ensureLoginViaAPI } from '../helpers/auth';
+import {
+  login,
+  logout,
+  clearAuth,
+  ensureLoginViaAPI,
+  getConfiguredAdminCredentials,
+} from '../helpers/auth';
 import { getSharedTestUser, setSharedTestUser } from '../helpers/testUser';
 
-const defaultCreds = {
-  email: process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com',
-  password: process.env.ADMIN_USER_PASSWORD?.trim() || 'Admin123!@#',
-};
-let currentCreds = { ...defaultCreds };
+let currentCreds = getConfiguredAdminCredentials();
 const getCreds = () => currentCreds;
 const dashboardUrl = /\/dashboard(?:[/?#]|$)/;
 

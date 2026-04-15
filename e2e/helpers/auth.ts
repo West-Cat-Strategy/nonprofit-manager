@@ -4,12 +4,36 @@
 
 import crypto from 'crypto';
 import fs from 'fs';
+import { createRequire } from 'module';
 import path from 'path';
 import { Page, expect } from '@playwright/test';
 import { getSharedTestUser, setSharedTestUser } from './testUser';
 
 const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up/i;
 const HTTP_SCHEME = ['http', '://'].join('');
+const DEFAULT_ADMIN_EMAIL = 'admin@example.com';
+const PLAYWRIGHT_MANAGED_ADMIN_PASSWORD = 'Admin123!@#';
+const DOCKER_SEEDED_ADMIN_PASSWORD = 'password123';
+const backendRequire = createRequire(path.resolve(__dirname, '..', '..', 'backend', 'package.json'));
+const { Client: PgClient } = backendRequire('pg') as {
+  Client: new (config: {
+    host: string;
+    port: number;
+    database: string;
+    user: string;
+    password: string;
+  }) => {
+    connect(): Promise<void>;
+    end(): Promise<void>;
+    query<T = Record<string, unknown>>(
+      text: string,
+      values?: unknown[]
+    ): Promise<{ rows: T[] }>;
+  };
+};
+const bcrypt = backendRequire('bcryptjs') as {
+  hashSync(value: string, salt: number): string;
+};
 
 const isRetryableNetworkError = (error: unknown): boolean => {
   if (!(error instanceof Error)) {
@@ -108,6 +132,17 @@ type DecodedJwtPayload = {
   [key: string]: unknown;
 };
 
+type AdminRuntimeProfile = 'docker-seeded' | 'playwright-managed';
+
+type ResolvedAdminCredentials = {
+  email: string;
+  password: string;
+  emailSource: string;
+  passwordSource: string;
+  explicitOverride: boolean;
+  runtimeProfile: AdminRuntimeProfile;
+};
+
 const unwrapApiData = <T>(payload: ApiSuccessEnvelope<T> | T): T => {
   if (
     payload &&
@@ -173,6 +208,72 @@ const isStrictAdminAuthRequired = (): boolean => {
     return false;
   }
   return TRUE_ENV_VALUES.has(rawValue.trim().toLowerCase());
+};
+
+const isDockerBackedRun = (): boolean =>
+  process.env.SKIP_WEBSERVER === '1' ||
+  process.env.API_URL?.includes(':8004') ||
+  process.env.BASE_URL?.includes(':8005');
+
+const getDefaultAdminPasswordForRuntime = (
+  dockerBackedRun: boolean
+): Pick<ResolvedAdminCredentials, 'password' | 'passwordSource' | 'runtimeProfile'> =>
+  dockerBackedRun
+    ? {
+        password: DOCKER_SEEDED_ADMIN_PASSWORD,
+        passwordSource: 'default(docker-seeded mock data admin@example.com/password123)',
+        runtimeProfile: 'docker-seeded',
+      }
+    : {
+        password: PLAYWRIGHT_MANAGED_ADMIN_PASSWORD,
+        passwordSource: 'default(playwright-managed setup admin@example.com/Admin123!@#)',
+        runtimeProfile: 'playwright-managed',
+      };
+
+const resolveAdminCredentialCandidates = (): {
+  primary: ResolvedAdminCredentials;
+  alternate: ResolvedAdminCredentials | null;
+} => {
+  const adminEmailFromEnv = process.env.ADMIN_USER_EMAIL?.trim();
+  const adminPasswordFromEnv = process.env.ADMIN_USER_PASSWORD?.trim();
+  const explicitOverride = Boolean(adminEmailFromEnv || adminPasswordFromEnv);
+  const dockerBackedRun = isDockerBackedRun();
+  const runtimeDefault = getDefaultAdminPasswordForRuntime(dockerBackedRun);
+  const primary: ResolvedAdminCredentials = {
+    email: adminEmailFromEnv || DEFAULT_ADMIN_EMAIL,
+    password: adminPasswordFromEnv || runtimeDefault.password,
+    emailSource: adminEmailFromEnv ? 'env:ADMIN_USER_EMAIL' : `default(${DEFAULT_ADMIN_EMAIL})`,
+    passwordSource: adminPasswordFromEnv ? 'env:ADMIN_USER_PASSWORD' : runtimeDefault.passwordSource,
+    explicitOverride,
+    runtimeProfile: runtimeDefault.runtimeProfile,
+  };
+
+  if (explicitOverride) {
+    return { primary, alternate: null };
+  }
+
+  const alternateDefault = getDefaultAdminPasswordForRuntime(!dockerBackedRun);
+  const alternate: ResolvedAdminCredentials = {
+    email: DEFAULT_ADMIN_EMAIL,
+    password: alternateDefault.password,
+    emailSource: `default(${DEFAULT_ADMIN_EMAIL})`,
+    passwordSource: `fallback(${alternateDefault.runtimeProfile} admin@example.com/${alternateDefault.password})`,
+    explicitOverride: false,
+    runtimeProfile: alternateDefault.runtimeProfile,
+  };
+
+  return { primary, alternate };
+};
+
+const formatAdminCredentialSources = (credentials: ResolvedAdminCredentials): string =>
+  `${credentials.emailSource}, ${credentials.passwordSource}`;
+
+export const getConfiguredAdminCredentials = (): { email: string; password: string } => {
+  const { primary } = resolveAdminCredentialCandidates();
+  return {
+    email: primary.email,
+    password: primary.password,
+  };
 };
 
 const messageIndicatesInvalidCredentials = (message: string): boolean => {
@@ -305,12 +406,7 @@ const resolveJwtSecret = (): string | null => {
     return process.env.JWT_SECRET.trim();
   }
 
-  const isDockerBackedRun =
-    process.env.SKIP_WEBSERVER === '1' ||
-    process.env.API_URL?.includes(':8004') ||
-    process.env.BASE_URL?.includes(':8005');
-
-  const envFiles = isDockerBackedRun
+  const envFiles = isDockerBackedRun()
     ? [
         path.resolve(__dirname, '..', '..', '.env.development.local'),
         path.resolve(__dirname, '..', '..', '.env.development'),
@@ -337,6 +433,56 @@ const resolveJwtSecret = (): string | null => {
   }
 
   return null;
+};
+
+const getAuthDatabaseConfig = (): {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+} => ({
+  host: process.env.DB_HOST || process.env.E2E_DB_HOST || '127.0.0.1',
+  port: Number(process.env.DB_PORT || process.env.E2E_DB_PORT || '8012'),
+  database:
+    process.env.DB_NAME || process.env.E2E_DB_NAME || process.env.TEST_DB_NAME || 'nonprofit_manager_test',
+  user: process.env.DB_USER || process.env.E2E_DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || process.env.E2E_DB_PASSWORD || 'postgres',
+});
+
+const ensureDatabaseBackedTestUser = async (
+  user: Pick<TestUser, 'email' | 'password' | 'firstName' | 'lastName'>
+): Promise<void> => {
+  const client = new PgClient(getAuthDatabaseConfig());
+
+  try {
+    await client.connect();
+    const passwordHash = bcrypt.hashSync(user.password, 10);
+    await client.query(
+      `
+      INSERT INTO users (
+        id,
+        email,
+        password_hash,
+        first_name,
+        last_name,
+        role,
+        is_active,
+        created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, 'staff', true, NOW())
+      ON CONFLICT (email) DO UPDATE
+      SET
+        password_hash = EXCLUDED.password_hash,
+        first_name = EXCLUDED.first_name,
+        last_name = EXCLUDED.last_name,
+        is_active = true
+      `,
+      [crypto.randomUUID(), user.email, passwordHash, user.firstName, user.lastName]
+    );
+  } finally {
+    await client.end().catch(() => undefined);
+  }
 };
 
 const getAuthCachePaths = () => {
@@ -812,14 +958,16 @@ const getCurrentAdminSession = async (page: Page): Promise<AuthSession | null> =
     normalizeString(bootstrapSession.user?.email) ||
     process.env.TEST_USER_EMAIL?.trim() ||
     process.env.ADMIN_USER_EMAIL?.trim() ||
-    'admin@example.com';
-  const configuredAdminEmail = process.env.ADMIN_USER_EMAIL?.trim() || 'admin@example.com';
-  const configuredAdminPassword = process.env.ADMIN_USER_PASSWORD?.trim() || 'Admin123!@#';
+    DEFAULT_ADMIN_EMAIL;
+  const { primary: configuredAdminCredentials } = resolveAdminCredentialCandidates();
+  const cachedEffectiveAdmin = readEffectiveAdminCache();
   const sharedUserEmail = process.env.TEST_USER_EMAIL?.trim();
   const sharedUserPassword = process.env.TEST_USER_PASSWORD?.trim();
   const password =
-    email.toLowerCase() === configuredAdminEmail.toLowerCase()
-      ? configuredAdminPassword
+    cachedEffectiveAdmin && email.toLowerCase() === cachedEffectiveAdmin.email.toLowerCase()
+      ? cachedEffectiveAdmin.password
+      : email.toLowerCase() === configuredAdminCredentials.email.toLowerCase()
+        ? configuredAdminCredentials.password
       : sharedUserEmail && sharedUserPassword && email.toLowerCase() === sharedUserEmail.toLowerCase()
         ? sharedUserPassword
         : '';
@@ -1222,13 +1370,12 @@ export async function ensureAdminLoginViaAPI(
     return currentAdminSession;
   }
 
-  const adminEmailFromEnv = process.env.ADMIN_USER_EMAIL?.trim();
-  const adminPasswordFromEnv = process.env.ADMIN_USER_PASSWORD?.trim();
-  const adminEmail = adminEmailFromEnv || 'admin@example.com';
-  const adminPassword = adminPasswordFromEnv || 'Admin123!@#';
-  const adminEmailSource = adminEmailFromEnv ? 'env:ADMIN_USER_EMAIL' : 'default(admin@example.com)';
-  const adminPasswordSource = adminPasswordFromEnv ? 'env:ADMIN_USER_PASSWORD' : 'default(Admin123!@#)';
+  const { primary: primaryAdminCredentials, alternate: alternateAdminCredentials } =
+    resolveAdminCredentialCandidates();
+  const adminEmail = primaryAdminCredentials.email;
+  const adminPassword = primaryAdminCredentials.password;
   const strictAdminAuth = isStrictAdminAuthRequired();
+  let alternateDefaultAdminError: unknown;
 
   const toSession = (
     result: { token: string; user: any },
@@ -1277,22 +1424,64 @@ export async function ensureAdminLoginViaAPI(
     return session;
   };
 
+  const tryAlternateDefaultAdminSession = async (error: unknown): Promise<AuthSession | null> => {
+    if (
+      primaryAdminCredentials.explicitOverride ||
+      !alternateAdminCredentials ||
+      !isInvalidCredentialError(error)
+    ) {
+      return null;
+    }
+
+    const setupStatus = await waitForSetupStatus(page, { attempts: 3, delayMs: 200 }).catch(() => null);
+    if (!setupStatus || setupStatus.setupRequired) {
+      return null;
+    }
+
+    try {
+      return await loginAndValidateAdminSession(
+        alternateAdminCredentials.email,
+        alternateAdminCredentials.password
+      );
+    } catch (alternateError) {
+      alternateDefaultAdminError = alternateError;
+      return null;
+    }
+  };
+
+  const buildAlternateRetryMessage = (): string => {
+    if (!alternateAdminCredentials || !alternateDefaultAdminError) {
+      return '';
+    }
+
+    const alternateDetails =
+      alternateDefaultAdminError instanceof Error
+        ? alternateDefaultAdminError.message
+        : String(alternateDefaultAdminError);
+    return ` Alternate default retry (${alternateAdminCredentials.passwordSource}) failed: ${alternateDetails}.`;
+  };
+
   if (strictAdminAuth) {
     try {
       return await loginAndValidateAdminSession(adminEmail, adminPassword);
     } catch (error) {
+      const alternateSession = await tryAlternateDefaultAdminSession(error);
+      if (alternateSession) {
+        return alternateSession;
+      }
+
       const details = error instanceof Error ? error.message : String(error);
       const setupStatus = await waitForSetupStatus(page, { attempts: 3, delayMs: 200 }).catch(() => null);
       if (setupStatus && !setupStatus.setupRequired && isInvalidCredentialError(error)) {
         throw new Error(
-          `Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true). Invalid admin credentials for ${adminEmail} (${adminEmailSource}, ${adminPasswordSource}) while setup is already complete (userCount=${setupStatus.userCount}). Set ADMIN_USER_EMAIL/ADMIN_USER_PASSWORD for a valid admin in this test DB snapshot.`
+          `Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true). Invalid admin credentials for ${adminEmail} (${formatAdminCredentialSources(primaryAdminCredentials)}) while setup is already complete (userCount=${setupStatus.userCount}).${buildAlternateRetryMessage()} Set ADMIN_USER_EMAIL/ADMIN_USER_PASSWORD for a valid admin in this test DB snapshot.`
         );
       }
       const setupStatusDetails = setupStatus
         ? ` setupRequired=${setupStatus.setupRequired}, userCount=${setupStatus.userCount}.`
         : '';
       throw new Error(
-        `Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true). Failed admin login for ${adminEmail} (${adminEmailSource}, ${adminPasswordSource}): ${details}.${setupStatusDetails}`
+        `Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true). Failed admin login for ${adminEmail} (${formatAdminCredentialSources(primaryAdminCredentials)}): ${details}.${setupStatusDetails}${buildAlternateRetryMessage()}`
       );
     }
   }
@@ -1335,14 +1524,19 @@ export async function ensureAdminLoginViaAPI(
   try {
     return await loginAndValidateAdminSession(adminEmail, adminPassword);
   } catch (error) {
+    const alternateSession = await tryAlternateDefaultAdminSession(error);
+    if (alternateSession) {
+      return alternateSession;
+    }
     initialLoginError = error;
   }
 
   const setupStatus = await getSetupStatusOrNull(page, { attempts: 3, delayMs: 200 });
   if (setupStatus && !setupStatus.setupRequired) {
-    throw initialLoginError instanceof Error
-      ? initialLoginError
-      : new Error(String(initialLoginError));
+    const initialErrorMessage =
+      initialLoginError instanceof Error ? initialLoginError.message : String(initialLoginError);
+    const alternateRetryMessage = buildAlternateRetryMessage();
+    throw new Error(`${initialErrorMessage}.${alternateRetryMessage}`.trim());
   }
 
   const setupCredentials = await ensureSetupComplete(page, adminEmail, adminPassword, {
@@ -1451,10 +1645,10 @@ export async function ensureEffectiveAdminLoginViaAPI(
         const sharedUser = getSharedTestUser();
         let fallbackSession: ApiLoginResult;
         try {
-          fallbackSession = await loginViaAPI(page, sharedUser.email, sharedUser.password).then(
-            async (loginResult) =>
-              ensureOrganizationBackedSession(page, sharedUser.email, sharedUser.password, loginResult)
-          );
+          fallbackSession = await ensureLoginViaAPI(page, sharedUser.email, sharedUser.password, {
+            firstName: profile?.firstName || 'Test',
+            lastName: profile?.lastName || 'User',
+          });
         } catch (fallbackError) {
           const primaryMessage = error instanceof Error ? error.message : String(error);
           const fallbackMessage =
@@ -1747,6 +1941,29 @@ export async function ensureLoginViaAPI(
     } catch (registerError) {
       const registerMessage =
         registerError instanceof Error ? registerError.message : String(registerError);
+      const shouldTryDatabaseUserFallback =
+        registerMessage.includes('Admin bootstrap failed before shared-user fallback') ||
+        registerMessage.includes('Failed to create managed test user');
+
+      if (shouldTryDatabaseUserFallback) {
+        try {
+          await ensureDatabaseBackedTestUser({ email, password, firstName, lastName });
+          const databaseBackedUser = await attemptLogin();
+          invalidateSharedAuthCaches();
+          setSharedTestUser({ email, password });
+          writeReadyAuthCache(email);
+          return databaseBackedUser;
+        } catch (databaseFallbackError) {
+          const databaseFallbackMessage =
+            databaseFallbackError instanceof Error
+              ? databaseFallbackError.message
+              : String(databaseFallbackError);
+          throw new Error(
+            `Registration failed for ${email}: ${registerMessage}. Database fallback failed: ${databaseFallbackMessage}`
+          );
+        }
+      }
+
       const isDuplicate = messageIndicatesUserAlreadyExists(registerMessage);
       const isRateLimited =
         registerMessage.toLowerCase().includes('too many registration attempts') ||

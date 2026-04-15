@@ -30,6 +30,8 @@ npm ci
 cp .env.test.example .env.test.local
 ```
 
+`ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` are optional overrides in `.env.test.local`. Leave them blank unless your local snapshot uses a different admin account than the repo defaults below.
+
 Install browsers if needed:
 
 ```bash
@@ -81,14 +83,32 @@ These commands assume:
 - `SKIP_WEBSERVER=1`
 - `PW_REUSE_EXISTING_SERVER=1`
 
+## Admin Credential Contract
+
+When `ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` are unset, the E2E helper chooses the default admin credentials from the runtime:
+
+- Playwright-managed runtime (`npm test`, `npm run test:ci`, headed/debug/UI runs): `admin@example.com` / `Admin123!@#`
+- Docker-backed runtime (`npm run test:docker*`) with the repo mock-data seed loaded: `admin@example.com` / `password123`
+
+Set `ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` explicitly only when:
+
+- your Docker snapshot uses a different seeded admin account
+- your local Playwright-managed test DB was prepared with a different setup-created admin
+- you want strict route-health checks to pin a specific known admin account
+
 ## Strict Route-Health Example
 
 ```bash
 cd e2e
-export ADMIN_USER_EMAIL="admin@example.com"
-export ADMIN_USER_PASSWORD="Admin123!@#"
 export E2E_REQUIRE_STRICT_ADMIN_AUTH=true
 npx playwright test tests/link-health.spec.ts --project=chromium
+```
+
+If your local snapshot does not use the repo defaults, add explicit overrides before running the command:
+
+```bash
+export ADMIN_USER_EMAIL="admin@example.com"
+export ADMIN_USER_PASSWORD="password123"
 ```
 
 If needed, escalate to the cross-browser slice:

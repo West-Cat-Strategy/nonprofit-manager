@@ -6,11 +6,6 @@
 import "../helpers/testEnv";
 import { test, expect, type Page } from "@playwright/test";
 import { ensureEffectiveAdminLoginViaAPI } from "../helpers/auth";
-
-const getCreds = () => ({
-  email: process.env.ADMIN_USER_EMAIL?.trim() || "admin@example.com",
-  password: process.env.ADMIN_USER_PASSWORD?.trim() || "Admin123!@#",
-});
 const THEMES = [
   "neobrutalist",
   "sea-breeze",
