@@ -110,7 +110,7 @@ export default function PortalDashboard() {
                 <Link
                   to={`/portal/cases/${primaryCase.id}`}
                   onClick={() => setSelectedCaseId(primaryCase.id)}
-                  className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm"
+                  className="app-accent-contrast-ink inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold shadow-sm"
                 >
                   Resume Case Workspace
                 </Link>

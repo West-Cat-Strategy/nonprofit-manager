@@ -658,48 +658,83 @@ export default function PortalCalendarPage() {
                 </div>
 
                 <form className="space-y-3" onSubmit={handleRequestSubmit}>
-                  <input
-                    type="text"
-                    required
-                    value={requestForm.title}
-                    onChange={(entry) => setRequestForm((current) => ({ ...current, title: entry.target.value }))}
-                    placeholder="Appointment title"
-                    className="w-full rounded-md border border-app-input-border px-3 py-2"
-                  />
-                  <textarea
-                    value={requestForm.description}
-                    onChange={(entry) =>
-                      setRequestForm((current) => ({ ...current, description: entry.target.value }))
-                    }
-                    placeholder="Optional details"
-                    rows={3}
-                    className="w-full rounded-md border border-app-input-border px-3 py-2"
-                  />
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label htmlFor="portal-appointment-title" className="text-sm font-medium text-app-text">
+                      Appointment title
+                    </label>
                     <input
-                      type="datetime-local"
-                      value={requestForm.start_time}
-                      onChange={(entry) =>
-                        setRequestForm((current) => ({ ...current, start_time: entry.target.value }))
-                      }
-                      className="w-full rounded-md border border-app-input-border px-3 py-2"
-                    />
-                    <input
-                      type="datetime-local"
-                      value={requestForm.end_time}
-                      onChange={(entry) =>
-                        setRequestForm((current) => ({ ...current, end_time: entry.target.value }))
-                      }
+                      id="portal-appointment-title"
+                      type="text"
+                      required
+                      value={requestForm.title}
+                      onChange={(entry) => setRequestForm((current) => ({ ...current, title: entry.target.value }))}
+                      placeholder="Appointment title"
                       className="w-full rounded-md border border-app-input-border px-3 py-2"
                     />
                   </div>
-                  <input
-                    type="text"
-                    value={requestForm.location}
-                    onChange={(entry) => setRequestForm((current) => ({ ...current, location: entry.target.value }))}
-                    placeholder="Optional location"
-                    className="w-full rounded-md border border-app-input-border px-3 py-2"
-                  />
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="portal-appointment-description"
+                      className="text-sm font-medium text-app-text"
+                    >
+                      Details
+                    </label>
+                    <textarea
+                      id="portal-appointment-description"
+                      value={requestForm.description}
+                      onChange={(entry) =>
+                        setRequestForm((current) => ({ ...current, description: entry.target.value }))
+                      }
+                      placeholder="Optional details"
+                      rows={3}
+                      className="w-full rounded-md border border-app-input-border px-3 py-2"
+                    />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <label htmlFor="portal-appointment-start" className="text-sm font-medium text-app-text">
+                        Preferred start
+                      </label>
+                      <input
+                        id="portal-appointment-start"
+                        type="datetime-local"
+                        value={requestForm.start_time}
+                        onChange={(entry) =>
+                          setRequestForm((current) => ({ ...current, start_time: entry.target.value }))
+                        }
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label htmlFor="portal-appointment-end" className="text-sm font-medium text-app-text">
+                        Preferred end
+                      </label>
+                      <input
+                        id="portal-appointment-end"
+                        type="datetime-local"
+                        value={requestForm.end_time}
+                        onChange={(entry) =>
+                          setRequestForm((current) => ({ ...current, end_time: entry.target.value }))
+                        }
+                        className="w-full rounded-md border border-app-input-border px-3 py-2"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label htmlFor="portal-appointment-location" className="text-sm font-medium text-app-text">
+                      Location
+                    </label>
+                    <input
+                      id="portal-appointment-location"
+                      type="text"
+                      value={requestForm.location}
+                      onChange={(entry) =>
+                        setRequestForm((current) => ({ ...current, location: entry.target.value }))
+                      }
+                      placeholder="Optional location"
+                      className="w-full rounded-md border border-app-input-border px-3 py-2"
+                    />
+                  </div>
                   <button
                     type="submit"
                     disabled={submittingRequest}

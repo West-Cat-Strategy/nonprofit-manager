@@ -206,7 +206,7 @@ export const ContactPrintPage = () => {
 
   if (status === 'invalid' || status === 'error') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white px-6 py-12">
+      <div className="contact-print-page flex min-h-screen items-center justify-center bg-app-accent-foreground px-6 py-12 text-app-brutal-ink">
         <BrutalCard color="yellow" className="w-full max-w-2xl p-6">
           <div className="space-y-4">
             <div>
@@ -244,18 +244,38 @@ export const ContactPrintPage = () => {
 
   if (!data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white px-6 py-12">
-        <BrutalCard color="white" className="w-full max-w-2xl p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-5 w-48 bg-black/10" />
-            <div className="h-10 w-72 bg-black/10" />
-            <div className="h-4 w-full bg-black/10" />
-            <div className="h-4 w-5/6 bg-black/10" />
+      <div className="contact-print-page flex min-h-screen items-center justify-center bg-app-accent-foreground px-6 py-12 text-app-brutal-ink">
+        <BrutalCard color="yellow" className="w-full max-w-2xl p-6">
+          <div className="space-y-4 text-app-brutal-ink">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-app-brutal-ink">
+              Contact print export
+            </p>
+            <h1 className="text-2xl font-black uppercase text-app-brutal-ink">
+              Preparing printable contact summary
+            </h1>
+            <p className="text-sm font-medium text-app-brutal-ink">
+              We&apos;re gathering the contact record, related notes, communications, cases, and
+              documents before opening the browser print dialog.
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-app-brutal-ink border-t-transparent" />
+              <span className="text-sm font-bold uppercase text-app-brutal-ink">
+                Loading export data
+              </span>
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="h-20 bg-black/5" />
-              <div className="h-20 bg-black/5" />
-              <div className="h-20 bg-black/5" />
-              <div className="h-20 bg-black/5" />
+              <div className="border border-black bg-white px-4 py-3 text-sm font-bold text-black">
+                Contact profile and identity details
+              </div>
+              <div className="border border-black bg-white px-4 py-3 text-sm font-bold text-black">
+                Notes, follow-ups, and communications
+              </div>
+              <div className="border border-black bg-white px-4 py-3 text-sm font-bold text-black">
+                Cases, relationships, and appointments
+              </div>
+              <div className="border border-black bg-white px-4 py-3 text-sm font-bold text-black">
+                Documents, activity, and payment history
+              </div>
             </div>
           </div>
         </BrutalCard>
@@ -291,7 +311,7 @@ export const ContactPrintPage = () => {
   ];
 
   return (
-    <div className="contact-print-page min-h-screen bg-white px-4 py-4 text-black sm:px-6 lg:px-10">
+    <div className="contact-print-page min-h-screen bg-app-accent-foreground px-4 py-4 text-app-brutal-ink sm:px-6 lg:px-10">
       <div className="contact-print-no-print mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-black pb-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black/55">

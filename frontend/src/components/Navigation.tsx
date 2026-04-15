@@ -76,7 +76,7 @@ export default function Navigation() {
   const desktopActionButtonClass =
     'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 sm:px-3';
   const activeDesktopButtonClass =
-    'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover hover:text-[var(--app-accent-foreground)]';
+    'app-accent-contrast-ink border-app-accent bg-app-accent hover:bg-app-accent-hover';
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -162,7 +162,7 @@ export default function Navigation() {
                 'flex h-9 w-9 items-center justify-center overflow-hidden rounded-[var(--ui-radius-md)] sm:h-10 sm:w-10',
                 branding.appIcon
                   ? 'bg-transparent shadow-none'
-                  : 'bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+                  : 'app-accent-contrast-ink bg-app-accent shadow-sm'
               )}
             >
               {branding.appIcon ? (
@@ -206,7 +206,7 @@ export default function Navigation() {
                   className={classNames(
                     'inline-flex min-w-0 max-w-[9rem] items-center rounded-full border px-3 py-2 text-sm font-semibold transition xl:max-w-[11rem]',
                     isNavItemActive(item.id, item.path)
-                      ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+                      ? 'app-accent-contrast-ink border-app-accent bg-app-accent shadow-sm'
                       : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
                   )}
                 >
@@ -229,7 +229,7 @@ export default function Navigation() {
                   className={classNames(
                     'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition',
                     hasActiveDesktopOverflowItem
-                      ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+                      ? 'app-accent-contrast-ink border-app-accent bg-app-accent shadow-sm'
                       : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
                   )}
                   aria-label="More navigation"
@@ -281,7 +281,7 @@ export default function Navigation() {
                               className={classNames(
                                 'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
                                 isNavItemActive(item.id, item.path)
-                                  ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                                  ? 'app-accent-contrast-ink bg-app-accent'
                                   : 'text-app-text-heading hover:bg-app-surface-muted'
                               )}
                             >
@@ -311,7 +311,7 @@ export default function Navigation() {
                               className={classNames(
                                 'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
                                 isNavItemActive(link.id, link.path)
-                                  ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                                  ? 'app-accent-contrast-ink bg-app-accent'
                                   : 'text-app-text-heading hover:bg-app-surface-muted'
                               )}
                             >

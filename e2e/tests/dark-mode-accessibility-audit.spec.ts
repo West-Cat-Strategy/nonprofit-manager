@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import '../helpers/testEnv';
 import { routeCatalog, type RouteCatalogEntry } from '../../frontend/src/routes/routeCatalog';
-import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
+import { ensureEffectiveAdminLoginViaAPI, type AuthSession } from '../helpers/auth';
 import {
   clearDatabase,
   createTestAccount,
@@ -327,6 +327,7 @@ async function provisionPortalCaseFixture(
 async function resolveRoute(
   entry: RouteCatalogEntry,
   adminPage: Page,
+  adminSession: AuthSession,
   authToken: string,
   staffState: StaffFixtureState,
   portalState: PortalFixtureState
@@ -589,12 +590,16 @@ async function resolveRoute(
         const organizationId = normalizeOrganizationId(adminSession.user?.organizationId) ||
           normalizeOrganizationId(adminSession.user?.organization_id);
         if (!organizationId) {
-          throw new Error('Recurring donation plan fixture requires organizationId from admin session');
+          throw new Error(
+            `[${entry.id}] recurring donation plan fixture requires organizationId from the admin session`
+          );
         }
         const createdByUserId =
           typeof adminSession.user?.id === 'string' ? adminSession.user.id.trim() : '';
         if (!createdByUserId) {
-          throw new Error('Recurring donation plan fixture requires createdByUserId from admin session');
+          throw new Error(
+            `[${entry.id}] recurring donation plan fixture requires createdByUserId from the admin session`
+          );
         }
         staffState.recurringDonationPlanId = await createRecurringDonationPlan(adminPage, authToken, {
           organizationId,
@@ -829,7 +834,15 @@ test.describe('Dark Mode Accessibility Audit', () => {
       const entries = routeCatalog.filter((entry) => entry.surface !== 'demo' || entry.featureStatus !== 'broken');
 
       for (const entry of entries) {
-        const resolved = await resolveRoute(entry, staffPage, adminSession.token, staffFixtureState, portalFixtureState);
+        console.log(`[dark-mode-audit] auditing ${entry.id} (${entry.href ?? entry.path})`);
+        const resolved = await resolveRoute(
+          entry,
+          staffPage,
+          adminSession,
+          adminSession.token,
+          staffFixtureState,
+          portalFixtureState
+        );
         if (resolved.kind === 'skip') {
           records.push({
             routeId: entry.id,

@@ -19,11 +19,11 @@ export default function BrutalBadge({
     className = '',
 }: BrutalBadgeProps) {
     const colorClasses = {
-        green: 'bg-loop-green text-[var(--app-text-heading)] border-[var(--app-border)]',
-        yellow: 'bg-loop-yellow text-[var(--app-text-heading)] border-[var(--app-border)]',
+        green: 'bg-loop-green text-[var(--app-brutal-ink)] border-[var(--app-brutal-outline)]',
+        yellow: 'bg-loop-yellow text-[var(--app-brutal-ink)] border-[var(--app-brutal-outline)]',
         red: 'bg-app-accent-soft text-[var(--app-text)] border-[var(--app-border)]',
         gray: 'bg-app-hover text-[var(--app-text)] border-[var(--app-border)]',
-        purple: 'bg-loop-purple text-[var(--app-text-heading)] border-[var(--app-border)]',
+        purple: 'bg-loop-purple text-[var(--app-brutal-ink)] border-[var(--app-brutal-outline)]',
         blue: 'bg-app-accent-soft text-[var(--app-text)] border-[var(--app-border)]',
     };
 

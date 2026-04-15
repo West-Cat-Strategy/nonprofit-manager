@@ -157,11 +157,8 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
   - `cd backend && npm run test:integration -- routeGuardrails.test.ts`
   - `cd backend && npm test -- --runInBand`
 
-## Minimal Validation Runset for This Documentation Phase
-
-- `bash scripts/reference/sync-reference-repos.sh`
-- `bash scripts/reference/verify-reference-repos.sh`
-- `node scripts/check-rate-limit-key-policy.ts`
+- Minimal validation runset for this documentation phase:
+  - `node scripts/check-rate-limit-key-policy.ts`
 
 ## P4-T2 Adoption Backlog Additions
 

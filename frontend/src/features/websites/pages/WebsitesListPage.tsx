@@ -15,10 +15,10 @@ import {
 
 const getWebsiteActionToneClasses = (tone?: string) =>
   tone === 'primary'
-    ? 'bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover'
+    ? 'app-pill-action app-pill-action-accent app-accent-contrast-ink hover:bg-app-accent-hover'
     : tone === 'warning'
-      ? 'bg-amber-600 text-white hover:bg-amber-700'
-      : 'bg-slate-700 text-white hover:bg-slate-800';
+      ? 'app-pill-action app-pill-action-warning'
+      : 'app-pill-action';
 
 const WebsitesListPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -116,14 +116,14 @@ const WebsitesListPage: React.FC = () => {
             <div className="flex flex-wrap gap-3">
               <Link
                 to="/website-builder"
-                className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
               >
                 Open Template Builder
               </Link>
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover"
+                className="app-pill-action app-pill-action-accent app-accent-contrast-ink rounded-full px-4 py-2 text-sm font-medium transition-colors hover:bg-app-accent-hover"
               >
                 Refresh list
               </button>

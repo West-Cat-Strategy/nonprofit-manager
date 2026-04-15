@@ -235,9 +235,7 @@ export default function TeamMessengerConversationPanel({
               >
                 <div
                   className={`max-w-[86%] rounded-2xl border px-3 py-2 shadow-sm ${
-                    isMine
-                      ? 'border-[#0f766e] bg-[#0f766e] text-white'
-                      : 'border-app-border bg-app-surface text-app-text'
+                    isMine ? 'app-messenger-accent' : 'border-app-border bg-app-surface text-app-text'
                   }`}
                 >
                   <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.16em] opacity-75">
@@ -312,7 +310,7 @@ export default function TeamMessengerConversationPanel({
             type="button"
             onClick={() => void handleSendMessage()}
             disabled={isSending || !messageBody.trim()}
-            className="rounded-xl bg-[#0f766e] px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            className="app-messenger-accent rounded-xl px-4 py-2 text-sm font-semibold shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSending ? 'Sending...' : 'Send'}
           </button>

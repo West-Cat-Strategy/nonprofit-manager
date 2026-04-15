@@ -128,7 +128,7 @@ export default function OperationsBoard() {
             <div className="p-6">
                 {/* Banner - BLUE */}
                 <div className="bg-[var(--loop-blue)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
-                    <h2 className="text-3xl font-black mb-2 uppercase">OPERATIONS</h2>
+                    <h2 className="text-3xl font-black mb-2 uppercase text-app-brutal-ink">OPERATIONS</h2>
                 </div>
                 {/* Filter/Sort Buttons */}
                 <div className="mb-6 flex justify-end gap-4 relative">

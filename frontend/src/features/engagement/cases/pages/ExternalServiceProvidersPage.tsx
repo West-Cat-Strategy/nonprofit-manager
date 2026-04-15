@@ -139,8 +139,8 @@ const ExternalServiceProviders = () => {
     <NeoBrutalistLayout pageTitle="External Service Providers">
       <div className="p-6 space-y-6">
         <BrutalCard color="yellow" className="p-6">
-          <h1 className="text-3xl font-black uppercase text-[var(--app-text-heading)]">External Service Providers</h1>
-          <p className="mt-2 font-bold text-app-text-muted">
+          <h1 className="text-3xl font-black uppercase text-app-brutal-ink">External Service Providers</h1>
+          <p className="mt-2 font-bold text-app-brutal-ink">
             Central directory for providers used across case service records.
           </p>
           <div className="mt-4 flex gap-3 flex-wrap">

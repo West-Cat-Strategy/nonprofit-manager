@@ -33,7 +33,7 @@ export default function UserProfileAvatarSection({
   return (
     <div id="profile-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
       <div className="bg-[var(--loop-cyan)] border-b-4 border-black p-4">
-        <h2 className="text-2xl font-black uppercase">Profile</h2>
+        <h2 className="text-2xl font-black uppercase text-app-brutal-ink">Profile</h2>
       </div>
 
       <div className="p-8 flex flex-col md:flex-row items-center gap-8">

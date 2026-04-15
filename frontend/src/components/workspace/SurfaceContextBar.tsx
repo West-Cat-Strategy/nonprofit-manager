@@ -113,7 +113,7 @@ export default function SurfaceContextBar({
               to={mobilePrimaryAction.to}
               className={
                 mobilePrimaryAction.emphasis === 'primary'
-                  ? 'inline-flex w-full items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2'
+                  ? 'app-accent-contrast-ink inline-flex w-full items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold shadow-sm transition hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2'
                   : 'inline-flex w-full items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-4 py-2 text-sm font-semibold text-app-text-heading shadow-sm transition hover:bg-app-surface-muted focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2'
               }
             >
@@ -174,7 +174,7 @@ export default function SurfaceContextBar({
               {routeMeta.primaryAction ? (
                 <Link
                   to={routeMeta.primaryAction.path}
-                  className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+                  className="app-accent-contrast-ink inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold shadow-sm transition hover:bg-app-accent-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
                 >
                   {routeMeta.primaryAction.label}
                 </Link>
@@ -196,7 +196,7 @@ export default function SurfaceContextBar({
                         to={item.href}
                         className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition ${
                           item.isActive
-                            ? 'border border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+                            ? 'app-accent-contrast-ink border border-app-accent bg-app-accent shadow-sm'
                             : 'border border-app-border bg-app-surface-elevated text-app-text shadow-sm hover:bg-app-surface-muted hover:text-app-text-heading'
                         }`}
                       >

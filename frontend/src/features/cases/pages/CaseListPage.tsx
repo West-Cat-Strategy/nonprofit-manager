@@ -82,9 +82,14 @@ const CaseList = () => {
       <div className="p-6 space-y-6">
         <BrutalCard color="yellow" className="p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-3xl font-black uppercase tracking-tight text-black">Cases</h1>
-              <p className="mt-1 font-bold text-black">
+            <div style={{ color: 'var(--app-brutal-ink)' }}>
+              <h1
+                className="text-3xl font-black uppercase tracking-tight text-app-brutal-ink"
+                style={{ color: 'var(--app-brutal-ink)' }}
+              >
+                Cases
+              </h1>
+              <p className="mt-1 font-bold text-app-brutal-ink" style={{ color: 'var(--app-brutal-ink)' }}>
                 {total} {total === 1 ? 'case' : 'cases'} found
               </p>
             </div>
@@ -94,25 +99,25 @@ const CaseList = () => {
           </div>
           {summary && (
             <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
-              <div className="border-2 border-black bg-white px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
-                <div className="text-xs font-black uppercase text-black/70">Open</div>
-                <div className="text-2xl font-black text-black">{summary.open_cases}</div>
+              <div className="border-2 border-app-border bg-app-surface-elevated px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
+                <div className="text-xs font-black uppercase text-app-text-subtle">Open</div>
+                <div className="text-2xl font-black text-app-text-heading">{summary.open_cases}</div>
               </div>
-              <div className="border-2 border-black bg-white px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
-                <div className="text-xs font-black uppercase text-black/70">Urgent</div>
+              <div className="border-2 border-app-border bg-app-surface-elevated px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
+                <div className="text-xs font-black uppercase text-app-text-subtle">Urgent</div>
                 <div className="text-2xl font-black text-app-accent">{summary.by_priority.urgent}</div>
               </div>
-              <div className={`border-2 border-black px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)] ${summary.overdue_cases > 0 ? 'bg-app-accent-soft' : 'bg-white'}`}>
-                <div className="text-xs font-black uppercase text-black/70">Overdue</div>
-                <div className={`text-2xl font-black ${summary.overdue_cases > 0 ? 'text-app-accent' : 'text-black'}`}>{summary.overdue_cases}</div>
+              <div className={`border-2 border-app-border px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)] ${summary.overdue_cases > 0 ? 'bg-app-accent-soft' : 'bg-app-surface-elevated'}`}>
+                <div className="text-xs font-black uppercase text-app-text-subtle">Overdue</div>
+                <div className={`text-2xl font-black ${summary.overdue_cases > 0 ? 'text-app-accent-text' : 'text-app-text-heading'}`}>{summary.overdue_cases}</div>
               </div>
-              <div className="border-2 border-black bg-white px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
-                <div className="text-xs font-black uppercase text-black/70">Due This Week</div>
-                <div className="text-2xl font-black text-black">{summary.cases_due_this_week}</div>
+              <div className="border-2 border-app-border bg-app-surface-elevated px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
+                <div className="text-xs font-black uppercase text-app-text-subtle">Due This Week</div>
+                <div className="text-2xl font-black text-app-text-heading">{summary.cases_due_this_week}</div>
               </div>
-              <div className="border-2 border-black bg-white px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
-                <div className="text-xs font-black uppercase text-black/70">Unassigned</div>
-                <div className="text-2xl font-black text-black">{summary.unassigned_cases}</div>
+              <div className="border-2 border-app-border bg-app-surface-elevated px-4 py-3 shadow-[3px_3px_0px_var(--shadow-color)]">
+                <div className="text-xs font-black uppercase text-app-text-subtle">Unassigned</div>
+                <div className="text-2xl font-black text-app-text-heading">{summary.unassigned_cases}</div>
               </div>
             </div>
           )}
@@ -140,7 +145,7 @@ const CaseList = () => {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                className="w-full border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
                 aria-label="Filter cases by type"
               >
                 <option value="">All Types</option>
@@ -156,7 +161,7 @@ const CaseList = () => {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                className="w-full border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
                 aria-label="Filter cases by status"
               >
                 <option value="">All Statuses</option>
@@ -172,7 +177,7 @@ const CaseList = () => {
               <select
                 value={selectedPriority}
                 onChange={(e) => setSelectedPriority(e.target.value as CasePriority | '')}
-                className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                className="w-full border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
                 aria-label="Filter cases by priority"
               >
                 <option value="">All Priorities</option>
@@ -187,11 +192,11 @@ const CaseList = () => {
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-black uppercase text-black/70">Sort by</span>
+              <span className="text-xs font-black uppercase text-app-text-subtle">Sort by</span>
               <select
                 value={selectedSort}
                 onChange={(e) => setSelectedSort(e.target.value)}
-                className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                className="w-full border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
                 aria-label="Sort cases by field"
               >
                 <option value="created_at">Created date</option>
@@ -201,11 +206,11 @@ const CaseList = () => {
               </select>
             </div>
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-black uppercase text-black/70">Order</span>
+              <span className="text-xs font-black uppercase text-app-text-subtle">Order</span>
               <select
                 value={selectedOrder}
                 onChange={(e) => setSelectedOrder(e.target.value as 'asc' | 'desc')}
-                className="w-full border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                className="w-full border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
                 aria-label="Sort cases by order"
               >
                 <option value="desc">Newest first</option>
@@ -213,12 +218,12 @@ const CaseList = () => {
               </select>
             </div>
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-black uppercase text-black/70">Saved views</span>
+              <span className="text-xs font-black uppercase text-app-text-subtle">Saved views</span>
               <div className="flex gap-2">
                 <select
                   value={selectedViewId}
                   onChange={(e) => applySavedView(e.target.value)}
-                  className="flex-1 border-2 border-black dark:border-white bg-white dark:bg-[#000000] text-black dark:text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                  className="flex-1 border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
                   aria-label="Saved case views"
                 >
                   <option value="">Select view</option>
@@ -230,7 +235,7 @@ const CaseList = () => {
                 </select>
                 <button
                   onClick={handleDeleteView}
-                  className="border-2 border-black bg-white text-black px-3 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] transition-all"
+                  className="border-2 border-app-border bg-app-surface-elevated px-3 py-2 text-xs font-black uppercase text-app-text-heading shadow-[2px_2px_0px_var(--shadow-color)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] hover:bg-app-surface-muted"
                   disabled={!selectedViewId}
                 >
                   Delete
@@ -240,7 +245,7 @@ const CaseList = () => {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-black uppercase text-black/70">Quick filters</span>
+            <span className="text-xs font-black uppercase text-app-text-subtle">Quick filters</span>
             {(
               [
                 ['all', 'All'],
@@ -260,18 +265,20 @@ const CaseList = () => {
                     page: 1,
                   });
                 }}
-                className={`border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-all ${
-                  quickFilter === value
-                    ? 'bg-black text-white'
-                    : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
-                }`}
+                className="border-2 border-app-border px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-all"
+                style={{
+                  backgroundColor:
+                    quickFilter === value ? '#ffeb3b' : '#ffffff',
+                  color: '#000000',
+                  borderColor: '#000000',
+                }}
               >
                 {label}
               </button>
             ))}
             {quickFilter === 'due_soon' && (
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase text-black/70">Days</span>
+                <span className="text-xs font-black uppercase text-app-text-subtle">Days</span>
                 <input
                   type="number"
                   min={1}
@@ -286,7 +293,7 @@ const CaseList = () => {
                       page: 1,
                     });
                   }}
-                  className="w-20 border-2 border-black bg-white text-black px-2 py-1 text-xs font-black uppercase focus:outline-none focus:ring-2 focus:ring-black"
+                  className="w-20 border-2 border-app-border bg-app-surface-elevated px-2 py-1 text-xs font-black uppercase text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent"
                   aria-label="Days until cases are due soon"
                 />
               </div>
@@ -299,10 +306,10 @@ const CaseList = () => {
                 type="checkbox"
                 checked={showUrgentOnly}
                 onChange={(e) => setShowUrgentOnly(e.target.checked)}
-                className="w-5 h-5 border-2 border-black dark:border-white accent-black dark:accent-white"
+                className="app-contrast-checkbox"
                 aria-label="Show urgent cases only"
               />
-              <span className="text-sm font-bold text-black dark:text-white uppercase">
+              <span className="text-sm font-bold uppercase text-app-text-heading">
                 Urgent only
               </span>
             </label>
@@ -311,10 +318,10 @@ const CaseList = () => {
                 type="checkbox"
                 checked={showImportedOnly}
                 onChange={(e) => setShowImportedOnly(e.target.checked)}
-                className="w-5 h-5 border-2 border-black dark:border-white accent-black dark:accent-white"
+                className="app-contrast-checkbox"
                 aria-label="Show imported cases only"
               />
-              <span className="text-sm font-bold text-black dark:text-white uppercase">
+              <span className="text-sm font-bold uppercase text-app-text-heading">
                 Imported only
               </span>
             </label>
@@ -363,7 +370,7 @@ const CaseList = () => {
               Copy Link
             </BrutalButton>
             {hasActiveFilters && (
-              <span className="text-xs font-black uppercase text-black/70">
+              <span className="text-xs font-black uppercase text-app-text-subtle">
                 {activeFiltersCount} filter{activeFiltersCount === 1 ? '' : 's'} applied
               </span>
             )}
@@ -378,7 +385,7 @@ const CaseList = () => {
           <CaseListFiltersBar chips={activeFilterChips} onRemove={handleRemoveFilterChip} onClearAll={handleClearFilters} />
         </BrutalCard>
         {error && (
-          <div className="border-2 border-black shadow-[6px_6px_0px_var(--shadow-color)] bg-app-accent-soft text-black p-4 font-bold">
+          <div className="border-2 border-app-border bg-app-accent-soft p-4 font-bold text-app-accent-text shadow-[6px_6px_0px_var(--shadow-color)]">
             {error}
           </div>
         )}
@@ -391,7 +398,7 @@ const CaseList = () => {
           <BrutalCard color="purple" className="p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-black uppercase text-black">
+                <span className="text-sm font-black uppercase text-app-brutal-ink">
                   {selectedCaseIds.length} case{selectedCaseIds.length === 1 ? '' : 's'} selected
                 </span>
                 <BrutalButton onClick={handleClearSelection} variant="secondary" size="sm">
@@ -409,16 +416,16 @@ const CaseList = () => {
         {showBulkModal && (
           <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50" role="dialog" aria-modal="true">
             <BrutalCard color="white" className="p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-black uppercase mb-4 text-black">
+              <h3 className="mb-4 text-lg font-black uppercase text-app-text-heading">
                 Bulk Status Update ({selectedCaseIds.length} cases)
               </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-black uppercase text-black/70 mb-2">New Status</label>
+                  <label className="mb-2 block text-sm font-black uppercase text-app-text-subtle">New Status</label>
                   <select
                     value={bulkStatusId}
                     onChange={(e) => setBulkStatusId(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                    className="w-full border-2 border-app-border bg-app-surface-elevated px-3 py-2 text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent"
                     aria-label="Bulk status"
                   >
                     <option value="">Select status...</option>
@@ -428,13 +435,13 @@ const CaseList = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-black uppercase text-black/70 mb-2">Notes</label>
+                  <label className="mb-2 block text-sm font-black uppercase text-app-text-subtle">Notes</label>
                   <textarea
                     value={bulkNotes}
                     onChange={(e) => setBulkNotes(e.target.value)}
                     rows={3}
                     placeholder="Reason for bulk status change..."
-                    className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
+                    className="w-full border-2 border-app-border bg-app-surface-elevated px-3 py-2 text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent"
                     aria-label="Bulk status notes"
                   />
                 </div>
@@ -474,7 +481,7 @@ const CaseList = () => {
             <BrutalCard color="white" className="hidden md:block overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse">
-                  <thead className="bg-[var(--loop-cyan)] border-b-2 border-black">
+                  <thead className="border-b-2 border-app-border bg-[var(--loop-cyan)]">
                     <tr>
                       <th className="px-4 py-4 text-left">
                         <input
@@ -485,43 +492,43 @@ const CaseList = () => {
                               ? handleClearSelection()
                               : handleSelectAllCases()
                           }
-                          className="w-5 h-5 border-2 border-black accent-black"
+                          className="app-contrast-checkbox"
                           aria-label="Select all visible cases"
                         />
                       </th>
-                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-app-brutal-ink">
                         Case #
                       </th>
-                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-app-brutal-ink">
                         Title
                       </th>
-                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-app-brutal-ink">
                         Client
                       </th>
-                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-app-brutal-ink">
                         Type
                       </th>
-                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-app-brutal-ink">
                         Status
                       </th>
-                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-app-brutal-ink">
                         Priority
                       </th>
-                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-app-brutal-ink">
                         Assigned
                       </th>
-                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-app-brutal-ink">
                         Due Date
                       </th>
-                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-app-brutal-ink">
                         Age
                       </th>
-                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-black">
+                      <th className="px-4 py-4 text-left text-xs font-black uppercase tracking-wider text-app-brutal-ink">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white">
+                  <tbody className="bg-app-surface">
                     {visibleCases.map((caseItem: CaseWithDetails) => {
                       const caseMeta = caseDisplayMetaById.get(caseItem.id);
                       if (!caseMeta) return null;
@@ -547,8 +554,8 @@ const CaseList = () => {
         {!loading && visibleCases.length === 0 && (
           <BrutalCard color="white" className="p-12 text-center">
             <div className="text-6xl mb-4">📋</div>
-            <h3 className="text-xl font-black uppercase mb-2 text-black">No cases found</h3>
-            <p className="text-black/70 font-bold mb-6">
+            <h3 className="mb-2 text-xl font-black uppercase text-app-text-heading">No cases found</h3>
+            <p className="mb-6 font-bold text-app-text-subtle">
               {filters.search || filters.priority || filters.status_id
                 ? 'Try adjusting your filters'
                 : 'Get started by creating your first case'}
@@ -564,31 +571,31 @@ const CaseList = () => {
         {!loading && cases.length > 0 && totalPages > 1 && (
           <>
             <div className="mt-6 flex flex-col gap-3 md:hidden">
-              <p className="text-sm font-bold text-black">
+              <p className="text-sm font-bold text-app-text-heading">
                 Page {currentPage} of {totalPages} · {total} cases
               </p>
               <div className="flex items-center justify-between gap-2">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="flex-1 border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 border-2 border-app-border bg-app-surface-elevated px-4 py-2 font-black uppercase text-app-text-heading shadow-[2px_2px_0px_var(--shadow-color)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="flex-1 border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 border-2 border-app-border bg-app-surface-elevated px-4 py-2 font-black uppercase text-app-text-heading shadow-[2px_2px_0px_var(--shadow-color)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Next
                 </button>
               </div>
             </div>
             <div className="mt-6 hidden items-center justify-between md:flex">
-              <div className="flex items-center gap-4 text-sm font-bold text-black">
+              <div className="flex items-center gap-4 text-sm font-bold text-app-text-heading">
                 Showing {(currentPage - 1) * (filters.limit || 20) + 1} to{' '}
                 {Math.min(currentPage * (filters.limit || 20), total)} of {total} cases
-                <label className="inline-flex items-center gap-2 text-xs font-black uppercase text-black/70">
+                <label className="inline-flex items-center gap-2 text-xs font-black uppercase text-app-text-subtle">
                   Rows
                   <select
                     value={filters.limit || 20}
@@ -610,7 +617,7 @@ const CaseList = () => {
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+                  className="border-2 border-app-border bg-app-surface-elevated px-4 py-2 font-black uppercase text-app-text-heading shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)] hover:text-app-brutal-ink disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-app-surface-elevated"
                 >
                   Previous
                 </button>
@@ -619,21 +626,21 @@ const CaseList = () => {
                     <>
                       <button
                         onClick={() => handlePageChange(1)}
-                        className="border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)]"
+                        className="border-2 border-app-border bg-app-surface-elevated px-4 py-2 font-black uppercase text-app-text-heading shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)] hover:text-app-brutal-ink"
                       >
                         1
                       </button>
-                      <span className="text-sm font-black text-black/60">…</span>
+                      <span className="text-sm font-black text-app-text-subtle">…</span>
                     </>
                   )}
                   {paginationPages.map((page) => (
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
-                      className={`border-2 border-black px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-colors ${
+                      className={`border-2 border-app-border px-4 py-2 font-black uppercase shadow-[2px_2px_0px_var(--shadow-color)] transition-colors ${
                         currentPage === page
-                          ? 'bg-black text-white'
-                          : 'bg-white text-black hover:bg-[var(--loop-yellow)]'
+                          ? 'bg-app-text-heading text-app-bg'
+                          : 'bg-app-surface-elevated text-app-text-heading hover:bg-[var(--loop-yellow)] hover:text-app-brutal-ink'
                       }`}
                     >
                       {page}
@@ -641,10 +648,10 @@ const CaseList = () => {
                   ))}
                   {paginationPages[paginationPages.length - 1] !== totalPages && (
                     <>
-                      <span className="text-sm font-black text-black/60">…</span>
+                      <span className="text-sm font-black text-app-text-subtle">…</span>
                       <button
                         onClick={() => handlePageChange(totalPages)}
-                        className="border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)]"
+                        className="border-2 border-app-border bg-app-surface-elevated px-4 py-2 font-black uppercase text-app-text-heading shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)] hover:text-app-brutal-ink"
                       >
                         {totalPages}
                       </button>
@@ -654,7 +661,7 @@ const CaseList = () => {
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+                  className="border-2 border-app-border bg-app-surface-elevated px-4 py-2 font-black uppercase text-app-text-heading shadow-[2px_2px_0px_var(--shadow-color)] transition-colors hover:bg-[var(--loop-yellow)] hover:text-app-brutal-ink disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-app-surface-elevated"
                 >
                   Next
                 </button>

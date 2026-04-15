@@ -80,7 +80,7 @@ export default function SideNav({
                 className={classNames(
                   'flex items-center gap-2 rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold transition-colors',
                   item.isActive
-                    ? 'border-app-accent bg-app-accent text-[var(--app-accent-foreground)] shadow-sm'
+                    ? 'app-accent-contrast-ink border-app-accent bg-app-accent shadow-sm'
                     : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
                 )}
               >

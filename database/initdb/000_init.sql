@@ -108,6 +108,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/087_newsletter_provider_settings.sql
 \i /migrations/088_provider_agnostic_payment_columns.sql
 \i /migrations/089_case_topic_definitions_constraint_alignment.sql
+\i /migrations/090_auth_session_security_hardening.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -220,7 +221,8 @@ VALUES
     ('086_imported_case_contact_org_backfill.sql', '086', '086_imported_case_contact_org_backfill.sql'),
     ('087_newsletter_provider_settings.sql', '087', '087_newsletter_provider_settings.sql'),
     ('088_provider_agnostic_payment_columns.sql', '088', '088_provider_agnostic_payment_columns.sql'),
-    ('089_case_topic_definitions_constraint_alignment.sql', '089', '089_case_topic_definitions_constraint_alignment.sql')
+    ('089_case_topic_definitions_constraint_alignment.sql', '089', '089_case_topic_definitions_constraint_alignment.sql'),
+    ('090_auth_session_security_hardening.sql', '090', '090_auth_session_security_hardening.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

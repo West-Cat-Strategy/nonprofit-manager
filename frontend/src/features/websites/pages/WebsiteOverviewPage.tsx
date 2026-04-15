@@ -23,10 +23,10 @@ const formatRate = (current: number, previous: number): string => {
 
 const getWebsiteActionToneClasses = (tone?: string) =>
   tone === 'warning'
-    ? 'bg-amber-600 text-white hover:bg-amber-700'
+    ? 'app-pill-action app-pill-action-warning'
     : tone === 'primary'
-      ? 'bg-app-accent text-[var(--app-accent-foreground)] hover:bg-app-accent-hover'
-      : 'bg-slate-700 text-white hover:bg-slate-800';
+      ? 'app-pill-action app-pill-action-accent app-accent-contrast-ink hover:bg-app-accent-hover'
+      : 'app-pill-action';
 
 const WebsiteOverviewPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
@@ -56,35 +56,35 @@ const WebsiteOverviewPage: React.FC = () => {
 
   const actions = overview ? (
     <>
-      <WebsiteConsoleUrlAction
-        href={previewHref}
-        className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
-        disabledTitle="Preview is unavailable until the site has a public URL."
-      >
+        <WebsiteConsoleUrlAction
+          href={previewHref}
+          className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
+          disabledTitle="Preview is unavailable until the site has a public URL."
+        >
         Open preview
       </WebsiteConsoleUrlAction>
-      <Link
-        to={`/websites/${siteId}/content`}
-        className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
-      >
+        <Link
+          to={`/websites/${siteId}/content`}
+          className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
+        >
         Content
       </Link>
-      <Link
-        to={`/websites/${siteId}/forms`}
-        className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
-      >
+        <Link
+          to={`/websites/${siteId}/forms`}
+          className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
+        >
         Forms
       </Link>
-      <Link
-        to={`/websites/${siteId}/publishing`}
-        className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
-      >
+        <Link
+          to={`/websites/${siteId}/publishing`}
+          className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
+        >
         Publishing
       </Link>
-      <Link
-        to={`/websites/${siteId}/builder`}
-        className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] shadow-sm transition-colors hover:bg-app-accent-hover"
-      >
+        <Link
+          to={`/websites/${siteId}/builder`}
+          className="app-pill-action app-pill-action-accent app-accent-contrast-ink rounded-full px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-app-accent-hover"
+        >
         Open builder
       </Link>
     </>
@@ -115,7 +115,7 @@ const WebsiteOverviewPage: React.FC = () => {
               onClick={() => {
                 void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
               }}
-              className="rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover"
+              className="app-pill-action app-pill-action-accent app-accent-contrast-ink rounded-full px-4 py-2 text-sm font-medium transition-colors hover:bg-app-accent-hover"
             >
               Retry overview
             </button>
@@ -160,13 +160,13 @@ const WebsiteOverviewPage: React.FC = () => {
                   )}
                   <Link
                     to={`/websites/${siteId}/publishing`}
-                    className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                    className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
                   >
                     Publishing
                   </Link>
                   <Link
                     to={`/websites/${siteId}/builder`}
-                    className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
+                    className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
                   >
                     Builder
                   </Link>

@@ -34,6 +34,12 @@
   --app-accent-soft-hover: #bfdbfe;
   --app-overlay-scrim: rgba(15, 23, 42, 0.32);
   --app-shell-surface: #ffffff;
+  --app-brutal-ink: #111111;
+  --app-brutal-ink-muted: #374151;
+  --app-brutal-outline: #000000;
+  --app-messenger-accent: #0b4f47;
+  --app-messenger-accent-hover: #083d38;
+  --app-messenger-accent-soft: rgba(11, 79, 71, 0.16);
 
   --app-hover: #f3f4f6;
   --app-input-bg: #ffffff;
@@ -111,7 +117,19 @@ body.theme-transitioning *::after {
   border-color: var(--app-accent);
 }
 
-body :where(a[href]) {
+body :where(
+  a[href]:not(
+      :is(
+        [class*='inline-flex'],
+        [class*='flex'],
+        [class*='rounded'],
+        [class*='border'],
+        [class*='bg-'],
+        [class*='px-'],
+        [class*='py-']
+      )
+    )
+) {
   color: var(--app-link);
   text-decoration-line: underline;
   text-decoration-thickness: 0.08em;
@@ -119,11 +137,35 @@ body :where(a[href]) {
   text-decoration-color: currentColor;
 }
 
-body :where(a[href]:visited) {
+body :where(
+  a[href]:visited:not(
+      :is(
+        [class*='inline-flex'],
+        [class*='flex'],
+        [class*='rounded'],
+        [class*='border'],
+        [class*='bg-'],
+        [class*='px-'],
+        [class*='py-']
+      )
+    )
+) {
   color: var(--app-link-visited);
 }
 
-body :where(a[href]:hover) {
+body :where(
+  a[href]:hover:not(
+      :is(
+        [class*='inline-flex'],
+        [class*='flex'],
+        [class*='rounded'],
+        [class*='border'],
+        [class*='bg-'],
+        [class*='px-'],
+        [class*='py-']
+      )
+    )
+) {
   color: var(--app-link-hover);
 }
 
@@ -153,6 +195,12 @@ body.dark:not([class*='theme-']) {
   --app-accent-soft-hover: rgba(37, 99, 235, 0.35);
   --app-overlay-scrim: rgba(2, 6, 23, 0.58);
   --app-shell-surface: #1f2937;
+  --app-brutal-ink: #111111;
+  --app-brutal-ink-muted: #374151;
+  --app-brutal-outline: #000000;
+  --app-messenger-accent: #0b4f47;
+  --app-messenger-accent-hover: #083d38;
+  --app-messenger-accent-soft: rgba(11, 79, 71, 0.24);
 
   --app-hover: #1f2937;
   --app-input-bg: #1a1a1a;
@@ -175,9 +223,9 @@ body.dark:not([class*='theme-']) {
   --loop-blue: #87ceeb;
 }
 
-/* NUCLEAR DARK MODE FIX */
-.dark, .dark body, .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6, 
-.dark p, .dark span, .dark label, .dark div, .dark td, .dark th, .dark li, .dark a {
+/* Let dark-mode text inherit from local component tokens instead of force-resetting descendants. */
+.dark,
+.dark body {
   color: var(--app-text);
 }
 
@@ -225,6 +273,34 @@ body:not(.theme-neobrutalist) .border-black {
 
 body:not(.theme-neobrutalist) .border-white {
   border-color: var(--app-border) !important;
+}
+
+body.dark :is([class*='bg-loop-'], [class*='bg-[var(--loop-']) {
+  color: var(--app-brutal-ink) !important;
+  border-color: var(--app-brutal-outline) !important;
+}
+
+body.dark :is([class*='bg-loop-'], [class*='bg-[var(--loop-']) :is(
+  .text-black,
+  .text-white
+) {
+  color: var(--app-brutal-ink) !important;
+}
+
+body.dark :is([class*='bg-loop-'], [class*='bg-[var(--loop-']) :is(
+  [class*='text-black/'],
+  [class*='text-white/']
+) {
+  color: var(--app-brutal-ink-muted) !important;
+}
+
+.app-brutal-chroma-surface {
+  color: var(--app-brutal-ink);
+  border-color: var(--app-brutal-outline);
+}
+
+.app-brutal-chroma-surface-muted {
+  color: var(--app-brutal-ink-muted);
 }
 
 .menu-surface-opaque {
@@ -282,6 +358,263 @@ body:not(.theme-neobrutalist) .border-white {
   color: inherit;
 }
 
+.app-accent-contrast-ink {
+  color: var(--app-accent-foreground);
+}
+
+.app-accent-contrast-ink :is(span, svg) {
+  color: inherit !important;
+}
+
+body.dark .app-accent-contrast-ink {
+  color: var(--app-brutal-ink) !important;
+}
+
+.app-pill-action {
+  border: 1px solid var(--app-border);
+  background-color: var(--app-surface-elevated);
+  color: var(--app-text-heading);
+}
+
+.app-pill-action:hover {
+  background-color: var(--app-surface-muted);
+  color: var(--app-text);
+}
+
+.app-pill-action :is(span, svg) {
+  color: inherit !important;
+}
+
+.app-pill-action-accent {
+  background-color: var(--app-accent);
+  border: 1px solid var(--app-accent);
+}
+
+.app-pill-action-accent:hover {
+  background-color: var(--app-accent-hover);
+  border-color: var(--app-accent-hover);
+}
+
+.app-pill-action-warning {
+  background-color: #fcd34d;
+  border: 1px solid #d97706;
+  color: var(--app-brutal-ink) !important;
+}
+
+.app-pill-action-warning:hover {
+  background-color: #fde68a;
+  border-color: #b45309;
+  color: var(--app-brutal-ink) !important;
+}
+
+.app-pill-action-warning :is(span, svg) {
+  color: inherit !important;
+}
+
+.brutal-button-secondary {
+  background-color: var(--app-surface-elevated);
+  color: var(--app-text-heading) !important;
+}
+
+.brutal-button-secondary:hover {
+  background-color: var(--app-surface-muted);
+  color: var(--app-text) !important;
+}
+
+.brutal-button-secondary :is(span, svg) {
+  color: inherit !important;
+}
+
+.text-app-brutal-ink { color: var(--app-brutal-ink); }
+.text-app-brutal-ink-muted { color: var(--app-brutal-ink-muted); }
+
+body.ui-redesign input.app-contrast-checkbox,
+.app-contrast-checkbox {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-grid;
+  place-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  min-width: 1.25rem;
+  min-height: 1.25rem;
+  border: 2px solid #000000 !important;
+  border-radius: 0 !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  box-sizing: border-box;
+  box-shadow: 2px 2px 0 0 #000000;
+  color-scheme: light;
+  cursor: pointer;
+}
+
+.app-contrast-checkbox::before {
+  content: '';
+  width: 0.625rem;
+  height: 0.625rem;
+  transform: scale(0);
+  transition: transform 120ms ease-in-out;
+  background-color: var(--app-brutal-ink);
+  clip-path: polygon(14% 44%, 0 59%, 43% 100%, 100% 17%, 84% 4%, 43% 72%);
+}
+
+.app-contrast-checkbox:checked::before {
+  transform: scale(1);
+}
+
+.app-contrast-checkbox:focus-visible {
+  outline: 3px solid var(--app-accent);
+  outline-offset: 2px;
+}
+
+.app-messenger-accent {
+  background-color: var(--app-messenger-accent);
+  border-color: var(--app-messenger-accent);
+  color: #ffffff !important;
+}
+
+.app-messenger-accent:hover {
+  background-color: var(--app-messenger-accent-hover);
+  border-color: var(--app-messenger-accent-hover);
+  color: #ffffff !important;
+}
+
+.app-messenger-accent :is(span, svg) {
+  color: inherit !important;
+}
+
+.app-messenger-accent-soft {
+  background-color: var(--app-messenger-accent-soft);
+  border-color: var(--app-messenger-accent);
+  color: var(--app-text);
+}
+
+.app-messenger-badge {
+  background-color: var(--app-accent-foreground);
+  color: var(--app-messenger-accent);
+}
+
+.bg-app-bg { background-color: var(--app-bg); }
+.bg-app-surface { background-color: var(--app-surface); }
+.bg-app-surface-muted { background-color: var(--app-surface-muted); }
+.bg-app-surface-elevated { background-color: var(--app-surface-elevated); }
+.bg-loop-yellow { background-color: var(--loop-yellow); }
+.bg-loop-red { background-color: var(--loop-red); }
+.bg-loop-green { background-color: var(--loop-green); }
+.bg-loop-purple { background-color: var(--loop-purple); }
+.bg-loop-pink { background-color: var(--loop-pink); }
+.bg-loop-cyan { background-color: var(--loop-cyan); }
+.bg-loop-blue { background-color: var(--loop-blue); }
+.bg-app-accent { background-color: var(--app-accent); }
+.bg-app-accent-hover { background-color: var(--app-accent-hover); }
+.bg-app-accent-foreground { background-color: var(--app-accent-foreground); }
+.bg-app-accent-soft { background-color: var(--app-accent-soft); }
+.bg-app-accent-soft-hover { background-color: var(--app-accent-soft-hover); }
+.bg-app-brutal-ink { background-color: var(--app-brutal-ink); }
+.bg-app-hover { background-color: var(--app-hover); }
+.bg-app-input-bg { background-color: var(--app-input-bg); }
+
+.text-app-text { color: var(--app-text); }
+.text-app-text-heading { color: var(--app-text-heading); }
+.text-app-text-muted { color: var(--app-text-muted); }
+.text-app-text-subtle { color: var(--app-text-subtle); }
+.text-app-text-label { color: var(--app-text-label); }
+.text-app-accent { color: var(--app-accent); }
+.text-app-accent-hover { color: var(--app-accent-hover); }
+.text-app-accent-text { color: var(--app-accent-text); }
+.text-app-accent-text-hover { color: var(--app-accent-text-hover); }
+
+.border-app-border { border-color: var(--app-border); }
+.border-app-border-muted { border-color: var(--app-border-muted); }
+.border-app-accent { border-color: var(--app-accent); }
+.border-app-accent-hover { border-color: var(--app-accent-hover); }
+.border-app-input-border { border-color: var(--app-input-border); }
+
+.hover\:bg-app-hover:hover { background-color: var(--app-hover); }
+.hover\:bg-app-surface:hover { background-color: var(--app-surface); }
+.hover\:bg-app-surface-muted:hover { background-color: var(--app-surface-muted); }
+.hover\:bg-app-accent:hover { background-color: var(--app-accent); }
+.hover\:bg-app-accent-hover:hover { background-color: var(--app-accent-hover); }
+.hover\:bg-app-accent-soft:hover { background-color: var(--app-accent-soft); }
+.hover\:bg-app-accent-soft-hover:hover { background-color: var(--app-accent-soft-hover); }
+
+.hover\:text-app-accent:hover { color: var(--app-accent); }
+.hover\:text-app-accent-text:hover { color: var(--app-accent-text); }
+.hover\:text-app-text-muted:hover { color: var(--app-text-muted); }
+
+.hover\:border-app-accent:hover { border-color: var(--app-accent); }
+.hover\:border-app-accent-hover:hover { border-color: var(--app-accent-hover); }
+
+.focus\:ring-app-accent:focus,
+.focus\:ring-app-accent:focus-visible {
+  --tw-ring-color: var(--app-accent);
+  box-shadow: 0 0 0 2px var(--app-accent);
+}
+
+.focus\:border-app-accent:focus,
+.focus\:border-app-accent:focus-visible {
+  border-color: var(--app-accent);
+}
+
+.ring-app-accent\/20 { box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 20%, transparent); }
+
+.bg-app-surface\/75 { background-color: color-mix(in srgb, var(--app-surface) 75%, transparent); }
+.bg-app-surface\/85 { background-color: color-mix(in srgb, var(--app-surface) 85%, transparent); }
+.bg-app-surface\/90 { background-color: color-mix(in srgb, var(--app-surface) 90%, transparent); }
+.bg-app-surface\/95 { background-color: color-mix(in srgb, var(--app-surface) 95%, transparent); }
+.bg-app-surface-muted\/60 { background-color: color-mix(in srgb, var(--app-surface-muted) 60%, transparent); }
+.bg-app-surface-muted\/70 { background-color: color-mix(in srgb, var(--app-surface-muted) 70%, transparent); }
+.bg-app-surface-elevated\/85 { background-color: color-mix(in srgb, var(--app-surface-elevated) 85%, transparent); }
+.bg-app-surface-elevated\/90 { background-color: color-mix(in srgb, var(--app-surface-elevated) 90%, transparent); }
+.bg-app-accent-hover\/20 { background-color: color-mix(in srgb, var(--app-accent-hover) 20%, transparent); }
+.bg-app-accent-hover\/30 { background-color: color-mix(in srgb, var(--app-accent-hover) 30%, transparent); }
+.bg-app-accent-hover\/50 { background-color: color-mix(in srgb, var(--app-accent-hover) 50%, transparent); }
+
+.hover\:bg-app-accent-hover\/50:hover {
+  background-color: color-mix(in srgb, var(--app-accent-hover) 50%, transparent);
+}
+
+.border-app-border\/70 { border-color: color-mix(in srgb, var(--app-border) 70%, transparent); }
+.border-app-accent\/50 { border-color: color-mix(in srgb, var(--app-accent) 50%, transparent); }
+
+.dark .dark\:bg-app-accent-hover { background-color: var(--app-accent-hover); }
+.dark .dark\:bg-app-accent-hover\/20 {
+  background-color: color-mix(in srgb, var(--app-accent-hover) 20%, transparent);
+}
+.dark .dark\:bg-app-accent-hover\/30 {
+  background-color: color-mix(in srgb, var(--app-accent-hover) 30%, transparent);
+}
+.dark .dark\:bg-app-accent-hover\/50 {
+  background-color: color-mix(in srgb, var(--app-accent-hover) 50%, transparent);
+}
+.dark .dark\:bg-app-accent-soft { background-color: var(--app-accent-soft); }
+.dark .dark\:text-app-text-muted { color: var(--app-text-muted); }
+.dark .dark\:border-app-accent { border-color: var(--app-accent); }
+.dark .dark\:hover\:bg-app-accent-hover\/50:hover {
+  background-color: color-mix(in srgb, var(--app-accent-hover) 50%, transparent);
+}
+
+body.dark :is(button, a, input, select, textarea)[disabled],
+body.dark :is(button, a)[aria-disabled='true'] {
+  opacity: 1 !important;
+}
+
+body.dark :is(button, a)[class*='bg-app-accent'][disabled],
+body.dark :is(button, a)[class*='bg-app-accent'][aria-disabled='true'] {
+  background-color: var(--app-surface-muted) !important;
+  color: var(--app-text-muted) !important;
+  border-color: var(--app-border-muted) !important;
+}
+
+body.dark :is(button, a)[class*='bg-app-surface'][disabled],
+body.dark :is(button, a)[class*='bg-app-surface'][aria-disabled='true'],
+body.dark :is(button, a)[class*='border-app-'][disabled],
+body.dark :is(button, a)[class*='border-app-'][aria-disabled='true'] {
+  background-color: var(--app-surface-muted) !important;
+  color: var(--app-text-muted) !important;
+  border-color: var(--app-border-muted) !important;
+}
+
 /* UTILITIES */
 .react-grid-layout { position: relative; transition: height 200ms ease; }
 .react-grid-item { transition: all 200ms ease; }
@@ -305,6 +638,15 @@ body.ui-redesign h4, body.ui-redesign h5, body.ui-redesign h6 {
   color: var(--app-text-heading);
 }
 
+body.ui-redesign :is(h1, h2, h3, h4, h5, h6).text-app-brutal-ink,
+body.ui-redesign :is(h1, h2, h3, h4, h5, h6).app-accent-contrast-ink {
+  color: var(--app-brutal-ink) !important;
+}
+
+body.ui-redesign :is(h1, h2, h3, h4, h5, h6).text-app-brutal-ink-muted {
+  color: var(--app-brutal-ink-muted) !important;
+}
+
 body.ui-redesign input, body.ui-redesign select, body.ui-redesign textarea {
   border-radius: var(--ui-radius-sm);
   border: 1px solid var(--app-input-border);
@@ -317,6 +659,53 @@ body.ui-redesign button { border-radius: var(--ui-radius-sm); }
 .contact-print-page {
   color: #000000;
   background: #ffffff;
+}
+
+.dark .contact-print-page :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  dt,
+  dd,
+  div,
+  li,
+  td,
+  th,
+  small,
+  strong,
+  label,
+  section,
+  header,
+  article,
+  dl
+) {
+  color: #000000 !important;
+}
+
+.dark .contact-print-page {
+  background: #ffffff !important;
+}
+
+.dark .contact-print-page :is(
+  .bg-white,
+  .bg-app-surface,
+  .bg-app-surface-elevated,
+  .bg-app-surface-muted
+) {
+  background-color: #ffffff !important;
+}
+
+.dark .contact-print-page :is([class*='bg-black/'], [class*='bg-white/']) {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.dark .contact-print-page :is(.border-black, .border-white, .border-app-border, .border-app-border-muted) {
+  border-color: #000000 !important;
 }
 
 .contact-print-section,

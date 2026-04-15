@@ -32,6 +32,8 @@ cp .env.test.example .env.test.local
 
 `ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` are optional overrides in `.env.test.local`. Leave them blank unless your local snapshot uses a different admin account than the repo defaults below.
 
+`BYPASS_REGISTRATION_POLICY_IN_TEST` in `.env.test.local` is only honored as a direct-registration fallback when you target an externally managed runtime such as `SKIP_WEBSERVER=1`. The Playwright-managed host runtime overrides the backend flag to `false` and creates test users through the managed helper path instead.
+
 Install browsers if needed:
 
 ```bash
@@ -95,6 +97,18 @@ Set `ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` explicitly only when:
 - your Docker snapshot uses a different seeded admin account
 - your local Playwright-managed test DB was prepared with a different setup-created admin
 - you want strict route-health checks to pin a specific known admin account
+
+## Registration Policy Contract
+
+- Playwright-managed host runs (`npm test`, `npm run test:smoke`, `npm run test:ci`, headed/debug/UI runs) force the backend to use `BYPASS_REGISTRATION_POLICY_IN_TEST=false`.
+- In that runtime, E2E helpers create test users through the authenticated admin-managed user path instead of `/api/v2/auth/register`.
+- Externally managed runtimes such as `SKIP_WEBSERVER=1` may still opt into direct registration with `BYPASS_REGISTRATION_POLICY_IN_TEST=true`.
+
+## Remote macOS WebKit Note
+
+- Host-mode WebKit/Safari projects (`webkit`, `Mobile Safari`, and `Tablet`) require an active Aqua/login session on macOS.
+- Running those projects from a background SSH session can leave Playwright's bundled `Playwright.app` idle until the browser launch timeout expires.
+- The shared E2E runner now fails fast with an explicit message in that situation; log into the Mac console or Screen Sharing session before rerunning host-mode Safari-backed projects.
 
 ## Strict Route-Health Example
 

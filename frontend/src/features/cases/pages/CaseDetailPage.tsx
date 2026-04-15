@@ -160,7 +160,12 @@ const CaseDetail = () => {
             <div>
               <button
                 onClick={handleNavigateBack}
-                className="text-sm font-black uppercase text-black/70 hover:text-black mb-2 flex items-center gap-1"
+                className="mb-2 flex items-center gap-1 border-2 border-app-border px-3 py-2 text-sm font-black uppercase text-app-brutal-ink shadow-[2px_2px_0px_var(--shadow-color)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)]"
+                style={{
+                  backgroundColor: 'var(--app-accent-foreground)',
+                  color: 'var(--app-brutal-ink)',
+                  borderColor: 'var(--app-brutal-outline)',
+                }}
                 aria-label="Back to cases"
               >
                 ← Back to Cases

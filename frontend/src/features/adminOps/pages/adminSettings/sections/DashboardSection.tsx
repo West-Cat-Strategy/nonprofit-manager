@@ -103,9 +103,9 @@ export default function DashboardSection({ onShowInvite }: DashboardSectionProps
 
 function StatCard({ title, value, color }: { title: string; value: string | number; color: string }) {
     return (
-        <div className={`${color} border-2 border-[var(--app-border)] p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
-            <h3 className="text-sm font-bold uppercase mb-1 opacity-80">{title}</h3>
-            <p className="text-3xl font-black">{value}</p>
+        <div className={`${color} border-2 border-[var(--app-border)] p-4 text-app-brutal-ink shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+            <h3 className="mb-1 text-sm font-bold uppercase text-app-brutal-ink">{title}</h3>
+            <p className="text-3xl font-black text-app-brutal-ink">{value}</p>
         </div>
     );
 }

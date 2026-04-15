@@ -32,6 +32,78 @@ if [[ $# -eq 0 ]]; then
   exit 2
 fi
 
+playwright_command_requests_webkit() {
+  local saw_test_subcommand=0
+  local saw_project_flag=0
+  local expect_project_value=0
+  local arg
+
+  for arg in "$@"; do
+    if [[ "$expect_project_value" -eq 1 ]]; then
+      saw_project_flag=1
+      expect_project_value=0
+      case "$arg" in
+        webkit|"Mobile Safari"|Tablet)
+          return 0
+          ;;
+      esac
+      continue
+    fi
+
+    case "$arg" in
+      test)
+        saw_test_subcommand=1
+        ;;
+      --project)
+        saw_project_flag=1
+        expect_project_value=1
+        ;;
+      --project=webkit|--project=Tablet|--project="Mobile Safari"|--project=Mobile\ Safari)
+        return 0
+        ;;
+      --browser=webkit)
+        return 0
+        ;;
+    esac
+  done
+
+  if [[ "$saw_test_subcommand" -eq 1 && "$saw_project_flag" -eq 0 ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
+e2e_fail_fast_for_background_webkit() {
+  local manager_name
+
+  if [[ "${E2E_ALLOW_BACKGROUND_WEBKIT:-0}" == "1" ]]; then
+    return 0
+  fi
+
+  if [[ "$(uname -s)" != "Darwin" ]]; then
+    return 0
+  fi
+
+  if ! playwright_command_requests_webkit "$@"; then
+    return 0
+  fi
+
+  if ! command -v launchctl >/dev/null 2>&1; then
+    return 0
+  fi
+
+  manager_name="$(launchctl managername 2>/dev/null || true)"
+  if [[ "$manager_name" != "Background" ]]; then
+    return 0
+  fi
+
+  log_error "This Playwright command includes WebKit/Safari projects, but the current macOS session is '$manager_name'."
+  log_error "Playwright's macOS WebKit browser requires an active Aqua/login session and times out when launched from a background SSH session."
+  log_error "Log into the Mac console or Screen Sharing session, then rerun. Set E2E_ALLOW_BACKGROUND_WEBKIT=1 to bypass this preflight."
+  exit 78
+}
+
 export E2E_LOCK_FILE="$LOCK_FILE"
 export E2E_RUNNER_ACTION="$RUNNER_ACTION"
 export E2E_PORT_ACTION="$PORT_ACTION"
@@ -66,6 +138,8 @@ cleanup_runner() {
 trap cleanup_runner EXIT INT TERM
 
 e2e_acquire_lock
+
+e2e_fail_fast_for_background_webkit "$@"
 
 is_port_conflict_failure() {
   local log_file="$1"

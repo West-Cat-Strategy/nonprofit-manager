@@ -439,6 +439,7 @@ const WebsiteNewslettersPage: React.FC = () => {
               </select>
 
               <textarea
+                aria-label="Selected newsletter audience guidance"
                 value={activeProviderHelp}
                 readOnly
                 rows={3}

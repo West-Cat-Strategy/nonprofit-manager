@@ -43,7 +43,13 @@ const CaseCreate = () => {
             <div>
               <button
                 onClick={() => navigate('/cases')}
-                className="text-sm font-black uppercase text-black/70 hover:text-black mb-2 flex items-center gap-1"
+                className="mb-2 inline-flex items-center gap-1 border-2 px-3 py-2 text-sm font-black uppercase transition-all hover:translate-x-[1px] hover:translate-y-[1px]"
+                style={{
+                  backgroundColor: '#ffeb3b',
+                  color: '#000000',
+                  borderColor: '#000000',
+                  boxShadow: '2px 2px 0 0 #000000',
+                }}
                 aria-label="Back to cases"
               >
                 ← Back to Cases

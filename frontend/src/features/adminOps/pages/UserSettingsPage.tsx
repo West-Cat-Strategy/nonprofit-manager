@@ -398,9 +398,9 @@ export default function UserSettings() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="px-8 py-3 bg-[#000] text-white font-black uppercase tracking-wider text-xl
-                border-4 border-white shadow-[6px_6px_0px_0px_var(--shadow-color)] 
-                hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#FFF]
+              className="px-8 py-3 bg-[var(--loop-yellow)] text-app-brutal-ink font-black uppercase tracking-wider text-xl
+                border-4 border-black shadow-[6px_6px_0px_0px_var(--shadow-color)] 
+                hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_var(--shadow-color)]
                 active:translate-x-[6px] active:translate-y-[6px] active:shadow-none
                 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shrink-0"
             >
@@ -458,7 +458,7 @@ export default function UserSettings() {
           {/* Personal Information Card - PINK Theme */}
           <div id="bio-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-pink)] border-b-4 border-black p-4">
-              <h2 className="text-2xl font-black uppercase">Bio</h2>
+              <h2 className="text-2xl font-black uppercase text-app-brutal-ink">Bio</h2>
             </div>
 
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -531,7 +531,7 @@ export default function UserSettings() {
           {/* Contact Information Card - GREEN Theme */}
           <div id="contact-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-green)] border-b-4 border-black p-4">
-              <h2 className="text-2xl font-black uppercase">Contact Info</h2>
+              <h2 className="text-2xl font-black uppercase text-app-brutal-ink">Contact Info</h2>
             </div>
 
             <div className="p-8 space-y-6">
@@ -609,7 +609,7 @@ export default function UserSettings() {
           {/* Notifications - PURPLE Theme */}
           <div id="notifications-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-purple)] border-b-4 border-black p-4">
-              <h2 className="text-2xl font-black uppercase">Notification Settings</h2>
+              <h2 className="text-2xl font-black uppercase text-app-brutal-ink">Notification Settings</h2>
             </div>
 
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -619,13 +619,13 @@ export default function UserSettings() {
                     {key.replace(/([A-Z])/g, ' $1').trim()}
                   </span>
                   <button
-                    type="button"
-                    onClick={() => handleNotificationChange(key as keyof NotificationSettings, !value)}
-                    aria-label={`${key.replace(/([A-Z])/g, ' $1').trim()} notifications ${value ? 'enabled' : 'disabled'}`}
-                    className={`w-12 h-6 border-2 border-app-border rounded-full relative transition-colors shadow-[2px_2px_0px_0px_var(--shadow-color)] ${value ? 'bg-app-accent' : 'bg-app-surface-muted'
+                  type="button"
+                  onClick={() => handleNotificationChange(key as keyof NotificationSettings, !value)}
+                  aria-label={`${key.replace(/([A-Z])/g, ' $1').trim()} notifications ${value ? 'enabled' : 'disabled'}`}
+                    className={`w-12 h-6 border-2 border-app-border rounded-full relative transition-colors shadow-[2px_2px_0px_0px_var(--shadow-color)] ${value ? 'bg-app-accent-foreground' : 'bg-app-surface-muted'
                       }`}
                   >
-                    <div className={`absolute top-0.5 bottom-0.5 w-4 h-4 bg-app-accent-foreground border border-app-border rounded-full transition-all ${value ? 'right-1' : 'left-1'
+                    <div className={`absolute top-0.5 bottom-0.5 w-4 h-4 bg-app-brutal-ink border border-app-border rounded-full transition-all ${value ? 'right-1' : 'left-1'
                       }`}></div>
                   </button>
                 </div>
@@ -635,7 +635,7 @@ export default function UserSettings() {
 
           <div id="security-section" className="bg-app-surface border-4 border-black shadow-[8px_8px_0px_0px_var(--shadow-color)]">
             <div className="bg-[var(--loop-cyan)] border-b-4 border-black p-4">
-              <h2 className="text-2xl font-black uppercase">Security</h2>
+              <h2 className="text-2xl font-black uppercase text-app-brutal-ink">Security</h2>
             </div>
             <div className="p-8">
 

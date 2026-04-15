@@ -82,8 +82,8 @@ export default function LinkingModule() {
 
                 {/* Banner - GREEN */}
                 <div className="bg-[var(--loop-green)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
-                    <h2 className="text-3xl font-black mb-2 uppercase">Linking Network</h2>
-                    <p className="text-lg font-medium">Managing partnerships and organizational connections.</p>
+                    <h2 className="text-3xl font-black mb-2 uppercase text-app-brutal-ink">Linking Network</h2>
+                    <p className="text-lg font-medium text-app-brutal-ink">Managing partnerships and organizational connections.</p>
                 </div>
 
                 {/* Data Table */}

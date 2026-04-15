@@ -22,8 +22,6 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [deploy.sh](deploy.sh) | Run the local, staging, or production deployment wrapper. | `make deploy-local` / `make deploy-staging` / `make deploy` |
 | [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-local git hooks. | `make hooks` |
 | [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files. | `./scripts/select-checks.sh` |
-| [test-auth-flow.sh](test-auth-flow.sh) | Thin shell wrapper around the auth flow smoke checker. | `./scripts/test-auth-flow.sh` |
-| [test-auth.js](test-auth.js) | Probe public login/setup pages and the auth API. | `./scripts/test-auth-flow.sh` |
 | [daily-security-report.py](daily-security-report.py) | Generate a lightweight security-status report from repo checks. | `python3 scripts/daily-security-report.py` |
 | [e2e-port-preflight.sh](e2e-port-preflight.sh) | Reserve or clean up the ports used by the Playwright harness. | `e2e` package scripts |
 | [e2e-playwright.sh](e2e-playwright.sh) | Apply the repo's standard host or Docker Playwright defaults before running the lock wrapper. | `e2e` package scripts |
@@ -43,7 +41,6 @@ The `check-*.ts` scripts are the repo policy gates that back `make lint`, `make 
 - [lib/common.sh](lib/common.sh) contains shell helpers shared by the root scripts.
 - [lib/config.sh](lib/config.sh) and [lib/import-audit.ts](lib/import-audit.ts) provide shared config/audit helpers for the policy checks.
 - `backend/scripts/run-integration-tests.sh` is backend-owned and is invoked from the backend test workflow.
-- `reference/sync-reference-repos.sh` and `reference/verify-reference-repos.sh` keep the mirrored reference repositories in sync.
 - `perf/p4-t9h-capture.sh` and `perf/p4-t9h-seed.sql` support the documented performance artifact workflow.
 
 ## Common Validation Flow

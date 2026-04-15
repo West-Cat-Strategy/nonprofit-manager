@@ -215,6 +215,9 @@ const isDockerBackedRun = (): boolean =>
   process.env.API_URL?.includes(':8004') ||
   process.env.BASE_URL?.includes(':8005');
 
+const shouldUseManagedTestUserCreation = (): boolean =>
+  !isDockerBackedRun() || process.env.BYPASS_REGISTRATION_POLICY_IN_TEST !== 'true';
+
 const getDefaultAdminPasswordForRuntime = (
   dockerBackedRun: boolean
 ): Pick<ResolvedAdminCredentials, 'password' | 'passwordSource' | 'runtimeProfile'> =>
@@ -2186,7 +2189,7 @@ export async function createTestUser(
   page: Page,
   user: TestUser
 ): Promise<{ id: string; email: string }> {
-  if (process.env.BYPASS_REGISTRATION_POLICY_IN_TEST !== 'true') {
+  if (shouldUseManagedTestUserCreation()) {
     return createManagedTestUser(page, user);
   }
 

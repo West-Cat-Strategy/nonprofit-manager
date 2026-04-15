@@ -696,7 +696,7 @@ Database audit logs   | Monthly partitions, oldest > 1 year archived
 
 ```bash
 #!/bin/bash
-# scripts/archive-logs.sh
+# Monthly archival workflow
 
 # Monthly archival to S3
 MONTH=$(date +%Y-%m)

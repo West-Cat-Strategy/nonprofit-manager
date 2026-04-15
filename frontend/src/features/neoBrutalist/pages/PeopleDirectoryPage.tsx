@@ -246,7 +246,7 @@ export default function PeopleDirectory() {
             <div className="p-6">
                 {/* Banner - PINK */}
                 <div className="bg-[var(--loop-pink)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
-                    <h2 className="text-3xl font-black mb-2 uppercase">DIRECTORY</h2>
+                    <h2 className="text-3xl font-black mb-2 uppercase text-app-brutal-ink">DIRECTORY</h2>
                 </div>
 
                 {/* Search Bar */}

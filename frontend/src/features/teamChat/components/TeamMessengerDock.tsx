@@ -122,7 +122,7 @@ export default function TeamMessengerDock() {
               type="button"
               onClick={() => void handleStartDirectConversation()}
               disabled={!directParticipantId || isStartingDirectConversation}
-              className="mt-3 w-full rounded-xl bg-[#0f766e] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="app-messenger-accent mt-3 w-full rounded-xl px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isStartingDirectConversation ? 'Starting...' : 'Start chat'}
             </button>
@@ -141,8 +141,8 @@ export default function TeamMessengerDock() {
                   onClick={() => void openConversation(conversation.room_id)}
                   className={`w-full rounded-2xl border px-3 py-3 text-left ${
                     selectedRoomId === conversation.room_id
-                      ? 'border-[#0f766e] bg-[#0f766e]/10'
-                    : `border-app-border ${popupChromeClassName}`
+                      ? 'app-messenger-accent-soft'
+                      : `border-app-border ${popupChromeClassName}`
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -236,11 +236,11 @@ export default function TeamMessengerDock() {
           <button
             type="button"
             onClick={() => setLauncherOpen(!launcherOpen)}
-            className="inline-flex items-center gap-2 rounded-full border border-app-border bg-[#0f766e] px-4 py-2 text-sm font-semibold text-white shadow-sm"
+            className="app-messenger-accent inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-sm"
           >
             Team Messenger
             {unreadCount > 0 && (
-              <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#0f766e]">
+              <span className="app-messenger-badge rounded-full px-2 py-0.5 text-[11px] font-semibold">
                 {unreadCount}
               </span>
             )}
@@ -259,13 +259,13 @@ export default function TeamMessengerDock() {
                 onClick={() => void openConversation(roomId)}
                 className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm ${
                   selectedRoomId === roomId
-                    ? 'border-[#0f766e] bg-[#0f766e]/10 text-app-text'
+                    ? 'app-messenger-accent-soft'
                     : `border-app-border ${popupChromeClassName} text-app-text-muted`
                 }`}
               >
                 <span className="truncate">{conversation.title}</span>
                 {(conversation.unread_count > 0 || conversation.unread_mentions_count > 0) && (
-                  <span className="rounded-full bg-[#0f766e] px-2 py-0.5 text-[11px] font-semibold text-white">
+                  <span className="app-messenger-accent rounded-full px-2 py-0.5 text-[11px] font-semibold">
                     {conversation.unread_count + conversation.unread_mentions_count}
                   </span>
                 )}

@@ -178,7 +178,7 @@ docker compose up -d
 ### 3.3 Credential Rotation (High Priority)
 
 ```bash
-# Generate new secrets (scripts/generate-secrets.sh)
+# Generate new secrets
 NEW_JWT_SECRET=$(openssl rand -hex 32)
 NEW_DB_PASSWORD=$(openssl rand -base64 32)
 NEW_ENCRYPTION_KEY=$(openssl rand -hex 32)
