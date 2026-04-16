@@ -52,11 +52,16 @@ deploy_production_like() {
       grep -E '^DB_AT_REST_ENCRYPTION_MODE=' "$env_file" | tail -n1 | cut -d= -f2-
     )"
   fi
-  db_at_rest_mode="${db_at_rest_mode,,}"
+  db_at_rest_mode="$(to_lower "$db_at_rest_mode")"
 
-  if [[ "$db_at_rest_mode" == "luks" ]]; then
-    compose_files+=("$PROJECT_ROOT/docker-compose.db-encrypted.yml")
-  fi
+  case "$db_at_rest_mode" in
+    luks)
+      compose_files+=("$PROJECT_ROOT/docker-compose.db-encrypted.yml")
+      ;;
+    self_hosted)
+      compose_files+=("$PROJECT_ROOT/docker-compose.db-self-hosted.yml")
+      ;;
+  esac
 
   if [[ "$MODE" == "production" ]]; then
     caddy_domain="${CADDY_DOMAIN:-$(get_env_file_value "$env_file" CADDY_DOMAIN)}"

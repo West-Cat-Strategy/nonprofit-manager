@@ -15,6 +15,7 @@ export interface RegisterData {
 
 export interface AuthResponse {
   token?: string;
+  csrfToken?: string;
   organizationId?: string | null;
   user: {
     id: string;
@@ -39,6 +40,8 @@ export type AuthUser = AuthResponse['user'];
 
 export interface RegisterResponse {
   message: string;
+  token?: string;
+  csrfToken?: string;
   user?: AuthUser;
   organizationId?: string | null;
   pendingApproval?: boolean;

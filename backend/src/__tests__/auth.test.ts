@@ -7,6 +7,8 @@ import { login } from '../modules/auth/controllers/session.controller';
 import { AuthRequest } from '../middleware/auth';
 import { getRegistrationMode } from '@modules/admin/usecases/registrationSettingsUseCase';
 import { createPendingRegistration } from '@modules/admin/usecases/createPendingRegistrationUseCase';
+import { getPendingRegistrationByEmail } from '@modules/admin/repositories/pendingRegistrationRepository';
+import { setAccountLockState } from '@middleware/accountLockout';
 
 jest.mock('@utils/sessionTokens', () => ({
   issueAppSessionToken: jest.fn().mockReturnValue('mock-auth-token'),
@@ -38,6 +40,7 @@ jest.mock('express-validator', () => ({
 jest.mock('@middleware/accountLockout', () => ({
   trackLoginAttempt: jest.fn().mockResolvedValue(undefined),
   isAccountLocked: jest.fn().mockResolvedValue({ locked: false }),
+  setAccountLockState: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('@utils/cookieHelper', () => ({
@@ -47,6 +50,7 @@ jest.mock('@utils/cookieHelper', () => ({
 
 jest.mock('@utils/authResponse', () => ({
   buildAuthTokenResponse: jest.fn().mockReturnValue({}),
+  generateAuthSessionCsrfToken: jest.fn().mockReturnValue('mock-csrf-token'),
   shouldExposeAuthTokensInResponse: jest.fn().mockReturnValue(false),
 }));
 
@@ -72,13 +76,24 @@ jest.mock('@modules/admin/usecases/createPendingRegistrationUseCase', () => ({
   }),
 }));
 
+jest.mock('@modules/admin/repositories/pendingRegistrationRepository', () => ({
+  __esModule: true,
+  getPendingRegistrationByEmail: jest.fn().mockResolvedValue(null),
+}));
+
 describe('Auth API', () => {
   const queryMock = pool.query as jest.Mock;
   const validationResultMock = validationResult as unknown as jest.Mock;
+  const getPendingRegistrationByEmailMock = getPendingRegistrationByEmail as jest.Mock;
+  const setAccountLockStateMock = setAccountLockState as jest.Mock;
   const originalBypassFlag = process.env.BYPASS_REGISTRATION_POLICY_IN_TEST;
 
   beforeEach(() => {
     queryMock.mockReset();
+    getPendingRegistrationByEmailMock.mockReset();
+    getPendingRegistrationByEmailMock.mockResolvedValue(null);
+    setAccountLockStateMock.mockReset();
+    setAccountLockStateMock.mockResolvedValue(undefined);
     validationResultMock.mockReturnValue({
       isEmpty: () => true,
       array: () => [],
@@ -273,6 +288,118 @@ describe('Auth API', () => {
           }),
         })
       );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('rejects missing users as invalid credentials when no pending registration exists', async () => {
+      queryMock.mockResolvedValueOnce({ rows: [] });
+
+      const req = {
+        body: {
+          email: 'missing@example.com',
+          password: 'StrongP@ssw0rd',
+        },
+        ip: '127.0.0.1',
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      await login(req, res, next);
+
+      expect(getPendingRegistrationByEmailMock).toHaveBeenCalledWith('missing@example.com', true);
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'unauthorized',
+            message: 'Invalid credentials',
+          }),
+        })
+      );
+      expect(setAccountLockStateMock).not.toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('returns the pending-approval message when a pending registration password matches', async () => {
+      queryMock.mockResolvedValueOnce({ rows: [] });
+      (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
+      getPendingRegistrationByEmailMock.mockResolvedValueOnce({
+        id: 'pending-1',
+        email: 'pending@example.com',
+        password_hash: 'pending-password-hash',
+        first_name: 'Pending',
+        last_name: 'Person',
+        status: 'pending',
+      });
+
+      const req = {
+        body: {
+          email: 'pending@example.com',
+          password: 'StrongP@ssw0rd',
+        },
+        ip: '127.0.0.1',
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      await login(req, res, next);
+
+      expect(getPendingRegistrationByEmailMock).toHaveBeenCalledWith('pending@example.com', true);
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'StrongP@ssw0rd',
+        'pending-password-hash'
+      );
+      expect(setAccountLockStateMock).toHaveBeenCalledWith('pending@example.com', false);
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'forbidden',
+            message:
+              'Your account is pending approval. Please contact your workplace administrator to approve your account.',
+          }),
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('keeps pending registrations with wrong passwords on invalid credentials', async () => {
+      queryMock.mockResolvedValueOnce({ rows: [] });
+      (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
+      getPendingRegistrationByEmailMock.mockResolvedValueOnce({
+        id: 'pending-1',
+        email: 'pending@example.com',
+        password_hash: 'pending-password-hash',
+        first_name: 'Pending',
+        last_name: 'Person',
+        status: 'pending',
+      });
+
+      const req = {
+        body: {
+          email: 'pending@example.com',
+          password: 'WrongP@ssw0rd',
+        },
+        ip: '127.0.0.1',
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      await login(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'unauthorized',
+            message: 'Invalid credentials',
+          }),
+        })
+      );
+      expect(setAccountLockStateMock).not.toHaveBeenCalled();
       expect(next).not.toHaveBeenCalled();
     });
   });

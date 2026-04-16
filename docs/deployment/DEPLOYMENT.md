@@ -116,8 +116,8 @@ sudo certbot certonly --standalone -d westcat.ca
 ```
 
 2. **Run the VPS overlay** so Caddy is the only public ingress.
-   The production deploy wrapper automatically appends `docker-compose.db-encrypted.yml` when `DB_AT_REST_ENCRYPTION_MODE=luks` is visible to the deploy shell environment or loaded from the env file.
-   For a local diagnostic pass, keep `DB_AT_REST_ENCRYPTION_MODE` set in your shell or in `.env.production`; the wrapper reads either source before Compose starts, so `DEPLOY_EXECUTE=0 ./scripts/deploy.sh production` will show the overlay selection.
+   The production deploy wrapper automatically appends `docker-compose.db-encrypted.yml` when `DB_AT_REST_ENCRYPTION_MODE=luks` and `docker-compose.db-self-hosted.yml` when `DB_AT_REST_ENCRYPTION_MODE=self_hosted` is visible to the deploy shell environment or loaded from the env file. In `managed` mode, the base production stack omits the local `postgres` service entirely and expects an external database host.
+   For a local diagnostic pass, keep `DB_AT_REST_ENCRYPTION_MODE` set in your shell or in `.env.production`; the wrapper reads either source before Compose starts, so `DEPLOY_EXECUTE=0 bash ./scripts/deploy.sh production` will show the overlay selection.
 
 3. **Key Points:**
    - Enable HTTP/2 for better performance
@@ -126,6 +126,7 @@ sudo certbot certonly --standalone -d westcat.ca
    - Route `/api` and `/health` to the backend and all other paths to the frontend
    - Keep backend/frontend host ports (`8000`/`8001`) bound to `127.0.0.1` for host-local diagnostics only
    - If `DB_AT_REST_ENCRYPTION_MODE=managed`, use your production deployment workflow instead of starting the legacy compose stack locally so the host does not start a local `postgres` service
+   - If `DB_AT_REST_ENCRYPTION_MODE=self_hosted`, keep the local `postgres` container loopback-bound and place `POSTGRES_DATA_DIR` and `BACKUP_DIR` on explicit host paths under your operational backup regime
 
 #### Option 2: Application Load Balancer (AWS, Azure, GCP)
 
@@ -166,12 +167,20 @@ If using Cloudflare or similar:
   - Use an external managed PostgreSQL service with provider-encrypted storage and snapshots.
   - Required env: `DB_AT_REST_PROVIDER` and `DB_AT_REST_VERIFIED=true`.
   - `DB_HOST` must point at the external provider, not a local `postgres` container.
+  - The base production compose contract runs without a local `postgres` service in this mode.
   - Local `./scripts/db-backup.sh` is intentionally blocked in this mode; use provider-managed backups instead.
 - `luks`
-  - Use self-hosted PostgreSQL with the `docker-compose.db-encrypted.yml` overlay; `scripts/deploy.sh production` adds it automatically when LUKS mode is active.
+  - Use self-hosted PostgreSQL with the `docker-compose.db-encrypted.yml` overlay; `bash ./scripts/deploy.sh production` adds it automatically when LUKS mode is active.
   - Required env: `POSTGRES_DATA_DIR` as an absolute host path on the unlocked LUKS mount and `DB_LUKS_MAPPING_NAME`.
   - `BACKUP_DIR` must be an absolute path on the same encrypted mount; repo-local backup paths are rejected in production.
   - The production deploy and verification scripts validate the LUKS mapper, the mounted host path, and the Postgres bind mount before reporting success.
+- `self_hosted`
+  - Use self-hosted PostgreSQL with the `docker-compose.db-self-hosted.yml` overlay when the host cannot satisfy the managed or LUKS contract.
+  - Required env: `POSTGRES_DATA_DIR`, `BACKUP_DIR`, and `SELF_HOSTED_DB_RISK_ACCEPTED=true`.
+  - When the runtime uses a macOS bind mount, also set `POSTGRES_HOST_UID` and `POSTGRES_HOST_GID` so the container writes files as the host user that owns the mounted directory.
+  - On macOS, Docker Desktop-backed bind mounts are a supported path for this mode. Keep Docker Desktop file sharing enabled for the repo and host data paths, and do not carry a Colima-style `DOCKER_HOST` override into the production contract.
+  - `POSTGRES_DATA_DIR` and `BACKUP_DIR` must be absolute host paths; the deploy and backup scripts reject repo-local paths in production.
+  - This mode intentionally accepts that host-level at-rest safeguards are outside the app contract. Document the operational controls separately before cutover.
 
 ### Database Encryption in Transit
 
@@ -213,9 +222,9 @@ echo "ssl_key_file = '/var/lib/postgresql/server.key'" >> /etc/postgresql/14/mai
 
 The Node.js backend in `backend/src/config/database.ts` automatically:
 - Enables SSL in production for managed/external databases
-- Disables SSL in production when `DB_AT_REST_ENCRYPTION_MODE=luks`
+- Disables SSL in production when `DB_AT_REST_ENCRYPTION_MODE=luks` or `self_hosted`
 - Rejects untrusted certificates by default when SSL is enabled
-- Treats `DB_SSL_ENABLED` as a managed/external-database knob only; LUKS-backed deployments ignore it because the backend forces DB TLS off
+- Treats `DB_SSL_ENABLED` as a managed/external-database knob only; local-Postgres deployments ignore it because the backend forces DB TLS off
 
 ```bash
 # Production database config
@@ -229,7 +238,7 @@ DB_PASSWORD=your_strong_random_password
 # Set to false ONLY for self-signed certificates in development
 DB_SSL_REJECT_UNAUTHORIZED=true
 
-# For LUKS-backed deployments, the backend disables DB TLS automatically.
+# For LUKS-backed and self-hosted deployments, the backend disables DB TLS automatically.
 # Do not rely on DB_SSL_ENABLED for local Postgres over the compose network.
 
 # (Optional) Custom CA certificate path
@@ -423,7 +432,7 @@ curl http://localhost:8000/health
 curl http://localhost:8001/
 ```
 
-When using a public reverse proxy or load balancer, keep the backend and frontend loopback-bound and point ingress at the published ports or containers. The public `/health` endpoint should reflect backend health.
+When using a public reverse proxy or load balancer, keep the backend and frontend loopback-bound and point ingress at the published ports or containers. The public `/health` endpoint should reflect backend health. For the Imported VPS-to-bigmac cutover, follow [Imported_BIGMAC_TAILSCALE_MIGRATION.md](Imported_BIGMAC_TAILSCALE_MIGRATION.md) as the source of truth for the VPS-to-Tailscale proxy sequence, Docker Desktop preflight on `bigmac`, and the `self_hosted` Postgres handoff.
 
 ## Manual Deployment
 
@@ -558,9 +567,13 @@ psql -U nonprofit_user -d nonprofit_manager -f database/migrations/003_your_migr
   - Do not rely on `./scripts/db-backup.sh`; it exits non-zero by design in this mode.
 - `luks`
   - Set `BACKUP_DIR` to an absolute path on the encrypted mount, then schedule `./scripts/db-backup.sh`.
+- `self_hosted`
+  - Set `BACKUP_DIR` to an absolute host path on the runtime host and document the operational risk acceptance alongside your backup schedule.
+
+For one-off migrations or disaster recovery that need a database-creating archive instead of the recurring SQL and gzip flow, use [db-export-archive.sh](../../scripts/db-export-archive.sh) and [db-restore-archive.sh](../../scripts/db-restore-archive.sh). Those helpers wrap `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create -d postgres`; the Imported `bigmac` Docker Desktop cutover uses this path instead of the older streaming `pg_dump | psql` flow.
 
 ```bash
-# Daily automated backup for self-hosted LUKS mode
+# Daily automated backup for local Postgres production modes
 0 2 * * * BACKUP_DIR=/srv/nonprofit-manager/backups/database ./scripts/db-backup.sh
 
 # Restore from backup
@@ -763,8 +776,8 @@ docker logs nonprofit-manager-postgres
 
 - [ ] Environment variables configured
 - [ ] SSL certificate installed
-- [ ] DB at-rest mode configured (`managed` or `luks`)
-- [ ] Managed backup/snapshot policy enabled or LUKS mapper verified
+- [ ] DB at-rest mode configured (`managed`, `luks`, or `self_hosted`)
+- [ ] Managed backup/snapshot policy enabled, LUKS mapper verified, or self-hosted risk acceptance documented
 - [ ] Database backups automated
 - [ ] Backup storage satisfies the same at-rest encryption policy as primary database storage
 - [ ] Monitoring alerts configured

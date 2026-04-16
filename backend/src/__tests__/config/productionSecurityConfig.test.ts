@@ -77,6 +77,23 @@ describe('validateProductionSecurityConfig', () => {
     });
   });
 
+  it('passes for a valid self-hosted configuration with explicit risk acceptance', () => {
+    const result = validateProductionSecurityConfig({
+      ...baseEnv,
+      DB_HOST: 'postgres',
+      DB_AT_REST_ENCRYPTION_MODE: 'self_hosted',
+      POSTGRES_DATA_DIR: '/Users/bryan/nonprofit-manager-production/postgres',
+      BACKUP_DIR: '/Users/bryan/nonprofit-manager-production/backups',
+      SELF_HOSTED_DB_RISK_ACCEPTED: 'true',
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.fatalErrors).toEqual([]);
+    expect(result.warnings).toEqual([
+      'DB_AT_REST_ENCRYPTION_MODE=self_hosted relies on host-level safeguards; confirm disk and backup protections out of band',
+    ]);
+  });
+
   it('fails when luks configuration is missing mount details', () => {
     const result = validateProductionSecurityConfig({
       ...baseEnv,
@@ -89,6 +106,24 @@ describe('validateProductionSecurityConfig', () => {
       expect.arrayContaining([
         'POSTGRES_DATA_DIR must be an absolute host path when DB_AT_REST_ENCRYPTION_MODE=luks',
         'DB_LUKS_MAPPING_NAME must be set when DB_AT_REST_ENCRYPTION_MODE=luks',
+      ])
+    );
+  });
+
+  it('fails when self-hosted configuration is missing absolute paths and risk acceptance', () => {
+    const result = validateProductionSecurityConfig({
+      ...baseEnv,
+      DB_HOST: 'postgres',
+      DB_AT_REST_ENCRYPTION_MODE: 'self_hosted',
+      POSTGRES_DATA_DIR: 'Users/bryan/nonprofit-manager-production/postgres',
+      BACKUP_DIR: 'Users/bryan/nonprofit-manager-production/backups',
+    });
+
+    expect(result.fatalErrors).toEqual(
+      expect.arrayContaining([
+        'POSTGRES_DATA_DIR must be an absolute host path when DB_AT_REST_ENCRYPTION_MODE=self_hosted',
+        'BACKUP_DIR must be an absolute path when DB_AT_REST_ENCRYPTION_MODE=self_hosted',
+        'SELF_HOSTED_DB_RISK_ACCEPTED must be set to "true" when DB_AT_REST_ENCRYPTION_MODE=self_hosted',
       ])
     );
   });

@@ -27,6 +27,19 @@ const enumHints: Record<string, string[]> = {
   'donations.payment_method': ['cash', 'check', 'credit_card', 'debit_card', 'bank_transfer', 'paypal', 'stock', 'in_kind', 'other'],
   'donations.payment_status': ['pending', 'completed', 'failed', 'refunded', 'cancelled'],
   'donations.recurring_frequency': ['weekly', 'monthly', 'quarterly', 'annually', 'one_time'],
+  'event_registrations.registration_status': ['registered', 'confirmed', 'waitlisted', 'cancelled', 'attended', 'no_show'],
+  'activities.activity_type': ['note', 'call', 'email', 'meeting', 'service', 'referral', 'assessment', 'other'],
+  'activities.status': ['scheduled', 'completed', 'cancelled', 'logged', 'other'],
+  'cases.status': ['open', 'pending', 'in_progress', 'closed', 'archived'],
+  'cases.priority': ['low', 'medium', 'high', 'urgent', 'critical'],
+  'cases.source': ['phone', 'email', 'walk-in', 'referral', 'web', 'other'],
+  'cases.outcome': ['successful', 'unsuccessful', 'referred', 'withdrawn', 'attended_event', 'additional_related_case', 'other'],
+  'follow_ups.entity_type': ['case', 'task', 'contact'],
+  'follow_ups.frequency': ['once', 'daily', 'weekly', 'biweekly', 'monthly'],
+  'follow_ups.method': ['phone', 'email', 'in_person', 'video_call', 'other'],
+  'follow_ups.status': ['scheduled', 'completed', 'cancelled', 'overdue'],
+  'tasks.status': ['todo', 'in_progress', 'in_review', 'completed', 'cancelled'],
+  'tasks.priority': ['low', 'medium', 'high', 'urgent'],
 };
 
 function buildBundle(): SchemaBundle {

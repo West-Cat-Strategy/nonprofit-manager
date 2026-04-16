@@ -79,7 +79,7 @@ export function validateProductionSecurityConfig(
 
   if (!dbMode) {
     fatalErrors.push(
-      'DB_AT_REST_ENCRYPTION_MODE must be set to "managed" or "luks" in production'
+      'DB_AT_REST_ENCRYPTION_MODE must be set to "managed", "luks", or "self_hosted" in production'
     );
     return { warnings, errors, fatalErrors };
   }
@@ -133,9 +133,50 @@ export function validateProductionSecurityConfig(
         'DB_LUKS_MAPPING_NAME must be set when DB_AT_REST_ENCRYPTION_MODE=luks'
       );
     }
+  } else if (dbMode === 'self_hosted') {
+    const dbHost = (env.DB_HOST || '').trim();
+    const postgresDataDir = (env.POSTGRES_DATA_DIR || '').trim();
+    const backupDir = (env.BACKUP_DIR || '').trim();
+    const riskAccepted = (env.SELF_HOSTED_DB_RISK_ACCEPTED || '').trim().toLowerCase();
+
+    if (dbHost !== 'postgres') {
+      fatalErrors.push(
+        'DB_HOST must be set to "postgres" when DB_AT_REST_ENCRYPTION_MODE=self_hosted'
+      );
+    }
+
+    if (!postgresDataDir) {
+      fatalErrors.push(
+        'POSTGRES_DATA_DIR must be set when DB_AT_REST_ENCRYPTION_MODE=self_hosted'
+      );
+    } else if (!isAbsolutePath(postgresDataDir)) {
+      fatalErrors.push(
+        'POSTGRES_DATA_DIR must be an absolute host path when DB_AT_REST_ENCRYPTION_MODE=self_hosted'
+      );
+    }
+
+    if (!backupDir) {
+      fatalErrors.push(
+        'BACKUP_DIR must be set when DB_AT_REST_ENCRYPTION_MODE=self_hosted'
+      );
+    } else if (!isAbsolutePath(backupDir)) {
+      fatalErrors.push(
+        'BACKUP_DIR must be an absolute path when DB_AT_REST_ENCRYPTION_MODE=self_hosted'
+      );
+    }
+
+    if (riskAccepted !== 'true') {
+      fatalErrors.push(
+        'SELF_HOSTED_DB_RISK_ACCEPTED must be set to "true" when DB_AT_REST_ENCRYPTION_MODE=self_hosted'
+      );
+    }
+
+    warnings.push(
+      'DB_AT_REST_ENCRYPTION_MODE=self_hosted relies on host-level safeguards; confirm disk and backup protections out of band'
+    );
   } else {
     fatalErrors.push(
-      'DB_AT_REST_ENCRYPTION_MODE must be set to "managed" or "luks" in production'
+      'DB_AT_REST_ENCRYPTION_MODE must be set to "managed", "luks", or "self_hosted" in production'
     );
   }
 

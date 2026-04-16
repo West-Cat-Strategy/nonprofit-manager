@@ -1,7 +1,7 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** Phase 4 - Modularity Refactor  
-**Live Snapshot:** 19 active rows: 3 In Progress, 2 Blocked, 10 Review, 4 Ready.
+**Live Snapshot:** 20 active rows: 4 In Progress, 2 Blocked, 10 Review, 4 Ready.
 **History:** Historical roadmap, logs, trackers, and legacy reference sections moved to [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md).
 
 ## 🤝 Coordination
@@ -50,7 +50,8 @@ Use this temporary note format before any tracked modularization task is split a
 
 | ID | Task | Phase | Status | Owner | Started | Target | PR/Branch |
 |----|------|-------|--------|-------|---------|--------|-----------|
-| P4-T45 | Security hardening wave (auth/session invalidation, API-key/webhook controls, CORS fail-closed, public-form intake tightening) | Phase 4 | In Progress | Codex | Apr 15, 2026 | TBD | main (active 2026-04-15: approval-gated staff registration, staged passkey enrollment for pending approvals, policy groups, and admin-side account/access management are being implemented with permission-based guard follow-through) |
+| P4-T46 | Imported VPS to bigmac Tailscale proxy migration | Phase 4 | In Progress | Codex | Apr 15, 2026 | TBD | main (active 2026-04-15: revising the cutover around VPS recovery first, Docker Desktop preflight on `bigmac`, archive-based Postgres export/restore helpers, the host-Caddy `self_hosted` runbook and validation flow for the combined `imported` + `sites` ingress path, and auth continuity parity for existing sessions plus TOTP/passkey flows after the secret realignment) |
+| P4-T45 | Security hardening wave (auth/session invalidation, API-key/webhook controls, CORS fail-closed, public-form intake tightening) | Phase 4 | In Progress | Codex | Apr 15, 2026 | TBD | main (active 2026-04-16: approval-gated staff registration follow-through is fixing the pending-registration approval transaction audit context and reviewer attribution on `bigmac`, plus the pending-account login response that should direct applicants to contact their workplace administrator for approval) |
 | P4-T7E-DARK | Whole-app dark-mode accessibility remediation + route-audit closure | Phase 4 | In Progress | Codex | Mar 11, 2026 | TBD | main (active 2026-04-14: the audit harness/runtime blockers are cleared on the current branch, and the closure wave is now focused on shared brutal-surface contrast tokens, high-density staff-route cleanup, portal form labeling, and a fresh Chromium + Docker audit rerun against the generated findings report) |
 | P4-T35 | Compact workspace shell navigation and responsive overflow | Phase 4 | Blocked | Codex | Apr 7, 2026 | TBD | main (blocked 2026-04-14: `npm run test:docker:ci:mobile` no longer dies immediately on the old shared-admin bootstrap step, and the auth-entry route check now passes, but the compact-nav and staff-overflow checks still time out while setting up `authenticatedPage`; dependency remains the shared `P4-T9` auth-fixture stabilization lane) |
 | P4-T1R4 | Wave 2+ rollout prep (reports/analytics/dashboard then ops/comms surfaces) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | main (triage note: [P4-T1R4_CLUSTER_CLOSEOUT_2026-04-14.md](P4-T1R4_CLUSTER_CLOSEOUT_2026-04-14.md) confirms the wave-2 analytics/dashboard/report surfaces on `main`, but the parent row still spans later ops/comms work, so it stays in Review) |

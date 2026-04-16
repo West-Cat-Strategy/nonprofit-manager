@@ -1,6 +1,6 @@
 # Script Index
 
-**Last Updated:** 2026-04-14
+**Last Updated:** 2026-04-15
 
 This directory contains the repo-local helpers used by the Makefile, deployment scripts, and docs workflow.
 Prefer the `make` targets when they exist. Call the scripts directly when you need the narrower entrypoint.
@@ -18,6 +18,8 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [db-migrate.sh](db-migrate.sh) | Bootstrap or start the local database contract and isolated test database. | `make db-migrate` |
 | [db-backup.sh](db-backup.sh) | Back up the Postgres data volume through the compose contract. | Manual ops / scheduled backups |
 | [db-restore.sh](db-restore.sh) | Restore a database backup through the compose contract. | Manual ops / recovery |
+| [db-export-archive.sh](db-export-archive.sh) | Export a Postgres custom-format archive through the compose or direct DB contract. | Manual ops / migration prep |
+| [db-restore-archive.sh](db-restore-archive.sh) | Restore a Postgres custom-format archive with `pg_restore --create`. | Manual ops / disaster recovery |
 | [verify-migrations.sh](verify-migrations.sh) | Verify the isolated `_test` database contract and manifest parity. | `make db-verify` |
 | [deploy.sh](deploy.sh) | Run the local, staging, or production deployment wrapper. | `make deploy-local` / `make deploy-staging` / `make deploy` |
 | [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-local git hooks. | `make hooks` |
@@ -42,6 +44,13 @@ The `check-*.ts` scripts are the repo policy gates that back `make lint`, `make 
 - [lib/config.sh](lib/config.sh) and [lib/import-audit.ts](lib/import-audit.ts) provide shared config/audit helpers for the policy checks.
 - `backend/scripts/run-integration-tests.sh` is backend-owned and is invoked from the backend test workflow.
 - `perf/p4-t9h-capture.sh` and `perf/p4-t9h-seed.sql` support the documented performance artifact workflow.
+
+## Backup And Restore Helpers
+
+- `db-backup.sh` and `db-restore.sh` remain the recurring SQL and gzip path for scheduled backups, simple restore drills, and the documented local-Postgres production backup policy.
+- `db-export-archive.sh` and `db-restore-archive.sh` are the one-off migration and disaster-recovery path when you need `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create`.
+- The archive restore helper requires `DB_RESTORE_CONFIRM=1` and defaults `DB_RESTORE_TARGET_DB=postgres` so the archive can recreate `nonprofit_manager`.
+- Compose-backed helpers reuse the existing `DB_COMPOSE_PROJECT`, `DB_COMPOSE_FILE`, and `DB_SERVICE` contract, and also accept `DB_COMPOSE_FILES="..."` when the target stack needs multiple compose manifests plus `DB_COMPOSE_ENV_FILE=.env.production` when the stack depends on a non-default env file.
 
 ## Common Validation Flow
 

@@ -28,27 +28,6 @@ x-contracts-build-contexts: &contracts-build-contexts
   contracts: ./contracts
 
 services:
-  postgres:
-    image: postgres:14-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: nonprofit_manager
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-    expose:
-      - "5432"
-    volumes:
-      - ${POSTGRES_DATA_DIR:-nonprofit-manager-postgres-data}:/var/lib/postgresql/data
-      - ./database/initdb/000_init.sql:/docker-entrypoint-initdb.d/000_init.sql:ro
-      - ./database/migrations:/migrations:ro
-      - ./database/seeds:/seeds:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d nonprofit_manager"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 10s
-
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -80,8 +59,6 @@ services:
       SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.westcat.ca}
     command: ["node", "dist/index.js"]
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
@@ -128,8 +105,6 @@ services:
       SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.westcat.ca}
     command: ["node", "dist/public-site.js"]
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
@@ -138,6 +113,3 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
-
-volumes:
-  nonprofit-manager-postgres-data:

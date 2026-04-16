@@ -7,7 +7,7 @@ import { syncUserRole } from '@services/domains/integration';
 import { seedDefaultOrganizationAccess, upsertUserOrganizationAccess } from '@services/accountAccessService';
 import { conflict, forbidden } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
-import { buildAuthTokenResponse } from '@utils/authResponse';
+import { buildAuthTokenResponse, generateAuthSessionCsrfToken } from '@utils/authResponse';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { issueAppSessionToken, issuePendingRegistrationToken } from '@utils/sessionTokens';
 import { getRegistrationMode } from '@modules/admin/usecases/registrationSettingsUseCase';
@@ -135,11 +135,13 @@ export const register = async (
 
     logger.info(`User registered: ${user.email}`);
     setAuthCookie(res, token);
+    const csrfToken = generateAuthSessionCsrfToken(req, res, token);
 
     return sendSuccess(
       res,
       {
         ...buildAuthTokenResponse(token),
+        csrfToken,
         organizationId,
         user: mapAuthUser(user, { includeLegacyUserId: true }),
       },
@@ -224,12 +226,14 @@ export const setupFirstUser = async (
 
     logger.info(`First admin user created: ${email}`);
     setAuthCookie(res, token);
+    const csrfToken = generateAuthSessionCsrfToken(req, res, token);
 
     return sendSuccess(
       res,
       {
         message: 'Setup completed successfully',
         ...buildAuthTokenResponse(token),
+        csrfToken,
         organizationId,
         user: mapAuthUser(user, { includeLegacyUserId: true }),
       },

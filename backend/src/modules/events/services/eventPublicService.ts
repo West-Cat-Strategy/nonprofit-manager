@@ -429,7 +429,7 @@ export class EventPublicService {
       }
 
       if (error instanceof Error && error.message === 'Event is at full capacity') {
-        throw new Error('Event is at full capacity', { cause: error });
+        throw Object.assign(new Error('Event is at full capacity'), { cause: error });
       }
 
       throw error;

@@ -7,7 +7,7 @@ import { trackLoginAttempt } from '@middleware/accountLockout';
 import { decrypt, encrypt } from '@utils/encryption';
 import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
-import { buildAuthTokenResponse } from '@utils/authResponse';
+import { buildAuthTokenResponse, generateAuthSessionCsrfToken } from '@utils/authResponse';
 import { authenticator } from '@otplib/preset-default';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { normalizeRoleSlug } from '@utils/roleSlug';
@@ -315,8 +315,10 @@ export const completeTotpLogin = async (
     const organizationId = await getDefaultOrganizationId();
     const token = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
+    const csrfToken = generateAuthSessionCsrfToken(req, res, token);
     return sendSuccess(res, {
       ...buildAuthTokenResponse(token),
+      csrfToken,
       organizationId: organizationId ?? null,
       user: {
         id: user.id,

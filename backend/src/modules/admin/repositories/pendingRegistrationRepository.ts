@@ -167,6 +167,24 @@ export const getPendingRegistrationById = async (
   return result.rows[0] ?? null;
 };
 
+export const getPendingRegistrationByEmail = async (
+  email: string,
+  includePassword = false,
+  db: DbClient = pool
+): Promise<PendingRegistrationRow | null> => {
+  const selectColumns = await pendingRegistrationSelectColumns(includePassword, db);
+  const result = await db.query<PendingRegistrationRow>(
+    `SELECT ${selectColumns}
+     FROM pending_registrations
+     WHERE LOWER(email) = LOWER($1)
+       AND status = 'pending'
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [email]
+  );
+  return result.rows[0] ?? null;
+};
+
 export const updatePendingStatus = async (
   id: string,
   status: PendingStatus,
@@ -196,6 +214,8 @@ export const createRealUser = async (
     firstName: string | null;
     lastName: string | null;
     role: string;
+    createdBy?: string | null;
+    modifiedBy?: string | null;
   },
   db: DbClient = pool
 ): Promise<{ id: string; email: string; first_name: string; last_name: string; role: string }> => {
@@ -206,10 +226,28 @@ export const createRealUser = async (
     last_name: string;
     role: string;
   }>(
-    `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+    `INSERT INTO users (
+       email,
+       password_hash,
+       first_name,
+       last_name,
+       role,
+       created_at,
+       updated_at,
+       created_by,
+       modified_by
+     )
+     VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), $6, $7)
      RETURNING id, email, first_name, last_name, role`,
-    [input.email, input.passwordHash, input.firstName, input.lastName, input.role]
+    [
+      input.email,
+      input.passwordHash,
+      input.firstName,
+      input.lastName,
+      input.role,
+      input.createdBy ?? null,
+      input.modifiedBy ?? null,
+    ]
   );
   return result.rows[0];
 };

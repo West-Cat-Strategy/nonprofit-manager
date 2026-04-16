@@ -41,9 +41,9 @@ export function resolveDatabaseSslConfig(
 
   const dbAtRestMode = (env.DB_AT_REST_ENCRYPTION_MODE || '').trim().toLowerCase();
 
-  // LUKS-backed deployments talk to the local Postgres container over the compose
-  // network, so node-postgres SSL must stay off even while the app is in production mode.
-  if (dbAtRestMode === 'luks') {
+  // Local-Postgres deployments talk to the compose-network container directly, so
+  // node-postgres SSL must stay off even while the app is in production mode.
+  if (dbAtRestMode === 'luks' || dbAtRestMode === 'self_hosted') {
     return false;
   }
 
@@ -71,7 +71,7 @@ const config: PoolConfig = {
   // https://node-postgres.com/api/pool
   allowExitOnIdle: process.env.NODE_ENV === 'test',
   // SSL/TLS Configuration for Database Connection
-  // Managed/external production databases keep SSL on; LUKS-backed local Postgres does not.
+  // Managed/external production databases keep SSL on; local Postgres does not.
   ssl: resolveDatabaseSslConfig(),
 };
 

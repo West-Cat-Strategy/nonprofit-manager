@@ -221,6 +221,7 @@ WITH seeded_occurrences AS (
     ON existing.event_id = e.id
    AND existing.sequence_index = 0
   WHERE existing.id IS NULL
+  RETURNING 1
 )
 SELECT COUNT(*) FROM seeded_occurrences;
 

@@ -15,6 +15,10 @@ fi
 COMPOSE_PROJECT_DEV="${COMPOSE_PROJECT_DEV:-nonprofit-dev}"
 COMPOSE_PROJECT_PROD="${COMPOSE_PROJECT_PROD:-nonprofit-prod}"
 
+to_lower() {
+  printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]'
+}
+
 repo_root() {
   printf '%s\n' "$PROJECT_ROOT"
 }

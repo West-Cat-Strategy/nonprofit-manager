@@ -79,7 +79,8 @@ describe('Auth API Integration Tests', () => {
 
   describe('POST /api/v2/auth/register', () => {
     it('should register a new user with valid data', async () => {
-      const response = await request(app)
+      const agent = request.agent(app);
+      const response = await agent
         .post('/api/v2/auth/register')
         .send({
           email: testEmail,
@@ -91,9 +92,15 @@ describe('Auth API Integration Tests', () => {
         .expect(201);
 
       expect(response.body).toHaveProperty('token');
+      expect(response.body).toHaveProperty('csrfToken');
       expect(response.body).toHaveProperty('user');
       expect(response.body.user.email).toBe(testEmail);
       expect(response.body.user).not.toHaveProperty('password_hash');
+
+      await agent
+        .post('/api/v2/auth/logout')
+        .set('X-CSRF-Token', response.body.csrfToken)
+        .expect(200);
 
       authToken = response.body.token;
     });
@@ -140,7 +147,8 @@ describe('Auth API Integration Tests', () => {
 
   describe('POST /api/v2/auth/login', () => {
     it('should login with correct credentials', async () => {
-      const response = await request(app)
+      const agent = request.agent(app);
+      const response = await agent
         .post('/api/v2/auth/login')
         .send({
           email: testEmail,
@@ -149,8 +157,14 @@ describe('Auth API Integration Tests', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('token');
+      expect(response.body).toHaveProperty('csrfToken');
       expect(response.body).toHaveProperty('user');
       expect(response.body.user.email).toBe(testEmail);
+
+      await agent
+        .post('/api/v2/auth/logout')
+        .set('X-CSRF-Token', response.body.csrfToken)
+        .expect(200);
     });
 
     it('should reject incorrect password', async () => {

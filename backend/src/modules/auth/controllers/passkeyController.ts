@@ -18,7 +18,7 @@ import { fromBase64Url, toBase64Url } from '@utils/base64url';
 import { trackLoginAttempt } from '@middleware/accountLockout';
 import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
-import { buildAuthTokenResponse } from '@utils/authResponse';
+import { buildAuthTokenResponse, generateAuthSessionCsrfToken } from '@utils/authResponse';
 import { normalizeRoleSlug } from '@utils/roleSlug';
 import {
   issueAppSessionToken,
@@ -566,8 +566,10 @@ export const loginVerify = async (
     const organizationId = await getDefaultOrganizationId();
     const token = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
+    const csrfToken = generateAuthSessionCsrfToken(req, res, token);
     return res.json({
       ...buildAuthTokenResponse(token),
+      csrfToken,
       organizationId,
       user: {
         id: user.id,

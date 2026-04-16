@@ -3,9 +3,14 @@ import { logger } from '@config/logger';
 import { syncUserRole } from '@services/domains/integration';
 import { seedDefaultOrganizationAccess } from '@services/accountAccessService';
 import { sendMail } from '@services/emailService';
+import type { PoolClient } from 'pg';
 import { getRegistrationSettings } from './registrationSettingsUseCase';
 import { normalizeRoleSlug } from '@utils/roleSlug';
 import * as repo from '../repositories/pendingRegistrationRepository';
+
+const setApprovalAuditContext = async (client: PoolClient, userId: string): Promise<void> => {
+  await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
+};
 
 export async function approvePendingRegistration(
   id: string,
@@ -42,6 +47,7 @@ export async function approvePendingRegistration(
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await setApprovalAuditContext(client, reviewedBy);
 
     // Create the real user with the stored password hash
     const user = await repo.createRealUser(
@@ -51,6 +57,8 @@ export async function approvePendingRegistration(
         firstName: pending.first_name,
         lastName: pending.last_name,
         role: normalizedRole,
+        createdBy: reviewedBy,
+        modifiedBy: reviewedBy,
       },
       client
     );

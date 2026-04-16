@@ -23,12 +23,14 @@ compose_db() {
 
 validate_production_db_at_rest_contract
 
-if [[ "${NODE_ENV:-}" == "production" && "${DB_AT_REST_ENCRYPTION_MODE:-}" == "managed" ]]; then
+DB_AT_REST_MODE="$(to_lower "${DB_AT_REST_ENCRYPTION_MODE:-}")"
+
+if [[ "${NODE_ENV:-}" == "production" && "$DB_AT_REST_MODE" == "managed" ]]; then
   echo "db-backup.sh is intentionally blocked in managed production mode; use provider-managed backups instead." >&2
   exit 1
 fi
 
-validate_backup_dir_for_luks
+validate_backup_dir_for_local_db
 mkdir -p "$BACKUP_DIR"
 
 dump_database() {

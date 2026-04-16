@@ -101,7 +101,8 @@ describe('Auth MFA Integration Tests', () => {
   });
 
   it('completes MFA login with code payload', async () => {
-    const loginResponse = await request(app)
+    const agent = request.agent(app);
+    const loginResponse = await agent
       .post('/api/v2/auth/login')
       .send({
         email: mfaEmail,
@@ -111,7 +112,7 @@ describe('Auth MFA Integration Tests', () => {
 
     const code = authenticator.generate(mfaSecret);
 
-    const response = await request(app)
+    const response = await agent
       .post('/api/v2/auth/login/2fa')
       .send({
         email: mfaEmail,
@@ -121,6 +122,7 @@ describe('Auth MFA Integration Tests', () => {
       .expect(200);
 
     expect(response.body).toHaveProperty('token');
+    expect(response.body).toHaveProperty('csrfToken');
     expect(response.body.organizationId).toBe(expectedOrganizationId);
     expect(response.body.user.email).toBe(mfaEmail);
     const decoded = jwt.verify(response.body.token, getJwtSecret()) as {
@@ -135,6 +137,11 @@ describe('Auth MFA Integration Tests', () => {
     expect(response.headers['set-cookie']).not.toEqual(
       expect.arrayContaining([expect.stringMatching(/^refresh_token=/)])
     );
+
+    await agent
+      .post('/api/v2/auth/logout')
+      .set('X-CSRF-Token', response.body.csrfToken)
+      .expect(200);
   });
 
   it('accepts legacy token payload for MFA code', async () => {
@@ -158,6 +165,7 @@ describe('Auth MFA Integration Tests', () => {
       .expect(200);
 
     expect(response.body).toHaveProperty('token');
+    expect(response.body).toHaveProperty('csrfToken');
     expect(response.body.user.email).toBe(mfaEmail);
   });
 });

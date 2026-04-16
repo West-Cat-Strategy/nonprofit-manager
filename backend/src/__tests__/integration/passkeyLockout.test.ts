@@ -119,6 +119,7 @@ describe('Passkey lockout behavior', () => {
 
   it('allows passkey sign-in to bypass a password lockout and clear it on success', async () => {
     const { email, credentialId } = await createTestUserWithPasskey();
+    const agent = request.agent(app);
 
     await lockPasswordLogin(email);
 
@@ -133,7 +134,7 @@ describe('Passkey lockout behavior', () => {
     const initialLockedUntil = lockedPasswordLogin.body.lockedUntil;
     expect(initialLockedUntil).toBeTruthy();
 
-    const optionsResponse = await request(app)
+    const optionsResponse = await agent
       .post('/api/v2/auth/passkeys/login/options')
       .send({
         email,
@@ -143,7 +144,7 @@ describe('Passkey lockout behavior', () => {
     expect(optionsResponse.body.challengeId).toBeTruthy();
     expect(optionsResponse.body.options.challenge).toBe('passkey-challenge');
 
-    const verifyResponse = await request(app)
+    const verifyResponse = await agent
       .post('/api/v2/auth/passkeys/login/verify')
       .send({
         email,
@@ -153,6 +154,12 @@ describe('Passkey lockout behavior', () => {
       .expect(200);
 
     expect(verifyResponse.body.token).toBeTruthy();
+    expect(verifyResponse.body.csrfToken).toBeTruthy();
+
+    await agent
+      .post('/api/v2/auth/logout')
+      .set('X-CSRF-Token', verifyResponse.body.csrfToken)
+      .expect(200);
 
     const postPasskeyPasswordLogin = await request(app)
       .post('/api/v2/auth/login')

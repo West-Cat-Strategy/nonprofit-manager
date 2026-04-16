@@ -1,7 +1,12 @@
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import { sendMail } from '@services/emailService';
+import type { PoolClient } from 'pg';
 import * as repo from '../repositories/pendingRegistrationRepository';
+
+const setApprovalAuditContext = async (client: PoolClient, userId: string): Promise<void> => {
+  await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
+};
 
 export async function rejectPendingRegistration(
   id: string,
@@ -22,6 +27,7 @@ export async function rejectPendingRegistration(
   const updated = await (async () => {
     try {
       await client.query('BEGIN');
+      await setApprovalAuditContext(client, reviewedBy);
       await repo.deletePendingRegistrationPasskeyData(id, client);
       const row = await repo.updatePendingStatus(
         id,

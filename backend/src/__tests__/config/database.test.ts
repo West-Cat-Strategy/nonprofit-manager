@@ -81,4 +81,20 @@ describe('database config', () => {
       })
     );
   });
+
+  it('disables ssl for self-hosted production databases', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.DB_AT_REST_ENCRYPTION_MODE = 'self_hosted';
+    process.env.DB_SSL_ENABLED = 'true';
+    process.env.DB_SSL_REJECT_UNAUTHORIZED = 'true';
+
+    await loadDatabaseModule();
+
+    const mockedPoolCtor = getMockedPoolCtor();
+    expect(mockedPoolCtor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ssl: false,
+      })
+    );
+  });
 });

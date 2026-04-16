@@ -8,6 +8,7 @@ import { renderWithProviders, createTestStore } from '../../../../test/testUtils
 import { vi } from 'vitest';
 
 const mockNavigate = vi.fn();
+const mockStartAuthentication = vi.fn();
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof ReactRouterDom>('react-router-dom');
@@ -17,9 +18,16 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('@simplewebauthn/browser', () => ({
+  startAuthentication: mockStartAuthentication,
+}));
+
 vi.mock('../../../../services/authService', () => ({
   authService: {
     login: vi.fn(),
+    completeTotpLogin: vi.fn(),
+    passkeyLoginOptions: vi.fn(),
+    passkeyLoginVerify: vi.fn(),
   },
 }));
 
@@ -165,5 +173,107 @@ describe('Login page', () => {
 
     expect(await screen.findByText(/invalid credentials/i)).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('completes TOTP login and navigates on success', async () => {
+    const user = userEvent.setup();
+    const mfaResponse = {
+      mfaRequired: true as const,
+      method: 'totp' as const,
+      mfaToken: 'mfa-token-123',
+      user: {
+        id: 'user-1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'user',
+      },
+    };
+    const completeResponse = {
+      token: 'token-123',
+      csrfToken: 'csrf-token-123',
+      organizationId: 'org-1',
+      user: mfaResponse.user,
+    };
+
+    const loginMock = authService.login as unknown as {
+      mockResolvedValueOnce: (value: unknown) => void;
+    };
+    const completeTotpLoginMock = authService.completeTotpLogin as unknown as {
+      mockResolvedValueOnce: (value: unknown) => void;
+    };
+    loginMock.mockResolvedValueOnce(mfaResponse);
+    completeTotpLoginMock.mockResolvedValueOnce(completeResponse);
+
+    const store = renderLogin();
+
+    await user.type(screen.getByLabelText(/email address/i), 'Test@Example.com');
+    await user.type(screen.getByLabelText(/password/i), 'Password123!');
+    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
+
+    expect(await screen.findByLabelText(/authentication code/i)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/authentication code/i), '123456');
+    await user.click(screen.getByRole('button', { name: /^verify code$/i }));
+
+    expect(authService.completeTotpLogin).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      mfaToken: 'mfa-token-123',
+      code: '123456',
+    });
+    expect(primeStaffSession).toHaveBeenCalledWith({
+      user: completeResponse.user,
+      organizationId: 'org-1',
+    });
+    expect(store.getState().auth.isAuthenticated).toBe(true);
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('completes passkey login and navigates on success', async () => {
+    const user = userEvent.setup();
+    const passkeyResponse = {
+      token: 'token-123',
+      csrfToken: 'csrf-token-123',
+      organizationId: 'org-1',
+      user: {
+        id: 'user-1',
+        email: 'test@example.com',
+        firstName: 'Test',
+        lastName: 'User',
+        role: 'user',
+      },
+    };
+
+    const passkeyOptionsMock = authService.passkeyLoginOptions as unknown as {
+      mockResolvedValueOnce: (value: unknown) => void;
+    };
+    const passkeyVerifyMock = authService.passkeyLoginVerify as unknown as {
+      mockResolvedValueOnce: (value: unknown) => void;
+    };
+    passkeyOptionsMock.mockResolvedValueOnce({
+      challengeId: 'challenge-123',
+      options: { challenge: 'mock-challenge' },
+    });
+    passkeyVerifyMock.mockResolvedValueOnce(passkeyResponse);
+    mockStartAuthentication.mockResolvedValueOnce({ id: 'credential-123' });
+
+    const store = renderLogin();
+
+    await user.type(screen.getByLabelText(/email address/i), 'test@example.com');
+    await user.click(screen.getByRole('button', { name: /sign in with passkey/i }));
+
+    expect(authService.passkeyLoginOptions).toHaveBeenCalledWith('test@example.com');
+    expect(mockStartAuthentication).toHaveBeenCalledWith({ challenge: 'mock-challenge' });
+    expect(authService.passkeyLoginVerify).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      challengeId: 'challenge-123',
+      credential: { id: 'credential-123' },
+    });
+    expect(primeStaffSession).toHaveBeenCalledWith({
+      user: passkeyResponse.user,
+      organizationId: 'org-1',
+    });
+    expect(store.getState().auth.isAuthenticated).toBe(true);
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
   });
 });

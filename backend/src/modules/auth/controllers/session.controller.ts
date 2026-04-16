@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
-import { trackLoginAttempt } from '@middleware/accountLockout';
+import { setAccountLockState, trackLoginAttempt } from '@middleware/accountLockout';
+import * as pendingRegistrationRepository from '@modules/admin/repositories/pendingRegistrationRepository';
 import { syncUserRole } from '@services/domains/integration';
 import {
   buildAuthorizationSnapshot,
@@ -12,8 +13,7 @@ import {
 import { issueTotpMfaChallenge } from './mfaController';
 import { forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie, clearAuthCookies } from '@utils/cookieHelper';
-import { buildAuthTokenResponse } from '@utils/authResponse';
-import { generateCsrfToken } from '@middleware/domains/security';
+import { buildAuthTokenResponse, generateAuthSessionCsrfToken } from '@utils/authResponse';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { normalizeRoleSlug } from '@utils/roleSlug';
 import { issueAppSessionToken } from '@utils/sessionTokens';
@@ -25,6 +25,9 @@ import {
 } from '../lib/authQueries';
 import { mapAuthUser } from '../lib/authResponseMappers';
 import { resolveAuthenticatedOrganizationId } from '../lib/resolveOrganizationContext';
+
+const PENDING_APPROVAL_MESSAGE =
+  'Your account is pending approval. Please contact your workplace administrator to approve your account.';
 
 export const login = async (
   req: AuthRequest,
@@ -53,13 +56,43 @@ export const login = async (
     );
 
     if (result.rows.length === 0) {
-      await trackLoginAttempt(normalizedEmail, false, undefined, clientIp);
-      logger.warn('Login failed: user not found', {
+      const pendingRegistration = await pendingRegistrationRepository.getPendingRegistrationByEmail(
+        normalizedEmail,
+        true
+      );
+
+      if (!pendingRegistration) {
+        await trackLoginAttempt(normalizedEmail, false, undefined, clientIp);
+        logger.warn('Login failed: user not found', {
+          email: normalizedEmail,
+          ip: clientIp,
+          correlationId,
+        });
+        return unauthorized(res, 'Invalid credentials');
+      }
+
+      const isValidPendingPassword = await bcrypt.compare(
+        password,
+        pendingRegistration.password_hash
+      );
+      if (!isValidPendingPassword) {
+        await trackLoginAttempt(normalizedEmail, false, undefined, clientIp);
+        logger.warn('Login failed: pending registration password mismatch', {
+          email: normalizedEmail,
+          ip: clientIp,
+          correlationId,
+        });
+        return unauthorized(res, 'Invalid credentials');
+      }
+
+      await setAccountLockState(normalizedEmail, false);
+      logger.info('Login blocked: account pending approval', {
         email: normalizedEmail,
         ip: clientIp,
         correlationId,
+        pendingRegistrationId: pendingRegistration.id,
       });
-      return unauthorized(res, 'Invalid credentials');
+      return forbidden(res, PENDING_APPROVAL_MESSAGE);
     }
 
     const user = result.rows[0];
@@ -129,13 +162,7 @@ export const login = async (
     logger.info(`User logged in: ${user.email}`, { ip: clientIp, correlationId });
 
     setAuthCookie(res, token);
-    // Bind the CSRF token emitted in this login response to the newly issued auth session.
-    req.headers = {
-      ...(req.headers || {}),
-      authorization: `Bearer ${token}`,
-    };
-
-    const csrfToken = generateCsrfToken(req, res);
+    const csrfToken = generateAuthSessionCsrfToken(req, res, token);
 
     return sendSuccess(res, {
       ...buildAuthTokenResponse(token),
