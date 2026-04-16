@@ -1,6 +1,6 @@
 {
-  "version": "2026-03-19.1",
-  "generated_at": "2026-03-19T12:01:52.569Z",
+  "version": "2026-04-16.1",
+  "generated_at": "2026-04-16T01:21:13.894Z",
   "tables": [
     {
       "name": "accounts",
@@ -826,6 +826,95 @@
       ]
     },
     {
+      "name": "event_registrations",
+      "aliases": [
+        "event_registration",
+        "registration",
+        "attendance",
+        "checkin",
+        "check_in"
+      ],
+      "fields": [
+        {
+          "name": "registration_id",
+          "type": "uuid",
+          "aliases": [
+            "id",
+            "eventregistrationid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "event_id",
+          "type": "uuid",
+          "required": true,
+          "aliases": [
+            "event",
+            "eventid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "required": true,
+          "aliases": [
+            "contact",
+            "contactid",
+            "participant_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "registration_status",
+          "type": "enum",
+          "aliases": [
+            "status",
+            "attendance_status"
+          ],
+          "enum_values": [
+            "registered",
+            "confirmed",
+            "waitlisted",
+            "cancelled",
+            "attended",
+            "no_show"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "checked_in",
+          "type": "boolean",
+          "aliases": [
+            "attended",
+            "present",
+            "checkedin"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "check_in_time",
+          "type": "datetime",
+          "aliases": [
+            "attendance_time",
+            "checkin_time"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "aliases": [
+            "note",
+            "memo",
+            "comment",
+            "comments"
+          ],
+          "constraints": {}
+        }
+      ]
+    },
+    {
       "name": "volunteers",
       "aliases": [
         "volunteer",
@@ -1060,6 +1149,681 @@
           "aliases": [
             "active",
             "enabled"
+          ],
+          "constraints": {}
+        }
+      ]
+    },
+    {
+      "name": "activities",
+      "aliases": [
+        "activity",
+        "interaction",
+        "note",
+        "engagement",
+        "timeline"
+      ],
+      "fields": [
+        {
+          "name": "activity_id",
+          "type": "uuid",
+          "aliases": [
+            "id",
+            "activityid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "aliases": [
+            "contact",
+            "contactid",
+            "person_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "aliases": [
+            "account",
+            "accountid",
+            "organization_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "case_id",
+          "type": "uuid",
+          "aliases": [
+            "case",
+            "caseid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "event_id",
+          "type": "uuid",
+          "aliases": [
+            "event",
+            "eventid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "activity_type",
+          "type": "enum",
+          "required": true,
+          "aliases": [
+            "type",
+            "interaction_type"
+          ],
+          "enum_values": [
+            "note",
+            "call",
+            "email",
+            "meeting",
+            "service",
+            "referral",
+            "assessment",
+            "other"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "aliases": [
+            "title",
+            "summary"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "aliases": [
+            "details",
+            "notes",
+            "content"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "activity_date",
+          "type": "datetime",
+          "required": true,
+          "aliases": [
+            "date",
+            "datetime",
+            "occurred_at"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "aliases": [
+            "state"
+          ],
+          "enum_values": [
+            "scheduled",
+            "completed",
+            "cancelled",
+            "logged",
+            "other"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "staff_name",
+          "type": "string",
+          "aliases": [
+            "staff",
+            "worker",
+            "author"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "source_table",
+          "type": "string",
+          "aliases": [
+            "dataset",
+            "cbis_source_table"
+          ],
+          "constraints": {}
+        }
+      ]
+    },
+    {
+      "name": "cases",
+      "aliases": [
+        "case",
+        "casework",
+        "client_case",
+        "service_case"
+      ],
+      "fields": [
+        {
+          "name": "case_id",
+          "type": "uuid",
+          "aliases": [
+            "id",
+            "caseid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "required": true,
+          "aliases": [
+            "contact",
+            "contactid",
+            "client_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "aliases": [
+            "account",
+            "accountid",
+            "organization_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "case_number",
+          "type": "string",
+          "aliases": [
+            "number",
+            "reference_number"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "case_type",
+          "type": "string",
+          "aliases": [
+            "type",
+            "case_type_name"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "aliases": [
+            "state",
+            "case_status"
+          ],
+          "enum_values": [
+            "open",
+            "pending",
+            "in_progress",
+            "closed",
+            "archived"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "priority",
+          "type": "enum",
+          "aliases": [
+            "urgency"
+          ],
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "urgent",
+            "critical"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "aliases": [
+            "name",
+            "subject"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "aliases": [
+            "details",
+            "summary",
+            "notes"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "source",
+          "type": "enum",
+          "aliases": [
+            "intake_source",
+            "origin"
+          ],
+          "enum_values": [
+            "phone",
+            "email",
+            "walk-in",
+            "referral",
+            "web",
+            "other"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "referral_source",
+          "type": "string",
+          "aliases": [
+            "referred_by",
+            "referral_from"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "intake_date",
+          "type": "datetime",
+          "aliases": [
+            "created_date",
+            "intake_datetime"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "opened_date",
+          "type": "datetime",
+          "required": true,
+          "aliases": [
+            "open_date",
+            "start_date"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "closed_date",
+          "type": "datetime",
+          "aliases": [
+            "close_date",
+            "end_date"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "aliases": [
+            "target_date"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "outcome",
+          "type": "enum",
+          "aliases": [
+            "result"
+          ],
+          "enum_values": [
+            "successful",
+            "unsuccessful",
+            "referred",
+            "withdrawn",
+            "attended_event",
+            "additional_related_case",
+            "other"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "outcome_notes",
+          "type": "string",
+          "aliases": [
+            "result_notes",
+            "closure_notes"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "closure_reason",
+          "type": "string",
+          "aliases": [
+            "close_reason"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "requires_followup",
+          "type": "boolean",
+          "aliases": [
+            "needs_follow_up"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "followup_date",
+          "type": "date",
+          "aliases": [
+            "follow_up_date"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "aliases": [
+            "labels",
+            "segments"
+          ],
+          "constraints": {}
+        }
+      ]
+    },
+    {
+      "name": "follow_ups",
+      "aliases": [
+        "follow_up",
+        "followup",
+        "reminder",
+        "checkin"
+      ],
+      "fields": [
+        {
+          "name": "follow_up_id",
+          "type": "uuid",
+          "aliases": [
+            "id",
+            "followupid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "aliases": [
+            "account_id",
+            "organization_account_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "entity_type",
+          "type": "enum",
+          "required": true,
+          "aliases": [
+            "regarding_type",
+            "related_type"
+          ],
+          "enum_values": [
+            "case",
+            "task",
+            "contact"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "entity_id",
+          "type": "uuid",
+          "required": true,
+          "aliases": [
+            "case_id",
+            "task_id",
+            "contact_id",
+            "related_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "aliases": [
+            "subject",
+            "name"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "aliases": [
+            "details",
+            "notes"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "scheduled_date",
+          "type": "date",
+          "required": true,
+          "aliases": [
+            "date",
+            "followup_date"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "scheduled_time",
+          "type": "string",
+          "aliases": [
+            "time",
+            "followup_time"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "frequency",
+          "type": "enum",
+          "aliases": [
+            "cadence",
+            "repeat"
+          ],
+          "enum_values": [
+            "once",
+            "daily",
+            "weekly",
+            "biweekly",
+            "monthly"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "frequency_end_date",
+          "type": "date",
+          "aliases": [
+            "repeat_until"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "method",
+          "type": "enum",
+          "aliases": [
+            "channel",
+            "contact_method"
+          ],
+          "enum_values": [
+            "phone",
+            "email",
+            "in_person",
+            "video_call",
+            "other"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "aliases": [
+            "state"
+          ],
+          "enum_values": [
+            "scheduled",
+            "completed",
+            "cancelled",
+            "overdue"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "completed_date",
+          "type": "datetime",
+          "aliases": [
+            "completion_date"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "completed_notes",
+          "type": "string",
+          "aliases": [
+            "completion_notes",
+            "outcome_notes"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "assigned_to",
+          "type": "uuid",
+          "aliases": [
+            "assignee_id",
+            "assigned_user_id"
+          ],
+          "constraints": {}
+        }
+      ]
+    },
+    {
+      "name": "tasks",
+      "aliases": [
+        "task",
+        "todo",
+        "action_item",
+        "work_item"
+      ],
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "uuid",
+          "aliases": [
+            "id",
+            "taskid"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "aliases": [
+            "subject",
+            "name"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "aliases": [
+            "details",
+            "notes"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "aliases": [
+            "state"
+          ],
+          "enum_values": [
+            "todo",
+            "in_progress",
+            "in_review",
+            "completed",
+            "cancelled"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "priority",
+          "type": "enum",
+          "aliases": [
+            "urgency"
+          ],
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "urgent"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "assigned_to",
+          "type": "uuid",
+          "aliases": [
+            "assignee_id",
+            "assigned_user_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "due_date",
+          "type": "datetime",
+          "aliases": [
+            "deadline"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "start_date",
+          "type": "datetime",
+          "aliases": [
+            "scheduled_start"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "completed_date",
+          "type": "datetime",
+          "aliases": [
+            "completion_date"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "related_contact_id",
+          "type": "uuid",
+          "aliases": [
+            "contact_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "related_case_id",
+          "type": "uuid",
+          "aliases": [
+            "case_id"
+          ],
+          "constraints": {}
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "aliases": [
+            "labels",
+            "segments"
           ],
           "constraints": {}
         }
