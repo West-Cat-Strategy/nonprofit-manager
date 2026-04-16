@@ -1,8 +1,8 @@
 # Backend Service
 
-**Last Updated:** 2026-04-13
+**Last Updated:** 2026-04-16
 
-This guide covers the backend service only. For the overall contributor flow, start at [../README.md](../README.md).
+This guide covers the backend service only. For the contributor workflow, start at [../CONTRIBUTING.md](../CONTRIBUTING.md). Use [../README.md](../README.md) for product context and contributor handoff.
 
 ## What Lives Here
 

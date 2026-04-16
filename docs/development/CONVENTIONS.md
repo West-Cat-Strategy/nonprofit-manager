@@ -1,6 +1,6 @@
 # Development Conventions
 
-**Last Updated:** 2026-04-13
+**Last Updated:** 2026-04-16
 
 Use this file for active coding and workflow conventions. For setup, see [GETTING_STARTED.md](GETTING_STARTED.md).
 
@@ -106,10 +106,11 @@ Package-level type checking uses `npm run type-check`, not `npm run typecheck`.
 
 ## Documentation Conventions
 
-- [../../README.md](../../README.md) is the contributor start page.
+- [../../CONTRIBUTING.md](../../CONTRIBUTING.md) is the contributor entry point and workflow guide.
+- [GETTING_STARTED.md](GETTING_STARTED.md) is the setup and runtime guide.
+- [../../README.md](../../README.md) is the product overview and contributor handoff.
 - [../README.md](../README.md) is the short docs landing page.
 - [../INDEX.md](../INDEX.md) is the catalog.
-- [../../CONTRIBUTING.md](../../CONTRIBUTING.md) is the contributor workflow and validation guide.
 - Use relative links in local docs.
 - Verify commands, ports, and env guidance against the repo before documenting them.
 

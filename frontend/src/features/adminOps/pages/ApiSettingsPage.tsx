@@ -33,8 +33,8 @@ import type {
 } from '../../../types/webhook';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
-import AdminPanelLayout from '../components/AdminPanelLayout';
-import AdminPanelNav from '../components/AdminPanelNav';
+import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
+import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 
 /**
  * Status Badge Component
@@ -601,11 +601,12 @@ export default function ApiSettings() {
   }, {} as Record<string, typeof availableEvents>);
 
   return (
-    <AdminPanelLayout
-      title="API Settings"
-      description="Manage webhooks and API keys for external integrations."
-      sidebar={<AdminPanelNav currentPath={location.pathname} />}
+    <AdminWorkspaceShell
+      title="API & Webhooks"
+      description="Manage webhook endpoints, delivery history, and API key access from one admin workspace."
+      currentPath={location.pathname}
     >
+      <AdminQuickActionsBar role="admin" />
       {/* Error Display */}
       {error && (
         <div className="bg-app-accent-soft border border-app-border text-app-accent-text px-4 py-3 rounded-lg flex items-center justify-between">
@@ -908,6 +909,6 @@ export default function ApiSettings() {
         </div>
       )}
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
-    </AdminPanelLayout>
+    </AdminWorkspaceShell>
   );
 }

@@ -206,7 +206,7 @@ describe('Navigation', () => {
 
     expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
     expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveClass(
-      'text-[var(--app-accent-foreground)]'
+      'app-accent-contrast-ink'
     );
   });
 

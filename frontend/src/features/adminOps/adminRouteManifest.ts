@@ -4,7 +4,12 @@ import {
   type AdminSettingsSection,
   type PortalAdminPanel,
 } from './adminRoutePaths';
-import { adminSettingsTabs } from './pages/adminSettings/constants';
+import {
+  adminRouteDefinitionByRouteId,
+  adminSettingsSectionDefinitions,
+  adminSettingsSections,
+  type AdminSurface,
+} from './adminNavigationCatalog';
 
 export type AdminRouteWrapper = 'protected' | 'admin' | 'neoBrutalist';
 
@@ -19,8 +24,10 @@ export type AdminRoutePageView =
 type AdminRouteBaseEntry = {
   id: string;
   title: string;
+  description?: string;
   path: string;
   wrapper: AdminRouteWrapper;
+  adminSurface?: AdminSurface;
 };
 
 type AdminRoutePageEntry = AdminRouteBaseEntry & {
@@ -49,48 +56,63 @@ export type AdminRouteManifestEntry =
   | AdminRouteSectionEntry
   | AdminRoutePortalPanelEntry;
 
-const adminSettingsSections: readonly AdminSettingsSection[] = adminSettingsTabs.map(
-  (tab) => tab.id
-);
+const getAdminRouteMeta = (routeId: string) => {
+  const metadata = adminRouteDefinitionByRouteId.get(routeId);
+  if (!metadata) {
+    throw new Error(`Missing admin route metadata for ${routeId}`);
+  }
+
+  return metadata;
+};
 
 export const adminRouteManifest = [
   {
     id: 'admin-settings-communications',
-    title: 'Communications settings',
-    path: '/settings/communications',
+    title: getAdminRouteMeta('communications').title,
+    description: getAdminRouteMeta('communications').description,
+    path: getAdminRouteMeta('communications').path,
     wrapper: 'protected',
+    adminSurface: getAdminRouteMeta('communications').surface,
     kind: 'page',
     view: 'communications',
   },
   {
     id: 'admin-settings-email-marketing',
-    title: 'Email marketing settings',
+    title: getAdminRouteMeta('communications').title,
+    description: getAdminRouteMeta('communications').description,
     path: '/settings/email-marketing',
     wrapper: 'protected',
+    adminSurface: getAdminRouteMeta('communications').surface,
     kind: 'page',
     view: 'communications',
   },
   {
     id: 'admin-settings-social-media',
-    title: 'Social media settings',
-    path: '/settings/social-media',
+    title: getAdminRouteMeta('social-media').title,
+    description: getAdminRouteMeta('social-media').description,
+    path: getAdminRouteMeta('social-media').path,
     wrapper: 'admin',
+    adminSurface: getAdminRouteMeta('social-media').surface,
     kind: 'page',
     view: 'socialMedia',
   },
   {
     id: 'admin-settings-api',
-    title: 'API settings',
-    path: '/settings/api',
+    title: getAdminRouteMeta('api-settings').title,
+    description: getAdminRouteMeta('api-settings').description,
+    path: getAdminRouteMeta('api-settings').path,
     wrapper: 'protected',
+    adminSurface: getAdminRouteMeta('api-settings').surface,
     kind: 'page',
     view: 'api',
   },
   {
     id: 'admin-settings-navigation',
-    title: 'Navigation settings',
-    path: '/settings/navigation',
+    title: getAdminRouteMeta('navigation-settings').title,
+    description: getAdminRouteMeta('navigation-settings').description,
+    path: getAdminRouteMeta('navigation-settings').path,
     wrapper: 'protected',
+    adminSurface: getAdminRouteMeta('navigation-settings').surface,
     kind: 'page',
     view: 'navigation',
   },
@@ -104,9 +126,11 @@ export const adminRouteManifest = [
   },
   {
     id: 'admin-settings-backup',
-    title: 'Data backup',
-    path: '/settings/backup',
+    title: getAdminRouteMeta('backup-settings').title,
+    description: getAdminRouteMeta('backup-settings').description,
+    path: getAdminRouteMeta('backup-settings').path,
     wrapper: 'admin',
+    adminSurface: getAdminRouteMeta('backup-settings').surface,
     kind: 'page',
     view: 'backup',
   },
@@ -160,49 +184,61 @@ export const adminRouteManifest = [
   },
   {
     id: 'portal-admin-access',
-    title: 'Portal access',
+    title: getAdminRouteMeta('portal-admin-access').title,
+    description: getAdminRouteMeta('portal-admin-access').description,
     path: getPortalAdminPath('access'),
     wrapper: 'admin',
+    adminSurface: getAdminRouteMeta('portal-admin-access').surface,
     kind: 'portal-panel',
     panel: 'access',
   },
   {
     id: 'portal-admin-users',
-    title: 'Portal users',
+    title: getAdminRouteMeta('portal-admin-users').title,
+    description: getAdminRouteMeta('portal-admin-users').description,
     path: getPortalAdminPath('users'),
     wrapper: 'admin',
+    adminSurface: getAdminRouteMeta('portal-admin-users').surface,
     kind: 'portal-panel',
     panel: 'users',
   },
   {
     id: 'portal-admin-conversations',
-    title: 'Portal conversations',
+    title: getAdminRouteMeta('portal-admin-conversations').title,
+    description: getAdminRouteMeta('portal-admin-conversations').description,
     path: getPortalAdminPath('conversations'),
     wrapper: 'admin',
+    adminSurface: getAdminRouteMeta('portal-admin-conversations').surface,
     kind: 'portal-panel',
     panel: 'conversations',
   },
   {
     id: 'portal-admin-appointments',
-    title: 'Portal appointments',
+    title: getAdminRouteMeta('portal-admin-appointments').title,
+    description: getAdminRouteMeta('portal-admin-appointments').description,
     path: getPortalAdminPath('appointments'),
     wrapper: 'admin',
+    adminSurface: getAdminRouteMeta('portal-admin-appointments').surface,
     kind: 'portal-panel',
     panel: 'appointments',
   },
   {
     id: 'portal-admin-slots',
-    title: 'Portal slots',
+    title: getAdminRouteMeta('portal-admin-slots').title,
+    description: getAdminRouteMeta('portal-admin-slots').description,
     path: getPortalAdminPath('slots'),
     wrapper: 'admin',
+    adminSurface: getAdminRouteMeta('portal-admin-slots').surface,
     kind: 'portal-panel',
     panel: 'slots',
   },
   {
     id: 'admin-settings-section-route',
-    title: 'Admin settings section route',
+    title: adminSettingsSectionDefinitions[0].title,
+    description: adminSettingsSectionDefinitions[0].description,
     path: '/settings/admin/:section',
     wrapper: 'admin',
+    adminSurface: 'core',
     kind: 'section',
     sections: adminSettingsSections,
   },

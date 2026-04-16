@@ -233,7 +233,7 @@ describe('Admin Twilio Settings API', () => {
     expect(response.status).toBe(200);
 
     const payload = readTwilioSettingsPayload(response.body);
-    expect(payload.data).toMatchObject({
+    expect(payload.settings).toMatchObject({
       accountSid: CONFIGURED_ACCOUNT_SID,
       messagingServiceSid: CONFIGURED_MESSAGING_SERVICE_SID,
       fromPhoneNumber: CONFIGURED_FROM_PHONE,
@@ -257,7 +257,7 @@ describe('Admin Twilio Settings API', () => {
     expect(response.status).toBe(200);
 
     const payload = readTwilioSettingsPayload(response.body);
-    expect(payload.data).toMatchObject({
+    expect(payload.settings).toMatchObject({
       accountSid: null,
       messagingServiceSid: null,
       fromPhoneNumber: null,
@@ -317,7 +317,7 @@ describe('Admin Twilio Settings API', () => {
     expect(response.status).toBe(200);
 
     const payload = readTwilioSettingsPayload(response.body);
-    expect(payload.data).toEqual({
+    expect(payload.result).toEqual({
       success: true,
     });
     expect(payload.message).toBe('Twilio connection successful');
@@ -344,7 +344,7 @@ describe('Admin Twilio Settings API', () => {
     expect(response.status).toBe(200);
 
     const payload = readTwilioSettingsPayload(response.body);
-    expect(payload.data).toEqual({
+    expect(payload.result).toEqual({
       success: false,
       error: 'Authentication failed',
     });

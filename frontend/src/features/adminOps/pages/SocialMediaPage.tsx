@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import AdminPanelLayout from '../components/AdminPanelLayout';
-import AdminPanelNav from '../components/AdminPanelNav';
+import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
+import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   discoverFacebookPages,
@@ -255,16 +255,22 @@ export default function SocialMediaPage() {
   };
 
   return (
-    <AdminPanelLayout
+    <AdminWorkspaceShell
       title="Social Media"
       description="Manage organization-level Facebook credentials, page sync, and website mappings from one admin workspace."
+      currentPath={location.pathname}
       badge={
-        <span className="rounded-full bg-app-accent-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-accent-text">
-          Facebook First
-        </span>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border border-app-border bg-app-surface-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-app-text-heading">
+            Admin Workspace
+          </span>
+          <span className="rounded-full bg-app-accent-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-accent-text">
+            Facebook First
+          </span>
+        </div>
       }
-      sidebar={<AdminPanelNav currentPath={location.pathname} />}
     >
+      <AdminQuickActionsBar role="admin" />
       {error ? (
         <div className="rounded-2xl border border-app-accent bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
           {error}
@@ -704,6 +710,6 @@ export default function SocialMediaPage() {
           </table>
         </div>
       </SectionCard>
-    </AdminPanelLayout>
+    </AdminWorkspaceShell>
   );
 }

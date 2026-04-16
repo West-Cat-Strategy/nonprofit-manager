@@ -20,7 +20,8 @@ There are no autonomous AI agents running independently in the application. The 
 
 Start with the canonical repo docs:
 
-- [README.md](README.md) for the contributor start page and runtime matrix.
+- [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and handoff path.
+- [README.md](README.md) for the product overview and runtime matrix.
 - [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for coding-agent guardrails.
 - [CONTRIBUTING.md](CONTRIBUTING.md) for branch, review, and handoff workflow.
 - [docs/INDEX.md](docs/INDEX.md) for the full documentation catalog.

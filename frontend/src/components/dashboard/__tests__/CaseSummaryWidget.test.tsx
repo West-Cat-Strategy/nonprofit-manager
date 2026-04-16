@@ -126,6 +126,6 @@ describe('CaseSummaryWidget', () => {
 
     renderWidget();
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
   });
 });

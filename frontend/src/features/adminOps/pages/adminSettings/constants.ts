@@ -1,9 +1,13 @@
 import type { OrganizationConfig } from './types';
 import { createDefaultWorkspaceModuleSettings } from '../../../workspaceModules/catalog';
 
-// ============================================================================
-// Canadian Defaults
-// ============================================================================
+export {
+  adminSettingsSectionDefinitions as adminSettingsTabs,
+  adminSettingsTabGroups,
+  type AdminSettingsGroup,
+  type AdminSettingsSectionDefinition as AdminSettingsTab,
+  type AdminSettingsTabGroup,
+} from '../../adminNavigationCatalog';
 
 export const defaultConfig: OrganizationConfig = {
   name: '',
@@ -44,10 +48,6 @@ export const defaultConfig: OrganizationConfig = {
   },
   workspaceModules: createDefaultWorkspaceModuleSettings(),
 };
-
-// ============================================================================
-// Constants - Canadian-centric options
-// ============================================================================
 
 export const timezones = [
   { value: 'America/Vancouver', label: 'Pacific Time (PT) - Vancouver' },
@@ -108,97 +108,4 @@ export const months = [
   { value: '10', label: 'October' },
   { value: '11', label: 'November' },
   { value: '12', label: 'December' },
-];
-
-export type AdminSettingsGroup =
-  | 'overview'
-  | 'organization'
-  | 'people_access'
-  | 'communications'
-  | 'governance'
-  | 'other';
-
-export type AdminSettingsTab = {
-  id:
-    | 'dashboard'
-    | 'organization'
-    | 'workspace_modules'
-    | 'branding'
-    | 'users'
-    | 'groups'
-    | 'communications'
-    | 'messaging'
-    | 'outcomes'
-    | 'roles'
-    | 'audit_logs'
-    | 'other';
-  label: string;
-  level: 'basic' | 'advanced';
-  group: AdminSettingsGroup;
-};
-
-export type AdminSettingsTabGroup = {
-  id: AdminSettingsGroup;
-  label: string;
-  description: string;
-  tabs: AdminSettingsTab['id'][];
-};
-
-export const adminSettingsTabs: AdminSettingsTab[] = [
-  { id: 'dashboard', label: 'Dashboard', level: 'basic', group: 'overview' },
-  { id: 'organization', label: 'Organization', level: 'basic', group: 'organization' },
-  {
-    id: 'workspace_modules',
-    label: 'Workspace Modules',
-    level: 'basic',
-    group: 'organization',
-  },
-  { id: 'branding', label: 'Branding', level: 'basic', group: 'organization' },
-  { id: 'users', label: 'Users & Security', level: 'basic', group: 'people_access' },
-  { id: 'groups', label: 'Groups & Policy', level: 'advanced', group: 'people_access' },
-  { id: 'communications', label: 'Communications', level: 'basic', group: 'communications' },
-  { id: 'messaging', label: 'Messaging Settings', level: 'basic', group: 'communications' },
-  { id: 'outcomes', label: 'Outcome Definitions', level: 'advanced', group: 'governance' },
-  { id: 'roles', label: 'Roles & Permissions', level: 'advanced', group: 'people_access' },
-  { id: 'audit_logs', label: 'Audit Logs', level: 'advanced', group: 'governance' },
-  { id: 'other', label: 'Other Settings', level: 'advanced', group: 'other' },
-];
-
-export const adminSettingsTabGroups: AdminSettingsTabGroup[] = [
-  {
-    id: 'overview',
-    label: 'Overview',
-    description: 'High-level status and shortcuts',
-    tabs: ['dashboard'],
-  },
-  {
-    id: 'organization',
-    label: 'Organization',
-    description: 'Branding, core settings, and workspace modules',
-    tabs: ['organization', 'workspace_modules', 'branding'],
-  },
-  {
-    id: 'people_access',
-    label: 'People & Access',
-    description: 'Users, access, groups, roles, and registration controls',
-    tabs: ['users', 'groups', 'roles'],
-  },
-  {
-    id: 'communications',
-    label: 'Communications',
-    description: 'Email and messaging infrastructure',
-    tabs: ['communications', 'messaging'],
-  },
-  {
-    id: 'governance',
-    label: 'Governance',
-    description: 'Policy, audit, and operational oversight',
-    tabs: ['outcomes', 'audit_logs'],
-  },
-  {
-    id: 'other',
-    label: 'Other',
-    description: 'Everything else that does not fit the main hubs',
-    tabs: ['other'],
-  },
 ];

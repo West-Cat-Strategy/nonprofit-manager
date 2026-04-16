@@ -1,18 +1,19 @@
 # Documentation Style Guide
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-16
 
 Use this guide when creating or updating documentation in nonprofit-manager.
 
 ## Source Of Truth Model
 
-- [../README.md](../README.md) is the contributor start page.
-- [../CONTRIBUTING.md](../CONTRIBUTING.md) is the contributor workflow and validation guide.
+- [../README.md](../README.md) is the product overview and contributor handoff.
+- [../CONTRIBUTING.md](../CONTRIBUTING.md) is the contributor entry point, workflow, and validation guide.
+- [development/GETTING_STARTED.md](development/GETTING_STARTED.md) is the setup and runtime guide.
 - [INDEX.md](INDEX.md) is the full documentation catalog.
 - [README.md](README.md) inside `docs/` is a short directory landing page only.
 - [phases/planning-and-progress.md](phases/planning-and-progress.md) is the live workboard and status log.
 - [../scripts/README.md](../scripts/README.md) is the root helper-script index.
-- Service READMEs such as [../backend/README.md](../backend/README.md) and [../frontend/README.md](../frontend/README.md) should explain their own surfaces, but should not replace the root README as the contributor start path.
+- Service READMEs such as [../backend/README.md](../backend/README.md) and [../frontend/README.md](../frontend/README.md) should explain their own surfaces, but should not replace [../CONTRIBUTING.md](../CONTRIBUTING.md) as the contributor start path.
 - `docs/testing/TESTING.md` is the active test-command map; narrower testing docs should say when they are historical or narrowly scoped.
 
 ## Before You Write

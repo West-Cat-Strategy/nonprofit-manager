@@ -50,7 +50,7 @@ interface AdminPanelNavProps {
 export default function AdminPanelNav({
   currentPath,
   mode = 'settings',
-  title = 'Admin Panels',
+  title = mode === 'portal' ? 'Portal Ops' : 'Admin Workspaces',
 }: AdminPanelNavProps) {
   const location = useLocation();
   const { user } = useAppSelector((state) => state.auth);
@@ -65,8 +65,9 @@ export default function AdminPanelNav({
       .filter((route) => canOpenAdminSettings || route.authScope !== 'admin')
       .map((route) => ({
         key: route.id,
-        label: route.adminNav.label || route.title,
+        label: route.adminNav.label || route.adminLabel || route.title,
         to: getRouteHref(route),
+        icon: route.adminIcon,
         isActive: isActiveRoute(route, effectiveCurrentPath),
       }));
   }, [canOpenAdminSettings, effectiveCurrentPath, mode]);

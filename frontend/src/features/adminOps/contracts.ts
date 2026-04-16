@@ -346,4 +346,60 @@ export interface PortalAdminAppointmentReminderHistory {
   deliveries: PortalAdminAppointmentReminderDelivery[];
 }
 
+export interface AdminEmailSettings {
+  id: string;
+  smtpHost: string | null;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUser: string | null;
+  smtpFromAddress: string | null;
+  smtpFromName: string | null;
+  imapHost: string | null;
+  imapPort: number;
+  imapSecure: boolean;
+  imapUser: string | null;
+  isConfigured: boolean;
+  lastTestedAt: string | null;
+  lastTestSuccess: boolean | null;
+}
+
+export interface EmailSettingsBundle {
+  settings: AdminEmailSettings | null;
+  credentials: {
+    smtp: boolean;
+    imap: boolean;
+  };
+}
+
+export interface AdminTwilioSettings {
+  id: string;
+  accountSid: string | null;
+  messagingServiceSid: string | null;
+  fromPhoneNumber: string | null;
+  isConfigured: boolean;
+  lastTestedAt: string | null;
+  lastTestSuccess: boolean | null;
+}
+
+export interface TwilioSettingsBundle {
+  settings: AdminTwilioSettings | null;
+  credentials: {
+    authToken: boolean;
+  };
+}
+
+export interface PendingRegistrationList {
+  items: PendingRegistration[];
+}
+
+export interface AdminWorkspaceStatusCard {
+  id: string;
+  title: string;
+  description: string;
+  summary: string;
+  tone: 'neutral' | 'positive' | 'warning';
+  icon: string;
+  to: string;
+}
+
 export type SaveStatus = 'idle' | 'success' | 'error';

@@ -72,8 +72,8 @@ describe('AdminPanelNav', () => {
       },
     });
 
-    expect(screen.getByRole('link', { name: /admin settings/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /admin settings/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /admin hub/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /admin hub/i })).toHaveAttribute(
       'href',
       '/settings/admin/dashboard'
     );
@@ -100,7 +100,7 @@ describe('AdminPanelNav', () => {
       }
     );
 
-    expect(screen.getByRole('link', { name: /^access$/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /access/i })).toHaveAttribute(
       'href',
       '/settings/admin/portal/access'
     );
@@ -126,10 +126,10 @@ describe('AdminPanelNav', () => {
       },
     });
 
-    expect(screen.getByRole('link', { name: /admin settings/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /admin hub/i })).toHaveAttribute(
       'href',
       '/settings/admin/dashboard'
     );
-    expect(screen.getByRole('link', { name: /admin settings/i })).toHaveClass('bg-app-accent');
+    expect(screen.getByRole('link', { name: /admin hub/i })).toHaveClass('bg-app-accent');
   });
 });

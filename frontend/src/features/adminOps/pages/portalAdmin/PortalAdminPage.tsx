@@ -6,8 +6,9 @@ import { useApiError } from '../../../../hooks/useApiError';
 import useConfirmDialog from '../../../../hooks/useConfirmDialog';
 import usePortalAdminRealtime from '../../../portal/admin/usePortalAdminRealtime';
 import type { PortalAdminPanel } from '../../adminRoutePaths';
-import AdminPanelLayout from '../../components/AdminPanelLayout';
-import AdminPanelNav from '../../components/AdminPanelNav';
+import { portalAdminDefinitionByPanel } from '../../adminNavigationCatalog';
+import AdminQuickActionsBar from '../../components/AdminQuickActionsBar';
+import AdminWorkspaceShell from '../../components/AdminWorkspaceShell';
 import PortalResetPasswordModal from '../adminSettings/components/PortalResetPasswordModal';
 import { usePortalSettings } from '../adminSettings/hooks/usePortalSettings';
 import type { PortalSectionProps } from '../adminSettings/sections/PortalSection';
@@ -20,35 +21,6 @@ import UsersPanel from './panels/UsersPanel';
 interface PortalAdminPageProps {
   panel: PortalAdminPanel;
 }
-
-const panelMeta: Record<
-  PortalAdminPanel,
-  {
-    title: string;
-    description: string;
-  }
-> = {
-  access: {
-    title: 'Portal Admin - Access',
-    description: 'Approve signup requests and manage portal invitations.',
-  },
-  users: {
-    title: 'Portal Admin - Users',
-    description: 'Manage portal user status, activity, and reset operations.',
-  },
-  conversations: {
-    title: 'Portal Admin - Conversations',
-    description: 'Monitor and reply to portal conversations with live stream status.',
-  },
-  appointments: {
-    title: 'Portal Admin - Appointments',
-    description: 'Triage appointment inbox items and reminder delivery actions.',
-  },
-  slots: {
-    title: 'Portal Admin - Slots',
-    description: 'Create and manage portal appointment slots and availability.',
-  },
-};
 
 export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
   const location = useLocation();
@@ -395,13 +367,19 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
     appointments: <AppointmentsPanel {...portalSectionProps} />,
     slots: <SlotsPanel {...portalSectionProps} />,
   }[panel];
+  const panelMeta = portalAdminDefinitionByPanel.get(panel);
 
   return (
-    <AdminPanelLayout
-      title={panelMeta[panel].title}
-      description={panelMeta[panel].description}
-      sidebar={<AdminPanelNav currentPath={location.pathname} mode="portal" />}
+    <AdminWorkspaceShell
+      title={panelMeta?.title ?? 'Portal Ops'}
+      description={
+        panelMeta?.description ??
+        'Manage portal operations, requests, conversations, appointments, and availability.'
+      }
+      currentPath={location.pathname}
+      mode="portal"
     >
+      <AdminQuickActionsBar role="admin" />
       {panelContent}
 
       <PortalResetPasswordModal
@@ -423,6 +401,6 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
       />
 
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
-    </AdminPanelLayout>
+    </AdminWorkspaceShell>
   );
 }

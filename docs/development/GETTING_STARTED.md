@@ -1,6 +1,6 @@
 # Getting Started
 
-**Last Updated:** 2026-04-13
+**Last Updated:** 2026-04-16
 
 Use this guide to get a working nonprofit-manager development environment without guessing which runtime the docs assume. The ports differ by mode, so keep the runtime you choose in mind as you follow the steps.
 
@@ -172,12 +172,12 @@ make lint-doc-api-versioning
 
 ## What To Read Next
 
-1. [../../README.md](../../README.md)
-2. [../README.md](../README.md)
-3. [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
-4. [CONVENTIONS.md](CONVENTIONS.md)
-5. [ARCHITECTURE.md](ARCHITECTURE.md)
-6. [../../docs/phases/planning-and-progress.md](../../docs/phases/planning-and-progress.md)
+1. [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
+2. [CONVENTIONS.md](CONVENTIONS.md)
+3. [ARCHITECTURE.md](ARCHITECTURE.md)
+4. [../../README.md](../../README.md) for product context
+5. [../README.md](../README.md) for the docs landing page
+6. [../../docs/phases/planning-and-progress.md](../../docs/phases/planning-and-progress.md) before tracked work
 
 ## Troubleshooting
 

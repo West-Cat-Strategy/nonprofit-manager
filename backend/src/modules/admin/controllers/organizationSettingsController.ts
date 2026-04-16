@@ -4,10 +4,7 @@ import type { AuthRequest } from '@middleware/auth';
 import { sendError, sendSuccess } from '@modules/shared/http/envelope';
 import { requireActiveOrganizationSafe, requireUserSafe } from '@services/authGuardService';
 import type { OrganizationSettingsConfig } from '@app-types/organizationSettings';
-import {
-  getOrganizationSettings,
-  upsertOrganizationSettings,
-} from '../lib/organizationSettingsStore';
+import * as organizationSettingsUseCase from '../usecases/organizationSettingsUseCase';
 
 export const getOrganizationSettingsHandler = async (req: AuthRequest, res: Response) => {
   const userResult = requireUserSafe(req);
@@ -35,7 +32,7 @@ export const getOrganizationSettingsHandler = async (req: AuthRequest, res: Resp
   }
 
   try {
-    const settings = await getOrganizationSettings(
+    const settings = await organizationSettingsUseCase.getOrganizationSettings(
       orgResult.data.organizationId,
       userResult.data.user.id
     );
@@ -84,7 +81,7 @@ export const updateOrganizationSettingsHandler = async (req: AuthRequest, res: R
 
   try {
     const { config } = req.body as { config: OrganizationSettingsConfig };
-    const settings = await upsertOrganizationSettings(
+    const settings = await organizationSettingsUseCase.updateOrganizationSettings(
       orgResult.data.organizationId,
       config,
       userResult.data.user.id

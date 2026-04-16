@@ -112,6 +112,6 @@ describe('EmailMarketingPage', () => {
       route: '/settings/email-marketing',
     });
 
-    expect(await screen.findByRole('heading', { name: /email marketing/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /newsletter campaigns/i })).toBeInTheDocument();
   });
 });

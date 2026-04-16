@@ -7,3 +7,4 @@ import { lazy } from 'react';
  */
 
 export const CustomDashboard = lazy(() => import('./pages/CustomDashboardPage'));
+export const WorkbenchDashboard = lazy(() => import('./pages/WorkbenchDashboardPage'));

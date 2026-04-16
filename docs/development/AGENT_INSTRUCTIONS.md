@@ -1,6 +1,6 @@
 # Agent Instructions For Nonprofit Manager
 
-**Last Updated:** 2026-04-14
+**Last Updated:** 2026-04-16
 
 This file is for coding agents and contributors making repository changes.
 
@@ -79,8 +79,9 @@ This file is for coding agents and contributors making repository changes.
 
 ## Repo Workflow
 
+- Contributor entry point: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
 - Default setup path: [GETTING_STARTED.md](GETTING_STARTED.md)
-- Contributor workflow: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
+- Product overview and contributor handoff: [../../README.md](../../README.md)
 - Service-specific guidance: [../../backend/README.md](../../backend/README.md) and [../../frontend/README.md](../../frontend/README.md)
 - Testing guidance: [../testing/TESTING.md](../testing/TESTING.md) and [../../e2e/README.md](../../e2e/README.md)
 - The workboard in [../phases/planning-and-progress.md](../phases/planning-and-progress.md) is the source of truth for tracked ownership and status changes.
@@ -111,7 +112,9 @@ Coverage thresholds are enforced by repo config. Do not restate a blanket percen
 
 ## Documentation Expectations
 
-- Treat [../../README.md](../../README.md) as the contributor start page.
+- Treat [../../CONTRIBUTING.md](../../CONTRIBUTING.md) as the contributor entry point.
+- Treat [GETTING_STARTED.md](GETTING_STARTED.md) as the setup and runtime guide.
+- Treat [../../README.md](../../README.md) as the product overview and contributor handoff.
 - Treat [../README.md](../README.md) as the short docs landing page.
 - Treat [../INDEX.md](../INDEX.md) as the catalog, not the onboarding entry point.
 - Use relative links in docs.

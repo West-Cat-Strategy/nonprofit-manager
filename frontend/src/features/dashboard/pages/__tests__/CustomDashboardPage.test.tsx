@@ -1,4 +1,5 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
 import type * as ReactRouterDomModule from 'react-router-dom';
 import type * as DashboardStateModule from '../../state';
@@ -28,13 +29,26 @@ const createDashboard = (overrides: Record<string, unknown> = {}) => ({
   user_id: 'user-1',
   name: 'Primary',
   is_default: true,
-  widgets: [],
-  layout: [],
+  widgets: [
+    {
+      id: 'widget-quick-actions',
+      type: 'quick_actions',
+      title: 'Quick Actions',
+      enabled: true,
+      layout: { i: 'widget-quick-actions', x: 0, y: 0, w: 4, h: 2 },
+    },
+  ],
+  layout: [{ i: 'widget-quick-actions', x: 0, y: 0, w: 4, h: 2 }],
+  breakpoints: { lg: 1200, md: 996, sm: 768, xs: 480 },
+  cols: { lg: 12, md: 10, sm: 6, xs: 4 },
   created_at: '2026-03-01T00:00:00.000Z',
   updated_at: '2026-03-01T00:00:00.000Z',
   ...overrides,
 });
 
+vi.mock('../../../../features/dashboard/context/DashboardDataContext', () => ({
+  DashboardDataProvider: ({ children }: { children: ReactNode }) => children,
+}));
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
   useAppSelector: (selector: (state: typeof dashboardState) => unknown) => selector(dashboardState),
@@ -48,8 +62,9 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-vi.mock('react-grid-layout', () => ({
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+vi.mock('react-grid-layout/legacy', () => ({
+  Responsive: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  WidthProvider: (Component: React.ComponentType<{ children?: ReactNode }>) => Component,
 }));
 
 vi.mock('../../../../components/dashboard', () => ({
@@ -63,6 +78,8 @@ vi.mock('../../../../components/dashboard', () => ({
   MyCasesWidget: () => <div>My Cases</div>,
   ActivityFeedWidget: () => <div>Activity Feed</div>,
   PlausibleStatsWidget: () => <div>Plausible Stats</div>,
+  UpcomingFollowUpsWidget: () => <div>Upcoming Follow-ups</div>,
+  WidgetContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock('../../../../components/ConfirmDialog', () => ({ default: () => null }));
@@ -82,9 +99,10 @@ vi.mock('../../state', async () => {
     ...actual,
     fetchDashboards: () => ({ type: 'dashboard/fetchDashboards' }),
     fetchDefaultDashboard: () => ({ type: 'dashboard/fetchDefaultDashboard' }),
+    fetchDashboard: (payload: string) => ({ type: 'dashboard/fetchDashboard', payload }),
     setEditMode: (payload: boolean) => ({ type: 'dashboard/setEditMode', payload }),
     updateLayout: (payload: unknown) => ({ type: 'dashboard/updateLayout', payload }),
-    saveDashboardLayout: (payload: unknown) => ({ type: 'dashboard/saveDashboardLayout', payload }),
+    updateDashboard: (payload: unknown) => ({ type: 'dashboard/updateDashboard', payload }),
     addWidget: (payload: unknown) => ({ type: 'dashboard/addWidget', payload }),
     removeWidget: (payload: string) => ({ type: 'dashboard/removeWidget', payload }),
     resetToDefault: () => ({ type: 'dashboard/resetToDefault' }),
@@ -94,8 +112,11 @@ vi.mock('../../state', async () => {
 describe('CustomDashboardPage', () => {
   beforeEach(() => {
     dispatchMock.mockReset();
-    dashboardState.dashboard.currentDashboard = null;
-    dashboardState.dashboard.dashboards = [];
+    dispatchMock.mockImplementation((action: { type: string }) => ({
+      unwrap: () => Promise.resolve(action.type === 'dashboard/fetchDashboards' ? [createDashboard()] : undefined),
+    }));
+    dashboardState.dashboard.currentDashboard = createDashboard();
+    dashboardState.dashboard.dashboards = [createDashboard()];
     dashboardState.dashboard.loading = false;
     dashboardState.dashboard.saving = false;
     dashboardState.dashboard.error = null;
@@ -103,64 +124,39 @@ describe('CustomDashboardPage', () => {
     dashboardState.auth.isAuthenticated = true;
   });
 
-  it('skips the default-dashboard bootstrap request when one already exists', async () => {
-    dispatchMock.mockImplementation((action: { type: string }) => {
-      if (action.type === 'dashboard/fetchDashboards') {
-        return {
-          unwrap: () => Promise.resolve([createDashboard()]),
-        };
-      }
-
-      if (action.type === 'dashboard/fetchDefaultDashboard') {
-        return {
-          unwrap: () => Promise.resolve(createDashboard({ id: 'dash-created' })),
-        };
-      }
-
-      return {
-        unwrap: () => Promise.resolve(undefined),
-      };
+  it('renders a safe fallback for legacy saved widgets', () => {
+    dashboardState.dashboard.currentDashboard = createDashboard({
+      widgets: [
+        {
+          id: 'legacy-recent-contacts',
+          type: 'recent_contacts',
+          title: 'Recent Contacts',
+          enabled: true,
+          layout: { i: 'legacy-recent-contacts', x: 0, y: 0, w: 4, h: 2 },
+        },
+      ],
+      layout: [{ i: 'legacy-recent-contacts', x: 0, y: 0, w: 4, h: 2 }],
     });
 
-    renderWithProviders(<CustomDashboard />, { route: '/dashboard' });
+    renderWithProviders(<CustomDashboard />, { route: '/dashboard/custom' });
 
-    await waitFor(() => expect(dispatchMock).toHaveBeenCalledTimes(1));
-    expect(dispatchMock).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({ type: 'dashboard/fetchDashboards' })
-    );
-    expect(screen.getByText('Loading dashboard...')).toBeInTheDocument();
+    expect(screen.getByText(/saved legacy widget/i)).toBeInTheDocument();
+    expect(screen.getByText(/older dashboard layout/i)).toBeInTheDocument();
   });
 
-  it('bootstraps the default dashboard when the fetched set has no default', async () => {
-    dispatchMock.mockImplementation((action: { type: string }) => {
-      if (action.type === 'dashboard/fetchDashboards') {
-        return {
-          unwrap: () => Promise.resolve([createDashboard({ id: 'dash-secondary', is_default: false })]),
-        };
-      }
+  it('hides legacy-only widgets from the picker and groups supported widgets', async () => {
+    dashboardState.dashboard.editMode = true;
+    const user = userEvent.setup();
 
-      if (action.type === 'dashboard/fetchDefaultDashboard') {
-        return {
-          unwrap: () => Promise.resolve(createDashboard({ id: 'dash-created' })),
-        };
-      }
+    renderWithProviders(<CustomDashboard />, { route: '/dashboard/custom' });
 
-      return {
-        unwrap: () => Promise.resolve(undefined),
-      };
-    });
+    await user.click(screen.getByRole('button', { name: /add widget/i }));
 
-    renderWithProviders(<CustomDashboard />, { route: '/dashboard' });
-
-    await waitFor(() => expect(dispatchMock).toHaveBeenCalledTimes(2));
-    expect(dispatchMock).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({ type: 'dashboard/fetchDashboards' })
-    );
-    expect(dispatchMock).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({ type: 'dashboard/fetchDefaultDashboard' })
-    );
+    expect(screen.getByRole('dialog', { name: /add a widget/i })).toBeInTheDocument();
+    expect(screen.getByText('Quick Launch')).toBeInTheDocument();
+    expect(screen.getByText('Workload Widgets')).toBeInTheDocument();
+    expect(screen.getByText('Upcoming Follow-ups')).toBeInTheDocument();
+    expect(screen.queryByText('Recent Contacts')).not.toBeInTheDocument();
+    expect(screen.queryByText('Upcoming Events')).not.toBeInTheDocument();
   });
 });

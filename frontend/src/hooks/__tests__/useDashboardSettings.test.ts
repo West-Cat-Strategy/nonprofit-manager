@@ -44,9 +44,7 @@ describe('useDashboardSettings cache behavior', () => {
         preferences: {
           dashboard_settings: {
             showQuickLookup: false,
-            kpis: {
-              events: false,
-            },
+            showFocusQueue: false,
           },
         },
       },
@@ -70,6 +68,7 @@ describe('useDashboardSettings cache behavior', () => {
     expect(secondMount.result.current.settings.showQuickLookup).toBe(true);
     expect(secondMount.result.current.settings.showWorkspaceSummary).toBe(true);
     expect(secondMount.result.current.settings.showPinnedWorkstreams).toBe(true);
+    expect(secondMount.result.current.settings.showFocusQueue).toBe(true);
     secondMount.unmount();
   });
 
@@ -117,6 +116,25 @@ describe('useDashboardSettings cache behavior', () => {
 
     expect(mockedApi.get).not.toHaveBeenCalled();
     expect(mount.result.current.settings.showQuickLookup).toBe(false);
+    mount.unmount();
+  });
+
+  it('normalizes legacy insight settings into the new view-settings shape', async () => {
+    localStorage.setItem(
+      'dashboardSettings',
+      JSON.stringify({
+        showQuickLookup: false,
+        showEngagementChart: false,
+        showVolunteerWidget: false,
+      })
+    );
+
+    const mount = renderHook(() => useDashboardSettings());
+    await waitFor(() => expect(mount.result.current.isLoading).toBe(false));
+
+    expect(mount.result.current.settings.showQuickLookup).toBe(false);
+    expect(mount.result.current.settings.showInsightStrip).toBe(false);
+    expect(mount.result.current.settings.showFocusQueue).toBe(true);
     mount.unmount();
   });
 });

@@ -3,27 +3,18 @@
  * Thin orchestration shell for organization settings, users, groups, roles, and security.
  */
 
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { lazy, Suspense, useMemo, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useToast } from '../../../contexts/useToast';
 import { useApiError } from '../../../hooks/useApiError';
 import { useUnsavedChangesGuard } from '../../../hooks/useUnsavedChangesGuard';
 import { useBranding } from '../../../contexts/BrandingContext';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
-import AdminPanelLayout from '../components/AdminPanelLayout';
-import AdminPanelNav from '../components/AdminPanelNav';
 import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
-import {
-  getAdminSettingsPath,
-  parseAdminSettingsSection,
-  type AdminSettingsSection,
-} from '../adminRoutePaths';
-import {
-  adminSettingsTabGroups,
-  adminSettingsTabs,
-} from './adminSettings/constants';
+import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 import PortalOperationsCard from './adminSettings/components/PortalOperationsCard';
+import AdminSettingsSectionNav from './adminSettings/components/AdminSettingsSectionNav';
 import GroupEditorModal from './adminSettings/components/GroupEditorModal';
 import UserAccessModal from './adminSettings/components/UserAccessModal';
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
@@ -31,12 +22,17 @@ import InviteUserModal from './adminSettings/components/InviteUserModal';
 import RoleEditorModal from './adminSettings/components/RoleEditorModal';
 import ResetUserPasswordModal from './adminSettings/components/ResetUserPasswordModal';
 import ResetUserEmailModal from './adminSettings/components/ResetUserEmailModal';
+import { useAdminDashboardStatus } from './adminSettings/hooks/useAdminDashboardStatus';
+import { useAdminSettingsBootstrap } from './adminSettings/hooks/useAdminSettingsBootstrap';
+import { useAdminSettingsModalCoordinator } from './adminSettings/hooks/useAdminSettingsModalCoordinator';
 import { useOrganizationSettings } from './adminSettings/hooks/useOrganizationSettings';
+import {
+  getInitialAdminSettingsMode,
+  useAdminSettingsRouteState,
+} from './adminSettings/hooks/useAdminSettingsRouteState';
 import { useUsersSettings } from './adminSettings/hooks/useUsersSettings';
 import { useRolesSettings } from './adminSettings/hooks/useRolesSettings';
 import { buildRoleLabelMap, getRoleDisplayLabel } from './adminSettings/utils';
-
-const ADMIN_SETTINGS_MODE_KEY = 'admin_settings_mode_v1';
 
 const OrganizationSection = lazy(() => import('./adminSettings/sections/OrganizationSection'));
 const WorkspaceModulesSection = lazy(
@@ -62,8 +58,6 @@ const OutcomeDefinitionsSection = lazy(
 
 export default function AdminSettings() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { section: sectionParam } = useParams<{ section?: string }>();
   const { showSuccess } = useToast();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const {
@@ -73,22 +67,6 @@ export default function AdminSettings() {
   } = useApiError();
   const { setBranding: setGlobalBranding } = useBranding();
 
-  const persistedMode =
-    (typeof window !== 'undefined'
-      ? (window.localStorage.getItem(ADMIN_SETTINGS_MODE_KEY) as 'basic' | 'advanced' | null)
-      : null) || 'basic';
-  const activeSection = parseAdminSettingsSection(sectionParam) ?? 'dashboard';
-  const setActiveSection = (nextSection: AdminSettingsSection, options?: { replace?: boolean }) => {
-    navigate(
-      {
-        pathname: getAdminSettingsPath(nextSection),
-        search: location.search,
-      },
-      options
-    );
-  };
-
-  const [isLoading, setIsLoading] = useState(true);
   const {
     showAdvancedSettings,
     setShowAdvancedSettings,
@@ -116,7 +94,7 @@ export default function AdminSettings() {
     taxReceiptMissingFields,
     isTaxReceiptComplete,
   } = useOrganizationSettings({
-    initialMode: persistedMode,
+    initialMode: getInitialAdminSettingsMode(),
     setGlobalBranding,
   });
 
@@ -133,6 +111,20 @@ export default function AdminSettings() {
     handleSaveRole,
     handleDeleteRole,
   } = useRolesSettings(confirm);
+
+  const {
+    activeSection,
+    activeTab,
+    activeGroup,
+    visibleTabMap,
+    visibleTabGroups,
+    setActiveSection,
+    handleToggleAdvancedSettings,
+    handleTabKeyDown,
+  } = useAdminSettingsRouteState({
+    showAdvancedSettings,
+    setShowAdvancedSettings,
+  });
 
   const {
     userSearchQuery,
@@ -203,59 +195,19 @@ export default function AdminSettings() {
     clearFormError,
   });
 
+  const {
+    stats: dashboardStats,
+    cards: dashboardCards,
+    loading: dashboardLoading,
+    reload: reloadDashboard,
+  } = useAdminDashboardStatus();
+
   const iconInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const bootstrap = async () => {
-      try {
-        await Promise.all([loadOrganizationData(), loadRoles()]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void bootstrap();
-  }, [loadOrganizationData, loadRoles]);
-
-  useEffect(() => {
-    const sectionTab = adminSettingsTabs.find((tab) => tab.id === activeSection);
-    if (sectionTab?.level === 'advanced' && !showAdvancedSettings) {
-      setShowAdvancedSettings(true);
-    }
-  }, [activeSection, setShowAdvancedSettings, showAdvancedSettings]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(
-        ADMIN_SETTINGS_MODE_KEY,
-        showAdvancedSettings ? 'advanced' : 'basic'
-      );
-    }
-  }, [showAdvancedSettings]);
-
-  const { visibleTabIds, visibleTabMap, visibleTabGroups } = useMemo(() => {
-    const tabs = showAdvancedSettings
-      ? adminSettingsTabs
-      : adminSettingsTabs.filter((tab) => tab.level === 'basic');
-    const tabIds = tabs.map((tab) => tab.id);
-    const tabMap = new Map(tabs.map((tab) => [tab.id, tab]));
-    const tabGroups = adminSettingsTabGroups
-      .map((group) => ({
-        ...group,
-        tabs: group.tabs.filter((tabId) => tabMap.has(tabId)),
-      }))
-      .filter((group) => group.tabs.length > 0);
-
-    return {
-      visibleTabIds: tabIds,
-      visibleTabMap: tabMap,
-      visibleTabGroups: tabGroups,
-    };
-  }, [showAdvancedSettings]);
-
-  const activeTab = adminSettingsTabs.find((tab) => tab.id === activeSection) || adminSettingsTabs[0];
-  const activeGroup = adminSettingsTabGroups.find((group) => group.tabs.includes(activeSection));
+  const { isLoading } = useAdminSettingsBootstrap({
+    loadOrganizationData,
+    loadRoles,
+  });
   const roleOptions = useMemo(
     () =>
       roles.map((role) => ({
@@ -275,120 +227,58 @@ export default function AdminSettings() {
       (activeSection === 'branding' && isBrandingDirty));
 
   useUnsavedChangesGuard({ hasUnsavedChanges });
-
-  const handleToggleAdvancedSettings = () => {
-    if (showAdvancedSettings && activeTab.level === 'advanced') {
-      setActiveSection('dashboard');
-    }
-
-    setShowAdvancedSettings((prev) => !prev);
-  };
-
-  const focusTab = (tabId: AdminSettingsSection) => {
-    const tabNode = document.getElementById(`admin-settings-tab-${tabId}`);
-    if (tabNode instanceof HTMLElement) {
-      tabNode.focus();
-    }
-  };
-
-  const handleTabKeyDown = (
-    event: KeyboardEvent<HTMLButtonElement>,
-    tabId: AdminSettingsSection
-  ) => {
-    if (visibleTabIds.length === 0) {
-      return;
-    }
-
-    const currentIndex = visibleTabIds.indexOf(tabId);
-    if (currentIndex < 0) return;
-
-    let targetIndex = currentIndex;
-    if (event.key === 'ArrowRight') {
-      targetIndex = (currentIndex + 1) % visibleTabIds.length;
-    } else if (event.key === 'ArrowLeft') {
-      targetIndex = (currentIndex - 1 + visibleTabIds.length) % visibleTabIds.length;
-    } else if (event.key === 'Home') {
-      targetIndex = 0;
-    } else if (event.key === 'End') {
-      targetIndex = visibleTabIds.length - 1;
-    } else {
-      return;
-    }
-
-    event.preventDefault();
-    const targetTabId = visibleTabIds[targetIndex];
-    setActiveSection(targetTabId);
-    focusTab(targetTabId);
-  };
-
-  const handleCloseRoleModal = () => {
-    setShowRoleModal(false);
-    setEditingRole(null);
-  };
-
-  const handleCloseSecurityModal = () => {
-    setShowSecurityModal(false);
-    setSelectedUser(null);
-    setUserAuditLogPage(null);
-  };
-
-  const handleCloseAccessModal = () => {
-    setShowAccessModal(false);
-    setSelectedUser(null);
-    setUserAccessDraft({
-      groups: [],
-      organizationAccess: [],
-    });
-  };
-
-  const handleOpenResetEmail = () => {
-    if (!selectedUser) {
-      return;
-    }
-
-    setNewEmail(selectedUser.email);
-    setShowResetEmailModal(true);
-  };
-
-  const handleCloseResetPasswordModal = () => {
-    setShowResetPasswordModal(false);
-    setNewPassword('');
-    setConfirmPassword('');
-    clearFormError();
-  };
-
-  const handleCloseResetEmailModal = () => {
-    setShowResetEmailModal(false);
-    setNewEmail('');
-    clearFormError();
-  };
-
-  const handleCopyInviteLink = (value: string) => {
-    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-      void navigator.clipboard.writeText(value);
-    }
-
-    showSuccess('Invitation link copied');
-  };
+  const {
+    handleCloseRoleModal,
+    handleCloseSecurityModal,
+    handleCloseAccessModal,
+    handleOpenResetEmail,
+    handleCloseResetPasswordModal,
+    handleCloseResetEmailModal,
+    handleCopyInviteLink,
+  } = useAdminSettingsModalCoordinator({
+    selectedUser,
+    setSelectedUser,
+    setUserAuditLogPage,
+    setShowRoleModal,
+    setEditingRole,
+    setShowSecurityModal,
+    setShowAccessModal,
+    setUserAccessDraft,
+    setShowResetPasswordModal,
+    setNewPassword,
+    setConfirmPassword,
+    setShowResetEmailModal,
+    setNewEmail,
+    clearFormError,
+    showSuccess,
+  });
 
   if (isLoading) {
     return (
-      <AdminPanelLayout
-        title="Admin Settings"
-        description="Configure organization settings, branding, users, groups, roles, and security."
-        sidebar={<AdminPanelNav currentPath={location.pathname} />}
+      <AdminWorkspaceShell
+        title="Admin Hub"
+        description="Configure organization settings, access, delivery, governance, and adjacent admin workspaces from one system."
+        currentPath={location.pathname}
       >
         <div className="flex min-h-[240px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--loop-blue)]" />
         </div>
-      </AdminPanelLayout>
+      </AdminWorkspaceShell>
     );
   }
 
   const renderActiveSection = () => {
     switch (activeSection) {
       case 'dashboard':
-        return <DashboardSection onShowInvite={() => setShowInviteModal(true)} />;
+        return (
+          <DashboardSection
+            stats={dashboardStats}
+            cards={dashboardCards}
+            loading={dashboardLoading}
+            onShowInvite={() => setShowInviteModal(true)}
+            onRefresh={reloadDashboard}
+          />
+        );
       case 'organization':
         return (
           <OrganizationSection
@@ -493,96 +383,35 @@ export default function AdminSettings() {
       case 'other':
         return <OtherSettingsSection />;
       default:
-        return <DashboardSection onShowInvite={() => setShowInviteModal(true)} />;
+        return (
+          <DashboardSection
+            stats={dashboardStats}
+            cards={dashboardCards}
+            loading={dashboardLoading}
+            onShowInvite={() => setShowInviteModal(true)}
+            onRefresh={reloadDashboard}
+          />
+        );
     }
   };
 
   return (
-    <AdminPanelLayout
-      title="Admin Settings"
-      description="Configure organization settings, branding, users, groups, roles, and security."
-      badge={
-        <span className="border-2 border-[var(--app-border)] bg-[var(--loop-purple)] px-3 py-1 text-xs font-bold uppercase text-black">
-          Privileged Access
-        </span>
-      }
-      sidebar={<AdminPanelNav currentPath={location.pathname} />}
+    <AdminWorkspaceShell
+      title="Admin Hub"
+      description="Configure organization settings, access, delivery, governance, and adjacent admin workspaces from one coherent system."
+      currentPath={location.pathname}
     >
-      <div className="app-shell-surface-opaque sticky top-14 z-10 mb-4 border-b-2 border-[var(--app-border)] shadow-sm sm:top-16">
-        <div className="flex flex-col gap-3 py-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm text-[var(--app-text-muted)]">
-              Showing {showAdvancedSettings ? 'all sections' : 'basic sections'}.
-            </p>
-            <p className="text-sm text-[var(--app-text)]">
-              You are here: <span className="font-bold">{activeTab.label}</span>
-              {activeGroup ? (
-                <span className="text-[var(--app-text-muted)]">
-                  {' '}
-                  · {activeGroup.label}
-                </span>
-              ) : null}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleToggleAdvancedSettings}
-            className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-xs font-bold uppercase hover:bg-[var(--app-surface-muted)]"
-          >
-            {showAdvancedSettings ? 'Hide Advanced' : 'Show Advanced'}
-          </button>
-        </div>
-      </div>
-
-      <nav className="mb-6 space-y-4" role="tablist" aria-label="Admin settings sections">
-        {visibleTabGroups.map((group) => (
-          <section
-            key={group.id}
-            className="border-t border-[var(--app-border)] pt-3 first:border-t-0 first:pt-0"
-          >
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wide text-[var(--app-text)]">
-                  {group.label}
-                </h3>
-                <p className="text-xs text-[var(--app-text-muted)]">{group.description}</p>
-              </div>
-              <span className="text-xs font-bold uppercase tracking-wide text-[var(--app-text-muted)]">
-                {group.tabs.length} sections
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {group.tabs.map((tabId) => {
-                const tab = visibleTabMap.get(tabId);
-                if (!tab) {
-                  return null;
-                }
-
-                return (
-                  <button
-                    key={tab.id}
-                    id={`admin-settings-tab-${tab.id}`}
-                    type="button"
-                    onClick={() => setActiveSection(tab.id)}
-                    onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
-                    role="tab"
-                    aria-selected={activeSection === tab.id}
-                    aria-controls={`admin-settings-panel-${tab.id}`}
-                    tabIndex={activeSection === tab.id ? 0 : -1}
-                    className={`border-b-4 px-4 py-3 text-sm font-bold uppercase whitespace-nowrap transition-colors ${
-                      activeSection === tab.id
-                        ? 'border-[var(--loop-yellow)] bg-[var(--loop-yellow)] text-[var(--app-text)]'
-                        : 'border-transparent text-[var(--app-text-muted)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </nav>
+      <AdminSettingsSectionNav
+        activeSection={activeSection}
+        activeGroupLabel={activeGroup?.label}
+        showAdvancedSettings={showAdvancedSettings}
+        activeTabLabel={activeTab.label}
+        visibleTabGroups={visibleTabGroups}
+        visibleTabMap={visibleTabMap}
+        onSelectSection={setActiveSection}
+        onToggleAdvancedSettings={handleToggleAdvancedSettings}
+        onTabKeyDown={handleTabKeyDown}
+      />
 
       <AdminQuickActionsBar role="admin" />
       <PortalOperationsCard />
@@ -696,6 +525,6 @@ export default function AdminSettings() {
       />
 
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
-    </AdminPanelLayout>
+    </AdminWorkspaceShell>
   );
 }

@@ -1,6 +1,6 @@
 # Feature Matrix
 
-**Last Updated**: 2026-04-13
+**Last Updated:** 2026-04-16
 
 Master status of all features in nonprofit-manager.
 
@@ -13,6 +13,8 @@ This document provides a single view into:
 - What's currently in development
 - What's planned for future releases
 - Feature documentation and implementation status
+
+Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for the exact row-level status of active Phase 4 work. This matrix stays capability-oriented and intentionally less granular than the live workboard.
 
 For **quick status lookup**, see the status tables below.
 
@@ -95,7 +97,7 @@ For **detailed feature specifications**, see linked documentation files.
 | PDF Generation | 🟡 | Backend | Same | - | PDF export in progress |
 | Templates | ✅ | Backend | [TEMPLATE_SYSTEM.md](TEMPLATE_SYSTEM.md) | - | Pre-built report templates |
 | Scheduled Reports | ✅ | Backend/Frontend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | `backend/src/modules/scheduledReports/routes/index.ts` | Recurring delivery with run logs and run-now controls |
-| Analytics Dashboard | ✅ | Frontend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `frontend/src/features/neoBrutalist/pages/NeoBrutalistDashboardPage.tsx` | Real-time metrics and graphs |
+| Analytics Dashboard | ✅ | Frontend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `frontend/src/features/neoBrutalist/pages/NeoBrutalistDashboardPage.tsx` | Real-time metrics and graphs; route and layout follow-through remain active on the workboard |
 | Trend Analysis | 🟡 | Backend | [API_REFERENCE_EXPORT.md](../api/API_REFERENCE_EXPORT.md) | - | Historical trends in progress |
 | Outcomes Report | 🟡 | Backend/Frontend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/modules/reports/services/outcomesReportService.ts` | Outcome totals, unique clients, and time-series reporting |
 
@@ -110,9 +112,11 @@ For **detailed feature specifications**, see linked documentation files.
 
 ### Dashboard & Customization
 
+Use the workboard for the current dashboard and admin workspace refactor status. The matrix below describes the currently documented capability surface rather than every in-flight route or file move.
+
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **Customizable Dashboard** | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | `frontend/src/features/dashboard/pages/CustomDashboardPage.tsx` | User-configurable dashboard |
+| **Customizable Dashboard** | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | `frontend/src/features/dashboard/pages/CustomDashboardPage.tsx` | User-configurable dashboard; current workbench/dashboard refactor is tracked separately on the Phase 4 workboard |
 | Widget System | ✅ | Frontend | Same | - | Add/remove/configure widgets |
 | Multiple Dashboards | ✅ | Backend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `backend/src/modules/dashboard/routes/index.ts` | Save different dashboard configs |
 | Widget Types | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | - | Key metrics, charts, tables, etc. |
@@ -154,7 +158,7 @@ For **detailed feature specifications**, see linked documentation files.
 | Task Creation | 🟡 | Backend | Same | - | Create and assign tasks |
 | Due Dates & Priorities | 🟡 | Backend | Same | - | Task scheduling |
 | Status Tracking | 🟡 | Backend | Same | - | Track task progress |
-| Comments & Collaboration | 👻 | Backend | Same | - | Team discussion on tasks |
+| Comments & Collaboration | 📋 | Backend | Same | - | Team discussion on tasks |
 
 ### Telemetry & Privacy
 
@@ -173,8 +177,8 @@ For **detailed feature specifications**, see linked documentation files.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **User Roles** | ✅ | Backend | [agents.md](../../agents.md) | `backend/src/services/authGuardService.ts` | Admin, Manager, Coordinator, Volunteer, Donor |
-| **Permissions** | ✅ | Backend | [agents.md](../../agents.md) | Same | 45+ granular permissions |
+| **User Roles** | ✅ | Backend | [AGENTS.md](../../AGENTS.md) | `backend/src/services/authGuardService.ts` | Admin, Manager, Coordinator, Volunteer, Donor |
+| **Permissions** | ✅ | Backend | [AGENTS.md](../../AGENTS.md) | Same | 45+ granular permissions |
 | **Organization Access** | ✅ | Backend | Same | - | Multi-tenancy support |
 | Password Reset | ✅ | Backend | - | - | Secure password recovery |
 | Session Management | ✅ | Backend | - | - | JWT token management |
@@ -184,57 +188,16 @@ For **detailed feature specifications**, see linked documentation files.
 
 ---
 
-## Status Summary
+## Current Workboard Focus
 
-### Completion by Category
+As of 2026-04-16, the active Phase 4 workboard is centered on:
 
-```
-People & CRM:          ████████░░  8/10 features complete (80%)
-Volunteers:            █████████░  9/10 features complete (90%)
-Events:                ██████░░░░  6/10 features complete (60%)
-Financials:            ████████░░  8/10 features complete (80%)
-Reporting:             ████████░░  8/10 features complete (80%)
-Dashboard:             ██████████ 10/10 features complete (100%)
-Integrations:          ███████░░░  7/10 features complete (70%)
-Case Management:       █░░░░░░░░░  1/10 features complete (10%) 🟡 in progress
-Task Management:       █░░░░░░░░░  1/10 features complete (10%) 🟡 in progress
-Security:              ██████████ 10/10 features complete (100%)
-```
+- Security hardening follow-through around approval-gated registration, session/auth behavior, and API-key or webhook controls
+- Dashboard and admin workspace refactors across `/dashboard`, `/dashboard/custom`, and `/settings/admin/*`
+- Dark-mode accessibility remediation and route-audit closure
+- Setup, launch, and E2E stabilization for runtime-aware local and Playwright flows
 
-### Feature Status
-
-| Status | Count | |
-|--------|-------|---|
-| ✅ Complete | 64 | 75% of features |
-| 🟡 In Development | 14 | 16% of features |
-| 📋 Planned | 6 | 7% of features |
-| ⏸️ On Hold | 0 | - |
-| ❌ Deprecated | 1 | - |
-
----
-
-## What's Coming Next
-
-### Next Release (Phase 3+)
-
-**High Priority**:
-1. Case Management Workflow completion
-2. Task Management System launch
-3. PDF report export
-4. SMS integration
-5. Advanced automation rules
-
-**Medium Priority**:
-1. Bulk data operations
-2. Trend analysis improvements
-3. Recognition/gamification
-4. Scheduled reports
-5. Advanced matching algorithms
-
-**Lower Priority**:
-1. Additional CRM integrations
-2. Mobile app
-3. Advanced analytics
+Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for the authoritative owner, blocker, and next-step details.
 
 ---
 
@@ -288,4 +251,3 @@ For detailed specifications, use this navigation:
 - [../../CONTRIBUTING.md](../../CONTRIBUTING.md) — How to start contributing
 - [../product/product-spec.md](../product/product-spec.md) — Product requirements and vision
 - [../phases/planning-and-progress.md](../phases/planning-and-progress.md) — Current work in progress
-- [../../CONTRIBUTING.md](../../CONTRIBUTING.md) — Contribution guidelines

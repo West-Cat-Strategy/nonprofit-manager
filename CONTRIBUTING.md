@@ -1,8 +1,8 @@
 # Contributing to Nonprofit Manager
 
-**Last Updated:** 2026-04-14
+**Last Updated:** 2026-04-16
 
-Use this guide when you are contributing code, documentation, validation, or release support to Nonprofit Manager. The root [README.md](README.md) is the product overview; this file is the contributor and developer workflow guide.
+Use this guide when you are contributing code, documentation, validation, or release support to Nonprofit Manager. Treat this file as the contributor entry point. The root [README.md](README.md) is the product overview and contributor handoff; this file is the contributor and developer workflow guide.
 
 ## Start Here
 

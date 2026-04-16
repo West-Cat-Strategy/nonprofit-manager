@@ -159,7 +159,7 @@ describe('Admin Email Settings API', () => {
       });
 
     expect(response.status).toBe(200);
-    const payload = response.body.data?.data ?? response.body.data;
+    const payload = response.body.data?.settings ?? response.body.data?.data ?? response.body.data;
     expect(payload).toMatchObject({
       smtpHost: null,
       smtpUser: null,

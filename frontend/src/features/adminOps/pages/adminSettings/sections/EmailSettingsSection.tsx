@@ -4,32 +4,18 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import api from '../../../../../services/api';
 import { useToast } from '../../../../../contexts/useToast';
 import { useUnsavedChangesGuard } from '../../../../../hooks/useUnsavedChangesGuard';
 import { formatApiErrorMessage } from '../../../../../utils/apiError';
+import type { AdminEmailSettings, EmailSettingsBundle } from '../../../contracts';
+import {
+  getEmailSettingsBundle,
+  testEmailSettings,
+  updateEmailSettings,
+} from '../../../api/adminHubApiClient';
 
-interface EmailSettings {
-  id: string;
-  smtpHost: string | null;
-  smtpPort: number;
-  smtpSecure: boolean;
-  smtpUser: string | null;
-  smtpFromAddress: string | null;
-  smtpFromName: string | null;
-  imapHost: string | null;
-  imapPort: number;
-  imapSecure: boolean;
-  imapUser: string | null;
-  isConfigured: boolean;
-  lastTestedAt: string | null;
-  lastTestSuccess: boolean | null;
-}
-
-interface Credentials {
-  smtp: boolean;
-  imap: boolean;
-}
+type EmailSettings = AdminEmailSettings;
+type Credentials = EmailSettingsBundle['credentials'];
 
 const EMAIL_SETTINGS_CACHE_KEY = 'admin_email_settings_cache_v1';
 const EMAIL_SETTINGS_CACHE_TTL_MS = 2 * 60 * 1000;
@@ -191,10 +177,8 @@ export default function EmailSettingsSection() {
       if (!background) {
         setLoading(true);
       }
-      const { data } = await api.get<{ data: EmailSettings; credentials: Credentials }>(
-        '/admin/email-settings'
-      );
-      const s = data.data;
+      const data = await getEmailSettingsBundle();
+      const s = data.settings;
       if (s) {
         hydrateDraftFromServer(s, data.credentials);
         cacheSettings(s, data.credentials);
@@ -212,10 +196,8 @@ export default function EmailSettingsSection() {
 
   const refreshMetadata = useCallback(async () => {
     try {
-      const { data } = await api.get<{ data: EmailSettings; credentials: Credentials }>(
-        '/admin/email-settings'
-      );
-      const s = data.data;
+      const data = await getEmailSettingsBundle();
+      const s = data.settings;
       if (s) {
         syncServerMetadata(s, data.credentials);
         cacheSettings(s, data.credentials);
@@ -291,7 +273,7 @@ export default function EmailSettingsSection() {
       if (normalizedSmtpPass) payload.smtpPass = normalizedSmtpPass;
       if (normalizedImapPass) payload.imapPass = normalizedImapPass;
 
-      await api.put('/admin/email-settings', payload);
+      await updateEmailSettings(payload);
       showSuccess('Email settings saved');
       setSmtpPass('');
       setImapPass('');
@@ -308,13 +290,11 @@ export default function EmailSettingsSection() {
   const handleTestConnection = async () => {
     setTesting(true);
     try {
-      const { data } = await api.post<{ data: { success: boolean; error?: string }; message: string }>(
-        '/admin/email-settings/test'
-      );
-      if (data.data.success) {
+      const data = await testEmailSettings();
+      if (data.result.success) {
         showSuccess('SMTP connection successful!');
       } else {
-        showError(`SMTP test failed: ${data.data.error || 'Unknown error'}`);
+        showError(`SMTP test failed: ${data.result.error || 'Unknown error'}`);
       }
       await fetchSettings();
     } catch {

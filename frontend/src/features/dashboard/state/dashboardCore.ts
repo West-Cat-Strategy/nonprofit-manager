@@ -188,8 +188,14 @@ const dashboardSlice = createSlice({
       .addCase(fetchDashboards.fulfilled, (state, action) => {
         state.loading = false;
         state.dashboards = action.payload;
-        // Set the default dashboard as current if no current dashboard
-        if (!state.currentDashboard) {
+        const refreshedCurrentDashboard = state.currentDashboard
+          ? action.payload.find((dashboard) => dashboard.id === state.currentDashboard?.id)
+          : null;
+
+        if (refreshedCurrentDashboard) {
+          state.currentDashboard = refreshedCurrentDashboard;
+        } else if (!state.currentDashboard) {
+          // Set the default dashboard as current if no current dashboard
           const defaultDashboard = action.payload.find((d) => d.is_default);
           if (defaultDashboard) {
             state.currentDashboard = defaultDashboard;

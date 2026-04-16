@@ -25,8 +25,8 @@ import type {
   CreateCampaignRequest,
 } from '../../../types/mailchimp';
 import type { Contact } from '../../../features/contacts/state';
-import AdminPanelLayout from '../components/AdminPanelLayout';
-import AdminPanelNav from '../components/AdminPanelNav';
+import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
+import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 import {
   CampaignCard,
   CampaignCreateModal,
@@ -41,9 +41,7 @@ import EmailSettingsSection from './adminSettings/sections/EmailSettingsSection'
 export default function EmailMarketing() {
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const pageTitle = location.pathname.includes('email-marketing')
-    ? 'Email Marketing'
-    : 'Communications';
+  const pageTitle = 'Newsletter Campaigns';
   const {
     status,
     lists,
@@ -172,11 +170,12 @@ export default function EmailMarketing() {
   // Not configured state
   if (status && !status.configured) {
     return (
-      <AdminPanelLayout
+      <AdminWorkspaceShell
         title={pageTitle}
-        description="Manage newsletter audiences, campaign sync, and transactional email."
-        sidebar={<AdminPanelNav currentPath={location.pathname} />}
+        description="Manage newsletter audiences, campaign sync, and the shared email delivery stack from one admin workspace."
+        currentPath={location.pathname}
       >
+        <AdminQuickActionsBar role="admin" />
         <div className="bg-app-accent-soft border border-app-border rounded-lg p-6">
           <div className="flex items-start gap-4">
             <svg
@@ -197,7 +196,7 @@ export default function EmailMarketing() {
                 Newsletter provider not configured
               </h2>
               <p className="mt-2 text-sm text-app-accent-text">
-                To use the communications hub, please configure a newsletter provider before sending
+                To use the newsletter campaigns workspace, configure a provider before sending
                 campaigns or syncing contacts:
               </p>
               <ul className="mt-3 text-sm text-app-accent-text list-disc list-inside space-y-1">
@@ -224,16 +223,17 @@ export default function EmailMarketing() {
             </div>
           </div>
         </div>
-      </AdminPanelLayout>
+      </AdminWorkspaceShell>
     );
   }
 
   return (
-    <AdminPanelLayout
+    <AdminWorkspaceShell
       title={pageTitle}
-      description="Manage newsletter audiences, campaign sync, and transactional email."
-      sidebar={<AdminPanelNav currentPath={location.pathname} />}
+      description="Manage newsletter audiences, campaign sync, and the shared email delivery stack from one admin workspace."
+      currentPath={location.pathname}
     >
+      <AdminQuickActionsBar role="admin" />
       <div className="space-y-8">
         {/* Error display */}
         {error && (
@@ -418,10 +418,10 @@ export default function EmailMarketing() {
 
         <div className="space-y-4">
           <div className="rounded-lg border border-app-border bg-app-surface p-4">
-            <h2 className="text-lg font-medium text-app-text-heading">Transactional Email</h2>
+            <h2 className="text-lg font-medium text-app-text-heading">Email Delivery</h2>
             <p className="mt-1 text-sm text-app-text-muted">
-              Keep the outbound mail configuration in the same communications hub as your newsletter
-              provider.
+              Keep transactional email settings aligned with the newsletter workspace so delivery
+              readiness stays visible in one system.
             </p>
           </div>
           <EmailSettingsSection />
@@ -510,6 +510,6 @@ export default function EmailMarketing() {
           />
         )}
       </div>
-    </AdminPanelLayout>
+    </AdminWorkspaceShell>
   );
 }

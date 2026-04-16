@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../services/api';
-import { defaultDashboardSettings } from '../components/dashboard';
-import type { DashboardSettings } from '../components/dashboard';
+import {
+  defaultDashboardSettings,
+  normalizeDashboardSettings,
+  type DashboardSettings,
+} from '../features/dashboard/types/viewSettings';
 import { useAppSelector } from '../store/hooks';
 import { getUserPreferencesCached, mergeUserPreferencesCached } from '../services/userPreferencesService';
 import { clearStaffBootstrapSnapshot } from '../services/bootstrap/staffBootstrap';
@@ -18,15 +21,6 @@ type DashboardSettingsSnapshot = {
 
 let dashboardSettingsSnapshot: DashboardSettingsSnapshot | null = null;
 let dashboardSettingsInFlight: Promise<DashboardSettings | null> | null = null;
-
-const normalizeDashboardSettings = (settings: Partial<DashboardSettings> | null | undefined): DashboardSettings => ({
-  ...defaultDashboardSettings,
-  ...(settings || {}),
-  kpis: {
-    ...defaultDashboardSettings.kpis,
-    ...(settings?.kpis || {}),
-  },
-});
 
 const getFreshDashboardSettingsSnapshot = (): DashboardSettings | null => {
   if (!dashboardSettingsSnapshot) {

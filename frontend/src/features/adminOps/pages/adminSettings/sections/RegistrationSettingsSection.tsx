@@ -1,32 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../../../../../services/api';
 import { useToast } from '../../../../../contexts/useToast';
 import type { RoleSelectorItem } from '../types';
 import { getRoleDisplayLabel } from '../utils';
+import type { PendingRegistration } from '../../../contracts';
+import {
+  approvePendingRegistration,
+  getRegistrationSettings,
+  listPendingRegistrations,
+  rejectPendingRegistration,
+  updateRegistrationSettings,
+  type RegistrationMode,
+  type RegistrationSettings,
+} from '../../../api/adminHubApiClient';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-type RegistrationMode = 'disabled' | 'approval_required';
-
-interface RegistrationSettings {
-  id: string;
-  registrationMode: RegistrationMode;
-  defaultRole: string;
-}
-
-interface PendingRegistration {
-  id: string;
-  email: string;
-  firstName: string | null;
-  lastName: string | null;
-  status: 'pending' | 'approved' | 'rejected';
-  reviewedAt: string | null;
-  rejectionReason: string | null;
-  createdAt: string;
-  hasStagedPasskeys?: boolean;
-}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -55,8 +44,8 @@ export default function RegistrationSettingsSection({
 
   const fetchSettings = useCallback(async () => {
     try {
-      const response = await api.get('/admin/registration-settings');
-      setSettings(response.data);
+      const response = await getRegistrationSettings();
+      setSettings(response);
     } catch {
       // ignore — will show loading/empty state
     }
@@ -64,8 +53,8 @@ export default function RegistrationSettingsSection({
 
   const fetchPending = useCallback(async () => {
     try {
-      const response = await api.get('/admin/pending-registrations?status=pending');
-      setPendingRegistrations(response.data.data ?? []);
+      const response = await listPendingRegistrations('pending');
+      setPendingRegistrations(response.items);
     } catch {
       // ignore
     }
@@ -84,11 +73,11 @@ export default function RegistrationSettingsSection({
     setSaving(true);
     setSaveStatus('idle');
     try {
-      const response = await api.put('/admin/registration-settings', {
+      const response = await updateRegistrationSettings({
         registrationMode: mode,
         defaultRole: settings.defaultRole,
       });
-      setSettings(response.data);
+      setSettings(response);
       setSaveStatus('success');
       pushToast({ message: 'Registration mode updated', variant: 'success' });
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -105,11 +94,11 @@ export default function RegistrationSettingsSection({
     setSaving(true);
     setSaveStatus('idle');
     try {
-      const response = await api.put('/admin/registration-settings', {
+      const response = await updateRegistrationSettings({
         registrationMode: settings.registrationMode,
         defaultRole: role,
       });
-      setSettings(response.data);
+      setSettings(response);
       setSaveStatus('success');
       pushToast({ message: 'Default role updated', variant: 'success' });
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -124,7 +113,7 @@ export default function RegistrationSettingsSection({
   const handleApprove = async (id: string, name: string) => {
     setActionLoading(id);
     try {
-      await api.post(`/admin/pending-registrations/${id}/approve`);
+      await approvePendingRegistration(id);
       setPendingRegistrations((prev) => prev.filter((r) => r.id !== id));
       pushToast({ message: `Approved registration for ${name}`, variant: 'success' });
     } catch (err: unknown) {
@@ -139,9 +128,7 @@ export default function RegistrationSettingsSection({
   const handleReject = async (id: string, name: string) => {
     setActionLoading(id);
     try {
-      await api.post(`/admin/pending-registrations/${id}/reject`, {
-        reason: rejectionReason || undefined,
-      });
+      await rejectPendingRegistration(id, rejectionReason || undefined);
       setPendingRegistrations((prev) => prev.filter((r) => r.id !== id));
       pushToast({ message: `Rejected registration for ${name}`, variant: 'info' });
       setRejectingId(null);

@@ -1,459 +1,95 @@
 # API Documentation Index
 
-**Last Updated**: 2026-04-13
+**Last Updated:** 2026-04-16
 
-Master index for all nonprofit-manager API endpoints and integration documentation.
-
----
-
-## Table of Contents
-
-- [Quick Navigation](#quick-navigation)
-- [API Reference by Feature](#api-reference-by-feature)
-- [Integration Guides](#integration-guides)
-- [Testing & Tools](#testing--tools)
-- [API Status & Versioning](#api-status--versioning)
-
----
+Use this file as the entry point for active Nonprofit Manager API documentation. When route summaries need confirmation, verify them against [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) and the mounted module route files under `backend/src/modules/**/routes/`.
 
 ## Quick Navigation
 
-Looking for a specific endpoint? Use this table:
+| Area | Scope | Source Docs | Representative Paths |
+|---|---|---|---|
+| Authentication & Session | Staff auth, portal auth, bootstrap, preferences | [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#authentication), [openapi.yaml](openapi.yaml) | `/api/v2/auth/*`, `/api/v2/portal/auth/*` |
+| Dashboard & Alerts | Dashboard configs, alert configs, alert instances, stats | [API_REFERENCE_DASHBOARD_ALERTS.md](API_REFERENCE_DASHBOARD_ALERTS.md) | `/api/v2/dashboard/configs*`, `/api/v2/alerts/configs*` |
+| Events | Staff events, registrations, reminders, public events | [API_REFERENCE_EVENTS.md](API_REFERENCE_EVENTS.md) | `/api/v2/events/*`, `/api/v2/public/events/*` |
+| Portal Appointments | Portal booking plus admin reminder/check-in flows | [API_REFERENCE_PORTAL_APPOINTMENTS.md](API_REFERENCE_PORTAL_APPOINTMENTS.md) | `/api/v2/portal/appointments*`, `/api/v2/portal/admin/appointments*` |
+| Administration | Branding, organization settings, roles, permissions, groups, access, registration settings | [openapi.yaml](openapi.yaml) | `/api/v2/admin/*` |
+| Reporting & Exports | Report generation, async export jobs, templates, analytics exports | [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md), [../features/REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md) | `/api/v2/reports/*`, `/api/v2/export/*` |
+| Analytics | Summary, account/contact metrics, trend analysis, anomalies | [openapi.yaml](openapi.yaml) | `/api/v2/analytics/*` |
+| Payments & Integrations | Payments, reconciliation, Mailchimp, webhooks | [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md) | `/api/v2/payments/*`, `/api/v2/mailchimp/*`, `/api/v2/webhooks/*` |
+| Backup | Admin-triggered backup export | [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md) | `/api/v2/backup/export` |
+| Tooling | Machine-readable schema and Postman workflow | [openapi.yaml](openapi.yaml), [postman/README.md](postman/README.md) | n/a |
 
-| Feature Area | What's Documented | Read This |
-|---|---|---|
-| **Dashboard & Alerts** | Dashboard config, alert management | [API_REFERENCE_DASHBOARD_ALERTS.md](API_REFERENCE_DASHBOARD_ALERTS.md) |
-| **Events** | Event CRUD, registrations, management | [API_REFERENCE_EVENTS.md](API_REFERENCE_EVENTS.md) |
-| **Portal Appointments** | Portal appointment booking + admin inbox/reminders/check-in | [API_REFERENCE_PORTAL_APPOINTMENTS.md](API_REFERENCE_PORTAL_APPOINTMENTS.md) |
-| **Administration** | Branding, organization settings, registration, roles, email, Twilio | [openapi.yaml](openapi.yaml) |
-| **Reporting & Export** | Report generation, CSV/Excel export, analytics | [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md) |
-| **Backup & Restore** | Database backup, restore, data recovery | [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md) |
-| **Payments & Integrations** | Stripe integration, Mailchimp sync, webhooks | [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md) |
-| **OpenAPI Spec** | Machine-readable API definition | [openapi.yaml](openapi.yaml) |
-| **Postman** | Interactive API testing | [postman/README.md](postman/README.md) |
+## Mounted `/api/v2` Summary
 
----
+These route families are mounted by the active v2 registrar:
 
-## API Reference by Feature
+- Auth and portal auth: `/api/v2/auth/*`, `/api/v2/portal/auth/*`
+- Admin: `/api/v2/admin/*`
+- Dashboard: `/api/v2/dashboard/configs`, `/api/v2/dashboard/configs/default`, `/api/v2/dashboard/configs/:id`, `/api/v2/dashboard/configs/:id/layout`
+- Alerts: `/api/v2/alerts/configs*`, `/api/v2/alerts/instances*`, `/api/v2/alerts/stats`, `/api/v2/alerts/test`
+- Events: `/api/v2/events/*`, `/api/v2/public/events/*`
+- Reports: `/api/v2/reports/generate`, `/api/v2/reports/outcomes`, `/api/v2/reports/workflow-coverage`, `/api/v2/reports/fields/:entity`, `/api/v2/reports/export`, `/api/v2/reports/exports*`, `/api/v2/reports/templates*`
+- Analytics: `/api/v2/analytics/summary`, `/api/v2/analytics/accounts/:id/*`, `/api/v2/analytics/contacts/:id/*`, `/api/v2/analytics/trends/*`, `/api/v2/analytics/comparative`, `/api/v2/analytics/anomalies/:metricType`
+- Export helpers: `/api/v2/export/analytics-summary`, `/api/v2/export/donations`, `/api/v2/export/volunteer-hours`, `/api/v2/export/events`, `/api/v2/export/comprehensive`
+- Payments: `/api/v2/payments/config`, `/api/v2/payments/intents*`, `/api/v2/payments/refunds`, `/api/v2/payments/customers*`, `/api/v2/payments/webhook`
+- Backup: `/api/v2/backup/export`
+- Integrations and providers: `/api/v2/mailchimp/*`, `/api/v2/webhooks/*`, `/api/v2/reconciliation/*`, `/api/v2/external-service-providers/*`
 
-### Core Features
+Use the feature-specific docs for request and response details. This file is the navigation layer, not the full endpoint reference.
 
-#### Dashboard & Alerts
+## Base URLs And Auth
 
-Complete API for dashboard customization and alert configuration.
+- Primary direct-backend base URL: `http://localhost:3000/api/v2`
+- Docker dev alternative: `http://localhost:8004/api/v2`
+- Browser proxy alternative: `/api/v2` when using the Docker dev frontend at `http://localhost:8005`
+- Legacy application endpoints outside `/api/v2/*` are retired except for the documented health aliases and explicit compatibility/tombstone flows
 
-- **File**: [API_REFERENCE_DASHBOARD_ALERTS.md](API_REFERENCE_DASHBOARD_ALERTS.md)
-- **Endpoints**:
-  - `GET /api/v2/dashboards` — List user dashboards
-  - `POST /api/v2/dashboards` — Create new dashboard
-  - `PUT /api/v2/dashboards/:id` — Update dashboard configuration
-  - `DELETE /api/v2/dashboards/:id` — Delete dashboard
-  - `GET /api/v2/alerts` — List configured alerts  
-  - `POST /api/v2/alerts` — Create alert rule
-  - `PUT /api/v2/alerts/:id` — Update alert configuration
-- **Example Use Cases**:
-  - User creating custom dashboard with widgets
-  - Setting up fundraising goal alerts
-  - Configuring email notifications
+Authentication expectations:
 
-#### Events
+- Direct API clients typically use `Authorization: Bearer <JWT_TOKEN>`
+- Staff browser shells bootstrap through `GET /api/v2/auth/bootstrap`
+- Portal browser shells bootstrap through `GET /api/v2/portal/auth/bootstrap`
 
-Event management endpoints for creating, updating, and managing events.
+See [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#authentication) for auth flow details.
 
-- **File**: [API_REFERENCE_EVENTS.md](API_REFERENCE_EVENTS.md)
-- **Endpoints**:
-  - `GET /api/v2/events` — List all events
-  - `GET /api/v2/events/:id` — Get event details
-  - `POST /api/v2/events` — Create new event
-  - `PUT /api/v2/events/:id` — Update event
-  - `DELETE /api/v2/events/:id` — Delete event
-  - `POST /api/v2/events/:id/register` — Register attendee
-  - `POST /api/v2/events/:id/check-in/scan` — QR scan check-in
-  - `GET /api/v2/events/:id/registrations` — List registrations
-- **Example Use Cases**:
-  - Creating a volunteer orientation event
-  - Updating event date and location
-  - Exporting attendee list
-  - Managing registrations and check-ins
+## Response Format
 
-#### Portal Appointments
+Active API docs should assume the canonical envelope shapes:
 
-Portal and admin operations for appointments, reminders, and check-in.
+**Success**
 
-- **File**: [API_REFERENCE_PORTAL_APPOINTMENTS.md](API_REFERENCE_PORTAL_APPOINTMENTS.md)
-- **Endpoints**:
-  - `GET /api/v2/portal/appointments` — Portal user appointment list
-  - `POST /api/v2/portal/appointments/slots/:slotId/book` — Book a slot
-  - `POST /api/v2/portal/appointments/requests` — Manual appointment request
-  - `GET /api/v2/portal/admin/appointments` — Admin appointment inbox
-  - `GET /api/v2/portal/admin/appointments/:id/reminders` — Reminder jobs/history
-  - `POST /api/v2/portal/admin/appointments/:id/reminders/send` — Manual reminder send
-  - `POST /api/v2/portal/admin/appointments/:id/check-in` — Admin appointment check-in
-
-#### Administration
-
-Admin settings endpoints for branding, organization settings, registration controls, roles, permissions, email, and Twilio.
-
-- **File**: [openapi.yaml](openapi.yaml)
-- **Endpoints**:
-  - `GET /api/v2/admin/branding` — Get branding configuration
-  - `PUT /api/v2/admin/branding` — Update branding configuration
-  - `GET /api/v2/admin/organization-settings` — Get organization settings
-  - `PUT /api/v2/admin/organization-settings` — Update organization settings
-  - `GET /api/v2/admin/registration-settings` — Get registration settings
-  - `PUT /api/v2/admin/registration-settings` — Update registration settings
-  - `GET /api/v2/admin/roles` and `GET /api/v2/admin/permissions` — Catalog role/permission data
-  - `POST /api/v2/admin/roles` — Create a role
-  - `GET /api/v2/admin/email-settings` / `PUT /api/v2/admin/email-settings` / `POST /api/v2/admin/email-settings/test`
-  - `GET /api/v2/admin/twilio-settings` / `PUT /api/v2/admin/twilio-settings` / `POST /api/v2/admin/twilio-settings/test`
-
-#### Reporting & Analytics
-
-Generate reports, export data to CSV/Excel, and analyze trends.
-
-- **File**: [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md)
-- **Endpoints**:
-  - `GET /api/v2/reports` — List available reports
-  - `POST /api/v2/reports/generate` — Generate custom report
-  - `GET /api/v2/reports/:id/export` — Export report as CSV/Excel
-  - `GET /api/v2/analytics/trends` — Get trend data
-  - `GET /api/v2/analytics/metrics` — Get key metrics
-- **Export Formats**: CSV, Excel (.xlsx), PDF
-- **Example Use Cases**:
-  - Annual impact report generation
-  - Donor analytics export
-  - Volunteer hour tracking
-  - Board meeting presentations
-
-#### Backup & Restore
-
-Database backup and recovery procedures.
-
-- **File**: [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md)
-- **Endpoints**:
-  - `POST /api/v2/backup` — Create database backup
-  - `GET /api/v2/backup/status` — Check backup status
-  - `POST /api/v2/restore` — Restore from backup
-  - `GET /api/v2/backup/list` — List available backups
-- **Example Use Cases**:
-  - Daily automated backups
-  - Disaster recovery
-  - Data migration between environments
-
----
-
-## Integration Guides
-
-### Third-Party Integrations
-
-#### Payment Processing (Stripe)
-
-Complete guide to payment integration, reconciliation, and webhook handling.
-
-- **File**: [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#stripe-integration)
-- **Includes**:
-  - Payment flow walkthrough
-  - Webhook setup and validation
-  - Reconciliation procedures
-  - Testing with Stripe test cards
-  - Error handling and retries
-- **Example Use Cases**:
-  - Processing recurring donor subscriptions
-  - One-time donation checkout
-  - Refund processing
-  - Payment verification
-
-#### Email Marketing (Mailchimp)
-
-Mailchimp sync and mailing list management.
-
-- **File**: [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#mailchimp-integration)
-- **Includes**:
-  - List sync procedures
-  - Segment management
-  - Campaign integration
-  - Contact synchronization
-- **Example Use Cases**:
-  - Syncing donor list to Mailchimp
-  - Creating event attendee segments
-  - Automated campaign triggers
-
-#### Webhooks
-
-External service webhooks and event delivery.
-
-- **File**: [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#webhook-system)
-- **Includes**:
-  - Webhook registration and validation
-  - Event types and payloads
-  - Retry logic and failure handling
-  - Security (HMAC signatures)
-  - Testing webhook deliveries
-- **Supported Events**:
-  - Donation received
-  - Volunteer sign-up
-  - Event registration
-  - Organization updates
-- **Example Use Cases**:
-  - Notify external CRM of new donation
-  - Trigger Slack notification on volunteer signup
-  - Send webhook to custom analytics platform
-
----
-
-## Testing & Tools
-
-### OpenAPI Specification
-
-Machine-readable API definition for code generation, documentation, and testing tools.
-
-- **File**: [openapi.yaml](openapi.yaml)
-- **Use For**:
-  - Auto-generating API client libraries
-  - IDE/editor documentation and autocomplete
-  - API documentation portals
-  - Automated testing tools
-  - API schema validation
-
-**To use OpenAPI spec**:
-1. Import into [Swagger UI](https://swagger.io/tools/swagger-ui/) online editor
-2. Generate client code with [OpenAPI Generator](https://openapi-generator.tech/)
-3. Validate requests against spec
-
-### Postman Collections
-
-Interactive API testing with pre-built requests and examples.
-
-- **File**: [postman/README.md](postman/README.md)
-- **Includes**:
-  - Pre-built request examples
-  - Environment variables for different deployments
-  - Authentication setup
-  - Collection variables and scripts
-- **Download**: See [postman/README.md](postman/README.md) for download link
-
-**To use Postman**:
-1. Import collection into Postman desktop app
-2. Configure environment (local/dev/staging/production)
-3. Click request to see example payloads and try endpoint
-4. Modify parameters and send request
-
-### cURL Examples
-
-All endpoint documentation includes `curl` command examples.
-
-Example:
-
-```bash
-curl -X GET http://localhost:3000/api/v2/events \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-You can copy-paste these examples directly into your terminal.
-
----
-
-## API Status & Versioning
-
-### Current API Version
-
-- **Versioning Mode**: v2-only (`/api/v2/*`)
-- **Primary Base URL**: `http://localhost:3000/api/v2`
-- **Docker Dev Alternative**: `http://localhost:8004/api/v2`
-- **Browser Proxy Alternative**: `/api/v2` when using the Docker dev frontend at `http://localhost:8005`
-- **Status**: Legacy `/api/*` endpoints are removed and return `410 Gone` with migration guidance.
-
-### Authentication
-
-Most examples in this index use:
-
-```
-Authorization: Bearer <JWT_TOKEN>
-```
-
-Browser shells should bootstrap through `GET /auth/bootstrap` or `GET /portal/auth/bootstrap` and then rely on the session cookie. Bearer tokens remain supported for API/test clients where the endpoint docs say so.
-
-See [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#authentication) for auth details.
-
-### Response Format
-
-All endpoints follow standardized response format:
-
-**Success (2xx)**:
 ```json
 {
   "success": true,
-  "data": { /* response object */ }
+  "data": {}
 }
 ```
 
-**Error (4xx/5xx)**:
+**Error**
+
 ```json
 {
   "success": false,
   "error": {
     "code": "ERROR_CODE",
-    "message": "Human-readable error description",
-    "details": { /* field-specific errors */ }
+    "message": "Human-readable error description"
   }
 }
 ```
+Additional `details` or validation-specific fields may appear on some error responses where the endpoint docs call them out explicitly.
 
----
+## Tooling
 
-## Getting Started
+- [openapi.yaml](openapi.yaml) is the machine-readable schema for editor tooling, code generation, and schema-aware validation.
+- [postman/README.md](postman/README.md) explains the bundled Postman collection and environment files.
+- Most endpoint docs include direct-backend `curl` examples against `http://localhost:3000/api/v2`; adjust the host when you are using Docker dev or another runtime.
 
-### First-Time API User?
+## Related Docs
 
-1. **Understand authentication**: See [Postman Collections](#postman-collections) for setup
-2. **Try an example**: Pick an endpoint from above table
-3. **Use Postman**: Import collection, modify parameters, hit "Send"
-4. **Or use cURL**: Copy example from endpoint documentation
-
-### Building an Integration?
-
-1. **Understand the webhook flow**: See [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#webhook-system)
-2. **Test with Postman first**: Verify endpoint works as expected
-3. **Read integration guide**: See [Integration Guides](#integration-guides) section
-4. **Handle errors gracefully**: Implement retries and error logging
-
-### Need to Export Data?
-
-1. See [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md) for export endpoints
-2. Use Postman to test export (shows response)
-3. Integrate into your workflow
-
----
-
-## Common Tasks
-
-**"I want to..."**
-
-- **...integrate Stripe payments** → [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#stripe-integration)
-- **...sync contacts with Mailchimp** → [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#mailchimp-integration)
-- **...set up webhooks to external service** → [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md#webhook-system)
-- **...test an endpoint quickly** → Use [postman/README.md](postman/README.md) collection
-- **...generate a report** → [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md)
-- **...export data as CSV/Excel** → [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md)
-- **...create a custom dashboard** → [API_REFERENCE_DASHBOARD_ALERTS.md](API_REFERENCE_DASHBOARD_ALERTS.md)
-- **...manage events and registrations** → [API_REFERENCE_EVENTS.md](API_REFERENCE_EVENTS.md)
-- **...restore from backup** → [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md)
-
----
-
-## API Client Libraries
-
-### JavaScript/TypeScript
-
-Use Axios to call the API:
-
-```typescript
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: 'http://localhost:3000/api/v2',
-  headers: {
-    Authorization: `Bearer ${token}`
-  }
-});
-
-// GET request
-const events = await api.get('/events');
-
-// POST request
-const newEvent = await api.post('/events', {
-  name: 'Volunteer Orientation',
-  date: '2026-03-15'
-});
-```
-
-### Python
-
-Using requests library:
-
-```python
-import requests
-
-api_url = 'http://localhost:3000/api/v2'
-headers = {'Authorization': f'Bearer {token}'}
-
-# GET request
-response = requests.get(f'{api_url}/events', headers=headers)
-events = response.json()
-
-# POST request
-response = requests.post(
-  f'{api_url}/events',
-  headers=headers,
-  json={'name': 'Volunteer Orientation', 'date': '2026-03-15'}
-)
-```
-
-### Generate Client Library
-
-Use [OpenAPI Generator](https://openapi-generator.tech/) to auto-generate clients:
-
-```bash
-# Generate TypeScript client
-openapi-generator-cli generate \
-  -i openapi.yaml \
-  -g typescript-axios \
-  -o ./generated-client
-```
-
----
-
-## Troubleshooting
-
-### "401 Unauthorized"
-
-Auth token missing or expired:
-
-```bash
-# Check token is included in request
-curl -H "Authorization: Bearer YOUR_TOKEN" ...
-
-# Get new token if expired (see CONTRIBUTING.md for auth flow)
-```
-
-### "404 Not Found"
-
-Endpoint URL might be wrong:
-
-1. Check endpoint path in documentation
-2. Verify base URL is correct (`http://localhost:3000/api/v2`)
-3. Check spelling and HTTP method (GET vs POST, etc.)
-
-### "500 Internal Server Error"
-
-Server error. Check:
-
-1. Backend is running: `curl http://localhost:3000/health`
-2. Database is connected
-3. Check backend logs for error details
-
-Canonical health endpoint: `curl http://localhost:3000/health`
-Compatibility aliases remain available at `http://localhost:3000/api/health` and `http://localhost:3000/api/v2/health`.
-
-### "CORS Error"
-
-Cross-origin request blocked:
-
-1. Frontend and backend on same machine? Usually not an issue in dev
-2. Check `CORS_ORIGINS` environment variable in backend
-3. Ensure the backend base URL matches your runtime: direct backend `http://localhost:3000`, Docker dev backend `http://localhost:8004`, or browser proxy `/api`
-
----
-
-## See Also
-
-- [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) — Local runtime setup
-- [../testing/TESTING.md](../testing/TESTING.md) — Validation command map
-- [../development/CONVENTIONS.md](../development/CONVENTIONS.md) — Active conventions
-- [../security/SECURITY_MONITORING_GUIDE.md](../security/SECURITY_MONITORING_GUIDE.md) — Security guidance
-
----
-
-**Questions about an endpoint?**
-
-Check the specific reference file in the table above, or update the relevant doc entry in the workboard if the reference is stale.
+- [API_REFERENCE_DASHBOARD_ALERTS.md](API_REFERENCE_DASHBOARD_ALERTS.md)
+- [API_REFERENCE_EVENTS.md](API_REFERENCE_EVENTS.md)
+- [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md)
+- [API_REFERENCE_PORTAL_APPOINTMENTS.md](API_REFERENCE_PORTAL_APPOINTMENTS.md)
+- [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md)
+- [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md)
+- [postman/README.md](postman/README.md)

@@ -192,7 +192,7 @@ describe('AdminSettings page', () => {
     renderAdminSettings();
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /admin settings/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /admin hub/i })).toBeInTheDocument();
     });
 
     expect(screen.getByRole('heading', { name: /portal operations/i })).toBeInTheDocument();

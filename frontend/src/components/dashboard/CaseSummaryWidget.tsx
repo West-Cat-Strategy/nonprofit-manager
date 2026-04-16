@@ -10,6 +10,7 @@ import { fetchCaseSummary } from '../../features/cases/state';
 import WidgetContainer from './WidgetContainer';
 import type { CaseSummary } from '../../types/case';
 import type { DashboardWidget } from '../../types/dashboard';
+import { useDashboardData } from '../../features/dashboard/context/DashboardDataContext';
 
 interface CaseSummaryWidgetProps {
   widget: DashboardWidget;
@@ -30,8 +31,10 @@ const resolveCaseSummary = (state: { cases?: CaseSummarySlice } | undefined): Ca
 };
 
 const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProps) => {
+  const dashboardData = useDashboardData();
   const dispatch = useAppDispatch();
-  const summary = useAppSelector(resolveCaseSummary);
+  const storeSummary = useAppSelector(resolveCaseSummary);
+  const summary = dashboardData?.caseSummary ?? storeSummary;
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(summary === null);
   const initialSummaryExistsRef = useRef(summary !== null);
@@ -59,6 +62,10 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
   }, [summary]);
 
   useEffect(() => {
+    if (dashboardData) {
+      return undefined;
+    }
+
     let cancelled = false;
 
     if (!initialSummaryExistsRef.current) {
@@ -89,15 +96,19 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
     return () => {
       cancelled = true;
     };
-  }, [dispatch]);
+  }, [dashboardData, dispatch]);
 
   return (
     <WidgetContainer
       widget={widget}
       editMode={editMode}
       onRemove={onRemove}
-      loading={summaryLoading}
-      error={summary === null ? summaryError || undefined : undefined}
+      loading={dashboardData ? dashboardData.loading.caseSummary : summaryLoading}
+      error={
+        summary === null
+          ? (dashboardData?.errors.caseSummary ?? summaryError ?? undefined)
+          : undefined
+      }
     >
       <div className="space-y-4">
         {/* Top Metrics Grid */}

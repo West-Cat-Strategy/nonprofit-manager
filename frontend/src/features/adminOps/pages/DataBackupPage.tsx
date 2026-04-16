@@ -3,8 +3,8 @@ import { useLocation } from 'react-router-dom';
 import api from '../../../services/api';
 import ErrorBanner from '../../../components/ErrorBanner';
 import { useApiError } from '../../../hooks/useApiError';
-import AdminPanelLayout from '../components/AdminPanelLayout';
-import AdminPanelNav from '../components/AdminPanelNav';
+import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
+import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 
 function getFilenameFromContentDisposition(headerValue: string | undefined): string | null {
   if (!headerValue) return null;
@@ -75,11 +75,12 @@ export default function DataBackup() {
   };
 
   return (
-    <AdminPanelLayout
+    <AdminWorkspaceShell
       title="Data Backup"
-      description="Download a backup of your database as a gzipped JSON file."
-      sidebar={<AdminPanelNav currentPath={location.pathname} />}
+      description="Generate on-demand backup exports and review handling guidance from the shared admin tools surface."
+      currentPath={location.pathname}
     >
+      <AdminQuickActionsBar role="admin" />
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <h2 className="text-lg font-semibold text-app-text">Export Backup</h2>
@@ -127,6 +128,6 @@ export default function DataBackup() {
           </p>
         </div>
       </div>
-    </AdminPanelLayout>
+    </AdminWorkspaceShell>
   );
 }

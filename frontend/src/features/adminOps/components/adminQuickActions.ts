@@ -26,7 +26,7 @@ const actionMap: Record<AdminQuickActionId, AdminQuickAction> = {
   'admin-hub': {
     id: 'admin-hub',
     label: 'Admin Hub',
-    description: 'Open the main admin command center',
+    description: 'Open the hybrid admin settings command center',
     to: getAdminSettingsPath('dashboard'),
     icon: '🏛️',
   },
@@ -60,15 +60,15 @@ const actionMap: Record<AdminQuickActionId, AdminQuickAction> = {
   },
   'api-settings': {
     id: 'api-settings',
-    label: 'API Settings',
-    description: 'Manage integrations, keys, and webhooks',
+    label: 'API & Webhooks',
+    description: 'Manage integration keys, webhooks, and delivery tooling',
     to: '/settings/api',
     icon: '🧩',
   },
   communications: {
     id: 'communications',
-    label: 'Communications',
-    description: 'Manage newsletters and transactional email',
+    label: 'Newsletter Campaigns',
+    description: 'Open campaign sync, audiences, and newsletter delivery tools',
     to: '/settings/communications',
     icon: '📧',
   },

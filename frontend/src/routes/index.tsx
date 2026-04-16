@@ -17,12 +17,12 @@ import {
 } from '../features/auth/routeComponents';
 import {
   LinkingModule,
-  NeoBrutalistDashboard,
   OperationsBoard,
   OutreachCenter,
   PeopleDirectory,
   ThemeAudit,
 } from '../features/neoBrutalist/routeComponents';
+import { WorkbenchDashboard } from '../features/dashboard/routeComponents';
 import { ContactPrint } from '../features/contacts/routeComponents';
 import { PublicReportSnapshot } from '../features/savedReports/routeComponents';
 import { logout } from '../features/auth/state';
@@ -112,7 +112,7 @@ const AppRoutes = () => {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <NeoBrutalistDashboard />
+              <WorkbenchDashboard />
             </ProtectedRoute>
           }
         />
@@ -184,7 +184,7 @@ const AppRoutes = () => {
       </Route>
 
       {/* Neo-Brutalist Demo Routes (No Auth Required) */}
-      <Route path="/demo/dashboard" element={<NeoBrutalistDashboard />} />
+      <Route path="/demo/dashboard" element={<WorkbenchDashboard />} />
       <Route path="/demo/linking" element={<LinkingModule />} />
       <Route path="/demo/operations" element={<OperationsBoard />} />
       <Route path="/demo/outreach" element={<OutreachCenter />} />

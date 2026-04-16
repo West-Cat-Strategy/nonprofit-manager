@@ -1,20 +1,20 @@
 # Documentation Index
 
-**Last Updated:** 2026-04-14
+**Last Updated:** 2026-04-16
 
-This file is the full documentation catalog. If you are starting work in the repository, begin with [../README.md](../README.md) first.
+This file is the full documentation catalog. If you are contributing in this repository, begin with [../CONTRIBUTING.md](../CONTRIBUTING.md) and [development/GETTING_STARTED.md](development/GETTING_STARTED.md). Read [../README.md](../README.md) first when you need product context.
 
 ## Recommended Reading Order
 
-1. [../README.md](../README.md)
-2. [docs/README.md](README.md)
-3. [development/GETTING_STARTED.md](development/GETTING_STARTED.md)
-4. [../CONTRIBUTING.md](../CONTRIBUTING.md)
-5. [development/CONVENTIONS.md](development/CONVENTIONS.md)
-6. [development/ARCHITECTURE.md](development/ARCHITECTURE.md)
+1. [../CONTRIBUTING.md](../CONTRIBUTING.md)
+2. [development/GETTING_STARTED.md](development/GETTING_STARTED.md)
+3. [development/CONVENTIONS.md](development/CONVENTIONS.md)
+4. [development/ARCHITECTURE.md](development/ARCHITECTURE.md)
+5. [../README.md](../README.md) for product context
+6. [docs/README.md](README.md)
 
 Tracked work starts in [phases/planning-and-progress.md](phases/planning-and-progress.md).
-Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
+Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md), and setup/runtime guidance lives in [development/GETTING_STARTED.md](development/GETTING_STARTED.md).
 
 ## Staff Help Center
 
@@ -57,7 +57,8 @@ Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md).
 | [../scripts/README.md](../scripts/README.md) | Utility scripts and policy checks |
 
 Notes:
-- `README.md` and `CONTRIBUTING.md` are the contributor happy path.
+- `CONTRIBUTING.md` and `development/GETTING_STARTED.md` are the contributor happy path.
+- `README.md` is the product overview and contributor handoff.
 - The files in this section should describe current commands, ports, and workflow expectations.
 
 ## Testing

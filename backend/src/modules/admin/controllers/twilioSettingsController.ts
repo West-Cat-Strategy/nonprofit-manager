@@ -31,10 +31,7 @@ export const getTwilioSettings = async (
       twilioSettingsUseCase.hasStoredCredentials(),
     ]);
 
-    return sendSuccess(res, {
-      data: settings,
-      credentials, // { authToken: true/false }
-    });
+    return sendSuccess(res, { settings, credentials });
   } catch (error) {
     logger.error('Error fetching Twilio settings', { error });
     next(error);
@@ -66,7 +63,7 @@ export const updateTwilioSettings = async (
       userId
     );
 
-    return sendSuccess(res, { data: updated, message: 'Twilio settings updated' });
+    return sendSuccess(res, { settings: updated, message: 'Twilio settings updated' });
   } catch (error) {
     logger.error('Error updating Twilio settings', { error });
     next(error);
@@ -88,7 +85,7 @@ export const testTwilioSettings = async (
     const result = await testTwilioConnection();
 
     return sendSuccess(res, {
-      data: result,
+      result,
       message: result.success ? 'Twilio connection successful' : 'Twilio connection failed',
     });
   } catch (error) {

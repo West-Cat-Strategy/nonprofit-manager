@@ -14,6 +14,7 @@ import {
   getCasePriorityLabel,
   isUrgentEquivalentPriority,
 } from '../../features/cases/utils/casePriority';
+import { useDashboardData } from '../../features/dashboard/context/DashboardDataContext';
 
 const MAX_ASSIGNED_CASES = 5;
 
@@ -44,6 +45,7 @@ interface MyCasesWidgetProps {
 }
 
 const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
+  const dashboardData = useDashboardData();
   const { user, authLoading } = useAppSelector((state) => state.auth);
   const userId = user?.id ?? null;
   const [cases, setCases] = useState<CaseWithDetails[]>([]);
@@ -56,6 +58,10 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
   }, [cases]);
 
   useEffect(() => {
+    if (dashboardData) {
+      return undefined;
+    }
+
     let cancelled = false;
 
     const fetchAssignedCases = async () => {
@@ -111,7 +117,7 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, userId]);
+  }, [authLoading, dashboardData, userId]);
 
   const getPriorityColor = (priority: CasePriority) => {
     if (isUrgentEquivalentPriority(priority)) {
@@ -155,11 +161,11 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
       widget={widget}
       editMode={editMode}
       onRemove={onRemove}
-      loading={loading}
-      error={error || undefined}
+      loading={dashboardData ? dashboardData.loading.assignedCases : loading}
+      error={dashboardData ? dashboardData.errors.assignedCases : error || undefined}
     >
       <div className="space-y-3">
-        {sortedCases.length === 0 ? (
+        {(dashboardData ? dashboardData.assignedCases : sortedCases).length === 0 ? (
           <div className="text-center py-8">
             <svg
               className="mx-auto h-12 w-12 text-app-text-subtle"
@@ -185,7 +191,7 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
         ) : (
           <>
             <div className="space-y-2">
-              {sortedCases.map((case_) => (
+              {(dashboardData ? dashboardData.assignedCases.slice(0, MAX_ASSIGNED_CASES) : sortedCases).map((case_) => (
                 <Link
                   key={case_.id}
                   to={`/cases/${case_.id}`}
@@ -223,13 +229,13 @@ const MyCasesWidget = ({ widget, editMode, onRemove }: MyCasesWidgetProps) => {
             </div>
 
             {/* Show total count if more than the widget limit */}
-            {totalCases > MAX_ASSIGNED_CASES && userId && (
+            {(dashboardData ? dashboardData.assignedCasesTotal : totalCases) > MAX_ASSIGNED_CASES && userId && (
               <div className="pt-2 border-t border-app-border">
                 <Link
                   to={`/cases?assigned_to=${userId}`}
                   className="text-xs text-app-accent hover:text-app-accent-text font-medium"
                 >
-                  View all {totalCases} assigned cases →
+                  View all {dashboardData ? dashboardData.assignedCasesTotal : totalCases} assigned cases →
                 </Link>
               </div>
             )}

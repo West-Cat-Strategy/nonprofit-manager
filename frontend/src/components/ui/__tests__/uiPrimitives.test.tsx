@@ -132,7 +132,7 @@ describe('ui primitives', () => {
     );
 
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveClass(
-      'text-[var(--app-accent-foreground)]'
+      'app-accent-contrast-ink'
     );
     expect(screen.getByRole('link', { name: 'Contacts' })).toHaveClass('text-app-text');
   });

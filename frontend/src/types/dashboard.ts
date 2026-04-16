@@ -16,6 +16,7 @@ export type WidgetType =
   | 'case_summary'
   | 'my_cases'
   | 'upcoming_events'
+  | 'upcoming_follow_ups'
   | 'quick_actions'
   | 'activity_feed'
   | 'plausible_stats';
@@ -144,6 +145,7 @@ export interface WidgetTemplate {
   defaultSize: WidgetSize;
   defaultLayout: Omit<WidgetLayout, 'i'>;
   category: 'analytics' | 'activity' | 'management' | 'quick-access';
+  pickerVisible?: boolean;
 }
 
 /**
@@ -203,6 +205,7 @@ export const WIDGET_TEMPLATES: WidgetTemplate[] = [
     defaultSize: 'medium',
     defaultLayout: { x: 8, y: 0, w: 4, h: 3, minW: 3, minH: 2 },
     category: 'activity',
+    pickerVisible: false,
   },
   {
     type: 'case_summary',
@@ -229,6 +232,16 @@ export const WIDGET_TEMPLATES: WidgetTemplate[] = [
     icon: '🗓️',
     defaultSize: 'medium',
     defaultLayout: { x: 0, y: 7, w: 6, h: 3, minW: 4, minH: 2 },
+    category: 'management',
+    pickerVisible: false,
+  },
+  {
+    type: 'upcoming_follow_ups',
+    title: 'Upcoming Follow-ups',
+    description: 'Scheduled follow-ups across cases and tasks',
+    icon: '⏰',
+    defaultSize: 'medium',
+    defaultLayout: { x: 0, y: 3, w: 6, h: 4, minW: 4, minH: 3 },
     category: 'management',
   },
   {
@@ -268,39 +281,39 @@ export const DEFAULT_DASHBOARD_CONFIG: Omit<DashboardConfig, 'id' | 'user_id'> =
   is_default: true,
   widgets: [
     {
-      id: 'widget-donation-summary',
-      type: 'donation_summary',
-      title: 'Donation Summary',
-      enabled: true,
-      layout: { i: 'widget-donation-summary', x: 0, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
-    },
-    {
-      id: 'widget-recent-donations',
-      type: 'recent_donations',
-      title: 'Recent Donations',
-      enabled: true,
-      layout: { i: 'widget-recent-donations', x: 4, y: 0, w: 4, h: 3, minW: 3, minH: 2 },
-    },
-    {
-      id: 'widget-donation-trends',
-      type: 'donation_trends',
-      title: 'Donation Trends',
-      enabled: true,
-      layout: { i: 'widget-donation-trends', x: 0, y: 2, w: 8, h: 3, minW: 6, minH: 3 },
-    },
-    {
       id: 'widget-quick-actions',
       type: 'quick_actions',
       title: 'Quick Actions',
       enabled: true,
-      layout: { i: 'widget-quick-actions', x: 8, y: 0, w: 4, h: 2, minW: 2, minH: 2 },
+      layout: { i: 'widget-quick-actions', x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 },
+    },
+    {
+      id: 'widget-my-cases',
+      type: 'my_cases',
+      title: 'My Cases',
+      enabled: true,
+      layout: { i: 'widget-my-cases', x: 4, y: 0, w: 4, h: 3, minW: 3, minH: 3 },
+    },
+    {
+      id: 'widget-upcoming-follow-ups',
+      type: 'upcoming_follow_ups',
+      title: 'Upcoming Follow-ups',
+      enabled: true,
+      layout: { i: 'widget-upcoming-follow-ups', x: 8, y: 0, w: 4, h: 4, minW: 3, minH: 3 },
+    },
+    {
+      id: 'widget-donation-summary',
+      type: 'donation_summary',
+      title: 'Donation Summary',
+      enabled: true,
+      layout: { i: 'widget-donation-summary', x: 0, y: 2, w: 12, h: 2, minW: 4, minH: 2 },
     },
   ],
   layout: [
-    { i: 'widget-donation-summary', x: 0, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
-    { i: 'widget-recent-donations', x: 4, y: 0, w: 4, h: 3, minW: 3, minH: 2 },
-    { i: 'widget-donation-trends', x: 0, y: 2, w: 8, h: 3, minW: 6, minH: 3 },
-    { i: 'widget-quick-actions', x: 8, y: 0, w: 4, h: 2, minW: 2, minH: 2 },
+    { i: 'widget-quick-actions', x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 },
+    { i: 'widget-my-cases', x: 4, y: 0, w: 4, h: 3, minW: 3, minH: 3 },
+    { i: 'widget-upcoming-follow-ups', x: 8, y: 0, w: 4, h: 4, minW: 3, minH: 3 },
+    { i: 'widget-donation-summary', x: 0, y: 2, w: 12, h: 2, minW: 4, minH: 2 },
   ],
   breakpoints: { lg: 1200, md: 996, sm: 768, xs: 480 },
   cols: { lg: 12, md: 10, sm: 6, xs: 4 },

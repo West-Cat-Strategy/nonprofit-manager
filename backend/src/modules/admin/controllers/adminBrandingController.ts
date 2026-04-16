@@ -3,11 +3,8 @@ import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
 import { badRequest, serverError } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
-import {
-  getOrganizationBrandingConfig,
-  upsertOrganizationBrandingConfig,
-  type BrandingConfig,
-} from '../lib/brandingStore';
+import type { BrandingConfig } from '../lib/brandingStore';
+import * as adminBrandingUseCase from '../usecases/adminBrandingUseCase';
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -44,7 +41,7 @@ const parseBrandingConfig = (input: unknown): BrandingConfig | null => {
 
 export const getBranding = async (_req: AuthRequest, res: Response) => {
   try {
-    return sendSuccess(res, await getOrganizationBrandingConfig());
+    return sendSuccess(res, await adminBrandingUseCase.getBranding());
   } catch (error) {
     logger.error('Failed to fetch organization branding', { error });
     return serverError(res, 'Failed to fetch branding');
@@ -62,7 +59,7 @@ export const putBranding = async (req: AuthRequest, res: Response) => {
 
   try {
     logger.info('Organization branding updated', { userId: req.user?.id });
-    return sendSuccess(res, await upsertOrganizationBrandingConfig(brandingConfig));
+    return sendSuccess(res, await adminBrandingUseCase.updateBranding(brandingConfig));
   } catch (error) {
     logger.error('Failed to update organization branding', { error, userId: req.user?.id });
     return serverError(res, 'Failed to update branding');

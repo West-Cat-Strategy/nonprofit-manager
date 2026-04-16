@@ -106,7 +106,7 @@ export const listPendingRegistrationsHandler = async (
     const validStatuses = ['pending', 'approved', 'rejected'];
     const filterStatus = status && validStatuses.includes(status) ? status as 'pending' | 'approved' | 'rejected' : undefined;
     const items = await listPendingRegistrations(filterStatus);
-    return sendSuccess(res, { data: items });
+    return sendSuccess(res, { items });
   } catch (error) {
     next(error);
   }
@@ -127,7 +127,7 @@ export const approvePendingRegistrationHandler = async (
       return unauthorized(res, 'Authentication required');
     }
     const result = await approvePendingRegistration(id, reviewedBy);
-    return sendSuccess(res, { message: 'Registration approved', user: result.user });
+    return sendSuccess(res, { result, message: 'Registration approved' });
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes('not found')) {
       return notFoundMessage(res, error.message);
@@ -155,7 +155,7 @@ export const rejectPendingRegistrationHandler = async (
     }
     const { reason } = req.body;
     const result = await rejectPendingRegistration(id, reviewedBy, reason);
-    return sendSuccess(res, { message: 'Registration rejected', data: result });
+    return sendSuccess(res, { result, message: 'Registration rejected' });
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes('not found')) {
       return notFoundMessage(res, error.message);

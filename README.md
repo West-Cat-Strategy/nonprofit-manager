@@ -1,6 +1,6 @@
 # Nonprofit Manager
 
-**Last Updated:** 2026-04-14
+**Last Updated:** 2026-04-16
 
 Nonprofit Manager is a platform for nonprofit teams that need their daily operations, fundraising, reporting, and web workflows to live in one place instead of across disconnected tools.
 
@@ -60,7 +60,7 @@ Technology snapshot: TypeScript, React 19, Express, PostgreSQL, Redis, Tailwind 
 
 ## For Contributors
 
-If you want to contribute code or docs, start with [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow guide, then use [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup and [docs/INDEX.md](docs/INDEX.md) for the rest of the documentation map.
+If you want to contribute code or docs, start with [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and validation guide, then use [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup and runtime guidance. Use [docs/INDEX.md](docs/INDEX.md) for the rest of the documentation map.
 
 ## License
 

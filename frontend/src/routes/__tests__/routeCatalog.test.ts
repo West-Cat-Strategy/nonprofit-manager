@@ -26,8 +26,8 @@ describe('routeCatalog matching', () => {
         current: Boolean(current),
       }))
     ).toEqual([
-      { label: 'Communications', current: false },
-      { label: 'Email Marketing', current: true },
+      { label: 'Newsletter Campaigns', current: false },
+      { label: 'Newsletter Campaigns', current: true },
     ]);
     expect(
       getRouteBreadcrumbs('/settings/email-marketing?ref=legacy').map(({ label, current }) => ({
@@ -35,8 +35,8 @@ describe('routeCatalog matching', () => {
         current: Boolean(current),
       }))
     ).toEqual([
-      { label: 'Communications', current: false },
-      { label: 'Email Marketing', current: true },
+      { label: 'Newsletter Campaigns', current: false },
+      { label: 'Newsletter Campaigns', current: true },
     ]);
   });
 

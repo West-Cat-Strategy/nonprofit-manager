@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
 import api from '../../services/api';
+import { useDashboardData } from '../../features/dashboard/context/DashboardDataContext';
+import type { AnalyticsSummary } from '../../types/analytics';
 
 interface DonationSummaryWidgetProps {
   widget: DashboardWidget;
@@ -18,28 +20,47 @@ interface DonationSummaryData {
   total_donations: number;
   total_amount: number;
   average_donation: number;
-  month_over_month: number;
+  engaged_supporters: number;
 }
 
+const toNumber = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
+
+const normalizeDonationSummary = (payload: unknown): DonationSummaryData => {
+  const summary = (payload ?? {}) as Partial<AnalyticsSummary> & Record<string, unknown>;
+  const engagementDistribution =
+    summary.engagement_distribution && typeof summary.engagement_distribution === 'object'
+      ? summary.engagement_distribution
+      : null;
+
+  return {
+    total_donations: toNumber(summary.donation_count_ytd ?? summary.total_donations),
+    total_amount: toNumber(summary.total_donations_ytd ?? summary.total_donation_amount),
+    average_donation: toNumber(summary.average_donation_ytd ?? summary.average_donation),
+    engaged_supporters: engagementDistribution
+      ? toNumber(engagementDistribution.high) + toNumber(engagementDistribution.medium)
+      : toNumber(summary.engaged_supporters ?? summary.engaged_count),
+  };
+};
+
 const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWidgetProps) => {
+  const dashboardData = useDashboardData();
+  const analyticsSummary = dashboardData?.analyticsSummary ?? null;
   const [data, setData] = useState<DonationSummaryData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!dashboardData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (dashboardData) {
+      return undefined;
+    }
+
     let isMounted = true;
     const fetchData = async () => {
       try {
         setLoading(true);
         const response = await api.get('/v2/analytics/summary');
         if (!isMounted) return;
-        const payload = response.data ?? {};
-        setData({
-          total_donations: payload.total_donations || 0,
-          total_amount: payload.total_donation_amount || 0,
-          average_donation: payload.average_donation || 0,
-          month_over_month: payload.donations_month_over_month || 0,
-        });
+        setData(normalizeDonationSummary(response.data));
       } catch {
         if (!isMounted) return;
         setError('Failed to load donation data');
@@ -54,7 +75,7 @@ const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWi
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [dashboardData]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-CA', {
@@ -65,31 +86,41 @@ const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWi
     }).format(amount);
   };
 
-  const formatChange = (change: number) => {
-    const sign = change >= 0 ? '+' : '';
-    return `${sign}${change.toFixed(1)}%`;
-  };
+  const resolvedData = analyticsSummary
+    ? normalizeDonationSummary(analyticsSummary)
+    : data;
+
+  const isLoading = dashboardData ? dashboardData.loading.analytics : loading;
+  const resolvedError = dashboardData ? dashboardData.errors.analytics ?? null : error;
 
   return (
-    <WidgetContainer widget={widget} editMode={editMode} onRemove={onRemove} loading={loading} error={error}>
-      {data && (
+    <WidgetContainer
+      widget={widget}
+      editMode={editMode}
+      onRemove={onRemove}
+      loading={isLoading}
+      error={resolvedError}
+    >
+      {resolvedData && (
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-app-text-muted">Total Donations</p>
-            <p className="text-2xl font-bold text-app-text">{data.total_donations}</p>
+            <p className="text-2xl font-bold text-app-text">{resolvedData.total_donations}</p>
           </div>
           <div>
             <p className="text-sm text-app-text-muted">Total Amount</p>
-            <p className="text-2xl font-bold text-app-text">{formatCurrency(data.total_amount)}</p>
+            <p className="text-2xl font-bold text-app-text">{formatCurrency(resolvedData.total_amount)}</p>
           </div>
           <div>
             <p className="text-sm text-app-text-muted">Avg. Donation</p>
-            <p className="text-2xl font-bold text-app-text">{formatCurrency(data.average_donation)}</p>
+            <p className="text-2xl font-bold text-app-text">{formatCurrency(resolvedData.average_donation)}</p>
           </div>
           <div>
-            <p className="text-sm text-app-text-muted">MoM Change</p>
-            <p className={`text-2xl font-bold ${data.month_over_month >= 0 ? 'text-app-accent' : 'text-app-accent'}`}>
-              {formatChange(data.month_over_month)}
+            <p className="text-sm text-app-text-muted">Engaged</p>
+            <p className="text-2xl font-bold text-app-accent">
+              {new Intl.NumberFormat('en-CA', { maximumFractionDigits: 0 }).format(
+                resolvedData.engaged_supporters
+              )}
             </p>
           </div>
         </div>

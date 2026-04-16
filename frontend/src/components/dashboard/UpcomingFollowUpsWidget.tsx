@@ -9,9 +9,15 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchUpcomingFollowUps } from '../../features/followUps/state';
 import type { FollowUpWithEntity } from '../../types/followup';
 import { formatDateSmart, formatTimeString } from '../../utils/format';
+import WidgetContainer from './WidgetContainer';
+import type { DashboardWidget } from '../../types/dashboard';
+import { useDashboardData } from '../../features/dashboard/context/DashboardDataContext';
 
 interface UpcomingFollowUpsWidgetProps {
   limit?: number;
+  widget?: DashboardWidget;
+  editMode?: boolean;
+  onRemove?: () => void;
 }
 
 const METHOD_ICONS: Record<string, string> = {
@@ -48,87 +54,86 @@ function getEntityLabel(followUp: FollowUpWithEntity): string {
   return followUp.task_subject || `Task #${followUp.entity_id.slice(0, 8)}`;
 }
 
-export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUpsWidgetProps) {
-  const dispatch = useAppDispatch();
-  const { upcoming, loading } = useAppSelector((state) => state.followUps);
-
-  useEffect(() => {
-    dispatch(fetchUpcomingFollowUps(limit));
-  }, [dispatch, limit]);
-
+function UpcomingFollowUpsWidgetContent({
+  items,
+  loading,
+  framed,
+}: {
+  items: FollowUpWithEntity[];
+  loading: boolean;
+  framed: boolean;
+}) {
   return (
-    <div className="rounded-2xl border border-app-border/70 bg-app-surface/85 p-5 shadow-sm dark:bg-app-text/85">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-app-text dark:text-white">
-          Upcoming Follow-ups
-        </h3>
-        <Link
-          to="/follow-ups"
-          className="text-sm font-medium text-app-accent hover:text-app-accent"
-        >
-          View all →
-        </Link>
-      </div>
+    <div className={framed ? 'rounded-2xl border border-app-border/70 bg-app-surface/85 p-5 shadow-sm dark:bg-app-text/85' : ''}>
+      {framed ? (
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-app-text dark:text-white">Upcoming Follow-ups</h3>
+          <Link to="/follow-ups" className="text-sm font-medium text-app-accent hover:text-app-accent">
+            View all →
+          </Link>
+        </div>
+      ) : (
+        <div className="mb-4 flex justify-end">
+          <Link to="/follow-ups" className="text-sm font-medium text-app-accent hover:text-app-accent">
+            View all →
+          </Link>
+        </div>
+      )}
 
       {loading ? (
         <div className="py-8 text-center">
-          <div className="animate-spin w-6 h-6 border-2 border-app-input-border border-t-app-accent rounded-full mx-auto" />
+          <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-app-input-border border-t-app-accent" />
         </div>
-      ) : upcoming.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="py-8 text-center text-app-text-muted dark:text-app-text-subtle">
           <p className="text-sm">No upcoming follow-ups</p>
-          <p className="text-xs mt-1">Schedule follow-ups from cases or tasks</p>
+          <p className="mt-1 text-xs">Schedule follow-ups from cases or tasks</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {upcoming.map((followUp) => {
+          {items.map((followUp) => {
             const overdue = isOverdue(followUp);
 
             return (
               <div
                 key={followUp.id}
-                className={`p-3 rounded-lg border ${
+                className={`rounded-lg border p-3 ${
                   overdue
                     ? 'border-app-border bg-app-accent-soft dark:border-app-accent dark:bg-app-accent-hover/20'
                     : 'border-app-border bg-app-surface-muted'
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  {/* Method Icon */}
                   <div className="text-lg flex-shrink-0">
                     {followUp.method ? METHOD_ICONS[followUp.method] : '📋'}
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-app-text dark:text-white truncate">
+                      <span className="truncate font-medium text-app-text dark:text-white">
                         {followUp.title}
                       </span>
-                      {overdue && (
-                        <span className="px-1.5 py-0.5 text-xs font-medium bg-app-accent-soft text-app-accent-text dark:bg-app-accent-hover dark:text-app-text-muted rounded">
+                      {overdue ? (
+                        <span className="rounded bg-app-accent-soft px-1.5 py-0.5 text-xs font-medium text-app-accent-text dark:bg-app-accent-hover dark:text-app-text-muted">
                           Overdue
                         </span>
-                      )}
+                      ) : null}
                     </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-app-text-muted dark:text-app-text-subtle">
-                      <span className={overdue ? 'text-app-accent dark:text-app-text-muted font-medium' : ''}>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-app-text-muted dark:text-app-text-subtle">
+                      <span className={overdue ? 'font-medium text-app-accent dark:text-app-text-muted' : ''}>
                         {formatDateSmart(followUp.scheduled_date)}
-                        {followUp.scheduled_time && ` at ${formatTimeString(followUp.scheduled_time)}`}
+                        {followUp.scheduled_time ? ` at ${formatTimeString(followUp.scheduled_time)}` : ''}
                       </span>
                       <span>•</span>
-                      <Link
-                        to={getEntityLink(followUp)}
-                        className="text-app-accent hover:underline"
-                      >
+                      <Link to={getEntityLink(followUp)} className="text-app-accent hover:underline">
                         {getEntityLabel(followUp)}
                       </Link>
                     </div>
-                    {followUp.contact_name && (
+                    {followUp.contact_name ? (
                       <div className="mt-1 text-xs text-app-text-muted dark:text-app-text-subtle">
                         {followUp.contact_name}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -138,4 +143,43 @@ export default function UpcomingFollowUpsWidget({ limit = 5 }: UpcomingFollowUps
       )}
     </div>
   );
+}
+
+export default function UpcomingFollowUpsWidget({
+  limit = 5,
+  widget,
+  editMode = false,
+  onRemove,
+}: UpcomingFollowUpsWidgetProps) {
+  const dashboardData = useDashboardData();
+  const dispatch = useAppDispatch();
+  const { upcoming, loading } = useAppSelector((state) => state.followUps);
+
+  useEffect(() => {
+    if (dashboardData) {
+      return;
+    }
+    dispatch(fetchUpcomingFollowUps(limit));
+  }, [dashboardData, dispatch, limit]);
+
+  const items = dashboardData ? dashboardData.upcomingFollowUps : upcoming;
+  const isLoading = dashboardData ? dashboardData.loading.upcomingFollowUps : loading;
+  const error = dashboardData?.errors.upcomingFollowUps;
+  const content = <UpcomingFollowUpsWidgetContent items={items} loading={isLoading} framed={!widget} />;
+
+  if (widget && onRemove) {
+    return (
+      <WidgetContainer
+        widget={widget}
+        editMode={editMode}
+        onRemove={onRemove}
+        loading={isLoading}
+        error={error}
+      >
+        {content}
+      </WidgetContainer>
+    );
+  }
+
+  return content;
 }

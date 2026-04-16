@@ -4,7 +4,11 @@ export default function OtherSettingsSection() {
   return (
     <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
       <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
-        <h2 className="text-lg font-semibold text-app-text">Other Settings</h2>
+        <h2 className="text-lg font-semibold text-app-text">Admin Tools</h2>
+        <p className="mt-1 text-sm text-app-text-muted">
+          Launch specialist admin workspaces that stay module-owned but share the same admin
+          system.
+        </p>
       </div>
       <ul className="divide-y divide-app-border">
         <li>
@@ -42,7 +46,7 @@ export default function OtherSettingsSection() {
               </svg>
               <div>
                 <span className="font-medium text-app-text">Navigation</span>
-                <p className="text-sm text-app-text-muted">Customise menu items and order</p>
+                <p className="text-sm text-app-text-muted">Customize menu items and order</p>
               </div>
             </div>
             <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,8 +66,10 @@ export default function OtherSettingsSection() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <div>
-                <span className="font-medium text-app-text">API &amp; Integrations</span>
-                <p className="text-sm text-app-text-muted">Manage webhooks and API keys</p>
+                <span className="font-medium text-app-text">API &amp; Webhooks</span>
+                <p className="text-sm text-app-text-muted">
+                  Manage webhooks, delivery history, and API keys
+                </p>
               </div>
             </div>
             <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,8 +87,10 @@ export default function OtherSettingsSection() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               <div>
-                <span className="font-medium text-app-text">Communications</span>
-                <p className="text-sm text-app-text-muted">Configure newsletter delivery and transactional email</p>
+                <span className="font-medium text-app-text">Newsletter Campaigns</span>
+                <p className="text-sm text-app-text-muted">
+                  Manage newsletters, audiences, and campaign delivery
+                </p>
               </div>
             </div>
             <svg className="h-5 w-5 text-app-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">

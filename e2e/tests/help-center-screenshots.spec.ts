@@ -101,6 +101,15 @@ const writeElementShot = async (
   return absolutePath;
 };
 
+const blurActiveElement = async (page: Page): Promise<void> => {
+  await page.evaluate(() => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) {
+      active.blur();
+    }
+  });
+};
+
 const gotoApp = async (page: Page, route: string): Promise<void> => {
   await page.goto(`${BASE_URL}${route}`, { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -326,25 +335,43 @@ test.describe.serial('help center screenshot refresh', () => {
 
     await gotoApp(page, '/dashboard');
     await waitForPageReady(page, {
-      selectors: ['button:has-text("Customize view")'],
+      selectors: [
+        'button:has-text("Customize View")',
+        'a:has-text("Customize Layout"):visible',
+        'h2:has-text("Focus Queue")',
+        'h2:has-text("Pinned Shortcuts")',
+      ],
       timeoutMs: 30_000,
     });
     recordShot(
       'quick-start/dashboard-entry-point.png',
       await writeShot(page, 'quick-start/dashboard-entry-point.png')
     );
-    recordShot('dashboard/dashboard-overview.png', await writeShot(page, 'dashboard/dashboard-overview.png'));
+    await blurActiveElement(page);
+    recordShot(
+      'dashboard/dashboard-overview.png',
+      await writeShot(page, 'dashboard/dashboard-overview.png', { fullPage: true })
+    );
 
     await gotoApp(page, '/dashboard/custom');
     await waitForPageReady(page, {
-      selectors: ['button:has-text("Customize Dashboard")'],
+      selectors: [
+        'a:has-text("Back to Workbench"):visible',
+        'a:has-text("View Settings"):visible',
+        'button:has-text("Edit Layout")',
+      ],
       timeoutMs: 30_000,
     });
-    await page.getByRole('button', { name: 'Customize Dashboard' }).click();
+    await page.getByRole('button', { name: 'Edit Layout' }).click();
     await waitForPageReady(page, {
-      selectors: ['button:has-text("Add Widget")'],
+      selectors: [
+        'button:has-text("Add Widget")',
+        'button:has-text("Reset to Default")',
+        'button:has-text("Save Layout")',
+      ],
       timeoutMs: 30_000,
     });
+    await blurActiveElement(page);
     recordShot(
       'dashboard/custom-dashboard-editor.png',
       await writeShot(page, 'dashboard/custom-dashboard-editor.png')

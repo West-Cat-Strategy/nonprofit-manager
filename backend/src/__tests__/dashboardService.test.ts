@@ -310,9 +310,26 @@ describe('DashboardService', () => {
       } as any);
 
       const result = await dashboardService.createDefaultDashboard('user-1');
+      const insertCall = mockPool.query.mock.calls[0];
+      const serializedWidgets = insertCall[1][2];
+      const serializedLayout = insertCall[1][3];
+      const widgets = JSON.parse(serializedWidgets);
+      const layout = JSON.parse(serializedLayout);
 
       expect(result.name).toBe('Default Dashboard');
       expect(result.is_default).toBe(true);
+      expect(widgets.map((widget: { type: string }) => widget.type)).toEqual([
+        'quick_actions',
+        'my_cases',
+        'upcoming_follow_ups',
+        'donation_summary',
+      ]);
+      expect(layout.map((item: { i: string }) => item.i)).toEqual([
+        'widget-quick-actions',
+        'widget-my-cases',
+        'widget-upcoming-follow-ups',
+        'widget-donation-summary',
+      ]);
       expect(mockPool.query).toHaveBeenCalledWith(
         expect.stringContaining('ON CONFLICT'),
         expect.arrayContaining(['user-1', 'Default Dashboard'])

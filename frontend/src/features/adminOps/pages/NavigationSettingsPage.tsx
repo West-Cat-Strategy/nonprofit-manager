@@ -10,8 +10,8 @@ import { useNavigationPreferences } from '../../../hooks/useNavigationPreference
 import { isAdminRole } from '../../auth/state/roleNormalization';
 import { useAppSelector } from '../../../store/hooks';
 import { getAdminSettingsPath } from '../adminRoutePaths';
-import AdminPanelLayout from '../components/AdminPanelLayout';
-import AdminPanelNav from '../components/AdminPanelNav';
+import AdminQuickActionsBar from '../components/AdminQuickActionsBar';
+import AdminWorkspaceShell from '../components/AdminWorkspaceShell';
 
 export default function NavigationSettings() {
   const location = useLocation();
@@ -88,11 +88,12 @@ export default function NavigationSettings() {
   })();
 
   return (
-    <AdminPanelLayout
-      title="Navigation Settings"
-      description="Choose which enabled workspace modules appear in your navigation and quick access areas."
-      sidebar={<AdminPanelNav currentPath={location.pathname} />}
+    <AdminWorkspaceShell
+      title="Navigation"
+      description="Control menu order, pinned shortcuts, and workspace visibility from the shared admin tools surface."
+      currentPath={location.pathname}
     >
+      <AdminQuickActionsBar role="admin" />
       <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -339,7 +340,7 @@ export default function NavigationSettings() {
 
       <div className="mt-6 bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
         <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
-          <h2 className="text-lg font-semibold text-app-text-heading">Other Settings</h2>
+          <h2 className="text-lg font-semibold text-app-text-heading">Related Admin Workspaces</h2>
         </div>
         <ul className="divide-y divide-app-border">
           {isAdmin && (
@@ -383,7 +384,7 @@ export default function NavigationSettings() {
               className="flex items-center justify-between px-6 py-4 hover:bg-app-surface-muted"
             >
               <div>
-                <span className="font-medium text-app-text">API & Integrations</span>
+                <span className="font-medium text-app-text">API &amp; Webhooks</span>
                 <p className="text-sm text-app-text-muted">Manage webhooks and API keys</p>
               </div>
               <svg
@@ -403,6 +404,6 @@ export default function NavigationSettings() {
           </li>
         </ul>
       </div>
-    </AdminPanelLayout>
+    </AdminWorkspaceShell>
   );
 }

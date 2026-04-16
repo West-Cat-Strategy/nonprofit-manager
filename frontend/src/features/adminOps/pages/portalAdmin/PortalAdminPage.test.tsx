@@ -49,6 +49,10 @@ vi.mock('../../components/AdminPanelNav', () => ({
   }) => <div>{`nav:${mode}:${path}`}</div>,
 }));
 
+vi.mock('../../components/AdminQuickActionsBar', () => ({
+  default: () => <div data-testid="portal-admin-quick-actions" />,
+}));
+
 vi.mock('../../../../contexts/useToast', () => ({
   useToast: () => ({
     showSuccess: vi.fn(),
@@ -246,36 +250,36 @@ describe('PortalAdminPage', () => {
     [
       'access',
       '/settings/admin/portal/access',
-      'Portal Admin - Access',
-      'Approve signup requests and manage portal invitations.',
+      'Portal Ops',
+      'Review portal requests and manage the client portal operations workspace.',
       'panel:access',
     ],
     [
       'users',
       '/settings/admin/portal/users',
-      'Portal Admin - Users',
-      'Manage portal user status, activity, and reset operations.',
+      'Portal Users',
+      'Manage portal user status, activity history, and reset operations.',
       'panel:users',
     ],
     [
       'conversations',
       '/settings/admin/portal/conversations',
-      'Portal Admin - Conversations',
-      'Monitor and reply to portal conversations with live stream status.',
+      'Portal Conversations',
+      'Monitor live portal conversations and staff replies from one place.',
       'panel:conversations',
     ],
     [
       'appointments',
       '/settings/admin/portal/appointments',
-      'Portal Admin - Appointments',
-      'Triage appointment inbox items and reminder delivery actions.',
+      'Portal Appointments',
+      'Triage appointment inbox items, reminders, and check-in workflows.',
       'panel:appointments',
     ],
     [
       'slots',
       '/settings/admin/portal/slots',
-      'Portal Admin - Slots',
-      'Create and manage portal appointment slots and availability.',
+      'Portal Slots',
+      'Create and manage appointment slots and portal availability windows.',
       'panel:slots',
     ],
   ] as const)(

@@ -39,10 +39,7 @@ export const getEmailSettings = async (
       emailSettingsUseCase.hasStoredCredentials(),
     ]);
 
-    return sendSuccess(res, {
-      data: settings,
-      credentials, // { smtp: true/false, imap: true/false }
-    });
+    return sendSuccess(res, { settings, credentials });
   } catch (error) {
     logger.error('Error fetching email settings', { error });
     next(error);
@@ -82,7 +79,7 @@ export const updateEmailSettings = async (
       userId
     );
 
-    return sendSuccess(res, { data: updated, message: 'Email settings updated' });
+    return sendSuccess(res, { settings: updated, message: 'Email settings updated' });
   } catch (error) {
     logger.error('Error updating email settings', { error });
     next(error);
@@ -104,7 +101,7 @@ export const testEmailSettings = async (
     const result = await testSmtpConnection();
 
     return sendSuccess(res, {
-      data: result,
+      result,
       message: result.success ? 'SMTP connection successful' : 'SMTP connection failed',
     });
   } catch (error) {

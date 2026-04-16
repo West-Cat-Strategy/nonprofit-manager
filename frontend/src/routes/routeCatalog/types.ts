@@ -89,6 +89,10 @@ export interface RouteCatalogEntry {
   mobilePriority?: number;
   showInMobileHeader?: boolean;
   showInMobileDrawerUtilities?: boolean;
+  adminSurface?: 'core' | 'workspace';
+  adminLabel?: string;
+  adminDescription?: string;
+  adminIcon?: string;
   staffNav?: {
     group: StaffNavGroup;
     order: number;

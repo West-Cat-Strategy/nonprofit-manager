@@ -2,42 +2,39 @@ import {
   getRouteCatalogEntryById,
   getRouteHref,
 } from '../../routes/routeCatalog';
-import { adminSettingsTabs } from './pages/adminSettings/constants';
+import {
+  adminSettingsSectionDefinitions,
+  adminSettingsSections,
+  portalAdminDefinitionByPanel,
+  type AdminSettingsSection,
+  type PortalAdminPanel,
+} from './adminNavigationCatalog';
 
-export type AdminSettingsSection = (typeof adminSettingsTabs)[number]['id'];
+export type { AdminSettingsSection, PortalAdminPanel };
 
-export type PortalAdminPanel =
-  | 'access'
-  | 'users'
-  | 'conversations'
-  | 'appointments'
-  | 'slots';
-
-const adminSettingsSectionSet = new Set<AdminSettingsSection>(
-  adminSettingsTabs.map((tab) => tab.id)
-);
+const adminSettingsSectionSet = new Set<AdminSettingsSection>(adminSettingsSections);
 
 const adminSettingsRouteIds: Record<AdminSettingsSection, string> = {
-  dashboard: 'admin-settings',
-  organization: 'admin-settings-organization',
-  workspace_modules: 'admin-settings-workspace-modules',
-  branding: 'admin-settings-branding',
-  users: 'admin-settings-users',
-  groups: 'admin-settings-groups',
-  communications: 'admin-settings-communications',
-  messaging: 'admin-settings-messaging',
-  outcomes: 'admin-settings-outcomes',
-  roles: 'admin-settings-roles',
-  audit_logs: 'admin-settings-audit-logs',
-  other: 'admin-settings-other',
+  dashboard: adminSettingsSectionDefinitions[0].routeId,
+  organization: adminSettingsSectionDefinitions[1].routeId,
+  workspace_modules: adminSettingsSectionDefinitions[2].routeId,
+  branding: adminSettingsSectionDefinitions[3].routeId,
+  users: adminSettingsSectionDefinitions[4].routeId,
+  groups: adminSettingsSectionDefinitions[5].routeId,
+  communications: adminSettingsSectionDefinitions[6].routeId,
+  messaging: adminSettingsSectionDefinitions[7].routeId,
+  outcomes: adminSettingsSectionDefinitions[8].routeId,
+  roles: adminSettingsSectionDefinitions[9].routeId,
+  audit_logs: adminSettingsSectionDefinitions[10].routeId,
+  other: adminSettingsSectionDefinitions[11].routeId,
 };
 
 const portalAdminRouteIds: Record<PortalAdminPanel, string> = {
-  access: 'portal-admin-access',
-  users: 'portal-admin-users',
-  conversations: 'portal-admin-conversations',
-  appointments: 'portal-admin-appointments',
-  slots: 'portal-admin-slots',
+  access: portalAdminDefinitionByPanel.get('access')!.routeId,
+  users: portalAdminDefinitionByPanel.get('users')!.routeId,
+  conversations: portalAdminDefinitionByPanel.get('conversations')!.routeId,
+  appointments: portalAdminDefinitionByPanel.get('appointments')!.routeId,
+  slots: portalAdminDefinitionByPanel.get('slots')!.routeId,
 };
 
 const getCatalogPath = (id: string): string => {
