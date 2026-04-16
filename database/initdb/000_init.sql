@@ -102,14 +102,13 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/081_messaging_client_message_ids.sql
 \i /migrations/082_backend_runtime_efficiency_indexes.sql
 \i /migrations/083_grants_tracking.sql
-\i /migrations/084_imported_import_staging.sql
 \i /migrations/085_case_type_and_outcome_assignments.sql
-\i /migrations/086_imported_case_contact_org_backfill.sql
 \i /migrations/087_newsletter_provider_settings.sql
 \i /migrations/088_provider_agnostic_payment_columns.sql
 \i /migrations/089_case_topic_definitions_constraint_alignment.sql
 \i /migrations/090_auth_session_security_hardening.sql
 \i /migrations/091_event_occurrences_series_overhaul.sql
+\i /migrations/092_pending_registration_passkeys_and_policy_groups.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -217,9 +216,7 @@ VALUES
     ('081_messaging_client_message_ids.sql', '081', '081_messaging_client_message_ids.sql'),
     ('082_backend_runtime_efficiency_indexes.sql', '082', '082_backend_runtime_efficiency_indexes.sql'),
     ('083_grants_tracking.sql', '083', '083_grants_tracking.sql'),
-    ('084_imported_import_staging.sql', '084', '084_imported_import_staging.sql'),
     ('085_case_type_and_outcome_assignments.sql', '085', '085_case_type_and_outcome_assignments.sql'),
-    ('086_imported_case_contact_org_backfill.sql', '086', '086_imported_case_contact_org_backfill.sql'),
     ('087_newsletter_provider_settings.sql', '087', '087_newsletter_provider_settings.sql'),
     ('088_provider_agnostic_payment_columns.sql', '088', '088_provider_agnostic_payment_columns.sql'),
     ('089_case_topic_definitions_constraint_alignment.sql', '089', '089_case_topic_definitions_constraint_alignment.sql'),

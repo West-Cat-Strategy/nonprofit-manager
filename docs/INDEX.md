@@ -95,7 +95,6 @@ Notes:
 | Document | Purpose |
 |----------|---------|
 | [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md) | Deployment guide |
-| [deployment/Imported_BIGMAC_TAILSCALE_MIGRATION.md](deployment/Imported_BIGMAC_TAILSCALE_MIGRATION.md) | Imported VPS to bigmac Tailscale cutover runbook |
 | [deployment/DB_SETUP.md](deployment/DB_SETUP.md) | Database setup and migration details |
 | [deployment/PLAUSIBLE_SETUP.md](deployment/PLAUSIBLE_SETUP.md) | Plausible analytics setup |
 | [deployment/LOG_AGGREGATION_SETUP.md](deployment/LOG_AGGREGATION_SETUP.md) | ELK/log aggregation setup |

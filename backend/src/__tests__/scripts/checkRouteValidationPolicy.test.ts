@@ -1,4 +1,4 @@
-const { analyzeRouteValidationSource } = require('../../../../scripts/check-route-validation-policy.ts');
+import { analyzeRouteValidationSource } from '../../../../scripts/check-route-validation-policy.ts';
 
 describe('check-route-validation-policy', () => {
   it('flags direct API routes in app entrypoints when validation middleware is missing', () => {
@@ -36,4 +36,3 @@ describe('check-route-validation-policy', () => {
     ]);
   });
 });
-

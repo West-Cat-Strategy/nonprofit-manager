@@ -171,10 +171,10 @@ const ProvenancePanel = ({
   className?: string;
 }) => {
   const heading =
-    variant === 'staff' ? 'Imported import provenance' : 'Imported source summary';
+    variant === 'staff' ? 'Imported provenance' : 'Imported source summary';
   const subheading =
     variant === 'staff'
-      ? 'Imported from the Imported / Westcat bundle and linked to this case.'
+      ? 'Imported from the Westcat bundle and linked to this case.'
       : 'A client-safe summary of the imported case history is shown here.';
   const confidenceColor = confidenceBadgeColor(provenance.confidence_label);
   const staffProvenance = provenance as CaseProvenance;

@@ -432,7 +432,7 @@ curl http://localhost:8000/health
 curl http://localhost:8001/
 ```
 
-When using a public reverse proxy or load balancer, keep the backend and frontend loopback-bound and point ingress at the published ports or containers. The public `/health` endpoint should reflect backend health. For the Imported VPS-to-bigmac cutover, follow [Imported_BIGMAC_TAILSCALE_MIGRATION.md](Imported_BIGMAC_TAILSCALE_MIGRATION.md) as the source of truth for the VPS-to-Tailscale proxy sequence, Docker Desktop preflight on `bigmac`, and the `self_hosted` Postgres handoff.
+When using a public reverse proxy or load balancer, keep the backend and frontend loopback-bound and point ingress at the published ports or containers. The public `/health` endpoint should reflect backend health.
 
 ## Manual Deployment
 
@@ -570,7 +570,7 @@ psql -U nonprofit_user -d nonprofit_manager -f database/migrations/003_your_migr
 - `self_hosted`
   - Set `BACKUP_DIR` to an absolute host path on the runtime host and document the operational risk acceptance alongside your backup schedule.
 
-For one-off migrations or disaster recovery that need a database-creating archive instead of the recurring SQL and gzip flow, use [db-export-archive.sh](../../scripts/db-export-archive.sh) and [db-restore-archive.sh](../../scripts/db-restore-archive.sh). Those helpers wrap `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create -d postgres`; the Imported `bigmac` Docker Desktop cutover uses this path instead of the older streaming `pg_dump | psql` flow.
+For one-off migrations or disaster recovery that need a database-creating archive instead of the recurring SQL and gzip flow, use [db-export-archive.sh](../../scripts/db-export-archive.sh) and [db-restore-archive.sh](../../scripts/db-restore-archive.sh). Those helpers wrap `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create -d postgres`.
 
 ```bash
 # Daily automated backup for local Postgres production modes

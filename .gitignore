@@ -6,9 +6,8 @@ node_modules/
 # ==============================
 # Workspace-local and generated artifacts
 # ==============================
-/.codex/*
-!/.codex/skills/
-!/.codex/skills/**
+.docker/backups/
+.docker/postgres/
 output/pdf/
 
 # ==============================

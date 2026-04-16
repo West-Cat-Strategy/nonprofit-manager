@@ -19,5 +19,4 @@ Quick links:
 - [testing/TESTING.md](testing/TESTING.md)
 - [api/README.md](api/README.md)
 - [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md)
-- [deployment/Imported_BIGMAC_TAILSCALE_MIGRATION.md](deployment/Imported_BIGMAC_TAILSCALE_MIGRATION.md)
 - [../scripts/README.md](../scripts/README.md)

@@ -165,7 +165,7 @@ describe('Case detail tabs URL sync', () => {
 
     expect(screen.getByRole('tab', { name: /notes/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('location-search')).toHaveTextContent('tab=notes');
-    expect(screen.queryByText(/imported import provenance/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/imported provenance/i)).not.toBeInTheDocument();
   });
 
   it('updates query string when switching tabs', () => {
@@ -214,7 +214,7 @@ describe('Case detail tabs URL sync', () => {
 
     renderCaseDetail(`/cases/${validCaseId}`);
 
-    expect(screen.getByText(/imported import provenance/i)).toBeInTheDocument();
+    expect(screen.getByText(/imported provenance/i)).toBeInTheDocument();
     expect(screen.getByText('Westcat Intake Cluster')).toBeInTheDocument();
     expect(screen.getAllByText('0 tables').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Low confidence').length).toBeGreaterThan(0);

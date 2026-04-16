@@ -54,7 +54,7 @@ describe('CaseProvenanceSummary', () => {
   it('renders staff provenance details without leaking portal-safe constraints', () => {
     render(<CaseProvenanceSummary provenance={staffProvenance} variant="staff" />);
 
-    expect(screen.getByText('Imported import provenance')).toBeInTheDocument();
+    expect(screen.getByText('Imported provenance')).toBeInTheDocument();
     expect(screen.getByText('Westcat Intake Cluster')).toBeInTheDocument();
     expect(screen.getByText('cluster-123')).toBeInTheDocument();
     expect(screen.getByText('1 file')).toBeInTheDocument();
