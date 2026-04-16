@@ -285,6 +285,20 @@ export async function getAdminWorkspaceStatusCards(): Promise<AdminWorkspaceStat
 
   return [
     {
+      id: 'pending-approvals',
+      title: 'Pending Approvals',
+      description: 'Review new staff registration requests',
+      summary:
+        pending.items.length > 0
+          ? `${pending.items.length} registration request${
+              pending.items.length === 1 ? '' : 's'
+            } awaiting review`
+          : 'No pending registration requests',
+      tone: pending.items.length > 0 ? 'warning' : 'neutral',
+      icon: '⏳',
+      to: getPath('admin-settings-approvals'),
+    },
+    {
       id: 'organization',
       title: 'Organization',
       description: 'Core identity and operating defaults',
@@ -297,8 +311,8 @@ export async function getAdminWorkspaceStatusCards(): Promise<AdminWorkspaceStat
       id: 'users',
       title: 'Users & Access',
       description: 'Account administration and approvals',
-      summary: `${stats?.totalUsers ?? 0} users · ${pending.items.length} pending approvals`,
-      tone: pending.items.length > 0 ? 'warning' : 'neutral',
+      summary: `${stats?.totalUsers ?? 0} users · invitations, groups, and roles`,
+      tone: stats?.totalUsers ? 'positive' : 'neutral',
       icon: '👥',
       to: getPath('admin-settings-users'),
     },

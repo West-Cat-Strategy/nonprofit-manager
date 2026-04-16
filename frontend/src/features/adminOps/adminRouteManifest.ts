@@ -6,7 +6,7 @@ import {
 } from './adminRoutePaths';
 import {
   adminRouteDefinitionByRouteId,
-  adminSettingsSectionDefinitions,
+  adminSettingsSectionDefinitionById,
   adminSettingsSections,
   type AdminSurface,
 } from './adminNavigationCatalog';
@@ -64,6 +64,8 @@ const getAdminRouteMeta = (routeId: string) => {
 
   return metadata;
 };
+
+const dashboardSectionMeta = adminSettingsSectionDefinitionById.get('dashboard');
 
 export const adminRouteManifest = [
   {
@@ -234,8 +236,10 @@ export const adminRouteManifest = [
   },
   {
     id: 'admin-settings-section-route',
-    title: adminSettingsSectionDefinitions[0].title,
-    description: adminSettingsSectionDefinitions[0].description,
+    title: dashboardSectionMeta?.title ?? 'Admin Hub',
+    description:
+      dashboardSectionMeta?.description ??
+      'Command center for organization health, access, delivery, and admin tooling.',
     path: '/settings/admin/:section',
     wrapper: 'admin',
     adminSurface: 'core',

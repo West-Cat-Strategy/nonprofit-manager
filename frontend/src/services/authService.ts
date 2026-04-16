@@ -50,6 +50,43 @@ export interface RegisterResponse {
   hasStagedPasskeys?: boolean;
 }
 
+export type AdminRegistrationReviewAction = 'approve' | 'reject';
+
+export interface AdminRegistrationReviewPreview {
+  action: AdminRegistrationReviewAction;
+  reviewer: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    displayName: string;
+  };
+  pendingRegistration: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    createdAt: string;
+    status: 'pending' | 'approved' | 'rejected';
+    reviewedAt: string | null;
+    rejectionReason: string | null;
+    hasStagedPasskeys: boolean;
+  };
+  currentReview: {
+    status: 'pending' | 'approved' | 'rejected';
+    reviewedAt: string | null;
+    rejectionReason: string | null;
+  };
+  canConfirm: boolean;
+}
+
+export interface AdminRegistrationReviewConfirmResponse {
+  status: 'completed' | 'already_reviewed';
+  action: AdminRegistrationReviewAction;
+  message: string;
+  review: AdminRegistrationReviewPreview;
+}
+
 export type CurrentUserResponse = AuthUser & {
   organizationId: string | null;
   createdAt?: string;
@@ -126,6 +163,24 @@ export const authService = {
 
   getCurrentUser: async (): Promise<CurrentUserResponse> => {
     const response = await api.get<CurrentUserResponse>('/auth/me');
+    return response.data;
+  },
+
+  getAdminRegistrationReviewPreview: async (
+    token: string
+  ): Promise<AdminRegistrationReviewPreview> => {
+    const response = await api.get<AdminRegistrationReviewPreview>(
+      `/auth/admin-registration-review/${token}`
+    );
+    return response.data;
+  },
+
+  confirmAdminRegistrationReview: async (
+    token: string
+  ): Promise<AdminRegistrationReviewConfirmResponse> => {
+    const response = await api.post<AdminRegistrationReviewConfirmResponse>(
+      `/auth/admin-registration-review/${token}/confirm`
+    );
     return response.data;
   },
 

@@ -2,9 +2,15 @@ import bcrypt from 'bcryptjs';
 import { PASSWORD } from '@config/constants';
 import { logger } from '@config/logger';
 import { sendMail } from '@services/emailService';
+import { escapeHtml } from '@services/site-generator/escapeHtml';
+import { issueAdminPendingRegistrationReviewToken } from '@utils/sessionTokens';
 import * as repo from '../repositories/pendingRegistrationRepository';
 
 const ADMIN_NOTIFICATION_BATCH_SIZE = 4;
+
+function getFrontendUrl(): string {
+  return (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+}
 
 export async function createPendingRegistration(data: {
   email: string;
@@ -36,7 +42,12 @@ export async function createPendingRegistration(data: {
   logger.info(`Pending registration created for: ${data.email}`);
 
   // Best-effort: notify admins via email
-  notifyAdminsOfPendingRegistration(data.email, data.firstName, data.lastName).catch((err) => {
+  notifyAdminsOfPendingRegistration(
+    pending.id,
+    data.email,
+    data.firstName,
+    data.lastName
+  ).catch((err) => {
     logger.warn('Failed to send admin notification for pending registration', err);
   });
 
@@ -44,39 +55,98 @@ export async function createPendingRegistration(data: {
 }
 
 async function notifyAdminsOfPendingRegistration(
+  pendingRegistrationId: string,
   email: string,
   firstName?: string,
   lastName?: string
 ): Promise<void> {
-  const adminEmails = await repo.listAdminEmails();
+  const adminRecipients = await repo.listAdminRecipients();
+  const frontendUrl = getFrontendUrl();
 
   const name = [firstName, lastName].filter(Boolean).join(' ') || email;
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
 
-  for (let i = 0; i < adminEmails.length; i += ADMIN_NOTIFICATION_BATCH_SIZE) {
-    const batch = adminEmails.slice(i, i + ADMIN_NOTIFICATION_BATCH_SIZE);
+  for (let i = 0; i < adminRecipients.length; i += ADMIN_NOTIFICATION_BATCH_SIZE) {
+    const batch = adminRecipients.slice(i, i + ADMIN_NOTIFICATION_BATCH_SIZE);
     const settled = await Promise.allSettled(
-      batch.map((adminEmail) =>
-        sendMail({
-          to: adminEmail,
+      batch.map((recipient) => {
+        const approveToken = issueAdminPendingRegistrationReviewToken({
+          pendingRegistrationId,
+          adminUserId: recipient.id,
+          action: 'approve',
+        });
+        const rejectToken = issueAdminPendingRegistrationReviewToken({
+          pendingRegistrationId,
+          adminUserId: recipient.id,
+          action: 'reject',
+        });
+        const approveUrl = `${frontendUrl}/admin-registration-review/${approveToken}`;
+        const rejectUrl = `${frontendUrl}/admin-registration-review/${rejectToken}`;
+        const reviewerName =
+          [recipient.first_name, recipient.last_name].filter(Boolean).join(' ') || recipient.email;
+
+        return sendMail({
+          to: recipient.email,
           subject: 'New Registration Request Pending Approval',
-          text: `A new user registration request requires your review.\n\nName: ${name}\nEmail: ${email}\n\nPlease log in to the admin settings to approve or reject this request.`,
+          text: [
+            `Hi ${reviewerName},`,
+            '',
+            'A new user registration request requires your review.',
+            '',
+            `Name: ${name}`,
+            `Email: ${email}`,
+            '',
+            'Choose an action:',
+            `Approve request: ${approveUrl}`,
+            `Reject request: ${rejectUrl}`,
+            '',
+            'These review links expire in 7 days.',
+          ].join('\n'),
           html: `
-            <h2>New Registration Request</h2>
-            <p>A new user registration request requires your review.</p>
-            <table style="border-collapse:collapse;margin:16px 0">
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold">Name:</td><td>${name}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;font-weight:bold">Email:</td><td>${email}</td></tr>
-            </table>
-            <p>Please log in to the admin settings to approve or reject this request.</p>
+            <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1f2937">
+              <h2 style="margin:0 0 12px">New Registration Request</h2>
+              <p style="margin:0 0 16px">A new user registration request requires your review.</p>
+              <table style="border-collapse:collapse;margin:0 0 20px">
+                <tr>
+                  <td style="padding:4px 12px 4px 0;font-weight:bold">Name:</td>
+                  <td style="padding:4px 0">${safeName}</td>
+                </tr>
+                <tr>
+                  <td style="padding:4px 12px 4px 0;font-weight:bold">Email:</td>
+                  <td style="padding:4px 0">${safeEmail}</td>
+                </tr>
+              </table>
+              <div style="display:flex;flex-wrap:wrap;gap:12px;margin:0 0 16px">
+                <a
+                  href="${escapeHtml(approveUrl)}"
+                  style="display:inline-block;padding:12px 18px;border-radius:10px;background:#1d4ed8;color:#ffffff;text-decoration:none;font-weight:600"
+                >
+                  Approve request
+                </a>
+                <a
+                  href="${escapeHtml(rejectUrl)}"
+                  style="display:inline-block;padding:12px 18px;border-radius:10px;background:#ffffff;color:#111827;text-decoration:none;font-weight:600;border:1px solid #d1d5db"
+                >
+                  Reject request
+                </a>
+              </div>
+              <p style="margin:0 0 8px;font-size:13px;color:#4b5563">These review links expire in 7 days.</p>
+              <p style="margin:0;font-size:13px;color:#4b5563">
+                If the buttons do not open, use these links directly:<br />
+                <a href="${escapeHtml(approveUrl)}">${escapeHtml(approveUrl)}</a><br />
+                <a href="${escapeHtml(rejectUrl)}">${escapeHtml(rejectUrl)}</a>
+              </p>
+            </div>
           `,
-        })
-      )
+        });
+      })
     );
 
     settled.forEach((result, index) => {
       if (result.status === 'rejected') {
         logger.warn('Failed to send pending-registration admin notification', {
-          adminEmail: batch[index],
+          adminEmail: batch[index]?.email,
           error: result.reason,
         });
       }

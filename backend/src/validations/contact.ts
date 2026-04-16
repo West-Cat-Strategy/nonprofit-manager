@@ -77,7 +77,7 @@ export type RelationshipType = z.infer<typeof relationshipTypeSchema>;
 // Document type enum
 export const documentTypeSchema = z.enum([
   'identification', 'legal', 'medical', 'financial',
-  'correspondence', 'photo', 'consent_form', 'assessment', 'report', 'other'
+  'correspondence', 'photo', 'consent_form', 'assessment', 'report', 'form_response', 'form_attachment', 'other'
 ]);
 
 export type DocumentType = z.infer<typeof documentTypeSchema>;

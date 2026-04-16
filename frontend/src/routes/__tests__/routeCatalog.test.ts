@@ -12,10 +12,16 @@ import { createDefaultWorkspaceModuleSettings } from '../../features/workspaceMo
 
 describe('routeCatalog matching', () => {
   it('matches canonical routes and keeps query strings attached to canonical paths', () => {
+    expect(matchRouteCatalogEntry('/settings/admin/approvals')?.id).toBe(
+      'admin-settings-approvals'
+    );
     expect(matchRouteCatalogEntry('/settings/admin/users')?.id).toBe('admin-settings-users');
     expect(matchRouteCatalogEntry('/settings/admin/users?foo=1')?.id).toBe('admin-settings-users');
     expect(matchRouteCatalogEntry('/settings/admin/groups')?.id).toBe('admin-settings-groups');
     expect(matchRouteCatalogEntry('/settings/admin/portal/access')?.id).toBe('portal-admin-access');
+    expect(matchRouteCatalogEntry('/admin-registration-review/a.b.c')?.id).toBe(
+      'admin-registration-review'
+    );
     expect(matchRouteCatalogEntry('/settings/communications?ref=legacy')?.id).toBe(
       'communications'
     );

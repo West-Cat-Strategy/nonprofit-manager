@@ -16,6 +16,7 @@ import { getCasePriorityBadgeColor } from '../utils/casePriority';
 import CaseTeamChatPanel from '../../teamChat/components/CaseTeamChatPanel';
 import CaseDetailTabs from '../components/CaseDetailTabs';
 import CaseStatusChangeModal from '../components/CaseStatusChangeModal';
+import CaseFormsPanel from '../components/CaseFormsPanel';
 import { useCaseDetailPage } from '../hooks/useCaseDetailPage';
 
 const CaseDetail = () => {
@@ -525,6 +526,16 @@ const CaseDetail = () => {
               <BrutalCard color="white" className="p-6">
                 <CaseNotes caseId={id} onChanged={refreshCaseArtifacts} provenance={caseProvenance} />
               </BrutalCard>
+            </div>
+          )}
+
+          {activeTab === 'forms' && id && (
+            <div id="panel-forms" role="tabpanel" aria-labelledby="tab-forms">
+              <CaseFormsPanel
+                caseId={id}
+                clientEmail={currentCase.contact_email || null}
+                onChanged={refreshCaseArtifacts}
+              />
             </div>
           )}
 

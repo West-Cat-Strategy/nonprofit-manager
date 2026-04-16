@@ -22,3 +22,4 @@ export const PortalForms = lazy(() => import('./pages/PortalFormsPage'));
 export const PortalReminders = lazy(() => import('./pages/PortalRemindersPage'));
 export const PortalCases = lazy(() => import('./pages/PortalCasesPage'));
 export const PortalCaseDetail = lazy(() => import('./pages/PortalCaseDetailPage'));
+export const PublicCaseForm = lazy(() => import('./pages/PublicCaseFormPage'));

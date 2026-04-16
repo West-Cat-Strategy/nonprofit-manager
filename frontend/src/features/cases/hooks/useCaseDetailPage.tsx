@@ -25,6 +25,7 @@ export type CaseDetailTab =
   | 'overview'
   | 'timeline'
   | 'notes'
+  | 'forms'
   | 'outcomes_topics'
   | 'documents'
   | 'milestones'
@@ -67,6 +68,7 @@ const validTabs: CaseDetailTab[] = [
   'overview',
   'timeline',
   'notes',
+  'forms',
   'outcomes_topics',
   'documents',
   'milestones',
@@ -222,6 +224,7 @@ export const useCaseDetailPage = () => {
       { key: 'overview', label: 'Overview' },
       { key: 'timeline', label: 'Timeline' },
       { key: 'notes', label: 'Notes', count: currentCase.notes_count || 0 },
+      { key: 'forms', label: 'Forms' },
       { key: 'outcomes_topics', label: 'Outcomes + Topics' },
       { key: 'documents', label: 'Documents', count: currentCase.documents_count || 0 },
       { key: 'milestones', label: 'Milestones', count: caseMilestones.length },

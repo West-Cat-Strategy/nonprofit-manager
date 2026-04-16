@@ -6,6 +6,8 @@ export const APP_SESSION_TOKEN_ISSUER = 'nonprofit-manager-app';
 export const PORTAL_SESSION_TOKEN_ISSUER = 'nonprofit-manager-portal';
 export const MFA_TOKEN_ISSUER = 'nonprofit-manager-mfa';
 export const PENDING_REGISTRATION_TOKEN_ISSUER = 'nonprofit-manager-pending-registration';
+export const ADMIN_PENDING_REGISTRATION_REVIEW_TOKEN_ISSUER =
+  'nonprofit-manager-admin-pending-registration-review';
 
 export interface AppSessionTokenPayload {
   id: string;
@@ -40,6 +42,16 @@ export interface MfaSessionTokenPayload {
 export interface PendingRegistrationTokenPayload {
   pendingRegistrationId: string;
   type?: 'pending_registration';
+  iss?: string;
+}
+
+export type AdminPendingRegistrationReviewAction = 'approve' | 'reject';
+
+export interface AdminPendingRegistrationReviewTokenPayload {
+  pendingRegistrationId: string;
+  adminUserId: string;
+  action: AdminPendingRegistrationReviewAction;
+  type?: 'admin_pending_registration_review';
   iss?: string;
 }
 
@@ -133,5 +145,25 @@ export const issuePendingRegistrationToken = (input: {
     {
       expiresIn: input.expiresInSeconds ?? Math.floor(TIME.FIFTEEN_MINUTES / 1000),
       issuer: PENDING_REGISTRATION_TOKEN_ISSUER,
+    }
+  );
+
+export const issueAdminPendingRegistrationReviewToken = (input: {
+  pendingRegistrationId: string;
+  adminUserId: string;
+  action: AdminPendingRegistrationReviewAction;
+  expiresInSeconds?: number;
+}): string =>
+  jwt.sign(
+    {
+      pendingRegistrationId: input.pendingRegistrationId,
+      adminUserId: input.adminUserId,
+      action: input.action,
+      type: 'admin_pending_registration_review' as const,
+    },
+    getJwtSecret(),
+    {
+      expiresIn: input.expiresInSeconds ?? Math.floor(TIME.ONE_WEEK / 1000),
+      issuer: ADMIN_PENDING_REGISTRATION_REVIEW_TOKEN_ISSUER,
     }
   );

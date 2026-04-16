@@ -464,6 +464,8 @@ export type DocumentType =
   | 'consent_form'
   | 'assessment'
   | 'report'
+  | 'form_response'
+  | 'form_attachment'
   | 'other';
 
 export interface ContactDocument {
@@ -524,5 +526,7 @@ export const DOCUMENT_TYPES: { value: DocumentType; label: string; icon: string 
   { value: 'consent_form', label: 'Consent Form', icon: '✍️' },
   { value: 'assessment', label: 'Assessment', icon: '📋' },
   { value: 'report', label: 'Report', icon: '📊' },
+  { value: 'form_response', label: 'Form Response', icon: '🧾' },
+  { value: 'form_attachment', label: 'Form Attachment', icon: '📎' },
   { value: 'other', label: 'Other', icon: '📄' },
 ];

@@ -116,6 +116,20 @@ export const passwordResetTokenParamsSchema = z.object({
 
 export type PasswordResetTokenParamsInput = z.infer<typeof passwordResetTokenParamsSchema>;
 
+export const adminRegistrationReviewTokenParamsSchema = z.object({
+  token: z
+    .string()
+    .trim()
+    .regex(
+      /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
+      'Invalid review token format'
+    ),
+});
+
+export type AdminRegistrationReviewTokenParamsInput = z.infer<
+  typeof adminRegistrationReviewTokenParamsSchema
+>;
+
 // Change password
 // TODO(P4-T9A): Remove snake_case aliases after July 1, 2026 once
 // docs/phases/auth-alias-deprecation-checklist.md telemetry gates are met.

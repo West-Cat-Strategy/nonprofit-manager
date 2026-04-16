@@ -5,6 +5,7 @@ import {
 import { normalizeRoleSlug } from '../../auth/state/roleNormalization';
 
 export type AdminQuickActionId =
+  | 'pending-approvals'
   | 'admin-hub'
   | 'invite-users'
   | 'organization'
@@ -23,6 +24,13 @@ export interface AdminQuickAction {
 }
 
 const actionMap: Record<AdminQuickActionId, AdminQuickAction> = {
+  'pending-approvals': {
+    id: 'pending-approvals',
+    label: 'Pending Approvals',
+    description: 'Review staff registration requests awaiting a decision',
+    to: getAdminSettingsPath('approvals'),
+    icon: '⏳',
+  },
   'admin-hub': {
     id: 'admin-hub',
     label: 'Admin Hub',
@@ -83,6 +91,7 @@ const actionMap: Record<AdminQuickActionId, AdminQuickAction> = {
 
 const roleActionIds: Record<string, AdminQuickActionId[]> = {
   admin: [
+    'pending-approvals',
     'admin-hub',
     'invite-users',
     'organization',

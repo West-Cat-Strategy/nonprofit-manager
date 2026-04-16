@@ -690,6 +690,15 @@ export const staffRouteCatalogEntries: readonly RouteCatalogEntry[] = [
       : undefined,
   }),
   adminRoute({
+    id: 'admin-settings-approvals',
+    title: getAdminRouteMeta('admin-settings-approvals').title,
+    path: getAdminRouteMeta('admin-settings-approvals').path,
+    adminSurface: getAdminRouteMeta('admin-settings-approvals').surface,
+    adminLabel: getAdminRouteMeta('admin-settings-approvals').label,
+    adminDescription: getAdminRouteMeta('admin-settings-approvals').description,
+    adminIcon: getAdminRouteMeta('admin-settings-approvals').icon,
+  }),
+  adminRoute({
     id: 'admin-settings-organization',
     title: getAdminRouteMeta('admin-settings-organization').title,
     path: getAdminRouteMeta('admin-settings-organization').path,

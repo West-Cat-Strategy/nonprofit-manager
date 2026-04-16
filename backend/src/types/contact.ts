@@ -537,6 +537,8 @@ export type DocumentType =
   | 'consent_form'
   | 'assessment'
   | 'report'
+  | 'form_response'
+  | 'form_attachment'
   | 'other';
 
 export interface ContactDocument {

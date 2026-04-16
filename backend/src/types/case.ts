@@ -28,7 +28,15 @@ export type NoteType =
   | 'assignment'
   | 'system'
   | 'portal_message';
-export type DocumentType = 'intake' | 'assessment' | 'consent' | 'report' | 'correspondence' | 'other';
+export type DocumentType =
+  | 'intake'
+  | 'assessment'
+  | 'consent'
+  | 'report'
+  | 'correspondence'
+  | 'form_response'
+  | 'form_attachment'
+  | 'other';
 export type AccessLevel = 'public' | 'standard' | 'restricted' | 'confidential';
 export type RelationshipType = 'duplicate' | 'related' | 'parent' | 'child' | 'blocked_by' | 'blocks';
 export type ServiceType = 'counseling' | 'legal' | 'financial' | 'housing' | 'healthcare' | 'education' | 'employment' | 'other';

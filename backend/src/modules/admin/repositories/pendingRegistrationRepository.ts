@@ -42,6 +42,13 @@ export interface PendingRegistrationChallengeRow {
   created_at: Date;
 }
 
+export interface AdminRecipientRow {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
 const hasPendingPasskeyTables = async (db: DbClient): Promise<boolean> => {
   const result = await db.query<{
     credentials_table: string | null;
@@ -252,11 +259,30 @@ export const createRealUser = async (
   return result.rows[0];
 };
 
-export const listAdminEmails = async (db: DbClient = pool): Promise<string[]> => {
-  const result = await db.query<{ email: string }>(
-    "SELECT email FROM users WHERE role = 'admin' AND COALESCE(is_active, true) = true"
+export const listAdminRecipients = async (db: DbClient = pool): Promise<AdminRecipientRow[]> => {
+  const result = await db.query<AdminRecipientRow>(
+    `SELECT id, email, first_name, last_name
+     FROM users
+     WHERE role = 'admin' AND COALESCE(is_active, true) = true
+     ORDER BY email ASC`
   );
-  return result.rows.map((row) => row.email);
+  return result.rows;
+};
+
+export const getActiveAdminRecipientById = async (
+  id: string,
+  db: DbClient = pool
+): Promise<AdminRecipientRow | null> => {
+  const result = await db.query<AdminRecipientRow>(
+    `SELECT id, email, first_name, last_name
+     FROM users
+     WHERE id = $1
+       AND role = 'admin'
+       AND COALESCE(is_active, true) = true
+     LIMIT 1`,
+    [id]
+  );
+  return result.rows[0] ?? null;
 };
 
 export const insertPendingRegistrationChallenge = async (

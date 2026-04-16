@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import Avatar from '../../../../../components/Avatar';
 import { normalizeRoleSlug } from '../../../../auth/state/roleNormalization';
 import { getAdminSettingsPath } from '../../../adminRoutePaths';
+import PendingApprovalsSummaryCard from '../components/PendingApprovalsSummaryCard';
 import type { OrganizationAccount, UserInvitation, UserSearchResult } from '../types';
 import { getRoleDisplayLabel } from '../utils';
 
@@ -45,6 +46,8 @@ export default function UsersSection({
 
   return (
     <div className="space-y-6">
+      <PendingApprovalsSummaryCard />
+
       <div className="overflow-hidden rounded-lg border border-app-border bg-app-surface shadow-sm">
         <div className="border-b border-app-border bg-app-surface-muted px-6 py-4">
           <h2 className="text-lg font-semibold text-app-text-heading">Account Lookup</h2>
@@ -299,8 +302,8 @@ export default function UsersSection({
         <div className="border-b border-app-border bg-app-surface-muted px-6 py-4">
           <h2 className="text-lg font-semibold text-app-text">Access Policies</h2>
           <p className="mt-1 text-sm text-app-text-muted">
-            Groups and invitations are managed here while registration approval remains in the
-            registration section below.
+            Groups and invitations are managed here, while registration approvals now live in the
+            dedicated approvals workspace.
           </p>
         </div>
         <div className="space-y-4 p-6">

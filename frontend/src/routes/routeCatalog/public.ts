@@ -38,6 +38,14 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     primaryAction: { label: 'Go to login', href: '/login' },
   }),
   publicRoute({
+    id: 'admin-registration-review',
+    title: 'Registration Review',
+    section: 'Auth',
+    path: '/admin-registration-review/:token',
+    auditFixtureKey: 'placeholder-token',
+    primaryAction: { label: 'Open approvals', href: '/settings/admin/approvals' },
+  }),
+  publicRoute({
     id: 'forgot-password',
     title: 'Forgot Password',
     section: 'Auth',

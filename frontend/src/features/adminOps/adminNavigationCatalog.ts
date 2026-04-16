@@ -1,6 +1,7 @@
 export type AdminSurface = 'core' | 'workspace';
 
 export type AdminSettingsGroup =
+  | 'approvals'
   | 'overview'
   | 'organization'
   | 'people_access'
@@ -9,6 +10,7 @@ export type AdminSettingsGroup =
   | 'other';
 
 export type AdminSettingsSection =
+  | 'approvals'
   | 'dashboard'
   | 'organization'
   | 'workspace_modules'
@@ -74,6 +76,19 @@ export type AdminSettingsTabGroup = {
 };
 
 export const adminSettingsSectionDefinitions: readonly AdminSettingsSectionDefinition[] = [
+  {
+    id: 'approvals',
+    routeId: 'admin-settings-approvals',
+    path: '/settings/admin/approvals',
+    label: 'Approvals',
+    title: 'Pending Approvals',
+    routeTitle: 'Pending Approvals',
+    description: 'Review pending staff registrations and tune approval defaults.',
+    level: 'basic',
+    group: 'approvals',
+    icon: '⏳',
+    surface: 'core',
+  },
   {
     id: 'dashboard',
     routeId: 'admin-settings',
@@ -233,6 +248,12 @@ export const adminSettingsSectionDefinitions: readonly AdminSettingsSectionDefin
 ] as const;
 
 export const adminSettingsTabGroups: readonly AdminSettingsTabGroup[] = [
+  {
+    id: 'approvals',
+    label: 'Approvals',
+    description: 'Pending staff registrations and fast approval decisions.',
+    tabs: ['approvals'],
+  },
   {
     id: 'overview',
     label: 'Overview',

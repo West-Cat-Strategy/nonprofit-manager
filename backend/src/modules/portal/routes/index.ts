@@ -16,7 +16,6 @@ import {
   portalDocumentsQuerySchema,
   portalEventParamsSchema,
   portalEventsQuerySchema,
-  portalFormsQuerySchema,
   portalManualAppointmentRequestSchema,
   portalNotesQuerySchema,
   portalPointpersonQuerySchema,
@@ -46,6 +45,7 @@ import { createPortalRealtimeController } from '../controllers/realtime.controll
 import { createPortalRelationshipsController } from '../controllers/relationships.controller';
 import { createPortalResourcesController } from '../controllers/resources.controller';
 import { PortalRepository } from '../repositories/portalRepository';
+import { CaseFormsRepository } from '@modules/cases/repositories/caseFormsRepository';
 import { PortalAppointmentsUseCase } from '../usecases/appointmentsUseCase';
 import { PortalCasesUseCase } from '../usecases/casesUseCase';
 import { PortalDashboardUseCase } from '../usecases/dashboardUseCase';
@@ -54,7 +54,16 @@ import { PortalMessagingUseCase } from '../usecases/messagingUseCase';
 import { PortalProfileUseCase } from '../usecases/profileUseCase';
 import { PortalResourcesUseCase } from '../usecases/resourcesUseCase';
 import { PortalRelationshipsUseCase } from '../usecases/relationshipsUseCase';
+import { CaseFormsUseCase } from '@modules/cases/usecases/caseForms.usecase';
 import type { PortalAppointmentsPort, PortalMessagingPort } from '../types/ports';
+import { createPortalFormsController } from '../controllers/forms.controller';
+import {
+  caseFormAssetUploadSchema,
+  caseFormDraftSchema,
+  caseFormListQuerySchema,
+  caseFormPortalParamsSchema,
+  caseFormSubmitSchema,
+} from '@validations/caseForms';
 
 interface PortalRouteDependencies {
   pool?: Pool;
@@ -77,6 +86,9 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
   const resourcesController = createPortalResourcesController(new PortalResourcesUseCase(repository));
   const relationshipsController = createPortalRelationshipsController(
     new PortalRelationshipsUseCase(repository)
+  );
+  const formsController = createPortalFormsController(
+    new CaseFormsUseCase(new CaseFormsRepository(deps.pool ?? pool))
   );
   const realtimeController = createPortalRealtimeController();
   const portalV2Routes = Router();
@@ -170,7 +182,33 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
 
   portalV2Routes.get('/documents', validateQuery(portalDocumentsQuerySchema), resourcesController.getDocuments);
   portalV2Routes.get('/documents/:id/download', validateParams(portalUuidParamsSchema), resourcesController.downloadDocument);
-  portalV2Routes.get('/forms', validateQuery(portalFormsQuerySchema), resourcesController.getForms);
+  portalV2Routes.get('/forms', validateQuery(caseFormListQuerySchema), formsController.listForms);
+  portalV2Routes.get('/forms/:assignmentId', validateParams(caseFormPortalParamsSchema), formsController.getForm);
+  portalV2Routes.post(
+    '/forms/:assignmentId/assets',
+    validateParams(caseFormPortalParamsSchema),
+    documentUpload.single('file'),
+    handleMulterError,
+    validateBody(caseFormAssetUploadSchema),
+    formsController.uploadAsset
+  );
+  portalV2Routes.post(
+    '/forms/:assignmentId/draft',
+    validateParams(caseFormPortalParamsSchema),
+    validateBody(caseFormDraftSchema),
+    formsController.saveDraft
+  );
+  portalV2Routes.post(
+    '/forms/:assignmentId/submit',
+    validateParams(caseFormPortalParamsSchema),
+    validateBody(caseFormSubmitSchema),
+    formsController.submit
+  );
+  portalV2Routes.get(
+    '/forms/:assignmentId/response-packet',
+    validateParams(caseFormPortalParamsSchema),
+    formsController.downloadResponsePacket
+  );
   portalV2Routes.get('/notes', validateQuery(portalNotesQuerySchema), resourcesController.getNotes);
   portalV2Routes.get('/reminders', validateQuery(portalRemindersQuerySchema), resourcesController.getReminders);
 

@@ -9,6 +9,7 @@ import {
 } from '@middleware/domains/platform';
 import { checkAccountLockout } from '@middleware/domains/auth';
 import {
+  adminRegistrationReviewTokenParamsSchema,
   registerSchema,
   loginSchema,
   changePasswordSchema,
@@ -39,6 +40,10 @@ import {
   setupFirstUser,
   validateResetToken,
 } from '../controllers/registration.controller';
+import {
+  confirmAdminRegistrationReviewHandler,
+  previewAdminRegistrationReviewHandler,
+} from '../controllers/adminRegistrationReviewController';
 import { getBootstrap } from '../controllers/bootstrap.controller';
 import { checkAccess, getCurrentUser, login, logout } from '../controllers/session.controller';
 import { getPreferences, updatePreferenceKey, updatePreferences } from '../controllers/preferences.controller';
@@ -153,6 +158,16 @@ export const createAuthRoutes = (_mode: ResponseMode = 'v2'): Router => {
     '/reset-password/:token',
     validateParams(passwordResetTokenParamsSchema),
     validateResetToken
+  );
+  router.get(
+    '/admin-registration-review/:token',
+    validateParams(adminRegistrationReviewTokenParamsSchema),
+    previewAdminRegistrationReviewHandler
+  );
+  router.post(
+    '/admin-registration-review/:token/confirm',
+    validateParams(adminRegistrationReviewTokenParamsSchema),
+    confirmAdminRegistrationReviewHandler
   );
   router.post(
     '/reset-password',

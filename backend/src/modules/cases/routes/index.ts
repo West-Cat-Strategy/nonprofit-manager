@@ -37,6 +37,7 @@ import { createCaseRelationshipsController } from '../controllers/relationships.
 import { createCaseServicesController } from '../controllers/services.controller';
 import { createCaseOutcomesController } from '../controllers/outcomes.controller';
 import { createCaseDocumentsController } from '../controllers/documents.controller';
+import { createCaseFormsController } from '../controllers/forms.controller';
 import { ResponseMode } from '../mappers/responseMode';
 import { CaseRepository } from '../repositories/caseRepository';
 import { CaseNotesRepository } from '../repositories/caseNotesRepository';
@@ -45,6 +46,7 @@ import { CaseRelationshipsRepository } from '../repositories/caseRelationshipsRe
 import { CaseServicesRepository } from '../repositories/caseServicesRepository';
 import { CaseOutcomesRepository } from '../repositories/caseOutcomesRepository';
 import { CaseDocumentsRepository } from '../repositories/caseDocumentsRepository';
+import { CaseFormsRepository } from '../repositories/caseFormsRepository';
 import { CaseCatalogUseCase } from '../usecases/caseCatalog.usecase';
 import { CaseLifecycleUseCase } from '../usecases/caseLifecycle.usecase';
 import { CaseNotesUseCase } from '../usecases/caseNotes.usecase';
@@ -53,7 +55,24 @@ import { CaseRelationshipsUseCase } from '../usecases/caseRelationships.usecase'
 import { CaseServicesUseCase } from '../usecases/caseServices.usecase';
 import { CaseOutcomesUseCase } from '../usecases/caseOutcomes.usecase';
 import { CaseDocumentsUseCase } from '../usecases/caseDocuments.usecase';
+import { CaseFormsUseCase } from '../usecases/caseForms.usecase';
 import { Permission } from '@utils/permissions';
+import {
+  caseFormAssetParamsSchema,
+  caseFormAssetUploadSchema,
+  caseFormAssignmentParamsSchema,
+  caseFormCaseParamsSchema,
+  caseFormCaseTypeParamsSchema,
+  caseFormDraftSchema,
+  caseFormListQuerySchema,
+  caseFormReviewDecisionSchema,
+  caseFormSendSchema,
+  caseFormSubmitSchema,
+  createCaseFormAssignmentSchema,
+  createCaseFormDefaultSchema,
+  updateCaseFormAssignmentSchema,
+  updateCaseFormDefaultSchema,
+} from '@validations/caseForms';
 
 const casePrioritySchema = z.enum(['low', 'medium', 'high', 'urgent', 'critical']);
 const caseOutcomeSchema = z.enum([
@@ -344,6 +363,20 @@ const resolveCasePortalConversationSchema = z.object({
   visible_to_client: optionalStrictBooleanSchema,
 });
 
+const caseFormDefaultDetailParamsSchema = z
+  .object({
+    caseTypeId: uuidSchema,
+    defaultId: uuidSchema,
+  })
+  .strict();
+
+const caseFormInstantiateParamsSchema = z
+  .object({
+    id: uuidSchema,
+    defaultId: uuidSchema,
+  })
+  .strict();
+
 export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   const router = Router();
 
@@ -354,6 +387,7 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   const servicesRepository = new CaseServicesRepository();
   const outcomesRepository = new CaseOutcomesRepository();
   const documentsRepository = new CaseDocumentsRepository();
+  const caseFormsRepository = new CaseFormsRepository();
 
   const catalogController = createCaseCatalogController(
     new CaseCatalogUseCase(caseRepository),
@@ -384,6 +418,10 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     new CaseDocumentsUseCase(documentsRepository),
     mode
   );
+  const formsController = createCaseFormsController(
+    new CaseFormsUseCase(caseFormsRepository),
+    mode
+  );
 
   router.use(authenticate);
   router.use(requireActiveOrganizationContext);
@@ -397,6 +435,25 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   router.get('/summary', catalogController.getCaseSummary);
   router.get('/types', catalogController.getCaseTypes);
   router.get('/statuses', catalogController.getCaseStatuses);
+  router.get(
+    '/types/:caseTypeId/forms/defaults',
+    validateParams(caseFormCaseTypeParamsSchema),
+    formsController.listDefaults
+  );
+  router.post(
+    '/types/:caseTypeId/forms/defaults',
+    validateParams(caseFormCaseTypeParamsSchema),
+    validateBody(createCaseFormDefaultSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.createDefault
+  );
+  router.put(
+    '/types/:caseTypeId/forms/defaults/:defaultId',
+    validateParams(caseFormDefaultDetailParamsSchema),
+    validateBody(updateCaseFormDefaultSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.updateDefault
+  );
 
   router.post(
     '/bulk-status',
@@ -411,6 +468,89 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
     lifecycleController.createCase
   );
   router.get('/', validateQuery(caseCatalogQuerySchema), catalogController.getCases);
+  router.get(
+    '/:id/forms/recommended-defaults',
+    validateParams(caseFormCaseParamsSchema),
+    formsController.listRecommendedDefaults
+  );
+  router.get(
+    '/:id/forms',
+    validateParams(caseFormCaseParamsSchema),
+    validateQuery(caseFormListQuerySchema),
+    formsController.listAssignments
+  );
+  router.post(
+    '/:id/forms',
+    validateParams(caseFormCaseParamsSchema),
+    validateBody(createCaseFormAssignmentSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.createAssignment
+  );
+  router.post(
+    '/:id/forms/defaults/:defaultId/instantiate',
+    validateParams(caseFormInstantiateParamsSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.instantiateDefault
+  );
+  router.get(
+    '/:id/forms/:assignmentId',
+    validateParams(caseFormAssignmentParamsSchema),
+    formsController.getAssignmentDetail
+  );
+  router.put(
+    '/:id/forms/:assignmentId',
+    validateParams(caseFormAssignmentParamsSchema),
+    validateBody(updateCaseFormAssignmentSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.updateAssignment
+  );
+  router.post(
+    '/:id/forms/:assignmentId/assets',
+    validateParams(caseFormAssignmentParamsSchema),
+    documentUpload.single('file'),
+    handleMulterError,
+    validateBody(caseFormAssetUploadSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.uploadAsset
+  );
+  router.post(
+    '/:id/forms/:assignmentId/draft',
+    validateParams(caseFormAssignmentParamsSchema),
+    validateBody(caseFormDraftSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.saveDraft
+  );
+  router.post(
+    '/:id/forms/:assignmentId/staff-submit',
+    validateParams(caseFormAssignmentParamsSchema),
+    validateBody(caseFormSubmitSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.submit
+  );
+  router.post(
+    '/:id/forms/:assignmentId/send',
+    validateParams(caseFormAssignmentParamsSchema),
+    validateBody(caseFormSendSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.sendAssignment
+  );
+  router.post(
+    '/:id/forms/:assignmentId/review',
+    validateParams(caseFormAssignmentParamsSchema),
+    validateBody(caseFormReviewDecisionSchema),
+    requirePermission(Permission.CASE_EDIT),
+    formsController.reviewAssignment
+  );
+  router.get(
+    '/:id/forms/:assignmentId/response-packet',
+    validateParams(caseFormAssignmentParamsSchema),
+    formsController.downloadResponsePacket
+  );
+  router.get(
+    '/:id/forms/:assignmentId/assets/:assetId/download',
+    validateParams(caseFormAssetParamsSchema),
+    formsController.downloadAsset
+  );
   router.get('/:id', validateParams(caseIdParamsSchema), catalogController.getCaseById);
   router.get(
     '/:id/follow-ups',

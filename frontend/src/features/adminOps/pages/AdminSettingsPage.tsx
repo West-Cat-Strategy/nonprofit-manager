@@ -39,6 +39,7 @@ const WorkspaceModulesSection = lazy(
   () => import('./adminSettings/sections/WorkspaceModulesSection')
 );
 const BrandingSection = lazy(() => import('./adminSettings/sections/BrandingSection'));
+const ApprovalsSection = lazy(() => import('./adminSettings/sections/ApprovalsSection'));
 const UsersSection = lazy(() => import('./adminSettings/sections/UsersSection'));
 const GroupsSection = lazy(() => import('./adminSettings/sections/GroupsSection'));
 const RolesSection = lazy(() => import('./adminSettings/sections/RolesSection'));
@@ -49,9 +50,6 @@ const CommunicationsSection = lazy(
   () => import('./adminSettings/sections/CommunicationsSection')
 );
 const TwilioSettingsSection = lazy(() => import('./adminSettings/sections/TwilioSettingsSection'));
-const RegistrationSettingsSection = lazy(
-  () => import('./adminSettings/sections/RegistrationSettingsSection')
-);
 const OutcomeDefinitionsSection = lazy(
   () => import('./adminSettings/sections/OutcomeDefinitionsSection')
 );
@@ -269,6 +267,8 @@ export default function AdminSettings() {
 
   const renderActiveSection = () => {
     switch (activeSection) {
+      case 'approvals':
+        return <ApprovalsSection roleOptions={roleOptions} />;
       case 'dashboard':
         return (
           <DashboardSection
@@ -329,27 +329,22 @@ export default function AdminSettings() {
         );
       case 'users':
         return (
-          <>
-            <UsersSection
-              userSearchQuery={userSearchQuery}
-              onSearchChange={setUserSearchQuery}
-              isSearching={isSearching}
-              userSearchResults={userSearchResults}
-              roleLabels={roleLabels}
-              onSelectUser={fetchUserSecurityInfo}
-              onOpenAccess={fetchUserAccessInfo}
-              onShowInvite={() => setShowInviteModal(true)}
-              onGoToRoles={() => setActiveSection('roles')}
-              onGoToGroups={() => setActiveSection('groups')}
-              invitations={invitations}
-              onResendInvitation={handleResendInvitation}
-              onRevokeInvitation={handleRevokeInvitation}
-              organizationAccounts={organizationAccounts}
-            />
-            <div className="mt-6">
-              <RegistrationSettingsSection roleOptions={roleOptions} />
-            </div>
-          </>
+          <UsersSection
+            userSearchQuery={userSearchQuery}
+            onSearchChange={setUserSearchQuery}
+            isSearching={isSearching}
+            userSearchResults={userSearchResults}
+            roleLabels={roleLabels}
+            onSelectUser={fetchUserSecurityInfo}
+            onOpenAccess={fetchUserAccessInfo}
+            onShowInvite={() => setShowInviteModal(true)}
+            onGoToRoles={() => setActiveSection('roles')}
+            onGoToGroups={() => setActiveSection('groups')}
+            invitations={invitations}
+            onResendInvitation={handleResendInvitation}
+            onRevokeInvitation={handleRevokeInvitation}
+            organizationAccounts={organizationAccounts}
+          />
         );
       case 'groups':
         return (

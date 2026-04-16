@@ -9,6 +9,7 @@ import AuthenticatedShellRoute from '../components/auth/AuthenticatedShellRoute'
 import PageLoader from '../components/PageLoader';
 import {
   AcceptInvitation,
+  AdminRegistrationReview,
   ForgotPassword,
   Login,
   Register,
@@ -82,6 +83,7 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/accept-invitation/:token" element={<AcceptInvitation />} />
+        <Route path="/admin-registration-review/:token" element={<AdminRegistrationReview />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/public/reports/:token" element={<PublicReportSnapshot />} />

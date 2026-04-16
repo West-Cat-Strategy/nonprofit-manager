@@ -20,6 +20,7 @@ import {
   PortalPeople,
   PortalProfile,
   PortalReminders,
+  PublicCaseForm,
   PortalSignup,
 } from '../features/portal/routeComponents';
 
@@ -30,6 +31,7 @@ export function createPortalPublicRoutes() {
       <Route path="/portal/login" element={<PortalLogin />} />
       <Route path="/portal/signup" element={<PortalSignup />} />
       <Route path="/portal/accept-invitation/:token" element={<PortalAcceptInvitation />} />
+      <Route path="/public/case-forms/:token" element={<PublicCaseForm />} />
     </>
   );
 }

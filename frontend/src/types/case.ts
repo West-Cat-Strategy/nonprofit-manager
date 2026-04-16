@@ -48,6 +48,16 @@ export type NoteType =
   | 'system'
   | 'portal_message';
 
+export type DocumentType =
+  | 'intake'
+  | 'assessment'
+  | 'consent'
+  | 'report'
+  | 'correspondence'
+  | 'form_response'
+  | 'form_attachment'
+  | 'other';
+
 /**
  * Case Type Definition
  */

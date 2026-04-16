@@ -92,6 +92,9 @@ vi.mock('../../../../hooks/useUnsavedChangesGuard', () => ({
 vi.mock('../adminSettings/sections/OrganizationSection', () => ({
   default: () => <div>Organization Section</div>,
 }));
+vi.mock('../adminSettings/sections/ApprovalsSection', () => ({
+  default: () => <div>Approvals Section</div>,
+}));
 vi.mock('../adminSettings/sections/WorkspaceModulesSection', () => ({
   default: () => <div>Workspace Modules Section</div>,
 }));
@@ -201,10 +204,29 @@ describe('AdminSettings page', () => {
       '/settings/admin/portal/access'
     );
     expect(screen.getByRole('heading', { name: /quick actions/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /invite users/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /pending approvals/i })).toHaveAttribute(
       'href',
-      '/settings/admin/users'
+      '/settings/admin/approvals'
     );
+  });
+
+  it('renders approvals first in the admin section tab order', async () => {
+    renderAdminSettings('/settings/admin/dashboard');
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /approvals/i })).toBeInTheDocument();
+    });
+
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs[0]).toHaveTextContent('Approvals');
+  });
+
+  it('renders the approvals section directly from the canonical route path', async () => {
+    renderAdminSettings('/settings/admin/approvals');
+
+    await waitFor(() => {
+      expect(screen.getByText('Approvals Section')).toBeInTheDocument();
+    });
   });
 
   it('renders the section directly from the canonical route path', async () => {
