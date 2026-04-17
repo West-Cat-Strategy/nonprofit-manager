@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
@@ -10,20 +10,46 @@ import usePortalEventsList from '../client/usePortalEventsList';
 import type { PortalEvent } from '../types/contracts';
 import {
   canShowPortalEventQrPass,
+  getPortalEventCheckedInLabel,
   getPortalEventConfirmationLabel,
   getPortalEventDateRange,
   getPortalEventOccurrenceLabel,
   getPortalEventRegistrationLabel,
 } from '../utils/eventDisplay';
+import { usePortalListUrlState } from '../utils/listQueryState';
+
+const EVENT_SORT_VALUES = ['start_date', 'name', 'created_at'] as const;
+const DIALOG_FOCUSABLE_SELECTOR = [
+  'button:not([disabled])',
+  'a[href]',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ');
 
 export default function PortalEventsPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<'start_date' | 'name' | 'created_at'>('start_date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [savingEventId, setSavingEventId] = useState<string | null>(null);
   const [passEvent, setPassEvent] = useState<PortalEvent | null>(null);
   const [passQrDataUrl, setPassQrDataUrl] = useState<string | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const { showSuccess, showError } = useToast();
+  const passTitleId = useId();
+  const passDescriptionId = useId();
+  const {
+    search: searchTerm,
+    sort: sortField,
+    order: sortOrder,
+    setSearch,
+    setSort,
+    setOrder,
+  } = usePortalListUrlState({
+    sortValues: EVENT_SORT_VALUES,
+    defaultSort: 'start_date',
+    defaultOrder: 'asc',
+  });
 
   const {
     items: events,
@@ -71,9 +97,65 @@ export default function PortalEventsPage() {
     };
   }, [passEvent]);
 
+  useEffect(() => {
+    if (!passEvent) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const focusCloseButton = window.requestAnimationFrame(() => {
+      closeButtonRef.current?.focus();
+    });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setPassEvent(null);
+        return;
+      }
+
+      if (event.key !== 'Tab') {
+        return;
+      }
+
+      const focusableElements = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE_SELECTOR) ?? []
+      ).filter((element) => !element.hasAttribute('disabled'));
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.cancelAnimationFrame(focusCloseButton);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+      restoreFocusRef.current?.focus();
+      restoreFocusRef.current = null;
+    };
+  }, [passEvent]);
+
   const checkedInLabel = useMemo(() => {
-    if (!passEvent?.checked_in || !passEvent.check_in_time) return null;
-    return new Date(passEvent.check_in_time).toLocaleString();
+    if (!passEvent?.checked_in) return null;
+    return getPortalEventCheckedInLabel(passEvent);
   }, [passEvent]);
 
   const passOccurrenceLabel = passEvent ? getPortalEventOccurrenceLabel(passEvent) : null;
@@ -118,6 +200,14 @@ export default function PortalEventsPage() {
     anchor.click();
   };
 
+  const openPass = (
+    event: ReactMouseEvent<HTMLButtonElement>,
+    portalEvent: PortalEvent
+  ) => {
+    restoreFocusRef.current = event.currentTarget;
+    setPassEvent(portalEvent);
+  };
+
   return (
     <PortalPageShell
       title="Events"
@@ -125,17 +215,17 @@ export default function PortalEventsPage() {
     >
       <PortalListToolbar
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={setSearch}
         searchPlaceholder="Search events by name, type, location, or status"
         sortValue={sortField}
-        onSortChange={setSortField}
+        onSortChange={setSort}
         sortOptions={[
           { value: 'start_date', label: 'Start date' },
           { value: 'name', label: 'Name' },
           { value: 'created_at', label: 'Added date' },
         ]}
         orderValue={sortOrder}
-        onOrderChange={setSortOrder}
+        onOrderChange={setOrder}
         showingCount={events.length}
         totalCount={total}
       />
@@ -159,9 +249,7 @@ export default function PortalEventsPage() {
           {events.map((event) => {
             const hasRegistration = Boolean(event.registration_id);
             const isCheckedIn = Boolean(event.checked_in);
-            const checkedInTime = event.check_in_time
-              ? new Date(event.check_in_time).toLocaleString()
-              : null;
+            const checkedInTime = getPortalEventCheckedInLabel(event);
             const occurrenceLabel = getPortalEventOccurrenceLabel(event);
             const registrationLabel = getPortalEventRegistrationLabel(event.registration_status);
             const confirmationLabel = getPortalEventConfirmationLabel(
@@ -222,7 +310,8 @@ export default function PortalEventsPage() {
                         {canShowPortalEventQrPass(event) && (
                           <button
                             type="button"
-                            onClick={() => setPassEvent(event)}
+                            onClick={(triggerEvent) => openPass(triggerEvent, event)}
+                            aria-haspopup="dialog"
                             className="rounded border border-app-input-border px-3 py-1 text-xs"
                           >
                             QR Pass
@@ -282,11 +371,27 @@ export default function PortalEventsPage() {
       )}
 
       {passEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop p-4">
-          <div className="w-full max-w-md rounded-lg border border-app-border bg-app-surface p-5 shadow-xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop p-4"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setPassEvent(null);
+            }
+          }}
+        >
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={passTitleId}
+            aria-describedby={passDescriptionId}
+            className="w-full max-w-md rounded-lg border border-app-border bg-app-surface p-5 shadow-xl"
+          >
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-app-text">Event QR Pass</h2>
+                <h2 id={passTitleId} className="text-lg font-semibold text-app-text">
+                  Event QR Pass
+                </h2>
                 <p className="text-xs text-app-text-muted">{passEvent.name}</p>
                 {passOccurrenceLabel && (
                   <p className="mt-1 text-xs text-app-text-muted">{passOccurrenceLabel}</p>
@@ -299,6 +404,7 @@ export default function PortalEventsPage() {
                 )}
               </div>
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={() => setPassEvent(null)}
                 className="rounded border border-app-input-border px-2 py-1 text-xs"
@@ -321,7 +427,7 @@ export default function PortalEventsPage() {
               )}
             </div>
 
-            <div className="mt-3 space-y-1 text-xs text-app-text-muted">
+            <div id={passDescriptionId} className="mt-3 space-y-1 text-xs text-app-text-muted">
               <p>{getPortalEventDateRange(passEvent)}</p>
               {passEvent.location_name && <p>{passEvent.location_name}</p>}
               {checkedInLabel && <p>Checked in at {checkedInLabel}</p>}

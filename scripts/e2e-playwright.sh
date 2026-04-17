@@ -10,7 +10,19 @@ Usage: scripts/e2e-playwright.sh <host|docker> [--direct|--locked] <playwright c
 
 Apply the repo's standard Playwright runtime defaults, then run the shared
 lock/preflight wrapper or the command directly.
+
+Modes:
+  host    Playwright-managed frontend/backend runtime on 127.0.0.1:5173/3001
+  docker  Externally managed runtime on 127.0.0.1:8005/8004
 EOF
+}
+
+set_runtime_env() {
+  local name="$1"
+  local value="$2"
+
+  printf -v "$name" '%s' "$value"
+  export "$name"
 }
 
 if [[ $# -lt 2 ]]; then
@@ -40,16 +52,32 @@ fi
 
 case "$mode" in
   host)
+    # Host mode is always the Playwright-managed runtime contract.
+    set_runtime_env E2E_BACKEND_HOST "127.0.0.1"
+    set_runtime_env E2E_FRONTEND_HOST "127.0.0.1"
+    set_runtime_env E2E_BACKEND_PORT "3001"
+    set_runtime_env E2E_FRONTEND_PORT "5173"
+    set_runtime_env E2E_PUBLIC_SITE_PORT "3001"
+    set_runtime_env BASE_URL "http://127.0.0.1:5173"
+    set_runtime_env API_URL "http://127.0.0.1:3001"
+    set_runtime_env SKIP_WEBSERVER "0"
+    set_runtime_env BYPASS_REGISTRATION_POLICY_IN_TEST "false"
     export E2E_PORT_ACTION="${E2E_PORT_ACTION:-kill}"
-    export E2E_PUBLIC_SITE_PORT="${E2E_PUBLIC_SITE_PORT:-3001}"
-    export BASE_URL="${BASE_URL:-http://127.0.0.1:5173}"
-    export API_URL="${API_URL:-http://127.0.0.1:3001}"
-    export SKIP_WEBSERVER="${SKIP_WEBSERVER:-0}"
     export E2E_USE_DEV_RUNTIME="${E2E_USE_DEV_RUNTIME:-0}"
     export E2E_COMPOSE_MODE="${E2E_COMPOSE_MODE:-ci}"
     export PW_REUSE_EXISTING_SERVER="${PW_REUSE_EXISTING_SERVER:-1}"
     ;;
   docker)
+    # Docker mode is always an externally managed runtime contract.
+    set_runtime_env E2E_BACKEND_HOST "127.0.0.1"
+    set_runtime_env E2E_FRONTEND_HOST "127.0.0.1"
+    set_runtime_env E2E_BACKEND_PORT "8004"
+    set_runtime_env E2E_FRONTEND_PORT "8005"
+    set_runtime_env E2E_PUBLIC_SITE_PORT "8006"
+    set_runtime_env BASE_URL "http://127.0.0.1:8005"
+    set_runtime_env API_URL "http://127.0.0.1:8004"
+    set_runtime_env SKIP_WEBSERVER "1"
+    set_runtime_env BYPASS_REGISTRATION_POLICY_IN_TEST "true"
     export DB_HOST="${DB_HOST:-127.0.0.1}"
     export DB_PORT="${DB_PORT:-8002}"
     export DB_NAME="${DB_NAME:-nonprofit_manager}"
@@ -60,14 +88,8 @@ case "$mode" in
     export E2E_DB_NAME="${E2E_DB_NAME:-nonprofit_manager}"
     export E2E_DB_USER="${E2E_DB_USER:-postgres}"
     export E2E_DB_PASSWORD="${E2E_DB_PASSWORD:-postgres}"
-    export E2E_PUBLIC_SITE_PORT="${E2E_PUBLIC_SITE_PORT:-8006}"
     export E2E_RUNNER_ACTION="${E2E_RUNNER_ACTION:-kill}"
     export E2E_PORT_ACTION="${E2E_PORT_ACTION:-warn}"
-    export E2E_BACKEND_PORT="${E2E_BACKEND_PORT:-8004}"
-    export E2E_FRONTEND_PORT="${E2E_FRONTEND_PORT:-8005}"
-    export BASE_URL="${BASE_URL:-http://127.0.0.1:8005}"
-    export API_URL="${API_URL:-http://127.0.0.1:8004}"
-    export SKIP_WEBSERVER="${SKIP_WEBSERVER:-1}"
     export PW_REUSE_EXISTING_SERVER="${PW_REUSE_EXISTING_SERVER:-1}"
     ;;
   *)

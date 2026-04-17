@@ -13,13 +13,12 @@ import { extractPagination, getBoolean, getString } from '@utils/queryHelpers';
 import { AccountCatalogUseCase } from '../usecases/accountCatalog.usecase';
 import { AccountImportExportUseCase } from '../usecases/accountImportExport.usecase';
 import { AccountLifecycleUseCase } from '../usecases/accountLifecycle.usecase';
-import { type ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
 export const createAccountsController = (
   catalogUseCase: AccountCatalogUseCase,
   lifecycleUseCase: AccountLifecycleUseCase,
-  importExportUseCase: AccountImportExportUseCase,
-  mode: ResponseMode
+  importExportUseCase: AccountImportExportUseCase
 ) => {
   const getAccounts = async (
     req: AuthRequest,
@@ -38,7 +37,7 @@ export const createAccountsController = (
       const pagination: PaginationParams = extractPagination(query);
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const result = await catalogUseCase.list(filters, pagination, scope);
-      sendData(res, mode, result);
+      sendData(res, result);
     } catch (error) {
       next(error);
     }
@@ -54,11 +53,11 @@ export const createAccountsController = (
       const account = await catalogUseCase.getByIdWithScope(req.params.id, scope);
 
       if (!account) {
-        sendFailure(res, mode, 'not_found', 'Account not found', 404);
+        sendFailure(res, 'not_found', 'Account not found', 404);
         return;
       }
 
-      sendData(res, mode, account);
+      sendData(res, account);
     } catch (error) {
       next(error);
     }
@@ -72,12 +71,12 @@ export const createAccountsController = (
     try {
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       if (scope?.accountIds && !scope.accountIds.includes(req.params.id)) {
-        sendFailure(res, mode, 'not_found', 'Account not found', 404);
+        sendFailure(res, 'not_found', 'Account not found', 404);
         return;
       }
 
       const contacts = await catalogUseCase.listContacts(req.params.id);
-      sendData(res, mode, contacts);
+      sendData(res, contacts);
     } catch (error) {
       next(error);
     }
@@ -91,12 +90,12 @@ export const createAccountsController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const account = await lifecycleUseCase.create(req.body, userId);
-      sendData(res, mode, account, 201);
+      sendData(res, account, 201);
     } catch (error) {
       next(error);
     }
@@ -110,24 +109,24 @@ export const createAccountsController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const scopedAccount = await catalogUseCase.getByIdWithScope(req.params.id, scope);
       if (!scopedAccount) {
-        sendFailure(res, mode, 'not_found', 'Account not found', 404);
+        sendFailure(res, 'not_found', 'Account not found', 404);
         return;
       }
 
       const account = await lifecycleUseCase.update(req.params.id, req.body, userId);
       if (!account) {
-        sendFailure(res, mode, 'not_found', 'Account not found', 404);
+        sendFailure(res, 'not_found', 'Account not found', 404);
         return;
       }
 
-      sendData(res, mode, account);
+      sendData(res, account);
     } catch (error) {
       next(error);
     }
@@ -141,20 +140,20 @@ export const createAccountsController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const scopedAccount = await catalogUseCase.getByIdWithScope(req.params.id, scope);
       if (!scopedAccount) {
-        sendFailure(res, mode, 'not_found', 'Account not found', 404);
+        sendFailure(res, 'not_found', 'Account not found', 404);
         return;
       }
 
       const deleted = await lifecycleUseCase.delete(req.params.id, userId);
       if (!deleted) {
-        sendFailure(res, mode, 'not_found', 'Account not found', 404);
+        sendFailure(res, 'not_found', 'Account not found', 404);
         return;
       }
 
@@ -201,14 +200,14 @@ export const createAccountsController = (
   ): Promise<void> => {
     try {
       if (!req.file) {
-        sendFailure(res, mode, 'validation_error', 'Import file is required', 400);
+        sendFailure(res, 'validation_error', 'Import file is required', 400);
         return;
       }
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
       const preview = await importExportUseCase.previewImport(req.file, mapping, scope);
-      sendData(res, mode, preview);
+      sendData(res, preview);
     } catch (error) {
       next(error);
     }
@@ -222,19 +221,19 @@ export const createAccountsController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       if (!req.file) {
-        sendFailure(res, mode, 'validation_error', 'Import file is required', 400);
+        sendFailure(res, 'validation_error', 'Import file is required', 400);
         return;
       }
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
       const result = await importExportUseCase.commitImport(req.file, mapping, userId, scope);
-      sendData(res, mode, result);
+      sendData(res, result);
     } catch (error) {
       next(error);
     }

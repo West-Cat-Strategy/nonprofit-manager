@@ -8,6 +8,8 @@ import { lazy } from 'react';
 
 export const PortalLogin = lazy(() => import('./pages/PortalLoginPage'));
 export const PortalSignup = lazy(() => import('./pages/PortalSignupPage'));
+export const PortalForgotPassword = lazy(() => import('./pages/PortalForgotPasswordPage'));
+export const PortalResetPassword = lazy(() => import('./pages/PortalResetPasswordPage'));
 export const PortalAcceptInvitation = lazy(() => import('./pages/PortalAcceptInvitationPage'));
 export const PortalDashboard = lazy(() => import('./pages/PortalDashboardPage'));
 export const PortalProfile = lazy(() => import('./pages/PortalProfilePage'));

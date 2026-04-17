@@ -76,15 +76,40 @@
 }
 
 /* Theme Transition - smooth color changes when switching themes */
-body.theme-transitioning,
-body.theme-transitioning *,
-body.theme-transitioning *::before,
-body.theme-transitioning *::after {
+body.theme-transitioning :is(
+  [data-shell-transition],
+  [data-shell-transition] *,
+  [data-shell-transition] *::before,
+  [data-shell-transition] *::after
+) {
   transition:
     background-color 300ms ease,
     color 200ms ease,
     border-color 250ms ease,
     box-shadow 200ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.theme-transitioning :is(
+    [data-shell-transition],
+    [data-shell-transition] *,
+    [data-shell-transition] *::before,
+    [data-shell-transition] *::after
+  ) {
+    transition: none !important;
+  }
+
+  :is(
+    [data-shell-transition],
+    [data-shell-transition] *,
+    [data-shell-transition] *::before,
+    [data-shell-transition] *::after
+  ) {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .font-display { font-family: var(--font-display); }

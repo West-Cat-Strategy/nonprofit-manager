@@ -243,7 +243,6 @@ frontend/src/
 
 ├── hooks/                               [NEW]
 │   ├── useBulkSelect.ts                 [NEW]
-│   ├── useFiltering.ts                  [NEW]
 │   ├── useImportExport.ts               [NEW]
 │   └── useSavedSearches.ts              [NEW]
 

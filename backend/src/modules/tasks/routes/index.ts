@@ -7,7 +7,6 @@ import { validateBody, validateParams, validateQuery } from '@middleware/zodVali
 import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
 import { followUpController as followUpsController } from '@modules/followUps/controllers/followUps.handlers';
 import { createTasksController } from '../controllers/tasks.controller';
-import { type ResponseMode } from '../mappers/responseMode';
 import { TaskRepository } from '../repositories/taskRepository';
 import { TaskCatalogUseCase } from '../usecases/taskCatalog.usecase';
 import { TaskLifecycleUseCase } from '../usecases/taskLifecycle.usecase';
@@ -68,14 +67,13 @@ const taskQuerySchema = z
   })
   .strict();
 
-export const createTasksRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createTasksRoutes = (): Router => {
   const router = Router();
 
   const repository = new TaskRepository();
   const controller = createTasksController(
     new TaskCatalogUseCase(repository),
-    new TaskLifecycleUseCase(repository),
-    mode
+    new TaskLifecycleUseCase(repository)
   );
 
   router.use(authenticate);
@@ -118,4 +116,4 @@ export const createTasksRoutes = (mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const tasksV2Routes = createTasksRoutes('v2');
+export const tasksV2Routes = createTasksRoutes();

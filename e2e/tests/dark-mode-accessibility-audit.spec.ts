@@ -18,6 +18,7 @@ import {
 import {
   createAdminRegistrationReviewLink,
   createPasswordResetLink,
+  createPortalPasswordResetLink,
   createPortalInvitationLink,
   createPublicCaseFormLink,
   createPublicReportLink,
@@ -126,6 +127,7 @@ type StaffFixtureState = {
   publicCaseFormAssignmentId?: string;
   publicCaseFormCaseId?: string;
   publicCaseFormToken?: string;
+  portalPasswordResetToken?: string;
   recurringDonationPlanId?: string;
   staffInvitationId?: string;
   staffInvitationToken?: string;
@@ -403,6 +405,26 @@ async function resolveRoute(
         kind: 'ready',
         path: href.replace(/:token\b/g, staffState.passwordResetToken),
         fixtureState: 'password reset token',
+      };
+    case 'portal-password-reset':
+      if (!portalState.portalUser) {
+        portalState.portalUser = await provisionApprovedPortalUser(adminPage, {
+          firstName: 'Dark',
+          lastName: 'Portal Reset',
+          email: `dark-mode-portal-reset-${Date.now()}@example.com`,
+          password: 'Portal123!@#',
+        });
+      }
+      if (!staffState.portalPasswordResetToken) {
+        const reset = await createPortalPasswordResetLink({
+          portalUserId: portalState.portalUser.portalUserId,
+        });
+        staffState.portalPasswordResetToken = reset.resetToken;
+      }
+      return {
+        kind: 'ready',
+        path: href.replace(/:token\b/g, staffState.portalPasswordResetToken),
+        fixtureState: 'portal password reset token',
       };
     case 'public-case-form':
       if (!staffState.publicCaseFormAssignmentId || !staffState.publicCaseFormToken) {

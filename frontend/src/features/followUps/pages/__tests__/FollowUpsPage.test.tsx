@@ -152,6 +152,24 @@ describe('FollowUpsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     dispatchMock.mockClear();
+    mockState.followUps.followUps = [
+      {
+        id: 'fu-1',
+        entity_type: 'case',
+        entity_id: 'case-1',
+        title: 'Initial follow-up',
+        description: 'Call client back',
+        scheduled_date: '2026-03-05',
+        scheduled_time: '10:00',
+        status: 'scheduled',
+        assigned_to_name: 'Alex Rivera',
+        case_title: 'Housing Support',
+        case_number: 'CASE-001',
+        task_subject: null,
+      },
+    ];
+    mockState.followUps.loading = false;
+    mockState.followUps.error = null;
   });
 
   it('lets users pick a case/task entity without entering raw UUIDs', async () => {
@@ -166,7 +184,7 @@ describe('FollowUpsPage', () => {
   it('validates reschedule date and dispatches reschedule action', async () => {
     renderWithProviders(<FollowUpsPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /reschedule/i }));
+    fireEvent.click(screen.getAllByRole('button', { name: /reschedule/i })[0]);
 
     const dateInput = screen.getByLabelText(/date/i);
     fireEvent.change(dateInput, { target: { value: '' } });
@@ -191,7 +209,7 @@ describe('FollowUpsPage', () => {
     const windowConfirmSpy = vi.spyOn(window, 'confirm');
     renderWithProviders(<FollowUpsPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /delete/i }));
+    fireEvent.click(screen.getAllByRole('button', { name: /delete/i })[0]);
 
     await waitFor(() => {
       expect(confirmMock).toHaveBeenCalledTimes(1);
@@ -199,5 +217,63 @@ describe('FollowUpsPage', () => {
     expect(windowConfirmSpy).not.toHaveBeenCalled();
 
     windowConfirmSpy.mockRestore();
+  });
+
+  it('hydrates and sanitizes URL-backed list state before fetching', async () => {
+    renderWithProviders(<FollowUpsPage />, {
+      route: '/follow-ups?search=client&entity_type=invalid&status=broken&page=0',
+    });
+
+    await waitFor(() => {
+      expect(fetchFollowUpsMock).toHaveBeenCalledWith({
+        filters: {
+          entity_type: undefined,
+          status: undefined,
+        },
+        page: 1,
+        limit: 20,
+      });
+    });
+
+    expect(screen.getByLabelText('Search follow-ups')).toHaveValue('client');
+    expect(screen.getByLabelText('Filter follow-ups by entity type')).toHaveValue('');
+    expect(screen.getByLabelText('Filter follow-ups by status')).toHaveValue('');
+  });
+
+  it('resets pagination when a URL-backed filter changes', async () => {
+    renderWithProviders(<FollowUpsPage />, { route: '/follow-ups?page=3' });
+
+    fireEvent.change(screen.getByLabelText('Filter follow-ups by status'), {
+      target: { value: 'completed' },
+    });
+
+    await waitFor(() => {
+      expect(fetchFollowUpsMock).toHaveBeenLastCalledWith({
+        filters: {
+          entity_type: undefined,
+          status: 'completed',
+        },
+        page: 1,
+        limit: 20,
+      });
+    });
+  });
+
+  it('renders loading, empty, and error states for the follow-up list', () => {
+    mockState.followUps.loading = true;
+    mockState.followUps.followUps = [];
+
+    const loadingView = renderWithProviders(<FollowUpsPage />);
+    expect(screen.getAllByText('Loading follow-ups...').length).toBeGreaterThan(0);
+    loadingView.unmount();
+
+    mockState.followUps.loading = false;
+    const emptyView = renderWithProviders(<FollowUpsPage />);
+    expect(screen.getAllByText('No follow-ups found.').length).toBeGreaterThan(0);
+    emptyView.unmount();
+
+    mockState.followUps.error = 'Unable to load follow-ups';
+    renderWithProviders(<FollowUpsPage />);
+    expect(screen.getByText('Unable to load follow-ups')).toBeInTheDocument();
   });
 });

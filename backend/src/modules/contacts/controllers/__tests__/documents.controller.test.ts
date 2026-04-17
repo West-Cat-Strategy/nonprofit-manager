@@ -35,8 +35,7 @@ describe('contact documents controller', () => {
 
   const controller = createContactDocumentsController(
     useCase as any,
-    directoryUseCase as any,
-    'v2'
+    directoryUseCase as any
   );
 
   beforeEach(() => {
@@ -58,7 +57,7 @@ describe('contact documents controller', () => {
     expect(directoryUseCase.getById).toHaveBeenCalledWith('contact-1', {
       accountIds: ['account-1'],
     });
-    expect(mockSendFailure).toHaveBeenCalledWith(res, 'v2', 'NOT_FOUND', 'Contact not found', 404);
+    expect(mockSendFailure).toHaveBeenCalledWith(res, 'NOT_FOUND', 'Contact not found', 404);
     expect(useCase.list).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
@@ -101,7 +100,7 @@ describe('contact documents controller', () => {
       },
       'user-1'
     );
-    expect(mockSendData).toHaveBeenCalledWith(res, 'v2', { id: 'doc-1' }, 201);
+    expect(mockSendData).toHaveBeenCalledWith(res, { id: 'doc-1' }, 201);
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -126,7 +125,6 @@ describe('contact documents controller', () => {
     expect(useCase.getById).toHaveBeenCalledWith('doc-1', undefined);
     expect(mockSendFailure).toHaveBeenCalledWith(
       res,
-      'v2',
       'NOT_FOUND',
       'Document file not found',
       404

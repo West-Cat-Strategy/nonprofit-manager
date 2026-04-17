@@ -250,8 +250,6 @@ router.post('/webhook', mailchimpController.handleWebhook);
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createMailchimpRoutes = () => router;
 
-export const createMailchimpRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const mailchimpV2Routes = createMailchimpRoutes('v2');
+export const mailchimpV2Routes = createMailchimpRoutes();

@@ -119,4 +119,42 @@ describe('TaskList page', () => {
 
     vi.useRealTimers();
   });
+
+  it('renders navigation actions as links while keeping mutation actions as buttons', () => {
+    state.tasks.tasks = [
+      {
+        id: 'task-1',
+        subject: 'Call donor',
+        description: null,
+        status: 'in_progress',
+        priority: 'high',
+        due_date: null,
+        completed_date: null,
+        assigned_to: null,
+        assigned_to_name: 'Alex Rivera',
+        related_to_type: null,
+        related_to_id: null,
+        related_to_name: null,
+        created_at: '2026-04-01T00:00:00.000Z',
+        updated_at: '2026-04-01T00:00:00.000Z',
+        created_by: null,
+        modified_by: null,
+      },
+    ];
+
+    renderWithProviders(<TaskList />);
+
+    expect(screen.getAllByRole('link', { name: 'View' })[0]).toHaveAttribute(
+      'href',
+      '/tasks/task-1'
+    );
+    expect(screen.getAllByRole('link', { name: 'Edit' })[0]).toHaveAttribute(
+      'href',
+      '/tasks/task-1/edit'
+    );
+    expect(screen.getAllByRole('button', { name: 'Complete' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: 'Delete' }).length).toBeGreaterThan(0);
+
+    state.tasks.tasks = [];
+  });
 });

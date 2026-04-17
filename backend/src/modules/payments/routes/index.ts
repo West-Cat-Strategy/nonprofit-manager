@@ -167,8 +167,6 @@ router.post(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createPaymentsRoutes = () => router;
 
-export const createPaymentsRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const paymentsV2Routes = createPaymentsRoutes('v2');
+export const paymentsV2Routes = createPaymentsRoutes();

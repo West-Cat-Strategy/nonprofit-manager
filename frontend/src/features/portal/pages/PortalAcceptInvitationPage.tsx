@@ -6,6 +6,7 @@ import ErrorBanner from '../../../components/ErrorBanner';
 import { useAppDispatch } from '../../../store/hooks';
 import { portalLogin } from '../../portalAuth/state';
 import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
+import { focusElement, focusFirstInvalidField } from '../utils/formFocus';
 
 interface InvitationInfo {
   email: string;
@@ -24,6 +25,8 @@ export default function PortalAcceptInvitation() {
     lastName: '',
     password: '',
   });
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadInvite = async () => {
@@ -41,11 +44,35 @@ export default function PortalAcceptInvitation() {
   }, [token, clear, setFromError]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.name === 'password') {
+      setConfirmPasswordError(null);
+    }
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    setConfirmPasswordError(null);
+
+    if (!form.checkValidity()) {
+      focusFirstInvalidField(form);
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      focusElement(document.getElementById('portal-invite-password') as HTMLElement | null);
+      return;
+    }
+
+    if (formData.password !== passwordConfirm) {
+      setConfirmPasswordError('Passwords do not match.');
+      focusElement(
+        document.getElementById('portal-invite-password-confirm') as HTMLElement | null
+      );
+      return;
+    }
+
     try {
       await portalApi.post(`/portal/auth/invitations/accept/${token}`, formData);
       if (!invitation?.email) {
@@ -113,8 +140,24 @@ export default function PortalAcceptInvitation() {
             label="Password"
             type="password"
             name="password"
+            helperText="Use at least 8 characters. You can reset it later if you lose access."
             value={formData.password}
             onChange={handleChange}
+            minLength={8}
+            required
+            autoComplete="new-password"
+          />
+          <FormField
+            id="portal-invite-password-confirm"
+            label="Confirm Password"
+            type="password"
+            helperText="Re-enter your password so you know the account is ready to use right away."
+            error={confirmPasswordError ?? undefined}
+            value={passwordConfirm}
+            onChange={(event) => {
+              setPasswordConfirm(event.target.value);
+              setConfirmPasswordError(null);
+            }}
             minLength={8}
             required
             autoComplete="new-password"

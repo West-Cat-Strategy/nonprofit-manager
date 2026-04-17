@@ -46,9 +46,16 @@ const createDashboard = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-vi.mock('../../../../features/dashboard/context/DashboardDataContext', () => ({
-  DashboardDataProvider: ({ children }: { children: ReactNode }) => children,
-}));
+vi.mock('../../../../features/dashboard/context/DashboardDataContext', async () => {
+  const actual = await vi.importActual<
+    typeof import('../../../../features/dashboard/context/DashboardDataContext')
+  >('../../../../features/dashboard/context/DashboardDataContext');
+
+  return {
+    ...actual,
+    DashboardDataProvider: ({ children }: { children: ReactNode }) => children,
+  };
+});
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
   useAppSelector: (selector: (state: typeof dashboardState) => unknown) => selector(dashboardState),

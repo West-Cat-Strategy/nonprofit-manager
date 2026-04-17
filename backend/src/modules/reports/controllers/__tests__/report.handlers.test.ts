@@ -7,6 +7,7 @@ import {
   sendForbidden,
   sendUnauthorized,
 } from '@services/authGuardService';
+import { DirectReportExportTooLargeError } from '@services/reportService';
 import { Permission } from '@utils/permissions';
 
 jest.mock('@utils/responseHelpers', () => ({
@@ -27,6 +28,7 @@ jest.mock('@services/authGuardService', () => ({
 jest.mock('@container/services', () => ({
   services: {
     report: {
+      assertDirectExportSupported: jest.fn(),
       generateReport: jest.fn(),
       getAvailableFields: jest.fn(),
       exportReport: jest.fn(),
@@ -282,6 +284,9 @@ describe('Report Controller', () => {
         mockRequest,
         Permission.REPORT_EXPORT
       );
+      expect(mockReportService.assertDirectExportSupported).toHaveBeenCalledWith(definition, {
+        organizationId: 'org-1',
+      });
       expect(mockReportService.generateReport).toHaveBeenCalledWith(definition, {
         organizationId: 'org-1',
       });
@@ -326,6 +331,30 @@ describe('Report Controller', () => {
         error: 'Invalid format. Supported formats: csv, xlsx',
         code: 'bad_request',
       });
+    });
+
+    it('returns 409 when the direct export exceeds the synchronous size cap', async () => {
+      const definition = { entity: 'contacts', fields: ['name'] };
+      mockRequest.body = { definition, format: 'csv' };
+      mockReportService.assertDirectExportSupported.mockRejectedValue(
+        new DirectReportExportTooLargeError()
+      );
+
+      await reportController.exportReport(
+        mockRequest as AuthRequest,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(mockStatus).toHaveBeenCalledWith(409);
+      expect(mockJson).toHaveBeenCalledWith({
+        error:
+          'Report is too large for direct export. Use /v2/reports/exports to create an export job.',
+        code: 'conflict',
+      });
+      expect(mockReportService.generateReport).not.toHaveBeenCalled();
+      expect(mockReportService.exportReport).not.toHaveBeenCalled();
+      expect(mockNext).not.toHaveBeenCalled();
     });
 
     it('routes unauthorized guard failures to sendUnauthorized', async () => {
@@ -383,6 +412,7 @@ describe('Report Controller', () => {
           idempotencyKey: 'job-1',
         })
       );
+      expect(mockReportService.assertDirectExportSupported).not.toHaveBeenCalled();
       expect(mockStatus).toHaveBeenCalledWith(201);
       expect(mockJson).toHaveBeenCalledWith(
         expect.objectContaining({

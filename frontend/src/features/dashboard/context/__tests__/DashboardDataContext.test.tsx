@@ -1,6 +1,13 @@
-import { screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DashboardDataProvider, useDashboardData } from '../DashboardDataContext';
+import {
+  CUSTOM_DASHBOARD_LANES,
+  DashboardDataProvider,
+  WORKBENCH_DASHBOARD_LANES,
+  useDashboardCaseSummary,
+  useDashboardData,
+  useDashboardDonationTrends,
+} from '../DashboardDataContext';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const analyticsSummaryMock = vi.fn();
@@ -38,19 +45,30 @@ vi.mock('../../../followUps/api/followUpsApiClient', () => ({
   },
 }));
 
-function DashboardConsumer() {
+function DashboardCompatibilityConsumer() {
   const dashboardData = useDashboardData();
 
   return (
     <div>
       <div data-testid="urgent-cases">{dashboardData?.caseSummary?.by_priority.urgent ?? -1}</div>
-      <div data-testid="trend-count">{dashboardData?.donationTrends.length ?? -1}</div>
+      <div data-testid="trend-count">{dashboardData?.donationTrends.length ?? 0}</div>
       <div data-testid="trend-error">{dashboardData?.errors.donationTrends ?? 'none'}</div>
       <div data-testid="assigned-total">{dashboardData?.assignedCasesTotal ?? -1}</div>
       <div data-testid="task-error">{dashboardData?.errors.taskSummary ?? 'none'}</div>
       <div data-testid="loading-state">{dashboardData?.loading.caseSummary ? 'loading' : 'idle'}</div>
     </div>
   );
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
 }
 
 describe('DashboardDataContext', () => {
@@ -135,10 +153,10 @@ describe('DashboardDataContext', () => {
     vi.clearAllMocks();
   });
 
-  it('loads dashboard workload data after first paint without blocking the initial render', async () => {
+  it('loads the workbench lane set after first paint without fetching omitted lanes', async () => {
     renderWithProviders(
-      <DashboardDataProvider>
-        <DashboardConsumer />
+      <DashboardDataProvider lanes={WORKBENCH_DASHBOARD_LANES}>
+        <DashboardCompatibilityConsumer />
       </DashboardDataProvider>,
       {
         preloadedState: {
@@ -161,18 +179,18 @@ describe('DashboardDataContext', () => {
     expect(screen.getByTestId('urgent-cases')).toHaveTextContent('-1');
 
     await waitFor(() => expect(screen.getByTestId('urgent-cases')).toHaveTextContent('2'));
-    expect(screen.getByTestId('trend-count')).toHaveTextContent('2');
+    expect(screen.getByTestId('trend-count')).toHaveTextContent('0');
     expect(screen.getByTestId('assigned-total')).toHaveTextContent('4');
     expect(screen.getByTestId('loading-state')).toHaveTextContent('idle');
-    expect(donationTrendsMock).toHaveBeenCalledWith(12);
+    expect(donationTrendsMock).not.toHaveBeenCalled();
   });
 
   it('surfaces request errors per data lane', async () => {
     taskSummaryMock.mockRejectedValueOnce(new Error('Task summary failed'));
 
     renderWithProviders(
-      <DashboardDataProvider>
-        <DashboardConsumer />
+      <DashboardDataProvider lanes={CUSTOM_DASHBOARD_LANES}>
+        <DashboardCompatibilityConsumer />
       </DashboardDataProvider>,
       {
         preloadedState: {
@@ -199,8 +217,8 @@ describe('DashboardDataContext', () => {
     donationTrendsMock.mockRejectedValueOnce(new Error('Trend service offline'));
 
     renderWithProviders(
-      <DashboardDataProvider>
-        <DashboardConsumer />
+      <DashboardDataProvider lanes={CUSTOM_DASHBOARD_LANES}>
+        <DashboardCompatibilityConsumer />
       </DashboardDataProvider>,
       {
         preloadedState: {
@@ -223,5 +241,65 @@ describe('DashboardDataContext', () => {
     await waitFor(() => expect(screen.getByTestId('trend-error')).toHaveTextContent('Trend service offline'));
     expect(screen.getByTestId('urgent-cases')).toHaveTextContent('2');
     expect(screen.getByTestId('assigned-total')).toHaveTextContent('4');
+  });
+
+  it('does not rerender a case-only lane consumer when donation trends update', async () => {
+    const donationTrendsDeferred = createDeferred<Array<{ month: string; amount: number; count: number }>>();
+    let caseConsumerRenderCount = 0;
+
+    donationTrendsMock.mockReset();
+    donationTrendsMock.mockReturnValueOnce(donationTrendsDeferred.promise);
+
+    function CaseSummaryLaneConsumer() {
+      caseConsumerRenderCount += 1;
+      const caseSummaryLane = useDashboardCaseSummary();
+
+      return (
+        <div>
+          <div data-testid="case-lane-renders">{caseConsumerRenderCount}</div>
+          <div data-testid="case-lane-urgent">{caseSummaryLane?.caseSummary?.by_priority.urgent ?? -1}</div>
+        </div>
+      );
+    }
+
+    function DonationTrendsLaneConsumer() {
+      const donationTrendsLane = useDashboardDonationTrends();
+
+      return <div data-testid="donation-trend-count">{donationTrendsLane?.donationTrends.length ?? 0}</div>;
+    }
+
+    renderWithProviders(
+      <DashboardDataProvider lanes={CUSTOM_DASHBOARD_LANES}>
+        <CaseSummaryLaneConsumer />
+        <DonationTrendsLaneConsumer />
+      </DashboardDataProvider>,
+      {
+        preloadedState: {
+          auth: {
+            user: {
+              id: 'user-1',
+              email: 'test@example.com',
+              firstName: 'Test',
+              lastName: 'User',
+              role: 'admin',
+            },
+            isAuthenticated: true,
+            authLoading: false,
+            loading: false,
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(screen.getByTestId('case-lane-urgent')).toHaveTextContent('2'));
+    const rendersAfterCaseSettled = Number(screen.getByTestId('case-lane-renders').textContent);
+
+    await act(async () => {
+      donationTrendsDeferred.resolve([{ month: '2026-03', amount: 3200, count: 9 }]);
+      await donationTrendsDeferred.promise;
+    });
+
+    await waitFor(() => expect(screen.getByTestId('donation-trend-count')).toHaveTextContent('1'));
+    expect(screen.getByTestId('case-lane-renders')).toHaveTextContent(String(rendersAfterCaseSettled));
   });
 });

@@ -1,5 +1,6 @@
 import {
   CreateRegistrationDTO,
+  EventConfirmationEmailResult,
   EventRegistration,
   EventRegistrationMutationContext,
   RegistrationStatus,
@@ -595,3 +596,88 @@ export const updateRegistrationMutation = async (
 
   return updatedRegistration;
 };
+
+export const cancelRegistrationMutation = async (
+  ctx: EventRegistrationServiceContext,
+  registrationId: string
+): Promise<void> => {
+  const client = await ctx.pool.connect();
+  let promotedRegistrationId: string | null | undefined;
+  const postCommitActions: Array<() => Promise<void>> = [];
+
+  try {
+    await client.query('BEGIN');
+
+    const registrationResult = await client.query<LockedRegistrationRow>(
+      `SELECT
+         er.id as registration_id,
+         er.event_id,
+         er.occurrence_id,
+         er.contact_id,
+         er.case_id,
+         er.registration_status,
+         er.waitlist_position,
+         er.checked_in,
+         er.series_enrollment_id
+       FROM event_registrations er
+       WHERE er.id = $1
+       FOR UPDATE`,
+      [registrationId]
+    );
+
+    const registration = registrationResult.rows[0];
+    if (!registration) {
+      throw new Error('Registration not found');
+    }
+
+    const event = await getEventRow(ctx, registration.event_id, client);
+    const occurrence = await getLockedOccurrence(
+      ctx,
+      registration.event_id,
+      registration.occurrence_id,
+      client
+    );
+    if (!event || !occurrence) {
+      throw new Error('Event not found');
+    }
+
+    await client.query('DELETE FROM event_registrations WHERE id = $1', [registrationId]);
+    await recalculateCounts(ctx, registration.event_id, registration.occurrence_id, client);
+
+    promotedRegistrationId = await maybePromoteWaitlistedRegistration(
+      ctx,
+      client,
+      event,
+      occurrence,
+      null
+    );
+
+    await client.query('COMMIT');
+    if (promotedRegistrationId) {
+      const promotedTargetId = promotedRegistrationId;
+      postCommitActions.push(() =>
+        maybeSendConfirmationEmail(ctx, promotedTargetId, null, RegistrationStatus.REGISTERED, true)
+      );
+    }
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  for (const action of postCommitActions) {
+    await runPostCommitActionSafely(action, {
+      registrationId,
+      promotedRegistrationId,
+      source: 'cancel-registration',
+    });
+  }
+};
+
+export const sendRegistrationConfirmationEmailMutation = (
+  ctx: EventRegistrationServiceContext,
+  registrationId: string,
+  sentBy: string | null
+): Promise<EventConfirmationEmailResult> =>
+  ctx.confirmations.sendRegistrationConfirmationEmail(registrationId, sentBy);

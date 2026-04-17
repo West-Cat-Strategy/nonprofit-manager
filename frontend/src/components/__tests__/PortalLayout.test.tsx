@@ -1,9 +1,9 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import PortalLayout from '../PortalLayout';
 import { renderWithProviders } from '../../test/testUtils';
 
 describe('PortalLayout', () => {
-  it('hides the browse portal block in the portal header', () => {
+  it('renders desktop portal navigation inside the content shell', () => {
     renderWithProviders(<PortalLayout>Portal content</PortalLayout>, {
       route: '/portal/people',
     });
@@ -12,7 +12,16 @@ describe('PortalLayout', () => {
       'href',
       '#main-content'
     );
-    expect(screen.queryByRole('navigation', { name: /browse portal/i })).not.toBeInTheDocument();
+    const portalNav = screen.getByRole('navigation', { name: /browse portal/i });
+    expect(portalNav).toBeInTheDocument();
+    expect(within(portalNav).getByRole('link', { name: /profile/i })).toHaveAttribute(
+      'href',
+      '/portal/profile'
+    );
+    expect(within(portalNav).getByRole('link', { name: /people/i })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
     expect(screen.getAllByRole('link', { name: /account settings/i })[0]).toHaveAttribute(
       'href',
       '/portal/profile'

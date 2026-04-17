@@ -37,7 +37,6 @@ import { createContactPhonesController } from '../controllers/phones.controller'
 import { createContactEmailsController } from '../controllers/emails.controller';
 import { createContactRelationshipsController } from '../controllers/relationships.controller';
 import { createContactDocumentsController } from '../controllers/documents.controller';
-import { ResponseMode } from '../mappers/responseMode';
 import { ContactRepository } from '../repositories/contactRepository';
 import { ContactNotesRepository } from '../repositories/contactNotesRepository';
 import { ContactPhonesRepository } from '../repositories/contactPhonesRepository';
@@ -81,7 +80,7 @@ const importTemplateQuerySchema = z
   })
   .strict();
 
-export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createContactsRoutes = (): Router => {
   const router = Router();
 
   const directoryRepository = new ContactRepository();
@@ -96,34 +95,21 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
 
   const directoryController = createContactDirectoryController(
     directoryUseCase,
-    new ContactImportExportUseCase(pool),
-    mode
+    new ContactImportExportUseCase(pool)
   );
-  const notesController = createContactNotesController(
-    new ContactNotesUseCase(notesRepository),
-    mode
-  );
-  const phonesController = createContactPhonesController(
-    new ContactPhonesUseCase(phonesRepository),
-    mode
-  );
-  const emailsController = createContactEmailsController(
-    new ContactEmailsUseCase(emailsRepository),
-    mode
-  );
+  const notesController = createContactNotesController(new ContactNotesUseCase(notesRepository));
+  const phonesController = createContactPhonesController(new ContactPhonesUseCase(phonesRepository));
+  const emailsController = createContactEmailsController(new ContactEmailsUseCase(emailsRepository));
   const relationshipsController = createContactRelationshipsController(
-    new ContactRelationshipsUseCase(relationshipsRepository),
-    mode
+    new ContactRelationshipsUseCase(relationshipsRepository)
   );
   const documentsController = createContactDocumentsController(
     new ContactDocumentsUseCase(documentsRepository),
-    directoryUseCase,
-    mode
+    directoryUseCase
   );
   const communicationsController = createContactCommunicationsController(
     new ContactCommunicationsUseCase(communicationsRepository),
-    directoryUseCase,
-    mode
+    directoryUseCase
   );
 
   router.use(authenticate);
@@ -393,4 +379,4 @@ export const createContactsRoutes = (mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const contactsV2Routes = createContactsRoutes('v2');
+export const contactsV2Routes = createContactsRoutes();

@@ -35,7 +35,7 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Auth',
     path: '/accept-invitation/:token',
     auditFixtureKey: 'staff-invitation',
-    primaryAction: { label: 'Go to login', href: '/login' },
+    primaryAction: { label: 'Create account', href: '/accept-invitation/:token' },
   }),
   publicRoute({
     id: 'admin-registration-review',
@@ -58,7 +58,7 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Auth',
     path: '/reset-password/:token',
     auditFixtureKey: 'password-reset',
-    primaryAction: { label: 'Request a new reset link', href: '/forgot-password' },
+    primaryAction: { label: 'Reset password', href: '/reset-password/:token' },
   }),
   publicRoute({
     id: 'public-report-snapshot',
@@ -106,10 +106,26 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     primaryAction: { label: 'Submit request', href: '/portal/signup' },
   }),
   portalPublicRoute({
+    id: 'portal-forgot-password',
+    title: 'Portal Forgot Password',
+    path: '/portal/forgot-password',
+    primaryAction: { label: 'Send reset link', href: '/portal/forgot-password' },
+  }),
+  portalPublicRoute({
+    id: 'portal-reset-password',
+    title: 'Portal Reset Password',
+    path: '/portal/reset-password/:token',
+    auditFixtureKey: 'portal-password-reset',
+    primaryAction: { label: 'Reset password', href: '/portal/reset-password/:token' },
+  }),
+  portalPublicRoute({
     id: 'portal-accept-invitation',
     title: 'Portal Invitation',
     path: '/portal/accept-invitation/:token',
     auditFixtureKey: 'portal-invitation',
-    primaryAction: { label: 'Portal login', href: '/portal/login' },
+    primaryAction: {
+      label: 'Activate portal account',
+      href: '/portal/accept-invitation/:token',
+    },
   }),
 ];

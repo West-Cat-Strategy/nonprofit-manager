@@ -46,8 +46,6 @@ router.get('/:entityType/:entityId', validateParams(activityEntityParamsSchema),
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createActivitiesRoutes = () => router;
 
-export const createActivitiesRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const activitiesV2Routes = createActivitiesRoutes('v2');
+export const activitiesV2Routes = createActivitiesRoutes();

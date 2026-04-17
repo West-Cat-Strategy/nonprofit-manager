@@ -26,14 +26,11 @@
     "paths": {
       "@container/*": ["src/container/*"],
       "@modules/*": ["src/modules/*"],
-      "@services": ["src/services/index.ts"],
       "@services/*": ["src/services/*"],
       "@config/*": ["src/config/*"],
       "@utils/*": ["src/utils/*"],
       "@app-types/*": ["src/types/*"],
-      "@validations": ["src/validations/index.ts"],
       "@validations/*": ["src/validations/*"],
-      "@middleware": ["src/middleware/index.ts"],
       "@middleware/*": ["src/middleware/*"],
       "@controllers/*": ["src/controllers/*"],
       "@routes/*": ["src/routes/*"]

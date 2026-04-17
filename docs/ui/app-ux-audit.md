@@ -1,6 +1,6 @@
 # App UI/UX Audit
 
-Generated: 2026-04-05T23:58:54.000Z
+Generated: 2026-04-17T06:17:45Z
 
 ## Baseline
 
@@ -14,9 +14,9 @@ Generated: 2026-04-05T23:58:54.000Z
 - Route integrity: pass
 - Route catalog drift: pass
 - Broken targets remaining: 0
-- Hardcoded color utilities: 9066
-- Semantic token utilities: 8353
-- Inline style usages: 35
+- Hardcoded color utilities: 1229
+- Semantic token utilities: 9163
+- Inline style usages: 60
 - Disallowed inline-style paths remaining: 0
 
 ## Workflow Surfaces

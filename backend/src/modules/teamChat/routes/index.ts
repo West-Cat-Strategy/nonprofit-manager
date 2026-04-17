@@ -197,4 +197,3 @@ export const createTeamChatV2Routes = (): Router => {
 };
 
 export const teamChatV2Routes = createTeamChatV2Routes();
-export const teamChatApiRoutes = createTeamChatV2Routes();

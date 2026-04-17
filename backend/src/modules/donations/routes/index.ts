@@ -125,8 +125,6 @@ router.post(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createDonationsRoutes = () => router;
 
-export const createDonationsRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const donationsV2Routes = createDonationsRoutes('v2');
+export const donationsV2Routes = createDonationsRoutes();

@@ -86,6 +86,7 @@ export default function NavPopover({
       />
       <div
         ref={panelRef}
+        data-shell-transition
         className={classNames(
           'menu-surface-opaque absolute z-20 mt-2 rounded-lg border border-app-border py-1 shadow-lg animate-fadeIn',
           align === 'right' ? 'right-0' : 'left-0',

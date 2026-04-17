@@ -23,7 +23,10 @@ export default function AppShell({
     : 'mx-auto max-w-[1920px] px-3 py-3 sm:px-4 sm:py-4 lg:px-6';
 
   return (
-    <div className={classNames('min-h-screen bg-app-bg text-app-text', className)}>
+    <div
+      data-shell-transition
+      className={classNames('min-h-screen bg-app-bg text-app-text', className)}
+    >
       {topNav}
       {header}
       <div className={shellClassName}>

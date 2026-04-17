@@ -55,7 +55,9 @@ PagerDuty/Slack (incident notifications)
 ### What to Monitor
 
 ```javascript
-// Winston logs these events automatically via structuredLogging middleware
+// These events flow through the shared logging pipeline via the active
+// HTTP logger in backend/src/index.ts, backend/src/config/logger.ts,
+// and the auth/audit emitters that attach request context.
 
 // 1. Failed Login Attempts
 {
@@ -206,7 +208,9 @@ Operational rule:
 
 ### PII Access Log Schema
 
-From `structuredLogging.ts` and database `pii_access_audit`:
+From the persisted `pii_access_audit` table plus the shared audit/logging path
+(`backend/src/services/piiService.ts`, `backend/src/services/auditService.ts`,
+and `backend/src/config/logger.ts`):
 
 ```sql
 -- Structure of logged PII access
@@ -301,7 +305,8 @@ notification:
 ### API Health Metrics
 
 ```javascript
-// Logged by structuredLogging.ts
+// Captured by the active HTTP logger in backend/src/index.ts and shipped
+// through the shared Winston transport in backend/src/config/logger.ts
 {
   "level": "info",
   "service": "request",

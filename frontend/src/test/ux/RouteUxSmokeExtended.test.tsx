@@ -7,7 +7,10 @@ import Setup from '../../features/auth/pages/SetupPage';
 import AcceptInvitation from '../../features/auth/pages/AcceptInvitationPage';
 import ForgotPassword from '../../features/auth/pages/ForgotPasswordPage';
 import ResetPassword from '../../features/auth/pages/ResetPasswordPage';
+import PortalAcceptInvitation from '../../features/portal/pages/PortalAcceptInvitationPage';
+import PortalForgotPassword from '../../features/portal/pages/PortalForgotPasswordPage';
 import PortalLogin from '../../features/portal/pages/PortalLoginPage';
+import PortalResetPassword from '../../features/portal/pages/PortalResetPasswordPage';
 import PortalSignup from '../../features/portal/pages/PortalSignupPage';
 import NavigationSettings from '../../features/adminOps/pages/NavigationSettingsPage';
 import ApiSettings from '../../features/adminOps/pages/ApiSettingsPage';
@@ -15,14 +18,23 @@ import DataBackup from '../../features/adminOps/pages/DataBackupPage';
 import CommunicationsPage from '../../features/adminOps/pages/EmailMarketingPage';
 import AdminSettings from '../../features/adminOps/pages/AdminSettingsPage';
 import api from '../../services/api';
+import portalApi from '../../services/portalApi';
 import { renderWithProviders } from '../../test/testUtils';
 import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
 
-const { mockSetBranding } = vi.hoisted(() => ({
+const { mockPortalApiGet, mockPortalApiPost, mockSetBranding } = vi.hoisted(() => ({
+  mockPortalApiGet: vi.fn(),
+  mockPortalApiPost: vi.fn(),
   mockSetBranding: vi.fn(),
 }));
 
 vi.mock('../../services/api');
+vi.mock('../../services/portalApi', () => ({
+  default: {
+    get: (...args: unknown[]) => mockPortalApiGet(...args),
+    post: (...args: unknown[]) => mockPortalApiPost(...args),
+  },
+}));
 vi.mock('../../contexts/BrandingContext', () => ({
   useBranding: () => ({
     branding: {
@@ -43,13 +55,20 @@ const mockApi = api as unknown as {
   get: ReturnType<typeof vi.fn>;
 };
 
+const mockPortalApi = portalApi as unknown as {
+  get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
+};
+
 type SmokeCase = {
   name: string;
   route: string;
+  path?: string;
   page: ReactElement;
   heading: string | RegExp;
   primaryActionPattern: RegExp;
   primaryActionRole?: 'button' | 'link';
+  requireMainLandmark?: boolean;
 };
 
 const smokeCases: SmokeCase[] = [
@@ -59,6 +78,7 @@ const smokeCases: SmokeCase[] = [
     page: <Login />,
     heading: /welcome back to nonprofit manager/i,
     primaryActionPattern: /sign in/i,
+    requireMainLandmark: true,
   },
   {
     name: 'register',
@@ -66,6 +86,7 @@ const smokeCases: SmokeCase[] = [
     page: <Register />,
     heading: /get started with nonprofit manager/i,
     primaryActionPattern: /create account/i,
+    requireMainLandmark: true,
   },
   {
     name: 'setup',
@@ -73,6 +94,7 @@ const smokeCases: SmokeCase[] = [
     page: <Setup />,
     heading: /build your nonprofit workspace in minutes/i,
     primaryActionPattern: /create admin account/i,
+    requireMainLandmark: true,
   },
   {
     name: 'forgot-password',
@@ -80,22 +102,25 @@ const smokeCases: SmokeCase[] = [
     page: <ForgotPassword />,
     heading: /forgot your password/i,
     primaryActionPattern: /send reset link/i,
+    requireMainLandmark: true,
   },
   {
     name: 'accept-invitation',
     route: '/accept-invitation/test-token',
+    path: '/accept-invitation/:token',
     page: <AcceptInvitation />,
-    heading: /invalid invitation/i,
-    primaryActionPattern: /go to login/i,
-    primaryActionRole: 'link',
+    heading: /complete your registration/i,
+    primaryActionPattern: /create account/i,
+    requireMainLandmark: true,
   },
   {
     name: 'reset-password',
     route: '/reset-password/test-token',
+    path: '/reset-password/:token',
     page: <ResetPassword />,
     heading: /reset your password/i,
-    primaryActionPattern: /request a new reset link/i,
-    primaryActionRole: 'link',
+    primaryActionPattern: /^reset password$/i,
+    requireMainLandmark: true,
   },
   {
     name: 'portal-login',
@@ -103,6 +128,7 @@ const smokeCases: SmokeCase[] = [
     page: <PortalLogin />,
     heading: /client portal login/i,
     primaryActionPattern: /sign in/i,
+    requireMainLandmark: true,
   },
   {
     name: 'portal-signup',
@@ -110,6 +136,33 @@ const smokeCases: SmokeCase[] = [
     page: <PortalSignup />,
     heading: /request portal access/i,
     primaryActionPattern: /submit request/i,
+    requireMainLandmark: true,
+  },
+  {
+    name: 'portal-forgot-password',
+    route: '/portal/forgot-password',
+    page: <PortalForgotPassword />,
+    heading: /reset your portal password/i,
+    primaryActionPattern: /send reset link/i,
+    requireMainLandmark: true,
+  },
+  {
+    name: 'portal-reset-password',
+    route: '/portal/reset-password/test-token',
+    path: '/portal/reset-password/:token',
+    page: <PortalResetPassword />,
+    heading: /choose a new portal password/i,
+    primaryActionPattern: /^reset password$/i,
+    requireMainLandmark: true,
+  },
+  {
+    name: 'portal-accept-invitation',
+    route: '/portal/accept-invitation/test-token',
+    path: '/portal/accept-invitation/:token',
+    page: <PortalAcceptInvitation />,
+    heading: /accept portal invitation/i,
+    primaryActionPattern: /activate portal account/i,
+    requireMainLandmark: true,
   },
   {
     name: 'navigation-settings',
@@ -218,6 +271,28 @@ describe('Route UX smoke (auth/portal/settings)', () => {
 
       return Promise.resolve({ data: {} });
     });
+
+    mockPortalApiGet.mockImplementation((url: string) => {
+      if (url === '/portal/auth/reset-password/test-token') {
+        return Promise.resolve({ data: { valid: true } });
+      }
+      if (url === '/portal/auth/invitations/validate/test-token') {
+        return Promise.resolve({
+          data: {
+            invitation: {
+              email: 'portal@example.org',
+              contactId: 'contact-1',
+              expiresAt: new Date().toISOString(),
+            },
+          },
+        });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+    mockPortalApiPost.mockResolvedValue({ data: {} });
+    mockPortalApi.get = mockPortalApiGet;
+    mockPortalApi.post = mockPortalApiPost;
   });
 
   afterEach(() => {

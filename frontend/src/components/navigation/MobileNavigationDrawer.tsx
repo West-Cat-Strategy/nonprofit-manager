@@ -123,7 +123,8 @@ export default function MobileNavigationDrawer({
   return (
     <div
       ref={panelRef}
-      className="app-popup-surface-translucent fixed inset-y-0 right-0 z-50 flex w-full max-w-[22rem] flex-col overflow-y-auto shadow-xl xl:hidden"
+      data-shell-transition
+      className="app-popup-surface-translucent fixed inset-y-0 right-0 z-50 flex w-full max-w-[22rem] flex-col overflow-y-auto shadow-xl lg:hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="mobile-navigation-drawer-title"

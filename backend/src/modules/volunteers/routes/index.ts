@@ -15,7 +15,6 @@ import {
   uuidSchema,
 } from '@validations/volunteer';
 import { createVolunteersController } from '../controllers/volunteers.controller';
-import { type ResponseMode } from '../mappers/responseMode';
 import { VolunteerRepository } from '../repositories/volunteerRepository';
 import { VolunteerCatalogUseCase } from '../usecases/volunteerCatalog.usecase';
 import { VolunteerImportExportUseCase } from '../usecases/volunteerImportExport.usecase';
@@ -69,15 +68,14 @@ const importTemplateQuerySchema = z
   })
   .strict();
 
-export const createVolunteersRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createVolunteersRoutes = (): Router => {
   const router = Router();
 
   const repository = new VolunteerRepository();
   const controller = createVolunteersController(
     new VolunteerCatalogUseCase(repository),
     new VolunteerLifecycleUseCase(repository),
-    new VolunteerImportExportUseCase(pool),
-    mode
+    new VolunteerImportExportUseCase(pool)
   );
 
   router.use(authenticate);
@@ -142,4 +140,4 @@ export const createVolunteersRoutes = (mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const volunteersV2Routes = createVolunteersRoutes('v2');
+export const volunteersV2Routes = createVolunteersRoutes();

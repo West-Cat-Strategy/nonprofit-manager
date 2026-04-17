@@ -14,7 +14,7 @@ import type {
   UpdateCaseFormDefaultDTO,
 } from '@app-types/caseForms';
 import { CaseFormsUseCase } from '../usecases/caseForms.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
 const encodeFileName = (name: string): string => encodeURIComponent(name).replace(/%20/g, ' ');
 
@@ -50,14 +50,11 @@ const streamDownload = async (
   stream.pipe(res);
 };
 
-export const createCaseFormsController = (
-  useCase: CaseFormsUseCase,
-  mode: ResponseMode
-) => {
+export const createCaseFormsController = (useCase: CaseFormsUseCase) => {
   const listDefaults = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const defaults = await useCase.listDefaults(req.params.caseTypeId, getOrganizationId(req));
-      sendData(res, mode, defaults);
+      sendData(res, defaults);
     } catch (error) {
       next(error);
     }
@@ -71,7 +68,7 @@ export const createCaseFormsController = (
         req.user?.id,
         getOrganizationId(req)
       );
-      sendData(res, mode, created, 201);
+      sendData(res, created, 201);
     } catch (error) {
       next(error);
     }
@@ -86,7 +83,7 @@ export const createCaseFormsController = (
         req.user?.id,
         getOrganizationId(req)
       );
-      sendData(res, mode, updated);
+      sendData(res, updated);
     } catch (error) {
       next(error);
     }
@@ -99,7 +96,7 @@ export const createCaseFormsController = (
   ): Promise<void> => {
     try {
       const defaults = await useCase.listRecommendedDefaults(req.params.id, getOrganizationId(req));
-      sendData(res, mode, defaults);
+      sendData(res, defaults);
     } catch (error) {
       next(error);
     }
@@ -113,7 +110,7 @@ export const createCaseFormsController = (
         req.user?.id,
         getOrganizationId(req)
       );
-      sendData(res, mode, created, 201);
+      sendData(res, created, 201);
     } catch (error) {
       next(error);
     }
@@ -127,7 +124,7 @@ export const createCaseFormsController = (
         req.user?.id,
         getOrganizationId(req)
       );
-      sendData(res, mode, created, 201);
+      sendData(res, created, 201);
     } catch (error) {
       next(error);
     }
@@ -140,7 +137,7 @@ export const createCaseFormsController = (
         req.params.assignmentId,
         getOrganizationId(req)
       );
-      sendData(res, mode, detail);
+      sendData(res, detail);
     } catch (error) {
       next(error);
     }
@@ -155,7 +152,7 @@ export const createCaseFormsController = (
         req.user?.id,
         getOrganizationId(req)
       );
-      sendData(res, mode, updated);
+      sendData(res, updated);
     } catch (error) {
       next(error);
     }
@@ -164,7 +161,7 @@ export const createCaseFormsController = (
   const uploadAsset = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.file) {
-        sendFailure(res, mode, 'VALIDATION_ERROR', 'No file uploaded', 400);
+        sendFailure(res, 'VALIDATION_ERROR', 'No file uploaded', 400);
         return;
       }
 
@@ -176,7 +173,7 @@ export const createCaseFormsController = (
         req.user?.id,
         getOrganizationId(req)
       );
-      sendData(res, mode, created, 201);
+      sendData(res, created, 201);
     } catch (error) {
       next(error);
     }
@@ -191,7 +188,7 @@ export const createCaseFormsController = (
         req.user?.id,
         getOrganizationId(req)
       );
-      sendData(res, mode, updated);
+      sendData(res, updated);
     } catch (error) {
       next(error);
     }
@@ -206,7 +203,7 @@ export const createCaseFormsController = (
         req.user?.id,
         getOrganizationId(req)
       );
-      sendData(res, mode, detail, 201);
+      sendData(res, detail, 201);
     } catch (error) {
       next(error);
     }
@@ -221,7 +218,7 @@ export const createCaseFormsController = (
         req.user?.id,
         getOrganizationId(req)
       );
-      sendData(res, mode, updated);
+      sendData(res, updated);
     } catch (error) {
       next(error);
     }
@@ -236,7 +233,7 @@ export const createCaseFormsController = (
         req.user?.id,
         getOrganizationId(req)
       );
-      sendData(res, mode, updated);
+      sendData(res, updated);
     } catch (error) {
       next(error);
     }
@@ -284,7 +281,7 @@ export const createCaseFormsController = (
       const filtered = query.status
         ? assignments.filter((assignment) => assignment.status === query.status)
         : assignments;
-      sendData(res, mode, filtered);
+      sendData(res, filtered);
     } catch (error) {
       next(error);
     }

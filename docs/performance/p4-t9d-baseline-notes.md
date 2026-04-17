@@ -18,11 +18,11 @@ Baseline for startup/transition load metrics before applying the P4-T9D refactor
 - App-owned startup JS bytes baseline: `256726`
 - Login -> dashboard p75 baseline: `2600ms`
 
-## Hard Gates Derived
+## Hard Gates Enforced
 
 - Request count cap: `floor(8 * 0.75) = 6`
 - App-owned JS startup bytes cap: `floor(256726 * 0.75) = 192544`
-- p75 load cap: `2000ms`
+- p75 load cap: `1800ms`
 
 ## Notes
 

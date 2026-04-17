@@ -42,9 +42,12 @@ const normalizeAuthUser = (value: unknown): Record<string, unknown> | undefined 
   return value as Record<string, unknown>;
 };
 
-const resetCachedAuthState = async (page: Page): Promise<void> => {
+const resetCachedAuthState = async (
+  page: Page,
+  options: { clearAdminCaches?: boolean } = {}
+): Promise<void> => {
   cachedAuthState = null;
-  invalidateSharedAuthCaches({ clearLocks: true });
+  invalidateSharedAuthCaches({ clearLocks: true, clearAdminCaches: options.clearAdminCaches });
   await clearAuth(page);
 };
 
@@ -70,24 +73,39 @@ const ensureSharedAuthState = async (page: Page): Promise<CachedAuthState> => {
       // Fall through to a full re-bootstrap after clearing the stale cache below.
     }
 
-    await resetCachedAuthState(page);
+    await resetCachedAuthState(page, { clearAdminCaches: true });
   }
 
-  const session = await ensureEffectiveAdminLoginViaAPI(page, {
-    firstName: 'Test',
-    lastName: 'User',
-    organizationName: 'E2E Organization',
-  });
-  const sessionRecord = session as { organizationId?: unknown; user?: Record<string, unknown> };
-  cachedAuthState = {
-    token: session.token,
-    organizationId:
-      normalizeOrganizationId(sessionRecord.organizationId) ||
-      normalizeOrganizationId(sessionRecord.user?.organizationId) ||
-      normalizeOrganizationId(sessionRecord.user?.organization_id),
-    user: normalizeAuthUser(session.user),
-  };
-  return cachedAuthState;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const session = await ensureEffectiveAdminLoginViaAPI(page, {
+        firstName: 'Test',
+        lastName: 'User',
+        organizationName: 'E2E Organization',
+      });
+      const sessionRecord = session as { organizationId?: unknown; user?: Record<string, unknown> };
+      cachedAuthState = {
+        token: session.token,
+        organizationId:
+          normalizeOrganizationId(sessionRecord.organizationId) ||
+          normalizeOrganizationId(sessionRecord.user?.organizationId) ||
+          normalizeOrganizationId(sessionRecord.user?.organization_id),
+        user: normalizeAuthUser(session.user),
+      };
+      return cachedAuthState;
+    } catch (error) {
+      lastError = error;
+      await resetCachedAuthState(page, { clearAdminCaches: true });
+      if (attempt === 2) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Failed to establish shared authenticated E2E state');
 };
 
 /**

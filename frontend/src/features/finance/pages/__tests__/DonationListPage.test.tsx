@@ -75,4 +75,49 @@ describe('DonationList page', () => {
       },
     });
   });
+
+  it('renders donation navigation actions as links while keeping receipt actions as buttons', () => {
+    state.finance.donations.donations = [
+      {
+        donation_id: 'don-1',
+        donation_number: 'DON-001',
+        account_id: null,
+        contact_id: null,
+        amount: 125,
+        currency: 'CAD',
+        donation_date: '2026-04-01',
+        payment_method: 'credit_card',
+        payment_status: 'pending',
+        transaction_id: null,
+        campaign_name: null,
+        designation: null,
+        is_recurring: false,
+        recurring_frequency: null,
+        notes: null,
+        receipt_sent: false,
+        receipt_sent_date: null,
+        created_at: '2026-04-01T00:00:00.000Z',
+        updated_at: '2026-04-01T00:00:00.000Z',
+        created_by: 'user-1',
+        modified_by: 'user-1',
+        account_name: 'Northside Mutual Aid',
+        official_tax_receipt_id: null,
+      },
+    ];
+
+    renderWithProviders(<DonationList />);
+
+    expect(screen.getAllByRole('link', { name: 'View' })[0]).toHaveAttribute(
+      'href',
+      '/donations/don-1'
+    );
+    expect(screen.getAllByRole('link', { name: 'Edit' })[0]).toHaveAttribute(
+      'href',
+      '/donations/don-1/edit'
+    );
+    expect(screen.getAllByRole('button', { name: 'Issue Receipt' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Pending').length).toBeGreaterThan(0);
+
+    state.finance.donations.donations = [];
+  });
 });

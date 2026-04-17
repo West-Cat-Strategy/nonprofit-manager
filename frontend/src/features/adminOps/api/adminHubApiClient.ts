@@ -1,6 +1,7 @@
 import api from '../../../services/api';
 import {
-  adminRouteDefinitionByRouteId,
+  getAdminRouteDefinition,
+  type AdminRouteId,
 } from '../adminNavigationCatalog';
 import type {
   AdminEmailSettings,
@@ -110,14 +111,7 @@ const readProviderTestResult = (value: unknown): ProviderTestResult => {
 const readPendingRegistrations = (value: unknown): PendingRegistration[] =>
   readArray<PendingRegistration>(value, ['items', 'data']);
 
-const getPath = (routeId: string): string => {
-  const definition = adminRouteDefinitionByRouteId.get(routeId);
-  if (!definition) {
-    throw new Error(`Missing admin route definition for ${routeId}`);
-  }
-
-  return definition.path;
-};
+const getPath = (routeId: AdminRouteId): string => getAdminRouteDefinition(routeId).path;
 
 export async function getOrganizationSettings(): Promise<OrganizationSettings> {
   const response = await api.get<OrganizationSettings>('/admin/organization-settings');

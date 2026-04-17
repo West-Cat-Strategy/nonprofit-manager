@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "ignoreBinaries": ["make"],
+  "workspaces": {
+    ".": {
+      "entry": ["package.json"],
+      "project": ["scripts/**/*.{js,ts}"],
+      "ignore": [
+        "scripts/check-*.ts",
+        "scripts/check-*.js",
+        "scripts/lib/*.ts",
+        "scripts/ui-audit.ts"
+      ]
+    },
+    "contracts": {
+      "project": ["*.d.ts"]
+    },
+    "backend": {
+      "entry": ["src/public-site.ts", "src/worker.ts"],
+      "project": ["src/**/*.ts", "scripts/**/*.ts"]
+    },
+    "frontend": {
+      "entry": ["src/grantsSmoke.tsx"],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "e2e": {
+      "entry": ["tests/**/*.ts"],
+      "project": ["**/*.ts"]
+    }
+  }
+}

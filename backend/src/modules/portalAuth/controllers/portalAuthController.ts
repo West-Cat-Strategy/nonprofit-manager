@@ -5,6 +5,7 @@ import { trackLoginAttempt } from '@middleware/accountLockout';
 import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logPortalActivity } from '@services/domains/integration';
 import * as portalAuthService from '@services/portalAuthService';
+import * as portalPasswordResetService from '@services/portalPasswordResetService';
 import { badRequest, conflict, forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { clearPortalAuthCookie, setPortalAuthCookie } from '@utils/cookieHelper';
 import { shouldExposeAuthTokensInResponse } from '@utils/authResponse';
@@ -184,6 +185,87 @@ export const portalLogout = async (
 ): Promise<Response | void> => {
   clearPortalAuthCookie(res);
   return sendSuccess(res, { message: 'Portal logout successful' });
+};
+
+export const portalForgotPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { email } = req.body as { email?: string };
+    if (!email) {
+      return badRequest(res, 'Email is required');
+    }
+
+    await portalPasswordResetService.requestPortalPasswordReset(email);
+
+    return sendSuccess(res, {
+      message:
+        'If an account with that email exists, a portal password reset link has been sent.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const validatePortalResetToken = async (
+  req: Request<{ token: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { token } = req.params;
+    if (!token) {
+      return badRequest(res, 'Token is required');
+    }
+
+    const portalUserId = await portalPasswordResetService.validatePortalResetToken(token);
+
+    return sendSuccess(res, {
+      valid: Boolean(portalUserId),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const portalResetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  try {
+    const { token, password, password_confirm } = req.body as {
+      token?: string;
+      password?: string;
+      password_confirm?: string;
+    };
+
+    if (!token || !password) {
+      return badRequest(res, 'Token and new password are required');
+    }
+
+    if (password !== password_confirm) {
+      return badRequest(res, 'Passwords do not match');
+    }
+
+    const success = await portalPasswordResetService.resetPortalPassword(token, password);
+    if (!success) {
+      return badRequest(
+        res,
+        'Invalid or expired reset token. Please request a new portal password reset.',
+        { code: 'invalid_token' }
+      );
+    }
+
+    return sendSuccess(res, {
+      message:
+        'Portal password has been reset successfully. You can now sign in with your new password.',
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const validatePortalInvitation = async (

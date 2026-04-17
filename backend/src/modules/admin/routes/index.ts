@@ -285,8 +285,6 @@ router.post(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createAdminRoutes = () => router;
 
-export const createAdminRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const adminV2Routes = createAdminRoutes('v2');
+export const adminV2Routes = createAdminRoutes();

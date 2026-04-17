@@ -11,8 +11,12 @@
   "scripts": {
     "build": "make build",
     "clean-local": "make clean-local",
+    "knip": "knip --config knip.json --include files,dependencies,unlisted,unresolved,binaries",
     "lint": "make lint",
     "test": "make test",
     "typecheck": "make typecheck"
+  },
+  "devDependencies": {
+    "knip": "^6.4.1"
   }
 }

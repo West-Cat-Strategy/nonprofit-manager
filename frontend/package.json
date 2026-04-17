@@ -10,7 +10,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc -b --pretty false",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",

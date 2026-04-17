@@ -179,13 +179,12 @@ Created reusable hooks for common frontend patterns:
 - Loading state management
 - Returns: exportToCSV, importFromCSV, parseCSVContent, isLoading, error
 
-**`useFiltering.ts`**
-- Manages filter state and persistence
-- Filter presets (save/load/delete)
-- LocalStorage support
-- Active filter count
-- Methods: updateFilter, clearFilter, clearAllFilters, setFilters
-- Preset management: savePreset, loadPreset, deletePreset
+**Feature-owned filtering state**
+- Filter inputs now live beside each list page or feature-owned page hook
+- `FilterPanel` remains the shared UI surface for rendering filter controls
+- Redux slice actions such as `setFilters` / `clearFilters` keep list state canonical
+- URL/query parsing helpers in `frontend/src/utils/persistedFilters.ts` normalize persisted values
+- Contacts follow the same pattern through feature-owned list-page hooks such as `frontend/src/features/contacts/hooks/useContactListPage.tsx`
 
 **Benefits**:
 - Reusable across volunteers, accounts, contacts
@@ -198,14 +197,13 @@ Created reusable hooks for common frontend patterns:
 
 ---
 
-### 2.2 Filter Presets & Saved Searches
+### 2.2 Filter Persistence & Saved Views
 
-Through `useFiltering` hook, users can:
-- Save common filter combinations as presets
-- Load saved presets with one click
-- Delete unused presets
-- Persist presets in localStorage
-- Quick access to frequently used filters
+Through page-level filter state and persisted query-param helpers, users can:
+- Preserve search and filter inputs in the URL for refresh/share flows
+- Keep slice-owned filters aligned with the visible `FilterPanel`
+- Reset filters cleanly through page actions such as `clearFilters()`
+- Extend individual list pages with feature-specific saved-view behavior when needed
 
 ---
 
@@ -361,7 +359,6 @@ frontend/src/components/
 frontend/src/hooks/
 ├── useBulkSelect.ts ✨ NEW
 ├── useImportExport.ts ✨ NEW
-├── useFiltering.ts ✨ NEW
 └── index.ts ✨ NEW
 
 frontend/src/features/volunteers/pages/
@@ -470,7 +467,7 @@ const handleExport = () => {
 ### Unit Tests Needed:
 - `useBulkSelect` hook
 - `useImportExport` hook
-- `useFiltering` hook
+- feature-owned filtering state and persisted-filter helpers
 - CSV parsing logic
 - Filter validation
 

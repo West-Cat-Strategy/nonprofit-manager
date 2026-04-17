@@ -339,47 +339,45 @@ const {
 
 ---
 
-### 3. useFiltering
-Manage filter state and presets
+### 3. Feature-Owned Filtering State
+Manage list filters inside the owning page or feature-owned page hook
 
 ```tsx
-import { useFiltering } from '@/hooks';
+const [searchInput, setSearchInput] = useState(searchParams.get('search') || filters.search || '');
+const [statusFilter, setStatusFilter] = useState<'active' | 'inactive'>('active');
 
-const {
-  filters,          // Record<string, any>
-  updateFilter,     // (key: string, value: any) => void
-  clearFilter,      // (key: string) => void
-  clearAllFilters,  // () => void
-  setFilters,       // (filters: Record) => void
-  savePreset,       // (name: string) => FilterPreset
-  loadPreset,       // (preset: FilterPreset) => void
-  deletePreset,     // (presetId: string) => void
-  presets,          // FilterPreset[]
-  getActiveFilterCount, // () => number
-} = useFiltering(
-  { status: '', search: '' },                    // initial filters
-  'volunteer_filters'                             // localStorage key
-);
+const handleFilterChange = (filterId: string, value: string | string[]) => {
+  if (filterId === 'search' && typeof value === 'string') {
+    setSearchInput(value);
+  } else if (filterId === 'status' && typeof value === 'string') {
+    setStatusFilter(value === 'inactive' ? 'inactive' : 'active');
+  }
+};
 
-// Update individual filter
-<Select
-  value={filters.status}
-  onChange={(val) => updateFilter('status', val)}
+const handleApplyFilters = () => {
+  dispatch(setFilters({ search: searchInput, is_active: statusFilter === 'active' }));
+};
+
+const handleClearFilters = () => {
+  setSearchInput('');
+  setStatusFilter('active');
+  dispatch(clearFilters());
+};
+
+<FilterPanel
+  fields={fields}
+  onFilterChange={handleFilterChange}
+  onApply={handleApplyFilters}
+  onClear={handleClearFilters}
+  activeFilterCount={searchInput ? 1 : 0}
 />
-
-// Save current filters as preset
-<button onClick={() => savePreset('My Saved Search')}>
-  Save as Preset
-</button>
-
-// Load preset
-<select onChange={(e) => {
-  const preset = presets.find(p => p.id === e.target.value);
-  if (preset) loadPreset(preset);
-}}>
-  {presets.map(p => <option value={p.id}>{p.name}</option>)}
-</select>
 ```
+
+Canonical implementations keep filter state close to the route and persistence layer:
+- `frontend/src/features/volunteers/pages/VolunteerListPage.tsx`
+- `frontend/src/features/accounts/pages/AccountListPage.tsx`
+- `frontend/src/features/contacts/hooks/useContactListPage.tsx`
+- `frontend/src/utils/persistedFilters.ts`
 
 ---
 
@@ -480,7 +478,7 @@ export const MyListPage = () => {
   const dispatch = useAppDispatch();
   const { data, loading, error, pagination, filters } = useAppSelector(...);
   const { selectedIds, toggleRow, selectAll, deselectAll } = useBulkSelect();
-  const { filters: appliedFilters, updateFilter, clearAllFilters } = useFiltering({});
+  const [searchInput, setSearchInput] = useState(filters.search ?? '');
 
   return (
     <PeopleListContainer {...listProps}>

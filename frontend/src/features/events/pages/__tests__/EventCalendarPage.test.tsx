@@ -3,7 +3,17 @@ import { vi } from 'vitest';
 import EventCalendarPage from '../EventCalendarPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
-const listEventOccurrencesMock = vi.fn();
+const {
+  listEventOccurrencesMock,
+  listAppointmentsAllMock,
+  listAppointmentSlotsAllMock,
+  canAccessAdminSettingsMock,
+} = vi.hoisted(() => ({
+  listEventOccurrencesMock: vi.fn(),
+  listAppointmentsAllMock: vi.fn(),
+  listAppointmentSlotsAllMock: vi.fn(),
+  canAccessAdminSettingsMock: vi.fn(() => false),
+}));
 
 vi.mock('../../api/eventsApiClient', () => ({
   eventsApiClient: {
@@ -13,8 +23,8 @@ vi.mock('../../api/eventsApiClient', () => ({
 
 vi.mock('../../../adminOps/api/portalAdminAppointmentsApiClient', () => ({
   portalAdminAppointmentsApiClient: {
-    listAppointmentsAll: vi.fn(),
-    listAppointmentSlotsAll: vi.fn(),
+    listAppointmentsAll: (...args: unknown[]) => listAppointmentsAllMock(...args),
+    listAppointmentSlotsAll: (...args: unknown[]) => listAppointmentSlotsAllMock(...args),
     updateAppointmentStatus: vi.fn(),
     checkInAppointment: vi.fn(),
     updateSlotStatus: vi.fn(),
@@ -22,13 +32,19 @@ vi.mock('../../../adminOps/api/portalAdminAppointmentsApiClient', () => ({
 }));
 
 vi.mock('../../../auth/state/adminAccess', () => ({
-  canAccessAdminSettings: () => false,
+  canAccessAdminSettings: (...args: unknown[]) => canAccessAdminSettingsMock(...args),
 }));
 
 describe('EventCalendarPage', () => {
   beforeEach(() => {
     listEventOccurrencesMock.mockReset();
+    listAppointmentsAllMock.mockReset();
+    listAppointmentSlotsAllMock.mockReset();
+    canAccessAdminSettingsMock.mockReset();
+    canAccessAdminSettingsMock.mockReturnValue(false);
     listEventOccurrencesMock.mockResolvedValue([]);
+    listAppointmentsAllMock.mockResolvedValue([]);
+    listAppointmentSlotsAllMock.mockResolvedValue([]);
   });
 
   it('renders the same calendar-first workspace on the legacy /events/calendar alias', async () => {

@@ -104,6 +104,12 @@ test.describe('Startup Performance Guards', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Startup guard thresholds are calibrated for Chromium CI runtime.');
 
   test('login to dashboard startup remains within request and p75 thresholds', async ({ page }) => {
+    if (startupThresholds.p75LoadMsBaseline !== undefined) {
+      expect(startupThresholds.p75LoadMsCap).toBeLessThanOrEqual(
+        startupThresholds.p75LoadMsBaseline
+      );
+    }
+
     const sharedUser = getSharedTestUser();
     let password = 'Test123!@#';
     const fallbackEmail = `e2e+perf-startup-${Date.now()}@example.com`;
@@ -209,9 +215,8 @@ test.describe('Startup Performance Guards', () => {
     const p75Load = percentile(loadTimesMs, 0.75);
     const p75Requests = percentile(requestCounts, 0.75);
     const p75FirstNavigationLoad = percentile(firstNavigationTimesMs, 0.75);
-    const p75LoadCap = startupThresholds.p75LoadMsBaseline ?? startupThresholds.p75LoadMsCap;
 
-    expect(p75Load).toBeLessThanOrEqual(p75LoadCap);
+    expect(p75Load).toBeLessThanOrEqual(startupThresholds.p75LoadMsCap);
     expect(p75FirstNavigationLoad).toBeLessThanOrEqual(startupThresholds.firstNavigationP75MsCap);
     expect(p75Requests).toBeLessThanOrEqual(startupThresholds.startupRequestCountCap);
     expect(preferencesRequestCounts).toEqual([0, 0, 0, 0, 0]);

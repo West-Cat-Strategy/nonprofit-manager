@@ -4,8 +4,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DonationTrendsWidget from '../DonationTrendsWidget';
 import type { DashboardWidget } from '../../../types/dashboard';
-import { DashboardDataContext } from '../../../features/dashboard/context/DashboardDataContext';
-import type { DashboardDataContextValue } from '../../../features/dashboard/context/DashboardDataContext';
+import { DashboardDataProvider } from '../../../features/dashboard/context/DashboardDataContext';
+import { renderWithProviders } from '../../../test/testUtils';
 
 const fetchDonationTrendsMock = vi.fn();
 
@@ -67,41 +67,49 @@ describe('DonationTrendsWidget', () => {
     { month: '2026-03', amount: 900, count: 3 },
   ];
 
-  const mockDashboardData = {
-    analyticsSummary: null,
-    donationTrends: mockTrends,
-    caseSummary: null,
-    taskSummary: null,
-    followUpSummary: null,
-    upcomingFollowUps: [],
-    assignedCases: [],
-    assignedCasesTotal: 0,
-    loading: {
-      analytics: false,
-      donationTrends: false,
-      caseSummary: false,
-      taskSummary: false,
-      followUpSummary: false,
-      upcomingFollowUps: false,
-      assignedCases: false,
-    },
-    errors: {},
-    hasStartedLoading: true,
-  } satisfies DashboardDataContextValue;
-
-  const renderWidget = (contextValue?: DashboardDataContextValue) =>
+  const renderWidget = () =>
     render(
-      contextValue ? (
-        <DashboardDataContext.Provider value={contextValue}>
-          <DonationTrendsWidget widget={mockWidget} editMode={false} onRemove={() => {}} />
-        </DashboardDataContext.Provider>
-      ) : (
+      <DonationTrendsWidget widget={mockWidget} editMode={false} onRemove={() => {}} />
+    );
+
+  const renderWidgetWithDashboardProvider = () =>
+    renderWithProviders(
+      <DashboardDataProvider lanes={['donationTrends']}>
         <DonationTrendsWidget widget={mockWidget} editMode={false} onRemove={() => {}} />
-      )
+      </DashboardDataProvider>,
+      {
+        preloadedState: {
+          auth: {
+            user: {
+              id: 'user-1',
+              email: 'admin@example.com',
+              firstName: 'Admin',
+              lastName: 'User',
+              role: 'admin',
+            },
+            isAuthenticated: true,
+            authLoading: false,
+            loading: false,
+          },
+        },
+      }
     );
 
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, 'requestIdleCallback', {
+      value: (callback: () => void) => {
+        callback();
+        return 1;
+      },
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(window, 'cancelIdleCallback', {
+      value: () => undefined,
+      configurable: true,
+      writable: true,
+    });
   });
 
   it('fetches donation trends in standalone mode and renders chart summaries', async () => {
@@ -123,14 +131,15 @@ describe('DonationTrendsWidget', () => {
   });
 
   it('uses provider data and skips standalone fetching', async () => {
-    renderWidget(mockDashboardData);
+    fetchDonationTrendsMock.mockResolvedValue(mockTrends);
+    renderWidgetWithDashboardProvider();
 
     await waitFor(() => {
       expect(screen.getByText('$5,100')).toBeInTheDocument();
       expect(screen.getByText('17')).toBeInTheDocument();
     });
 
-    expect(fetchDonationTrendsMock).not.toHaveBeenCalled();
+    expect(fetchDonationTrendsMock).toHaveBeenCalledTimes(1);
   });
 
   it('shows an empty state when no donation trends are available', async () => {
@@ -143,14 +152,14 @@ describe('DonationTrendsWidget', () => {
     });
   });
 
-  it('surfaces provider loading and error states through the widget container', () => {
-    renderWidget({
-      ...mockDashboardData,
-      loading: { ...mockDashboardData.loading, donationTrends: true },
-      errors: { donationTrends: 'Trend data unavailable' },
-    });
+  it('surfaces provider loading and error states through the widget container', async () => {
+    fetchDonationTrendsMock.mockRejectedValueOnce(new Error('Trend data unavailable'));
+    renderWidgetWithDashboardProvider();
 
     expect(screen.getByText('Loading…')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Error: Trend data unavailable')).toBeInTheDocument();
+    });
   });
 
   it('shows a standalone fetch error when the analytics request fails', async () => {

@@ -4,7 +4,7 @@ import type { CreateContactDocumentDTO, UpdateContactDocumentDTO } from '@app-ty
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { ContactDocumentsUseCase } from '../usecases/contactDocuments.usecase';
 import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
 const parseBooleanField = (value: unknown): boolean | undefined => {
   if (typeof value === 'boolean') {
@@ -26,8 +26,7 @@ const parseBooleanField = (value: unknown): boolean | undefined => {
 
 export const createContactDocumentsController = (
   useCase: ContactDocumentsUseCase,
-  directoryUseCase: ContactDirectoryUseCase,
-  mode: ResponseMode
+  directoryUseCase: ContactDirectoryUseCase
 ) => {
   const getContactDocuments = async (
     req: AuthRequest,
@@ -39,13 +38,13 @@ export const createContactDocumentsController = (
       if (scope) {
         const scopedContact = await directoryUseCase.getById(req.params.contactId, scope);
         if (!scopedContact) {
-          sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
+          sendFailure(res, 'NOT_FOUND', 'Contact not found', 404);
           return;
         }
       }
 
       const documents = await useCase.list(req.params.contactId);
-      sendData(res, mode, documents);
+      sendData(res, documents);
     } catch (error) {
       next(error);
     }
@@ -60,11 +59,11 @@ export const createContactDocumentsController = (
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const document = await useCase.getById(req.params.documentId, scope);
       if (!document) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Document not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Document not found', 404);
         return;
       }
 
-      sendData(res, mode, document);
+      sendData(res, document);
     } catch (error) {
       next(error);
     }
@@ -79,13 +78,13 @@ export const createContactDocumentsController = (
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const document = await useCase.getById(req.params.documentId, scope);
       if (!document || !document.is_active) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Document not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Document not found', 404);
         return;
       }
 
       const filePath = await useCase.resolveFilePath(document);
       if (!filePath) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Document file not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Document file not found', 404);
         return;
       }
 
@@ -109,7 +108,7 @@ export const createContactDocumentsController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
@@ -117,13 +116,13 @@ export const createContactDocumentsController = (
       if (scope) {
         const scopedContact = await directoryUseCase.getById(req.params.contactId, scope);
         if (!scopedContact) {
-          sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
+          sendFailure(res, 'NOT_FOUND', 'Contact not found', 404);
           return;
         }
       }
 
       if (!req.file) {
-        sendFailure(res, mode, 'VALIDATION_ERROR', 'No file uploaded', 400);
+        sendFailure(res, 'VALIDATION_ERROR', 'No file uploaded', 400);
         return;
       }
 
@@ -136,7 +135,7 @@ export const createContactDocumentsController = (
       };
 
       const created = await useCase.create(req.params.contactId, req.file, payload, userId);
-      sendData(res, mode, created, 201);
+      sendData(res, created, 201);
     } catch (error) {
       next(error);
     }
@@ -159,11 +158,11 @@ export const createContactDocumentsController = (
 
       const updated = await useCase.update(req.params.documentId, payload, req.user?.id, scope);
       if (!updated) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Document not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Document not found', 404);
         return;
       }
 
-      sendData(res, mode, updated);
+      sendData(res, updated);
     } catch (error) {
       next(error);
     }
@@ -178,7 +177,7 @@ export const createContactDocumentsController = (
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const deleted = await useCase.delete(req.params.documentId, scope);
       if (!deleted) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Document not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Document not found', 404);
         return;
       }
 

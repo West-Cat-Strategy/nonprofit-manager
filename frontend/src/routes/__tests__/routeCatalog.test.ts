@@ -22,6 +22,9 @@ describe('routeCatalog matching', () => {
     expect(matchRouteCatalogEntry('/admin-registration-review/a.b.c')?.id).toBe(
       'admin-registration-review'
     );
+    expect(matchRouteCatalogEntry('/portal/reset-password/test-token')?.id).toBe(
+      'portal-reset-password'
+    );
     expect(matchRouteCatalogEntry('/settings/communications?ref=legacy')?.id).toBe(
       'communications'
     );
@@ -196,5 +199,18 @@ describe('routeCatalog matching', () => {
       isActive: true,
       label: 'Messages',
     });
+  });
+
+  it('anchors portal password recovery beneath portal login', () => {
+    expect(
+      collectRouteAncestors(matchRouteCatalogEntry('/portal/forgot-password'))?.map(
+        (entry) => entry.id
+      )
+    ).toEqual(['portal-forgot-password', 'portal-login']);
+    expect(
+      collectRouteAncestors(matchRouteCatalogEntry('/portal/reset-password/test-token'))?.map(
+        (entry) => entry.id
+      )
+    ).toEqual(['portal-reset-password', 'portal-login']);
   });
 });

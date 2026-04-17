@@ -9,13 +9,21 @@ import '@testing-library/jest-dom';
 import DonationSummaryWidget from '../DonationSummaryWidget';
 import type { DashboardWidget } from '../../../types/dashboard';
 import api from '../../../services/api';
-import { DashboardDataContext } from '../../../features/dashboard/context/DashboardDataContext';
-import type { DashboardDataContextValue } from '../../../features/dashboard/context/DashboardDataContext';
+import { DashboardDataProvider } from '../../../features/dashboard/context/DashboardDataContext';
+import { renderWithProviders } from '../../../test/testUtils';
 
 // Mock the API
 vi.mock('../../../services/api', () => ({
   default: {
     get: vi.fn(),
+  },
+}));
+
+const fetchSummaryMock = vi.fn();
+
+vi.mock('../../../features/analytics/api/analyticsApiClient', () => ({
+  analyticsApiClient: {
+    fetchSummary: (...args: unknown[]) => fetchSummaryMock(...args),
   },
 }));
 
@@ -42,49 +50,49 @@ describe('DonationSummaryWidget', () => {
     },
   };
 
-  const mockDashboardData = {
-    analyticsSummary: mockDonationData,
-    donationTrends: [],
-    caseSummary: null,
-    taskSummary: null,
-    followUpSummary: null,
-    upcomingFollowUps: [],
-    assignedCases: [],
-    assignedCasesTotal: 0,
-    loading: {
-      analytics: false,
-      donationTrends: false,
-      caseSummary: false,
-      taskSummary: false,
-      followUpSummary: false,
-      upcomingFollowUps: false,
-      assignedCases: false,
-    },
-    errors: {
-      analytics: null,
-      donationTrends: null,
-      caseSummary: null,
-      taskSummary: null,
-      followUpSummary: null,
-      upcomingFollowUps: null,
-      assignedCases: null,
-    },
-    hasStartedLoading: true,
-  } satisfies DashboardDataContextValue;
-
-  const renderWidget = (contextValue?: DashboardDataContextValue) =>
+  const renderWidget = () =>
     render(
-      contextValue ? (
-        <DashboardDataContext.Provider value={contextValue}>
-          <DonationSummaryWidget widget={mockWidget} editMode={false} onRemove={() => {}} />
-        </DashboardDataContext.Provider>
-      ) : (
+      <DonationSummaryWidget widget={mockWidget} editMode={false} onRemove={() => {}} />
+    );
+
+  const renderWidgetWithDashboardProvider = () =>
+    renderWithProviders(
+      <DashboardDataProvider lanes={['analytics']}>
         <DonationSummaryWidget widget={mockWidget} editMode={false} onRemove={() => {}} />
-      )
+      </DashboardDataProvider>,
+      {
+        preloadedState: {
+          auth: {
+            user: {
+              id: 'user-1',
+              email: 'admin@example.com',
+              firstName: 'Admin',
+              lastName: 'User',
+              role: 'admin',
+            },
+            isAuthenticated: true,
+            authLoading: false,
+            loading: false,
+          },
+        },
+      }
     );
 
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, 'requestIdleCallback', {
+      value: (callback: () => void) => {
+        callback();
+        return 1;
+      },
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(window, 'cancelIdleCallback', {
+      value: () => undefined,
+      configurable: true,
+      writable: true,
+    });
   });
 
   describe('Rendering', () => {
@@ -183,7 +191,8 @@ describe('DonationSummaryWidget', () => {
     });
 
     it('uses shared dashboard data when provided and skips the API fetch', async () => {
-      renderWidget(mockDashboardData);
+      fetchSummaryMock.mockResolvedValue(mockDonationData);
+      renderWidgetWithDashboardProvider();
 
       await waitFor(() => {
         expect(screen.getByText('$567,890')).toBeInTheDocument();
@@ -191,16 +200,17 @@ describe('DonationSummaryWidget', () => {
       });
 
       expect(api.get).not.toHaveBeenCalled();
+      expect(fetchSummaryMock).toHaveBeenCalledTimes(1);
     });
 
-    it('surfaces provider loading and error states', () => {
-      renderWidget({
-        ...mockDashboardData,
-        loading: { ...mockDashboardData.loading, analytics: true },
-        errors: { ...mockDashboardData.errors, analytics: 'Analytics unavailable' },
-      });
+    it('surfaces provider loading and error states', async () => {
+      fetchSummaryMock.mockRejectedValueOnce(new Error('Analytics unavailable'));
+      renderWidgetWithDashboardProvider();
 
       expect(screen.getByText('Loading…')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Error: Analytics unavailable')).toBeInTheDocument();
+      });
     });
   });
 

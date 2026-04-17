@@ -11,8 +11,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 |---|---|---|
 | [check-links.sh](check-links.sh) | Validate repo Markdown and HTML links used by the active docs. | `make check-links` |
 | [check-doc-api-versioning.ts](check-doc-api-versioning.ts) | Enforce active-doc `/api/v2` wording and catch stale API-version references. | `make lint-doc-api-versioning` |
-| [ci.sh](ci.sh) | Root CI wrapper that backs the `make ci*` targets and coverage flows. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` / `make test-coverage` |
-| [local-ci.sh](local-ci.sh) | Orchestrate lint, type-check, tests, coverage, and build checks. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` / `make test-coverage` |
+| [ci.sh](ci.sh) | Canonical root CI wrapper that backs the `make ci*` targets and coverage flows. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` / `make test-coverage` |
 | [quality-baseline.sh](quality-baseline.sh) | Run the static quality baseline checks used by the repo's policy gates. | `make quality-baseline` |
 | [security-scan.sh](security-scan.sh) | Run dependency and secret scanning. | `make security-scan` |
 | [db-migrate.sh](db-migrate.sh) | Bootstrap or start the local database contract and isolated test database. | `make db-migrate` |
@@ -25,9 +24,8 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-local git hooks. | `make hooks` |
 | [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files. | `./scripts/select-checks.sh` |
 | [daily-security-report.py](daily-security-report.py) | Generate a lightweight security-status report from repo checks. | `python3 scripts/daily-security-report.py` |
-| [e2e-port-preflight.sh](e2e-port-preflight.sh) | Reserve or clean up the ports used by the Playwright harness. | `e2e` package scripts |
-| [e2e-playwright.sh](e2e-playwright.sh) | Apply the repo's standard host or Docker Playwright defaults before running the lock wrapper. | `e2e` package scripts |
-| [e2e-run-with-lock.sh](e2e-run-with-lock.sh) | Run Playwright with the shared lock and port safeguards. | `e2e` package scripts |
+| [e2e-playwright.sh](e2e-playwright.sh) | Apply the repo's standard host or Docker Playwright defaults before delegating to the shared runner. | `e2e` package scripts |
+| [e2e-run-with-lock.sh](e2e-run-with-lock.sh) | Run Playwright with the shared lock plus built-in port preflight and retry safeguards. | `e2e` package scripts |
 
 ## Policy Checks
 

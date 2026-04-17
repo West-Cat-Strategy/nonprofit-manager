@@ -152,6 +152,7 @@ export default function Navigation() {
   return (
     <nav
       aria-label="Global navigation"
+      data-shell-transition
       className="app-shell-surface-opaque sticky top-0 z-50 border-b border-app-border shadow-sm"
     >
       <div className="mx-auto flex h-14 max-w-[1920px] items-center gap-3 px-3 sm:h-16 sm:px-4 lg:px-6">
@@ -189,7 +190,7 @@ export default function Navigation() {
           </Link>
         </div>
 
-        <div className="hidden min-w-0 flex-1 items-center justify-center xl:flex">
+        <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
           <div className="flex min-w-0 max-w-full items-center gap-1 rounded-full border border-app-border bg-app-surface-elevated px-1.5 py-1 shadow-sm">
             <div
               className="flex min-w-0 items-center gap-1 overflow-hidden"
@@ -204,7 +205,7 @@ export default function Navigation() {
                   onFocus={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
                   aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
                   className={classNames(
-                    'inline-flex min-w-0 max-w-[9rem] items-center rounded-full border px-3 py-2 text-sm font-semibold transition xl:max-w-[11rem]',
+                    'inline-flex min-w-0 max-w-[9rem] items-center rounded-full border px-3 py-2 text-sm font-semibold transition lg:max-w-[11rem]',
                     isNavItemActive(item.id, item.path)
                       ? 'app-accent-contrast-ink border-app-accent bg-app-accent shadow-sm'
                       : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
@@ -234,7 +235,6 @@ export default function Navigation() {
                   )}
                   aria-label="More navigation"
                   aria-expanded={moreMenuOpen}
-                  aria-haspopup="menu"
                   aria-controls="topnav-more-menu"
                 >
                   <span>More</span>
@@ -259,7 +259,7 @@ export default function Navigation() {
                   panelClassName="max-h-[min(28rem,calc(100vh-6rem))] w-80 overflow-y-auto p-2"
                   panelRef={moreMenuRef}
                 >
-                  <div id="topnav-more-menu" role="menu" aria-label="More navigation">
+                  <nav id="topnav-more-menu" aria-label="More navigation">
                     {desktopOverflowItems.length > 0 ? (
                       <div className="border-b border-app-border-muted px-1 pb-3">
                         <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
@@ -324,7 +324,7 @@ export default function Navigation() {
                         </div>
                       </div>
                     ) : null}
-                  </div>
+                  </nav>
                 </NavPopover>
               </div>
             ) : null}
@@ -343,6 +343,9 @@ export default function Navigation() {
             onMouseEnter={prefetchQuickLookup}
             onFocus={prefetchQuickLookup}
             aria-label="Search"
+            aria-haspopup="dialog"
+            aria-expanded={searchOpen}
+            aria-controls="navigation-quick-lookup-dialog"
           >
             <svg
               className="h-4 w-4"
@@ -358,7 +361,7 @@ export default function Navigation() {
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            <span className="hidden xl:inline">Search</span>
+            <span className="hidden lg:inline">Search</span>
           </button>
 
           <Link
@@ -376,10 +379,10 @@ export default function Navigation() {
             )}
           >
             <span aria-hidden="true">{mobileAlertsLink.icon}</span>
-            <span className="hidden xl:inline">{mobileAlertsLink.shortLabel}</span>
+            <span className="hidden lg:inline">{mobileAlertsLink.shortLabel}</span>
           </Link>
 
-          <div className="relative hidden xl:block">
+          <div className="relative hidden lg:block">
             <button
               type="button"
               ref={userMenuButtonRef}
@@ -392,7 +395,6 @@ export default function Navigation() {
               className="relative z-20 inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-1.5 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
               aria-label="User menu"
               aria-expanded={userMenuOpen}
-              aria-haspopup="menu"
               aria-controls="topnav-user-menu"
             >
               <Avatar
@@ -401,7 +403,7 @@ export default function Navigation() {
                 lastName={user?.lastName}
                 size="sm"
               />
-              <span className="hidden max-w-[140px] truncate xl:block">
+              <span className="hidden max-w-[140px] truncate lg:block">
                 {user?.firstName} {user?.lastName}
               </span>
               <svg
@@ -427,7 +429,7 @@ export default function Navigation() {
               panelClassName="w-80 py-2"
               panelRef={userMenuRef}
             >
-              <div id="topnav-user-menu" role="menu" aria-label="User menu links">
+              <div id="topnav-user-menu" aria-label="User menu links">
                 <div className="border-b border-app-border px-4 py-3">
                   <p className="truncate text-sm font-medium text-app-text">
                     {user?.firstName} {user?.lastName}
@@ -437,7 +439,6 @@ export default function Navigation() {
                 </div>
                 <Link
                   to="/dashboard"
-                  role="menuitem"
                   className="block px-4 py-2 text-sm text-app-text transition hover:bg-app-hover"
                   onClick={() => setUserMenuOpen(false)}
                 >
@@ -445,7 +446,6 @@ export default function Navigation() {
                 </Link>
                 <Link
                   to="/settings/user"
-                  role="menuitem"
                   className="block px-4 py-2 text-sm text-app-text transition hover:bg-app-hover"
                   onClick={() => setUserMenuOpen(false)}
                 >
@@ -471,7 +471,6 @@ export default function Navigation() {
                             setTheme(availableTheme);
                             setUserMenuOpen(false);
                           }}
-                          role="menuitem"
                           data-theme-menu-item={availableTheme}
                           className={`flex w-full items-center gap-3 rounded-[var(--ui-radius-md)] border px-3 py-2 text-left transition ${
                             isSelected
@@ -508,7 +507,6 @@ export default function Navigation() {
                     <button
                       type="button"
                       onClick={toggleDarkMode}
-                      role="menuitem"
                       className="flex w-full items-center gap-2 rounded px-1 py-1.5 text-left text-sm text-app-text transition hover:bg-app-hover"
                     >
                       <span>{isDarkMode ? '☀️' : '🌙'}</span>
@@ -520,7 +518,6 @@ export default function Navigation() {
                   <div className="border-t border-app-border px-3 py-3">
                     <Link
                       to={adminSettingsPath}
-                      role="menuitem"
                       className="block rounded px-1 py-1.5 text-sm text-app-text transition hover:bg-app-hover"
                       onClick={() => setUserMenuOpen(false)}
                     >
@@ -542,7 +539,6 @@ export default function Navigation() {
                     setUserMenuOpen(false);
                     handleLogout();
                   }}
-                  role="menuitem"
                   className="block w-full px-4 py-2 text-left text-sm text-app-accent transition hover:bg-app-accent-soft"
                 >
                   Logout
@@ -560,7 +556,7 @@ export default function Navigation() {
               setMoreMenuOpen(false);
               setMobileMenuOpen((open) => !open);
             }}
-            className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated p-2 text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading xl:hidden"
+            className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated p-2 text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading lg:hidden"
             aria-label="Main menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -594,7 +590,7 @@ export default function Navigation() {
       {mobileMenuOpen ? (
         <>
           <div
-            className="app-popup-backdrop fixed inset-0 z-40 xl:hidden"
+            className="app-popup-backdrop fixed inset-0 z-40 lg:hidden"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />

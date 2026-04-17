@@ -1,5 +1,4 @@
-import pool from '@config/database';
-import type { PoolClient } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import { createCaseNoteQuery } from '../queries/notesQueries';
 import { requireCaseOwnership } from '../queries/shared';
 import { hashData } from '@utils/encryption';
@@ -17,7 +16,7 @@ import { includesEmailDelivery, includesPortalDelivery } from './caseForms.useca
 
 export const getCaseAssignment = async (
   repository: CaseFormsRepository,
-  db: typeof pool,
+  db: Pool | PoolClient,
   caseId: string,
   assignmentId: string,
   organizationId?: string

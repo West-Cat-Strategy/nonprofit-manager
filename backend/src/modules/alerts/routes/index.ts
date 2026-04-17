@@ -172,8 +172,6 @@ router.get('/stats', getAlertStats);
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createAlertsRoutes = () => router;
 
-export const createAlertsRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const alertsV2Routes = createAlertsRoutes('v2');
+export const alertsV2Routes = createAlertsRoutes();

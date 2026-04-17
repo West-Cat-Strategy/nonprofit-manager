@@ -5,8 +5,9 @@ import {
   type PortalAdminPanel,
 } from './adminRoutePaths';
 import {
-  adminRouteDefinitionByRouteId,
-  adminSettingsSectionDefinitionById,
+  getAdminSettingsSectionDefinition,
+  getAdminWorkspaceDefinition,
+  getPortalAdminDefinition,
   adminSettingsSections,
   type AdminSurface,
 } from './adminNavigationCatalog';
@@ -56,65 +57,66 @@ export type AdminRouteManifestEntry =
   | AdminRouteSectionEntry
   | AdminRoutePortalPanelEntry;
 
-const getAdminRouteMeta = (routeId: string) => {
-  const metadata = adminRouteDefinitionByRouteId.get(routeId);
-  if (!metadata) {
-    throw new Error(`Missing admin route metadata for ${routeId}`);
-  }
-
-  return metadata;
-};
-
-const dashboardSectionMeta = adminSettingsSectionDefinitionById.get('dashboard');
+const communicationsMeta = getAdminWorkspaceDefinition('communications');
+const socialMediaMeta = getAdminWorkspaceDefinition('social-media');
+const apiSettingsMeta = getAdminWorkspaceDefinition('api-settings');
+const navigationSettingsMeta = getAdminWorkspaceDefinition('navigation-settings');
+const backupSettingsMeta = getAdminWorkspaceDefinition('backup-settings');
+const portalAccessMeta = getPortalAdminDefinition('access');
+const portalUsersMeta = getPortalAdminDefinition('users');
+const portalConversationsMeta = getPortalAdminDefinition('conversations');
+const portalAppointmentsMeta = getPortalAdminDefinition('appointments');
+const portalSlotsMeta = getPortalAdminDefinition('slots');
+const dashboardSectionMeta = getAdminSettingsSectionDefinition('dashboard');
 
 export const adminRouteManifest = [
   {
     id: 'admin-settings-communications',
-    title: getAdminRouteMeta('communications').title,
-    description: getAdminRouteMeta('communications').description,
-    path: getAdminRouteMeta('communications').path,
+    title: communicationsMeta.title,
+    description: communicationsMeta.description,
+    path: communicationsMeta.path,
     wrapper: 'protected',
-    adminSurface: getAdminRouteMeta('communications').surface,
+    adminSurface: communicationsMeta.surface,
     kind: 'page',
     view: 'communications',
   },
   {
     id: 'admin-settings-email-marketing',
-    title: getAdminRouteMeta('communications').title,
-    description: getAdminRouteMeta('communications').description,
+    title: communicationsMeta.title,
+    description: communicationsMeta.description,
     path: '/settings/email-marketing',
     wrapper: 'protected',
-    adminSurface: getAdminRouteMeta('communications').surface,
+    adminSurface: communicationsMeta.surface,
     kind: 'page',
     view: 'communications',
   },
   {
     id: 'admin-settings-social-media',
-    title: getAdminRouteMeta('social-media').title,
-    description: getAdminRouteMeta('social-media').description,
-    path: getAdminRouteMeta('social-media').path,
+    title: socialMediaMeta.title,
+    description: socialMediaMeta.description,
+    path: socialMediaMeta.path,
     wrapper: 'admin',
-    adminSurface: getAdminRouteMeta('social-media').surface,
+    adminSurface: socialMediaMeta.surface,
     kind: 'page',
     view: 'socialMedia',
   },
   {
     id: 'admin-settings-api',
-    title: getAdminRouteMeta('api-settings').title,
-    description: getAdminRouteMeta('api-settings').description,
-    path: getAdminRouteMeta('api-settings').path,
+    title: apiSettingsMeta.title,
+    description: apiSettingsMeta.description,
+    path: apiSettingsMeta.path,
     wrapper: 'protected',
-    adminSurface: getAdminRouteMeta('api-settings').surface,
+    adminSurface: apiSettingsMeta.surface,
     kind: 'page',
     view: 'api',
   },
   {
     id: 'admin-settings-navigation',
-    title: getAdminRouteMeta('navigation-settings').title,
-    description: getAdminRouteMeta('navigation-settings').description,
-    path: getAdminRouteMeta('navigation-settings').path,
+    title: navigationSettingsMeta.title,
+    description: navigationSettingsMeta.description,
+    path: navigationSettingsMeta.path,
     wrapper: 'protected',
-    adminSurface: getAdminRouteMeta('navigation-settings').surface,
+    adminSurface: navigationSettingsMeta.surface,
     kind: 'page',
     view: 'navigation',
   },
@@ -128,11 +130,11 @@ export const adminRouteManifest = [
   },
   {
     id: 'admin-settings-backup',
-    title: getAdminRouteMeta('backup-settings').title,
-    description: getAdminRouteMeta('backup-settings').description,
-    path: getAdminRouteMeta('backup-settings').path,
+    title: backupSettingsMeta.title,
+    description: backupSettingsMeta.description,
+    path: backupSettingsMeta.path,
     wrapper: 'admin',
-    adminSurface: getAdminRouteMeta('backup-settings').surface,
+    adminSurface: backupSettingsMeta.surface,
     kind: 'page',
     view: 'backup',
   },
@@ -186,60 +188,58 @@ export const adminRouteManifest = [
   },
   {
     id: 'portal-admin-access',
-    title: getAdminRouteMeta('portal-admin-access').title,
-    description: getAdminRouteMeta('portal-admin-access').description,
+    title: portalAccessMeta.title,
+    description: portalAccessMeta.description,
     path: getPortalAdminPath('access'),
     wrapper: 'admin',
-    adminSurface: getAdminRouteMeta('portal-admin-access').surface,
+    adminSurface: portalAccessMeta.surface,
     kind: 'portal-panel',
     panel: 'access',
   },
   {
     id: 'portal-admin-users',
-    title: getAdminRouteMeta('portal-admin-users').title,
-    description: getAdminRouteMeta('portal-admin-users').description,
+    title: portalUsersMeta.title,
+    description: portalUsersMeta.description,
     path: getPortalAdminPath('users'),
     wrapper: 'admin',
-    adminSurface: getAdminRouteMeta('portal-admin-users').surface,
+    adminSurface: portalUsersMeta.surface,
     kind: 'portal-panel',
     panel: 'users',
   },
   {
     id: 'portal-admin-conversations',
-    title: getAdminRouteMeta('portal-admin-conversations').title,
-    description: getAdminRouteMeta('portal-admin-conversations').description,
+    title: portalConversationsMeta.title,
+    description: portalConversationsMeta.description,
     path: getPortalAdminPath('conversations'),
     wrapper: 'admin',
-    adminSurface: getAdminRouteMeta('portal-admin-conversations').surface,
+    adminSurface: portalConversationsMeta.surface,
     kind: 'portal-panel',
     panel: 'conversations',
   },
   {
     id: 'portal-admin-appointments',
-    title: getAdminRouteMeta('portal-admin-appointments').title,
-    description: getAdminRouteMeta('portal-admin-appointments').description,
+    title: portalAppointmentsMeta.title,
+    description: portalAppointmentsMeta.description,
     path: getPortalAdminPath('appointments'),
     wrapper: 'admin',
-    adminSurface: getAdminRouteMeta('portal-admin-appointments').surface,
+    adminSurface: portalAppointmentsMeta.surface,
     kind: 'portal-panel',
     panel: 'appointments',
   },
   {
     id: 'portal-admin-slots',
-    title: getAdminRouteMeta('portal-admin-slots').title,
-    description: getAdminRouteMeta('portal-admin-slots').description,
+    title: portalSlotsMeta.title,
+    description: portalSlotsMeta.description,
     path: getPortalAdminPath('slots'),
     wrapper: 'admin',
-    adminSurface: getAdminRouteMeta('portal-admin-slots').surface,
+    adminSurface: portalSlotsMeta.surface,
     kind: 'portal-panel',
     panel: 'slots',
   },
   {
     id: 'admin-settings-section-route',
-    title: dashboardSectionMeta?.title ?? 'Admin Hub',
-    description:
-      dashboardSectionMeta?.description ??
-      'Command center for organization health, access, delivery, and admin tooling.',
+    title: dashboardSectionMeta.title,
+    description: dashboardSectionMeta.description,
     path: '/settings/admin/:section',
     wrapper: 'admin',
     adminSurface: 'core',

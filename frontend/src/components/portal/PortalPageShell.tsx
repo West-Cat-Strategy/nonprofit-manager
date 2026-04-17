@@ -14,9 +14,9 @@ export default function PortalPageShell({
   children,
 }: PortalPageShellProps) {
   return (
-    <div className="space-y-5">
+    <section aria-label={title} className="space-y-5">
       <PageHeader title={title} description={description} actions={actions} />
       {children}
-    </div>
+    </section>
   );
 }

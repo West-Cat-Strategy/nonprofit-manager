@@ -67,9 +67,7 @@ import {
 } from '../controllers/passkeys.controller';
 import { aliasUsageTelemetry } from '../middleware/aliasUsageTelemetry';
 
-export type ResponseMode = 'v2' | 'legacy';
-
-export const createAuthRoutes = (_mode: ResponseMode = 'v2'): Router => {
+export const createAuthRoutes = (): Router => {
   const router = Router();
 
   // Public: check if self-registration is enabled (no auth needed)
@@ -248,4 +246,4 @@ export const createAuthRoutes = (_mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const authV2Routes = createAuthRoutes('v2');
+export const authV2Routes = createAuthRoutes();

@@ -8,12 +8,10 @@ import { portalV2ApiClient } from '../api/portalApiClient';
 import type { PortalDashboardData } from '../types/contracts';
 import { usePersistentPortalCaseContext } from '../../../hooks/usePersistentPortalCaseContext';
 import { getPortalEventOccurrenceLabel } from '../utils/eventDisplay';
+import { formatPortalDateTime } from '../utils/dateDisplay';
 
-const formatDateTime = (value?: string | null): string => {
-  if (!value) return 'Not scheduled';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-};
+const formatDateTime = (value?: string | null): string =>
+  formatPortalDateTime(value, undefined, 'Not scheduled');
 
 export default function PortalDashboard() {
   const [dashboard, setDashboard] = useState<PortalDashboardData | null>(null);

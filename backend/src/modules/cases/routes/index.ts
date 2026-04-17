@@ -38,7 +38,6 @@ import { createCaseServicesController } from '../controllers/services.controller
 import { createCaseOutcomesController } from '../controllers/outcomes.controller';
 import { createCaseDocumentsController } from '../controllers/documents.controller';
 import { createCaseFormsController } from '../controllers/forms.controller';
-import { ResponseMode } from '../mappers/responseMode';
 import { CaseRepository } from '../repositories/caseRepository';
 import { CaseNotesRepository } from '../repositories/caseNotesRepository';
 import { CaseMilestonesRepository } from '../repositories/caseMilestonesRepository';
@@ -377,7 +376,7 @@ const caseFormInstantiateParamsSchema = z
   })
   .strict();
 
-export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createCasesRoutes = (): Router => {
   const router = Router();
 
   const caseRepository = new CaseRepository();
@@ -389,39 +388,23 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   const documentsRepository = new CaseDocumentsRepository();
   const caseFormsRepository = new CaseFormsRepository();
 
-  const catalogController = createCaseCatalogController(
-    new CaseCatalogUseCase(caseRepository),
-    mode
-  );
-  const lifecycleController = createCaseLifecycleController(
-    new CaseLifecycleUseCase(caseRepository),
-    mode
-  );
-  const notesController = createCaseNotesController(new CaseNotesUseCase(notesRepository), mode);
+  const catalogController = createCaseCatalogController(new CaseCatalogUseCase(caseRepository));
+  const lifecycleController = createCaseLifecycleController(new CaseLifecycleUseCase(caseRepository));
+  const notesController = createCaseNotesController(new CaseNotesUseCase(notesRepository));
   const milestonesController = createCaseMilestonesController(
-    new CaseMilestonesUseCase(milestonesRepository),
-    mode
+    new CaseMilestonesUseCase(milestonesRepository)
   );
   const relationshipsController = createCaseRelationshipsController(
-    new CaseRelationshipsUseCase(relationshipsRepository),
-    mode
+    new CaseRelationshipsUseCase(relationshipsRepository)
   );
-  const servicesController = createCaseServicesController(
-    new CaseServicesUseCase(servicesRepository),
-    mode
-  );
+  const servicesController = createCaseServicesController(new CaseServicesUseCase(servicesRepository));
   const outcomesController = createCaseOutcomesController(
-    new CaseOutcomesUseCase(outcomesRepository),
-    mode
+    new CaseOutcomesUseCase(outcomesRepository)
   );
   const documentsController = createCaseDocumentsController(
-    new CaseDocumentsUseCase(documentsRepository),
-    mode
+    new CaseDocumentsUseCase(documentsRepository)
   );
-  const formsController = createCaseFormsController(
-    new CaseFormsUseCase(caseFormsRepository),
-    mode
-  );
+  const formsController = createCaseFormsController(new CaseFormsUseCase(caseFormsRepository));
 
   router.use(authenticate);
   router.use(requireActiveOrganizationContext);
@@ -819,4 +802,4 @@ export const createCasesRoutes = (mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const casesV2Routes = createCasesRoutes('v2');
+export const casesV2Routes = createCasesRoutes();

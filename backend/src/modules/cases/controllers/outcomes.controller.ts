@@ -14,12 +14,9 @@ import type {
 } from '@app-types/case';
 import type { UpdateInteractionOutcomeImpactsDTO } from '@app-types/outcomes';
 import { CaseOutcomesUseCase } from '../usecases/caseOutcomes.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
-export const createCaseOutcomesController = (
-  useCase: CaseOutcomesUseCase,
-  mode: ResponseMode
-) => {
+export const createCaseOutcomesController = (useCase: CaseOutcomesUseCase) => {
   const guardTagPermission = (req: AuthRequest, res: Response): boolean => {
     const guardResult = requirePermissionSafe(req, Permission.OUTCOMES_TAG_INTERACTION);
     if (!guardResult.ok) {
@@ -46,7 +43,7 @@ export const createCaseOutcomesController = (
       const includeInactive =
         req.query.includeInactive === 'true' || req.validatedQuery?.includeInactive === true;
       const definitions = await useCase.listDefinitions(includeInactive);
-      sendData(res, mode, definitions);
+      sendData(res, definitions);
     } catch (error) {
       next(error);
     }
@@ -67,7 +64,7 @@ export const createCaseOutcomesController = (
         interactionId: string;
       };
       const impacts = await useCase.getInteractionOutcomes(params.caseId, params.interactionId);
-      sendData(res, mode, impacts);
+      sendData(res, impacts);
     } catch (error) {
       next(error);
     }
@@ -93,7 +90,7 @@ export const createCaseOutcomesController = (
         req.body as UpdateInteractionOutcomeImpactsDTO,
         req.user?.id
       );
-      sendData(res, mode, impacts);
+      sendData(res, impacts);
     } catch (error) {
       next(error);
     }
@@ -110,7 +107,7 @@ export const createCaseOutcomesController = (
       }
 
       const outcomes = await useCase.listCaseOutcomes(req.params.id);
-      sendData(res, mode, mode === 'v2' ? outcomes : { outcomes });
+      sendData(res, outcomes);
     } catch (error) {
       next(error);
     }
@@ -131,7 +128,7 @@ export const createCaseOutcomesController = (
         req.body as CreateCaseOutcomeDTO,
         req.user?.id
       );
-      sendData(res, mode, outcome, 201);
+      sendData(res, outcome, 201);
     } catch (error) {
       next(error);
     }
@@ -152,7 +149,7 @@ export const createCaseOutcomesController = (
         req.body as UpdateCaseOutcomeDTO,
         req.user?.id
       );
-      sendData(res, mode, outcome);
+      sendData(res, outcome);
     } catch (error) {
       next(error);
     }
@@ -170,16 +167,11 @@ export const createCaseOutcomesController = (
 
       const deleted = await useCase.deleteCaseOutcome(req.params.outcomeId);
       if (!deleted) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Case outcome not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Case outcome not found', 404);
         return;
       }
 
-      if (mode === 'v2') {
-        res.status(204).send();
-        return;
-      }
-
-      sendData(res, mode, { success: true });
+      res.status(204).send();
     } catch (error) {
       next(error);
     }
@@ -196,7 +188,7 @@ export const createCaseOutcomesController = (
       }
 
       const topics = await useCase.listTopicDefinitions(req.params.id);
-      sendData(res, mode, mode === 'v2' ? topics : { topics });
+      sendData(res, topics);
     } catch (error) {
       next(error);
     }
@@ -217,7 +209,7 @@ export const createCaseOutcomesController = (
         req.body as CreateCaseTopicDefinitionDTO,
         req.user?.id
       );
-      sendData(res, mode, topic, 201);
+      sendData(res, topic, 201);
     } catch (error) {
       next(error);
     }
@@ -234,7 +226,7 @@ export const createCaseOutcomesController = (
       }
 
       const topicEvents = await useCase.listTopicEvents(req.params.id);
-      sendData(res, mode, mode === 'v2' ? topicEvents : { topic_events: topicEvents });
+      sendData(res, topicEvents);
     } catch (error) {
       next(error);
     }
@@ -255,7 +247,7 @@ export const createCaseOutcomesController = (
         req.body as CreateCaseTopicEventDTO,
         req.user?.id
       );
-      sendData(res, mode, topicEvent, 201);
+      sendData(res, topicEvent, 201);
     } catch (error) {
       next(error);
     }
@@ -273,16 +265,11 @@ export const createCaseOutcomesController = (
 
       const deleted = await useCase.deleteTopicEvent(req.params.topicEventId);
       if (!deleted) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Case topic event not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Case topic event not found', 404);
         return;
       }
 
-      if (mode === 'v2') {
-        res.status(204).send();
-        return;
-      }
-
-      sendData(res, mode, { success: true });
+      res.status(204).send();
     } catch (error) {
       next(error);
     }

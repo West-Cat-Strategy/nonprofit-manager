@@ -15,6 +15,7 @@ import {
   EmptyState,
   ErrorState,
   SideNav,
+  DataTable,
   TopNav,
 } from '../index';
 
@@ -135,6 +136,40 @@ describe('ui primitives', () => {
       'app-accent-contrast-ink'
     );
     expect(screen.getByRole('link', { name: 'Contacts' })).toHaveClass('text-app-text');
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('supports accessible naming for data tables via captions or aria labels', () => {
+    const columns = [
+      { key: 'name', label: 'Name' },
+      { key: 'email', label: 'Email' },
+    ];
+    const rows = [{ id: '1', name: 'Alice Rivera', email: 'avery-long-email-address@example.com' }];
+
+    const { rerender } = render(
+      <DataTable
+        rows={rows}
+        columns={columns}
+        rowKey={(row) => row.id}
+        caption="People directory"
+      />
+    );
+
+    expect(screen.getByRole('table', { name: /people directory/i })).toBeInTheDocument();
+    expect(screen.getByText(/avery-long-email-address@example.com/i)).toHaveClass(
+      '[overflow-wrap:anywhere]'
+    );
+
+    rerender(
+      <DataTable
+        rows={rows}
+        columns={columns}
+        rowKey={(row) => row.id}
+        ariaLabel="Compact people table"
+      />
+    );
+
+    expect(screen.getByRole('table', { name: /compact people table/i })).toBeInTheDocument();
   });
 
   it('renders top navigation with the opaque shell surface', () => {

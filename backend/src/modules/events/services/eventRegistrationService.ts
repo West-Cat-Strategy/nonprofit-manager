@@ -4,10 +4,12 @@ import {
   CheckInResult,
   CreateRegistrationDTO,
   EventCheckInSettings,
+  EventConfirmationEmailResult,
   EventRegistration,
   EventRegistrationMutationContext,
   EventWalkInCheckInDTO,
   EventWalkInCheckInResult,
+  RegistrationFilters,
   RotateEventCheckInPinResult,
   UpdateEventCheckInSettingsDTO,
   UpdateRegistrationDTO,
@@ -16,28 +18,32 @@ import type { DataScopeFilter } from '@app-types/dataScope';
 import { EventConfirmationService } from './eventConfirmationService';
 import { EventOccurrenceService } from './eventOccurrenceService';
 import { EventParticipantSupport } from './shared';
+import type { EventRegistrationServiceContext } from './eventRegistrationService.helpers';
 import {
-  EventRegistrationServiceContext,
-  getContactRegistrationsQuery,
-  getEventRegistrationsQuery,
-  getRegistrationByIdInternal,
-  getRegistrationByToken,
-  getRegistrationByTokenGlobal,
-} from './eventRegistrationService.helpers';
-import {
-  cancelRegistrationMutation,
   checkInAttendeeMutation,
-  getEventCheckInSettingsQuery,
-  rotateEventCheckInPinMutation,
-  updateEventCheckInSettingsMutation,
   walkInCheckInMutation,
 } from './eventRegistrationService.checkIn';
 import {
+  cancelRegistrationMutation,
   registerContactMutation,
+  sendRegistrationConfirmationEmailMutation,
   updateRegistrationMutation,
 } from './eventRegistrationService.registrationMutations';
+import {
+  getEventCheckInSettingsQuery,
+  rotateEventCheckInPinMutation,
+  updateEventCheckInSettingsMutation,
+} from './eventRegistrationService.checkInSettings';
+import {
+  getContactRegistrations,
+  getEventRegistrations,
+  getRegistrationById,
+  getRegistrationByTokenAcrossScope,
+  getRegistrationByTokenForEvent,
+} from './eventRegistrationService.query';
 
 export class EventRegistrationService {
+  private readonly context: EventRegistrationServiceContext;
   private readonly support: EventParticipantSupport;
   private readonly occurrences: EventOccurrenceService;
   private readonly confirmations: EventConfirmationService;
@@ -51,10 +57,7 @@ export class EventRegistrationService {
     this.support = support;
     this.occurrences = occurrences;
     this.confirmations = confirmations;
-  }
-
-  private getContext(): EventRegistrationServiceContext {
-    return {
+    this.context = {
       pool: this.pool,
       support: this.support,
       occurrences: this.occurrences,
@@ -64,42 +67,38 @@ export class EventRegistrationService {
 
   async getEventRegistrations(
     eventId: string,
-    filters: {
-      occurrence_id?: string;
-      registration_status?: EventRegistration['registration_status'];
-      checked_in?: boolean;
-    } = {}
+    filters: RegistrationFilters = {}
   ): Promise<EventRegistration[]> {
-    return getEventRegistrationsQuery(this.pool, eventId, filters);
+    return getEventRegistrations(this.context, eventId, filters);
   }
 
   async getContactRegistrations(
     contactId: string,
     scope?: DataScopeFilter
   ): Promise<EventRegistration[]> {
-    return getContactRegistrationsQuery(this.pool, contactId, scope?.createdByUserIds);
+    return getContactRegistrations(this.context, contactId, scope);
   }
 
   async getRegistrationById(registrationId: string): Promise<EventRegistration | null> {
-    return getRegistrationByIdInternal(registrationId, this.pool);
+    return getRegistrationById(this.context, registrationId);
   }
 
   async getRegistrationByToken(eventId: string, token: string): Promise<EventRegistration | null> {
-    return getRegistrationByToken(this.pool, eventId, token);
+    return getRegistrationByTokenForEvent(this.context, eventId, token);
   }
 
   async getRegistrationByTokenGlobal(
     token: string,
     scope?: DataScopeFilter
   ): Promise<EventRegistration | null> {
-    return getRegistrationByTokenGlobal(this.pool, token, scope?.createdByUserIds);
+    return getRegistrationByTokenAcrossScope(this.context, token, scope);
   }
 
   async registerContact(
     registrationData: CreateRegistrationDTO,
     context: EventRegistrationMutationContext = {}
   ): Promise<EventRegistration> {
-    return registerContactMutation(this.getContext(), registrationData, context);
+    return registerContactMutation(this.context, registrationData, context);
   }
 
   async updateRegistration(
@@ -107,25 +106,25 @@ export class EventRegistrationService {
     updateData: UpdateRegistrationDTO,
     context: EventRegistrationMutationContext = {}
   ): Promise<EventRegistration> {
-    return updateRegistrationMutation(this.getContext(), registrationId, updateData, context);
+    return updateRegistrationMutation(this.context, registrationId, updateData, context);
   }
 
   async checkInAttendee(
     registrationId: string,
     options: CheckInOptions = {}
   ): Promise<CheckInResult> {
-    return checkInAttendeeMutation(this.getContext(), registrationId, options);
+    return checkInAttendeeMutation(this.context, registrationId, options);
   }
 
   async cancelRegistration(registrationId: string): Promise<void> {
-    return cancelRegistrationMutation(this.getContext(), registrationId);
+    return cancelRegistrationMutation(this.context, registrationId);
   }
 
   async getEventCheckInSettings(
     eventId: string,
     occurrenceId?: string
   ): Promise<EventCheckInSettings | null> {
-    return getEventCheckInSettingsQuery(this.getContext(), eventId, occurrenceId);
+    return getEventCheckInSettingsQuery(this.context, eventId, occurrenceId);
   }
 
   async updateEventCheckInSettings(
@@ -133,7 +132,7 @@ export class EventRegistrationService {
     data: UpdateEventCheckInSettingsDTO,
     userId: string
   ): Promise<EventCheckInSettings | null> {
-    return updateEventCheckInSettingsMutation(this.getContext(), eventId, data, userId);
+    return updateEventCheckInSettingsMutation(this.context, eventId, data, userId);
   }
 
   async rotateEventCheckInPin(
@@ -141,7 +140,7 @@ export class EventRegistrationService {
     userId: string,
     occurrenceId?: string
   ): Promise<RotateEventCheckInPinResult> {
-    return rotateEventCheckInPinMutation(this.getContext(), eventId, userId, occurrenceId);
+    return rotateEventCheckInPinMutation(this.context, eventId, userId, occurrenceId);
   }
 
   async walkInCheckIn(
@@ -149,13 +148,13 @@ export class EventRegistrationService {
     data: EventWalkInCheckInDTO,
     checkedInBy: string
   ): Promise<EventWalkInCheckInResult> {
-    return walkInCheckInMutation(this.getContext(), eventId, data, checkedInBy);
+    return walkInCheckInMutation(this.context, eventId, data, checkedInBy);
   }
 
   async sendRegistrationConfirmationEmail(
     registrationId: string,
     sentBy: string | null
-  ) {
-    return this.confirmations.sendRegistrationConfirmationEmail(registrationId, sentBy);
+  ): Promise<EventConfirmationEmailResult> {
+    return sendRegistrationConfirmationEmailMutation(this.context, registrationId, sentBy);
   }
 }

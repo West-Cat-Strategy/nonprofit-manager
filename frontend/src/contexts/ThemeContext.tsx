@@ -17,9 +17,34 @@ export interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const availableThemes = [...THEME_IDS];
+const THEME_LINK_ID = 'app-theme-stylesheet';
+const THEME_LINK_MARKER = 'data-managed-theme-link';
+const themeBodyClasses = THEME_IDS.map((themeId) => `theme-${themeId}`);
+
+function getMediaQueryMatches(query: string): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia(query).matches
+    : false;
+}
 
 function getSystemDarkMode(): boolean {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return getMediaQueryMatches('(prefers-color-scheme: dark)');
+}
+
+function getReducedMotionPreference(): boolean {
+  return getMediaQueryMatches('(prefers-reduced-motion: reduce)');
+}
+
+function getManagedThemeLink(): HTMLLinkElement | null {
+  const managedLinks = Array.from(
+    document.head.querySelectorAll<HTMLLinkElement>(
+      `#${THEME_LINK_ID}, link[${THEME_LINK_MARKER}="true"]`
+    )
+  );
+  const primaryLink = managedLinks.shift() ?? null;
+
+  managedLinks.forEach((link) => link.remove());
+  return primaryLink;
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -40,6 +65,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [systemDark, setSystemDark] = useState(getSystemDarkMode);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(getReducedMotionPreference);
 
   const isDarkMode = colorScheme === 'system' ? systemDark : colorScheme === 'dark';
 
@@ -66,53 +92,67 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const root = document.body;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
+    setPrefersReducedMotion(mq.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
-    // Transition effect
-    root.classList.add('theme-transitioning');
-    const transitionTimeout = setTimeout(() => {
-      root.classList.remove('theme-transitioning');
-    }, 400);
-
-    // Remove all theme classes first
-    for (const registeredThemeId of THEME_IDS) {
-      root.classList.remove(`theme-${registeredThemeId}`);
-    }
-
-    // Handle Dark Mode class
-    if (isDarkMode) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-
-    // Dynamic CSS Injection
+  useEffect(() => {
+    const body = document.body;
+    const html = document.documentElement;
     const themeDef = THEME_REGISTRY[theme];
-    const linkId = 'dynamic-theme-style';
-    let linkElement = document.getElementById(linkId) as HTMLLinkElement | null;
+    const shouldAnimateThemeChange = !prefersReducedMotion;
+
+    body.classList.remove('theme-transitioning');
+    let transitionTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    if (shouldAnimateThemeChange) {
+      body.classList.add('theme-transitioning');
+      transitionTimeout = setTimeout(() => {
+        body.classList.remove('theme-transitioning');
+      }, 400);
+    }
+
+    themeBodyClasses.forEach((className) => {
+      body.classList.remove(className);
+      html.classList.remove(className);
+    });
+
+    body.classList.toggle('dark', isDarkMode);
+    html.style.colorScheme = isDarkMode ? 'dark' : 'light';
+
+    let linkElement = getManagedThemeLink();
 
     if (themeDef.cssPath) {
       if (!linkElement) {
         linkElement = document.createElement('link');
-        linkElement.id = linkId;
         linkElement.rel = 'stylesheet';
         document.head.appendChild(linkElement);
       }
-      linkElement.href = themeDef.cssPath;
 
-      // Add theme class for styling overrides
+      linkElement.id = THEME_LINK_ID;
+      linkElement.setAttribute(THEME_LINK_MARKER, 'true');
+
+      if (linkElement.getAttribute('href') !== themeDef.cssPath) {
+        linkElement.href = themeDef.cssPath;
+      }
+
       if (themeDef.bodyClass) {
-        root.classList.add(themeDef.bodyClass);
+        body.classList.add(themeDef.bodyClass);
       }
-    } else {
-      // Remove link if theme has no specific CSS (e.g. neobrutalist default)
-      if (linkElement) {
-        linkElement.remove();
-      }
+    } else if (linkElement) {
+      linkElement.remove();
     }
 
-    return () => clearTimeout(transitionTimeout);
-  }, [theme, isDarkMode]);
+    return () => {
+      if (transitionTimeout) {
+        clearTimeout(transitionTimeout);
+      }
+      body.classList.remove('theme-transitioning');
+    };
+  }, [theme, isDarkMode, prefersReducedMotion]);
 
   return (
     <ThemeContext.Provider

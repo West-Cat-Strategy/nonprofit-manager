@@ -1,14 +1,21 @@
-import { useEffect, useMemo } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import { QuickActionsWidget, QuickLookupWidget } from '../../../components/dashboard';
-import { preloadContactsPeopleRoute } from '../../contacts/routePreload';
-import { preloadNavigationQuickLookupDialog } from '../../../components/navigation/preloadNavigationQuickLookupDialog';
 import { useDashboardSettings } from '../../../hooks/useDashboardSettings';
 import { useNavigationPreferences, type NavigationItem } from '../../../hooks/useNavigationPreferences';
 import { getRouteCatalogEntryById } from '../../../routes/routeCatalog';
 import { getRouteMeta } from '../../../routes/routeMeta';
-import { DashboardDataProvider, useDashboardData } from '../context/DashboardDataContext';
+import {
+  DashboardDataProvider,
+  WORKBENCH_DASHBOARD_LANES,
+  useDashboardAnalyticsSummary,
+  useDashboardAssignedCases,
+  useDashboardCaseSummary,
+  useDashboardFollowUpSummary,
+  useDashboardTaskSummary,
+  useDashboardUpcomingFollowUps,
+} from '../context/DashboardDataContext';
 import DashboardViewSettingsPanel from '../components/DashboardViewSettingsPanel';
 import type { FollowUpWithEntity } from '../../followUps/types/contracts';
 import type { CaseWithDetails } from '../../../types/case';
@@ -130,6 +137,20 @@ function FocusCard({ label, value, detail, href, cta }: FocusCardProps) {
   );
 }
 
+const formatWorkbenchCurrency = (value: number) =>
+  new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: 'CAD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const formatWorkbenchNumber = (value: number) =>
+  new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value);
+
+const formatWorkbenchDate = (value: string) =>
+  new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
+
 function formatDueLabel(caseItem: CaseWithDetails) {
   if (!caseItem.due_date) return 'No due date';
   const dueDate = new Date(caseItem.due_date);
@@ -140,7 +161,7 @@ function formatDueLabel(caseItem: CaseWithDetails) {
   if (diffDays === 0) return 'Due today';
   if (diffDays === 1) return 'Due tomorrow';
   if (diffDays <= 7) return `Due in ${diffDays} days`;
-  return `Due ${dueDate.toLocaleDateString()}`;
+  return `Due ${formatWorkbenchDate(caseItem.due_date)}`;
 }
 
 function getFollowUpEntityLabel(followUp: FollowUpWithEntity) {
@@ -151,16 +172,18 @@ function getFollowUpEntityLabel(followUp: FollowUpWithEntity) {
 }
 
 function FocusQueuePanel() {
-  const dashboardData = useDashboardData();
+  const caseSummaryLane = useDashboardCaseSummary();
+  const followUpSummaryLane = useDashboardFollowUpSummary();
+  const taskSummaryLane = useDashboardTaskSummary();
 
-  const urgentCasesCount = dashboardData?.caseSummary?.by_priority.urgent ?? 0;
-  const overdueCasesCount = dashboardData?.caseSummary?.overdue_cases ?? 0;
-  const casesDueThisWeekCount = dashboardData?.caseSummary?.cases_due_this_week ?? 0;
-  const followUpsDueToday = dashboardData?.followUpSummary?.due_today ?? 0;
-  const followUpsDueThisWeek = dashboardData?.followUpSummary?.due_this_week ?? 0;
-  const overdueTasks = dashboardData?.taskSummary?.overdue ?? 0;
-  const tasksDueToday = dashboardData?.taskSummary?.due_today ?? 0;
-  const tasksDueThisWeek = dashboardData?.taskSummary?.due_this_week ?? 0;
+  const urgentCasesCount = caseSummaryLane?.caseSummary?.by_priority.urgent ?? 0;
+  const overdueCasesCount = caseSummaryLane?.caseSummary?.overdue_cases ?? 0;
+  const casesDueThisWeekCount = caseSummaryLane?.caseSummary?.cases_due_this_week ?? 0;
+  const followUpsDueToday = followUpSummaryLane?.followUpSummary?.due_today ?? 0;
+  const followUpsDueThisWeek = followUpSummaryLane?.followUpSummary?.due_this_week ?? 0;
+  const overdueTasks = taskSummaryLane?.taskSummary?.overdue ?? 0;
+  const tasksDueToday = taskSummaryLane?.taskSummary?.due_today ?? 0;
+  const tasksDueThisWeek = taskSummaryLane?.taskSummary?.due_this_week ?? 0;
 
   return (
     <section className="rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm">
@@ -207,10 +230,11 @@ function FocusQueuePanel() {
 }
 
 function MyWorkPanel() {
-  const dashboardData = useDashboardData();
-  const cases = dashboardData?.assignedCases ?? [];
-  const totalCases = dashboardData?.assignedCasesTotal ?? cases.length;
-  const upcomingFollowUps = dashboardData?.upcomingFollowUps ?? [];
+  const assignedCasesLane = useDashboardAssignedCases();
+  const upcomingFollowUpsLane = useDashboardUpcomingFollowUps();
+  const cases = assignedCasesLane?.assignedCases ?? [];
+  const totalCases = assignedCasesLane?.assignedCasesTotal ?? cases.length;
+  const upcomingFollowUps = upcomingFollowUpsLane?.upcomingFollowUps ?? [];
 
   return (
     <section className="rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm">
@@ -283,7 +307,7 @@ function MyWorkPanel() {
                     {getFollowUpEntityLabel(followUp)}
                   </p>
                   <p className="mt-2 text-sm text-app-text-muted">
-                    {new Date(followUp.scheduled_date).toLocaleDateString()}
+                    {formatWorkbenchDate(followUp.scheduled_date)}
                     {followUp.scheduled_time ? ` · ${followUp.scheduled_time}` : ''}
                   </p>
                 </Link>
@@ -299,8 +323,8 @@ function MyWorkPanel() {
 }
 
 function InsightStrip() {
-  const dashboardData = useDashboardData();
-  const analyticsSummary = dashboardData?.analyticsSummary;
+  const analyticsSummaryLane = useDashboardAnalyticsSummary();
+  const analyticsSummary = analyticsSummaryLane?.analyticsSummary;
 
   if (!analyticsSummary) {
     return (
@@ -336,31 +360,22 @@ function InsightStrip() {
       <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SummaryMetric
           label="Donations YTD"
-          value={new Intl.NumberFormat('en-CA', {
-            style: 'currency',
-            currency: 'CAD',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          }).format(analyticsSummary.total_donations_ytd)}
+          value={formatWorkbenchCurrency(analyticsSummary.total_donations_ytd)}
           description={`${analyticsSummary.donation_count_ytd} gifts recorded this year.`}
         />
         <SummaryMetric
           label="Volunteer Hours"
-          value={new Intl.NumberFormat('en-CA', { maximumFractionDigits: 0 }).format(
-            analyticsSummary.total_volunteer_hours_ytd
-          )}
+          value={formatWorkbenchNumber(analyticsSummary.total_volunteer_hours_ytd)}
           description={`${analyticsSummary.total_volunteers} volunteers are currently rostered.`}
         />
         <SummaryMetric
           label="Events"
-          value={new Intl.NumberFormat('en-CA', { maximumFractionDigits: 0 }).format(
-            analyticsSummary.total_events_ytd
-          )}
+          value={formatWorkbenchNumber(analyticsSummary.total_events_ytd)}
           description="Events logged so far this year."
         />
         <SummaryMetric
           label="Engagement"
-          value={new Intl.NumberFormat('en-CA', { maximumFractionDigits: 0 }).format(engagedConstituents)}
+          value={formatWorkbenchNumber(engagedConstituents)}
           description="Constituents with high or medium engagement."
         />
       </div>
@@ -368,14 +383,70 @@ function InsightStrip() {
   );
 }
 
+function WorkspaceSummaryPanel({
+  pinnedWorkstreamsCount,
+  activeSectionCount,
+}: {
+  pinnedWorkstreamsCount: number;
+  activeSectionCount: number;
+}) {
+  const caseSummaryLane = useDashboardCaseSummary();
+  const taskSummaryLane = useDashboardTaskSummary();
+  const assignedCasesLane = useDashboardAssignedCases();
+
+  const urgentCasesCount = caseSummaryLane?.caseSummary?.by_priority.urgent ?? 0;
+  const tasksDueTodayCount = taskSummaryLane?.taskSummary?.due_today ?? 0;
+  const assignedCasesCount = assignedCasesLane?.assignedCasesTotal ?? 0;
+
+  return (
+    <section className="mt-6 rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-app-text-heading">Workspace Summary</h2>
+          <p className="mt-1 text-sm text-app-text-muted">
+            A fast pulse on the shortcuts you rely on and the workload already waiting behind them.
+          </p>
+        </div>
+        <Link
+          to="/settings/navigation"
+          className="inline-flex items-center rounded-full border border-app-border bg-app-surface px-3 py-1.5 text-sm font-medium text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+        >
+          Tune shortcuts
+        </Link>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryMetric
+          label="Pinned"
+          value={String(pinnedWorkstreamsCount)}
+          description="Shortcut slots currently in use."
+        />
+        <SummaryMetric
+          label="Urgent Cases"
+          value={String(urgentCasesCount)}
+          description="Case work flagged as urgent or critical."
+        />
+        <SummaryMetric
+          label="Tasks Today"
+          value={String(tasksDueTodayCount)}
+          description="Tasks currently due today."
+        />
+        <SummaryMetric
+          label="Assigned"
+          value={String(assignedCasesCount)}
+          description={`${activeSectionCount} sections are enabled across your workspace.`}
+        />
+      </div>
+    </section>
+  );
+}
+
 function WorkbenchDashboardContent() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const dashboardMeta = getRouteMeta('/dashboard');
   const primaryAction = dashboardMeta.primaryAction;
   const { settings, setSettings, resetSettings } = useDashboardSettings();
   const { pinnedItems, enabledItems } = useNavigationPreferences();
-  const dashboardData = useDashboardData();
 
   const settingsOpen = searchParams.get('panel') === 'settings';
 
@@ -409,45 +480,6 @@ function WorkbenchDashboardContent() {
     [enabledItems]
   );
 
-  const urgentCasesCount = dashboardData?.caseSummary?.by_priority.urgent ?? 0;
-  const tasksDueTodayCount = dashboardData?.taskSummary?.due_today ?? 0;
-  const assignedCasesCount = dashboardData?.assignedCasesTotal ?? 0;
-
-  useEffect(() => {
-    let timeoutId: number | null = null;
-    let idleHandle: number | null = null;
-    const idleWindow = window as Window & {
-      requestIdleCallback?: (
-        callback: () => void,
-        options?: {
-          timeout?: number;
-        }
-      ) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-
-    const prefetchStartupAdjacencies = () => {
-      void preloadContactsPeopleRoute();
-      void preloadNavigationQuickLookupDialog();
-    };
-
-    if (typeof window !== 'undefined' && typeof idleWindow.requestIdleCallback === 'function') {
-      idleHandle = idleWindow.requestIdleCallback(prefetchStartupAdjacencies, { timeout: 1200 });
-    } else {
-      timeoutId = window.setTimeout(prefetchStartupAdjacencies, 400);
-    }
-
-    return () => {
-      if (idleHandle !== null && typeof idleWindow.cancelIdleCallback === 'function') {
-        idleWindow.cancelIdleCallback(idleHandle);
-      }
-
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, []);
-
   const toggleSettingsPanel = () => {
     const nextSearchParams = new URLSearchParams(searchParams);
     if (settingsOpen) {
@@ -477,13 +509,12 @@ function WorkbenchDashboardContent() {
 
             <div className="flex flex-wrap gap-3">
               {primaryAction ? (
-                <button
-                  type="button"
-                  onClick={() => navigate(primaryAction.path)}
+                <Link
+                  to={primaryAction.path}
                   className="inline-flex items-center justify-center rounded-xl border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
                 >
                   {primaryAction.label}
-                </button>
+                </Link>
               ) : null}
               <Link
                 to="/settings/navigation"
@@ -527,45 +558,10 @@ function WorkbenchDashboardContent() {
         ) : null}
 
         {settings.showWorkspaceSummary ? (
-          <section className="mt-6 rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-app-text-heading">Workspace Summary</h2>
-                <p className="mt-1 text-sm text-app-text-muted">
-                  A fast pulse on the shortcuts you rely on and the workload already waiting behind them.
-                </p>
-              </div>
-              <Link
-                to="/settings/navigation"
-                className="inline-flex items-center rounded-full border border-app-border bg-app-surface px-3 py-1.5 text-sm font-medium text-app-text transition hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
-              >
-                Tune shortcuts
-              </Link>
-            </div>
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <SummaryMetric
-                label="Pinned"
-                value={String(pinnedWorkstreams.length)}
-                description="Shortcut slots currently in use."
-              />
-              <SummaryMetric
-                label="Urgent Cases"
-                value={String(urgentCasesCount)}
-                description="Case work flagged as urgent or critical."
-              />
-              <SummaryMetric
-                label="Tasks Today"
-                value={String(tasksDueTodayCount)}
-                description="Tasks currently due today."
-              />
-              <SummaryMetric
-                label="Assigned"
-                value={String(assignedCasesCount)}
-                description={`${activeSectionCount} sections are enabled across your workspace.`}
-              />
-            </div>
-          </section>
+          <WorkspaceSummaryPanel
+            pinnedWorkstreamsCount={pinnedWorkstreams.length}
+            activeSectionCount={activeSectionCount}
+          />
         ) : null}
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
@@ -615,7 +611,7 @@ function WorkbenchDashboardContent() {
 
 export default function WorkbenchDashboardPage() {
   return (
-    <DashboardDataProvider>
+    <DashboardDataProvider lanes={WORKBENCH_DASHBOARD_LANES}>
       <WorkbenchDashboardContent />
     </DashboardDataProvider>
   );

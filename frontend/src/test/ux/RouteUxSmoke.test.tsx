@@ -73,6 +73,7 @@ const smokeCases: SmokeCase[] = [
     page: <NeoBrutalistDashboard />,
     heading: /workbench overview/i,
     primaryActionPattern: /create intake/i,
+    primaryActionRole: 'link',
   },
   {
     name: 'accounts',
@@ -131,6 +132,7 @@ const smokeCases: SmokeCase[] = [
     page: <TaskList />,
     heading: 'Tasks',
     primaryActionPattern: /new task/i,
+    primaryActionRole: 'link',
   },
   {
     name: 'donations',
@@ -138,6 +140,7 @@ const smokeCases: SmokeCase[] = [
     page: <DonationList />,
     heading: 'Donations',
     primaryActionPattern: /record donation/i,
+    primaryActionRole: 'link',
   },
   {
     name: 'follow-ups',

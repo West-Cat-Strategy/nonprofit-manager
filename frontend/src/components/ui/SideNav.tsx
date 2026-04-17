@@ -49,6 +49,7 @@ export default function SideNav({
 
   return (
     <aside
+      data-shell-transition
       className={classNames(
         'rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface-elevated p-3 shadow-sm',
         className
@@ -77,15 +78,18 @@ export default function SideNav({
               <Link
                 to={item.to}
                 onClick={onNavigate}
+                aria-current={item.isActive ? 'page' : undefined}
                 className={classNames(
-                  'flex items-center gap-2 rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold transition-colors',
+                  'flex min-w-0 items-start gap-2 rounded-[var(--ui-radius-sm)] border px-3 py-2 text-sm font-semibold transition-colors',
                   item.isActive
                     ? 'app-accent-contrast-ink border-app-accent bg-app-accent shadow-sm'
                     : 'border-transparent text-app-text hover:border-app-border hover:bg-app-surface-muted hover:text-app-text-heading'
                 )}
               >
-                {item.icon && <span>{item.icon}</span>}
-                <span>{item.label}</span>
+                {item.icon && <span className="shrink-0">{item.icon}</span>}
+                <span className="min-w-0 break-words leading-5 [overflow-wrap:anywhere]">
+                  {item.label}
+                </span>
               </Link>
             </li>
           ))}

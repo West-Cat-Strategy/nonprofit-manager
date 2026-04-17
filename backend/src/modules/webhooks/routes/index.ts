@@ -225,8 +225,6 @@ router.get(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createWebhooksRoutes = () => router;
 
-export const createWebhooksRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const webhooksV2Routes = createWebhooksRoutes('v2');
+export const webhooksV2Routes = createWebhooksRoutes();

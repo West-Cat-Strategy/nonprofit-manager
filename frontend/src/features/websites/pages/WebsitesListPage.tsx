@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import WebsiteConsoleStatePanel from '../components/WebsiteConsoleStatePanel';
 import {
@@ -12,6 +12,17 @@ import {
   deriveWebsiteSiteManagementSummary,
   formatWebsiteConsoleDate,
 } from '../lib/websiteConsole';
+import { parseAllowedValue, parsePositiveInteger } from '../../../utils/persistedFilters';
+
+const WEBSITE_STATUS_VALUES = ['draft', 'published', 'maintenance', 'suspended'] as const;
+const WEBSITE_SORT_BY_VALUES = ['name', 'createdAt', 'publishedAt', 'status'] as const;
+const WEBSITE_SORT_ORDER_VALUES = ['asc', 'desc'] as const;
+const DEFAULT_WEBSITE_LIST_PARAMS = {
+  page: 1,
+  limit: 20,
+  sortBy: 'createdAt' as const,
+  sortOrder: 'desc' as const,
+};
 
 const getWebsiteActionToneClasses = (tone?: string) =>
   tone === 'primary'
@@ -20,15 +31,81 @@ const getWebsiteActionToneClasses = (tone?: string) =>
       ? 'app-pill-action app-pill-action-warning'
       : 'app-pill-action';
 
+const buildWebsiteListSearchParams = (params: {
+  search?: string;
+  status?: (typeof WEBSITE_STATUS_VALUES)[number];
+  page: number;
+  limit: number;
+  sortBy: (typeof WEBSITE_SORT_BY_VALUES)[number];
+  sortOrder: (typeof WEBSITE_SORT_ORDER_VALUES)[number];
+}) => {
+  const nextSearchParams = new URLSearchParams();
+  if (params.search) {
+    nextSearchParams.set('search', params.search);
+  }
+  if (params.status) {
+    nextSearchParams.set('status', params.status);
+  }
+  if (params.page > DEFAULT_WEBSITE_LIST_PARAMS.page) {
+    nextSearchParams.set('page', String(params.page));
+  }
+  if (params.limit !== DEFAULT_WEBSITE_LIST_PARAMS.limit) {
+    nextSearchParams.set('limit', String(params.limit));
+  }
+  if (params.sortBy !== DEFAULT_WEBSITE_LIST_PARAMS.sortBy) {
+    nextSearchParams.set('sortBy', params.sortBy);
+  }
+  if (params.sortOrder !== DEFAULT_WEBSITE_LIST_PARAMS.sortOrder) {
+    nextSearchParams.set('sortOrder', params.sortOrder);
+  }
+  return nextSearchParams;
+};
+
 const WebsitesListPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { sites, searchParams, pagination, isLoading, error } = useAppSelector(
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const { sites, pagination, isLoading, error, searchParams: mirroredSearchParams } = useAppSelector(
     (state) => state.websites
   );
+  const resolvedSearchParams = useMemo(
+    () => ({
+      search: searchParams.get('search')?.trim() || undefined,
+      status: parseAllowedValue(searchParams.get('status'), WEBSITE_STATUS_VALUES),
+      page: parsePositiveInteger(searchParams.get('page'), DEFAULT_WEBSITE_LIST_PARAMS.page),
+      limit: parsePositiveInteger(searchParams.get('limit'), DEFAULT_WEBSITE_LIST_PARAMS.limit),
+      sortBy:
+        parseAllowedValue(searchParams.get('sortBy'), WEBSITE_SORT_BY_VALUES) ||
+        DEFAULT_WEBSITE_LIST_PARAMS.sortBy,
+      sortOrder:
+        parseAllowedValue(searchParams.get('sortOrder'), WEBSITE_SORT_ORDER_VALUES) ||
+        DEFAULT_WEBSITE_LIST_PARAMS.sortOrder,
+    }),
+    [searchParamsString]
+  );
+  const resolvedSearchParamsKey = JSON.stringify(resolvedSearchParams);
+  const mirroredSearchParamsKey = JSON.stringify(mirroredSearchParams);
 
   useEffect(() => {
-    void dispatch(fetchWebsiteSites());
-  }, [dispatch, searchParams]);
+    const normalizedSearchParams = buildWebsiteListSearchParams(resolvedSearchParams);
+    if (searchParamsString !== normalizedSearchParams.toString()) {
+      setSearchParams(normalizedSearchParams, { replace: true });
+      return;
+    }
+
+    if (mirroredSearchParamsKey !== resolvedSearchParamsKey) {
+      dispatch(setWebsiteSearchParams(resolvedSearchParams));
+      return;
+    }
+    void dispatch(fetchWebsiteSites(resolvedSearchParams));
+  }, [
+    dispatch,
+    mirroredSearchParamsKey,
+    resolvedSearchParams,
+    resolvedSearchParamsKey,
+    searchParamsString,
+    setSearchParams,
+  ]);
 
   const sitesWithManagement = useMemo(
     () =>
@@ -44,30 +121,38 @@ const WebsitesListPage: React.FC = () => {
   const rangeStart = pagination.total === 0 ? 0 : (currentPage - 1) * pagination.limit + 1;
   const rangeEnd = pagination.total === 0 ? 0 : Math.min(currentPage * pagination.limit, pagination.total);
   const hasFilterReset = Boolean(
-    searchParams.search ||
-      searchParams.status ||
-      searchParams.sortBy !== 'createdAt' ||
-      searchParams.sortOrder !== 'desc'
+    resolvedSearchParams.search ||
+      resolvedSearchParams.status ||
+      resolvedSearchParams.sortBy !== DEFAULT_WEBSITE_LIST_PARAMS.sortBy ||
+      resolvedSearchParams.sortOrder !== DEFAULT_WEBSITE_LIST_PARAMS.sortOrder
   );
 
   const handleRefresh = () => {
-    void dispatch(fetchWebsiteSites(searchParams));
+    void dispatch(fetchWebsiteSites(resolvedSearchParams));
   };
 
-  const handleResetFilters = () => {
-    dispatch(
-      setWebsiteSearchParams({
-        search: undefined,
-        status: undefined,
-        page: 1,
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-      })
+  const updateSearchParams = (patch: Partial<typeof resolvedSearchParams>) => {
+    setSearchParams(
+      buildWebsiteListSearchParams({
+        ...resolvedSearchParams,
+        ...patch,
+      }),
+      { replace: true }
     );
   };
 
+  const handleResetFilters = () => {
+    updateSearchParams({
+      search: undefined,
+      status: undefined,
+      page: 1,
+      sortBy: DEFAULT_WEBSITE_LIST_PARAMS.sortBy,
+      sortOrder: DEFAULT_WEBSITE_LIST_PARAMS.sortOrder,
+    });
+  };
+
   const handlePageChange = (page: number) => {
-    dispatch(setWebsiteSearchParams({ page }));
+    updateSearchParams({ page });
   };
 
   const dashboardSummary = useMemo(() => {
@@ -192,25 +277,21 @@ const WebsitesListPage: React.FC = () => {
             <input
               type="text"
               aria-label="Search websites"
-              value={searchParams.search || ''}
-              onChange={(event) =>
-                dispatch(setWebsiteSearchParams({ search: event.target.value, page: 1 }))
-              }
+              value={resolvedSearchParams.search || ''}
+              onChange={(event) => updateSearchParams({ search: event.target.value, page: 1 })}
               placeholder="Search websites, domains, or templates"
               className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
             />
             <select
               aria-label="Filter websites by status"
-              value={searchParams.status || ''}
+              value={resolvedSearchParams.status || ''}
               onChange={(event) =>
-                dispatch(
-                  setWebsiteSearchParams({
-                    status: event.target.value
-                      ? (event.target.value as typeof searchParams.status)
-                      : undefined,
-                    page: 1,
-                  })
-                )
+                updateSearchParams({
+                  status: event.target.value
+                    ? (event.target.value as (typeof WEBSITE_STATUS_VALUES)[number])
+                    : undefined,
+                  page: 1,
+                })
               }
               className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
             >
@@ -222,14 +303,12 @@ const WebsitesListPage: React.FC = () => {
             </select>
             <select
               aria-label="Sort websites by"
-              value={searchParams.sortBy || 'createdAt'}
+              value={resolvedSearchParams.sortBy}
               onChange={(event) =>
-                dispatch(
-                  setWebsiteSearchParams({
-                    sortBy: event.target.value as typeof searchParams.sortBy,
-                    page: 1,
-                  })
-                )
+                updateSearchParams({
+                  sortBy: event.target.value as (typeof WEBSITE_SORT_BY_VALUES)[number],
+                  page: 1,
+                })
               }
               className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
             >
@@ -240,14 +319,12 @@ const WebsitesListPage: React.FC = () => {
             </select>
             <select
               aria-label="Sort order"
-              value={searchParams.sortOrder || 'desc'}
+              value={resolvedSearchParams.sortOrder}
               onChange={(event) =>
-                dispatch(
-                  setWebsiteSearchParams({
-                    sortOrder: event.target.value as typeof searchParams.sortOrder,
-                    page: 1,
-                  })
-                )
+                updateSearchParams({
+                  sortOrder: event.target.value as (typeof WEBSITE_SORT_ORDER_VALUES)[number],
+                  page: 1,
+                })
               }
               className="rounded-2xl border border-app-input-border bg-app-surface px-4 py-3 text-sm"
             >

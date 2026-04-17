@@ -273,6 +273,47 @@ export async function sendPasswordResetEmail(
   });
 }
 
+export async function sendPortalPasswordResetEmail(
+  to: string,
+  resetToken: string,
+  firstName: string
+): Promise<boolean> {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const resetUrl = `${frontendUrl}/portal/reset-password/${resetToken}`;
+
+  return sendMail({
+    to,
+    subject: 'Reset Your Client Portal Password — Nonprofit Manager',
+    text: [
+      `Hi ${firstName},`,
+      '',
+      'We received a request to reset your client portal password. Click the link below to choose a new password:',
+      '',
+      resetUrl,
+      '',
+      'This link will expire in 1 hour.',
+      '',
+      'If you did not request a password reset, you can safely ignore this email.',
+      '',
+      '— Nonprofit Manager',
+    ].join('\n'),
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
+        <h2 style="color:#0f172a">Reset Your Client Portal Password</h2>
+        <p>Hi ${firstName},</p>
+        <p>We received a request to reset your client portal password. Click the button below to choose a new password:</p>
+        <p style="text-align:center;margin:32px 0">
+          <a href="${resetUrl}"
+             style="display:inline-block;padding:12px 32px;background:#0f172a;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">
+            Reset Password
+          </a>
+        </p>
+        <p style="font-size:13px;color:#64748b">This link will expire in 1 hour. If you did not request a password reset, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+}
+
 /**
  * Send an invitation email containing a tokenised link.
  */

@@ -13,7 +13,7 @@ import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport'
 import { parseMultipartJsonField } from '@modules/shared/import/peopleImportParser';
 import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
 import { ContactImportExportUseCase } from '../usecases/contactImportExport.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 import { parseContactListFilters, parseContactPagination } from '../shared/contactQuery';
 
 const hiddenRoleNames = new Set(['Executive Director', 'Committee Member']);
@@ -38,8 +38,7 @@ const normalizeRoles = (roles: ContactRole[]): ContactRole[] =>
 
 export const createContactDirectoryController = (
   useCase: ContactDirectoryUseCase,
-  importExportUseCase: ContactImportExportUseCase,
-  mode: ResponseMode
+  importExportUseCase: ContactImportExportUseCase
 ) => {
   const getContacts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -48,7 +47,7 @@ export const createContactDirectoryController = (
       const pagination: PaginationParams = parseContactPagination(query);
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const result = await useCase.list(filters, pagination, scope, req.user?.role);
-      sendData(res, mode, result);
+      sendData(res, result);
     } catch (error) {
       next(error);
     }
@@ -70,7 +69,7 @@ export const createContactDirectoryController = (
         },
         scope
       );
-      sendData(res, mode, { items });
+      sendData(res, { items });
     } catch (error) {
       next(error);
     }
@@ -80,7 +79,7 @@ export const createContactDirectoryController = (
     try {
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const tags = await useCase.listTags(scope);
-      sendData(res, mode, mode === 'v2' ? tags : { tags });
+      sendData(res, tags);
     } catch (error) {
       next(error);
     }
@@ -89,7 +88,7 @@ export const createContactDirectoryController = (
   const getContactRoles = async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const roles = normalizeRoles(await useCase.listRoles());
-      sendData(res, mode, mode === 'v2' ? roles : { roles });
+      sendData(res, roles);
     } catch (error) {
       next(error);
     }
@@ -99,7 +98,7 @@ export const createContactDirectoryController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
@@ -108,7 +107,7 @@ export const createContactDirectoryController = (
         : [];
 
       if (contactIds.length === 0) {
-        sendFailure(res, mode, 'VALIDATION_ERROR', 'contactIds is required', 400);
+        sendFailure(res, 'VALIDATION_ERROR', 'contactIds is required', 400);
         return;
       }
 
@@ -122,7 +121,7 @@ export const createContactDirectoryController = (
       const is_active = typeof req.body.is_active === 'boolean' ? req.body.is_active : undefined;
 
       const updated = await useCase.bulkUpdate(contactIds, { is_active, tags }, userId);
-      sendData(res, mode, { updated, contact_ids: contactIds });
+      sendData(res, { updated, contact_ids: contactIds });
     } catch (error) {
       next(error);
     }
@@ -134,11 +133,11 @@ export const createContactDirectoryController = (
       const contact = await useCase.getById(req.params.id, scope, req.user?.role);
 
       if (!contact) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Contact not found', 404);
         return;
       }
 
-      sendData(res, mode, contact);
+      sendData(res, contact);
     } catch (error) {
       next(error);
     }
@@ -148,12 +147,12 @@ export const createContactDirectoryController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
       const contact = await useCase.create(req.body as CreateContactDTO, userId, req.user?.role);
-      sendData(res, mode, contact, 201);
+      sendData(res, contact, 201);
     } catch (error) {
       next(error);
     }
@@ -163,7 +162,7 @@ export const createContactDirectoryController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
@@ -177,11 +176,11 @@ export const createContactDirectoryController = (
       );
 
       if (!contact) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Contact not found', 404);
         return;
       }
 
-      sendData(res, mode, contact);
+      sendData(res, contact);
     } catch (error) {
       next(error);
     }
@@ -191,7 +190,7 @@ export const createContactDirectoryController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
@@ -199,7 +198,7 @@ export const createContactDirectoryController = (
       const deleted = await useCase.delete(req.params.id, userId, scope);
 
       if (!deleted) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Contact not found', 404);
         return;
       }
 
@@ -216,11 +215,11 @@ export const createContactDirectoryController = (
       const preview = await useCase.getMergePreview(req.params.id, query.target_contact_id, scope, req.user?.role);
 
       if (!preview) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Contact not found', 404);
         return;
       }
 
-      sendData(res, mode, preview);
+      sendData(res, preview);
     } catch (error) {
       next(error);
     }
@@ -230,7 +229,7 @@ export const createContactDirectoryController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
@@ -239,11 +238,11 @@ export const createContactDirectoryController = (
       const merged = await useCase.merge(req.params.id, payload, userId, scope, req.user?.role);
 
       if (!merged) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Contact not found', 404);
         return;
       }
 
-      sendData(res, mode, merged);
+      sendData(res, merged);
     } catch (error) {
       next(error);
     }
@@ -253,7 +252,7 @@ export const createContactDirectoryController = (
     try {
       const organizationId = req.organizationId;
       if (!organizationId) {
-        sendFailure(res, mode, 'BAD_REQUEST', 'Organization context required', 400);
+        sendFailure(res, 'BAD_REQUEST', 'Organization context required', 400);
         return;
       }
 
@@ -281,19 +280,19 @@ export const createContactDirectoryController = (
     try {
       const organizationId = req.organizationId;
       if (!organizationId) {
-        sendFailure(res, mode, 'BAD_REQUEST', 'Organization context required', 400);
+        sendFailure(res, 'BAD_REQUEST', 'Organization context required', 400);
         return;
       }
 
       if (!req.file) {
-        sendFailure(res, mode, 'VALIDATION_ERROR', 'Import file is required', 400);
+        sendFailure(res, 'VALIDATION_ERROR', 'Import file is required', 400);
         return;
       }
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
       const preview = await importExportUseCase.previewImport(req.file, mapping, organizationId, scope);
-      sendData(res, mode, preview);
+      sendData(res, preview);
     } catch (error) {
       next(error);
     }
@@ -305,17 +304,17 @@ export const createContactDirectoryController = (
       const userId = req.user?.id;
 
       if (!organizationId) {
-        sendFailure(res, mode, 'BAD_REQUEST', 'Organization context required', 400);
+        sendFailure(res, 'BAD_REQUEST', 'Organization context required', 400);
         return;
       }
 
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
       if (!req.file) {
-        sendFailure(res, mode, 'VALIDATION_ERROR', 'Import file is required', 400);
+        sendFailure(res, 'VALIDATION_ERROR', 'Import file is required', 400);
         return;
       }
 
@@ -328,7 +327,7 @@ export const createContactDirectoryController = (
         organizationId,
         scope
       );
-      sendData(res, mode, result);
+      sendData(res, result);
     } catch (error) {
       next(error);
     }

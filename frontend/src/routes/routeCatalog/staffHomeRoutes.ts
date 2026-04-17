@@ -19,3 +19,5 @@ export const staffHomeRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     },
   }),
 ];
+
+export const staffHomeRouteCatalogAuditTargets = [{ path: '/dashboard' }] as const;

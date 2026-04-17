@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { renderWithProviders } from '../../../../test/testUtils';
 import PortalEventsPage from '../PortalEventsPage';
@@ -121,11 +122,34 @@ describe('PortalEventsPage', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'QR Pass' })[0]);
 
     await waitFor(() => {
-      expect(screen.getByText('Event QR Pass')).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /event qr pass/i })).toBeInTheDocument();
       expect(screen.getAllByText('Week 2').length).toBeGreaterThan(0);
       expect(screen.getAllByText('Confirmation sent').length).toBeGreaterThan(0);
       expect(screen.getByRole('button', { name: 'Download PNG' })).toBeInTheDocument();
     });
+  });
+
+  it('restores focus after dismissing the QR pass dialog with escape', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<PortalEventsPage />);
+
+    const qrButton = screen.getAllByRole('button', { name: 'QR Pass' })[0];
+    qrButton.focus();
+    await user.click(qrButton);
+
+    const dialog = await screen.findByRole('dialog', { name: /event qr pass/i });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+    });
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /event qr pass/i })).not.toBeInTheDocument();
+    });
+    expect(qrButton).toHaveFocus();
   });
 
   it('registers for unregistered event and refreshes list', async () => {

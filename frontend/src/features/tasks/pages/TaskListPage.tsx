@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTasks, deleteTask, completeTask } from '../state';
 import { TaskStatus, TaskPriority } from '../../../types/task';
@@ -31,9 +31,12 @@ type TaskListFilters = {
 const TASK_FILTERS_STORAGE_KEY = 'tasks_list_filters_v1';
 const TASK_STATUS_VALUES = Object.values(TaskStatus);
 const TASK_PRIORITY_VALUES = Object.values(TaskPriority);
+const taskActionLinkClass =
+  'inline-flex items-center justify-center border-2 border-[var(--app-border)] bg-[var(--loop-green)] px-4 py-2 font-bold uppercase text-black shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_var(--shadow-color)]';
+const taskGhostLinkClass =
+  'border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-xs font-bold uppercase text-[var(--app-text)]';
 
 const TaskList: React.FC = () => {
-  const navigate = useNavigate();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
@@ -185,11 +188,11 @@ const TaskList: React.FC = () => {
   const getStatusBadge = (status: TaskStatus) => {
     const statusColors: Record<TaskStatus, string> = {
       [TaskStatus.NOT_STARTED]: 'bg-app-surface-muted text-app-text',
-      [TaskStatus.IN_PROGRESS]: 'bg-app-accent-soft text-app-accent-text',
-      [TaskStatus.WAITING]: 'bg-app-accent-soft text-app-accent-text',
-      [TaskStatus.COMPLETED]: 'bg-app-accent-soft text-app-accent-text',
-      [TaskStatus.DEFERRED]: 'bg-app-accent-soft text-app-accent-text',
-      [TaskStatus.CANCELLED]: 'bg-app-accent-soft text-app-accent-text',
+      [TaskStatus.IN_PROGRESS]: 'bg-[var(--loop-blue)] text-black',
+      [TaskStatus.WAITING]: 'bg-[var(--loop-yellow)] text-black',
+      [TaskStatus.COMPLETED]: 'bg-[var(--loop-green)] text-black',
+      [TaskStatus.DEFERRED]: 'bg-[var(--loop-cyan)] text-black',
+      [TaskStatus.CANCELLED]: 'bg-[var(--loop-pink)] text-black',
     };
 
     return (
@@ -202,9 +205,9 @@ const TaskList: React.FC = () => {
   const getPriorityBadge = (priority: TaskPriority) => {
     const priorityColors: Record<TaskPriority, string> = {
       [TaskPriority.LOW]: 'bg-app-surface-muted text-app-text-muted',
-      [TaskPriority.NORMAL]: 'bg-app-accent-soft text-app-accent',
-      [TaskPriority.HIGH]: 'bg-app-accent-soft text-app-accent',
-      [TaskPriority.URGENT]: 'bg-app-accent-soft text-app-accent',
+      [TaskPriority.NORMAL]: 'bg-[var(--loop-cyan)] text-black',
+      [TaskPriority.HIGH]: 'bg-[var(--loop-yellow)] text-black',
+      [TaskPriority.URGENT]: 'bg-[var(--loop-pink)] text-black',
     };
 
     return (
@@ -229,12 +232,12 @@ const TaskList: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-black text-[var(--app-text)]">Tasks</h1>
-        <button
-          onClick={() => navigate('/tasks/new')}
-          className="w-full border-2 border-[var(--app-border)] bg-[var(--loop-green)] px-4 py-2 font-bold uppercase text-black shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_var(--shadow-color)] sm:w-auto"
+        <Link
+          to="/tasks/new"
+          className={`w-full sm:w-auto ${taskActionLinkClass}`}
         >
           + New Task
-        </button>
+        </Link>
       </div>
 
       {/* Summary Cards */}
@@ -353,7 +356,7 @@ const TaskList: React.FC = () => {
               {hasActiveFilters && (
                 <button onClick={clearFilters} className="px-3 py-2 border-2 border-[var(--app-border)] text-[var(--app-text)] font-bold">Clear Filters</button>
               )}
-              <button onClick={() => navigate('/tasks/new')} className="px-3 py-2 border-2 border-[var(--app-border)] bg-[var(--loop-green)] text-black font-bold">New Task</button>
+              <Link to="/tasks/new" className="px-3 py-2 border-2 border-[var(--app-border)] bg-[var(--loop-green)] text-black font-bold">New Task</Link>
             </div>
           </div>
         ) : (
@@ -382,12 +385,12 @@ const TaskList: React.FC = () => {
                           Actions
                         </summary>
                         <div className="mt-2 grid min-w-36 gap-2">
-                          <button
-                            onClick={() => navigate(`/tasks/${task.id}`)}
-                            className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-xs font-bold uppercase text-[var(--app-text)]"
+                          <Link
+                            to={`/tasks/${task.id}`}
+                            className={taskGhostLinkClass}
                           >
                             View
-                          </button>
+                          </Link>
                           {task.status !== TaskStatus.COMPLETED ? (
                             <button
                               onClick={() => handleComplete(task.id)}
@@ -396,12 +399,12 @@ const TaskList: React.FC = () => {
                               Complete
                             </button>
                           ) : null}
-                          <button
-                            onClick={() => navigate(`/tasks/${task.id}/edit`)}
-                            className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-xs font-bold uppercase text-[var(--app-text)]"
+                          <Link
+                            to={`/tasks/${task.id}/edit`}
+                            className={taskGhostLinkClass}
                           >
                             Edit
-                          </button>
+                          </Link>
                           <button
                             onClick={() => handleDelete(task.id)}
                             className="border-2 border-[var(--app-border)] bg-app-accent-soft px-3 py-2 text-xs font-bold uppercase text-app-accent-text"
@@ -480,12 +483,12 @@ const TaskList: React.FC = () => {
                         </div>
                       </td>
                       <td className="space-x-2 px-6 py-4 text-sm font-bold">
-                        <button
-                          onClick={() => navigate(`/tasks/${task.id}`)}
+                        <Link
+                          to={`/tasks/${task.id}`}
                           className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)]"
                         >
                           View
-                        </button>
+                        </Link>
                         {task.status !== TaskStatus.COMPLETED && (
                           <button
                             onClick={() => handleComplete(task.id)}
@@ -494,12 +497,12 @@ const TaskList: React.FC = () => {
                             Complete
                           </button>
                         )}
-                        <button
-                          onClick={() => navigate(`/tasks/${task.id}/edit`)}
+                        <Link
+                          to={`/tasks/${task.id}/edit`}
                           className="text-[var(--app-accent-text)] hover:text-[var(--app-accent-text-hover)]"
                         >
                           Edit
-                        </button>
+                        </Link>
                         <button
                           onClick={() => handleDelete(task.id)}
                           className="text-app-accent hover:text-app-accent-text"

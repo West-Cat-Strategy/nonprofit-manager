@@ -33,7 +33,7 @@ vi.mock('../../../../contexts/useToast', () => ({
   }),
 }));
 
-vi.mock('../CaseFormRenderer', () => ({
+vi.mock('../../caseForms/CaseFormRenderer', () => ({
   default: () => <div data-testid="case-form-renderer">Form Renderer</div>,
 }));
 

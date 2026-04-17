@@ -13,7 +13,7 @@ Use this file as the entry point for active Nonprofit Manager API documentation.
 | Events | Staff events, registrations, reminders, public events | [API_REFERENCE_EVENTS.md](API_REFERENCE_EVENTS.md) | `/api/v2/events/*`, `/api/v2/public/events/*` |
 | Portal Appointments | Portal booking plus admin reminder/check-in flows | [API_REFERENCE_PORTAL_APPOINTMENTS.md](API_REFERENCE_PORTAL_APPOINTMENTS.md) | `/api/v2/portal/appointments*`, `/api/v2/portal/admin/appointments*` |
 | Administration | Branding, organization settings, roles, permissions, groups, access, registration settings | [openapi.yaml](openapi.yaml) | `/api/v2/admin/*` |
-| Reporting & Exports | Report generation, async export jobs, templates, analytics exports | [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md), [../features/REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md) | `/api/v2/reports/*`, `/api/v2/export/*` |
+| Reporting & Exports | Report generation, small synchronous exports, async export jobs, templates, analytics exports | [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md), [../features/REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md) | `/api/v2/reports/*`, `/api/v2/export/*` |
 | Analytics | Summary, account/contact metrics, trend analysis, anomalies | [openapi.yaml](openapi.yaml) | `/api/v2/analytics/*` |
 | Payments & Integrations | Payments, reconciliation, Mailchimp, webhooks | [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md) | `/api/v2/payments/*`, `/api/v2/mailchimp/*`, `/api/v2/webhooks/*` |
 | Backup | Admin-triggered backup export | [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md) | `/api/v2/backup/export` |
@@ -29,6 +29,7 @@ These route families are mounted by the active v2 registrar:
 - Alerts: `/api/v2/alerts/configs*`, `/api/v2/alerts/instances*`, `/api/v2/alerts/stats`, `/api/v2/alerts/test`
 - Events: `/api/v2/events/*`, `/api/v2/public/events/*`
 - Reports: `/api/v2/reports/generate`, `/api/v2/reports/outcomes`, `/api/v2/reports/workflow-coverage`, `/api/v2/reports/fields/:entity`, `/api/v2/reports/export`, `/api/v2/reports/exports*`, `/api/v2/reports/templates*`
+  `/api/v2/reports/export` stays synchronous for small exports only and returns `409` when the result is too large; use `/api/v2/reports/exports` for queued export jobs.
 - Analytics: `/api/v2/analytics/summary`, `/api/v2/analytics/accounts/:id/*`, `/api/v2/analytics/contacts/:id/*`, `/api/v2/analytics/trends/*`, `/api/v2/analytics/comparative`, `/api/v2/analytics/anomalies/:metricType`
 - Export helpers: `/api/v2/export/analytics-summary`, `/api/v2/export/donations`, `/api/v2/export/volunteer-hours`, `/api/v2/export/events`, `/api/v2/export/comprehensive`
 - Payments: `/api/v2/payments/config`, `/api/v2/payments/intents*`, `/api/v2/payments/refunds`, `/api/v2/payments/customers*`, `/api/v2/payments/webhook`

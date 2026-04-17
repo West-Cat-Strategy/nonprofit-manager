@@ -699,9 +699,7 @@ router.get(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createPublishingRoutes = () => router;
 
-export const createPublishingRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const publishingV2Routes = createPublishingRoutes('v2');
+export const publishingV2Routes = createPublishingRoutes();
 export * from './public';

@@ -1,37 +1,13 @@
 import type { PortalEvent } from '../types/contracts';
-
-const formatDateTime = (value: string | null | undefined): string | null => {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return date.toLocaleString();
-};
+import {
+  formatPortalDateRange,
+  formatPortalOptionalDateTime,
+} from './dateDisplay';
 
 export const getPortalEventDateRange = (event: PortalEvent): string => {
   const startDate = event.occurrence_start_date ?? event.start_date;
   const endDate = event.occurrence_end_date ?? event.end_date;
-  const start = formatDateTime(startDate);
-  const end = formatDateTime(endDate);
-
-  if (!start && !end) {
-    return 'Date TBD';
-  }
-
-  if (!start) {
-    return end ?? 'Date TBD';
-  }
-
-  if (!end) {
-    return start;
-  }
-
-  return `${start} - ${end}`;
+  return formatPortalDateRange(startDate, endDate);
 };
 
 export const getPortalEventOccurrenceLabel = (event: PortalEvent): string | null => {
@@ -97,3 +73,6 @@ export const canShowPortalEventQrPass = (event: PortalEvent): boolean =>
     event.registration_status !== 'waitlisted' &&
     event.registration_status !== 'cancelled'
   );
+
+export const getPortalEventCheckedInLabel = (event: PortalEvent): string | null =>
+  formatPortalOptionalDateTime(event.check_in_time);

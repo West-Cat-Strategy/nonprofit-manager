@@ -1,5 +1,7 @@
 import type { RouteCatalogEntry } from './types';
-import { staffAdminRouteCatalogEntries } from './staffAdminRoutes';
+import {
+  staffAdminRouteCatalogEntries,
+} from './staffAdminRoutes';
 import { staffEngagementRouteCatalogEntries } from './staffEngagementRoutes';
 import { staffFinanceRouteCatalogEntries } from './staffFinanceRoutes';
 import { staffHomeRouteCatalogEntries } from './staffHomeRoutes';

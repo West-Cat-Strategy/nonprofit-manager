@@ -3,8 +3,27 @@ import { vi } from 'vitest';
 import Navigation from '../Navigation';
 import { renderWithProviders } from '../../test/testUtils';
 
-const { handleLogoutMock, setThemeMock, toggleDarkModeMock, viewModelRef } = vi.hoisted(() => ({
+const {
+  handleLogoutMock,
+  preloadContactsPeopleRouteMock,
+  preloadNavigationQuickLookupDialogMock,
+  setThemeMock,
+  toggleDarkModeMock,
+  viewModelRef,
+} = vi.hoisted(() => ({
   handleLogoutMock: vi.fn(),
+  preloadContactsPeopleRouteMock: vi.fn(() => Promise.resolve([])),
+  preloadNavigationQuickLookupDialogMock: vi.fn(() =>
+    Promise.resolve({
+      default: ({ onClose }: { onClose: () => void }) => (
+        <div role="dialog" aria-label="Search people">
+          <button type="button" onClick={onClose} aria-label="Close search dialog">
+            Close
+          </button>
+        </div>
+      ),
+    })
+  ),
   setThemeMock: vi.fn(),
   toggleDarkModeMock: vi.fn(),
   viewModelRef: { current: null } as NavigationViewModelRef,
@@ -74,20 +93,11 @@ const utilityNavLinks = [
 ];
 
 vi.mock('../navigation/preloadNavigationQuickLookupDialog', () => ({
-  preloadNavigationQuickLookupDialog: () =>
-    Promise.resolve({
-      default: ({ onClose }: { onClose: () => void }) => (
-        <div role="dialog" aria-label="Search people">
-          <button type="button" onClick={onClose} aria-label="Close search dialog">
-            Close
-          </button>
-        </div>
-      ),
-    }),
+  preloadNavigationQuickLookupDialog: preloadNavigationQuickLookupDialogMock,
 }));
 
 vi.mock('../../features/contacts/routePreload', () => ({
-  preloadContactsPeopleRoute: vi.fn(() => Promise.resolve([])),
+  preloadContactsPeopleRoute: preloadContactsPeopleRouteMock,
 }));
 
 vi.mock('../dashboard', () => ({
@@ -208,6 +218,32 @@ describe('Navigation', () => {
     expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveClass(
       'app-accent-contrast-ink'
     );
+    expect(preloadContactsPeopleRouteMock).not.toHaveBeenCalled();
+    expect(preloadNavigationQuickLookupDialogMock).not.toHaveBeenCalled();
+  });
+
+  it('prefetches the People route only when the user shows intent on the navigation item', () => {
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
+
+    const peopleLink = screen.getByRole('link', { name: /^people$/i });
+    expect(preloadContactsPeopleRouteMock).not.toHaveBeenCalled();
+
+    fireEvent.mouseEnter(peopleLink);
+    fireEvent.focus(peopleLink);
+
+    expect(preloadContactsPeopleRouteMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('prefetches the quick lookup dialog only when the search control receives intent', () => {
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
+
+    const searchButton = screen.getByRole('button', { name: /^search$/i });
+    expect(preloadNavigationQuickLookupDialogMock).not.toHaveBeenCalled();
+
+    fireEvent.mouseEnter(searchButton);
+    fireEvent.focus(searchButton);
+
+    expect(preloadNavigationQuickLookupDialogMock).toHaveBeenCalledTimes(2);
   });
 
   it('renders the branded logo without the accent tile wrapper', () => {
@@ -245,10 +281,11 @@ describe('Navigation', () => {
     const { unmount } = renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     fireEvent.click(await screen.findByRole('button', { name: /user menu/i }));
-    expect(screen.getByRole('menuitem', { name: /admin settings/i })).toHaveAttribute(
-      'href',
-      '/settings/admin/dashboard'
-    );
+    const adminSettingsLinks = screen.getAllByRole('link', { name: /^admin settings$/i });
+    expect(adminSettingsLinks).not.toHaveLength(0);
+    expect(
+      adminSettingsLinks.every((link) => link.getAttribute('href') === '/settings/admin/dashboard')
+    ).toBe(true);
 
     unmount();
     viewModelRef.current = buildViewModel({
@@ -263,7 +300,7 @@ describe('Navigation', () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     fireEvent.click(screen.getByRole('button', { name: /user menu/i }));
-    expect(screen.queryByRole('menuitem', { name: /admin settings/i })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('link', { name: /^admin settings$/i })).toHaveLength(0);
   });
 
   it('highlights hidden desktop destinations through the More menu', async () => {
@@ -286,7 +323,9 @@ describe('Navigation', () => {
     const moreButton = screen.getByRole('button', { name: /more navigation/i });
     fireEvent.click(moreButton);
 
-    expect(await screen.findByRole('menu', { name: /more navigation/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('navigation', { name: /more navigation/i })
+    ).toBeInTheDocument();
 
     const backdrop = container.querySelector('div[aria-hidden="true"]');
     expect(backdrop).toBeTruthy();
@@ -294,7 +333,9 @@ describe('Navigation', () => {
     fireEvent.click(backdrop as HTMLElement);
 
     await waitFor(() => {
-      expect(screen.queryByRole('menu', { name: /more navigation/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('navigation', { name: /more navigation/i })
+      ).not.toBeInTheDocument();
       expect(moreButton).toHaveFocus();
     });
   });
@@ -308,7 +349,7 @@ describe('Navigation', () => {
     fireEvent.click(userMenuButton);
     expect(userMenuButton).toHaveAttribute('aria-expanded', 'true');
 
-    fireEvent.click(screen.getByRole('menuitem', { name: /logout/i }));
+    fireEvent.click(screen.getByRole('button', { name: /logout/i }));
     expect(handleLogoutMock).toHaveBeenCalled();
 
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -324,11 +365,24 @@ describe('Navigation', () => {
     expect(searchButton).not.toHaveFocus();
     fireEvent.click(searchButton);
     expect(await screen.findByRole('dialog', { name: /search people/i })).toBeInTheDocument();
+    expect(searchButton).toHaveAttribute('aria-haspopup', 'dialog');
 
     fireEvent.click(screen.getByRole('button', { name: /close search dialog/i }));
     await waitFor(() => {
       expect(searchButton).toHaveFocus();
     });
+  });
+
+  it('keeps the quick lookup overlay exclusive by closing the More menu first', async () => {
+    renderWithProviders(<Navigation />, { route: '/dashboard' });
+
+    fireEvent.click(screen.getByRole('button', { name: /more navigation/i }));
+    expect(screen.getByRole('navigation', { name: /more navigation/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^search$/i }));
+
+    expect(await screen.findByRole('dialog', { name: /search people/i })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: /more navigation/i })).not.toBeInTheDocument();
   });
 
   it('opens the mobile drawer as a dialog and focuses its close button', async () => {
@@ -348,12 +402,13 @@ describe('Navigation', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /user menu/i }));
 
-    expect(screen.getByRole('menuitem', { name: /admin settings/i })).toHaveAttribute(
-      'href',
-      '/settings/admin/dashboard'
-    );
-    expect(screen.getByRole('menuitem', { name: /switch to dark/i })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /editorial ops/i })).toBeInTheDocument();
+    const adminSettingsLinks = screen.getAllByRole('link', { name: /^admin settings$/i });
+    expect(adminSettingsLinks).not.toHaveLength(0);
+    expect(
+      adminSettingsLinks.every((link) => link.getAttribute('href') === '/settings/admin/dashboard')
+    ).toBe(true);
+    expect(screen.getByRole('button', { name: /switch to dark/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /editorial ops/i })).toBeInTheDocument();
     expect(screen.getByText(/warm operational surfaces, serif headlines/i)).toBeInTheDocument();
     expect(
       screen.getByText(/a softer contemporary workspace with calm depth/i)

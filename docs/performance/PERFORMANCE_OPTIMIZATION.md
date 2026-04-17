@@ -178,127 +178,65 @@ LIMIT 100;
 
 ## Query Caching
 
-### Cache Implementation
+### Redis-Backed Cache Strategy
 
-The application uses an in-memory cache with TTL (Time To Live) for analytics queries.
+The active analytics cache is service-owned and Redis-backed rather than implemented through a shared in-process cache utility.
 
-**Features:**
-- Automatic expiration of stale data
-- Per-query TTL configuration
-- Cache key generation from query parameters
-- Automatic cleanup of expired entries
+Current cache helpers live in `backend/src/config/redis.ts`, and the main callers are:
+- `backend/src/services/analytics/index.ts`
+- `backend/src/services/analytics/donationAnalytics.ts`
+- `backend/src/services/analytics/eventAnalytics.ts`
+- `backend/src/services/analytics/trendAnalytics.ts`
+- `backend/src/services/analytics/volunteerAnalytics.ts`
 
-### Cache Utilities
-
-#### Cache Class
-
-```typescript
-import { Cache, createCacheKey } from '../utils/cache';
-
-// Create a cache with 5-minute TTL
-const myCache = new Cache(300);
-
-// Set a value
-myCache.set('key', data, 300); // 5 minutes
-
-// Get a value
-const data = myCache.get('key');
-
-// Get or fetch if not cached
-const data = await myCache.getOrSet(
-  'key',
-  async () => {
-    // Fetch from database
-    return await db.query('SELECT ...');
-  },
-  300
-);
-```
-
-#### Global Cache Instances
+#### Shared Cache Helpers
 
 ```typescript
-import { analyticsCache, dashboardCache } from '../utils/cache';
+import { getCached, setCached } from '@config/redis';
 
-// Analytics cache (5 minute TTL)
-const data = await analyticsCache.getOrSet(key, fetchFn);
+const cacheKey = `analytics:summary:${startDate}:${endDate}:${entityType ?? 'all'}`;
+const cached = await getCached<AnalyticsSummary>(cacheKey);
 
-// Dashboard cache (1 minute TTL)
-const dashboard = await dashboardCache.getOrSet(key, fetchFn);
+if (cached) {
+  return cached;
+}
+
+const summary = await buildAnalyticsSummary();
+await setCached(cacheKey, summary, 300); // 5 minutes
+return summary;
 ```
 
-### Cached Analytics Service
+#### Cache TTLs in Active Analytics Services
 
-The `CachedAnalyticsService` wraps the analytics service with automatic caching:
-
-```typescript
-import { CachedAnalyticsService } from '../services/cachedAnalyticsService';
-
-const cachedAnalytics = new CachedAnalyticsService(pool);
-
-// First call: Fetches from database
-const analytics = await cachedAnalytics.getAccountAnalytics(accountId);
-
-// Second call within 5 minutes: Returns cached result
-const analytics2 = await cachedAnalytics.getAccountAnalytics(accountId);
-```
-
-#### Cache TTLs by Endpoint
-
-| Endpoint | TTL | Reason |
-|----------|-----|---------|
-| `getAccountAnalytics` | 5 min | Moderate update frequency |
-| `getContactAnalytics` | 5 min | Moderate update frequency |
-| `getAnalyticsSummary` | 3 min | Frequent updates expected |
-| `getComparativeAnalytics` | 10 min | Slow-changing data |
-| `getTrendAnalytics` | 5 min | Moderate update frequency |
+| Area | TTL | Current owner |
+|---|---|---|
+| Summary analytics | 5 min | `backend/src/services/analytics/index.ts` |
+| Donation, volunteer, and event trends | 10 min | `backend/src/services/analytics/*Analytics.ts` |
+| Trend analysis and anomaly detection | 60 min | `backend/src/services/analytics/trendAnalytics.ts` |
+| Comparative analytics | 10 min | `backend/src/services/analytics/trendAnalytics.ts` |
 
 #### Cache Key Structure
 
-Cache keys include all query parameters:
+Keep keys scoped to the owning service and all query inputs:
 
 ```typescript
-// Example cache keys
-'account-analytics:account-123'
-'analytics-summary:2024-01-01:2024-12-31:individual:credit_card'
-'trend-analytics:donations:2024-01-01:2024-12-31:month'
+`analytics:summary:${startDate}:${endDate}:${entityType ?? 'all'}`
+`analytics:donation-trends:${months}`
+`analytics:comparative:${periodType}`
 ```
 
 ### Cache Invalidation
 
-#### Manual Invalidation
-
-Invalidate cache when data changes:
+Prefer TTL expiry for read-heavy analytics paths. When a mutation must evict cached analytics immediately, invalidate the narrowest key or pattern through the shared Redis helpers:
 
 ```typescript
-import { invalidateAnalyticsCache } from '../utils/cache';
+import { deleteCached, deleteCachedPattern } from '@config/redis';
 
-// After creating/updating/deleting a donation
-await donationService.createDonation(data);
-invalidateAnalyticsCache(userId);
+await deleteCached(`analytics:summary:${startDate}:${endDate}:${entityType ?? 'all'}`);
+await deleteCachedPattern('analytics:donation-trends:*');
 ```
 
-#### Automatic Invalidation
-
-Cache entries automatically expire based on TTL.
-
-#### Clear All Cache
-
-Use sparingly - only for major data changes:
-
-```typescript
-cachedAnalytics.clearAllCache();
-```
-
-### Cache Statistics
-
-Monitor cache effectiveness:
-
-```typescript
-const stats = cachedAnalytics.getCacheStats();
-console.log(`Cache size: ${stats.size}`);
-console.log(`Cached keys: ${stats.keys.join(', ')}`);
-```
+If you need new caching, add it to the owning service or `@config/redis` rather than reintroducing a global `backend/src/utils/cache.ts` helper.
 
 ---
 
@@ -401,18 +339,21 @@ EXPLAIN ANALYZE SELECT ...;
 
 ### 8. Cache Expensively Computed Results
 
-Cache results of complex queries or calculations:
+Cache results of complex queries or calculations through the shared Redis helpers:
 
 ```typescript
-const cacheKey = createCacheKey('complex-calc', userId, startDate);
-const result = await cache.getOrSet(
-  cacheKey,
-  async () => {
-    // Expensive calculation
-    return await complexCalculation();
-  },
-  600 // 10 minutes
-);
+import { getCached, setCached } from '@config/redis';
+
+const cacheKey = `complex-calc:${userId}:${startDate}`;
+const cached = await getCached<ResultType>(cacheKey);
+
+if (cached) {
+  return cached;
+}
+
+const result = await complexCalculation();
+await setCached(cacheKey, result, 600); // 10 minutes
+return result;
 ```
 
 ---

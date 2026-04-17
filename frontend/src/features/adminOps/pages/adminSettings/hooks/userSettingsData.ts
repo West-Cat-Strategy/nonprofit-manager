@@ -82,16 +82,18 @@ export const readUserSecurityInfo = (
   };
 };
 
+const readStringList = (value: unknown): string[] =>
+  Array.isArray(value) ? value.map((item) => String(item)) : [];
+
 export const readGroups = (value: unknown): AdminGroup[] =>
-  readList<AdminGroup>(value, ['groups', 'items', 'data']).map((group) => ({
+  readList<Record<string, unknown>>(value, ['groups', 'items', 'data']).map((group) => ({
     id: String(group.id ?? ''),
     name: String(group.name ?? ''),
     description: (group.description as string | null | undefined) ?? null,
-    roles: Array.isArray(group.roles)
-      ? (group.roles as string[])
-      : Array.isArray((group as Record<string, unknown>).roleNames)
-        ? ((group as Record<string, unknown>).roleNames as string[])
-        : [],
+    roles:
+      readStringList(group.roles).length > 0
+        ? readStringList(group.roles)
+        : readStringList(group.roleNames),
     memberCount: Number(group.memberCount ?? 0),
     isSystem: Boolean(group.isSystem ?? false),
     createdAt: (group.createdAt as string | undefined) ?? undefined,

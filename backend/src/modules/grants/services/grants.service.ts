@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import pool from '@config/database';
+import { deleteCachedPattern, getCached, setCached } from '@config/redis';
 import { buildTabularExport, type GeneratedTabularFile } from '@modules/shared/export/tabularExport';
 import { getOffset, resolveSort } from '@utils/queryHelpers';
 import type {
@@ -57,6 +58,11 @@ import {
   type GrantQueryClient,
   type GrantRow,
 } from './grantsShared';
+
+type GrantSummaryFilters = {
+  jurisdiction?: GrantJurisdiction;
+  fiscal_year?: string;
+};
 
 export class GrantsService {
   private readonly portfolioService: GrantsPortfolioService;
@@ -509,9 +515,24 @@ export class GrantsService {
     };
   }
 
-  async getSummary(
+  private buildSummaryCacheKey(
     organizationId: string,
-    filters: { jurisdiction?: GrantJurisdiction; fiscal_year?: string } = {}
+    filters: GrantSummaryFilters = {}
+  ): string {
+    return `grants:summary:v1:${organizationId}:${filters.jurisdiction ?? 'all'}:${filters.fiscal_year ?? 'all'}`;
+  }
+
+  private async invalidateSummaryCache(organizationId: string): Promise<void> {
+    try {
+      await deleteCachedPattern(`grants:summary:v1:${organizationId}:*`);
+    } catch {
+      // Redis failures should not block grants mutations.
+    }
+  }
+
+  private async buildSummaryUncached(
+    organizationId: string,
+    filters: GrantSummaryFilters = {}
   ): Promise<GrantSummary> {
     const values: unknown[] = [organizationId];
     const grantConditions = ['g.organization_id = $1'];
@@ -539,6 +560,9 @@ export class GrantsService {
       jurisdictionBreakdownResult,
       recentActivityResult,
       upcomingItemsResult,
+      overdueReportCount,
+      upcomingReportCount,
+      upcomingDisbursementCount,
     ] = await Promise.all([
       this.db.query<{ count: string }>(
         `SELECT COUNT(*)::text AS count FROM grant_funders WHERE organization_id = $1`,
@@ -627,7 +651,7 @@ export class GrantsService {
          FROM (
            SELECT
              r.id,
-             r.grant_id,
+             r.grant_id::text AS grant_id,
              g.grant_number,
              g.title AS grant_title,
              'report' AS item_type,
@@ -647,7 +671,7 @@ export class GrantsService {
 
            SELECT
              d.id,
-             d.grant_id,
+             d.grant_id::text AS grant_id,
              g.grant_number,
              g.title AS grant_title,
              'disbursement' AS item_type,
@@ -667,7 +691,7 @@ export class GrantsService {
 
            SELECT
              a.id,
-             COALESCE(a.grant_id, '') AS grant_id,
+             COALESCE(a.grant_id::text, '') AS grant_id,
              COALESCE(g.grant_number, a.application_number) AS grant_number,
              COALESCE(g.title, a.title) AS grant_title,
              'application' AS item_type,
@@ -687,6 +711,9 @@ export class GrantsService {
          LIMIT 10`,
         [organizationId]
       ),
+      this.getOverdueReportCount(organizationId),
+      this.getUpcomingReportCount(organizationId),
+      this.getUpcomingDisbursementCount(organizationId),
     ]);
 
     const applicationCounts = applicationCountResult.rows[0];
@@ -708,9 +735,9 @@ export class GrantsService {
       committed_amount: toNumber(grantTotals?.committed_amount),
       total_disbursed_amount: toNumber(grantTotals?.total_disbursed_amount),
       outstanding_amount: toNumber(grantTotals?.outstanding_amount),
-      overdue_reports: await this.getOverdueReportCount(organizationId),
-      upcoming_reports: await this.getUpcomingReportCount(organizationId),
-      upcoming_disbursements: await this.getUpcomingDisbursementCount(organizationId),
+      overdue_reports: overdueReportCount,
+      upcoming_reports: upcomingReportCount,
+      upcoming_disbursements: upcomingDisbursementCount,
       by_status: statusBreakdownResult.rows.map((row) => ({
         status: row.status,
         count: toNumber(row.count),
@@ -724,6 +751,32 @@ export class GrantsService {
       recent_activity: recentActivityResult.rows.map((row) => this.mapActivity(row)),
       upcoming_items: upcomingItemsResult.rows.map((row) => this.mapCalendarItem(row)),
     };
+  }
+
+  async getSummary(
+    organizationId: string,
+    filters: GrantSummaryFilters = {}
+  ): Promise<GrantSummary> {
+    const cacheKey = this.buildSummaryCacheKey(organizationId, filters);
+
+    try {
+      const cached = await getCached<GrantSummary>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    } catch {
+      // Redis failures should not block summary reads.
+    }
+
+    const summary = await this.buildSummaryUncached(organizationId, filters);
+
+    try {
+      await setCached(cacheKey, summary, 60);
+    } catch {
+      // Redis failures should not block summary reads.
+    }
+
+    return summary;
   }
 
   private async getOverdueReportCount(organizationId: string): Promise<number> {
@@ -778,7 +831,9 @@ export class GrantsService {
     userId: string,
     data: CreateGrantFunderDTO
   ): Promise<GrantFunder> {
-    return this.portfolioService.createFunder(organizationId, userId, data);
+    const funder = await this.portfolioService.createFunder(organizationId, userId, data);
+    await this.invalidateSummaryCache(organizationId);
+    return funder;
   }
 
   async updateFunder(
@@ -787,11 +842,19 @@ export class GrantsService {
     userId: string,
     data: UpdateGrantFunderDTO
   ): Promise<GrantFunder | null> {
-    return this.portfolioService.updateFunder(organizationId, id, userId, data);
+    const funder = await this.portfolioService.updateFunder(organizationId, id, userId, data);
+    if (funder) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return funder;
   }
 
   async deleteFunder(organizationId: string, id: string, userId: string | null): Promise<boolean> {
-    return this.portfolioService.deleteFunder(organizationId, id, userId);
+    const deleted = await this.portfolioService.deleteFunder(organizationId, id, userId);
+    if (deleted) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return deleted;
   }
 
   async listPrograms(
@@ -810,7 +873,9 @@ export class GrantsService {
     userId: string,
     data: CreateGrantProgramDTO
   ): Promise<GrantProgram> {
-    return this.portfolioService.createProgram(organizationId, userId, data);
+    const program = await this.portfolioService.createProgram(organizationId, userId, data);
+    await this.invalidateSummaryCache(organizationId);
+    return program;
   }
 
   async updateProgram(
@@ -819,11 +884,19 @@ export class GrantsService {
     userId: string,
     data: UpdateGrantProgramDTO
   ): Promise<GrantProgram | null> {
-    return this.portfolioService.updateProgram(organizationId, id, userId, data);
+    const program = await this.portfolioService.updateProgram(organizationId, id, userId, data);
+    if (program) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return program;
   }
 
   async deleteProgram(organizationId: string, id: string, userId: string | null): Promise<boolean> {
-    return this.portfolioService.deleteProgram(organizationId, id, userId);
+    const deleted = await this.portfolioService.deleteProgram(organizationId, id, userId);
+    if (deleted) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return deleted;
   }
 
   async listRecipients(
@@ -845,7 +918,9 @@ export class GrantsService {
     userId: string,
     data: CreateRecipientOrganizationDTO
   ): Promise<RecipientOrganization> {
-    return this.portfolioService.createRecipient(organizationId, userId, data);
+    const recipient = await this.portfolioService.createRecipient(organizationId, userId, data);
+    await this.invalidateSummaryCache(organizationId);
+    return recipient;
   }
 
   async updateRecipient(
@@ -854,7 +929,11 @@ export class GrantsService {
     userId: string,
     data: UpdateRecipientOrganizationDTO
   ): Promise<RecipientOrganization | null> {
-    return this.portfolioService.updateRecipient(organizationId, id, userId, data);
+    const recipient = await this.portfolioService.updateRecipient(organizationId, id, userId, data);
+    if (recipient) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return recipient;
   }
 
   async deleteRecipient(
@@ -862,7 +941,11 @@ export class GrantsService {
     id: string,
     userId: string | null
   ): Promise<boolean> {
-    return this.portfolioService.deleteRecipient(organizationId, id, userId);
+    const deleted = await this.portfolioService.deleteRecipient(organizationId, id, userId);
+    if (deleted) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return deleted;
   }
 
   async listFundedPrograms(
@@ -884,7 +967,13 @@ export class GrantsService {
     userId: string,
     data: CreateFundedProgramDTO
   ): Promise<FundedProgram> {
-    return this.portfolioService.createFundedProgram(organizationId, userId, data);
+    const fundedProgram = await this.portfolioService.createFundedProgram(
+      organizationId,
+      userId,
+      data
+    );
+    await this.invalidateSummaryCache(organizationId);
+    return fundedProgram;
   }
 
   async updateFundedProgram(
@@ -893,7 +982,16 @@ export class GrantsService {
     userId: string,
     data: UpdateFundedProgramDTO
   ): Promise<FundedProgram | null> {
-    return this.portfolioService.updateFundedProgram(organizationId, id, userId, data);
+    const fundedProgram = await this.portfolioService.updateFundedProgram(
+      organizationId,
+      id,
+      userId,
+      data
+    );
+    if (fundedProgram) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return fundedProgram;
   }
 
   async deleteFundedProgram(
@@ -901,7 +999,11 @@ export class GrantsService {
     id: string,
     userId: string | null
   ): Promise<boolean> {
-    return this.portfolioService.deleteFundedProgram(organizationId, id, userId);
+    const deleted = await this.portfolioService.deleteFundedProgram(organizationId, id, userId);
+    if (deleted) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return deleted;
   }
 
   async listApplications(
@@ -1059,6 +1161,7 @@ export class GrantsService {
         funder_id: application.funder_id,
       },
     });
+    await this.invalidateSummaryCache(organizationId);
     return application;
   }
 
@@ -1127,6 +1230,7 @@ export class GrantsService {
       notes: `Updated application ${application.application_number}`,
       metadata: { application_id: id },
     });
+    await this.invalidateSummaryCache(organizationId);
     return application;
   }
 
@@ -1168,6 +1272,7 @@ export class GrantsService {
         notes: existing ? `Deleted application ${existing.application_number}` : 'Deleted application',
         metadata: { application_id: id },
       });
+      await this.invalidateSummaryCache(organizationId);
     }
     return deleted;
   }
@@ -1178,7 +1283,7 @@ export class GrantsService {
     userId: string,
     data: CreateGrantAwardDTO
   ): Promise<{ application: GrantApplication; grant: GrantAward } | null> {
-    return this.withTransaction(async (client) => {
+    const awardResult = await this.withTransaction(async (client) => {
       const applicationResult = await client.query<GrantRow>(
         `SELECT *
          FROM grant_applications
@@ -1292,6 +1397,10 @@ export class GrantsService {
         grant,
       };
     });
+    if (awardResult) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return awardResult;
   }
 
   async listGrants(
@@ -1430,7 +1539,7 @@ export class GrantsService {
     userId: string,
     data: CreateGrantAwardDTO
   ): Promise<GrantAward> {
-    return this.withTransaction(async (client) => {
+    const grant = await this.withTransaction(async (client) => {
       const grantNumber = data.grant_number || normalizeGrantNumber('GRT');
       const result = await client.query<GrantRow>(
         `INSERT INTO grants (
@@ -1520,6 +1629,8 @@ export class GrantsService {
 
       return grant;
     });
+    await this.invalidateSummaryCache(organizationId);
+    return grant;
   }
 
   async updateGrant(
@@ -1600,6 +1711,7 @@ export class GrantsService {
       notes: `Updated grant ${grant.grant_number}`,
       metadata: { grant_id: id },
     });
+    await this.invalidateSummaryCache(organizationId);
     return grant;
   }
 
@@ -1619,6 +1731,7 @@ export class GrantsService {
         notes: existing ? `Deleted grant ${existing.grant_number}` : 'Deleted grant',
         metadata: { grant_id: id },
       });
+      await this.invalidateSummaryCache(organizationId);
     }
     return deleted;
   }
@@ -1706,10 +1819,10 @@ export class GrantsService {
     userId: string,
     data: CreateGrantDisbursementDTO
   ): Promise<GrantDisbursement> {
-    return this.withTransaction(async (client) => {
+    const disbursement = await this.withTransaction(async (client) => {
       const result = await client.query<GrantRow>(
         `INSERT INTO grant_disbursements (
-           organization_id,
+          organization_id,
            grant_id,
            tranche_label,
            scheduled_date,
@@ -1754,6 +1867,8 @@ export class GrantsService {
       });
       return disbursement;
     });
+    await this.invalidateSummaryCache(organizationId);
+    return disbursement;
   }
 
   async updateDisbursement(
@@ -1762,7 +1877,7 @@ export class GrantsService {
     userId: string,
     data: UpdateGrantDisbursementDTO
   ): Promise<GrantDisbursement | null> {
-    return this.withTransaction(async (client) => {
+    const disbursement = await this.withTransaction(async (client) => {
       const result = await client.query<GrantRow>(
         `UPDATE grant_disbursements
          SET
@@ -1812,6 +1927,10 @@ export class GrantsService {
       });
       return disbursement;
     });
+    if (disbursement) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return disbursement;
   }
 
   async deleteDisbursement(
@@ -1819,7 +1938,7 @@ export class GrantsService {
     id: string,
     userId: string | null
   ): Promise<boolean> {
-    return this.withTransaction(async (client) => {
+    const deleted = await this.withTransaction(async (client) => {
       const current = await this.getDisbursementById(organizationId, id);
       if (!current) {
         return false;
@@ -1847,6 +1966,10 @@ export class GrantsService {
 
       return false;
     });
+    if (deleted) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return deleted;
   }
 
   async listReports(
@@ -1928,7 +2051,7 @@ export class GrantsService {
     userId: string,
     data: CreateGrantReportDTO
   ): Promise<GrantReport> {
-    return this.withTransaction(async (client) => {
+    const report = await this.withTransaction(async (client) => {
       const result = await client.query<GrantRow>(
         `INSERT INTO grant_reports (
            organization_id,
@@ -1978,6 +2101,8 @@ export class GrantsService {
       });
       return report;
     });
+    await this.invalidateSummaryCache(organizationId);
+    return report;
   }
 
   async updateReport(
@@ -1986,7 +2111,7 @@ export class GrantsService {
     userId: string,
     data: UpdateGrantReportDTO
   ): Promise<GrantReport | null> {
-    return this.withTransaction(async (client) => {
+    const report = await this.withTransaction(async (client) => {
       const result = await client.query<GrantRow>(
         `UPDATE grant_reports
          SET
@@ -2038,6 +2163,10 @@ export class GrantsService {
       });
       return report;
     });
+    if (report) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return report;
   }
 
   async deleteReport(
@@ -2045,7 +2174,7 @@ export class GrantsService {
     id: string,
     userId: string | null
   ): Promise<boolean> {
-    return this.withTransaction(async (client) => {
+    const deleted = await this.withTransaction(async (client) => {
       const current = await this.getReportById(organizationId, id);
       if (!current) {
         return false;
@@ -2073,6 +2202,10 @@ export class GrantsService {
 
       return false;
     });
+    if (deleted) {
+      await this.invalidateSummaryCache(organizationId);
+    }
+    return deleted;
   }
 
   async listDocuments(
@@ -2194,6 +2327,7 @@ export class GrantsService {
         document_type: document.document_type,
       },
     });
+    await this.invalidateSummaryCache(organizationId);
     return document;
   }
 
@@ -2251,6 +2385,7 @@ export class GrantsService {
       notes: `Updated document ${document.file_name}`,
       metadata: { document_id: id },
     });
+    await this.invalidateSummaryCache(organizationId);
     return document;
   }
 
@@ -2270,6 +2405,7 @@ export class GrantsService {
         notes: existing ? `Deleted document ${existing.file_name}` : 'Deleted document',
         metadata: { document_id: id },
       });
+      await this.invalidateSummaryCache(organizationId);
     }
     return deleted;
   }

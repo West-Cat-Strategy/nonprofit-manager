@@ -5,13 +5,14 @@ import { renderWithProviders } from '../../../../test/testUtils';
 import PublicCaseFormPage from '../PublicCaseFormPage';
 
 const getFormMock = vi.fn();
+const saveDraftMock = vi.fn();
 const submitMock = vi.fn();
 
 vi.mock('../../api/publicCaseFormsApiClient', () => ({
   publicCaseFormsApiClient: {
     getForm: (...args: unknown[]) => getFormMock(...args),
     uploadAsset: vi.fn(),
-    saveDraft: vi.fn(),
+    saveDraft: (...args: unknown[]) => saveDraftMock(...args),
     submit: (...args: unknown[]) => submitMock(...args),
     getResponsePacketDownloadUrl: vi.fn((token: string) => `/api/v2/public/case-forms/${token}/response-packet`),
   },
@@ -144,6 +145,74 @@ describe('PublicCaseFormPage', () => {
       'href',
       '/api/v2/public/case-forms/token-1/response-packet'
     );
+    expect(screen.queryByRole('button', { name: /submit form/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/submission received/i)).toBeInTheDocument();
+  });
+
+  it('offers retry recovery when the secure form fails to load', async () => {
+    getFormMock
+      .mockRejectedValueOnce(new Error('Failed to load secure form'))
+      .mockResolvedValueOnce({
+        assignment: {
+          id: 'assignment-1',
+          case_id: 'case-1',
+          contact_id: 'contact-1',
+          title: 'Email Intake Form',
+          description: 'Complete the intake details',
+          status: 'sent',
+          schema: {
+            version: 1,
+            title: 'Email Intake Form',
+            sections: [{ id: 'section-1', title: 'Details', questions: [] }],
+          },
+          current_draft_answers: {},
+          draft_assets: [],
+          latest_submission: null,
+          delivery_target: 'email',
+          sent_at: '2026-04-16T12:00:00.000Z',
+          created_at: '2026-04-16T12:00:00.000Z',
+          updated_at: '2026-04-16T12:00:00.000Z',
+        },
+        submissions: [],
+      });
+
+    renderPage();
+
+    expect(await screen.findByText(/failed to load secure form/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /retry loading form/i }));
+
+    expect(await screen.findByText('Email Intake Form')).toBeInTheDocument();
+    expect(screen.getByText(/need support/i)).toBeInTheDocument();
+  });
+
+  it('shows an expired-link recovery state for inactive assignments', async () => {
+    getFormMock.mockResolvedValueOnce({
+      assignment: {
+        id: 'assignment-1',
+        case_id: 'case-1',
+        contact_id: 'contact-1',
+        title: 'Email Intake Form',
+        description: 'Complete the intake details',
+        status: 'expired',
+        schema: {
+          version: 1,
+          title: 'Email Intake Form',
+          sections: [{ id: 'section-1', title: 'Details', questions: [] }],
+        },
+        current_draft_answers: {},
+        draft_assets: [],
+        latest_submission: null,
+        delivery_target: 'email',
+        sent_at: '2026-04-16T12:00:00.000Z',
+        created_at: '2026-04-16T12:00:00.000Z',
+        updated_at: '2026-04-16T12:00:00.000Z',
+      },
+      submissions: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText(/this secure form link has expired/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /submit form/i })).not.toBeInTheDocument();
   });
 });

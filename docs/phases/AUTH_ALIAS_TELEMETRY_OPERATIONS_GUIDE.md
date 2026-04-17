@@ -11,7 +11,7 @@ This guide defines the production-facing query and dashboard workflow for `P4-T9
 The source implementation remains:
 
 - alias event middleware: `backend/src/modules/auth/middleware/aliasUsageTelemetry.ts`
-- request logging middleware: `backend/src/middleware/structuredLogging.ts`
+- HTTP request logging path: `backend/src/index.ts` (Morgan -> shared Winston logger with correlation IDs)
 - logger transport contract: `backend/src/config/logger.ts`
 
 ## Event Contract
@@ -39,7 +39,7 @@ Fields added by the shared logger transport and request context when available:
 - `environment`
 - `version`
 
-The companion denominator for daily ratios comes from the existing structured response log:
+The companion denominator for daily ratios comes from the existing HTTP response log stream routed through the shared logger transport:
 
 - message: `Outgoing response`
 - fields used here: `method`, `path`, `statusCode`, `requestId`, `timestamp`

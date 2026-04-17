@@ -39,7 +39,7 @@ describe('contact notes controller', () => {
     delete: jest.fn(),
   };
 
-  const controller = createContactNotesController(useCase as any, 'v2');
+  const controller = createContactNotesController(useCase as any);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -119,7 +119,7 @@ describe('contact notes controller', () => {
     await controller.createContactNote(req, res, next);
 
     expect(useCase.create).toHaveBeenCalledWith('contact-1', { content: 'Saved note' }, 'user-1');
-    expect(mockSendData).toHaveBeenCalledWith(res, 'v2', { id: 'note-1', content: 'Saved note' }, 201);
+    expect(mockSendData).toHaveBeenCalledWith(res, { id: 'note-1', content: 'Saved note' }, 201);
     expect(mockSendFailure).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
@@ -144,7 +144,7 @@ describe('contact notes controller', () => {
     await controller.getContactNotesTimeline(req, res, next);
 
     expect(useCase.listTimeline).toHaveBeenCalledWith('contact-1');
-    expect(mockSendData).toHaveBeenCalledWith(res, 'v2', {
+    expect(mockSendData).toHaveBeenCalledWith(res, {
       items: [],
       counts: {
         all: 0,

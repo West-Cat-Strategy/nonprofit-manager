@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
+import SkipLink from '../SkipLink';
 
 interface AuthHeroShellProps {
   badge?: string;
@@ -15,8 +16,11 @@ export default function AuthHeroShell({
   highlights = [],
   children,
 }: AuthHeroShellProps) {
+  const titleId = useId();
+
   return (
     <div className="app-shell app-shell--auth relative min-h-screen overflow-hidden bg-gradient-to-br from-app-bg via-app-shell-top to-app-accent-soft/35 font-body text-app-text">
+      <SkipLink targetId="auth-main-content" />
       <div
         aria-hidden="true"
         className="app-shell-orb app-shell-orb--primary pointer-events-none absolute -top-24 left-0 h-72 w-72 rounded-full bg-[var(--app-shell-glow)] blur-3xl"
@@ -25,16 +29,22 @@ export default function AuthHeroShell({
         aria-hidden="true"
         className="app-shell-orb app-shell-orb--secondary pointer-events-none absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-[var(--app-shell-glow-secondary)] blur-3xl"
       />
-      <div className="relative mx-auto flex min-h-screen max-w-6xl items-start px-4 py-6 sm:items-center sm:px-6 sm:py-10 lg:px-8">
+      <main
+        id="auth-main-content"
+        className="relative mx-auto flex min-h-screen max-w-6xl items-start px-4 py-6 sm:items-center sm:px-6 sm:py-10 lg:px-8"
+      >
         <div className="grid w-full gap-8 lg:grid-cols-[1fr_1.05fr]">
-          <div className="order-2 flex flex-col gap-6 lg:order-1">
+          <header className="order-2 flex flex-col gap-6 lg:order-1">
             {badge && (
               <span className="inline-flex w-fit items-center gap-2 rounded-full border border-app-border-muted bg-app-surface-elevated/90 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-app-text-label shadow-sm backdrop-blur">
                 {badge}
               </span>
             )}
             <div className="space-y-3">
-              <h1 className="font-display text-3xl font-semibold text-app-text-heading sm:text-4xl">
+              <h1
+                id={titleId}
+                className="font-display text-3xl font-semibold text-app-text-heading sm:text-4xl"
+              >
                 {title}
               </h1>
               <p className="max-w-2xl text-base text-app-text sm:text-lg">{description}</p>
@@ -60,12 +70,15 @@ export default function AuthHeroShell({
                 ))}
               </div>
             )}
-          </div>
-          <div className="app-shell-panel order-1 rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface-elevated/92 p-5 shadow-[var(--ui-elev-2)] backdrop-blur sm:p-8 lg:order-2">
+          </header>
+          <section
+            aria-labelledby={titleId}
+            className="app-shell-panel order-1 rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface-elevated/92 p-5 shadow-[var(--ui-elev-2)] backdrop-blur sm:p-8 lg:order-2"
+          >
             {children}
-          </div>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

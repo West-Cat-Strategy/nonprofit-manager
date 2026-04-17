@@ -14,6 +14,7 @@ import {
   ReportExportJobArtifactGoneError,
   ReportExportJobArtifactNotReadyError,
 } from '@services/reportExportJobService';
+import { DirectReportExportTooLargeError } from '@services/reportService';
 import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import {
   requirePermissionSafe,
@@ -23,6 +24,8 @@ import {
 import { Permission } from '@utils/permissions';
 
 const reportService = services.report;
+const DIRECT_EXPORT_TOO_LARGE_MESSAGE =
+  'Report is too large for direct export. Use /v2/reports/exports to create an export job.';
 const getOrgId = (req: AuthRequest): string | null =>
   req.organizationId || req.accountId || req.tenantId || null;
 
@@ -141,11 +144,16 @@ export const exportReport = async (
       return;
     }
 
+    await reportService.assertDirectExportSupported(definition, { organizationId });
     const result = await reportService.generateReport(definition, { organizationId });
     const file = await reportService.exportReport(result, format as 'csv' | 'xlsx');
     setTabularDownloadHeaders(res, file);
     res.send(file.buffer);
   } catch (error) {
+    if (error instanceof DirectReportExportTooLargeError) {
+      conflict(res, DIRECT_EXPORT_TOO_LARGE_MESSAGE);
+      return;
+    }
     next(error);
   }
 };

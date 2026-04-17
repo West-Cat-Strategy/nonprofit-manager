@@ -8,12 +8,9 @@ import {
 import { Permission } from '@utils/permissions';
 import type { CreateContactNoteDTO, UpdateContactNoteDTO } from '@app-types/contact';
 import { ContactNotesUseCase } from '../usecases/contactNotes.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
-export const createContactNotesController = (
-  useCase: ContactNotesUseCase,
-  mode: ResponseMode
-) => {
+export const createContactNotesController = (useCase: ContactNotesUseCase) => {
   const guardOutcomeTagPermission = (req: AuthRequest, res: Response): boolean => {
     const guardResult = requirePermissionSafe(req, Permission.OUTCOMES_TAG_INTERACTION);
     if (!guardResult.ok) {
@@ -35,7 +32,7 @@ export const createContactNotesController = (
   const getContactNotes = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const notes = await useCase.list(req.params.contactId);
-      sendData(res, mode, notes);
+      sendData(res, notes);
     } catch (error) {
       next(error);
     }
@@ -48,7 +45,7 @@ export const createContactNotesController = (
   ): Promise<void> => {
     try {
       const timeline = await useCase.listTimeline(req.params.contactId);
-      sendData(res, mode, timeline);
+      sendData(res, timeline);
     } catch (error) {
       next(error);
     }
@@ -62,11 +59,11 @@ export const createContactNotesController = (
     try {
       const note = await useCase.getById(req.params.noteId);
       if (!note) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Note not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Note not found', 404);
         return;
       }
 
-      sendData(res, mode, note);
+      sendData(res, note);
     } catch (error) {
       next(error);
     }
@@ -80,7 +77,7 @@ export const createContactNotesController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
@@ -90,7 +87,7 @@ export const createContactNotesController = (
       }
 
       const note = await useCase.create(req.params.contactId, payload, userId);
-      sendData(res, mode, note, 201);
+      sendData(res, note, 201);
     } catch (error) {
       next(error);
     }
@@ -109,11 +106,11 @@ export const createContactNotesController = (
 
       const note = await useCase.update(req.params.noteId, payload, req.user?.id);
       if (!note) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Note not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Note not found', 404);
         return;
       }
 
-      sendData(res, mode, note);
+      sendData(res, note);
     } catch (error) {
       next(error);
     }
@@ -127,7 +124,7 @@ export const createContactNotesController = (
     try {
       const deleted = await useCase.delete(req.params.noteId);
       if (!deleted) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Note not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Note not found', 404);
         return;
       }
 

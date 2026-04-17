@@ -828,26 +828,22 @@ export class TaxReceiptService {
     donations: DonationReceiptRow[],
     officialCoverage: boolean
   ): Promise<void> {
-    for (const donation of donations) {
-      await client.query(
-        `INSERT INTO tax_receipt_items (
-           receipt_id,
-           donation_id,
-           donation_amount,
-           donation_date,
-           official_coverage,
-           created_at
-         )
-         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
-        [
-          receiptId,
-          donation.donation_id,
-          donation.amount,
-          donation.donation_date,
-          officialCoverage,
-        ]
-      );
+    if (donations.length === 0) {
+      return;
     }
+
+    await client.query(
+      `INSERT INTO tax_receipt_items (receipt_id, donation_id, donation_amount, donation_date, official_coverage, created_at)
+       SELECT $1::uuid, item.donation_id, item.donation_amount, item.donation_date, $5::boolean, CURRENT_TIMESTAMP
+       FROM UNNEST($2::uuid[], $3::numeric[], $4::date[]) AS item(donation_id, donation_amount, donation_date)`,
+      [
+        receiptId,
+        donations.map((donation) => donation.donation_id),
+        donations.map((donation) => donation.amount),
+        donations.map((donation) => donation.donation_date),
+        officialCoverage,
+      ]
+    );
   }
 
   private async markDonationsReceipted(

@@ -206,8 +206,6 @@ router.put(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createReconciliationRoutes = () => router;
 
-export const createReconciliationRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const reconciliationV2Routes = createReconciliationRoutes('v2');
+export const reconciliationV2Routes = createReconciliationRoutes();

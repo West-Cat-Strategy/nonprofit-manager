@@ -325,6 +325,41 @@ export async function createPasswordResetLink(input: {
   }
 }
 
+export async function createPortalPasswordResetLink(input: {
+  portalUserId: string;
+}): Promise<{
+  tokenId: string;
+  resetToken: string;
+  resetUrl: string;
+}> {
+  const client = new PgClient(getTestDatabaseConfig());
+  try {
+    await client.connect();
+    const secret = crypto.randomBytes(32).toString('hex');
+    const tokenHash = await bcrypt.hash(secret, 10);
+    const result = await client.query<{ id: string }>(
+      `INSERT INTO portal_password_reset_tokens (portal_user_id, token_hash, expires_at)
+       VALUES ($1, $2, NOW() + INTERVAL '1 hour')
+       RETURNING id`,
+      [input.portalUserId, tokenHash]
+    );
+
+    const tokenId = result.rows[0]?.id;
+    if (!tokenId) {
+      throw new Error('Portal password reset fixture insert did not return a token id.');
+    }
+
+    const resetToken = `${tokenId}.${secret}`;
+    return {
+      tokenId,
+      resetToken,
+      resetUrl: `${frontendURL()}/portal/reset-password/${resetToken}`,
+    };
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
 export async function createPublicCaseFormLink(
   page: Page,
   token: string,

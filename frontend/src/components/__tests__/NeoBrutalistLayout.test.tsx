@@ -36,6 +36,6 @@ describe('NeoBrutalistLayout', () => {
 
   it('uses pageTitle as accessible label', () => {
     renderLayout();
-    expect(screen.getByLabelText('TEST')).toBeInTheDocument();
+    expect(screen.getByRole('main', { name: 'TEST' })).toBeInTheDocument();
   });
 });

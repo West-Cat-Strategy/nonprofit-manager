@@ -57,6 +57,7 @@ export type RouteAuditFixtureKey =
   | 'staff-invitation'
   | 'admin-registration-review'
   | 'password-reset'
+  | 'portal-password-reset'
   | 'public-case-form'
   | 'portal-invitation'
   | 'public-report-snapshot'

@@ -110,8 +110,6 @@ router.post('/comprehensive', validateBody(comprehensiveExportSchema), exportCom
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createExportRoutes = () => router;
 
-export const createExportRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const exportV2Routes = createExportRoutes('v2');
+export const exportV2Routes = createExportRoutes();

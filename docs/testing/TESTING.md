@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2026-04-13
+**Last Updated:** 2026-04-16
 
 This file is the active test command map for nonprofit-manager. Use it with [../../README.md](../../README.md) and the service-specific READMEs.
 
@@ -12,7 +12,7 @@ This file is the active test command map for nonprofit-manager. Use it with [../
 | Coverage variant | `make test-coverage` | Runs backend/frontend coverage and Playwright smoke tests |
 | Backend unit/integration | `cd backend && npm test` / `cd backend && npm run test:integration` | `npm test` prepares the CI-style test DB before running the full Jest suite |
 | Frontend unit/component | `cd frontend && npm test -- --run` | Frontend uses Vitest |
-| E2E | `cd e2e && npm test` | Playwright starts frontend/backend by default; use `npm run test:docker` against `make docker-up-dev`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. |
+| E2E | `cd e2e && npm test` | Wrapper-driven host commands always use the Playwright-managed `5173/3001` contract; `npm run test:docker*` always target the externally managed Docker contract on `8005/8004`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. |
 | Docs validation | `make check-links` and `make lint-doc-api-versioning` | Use when docs changed |
 
 ## Runtime Matrix
@@ -74,10 +74,12 @@ npm run test:smoke
 npm run test:docker
 npm run test:docker:smoke
 npm run test:docker:ci
+npm run test:docker:ci:mobile
 npm run test:docker:audit
 npm run test:headed
 npm run test:ui
 npm run test:ci
+npm run test:ci:mobile
 ```
 
 ## Docs And Contract Checks

@@ -14,12 +14,14 @@ import {
   PortalDocuments,
   PortalEvents,
   PortalForms,
+  PortalForgotPassword,
   PortalLogin,
   PortalMessages,
   PortalNotes,
   PortalPeople,
   PortalProfile,
   PortalReminders,
+  PortalResetPassword,
   PublicCaseForm,
   PortalSignup,
 } from '../features/portal/routeComponents';
@@ -30,6 +32,8 @@ export function createPortalPublicRoutes() {
       {/* Public portal routes */}
       <Route path="/portal/login" element={<PortalLogin />} />
       <Route path="/portal/signup" element={<PortalSignup />} />
+      <Route path="/portal/forgot-password" element={<PortalForgotPassword />} />
+      <Route path="/portal/reset-password/:token" element={<PortalResetPassword />} />
       <Route path="/portal/accept-invitation/:token" element={<PortalAcceptInvitation />} />
       <Route path="/public/case-forms/:token" element={<PublicCaseForm />} />
     </>

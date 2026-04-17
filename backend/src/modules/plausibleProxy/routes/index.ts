@@ -62,8 +62,6 @@ router.get(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createPlausibleProxyRoutes = () => router;
 
-export const createPlausibleProxyRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const plausibleProxyV2Routes = createPlausibleProxyRoutes('v2');
+export const plausibleProxyV2Routes = createPlausibleProxyRoutes();

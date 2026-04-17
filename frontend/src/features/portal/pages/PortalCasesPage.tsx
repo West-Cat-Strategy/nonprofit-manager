@@ -8,17 +8,28 @@ import CaseProvenanceSummary from '../../../components/cases/CaseProvenanceSumma
 import { portalV2ApiClient } from '../../../features/portal/api/portalApiClient';
 import type { PortalCaseSummary } from '../../../features/portal/types/contracts';
 import { usePersistentPortalCaseContext } from '../../../hooks/usePersistentPortalCaseContext';
+import { formatPortalDate } from '../utils/dateDisplay';
+import { usePortalListUrlState } from '../utils/listQueryState';
+
+const CASE_SORT_VALUES = ['updated_at', 'title', 'status_name', 'case_number'] as const;
 
 export default function PortalCases() {
   const [cases, setCases] = useState<PortalCaseSummary[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<'updated_at' | 'title' | 'status_name' | 'case_number'>(
-    'updated_at'
-  );
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { setSelectedCaseId } = usePersistentPortalCaseContext();
+  const {
+    search: searchTerm,
+    sort: sortField,
+    order: sortOrder,
+    setSearch,
+    setSort,
+    setOrder,
+  } = usePortalListUrlState({
+    sortValues: CASE_SORT_VALUES,
+    defaultSort: 'updated_at',
+    defaultOrder: 'desc',
+  });
 
   const filteredCases = useMemo(() => {
     const needle = searchTerm.trim().toLowerCase();
@@ -84,10 +95,10 @@ export default function PortalCases() {
     >
       <PortalListToolbar
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={setSearch}
         searchPlaceholder="Search cases by number, title, status, or type"
         sortValue={sortField}
-        onSortChange={setSortField}
+        onSortChange={setSort}
         sortOptions={[
           { value: 'updated_at', label: 'Recently updated' },
           { value: 'title', label: 'Title' },
@@ -95,7 +106,7 @@ export default function PortalCases() {
           { value: 'case_number', label: 'Case number' },
         ]}
         orderValue={sortOrder}
-        onOrderChange={setSortOrder}
+        onOrderChange={setOrder}
         showingCount={filteredCases.length}
         totalCount={cases.length}
       />
@@ -125,7 +136,7 @@ export default function PortalCases() {
               <PortalListCard
                 title={item.title}
                 subtitle={item.case_number}
-                meta={`Updated ${new Date(item.updated_at).toLocaleDateString()}`}
+                meta={`Updated ${formatPortalDate(item.updated_at)}`}
                 badges={
                   <>
                     {item.status_name && (

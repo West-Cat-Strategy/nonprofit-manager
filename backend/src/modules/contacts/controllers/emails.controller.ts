@@ -2,7 +2,7 @@ import { NextFunction, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import type { CreateContactEmailDTO, UpdateContactEmailDTO } from '@app-types/contact';
 import { ContactEmailsUseCase } from '../usecases/contactEmails.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
 const mapEmailError = (error: unknown): { status: number; code: string; message: string } | null => {
   const message = error instanceof Error ? error.message : String(error);
@@ -16,14 +16,11 @@ const mapEmailError = (error: unknown): { status: number; code: string; message:
   return null;
 };
 
-export const createContactEmailsController = (
-  useCase: ContactEmailsUseCase,
-  mode: ResponseMode
-) => {
+export const createContactEmailsController = (useCase: ContactEmailsUseCase) => {
   const getContactEmails = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const emails = await useCase.list(req.params.contactId);
-      sendData(res, mode, emails);
+      sendData(res, emails);
     } catch (error) {
       next(error);
     }
@@ -37,11 +34,11 @@ export const createContactEmailsController = (
     try {
       const email = await useCase.getById(req.params.emailId);
       if (!email) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Email address not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Email address not found', 404);
         return;
       }
 
-      sendData(res, mode, email);
+      sendData(res, email);
     } catch (error) {
       next(error);
     }
@@ -55,16 +52,16 @@ export const createContactEmailsController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
       const email = await useCase.create(req.params.contactId, req.body as CreateContactEmailDTO, userId);
-      sendData(res, mode, email, 201);
+      sendData(res, email, 201);
     } catch (error) {
       const mapped = mapEmailError(error);
       if (mapped) {
-        sendFailure(res, mode, mapped.code, mapped.message, mapped.status);
+        sendFailure(res, mapped.code, mapped.message, mapped.status);
         return;
       }
       next(error);
@@ -79,21 +76,21 @@ export const createContactEmailsController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
       const email = await useCase.update(req.params.emailId, req.body as UpdateContactEmailDTO, userId);
       if (!email) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Email address not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Email address not found', 404);
         return;
       }
 
-      sendData(res, mode, email);
+      sendData(res, email);
     } catch (error) {
       const mapped = mapEmailError(error);
       if (mapped) {
-        sendFailure(res, mode, mapped.code, mapped.message, mapped.status);
+        sendFailure(res, mapped.code, mapped.message, mapped.status);
         return;
       }
       next(error);
@@ -108,7 +105,7 @@ export const createContactEmailsController = (
     try {
       const deleted = await useCase.delete(req.params.emailId);
       if (!deleted) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Email address not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Email address not found', 404);
         return;
       }
 

@@ -9,7 +9,7 @@ import {
 import { getBoolean, getInteger, getString } from '@utils/queryHelpers';
 import { TaskCatalogUseCase } from '../usecases/taskCatalog.usecase';
 import { TaskLifecycleUseCase } from '../usecases/taskLifecycle.usecase';
-import { type ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
 const parseTaskStatus = (value: string | undefined): TaskStatus | undefined => {
   if (!value) return undefined;
@@ -49,8 +49,7 @@ const parseRelatedToType = (value: string | undefined): RelatedToType | undefine
 
 export const createTasksController = (
   catalogUseCase: TaskCatalogUseCase,
-  lifecycleUseCase: TaskLifecycleUseCase,
-  mode: ResponseMode
+  lifecycleUseCase: TaskLifecycleUseCase
 ) => {
   const getTasks = async (
     req: AuthRequest,
@@ -74,7 +73,7 @@ export const createTasksController = (
       };
 
       const result = await catalogUseCase.list(filters);
-      sendData(res, mode, result);
+      sendData(res, result);
     } catch (error) {
       next(error);
     }
@@ -94,7 +93,7 @@ export const createTasksController = (
       };
 
       const summary = await catalogUseCase.summary(filters);
-      sendData(res, mode, summary);
+      sendData(res, summary);
     } catch (error) {
       next(error);
     }
@@ -108,11 +107,11 @@ export const createTasksController = (
     try {
       const task = await catalogUseCase.getById(req.params.id);
       if (!task) {
-        sendFailure(res, mode, 'not_found', 'Task not found', 404);
+        sendFailure(res, 'not_found', 'Task not found', 404);
         return;
       }
 
-      sendData(res, mode, task);
+      sendData(res, task);
     } catch (error) {
       next(error);
     }
@@ -126,12 +125,12 @@ export const createTasksController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const task = await lifecycleUseCase.create(req.body, userId);
-      sendData(res, mode, task, 201);
+      sendData(res, task, 201);
     } catch (error) {
       next(error);
     }
@@ -145,17 +144,17 @@ export const createTasksController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const task = await lifecycleUseCase.update(req.params.id, req.body, userId);
       if (!task) {
-        sendFailure(res, mode, 'not_found', 'Task not found', 404);
+        sendFailure(res, 'not_found', 'Task not found', 404);
         return;
       }
 
-      sendData(res, mode, task);
+      sendData(res, task);
     } catch (error) {
       next(error);
     }
@@ -169,7 +168,7 @@ export const createTasksController = (
     try {
       const success = await lifecycleUseCase.delete(req.params.id);
       if (!success) {
-        sendFailure(res, mode, 'not_found', 'Task not found', 404);
+        sendFailure(res, 'not_found', 'Task not found', 404);
         return;
       }
 
@@ -187,17 +186,17 @@ export const createTasksController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const task = await lifecycleUseCase.complete(req.params.id, userId);
       if (!task) {
-        sendFailure(res, mode, 'not_found', 'Task not found', 404);
+        sendFailure(res, 'not_found', 'Task not found', 404);
         return;
       }
 
-      sendData(res, mode, task);
+      sendData(res, task);
     } catch (error) {
       next(error);
     }

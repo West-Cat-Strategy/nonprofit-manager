@@ -4,12 +4,11 @@ import type { DataScopeFilter } from '@app-types/dataScope';
 import type { ContactCommunicationFilters } from '@app-types/contact';
 import { ContactCommunicationsUseCase } from '../usecases/contactCommunications.usecase';
 import { ContactDirectoryUseCase } from '../usecases/contactDirectory.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
 export const createContactCommunicationsController = (
   useCase: ContactCommunicationsUseCase,
-  directoryUseCase: ContactDirectoryUseCase,
-  mode: ResponseMode
+  directoryUseCase: ContactDirectoryUseCase
 ) => {
   const getContactCommunications = async (
     req: AuthRequest,
@@ -20,7 +19,7 @@ export const createContactCommunicationsController = (
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const contact = await directoryUseCase.getById(req.params.id, scope, req.user?.role);
       if (!contact) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Contact not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Contact not found', 404);
         return;
       }
 
@@ -32,7 +31,7 @@ export const createContactCommunicationsController = (
         limit: query.limit,
       });
 
-      sendData(res, mode, result);
+      sendData(res, result);
     } catch (error) {
       next(error);
     }

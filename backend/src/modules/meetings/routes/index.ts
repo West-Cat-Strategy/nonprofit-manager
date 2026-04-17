@@ -159,8 +159,6 @@ router.post(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createMeetingsRoutes = () => router;
 
-export const createMeetingsRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const meetingsV2Routes = createMeetingsRoutes('v2');
+export const meetingsV2Routes = createMeetingsRoutes();

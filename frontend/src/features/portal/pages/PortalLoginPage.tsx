@@ -44,13 +44,15 @@ export default function PortalLogin() {
         <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text" role="alert" aria-live="polite">
           {error}
           <p className="mt-1 text-xs text-app-text-muted">
-            If your invitation has expired, contact your organization to request a new invite.
+            Forgot your password? Request a reset link. If your invitation has expired, contact
+            your organization to request a new invite.
           </p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <FormField
+          id="portal-login-email"
           type="email"
           label="Email"
           value={email}
@@ -59,6 +61,7 @@ export default function PortalLogin() {
           autoComplete="email"
         />
         <FormField
+          id="portal-login-password"
           type="password"
           label="Password"
           value={password}
@@ -66,6 +69,17 @@ export default function PortalLogin() {
           required
           autoComplete="current-password"
         />
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <Link
+            to="/portal/forgot-password"
+            className="font-medium text-app-text-heading hover:underline"
+          >
+            Forgot password?
+          </Link>
+          <span className="text-app-text-muted">
+            Need a new invitation? Contact your organization.
+          </span>
+        </div>
         <PrimaryButton type="submit" disabled={loading} className="w-full justify-center">
           {loading ? 'Signing in...' : 'Sign In'}
         </PrimaryButton>

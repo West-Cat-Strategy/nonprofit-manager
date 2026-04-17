@@ -261,7 +261,7 @@ describe('ContactList page', () => {
     vi.useRealTimers();
   });
 
-  it('navigates to a contact detail route using the canonical contact UUID', () => {
+  it('renders a semantic detail link using the canonical contact UUID', () => {
     contactsState.contacts = [
       {
         contact_id: '11111111-1111-4111-8111-111111111111',
@@ -278,8 +278,13 @@ describe('ContactList page', () => {
 
     renderWithProviders(<ContactList />);
 
-    fireEvent.click(screen.getByText('Avery Stone'));
-
-    expect(navigateMock).toHaveBeenCalledWith('/contacts/11111111-1111-4111-8111-111111111111');
+    expect(screen.getByRole('link', { name: /Avery Stone/ })).toHaveAttribute(
+      'href',
+      '/contacts/11111111-1111-4111-8111-111111111111'
+    );
+    expect(screen.getByRole('link', { name: 'View' })).toHaveAttribute(
+      'href',
+      '/contacts/11111111-1111-4111-8111-111111111111'
+    );
   });
 });

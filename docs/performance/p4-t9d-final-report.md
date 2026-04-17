@@ -36,7 +36,7 @@ Status: `Done` (strict closure complete; retry-resolved flakes documented)
 |---|---:|---:|---:|---|
 | Startup request count (`p75`) | 8 | <= 6 | `e2e/tests/performance.startup.spec.ts` guard passed in final strict run (all projects green after retries) | Pass (guarded at `<= 6`) |
 | App-owned startup JS bytes | 256,726 | <= 192,544 | `index-main` 94,555 bytes (`index-BUSiWP7j.js`) | Pass (`-63.2%`) |
-| Login -> dashboard load (`p75`) | 2,600ms | <= 2,000ms | Performance guard passed overall; one Firefox first-attempt outlier captured at `2670ms` then retry passed under cap | Pass (with retry-resolved flake) |
+| Login -> dashboard load (`p75`) | 2,600ms | <= 1,800ms | Performance guard passed overall; one Firefox first-attempt outlier captured at `2670ms` then retry passed under cap | Pass (with retry-resolved flake) |
 
 ## Verification Evidence
 

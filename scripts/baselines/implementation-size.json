@@ -16,7 +16,6 @@
     "backend/src/modules/volunteers/usecases/volunteerImportExport.usecase.ts": 1306,
     "backend/src/services/publishing/siteOperationsService.ts": 918,
     "backend/src/types/websiteBuilder.ts": 1028,
-    "frontend/src/components/EventForm.tsx": 1099,
     "frontend/src/components/editor/EditorCanvas.tsx": 1069,
     "frontend/src/features/adminOps/pages/AdminSettingsPage.tsx": 913,
     "frontend/src/features/adminOps/pages/ApiSettingsPage.tsx": 914,

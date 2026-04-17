@@ -9,6 +9,7 @@ import {
 } from './shared';
 
 const portalPasswordSchema = passwordSchema;
+const portalResetTokenRegex = /^([a-fA-F0-9]{64}|[0-9a-fA-F-]{36}\.[a-fA-F0-9]{64})$/;
 const optionalTrimmedString = (max: number) =>
   z.preprocess(
     (value) => {
@@ -32,6 +33,25 @@ export const portalSignupSchema = z.object({
 export const portalLoginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1),
+});
+
+export const portalPasswordResetRequestSchema = z.object({
+  email: emailSchema,
+});
+
+export const portalPasswordResetConfirmSchema = z
+  .object({
+    token: z.string().trim().regex(portalResetTokenRegex, 'Invalid reset token format'),
+    password: portalPasswordSchema,
+    password_confirm: z.string(),
+  })
+  .refine((data) => data.password === data.password_confirm, {
+    message: 'Passwords do not match',
+    path: ['password_confirm'],
+  });
+
+export const portalPasswordResetTokenParamsSchema = z.object({
+  token: z.string().trim().regex(portalResetTokenRegex, 'Invalid reset token format'),
 });
 
 export const portalInvitationTokenParamsSchema = z.object({

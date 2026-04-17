@@ -5,7 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchDonations,
@@ -28,7 +28,6 @@ import {
   ErrorState,
   LoadingState,
   PageHeader,
-  PrimaryButton,
   SecondaryButton,
   StatCard,
 } from '../../../components/ui';
@@ -62,9 +61,10 @@ const PAYMENT_METHOD_VALUES = [
   'in_kind',
   'other',
 ] as const;
+const donationActionLinkClass =
+  'inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] bg-[var(--app-accent)] px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:bg-[var(--app-accent-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
 
 const DonationList: React.FC = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { showError, showSuccess } = useToast();
@@ -270,14 +270,17 @@ const DonationList: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
-      pending: 'bg-app-accent-soft text-app-accent-text',
-      completed: 'bg-app-accent-soft text-app-accent-text',
-      failed: 'bg-app-accent-soft text-app-accent-text',
-      refunded: 'bg-app-accent-soft text-app-accent-text',
+      pending: 'bg-[var(--loop-yellow)] text-black',
+      completed: 'bg-[var(--loop-green)] text-black',
+      failed: 'bg-[var(--loop-pink)] text-black',
+      refunded: 'bg-[var(--loop-cyan)] text-black',
       cancelled: 'bg-app-surface-muted text-app-text',
     };
     return badges[status] || 'bg-app-surface-muted text-app-text';
   };
+
+  const getPaymentStatusLabel = (status: string) =>
+    status.replace(/_/g, ' ').replace(/\b\w/g, (value) => value.toUpperCase());
 
   const getPaymentMethodLabel = (method: string | null) => {
     if (!method) return 'N/A';
@@ -291,7 +294,9 @@ const DonationList: React.FC = () => {
           title="Donations"
           description="Track donor contributions, payment status, and official receipt history."
           actions={
-            <PrimaryButton onClick={() => navigate('/donations/new')}>Record Donation</PrimaryButton>
+            <Link className={donationActionLinkClass} to="/donations/new">
+              Record Donation
+            </Link>
           }
         />
 
@@ -435,9 +440,9 @@ const DonationList: React.FC = () => {
                 {hasActiveFilters && (
                   <SecondaryButton onClick={clearFilters}>Clear Filters</SecondaryButton>
                 )}
-                <PrimaryButton onClick={() => navigate('/donations/new')}>
+                <Link className={donationActionLinkClass} to="/donations/new">
                   Record Donation
-                </PrimaryButton>
+                </Link>
               </div>
             }
           />
@@ -472,7 +477,7 @@ const DonationList: React.FC = () => {
                             donation.payment_status
                           )}`}
                         >
-                          {donation.payment_status}
+                          {getPaymentStatusLabel(donation.payment_status)}
                         </span>
                       </div>
 
@@ -489,18 +494,18 @@ const DonationList: React.FC = () => {
                           Actions
                         </summary>
                         <div className="mt-2 grid gap-2">
-                          <button
-                            onClick={() => navigate(`/donations/${donation.donation_id}`)}
+                          <Link
+                            to={`/donations/${donation.donation_id}`}
                             className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-text"
                           >
                             View
-                          </button>
-                          <button
-                            onClick={() => navigate(`/donations/${donation.donation_id}/edit`)}
+                          </Link>
+                          <Link
+                            to={`/donations/${donation.donation_id}/edit`}
                             className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-text"
                           >
                             Edit
-                          </button>
+                          </Link>
                           {donation.official_tax_receipt_id ? (
                             <button
                               onClick={() => void handleDownloadExistingReceipt(donation)}
@@ -527,12 +532,12 @@ const DonationList: React.FC = () => {
                             Annual Receipt
                           </button>
                           {donation.recurring_plan_id ? (
-                            <button
-                              onClick={() => navigate(`/recurring-donations/${donation.recurring_plan_id}`)}
+                            <Link
+                              to={`/recurring-donations/${donation.recurring_plan_id}`}
                               className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-text"
                             >
                               View Plan
-                            </button>
+                            </Link>
                           ) : null}
                         </div>
                       </details>
@@ -623,7 +628,7 @@ const DonationList: React.FC = () => {
                                 donation.payment_status
                               )}`}
                             >
-                              {donation.payment_status}
+                              {getPaymentStatusLabel(donation.payment_status)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -646,20 +651,18 @@ const DonationList: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 text-sm font-medium">
                             <div className="flex flex-wrap gap-3">
-                              <button
-                                onClick={() => navigate(`/donations/${donation.donation_id}`)}
+                              <Link
+                                to={`/donations/${donation.donation_id}`}
                                 className="text-app-accent hover:text-app-accent-text"
                               >
                                 View
-                              </button>
-                              <button
-                                onClick={() =>
-                                  navigate(`/donations/${donation.donation_id}/edit`)
-                                }
+                              </Link>
+                              <Link
+                                to={`/donations/${donation.donation_id}/edit`}
                                 className="text-app-accent hover:text-app-accent-text"
                               >
                                 Edit
-                              </button>
+                              </Link>
                               {donation.official_tax_receipt_id ? (
                                 <button
                                   onClick={() => void handleDownloadExistingReceipt(donation)}
@@ -694,16 +697,12 @@ const DonationList: React.FC = () => {
                                 Annual Receipt
                               </button>
                               {donation.recurring_plan_id ? (
-                                <button
-                                  onClick={() =>
-                                    navigate(
-                                      `/recurring-donations/${donation.recurring_plan_id}`
-                                    )
-                                  }
+                                <Link
+                                  to={`/recurring-donations/${donation.recurring_plan_id}`}
                                   className="text-app-accent hover:text-app-accent-text"
                                 >
                                   View Plan
-                                </button>
+                                </Link>
                               ) : null}
                             </div>
                           </td>

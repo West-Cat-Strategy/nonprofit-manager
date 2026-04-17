@@ -8,7 +8,6 @@ import { requireRole } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 import { createAccountsController } from '../controllers/accounts.controller';
-import { type ResponseMode } from '../mappers/responseMode';
 import { AccountRepository } from '../repositories/accountRepository';
 import { AccountCatalogUseCase } from '../usecases/accountCatalog.usecase';
 import { AccountImportExportUseCase } from '../usecases/accountImportExport.usecase';
@@ -100,15 +99,14 @@ const accountImportTemplateQuerySchema = z
   })
   .strict();
 
-export const createAccountsRoutes = (mode: ResponseMode = 'v2'): Router => {
+export const createAccountsRoutes = (): Router => {
   const router = Router();
 
   const repository = new AccountRepository();
   const controller = createAccountsController(
     new AccountCatalogUseCase(repository),
     new AccountLifecycleUseCase(repository),
-    new AccountImportExportUseCase(pool),
-    mode
+    new AccountImportExportUseCase(pool)
   );
 
   router.use(authenticate);
@@ -159,4 +157,4 @@ export const createAccountsRoutes = (mode: ResponseMode = 'v2'): Router => {
   return router;
 };
 
-export const accountsV2Routes = createAccountsRoutes('v2');
+export const accountsV2Routes = createAccountsRoutes();

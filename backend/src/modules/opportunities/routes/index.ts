@@ -145,4 +145,3 @@ export const createOpportunitiesRoutes = (): Router => {
 };
 
 export const opportunitiesV2Routes = createOpportunitiesRoutes();
-export const opportunitiesApiRoutes = createOpportunitiesRoutes();

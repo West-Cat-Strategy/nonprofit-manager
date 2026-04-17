@@ -125,8 +125,6 @@ router.patch(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createPortalAdminRoutes = () => router;
 
-export const createPortalAdminRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const portalAdminV2Routes = createPortalAdminRoutes('v2');
+export const portalAdminV2Routes = createPortalAdminRoutes();

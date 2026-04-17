@@ -94,8 +94,6 @@ router.delete('/:id', validateParams(userIdParamsSchema), deleteUser);
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createUsersRoutes = () => router;
 
-export const createUsersRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const usersV2Routes = createUsersRoutes('v2');
+export const usersV2Routes = createUsersRoutes();

@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import type * as ReactRouterDom from 'react-router-dom';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Analytics from '../AnalyticsPage';
@@ -8,16 +7,6 @@ import api from '../../../../services/api';
 import { vi } from 'vitest';
 import type { AnalyticsSummary, DonationTrendPoint, VolunteerHoursTrendPoint } from '../../../../types/analytics';
 import * as exportUtils from '../../../../utils/exportUtils';
-
-const mockNavigate = vi.fn();
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof ReactRouterDom>('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
 
 vi.mock('../../../../services/api');
 vi.mock('../../../../utils/exportUtils', () => ({
@@ -79,7 +68,7 @@ const mockVolunteerTrends: VolunteerHoursTrendPoint[] = [
   { month: 'Mar 2025', hours: 120, assignments: 12 },
 ];
 
-const renderAnalytics = () => {
+const renderAnalytics = ({ route = '/analytics' }: { route?: string } = {}) => {
   const store = createTestStore({
     auth: {
       user: { id: '1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'user' },
@@ -89,7 +78,7 @@ const renderAnalytics = () => {
       error: null,
     },
   });
-  renderWithProviders(<Analytics />, { store });
+  renderWithProviders(<Analytics />, { store, route });
   return store;
 };
 
@@ -137,6 +126,9 @@ const setupMocks = (options: {
     return Promise.resolve({ data: null });
   });
 };
+
+const getAnalyticsRequests = (url: string) =>
+  (api.get as ReturnType<typeof vi.fn>).mock.calls.filter(([requestUrl]) => requestUrl === url);
 
 describe('Analytics page', () => {
   const mockExportAnalyticsSummaryToPDF = vi.mocked(exportUtils.exportAnalyticsSummaryToPDF);
@@ -361,6 +353,106 @@ describe('Analytics page', () => {
     expect(endDateInput).toHaveValue('2025-12-31');
   });
 
+  it('hydrates applied filters and comparison period from the URL', async () => {
+    setupMocks();
+    renderAnalytics({
+      route: '/analytics?start_date=2025-01-01&end_date=2025-03-31&period=year',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Start Date')).toHaveValue('2025-01-01');
+    });
+
+    expect(screen.getByLabelText('End Date')).toHaveValue('2025-03-31');
+    expect(getAnalyticsRequests('/v2/analytics/summary').at(-1)?.[1]).toEqual(
+      expect.objectContaining({
+        params: {
+          start_date: '2025-01-01',
+          end_date: '2025-03-31',
+        },
+      })
+    );
+    expect(getAnalyticsRequests('/v2/analytics/comparative').at(-1)?.[1]).toEqual(
+      expect.objectContaining({
+        params: {
+          period: 'year',
+        },
+      })
+    );
+  });
+
+  it('sanitizes invalid URL filters before loading analytics', async () => {
+    setupMocks();
+    renderAnalytics({
+      route: '/analytics?start_date=not-a-date&end_date=2025-03-31&period=weekly',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Start Date')).toHaveValue('');
+    });
+
+    expect(screen.getByLabelText('End Date')).toHaveValue('2025-03-31');
+    expect(getAnalyticsRequests('/v2/analytics/summary').at(-1)?.[1]).toEqual(
+      expect.objectContaining({
+        params: {
+          start_date: undefined,
+          end_date: '2025-03-31',
+        },
+      })
+    );
+    expect(getAnalyticsRequests('/v2/analytics/comparative').at(-1)?.[1]).toEqual(
+      expect.objectContaining({
+        params: {
+          period: 'month',
+        },
+      })
+    );
+  });
+
+  it('keeps analytics URL and fetches stable until filters are explicitly applied or cleared', async () => {
+    const user = userEvent.setup();
+    setupMocks();
+    renderAnalytics();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Start Date')).toBeInTheDocument();
+    });
+
+    const initialSummaryRequestCount = getAnalyticsRequests('/v2/analytics/summary').length;
+
+    await user.clear(screen.getByLabelText('Start Date'));
+    await user.type(screen.getByLabelText('Start Date'), '2025-01-01');
+    await user.clear(screen.getByLabelText('End Date'));
+    await user.type(screen.getByLabelText('End Date'), '2025-12-31');
+
+    expect(getAnalyticsRequests('/v2/analytics/summary')).toHaveLength(initialSummaryRequestCount);
+
+    await user.click(screen.getByRole('button', { name: 'Apply Filters' }));
+
+    await waitFor(() => {
+      expect(getAnalyticsRequests('/v2/analytics/summary')).toHaveLength(
+        initialSummaryRequestCount + 1
+      );
+    });
+
+    expect(getAnalyticsRequests('/v2/analytics/summary').at(-1)?.[1]).toEqual(
+      expect.objectContaining({
+        params: {
+          start_date: '2025-01-01',
+          end_date: '2025-12-31',
+        },
+      })
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+
+    await waitFor(() => {
+      expect(getAnalyticsRequests('/v2/analytics/summary')).toHaveLength(
+        initialSummaryRequestCount + 2
+      );
+    });
+  });
+
   it('has export buttons when data is loaded', async () => {
     setupMocks();
     renderAnalytics();
@@ -444,18 +536,7 @@ describe('Analytics page', () => {
     expect(mockExportVolunteerTrendsToPDF).toHaveBeenCalled();
   });
 
-  it('navigates back when back button is clicked', async () => {
-    const user = userEvent.setup();
-    setupMocks();
-    renderAnalytics();
-
-    await user.click(screen.getByText('← Back'));
-
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
-  });
-
-  it('navigates to events module when link is clicked', async () => {
-    const user = userEvent.setup();
+  it('renders navigation-only analytics calls to action as links', async () => {
     setupMocks();
     renderAnalytics();
 
@@ -463,22 +544,14 @@ describe('Analytics page', () => {
       expect(screen.getByText('Events module')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByText('Events module'));
-
-    expect(mockNavigate).toHaveBeenCalledWith('/events');
-  });
-
-  it('navigates to donations module when link is clicked', async () => {
-    const user = userEvent.setup();
-    setupMocks();
-    renderAnalytics();
-
-    await waitFor(() => {
-      expect(screen.getByText('Donations module')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByText('Donations module'));
-
-    expect(mockNavigate).toHaveBeenCalledWith('/donations');
+    expect(screen.getByRole('link', { name: '← Back' })).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByRole('link', { name: 'Events module' })).toHaveAttribute(
+      'href',
+      '/events'
+    );
+    expect(screen.getByRole('link', { name: 'Donations module' })).toHaveAttribute(
+      'href',
+      '/donations'
+    );
   });
 });

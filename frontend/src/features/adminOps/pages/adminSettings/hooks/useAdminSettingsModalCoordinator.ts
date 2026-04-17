@@ -1,20 +1,22 @@
-import { useCallback } from 'react';
-import type { UserSecurityInfo } from '../types';
+import { useCallback, type Dispatch, type SetStateAction } from 'react';
+import type { AuditLogPage, Role, UserSecurityInfo } from '../types';
+
+type StateSetter<T> = Dispatch<SetStateAction<T>>;
 
 interface UseAdminSettingsModalCoordinatorParams {
   selectedUser: UserSecurityInfo | null;
-  setSelectedUser: (value: UserSecurityInfo | null | ((prev: UserSecurityInfo | null) => UserSecurityInfo | null)) => void;
-  setUserAuditLogPage: (value: unknown) => void;
-  setShowRoleModal: (value: boolean) => void;
-  setEditingRole: (value: unknown) => void;
-  setShowSecurityModal: (value: boolean) => void;
-  setShowAccessModal: (value: boolean) => void;
-  setUserAccessDraft: (value: { groups: string[]; organizationAccess: string[] }) => void;
-  setShowResetPasswordModal: (value: boolean) => void;
-  setNewPassword: (value: string) => void;
-  setConfirmPassword: (value: string) => void;
-  setShowResetEmailModal: (value: boolean) => void;
-  setNewEmail: (value: string) => void;
+  setSelectedUser: StateSetter<UserSecurityInfo | null>;
+  setUserAuditLogPage: StateSetter<AuditLogPage | null>;
+  setShowRoleModal: StateSetter<boolean>;
+  setEditingRole: StateSetter<Role | null>;
+  setShowSecurityModal: StateSetter<boolean>;
+  setShowAccessModal: StateSetter<boolean>;
+  setUserAccessDraft: StateSetter<{ groups: string[]; organizationAccess: string[] }>;
+  setShowResetPasswordModal: StateSetter<boolean>;
+  setNewPassword: StateSetter<string>;
+  setConfirmPassword: StateSetter<string>;
+  setShowResetEmailModal: StateSetter<boolean>;
+  setNewEmail: StateSetter<string>;
   clearFormError: () => void;
   showSuccess: (message: string) => void;
 }

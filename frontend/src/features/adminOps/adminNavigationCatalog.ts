@@ -75,7 +75,7 @@ export type AdminSettingsTabGroup = {
   tabs: AdminSettingsSection[];
 };
 
-export const adminSettingsSectionDefinitions: readonly AdminSettingsSectionDefinition[] = [
+export const adminSettingsSectionDefinitions = [
   {
     id: 'approvals',
     routeId: 'admin-settings-approvals',
@@ -245,7 +245,7 @@ export const adminSettingsSectionDefinitions: readonly AdminSettingsSectionDefin
     icon: '🧰',
     surface: 'core',
   },
-] as const;
+] as const satisfies readonly AdminSettingsSectionDefinition[];
 
 export const adminSettingsTabGroups: readonly AdminSettingsTabGroup[] = [
   {
@@ -292,7 +292,7 @@ export const adminSettingsTabGroups: readonly AdminSettingsTabGroup[] = [
   },
 ] as const;
 
-export const adminWorkspaceDefinitions: readonly AdminWorkspaceDefinition[] = [
+export const adminWorkspaceDefinitions = [
   {
     routeId: 'api-settings',
     path: '/settings/api',
@@ -407,28 +407,140 @@ export const adminWorkspaceDefinitions: readonly AdminWorkspaceDefinition[] = [
     panel: 'slots',
     navigation: [{ mode: 'portal', order: 60, label: 'Slots' }],
   },
-] as const;
+] as const satisfies readonly AdminWorkspaceDefinition[];
 
-export const adminRouteDefinitions: readonly AdminRouteDefinition[] = [
+export const adminRouteDefinitions = [
   ...adminSettingsSectionDefinitions,
   ...adminWorkspaceDefinitions,
-] as const;
+] as const satisfies readonly AdminRouteDefinition[];
 
-export const adminSettingsSectionDefinitionById = new Map(
+export type AdminSettingsSectionDefinitionEntry =
+  (typeof adminSettingsSectionDefinitions)[number];
+export type AdminWorkspaceDefinitionEntry = (typeof adminWorkspaceDefinitions)[number];
+export type AdminRouteDefinitionEntry = (typeof adminRouteDefinitions)[number];
+
+export type AdminSettingsSectionRouteId = AdminSettingsSectionDefinitionEntry['routeId'];
+export type AdminWorkspaceRouteId = AdminWorkspaceDefinitionEntry['routeId'];
+export type AdminRouteId = AdminRouteDefinitionEntry['routeId'];
+
+type AdminSettingsSectionDefinitionMap = {
+  [Section in AdminSettingsSection]: Extract<AdminSettingsSectionDefinitionEntry, { id: Section }>;
+};
+
+type AdminSettingsSectionRouteDefinitionMap = {
+  [RouteId in AdminSettingsSectionRouteId]: Extract<
+    AdminSettingsSectionDefinitionEntry,
+    { routeId: RouteId }
+  >;
+};
+
+type AdminWorkspaceRouteDefinitionMap = {
+  [RouteId in AdminWorkspaceRouteId]: Extract<AdminWorkspaceDefinitionEntry, { routeId: RouteId }>;
+};
+
+type AdminRouteDefinitionMap = {
+  [RouteId in AdminRouteId]: Extract<AdminRouteDefinitionEntry, { routeId: RouteId }>;
+};
+
+type PortalAdminDefinitionMap = {
+  [Panel in PortalAdminPanel]: Extract<AdminWorkspaceDefinitionEntry, { panel: Panel }>;
+};
+
+export const adminSettingsSectionDefinitionById = new Map<
+  AdminSettingsSection,
+  AdminSettingsSectionDefinitionEntry
+>(
   adminSettingsSectionDefinitions.map((definition) => [definition.id, definition] as const)
 );
 
-export const adminRouteDefinitionByRouteId = new Map(
+export const adminSettingsSectionDefinitionByRouteId = new Map<
+  AdminSettingsSectionRouteId,
+  AdminSettingsSectionDefinitionEntry
+>(
+  adminSettingsSectionDefinitions.map((definition) => [definition.routeId, definition] as const)
+);
+
+export const adminWorkspaceDefinitionByRouteId = new Map<
+  AdminWorkspaceRouteId,
+  AdminWorkspaceDefinitionEntry
+>(
+  adminWorkspaceDefinitions.map((definition) => [definition.routeId, definition] as const)
+);
+
+export const adminRouteDefinitionByRouteId = new Map<AdminRouteId, AdminRouteDefinitionEntry>(
   adminRouteDefinitions.map((definition) => [definition.routeId, definition] as const)
 );
 
 export const portalAdminDefinitionByPanel = new Map(
   adminWorkspaceDefinitions
     .filter(
-      (definition): definition is AdminWorkspaceDefinition & { panel: PortalAdminPanel } =>
-        typeof definition.panel === 'string'
+      (definition): definition is Extract<AdminWorkspaceDefinitionEntry, { panel: PortalAdminPanel }> =>
+        'panel' in definition && typeof definition.panel === 'string'
     )
     .map((definition) => [definition.panel, definition] as const)
 );
 
-export const adminSettingsSections = adminSettingsSectionDefinitions.map((definition) => definition.id);
+export const adminSettingsSections: readonly AdminSettingsSection[] = adminSettingsSectionDefinitions.map(
+  (definition) => definition.id
+);
+
+export const getAdminSettingsSectionDefinition = <Section extends AdminSettingsSection>(
+  section: Section
+): AdminSettingsSectionDefinitionMap[Section] => {
+  const definition = adminSettingsSectionDefinitionById.get(section);
+  if (!definition) {
+    throw new Error(`Missing admin settings section definition for ${section}`);
+  }
+
+  return definition as AdminSettingsSectionDefinitionMap[Section];
+};
+
+export const getAdminSettingsSectionDefinitionByRouteId = <
+  RouteId extends AdminSettingsSectionRouteId,
+>(
+  routeId: RouteId
+): AdminSettingsSectionRouteDefinitionMap[RouteId] => {
+  const definition = adminSettingsSectionDefinitionByRouteId.get(routeId);
+  if (!definition) {
+    throw new Error(`Missing admin settings route metadata for ${routeId}`);
+  }
+
+  return definition as AdminSettingsSectionRouteDefinitionMap[RouteId];
+};
+
+export const getAdminRouteDefinition = <RouteId extends AdminRouteId>(
+  routeId: RouteId
+): AdminRouteDefinitionMap[RouteId] => {
+  const definition = adminRouteDefinitionByRouteId.get(routeId);
+  if (!definition) {
+    throw new Error(`Missing admin route metadata for ${routeId}`);
+  }
+
+  return definition as AdminRouteDefinitionMap[RouteId];
+};
+
+export const getAdminWorkspaceDefinitionByRouteId = <RouteId extends AdminWorkspaceRouteId>(
+  routeId: RouteId
+): AdminWorkspaceRouteDefinitionMap[RouteId] => {
+  const definition = adminWorkspaceDefinitionByRouteId.get(routeId);
+  if (!definition) {
+    throw new Error(`Missing workspace admin route metadata for ${routeId}`);
+  }
+
+  return definition as AdminWorkspaceRouteDefinitionMap[RouteId];
+};
+
+export const getAdminWorkspaceDefinition = <RouteId extends AdminWorkspaceRouteId>(
+  routeId: RouteId
+): AdminWorkspaceRouteDefinitionMap[RouteId] => getAdminWorkspaceDefinitionByRouteId(routeId);
+
+export const getPortalAdminDefinition = <Panel extends PortalAdminPanel>(
+  panel: Panel
+): PortalAdminDefinitionMap[Panel] => {
+  const definition = portalAdminDefinitionByPanel.get(panel);
+  if (!definition) {
+    throw new Error(`Missing portal admin definition for ${panel}`);
+  }
+
+  return definition as PortalAdminDefinitionMap[Panel];
+};

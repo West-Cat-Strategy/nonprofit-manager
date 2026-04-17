@@ -39,8 +39,6 @@ router.post('/preview-text', validateBody(ingestPreviewTextSchema), previewText)
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createIngestRoutes = () => router;
 
-export const createIngestRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const ingestV2Routes = createIngestRoutes('v2');
+export const ingestV2Routes = createIngestRoutes();

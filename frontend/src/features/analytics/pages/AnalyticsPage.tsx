@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   EmptyState,
   ErrorState,
@@ -40,6 +40,7 @@ import {
 } from './charts';
 import { ComparisonCard, MetricCard } from './metrics';
 import { formatCurrency, formatNumber } from './utils';
+import { parseAllowedValue } from '../../../utils/persistedFilters';
 
 const getProgressWidthClass = (value: number): string => {
   if (value <= 0) return 'w-0';
@@ -53,8 +54,39 @@ const getProgressWidthClass = (value: number): string => {
   return 'w-full';
 };
 
+const COMPARISON_PERIOD_VALUES = ['month', 'quarter', 'year'] as const;
+const analyticsActionLinkClass =
+  'inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-sm font-semibold text-[var(--app-text)] shadow-sm transition hover:bg-[var(--app-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
+const analyticsInlineLinkClass = 'font-semibold text-app-accent hover:underline';
+
+const normalizeDateParam = (value: string | null): string =>
+  value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
+
+const buildAnalyticsParams = ({
+  startDate,
+  endDate,
+  period,
+}: {
+  startDate: string;
+  endDate: string;
+  period: (typeof COMPARISON_PERIOD_VALUES)[number];
+}) => {
+  const params = new URLSearchParams();
+  if (startDate) {
+    params.set('start_date', startDate);
+  }
+  if (endDate) {
+    params.set('end_date', endDate);
+  }
+  if (period !== 'month') {
+    params.set('period', period);
+  }
+  return params;
+};
+
 export default function Analytics() {
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const dispatch = useAppDispatch();
   const {
     summary,
@@ -66,25 +98,64 @@ export default function Analytics() {
     comparativeAnalytics,
     comparativeLoading,
     error,
-    filters,
   } = useAppSelector((state) => state.analytics);
 
+  const appliedStartDate = normalizeDateParam(searchParams.get('start_date'));
+  const appliedEndDate = normalizeDateParam(searchParams.get('end_date'));
+  const comparisonPeriod =
+    parseAllowedValue(searchParams.get('period'), COMPARISON_PERIOD_VALUES) || 'month';
   const [dateRange, setDateRange] = useState({
-    start_date: filters.start_date || '',
-    end_date: filters.end_date || '',
+    start_date: appliedStartDate,
+    end_date: appliedEndDate,
   });
-
-  const [comparisonPeriod, setComparisonPeriod] = useState<'month' | 'quarter' | 'year'>('month');
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [summaryPdfExporting, setSummaryPdfExporting] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchAnalyticsSummary(filters));
+    setDateRange((current) =>
+      current.start_date === appliedStartDate && current.end_date === appliedEndDate
+        ? current
+        : {
+            start_date: appliedStartDate,
+            end_date: appliedEndDate,
+          }
+    );
+  }, [appliedStartDate, appliedEndDate]);
+
+  useEffect(() => {
+    const sanitizedParams = buildAnalyticsParams({
+      startDate: appliedStartDate,
+      endDate: appliedEndDate,
+      period: comparisonPeriod,
+    });
+    const currentParams = searchParamsString;
+    const nextParams = sanitizedParams.toString();
+    if (currentParams !== nextParams) {
+      setSearchParams(sanitizedParams, { replace: true });
+    }
+  }, [appliedStartDate, appliedEndDate, comparisonPeriod, searchParamsString, setSearchParams]);
+
+  useEffect(() => {
+    dispatch(
+      setFilters({
+        start_date: appliedStartDate || undefined,
+        end_date: appliedEndDate || undefined,
+      })
+    );
+  }, [appliedEndDate, appliedStartDate, dispatch]);
+
+  useEffect(() => {
+    dispatch(
+      fetchAnalyticsSummary({
+        start_date: appliedStartDate || undefined,
+        end_date: appliedEndDate || undefined,
+      })
+    );
     dispatch(fetchDonationTrends(12));
     dispatch(fetchVolunteerHoursTrends(12));
     dispatch(fetchEventAttendanceTrends(12));
     dispatch(fetchComparativeAnalytics(comparisonPeriod));
-  }, [dispatch, filters, comparisonPeriod]);
+  }, [appliedEndDate, appliedStartDate, comparisonPeriod, dispatch]);
 
   useEffect(() => {
     if (!summary && !comparativeAnalytics) {
@@ -97,12 +168,37 @@ export default function Analytics() {
   }, [summary, comparativeAnalytics, summaryLoading, trendsLoading, comparativeLoading]);
 
   const handleApplyFilters = () => {
-    dispatch(setFilters(dateRange));
+    setSearchParams(
+      buildAnalyticsParams({
+        startDate: dateRange.start_date,
+        endDate: dateRange.end_date,
+        period: comparisonPeriod,
+      }),
+      { replace: true }
+    );
   };
 
   const handleClearFilters = () => {
     setDateRange({ start_date: '', end_date: '' });
-    dispatch(setFilters({ start_date: undefined, end_date: undefined }));
+    setSearchParams(
+      buildAnalyticsParams({
+        startDate: '',
+        endDate: '',
+        period: comparisonPeriod,
+      }),
+      { replace: true }
+    );
+  };
+
+  const handleComparisonChange = (nextPeriod: (typeof COMPARISON_PERIOD_VALUES)[number]) => {
+    setSearchParams(
+      buildAnalyticsParams({
+        startDate: appliedStartDate,
+        endDate: appliedEndDate,
+        period: nextPeriod,
+      }),
+      { replace: true }
+    );
   };
 
   const handleExportSummaryPdf = async () => {
@@ -122,7 +218,7 @@ export default function Analytics() {
         title="Analytics & Reports"
         description={`Last updated: ${
           lastUpdatedAt
-            ? new Intl.DateTimeFormat('en-US', {
+            ? new Intl.DateTimeFormat(undefined, {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
@@ -133,7 +229,9 @@ export default function Analytics() {
         }`}
         actions={
           <>
-            <SecondaryButton onClick={() => navigate('/dashboard')}>← Back</SecondaryButton>
+            <Link className={analyticsActionLinkClass} to="/dashboard">
+              ← Back
+            </Link>
             {summary && (
               <>
                 <SecondaryButton onClick={() => exportAnalyticsSummaryToCSV(summary)}>CSV</SecondaryButton>
@@ -197,7 +295,12 @@ export default function Analytics() {
         <ErrorState
           message={error}
           onRetry={() => {
-            dispatch(fetchAnalyticsSummary(filters));
+            dispatch(
+              fetchAnalyticsSummary({
+                start_date: appliedStartDate || undefined,
+                end_date: appliedEndDate || undefined,
+              })
+            );
             dispatch(fetchDonationTrends(12));
             dispatch(fetchVolunteerHoursTrends(12));
             dispatch(fetchEventAttendanceTrends(12));
@@ -306,19 +409,19 @@ export default function Analytics() {
               <div className="flex gap-2">
                 <SecondaryButton
                   className={comparisonPeriod === 'month' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
-                  onClick={() => setComparisonPeriod('month')}
+                  onClick={() => handleComparisonChange('month')}
                 >
                   Month
                 </SecondaryButton>
                 <SecondaryButton
                   className={comparisonPeriod === 'quarter' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
-                  onClick={() => setComparisonPeriod('quarter')}
+                  onClick={() => handleComparisonChange('quarter')}
                 >
                   Quarter
                 </SecondaryButton>
                 <SecondaryButton
                   className={comparisonPeriod === 'year' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
-                  onClick={() => setComparisonPeriod('year')}
+                  onClick={() => handleComparisonChange('year')}
                 >
                   Year
                 </SecondaryButton>
@@ -467,13 +570,9 @@ export default function Analytics() {
                 </div>
                 <p className="text-sm text-app-text-muted">
                   View event details in the{' '}
-                  <button
-                    type="button"
-                    onClick={() => navigate('/events')}
-                    className="font-semibold text-app-accent hover:underline"
-                  >
+                  <Link className={analyticsInlineLinkClass} to="/events">
                     Events module
-                  </button>
+                  </Link>
                 </p>
                 {summary.total_events_ytd === 0 && (
                   <p className="text-sm text-app-text-muted">
@@ -503,13 +602,9 @@ export default function Analytics() {
                 </div>
                 <p className="text-sm text-app-text-muted">
                   View donation details in the{' '}
-                  <button
-                    type="button"
-                    onClick={() => navigate('/donations')}
-                    className="font-semibold text-app-accent hover:underline"
-                  >
+                  <Link className={analyticsInlineLinkClass} to="/donations">
                     Donations module
-                  </button>
+                  </Link>
                 </p>
                 {summary.donation_count_ytd === 0 && (
                   <p className="text-sm text-app-text-muted">
@@ -529,7 +624,9 @@ export default function Analytics() {
           action={
             <div className="flex flex-wrap gap-2">
               <PrimaryButton onClick={handleClearFilters}>Clear Filters</PrimaryButton>
-              <SecondaryButton onClick={() => navigate('/donations/new')}>Add Donation</SecondaryButton>
+              <Link className={analyticsActionLinkClass} to="/donations/new">
+                Add Donation
+              </Link>
             </div>
           }
         />

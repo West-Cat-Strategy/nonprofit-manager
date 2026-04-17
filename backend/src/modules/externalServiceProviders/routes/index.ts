@@ -73,8 +73,6 @@ router.delete(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createExternalServiceProvidersRoutes = () => router;
 
-export const createExternalServiceProvidersRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const externalServiceProvidersV2Routes = createExternalServiceProvidersRoutes('v2');
+export const externalServiceProvidersV2Routes = createExternalServiceProvidersRoutes();

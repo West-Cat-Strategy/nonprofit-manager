@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
@@ -6,6 +5,15 @@ import PortalListToolbar from '../../../components/portal/PortalListToolbar';
 import { portalV2ApiClient } from '../api/portalApiClient';
 import usePortalDocumentsList from '../client/usePortalDocumentsList';
 import type { PortalDocument } from '../types/contracts';
+import { formatPortalDateTime } from '../utils/dateDisplay';
+import { usePortalListUrlState } from '../utils/listQueryState';
+
+const DOCUMENT_SORT_VALUES = [
+  'created_at',
+  'title',
+  'document_type',
+  'original_name',
+] as const;
 
 const formatFileSize = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes <= 0) return 'Unknown size';
@@ -15,11 +23,18 @@ const formatFileSize = (bytes: number): string => {
 };
 
 export default function PortalDocuments() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<'created_at' | 'title' | 'document_type' | 'original_name'>(
-    'created_at'
-  );
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const {
+    search: searchTerm,
+    sort: sortField,
+    order: sortOrder,
+    setSearch,
+    setSort,
+    setOrder,
+  } = usePortalListUrlState({
+    sortValues: DOCUMENT_SORT_VALUES,
+    defaultSort: 'created_at',
+    defaultOrder: 'desc',
+  });
   const {
     items: documents,
     total,
@@ -42,10 +57,10 @@ export default function PortalDocuments() {
     >
       <PortalListToolbar
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={setSearch}
         searchPlaceholder="Search documents by title, type, or mime"
         sortValue={sortField}
-        onSortChange={setSortField}
+        onSortChange={setSort}
         sortOptions={[
           { value: 'created_at', label: 'Shared date' },
           { value: 'title', label: 'Title' },
@@ -53,7 +68,7 @@ export default function PortalDocuments() {
           { value: 'original_name', label: 'Original file name' },
         ]}
         orderValue={sortOrder}
-        onOrderChange={setSortOrder}
+        onOrderChange={setOrder}
         showingCount={documents.length}
         totalCount={total}
       />
@@ -77,7 +92,7 @@ export default function PortalDocuments() {
               <PortalListCard
                 title={doc.title || doc.original_name}
                 subtitle={doc.document_type}
-                meta={`Shared ${new Date(doc.created_at).toLocaleString()}`}
+                meta={`Shared ${formatPortalDateTime(doc.created_at)}`}
                 badges={
                   <>
                     <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">

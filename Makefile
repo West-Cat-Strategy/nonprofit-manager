@@ -491,7 +491,7 @@ ci:
 	@echo "$(BLUE)  Running Local CI Pipeline$(RESET)"
 	@echo "$(BLUE)========================================$(RESET)"
 	@echo ""
-	@./scripts/local-ci.sh --build
+	@./scripts/ci.sh --build
 	@echo ""
 	@echo "$(GREEN)========================================$(RESET)"
 	@echo "$(GREEN)  CI Pipeline Passed!$(RESET)"
@@ -503,7 +503,7 @@ ci-fast:
 	@echo "$(BLUE)  Running Fast CI (no tests)$(RESET)"
 	@echo "$(BLUE)========================================$(RESET)"
 	@echo ""
-	@./scripts/local-ci.sh --fast
+	@./scripts/ci.sh --fast
 	@echo ""
 	@echo "$(GREEN)========================================$(RESET)"
 	@echo "$(GREEN)  Fast CI Passed!$(RESET)"
@@ -515,7 +515,7 @@ ci-full:
 	@echo "$(BLUE)  Running Coverage-Focused CI + Security Audit$(RESET)"
 	@echo "$(BLUE)========================================$(RESET)"
 	@echo ""
-	@./scripts/local-ci.sh --build --audit --coverage
+	@./scripts/ci.sh --build --audit --coverage
 	@echo ""
 	@echo "$(GREEN)========================================$(RESET)"
 	@echo "$(GREEN)  Coverage-Focused CI Pipeline Passed!$(RESET)"
@@ -527,7 +527,7 @@ ci-unit:
 	@echo "$(BLUE)  Running Unit-Only Coverage CI$(RESET)"
 	@echo "$(BLUE)========================================$(RESET)"
 	@echo ""
-	@./scripts/local-ci.sh --build --coverage --unit-only
+	@./scripts/ci.sh --build --coverage --unit-only
 	@echo ""
 	@echo "$(GREEN)========================================$(RESET)"
 	@echo "$(GREEN)  Unit-Only Coverage CI Pipeline Passed!$(RESET)"

@@ -92,3 +92,4 @@
 092	092_pending_registration_passkeys_and_policy_groups.sql	
 093	093_case_form_builder.sql	
 094	094_case_form_delivery_targets_and_review_followups.sql	
+095	095_portal_password_reset_tokens.sql	

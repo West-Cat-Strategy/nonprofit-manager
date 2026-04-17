@@ -6,20 +6,13 @@ import NeoBrutalistDashboard from '../NeoBrutalistDashboardPage';
 import api from '../../../../services/api';
 import { renderWithProviders, createTestStore } from '../../../../test/testUtils';
 
-const mockNavigate = vi.fn();
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof ReactRouterDom>('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
-
-vi.mock('../../../../services/api');
-vi.mock('../../../../features/dashboard/context/DashboardDataContext', () => ({
-  DashboardDataProvider: ({ children }: { children: ReactNode }) => children,
-  useDashboardData: () => ({
+const {
+  dashboardLaneData,
+  mockNavigate,
+  preloadContactsPeopleRouteMock,
+  preloadNavigationQuickLookupDialogMock,
+} = vi.hoisted(() => ({
+  dashboardLaneData: {
     analyticsSummary: {
       total_accounts: 24,
       active_accounts: 18,
@@ -80,8 +73,67 @@ vi.mock('../../../../features/dashboard/context/DashboardDataContext', () => ({
       },
     ],
     assignedCasesTotal: 1,
+  },
+  mockNavigate: vi.fn(),
+  preloadContactsPeopleRouteMock: vi.fn(() => Promise.resolve([])),
+  preloadNavigationQuickLookupDialogMock: vi.fn(() => Promise.resolve({ default: () => null })),
+}));
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof ReactRouterDom>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+vi.mock('../../../../services/api');
+vi.mock('../../../../features/contacts/routePreload', () => ({
+  preloadContactsPeopleRoute: preloadContactsPeopleRouteMock,
+}));
+vi.mock('../../../../components/navigation/preloadNavigationQuickLookupDialog', () => ({
+  preloadNavigationQuickLookupDialog: preloadNavigationQuickLookupDialogMock,
+}));
+vi.mock('../../../../features/dashboard/context/DashboardDataContext', () => ({
+  DashboardDataProvider: ({ children }: { children: ReactNode }) => children,
+  WORKBENCH_DASHBOARD_LANES: ['analytics', 'caseSummary', 'taskSummary', 'followUpSummary', 'upcomingFollowUps', 'assignedCases'],
+  useDashboardAnalyticsSummary: () => ({
+    analyticsSummary: dashboardLaneData.analyticsSummary,
+    loading: false,
+    error: null,
+  }),
+  useDashboardAssignedCases: () => ({
+    assignedCases: dashboardLaneData.assignedCases,
+    assignedCasesTotal: dashboardLaneData.assignedCasesTotal,
+    loading: false,
+    error: null,
+  }),
+  useDashboardCaseSummary: () => ({
+    caseSummary: dashboardLaneData.caseSummary,
+    loading: false,
+    error: null,
+  }),
+  useDashboardFollowUpSummary: () => ({
+    followUpSummary: dashboardLaneData.followUpSummary,
+    loading: false,
+    error: null,
+  }),
+  useDashboardTaskSummary: () => ({
+    taskSummary: dashboardLaneData.taskSummary,
+    loading: false,
+    error: null,
+  }),
+  useDashboardUpcomingFollowUps: () => ({
+    upcomingFollowUps: dashboardLaneData.upcomingFollowUps,
+    loading: false,
+    error: null,
+  }),
+  useDashboardData: () => ({
+    ...dashboardLaneData,
+    donationTrends: [],
     loading: {
       analytics: false,
+      donationTrends: false,
       caseSummary: false,
       taskSummary: false,
       followUpSummary: false,
@@ -204,9 +256,11 @@ describe('NeoBrutalistDashboard', () => {
     expect(screen.getByText('Focus Queue')).toBeInTheDocument();
     expect(screen.getByText('Pinned Shortcuts')).toBeInTheDocument();
     expect(screen.getByText('Enabled Workstreams')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /create intake/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /create intake/i })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: /customize layout/i })).not.toHaveLength(0);
     expect(api.get).not.toHaveBeenCalled();
+    expect(preloadContactsPeopleRouteMock).not.toHaveBeenCalled();
+    expect(preloadNavigationQuickLookupDialogMock).not.toHaveBeenCalled();
   });
 
   it('opens the view settings panel from the query string', () => {

@@ -20,6 +20,7 @@ interface TableColumnInfo {
 const DEFAULT_SECRET_FIELDS: Record<string, string[]> = {
   users: ['password_hash', 'mfa_totp_secret_enc', 'mfa_totp_pending_secret_enc'],
   portal_users: ['password_hash'],
+  portal_password_reset_tokens: ['token_hash'],
   portal_admins: ['password_hash'],
   user_invitations: ['token'],
   portal_invitations: ['token'],

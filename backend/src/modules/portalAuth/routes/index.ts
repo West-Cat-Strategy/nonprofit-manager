@@ -3,24 +3,47 @@ import {
   portalSignup,
   portalLogin,
   portalLogout,
+  portalForgotPassword,
+  portalResetPassword,
   getPortalBootstrap,
   getPortalMe,
+  validatePortalResetToken,
   validatePortalInvitation,
   acceptPortalInvitation,
 } from '../controllers';
 import { authenticatePortal, checkAccountLockout } from '@middleware/domains/auth';
-import { authLimiterMiddleware } from '@middleware/domains/platform';
+import { authLimiterMiddleware, passwordResetLimiterMiddleware } from '@middleware/domains/platform';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import {
   acceptPortalInvitationSchema,
   portalInvitationTokenParamsSchema,
   portalLoginSchema,
+  portalPasswordResetConfirmSchema,
+  portalPasswordResetRequestSchema,
+  portalPasswordResetTokenParamsSchema,
   portalSignupSchema,
 } from '@validations/portal';
 
 const router = Router();
 
 router.post('/signup', authLimiterMiddleware, validateBody(portalSignupSchema), portalSignup);
+router.post(
+  '/forgot-password',
+  passwordResetLimiterMiddleware,
+  validateBody(portalPasswordResetRequestSchema),
+  portalForgotPassword
+);
+router.get(
+  '/reset-password/:token',
+  validateParams(portalPasswordResetTokenParamsSchema),
+  validatePortalResetToken
+);
+router.post(
+  '/reset-password',
+  passwordResetLimiterMiddleware,
+  validateBody(portalPasswordResetConfirmSchema),
+  portalResetPassword
+);
 router.post(
   '/login',
   authLimiterMiddleware,
@@ -48,8 +71,6 @@ router.post(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createPortalAuthRoutes = () => router;
 
-export const createPortalAuthRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const portalAuthV2Routes = createPortalAuthRoutes('v2');
+export const portalAuthV2Routes = createPortalAuthRoutes();

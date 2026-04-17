@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Responsive, WidthProvider, type Layout } from 'react-grid-layout/legacy';
+import { Responsive, WidthProvider, type Layout, type ResponsiveLayouts } from 'react-grid-layout/legacy';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
@@ -23,7 +23,7 @@ import {
 } from '../state';
 import type { DashboardWidget, WidgetLayout, WidgetType, WidgetTemplate } from '../../../types/dashboard';
 import { DEFAULT_DASHBOARD_CONFIG, WIDGET_TEMPLATES } from '../../../types/dashboard';
-import { DashboardDataProvider } from '../context/DashboardDataContext';
+import { CUSTOM_DASHBOARD_LANES, DashboardDataProvider } from '../context/DashboardDataContext';
 import {
   ActivityFeedWidget,
   CaseSummaryWidget,
@@ -52,7 +52,7 @@ const CATEGORY_LABELS: Record<WidgetTemplate['category'], string> = {
 
 const LEGACY_WIDGET_TYPES = new Set<WidgetType>(['recent_contacts', 'upcoming_events']);
 
-const serializeLayout = (layout: Layout[]): WidgetLayout[] =>
+const serializeLayout = (layout: Layout): WidgetLayout[] =>
   layout.map((item) => ({
     i: item.i,
     x: item.x,
@@ -80,7 +80,7 @@ const clampLayoutForCols = (layout: WidgetLayout[], targetCols: number): WidgetL
 const buildResponsiveLayouts = (
   layout: WidgetLayout[],
   cols: Record<string, number>
-): Record<string, WidgetLayout[]> => ({
+): ResponsiveLayouts => ({
   lg: clampLayoutForCols(layout, cols.lg),
   md: clampLayoutForCols(layout, cols.md),
   sm: clampLayoutForCols(layout, cols.sm),
@@ -193,7 +193,7 @@ function CustomDashboardContent() {
     return nextGroups;
   }, [pickerTemplates]);
 
-  const handleLayoutChange = (layout: Layout[]) => {
+  const handleLayoutChange = (layout: Layout, _layouts: ResponsiveLayouts) => {
     if (!editMode || !currentDashboard) {
       return;
     }
@@ -495,7 +495,7 @@ function CustomDashboardContent() {
               isDraggable={editMode}
               isResizable={editMode}
               draggableHandle=".drag-handle"
-              onLayoutChange={(layout) => handleLayoutChange(layout as Layout[])}
+              onLayoutChange={handleLayoutChange}
             >
               {currentDashboard.widgets.map((widget) => (
                 <div
@@ -589,7 +589,7 @@ function CustomDashboardContent() {
 
 export default function CustomDashboardPage() {
   return (
-    <DashboardDataProvider>
+    <DashboardDataProvider lanes={CUSTOM_DASHBOARD_LANES}>
       <CustomDashboardContent />
     </DashboardDataProvider>
   );

@@ -1,21 +1,26 @@
 import type { MouseEvent } from 'react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { portalLogoutAsync } from '../features/portalAuth/state';
 import { AppShell, TopNav, SecondaryButton } from './ui';
 import SkipLink from './SkipLink';
 import SurfaceContextBar from './workspace/SurfaceContextBar';
+import { getRouteMeta } from '../routes/routeMeta';
 
 interface PortalLayoutProps {
   children: React.ReactNode;
 }
 
 export default function PortalLayout({ children }: PortalLayoutProps) {
+  const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const portalUser = useAppSelector((state) => state.portalAuth.user);
   const [signingOut, setSigningOut] = useState(false);
+  const routeMeta = getRouteMeta(`${location.pathname}${location.search}`);
+  const localNavigation =
+    routeMeta.surface === 'portal' ? routeMeta.localNavigation : [];
 
   const portalAccountMenu = (
     <div className="relative sm:hidden">
@@ -111,6 +116,33 @@ export default function PortalLayout({ children }: PortalLayoutProps) {
         }
         contentClassName="space-y-6 rounded-[var(--ui-radius-md)] bg-app-surface p-4 shadow-sm sm:p-6"
       >
+        {localNavigation.length > 0 ? (
+          <section
+            aria-label="Browse portal"
+            className="hidden rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface-elevated p-4 shadow-sm md:block"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
+              Browse portal
+            </p>
+            <nav aria-label="Browse portal" className="mt-3 flex flex-wrap gap-2">
+              {localNavigation.map((item) => (
+                <Link
+                  key={item.id}
+                  to={item.href}
+                  aria-current={item.isActive ? 'page' : undefined}
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition ${
+                    item.isActive
+                      ? 'app-accent-contrast-ink border border-app-accent bg-app-accent shadow-sm'
+                      : 'border-app-border bg-app-surface text-app-text hover:bg-app-surface-muted hover:text-app-text-heading'
+                  }`}
+                >
+                  {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
+                  <span>{item.shortLabel}</span>
+                </Link>
+              ))}
+            </nav>
+          </section>
+        ) : null}
         {children}
       </AppShell>
     </div>

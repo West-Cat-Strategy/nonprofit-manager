@@ -2,16 +2,13 @@ import { NextFunction, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import type { CreateCaseNoteDTO, UpdateCaseNoteDTO } from '@app-types/case';
 import { CaseNotesUseCase } from '../usecases/caseNotes.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
-export const createCaseNotesController = (
-  useCase: CaseNotesUseCase,
-  mode: ResponseMode
-) => {
+export const createCaseNotesController = (useCase: CaseNotesUseCase) => {
   const getCaseNotes = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const notes = await useCase.list(req.params.id);
-      sendData(res, mode, mode === 'v2' ? notes : { notes });
+      sendData(res, notes);
     } catch (error) {
       next(error);
     }
@@ -20,7 +17,7 @@ export const createCaseNotesController = (
   const createCaseNote = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const note = await useCase.create(req.body as CreateCaseNoteDTO, req.user?.id);
-      sendData(res, mode, note, 201);
+      sendData(res, note, 201);
     } catch (error) {
       next(error);
     }
@@ -29,7 +26,7 @@ export const createCaseNotesController = (
   const updateCaseNote = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const note = await useCase.update(req.params.noteId, req.body as UpdateCaseNoteDTO, req.user?.id);
-      sendData(res, mode, note);
+      sendData(res, note);
     } catch (error) {
       next(error);
     }
@@ -39,16 +36,11 @@ export const createCaseNotesController = (
     try {
       const deleted = await useCase.delete(req.params.noteId);
       if (!deleted) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Case note not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Case note not found', 404);
         return;
       }
 
-      if (mode === 'v2') {
-        res.status(204).send();
-        return;
-      }
-
-      sendData(res, mode, { success: true });
+      res.status(204).send();
     } catch (error) {
       next(error);
     }

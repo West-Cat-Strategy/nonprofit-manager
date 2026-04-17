@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { portalSignup } from '../../portalAuth/state';
 import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
+import { focusElement, focusFirstInvalidField } from '../utils/formFocus';
 
 export default function PortalSignup() {
   const dispatch = useAppDispatch();
@@ -14,14 +15,49 @@ export default function PortalSignup() {
     phone: '',
     password: '',
   });
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.name === 'password') {
+      setPasswordError(null);
+      setConfirmPasswordError(null);
+    }
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await dispatch(portalSignup(formData));
+    const form = e.currentTarget as HTMLFormElement;
+    setPasswordError(null);
+    setConfirmPasswordError(null);
+
+    if (!form.checkValidity()) {
+      focusFirstInvalidField(form);
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      const message = 'Use at least 8 characters.';
+      setPasswordError(message);
+      focusElement(document.getElementById('portal-signup-password') as HTMLElement | null);
+      return;
+    }
+
+    if (formData.password !== confirmPassword) {
+      setConfirmPasswordError('Passwords do not match.');
+      focusElement(
+        document.getElementById('portal-signup-password-confirm') as HTMLElement | null
+      );
+      return;
+    }
+
+    try {
+      await dispatch(portalSignup(formData)).unwrap();
+    } catch {
+      // Request errors are surfaced by state.
+    }
   };
 
   return (
@@ -52,6 +88,10 @@ export default function PortalSignup() {
           {error && (
             <div className="rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text" role="alert" aria-live="polite">
               {error}
+              <p className="mt-1 text-xs text-app-text-muted">
+                If you already work with the organization, contact staff so they can review or
+                update your request.
+              </p>
             </div>
           )}
           <FormField
@@ -99,8 +139,26 @@ export default function PortalSignup() {
             type="password"
             name="password"
             label="Password"
+            helperText="Use at least 8 characters. You can reset it later from the portal sign-in page."
+            error={passwordError ?? undefined}
             value={formData.password}
             onChange={handleChange}
+            required
+            minLength={8}
+            autoComplete="new-password"
+          />
+          <FormField
+            id="portal-signup-password-confirm"
+            type="password"
+            name="passwordConfirm"
+            label="Confirm Password"
+            helperText="Re-enter your password to catch typos before staff review."
+            error={confirmPasswordError ?? undefined}
+            value={confirmPassword}
+            onChange={(event) => {
+              setConfirmPassword(event.target.value);
+              setConfirmPasswordError(null);
+            }}
             required
             minLength={8}
             autoComplete="new-password"

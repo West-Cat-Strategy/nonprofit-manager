@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchTaskById, deleteTask, completeTask } from '../state';
 import { TaskStatus, TaskPriority } from '../../../types/task';
@@ -20,6 +20,8 @@ const TaskDetail: React.FC = () => {
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const dispatch = useAppDispatch();
   const { selectedTask, loading, error } = useAppSelector((state) => state.tasks);
+  const navLinkClass =
+    'inline-flex items-center rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] hover:bg-app-accent-hover';
 
   useEffect(() => {
     if (id) {
@@ -116,12 +118,12 @@ const TaskDetail: React.FC = () => {
     <NeoBrutalistLayout pageTitle="TASKS">
       <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
-        <button
-          onClick={() => navigate('/tasks')}
-          className="text-app-accent hover:text-app-accent-text mb-4"
+        <Link
+          to="/tasks"
+          className="mb-4 inline-flex text-app-accent hover:text-app-accent-text"
         >
           ← Back to Tasks
-        </button>
+        </Link>
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-app-text mb-2">{selectedTask.subject}</h1>
@@ -144,12 +146,12 @@ const TaskDetail: React.FC = () => {
                 Mark Complete
               </button>
             )}
-            <button
-              onClick={() => navigate(`/tasks/${id}/edit`)}
-              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover"
+            <Link
+              to={`/tasks/${id}/edit`}
+              className={navLinkClass}
             >
               Edit
-            </button>
+            </Link>
             <button
               onClick={handleDelete}
               className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-md hover:bg-app-accent-hover"

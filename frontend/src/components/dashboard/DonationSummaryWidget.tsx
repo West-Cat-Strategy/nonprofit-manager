@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
 import api from '../../services/api';
-import { useDashboardData } from '../../features/dashboard/context/DashboardDataContext';
+import { useDashboardAnalyticsSummary } from '../../features/dashboard/context/DashboardDataContext';
 import type { AnalyticsSummary } from '../../types/analytics';
 
 interface DonationSummaryWidgetProps {
@@ -43,14 +43,14 @@ const normalizeDonationSummary = (payload: unknown): DonationSummaryData => {
 };
 
 const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWidgetProps) => {
-  const dashboardData = useDashboardData();
-  const analyticsSummary = dashboardData?.analyticsSummary ?? null;
+  const analyticsSummaryLane = useDashboardAnalyticsSummary();
+  const analyticsSummary = analyticsSummaryLane?.analyticsSummary ?? null;
   const [data, setData] = useState<DonationSummaryData | null>(null);
-  const [loading, setLoading] = useState(!dashboardData);
+  const [loading, setLoading] = useState(!analyticsSummaryLane);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (dashboardData) {
+    if (analyticsSummaryLane) {
       return undefined;
     }
 
@@ -75,7 +75,7 @@ const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWi
     return () => {
       isMounted = false;
     };
-  }, [dashboardData]);
+  }, [analyticsSummaryLane]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-CA', {
@@ -90,8 +90,8 @@ const DonationSummaryWidget = ({ widget, editMode, onRemove }: DonationSummaryWi
     ? normalizeDonationSummary(analyticsSummary)
     : data;
 
-  const isLoading = dashboardData ? dashboardData.loading.analytics : loading;
-  const resolvedError = dashboardData ? dashboardData.errors.analytics ?? null : error;
+  const isLoading = analyticsSummaryLane ? analyticsSummaryLane.loading : loading;
+  const resolvedError = analyticsSummaryLane ? analyticsSummaryLane.error : error;
 
   return (
     <WidgetContainer

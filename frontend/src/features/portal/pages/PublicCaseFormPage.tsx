@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PrimaryButton,
+  PublicPageShell,
+  SecondaryButton,
+} from '../../../components/ui';
 import { useToast } from '../../../contexts/useToast';
 import type {
   CaseFormAsset,
@@ -8,6 +16,39 @@ import type {
 } from '../../../types/caseForms';
 import CaseFormRenderer from '../../cases/components/CaseFormRenderer';
 import { publicCaseFormsApiClient } from '../api/publicCaseFormsApiClient';
+import { formatPortalDateTime } from '../utils/dateDisplay';
+
+const SUBMISSION_RECEIPT_STATUSES = new Set(['submitted', 'reviewed']);
+const INACTIVE_STATUSES = new Set(['expired', 'cancelled', 'closed']);
+
+const getUnavailableCopy = (status: string | null | undefined) => {
+  switch (status) {
+    case 'expired':
+      return {
+        title: 'This secure form link has expired.',
+        description:
+          'Please contact the organization that sent this form if you still need to submit it.',
+      };
+    case 'cancelled':
+      return {
+        title: 'This secure form is no longer accepting responses.',
+        description:
+          'The organization cancelled this request. Contact them if you still need to respond.',
+      };
+    case 'closed':
+      return {
+        title: 'This secure form is closed.',
+        description:
+          'Responses are no longer being accepted. Contact the organization if you need help.',
+      };
+    default:
+      return {
+        title: 'This secure form link is unavailable.',
+        description:
+          'If you expected this form to be active, contact the organization that sent it for a fresh link.',
+      };
+  }
+};
 
 export default function PublicCaseFormPage() {
   const { token } = useParams<{ token: string }>();
@@ -19,15 +60,22 @@ export default function PublicCaseFormPage() {
   const [draftAnswers, setDraftAnswers] = useState<Record<string, unknown>>({});
 
   const loadForm = async (): Promise<void> => {
-    if (!token) return;
+    if (!token) {
+      setError('This secure form link is missing its access token.');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
+
     try {
       const nextDetail = await publicCaseFormsApiClient.getForm(token);
       setDetail(nextDetail);
       setDraftAnswers(nextDetail.assignment.current_draft_answers || {});
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load secure form';
+    } catch (loadError) {
+      setDetail(null);
+      const message = loadError instanceof Error ? loadError.message : 'Failed to load secure form';
       setError(message);
       showError(message);
     } finally {
@@ -43,7 +91,10 @@ export default function PublicCaseFormPage() {
     if (!detail) return [];
     return [
       ...(detail.assignment.draft_assets || []),
-      ...detail.submissions.flatMap((submission) => [...submission.asset_refs, ...submission.signature_refs]),
+      ...detail.submissions.flatMap((submission) => [
+        ...submission.asset_refs,
+        ...submission.signature_refs,
+      ]),
     ];
   }, [detail]);
 
@@ -95,8 +146,8 @@ export default function PublicCaseFormPage() {
           : current
       );
       showSuccess('Draft saved');
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Failed to save draft');
+    } catch (saveError) {
+      showError(saveError instanceof Error ? saveError.message : 'Failed to save draft');
     } finally {
       setSaving(false);
     }
@@ -112,53 +163,117 @@ export default function PublicCaseFormPage() {
       });
       setDetail(nextDetail);
       showSuccess('Form submitted');
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Failed to submit form');
+    } catch (submitError) {
+      showError(submitError instanceof Error ? submitError.message : 'Failed to submit form');
     } finally {
       setSaving(false);
     }
   };
 
-  const isLocked =
-    detail?.assignment.status &&
-    ['submitted', 'reviewed', 'closed', 'expired', 'cancelled'].includes(detail.assignment.status);
+  const assignment = detail?.assignment ?? null;
+  const assignmentStatus = assignment?.status ?? null;
+  const isReceiptState = assignmentStatus ? SUBMISSION_RECEIPT_STATUSES.has(assignmentStatus) : false;
+  const isUnavailableState = assignmentStatus ? INACTIVE_STATUSES.has(assignmentStatus) : false;
+  const statusLabel = assignmentStatus ? assignmentStatus.replaceAll('_', ' ') : null;
+  const submittedAtLabel = assignment?.submitted_at
+    ? formatPortalDateTime(assignment.submitted_at)
+    : assignment?.latest_submission?.created_at
+      ? formatPortalDateTime(assignment.latest_submission.created_at)
+      : null;
+  const dueAtLabel = assignment?.due_at ? formatPortalDateTime(assignment.due_at) : null;
+  const packetDownloadUrl =
+    assignment?.latest_submission?.response_packet_download_url && token
+      ? publicCaseFormsApiClient.getResponsePacketDownloadUrl(token)
+      : null;
+  const unavailableCopy =
+    isUnavailableState || (!loading && error)
+      ? getUnavailableCopy(assignmentStatus)
+      : null;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
-      <div className="rounded-2xl border border-app-border bg-white/95 p-6 shadow-sm">
-        {loading && (
-          <div className="flex items-center gap-3 text-sm font-semibold text-app-text">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-app-text border-t-transparent" />
-            Loading secure form…
-          </div>
-        )}
+    <PublicPageShell
+      badge="Secure case form"
+      title={assignment?.title || 'Secure Case Form'}
+      description={
+        assignment?.description ||
+        'Complete the secure form shared with you and submit it directly to the organization.'
+      }
+      actions={
+        packetDownloadUrl ? (
+          <a
+            href={packetDownloadUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted"
+          >
+            Download Submission Packet
+          </a>
+        ) : null
+      }
+    >
+      <section className="rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface-elevated/92 p-6 shadow-[var(--ui-elev-2)]">
+        {loading ? (
+          <LoadingState label="Loading secure form..." />
+        ) : null}
 
-        {!loading && detail && (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-muted">
-                Secure Case Form
+        {!loading && error ? (
+          <div className="space-y-4">
+            <ErrorState
+              message={error}
+              onRetry={() => {
+                void loadForm();
+              }}
+              retryLabel="Retry loading form"
+            />
+            <div className="rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface p-4 text-sm text-app-text-muted">
+              <p className="font-medium text-app-text-heading">
+                {unavailableCopy?.title || 'Need help with this secure form?'}
               </p>
-              <h1 className="text-3xl font-semibold text-app-text">{detail.assignment.title}</h1>
-              {detail.assignment.description && (
-                <p className="text-base text-app-text-muted">{detail.assignment.description}</p>
-              )}
-              <div className="flex flex-wrap gap-3 text-sm text-app-text-muted">
-                <span className="rounded border border-app-border px-2 py-1 uppercase">
-                  {detail.assignment.status.replace('_', ' ')}
-                </span>
-                {detail.assignment.due_at && (
-                  <span>Due {new Date(detail.assignment.due_at).toLocaleString()}</span>
-                )}
+              <p className="mt-2">
+                {unavailableCopy?.description ||
+                  'If this link should still work, contact the organization that sent it and ask for a fresh secure form link.'}
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {!loading && !error && assignment ? (
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-app-text-muted">
+                {statusLabel ? (
+                  <span className="rounded border border-app-border px-2 py-1 text-xs font-semibold uppercase tracking-wide text-app-text-heading">
+                    {statusLabel}
+                  </span>
+                ) : null}
+                {dueAtLabel ? <span>Due {dueAtLabel}</span> : null}
+                {submittedAtLabel ? <span>Submitted {submittedAtLabel}</span> : null}
               </div>
+
+              {isReceiptState ? (
+                <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-app-accent-soft px-4 py-4 text-sm text-app-accent-text">
+                  <p className="font-medium">Submission received.</p>
+                  <p className="mt-1 text-app-text-muted">
+                    This secure form has already been submitted. Review your responses below or
+                    download the submission packet for your records.
+                  </p>
+                </div>
+              ) : null}
+
+              {isUnavailableState ? (
+                <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface px-4 py-4 text-sm text-app-text-muted">
+                  <p className="font-medium text-app-text-heading">{unavailableCopy?.title}</p>
+                  <p className="mt-2">{unavailableCopy?.description}</p>
+                </div>
+              ) : null}
             </div>
 
             <CaseFormRenderer
-              schema={detail.assignment.schema}
+              schema={assignment.schema}
               answers={draftAnswers}
               assets={assets}
               variant="public"
-              disabled={Boolean(isLocked) || saving}
+              disabled={Boolean(isReceiptState || isUnavailableState) || saving}
               onAnswerChange={(questionKey, value) =>
                 setDraftAnswers((current) => ({
                   ...current,
@@ -168,46 +283,42 @@ export default function PublicCaseFormPage() {
               onUploadAsset={handleUploadAsset}
             />
 
-            {!isLocked && (
+            {!isReceiptState && !isUnavailableState ? (
               <div className="flex flex-wrap gap-3">
-                <button
+                <SecondaryButton
                   type="button"
                   onClick={() => void handleSaveDraft()}
                   disabled={saving}
-                  className="rounded border border-app-border px-4 py-2 text-sm font-semibold"
                 >
-                  Save Draft
-                </button>
-                <button
+                  {saving ? 'Saving...' : 'Save Draft'}
+                </SecondaryButton>
+                <PrimaryButton
                   type="button"
                   onClick={() => void handleSubmit()}
                   disabled={saving}
-                  className="rounded border border-app-text bg-app-text px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Submit Form
-                </button>
+                  {saving ? 'Submitting...' : 'Submit Form'}
+                </PrimaryButton>
               </div>
-            )}
-
-            {detail.assignment.latest_submission?.response_packet_download_url && token && (
-              <a
-                href={publicCaseFormsApiClient.getResponsePacketDownloadUrl(token)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex rounded border border-app-border px-3 py-2 text-sm font-semibold"
-              >
-                Download Submission Packet
-              </a>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
 
-        {!loading && error && (
-          <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-5 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-      </div>
-    </div>
+        {!loading && !error && !assignment ? (
+          <EmptyState
+            title="This secure form is not available."
+            description="If you expected this form to be active, contact the organization that sent it for a fresh link."
+          />
+        ) : null}
+      </section>
+
+      <section className="rounded-[var(--ui-radius-lg)] border border-app-border-muted bg-app-surface p-5 text-sm text-app-text-muted shadow-sm">
+        <h2 className="text-base font-semibold text-app-text-heading">Need support?</h2>
+        <p className="mt-2">
+          If the secure form does not load, appears expired, or you need a different link, contact
+          the organization or staff member who sent you this form.
+        </p>
+      </section>
+    </PublicPageShell>
   );
 }

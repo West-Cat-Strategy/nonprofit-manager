@@ -1,15 +1,27 @@
-import { useState } from 'react';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
 import PortalListToolbar from '../../../components/portal/PortalListToolbar';
 import usePortalRemindersList from '../client/usePortalRemindersList';
 import type { PortalReminder } from '../types/contracts';
+import { formatPortalDateTime } from '../utils/dateDisplay';
+import { usePortalListUrlState } from '../utils/listQueryState';
+
+const REMINDER_SORT_VALUES = ['date', 'title', 'type'] as const;
 
 export default function PortalReminders() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<'date' | 'title' | 'type'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const {
+    search: searchTerm,
+    sort: sortField,
+    order: sortOrder,
+    setSearch,
+    setSort,
+    setOrder,
+  } = usePortalListUrlState({
+    sortValues: REMINDER_SORT_VALUES,
+    defaultSort: 'date',
+    defaultOrder: 'asc',
+  });
   const {
     items: reminders,
     total,
@@ -32,17 +44,17 @@ export default function PortalReminders() {
     >
       <PortalListToolbar
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={setSearch}
         searchPlaceholder="Search reminders by type or title"
         sortValue={sortField}
-        onSortChange={setSortField}
+        onSortChange={setSort}
         sortOptions={[
           { value: 'date', label: 'Reminder date' },
           { value: 'title', label: 'Title' },
           { value: 'type', label: 'Type' },
         ]}
         orderValue={sortOrder}
-        onOrderChange={setSortOrder}
+        onOrderChange={setOrder}
         showingCount={reminders.length}
         totalCount={total}
       />
@@ -66,7 +78,7 @@ export default function PortalReminders() {
               <PortalListCard
                 title={reminder.title}
                 subtitle={reminder.type.toUpperCase()}
-                meta={new Date(reminder.date).toLocaleString()}
+                meta={formatPortalDateTime(reminder.date)}
               />
             </li>
           ))}

@@ -4,7 +4,13 @@ import { unwrapApiData } from '../../../services/apiEnvelope';
 import { useToast } from '../../../contexts/useToast';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalPageState from '../../../components/portal/PortalPageState';
+import {
+  FormField,
+  PrimaryButton,
+  SecondaryButton,
+} from '../../../components/ui';
 import { validatePassword } from '../../../utils/validation';
+import { focusElement } from '../utils/formFocus';
 
 interface PortalProfileData {
   contact_id: string;
@@ -111,6 +117,7 @@ export default function PortalProfile() {
       setPhnError(message);
       setProfileStatusMessage(message);
       showError(message);
+      focusElement(document.getElementById('portal-profile-phn') as HTMLElement | null);
       return;
     }
 
@@ -163,6 +170,7 @@ export default function PortalProfile() {
       const message = 'Passwords do not match.';
       setSecurityStatusMessage(message);
       showError(message);
+      focusElement(document.getElementById('portal-profile-confirm-password') as HTMLElement | null);
       return;
     }
 
@@ -171,6 +179,7 @@ export default function PortalProfile() {
       const message = `${passwordError}.`;
       setSecurityStatusMessage(message);
       showError(message);
+      focusElement(document.getElementById('portal-profile-new-password') as HTMLElement | null);
       return;
     }
 
@@ -276,23 +285,22 @@ export default function PortalProfile() {
                       onChange={handleImageUpload}
                       className="hidden"
                     />
-                    <button
+                    <SecondaryButton
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)]"
                     >
                       Upload Photo
-                    </button>
+                    </SecondaryButton>
                     {formData.profile_picture && (
-                      <button
+                      <SecondaryButton
                         type="button"
                         onClick={() =>
                           setFormData((prev) => (prev ? { ...prev, profile_picture: null } : prev))
                         }
-                        className="ml-2 rounded-md bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)]"
+                        className="ml-2"
                       >
                         Remove
-                      </button>
+                      </SecondaryButton>
                     )}
                     <p className="mt-2 text-xs text-app-text-muted">JPG, PNG or GIF. Max 5MB.</p>
                   </div>
@@ -303,142 +311,121 @@ export default function PortalProfile() {
                 <section className="rounded-lg border border-app-border bg-app-surface p-6">
                   <h3 className="text-base font-semibold text-app-text">Personal Information</h3>
                   <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">
-                        First Name
-                      </label>
-                      <input
-                        name="first_name"
-                        value={formData.first_name || ''}
-                        onChange={handleChange}
-                        className="w-full rounded-md border border-app-input-border px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">
-                        Last Name
-                      </label>
-                      <input
-                        name="last_name"
-                        value={formData.last_name || ''}
-                        onChange={handleChange}
-                        className="w-full rounded-md border border-app-input-border px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">Email</label>
-                      <input
-                        name="email"
-                        type="email"
-                        value={formData.email || ''}
-                        onChange={handleChange}
-                        className="w-full rounded-md border border-app-input-border px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">Phone</label>
-                      <input
-                        name="phone"
-                        value={formData.phone || ''}
-                        onChange={handleChange}
-                        className="w-full rounded-md border border-app-input-border px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">
-                        Mobile Phone
-                      </label>
-                      <input
-                        name="mobile_phone"
-                        value={formData.mobile_phone || ''}
-                        onChange={handleChange}
-                        className="w-full rounded-md border border-app-input-border px-3 py-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">
-                        Personal Health Number (PHN)
-                      </label>
-                      <input
-                        name="phn"
-                        value={formData.phn || ''}
-                        onChange={handleChange}
-                        placeholder="10 digits"
-                        className="w-full rounded-md border border-app-input-border px-3 py-2"
-                      />
-                      {phnError && <p className="mt-1 text-xs text-app-accent">{phnError}</p>}
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-app-text">
-                        Pronouns
-                      </label>
-                      <input
-                        name="pronouns"
-                        value={formData.pronouns || ''}
-                        onChange={handleChange}
-                        className="w-full rounded-md border border-app-input-border px-3 py-2"
-                      />
-                    </div>
+                    <FormField
+                      id="portal-profile-first-name"
+                      name="first_name"
+                      label="First Name"
+                      value={formData.first_name || ''}
+                      onChange={handleChange}
+                    />
+                    <FormField
+                      id="portal-profile-last-name"
+                      name="last_name"
+                      label="Last Name"
+                      value={formData.last_name || ''}
+                      onChange={handleChange}
+                    />
+                    <FormField
+                      id="portal-profile-email"
+                      name="email"
+                      type="email"
+                      label="Email"
+                      value={formData.email || ''}
+                      onChange={handleChange}
+                      autoComplete="email"
+                    />
+                    <FormField
+                      id="portal-profile-phone"
+                      name="phone"
+                      label="Phone"
+                      value={formData.phone || ''}
+                      onChange={handleChange}
+                      autoComplete="tel"
+                    />
+                    <FormField
+                      id="portal-profile-mobile-phone"
+                      name="mobile_phone"
+                      label="Mobile Phone"
+                      value={formData.mobile_phone || ''}
+                      onChange={handleChange}
+                      autoComplete="tel"
+                    />
+                    <FormField
+                      id="portal-profile-phn"
+                      name="phn"
+                      label="Personal Health Number (PHN)"
+                      helperText="Optional. Enter exactly 10 digits."
+                      error={phnError ?? undefined}
+                      value={formData.phn || ''}
+                      onChange={handleChange}
+                      placeholder="10 digits"
+                      inputMode="numeric"
+                    />
+                    <FormField
+                      id="portal-profile-pronouns"
+                      name="pronouns"
+                      label="Pronouns"
+                      helperText="Optional"
+                      value={formData.pronouns || ''}
+                      onChange={handleChange}
+                    />
                   </div>
                 </section>
 
                 <section className="rounded-lg border border-app-border bg-app-surface p-6">
                   <h3 className="text-base font-semibold text-app-text">Address</h3>
                   <div className="mt-4 space-y-4">
-                    <input
+                    <FormField
+                      id="portal-profile-address-line1"
                       name="address_line1"
-                      placeholder="Address Line 1"
+                      label="Address Line 1"
                       value={formData.address_line1 || ''}
                       onChange={handleChange}
-                      className="w-full rounded-md border border-app-input-border px-3 py-2"
                     />
-                    <input
+                    <FormField
+                      id="portal-profile-address-line2"
                       name="address_line2"
-                      placeholder="Address Line 2"
+                      label="Address Line 2"
+                      helperText="Optional"
                       value={formData.address_line2 || ''}
                       onChange={handleChange}
-                      className="w-full rounded-md border border-app-input-border px-3 py-2"
                     />
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <input
+                      <FormField
+                        id="portal-profile-city"
                         name="city"
-                        placeholder="City"
+                        label="City"
                         value={formData.city || ''}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-app-input-border px-3 py-2"
                       />
-                      <input
+                      <FormField
+                        id="portal-profile-state-province"
                         name="state_province"
-                        placeholder="State/Province"
+                        label="State / Province"
                         value={formData.state_province || ''}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-app-input-border px-3 py-2"
                       />
-                      <input
+                      <FormField
+                        id="portal-profile-postal-code"
                         name="postal_code"
-                        placeholder="Postal Code"
+                        label="Postal Code"
                         value={formData.postal_code || ''}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-app-input-border px-3 py-2"
                       />
                     </div>
-                    <input
+                    <FormField
+                      id="portal-profile-country"
                       name="country"
-                      placeholder="Country"
+                      label="Country"
                       value={formData.country || ''}
                       onChange={handleChange}
-                      className="w-full rounded-md border border-app-input-border px-3 py-2"
                     />
                   </div>
                 </section>
 
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-md bg-app-accent px-6 py-2 font-medium text-[var(--app-accent-foreground)] disabled:opacity-50"
-                >
+                <PrimaryButton type="submit" disabled={saving}>
                   {saving ? 'Saving...' : 'Save Changes'}
-                </button>
+                </PrimaryButton>
               </form>
             </div>
           )}
@@ -450,52 +437,37 @@ export default function PortalProfile() {
             >
               <h3 className="text-base font-semibold text-app-text">Change Password</h3>
               <div className="mt-4 max-w-md space-y-4">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-app-text">
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full rounded-md border border-app-input-border px-3 py-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-app-text">
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full rounded-md border border-app-input-border px-3 py-2"
-                    required
-                  />
-                  <p className="mt-1 text-xs text-app-text-muted">
-                    Must be at least 8 characters with uppercase, lowercase, and number.
-                  </p>
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-app-text">
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full rounded-md border border-app-input-border px-3 py-2"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={changingPassword}
-                  className="rounded-md bg-app-accent px-6 py-2 font-medium text-[var(--app-accent-foreground)] disabled:opacity-50"
-                >
+                <FormField
+                  id="portal-profile-current-password"
+                  type="password"
+                  label="Current Password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+                <FormField
+                  id="portal-profile-new-password"
+                  type="password"
+                  label="New Password"
+                  helperText="Must be at least 8 characters with uppercase, lowercase, and number."
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+                <FormField
+                  id="portal-profile-confirm-password"
+                  type="password"
+                  label="Confirm New Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+                <PrimaryButton type="submit" disabled={changingPassword}>
                   {changingPassword ? 'Changing...' : 'Change Password'}
-                </button>
+                </PrimaryButton>
               </div>
             </form>
           )}

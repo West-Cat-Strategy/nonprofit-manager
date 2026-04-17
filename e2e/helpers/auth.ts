@@ -215,8 +215,11 @@ const isDockerBackedRun = (): boolean =>
   process.env.API_URL?.includes(':8004') ||
   process.env.BASE_URL?.includes(':8005');
 
+const shouldAllowExternallyManagedAuthFallbacks = (): boolean =>
+  isDockerBackedRun() && process.env.BYPASS_REGISTRATION_POLICY_IN_TEST === 'true';
+
 const shouldUseManagedTestUserCreation = (): boolean =>
-  !isDockerBackedRun() || process.env.BYPASS_REGISTRATION_POLICY_IN_TEST !== 'true';
+  !shouldAllowExternallyManagedAuthFallbacks();
 
 const getDefaultAdminPasswordForRuntime = (
   dockerBackedRun: boolean
@@ -628,12 +631,19 @@ const clearEffectiveAdminSessionCache = (): void => {
   unlinkIfExists(effectiveAdminSessionFile);
 };
 
-export const invalidateSharedAuthCaches = (options: { clearLocks?: boolean } = {}): void => {
+export const invalidateSharedAuthCaches = (
+  options: { clearLocks?: boolean; clearAdminCaches?: boolean } = {}
+): void => {
   const { readyFile, sharedUserFile, authLockFile, sharedUserLockFile } = getAuthCachePaths();
   unlinkIfExists(readyFile);
   unlinkIfExists(sharedUserFile);
   delete process.env.TEST_USER_EMAIL;
   delete process.env.TEST_USER_PASSWORD;
+
+  if (options.clearAdminCaches) {
+    clearEffectiveAdminCache();
+    clearEffectiveAdminSessionCache();
+  }
 
   if (options.clearLocks) {
     unlinkIfExists(authLockFile);
@@ -1048,6 +1058,30 @@ const fetchCsrfTokenForSession = async (
   return payload.csrfToken;
 };
 
+const promoteUserToAdminViaDatabase = async (userId: string): Promise<void> => {
+  const client = new PgClient(getAuthDatabaseConfig());
+
+  try {
+    await client.connect();
+    const result = await client.query<{ id: string; role: string }>(
+      `
+      UPDATE users
+         SET role = 'admin',
+             is_active = true
+       WHERE id = $1
+       RETURNING id, role
+      `,
+      [userId]
+    );
+    const promotedUser = result.rows[0];
+    if (!promotedUser?.id || !isAdminRole(promotedUser.role)) {
+      throw new Error(`Database promotion did not return an admin row for ${userId}`);
+    }
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+};
+
 const promoteUserToAdminViaApi = async (
   page: Page,
   token: string,
@@ -1073,8 +1107,17 @@ const promoteUserToAdminViaApi = async (
   );
 
   if (!response.ok()) {
+    const responseBody = await response.text();
+    if (
+      shouldAllowExternallyManagedAuthFallbacks() &&
+      (response.status() === 401 || response.status() === 403)
+    ) {
+      await promoteUserToAdminViaDatabase(userId);
+      return;
+    }
+
     throw new Error(
-      `Failed to promote fallback user ${userId} to admin (${response.status()}): ${await response.text()}`
+      `Failed to promote fallback user ${userId} to admin (${response.status()}): ${responseBody}`
     );
   }
 
@@ -1378,6 +1421,7 @@ export async function ensureAdminLoginViaAPI(
   const adminEmail = primaryAdminCredentials.email;
   const adminPassword = primaryAdminCredentials.password;
   const strictAdminAuth = isStrictAdminAuthRequired();
+  const allowExternallyManagedAuthFallbacks = shouldAllowExternallyManagedAuthFallbacks();
   let alternateDefaultAdminError: unknown;
 
   const toSession = (
@@ -1504,22 +1548,24 @@ export async function ensureAdminLoginViaAPI(
     }
   }
 
-  const sharedUser = getSharedTestUser();
-  if (
-    sharedUser.email &&
-    sharedUser.password &&
-    sharedUser.email.toLowerCase() !== adminEmail.toLowerCase()
-  ) {
-    try {
-      const normalizedSharedSession = await loginExistingSession(sharedUser.email, sharedUser.password);
-      if (normalizedSharedSession.isAdmin) {
-        const setupStatus = await waitForSetupStatus(page);
-        if (!setupStatus.setupRequired) {
-          return normalizedSharedSession;
+  if (allowExternallyManagedAuthFallbacks) {
+    const sharedUser = getSharedTestUser();
+    if (
+      sharedUser.email &&
+      sharedUser.password &&
+      sharedUser.email.toLowerCase() !== adminEmail.toLowerCase()
+    ) {
+      try {
+        const normalizedSharedSession = await loginExistingSession(sharedUser.email, sharedUser.password);
+        if (normalizedSharedSession.isAdmin) {
+          const setupStatus = await waitForSetupStatus(page);
+          if (!setupStatus.setupRequired) {
+            return normalizedSharedSession;
+          }
         }
+      } catch {
+        // Continue to configured admin flow.
       }
-    } catch {
-      // Continue to configured admin flow.
     }
   }
 
@@ -1632,6 +1678,7 @@ export async function ensureEffectiveAdminLoginViaAPI(
     }
 
     const strictAdminAuth = isStrictAdminAuthRequired();
+    const allowExternallyManagedAuthFallbacks = shouldAllowExternallyManagedAuthFallbacks();
     let session: AuthSession;
     let strictAdminError: unknown;
 
@@ -1643,6 +1690,13 @@ export async function ensureEffectiveAdminLoginViaAPI(
         const latestSetupStatus = await waitForSetupStatus(page);
         if (latestSetupStatus.setupRequired) {
           throw error;
+        }
+
+        if (!allowExternallyManagedAuthFallbacks) {
+          const details = error instanceof Error ? error.message : String(error);
+          throw new Error(
+            `Playwright-managed admin bootstrap failed and shared-user fallback is disabled for this runtime: ${details}`
+          );
         }
 
         const sharedUser = getSharedTestUser();
@@ -1817,8 +1871,7 @@ export async function ensureEffectiveAdminLoginViaAPI(
         throw error;
       }
 
-      invalidateSharedAuthCaches({ clearLocks: true });
-      clearEffectiveAdminSessionCache();
+      invalidateSharedAuthCaches({ clearLocks: true, clearAdminCaches: true });
       await clearAuth(page);
     }
   }
@@ -1835,6 +1888,7 @@ export async function ensureLoginViaAPI(
   password: string,
   profile?: { firstName?: string; lastName?: string }
 ): Promise<{ token: string; user: any; organizationId?: string }> {
+  const allowExternallyManagedAuthFallbacks = shouldAllowExternallyManagedAuthFallbacks();
   const attemptLogin = async () => {
     const loginResult = await loginViaAPI(page, email, password);
     return ensureOrganizationBackedSession(page, email, password, loginResult);
@@ -1945,8 +1999,11 @@ export async function ensureLoginViaAPI(
       const registerMessage =
         registerError instanceof Error ? registerError.message : String(registerError);
       const shouldTryDatabaseUserFallback =
-        registerMessage.includes('Admin bootstrap failed before shared-user fallback') ||
-        registerMessage.includes('Failed to create managed test user');
+        allowExternallyManagedAuthFallbacks &&
+        (
+          registerMessage.includes('Admin bootstrap failed before shared-user fallback') ||
+          registerMessage.includes('Failed to create managed test user')
+        );
 
       if (shouldTryDatabaseUserFallback) {
         try {
@@ -1990,6 +2047,13 @@ export async function ensureLoginViaAPI(
     } catch (loginError) {
       if (!isInvalidCredentialError(loginError)) {
         throw loginError;
+      }
+
+      if (!allowExternallyManagedAuthFallbacks) {
+        const details = loginError instanceof Error ? loginError.message : String(loginError);
+        throw new Error(
+          `Managed test-user login failed for ${email}: ${details}. Playwright-managed host runs do not fall back to shared-user or database-backed accounts.`
+        );
       }
 
       const fallbackEmail = `e2e+${Date.now()}-${Math.random()

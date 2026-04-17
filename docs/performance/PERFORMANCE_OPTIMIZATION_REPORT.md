@@ -224,35 +224,27 @@ Memory: bounded to ~1-2MB
 
 ---
 
-### 8. ✅ Cache Cleanup Interval Management (Backend)
-**File:** [backend/src/utils/cache.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/utils/cache.ts)
+### 8. ✅ Redis-Backed Analytics Cache Lifecycle (Backend)
+**Files:** `backend/src/config/redis.ts`, `backend/src/services/analytics/index.ts`, `backend/src/services/analytics/donationAnalytics.ts`, `backend/src/services/analytics/trendAnalytics.ts`
 
-**Fixed non-clearable setInterval:**
-- **Issue:** Each `Cache` instance created a `setInterval` without tracking it
-- **Risk:** If dynamic cache instances created/destroyed, intervals leak
-- **Solution:**
-  - Store cleanup interval as instance variable
-  - Call `.unref()` on it (doesn't keep process alive)
-  - Add `destroy()` method to explicitly clear interval if needed
-  - Global caches (analyticsCache, dashboardCache) use module-level lifecycle
+**Current implementation shape:**
+- Analytics caching now lives behind the shared Redis helpers in `backend/src/config/redis.ts`
+- Service owners choose TTLs explicitly with `getCached()` / `setCached()`
+- Cache lifecycle is handled by Redis expiry rather than per-instance in-process cleanup timers
+- The retired `backend/src/utils/cache.ts` helper should stay removed; new cache work belongs in the owning service or the shared Redis config layer
 
 **Code pattern:**
 ```typescript
-private cleanupInterval: NodeJS.Timeout | null = null;
-
-constructor(defaultTTL: number) {
-  this.cleanupInterval = setInterval(() => this.cleanup(), CACHE.CLEANUP_INTERVAL_MS);
-  if (this.cleanupInterval.unref) {
-    this.cleanupInterval.unref(); // Don't block process exit
-  }
+const cacheKey = `analytics:comparative:${periodType}`;
+const cached = await getCached<ComparativeAnalytics>(cacheKey);
+if (cached) {
+  logger.debug('Comparative analytics cache hit', { cacheKey });
+  return cached;
 }
 
-destroy(): void {
-  if (this.cleanupInterval) {
-    clearInterval(this.cleanupInterval);
-    this.cleanupInterval = null;
-  }
-}
+const result = await buildComparativeAnalytics(periodType);
+await setCached(cacheKey, result, 600);
+return result;
 ```
 
 ---
@@ -280,7 +272,7 @@ destroy(): void {
 | Duplicate unconfigured DB pool | P0 | ✅ | Connection pooling efficiency |
 | Metrics Map unbounded growth | P1 | ✅ | Prevents memory leak |
 | Login attempts Map unbounded growth | P1 | ✅ | Prevents memory leak |
-| Cache setInterval not tracked | P1 | ✅ | Prevents potential leak |
+| Service-owned analytics caching on shared Redis helpers | P1 | ✅ | Keeps cache lifecycle centralized and bounded |
 | SELECT * overuse (42+ queries) | P2 | ⏳ | Bandwidth/memory savings |
 | Missing pagination (8+ LIST endpoints) | P2 | ⏳ | Large dataset handling |
 | N+1 query patterns (3 services) | P2 | ⏳ | Query optimization |

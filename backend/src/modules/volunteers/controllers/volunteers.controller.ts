@@ -13,13 +13,12 @@ import { extractPagination, getBoolean, getString } from '@utils/queryHelpers';
 import { VolunteerCatalogUseCase } from '../usecases/volunteerCatalog.usecase';
 import { VolunteerImportExportUseCase } from '../usecases/volunteerImportExport.usecase';
 import { VolunteerLifecycleUseCase } from '../usecases/volunteerLifecycle.usecase';
-import { type ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
 export const createVolunteersController = (
   catalogUseCase: VolunteerCatalogUseCase,
   lifecycleUseCase: VolunteerLifecycleUseCase,
-  importExportUseCase: VolunteerImportExportUseCase,
-  mode: ResponseMode
+  importExportUseCase: VolunteerImportExportUseCase
 ) => {
   const getVolunteers = async (
     req: AuthRequest,
@@ -41,7 +40,7 @@ export const createVolunteersController = (
       const pagination: PaginationParams = extractPagination(query);
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const result = await catalogUseCase.list(filters, pagination, scope);
-      sendData(res, mode, result);
+      sendData(res, result);
     } catch (error) {
       next(error);
     }
@@ -56,11 +55,11 @@ export const createVolunteersController = (
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const volunteer = await catalogUseCase.getById(req.params.id, scope);
       if (!volunteer) {
-        sendFailure(res, mode, 'not_found', 'Volunteer not found', 404);
+        sendFailure(res, 'not_found', 'Volunteer not found', 404);
         return;
       }
 
-      sendData(res, mode, volunteer);
+      sendData(res, volunteer);
     } catch (error) {
       next(error);
     }
@@ -79,12 +78,12 @@ export const createVolunteersController = (
         .filter((skill) => skill.length > 0) || [];
 
       if (skills.length === 0) {
-        sendFailure(res, mode, 'bad_request', 'Skills parameter is required', 400);
+        sendFailure(res, 'bad_request', 'Skills parameter is required', 400);
         return;
       }
 
       const volunteers = await catalogUseCase.findBySkills(skills);
-      sendData(res, mode, volunteers);
+      sendData(res, volunteers);
     } catch (error) {
       next(error);
     }
@@ -98,12 +97,12 @@ export const createVolunteersController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const volunteer = await lifecycleUseCase.create(req.body, userId);
-      sendData(res, mode, volunteer, 201);
+      sendData(res, volunteer, 201);
     } catch (error) {
       next(error);
     }
@@ -117,17 +116,17 @@ export const createVolunteersController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const volunteer = await lifecycleUseCase.update(req.params.id, req.body, userId);
       if (!volunteer) {
-        sendFailure(res, mode, 'not_found', 'Volunteer not found', 404);
+        sendFailure(res, 'not_found', 'Volunteer not found', 404);
         return;
       }
 
-      sendData(res, mode, volunteer);
+      sendData(res, volunteer);
     } catch (error) {
       next(error);
     }
@@ -141,13 +140,13 @@ export const createVolunteersController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const deleted = await lifecycleUseCase.delete(req.params.id, userId);
       if (!deleted) {
-        sendFailure(res, mode, 'not_found', 'Volunteer not found', 404);
+        sendFailure(res, 'not_found', 'Volunteer not found', 404);
         return;
       }
 
@@ -164,7 +163,7 @@ export const createVolunteersController = (
   ): Promise<void> => {
     try {
       const assignments = await catalogUseCase.listAssignments({ volunteer_id: req.params.id });
-      sendData(res, mode, assignments);
+      sendData(res, assignments);
     } catch (error) {
       next(error);
     }
@@ -178,12 +177,12 @@ export const createVolunteersController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const assignment = await lifecycleUseCase.createAssignment(req.body, userId);
-      sendData(res, mode, assignment, 201);
+      sendData(res, assignment, 201);
     } catch (error) {
       next(error);
     }
@@ -197,17 +196,17 @@ export const createVolunteersController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       const assignment = await lifecycleUseCase.updateAssignment(req.params.id, req.body, userId);
       if (!assignment) {
-        sendFailure(res, mode, 'not_found', 'Assignment not found', 404);
+        sendFailure(res, 'not_found', 'Assignment not found', 404);
         return;
       }
 
-      sendData(res, mode, assignment);
+      sendData(res, assignment);
     } catch (error) {
       next(error);
     }
@@ -221,7 +220,7 @@ export const createVolunteersController = (
     try {
       const organizationId = req.organizationId;
       if (!organizationId) {
-        sendFailure(res, mode, 'bad_request', 'Organization context required', 400);
+        sendFailure(res, 'bad_request', 'Organization context required', 400);
         return;
       }
 
@@ -257,19 +256,19 @@ export const createVolunteersController = (
     try {
       const organizationId = req.organizationId;
       if (!organizationId) {
-        sendFailure(res, mode, 'bad_request', 'Organization context required', 400);
+        sendFailure(res, 'bad_request', 'Organization context required', 400);
         return;
       }
 
       if (!req.file) {
-        sendFailure(res, mode, 'validation_error', 'Import file is required', 400);
+        sendFailure(res, 'validation_error', 'Import file is required', 400);
         return;
       }
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
       const mapping = parseMultipartJsonField<Record<string, unknown>>(req.body.mapping);
       const preview = await importExportUseCase.previewImport(req.file, mapping, organizationId, scope);
-      sendData(res, mode, preview);
+      sendData(res, preview);
     } catch (error) {
       next(error);
     }
@@ -284,17 +283,17 @@ export const createVolunteersController = (
       const organizationId = req.organizationId;
       const userId = req.user?.id;
       if (!organizationId) {
-        sendFailure(res, mode, 'bad_request', 'Organization context required', 400);
+        sendFailure(res, 'bad_request', 'Organization context required', 400);
         return;
       }
 
       if (!userId) {
-        sendFailure(res, mode, 'unauthorized', 'User not authenticated', 401);
+        sendFailure(res, 'unauthorized', 'User not authenticated', 401);
         return;
       }
 
       if (!req.file) {
-        sendFailure(res, mode, 'validation_error', 'Import file is required', 400);
+        sendFailure(res, 'validation_error', 'Import file is required', 400);
         return;
       }
 
@@ -307,7 +306,7 @@ export const createVolunteersController = (
         organizationId,
         scope
       );
-      sendData(res, mode, result);
+      sendData(res, result);
     } catch (error) {
       next(error);
     }

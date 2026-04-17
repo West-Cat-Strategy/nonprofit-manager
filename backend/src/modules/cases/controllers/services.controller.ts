@@ -2,16 +2,13 @@ import { NextFunction, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import type { CreateCaseServiceDTO, UpdateCaseServiceDTO } from '@app-types/case';
 import { CaseServicesUseCase } from '../usecases/caseServices.usecase';
-import { ResponseMode, sendData } from '../mappers/responseMode';
+import { sendData } from '../mappers/responseMode';
 
-export const createCaseServicesController = (
-  useCase: CaseServicesUseCase,
-  mode: ResponseMode
-) => {
+export const createCaseServicesController = (useCase: CaseServicesUseCase) => {
   const getCaseServices = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const services = await useCase.list(req.params.id);
-      sendData(res, mode, mode === 'v2' ? services : { services });
+      sendData(res, services);
     } catch (error) {
       next(error);
     }
@@ -20,7 +17,7 @@ export const createCaseServicesController = (
   const createCaseService = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const service = await useCase.create(req.params.id, req.body as CreateCaseServiceDTO, req.user?.id);
-      sendData(res, mode, service, 201);
+      sendData(res, service, 201);
     } catch (error) {
       next(error);
     }
@@ -29,7 +26,7 @@ export const createCaseServicesController = (
   const updateCaseService = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const service = await useCase.update(req.params.serviceId, req.body as UpdateCaseServiceDTO, req.user?.id);
-      sendData(res, mode, service);
+      sendData(res, service);
     } catch (error) {
       next(error);
     }
@@ -38,11 +35,7 @@ export const createCaseServicesController = (
   const deleteCaseService = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       await useCase.delete(req.params.serviceId);
-      if (mode === 'v2') {
-        res.status(204).send();
-        return;
-      }
-      res.json({ success: true, message: 'Service deleted' });
+      res.status(204).send();
     } catch (error) {
       next(error);
     }

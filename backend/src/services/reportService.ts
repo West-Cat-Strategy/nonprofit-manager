@@ -9,6 +9,12 @@ import {
   buildTabularExport,
   type GeneratedTabularFile,
 } from '@modules/shared/export/tabularExport';
+import {
+  assertDirectReportExportSupported,
+  buildReportDataQuery,
+  getUngroupedTotalCount,
+  type ReportQueryPlan,
+} from './reportDirectExportSupport';
 import type {
   ReportDefinition,
   ReportResult,
@@ -16,10 +22,20 @@ import type {
   ReportFilter,
   ReportSort,
 } from '@app-types/report';
+export {
+  DirectReportExportTooLargeError,
+  MAX_DIRECT_EXPORT_ROWS,
+} from './reportDirectExportSupport';
 
 export interface ReportGenerationScope {
   organizationId?: string;
 }
+
+type ReportFieldSpec = {
+  label: string;
+  type: 'string' | 'number' | 'date' | 'boolean' | 'currency';
+  column: string;
+};
 
 export class ReportService {
   constructor(private pool: Pool) { }
@@ -33,7 +49,7 @@ export class ReportService {
 
   private getFieldSpecs(entity: ReportEntity): Record<
     string,
-    { label: string; type: 'string' | 'number' | 'date' | 'boolean' | 'currency'; column: string }
+    ReportFieldSpec
   > {
     switch (entity) {
       case 'cases':
@@ -685,113 +701,107 @@ export class ReportService {
     return tableMap[entity];
   }
 
+  private buildLimitClause(limit?: number): string {
+    return typeof limit === 'number' ? `LIMIT ${limit}` : '';
+  }
+
+  private buildReportQueryPlan(
+    definition: ReportDefinition,
+    scope?: ReportGenerationScope
+  ): ReportQueryPlan {
+    const tableName = this.getTableName(definition.entity);
+    const fieldSpecs = this.getFieldSpecs(definition.entity);
+
+    const selectParts: string[] = [];
+    const aggregationAliases = new Set<string>();
+    const isGrouped = Boolean(definition.groupBy && definition.groupBy.length > 0);
+
+    if (isGrouped) {
+      for (const field of definition.groupBy || []) {
+        if (!fieldSpecs[field]) {
+          throw new Error(`Invalid group by field: ${field}`);
+        }
+        selectParts.push(`${fieldSpecs[field].column} AS ${field}`);
+      }
+    } else if (definition.fields && definition.fields.length > 0) {
+      const invalidFields = definition.fields.filter((field) => !fieldSpecs[field]);
+      if (invalidFields.length > 0) {
+        throw new Error(`Invalid fields: ${invalidFields.join(', ')}`);
+      }
+      definition.fields.forEach((field) => {
+        selectParts.push(`${fieldSpecs[field].column} AS ${field}`);
+      });
+    }
+
+    if (definition.aggregations && definition.aggregations.length > 0) {
+      for (const agg of definition.aggregations) {
+        if (!fieldSpecs[agg.field]) {
+          throw new Error(`Invalid aggregation field: ${agg.field}`);
+        }
+        const alias = this.sanitizeAlias(agg.alias || `${agg.function}_${agg.field}`);
+        aggregationAliases.add(alias);
+        selectParts.push(
+          `${agg.function.toUpperCase()}(${fieldSpecs[agg.field].column}) AS "${alias}"`
+        );
+      }
+    }
+
+    if (selectParts.length === 0) {
+      throw new Error('At least one field or aggregation must be selected');
+    }
+
+    const scoped = this.getScopeClause(definition.entity, scope);
+    const { conditions: filterConditions, values: filterValues } = this.buildWhereClause(
+      definition.filters || [],
+      fieldSpecs,
+      scoped.values.length
+    );
+    const whereConditions = [...(scoped.condition ? [scoped.condition] : []), ...filterConditions];
+    const whereClause =
+      whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    return {
+      tableName,
+      selectFields: selectParts.join(', '),
+      whereClause,
+      values: [...scoped.values, ...filterValues],
+      groupByClause: isGrouped
+        ? `GROUP BY ${(definition.groupBy || []).map((field) => fieldSpecs[field].column).join(', ')}`
+        : '',
+      orderByClause: this.buildOrderByClause(definition.sort, fieldSpecs, aggregationAliases),
+      limitClause: this.buildLimitClause(definition.limit),
+      isGrouped,
+    };
+  }
+
+  async assertDirectExportSupported(
+    definition: ReportDefinition,
+    scope?: ReportGenerationScope
+  ): Promise<void> {
+    const plan = this.buildReportQueryPlan(definition, scope);
+    await assertDirectReportExportSupported(this.pool, definition, plan);
+  }
+
   /**
    * Generate a custom report based on definition
    */
   async generateReport(
     definition: ReportDefinition,
     scope?: ReportGenerationScope
-  ): Promise<ReportResult> {
+    ): Promise<ReportResult> {
     try {
-      const tableName = this.getTableName(definition.entity);
-      const fieldSpecs = this.getFieldSpecs(definition.entity);
+      const plan = this.buildReportQueryPlan(definition, scope);
+      const query = buildReportDataQuery(plan);
 
-      const selectParts: string[] = [];
-      const aggregationAliases = new Set<string>();
-
-      // Handle grouping fields
-      if (definition.groupBy && definition.groupBy.length > 0) {
-        for (const field of definition.groupBy) {
-          if (!fieldSpecs[field]) {
-            throw new Error(`Invalid group by field: ${field}`);
-          }
-          selectParts.push(`${fieldSpecs[field].column} AS ${field}`);
-        }
-      } else {
-        // Handle regular fields if not grouping
-        if (definition.fields && definition.fields.length > 0) {
-          const invalidFields = definition.fields.filter((field) => !fieldSpecs[field]);
-          if (invalidFields.length > 0) {
-            throw new Error(`Invalid fields: ${invalidFields.join(', ')}`);
-          }
-          definition.fields.forEach((field) => {
-            selectParts.push(`${fieldSpecs[field].column} AS ${field}`);
-          });
-        }
-      }
-
-      // Handle aggregations
-      if (definition.aggregations && definition.aggregations.length > 0) {
-        for (const agg of definition.aggregations) {
-          if (!fieldSpecs[agg.field]) {
-            throw new Error(`Invalid aggregation field: ${agg.field}`);
-          }
-          const alias = this.sanitizeAlias(agg.alias || `${agg.function}_${agg.field}`);
-          aggregationAliases.add(alias);
-          selectParts.push(`${agg.function.toUpperCase()}(${fieldSpecs[agg.field].column}) AS "${alias}"`);
-        }
-      }
-
-      if (selectParts.length === 0) {
-        throw new Error('At least one field or aggregation must be selected');
-      }
-
-      const selectFields = selectParts.join(', ');
-      const scoped = this.getScopeClause(definition.entity, scope);
-
-      // Build WHERE clause
-      const { conditions: filterConditions, values: filterValues } = this.buildWhereClause(
-        definition.filters || [],
-        fieldSpecs,
-        scoped.values.length
-      );
-      const whereConditions = [...(scoped.condition ? [scoped.condition] : []), ...filterConditions];
-      const whereClause = whereConditions.length > 0
-        ? `WHERE ${whereConditions.join(' AND ')}`
-        : '';
-      const values = [...scoped.values, ...filterValues];
-
-      // Build GROUP BY clause
-      const groupByClause = definition.groupBy && definition.groupBy.length > 0
-        ? `GROUP BY ${definition.groupBy.map(f => fieldSpecs[f].column).join(', ')}`
-        : '';
-
-      // Build ORDER BY clause
-      const orderByClause = this.buildOrderByClause(
-        definition.sort,
-        fieldSpecs,
-        aggregationAliases
-      );
-
-      // Build LIMIT clause
-      const limitClause = definition.limit ? `LIMIT ${definition.limit}` : '';
-
-      // Build final query
-      const query = `
-        SELECT ${selectFields}
-        FROM ${tableName}
-        ${whereClause}
-        ${groupByClause}
-        ${orderByClause}
-        ${limitClause}
-      `.trim().replace(/\s+/g, ' ');
-
-      logger.debug('Executing report query', { query, values });
+      logger.debug('Executing report query', { query, values: plan.values });
 
       // Execute query
-      const result = await this.pool.query(query, values);
+      const result = await this.pool.query(query, plan.values);
 
       // Get total count (for non-grouped reports)
       let totalCount = 0;
-      if (!definition.groupBy || definition.groupBy.length === 0) {
-        const countQuery = `
-          SELECT COUNT(*) as count
-          FROM ${tableName}
-          ${whereClause}
-        `.trim().replace(/\s+/g, ' ');
-
-        const countResult = await this.pool.query(countQuery, values);
-        totalCount = parseInt(countResult.rows[0].count);
+      if (!plan.isGrouped) {
+        totalCount = await getUngroupedTotalCount(this.pool, plan);
       } else {
         totalCount = result.rows.length;
       }

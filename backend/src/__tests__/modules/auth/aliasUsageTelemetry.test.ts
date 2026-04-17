@@ -62,7 +62,7 @@ describe('auth alias usage telemetry middleware', () => {
   });
 
   it('attaches middleware on register/setup/password routes', () => {
-    const router = createAuthRoutes('v2') as unknown as {
+    const router = createAuthRoutes() as unknown as {
       stack: Array<{
         route?: {
           path?: string;

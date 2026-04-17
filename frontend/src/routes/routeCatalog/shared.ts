@@ -266,6 +266,8 @@ const routeParentIds: Record<string, string> = {
   'forgot-password': 'login',
   'reset-password': 'login',
   'portal-signup': 'portal-login',
+  'portal-forgot-password': 'portal-login',
+  'portal-reset-password': 'portal-login',
   'portal-accept-invitation': 'portal-login',
 };
 

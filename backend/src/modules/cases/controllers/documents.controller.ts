@@ -4,7 +4,7 @@ import { AuthRequest } from '@middleware/auth';
 import fileStorage, { uploadFile } from '@services/fileStorageService';
 import type { UpdateCaseDocumentDTO } from '@app-types/case';
 import { CaseDocumentsUseCase } from '../usecases/caseDocuments.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
 const INLINE_PREVIEW_MIME_TYPES = new Set([
   'application/pdf',
@@ -42,14 +42,11 @@ const resolveVisibleToClient = (body: Record<string, unknown>): boolean => {
 
 const encodeFileName = (name: string): string => encodeURIComponent(name).replace(/%20/g, ' ');
 
-export const createCaseDocumentsController = (
-  useCase: CaseDocumentsUseCase,
-  mode: ResponseMode
-) => {
+export const createCaseDocumentsController = (useCase: CaseDocumentsUseCase) => {
   const getCaseDocuments = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const documents = await useCase.list(req.params.id);
-      sendData(res, mode, mode === 'v2' ? documents : { documents });
+      sendData(res, documents);
     } catch (error) {
       next(error);
     }
@@ -59,7 +56,7 @@ export const createCaseDocumentsController = (
     try {
       const file = req.file;
       if (!file) {
-        sendFailure(res, mode, 'VALIDATION_ERROR', 'No file uploaded', 400);
+        sendFailure(res, 'VALIDATION_ERROR', 'No file uploaded', 400);
         return;
       }
 
@@ -86,7 +83,7 @@ export const createCaseDocumentsController = (
         userId: req.user?.id,
       });
 
-      sendData(res, mode, document, 201);
+      sendData(res, document, 201);
     } catch (error) {
       next(error);
     }
@@ -108,7 +105,7 @@ export const createCaseDocumentsController = (
       };
 
       const document = await useCase.update(req.params.documentId, payload, req.user?.id);
-      sendData(res, mode, document);
+      sendData(res, document);
     } catch (error) {
       next(error);
     }
@@ -118,16 +115,11 @@ export const createCaseDocumentsController = (
     try {
       const deleted = await useCase.delete(req.params.documentId, req.user?.id);
       if (!deleted) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Case document not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Case document not found', 404);
         return;
       }
 
-      if (mode === 'v2') {
-        res.status(204).send();
-        return;
-      }
-
-      sendData(res, mode, { success: true });
+      res.status(204).send();
     } catch (error) {
       next(error);
     }
@@ -148,13 +140,13 @@ export const createCaseDocumentsController = (
         | null;
 
       if (!record || !record.file_path) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Case document not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Case document not found', 404);
         return;
       }
 
       const exists = await fileStorage.fileExists(record.file_path);
       if (!exists) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Case document file not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Case document file not found', 404);
         return;
       }
 

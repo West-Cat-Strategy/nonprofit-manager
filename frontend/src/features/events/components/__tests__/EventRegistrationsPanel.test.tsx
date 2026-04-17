@@ -7,10 +7,12 @@ import type { EventRegistration } from '../../../../types/event';
 import EventRegistrationsPanel from '../EventRegistrationsPanel';
 
 const listCasesMock = vi.fn();
+const toDataURLMock = vi.fn().mockResolvedValue('data:image/png;base64,mock');
 
 vi.mock('qrcode', () => ({
+  toDataURL: toDataURLMock,
   default: {
-    toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,mock'),
+    toDataURL: toDataURLMock,
   },
 }));
 
@@ -128,6 +130,32 @@ describe('EventRegistrationsPanel', () => {
 
     await waitFor(() => {
       expect(onScanCheckIn).toHaveBeenCalledWith('manual-token-abc');
+    });
+  });
+
+  it('renders QR codes for registrations with check-in tokens', async () => {
+    setup();
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Check-in QR')).toBeInTheDocument();
+    });
+  });
+
+  it('sends reminders from the reminder controls', async () => {
+    const onSendReminders = vi.fn().mockResolvedValue(undefined);
+
+    setup({
+      onSendReminders,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send Reminders' }));
+
+    await waitFor(() => {
+      expect(onSendReminders).toHaveBeenCalledWith({
+        sendEmail: true,
+        sendSms: true,
+        customMessage: undefined,
+      });
     });
   });
 

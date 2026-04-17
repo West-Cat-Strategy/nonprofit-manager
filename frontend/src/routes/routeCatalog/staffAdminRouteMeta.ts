@@ -1,10 +1,19 @@
-import { adminRouteDefinitionByRouteId } from '../../features/adminOps/adminNavigationCatalog';
+import {
+  getAdminRouteDefinition,
+  getAdminSettingsSectionDefinitionByRouteId,
+  getAdminWorkspaceDefinitionByRouteId,
+  type AdminRouteId,
+  type AdminSettingsSectionRouteId,
+  type AdminWorkspaceRouteId,
+} from '../../features/adminOps/adminNavigationCatalog';
 
-export const getAdminRouteMeta = (routeId: string) => {
-  const metadata = adminRouteDefinitionByRouteId.get(routeId);
-  if (!metadata) {
-    throw new Error(`Missing admin route metadata for ${routeId}`);
-  }
+export const getAdminRouteMeta = <RouteId extends AdminRouteId>(routeId: RouteId) =>
+  getAdminRouteDefinition(routeId);
 
-  return metadata;
-};
+export const getAdminSettingsRouteMeta = <RouteId extends AdminSettingsSectionRouteId>(
+  routeId: RouteId
+) => getAdminSettingsSectionDefinitionByRouteId(routeId);
+
+export const getAdminWorkspaceRouteMeta = <RouteId extends AdminWorkspaceRouteId>(
+  routeId: RouteId
+) => getAdminWorkspaceDefinitionByRouteId(routeId);

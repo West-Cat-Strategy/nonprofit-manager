@@ -120,6 +120,31 @@ export default function SurfaceContextBar({
               {mobilePrimaryAction.label}
             </Link>
           ) : null}
+
+          {showLocalNavigation && routeMeta.surface === 'portal' && routeMeta.localNavigation.length > 0 ? (
+            <details className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated shadow-sm">
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-app-text-heading">
+                {browseLabel}
+              </summary>
+              <nav aria-label={browseLabel} className="space-y-2 border-t border-app-border px-3 py-3">
+                {routeMeta.localNavigation.map((item) => (
+                  <Link
+                    key={item.id}
+                    to={item.href}
+                    aria-current={item.isActive ? 'page' : undefined}
+                    className={`flex items-center gap-2 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm font-medium transition ${
+                      item.isActive
+                        ? 'app-accent-contrast-ink border border-app-accent bg-app-accent shadow-sm'
+                        : 'border border-app-border bg-app-surface text-app-text hover:bg-app-surface-muted hover:text-app-text-heading'
+                    }`}
+                  >
+                    {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
+                    <span>{item.shortLabel}</span>
+                  </Link>
+                ))}
+              </nav>
+            </details>
+          ) : null}
         </div>
 
         <div className="hidden md:block">

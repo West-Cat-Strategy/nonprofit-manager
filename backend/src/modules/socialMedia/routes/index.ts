@@ -73,8 +73,6 @@ router.post(
   syncFacebookPage
 );
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createSocialMediaRoutes = () => router;
 
-export const createSocialMediaRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const socialMediaV2Routes = createSocialMediaRoutes('v2');
+export const socialMediaV2Routes = createSocialMediaRoutes();

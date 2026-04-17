@@ -10,6 +10,7 @@ type PortalRequestRow = {
 };
 
 export type ProvisionedPortalUser = {
+  portalUserId: string;
   email: string;
   password: string;
   firstName: string;
@@ -132,6 +133,8 @@ export async function provisionApprovedPortalUser(
     );
   }
 
+  let portalUserId: string | null = null;
+
   if (pendingRequest?.id) {
     const approveResponse = await page.request.post(
       `${apiURL}/api/v2/portal/admin/requests/${pendingRequest.id}/approve`,
@@ -144,9 +147,31 @@ export async function provisionApprovedPortalUser(
         `Failed to approve portal signup request (${approveResponse.status()}): ${await approveResponse.text()}`
       );
     }
+
+    const approvePayload = (await approveResponse.json()) as {
+      data?: {
+        portalUser?: {
+          id?: string;
+        };
+      };
+      portalUser?: {
+        id?: string;
+      };
+    };
+    portalUserId =
+      approvePayload.data?.portalUser?.id ??
+      approvePayload.portalUser?.id ??
+      null;
+  }
+
+  if (!portalUserId) {
+    throw new Error(
+      `Portal user id was not returned after provisioning ${email}.`
+    );
   }
 
   return {
+    portalUserId,
     email,
     password,
     firstName,

@@ -10,7 +10,7 @@ import { fetchCaseSummary } from '../../features/cases/state';
 import WidgetContainer from './WidgetContainer';
 import type { CaseSummary } from '../../types/case';
 import type { DashboardWidget } from '../../types/dashboard';
-import { useDashboardData } from '../../features/dashboard/context/DashboardDataContext';
+import { useDashboardCaseSummary } from '../../features/dashboard/context/DashboardDataContext';
 
 interface CaseSummaryWidgetProps {
   widget: DashboardWidget;
@@ -31,10 +31,10 @@ const resolveCaseSummary = (state: { cases?: CaseSummarySlice } | undefined): Ca
 };
 
 const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProps) => {
-  const dashboardData = useDashboardData();
+  const caseSummaryLane = useDashboardCaseSummary();
   const dispatch = useAppDispatch();
   const storeSummary = useAppSelector(resolveCaseSummary);
-  const summary = dashboardData?.caseSummary ?? storeSummary;
+  const summary = caseSummaryLane?.caseSummary ?? storeSummary;
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(summary === null);
   const initialSummaryExistsRef = useRef(summary !== null);
@@ -62,7 +62,7 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
   }, [summary]);
 
   useEffect(() => {
-    if (dashboardData) {
+    if (caseSummaryLane) {
       return undefined;
     }
 
@@ -96,17 +96,17 @@ const CaseSummaryWidget = ({ widget, editMode, onRemove }: CaseSummaryWidgetProp
     return () => {
       cancelled = true;
     };
-  }, [dashboardData, dispatch]);
+  }, [caseSummaryLane, dispatch]);
 
   return (
     <WidgetContainer
       widget={widget}
       editMode={editMode}
       onRemove={onRemove}
-      loading={dashboardData ? dashboardData.loading.caseSummary : summaryLoading}
+      loading={caseSummaryLane ? caseSummaryLane.loading : summaryLoading}
       error={
         summary === null
-          ? (dashboardData?.errors.caseSummary ?? summaryError ?? undefined)
+          ? (caseSummaryLane?.error ?? summaryError ?? undefined)
           : undefined
       }
     >

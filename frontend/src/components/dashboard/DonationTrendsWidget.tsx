@@ -5,13 +5,15 @@ import {
   LineChart,
   ResponsiveContainer,
   Tooltip,
+  type TooltipProps,
+  type TooltipValueType,
   XAxis,
   YAxis,
 } from 'recharts';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
 import { analyticsApiClient } from '../../features/analytics/api/analyticsApiClient';
-import { useDashboardData } from '../../features/dashboard/context/DashboardDataContext';
+import { useDashboardDonationTrends } from '../../features/dashboard/context/DashboardDataContext';
 import type { DonationTrendPoint } from '../../features/analytics/types/contracts';
 
 interface DonationTrendsWidgetProps {
@@ -19,6 +21,14 @@ interface DonationTrendsWidgetProps {
   editMode: boolean;
   onRemove: () => void;
 }
+
+type DonationTrendChartPoint = DonationTrendPoint & {
+  monthLabel: string;
+  monthHeading: string;
+};
+
+type DonationTooltipFormatter = NonNullable<TooltipProps<TooltipValueType>['formatter']>;
+type DonationTooltipLabelFormatter = NonNullable<TooltipProps<TooltipValueType>['labelFormatter']>;
 
 const currencyFormatter = new Intl.NumberFormat('en-CA', {
   style: 'currency',
@@ -102,14 +112,46 @@ const summarizeDonationTrends = (points: DonationTrendPoint[]) => {
   };
 };
 
+const formatCurrencyTooltipValue = (value: TooltipValueType | undefined): string => {
+  if (typeof value === 'number') {
+    return currencyFormatter.format(value);
+  }
+
+  if (typeof value === 'string') {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? currencyFormatter.format(numericValue) : value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => formatCurrencyTooltipValue(entry)).join(', ');
+  }
+
+  return 'N/A';
+};
+
+const formatDonationTooltipValue: DonationTooltipFormatter = (value) => [
+  formatCurrencyTooltipValue(value),
+  'Raised',
+];
+
+const formatDonationTooltipLabel: DonationTooltipLabelFormatter = (_label, payload) => {
+  const chartPoint = payload[0]?.payload;
+  const monthHeading =
+    typeof chartPoint === 'object' && chartPoint !== null
+      ? (chartPoint as { monthHeading?: unknown }).monthHeading
+      : undefined;
+
+  return typeof monthHeading === 'string' ? monthHeading : '';
+};
+
 const DonationTrendsWidget = ({ widget, editMode, onRemove }: DonationTrendsWidgetProps) => {
-  const dashboardData = useDashboardData();
+  const donationTrendsLane = useDashboardDonationTrends();
   const [data, setData] = useState<DonationTrendPoint[]>([]);
-  const [loading, setLoading] = useState(!dashboardData);
+  const [loading, setLoading] = useState(!donationTrendsLane);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (dashboardData) {
+    if (donationTrendsLane) {
       return undefined;
     }
 
@@ -141,13 +183,13 @@ const DonationTrendsWidget = ({ widget, editMode, onRemove }: DonationTrendsWidg
     return () => {
       isMounted = false;
     };
-  }, [dashboardData]);
+  }, [donationTrendsLane]);
 
-  const resolvedData = dashboardData ? dashboardData.donationTrends : data;
-  const isLoading = dashboardData ? dashboardData.loading.donationTrends : loading;
-  const resolvedError = dashboardData ? dashboardData.errors.donationTrends ?? null : error;
+  const resolvedData = donationTrendsLane ? donationTrendsLane.donationTrends : data;
+  const isLoading = donationTrendsLane ? donationTrendsLane.loading : loading;
+  const resolvedError = donationTrendsLane ? donationTrendsLane.error : error;
 
-  const chartData = resolvedData.map((point) => ({
+  const chartData: DonationTrendChartPoint[] = resolvedData.map((point) => ({
     ...point,
     monthLabel: formatMonthLabel(point.month),
     monthHeading: formatMonthHeading(point.month),
@@ -212,11 +254,8 @@ const DonationTrendsWidget = ({ widget, editMode, onRemove }: DonationTrendsWidg
                   tickFormatter={(value: number) => currencyFormatter.format(value)}
                 />
                 <Tooltip
-                  formatter={(value: number) => [currencyFormatter.format(value), 'Raised']}
-                  labelFormatter={(_, payload) => {
-                    const firstPoint = payload?.[0]?.payload as { monthHeading?: string } | undefined;
-                    return firstPoint?.monthHeading ?? '';
-                  }}
+                  formatter={formatDonationTooltipValue}
+                  labelFormatter={formatDonationTooltipLabel}
                 />
                 <Line
                   type="monotone"

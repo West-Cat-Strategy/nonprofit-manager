@@ -26,8 +26,6 @@ router.get(
 
 export default router;
 
-export type ResponseMode = 'v2' | 'legacy';
+export const createPublicReportsRoutes = () => router;
 
-export const createPublicReportsRoutes = (_mode: ResponseMode = 'v2') => router;
-
-export const publicReportsV2Routes = createPublicReportsRoutes('v2');
+export const publicReportsV2Routes = createPublicReportsRoutes();

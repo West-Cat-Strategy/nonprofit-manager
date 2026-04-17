@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import FollowUpForm from '../../../components/FollowUpForm';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
@@ -22,8 +22,11 @@ import type {
 } from '../../../types/followup';
 import FollowUpEntityPicker from '../components/FollowUpEntityPicker';
 import RescheduleFollowUpDialog from '../components/RescheduleFollowUpDialog';
+import { parseAllowedValue, parsePositiveInteger } from '../../../utils/persistedFilters';
 
 const PAGE_SIZE = 20;
+const FOLLOW_UP_ENTITY_TYPE_VALUES = ['case', 'task'] as const;
+const FOLLOW_UP_STATUS_VALUES = ['scheduled', 'completed', 'cancelled', 'overdue'] as const;
 
 const formatDateTime = (followUp: FollowUpWithEntity): string => {
   if (!followUp.scheduled_time) return followUp.scheduled_date;
@@ -46,16 +49,60 @@ const getEntityHref = (followUp: FollowUpWithEntity): string => {
   return `/tasks/${followUp.entity_id}`;
 };
 
+const buildFollowUpSearchParams = ({
+  search,
+  entityType,
+  status,
+  page,
+}: {
+  search: string;
+  entityType: FollowUpEntityType | '';
+  status: (typeof FOLLOW_UP_STATUS_VALUES)[number] | '';
+  page: number;
+}) => {
+  const nextSearchParams = new URLSearchParams();
+  if (search.trim()) {
+    nextSearchParams.set('search', search.trim());
+  }
+  if (entityType) {
+    nextSearchParams.set('entity_type', entityType);
+  }
+  if (status) {
+    nextSearchParams.set('status', status);
+  }
+  if (page > 1) {
+    nextSearchParams.set('page', String(page));
+  }
+  return nextSearchParams;
+};
+
+const getFollowUpStatusBadgeClass = (status: FollowUpWithEntity['status']) => {
+  switch (status) {
+    case 'completed':
+      return 'bg-[var(--loop-green)] text-black';
+    case 'cancelled':
+      return 'bg-[var(--loop-pink)] text-black';
+    case 'overdue':
+      return 'bg-[var(--loop-yellow)] text-black';
+    default:
+      return 'bg-[var(--loop-blue)] text-black';
+  }
+};
+
 export default function FollowUpsPage() {
   const dispatch = useAppDispatch();
   const { showError } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const { followUps, summary, loading, pagination, error } = useAppSelector((state) => state.followUps);
   const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
 
-  const [page, setPage] = useState(1);
-  const [entityTypeFilter, setEntityTypeFilter] = useState<FollowUpEntityType | ''>('');
-  const [statusFilter, setStatusFilter] = useState<'scheduled' | 'completed' | 'cancelled' | 'overdue' | ''>('');
-  const [search, setSearch] = useState('');
+  const search = searchParams.get('search') || '';
+  const entityTypeFilter =
+    parseAllowedValue(searchParams.get('entity_type'), FOLLOW_UP_ENTITY_TYPE_VALUES) || '';
+  const statusFilter =
+    parseAllowedValue(searchParams.get('status'), FOLLOW_UP_STATUS_VALUES) || '';
+  const page = parsePositiveInteger(searchParams.get('page'), 1);
   const [editingFollowUp, setEditingFollowUp] = useState<FollowUpWithEntity | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newEntityType, setNewEntityType] = useState<FollowUpEntityType>('case');
@@ -70,6 +117,18 @@ export default function FollowUpsPage() {
     }),
     [entityTypeFilter, statusFilter]
   );
+
+  useEffect(() => {
+    const normalizedSearchParams = buildFollowUpSearchParams({
+      search,
+      entityType: entityTypeFilter,
+      status: statusFilter,
+      page,
+    });
+    if (normalizedSearchParams.toString() !== searchParamsString) {
+      setSearchParams(normalizedSearchParams, { replace: true });
+    }
+  }, [entityTypeFilter, page, search, searchParamsString, setSearchParams, statusFilter]);
 
   useEffect(() => {
     dispatch(fetchFollowUps({ filters, page, limit: PAGE_SIZE }));
@@ -102,6 +161,25 @@ export default function FollowUpsPage() {
   const refresh = async () => {
     await dispatch(fetchFollowUps({ filters, page, limit: PAGE_SIZE }));
     await dispatch(fetchFollowUpSummary(filters));
+  };
+
+  const updateListSearchParams = (
+    patch: Partial<{
+      search: string;
+      entityType: FollowUpEntityType | '';
+      status: (typeof FOLLOW_UP_STATUS_VALUES)[number] | '';
+      page: number;
+    }>
+  ) => {
+    setSearchParams(
+      buildFollowUpSearchParams({
+        search: patch.search ?? search,
+        entityType: patch.entityType ?? entityTypeFilter,
+        status: patch.status ?? statusFilter,
+        page: patch.page ?? page,
+      }),
+      { replace: true }
+    );
   };
 
   const handleComplete = async (followUpId: string) => {
@@ -236,7 +314,7 @@ export default function FollowUpsPage() {
           <input
             aria-label="Search follow-ups"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => updateListSearchParams({ search: event.target.value, page: 1 })}
             placeholder="Search follow-ups"
             className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
           />
@@ -244,8 +322,10 @@ export default function FollowUpsPage() {
             aria-label="Filter follow-ups by entity type"
             value={entityTypeFilter}
             onChange={(event) => {
-              setEntityTypeFilter(event.target.value as FollowUpEntityType | '');
-              setPage(1);
+              updateListSearchParams({
+                entityType: event.target.value as FollowUpEntityType | '',
+                page: 1,
+              });
             }}
             className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
           >
@@ -257,8 +337,10 @@ export default function FollowUpsPage() {
             aria-label="Filter follow-ups by status"
             value={statusFilter}
             onChange={(event) => {
-              setStatusFilter(event.target.value as typeof statusFilter);
-              setPage(1);
+              updateListSearchParams({
+                status: event.target.value as typeof statusFilter,
+                page: 1,
+              });
             }}
             className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
           >
@@ -271,10 +353,12 @@ export default function FollowUpsPage() {
           <button
             type="button"
             onClick={() => {
-              setSearch('');
-              setEntityTypeFilter('');
-              setStatusFilter('');
-              setPage(1);
+              updateListSearchParams({
+                search: '',
+                entityType: '',
+                status: '',
+                page: 1,
+              });
             }}
             className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] px-3 py-2 font-bold text-app-brutal-ink"
           >
@@ -288,8 +372,80 @@ export default function FollowUpsPage() {
           </div>
         )}
 
-        <div className="overflow-x-auto border-2 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[4px_4px_0px_0px_var(--shadow-color)]">
-          <table className="min-w-full divide-y divide-[var(--app-border)] text-sm">
+        <div className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] shadow-[4px_4px_0px_0px_var(--shadow-color)]">
+          <div className="space-y-3 p-4 md:hidden">
+            {loading ? (
+              <div className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-6 text-sm">
+                Loading follow-ups...
+              </div>
+            ) : filteredRows.length === 0 ? (
+              <div className="border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-6 text-sm">
+                No follow-ups found.
+              </div>
+            ) : (
+              filteredRows.map((followUp) => (
+                <div
+                  key={followUp.id}
+                  data-testid="mobile-follow-up-card"
+                  className="rounded-[var(--ui-radius-md)] border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-[2px_2px_0px_0px_var(--shadow-color)]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold">{followUp.title}</div>
+                      {followUp.description ? (
+                        <div className="mt-1 text-xs text-[var(--app-text-muted)]">
+                          {followUp.description}
+                        </div>
+                      ) : null}
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${getFollowUpStatusBadgeClass(
+                        followUp.status
+                      )}`}
+                    >
+                      {followUp.status}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 space-y-2 text-sm text-[var(--app-text)]">
+                    <p>
+                      Entity:{' '}
+                      <Link className="underline" to={getEntityHref(followUp)}>
+                        {getEntityLabel(followUp)}
+                      </Link>
+                    </p>
+                    <p>When: {formatDateTime(followUp)}</p>
+                    <p>Assigned: {followUp.assigned_to_name || 'Unassigned'}</p>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {followUp.status === 'scheduled' && (
+                      <>
+                        <button type="button" onClick={() => void handleComplete(followUp.id)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">
+                          Complete
+                        </button>
+                        <button type="button" onClick={() => void handleCancelFollowUp(followUp.id)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">
+                          Cancel
+                        </button>
+                        <button type="button" onClick={() => setRescheduleTarget(followUp)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">
+                          Reschedule
+                        </button>
+                      </>
+                    )}
+                    <button type="button" onClick={() => setEditingFollowUp(followUp)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => void handleDelete(followUp.id)} className="border-2 border-app-accent bg-app-accent-soft px-2 py-1 text-xs font-bold text-app-accent-text">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
+            <table className="min-w-full divide-y divide-[var(--app-border)] text-sm">
             <thead className="bg-[var(--app-surface-muted)]">
               <tr>
                 <th className="px-3 py-2 text-left font-black uppercase">Title</th>
@@ -321,7 +477,15 @@ export default function FollowUpsPage() {
                     </td>
                     <td className="px-3 py-2">{formatDateTime(followUp)}</td>
                     <td className="px-3 py-2">{followUp.assigned_to_name || 'Unassigned'}</td>
-                    <td className="px-3 py-2 uppercase font-bold">{followUp.status}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-bold uppercase ${getFollowUpStatusBadgeClass(
+                          followUp.status
+                        )}`}
+                      >
+                        {followUp.status}
+                      </span>
+                    </td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-1">
                         {followUp.status === 'scheduled' && (
@@ -339,7 +503,8 @@ export default function FollowUpsPage() {
                 ))
               )}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
 
         {pagination.pages > 1 && (
@@ -347,7 +512,7 @@ export default function FollowUpsPage() {
             <button
               type="button"
               disabled={page <= 1}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              onClick={() => updateListSearchParams({ page: Math.max(1, page - 1) })}
               className="border-2 border-[var(--app-border)] px-3 py-2 font-bold disabled:opacity-50"
             >
               Previous
@@ -358,7 +523,7 @@ export default function FollowUpsPage() {
             <button
               type="button"
               disabled={page >= pagination.pages}
-              onClick={() => setPage((prev) => Math.min(pagination.pages, prev + 1))}
+              onClick={() => updateListSearchParams({ page: Math.min(pagination.pages, page + 1) })}
               className="border-2 border-[var(--app-border)] px-3 py-2 font-bold disabled:opacity-50"
             >
               Next

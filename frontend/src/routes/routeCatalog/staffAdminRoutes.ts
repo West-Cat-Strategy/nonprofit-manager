@@ -1,6 +1,100 @@
+import type {
+  AdminSettingsSectionDefinitionEntry,
+  AdminWorkspaceDefinitionEntry,
+} from '../../features/adminOps/adminNavigationCatalog';
 import type { RouteCatalogEntry } from './types';
 import { adminRoute, settingsRoute, staffRoute } from './shared';
-import { getAdminRouteMeta } from './staffAdminRouteMeta';
+import {
+  getAdminSettingsRouteMeta,
+  getAdminWorkspaceRouteMeta,
+} from './staffAdminRouteMeta';
+
+type AdminRouteSeed = Parameters<typeof adminRoute>[0];
+type SettingsRouteSeed = Parameters<typeof settingsRoute>[0];
+
+type AdminRouteOverrides = Omit<
+  Partial<AdminRouteSeed>,
+  'id' | 'title' | 'path' | 'adminSurface' | 'adminLabel' | 'adminDescription' | 'adminIcon'
+>;
+
+type SettingsRouteOverrides = Omit<
+  Partial<SettingsRouteSeed>,
+  'id' | 'title' | 'path' | 'adminSurface' | 'adminLabel' | 'adminDescription' | 'adminIcon'
+>;
+
+const buildAdminSettingsCatalogEntry = (
+  meta: AdminSettingsSectionDefinitionEntry,
+  overrides: AdminRouteOverrides = {}
+) =>
+  adminRoute({
+    id: meta.routeId,
+    title: meta.title,
+    path: meta.path,
+    adminSurface: meta.surface,
+    adminLabel: meta.label,
+    adminDescription: meta.description,
+    adminIcon: meta.icon,
+    ...overrides,
+  });
+
+const buildWorkspaceAdminCatalogEntry = (
+  meta: AdminWorkspaceDefinitionEntry,
+  overrides: AdminRouteOverrides = {}
+) =>
+  adminRoute({
+    id: meta.routeId,
+    title: meta.title,
+    path: meta.path,
+    adminSurface: meta.surface,
+    adminLabel: meta.title,
+    adminDescription: meta.description,
+    adminIcon: meta.icon,
+    ...overrides,
+  });
+
+const buildWorkspaceSettingsCatalogEntry = (
+  meta: AdminWorkspaceDefinitionEntry,
+  overrides: SettingsRouteOverrides = {}
+) =>
+  settingsRoute({
+    id: meta.routeId,
+    title: meta.title,
+    path: meta.path,
+    adminSurface: meta.surface,
+    adminLabel: meta.title,
+    adminDescription: meta.description,
+    adminIcon: meta.icon,
+    ...overrides,
+  });
+
+const adminSettingsDashboardMeta = getAdminSettingsRouteMeta('admin-settings');
+const adminSettingsApprovalsMeta = getAdminSettingsRouteMeta('admin-settings-approvals');
+const adminSettingsOrganizationMeta = getAdminSettingsRouteMeta('admin-settings-organization');
+const adminSettingsWorkspaceModulesMeta = getAdminSettingsRouteMeta(
+  'admin-settings-workspace-modules'
+);
+const adminSettingsBrandingMeta = getAdminSettingsRouteMeta('admin-settings-branding');
+const adminSettingsUsersMeta = getAdminSettingsRouteMeta('admin-settings-users');
+const adminSettingsGroupsMeta = getAdminSettingsRouteMeta('admin-settings-groups');
+const adminSettingsCommunicationsMeta = getAdminSettingsRouteMeta(
+  'admin-settings-communications'
+);
+const adminSettingsMessagingMeta = getAdminSettingsRouteMeta('admin-settings-messaging');
+const adminSettingsOutcomesMeta = getAdminSettingsRouteMeta('admin-settings-outcomes');
+const adminSettingsRolesMeta = getAdminSettingsRouteMeta('admin-settings-roles');
+const adminSettingsAuditLogsMeta = getAdminSettingsRouteMeta('admin-settings-audit-logs');
+const adminSettingsOtherMeta = getAdminSettingsRouteMeta('admin-settings-other');
+
+const apiSettingsMeta = getAdminWorkspaceRouteMeta('api-settings');
+const navigationSettingsMeta = getAdminWorkspaceRouteMeta('navigation-settings');
+const backupSettingsMeta = getAdminWorkspaceRouteMeta('backup-settings');
+const communicationsWorkspaceMeta = getAdminWorkspaceRouteMeta('communications');
+const socialMediaMeta = getAdminWorkspaceRouteMeta('social-media');
+const portalAdminAccessMeta = getAdminWorkspaceRouteMeta('portal-admin-access');
+const portalAdminUsersMeta = getAdminWorkspaceRouteMeta('portal-admin-users');
+const portalAdminConversationsMeta = getAdminWorkspaceRouteMeta('portal-admin-conversations');
+const portalAdminAppointmentsMeta = getAdminWorkspaceRouteMeta('portal-admin-appointments');
+const portalAdminSlotsMeta = getAdminWorkspaceRouteMeta('portal-admin-slots');
 
 export const staffAdminRouteCatalogEntries: readonly RouteCatalogEntry[] = [
   staffRoute({
@@ -47,176 +141,45 @@ export const staffAdminRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     path: '/settings/user',
     featureStatus: 'available',
   }),
-  adminRoute({
-    id: 'admin-settings',
-    title: getAdminRouteMeta('admin-settings').title,
-    path: getAdminRouteMeta('admin-settings').path,
-    adminSurface: getAdminRouteMeta('admin-settings').surface,
-    adminLabel: getAdminRouteMeta('admin-settings').label,
-    adminDescription: getAdminRouteMeta('admin-settings').description,
-    adminIcon: getAdminRouteMeta('admin-settings').icon,
+  buildAdminSettingsCatalogEntry(adminSettingsDashboardMeta, {
     adminNav:
-      getAdminRouteMeta('admin-settings').surface === 'core'
+      adminSettingsDashboardMeta.surface === 'core'
         ? [
             { mode: 'settings', order: 10, label: 'Admin Hub' },
             { mode: 'portal', order: 10, label: 'Admin Hub' },
           ]
         : undefined,
   }),
-  adminRoute({
-    id: 'admin-settings-approvals',
-    title: getAdminRouteMeta('admin-settings-approvals').title,
-    path: getAdminRouteMeta('admin-settings-approvals').path,
-    adminSurface: getAdminRouteMeta('admin-settings-approvals').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-approvals').label,
-    adminDescription: getAdminRouteMeta('admin-settings-approvals').description,
-    adminIcon: getAdminRouteMeta('admin-settings-approvals').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-organization',
-    title: getAdminRouteMeta('admin-settings-organization').title,
-    path: getAdminRouteMeta('admin-settings-organization').path,
-    adminSurface: getAdminRouteMeta('admin-settings-organization').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-organization').label,
-    adminDescription: getAdminRouteMeta('admin-settings-organization').description,
-    adminIcon: getAdminRouteMeta('admin-settings-organization').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-workspace-modules',
-    title: getAdminRouteMeta('admin-settings-workspace-modules').title,
-    path: getAdminRouteMeta('admin-settings-workspace-modules').path,
-    adminSurface: getAdminRouteMeta('admin-settings-workspace-modules').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-workspace-modules').label,
-    adminDescription: getAdminRouteMeta('admin-settings-workspace-modules').description,
-    adminIcon: getAdminRouteMeta('admin-settings-workspace-modules').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-branding',
-    title: getAdminRouteMeta('admin-settings-branding').title,
-    path: getAdminRouteMeta('admin-settings-branding').path,
-    adminSurface: getAdminRouteMeta('admin-settings-branding').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-branding').label,
-    adminDescription: getAdminRouteMeta('admin-settings-branding').description,
-    adminIcon: getAdminRouteMeta('admin-settings-branding').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-users',
-    title: getAdminRouteMeta('admin-settings-users').title,
-    path: getAdminRouteMeta('admin-settings-users').path,
-    adminSurface: getAdminRouteMeta('admin-settings-users').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-users').label,
-    adminDescription: getAdminRouteMeta('admin-settings-users').description,
-    adminIcon: getAdminRouteMeta('admin-settings-users').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-groups',
-    title: getAdminRouteMeta('admin-settings-groups').title,
-    path: getAdminRouteMeta('admin-settings-groups').path,
-    adminSurface: getAdminRouteMeta('admin-settings-groups').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-groups').label,
-    adminDescription: getAdminRouteMeta('admin-settings-groups').description,
-    adminIcon: getAdminRouteMeta('admin-settings-groups').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-communications',
-    title: getAdminRouteMeta('admin-settings-communications').title,
-    path: getAdminRouteMeta('admin-settings-communications').path,
-    adminSurface: getAdminRouteMeta('admin-settings-communications').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-communications').label,
-    adminDescription: getAdminRouteMeta('admin-settings-communications').description,
-    adminIcon: getAdminRouteMeta('admin-settings-communications').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-messaging',
-    title: getAdminRouteMeta('admin-settings-messaging').title,
-    path: getAdminRouteMeta('admin-settings-messaging').path,
-    adminSurface: getAdminRouteMeta('admin-settings-messaging').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-messaging').label,
-    adminDescription: getAdminRouteMeta('admin-settings-messaging').description,
-    adminIcon: getAdminRouteMeta('admin-settings-messaging').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-outcomes',
-    title: getAdminRouteMeta('admin-settings-outcomes').title,
-    path: getAdminRouteMeta('admin-settings-outcomes').path,
-    adminSurface: getAdminRouteMeta('admin-settings-outcomes').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-outcomes').label,
-    adminDescription: getAdminRouteMeta('admin-settings-outcomes').description,
-    adminIcon: getAdminRouteMeta('admin-settings-outcomes').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-roles',
-    title: getAdminRouteMeta('admin-settings-roles').title,
-    path: getAdminRouteMeta('admin-settings-roles').path,
-    adminSurface: getAdminRouteMeta('admin-settings-roles').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-roles').label,
-    adminDescription: getAdminRouteMeta('admin-settings-roles').description,
-    adminIcon: getAdminRouteMeta('admin-settings-roles').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-audit-logs',
-    title: getAdminRouteMeta('admin-settings-audit-logs').title,
-    path: getAdminRouteMeta('admin-settings-audit-logs').path,
-    adminSurface: getAdminRouteMeta('admin-settings-audit-logs').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-audit-logs').label,
-    adminDescription: getAdminRouteMeta('admin-settings-audit-logs').description,
-    adminIcon: getAdminRouteMeta('admin-settings-audit-logs').icon,
-  }),
-  adminRoute({
-    id: 'admin-settings-other',
-    title: getAdminRouteMeta('admin-settings-other').title,
-    path: getAdminRouteMeta('admin-settings-other').path,
-    adminSurface: getAdminRouteMeta('admin-settings-other').surface,
-    adminLabel: getAdminRouteMeta('admin-settings-other').label,
-    adminDescription: getAdminRouteMeta('admin-settings-other').description,
-    adminIcon: getAdminRouteMeta('admin-settings-other').icon,
-  }),
-  settingsRoute({
-    id: 'api-settings',
-    title: getAdminRouteMeta('api-settings').title,
-    path: getAdminRouteMeta('api-settings').path,
-    adminSurface: getAdminRouteMeta('api-settings').surface,
-    adminLabel: getAdminRouteMeta('api-settings').title,
-    adminDescription: getAdminRouteMeta('api-settings').description,
-    adminIcon: getAdminRouteMeta('api-settings').icon,
-    adminNav: { mode: 'settings', order: 120, label: getAdminRouteMeta('api-settings').title },
+  buildAdminSettingsCatalogEntry(adminSettingsApprovalsMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsOrganizationMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsWorkspaceModulesMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsBrandingMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsUsersMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsGroupsMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsCommunicationsMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsMessagingMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsOutcomesMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsRolesMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsAuditLogsMeta),
+  buildAdminSettingsCatalogEntry(adminSettingsOtherMeta),
+  buildWorkspaceSettingsCatalogEntry(apiSettingsMeta, {
+    adminNav: { mode: 'settings', order: 120, label: apiSettingsMeta.title },
     featureStatus: 'available',
     showInMobileDrawerUtilities: true,
   }),
-  settingsRoute({
-    id: 'navigation-settings',
-    title: getAdminRouteMeta('navigation-settings').title,
-    path: getAdminRouteMeta('navigation-settings').path,
-    adminSurface: getAdminRouteMeta('navigation-settings').surface,
-    adminLabel: getAdminRouteMeta('navigation-settings').title,
-    adminDescription: getAdminRouteMeta('navigation-settings').description,
-    adminIcon: getAdminRouteMeta('navigation-settings').icon,
+  buildWorkspaceSettingsCatalogEntry(navigationSettingsMeta, {
     adminNav: { mode: 'settings', order: 130, label: 'Navigation' },
     featureStatus: 'available',
     showInMobileDrawerUtilities: true,
   }),
-  adminRoute({
-    id: 'backup-settings',
-    title: getAdminRouteMeta('backup-settings').title,
-    path: getAdminRouteMeta('backup-settings').path,
-    adminSurface: getAdminRouteMeta('backup-settings').surface,
-    adminLabel: getAdminRouteMeta('backup-settings').title,
-    adminDescription: getAdminRouteMeta('backup-settings').description,
-    adminIcon: getAdminRouteMeta('backup-settings').icon,
-    adminNav: { mode: 'settings', order: 140, label: getAdminRouteMeta('backup-settings').title },
+  buildWorkspaceAdminCatalogEntry(backupSettingsMeta, {
+    adminNav: { mode: 'settings', order: 140, label: backupSettingsMeta.title },
   }),
-  settingsRoute({
-    id: 'communications',
-    title: getAdminRouteMeta('communications').title,
-    path: getAdminRouteMeta('communications').path,
-    adminSurface: getAdminRouteMeta('communications').surface,
-    adminLabel: getAdminRouteMeta('communications').title,
-    adminDescription: getAdminRouteMeta('communications').description,
-    adminIcon: getAdminRouteMeta('communications').icon,
+  buildWorkspaceSettingsCatalogEntry(communicationsWorkspaceMeta, {
     adminNav: {
       mode: 'settings',
       order: 150,
-      label: getAdminRouteMeta('communications').title,
+      label: communicationsWorkspaceMeta.title,
       matchPrefixes: ['/settings/email-marketing'],
     },
     featureStatus: 'available',
@@ -228,30 +191,16 @@ export const staffAdminRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     parentId: 'communications',
     featureStatus: 'available',
   }),
-  adminRoute({
-    id: 'social-media',
-    title: getAdminRouteMeta('social-media').title,
-    path: getAdminRouteMeta('social-media').path,
-    adminSurface: getAdminRouteMeta('social-media').surface,
-    adminLabel: getAdminRouteMeta('social-media').title,
-    adminDescription: getAdminRouteMeta('social-media').description,
-    adminIcon: getAdminRouteMeta('social-media').icon,
-    adminNav: { mode: 'settings', order: 160, label: getAdminRouteMeta('social-media').title },
+  buildWorkspaceAdminCatalogEntry(socialMediaMeta, {
+    adminNav: { mode: 'settings', order: 160, label: socialMediaMeta.title },
     featureStatus: 'available',
   }),
-  adminRoute({
-    id: 'portal-admin-access',
-    title: getAdminRouteMeta('portal-admin-access').title,
-    path: getAdminRouteMeta('portal-admin-access').path,
-    adminSurface: getAdminRouteMeta('portal-admin-access').surface,
-    adminLabel: getAdminRouteMeta('portal-admin-access').title,
-    adminDescription: getAdminRouteMeta('portal-admin-access').description,
-    adminIcon: getAdminRouteMeta('portal-admin-access').icon,
+  buildWorkspaceAdminCatalogEntry(portalAdminAccessMeta, {
     adminNav: [
       {
         mode: 'settings',
         order: 110,
-        label: getAdminRouteMeta('portal-admin-access').title,
+        label: portalAdminAccessMeta.title,
         matchPrefixes: ['/settings/admin/portal'],
       },
       {
@@ -261,44 +210,55 @@ export const staffAdminRouteCatalogEntries: readonly RouteCatalogEntry[] = [
       },
     ],
   }),
-  adminRoute({
-    id: 'portal-admin-users',
-    title: getAdminRouteMeta('portal-admin-users').title,
-    path: getAdminRouteMeta('portal-admin-users').path,
-    adminSurface: getAdminRouteMeta('portal-admin-users').surface,
-    adminLabel: getAdminRouteMeta('portal-admin-users').title,
-    adminDescription: getAdminRouteMeta('portal-admin-users').description,
-    adminIcon: getAdminRouteMeta('portal-admin-users').icon,
+  buildWorkspaceAdminCatalogEntry(portalAdminUsersMeta, {
     adminNav: { mode: 'portal', order: 30, label: 'Users' },
   }),
-  adminRoute({
-    id: 'portal-admin-conversations',
-    title: getAdminRouteMeta('portal-admin-conversations').title,
-    path: getAdminRouteMeta('portal-admin-conversations').path,
-    adminSurface: getAdminRouteMeta('portal-admin-conversations').surface,
-    adminLabel: getAdminRouteMeta('portal-admin-conversations').title,
-    adminDescription: getAdminRouteMeta('portal-admin-conversations').description,
-    adminIcon: getAdminRouteMeta('portal-admin-conversations').icon,
+  buildWorkspaceAdminCatalogEntry(portalAdminConversationsMeta, {
     adminNav: { mode: 'portal', order: 40, label: 'Conversations' },
   }),
-  adminRoute({
-    id: 'portal-admin-appointments',
-    title: getAdminRouteMeta('portal-admin-appointments').title,
-    path: getAdminRouteMeta('portal-admin-appointments').path,
-    adminSurface: getAdminRouteMeta('portal-admin-appointments').surface,
-    adminLabel: getAdminRouteMeta('portal-admin-appointments').title,
-    adminDescription: getAdminRouteMeta('portal-admin-appointments').description,
-    adminIcon: getAdminRouteMeta('portal-admin-appointments').icon,
+  buildWorkspaceAdminCatalogEntry(portalAdminAppointmentsMeta, {
     adminNav: { mode: 'portal', order: 50, label: 'Appointments' },
   }),
-  adminRoute({
-    id: 'portal-admin-slots',
-    title: getAdminRouteMeta('portal-admin-slots').title,
-    path: getAdminRouteMeta('portal-admin-slots').path,
-    adminSurface: getAdminRouteMeta('portal-admin-slots').surface,
-    adminLabel: getAdminRouteMeta('portal-admin-slots').title,
-    adminDescription: getAdminRouteMeta('portal-admin-slots').description,
-    adminIcon: getAdminRouteMeta('portal-admin-slots').icon,
+  buildWorkspaceAdminCatalogEntry(portalAdminSlotsMeta, {
     adminNav: { mode: 'portal', order: 60, label: 'Slots' },
   }),
 ];
+
+export const staffAdminPreludeRouteCatalogAuditTargets = [{ href: '/intake/new' }] as const;
+
+export const staffAdminCoreRouteCatalogAuditTargets = [
+  { path: '/intake/new' },
+  { path: '/interactions/new' },
+  { path: '/people' },
+  { path: '/linking' },
+  { path: '/operations' },
+  { path: '/outreach' },
+  { path: '/settings/user' },
+  { path: '/settings/email-marketing' },
+] as const;
+
+export const staffAdminSettingsRouteCatalogAuditTargets = [
+  { path: '/settings/admin/approvals' },
+  { path: '/settings/admin/dashboard' },
+  { path: '/settings/admin/organization' },
+  { path: '/settings/admin/workspace_modules' },
+  { path: '/settings/admin/branding' },
+  { path: '/settings/admin/users' },
+  { path: '/settings/admin/groups' },
+  { path: '/settings/admin/communications' },
+  { path: '/settings/admin/messaging' },
+  { path: '/settings/admin/outcomes' },
+  { path: '/settings/admin/roles' },
+  { path: '/settings/admin/audit_logs' },
+  { path: '/settings/admin/other' },
+  { path: '/settings/api' },
+  { path: '/settings/navigation' },
+  { path: '/settings/backup' },
+  { path: '/settings/communications' },
+  { path: '/settings/social-media' },
+  { path: '/settings/admin/portal/access' },
+  { path: '/settings/admin/portal/users' },
+  { path: '/settings/admin/portal/conversations' },
+  { path: '/settings/admin/portal/appointments' },
+  { path: '/settings/admin/portal/slots' },
+] as const;

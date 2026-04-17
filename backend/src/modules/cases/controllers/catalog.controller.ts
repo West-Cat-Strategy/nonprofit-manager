@@ -3,12 +3,9 @@ import { AuthRequest } from '@middleware/auth';
 import type { CaseFilter } from '@app-types/case';
 import { PAGINATION } from '@config/constants';
 import { CaseCatalogUseCase } from '../usecases/caseCatalog.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
-export const createCaseCatalogController = (
-  useCase: CaseCatalogUseCase,
-  mode: ResponseMode
-) => {
+export const createCaseCatalogController = (useCase: CaseCatalogUseCase) => {
   const getCases = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const query = (req.validatedQuery ?? req.query) as {
@@ -68,7 +65,7 @@ export const createCaseCatalogController = (
           limit: Number(filter.limit || PAGINATION.DEFAULT_LIMIT),
         },
       };
-      sendData(res, mode, payload);
+      sendData(res, payload);
     } catch (error) {
       next(error);
     }
@@ -79,10 +76,10 @@ export const createCaseCatalogController = (
       const organizationId = req.organizationId || req.accountId || req.tenantId;
       const caseData = await useCase.getById(req.params.id, organizationId);
       if (!caseData) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Case not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Case not found', 404);
         return;
       }
-      sendData(res, mode, caseData);
+      sendData(res, caseData);
     } catch (error) {
       next(error);
     }
@@ -99,16 +96,7 @@ export const createCaseCatalogController = (
         limit: query.limit,
         cursor: query.cursor,
       }, organizationId);
-      sendData(
-        res,
-        mode,
-        mode === 'v2'
-          ? timelinePage
-          : {
-              timeline: timelinePage.items,
-              page: timelinePage.page,
-            }
-      );
+      sendData(res, timelinePage);
     } catch (error) {
       next(error);
     }
@@ -118,7 +106,7 @@ export const createCaseCatalogController = (
     try {
       const organizationId = req.organizationId || req.accountId || req.tenantId;
       const summary = await useCase.summary(organizationId);
-      sendData(res, mode, summary);
+      sendData(res, summary);
     } catch (error) {
       next(error);
     }
@@ -127,7 +115,7 @@ export const createCaseCatalogController = (
   const getCaseTypes = async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const types = await useCase.types();
-      sendData(res, mode, mode === 'v2' ? types : { types });
+      sendData(res, types);
     } catch (error) {
       next(error);
     }
@@ -136,7 +124,7 @@ export const createCaseCatalogController = (
   const getCaseStatuses = async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const statuses = await useCase.statuses();
-      sendData(res, mode, mode === 'v2' ? statuses : { statuses });
+      sendData(res, statuses);
     } catch (error) {
       next(error);
     }

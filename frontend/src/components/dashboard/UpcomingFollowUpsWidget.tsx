@@ -11,7 +11,7 @@ import type { FollowUpWithEntity } from '../../types/followup';
 import { formatDateSmart, formatTimeString } from '../../utils/format';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
-import { useDashboardData } from '../../features/dashboard/context/DashboardDataContext';
+import { useDashboardUpcomingFollowUps } from '../../features/dashboard/context/DashboardDataContext';
 
 interface UpcomingFollowUpsWidgetProps {
   limit?: number;
@@ -151,20 +151,20 @@ export default function UpcomingFollowUpsWidget({
   editMode = false,
   onRemove,
 }: UpcomingFollowUpsWidgetProps) {
-  const dashboardData = useDashboardData();
+  const upcomingFollowUpsLane = useDashboardUpcomingFollowUps();
   const dispatch = useAppDispatch();
   const { upcoming, loading } = useAppSelector((state) => state.followUps);
 
   useEffect(() => {
-    if (dashboardData) {
+    if (upcomingFollowUpsLane) {
       return;
     }
     dispatch(fetchUpcomingFollowUps(limit));
-  }, [dashboardData, dispatch, limit]);
+  }, [dispatch, limit, upcomingFollowUpsLane]);
 
-  const items = dashboardData ? dashboardData.upcomingFollowUps : upcoming;
-  const isLoading = dashboardData ? dashboardData.loading.upcomingFollowUps : loading;
-  const error = dashboardData?.errors.upcomingFollowUps;
+  const items = upcomingFollowUpsLane ? upcomingFollowUpsLane.upcomingFollowUps : upcoming;
+  const isLoading = upcomingFollowUpsLane ? upcomingFollowUpsLane.loading : loading;
+  const error = upcomingFollowUpsLane?.error ?? undefined;
   const content = <UpcomingFollowUpsWidgetContent items={items} loading={isLoading} framed={!widget} />;
 
   if (widget && onRemove) {

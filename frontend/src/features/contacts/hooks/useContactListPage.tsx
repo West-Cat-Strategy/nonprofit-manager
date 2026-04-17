@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchContacts, deleteContact } from '../state';
 import type { Contact } from '../state';
@@ -220,21 +220,24 @@ export const useContactListPage = () => {
     loadContacts();
   };
 
+  const getContactDetailPath = (contactId: string) => `/contacts/${contactId}`;
+  const getContactEditPath = (contactId: string) => `/contacts/${contactId}/edit`;
+
   const columns: TableColumn<Contact>[] = [
     {
       key: 'full_name',
       label: 'Name',
       width: '220px',
       render: (_, row) => (
-        <div
-          className="cursor-pointer hover:opacity-75 transition"
-          onClick={() => navigate(`/contacts/${row.contact_id}`)}
+        <Link
+          to={getContactDetailPath(row.contact_id)}
+          className="block rounded-[var(--ui-radius-sm)] p-1 -m-1 transition hover:bg-app-hover/40 focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
         >
           <p className="text-app-accent hover:text-app-accent-text font-medium">
             {row.first_name} {row.last_name}
           </p>
           <p className="text-sm text-app-text-muted">{row.email || 'No email'}</p>
-        </div>
+        </Link>
       ),
     },
     {
@@ -300,12 +303,18 @@ export const useContactListPage = () => {
       width: '140px',
       render: (_, row) => (
         <div className="flex gap-2">
-          <button
-            onClick={() => navigate(`/contacts/${row.contact_id}/edit`)}
+          <Link
+            to={getContactDetailPath(row.contact_id)}
+            className="px-2 py-1 border border-app-border rounded text-app-text text-xs font-mono hover:bg-app-surface-muted transition"
+          >
+            View
+          </Link>
+          <Link
+            to={getContactEditPath(row.contact_id)}
             className="px-2 py-1 border border-app-border rounded text-app-text text-xs font-mono hover:bg-app-surface-muted transition"
           >
             Edit
-          </button>
+          </Link>
           <button
             onClick={async () => {
               const confirmed = await confirm(
@@ -356,20 +365,18 @@ export const useContactListPage = () => {
               Actions
             </summary>
             <div className="mt-2 grid min-w-32 gap-2">
-              <button
-                type="button"
-                onClick={() => navigate(`/contacts/${contact.contact_id}`)}
+              <Link
+                to={getContactDetailPath(contact.contact_id)}
                 className="rounded-full border border-app-border px-3 py-1 text-xs font-semibold text-app-text transition hover:bg-app-surface-muted"
               >
                 View
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(`/contacts/${contact.contact_id}/edit`)}
+              </Link>
+              <Link
+                to={getContactEditPath(contact.contact_id)}
                 className="rounded-full border border-app-border px-3 py-1 text-xs font-semibold text-app-text transition hover:bg-app-surface-muted"
               >
                 Edit
-              </button>
+              </Link>
             </div>
           </details>
         </div>

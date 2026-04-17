@@ -29,6 +29,132 @@ describe('Portal Auth API Integration', () => {
     await request(app).get('/api/v2/portal/auth/bootstrap').expect(401);
   });
 
+  it('supports the portal forgot-password and reset-password flow', async () => {
+    const suffix = unique();
+    let portalUserId: string | null = null;
+    let contactId: string | null = null;
+    const email = `portal-reset-${suffix}@example.com`;
+    const passwordHash = await bcrypt.hash('CorrectPassword123!', 10);
+
+    try {
+      const contactResult = await pool.query(
+        `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
+         VALUES ($1, $2, $3, $4, $4)
+         RETURNING id`,
+        ['Portal', 'ResetTest', email, null]
+      );
+      contactId = contactResult.rows[0].id as string;
+
+      const portalUserResult = await pool.query(
+        `INSERT INTO portal_users (contact_id, email, password_hash, status, is_verified)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id`,
+        [contactId, email, passwordHash, 'active', true]
+      );
+      portalUserId = portalUserResult.rows[0].id as string;
+
+      const forgotResponse = await request(app)
+        .post('/api/v2/portal/auth/forgot-password')
+        .send({ email })
+        .expect(200);
+
+      expect(forgotResponse.body).toMatchObject({
+        success: true,
+        data: {
+          message:
+            'If an account with that email exists, a portal password reset link has been sent.',
+        },
+      });
+
+      const tokenResult = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM portal_password_reset_tokens
+         WHERE portal_user_id = $1 AND used_at IS NULL
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [portalUserId]
+      );
+      const tokenId = tokenResult.rows[0]?.id;
+      expect(tokenId).toBeTruthy();
+
+      const storedTokenResult = await pool.query<{ token_hash: string }>(
+        `SELECT token_hash
+         FROM portal_password_reset_tokens
+         WHERE id = $1`,
+        [tokenId]
+      );
+      const storedHash = storedTokenResult.rows[0]?.token_hash;
+      expect(storedHash).toBeTruthy();
+
+      // The controller emits composite tokens, so validate/reset by reading the generated URL token
+      // format back from the hash row through a real request path is not possible. Seed a valid token
+      // directly in the same format used by the service.
+      const tokenSecret = 'a'.repeat(64);
+      const reseededHash = await bcrypt.hash(tokenSecret, 10);
+      await pool.query(
+        `UPDATE portal_password_reset_tokens
+         SET token_hash = $1
+         WHERE id = $2`,
+        [reseededHash, tokenId]
+      );
+      const compositeToken = `${tokenId}.${tokenSecret}`;
+
+      const validateResponse = await request(app)
+        .get(`/api/v2/portal/auth/reset-password/${compositeToken}`)
+        .expect(200);
+
+      expect(validateResponse.body).toMatchObject({
+        success: true,
+        data: { valid: true },
+      });
+
+      const resetResponse = await request(app)
+        .post('/api/v2/portal/auth/reset-password')
+        .send({
+          token: compositeToken,
+          password: 'NewPortalPassword123!',
+          password_confirm: 'NewPortalPassword123!',
+        })
+        .expect(200);
+
+      expect(resetResponse.body).toMatchObject({
+        success: true,
+        data: {
+          message:
+            'Portal password has been reset successfully. You can now sign in with your new password.',
+        },
+      });
+
+      await request(app)
+        .post('/api/v2/portal/auth/login')
+        .send({
+          email,
+          password: 'NewPortalPassword123!',
+        })
+        .expect(200);
+    } finally {
+      if (portalUserId) {
+        await pool.query('DELETE FROM portal_password_reset_tokens WHERE portal_user_id = $1', [
+          portalUserId,
+        ]);
+      }
+      try {
+        if (portalUserId) {
+          await pool.query('DELETE FROM portal_users WHERE id = $1', [portalUserId]);
+        }
+      } catch {
+        // Ignore cleanup errors in integration tests.
+      }
+      if (contactId) {
+        try {
+          await pool.query('DELETE FROM contacts WHERE id = $1', [contactId]);
+        } catch {
+          // Ignore cleanup errors in integration tests.
+        }
+      }
+    }
+  });
+
   it('accepts portal auth token from cookie for /me', async () => {
     const suffix = unique();
     let portalUserId: string | null = null;

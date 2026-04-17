@@ -1,23 +1,17 @@
-import bcrypt from 'bcryptjs';
-import { randomInt } from 'crypto';
 import {
   CheckInOptions,
   CheckInResult,
-  EventCheckInSettings,
   EventWalkInCheckInDTO,
   EventWalkInCheckInResult,
   RegistrationStatus,
-  RotateEventCheckInPinResult,
-  UpdateEventCheckInSettingsDTO,
 } from '@app-types/event';
-import { PASSWORD } from '@config/constants';
+import { createEventHttpError } from '../eventHttpErrors';
 import {
   assertRegistrationCheckInAllowed,
   isRegistrationCountedAsActive,
   recordActivityEventSafely,
 } from './shared';
 import { logger } from '@config/logger';
-import { createEventHttpError } from '../eventHttpErrors';
 import {
   buildRegistrationDescription,
   createRegistrationRecord,
@@ -27,12 +21,9 @@ import {
   getExistingOccurrenceRegistration,
   getLockedOccurrence,
   getRegistrationByIdInternal,
-  maybePromoteWaitlistedRegistration,
   maybeSendConfirmationEmail,
   recalculateCounts,
   resolveCaseLink,
-  rotateCheckInPinRecord,
-  updateCheckInSettingsRecord,
   type LockedRegistrationRow,
 } from './eventRegistrationService.helpers';
 
@@ -238,142 +229,6 @@ export const checkInAttendeeMutation = async (
   }
 };
 
-export const cancelRegistrationMutation = async (
-  ctx: EventRegistrationServiceContext,
-  registrationId: string
-): Promise<void> => {
-  const client = await ctx.pool.connect();
-  let promotedRegistrationId: string | null | undefined;
-  const postCommitActions: Array<() => Promise<void>> = [];
-
-  try {
-    await client.query('BEGIN');
-
-    const registrationResult = await client.query<LockedRegistrationRow>(
-      `SELECT
-         er.id as registration_id,
-         er.event_id,
-         er.occurrence_id,
-         er.contact_id,
-         er.case_id,
-         er.registration_status,
-         er.waitlist_position,
-         er.checked_in,
-         er.series_enrollment_id
-       FROM event_registrations er
-       WHERE er.id = $1
-       FOR UPDATE`,
-      [registrationId]
-    );
-
-    const registration = registrationResult.rows[0];
-    if (!registration) {
-      throw new Error('Registration not found');
-    }
-
-    const event = await getEventRow(ctx, registration.event_id, client);
-    const occurrence = await getLockedOccurrence(
-      ctx,
-      registration.event_id,
-      registration.occurrence_id,
-      client
-    );
-    if (!event || !occurrence) {
-      throw new Error('Event not found');
-    }
-
-    await client.query('DELETE FROM event_registrations WHERE id = $1', [registrationId]);
-    await recalculateCounts(ctx, registration.event_id, registration.occurrence_id, client);
-
-    promotedRegistrationId = await maybePromoteWaitlistedRegistration(
-      ctx,
-      client,
-      event,
-      occurrence,
-      null
-    );
-
-    await client.query('COMMIT');
-    if (promotedRegistrationId) {
-      const promotedTargetId = promotedRegistrationId;
-      postCommitActions.push(() =>
-        maybeSendConfirmationEmail(ctx, promotedTargetId, null, RegistrationStatus.REGISTERED, true)
-      );
-    }
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-
-  for (const action of postCommitActions) {
-    await runPostCommitActionSafely(action, {
-      registrationId,
-      promotedRegistrationId,
-      source: 'cancel-registration',
-    });
-  }
-};
-
-export const getEventCheckInSettingsQuery = async (
-  ctx: EventRegistrationServiceContext,
-  eventId: string,
-  occurrenceId?: string
-): Promise<EventCheckInSettings | null> => {
-  const occurrence = await ctx.occurrences.resolveOccurrence(eventId, occurrenceId);
-  if (!occurrence) {
-    return null;
-  }
-
-  return {
-    event_id: eventId,
-    occurrence_id: occurrence.occurrence_id,
-    public_checkin_enabled: occurrence.public_checkin_enabled,
-    public_checkin_pin_configured: occurrence.public_checkin_pin_configured,
-    public_checkin_pin_rotated_at: occurrence.public_checkin_pin_rotated_at,
-  };
-};
-
-export const updateEventCheckInSettingsMutation = async (
-  ctx: EventRegistrationServiceContext,
-  eventId: string,
-  data: UpdateEventCheckInSettingsDTO,
-  userId: string
-): Promise<EventCheckInSettings | null> => {
-  const occurrence = await ctx.occurrences.resolveOccurrence(eventId, data.occurrence_id);
-  if (!occurrence) {
-    return null;
-  }
-
-  return updateCheckInSettingsRecord(
-    ctx.pool,
-    occurrence.occurrence_id,
-    data.public_checkin_enabled,
-    userId
-  );
-};
-
-export const rotateEventCheckInPinMutation = async (
-  ctx: EventRegistrationServiceContext,
-  eventId: string,
-  userId: string,
-  occurrenceId?: string
-): Promise<RotateEventCheckInPinResult> => {
-  const occurrence = await ctx.occurrences.resolveOccurrence(eventId, occurrenceId);
-  if (!occurrence) {
-    throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
-  }
-
-  const pin = String(randomInt(100000, 1000000));
-  const pinHash = await bcrypt.hash(pin, PASSWORD.BCRYPT_SALT_ROUNDS);
-  const settings = await rotateCheckInPinRecord(ctx.pool, occurrence.occurrence_id, pinHash, userId);
-  if (!settings) {
-    throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
-  }
-
-  return { ...settings, pin };
-};
 
 export const walkInCheckInMutation = async (
   ctx: EventRegistrationServiceContext,

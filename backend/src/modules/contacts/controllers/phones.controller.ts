@@ -2,7 +2,7 @@ import { NextFunction, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import type { CreateContactPhoneDTO, UpdateContactPhoneDTO } from '@app-types/contact';
 import { ContactPhonesUseCase } from '../usecases/contactPhones.usecase';
-import { ResponseMode, sendData, sendFailure } from '../mappers/responseMode';
+import { sendData, sendFailure } from '../mappers/responseMode';
 
 const mapPhoneError = (error: unknown): { status: number; code: string; message: string } | null => {
   const message = error instanceof Error ? error.message : String(error);
@@ -16,14 +16,11 @@ const mapPhoneError = (error: unknown): { status: number; code: string; message:
   return null;
 };
 
-export const createContactPhonesController = (
-  useCase: ContactPhonesUseCase,
-  mode: ResponseMode
-) => {
+export const createContactPhonesController = (useCase: ContactPhonesUseCase) => {
   const getContactPhones = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const phones = await useCase.list(req.params.contactId);
-      sendData(res, mode, phones);
+      sendData(res, phones);
     } catch (error) {
       next(error);
     }
@@ -37,11 +34,11 @@ export const createContactPhonesController = (
     try {
       const phone = await useCase.getById(req.params.phoneId);
       if (!phone) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Phone number not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Phone number not found', 404);
         return;
       }
 
-      sendData(res, mode, phone);
+      sendData(res, phone);
     } catch (error) {
       next(error);
     }
@@ -55,16 +52,16 @@ export const createContactPhonesController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
       const phone = await useCase.create(req.params.contactId, req.body as CreateContactPhoneDTO, userId);
-      sendData(res, mode, phone, 201);
+      sendData(res, phone, 201);
     } catch (error) {
       const mapped = mapPhoneError(error);
       if (mapped) {
-        sendFailure(res, mode, mapped.code, mapped.message, mapped.status);
+        sendFailure(res, mapped.code, mapped.message, mapped.status);
         return;
       }
       next(error);
@@ -79,21 +76,21 @@ export const createContactPhonesController = (
     try {
       const userId = req.user?.id;
       if (!userId) {
-        sendFailure(res, mode, 'AUTH_ERROR', 'Authentication required', 401);
+        sendFailure(res, 'AUTH_ERROR', 'Authentication required', 401);
         return;
       }
 
       const phone = await useCase.update(req.params.phoneId, req.body as UpdateContactPhoneDTO, userId);
       if (!phone) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Phone number not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Phone number not found', 404);
         return;
       }
 
-      sendData(res, mode, phone);
+      sendData(res, phone);
     } catch (error) {
       const mapped = mapPhoneError(error);
       if (mapped) {
-        sendFailure(res, mode, mapped.code, mapped.message, mapped.status);
+        sendFailure(res, mapped.code, mapped.message, mapped.status);
         return;
       }
       next(error);
@@ -108,7 +105,7 @@ export const createContactPhonesController = (
     try {
       const deleted = await useCase.delete(req.params.phoneId);
       if (!deleted) {
-        sendFailure(res, mode, 'NOT_FOUND', 'Phone number not found', 404);
+        sendFailure(res, 'NOT_FOUND', 'Phone number not found', 404);
         return;
       }
 

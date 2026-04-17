@@ -127,3 +127,24 @@ export const staffPeopleRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     path: '/volunteers/:volunteerId/assignments/:assignmentId/edit',
   }),
 ];
+
+export const staffPeopleRouteCatalogAuditTargets = [
+  { path: '/contacts' },
+  { href: '/contacts/new' },
+  { path: '/contacts/new' },
+  { path: '/contacts/:id' },
+  { path: '/contacts/:id/edit' },
+  { path: '/contacts/:id/print' },
+  { path: '/accounts' },
+  { href: '/accounts/new' },
+  { path: '/accounts/new' },
+  { path: '/accounts/:id' },
+  { path: '/accounts/:id/edit' },
+  { path: '/volunteers' },
+  { href: '/volunteers/new' },
+  { path: '/volunteers/new' },
+  { path: '/volunteers/:id' },
+  { path: '/volunteers/:id/edit' },
+  { path: '/volunteers/:volunteerId/assignments/new' },
+  { path: '/volunteers/:volunteerId/assignments/:assignmentId/edit' },
+] as const;

@@ -3,7 +3,11 @@
  * Tests for custom report generation and data extraction
  */
 
-import { ReportService } from '../../../src/services/reportService';
+import {
+  DirectReportExportTooLargeError,
+  MAX_DIRECT_EXPORT_ROWS,
+  ReportService,
+} from '../../../src/services/reportService';
 import type { ReportDefinition, ReportEntity } from '../../../src/types/report';
 
 describe('ReportService', () => {
@@ -455,6 +459,93 @@ describe('ReportService', () => {
       const [sql] = query.mock.calls[0] as [string, unknown[]];
       expect(sql).toContain('AS "total_donated"');
       expect(sql).toContain('ORDER BY "total_donated" DESC');
+    });
+  });
+
+  describe('assertDirectExportSupported', () => {
+    it('rejects ungrouped exports when the counted rows exceed the direct export cap', async () => {
+      query.mockResolvedValueOnce({ rows: [{ count: String(MAX_DIRECT_EXPORT_ROWS + 1) }] });
+
+      const definition: ReportDefinition = {
+        name: 'Oversized contacts export',
+        entity: 'contacts',
+        fields: ['first_name', 'last_name'],
+      };
+
+      await expect(reportService.assertDirectExportSupported(definition)).rejects.toBeInstanceOf(
+        DirectReportExportTooLargeError
+      );
+
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(query.mock.calls[0]?.[0]).toContain('COUNT(*) as count');
+    });
+
+    it('allows ungrouped exports when a safe limit keeps the effective row count under the cap', async () => {
+      query.mockResolvedValueOnce({ rows: [{ count: '5000' }] });
+
+      const definition: ReportDefinition = {
+        name: 'Limited contacts export',
+        entity: 'contacts',
+        fields: ['first_name', 'last_name'],
+        limit: 100,
+      };
+
+      await expect(reportService.assertDirectExportSupported(definition)).resolves.toBeUndefined();
+
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(query.mock.calls[0]?.[0]).toContain('COUNT(*) as count');
+    });
+
+    it('rejects grouped exports when the grouped probe overflows the direct export cap', async () => {
+      query.mockResolvedValueOnce({
+        rows: Array.from({ length: MAX_DIRECT_EXPORT_ROWS + 1 }, (_, index) => ({
+          campaign_name: `Campaign ${index}`,
+          total_donated: index,
+        })),
+      });
+
+      const definition: ReportDefinition = {
+        name: 'Donations by campaign',
+        entity: 'donations',
+        groupBy: ['campaign_name'],
+        aggregations: [{ field: 'amount', function: 'sum', alias: 'total_donated' }],
+      };
+
+      await expect(reportService.assertDirectExportSupported(definition)).rejects.toBeInstanceOf(
+        DirectReportExportTooLargeError
+      );
+
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(query.mock.calls[0]?.[0]).toContain('GROUP BY d.campaign_name');
+      expect(query.mock.calls[0]?.[0]).toContain(`LIMIT ${MAX_DIRECT_EXPORT_ROWS + 1}`);
+    });
+
+    it('allows grouped exports with a safe explicit limit without probing', async () => {
+      const definition: ReportDefinition = {
+        name: 'Safe grouped donations export',
+        entity: 'donations',
+        groupBy: ['campaign_name'],
+        aggregations: [{ field: 'amount', function: 'sum', alias: 'total_donated' }],
+        limit: MAX_DIRECT_EXPORT_ROWS,
+      };
+
+      await expect(reportService.assertDirectExportSupported(definition)).resolves.toBeUndefined();
+      expect(query).not.toHaveBeenCalled();
+    });
+
+    it('rejects grouped exports immediately when the explicit limit exceeds the cap', async () => {
+      const definition: ReportDefinition = {
+        name: 'Oversized grouped donations export',
+        entity: 'donations',
+        groupBy: ['campaign_name'],
+        aggregations: [{ field: 'amount', function: 'sum', alias: 'total_donated' }],
+        limit: MAX_DIRECT_EXPORT_ROWS + 1,
+      };
+
+      await expect(reportService.assertDirectExportSupported(definition)).rejects.toBeInstanceOf(
+        DirectReportExportTooLargeError
+      );
+      expect(query).not.toHaveBeenCalled();
     });
   });
 

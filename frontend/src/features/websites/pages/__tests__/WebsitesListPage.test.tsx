@@ -85,7 +85,7 @@ vi.mock('../../state', async () => {
   const actual = await vi.importActual<typeof WebsitesStateModule>('../../state');
   return {
     ...actual,
-    fetchWebsiteSites: () => ({ type: 'websites/fetchSites' }),
+    fetchWebsiteSites: (payload?: unknown) => ({ type: 'websites/fetchSites', payload }),
     setWebsiteSearchParams: (payload: unknown) => ({
       type: 'websites/setSearchParams',
       payload,
@@ -100,11 +100,21 @@ describe('WebsitesListPage', () => {
   });
 
   it('loads the site list and renders console entry points for existing sites', async () => {
-    renderWithProviders(<WebsitesListPage />, { route: '/websites' });
+    renderWithProviders(<WebsitesListPage />, { route: '/websites?page=2' });
 
     await waitFor(() => {
       expect(dispatchMock).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'websites/fetchSites' })
+        expect.objectContaining({
+          type: 'websites/fetchSites',
+          payload: {
+            search: undefined,
+            status: undefined,
+            page: 2,
+            limit: 20,
+            sortBy: 'createdAt',
+            sortOrder: 'desc',
+          },
+        })
       );
     });
 
@@ -135,7 +145,7 @@ describe('WebsitesListPage', () => {
   });
 
   it('updates search params from the console filters', async () => {
-    renderWithProviders(<WebsitesListPage />, { route: '/websites' });
+    renderWithProviders(<WebsitesListPage />, { route: '/websites?page=2' });
 
     fireEvent.change(screen.getByPlaceholderText(/search websites/i), {
       target: { value: 'mutual' },
@@ -147,19 +157,30 @@ describe('WebsitesListPage', () => {
         payload: {
           search: 'mutual',
           page: 1,
+          limit: 20,
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
         },
       })
     );
   });
 
   it('refreshes the list and updates page and sort controls', async () => {
-    renderWithProviders(<WebsitesListPage />, { route: '/websites' });
+    renderWithProviders(<WebsitesListPage />, { route: '/websites?page=2' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Refresh list' }));
 
     expect(dispatchMock).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'websites/fetchSites',
+        payload: {
+          search: undefined,
+          status: undefined,
+          page: 2,
+          limit: 20,
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+        },
       })
     );
 
@@ -171,8 +192,12 @@ describe('WebsitesListPage', () => {
       expect.objectContaining({
         type: 'websites/setSearchParams',
         payload: {
+          search: undefined,
+          status: undefined,
           sortBy: 'name',
           page: 1,
+          limit: 20,
+          sortOrder: 'desc',
         },
       })
     );
@@ -185,8 +210,12 @@ describe('WebsitesListPage', () => {
       expect.objectContaining({
         type: 'websites/setSearchParams',
         payload: {
-          sortOrder: 'asc',
+          search: undefined,
+          status: undefined,
           page: 1,
+          limit: 20,
+          sortBy: 'name',
+          sortOrder: 'asc',
         },
       })
     );
@@ -198,8 +227,33 @@ describe('WebsitesListPage', () => {
         type: 'websites/setSearchParams',
         payload: {
           page: 3,
+          limit: 20,
+          sortBy: 'name',
+          sortOrder: 'asc',
         },
       })
     );
+  });
+
+  it('sanitizes invalid URL state before mirroring it into Redux state', async () => {
+    renderWithProviders(<WebsitesListPage />, {
+      route: '/websites?page=0&limit=-4&sortBy=broken&sortOrder=sideways&status=archived',
+    });
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'websites/setSearchParams',
+          payload: {
+            search: undefined,
+            status: undefined,
+            page: 1,
+            limit: 20,
+            sortBy: 'createdAt',
+            sortOrder: 'desc',
+          },
+        })
+      );
+    });
   });
 });

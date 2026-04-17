@@ -82,6 +82,22 @@ const mockState = {
   },
 };
 
+const setViewport = (isDesktopViewport: boolean) => {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(min-width: 768px)' ? isDesktopViewport : false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+};
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof ReactRouterDomModule>('react-router-dom');
   return {
@@ -178,21 +194,49 @@ vi.mock('../../../../features/cases/components/CaseListFiltersBar', () => ({
 describe('Case list page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.cases.list.total = 1;
+    mockState.cases.list.filters = {
+      page: 1,
+      limit: 20,
+      sort_by: 'created_at',
+      sort_order: 'desc',
+    };
+    mockState.cases.list.selectedCaseIds = [];
+    setViewport(false);
   });
 
-  it('navigates to a case detail route using the canonical case UUID', () => {
+  it('renders only the mobile results tree and paginator on small viewports', () => {
+    mockState.cases.list.total = 40;
+
     renderWithProviders(<CaseListPage />, { route: '/cases' });
 
-    fireEvent.click(screen.getAllByText('CASE-100')[0]);
+    expect(screen.getAllByTestId('mobile-case-card')).toHaveLength(1);
+    expect(screen.queryByLabelText('Select all visible cases')).not.toBeInTheDocument();
+    expect(screen.getByText('Page 1 of 2 · 40 cases')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Cases per page')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('CASE-100'));
 
     expect(navigateMock).toHaveBeenCalledWith(`/cases/${validCaseId}`);
+  });
+
+  it('renders only the desktop results tree and paginator on wider viewports', () => {
+    mockState.cases.list.total = 40;
+    setViewport(true);
+
+    renderWithProviders(<CaseListPage />, { route: '/cases' });
+
+    expect(screen.queryAllByTestId('mobile-case-card')).toHaveLength(0);
+    expect(screen.getByLabelText('Select all visible cases')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cases per page')).toBeInTheDocument();
+    expect(screen.queryByText('Page 1 of 2 · 40 cases')).not.toBeInTheDocument();
   });
 
   it('shows provenance badges and syncs the imported-only filter', () => {
     renderWithProviders(<CaseListPage />, { route: '/cases' });
 
-    expect(screen.getAllByText('Imported').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('1 table').length).toBeGreaterThan(0);
+    expect(screen.getByText('Imported')).toBeInTheDocument();
+    expect(screen.getByText('1 table')).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText('Show imported cases only'));
     fireEvent.click(screen.getByRole('button', { name: /apply filters/i }));

@@ -27,8 +27,7 @@ describe('contact communications controller', () => {
 
   const controller = createContactCommunicationsController(
     useCase as any,
-    directoryUseCase as any,
-    'v2'
+    directoryUseCase as any
   );
 
   beforeEach(() => {
@@ -53,7 +52,7 @@ describe('contact communications controller', () => {
       { accountIds: ['account-1'] },
       'staff'
     );
-    expect(mockSendFailure).toHaveBeenCalledWith(res, 'v2', 'NOT_FOUND', 'Contact not found', 404);
+    expect(mockSendFailure).toHaveBeenCalledWith(res, 'NOT_FOUND', 'Contact not found', 404);
     expect(useCase.list).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
@@ -87,7 +86,6 @@ describe('contact communications controller', () => {
     });
     expect(mockSendData).toHaveBeenCalledWith(
       res,
-      'v2',
       expect.objectContaining({
         total: 1,
         filters: { channel: 'email', limit: 25 },
