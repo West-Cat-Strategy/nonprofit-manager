@@ -1,9 +1,8 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import AddToCalendar from '../../../components/AddToCalendar';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import SocialShare from '../../../components/SocialShare';
-import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import { useToast } from '../../../contexts/useToast';
 import { useDocumentMeta } from '../../../hooks/useDocumentMeta';
 import useConfirmDialog from '../../../hooks/useConfirmDialog';
@@ -39,12 +38,18 @@ import {
   getEventOccurrenceById,
 } from '../utils/occurrences';
 import { getBrowserTimeZone } from '../utils/reminderTime';
+import StaffEventsPageShell, {
+  staffEventsMetadataBadgeClassName,
+  staffEventsPrimaryActionClassName,
+  staffEventsSecondaryActionClassName,
+} from '../components/StaffEventsPageShell';
 
 const EventRegistrationsPanel = lazy(() => import('../components/EventRegistrationsPanel'));
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const { showError, showSuccess } = useToast();
   const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
@@ -168,6 +173,33 @@ export default function EventDetailPage() {
   }, [event?.next_occurrence_id, eventOccurrences, selectedOccurrenceId]);
 
   useEffect(() => {
+    const requestedOccurrenceId = searchParams.get('occurrence');
+    if (
+      !requestedOccurrenceId ||
+      !eventOccurrences.some((occurrence) => occurrence.occurrence_id === requestedOccurrenceId)
+    ) {
+      return;
+    }
+
+    if (requestedOccurrenceId !== selectedOccurrenceId) {
+      setSelectedOccurrenceId(requestedOccurrenceId);
+    }
+  }, [eventOccurrences, searchParams, selectedOccurrenceId]);
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (
+      requestedTab === 'overview' ||
+      requestedTab === 'schedule' ||
+      requestedTab === 'registrations'
+    ) {
+      if (requestedTab !== activeTab) {
+        setActiveTab(requestedTab);
+      }
+    }
+  }, [activeTab, searchParams]);
+
+  useEffect(() => {
     if (!id || activeTab !== 'registrations') return;
     if (automationsLoadedForEventId.current === id) return;
 
@@ -207,6 +239,23 @@ export default function EventDetailPage() {
     selectedOccurrence,
     selectedOccurrence?.occurrence_id,
   ]);
+
+  const writeDetailSearchParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const next = new URLSearchParams(searchParams);
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (!value) {
+          next.delete(key);
+        } else {
+          next.set(key, value);
+        }
+      }
+
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
 
   const refreshDetailData = () => {
     if (!id) return;
@@ -396,178 +445,195 @@ export default function EventDetailPage() {
     }
   };
 
-  if (detailState.loading || !event) {
+  const handleSelectTab = useCallback(
+    (tab: 'overview' | 'schedule' | 'registrations') => {
+      setActiveTab(tab);
+      writeDetailSearchParams({ tab });
+    },
+    [writeDetailSearchParams]
+  );
+
+  const handleSelectOccurrence = useCallback(
+    (occurrenceId: string) => {
+      setSelectedOccurrenceId(occurrenceId);
+      writeDetailSearchParams({ occurrence: occurrenceId });
+    },
+    [writeDetailSearchParams]
+  );
+
+  if (detailState.loading) {
     return (
-      <NeoBrutalistLayout pageTitle="EVENTS">
-        <div className="p-6 text-center">Loading event details...</div>
-      </NeoBrutalistLayout>
+      <StaffEventsPageShell
+        title="Event detail"
+        description="Loading the latest event overview, schedule, and registration data."
+        backHref="/events"
+        backLabel="Back to events"
+      >
+        <div className="rounded-xl border border-app-border bg-app-surface p-6 text-sm text-app-text-muted shadow-sm">
+          Loading event details...
+        </div>
+      </StaffEventsPageShell>
+    );
+  }
+
+  if (!event) {
+    return (
+      <StaffEventsPageShell
+        title="Event detail"
+        description="This event could not be loaded."
+        backHref="/events"
+        backLabel="Back to events"
+      >
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800 shadow-sm">
+          We could not load this event. Try reopening it from the events calendar.
+        </div>
+      </StaffEventsPageShell>
     );
   }
 
   return (
-    <NeoBrutalistLayout pageTitle="EVENTS">
-      <div className="p-6">
-        <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-4xl">
-            <h1 className="mb-2 text-3xl font-bold">{event.event_name}</h1>
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-app-accent-soft px-3 py-1 text-sm font-semibold text-app-accent-text">
-                {event.event_type}
-              </span>
-              <span className="rounded-full bg-app-surface-muted px-3 py-1 text-sm font-semibold text-app-text">
-                {event.status}
-              </span>
-              <span className="rounded-full border border-black bg-white px-3 py-1 text-sm font-semibold text-black">
-                {event.is_public ? 'Public' : 'Private'}
-              </span>
-              {event.is_recurring && (
-                <span className="rounded-full border border-app-accent bg-app-accent-soft px-3 py-1 text-sm font-semibold text-app-accent-text">
-                  Recurring series
-                </span>
-              )}
-              {selectedOccurrence && (
-                <span className="rounded-full border border-app-border bg-app-surface px-3 py-1 text-sm font-semibold text-app-text">
-                  {selectedOccurrence.occurrence_name ?? 'Selected occurrence'}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {calendarEvent ? <AddToCalendar event={calendarEvent} /> : null}
-            <SocialShare
-              data={{
-                url: `/events/${event.event_id}`,
-                title: event.event_name,
-                description: event.description || `Join us for ${event.event_name}`,
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => navigate('/events/calendar')}
-              className="rounded-md border border-app-border bg-app-surface px-4 py-2 hover:bg-app-surface-muted"
-            >
-              Open Calendar
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(`/events/${id}/edit`)}
-              className="rounded-md bg-app-accent px-4 py-2 text-[var(--app-accent-foreground)] hover:bg-app-accent-hover"
-            >
-              Edit Event
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/events')}
-              className="rounded-md border px-4 py-2 hover:bg-app-surface-muted"
-            >
-              Back to Events
-            </button>
-          </div>
-        </div>
-
-        <div className="mb-6 border-b">
-          <nav className="flex gap-4" aria-label="Event detail sections">
-            <button
-              type="button"
-              onClick={() => setActiveTab('overview')}
-              className={`border-b-2 px-4 py-2 font-medium ${
-                activeTab === 'overview'
-                  ? 'border-app-accent text-app-accent'
-                  : 'border-transparent text-app-text-muted hover:text-app-text-muted'
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('schedule')}
-              className={`border-b-2 px-4 py-2 font-medium ${
-                activeTab === 'schedule'
-                  ? 'border-app-accent text-app-accent'
-                  : 'border-transparent text-app-text-muted hover:text-app-text-muted'
-              }`}
-            >
-              Schedule
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('registrations')}
-              className={`border-b-2 px-4 py-2 font-medium ${
-                activeTab === 'registrations'
-                  ? 'border-app-accent text-app-accent'
-                  : 'border-transparent text-app-text-muted hover:text-app-text-muted'
-              }`}
-            >
-              Registrations ({registrationState.registrations.length || event.registered_count})
-            </button>
-          </nav>
-        </div>
-
-        {activeTab === 'overview' && (
-          <EventInfoPanel
-            event={event}
-            occurrences={eventOccurrences}
-            selectedOccurrence={selectedOccurrence}
+    <StaffEventsPageShell
+      title={event.event_name}
+      description="Review the overview, schedule, registrations, reminders, and check-in settings for this event."
+      backHref="/events"
+      backLabel="Back to events"
+      metadata={
+        <>
+          <span className={staffEventsMetadataBadgeClassName}>{event.event_type}</span>
+          <span className={staffEventsMetadataBadgeClassName}>{event.status}</span>
+          <span className={staffEventsMetadataBadgeClassName}>
+            {event.is_public ? 'Public' : 'Private'}
+          </span>
+          {event.is_recurring ? (
+            <span className={staffEventsMetadataBadgeClassName}>Recurring series</span>
+          ) : null}
+          {selectedOccurrence ? (
+            <span className={staffEventsMetadataBadgeClassName}>
+              {selectedOccurrence.occurrence_name ?? 'Selected occurrence'}
+            </span>
+          ) : null}
+        </>
+      }
+      actions={
+        <>
+          {calendarEvent ? <AddToCalendar event={calendarEvent} /> : null}
+          <SocialShare
+            data={{
+              url: `/events/${event.event_id}`,
+              title: event.event_name,
+              description: event.description || `Join us for ${event.event_name}`,
+            }}
           />
-        )}
-
-        {activeTab === 'schedule' && (
-          <EventSchedulePanel
-            event={event}
-            occurrences={eventOccurrences}
-            selectedOccurrenceId={selectedOccurrence?.occurrence_id ?? null}
-            batchScope={batchScope}
-            onSelectOccurrence={setSelectedOccurrenceId}
-            onChangeBatchScope={setBatchScope}
-            onOpenCalendar={() => navigate('/events/calendar')}
-            onOpenSeriesEditor={() => navigate(`/events/${event.event_id}/edit`)}
-          />
-        )}
-
-        {activeTab === 'registrations' && (
-          <Suspense
-            fallback={
-              <div className="rounded-md border border-app-border bg-app-surface p-4 text-center text-sm text-app-text-muted">
-                Loading registrations...
-              </div>
-            }
+          <Link to="/events/calendar" className={staffEventsSecondaryActionClassName}>
+            Back to calendar
+          </Link>
+          <Link to={`/events/${event.event_id}/edit`} className={staffEventsPrimaryActionClassName}>
+            Edit event
+          </Link>
+        </>
+      }
+    >
+      <section className="rounded-xl border border-app-border bg-app-surface p-4 shadow-sm">
+        <nav className="flex flex-wrap gap-2" aria-label="Event detail sections">
+          <button
+            type="button"
+            onClick={() => handleSelectTab('overview')}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'overview'
+                ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                : 'bg-app-surface-muted text-app-text hover:bg-app-surface-muted/80'
+            }`}
           >
-            <EventRegistrationsPanel
-              eventId={event.event_id}
-              eventStartDate={selectedOccurrence?.start_date ?? event.start_date}
-              selectedOccurrence={selectedOccurrence}
-              occurrenceOptions={eventOccurrences}
-              batchScope={batchScope}
-              organizationTimezone={organizationTimezone}
-              registrations={registrationState.registrations}
-              checkInSettings={checkInSettings}
-              checkInSettingsLoading={checkInSettingsLoading}
-              actionLoading={registrationState.actionLoading}
-              remindersSending={remindersState.sending}
-              remindersError={remindersState.error}
-              reminderSummary={remindersState.lastSummary}
-              reminderAutomations={automationState.automations}
-              automationsLoading={automationState.loading}
-              automationsBusy={automationState.cancelling || automationState.creating}
-              onCheckIn={handleCheckIn}
-              onUpdateRegistration={handleUpdateRegistration}
-              onScanCheckIn={handleScanCheckIn}
-              onCancelRegistration={handleCancelRegistration}
-              onSendReminders={handleSendReminders}
-              onUpdateCheckInSettings={handleUpdateCheckInSettings}
-              onRotateCheckInPin={handleRotateCheckInPin}
-              onSendConfirmationEmail={handleSendConfirmationEmail}
-              onCancelAutomation={handleCancelAutomation}
-              onCreateAutomation={handleCreateAutomation}
-              onChangeBatchScope={setBatchScope}
-              onSelectOccurrence={setSelectedOccurrenceId}
-            />
-          </Suspense>
-        )}
-      </div>
+            Overview
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSelectTab('schedule')}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'schedule'
+                ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                : 'bg-app-surface-muted text-app-text hover:bg-app-surface-muted/80'
+            }`}
+          >
+            Schedule
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSelectTab('registrations')}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'registrations'
+                ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                : 'bg-app-surface-muted text-app-text hover:bg-app-surface-muted/80'
+            }`}
+          >
+            Registrations ({registrationState.registrations.length || event.registered_count})
+          </button>
+        </nav>
+      </section>
+
+      {activeTab === 'overview' && (
+        <EventInfoPanel
+          event={event}
+          occurrences={eventOccurrences}
+          selectedOccurrence={selectedOccurrence}
+        />
+      )}
+
+      {activeTab === 'schedule' && (
+        <EventSchedulePanel
+          event={event}
+          occurrences={eventOccurrences}
+          selectedOccurrenceId={selectedOccurrence?.occurrence_id ?? null}
+          batchScope={batchScope}
+          onSelectOccurrence={handleSelectOccurrence}
+          onChangeBatchScope={setBatchScope}
+          onOpenCalendar={() => navigate('/events/calendar')}
+          onOpenSeriesEditor={() => navigate(`/events/${event.event_id}/edit`)}
+        />
+      )}
+
+      {activeTab === 'registrations' && (
+        <Suspense
+          fallback={
+            <div className="rounded-md border border-app-border bg-app-surface p-4 text-center text-sm text-app-text-muted">
+              Loading registrations...
+            </div>
+          }
+        >
+          <EventRegistrationsPanel
+            eventId={event.event_id}
+            eventStartDate={selectedOccurrence?.start_date ?? event.start_date}
+            selectedOccurrence={selectedOccurrence}
+            occurrenceOptions={eventOccurrences}
+            batchScope={batchScope}
+            organizationTimezone={organizationTimezone}
+            registrations={registrationState.registrations}
+            checkInSettings={checkInSettings}
+            checkInSettingsLoading={checkInSettingsLoading}
+            actionLoading={registrationState.actionLoading}
+            remindersSending={remindersState.sending}
+            remindersError={remindersState.error}
+            reminderSummary={remindersState.lastSummary}
+            reminderAutomations={automationState.automations}
+            automationsLoading={automationState.loading}
+            automationsBusy={automationState.cancelling || automationState.creating}
+            onCheckIn={handleCheckIn}
+            onUpdateRegistration={handleUpdateRegistration}
+            onScanCheckIn={handleScanCheckIn}
+            onCancelRegistration={handleCancelRegistration}
+            onSendReminders={handleSendReminders}
+            onUpdateCheckInSettings={handleUpdateCheckInSettings}
+            onRotateCheckInPin={handleRotateCheckInPin}
+            onSendConfirmationEmail={handleSendConfirmationEmail}
+            onCancelAutomation={handleCancelAutomation}
+            onCreateAutomation={handleCreateAutomation}
+            onChangeBatchScope={setBatchScope}
+            onSelectOccurrence={handleSelectOccurrence}
+          />
+        </Suspense>
+      )}
 
       <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
-    </NeoBrutalistLayout>
+    </StaffEventsPageShell>
   );
 }

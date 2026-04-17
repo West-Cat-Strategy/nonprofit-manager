@@ -37,9 +37,13 @@ export interface EventListQuery {
 }
 
 export interface EventOccurrenceQuery {
-  from?: string;
-  to?: string;
+  startDate?: string;
+  endDate?: string;
   eventId?: string;
+  search?: string;
+  eventType?: string;
+  status?: string;
+  isPublic?: boolean;
   includeCancelled?: boolean;
 }
 

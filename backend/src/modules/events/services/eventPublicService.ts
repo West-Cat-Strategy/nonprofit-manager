@@ -22,6 +22,7 @@ import {
 } from './shared';
 import { EventOccurrenceService } from './eventOccurrenceService';
 import { EventRegistrationService } from './eventRegistrationService';
+import { createEventHttpError, isEventHttpError } from '../eventHttpErrors';
 
 interface PublicEventSeriesRow {
   event_id: string;
@@ -361,12 +362,12 @@ export class EventPublicService {
       series.status === EventStatus.CANCELLED ||
       series.status === EventStatus.COMPLETED
     ) {
-      throw new Error('Event registration is unavailable');
+      throw createEventHttpError('REGISTRATION_CLOSED', 400, 'Event registration is unavailable');
     }
 
     const defaultOccurrence = await this.occurrences.resolveOccurrence(eventId, data.occurrence_id);
     if (!defaultOccurrence) {
-      throw new Error('Event not found');
+      throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
     }
 
     let contactId = await this.support.resolveContactIdByIdentity(this.pool, {
@@ -410,7 +411,7 @@ export class EventPublicService {
         created_registration: true,
       };
     } catch (error) {
-      if (error instanceof Error && error.message.includes('already registered')) {
+      if (isEventHttpError(error) && error.code === 'ALREADY_REGISTERED') {
         const existing = await this.registrations.getContactRegistrations(contactId);
         const registration =
           existing.find((row) => row.event_id === eventId && row.occurrence_id === defaultOccurrence.occurrence_id) ??
@@ -426,10 +427,6 @@ export class EventPublicService {
             created_registration: false,
           };
         }
-      }
-
-      if (error instanceof Error && error.message === 'Event is at full capacity') {
-        throw Object.assign(new Error('Event is at full capacity'), { cause: error });
       }
 
       throw error;
@@ -508,7 +505,7 @@ export class EventPublicService {
   ): Promise<PublicEventCheckInResult> {
     const series = await this.getSeriesRow(eventId);
     if (!series || !series.is_public) {
-      throw new Error('Event not found');
+      throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
     }
 
     const occurrence = await this.occurrences.resolveOccurrence(
@@ -516,7 +513,7 @@ export class EventPublicService {
       data.occurrence_id ?? series.next_occurrence_id
     );
     if (!occurrence) {
-      throw new Error('Event not found');
+      throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
     }
 
     const lockedOccurrenceResult = await this.pool.query<{
@@ -548,25 +545,33 @@ export class EventPublicService {
 
     const lockedOccurrence = lockedOccurrenceResult.rows[0];
     if (!lockedOccurrence || !lockedOccurrence.public_checkin_enabled) {
-      throw new Error('Public check-in is not enabled for this event');
+      throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Public check-in is not enabled for this event');
     }
     if (!lockedOccurrence.public_checkin_pin_hash) {
-      throw new Error('Event check-in PIN is not configured');
+      throw createEventHttpError('PIN_NOT_CONFIGURED', 400, 'Event check-in PIN is not configured');
     }
 
     const pinMatch = await bcrypt.compare(data.pin.trim(), lockedOccurrence.public_checkin_pin_hash);
     if (!pinMatch) {
-      throw new Error('Invalid event check-in PIN');
+      throw createEventHttpError('INVALID_PIN', 403, 'Invalid event check-in PIN');
     }
 
-    this.support.assertCheckInAllowed({
-      id: lockedOccurrence.id,
-      start_date: lockedOccurrence.start_date,
-      end_date: lockedOccurrence.end_date,
-      status: lockedOccurrence.status,
-      capacity: lockedOccurrence.capacity,
-      registered_count: lockedOccurrence.registered_count,
-    });
+    try {
+      this.support.assertCheckInAllowed({
+        id: lockedOccurrence.id,
+        start_date: lockedOccurrence.start_date,
+        end_date: lockedOccurrence.end_date,
+        status: lockedOccurrence.status,
+        capacity: lockedOccurrence.capacity,
+        registered_count: lockedOccurrence.registered_count,
+      });
+    } catch (error) {
+      throw createEventHttpError(
+        'CHECKIN_CLOSED',
+        400,
+        error instanceof Error ? error.message : 'Event is not accepting check-ins'
+      );
+    }
 
     let createdContact = false;
     let contactId = await this.support.resolveContactIdByIdentity(this.pool, {
@@ -624,7 +629,7 @@ export class EventPublicService {
     });
 
     if (!checkInResult.success || !checkInResult.registration) {
-      throw new Error(checkInResult.message);
+      throw createEventHttpError('CHECKIN_ERROR', 400, checkInResult.message);
     }
 
     return {

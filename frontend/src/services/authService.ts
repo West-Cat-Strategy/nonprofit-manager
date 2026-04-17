@@ -52,15 +52,17 @@ export interface RegisterResponse {
 
 export type AdminRegistrationReviewAction = 'approve' | 'reject';
 
+export interface AdminRegistrationReviewActor {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string;
+}
+
 export interface AdminRegistrationReviewPreview {
   action: AdminRegistrationReviewAction;
-  reviewer: {
-    id: string;
-    email: string;
-    firstName: string | null;
-    lastName: string | null;
-    displayName: string;
-  };
+  reviewer: AdminRegistrationReviewActor;
   pendingRegistration: {
     id: string;
     email: string;
@@ -76,6 +78,7 @@ export interface AdminRegistrationReviewPreview {
     status: 'pending' | 'approved' | 'rejected';
     reviewedAt: string | null;
     rejectionReason: string | null;
+    reviewedBy?: AdminRegistrationReviewActor | null;
   };
   canConfirm: boolean;
 }

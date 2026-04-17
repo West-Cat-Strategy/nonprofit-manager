@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import type { UpdateEventDTO } from '../../../types/event';
-import EventForm from '../../../components/EventForm';
-import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import EventEditorForm from '../components/EventEditorForm';
+import StaffEventsPageShell, {
+  staffEventsMetadataBadgeClassName,
+  staffEventsSecondaryActionClassName,
+} from '../components/StaffEventsPageShell';
 import { clearEventDetailV2 } from '../state/eventDetailSlice';
 import { fetchEventDetailV2 } from '../state/eventDetailSlice';
 import { updateEventV2 } from '../state/eventMutationSlice';
@@ -28,20 +31,65 @@ export default function EventEditPage() {
     return dispatch(updateEventV2({ eventId: id, eventData })).unwrap();
   };
 
-  if (detailState.loading || !detailState.event) {
+  if (detailState.loading) {
     return (
-      <NeoBrutalistLayout pageTitle="EVENTS">
-        <div className="p-6 text-center">Loading event...</div>
-      </NeoBrutalistLayout>
+      <StaffEventsPageShell
+        title="Edit event"
+        description="Loading the latest event details so you can update this schedule safely."
+        backHref="/events"
+        backLabel="Back to events"
+      >
+        <div className="rounded-xl border border-app-border bg-app-surface p-6 text-sm text-app-text-muted shadow-sm">
+          Loading event...
+        </div>
+      </StaffEventsPageShell>
+    );
+  }
+
+  if (!detailState.event) {
+    return (
+      <StaffEventsPageShell
+        title="Edit event"
+        description="This event could not be loaded right now."
+        backHref="/events"
+        backLabel="Back to events"
+      >
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-800 shadow-sm">
+          We could not load this event. Try reopening it from the events calendar.
+        </div>
+      </StaffEventsPageShell>
     );
   }
 
   return (
-    <NeoBrutalistLayout pageTitle="EVENTS">
-      <div className="p-6">
-        <h1 className="mb-6 text-3xl font-bold">Edit Event</h1>
-        <EventForm event={detailState.event} onSubmit={handleSubmit} isEdit />
-      </div>
-    </NeoBrutalistLayout>
+    <StaffEventsPageShell
+      title="Edit event"
+      description="Update the timing, access, reminders, and delivery details for this event without changing its saved duration unless you choose to."
+      backHref="/events"
+      backLabel="Back to events"
+      metadata={
+        <>
+          <span className={staffEventsMetadataBadgeClassName}>{detailState.event.status}</span>
+          <span className={staffEventsMetadataBadgeClassName}>
+            {detailState.event.is_public ? 'Public' : 'Private'}
+          </span>
+        </>
+      }
+      actions={
+        <>
+          <Link to="/events/calendar" className={staffEventsSecondaryActionClassName}>
+            Back to calendar
+          </Link>
+          <Link
+            to={`/events/${detailState.event.event_id}`}
+            className={staffEventsSecondaryActionClassName}
+          >
+            View details
+          </Link>
+        </>
+      }
+    >
+      <EventEditorForm event={detailState.event} onSubmit={handleSubmit} isEdit />
+    </StaffEventsPageShell>
   );
 }

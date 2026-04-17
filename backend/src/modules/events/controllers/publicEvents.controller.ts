@@ -9,6 +9,7 @@ import { logger } from '@config/logger';
 import { sendError, sendSuccess } from '../../shared/http/envelope';
 import { EventCatalogUseCase } from '../usecases/eventCatalog.usecase';
 import { EventRegistrationUseCase } from '../usecases/registration.usecase';
+import { sendEventHttpError } from './events.controller.shared';
 
 interface PublicSiteResolverPort {
   getPublicSiteById(siteId: string): Promise<PublishedSite | null>;
@@ -41,12 +42,12 @@ interface PublicEventsControllerDeps {
 }
 
 const getValidatedParams = (req: Request): Record<string, string> =>
-  ((req as Request & { validatedParams?: Record<string, string> }).validatedParams ??
-    req.params) as Record<string, string>;
+  (((req as Request & { validatedParams?: Record<string, string> }).validatedParams ??
+    req.params) ?? {}) as Record<string, string>;
 
 const getValidatedQuery = (req: Request): Record<string, unknown> =>
-  ((req as Request & { validatedQuery?: Record<string, unknown> }).validatedQuery ??
-    req.query) as Record<string, unknown>;
+  (((req as Request & { validatedQuery?: Record<string, unknown> }).validatedQuery ??
+    req.query) ?? {}) as Record<string, unknown>;
 
 const normalizeQuery = (req: Request): PublicEventsQuery => {
   const query = getValidatedQuery(req);
@@ -70,62 +71,6 @@ const normalizeQuery = (req: Request): PublicEventsQuery => {
         : undefined,
     site: typeof query.site === 'string' ? query.site : undefined,
   };
-};
-
-const mapCheckInError = (res: Response, error: Error): boolean => {
-  if (
-    error.message === 'Event not found' ||
-    error.message === 'Occurrence not found' ||
-    error.message === 'Public check-in is not enabled for this event'
-  ) {
-    sendError(res, 'EVENT_NOT_FOUND', 'Event check-in is unavailable', 404);
-    return true;
-  }
-
-  if (error.message === 'Invalid event check-in PIN') {
-    sendError(res, 'INVALID_PIN', error.message, 403);
-    return true;
-  }
-
-  if (error.message === 'Event check-in PIN is not configured') {
-    sendError(res, 'PIN_NOT_CONFIGURED', error.message, 400);
-    return true;
-  }
-
-  if (error.message === 'Event is at full capacity') {
-    sendError(res, 'EVENT_FULL', error.message, 400);
-    return true;
-  }
-
-  if (
-    error.message === 'Event is not accepting check-ins' ||
-    error.message.includes('Check-in is available') ||
-    error.message.includes('cannot be checked in')
-  ) {
-    sendError(res, 'CHECKIN_CLOSED', error.message, 400);
-    return true;
-  }
-
-  return false;
-};
-
-const mapRegistrationError = (res: Response, error: Error): boolean => {
-  if (error.message === 'Event not found' || error.message === 'Occurrence not found') {
-    sendError(res, 'EVENT_NOT_FOUND', 'Event is unavailable', 404);
-    return true;
-  }
-
-  if (error.message === 'Event registration is unavailable') {
-    sendError(res, 'REGISTRATION_CLOSED', error.message, 400);
-    return true;
-  }
-
-  if (error.message === 'Event is at full capacity') {
-    sendError(res, 'EVENT_FULL', error.message, 400);
-    return true;
-  }
-
-  return false;
 };
 
 const resolveSiteByKey = async (
@@ -296,7 +241,7 @@ export const createPublicEventsController = ({
       );
       sendSuccess(res, result, result.created_registration ? 201 : 200);
     } catch (error) {
-      if (error instanceof Error && mapCheckInError(res, error)) {
+      if (sendEventHttpError(res, error)) {
         return;
       }
       next(error);
@@ -364,7 +309,7 @@ export const createPublicEventsController = ({
 
       sendSuccess(res, result, result.created_registration ? 201 : 200);
     } catch (error) {
-      if (error instanceof Error && mapRegistrationError(res, error)) {
+      if (sendEventHttpError(res, error)) {
         return;
       }
       next(error);

@@ -18,8 +18,8 @@ describe('admin pending registration review session tokens', () => {
 
   it('issues review tokens that verify with the dedicated issuer', () => {
     const token = issueAdminPendingRegistrationReviewToken({
-      pendingRegistrationId: 'pending-1',
-      adminUserId: 'admin-1',
+      pendingRegistrationId: '11111111-1111-4111-8111-111111111111',
+      adminUserId: '22222222-2222-4222-8222-222222222222',
       action: 'approve',
     });
 
@@ -29,8 +29,8 @@ describe('admin pending registration review session tokens', () => {
     );
 
     expect(payload).toMatchObject({
-      pendingRegistrationId: 'pending-1',
-      adminUserId: 'admin-1',
+      pendingRegistrationId: '11111111-1111-4111-8111-111111111111',
+      adminUserId: '22222222-2222-4222-8222-222222222222',
       action: 'approve',
       type: 'admin_pending_registration_review',
       iss: ADMIN_PENDING_REGISTRATION_REVIEW_TOKEN_ISSUER,

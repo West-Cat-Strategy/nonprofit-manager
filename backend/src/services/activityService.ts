@@ -25,10 +25,26 @@ const mergeActivities = (primary: Activity[], secondary: Activity[], limit?: num
 };
 
 export class ActivityService {
+  private async contactBelongsToOrganization(
+    contactId: string,
+    organizationId: string
+  ): Promise<boolean> {
+    const result = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM contacts
+       WHERE id = $1
+         AND account_id = $2
+       LIMIT 1`,
+      [contactId, organizationId]
+    );
+
+    return result.rows.length > 0;
+  }
+
   /**
    * Get recent activities across all modules
    */
-  async getRecentActivities(limit: number = 10, organizationId?: string): Promise<Activity[]> {
+  async getRecentActivities(limit: number = 10, organizationId: string): Promise<Activity[]> {
     const activities: Activity[] = [];
     const [recordedActivities, casesResult, donationsResult, volunteerResult, eventRegResult] =
       await Promise.all([
@@ -44,11 +60,13 @@ export class ActivityService {
             c.status_name,
             u.first_name || ' ' || u.last_name as user_name
           FROM cases c
+          LEFT JOIN contacts con ON c.contact_id = con.id
           LEFT JOIN users u ON c.assigned_to = u.id
           WHERE c.created_at >= NOW() - INTERVAL '30 days'
+            AND COALESCE(c.account_id, con.account_id) = $1
           ORDER BY c.created_at DESC
-          LIMIT $1`,
-          [Math.ceil(limit / 2)]
+          LIMIT $2`,
+          [organizationId, Math.ceil(limit / 2)]
         ),
         pool.query(
           `SELECT
@@ -60,10 +78,11 @@ export class ActivityService {
             c.first_name || ' ' || c.last_name as contact_name
           FROM donations d
           LEFT JOIN contacts c ON d.contact_id = c.id
-          WHERE d.donation_date >= NOW() - INTERVAL '30 days'
+          WHERE d.account_id = $1
+            AND d.donation_date >= NOW() - INTERVAL '30 days'
           ORDER BY d.donation_date DESC
-          LIMIT $1`,
-          [Math.ceil(limit / 3)]
+          LIMIT $2`,
+          [organizationId, Math.ceil(limit / 3)]
         ),
         pool.query(
           `SELECT
@@ -76,9 +95,10 @@ export class ActivityService {
           LEFT JOIN volunteers v ON vh.volunteer_id = v.id
           LEFT JOIN contacts c ON v.contact_id = c.id
           WHERE vh.activity_date >= NOW() - INTERVAL '30 days'
+            AND c.account_id = $1
           ORDER BY vh.activity_date DESC
-          LIMIT $1`,
-          [Math.ceil(limit / 4)]
+          LIMIT $2`,
+          [organizationId, Math.ceil(limit / 4)]
         ),
         pool.query(
           `SELECT
@@ -90,9 +110,10 @@ export class ActivityService {
           LEFT JOIN events e ON er.event_id = e.id
           LEFT JOIN contacts c ON er.contact_id = c.id
           WHERE er.registered_at >= NOW() - INTERVAL '30 days'
+            AND c.account_id = $1
           ORDER BY er.registered_at DESC
-          LIMIT $1`,
-          [Math.ceil(limit / 4)]
+          LIMIT $2`,
+          [organizationId, Math.ceil(limit / 4)]
         ),
       ]);
 
@@ -178,7 +199,7 @@ export class ActivityService {
   async getActivitiesForEntity(
     entityType: 'case' | 'donation' | 'volunteer' | 'event' | 'contact',
     entityId: string,
-    organizationId?: string
+    organizationId: string
   ): Promise<Activity[]> {
     const recordedActivities = await activityEventService.listActivitiesForEntity(
       entityType,
@@ -187,6 +208,10 @@ export class ActivityService {
     );
 
     if (entityType !== 'contact') {
+      return recordedActivities;
+    }
+
+    if (!(await this.contactBelongsToOrganization(entityId, organizationId))) {
       return recordedActivities;
     }
 
@@ -201,11 +226,13 @@ export class ActivityService {
         cn.created_at,
         u.first_name || ' ' || u.last_name as user_name
       FROM contact_notes cn
+      INNER JOIN contacts c ON c.id = cn.contact_id
       LEFT JOIN users u ON cn.created_by = u.id
       WHERE cn.contact_id = $1
+        AND c.account_id = $2
       ORDER BY cn.created_at DESC
       LIMIT 100`,
-      [entityId]
+      [entityId, organizationId]
     );
 
     notesResult.rows.forEach((row) => {

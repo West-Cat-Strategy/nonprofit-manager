@@ -4,6 +4,7 @@ import { DashboardDataProvider, useDashboardData } from '../DashboardDataContext
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const analyticsSummaryMock = vi.fn();
+const donationTrendsMock = vi.fn();
 const caseSummaryMock = vi.fn();
 const taskSummaryMock = vi.fn();
 const followUpSummaryMock = vi.fn();
@@ -13,6 +14,7 @@ const listCasesMock = vi.fn();
 vi.mock('../../../analytics/api/analyticsApiClient', () => ({
   analyticsApiClient: {
     fetchSummary: (...args: unknown[]) => analyticsSummaryMock(...args),
+    fetchDonationTrends: (...args: unknown[]) => donationTrendsMock(...args),
   },
 }));
 
@@ -42,6 +44,8 @@ function DashboardConsumer() {
   return (
     <div>
       <div data-testid="urgent-cases">{dashboardData?.caseSummary?.by_priority.urgent ?? -1}</div>
+      <div data-testid="trend-count">{dashboardData?.donationTrends.length ?? -1}</div>
+      <div data-testid="trend-error">{dashboardData?.errors.donationTrends ?? 'none'}</div>
       <div data-testid="assigned-total">{dashboardData?.assignedCasesTotal ?? -1}</div>
       <div data-testid="task-error">{dashboardData?.errors.taskSummary ?? 'none'}</div>
       <div data-testid="loading-state">{dashboardData?.loading.caseSummary ? 'loading' : 'idle'}</div>
@@ -77,6 +81,10 @@ describe('DashboardDataContext', () => {
       total_volunteer_hours_ytd: 88,
       engagement_distribution: { high: 12, medium: 16, low: 8, inactive: 24 },
     });
+    donationTrendsMock.mockResolvedValue([
+      { month: '2026-01', amount: 1800, count: 6 },
+      { month: '2026-02', amount: 2400, count: 8 },
+    ]);
     caseSummaryMock.mockResolvedValue({
       total_cases: 12,
       open_cases: 8,
@@ -153,8 +161,10 @@ describe('DashboardDataContext', () => {
     expect(screen.getByTestId('urgent-cases')).toHaveTextContent('-1');
 
     await waitFor(() => expect(screen.getByTestId('urgent-cases')).toHaveTextContent('2'));
+    expect(screen.getByTestId('trend-count')).toHaveTextContent('2');
     expect(screen.getByTestId('assigned-total')).toHaveTextContent('4');
     expect(screen.getByTestId('loading-state')).toHaveTextContent('idle');
+    expect(donationTrendsMock).toHaveBeenCalledWith(12);
   });
 
   it('surfaces request errors per data lane', async () => {
@@ -183,5 +193,35 @@ describe('DashboardDataContext', () => {
     );
 
     await waitFor(() => expect(screen.getByTestId('task-error')).toHaveTextContent('Task summary failed'));
+  });
+
+  it('keeps other dashboard lanes available when donation trends fail', async () => {
+    donationTrendsMock.mockRejectedValueOnce(new Error('Trend service offline'));
+
+    renderWithProviders(
+      <DashboardDataProvider>
+        <DashboardConsumer />
+      </DashboardDataProvider>,
+      {
+        preloadedState: {
+          auth: {
+            user: {
+              id: 'user-1',
+              email: 'test@example.com',
+              firstName: 'Test',
+              lastName: 'User',
+              role: 'admin',
+            },
+            isAuthenticated: true,
+            authLoading: false,
+            loading: false,
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(screen.getByTestId('trend-error')).toHaveTextContent('Trend service offline'));
+    expect(screen.getByTestId('urgent-cases')).toHaveTextContent('2');
+    expect(screen.getByTestId('assigned-total')).toHaveTextContent('4');
   });
 });

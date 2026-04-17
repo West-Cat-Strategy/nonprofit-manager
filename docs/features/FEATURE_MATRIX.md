@@ -116,10 +116,10 @@ Use the workboard for the current dashboard and admin workspace refactor status.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **Customizable Dashboard** | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | `frontend/src/features/dashboard/pages/CustomDashboardPage.tsx` | User-configurable dashboard; current workbench/dashboard refactor is tracked separately on the Phase 4 workboard |
+| **Customizable Dashboard** | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | `frontend/src/features/dashboard/pages/CustomDashboardPage.tsx` | User-configurable dashboard with live summary and donation-trend widgets; current workbench/dashboard refactor is tracked separately on the Phase 4 workboard |
 | Widget System | ✅ | Frontend | Same | - | Add/remove/configure widgets |
 | Multiple Dashboards | ✅ | Backend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `backend/src/modules/dashboard/routes/index.ts` | Save different dashboard configs |
-| Widget Types | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | - | Key metrics, charts, tables, etc. |
+| Widget Types | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | - | Key metrics, live analytics charts, work queues, and activity widgets |
 | Performance Metrics | ✅ | Backend | - | - | System health indicators |
 | Alerts & Monitoring | ✅ | Backend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `backend/src/modules/alerts/routes/index.ts` | Configurable alert rules |
 

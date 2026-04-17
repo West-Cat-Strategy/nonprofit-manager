@@ -6,6 +6,9 @@ jest.mock('../../../shared/http/envelope', () => ({
   sendSuccess: jest.fn(),
 }));
 
+const createEventHttpError = (code: string, statusCode: number, message: string): Error =>
+  Object.assign(new Error(message), { code, statusCode });
+
 describe('publicEvents.controller', () => {
   const catalogUseCase = {
     listPublicByOwner: jest.fn(),
@@ -227,27 +230,20 @@ describe('publicEvents.controller', () => {
   });
 
   it.each([
-    ['Event not found', 'EVENT_NOT_FOUND', 'Event check-in is unavailable', 404],
-    ['Public check-in is not enabled for this event', 'EVENT_NOT_FOUND', 'Event check-in is unavailable', 404],
-    ['Invalid event check-in PIN', 'INVALID_PIN', 'Invalid event check-in PIN', 403],
-    ['Event check-in PIN is not configured', 'PIN_NOT_CONFIGURED', 'Event check-in PIN is not configured', 400],
-    ['Event is at full capacity', 'EVENT_FULL', 'Event is at full capacity', 400],
+    ['EVENT_NOT_FOUND', 'Event check-in is unavailable', 404],
+    ['INVALID_PIN', 'Invalid event check-in PIN', 403],
+    ['PIN_NOT_CONFIGURED', 'Event check-in PIN is not configured', 400],
+    ['EVENT_FULL', 'Event is at full capacity', 400],
     [
-      'Check-in is available 180 minutes before start until 240 minutes after end.',
       'CHECKIN_CLOSED',
       'Check-in is available 180 minutes before start until 240 minutes after end.',
       400,
     ],
-    ['Event is not accepting check-ins', 'CHECKIN_CLOSED', 'Event is not accepting check-ins', 400],
-  ])(
-    'maps check-in error "%s" to %s',
-    async (
-      message: string,
-      expectedCode: string,
-      expectedMessage: string,
-      expectedStatus: number
-    ) => {
-      registrationUseCase.submitPublicCheckIn.mockRejectedValueOnce(new Error(message));
+    ['CHECKIN_CLOSED', 'Event is not accepting check-ins', 400],
+  ])('maps check-in error "%s" to %s', async (code: string, message: string, expectedStatus: number) => {
+      registrationUseCase.submitPublicCheckIn.mockRejectedValueOnce(
+        createEventHttpError(code, expectedStatus, message)
+      );
 
       await controller.submitCheckIn(
         {
@@ -260,8 +256,8 @@ describe('publicEvents.controller', () => {
 
       expect(sendError).toHaveBeenCalledWith(
         res,
-        expectedCode,
-        expectedMessage,
+        code,
+        message,
         expectedStatus
       );
     }

@@ -6,6 +6,7 @@ import { followUpsApiClient } from '../../followUps/api/followUpsApiClient';
 import { tasksApiClient } from '../../tasks/api/tasksApiClient';
 import { useAppSelector } from '../../../store/hooks';
 import type { AnalyticsSummary } from '../../analytics/types/contracts';
+import type { DonationTrendPoint } from '../../analytics/types/contracts';
 import type { CaseWithDetails } from '../../../types/case';
 import type { CaseSummary } from '../../../types/case';
 import type { FollowUpSummary, FollowUpWithEntity } from '../../followUps/types/contracts';
@@ -13,6 +14,7 @@ import type { TaskSummary } from '../../tasks/types/contracts';
 
 type DashboardDataKey =
   | 'analytics'
+  | 'donationTrends'
   | 'caseSummary'
   | 'taskSummary'
   | 'followUpSummary'
@@ -21,6 +23,7 @@ type DashboardDataKey =
 
 export interface DashboardDataContextValue {
   analyticsSummary: AnalyticsSummary | null;
+  donationTrends: DonationTrendPoint[];
   caseSummary: CaseSummary | null;
   taskSummary: TaskSummary | null;
   followUpSummary: FollowUpSummary | null;
@@ -34,6 +37,7 @@ export interface DashboardDataContextValue {
 
 const initialLoadingState: Record<DashboardDataKey, boolean> = {
   analytics: false,
+  donationTrends: false,
   caseSummary: false,
   taskSummary: false,
   followUpSummary: false,
@@ -45,6 +49,7 @@ export const DashboardDataContext = createContext<DashboardDataContextValue | nu
 
 const initialContextValue: DashboardDataContextValue = {
   analyticsSummary: null,
+  donationTrends: [],
   caseSummary: null,
   taskSummary: null,
   followUpSummary: null,
@@ -142,6 +147,18 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           setState((current) => ({ ...current, analyticsSummary: result }));
         },
         'Unable to load dashboard insights'
+      );
+
+      void runRequest(
+        'donationTrends',
+        () => analyticsApiClient.fetchDonationTrends(12),
+        (result) => {
+          setState((current) => ({
+            ...current,
+            donationTrends: Array.isArray(result) ? result : [],
+          }));
+        },
+        'Unable to load donation trends'
       );
 
       void runRequest(

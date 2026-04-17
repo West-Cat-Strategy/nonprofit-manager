@@ -44,6 +44,7 @@ describe('DonationSummaryWidget', () => {
 
   const mockDashboardData = {
     analyticsSummary: mockDonationData,
+    donationTrends: [],
     caseSummary: null,
     taskSummary: null,
     followUpSummary: null,
@@ -52,6 +53,7 @@ describe('DonationSummaryWidget', () => {
     assignedCasesTotal: 0,
     loading: {
       analytics: false,
+      donationTrends: false,
       caseSummary: false,
       taskSummary: false,
       followUpSummary: false,
@@ -60,6 +62,7 @@ describe('DonationSummaryWidget', () => {
     },
     errors: {
       analytics: null,
+      donationTrends: null,
       caseSummary: null,
       taskSummary: null,
       followUpSummary: null,

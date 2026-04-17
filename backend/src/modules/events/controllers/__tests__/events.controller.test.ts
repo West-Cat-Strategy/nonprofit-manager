@@ -23,6 +23,9 @@ type MockReq = Partial<AuthRequest> & {
   validatedQuery?: Record<string, unknown>;
 };
 
+const createEventHttpError = (code: string, statusCode: number, message: string): Error =>
+  Object.assign(new Error(message), { code, statusCode });
+
 const baseReq = (): MockReq => ({
   user: { id: 'user-1', role: 'admin' } as AuthRequest['user'],
   dataScope: { filter: { accountIds: ['acct-1'] } } as AuthRequest['dataScope'],
@@ -36,6 +39,8 @@ describe('events.controller', () => {
     getById: jest.fn(),
   };
   const registrationUseCase = {
+    register: jest.fn(),
+    update: jest.fn(),
     getCheckInSettings: jest.fn(),
     updateCheckInSettings: jest.fn(),
     rotateCheckInPin: jest.fn(),
@@ -45,6 +50,7 @@ describe('events.controller', () => {
     getByToken: jest.fn(),
     getByTokenGlobal: jest.fn(),
     walkInCheckIn: jest.fn(),
+    sendConfirmationEmail: jest.fn(),
   };
   const remindersUseCase = {
     send: jest.fn(),
@@ -156,9 +162,50 @@ describe('events.controller', () => {
     );
   });
 
+  it('maps duplicate registration errors using structured error codes', async () => {
+    catalogUseCase.getById.mockResolvedValueOnce({ event_id: 'event-1' });
+    registrationUseCase.register.mockRejectedValueOnce(
+      createEventHttpError(
+        'ALREADY_REGISTERED',
+        409,
+        'Contact is already registered for this occurrence'
+      )
+    );
+
+    await controller.register(baseReq() as AuthRequest, res, next);
+
+    expect(sendError).toHaveBeenCalledWith(
+      res,
+      'ALREADY_REGISTERED',
+      'Contact is already registered for this occurrence',
+      409
+    );
+  });
+
+  it('maps registration update validation errors using structured error codes', async () => {
+    registrationUseCase.getById.mockResolvedValueOnce({
+      registration_id: 'reg-1',
+      event_id: 'event-1',
+    });
+    catalogUseCase.getById.mockResolvedValueOnce({ event_id: 'event-1' });
+    registrationUseCase.update.mockRejectedValueOnce(
+      createEventHttpError('VALIDATION_ERROR', 400, 'No fields to update')
+    );
+
+    await controller.updateRegistration(
+      { ...baseReq(), validatedParams: { id: 'reg-1' } } as AuthRequest,
+      res,
+      next
+    );
+
+    expect(sendError).toHaveBeenCalledWith(res, 'VALIDATION_ERROR', 'No fields to update', 400);
+  });
+
   it('maps rotate pin event-not-found error to 404', async () => {
     catalogUseCase.getById.mockResolvedValueOnce({ event_id: 'event-1' });
-    registrationUseCase.rotateCheckInPin.mockRejectedValueOnce(new Error('Event not found'));
+    registrationUseCase.rotateCheckInPin.mockRejectedValueOnce(
+      createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found')
+    );
 
     await controller.rotateCheckInPin(baseReq() as AuthRequest, res, next);
 
@@ -311,15 +358,17 @@ describe('events.controller', () => {
   });
 
   it.each([
-    ['Event not found', 'EVENT_NOT_FOUND', 404],
-    ['Event is at full capacity', 'CHECKIN_ERROR', 400],
-    ['Event is not accepting check-ins', 'CHECKIN_ERROR', 400],
-    ['Check-in is available 180 minutes before start until 240 minutes after end.', 'CHECKIN_ERROR', 400],
+    ['EVENT_NOT_FOUND', 404, 'Event not found'],
+    ['CHECKIN_ERROR', 400, 'Event is at full capacity'],
+    ['CHECKIN_ERROR', 400, 'Event is not accepting check-ins'],
+    ['CHECKIN_ERROR', 400, 'Check-in is available 180 minutes before start until 240 minutes after end.'],
   ])(
     'maps walk-in error "%s" to %s',
-    async (message: string, expectedCode: string, expectedStatus: number) => {
+    async (expectedCode: string, expectedStatus: number, message: string) => {
       catalogUseCase.getById.mockResolvedValueOnce({ event_id: 'event-1' });
-      registrationUseCase.walkInCheckIn.mockRejectedValueOnce(new Error(message));
+      registrationUseCase.walkInCheckIn.mockRejectedValueOnce(
+        createEventHttpError(expectedCode, expectedStatus, message)
+      );
 
       await controller.walkInCheckIn(
         {
@@ -349,5 +398,25 @@ describe('events.controller', () => {
     );
 
     expect(next).toHaveBeenCalledWith(boom);
+  });
+
+  it('maps confirmation send errors using structured error codes', async () => {
+    registrationUseCase.getById.mockResolvedValueOnce({
+      registration_id: 'reg-1',
+      event_id: 'event-1',
+    });
+    catalogUseCase.getById.mockResolvedValueOnce({ event_id: 'event-1' });
+    registrationUseCase.sendConfirmationEmail.mockRejectedValueOnce(
+      createEventHttpError('REGISTRATION_NOT_FOUND', 404, 'Registration not found')
+    );
+
+    await controller.sendConfirmationEmail(baseReq() as AuthRequest, res, next);
+
+    expect(sendError).toHaveBeenCalledWith(
+      res,
+      'REGISTRATION_NOT_FOUND',
+      'Registration not found',
+      404
+    );
   });
 });

@@ -316,19 +316,19 @@ export class AlertsRepository implements AlertsRepositoryPort {
       [userId]
     );
     const severityResult = await this.pool.query<{ severity: AlertConfig['severity']; count: string }>(
-      `SELECT severity, COUNT(*) as count
+      `SELECT ai.severity AS severity, COUNT(*) as count
        FROM alert_instances ai
        JOIN alert_configs ac ON ai.alert_config_id = ac.id
        WHERE ac.user_id = $1 AND ai.triggered_at >= CURRENT_DATE - INTERVAL '30 days'
-       GROUP BY severity`,
+       GROUP BY ai.severity`,
       [userId]
     );
     const metricResult = await this.pool.query<{ metric_type: AlertMetricType; count: string }>(
-      `SELECT metric_type, COUNT(*) as count
+      `SELECT ai.metric_type AS metric_type, COUNT(*) as count
        FROM alert_instances ai
        JOIN alert_configs ac ON ai.alert_config_id = ac.id
        WHERE ac.user_id = $1 AND ai.triggered_at >= CURRENT_DATE - INTERVAL '30 days'
-       GROUP BY metric_type`,
+       GROUP BY ai.metric_type`,
       [userId]
     );
 

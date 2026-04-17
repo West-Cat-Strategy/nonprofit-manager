@@ -68,9 +68,25 @@ export class EventsApiClient
 
   private buildOccurrenceParams(query: EventOccurrenceQuery): URLSearchParams {
     const params = new URLSearchParams();
-    if (query.from) params.set('from', query.from);
-    if (query.to) params.set('to', query.to);
+    const legacyQuery = query as EventOccurrenceQuery & { from?: string; to?: string };
+    if (legacyQuery.from || legacyQuery.to) {
+      throw new Error('Event occurrence queries must use startDate and endDate.');
+    }
+
+    if ((query.startDate && !query.endDate) || (!query.startDate && query.endDate)) {
+      throw new Error('Event occurrence queries require both startDate and endDate.');
+    }
+
+    if (query.startDate && query.endDate) {
+      params.set('start_date', query.startDate);
+      params.set('end_date', query.endDate);
+    }
+
     if (query.eventId) params.set('event_id', query.eventId);
+    if (query.search) params.set('search', query.search);
+    if (query.eventType) params.set('event_type', query.eventType);
+    if (query.status) params.set('status', query.status);
+    if (typeof query.isPublic === 'boolean') params.set('is_public', String(query.isPublic));
     if (typeof query.includeCancelled === 'boolean') {
       params.set('include_cancelled', String(query.includeCancelled));
     }

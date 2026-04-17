@@ -110,6 +110,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/091_event_occurrences_series_overhaul.sql
 \i /migrations/092_pending_registration_passkeys_and_policy_groups.sql
 \i /migrations/093_case_form_builder.sql
+\i /migrations/094_case_form_delivery_targets_and_review_followups.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -224,7 +225,8 @@ VALUES
     ('090_auth_session_security_hardening.sql', '090', '090_auth_session_security_hardening.sql'),
     ('091_event_occurrences_series_overhaul.sql', '091', '091_event_occurrences_series_overhaul.sql'),
     ('092_pending_registration_passkeys_and_policy_groups.sql', '092', '092_pending_registration_passkeys_and_policy_groups.sql'),
-    ('093_case_form_builder.sql', '093', '093_case_form_builder.sql')
+    ('093_case_form_builder.sql', '093', '093_case_form_builder.sql'),
+    ('094_case_form_delivery_targets_and_review_followups.sql', '094', '094_case_form_delivery_targets_and_review_followups.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

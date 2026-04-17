@@ -7,6 +7,7 @@ import {
   format,
   isSameDay,
   isSameMonth,
+  isValid,
   isToday,
   parseISO,
   startOfMonth,
@@ -32,39 +33,46 @@ interface BookingCalendarViewProps<TMeta = unknown> {
   loading?: boolean;
   selectedDate?: Date | null;
   selectedEntryId?: string | null;
+  visibleMonth?: Date | null;
   onDateSelect?: (date: Date) => void;
   onEntryClick?: (entry: BookingCalendarEntry<TMeta>) => void;
   onMonthRangeChange?: (range: { startDate: string; endDate: string }) => void;
+  onVisibleMonthChange?: (date: Date) => void;
 }
 
 const getEntryClassName = (entry: BookingCalendarEntry): string => {
   if (entry.kind === 'slot') {
     if (entry.status === 'closed' || entry.status === 'cancelled') {
-      return 'bg-app-surface-muted text-app-text-muted';
+      return 'border-app-border bg-app-surface text-app-text-muted';
     }
-    return 'bg-app-accent-soft text-app-accent-text';
+    return 'border-app-accent/30 bg-app-accent-soft text-app-accent-text';
   }
 
   if (entry.kind === 'appointment') {
     if (entry.status === 'completed') {
-      return 'bg-emerald-100 text-emerald-800';
+      return 'border-emerald-200 bg-emerald-100 text-emerald-800';
     }
     if (entry.status === 'cancelled') {
-      return 'bg-rose-100 text-rose-800';
+      return 'border-rose-200 bg-rose-100 text-rose-800';
     }
     if (entry.status === 'requested') {
-      return 'bg-amber-100 text-amber-800';
+      return 'border-amber-200 bg-amber-100 text-amber-800';
     }
-    return 'bg-sky-100 text-sky-800';
+    return 'border-sky-200 bg-sky-100 text-sky-800';
   }
 
   if (entry.status === 'cancelled') {
-    return 'bg-rose-100 text-rose-800';
+    return 'border-rose-200 bg-rose-100 text-rose-800';
   }
   if (entry.status === 'completed') {
-    return 'bg-app-surface-muted text-app-text-muted';
+    return 'border-app-border bg-app-surface-muted text-app-text-muted';
   }
-  return 'bg-violet-100 text-violet-800';
+  return 'border-violet-200 bg-violet-100 text-violet-800';
+};
+
+const getEntryStartDate = (entry: BookingCalendarEntry): Date | null => {
+  const parsed = parseISO(entry.start);
+  return isValid(parsed) ? parsed : null;
 };
 
 export default function BookingCalendarView<TMeta = unknown>({
@@ -72,11 +80,25 @@ export default function BookingCalendarView<TMeta = unknown>({
   loading = false,
   selectedDate = null,
   selectedEntryId = null,
+  visibleMonth = null,
   onDateSelect,
   onEntryClick,
   onMonthRangeChange,
+  onVisibleMonthChange,
 }: BookingCalendarViewProps<TMeta>) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [uncontrolledMonth, setUncontrolledMonth] = useState(() => startOfMonth(new Date()));
+  const activeMonthKey = visibleMonth
+    ? startOfMonth(visibleMonth).getTime()
+    : startOfMonth(uncontrolledMonth).getTime();
+  const activeMonth = useMemo(() => new Date(activeMonthKey), [activeMonthKey]);
+
+  const setActiveMonth = (nextMonth: Date) => {
+    const normalizedMonth = startOfMonth(nextMonth);
+    if (!visibleMonth) {
+      setUncontrolledMonth(normalizedMonth);
+    }
+    onVisibleMonthChange?.(normalizedMonth);
+  };
 
   useEffect(() => {
     if (!onMonthRangeChange) {
@@ -84,20 +106,20 @@ export default function BookingCalendarView<TMeta = unknown>({
     }
 
     onMonthRangeChange({
-      startDate: startOfMonth(currentMonth).toISOString(),
-      endDate: endOfMonth(currentMonth).toISOString(),
+      startDate: startOfWeek(startOfMonth(activeMonth)).toISOString(),
+      endDate: endOfWeek(endOfMonth(activeMonth)).toISOString(),
     });
-  }, [currentMonth, onMonthRangeChange]);
+  }, [activeMonth, onMonthRangeChange]);
 
   const entriesByDate = useMemo(() => {
     const grouped: Record<string, BookingCalendarEntry<TMeta>[]> = {};
 
     for (const entry of entries) {
-      const parsed = parseISO(entry.start);
-      if (Number.isNaN(parsed.getTime())) {
+      const entryDate = getEntryStartDate(entry);
+      if (!entryDate) {
         continue;
       }
-      const dateKey = format(parsed, 'yyyy-MM-dd');
+      const dateKey = format(entryDate, 'yyyy-MM-dd');
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }
@@ -112,8 +134,8 @@ export default function BookingCalendarView<TMeta = unknown>({
   }, [entries]);
 
   const calendarDays = useMemo(() => {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
+    const monthStart = startOfMonth(activeMonth);
+    const monthEnd = endOfMonth(activeMonth);
     const firstDay = startOfWeek(monthStart);
     const lastDay = endOfWeek(monthEnd);
     const days: Date[] = [];
@@ -125,32 +147,35 @@ export default function BookingCalendarView<TMeta = unknown>({
     }
 
     return days;
-  }, [currentMonth]);
+  }, [activeMonth]);
 
   return (
-    <div className="relative rounded-lg border border-app-border bg-app-surface shadow-sm">
-      <div className="flex items-center justify-between border-b border-app-border px-5 py-4">
-        <h2 className="text-xl font-semibold text-app-text">{format(currentMonth, 'MMMM yyyy')}</h2>
-        <div className="flex items-center gap-2">
+    <div className="relative rounded-2xl border border-app-border bg-app-surface shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-app-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-app-text-muted">Calendar</p>
+          <h2 className="mt-1 text-2xl font-semibold text-app-text">{format(activeMonth, 'MMMM yyyy')}</h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setCurrentMonth(new Date())}
-            className="rounded-md border border-app-input-border px-3 py-2 text-sm text-app-text hover:bg-app-surface-muted"
+            onClick={() => setActiveMonth(new Date())}
+            className="rounded-md border border-app-input-border px-3 py-2 text-sm text-app-text transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
           >
             Today
           </button>
           <button
             type="button"
-            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="rounded-md border border-app-input-border px-3 py-2 text-sm text-app-text hover:bg-app-surface-muted"
+            onClick={() => setActiveMonth(subMonths(activeMonth, 1))}
+            className="rounded-md border border-app-input-border px-3 py-2 text-sm text-app-text transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
             aria-label="Previous month"
           >
-            Prev
+            Previous
           </button>
           <button
             type="button"
-            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="rounded-md border border-app-input-border px-3 py-2 text-sm text-app-text hover:bg-app-surface-muted"
+            onClick={() => setActiveMonth(addMonths(activeMonth, 1))}
+            className="rounded-md border border-app-input-border px-3 py-2 text-sm text-app-text transition-colors hover:bg-app-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
             aria-label="Next month"
           >
             Next
@@ -159,86 +184,92 @@ export default function BookingCalendarView<TMeta = unknown>({
       </div>
 
       <div className="p-4">
-        <div className="mb-2 grid grid-cols-7">
+        <div className="mb-2 grid grid-cols-7 gap-1">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
-            <div key={label} className="py-2 text-center text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+            <div
+              key={label}
+              className="py-2 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-app-text-muted"
+            >
               {label}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1.5">
           {calendarDays.map((day) => {
             const dateKey = format(day, 'yyyy-MM-dd');
             const dayEntries = entriesByDate[dateKey] || [];
-            const isCurrentMonth = isSameMonth(day, currentMonth);
+            const isCurrentMonth = isSameMonth(day, activeMonth);
             const isSelectedDay = selectedDate ? isSameDay(day, selectedDate) : false;
             const isDayToday = isToday(day);
 
             return (
               <div
                 key={dateKey}
-                role="button"
-                tabIndex={0}
-                onClick={() => onDateSelect?.(day)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    onDateSelect?.(day);
-                  }
-                }}
-                className={`min-h-28 rounded-lg border p-2 text-left transition-colors ${
+                className={`group relative min-h-32 rounded-xl border p-2 transition-colors ${
                   isCurrentMonth
-                    ? 'border-app-border bg-app-surface hover:bg-app-surface-muted'
-                    : 'border-app-border bg-app-surface-muted text-app-text-subtle'
-                } ${isSelectedDay ? 'ring-2 ring-app-accent' : ''}`}
+                    ? 'border-app-border bg-app-surface hover:border-app-accent/40 hover:bg-app-surface-muted'
+                    : 'border-app-border bg-app-surface-muted/70 text-app-text-subtle'
+                } ${isSelectedDay ? 'border-app-accent bg-app-accent-soft/20 ring-2 ring-app-accent/70' : ''}`}
               >
-                <div className="mb-2 flex items-center justify-between">
-                  <span
-                    className={`text-sm font-semibold ${
-                      isDayToday ? 'flex h-7 w-7 items-center justify-center rounded-full bg-app-accent text-[var(--app-accent-foreground)]' : 'text-app-text'
-                    }`}
-                  >
-                    {format(day, 'd')}
-                  </span>
-                  {dayEntries.length > 0 && (
-                    <span className="rounded-full bg-app-surface-muted px-2 py-0.5 text-[11px] text-app-text-muted">
-                      {dayEntries.length}
-                    </span>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => onDateSelect?.(day)}
+                  className="absolute inset-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+                  aria-label={`Select ${format(day, 'PPP')}`}
+                />
 
-                <div className="space-y-1">
-                  {dayEntries.slice(0, 3).map((entry) => (
-                    <div
-                      key={entry.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onEntryClick?.(entry);
-                        onDateSelect?.(parseISO(entry.start));
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          onEntryClick?.(entry);
-                          onDateSelect?.(parseISO(entry.start));
-                        }
-                      }}
-                      className={`truncate rounded px-2 py-1 text-[11px] font-medium ${getEntryClassName(entry)} ${
-                        selectedEntryId === entry.id ? 'ring-1 ring-app-accent' : ''
+                <div className="relative z-10 pointer-events-none">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span
+                      className={`text-sm font-semibold ${
+                        isDayToday
+                          ? 'flex h-8 w-8 items-center justify-center rounded-full bg-app-accent text-[var(--app-accent-foreground)]'
+                          : isCurrentMonth
+                            ? 'text-app-text'
+                            : 'text-app-text-subtle'
                       }`}
-                      title={entry.title}
                     >
-                      {format(parseISO(entry.start), 'HH:mm')} {entry.title}
-                    </div>
-                  ))}
-                  {dayEntries.length > 3 && (
-                    <div className="text-center text-[11px] text-app-text-muted">
-                      +{dayEntries.length - 3} more
-                    </div>
-                  )}
+                      {format(day, 'd')}
+                    </span>
+                    {dayEntries.length > 0 ? (
+                      <span className="rounded-full bg-app-surface px-2 py-0.5 text-[11px] text-app-text-muted">
+                        {dayEntries.length}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {dayEntries.slice(0, 3).map((entry) => {
+                      const entryStart = getEntryStartDate(entry);
+                      if (!entryStart) {
+                        return null;
+                      }
+
+                      return (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onEntryClick?.(entry);
+                            onDateSelect?.(entryStart);
+                          }}
+                          className={`pointer-events-auto relative z-20 block w-full truncate rounded-md border px-2 py-1 text-left text-[11px] font-medium transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent ${
+                            getEntryClassName(entry)
+                          } ${selectedEntryId === entry.id ? 'ring-1 ring-app-accent ring-offset-1 ring-offset-app-surface' : ''}`}
+                          title={entry.title}
+                        >
+                          {format(entryStart, 'HH:mm')} {entry.title}
+                        </button>
+                      );
+                    })}
+                    {dayEntries.length > 3 ? (
+                      <div className="text-center text-[11px] text-app-text-muted">
+                        +{dayEntries.length - 3} more
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             );
@@ -246,11 +277,11 @@ export default function BookingCalendarView<TMeta = unknown>({
         </div>
       </div>
 
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-app-surface/75">
+      {loading ? (
+        <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-app-surface/75">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-app-accent border-t-transparent" />
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

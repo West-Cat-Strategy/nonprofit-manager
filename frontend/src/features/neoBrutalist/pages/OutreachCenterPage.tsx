@@ -37,7 +37,7 @@ export default function OutreachCenter() {
     }, []);
 
     const handleNewItem = () => navigate('/events/new');
-    const handleNewBlast = () => navigate('/contacts?action=email');
+    const handleNewBlast = () => navigate('/settings/communications');
     const handleViewReports = () => navigate('/analytics');
     const handleManageEvent = (id: string) => navigate(`/events/${id}`);
 

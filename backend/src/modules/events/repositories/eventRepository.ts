@@ -90,6 +90,10 @@ export class EventRepository {
       event_id?: string;
       start_date?: Date;
       end_date?: Date;
+      search?: string;
+      event_type?: EventFilters['event_type'];
+      status?: EventFilters['status'];
+      is_public?: boolean;
       include_cancelled?: boolean;
     },
     scope?: DataScopeFilter

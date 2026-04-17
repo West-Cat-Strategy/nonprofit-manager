@@ -15,6 +15,7 @@ import {
   EventReminderRecipientRow,
   formatReminderDate,
 } from './shared';
+import { createEventHttpError } from '../eventHttpErrors';
 
 export class EventReminderService {
   constructor(private readonly pool: Pool) {}
@@ -86,7 +87,7 @@ export class EventReminderService {
     const sendSmsChannel = reminderOptions.sendSms ?? true;
 
     if (!sendEmailChannel && !sendSmsChannel) {
-      throw new Error('At least one reminder channel must be enabled');
+      throw createEventHttpError('VALIDATION_ERROR', 400, 'At least one reminder channel must be enabled');
     }
 
     const eventResult = await this.pool.query<EventReminderEventRow>(
@@ -105,7 +106,7 @@ export class EventReminderService {
     );
 
     if (eventResult.rows.length === 0) {
-      throw new Error('Event not found');
+      throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
     }
 
     const event = eventResult.rows[0];

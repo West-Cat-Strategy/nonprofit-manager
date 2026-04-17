@@ -534,6 +534,7 @@ const CaseDetail = () => {
               <CaseFormsPanel
                 caseId={id}
                 clientEmail={currentCase.contact_email || null}
+                clientViewable={Boolean(currentCase.client_viewable)}
                 onChanged={refreshCaseArtifacts}
               />
             </div>

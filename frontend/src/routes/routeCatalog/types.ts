@@ -54,7 +54,11 @@ export type AdminNavigationMode = 'settings' | 'portal';
 export type FeatureFlagValues = Partial<Record<string, string | boolean | undefined>>;
 export type RouteNavKind = 'hub' | 'leaf' | 'utility';
 export type RouteAuditFixtureKey =
-  | 'placeholder-token'
+  | 'staff-invitation'
+  | 'admin-registration-review'
+  | 'password-reset'
+  | 'public-case-form'
+  | 'portal-invitation'
   | 'public-report-snapshot'
   | 'public-events';
 

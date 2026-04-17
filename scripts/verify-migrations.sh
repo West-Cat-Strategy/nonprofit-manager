@@ -33,11 +33,17 @@ fi
 verify_with_psql -c 'SELECT 1;' >/dev/null
 echo "✓ Database connection successful"
 
-mapfile -t expected_migrations < <(
+expected_migrations=()
+while IFS= read -r migration; do
+  expected_migrations+=("$migration")
+done < <(
   awk -F '\t' 'BEGIN { OFS="\t" } /^[0-9]/ { print $2 }' "$PROJECT_ROOT/database/migrations/manifest.tsv"
 )
 
-mapfile -t applied_migrations < <(
+applied_migrations=()
+while IFS= read -r migration; do
+  applied_migrations+=("$migration")
+done < <(
   verify_with_psql -Atqc "SELECT canonical_filename FROM schema_migrations WHERE canonical_filename IS NOT NULL ORDER BY migration_id, canonical_filename;"
 )
 

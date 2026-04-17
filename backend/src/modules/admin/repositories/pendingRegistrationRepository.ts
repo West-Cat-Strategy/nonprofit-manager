@@ -49,6 +49,12 @@ export interface AdminRecipientRow {
   last_name: string | null;
 }
 
+export interface PendingRegistrationReviewRow extends PendingRegistrationRow {
+  reviewed_by_email: string | null;
+  reviewed_by_first_name: string | null;
+  reviewed_by_last_name: string | null;
+}
+
 const hasPendingPasskeyTables = async (db: DbClient): Promise<boolean> => {
   const result = await db.query<{
     credentials_table: string | null;
@@ -60,6 +66,10 @@ const hasPendingPasskeyTables = async (db: DbClient): Promise<boolean> => {
   );
   return Boolean(result.rows[0]?.credentials_table && result.rows[0]?.challenges_table);
 };
+
+export const supportsPendingRegistrationPasskeyStaging = async (
+  db: DbClient = pool
+): Promise<boolean> => hasPendingPasskeyTables(db);
 
 const hasUserPasskeyTable = async (db: DbClient): Promise<boolean> => {
   const result = await db.query<{ credentials_table: string | null }>(
@@ -169,6 +179,25 @@ export const getPendingRegistrationById = async (
     `SELECT ${selectColumns}
      FROM pending_registrations
      WHERE id = $1`,
+    [id]
+  );
+  return result.rows[0] ?? null;
+};
+
+export const getPendingRegistrationReviewById = async (
+  id: string,
+  db: DbClient = pool
+): Promise<PendingRegistrationReviewRow | null> => {
+  const selectColumns = await pendingRegistrationSelectColumns(false, db);
+  const result = await db.query<PendingRegistrationReviewRow>(
+    `SELECT ${selectColumns},
+            reviewed_user.email AS reviewed_by_email,
+            reviewed_user.first_name AS reviewed_by_first_name,
+            reviewed_user.last_name AS reviewed_by_last_name
+     FROM pending_registrations
+     LEFT JOIN users reviewed_user
+       ON reviewed_user.id = pending_registrations.reviewed_by
+     WHERE pending_registrations.id = $1`,
     [id]
   );
   return result.rows[0] ?? null;

@@ -104,7 +104,8 @@ test.describe('Analytics Module', () => {
     test('should navigate to custom dashboard', async ({ authenticatedPage }) => {
         await authenticatedPage.goto('/dashboard/custom');
 
-        // Check for "Customize Dashboard" button which should be present
-        await expect(authenticatedPage.getByRole('button', { name: /customize dashboard/i })).toBeVisible({ timeout: 10000 });
+        await expect(authenticatedPage.getByRole('button', { name: /edit layout/i })).toBeVisible({
+            timeout: 10000,
+        });
     });
 });

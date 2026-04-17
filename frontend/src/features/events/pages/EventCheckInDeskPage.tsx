@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { eventsApiClient } from '../api/eventsApiClient';
 import type { Event, EventWalkInCheckInDTO } from '../../../types/event';
 import { formatApiErrorMessage } from '../../../utils/apiError';
@@ -24,9 +24,11 @@ const initialWalkInForm: WalkInFormState = {
 };
 
 export default function EventCheckInDeskPage() {
+  const [searchParams] = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const requestedEventId = searchParams.get('eventId');
 
   const [scanToken, setScanToken] = useState('');
   const [cameraScannerOpen, setCameraScannerOpen] = useState(false);
@@ -54,7 +56,11 @@ export default function EventCheckInDeskPage() {
         });
         setEvents(response.data);
         if (response.data.length > 0) {
-          setSelectedEventId(response.data[0].event_id);
+          const defaultEvent =
+            (requestedEventId
+              ? response.data.find((event) => event.event_id === requestedEventId)
+              : null) ?? response.data[0];
+          setSelectedEventId(defaultEvent.event_id);
         }
       } catch (error) {
         setScanError(formatApiErrorMessage(error, 'Unable to load events for check-in desk.'));
@@ -64,7 +70,7 @@ export default function EventCheckInDeskPage() {
     };
 
     void loadEvents();
-  }, []);
+  }, [requestedEventId]);
 
   const submitGlobalScan = async (rawToken: string) => {
     const token = rawToken.trim();

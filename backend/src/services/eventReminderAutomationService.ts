@@ -14,6 +14,7 @@ import type {
   SyncEventReminderAutomationsDTO,
   UpdateEventReminderAutomationDTO,
 } from '@app-types/event';
+import { createEventHttpError } from '../modules/events/eventHttpErrors';
 
 type QueryValue = string | number | boolean | Date | null | Record<string, unknown>;
 
@@ -104,7 +105,7 @@ const parseOptionalDate = (value: Date | string | undefined): Date | null => {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) {
-    throw new Error('Absolute send time must be a valid datetime');
+    throw createEventHttpError('VALIDATION_ERROR', 400, 'Absolute send time must be a valid datetime');
   }
   return date;
 };
@@ -116,24 +117,24 @@ const normalizeReminderInput = (
   const timingType = (dto.timingType ?? current?.timing_type) as EventReminderTimingType | undefined;
 
   if (!timingType) {
-    throw new Error('Timing type is required');
+    throw createEventHttpError('VALIDATION_ERROR', 400, 'Timing type is required');
   }
 
   const sendEmail = dto.sendEmail ?? current?.send_email ?? true;
   const sendSms = dto.sendSms ?? current?.send_sms ?? true;
   if (!sendEmail && !sendSms) {
-    throw new Error('At least one reminder channel must be enabled');
+    throw createEventHttpError('VALIDATION_ERROR', 400, 'At least one reminder channel must be enabled');
   }
 
   const timezone = (dto.timezone ?? current?.timezone ?? 'UTC').trim();
   if (!timezone) {
-    throw new Error('Timezone is required');
+    throw createEventHttpError('VALIDATION_ERROR', 400, 'Timezone is required');
   }
 
   const customMessageRaw = dto.customMessage ?? current?.custom_message ?? null;
   const customMessage = customMessageRaw ? customMessageRaw.trim() : null;
   if (customMessage && customMessage.length > 500) {
-    throw new Error('Custom message must be 500 characters or less');
+    throw createEventHttpError('VALIDATION_ERROR', 400, 'Custom message must be 500 characters or less');
   }
 
   let relativeMinutesBefore = dto.relativeMinutesBefore ?? current?.relative_minutes_before ?? null;
@@ -143,12 +144,20 @@ const normalizeReminderInput = (
 
   if (timingType === 'relative') {
     if (!relativeMinutesBefore || relativeMinutesBefore <= 0) {
-      throw new Error('Relative timing requires a positive number of minutes');
+      throw createEventHttpError(
+        'VALIDATION_ERROR',
+        400,
+        'Relative timing requires a positive number of minutes'
+      );
     }
     absoluteSendAt = null;
   } else if (timingType === 'absolute') {
     if (!absoluteSendAt) {
-      throw new Error('Absolute timing requires an exact send datetime');
+      throw createEventHttpError(
+        'VALIDATION_ERROR',
+        400,
+        'Absolute timing requires an exact send datetime'
+      );
     }
     relativeMinutesBefore = null;
   }
@@ -259,12 +268,12 @@ export async function updateEventReminderAutomation(
   );
 
   if (currentResult.rows.length === 0) {
-    throw new Error('Reminder automation not found');
+    throw createEventHttpError('AUTOMATION_NOT_FOUND', 404, 'Reminder automation not found');
   }
 
   const current = mapRow(currentResult.rows[0]);
   if (current.attempted_at) {
-    throw new Error('Attempted reminder automations cannot be edited');
+    throw createEventHttpError('CONFLICT', 409, 'Attempted reminder automations cannot be edited');
   }
 
   const normalized = normalizeReminderInput(dto, current);
@@ -304,7 +313,7 @@ export async function updateEventReminderAutomation(
   );
 
   if (result.rows.length === 0) {
-    throw new Error('Attempted reminder automations cannot be edited');
+    throw createEventHttpError('CONFLICT', 409, 'Attempted reminder automations cannot be edited');
   }
 
   return mapRow(result.rows[0]);
@@ -323,11 +332,11 @@ export async function cancelEventReminderAutomation(
   );
 
   if (currentResult.rows.length === 0) {
-    throw new Error('Reminder automation not found');
+    throw createEventHttpError('AUTOMATION_NOT_FOUND', 404, 'Reminder automation not found');
   }
 
   if (currentResult.rows[0].attempted_at) {
-    throw new Error('Attempted reminder automations cannot be cancelled');
+    throw createEventHttpError('CONFLICT', 409, 'Attempted reminder automations cannot be cancelled');
   }
 
   const result = await pool.query<EventReminderAutomationRow>(
@@ -350,7 +359,7 @@ export async function cancelEventReminderAutomation(
   );
 
   if (result.rows.length === 0) {
-    throw new Error('Attempted reminder automations cannot be cancelled');
+    throw createEventHttpError('CONFLICT', 409, 'Attempted reminder automations cannot be cancelled');
   }
 
   return mapRow(result.rows[0]);

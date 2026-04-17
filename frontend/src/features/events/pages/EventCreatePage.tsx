@@ -1,7 +1,11 @@
+import { Link } from 'react-router-dom';
 import type { CreateEventDTO, UpdateEventDTO } from '../../../types/event';
-import EventForm from '../../../components/EventForm';
-import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import { useAppDispatch } from '../../../store/hooks';
+import EventEditorForm from '../components/EventEditorForm';
+import StaffEventsPageShell, {
+  staffEventsMetadataBadgeClassName,
+  staffEventsSecondaryActionClassName,
+} from '../components/StaffEventsPageShell';
 import { createEventV2 } from '../state';
 
 export default function EventCreatePage() {
@@ -12,11 +16,19 @@ export default function EventCreatePage() {
   };
 
   return (
-    <NeoBrutalistLayout pageTitle="EVENTS">
-      <div className="p-6">
-        <h1 className="mb-6 text-3xl font-bold">Create New Event</h1>
-        <EventForm onSubmit={handleSubmit} />
-      </div>
-    </NeoBrutalistLayout>
+    <StaffEventsPageShell
+      title="Create event"
+      description="Set the schedule first, then add the details, visibility, reminders, and location for this event."
+      backHref="/events"
+      backLabel="Back to events"
+      metadata={<span className={staffEventsMetadataBadgeClassName}>New event</span>}
+      actions={
+        <Link to="/events/calendar" className={staffEventsSecondaryActionClassName}>
+          Back to calendar
+        </Link>
+      }
+    >
+      <EventEditorForm onSubmit={handleSubmit} />
+    </StaffEventsPageShell>
   );
 }

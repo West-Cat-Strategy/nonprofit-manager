@@ -9,6 +9,7 @@ import type {
 } from '@app-types/event';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { QueryValue } from './shared';
+import { createEventHttpError } from '../eventHttpErrors';
 
 type Queryable = Pick<Pool, 'query'> | Pick<PoolClient, 'query'>;
 
@@ -57,6 +58,8 @@ const OCCURRENCE_SELECT = `
     eo.event_name,
     eo.event_name as occurrence_name,
     eo.description,
+    e.event_type,
+    e.is_public,
     eo.location_name,
     eo.address_line1,
     eo.address_line2,
@@ -259,13 +262,35 @@ export class EventOccurrenceService {
     }
 
     if (filters.start_date) {
-      conditions.push(`eo.start_date >= $${params.length + 1}`);
+      conditions.push(`eo.end_date >= $${params.length + 1}`);
       params.push(filters.start_date);
     }
 
     if (filters.end_date) {
-      conditions.push(`eo.end_date <= $${params.length + 1}`);
+      conditions.push(`eo.start_date <= $${params.length + 1}`);
       params.push(filters.end_date);
+    }
+
+    if (filters.search) {
+      conditions.push(
+        `(eo.event_name ILIKE $${params.length + 1} OR COALESCE(eo.description, '') ILIKE $${params.length + 1} OR COALESCE(eo.location_name, '') ILIKE $${params.length + 1})`
+      );
+      params.push(`%${filters.search}%`);
+    }
+
+    if (filters.event_type) {
+      conditions.push(`e.event_type = $${params.length + 1}`);
+      params.push(filters.event_type);
+    }
+
+    if (filters.status) {
+      conditions.push(`eo.status = $${params.length + 1}`);
+      params.push(filters.status);
+    }
+
+    if (typeof filters.is_public === 'boolean') {
+      conditions.push(`e.is_public = $${params.length + 1}`);
+      params.push(filters.is_public);
     }
 
     if (!filters.include_cancelled) {
@@ -304,6 +329,7 @@ export class EventOccurrenceService {
 
     const upcoming = await queryable.query<EventOccurrence>(
       `${OCCURRENCE_SELECT}
+       INNER JOIN events e ON e.id = eo.event_id
        WHERE eo.event_id = $1
        ORDER BY
          CASE WHEN eo.end_date >= NOW() THEN 0 ELSE 1 END,
@@ -319,11 +345,11 @@ export class EventOccurrenceService {
   async syncOccurrencesForEvent(eventId: string, queryable: Queryable = this.pool): Promise<void> {
     const event = await this.getSeriesRow(eventId, queryable);
     if (!event) {
-      throw new Error('Event not found');
+      throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
     }
 
     const schedule = buildOccurrenceSchedule(event);
-    const retainedScheduledStarts = schedule.map((item) => item.scheduledStartDate.toISOString());
+    const retainedScheduledStarts = schedule.map((item) => item.scheduledStartDate);
 
     for (const item of schedule) {
       await queryable.query(
@@ -409,13 +435,13 @@ export class EventOccurrenceService {
     await queryable.query(
       `DELETE FROM event_occurrences eo
        WHERE eo.event_id = $1
-         AND NOT (eo.scheduled_start_date::text = ANY($2::text[]))
+         AND NOT (eo.scheduled_start_date = ANY($2::timestamptz[]))
          AND NOT EXISTS (
            SELECT 1
            FROM event_registrations er
            WHERE er.occurrence_id = eo.id
          )`,
-      [eventId, retainedScheduledStarts]
+      [eventId, retainedScheduledStarts as unknown as QueryValue]
     );
 
     await this.recalculateEventCounts(eventId, queryable);
@@ -498,7 +524,7 @@ export class EventOccurrenceService {
   ): Promise<EventOccurrence | null> {
     const target = await this.getOccurrenceById(occurrenceId, undefined, queryable);
     if (!target) {
-      throw new Error('Occurrence not found');
+      throw createEventHttpError('OCCURRENCE_NOT_FOUND', 404, 'Occurrence not found');
     }
 
     const occurrenceFieldMap: Record<keyof UpdateEventOccurrenceDTO, string> = {
@@ -550,7 +576,7 @@ export class EventOccurrenceService {
       });
 
       if (fields.length === 0) {
-        throw new Error('No fields to update');
+        throw createEventHttpError('VALIDATION_ERROR', 400, 'No fields to update');
       }
 
       fields.push(`is_exception = true`);

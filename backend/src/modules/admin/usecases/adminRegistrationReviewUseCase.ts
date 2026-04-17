@@ -20,15 +20,17 @@ export class AdminRegistrationReviewError extends Error {
   }
 }
 
+interface AdminRegistrationReviewActor {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string;
+}
+
 export interface AdminRegistrationReviewPreview {
   action: AdminPendingRegistrationReviewAction;
-  reviewer: {
-    id: string;
-    email: string;
-    firstName: string | null;
-    lastName: string | null;
-    displayName: string;
-  };
+  reviewer: AdminRegistrationReviewActor;
   pendingRegistration: {
     id: string;
     email: string;
@@ -44,6 +46,7 @@ export interface AdminRegistrationReviewPreview {
     status: repo.PendingStatus;
     reviewedAt: Date | null;
     rejectionReason: string | null;
+    reviewedBy?: AdminRegistrationReviewActor | null;
   };
   canConfirm: boolean;
 }
@@ -55,13 +58,53 @@ export interface AdminRegistrationReviewConfirmResult {
   review: AdminRegistrationReviewPreview;
 }
 
+const REVIEW_TOKEN_TYPE = 'admin_pending_registration_review';
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const reviewerDisplayName = (reviewer: repo.AdminRecipientRow): string =>
   [reviewer.first_name, reviewer.last_name].filter(Boolean).join(' ') || reviewer.email;
+
+const isUuid = (value: unknown): value is string =>
+  typeof value === 'string' && UUID_PATTERN.test(value);
+
+const isReviewAction = (value: unknown): value is AdminPendingRegistrationReviewAction =>
+  value === 'approve' || value === 'reject';
+
+const mapResolvedReviewer = (
+  pending: repo.PendingRegistrationReviewRow
+): AdminRegistrationReviewActor | null => {
+  if (!pending.reviewed_by || !pending.reviewed_by_email) {
+    return null;
+  }
+
+  return {
+    id: pending.reviewed_by,
+    email: pending.reviewed_by_email,
+    firstName: pending.reviewed_by_first_name,
+    lastName: pending.reviewed_by_last_name,
+    displayName:
+      [pending.reviewed_by_first_name, pending.reviewed_by_last_name]
+        .filter(Boolean)
+        .join(' ') || pending.reviewed_by_email,
+  };
+};
+
+const buildAlreadyReviewedMessage = (pending: repo.PendingRegistrationReviewRow): string => {
+  const outcome = pending.status === 'approved' ? 'approved' : 'rejected';
+  const resolvedReviewer = mapResolvedReviewer(pending);
+
+  if (resolvedReviewer) {
+    return `This registration request has already been ${outcome} by ${resolvedReviewer.displayName}.`;
+  }
+
+  return `This registration request has already been ${outcome}.`;
+};
 
 const mapPreview = (input: {
   action: AdminPendingRegistrationReviewAction;
   reviewer: repo.AdminRecipientRow;
-  pending: repo.PendingRegistrationRow;
+  pending: repo.PendingRegistrationReviewRow;
 }): AdminRegistrationReviewPreview => ({
   action: input.action,
   reviewer: {
@@ -86,24 +129,39 @@ const mapPreview = (input: {
     status: input.pending.status,
     reviewedAt: input.pending.reviewed_at,
     rejectionReason: input.pending.rejection_reason,
+    reviewedBy: mapResolvedReviewer(input.pending),
   },
   canConfirm: input.pending.status === 'pending',
 });
-
-const alreadyReviewedMessage = (status: repo.PendingStatus): string =>
-  status === 'approved'
-    ? 'This registration request has already been approved.'
-    : 'This registration request has already been rejected.';
 
 const parseReviewToken = (
   token: string
 ): AdminPendingRegistrationReviewTokenPayload => {
   try {
-    return verifyTokenWithOptionalIssuer<AdminPendingRegistrationReviewTokenPayload>(
+    const payload = verifyTokenWithOptionalIssuer<AdminPendingRegistrationReviewTokenPayload>(
       token,
       ADMIN_PENDING_REGISTRATION_REVIEW_TOKEN_ISSUER
     );
+
+    if (
+      payload.type !== REVIEW_TOKEN_TYPE ||
+      !isUuid(payload.pendingRegistrationId) ||
+      !isUuid(payload.adminUserId) ||
+      !isReviewAction(payload.action)
+    ) {
+      throw new AdminRegistrationReviewError(
+        'This review link is invalid.',
+        'invalid_review_token',
+        400
+      );
+    }
+
+    return payload;
   } catch (error) {
+    if (error instanceof AdminRegistrationReviewError) {
+      throw error;
+    }
+
     if (error instanceof jwt.TokenExpiredError) {
       throw new AdminRegistrationReviewError(
         'This review link has expired.',
@@ -131,7 +189,7 @@ const loadReviewContext = async (token: string) => {
     );
   }
 
-  const pending = await repo.getPendingRegistrationById(payload.pendingRegistrationId);
+  const pending = await repo.getPendingRegistrationReviewById(payload.pendingRegistrationId);
   if (!pending) {
     throw new AdminRegistrationReviewError(
       'Pending registration not found.',
@@ -163,7 +221,7 @@ export async function confirmAdminRegistrationReview(
     return {
       status: 'already_reviewed',
       action: context.payload.action,
-      message: alreadyReviewedMessage(context.pending.status),
+      message: buildAlreadyReviewedMessage(context.pending),
       review: mapPreview({
         action: context.payload.action,
         reviewer: context.reviewer,
@@ -183,12 +241,12 @@ export async function confirmAdminRegistrationReview(
       error instanceof Error &&
       (error.message.includes('already been') || error.message.includes('already exists'))
     ) {
-      const refreshed = await repo.getPendingRegistrationById(context.pending.id);
+      const refreshed = await repo.getPendingRegistrationReviewById(context.pending.id);
       if (refreshed) {
         return {
           status: 'already_reviewed',
           action: context.payload.action,
-          message: alreadyReviewedMessage(refreshed.status),
+          message: buildAlreadyReviewedMessage(refreshed),
           review: mapPreview({
             action: context.payload.action,
             reviewer: context.reviewer,
@@ -209,7 +267,7 @@ export async function confirmAdminRegistrationReview(
     throw error;
   }
 
-  const refreshed = await repo.getPendingRegistrationById(context.pending.id);
+  const refreshed = await repo.getPendingRegistrationReviewById(context.pending.id);
   const pending = refreshed ?? context.pending;
 
   return {

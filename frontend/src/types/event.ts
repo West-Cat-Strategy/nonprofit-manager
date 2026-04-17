@@ -35,12 +35,17 @@ export interface EventOccurrence {
   start_date: string;
   end_date: string;
   status: EventStatus;
+  event_name?: string;
+  description?: string | null;
+  event_type?: EventType;
+  is_public?: boolean;
   is_primary?: boolean;
   is_exception?: boolean;
   is_cancelled?: boolean;
   capacity: number | null;
   registered_count: number;
   attended_count: number;
+  waitlist_enabled?: boolean;
   location_name: string | null;
   address_line1: string | null;
   address_line2: string | null;
@@ -51,6 +56,7 @@ export interface EventOccurrence {
   checkin_window_before_minutes?: number | null;
   checkin_window_after_minutes?: number | null;
   public_checkin_enabled?: boolean;
+  public_checkin_pin_configured?: boolean;
   public_checkin_pin_required?: boolean;
   notes?: string | null;
 }

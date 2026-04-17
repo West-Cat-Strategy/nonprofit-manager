@@ -19,9 +19,9 @@ export default function EventInfoPanel({ event, occurrences = [], selectedOccurr
   const nextOccurrence = selectedOccurrence ?? occurrences[0] ?? null;
 
   return (
-    <div className="space-y-6 rounded-lg bg-app-surface p-6 shadow-md">
+    <div className="space-y-6 rounded-xl border border-app-border bg-app-surface p-6 shadow-sm">
       {event.is_recurring && occurrences.length > 0 && (
-        <div className="rounded-lg border border-app-border bg-app-surface-muted p-4">
+        <div className="rounded-xl border border-app-border bg-app-surface-muted p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-lg font-semibold">Series Overview</h3>
@@ -59,11 +59,11 @@ export default function EventInfoPanel({ event, occurrences = [], selectedOccurr
       )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div>
+        <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
           <h3 className="mb-2 text-lg font-semibold">Start Date & Time</h3>
           <p className="text-app-text-muted">{formatEventDateTime(event.start_date)}</p>
         </div>
-        <div>
+        <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
           <h3 className="mb-2 text-lg font-semibold">End Date & Time</h3>
           <p className="text-app-text-muted">{formatEventDateTime(event.end_date)}</p>
         </div>
@@ -87,7 +87,7 @@ export default function EventInfoPanel({ event, occurrences = [], selectedOccurr
         </div>
       )}
 
-      <div>
+      <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
         <h3 className="mb-2 text-lg font-semibold">Location</h3>
         {event.location_name ? (
           <div className="text-app-text-muted">
@@ -109,7 +109,7 @@ export default function EventInfoPanel({ event, occurrences = [], selectedOccurr
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div>
+        <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
           <h3 className="mb-2 text-lg font-semibold">Capacity</h3>
           {event.capacity ? (
             <div>
@@ -133,12 +133,12 @@ export default function EventInfoPanel({ event, occurrences = [], selectedOccurr
           )}
         </div>
 
-        <div>
+        <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
           <h3 className="mb-2 text-lg font-semibold">Registered</h3>
           <p className="text-2xl font-bold text-app-accent">{event.registered_count || 0}</p>
         </div>
 
-        <div>
+        <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
           <h3 className="mb-2 text-lg font-semibold">Attended</h3>
           <p className="text-2xl font-bold text-app-accent">{event.attended_count || 0}</p>
         </div>

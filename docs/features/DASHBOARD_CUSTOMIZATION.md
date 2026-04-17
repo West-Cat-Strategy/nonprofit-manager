@@ -27,7 +27,7 @@ This document describes the customizable dashboard feature implementation with d
    - QuickActionsWidget: Shortcuts to common tasks
    - DonationSummaryWidget: Donation metrics overview
    - RecentDonationsWidget: List of recent donations
-   - DonationTrendsWidget: Chart placeholder for trends
+   - DonationTrendsWidget: Live 12-month donation chart backed by analytics data
    - VolunteerHoursWidget: Volunteer metrics
    - EventAttendanceWidget: Event statistics
    - CaseSummaryWidget: Case management overview
@@ -40,53 +40,21 @@ This document describes the customizable dashboard feature implementation with d
    - Save/cancel layout changes
    - Reset to default functionality
 
-### ⚠️ Pending Tasks
+### 🔭 Follow-On Work
 
-1. **Fix TypeScript Compilation Issues**
-   - react-grid-layout type compatibility with WidgetLayout
-   - Layout prop configuration for GridLayout component
-   - Recommended solution: Use ResponsiveReactGridLayout or cast types appropriately
+The core customizable dashboard is live. Remaining work is polish and expansion, not a placeholder implementation.
 
-2. **Backend API Implementation**
-   - Create dashboard configuration endpoints:
-     ```
-     GET    /api/v2/dashboard/configs         # List user's dashboards
-     GET    /api/v2/dashboard/configs/:id     # Get specific dashboard
-     POST   /api/v2/dashboard/configs         # Create new dashboard
-     PUT    /api/v2/dashboard/configs/:id     # Update dashboard
-     DELETE /api/v2/dashboard/configs/:id     # Delete dashboard
-     PUT    /api/v2/dashboard/configs/:id/layout  # Save layout changes
-     ```
+1. **Refresh & Caching Enhancements**
+   - Shared dashboard data already includes analytics summary, donation trends, case summary, task summary, follow-up summary, and assigned cases
+   - Existing widgets ship lane-specific loading and error handling for their live data requests
+   - Future enhancement work can add manual refresh controls and longer-lived caching for frequently revisited widgets
 
-3. **Database Schema**
-   ```sql
-   CREATE TABLE dashboard_configs (
-     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-     name VARCHAR(255) NOT NULL,
-     is_default BOOLEAN DEFAULT false,
-     widgets JSONB NOT NULL,
-     layout JSONB NOT NULL,
-     breakpoints JSONB,
-     cols JSONB,
-     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-     CONSTRAINT unique_user_default UNIQUE (user_id, is_default) WHERE is_default = true
-   );
+2. **Interaction Polish**
+   - Continue tightening drag-and-drop ergonomics and responsive layout behavior as the broader dashboard/workbench refactor progresses
+   - Add browser-level regression coverage for resize and rearrangement-heavy flows
 
-   CREATE INDEX idx_dashboard_configs_user_id ON dashboard_configs(user_id);
-   ```
-
-4. **Widget Data Integration**
-   - Connect widgets to real API endpoints
-   - Implement error handling and loading states
-   - Add data refresh mechanisms
-   - Implement caching for widget data
-
-5. **Testing**
-   - Unit tests for widget components
-   - Integration tests for dashboard state management
-   - End-to-end tests for drag-and-drop functionality
+3. **Advanced Dashboard Features**
+   - Expand per-widget settings, multi-dashboard workflows, and sharing/import-export options as follow-on product work
 
 ## Architecture
 
@@ -102,9 +70,9 @@ User Action → Component → Redux Action → Async Thunk → API Call
 
 Each widget follows a consistent pattern:
 1. Receives standard props (widget, editMode, onRemove)
-2. Fetches its own data using React hooks
-3. Renders using WidgetContainer wrapper
-4. Handles loading and error states
+2. Uses shared dashboard-provider data when available
+3. Falls back to its own data request when rendered standalone
+4. Renders using WidgetContainer and keeps loading/error handling scoped to its own data lane
 
 ### Layout System
 
@@ -208,6 +176,7 @@ Each widget follows a consistent pattern:
 - **react-grid-layout**: Drag-and-drop grid layout library
 - **@reduxjs/toolkit**: State management
 - **react-router-dom**: Navigation for quick actions
+- **recharts**: Donation trends visualization
 
 ## Performance Considerations
 

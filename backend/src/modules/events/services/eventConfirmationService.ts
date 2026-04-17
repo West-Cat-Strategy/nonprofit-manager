@@ -5,9 +5,11 @@ import {
   RegistrationStatus,
   type ConfirmationEmailStatus,
 } from '@app-types/event';
+import { logger } from '@config/logger';
 import { sendMail } from '@services/emailService';
 import { getEmailSettings } from '@services/emailSettingsService';
 import { escapeHtml } from '@services/site-generator/escapeHtml';
+import { createEventHttpError } from '../eventHttpErrors';
 
 interface RegistrationConfirmationRow {
   registration_id: string;
@@ -184,7 +186,7 @@ export class EventConfirmationService {
   ): Promise<EventConfirmationEmailResult> {
     const row = await this.getRegistrationRow(registrationId);
     if (!row) {
-      throw new Error('Registration not found');
+      throw createEventHttpError('REGISTRATION_NOT_FOUND', 404, 'Registration not found');
     }
 
     if (!CONFIRMABLE_STATUSES.has(row.registration_status)) {
@@ -232,38 +234,41 @@ export class EventConfirmationService {
       );
     }
 
-    const qrCodeBuffer = await QRCode.toBuffer(row.check_in_token, {
-      margin: 1,
-      width: 300,
-      type: 'png',
-    });
-    const qrCodeUrl = await QRCode.toDataURL(row.check_in_token, {
-      margin: 1,
-      width: 300,
-    });
+    let qrCodeUrl: string | null = null;
 
-    const occurrenceLabel = buildOccurrenceLabel(row);
-    const location = buildLocation(row);
-    const greeting = row.contact_name?.trim() || 'there';
-    const dateLabel = formatDateTime(row.start_date);
-    const subject = occurrenceLabel
-      ? `Your confirmation for ${row.event_name} (${occurrenceLabel})`
-      : `Your confirmation for ${row.event_name}`;
+    try {
+      const qrCodeBuffer = await QRCode.toBuffer(row.check_in_token, {
+        margin: 1,
+        width: 300,
+        type: 'png',
+      });
+      qrCodeUrl = await QRCode.toDataURL(row.check_in_token, {
+        margin: 1,
+        width: 300,
+      });
 
-    const textLines = [
-      `Hi ${greeting},`,
-      '',
-      `You are confirmed for ${row.event_name}.`,
-      occurrenceLabel ? `Occurrence: ${occurrenceLabel}` : null,
-      `When: ${dateLabel}`,
-      location ? `Where: ${location}` : null,
-      '',
-      'Present the attached QR code at check-in.',
-    ]
-      .filter(Boolean)
-      .join('\n');
+      const occurrenceLabel = buildOccurrenceLabel(row);
+      const location = buildLocation(row);
+      const greeting = row.contact_name?.trim() || 'there';
+      const dateLabel = formatDateTime(row.start_date);
+      const subject = occurrenceLabel
+        ? `Your confirmation for ${row.event_name} (${occurrenceLabel})`
+        : `Your confirmation for ${row.event_name}`;
 
-    const html = `
+      const textLines = [
+        `Hi ${greeting},`,
+        '',
+        `You are confirmed for ${row.event_name}.`,
+        occurrenceLabel ? `Occurrence: ${occurrenceLabel}` : null,
+        `When: ${dateLabel}`,
+        location ? `Where: ${location}` : null,
+        '',
+        'Present the attached QR code at check-in.',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      const html = `
       <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#0f172a">
         <h2 style="margin:0 0 12px">Event Confirmation</h2>
         <p style="margin:0 0 12px">Hi ${escapeHtml(greeting)},</p>
@@ -279,39 +284,75 @@ export class EventConfirmationService {
       </div>
     `;
 
-    const emailSent = await sendMail({
-      to: row.contact_email,
-      subject,
-      text: textLines,
-      html,
-      attachments: [
-        {
-          filename: `event-checkin-${row.registration_id}.png`,
-          content: qrCodeBuffer,
-          contentType: 'image/png',
-          cid: 'event-checkin-qr',
-        },
-      ],
-    });
+      const emailSent = await sendMail({
+        to: row.contact_email,
+        subject,
+        text: textLines,
+        html,
+        attachments: [
+          {
+            filename: `event-checkin-${row.registration_id}.png`,
+            content: qrCodeBuffer,
+            contentType: 'image/png',
+            cid: 'event-checkin-qr',
+          },
+        ],
+      });
 
-    if (!emailSent) {
+      if (!emailSent) {
+        return this.finalizeDelivery(
+          row,
+          sentBy,
+          'failed',
+          'Confirmation email could not be sent.',
+          null,
+          qrCodeUrl
+        );
+      }
+
       return this.finalizeDelivery(
         row,
         sentBy,
-        'failed',
-        'Confirmation email could not be sent.',
-        null,
+        'sent',
+        'Confirmation email sent.',
+        new Date(),
         qrCodeUrl
       );
-    }
+    } catch (error) {
+      logger.warn('Failed to deliver event confirmation email', {
+        registrationId: row.registration_id,
+        eventId: row.event_id,
+        occurrenceId: row.occurrence_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
 
-    return this.finalizeDelivery(
-      row,
-      sentBy,
-      'sent',
-      'Confirmation email sent.',
-      new Date(),
-      qrCodeUrl
-    );
+      try {
+        return await this.finalizeDelivery(
+          row,
+          sentBy,
+          'failed',
+          'Confirmation email could not be sent.',
+          null,
+          qrCodeUrl
+        );
+      } catch (finalizeError) {
+        logger.warn('Failed to persist event confirmation delivery failure', {
+          registrationId: row.registration_id,
+          eventId: row.event_id,
+          occurrenceId: row.occurrence_id,
+          error: finalizeError instanceof Error ? finalizeError.message : String(finalizeError),
+        });
+
+        return {
+          registration_id: row.registration_id,
+          event_id: row.event_id,
+          occurrence_id: row.occurrence_id,
+          status: 'failed',
+          message: 'Confirmation email could not be sent.',
+          sent_at: null,
+          qr_code_url: qrCodeUrl,
+        };
+      }
+    }
   }
 }

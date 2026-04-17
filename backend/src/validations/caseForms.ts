@@ -39,6 +39,7 @@ export const caseFormAssignmentStatusSchema = z.enum([
 ]);
 
 export const caseFormAssetKindSchema = z.enum(['upload', 'signature']);
+export const caseFormDeliveryTargetSchema = z.enum(['portal', 'email', 'portal_and_email']);
 
 export const caseFormLogicRuleSchema = z
   .object({
@@ -168,7 +169,7 @@ export const caseFormSubmitSchema = z
 
 export const caseFormSendSchema = z
   .object({
-    send_email: optionalStrictBooleanSchema,
+    delivery_target: caseFormDeliveryTargetSchema,
     recipient_email: z.string().trim().email().optional(),
     expires_in_days: z.coerce.number().int().min(1).max(30).optional(),
   })
@@ -238,4 +239,3 @@ export const caseFormListQuerySchema = z
     status: caseFormAssignmentStatusSchema.optional(),
   })
   .strict();
-

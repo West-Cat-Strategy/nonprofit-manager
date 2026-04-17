@@ -279,6 +279,10 @@ export const listOccurrencesQuerySchema = z
     to: z.coerce.date().optional(),
     start_date: z.coerce.date().optional(),
     end_date: z.coerce.date().optional(),
+    search: z.string().trim().min(1).max(255).optional(),
+    event_type: eventTypeSchema.optional(),
+    status: eventStatusSchema.optional(),
+    is_public: optionalStrictBooleanSchema,
     include_cancelled: optionalStrictBooleanSchema,
   })
   .strict();

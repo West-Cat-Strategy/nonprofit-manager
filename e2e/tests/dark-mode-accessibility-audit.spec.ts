@@ -16,7 +16,12 @@ import {
   getAuthHeaders,
 } from '../helpers/database';
 import {
+  createAdminRegistrationReviewLink,
+  createPasswordResetLink,
+  createPortalInvitationLink,
+  createPublicCaseFormLink,
   createPublicReportLink,
+  createStaffInvitationLink,
   createTemplate,
   publishWebsiteSite,
   createWebsiteSite,
@@ -87,8 +92,18 @@ const normalizeOrganizationId = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const getAdminUserId = (session: AuthSession): string => {
+  const userId = typeof session.user?.id === 'string' ? session.user.id.trim() : '';
+  if (!userId) {
+    throw new Error('Dark-mode audit admin fixture provisioning requires an admin user id.');
+  }
+  return userId;
+};
+
 type StaffFixtureState = {
   accountId?: string;
+  adminRegistrationReviewPendingId?: string;
+  adminRegistrationReviewToken?: string;
   contactId?: string;
   caseContactId?: string;
   volunteerId?: string;
@@ -105,7 +120,15 @@ type StaffFixtureState = {
   publicReportId?: string;
   publicReportToken?: string;
   newsletterEntryId?: string;
+  passwordResetToken?: string;
+  portalInvitationId?: string;
+  portalInvitationToken?: string;
+  publicCaseFormAssignmentId?: string;
+  publicCaseFormCaseId?: string;
+  publicCaseFormToken?: string;
   recurringDonationPlanId?: string;
+  staffInvitationId?: string;
+  staffInvitationToken?: string;
 };
 
 type PortalFixtureState = {
@@ -345,11 +368,68 @@ async function resolveRoute(
 
   const href = entry.href ?? entry.path;
   switch (entry.auditFixtureKey) {
-    case 'placeholder-token':
+    case 'staff-invitation':
+      if (!staffState.staffInvitationId || !staffState.staffInvitationToken) {
+        const invitation = await createStaffInvitationLink(adminPage, authToken);
+        staffState.staffInvitationId = invitation.invitationId;
+        staffState.staffInvitationToken = invitation.invitationToken;
+      }
       return {
         kind: 'ready',
-        path: href.replace(/:token\b/g, 'test-token'),
-        fixtureState: 'placeholder token',
+        path: href.replace(/:token\b/g, staffState.staffInvitationToken),
+        fixtureState: `staff invitation ${staffState.staffInvitationId}`,
+      };
+    case 'admin-registration-review':
+      if (!staffState.adminRegistrationReviewPendingId || !staffState.adminRegistrationReviewToken) {
+        const review = await createAdminRegistrationReviewLink({
+          adminUserId: getAdminUserId(adminSession),
+        });
+        staffState.adminRegistrationReviewPendingId = review.pendingRegistrationId;
+        staffState.adminRegistrationReviewToken = review.reviewToken;
+      }
+      return {
+        kind: 'ready',
+        path: href.replace(/:token\b/g, staffState.adminRegistrationReviewToken),
+        fixtureState: `pending registration ${staffState.adminRegistrationReviewPendingId}`,
+      };
+    case 'password-reset':
+      if (!staffState.passwordResetToken) {
+        const reset = await createPasswordResetLink({
+          userId: getAdminUserId(adminSession),
+        });
+        staffState.passwordResetToken = reset.resetToken;
+      }
+      return {
+        kind: 'ready',
+        path: href.replace(/:token\b/g, staffState.passwordResetToken),
+        fixtureState: 'password reset token',
+      };
+    case 'public-case-form':
+      if (!staffState.publicCaseFormAssignmentId || !staffState.publicCaseFormToken) {
+        const form = await createPublicCaseFormLink(adminPage, authToken, {
+          organizationId:
+            normalizeOrganizationId(adminSession.user?.organizationId) ||
+            normalizeOrganizationId(adminSession.user?.organization_id),
+        });
+        staffState.publicCaseFormCaseId = form.caseId;
+        staffState.publicCaseFormAssignmentId = form.assignmentId;
+        staffState.publicCaseFormToken = form.accessToken;
+      }
+      return {
+        kind: 'ready',
+        path: href.replace(/:token\b/g, staffState.publicCaseFormToken),
+        fixtureState: `case form assignment ${staffState.publicCaseFormAssignmentId}`,
+      };
+    case 'portal-invitation':
+      if (!staffState.portalInvitationId || !staffState.portalInvitationToken) {
+        const invitation = await createPortalInvitationLink(adminPage, authToken);
+        staffState.portalInvitationId = invitation.invitationId;
+        staffState.portalInvitationToken = invitation.invitationToken;
+      }
+      return {
+        kind: 'ready',
+        path: href.replace(/:token\b/g, staffState.portalInvitationToken),
+        fixtureState: `portal invitation ${staffState.portalInvitationId}`,
       };
     case 'public-report-snapshot':
       if (!staffState.publicReportId || !staffState.publicReportToken) {
@@ -835,14 +915,39 @@ test.describe('Dark Mode Accessibility Audit', () => {
 
       for (const entry of entries) {
         console.log(`[dark-mode-audit] auditing ${entry.id} (${entry.href ?? entry.path})`);
-        const resolved = await resolveRoute(
-          entry,
-          staffPage,
-          adminSession,
-          adminSession.token,
-          staffFixtureState,
-          portalFixtureState
-        );
+        let resolved: ResolvedAuditRoute;
+        try {
+          resolved = await resolveRoute(
+            entry,
+            staffPage,
+            adminSession,
+            adminSession.token,
+            staffFixtureState,
+            portalFixtureState
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          records.push({
+            routeId: entry.id,
+            routePath: entry.href ?? entry.path,
+            routeTitle: entry.title,
+            surface: entry.surface,
+            fixtureState: 'fixture provisioning failed',
+            findings: [
+              blockedFinding({
+                routeId: entry.id,
+                routePath: entry.href ?? entry.path,
+                routeTitle: entry.title,
+                surface: entry.surface,
+                fixtureState: 'fixture provisioning failed',
+                message: `Failed to provision the ${entry.auditFixtureKey || 'route'} fixture: ${message}`,
+                recommendation:
+                  'Stabilize the route-specific dark-mode fixture builder before treating this route as covered.',
+              }),
+            ],
+          });
+          continue;
+        }
         if (resolved.kind === 'skip') {
           records.push({
             routeId: entry.id,

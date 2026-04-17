@@ -58,6 +58,8 @@ export interface EventOccurrence {
   event_name: string;
   occurrence_name?: string;
   description: string | null;
+  event_type: EventType;
+  is_public: boolean;
   location_name: string | null;
   address_line1: string | null;
   address_line2: string | null;
@@ -195,6 +197,10 @@ export interface EventOccurrenceFilters {
   event_id?: string;
   start_date?: Date;
   end_date?: Date;
+  search?: string;
+  event_type?: EventType;
+  status?: EventStatus;
+  is_public?: boolean;
   include_cancelled?: boolean;
 }
 

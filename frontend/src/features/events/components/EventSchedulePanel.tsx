@@ -56,8 +56,8 @@ export default function EventSchedulePanel({
     schedule.find((occurrence) => occurrence.occurrence_id === selectedOccurrenceId) ?? schedule[0] ?? null;
 
   return (
-    <div className="space-y-6 rounded-lg bg-app-surface p-6 shadow-md">
-      <div className="flex flex-col gap-3 rounded-lg border border-app-border bg-app-surface-muted p-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-6 rounded-xl border border-app-border bg-app-surface p-6 shadow-sm">
+      <div className="flex flex-col gap-3 rounded-xl border border-app-border bg-app-surface-muted p-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-app-text">Schedule</h3>
           <p className="mt-1 text-sm text-app-text-muted">
@@ -84,7 +84,7 @@ export default function EventSchedulePanel({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
         <div className="space-y-4">
-          <div className="rounded-lg border border-app-border bg-app-surface-muted p-4">
+          <div className="rounded-xl border border-app-border bg-app-surface-muted p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-muted">Batch scope</p>
@@ -118,7 +118,7 @@ export default function EventSchedulePanel({
             </div>
           </div>
 
-          <div className="rounded-lg border border-app-border bg-app-surface">
+          <div className="rounded-xl border border-app-border bg-app-surface">
             <div className="border-b border-app-border px-4 py-3">
               <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-app-text-muted">
                 Occurrences
@@ -167,7 +167,7 @@ export default function EventSchedulePanel({
           </div>
         </div>
 
-        <aside className="space-y-4 rounded-lg border border-app-border bg-app-surface p-4">
+        <aside className="space-y-4 rounded-xl border border-app-border bg-app-surface p-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-muted">
               Selected occurrence

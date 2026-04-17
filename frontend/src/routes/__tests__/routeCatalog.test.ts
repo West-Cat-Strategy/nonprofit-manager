@@ -91,6 +91,25 @@ describe('routeCatalog matching', () => {
     );
   });
 
+  it('anchors admin tools beneath the admin tools hub', () => {
+    expect(
+      collectRouteAncestors(matchRouteCatalogEntry('/settings/api'))?.map((entry) => entry.id)
+    ).toEqual(['api-settings', 'admin-settings-other', 'admin-settings']);
+    expect(
+      collectRouteAncestors(matchRouteCatalogEntry('/settings/navigation'))?.map(
+        (entry) => entry.id
+      )
+    ).toEqual(['navigation-settings', 'admin-settings-other', 'admin-settings']);
+    expect(
+      collectRouteAncestors(matchRouteCatalogEntry('/settings/backup'))?.map((entry) => entry.id)
+    ).toEqual(['backup-settings', 'admin-settings-other', 'admin-settings']);
+    expect(
+      collectRouteAncestors(matchRouteCatalogEntry('/settings/social-media'))?.map(
+        (entry) => entry.id
+      )
+    ).toEqual(['social-media', 'admin-settings-other', 'admin-settings']);
+  });
+
   it('exposes the events calendar as a first-class staff navigation entry', () => {
     expect(matchRouteCatalogEntry('/events/calendar')?.id).toBe('events-calendar');
 
@@ -102,8 +121,7 @@ describe('routeCatalog matching', () => {
       }))
     ).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: 'events', shortLabel: 'Events', isActive: false }),
-        expect.objectContaining({ id: 'events-calendar', shortLabel: 'Calendar', isActive: true }),
+        expect.objectContaining({ id: 'events', shortLabel: 'Events', isActive: true }),
       ])
     );
   });

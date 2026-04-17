@@ -204,6 +204,80 @@ describe('authService.getCurrentUser', () => {
   });
 });
 
+// ─── adminRegistrationReview ──────────────────────────────────────────────────
+
+describe('authService admin registration review helpers', () => {
+  it('GETs the signed review preview payload', async () => {
+    const payload = {
+      action: 'approve',
+      reviewer: { ...mockUser, displayName: 'Admin User' },
+      pendingRegistration: {
+        id: 'pending-1',
+        email: 'pending@example.com',
+        firstName: 'Pending',
+        lastName: 'Person',
+        createdAt: '2026-04-16T12:00:00.000Z',
+        status: 'pending',
+        reviewedAt: null,
+        rejectionReason: null,
+        hasStagedPasskeys: false,
+      },
+      currentReview: {
+        status: 'pending',
+        reviewedAt: null,
+        rejectionReason: null,
+        reviewedBy: null,
+      },
+      canConfirm: true,
+    };
+    vi.mocked(api.get).mockResolvedValueOnce({ data: payload });
+
+    const result = await authService.getAdminRegistrationReviewPreview('review.token.value');
+
+    expect(api.get).toHaveBeenCalledWith('/auth/admin-registration-review/review.token.value');
+    expect(result).toEqual(payload);
+  });
+
+  it('POSTs the confirm request and returns the enriched review payload', async () => {
+    const payload = {
+      status: 'already_reviewed',
+      action: 'approve',
+      message: 'This registration request has already been approved by Ada Admin.',
+      review: {
+        action: 'approve',
+        reviewer: { ...mockUser, displayName: 'Admin User' },
+        pendingRegistration: {
+          id: 'pending-1',
+          email: 'pending@example.com',
+          firstName: 'Pending',
+          lastName: 'Person',
+          createdAt: '2026-04-16T12:00:00.000Z',
+          status: 'approved',
+          reviewedAt: '2026-04-16T12:15:00.000Z',
+          rejectionReason: null,
+          hasStagedPasskeys: true,
+        },
+        currentReview: {
+          status: 'approved',
+          reviewedAt: '2026-04-16T12:15:00.000Z',
+          rejectionReason: null,
+          reviewedBy: {
+            ...mockUser,
+            displayName: 'Admin User',
+          },
+        },
+        canConfirm: false,
+      },
+    };
+    vi.mocked(api.post).mockResolvedValueOnce({ data: payload });
+
+    const result = await authService.confirmAdminRegistrationReview('review.token.value');
+
+    expect(api.post).toHaveBeenCalledWith('/auth/admin-registration-review/review.token.value/confirm');
+    expect(result).toEqual(payload);
+  });
+});
+
 // ─── logout ───────────────────────────────────────────────────────────────────
 
 describe('authService.logout', () => {

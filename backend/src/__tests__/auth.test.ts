@@ -70,9 +70,12 @@ jest.mock('@modules/admin/usecases/registrationSettingsUseCase', () => ({
 jest.mock('@modules/admin/usecases/createPendingRegistrationUseCase', () => ({
   __esModule: true,
   createPendingRegistration: jest.fn().mockResolvedValue({
-    id: 'pending-1',
-    email: 'newuser@example.com',
-    status: 'pending',
+    pendingRegistration: {
+      id: 'pending-1',
+      email: 'newuser@example.com',
+      status: 'pending',
+    },
+    passkeySetupAllowed: true,
   }),
 }));
 
@@ -84,12 +87,22 @@ jest.mock('@modules/admin/repositories/pendingRegistrationRepository', () => ({
 describe('Auth API', () => {
   const queryMock = pool.query as jest.Mock;
   const validationResultMock = validationResult as unknown as jest.Mock;
+  const createPendingRegistrationMock = createPendingRegistration as jest.Mock;
   const getPendingRegistrationByEmailMock = getPendingRegistrationByEmail as jest.Mock;
   const setAccountLockStateMock = setAccountLockState as jest.Mock;
   const originalBypassFlag = process.env.BYPASS_REGISTRATION_POLICY_IN_TEST;
 
   beforeEach(() => {
     queryMock.mockReset();
+    createPendingRegistrationMock.mockReset();
+    createPendingRegistrationMock.mockResolvedValue({
+      pendingRegistration: {
+        id: 'pending-1',
+        email: 'newuser@example.com',
+        status: 'pending',
+      },
+      passkeySetupAllowed: true,
+    });
     getPendingRegistrationByEmailMock.mockReset();
     getPendingRegistrationByEmailMock.mockResolvedValue(null);
     setAccountLockStateMock.mockReset();
@@ -147,6 +160,44 @@ describe('Auth API', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
+    it('marks passkey setup unavailable when pending passkey staging is unsupported', async () => {
+      createPendingRegistrationMock.mockResolvedValueOnce({
+        pendingRegistration: {
+          id: 'pending-1',
+          email: 'newuser@example.com',
+          status: 'pending',
+        },
+        passkeySetupAllowed: false,
+      });
+
+      const req = {
+        body: {
+          email: 'newuser@example.com',
+          password: 'StrongP@ssw0rd',
+          firstName: 'New',
+          lastName: 'User',
+        },
+      } as AuthRequest;
+      const res = createMockResponse() as unknown as Response;
+      const next = jest.fn();
+
+      await register(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(202);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: expect.objectContaining({
+            pendingApproval: true,
+            registrationToken: 'mock-pending-registration-token',
+            passkeySetupAllowed: false,
+            hasStagedPasskeys: false,
+          }),
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
     it('rejects registration when mode is disabled', async () => {
       (getRegistrationMode as jest.Mock).mockResolvedValueOnce('disabled');
 
@@ -177,7 +228,7 @@ describe('Auth API', () => {
     });
 
     it('returns conflict when email already has a pending registration', async () => {
-      (createPendingRegistration as jest.Mock).mockRejectedValueOnce(
+      createPendingRegistrationMock.mockRejectedValueOnce(
         new Error('A registration request for this email is already pending')
       );
 

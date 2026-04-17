@@ -34,6 +34,7 @@ export type CaseFormAssignmentStatus =
 
 export type CaseFormActorType = 'staff' | 'portal' | 'public';
 export type CaseFormAssetKind = 'upload' | 'signature';
+export type CaseFormDeliveryTarget = 'portal' | 'email' | 'portal_and_email';
 
 export interface CaseFormLogicRule {
   question_key: string;
@@ -165,6 +166,7 @@ export interface CaseFormAssignment {
   last_draft_saved_at?: Date | string | null;
   due_at?: Date | string | null;
   recipient_email?: string | null;
+  delivery_target?: CaseFormDeliveryTarget | null;
   sent_at?: Date | string | null;
   viewed_at?: Date | string | null;
   submitted_at?: Date | string | null;
@@ -227,7 +229,7 @@ export interface SubmitCaseFormDTO {
 }
 
 export interface SendCaseFormAssignmentDTO {
-  send_email?: boolean;
+  delivery_target: CaseFormDeliveryTarget;
   recipient_email?: string;
   expires_in_days?: number;
 }

@@ -67,12 +67,16 @@ export const register = async (
 
       if (registrationMode === 'approval_required') {
         try {
-          const pending = await runStep('createPendingRegistration', () => createPendingRegistration({
-            email,
-            password,
-            firstName,
-            lastName,
-          }));
+          const { pendingRegistration, passkeySetupAllowed } = await runStep(
+            'createPendingRegistration',
+            () =>
+              createPendingRegistration({
+                email,
+                password,
+                firstName,
+                lastName,
+              })
+          );
 
           return sendSuccess(
             res,
@@ -81,10 +85,10 @@ export const register = async (
                 'Your registration request has been submitted and is awaiting admin approval. You will receive an email once your account is approved.',
               pendingApproval: true,
               registrationToken: issuePendingRegistrationToken({
-                pendingRegistrationId: pending.id,
+                pendingRegistrationId: pendingRegistration.id,
               }),
-              passkeySetupAllowed: true,
-              hasStagedPasskeys: Boolean(pending.has_staged_passkeys),
+              passkeySetupAllowed,
+              hasStagedPasskeys: Boolean(pendingRegistration.has_staged_passkeys),
             },
             202
           );

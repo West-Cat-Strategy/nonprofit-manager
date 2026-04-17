@@ -1,0 +1,284 @@
+import type { CaseFormAssignmentRecord, DbExecutor } from './caseFormsRepository.shared';
+import { assignmentSelect, mapAssignment } from './caseFormsRepository.shared';
+import type { CaseFormDeliveryTarget, CaseFormSchema } from '@app-types/caseForms';
+
+export async function listAssignmentsForCase(
+  db: DbExecutor,
+  caseId: string,
+  organizationId?: string
+): Promise<CaseFormAssignmentRecord[]> {
+  const result = await db.query(
+    `${assignmentSelect}
+     LEFT JOIN contacts scoped_contact ON scoped_contact.id = c.contact_id
+     WHERE cfa.case_id = $1
+       AND ($2::uuid IS NULL OR COALESCE(c.account_id, scoped_contact.account_id) = $2::uuid)
+     ORDER BY cfa.updated_at DESC, cfa.created_at DESC`,
+    [caseId, organizationId || null]
+  );
+  return result.rows.map(mapAssignment);
+}
+
+export async function listAssignmentsForPortal(
+  db: DbExecutor,
+  contactId: string,
+  status?: string
+): Promise<CaseFormAssignmentRecord[]> {
+  const result = await db.query(
+    `${assignmentSelect}
+     WHERE cfa.contact_id = $1
+       AND c.client_viewable = true
+       AND cfa.delivery_target IN ('portal', 'portal_and_email')
+       AND ($2::text IS NULL OR cfa.status = $2::text)
+     ORDER BY COALESCE(cfa.submitted_at, cfa.sent_at, cfa.updated_at) DESC, cfa.updated_at DESC`,
+    [contactId, status || null]
+  );
+  return result.rows.map(mapAssignment);
+}
+
+export async function getAssignmentById(
+  db: DbExecutor,
+  assignmentId: string
+): Promise<CaseFormAssignmentRecord | null> {
+  const result = await db.query(
+    `${assignmentSelect}
+     WHERE cfa.id = $1
+     LIMIT 1`,
+    [assignmentId]
+  );
+  return result.rows[0] ? mapAssignment(result.rows[0]) : null;
+}
+
+export async function createAssignment(
+  executor: DbExecutor,
+  input: {
+    caseId: string;
+    contactId: string;
+    accountId?: string | null;
+    caseTypeId?: string | null;
+    sourceDefaultId?: string | null;
+    sourceDefaultVersion?: number | null;
+    title: string;
+    description?: string | null;
+    schema: CaseFormSchema;
+    dueAt?: string | null;
+    recipientEmail?: string | null;
+    userId?: string | null;
+  }
+): Promise<CaseFormAssignmentRecord> {
+  const result = await executor.query(
+    `INSERT INTO case_form_assignments (
+       case_id,
+       contact_id,
+       account_id,
+       case_type_id,
+       source_default_id,
+       source_default_version,
+       title,
+       description,
+       status,
+       schema,
+       current_draft_answers,
+       due_at,
+       recipient_email,
+       created_by,
+       updated_by
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9::jsonb, '{}'::jsonb, $10, $11, $12, $12)
+     RETURNING id`,
+    [
+      input.caseId,
+      input.contactId,
+      input.accountId || null,
+      input.caseTypeId || null,
+      input.sourceDefaultId || null,
+      input.sourceDefaultVersion ?? null,
+      input.title,
+      input.description || null,
+      JSON.stringify(input.schema),
+      input.dueAt || null,
+      input.recipientEmail || null,
+      input.userId || null,
+    ]
+  );
+
+  const assignment = await getAssignmentById(executor, String(result.rows[0]?.id));
+  if (!assignment) {
+    throw Object.assign(new Error('Form assignment not found'), { statusCode: 404, code: 'not_found' });
+  }
+  return assignment;
+}
+
+export async function updateAssignment(
+  executor: DbExecutor,
+  assignmentId: string,
+  input: {
+    title?: string;
+    description?: string | null;
+    schema?: CaseFormSchema;
+    dueAt?: string | null;
+    recipientEmail?: string | null;
+    status?: string;
+    deliveryTarget?: CaseFormDeliveryTarget | null;
+    reviewFollowUpId?: string | null;
+    userId?: string | null;
+  }
+): Promise<CaseFormAssignmentRecord> {
+  const fields: string[] = [];
+  const values: unknown[] = [];
+  let index = 1;
+
+  if (input.title !== undefined) {
+    fields.push(`title = $${index++}`);
+    values.push(input.title);
+  }
+  if (input.description !== undefined) {
+    fields.push(`description = $${index++}`);
+    values.push(input.description || null);
+  }
+  if (input.schema !== undefined) {
+    fields.push(`schema = $${index++}::jsonb`);
+    values.push(JSON.stringify(input.schema));
+  }
+  if (input.dueAt !== undefined) {
+    fields.push(`due_at = $${index++}`);
+    values.push(input.dueAt || null);
+  }
+  if (input.recipientEmail !== undefined) {
+    fields.push(`recipient_email = $${index++}`);
+    values.push(input.recipientEmail || null);
+  }
+  if (input.status !== undefined) {
+    fields.push(`status = $${index++}`);
+    values.push(input.status);
+  }
+  if (input.deliveryTarget !== undefined) {
+    fields.push(`delivery_target = $${index++}`);
+    values.push(input.deliveryTarget || null);
+  }
+  if (input.reviewFollowUpId !== undefined) {
+    fields.push(`review_follow_up_id = $${index++}`);
+    values.push(input.reviewFollowUpId || null);
+  }
+
+  fields.push('updated_at = NOW()');
+  if (input.userId !== undefined) {
+    fields.push(`updated_by = $${index++}`);
+    values.push(input.userId);
+  }
+  values.push(assignmentId);
+
+  await executor.query(
+    `UPDATE case_form_assignments
+     SET ${fields.join(', ')}
+     WHERE id = $${index}`,
+    values
+  );
+
+  const assignment = await getAssignmentById(executor, assignmentId);
+  if (!assignment) {
+    throw Object.assign(new Error('Form assignment not found'), { statusCode: 404, code: 'not_found' });
+  }
+  return assignment;
+}
+
+export async function markAssignmentSent(executor: DbExecutor, assignmentId: string): Promise<void> {
+  await executor.query(
+    `UPDATE case_form_assignments
+     SET sent_at = NOW(),
+         updated_at = NOW()
+     WHERE id = $1`,
+    [assignmentId]
+  );
+}
+
+export async function saveDraft(
+  executor: DbExecutor,
+  assignmentId: string,
+  answers: Record<string, unknown>,
+  input: {
+    status: string;
+    userId?: string | null;
+  }
+): Promise<CaseFormAssignmentRecord> {
+  await executor.query(
+    `UPDATE case_form_assignments
+     SET current_draft_answers = $2::jsonb,
+         last_draft_saved_at = NOW(),
+         status = $3,
+         updated_at = NOW(),
+         updated_by = $4
+     WHERE id = $1`,
+    [assignmentId, JSON.stringify(answers), input.status, input.userId || null]
+  );
+
+  const assignment = await getAssignmentById(executor, assignmentId);
+  if (!assignment) {
+    throw Object.assign(new Error('Form assignment not found'), { statusCode: 404, code: 'not_found' });
+  }
+  return assignment;
+}
+
+export async function markAssignmentViewed(executor: DbExecutor, assignmentId: string): Promise<void> {
+  await executor.query(
+    `UPDATE case_form_assignments
+     SET viewed_at = COALESCE(viewed_at, NOW()),
+         status = CASE
+           WHEN status = 'sent' THEN 'viewed'
+           ELSE status
+         END,
+         updated_at = NOW()
+     WHERE id = $1`,
+    [assignmentId]
+  );
+}
+
+export async function markAssignmentAfterSubmission(
+  executor: DbExecutor,
+  assignmentId: string,
+  answers: Record<string, unknown>,
+  userId?: string | null
+): Promise<void> {
+  await executor.query(
+    `UPDATE case_form_assignments
+     SET current_draft_answers = $2::jsonb,
+         last_draft_saved_at = NOW(),
+         status = 'submitted',
+         submitted_at = NOW(),
+         updated_at = NOW(),
+         updated_by = $3
+     WHERE id = $1`,
+    [assignmentId, JSON.stringify(answers), userId || null]
+  );
+}
+
+export async function markAssignmentReviewDecision(
+  executor: DbExecutor,
+  assignmentId: string,
+  input: {
+    status: 'reviewed' | 'closed' | 'cancelled';
+    userId?: string | null;
+  }
+): Promise<void> {
+  const timestampField =
+    input.status === 'reviewed'
+      ? 'reviewed_at'
+      : input.status === 'closed'
+        ? 'closed_at'
+        : null;
+
+  const assignments: string[] = [
+    'status = $2',
+    'updated_at = NOW()',
+    'updated_by = $3',
+  ];
+  if (timestampField) {
+    assignments.push(`${timestampField} = COALESCE(${timestampField}, NOW())`);
+  }
+
+  await executor.query(
+    `UPDATE case_form_assignments
+     SET ${assignments.join(', ')}
+     WHERE id = $1`,
+    [assignmentId, input.status, input.userId || null]
+  );
+}

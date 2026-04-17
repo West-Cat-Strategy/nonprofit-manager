@@ -14,6 +14,7 @@ import type { DataScopeFilter } from '@app-types/dataScope';
 import { resolveSort } from '@utils/queryHelpers';
 import { cancelPendingAutomationsForEvent } from '@services/eventReminderAutomationService';
 import { EventOccurrenceService } from './eventOccurrenceService';
+import { createEventHttpError } from '../eventHttpErrors';
 import { QueryValue } from './shared';
 
 const EVENT_SUMMARY_SELECT = `
@@ -363,7 +364,7 @@ export class EventCatalogService {
 
       const created = await this.getEventById(eventId);
       if (!created) {
-        throw new Error('Event not found');
+        throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
       }
 
       return created;
@@ -404,7 +405,7 @@ export class EventCatalogService {
       }
 
       if (fields.length === 0) {
-        throw new Error('No fields to update');
+        throw createEventHttpError('VALIDATION_ERROR', 400, 'No fields to update');
       }
 
       fields.push(`modified_by = $${paramCount++}`);
@@ -422,7 +423,7 @@ export class EventCatalogService {
 
       const updatedRow = result.rows[0];
       if (!updatedRow) {
-        throw new Error('Event not found');
+        throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
       }
 
       await this.occurrences.syncOccurrencesForEvent(eventId, client);
@@ -437,7 +438,7 @@ export class EventCatalogService {
 
       const updated = await this.getEventById(eventId);
       if (!updated) {
-        throw new Error('Event not found');
+        throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
       }
 
       return updated;

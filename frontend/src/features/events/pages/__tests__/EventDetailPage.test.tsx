@@ -231,4 +231,21 @@ describe('EventDetailPage deferred registrations loading', () => {
     expect(registrationDispatchCount).toBe(1);
     expect(automationsDispatchCount).toBe(1);
   });
+
+  it('renders the shared shell actions for navigation and editing', async () => {
+    renderWithProviders(<EventDetailPage />);
+
+    expect(await screen.findByRole('link', { name: /back to events/i })).toHaveAttribute(
+      'href',
+      '/events'
+    );
+    expect(screen.getByRole('link', { name: /back to calendar/i })).toHaveAttribute(
+      'href',
+      '/events/calendar'
+    );
+    expect(screen.getByRole('link', { name: /edit event/i })).toHaveAttribute(
+      'href',
+      '/events/event-123/edit'
+    );
+  });
 });

@@ -12,12 +12,17 @@ function getFrontendUrl(): string {
   return (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 }
 
+export interface CreatePendingRegistrationResult {
+  pendingRegistration: repo.PendingRegistrationRow;
+  passkeySetupAllowed: boolean;
+}
+
 export async function createPendingRegistration(data: {
   email: string;
   password: string;
   firstName?: string;
   lastName?: string;
-}): Promise<repo.PendingRegistrationRow> {
+}): Promise<CreatePendingRegistrationResult> {
   // Check if email already has a pending request
   const existingId = await repo.findPendingByEmail(data.email);
   if (existingId) {
@@ -30,6 +35,7 @@ export async function createPendingRegistration(data: {
     throw new Error('An account with this email already exists');
   }
 
+  const passkeySetupAllowed = await repo.supportsPendingRegistrationPasskeyStaging();
   const hashedPassword = await bcrypt.hash(data.password, PASSWORD.BCRYPT_SALT_ROUNDS);
 
   const pending = await repo.insertPendingRegistration({
@@ -51,7 +57,10 @@ export async function createPendingRegistration(data: {
     logger.warn('Failed to send admin notification for pending registration', err);
   });
 
-  return pending;
+  return {
+    pendingRegistration: pending,
+    passkeySetupAllowed,
+  };
 }
 
 async function notifyAdminsOfPendingRegistration(
@@ -83,6 +92,8 @@ async function notifyAdminsOfPendingRegistration(
         });
         const approveUrl = `${frontendUrl}/admin-registration-review/${approveToken}`;
         const rejectUrl = `${frontendUrl}/admin-registration-review/${rejectToken}`;
+        const approveAutoUrl = `${approveUrl}?mode=complete`;
+        const rejectAutoUrl = `${rejectUrl}?mode=complete`;
         const reviewerName =
           [recipient.first_name, recipient.last_name].filter(Boolean).join(' ') || recipient.email;
 
@@ -97,7 +108,7 @@ async function notifyAdminsOfPendingRegistration(
             `Name: ${name}`,
             `Email: ${email}`,
             '',
-            'Choose an action:',
+            'Use the secure review buttons in the HTML version of this email, or open one of these manual review links:',
             `Approve request: ${approveUrl}`,
             `Reject request: ${rejectUrl}`,
             '',
@@ -117,15 +128,18 @@ async function notifyAdminsOfPendingRegistration(
                   <td style="padding:4px 0">${safeEmail}</td>
                 </tr>
               </table>
+              <p style="margin:0 0 16px;color:#4b5563">
+                Use the secure review buttons below to approve or reject this request in one click.
+              </p>
               <div style="display:flex;flex-wrap:wrap;gap:12px;margin:0 0 16px">
                 <a
-                  href="${escapeHtml(approveUrl)}"
+                  href="${escapeHtml(approveAutoUrl)}"
                   style="display:inline-block;padding:12px 18px;border-radius:10px;background:#1d4ed8;color:#ffffff;text-decoration:none;font-weight:600"
                 >
                   Approve request
                 </a>
                 <a
-                  href="${escapeHtml(rejectUrl)}"
+                  href="${escapeHtml(rejectAutoUrl)}"
                   style="display:inline-block;padding:12px 18px;border-radius:10px;background:#ffffff;color:#111827;text-decoration:none;font-weight:600;border:1px solid #d1d5db"
                 >
                   Reject request
@@ -133,7 +147,7 @@ async function notifyAdminsOfPendingRegistration(
               </div>
               <p style="margin:0 0 8px;font-size:13px;color:#4b5563">These review links expire in 7 days.</p>
               <p style="margin:0;font-size:13px;color:#4b5563">
-                If the buttons do not open, use these links directly:<br />
+                If the buttons do not open, use these manual review links directly:<br />
                 <a href="${escapeHtml(approveUrl)}">${escapeHtml(approveUrl)}</a><br />
                 <a href="${escapeHtml(rejectUrl)}">${escapeHtml(rejectUrl)}</a>
               </p>

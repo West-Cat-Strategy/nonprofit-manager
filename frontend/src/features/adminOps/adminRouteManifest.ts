@@ -142,7 +142,7 @@ export const adminRouteManifest = [
     path: '/email-marketing',
     wrapper: 'protected',
     kind: 'redirect',
-    redirectsTo: '/dashboard',
+    redirectsTo: '/settings/communications',
   },
   {
     id: 'legacy-admin-settings',
@@ -174,7 +174,7 @@ export const adminRouteManifest = [
     path: '/settings/organization',
     wrapper: 'admin',
     kind: 'redirect',
-    redirectsTo: '/dashboard',
+    redirectsTo: getAdminSettingsPath('organization'),
   },
   {
     id: 'legacy-admin-audit-logs',
@@ -182,7 +182,7 @@ export const adminRouteManifest = [
     path: '/admin/audit-logs',
     wrapper: 'admin',
     kind: 'redirect',
-    redirectsTo: '/dashboard',
+    redirectsTo: getAdminSettingsPath('audit_logs'),
   },
   {
     id: 'portal-admin-access',

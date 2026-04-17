@@ -34,7 +34,7 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     title: 'Accept Invitation',
     section: 'Auth',
     path: '/accept-invitation/:token',
-    auditFixtureKey: 'placeholder-token',
+    auditFixtureKey: 'staff-invitation',
     primaryAction: { label: 'Go to login', href: '/login' },
   }),
   publicRoute({
@@ -42,7 +42,7 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     title: 'Registration Review',
     section: 'Auth',
     path: '/admin-registration-review/:token',
-    auditFixtureKey: 'placeholder-token',
+    auditFixtureKey: 'admin-registration-review',
     primaryAction: { label: 'Open approvals', href: '/settings/admin/approvals' },
   }),
   publicRoute({
@@ -57,7 +57,7 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     title: 'Reset Password',
     section: 'Auth',
     path: '/reset-password/:token',
-    auditFixtureKey: 'placeholder-token',
+    auditFixtureKey: 'password-reset',
     primaryAction: { label: 'Request a new reset link', href: '/forgot-password' },
   }),
   publicRoute({
@@ -66,6 +66,13 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Auth',
     path: '/public/reports/:token',
     auditFixtureKey: 'public-report-snapshot',
+  }),
+  publicRoute({
+    id: 'public-case-form',
+    title: 'Public Case Form',
+    section: 'Auth',
+    path: '/public/case-forms/:token',
+    auditFixtureKey: 'public-case-form',
   }),
   publicRoute({
     id: 'public-events',
@@ -102,7 +109,7 @@ export const publicRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     id: 'portal-accept-invitation',
     title: 'Portal Invitation',
     path: '/portal/accept-invitation/:token',
-    auditFixtureKey: 'placeholder-token',
+    auditFixtureKey: 'portal-invitation',
     primaryAction: { label: 'Portal login', href: '/portal/login' },
   }),
 ];
