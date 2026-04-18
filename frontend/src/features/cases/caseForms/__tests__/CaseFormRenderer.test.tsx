@@ -73,4 +73,34 @@ describe('CaseFormRenderer', () => {
     expect(screen.getByLabelText(/supporting documents/i)).toHaveAttribute('type', 'file');
     expect(screen.getByRole('checkbox', { name: /consent to share updates/i })).toBeInTheDocument();
   });
+
+  it('falls back to seeded checkbox text for single-checkbox questions', () => {
+    render(
+      <CaseFormRenderer
+        variant="public"
+        schema={{
+          version: 1,
+          title: 'Consent form',
+          sections: [
+            {
+              id: 'section-consent',
+              title: 'Consent',
+              questions: [
+                {
+                  id: 'question-consent',
+                  key: 'consent',
+                  type: 'checkbox',
+                  label: 'Consent to program terms',
+                },
+              ],
+            },
+          ],
+        }}
+        answers={{}}
+        onAnswerChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('I agree')).toBeInTheDocument();
+  });
 });

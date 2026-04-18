@@ -6,6 +6,7 @@ import type {
   CreateEventReminderAutomationDTO,
   EventConfirmationEmailResult,
   Event,
+  EventBatchScope,
   EventCheckInSettings,
   EventReminderAutomation,
   EventRegistration,
@@ -192,10 +193,13 @@ export class EventsApiClient
 
   async updateRegistration(
     registrationId: string,
-    payload: UpdateRegistrationDTO
+    payload: UpdateRegistrationDTO,
+    scope: EventBatchScope = 'occurrence'
   ): Promise<EventRegistration> {
+    const params = new URLSearchParams();
+    params.set('scope', scope);
     const response = await api.put<ApiEnvelope<EventRegistration>>(
-      `/v2/events/registrations/${registrationId}`,
+      `/v2/events/registrations/${registrationId}?${params.toString()}`,
       payload
     );
     return unwrapApiData(response.data);

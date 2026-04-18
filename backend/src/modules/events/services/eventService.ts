@@ -162,9 +162,10 @@ export class EventService {
   async updateRegistration(
     registrationId: string,
     updateData: UpdateRegistrationDTO,
+    scope: EventMutationScope,
     context?: EventRegistrationMutationContext
   ): Promise<EventRegistration> {
-    return this.registration.updateRegistration(registrationId, updateData, context);
+    return this.registration.updateRegistration(registrationId, updateData, scope, context);
   }
 
   async checkInAttendee(registrationId: string, options: CheckInOptions = {}): Promise<CheckInResult> {

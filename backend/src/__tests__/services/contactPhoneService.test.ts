@@ -1,12 +1,12 @@
 // Mock database pool and logger before imports
 const mockQuery = jest.fn();
 
-jest.mock('../../config/database', () => ({
+jest.mock('@config/database', () => ({
   __esModule: true,
   default: { query: mockQuery },
 }));
 
-jest.mock('../../config/logger', () => ({
+jest.mock('@config/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),
@@ -15,11 +15,12 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
-jest.mock('../../services/contactMethodSyncService', () => ({
+jest.mock('@services/contactMethodSyncService', () => ({
   syncContactMethodSummaries: jest.fn().mockResolvedValue(undefined),
 }));
 
 import {
+  CONTACT_PHONE_DUPLICATE_ERROR_CODE,
   getContactPhones,
   getContactPhoneById,
   createContactPhone,
@@ -27,7 +28,7 @@ import {
   deleteContactPhone,
   getPrimaryPhone,
 } from '../../services/contactPhoneService';
-import { syncContactMethodSummaries } from '../../services/contactMethodSyncService';
+import { syncContactMethodSummaries } from '@services/contactMethodSyncService';
 
 const makePhoneRow = (overrides: Record<string, unknown> = {}) => ({
   id: 'phone-uuid',
@@ -61,6 +62,13 @@ describe('getContactPhones', () => {
     expect(mockQuery.mock.calls[0][1]).toEqual(['contact-abc']);
   });
 
+  it('returns an empty array when there are no phones', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const result = await getContactPhones('contact-no-phones');
+    expect(result).toHaveLength(0);
+  });
+
   it('throws a user-friendly error on query failure', async () => {
     mockQuery.mockRejectedValueOnce(new Error('DB connection lost'));
 
@@ -86,6 +94,21 @@ describe('getContactPhoneById', () => {
 
     const result = await getContactPhoneById('nonexistent');
     expect(result).toBeNull();
+  });
+
+  it('scopes the query to the phone ID', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await getContactPhoneById('phone-xyz');
+    expect(mockQuery.mock.calls[0][1]).toEqual(['phone-xyz']);
+  });
+
+  it('throws a user-friendly error on failure', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('Timeout'));
+
+    await expect(getContactPhoneById('phone-1')).rejects.toThrow(
+      'Failed to retrieve contact phone number'
+    );
   });
 });
 
@@ -114,6 +137,35 @@ describe('createContactPhone', () => {
     const params = mockQuery.mock.calls[0][1] as unknown[];
     expect(params[2]).toBe('other');
   });
+
+  it('defaults is_primary to false when not provided', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [makePhoneRow()] });
+
+    await createContactPhone('contact-1', { phone_number: '555-111-2222' }, 'user-1');
+
+    const params = mockQuery.mock.calls[0][1] as unknown[];
+    expect(params[3]).toBe(false);
+  });
+
+  it('throws a stable duplicate error on PG code 23505', async () => {
+    const duplicateError = Object.assign(new Error('duplicate key'), { code: '23505' });
+    mockQuery.mockRejectedValueOnce(duplicateError);
+
+    await expect(
+      createContactPhone('contact-1', { phone_number: '555-111-2222' }, 'user-1')
+    ).rejects.toMatchObject({
+      message: 'This phone number already exists for this contact',
+      code: CONTACT_PHONE_DUPLICATE_ERROR_CODE,
+    });
+  });
+
+  it('throws a generic error on other failures', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('Constraint violation'));
+
+    await expect(
+      createContactPhone('contact-1', { phone_number: '555-111-2222' }, 'user-1')
+    ).rejects.toThrow('Failed to create contact phone number');
+  });
 });
 
 describe('updateContactPhone', () => {
@@ -140,6 +192,54 @@ describe('updateContactPhone', () => {
     const result = await updateContactPhone('missing', { phone_number: '555-999-0000' }, 'user-1');
     expect(result).toBeNull();
   });
+
+  it('builds SET clause only for provided fields', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [makePhoneRow()] });
+
+    await updateContactPhone('phone-uuid', { is_primary: true }, 'user-1');
+
+    const sql = mockQuery.mock.calls[0][0] as string;
+    expect(sql).toMatch(/is_primary/);
+    expect(sql).not.toMatch(/phone_number = /);
+    expect(sql).not.toMatch(/label = /);
+  });
+
+  it('always appends modified_by to the SET clause', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [makePhoneRow()] });
+
+    await updateContactPhone('phone-uuid', { label: 'home' }, 'editor-user');
+
+    const sql = mockQuery.mock.calls[0][0] as string;
+    const params = mockQuery.mock.calls[0][1] as unknown[];
+    expect(sql).toMatch(/modified_by/);
+    expect(params).toContain('editor-user');
+  });
+
+  it('throws when no fields are provided to update', async () => {
+    await expect(updateContactPhone('phone-uuid', {}, 'user-1')).rejects.toThrow(
+      'Failed to update contact phone number'
+    );
+  });
+
+  it('throws a stable duplicate error on PG code 23505', async () => {
+    const duplicateError = Object.assign(new Error('duplicate key'), { code: '23505' });
+    mockQuery.mockRejectedValueOnce(duplicateError);
+
+    await expect(
+      updateContactPhone('phone-uuid', { phone_number: '555-111-2222' }, 'user-1')
+    ).rejects.toMatchObject({
+      message: 'This phone number already exists for this contact',
+      code: CONTACT_PHONE_DUPLICATE_ERROR_CODE,
+    });
+  });
+
+  it('throws a generic error on other failures', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('Constraint violation'));
+
+    await expect(
+      updateContactPhone('phone-uuid', { phone_number: '555-111-2222' }, 'user-1')
+    ).rejects.toThrow('Failed to update contact phone number');
+  });
 });
 
 describe('deleteContactPhone', () => {
@@ -159,6 +259,21 @@ describe('deleteContactPhone', () => {
     const result = await deleteContactPhone('missing');
     expect(result).toBe(false);
   });
+
+  it('passes the phoneId as the query parameter', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 'phone-123', contact_id: 'contact-1' }] });
+
+    await deleteContactPhone('phone-123');
+    expect(mockQuery.mock.calls[0][1]).toEqual(['phone-123']);
+  });
+
+  it('throws a user-friendly error on failure', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('FK constraint'));
+
+    await expect(deleteContactPhone('phone-1')).rejects.toThrow(
+      'Failed to delete contact phone number'
+    );
+  });
 });
 
 describe('getPrimaryPhone', () => {
@@ -177,5 +292,22 @@ describe('getPrimaryPhone', () => {
 
     const result = await getPrimaryPhone('contact-no-primary');
     expect(result).toBeNull();
+  });
+
+  it('filters by contactId and is_primary=true', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    await getPrimaryPhone('contact-abc');
+
+    const sql = mockQuery.mock.calls[0][0] as string;
+    const params = mockQuery.mock.calls[0][1] as unknown[];
+    expect(sql).toMatch(/is_primary = true/);
+    expect(params).toEqual(['contact-abc']);
+  });
+
+  it('throws a user-friendly error on failure', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('Connection refused'));
+
+    await expect(getPrimaryPhone('contact-1')).rejects.toThrow('Failed to retrieve primary phone');
   });
 });

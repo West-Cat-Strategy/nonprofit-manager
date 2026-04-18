@@ -1147,7 +1147,7 @@ describe('Contact API Integration Tests', () => {
           is_primary: true,
         }))
         .expect(201);
-      const createdEmail = emailCreateResponse.body as { id: string; email_address: string };
+      const createdEmail = payloadFromResponse<{ id: string; email_address: string }>(emailCreateResponse.body);
 
       const phoneCreateResponse = await withStaffAuth(request(app)
         .post(`/api/v2/contacts/${contactId}/phones`)
@@ -1157,7 +1157,7 @@ describe('Contact API Integration Tests', () => {
           is_primary: true,
         }))
         .expect(201);
-      const createdPhone = phoneCreateResponse.body as { id: string; phone_number: string };
+      const createdPhone = payloadFromResponse<{ id: string; phone_number: string }>(phoneCreateResponse.body);
 
       const mobileCreateResponse = await withStaffAuth(request(app)
         .post(`/api/v2/contacts/${contactId}/phones`)
@@ -1166,7 +1166,7 @@ describe('Contact API Integration Tests', () => {
           label: 'mobile',
         }))
         .expect(201);
-      const createdMobile = mobileCreateResponse.body as { id: string; phone_number: string };
+      const createdMobile = payloadFromResponse<{ id: string; phone_number: string }>(mobileCreateResponse.body);
 
       const updatedEmailAddress = `child-sync-updated-${suffix}@example.com`;
       await withStaffAuth(request(app)
@@ -1202,6 +1202,312 @@ describe('Contact API Integration Tests', () => {
       expect(detailPayload.email).toMatch(/^c\*+@example\.com$/);
       expect(detailPayload.phone).toBe('***-***-3000');
       expect(detailPayload.mobile_phone).toBeNull();
+    });
+  });
+
+  describe('contact phone routes', () => {
+    const createContactRecord = async (suffix: string): Promise<string> => {
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: `Phone-${suffix}`,
+          last_name: 'Route',
+        }))
+        .expect(201);
+
+      return payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
+    };
+
+    const createPhoneRecord = async (
+      contactId: string,
+      payload: { phone_number: string; label?: string; is_primary?: boolean }
+    ): Promise<{ id: string; phone_number: string }> => {
+      const response = await withStaffAuth(request(app)
+        .post(`/api/v2/contacts/${contactId}/phones`)
+        .send(payload))
+        .expect(201);
+
+      return payloadFromResponse<{ id: string; phone_number: string }>(response.body);
+    };
+
+    it('returns a validation error for duplicate phone creation', async () => {
+      const suffix = unique();
+      const contactId = await createContactRecord(suffix);
+
+      await createPhoneRecord(contactId, {
+        phone_number: '555-888-1000',
+        label: 'home',
+      });
+
+      const duplicateResponse = await withStaffAuth(request(app)
+        .post(`/api/v2/contacts/${contactId}/phones`)
+        .send({
+          phone_number: '555-888-1000',
+          label: 'work',
+        }))
+        .expect(400);
+
+      expect(duplicateResponse.body.error).toMatchObject({
+        code: 'VALIDATION_ERROR',
+        message: 'This phone number already exists for this contact',
+      });
+    });
+
+    it('returns a validation error for duplicate phone updates', async () => {
+      const suffix = unique();
+      const contactId = await createContactRecord(suffix);
+
+      const primaryPhone = await createPhoneRecord(contactId, {
+        phone_number: '555-888-2000',
+        label: 'home',
+      });
+      const secondaryPhone = await createPhoneRecord(contactId, {
+        phone_number: '555-888-2001',
+        label: 'work',
+      });
+
+      const duplicateResponse = await withStaffAuth(request(app)
+        .put(`/api/v2/contacts/phones/${secondaryPhone.id}`)
+        .send({
+          phone_number: primaryPhone.phone_number,
+        }))
+        .expect(400);
+
+      expect(duplicateResponse.body.error).toMatchObject({
+        code: 'VALIDATION_ERROR',
+        message: 'This phone number already exists for this contact',
+      });
+    });
+
+    it('returns not found for missing phone routes', async () => {
+      const missingPhoneId = '00000000-0000-0000-0000-000000000000';
+
+      const getResponse = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/phones/${missingPhoneId}`))
+        .expect(404);
+      expect(getResponse.body.error).toMatchObject({
+        code: 'NOT_FOUND',
+        message: 'Phone number not found',
+      });
+
+      const updateResponse = await withStaffAuth(request(app)
+        .put(`/api/v2/contacts/phones/${missingPhoneId}`)
+        .send({
+          phone_number: '555-888-3000',
+        }))
+        .expect(404);
+      expect(updateResponse.body.error).toMatchObject({
+        code: 'NOT_FOUND',
+        message: 'Phone number not found',
+      });
+
+      const deleteResponse = await withStaffAuth(request(app)
+        .delete(`/api/v2/contacts/phones/${missingPhoneId}`))
+        .expect(404);
+      expect(deleteResponse.body.error).toMatchObject({
+        code: 'NOT_FOUND',
+        message: 'Phone number not found',
+      });
+    });
+  });
+
+  describe('contact relationship routes', () => {
+    const createContactRecord = async (suffix: string): Promise<string> => {
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: `Relationship-${suffix}`,
+          last_name: 'Route',
+        }))
+        .expect(201);
+
+      return payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
+    };
+
+    const createRelationshipRecord = async (
+      contactId: string,
+      payload: Record<string, unknown>
+    ): Promise<{ id: string }> => {
+      const response = await withStaffAuth(request(app)
+        .post(`/api/v2/contacts/${contactId}/relationships`)
+        .send(payload))
+        .expect(201);
+
+      return payloadFromResponse<{ id: string }>(response.body);
+    };
+
+    const getRelationshipRows = async (contactId: string, relatedContactId: string) =>
+      pool.query<{
+        id: string;
+        relationship_type: string;
+        relationship_label: string | null;
+        inverse_relationship_type: string | null;
+        notes: string | null;
+        is_bidirectional: boolean;
+        is_active: boolean;
+      }>(
+        `SELECT id, relationship_type, relationship_label, inverse_relationship_type, notes, is_bidirectional, is_active
+         FROM contact_relationships
+         WHERE contact_id = $1 AND related_contact_id = $2
+         ORDER BY created_at ASC, id ASC`,
+        [contactId, relatedContactId]
+      );
+
+    it('creates bidirectional pairs and synchronizes inverse updates', async () => {
+      const suffix = unique();
+      const contactId = await createContactRecord(`${suffix}-primary`);
+      const relatedContactId = await createContactRecord(`${suffix}-related`);
+
+      const createdRelationship = await createRelationshipRecord(contactId, {
+        related_contact_id: relatedContactId,
+        relationship_type: 'parent',
+        relationship_label: 'Mother',
+        is_bidirectional: true,
+        inverse_relationship_type: 'child',
+        notes: 'Initial notes',
+      });
+
+      const createdRows = await getRelationshipRows(relatedContactId, contactId);
+      expect(createdRows.rowCount).toBe(1);
+      expect(createdRows.rows[0]).toMatchObject({
+        relationship_type: 'child',
+        relationship_label: 'Child',
+        inverse_relationship_type: 'parent',
+        notes: 'Initial notes',
+        is_bidirectional: true,
+        is_active: true,
+      });
+
+      await withStaffAuth(request(app)
+        .put(`/api/v2/contacts/relationships/${createdRelationship.id}`)
+        .send({
+          relationship_label: 'Guardian',
+          notes: 'Updated notes',
+        }))
+        .expect(200);
+
+      const updatedPrimaryRows = await getRelationshipRows(contactId, relatedContactId);
+      expect(updatedPrimaryRows.rows[0]).toMatchObject({
+        relationship_label: 'Guardian',
+        notes: 'Updated notes',
+        is_bidirectional: true,
+      });
+
+      const updatedInverseRows = await getRelationshipRows(relatedContactId, contactId);
+      expect(updatedInverseRows.rows[0]).toMatchObject({
+        relationship_type: 'child',
+        relationship_label: null,
+        inverse_relationship_type: 'parent',
+        notes: 'Updated notes',
+        is_bidirectional: true,
+        is_active: true,
+      });
+    });
+
+    it('deactivates the inverse row when bidirectional is toggled off', async () => {
+      const suffix = unique();
+      const contactId = await createContactRecord(`${suffix}-primary`);
+      const relatedContactId = await createContactRecord(`${suffix}-related`);
+
+      const createdRelationship = await createRelationshipRecord(contactId, {
+        related_contact_id: relatedContactId,
+        relationship_type: 'parent',
+        relationship_label: 'Mother',
+        is_bidirectional: true,
+        inverse_relationship_type: 'child',
+      });
+
+      await withStaffAuth(request(app)
+        .put(`/api/v2/contacts/relationships/${createdRelationship.id}`)
+        .send({
+          is_bidirectional: false,
+        }))
+        .expect(200);
+
+      const primaryRows = await getRelationshipRows(contactId, relatedContactId);
+      expect(primaryRows.rows[0]).toMatchObject({
+        is_bidirectional: false,
+        is_active: true,
+      });
+
+      const inverseRows = await getRelationshipRows(relatedContactId, contactId);
+      expect(inverseRows.rowCount).toBe(1);
+      expect(inverseRows.rows[0]).toMatchObject({
+        is_active: false,
+      });
+    });
+
+    it('soft deletes the inverse row when one side is deleted', async () => {
+      const suffix = unique();
+      const contactId = await createContactRecord(`${suffix}-primary`);
+      const relatedContactId = await createContactRecord(`${suffix}-related`);
+
+      const createdRelationship = await createRelationshipRecord(contactId, {
+        related_contact_id: relatedContactId,
+        relationship_type: 'parent',
+        relationship_label: 'Mother',
+        is_bidirectional: true,
+        inverse_relationship_type: 'child',
+      });
+
+      const inverseBeforeDelete = await getRelationshipRows(relatedContactId, contactId);
+      const inverseRelationshipId = inverseBeforeDelete.rows[0]?.id;
+      expect(inverseRelationshipId).toBeTruthy();
+
+      await withStaffAuth(request(app)
+        .delete(`/api/v2/contacts/relationships/${createdRelationship.id}`))
+        .expect(204);
+
+      const primaryRows = await getRelationshipRows(contactId, relatedContactId);
+      expect(primaryRows.rows[0]).toMatchObject({
+        is_active: false,
+      });
+
+      const inverseRows = await getRelationshipRows(relatedContactId, contactId);
+      expect(inverseRows.rows[0]).toMatchObject({
+        is_active: false,
+      });
+
+      await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/relationships/${inverseRelationshipId}`))
+        .expect(404);
+    });
+
+    it('keeps bidirectional writes without an inverse type effectively one-way', async () => {
+      const suffix = unique();
+      const contactId = await createContactRecord(`${suffix}-primary`);
+      const relatedContactId = await createContactRecord(`${suffix}-related`);
+
+      const createdRelationship = await createRelationshipRecord(contactId, {
+        related_contact_id: relatedContactId,
+        relationship_type: 'friend',
+        is_bidirectional: true,
+        notes: 'One-way',
+      });
+
+      let inverseRows = await getRelationshipRows(relatedContactId, contactId);
+      expect(inverseRows.rowCount).toBe(0);
+
+      await withStaffAuth(request(app)
+        .put(`/api/v2/contacts/relationships/${createdRelationship.id}`)
+        .send({
+          is_bidirectional: true,
+          notes: 'Still one-way',
+        }))
+        .expect(200);
+
+      inverseRows = await getRelationshipRows(relatedContactId, contactId);
+      expect(inverseRows.rowCount).toBe(0);
+
+      const primaryRows = await getRelationshipRows(contactId, relatedContactId);
+      expect(primaryRows.rows[0]).toMatchObject({
+        is_bidirectional: true,
+        inverse_relationship_type: null,
+        notes: 'Still one-way',
+        is_active: true,
+      });
     });
   });
 

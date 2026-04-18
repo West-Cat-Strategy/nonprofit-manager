@@ -193,11 +193,24 @@ describe('events.controller', () => {
     );
 
     await controller.updateRegistration(
-      { ...baseReq(), validatedParams: { id: 'reg-1' } } as AuthRequest,
+      {
+        ...baseReq(),
+        validatedParams: { id: 'reg-1' },
+        validatedQuery: { scope: 'series' },
+      } as AuthRequest,
       res,
       next
     );
 
+    expect(registrationUseCase.update).toHaveBeenCalledWith(
+      'reg-1',
+      {},
+      'series',
+      expect.objectContaining({
+        actorUserId: 'user-1',
+        source: 'staff',
+      })
+    );
     expect(sendError).toHaveBeenCalledWith(res, 'VALIDATION_ERROR', 'No fields to update', 400);
   });
 

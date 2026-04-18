@@ -3,10 +3,13 @@ import { AuthRequest } from '@middleware/auth';
 import type { CreateContactPhoneDTO, UpdateContactPhoneDTO } from '@app-types/contact';
 import { ContactPhonesUseCase } from '../usecases/contactPhones.usecase';
 import { sendData, sendFailure } from '../mappers/responseMode';
+import { CONTACT_PHONE_DUPLICATE_ERROR_CODE } from '../repositories/contactPhonesRepository';
 
 const mapPhoneError = (error: unknown): { status: number; code: string; message: string } | null => {
   const message = error instanceof Error ? error.message : String(error);
-  if (message === 'This phone number already exists for this contact') {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error ? (error as { code?: string }).code : undefined;
+  if (code === CONTACT_PHONE_DUPLICATE_ERROR_CODE) {
     return {
       status: 400,
       code: 'VALIDATION_ERROR',

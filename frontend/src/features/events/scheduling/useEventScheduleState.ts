@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Event, EventBatchScope } from '../../../types/event';
-import { buildEventOccurrences, getEventOccurrenceById } from '../utils/occurrences';
+import {
+  buildEventOccurrences,
+  getEventOccurrenceById,
+  supportsEventBatchScope,
+} from '../utils/occurrences';
 
 export type EventDetailTab = 'overview' | 'schedule' | 'registrations';
 
@@ -18,6 +22,7 @@ interface UseEventScheduleStateResult {
   handleSelectTab: (tab: EventDetailTab) => void;
   selectedOccurrence: ReturnType<typeof getEventOccurrenceById>;
   setBatchScope: Dispatch<SetStateAction<EventBatchScope>>;
+  supportsBatchScope: boolean;
 }
 
 const VALID_DETAIL_TABS: EventDetailTab[] = ['overview', 'schedule', 'registrations'];
@@ -34,6 +39,7 @@ export default function useEventScheduleState({
   const [batchScope, setBatchScope] = useState<EventBatchScope>('occurrence');
 
   const eventOccurrences = useMemo(() => buildEventOccurrences(event), [event]);
+  const supportsBatchScope = useMemo(() => supportsEventBatchScope(event), [event]);
   const selectedOccurrence = useMemo(
     () => getEventOccurrenceById(eventOccurrences, selectedOccurrenceId),
     [eventOccurrences, selectedOccurrenceId]
@@ -74,6 +80,12 @@ export default function useEventScheduleState({
     setSelectedOccurrenceId(null);
     setBatchScope('occurrence');
   }, [event?.event_id]);
+
+  useEffect(() => {
+    if (!supportsBatchScope && batchScope !== 'occurrence') {
+      setBatchScope('occurrence');
+    }
+  }, [batchScope, supportsBatchScope]);
 
   useEffect(() => {
     if (!eventOccurrences.length) {
@@ -158,5 +170,6 @@ export default function useEventScheduleState({
     handleSelectTab,
     selectedOccurrence,
     setBatchScope,
+    supportsBatchScope,
   };
 }

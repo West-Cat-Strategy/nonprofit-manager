@@ -204,8 +204,6 @@ export interface CreateRegistrationDTO {
 export interface UpdateRegistrationDTO {
   registration_status?: RegistrationStatus;
   case_id?: string | null;
-  occurrence_id?: string | null;
-  scope?: EventBatchScope;
   notes?: string;
 }
 

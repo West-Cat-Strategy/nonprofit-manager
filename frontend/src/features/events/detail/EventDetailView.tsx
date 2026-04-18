@@ -30,6 +30,7 @@ export default function EventDetailView() {
     registrations,
     selectedOccurrence,
     setBatchScope,
+    supportsBatchScope,
   } = useEventDetailController();
 
   if (detailState.loading) {
@@ -156,6 +157,7 @@ export default function EventDetailView() {
           occurrences={eventOccurrences}
           selectedOccurrenceId={selectedOccurrence?.occurrence_id ?? null}
           batchScope={batchScope}
+          supportsBatchScope={supportsBatchScope}
           onSelectOccurrence={handleSelectOccurrence}
           onChangeBatchScope={setBatchScope}
           onOpenCalendar={navigateToCalendar}
@@ -177,6 +179,7 @@ export default function EventDetailView() {
             selectedOccurrence={selectedOccurrence}
             occurrenceOptions={eventOccurrences}
             batchScope={batchScope}
+            supportsBatchScope={supportsBatchScope}
             organizationTimezone={organizationTimezone}
             registrations={registrations.registrationState.registrations}
             checkInSettings={registrations.checkInSettings}

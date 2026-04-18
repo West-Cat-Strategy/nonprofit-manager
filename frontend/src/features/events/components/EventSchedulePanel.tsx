@@ -13,6 +13,7 @@ interface EventSchedulePanelProps {
   occurrences?: EventOccurrence[];
   selectedOccurrenceId: string | null;
   batchScope: EventBatchScope;
+  supportsBatchScope?: boolean;
   onSelectOccurrence: (occurrenceId: string) => void;
   onChangeBatchScope: (scope: EventBatchScope) => void;
   onOpenCalendar?: () => void;
@@ -46,6 +47,7 @@ export default function EventSchedulePanel({
   occurrences,
   selectedOccurrenceId,
   batchScope,
+  supportsBatchScope = true,
   onSelectOccurrence,
   onChangeBatchScope,
   onOpenCalendar,
@@ -61,7 +63,9 @@ export default function EventSchedulePanel({
         <div>
           <h3 className="text-lg font-semibold text-app-text">Schedule</h3>
           <p className="mt-1 text-sm text-app-text-muted">
-            Plan series dates, choose the working scope, and inspect each occurrence before making a batch change.
+            {supportsBatchScope
+              ? 'Plan series dates, choose the working scope, and inspect each occurrence before making a batch change.'
+              : 'Review the event timing, inspect the active date, and confirm that changes apply to this occurrence only.'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -77,7 +81,7 @@ export default function EventSchedulePanel({
             onClick={onOpenSeriesEditor}
             className="rounded-md bg-app-accent px-3 py-2 text-sm text-[var(--app-accent-foreground)] hover:bg-app-accent-hover"
           >
-            Edit Series Defaults
+            {supportsBatchScope ? 'Edit Series Defaults' : 'Edit Event Details'}
           </button>
         </div>
       </div>
@@ -97,8 +101,8 @@ export default function EventSchedulePanel({
               </span>
             </div>
 
-            <div className="mt-4 grid gap-2 md:grid-cols-3">
-              {scopeOptions.map((option) => (
+            <div className={`mt-4 grid gap-2 ${supportsBatchScope ? 'md:grid-cols-3' : ''}`}>
+              {(supportsBatchScope ? scopeOptions : scopeOptions.filter((option) => option.value === 'occurrence')).map((option) => (
                 <button
                   key={option.value}
                   type="button"
@@ -124,7 +128,9 @@ export default function EventSchedulePanel({
                 Occurrences
               </h4>
               <p className="mt-1 text-sm text-app-text-muted">
-                {schedule.length} planned occurrence{schedule.length === 1 ? '' : 's'} for this series.
+                {supportsBatchScope
+                  ? `${schedule.length} planned occurrence${schedule.length === 1 ? '' : 's'} for this series.`
+                  : `${schedule.length} scheduled date${schedule.length === 1 ? '' : 's'} for this event.`}
               </p>
             </div>
             <div className="divide-y divide-app-border">
@@ -200,17 +206,20 @@ export default function EventSchedulePanel({
               The current working scope is <strong>{getEventBatchScopeLabel(batchScope)}</strong>.
             </p>
             <p className="mt-2 text-xs text-app-text-muted">
-              Future edits, cancellations, and communication actions can key off this scope once the backend mutation
-              paths are available.
+              {supportsBatchScope
+                ? 'Registration updates, reminder actions, and schedule review use this scope for the current editing session.'
+                : 'This event has one active date, so registration updates and reminder actions stay scoped to this occurrence.'}
             </p>
           </div>
 
           <div className="rounded-md border border-app-border bg-app-surface-muted p-4">
-            <h5 className="text-sm font-semibold text-app-text">Series summary</h5>
+            <h5 className="text-sm font-semibold text-app-text">
+              {supportsBatchScope ? 'Series summary' : 'Event summary'}
+            </h5>
             <div className="mt-2 space-y-1 text-sm text-app-text-muted">
-              <p>Series status: {event.status}</p>
-              <p>Series start: {formatDateTime(event.start_date)}</p>
-              <p>Series end: {formatDateTime(event.end_date)}</p>
+              <p>{supportsBatchScope ? 'Series status' : 'Event status'}: {event.status}</p>
+              <p>{supportsBatchScope ? 'Series start' : 'Event start'}: {formatDateTime(event.start_date)}</p>
+              <p>{supportsBatchScope ? 'Series end' : 'Event end'}: {formatDateTime(event.end_date)}</p>
               <p>Recurring: {event.is_recurring ? 'Yes' : 'No'}</p>
             </div>
           </div>

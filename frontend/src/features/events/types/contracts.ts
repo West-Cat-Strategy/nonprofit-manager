@@ -2,6 +2,7 @@ import type {
   CreateEventDTO,
   CreateEventReminderAutomationDTO,
   Event,
+  EventBatchScope,
   EventConfirmationEmailResult,
   EventCheckInSettings,
   EventReminderAutomation,
@@ -56,7 +57,11 @@ export interface EventCatalogPort {
 export interface EventRegistrationPort {
   listEventRegistrations(eventId: string, filters?: RegistrationFilters): Promise<EventRegistration[]>;
   registerContact(eventId: string, contactId: string): Promise<void>;
-  updateRegistration(registrationId: string, payload: UpdateRegistrationDTO): Promise<EventRegistration>;
+  updateRegistration(
+    registrationId: string,
+    payload: UpdateRegistrationDTO,
+    scope?: EventBatchScope
+  ): Promise<EventRegistration>;
   checkInRegistration(registrationId: string): Promise<EventRegistration>;
   scanCheckIn(eventId: string, token: string): Promise<EventRegistration>;
   scanCheckInGlobal(token: string): Promise<EventRegistration>;

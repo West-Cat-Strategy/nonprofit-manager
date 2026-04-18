@@ -1,5 +1,10 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import type { EventRegistration, RegistrationFilters, UpdateRegistrationDTO } from '../../../types/event';
+import type {
+  EventBatchScope,
+  EventRegistration,
+  RegistrationFilters,
+  UpdateRegistrationDTO,
+} from '../../../types/event';
 import { eventsApiClient } from '../api/eventsApiClient';
 
 interface EventRegistrationState {
@@ -38,8 +43,11 @@ export const checkInRegistrationV2 = createAsyncThunk(
 
 export const updateEventRegistrationV2 = createAsyncThunk(
   'eventRegistrationV2/update',
-  async (args: { registrationId: string; payload: UpdateRegistrationDTO }) =>
-    eventsApiClient.updateRegistration(args.registrationId, args.payload)
+  async (args: {
+    registrationId: string;
+    payload: UpdateRegistrationDTO;
+    scope?: EventBatchScope;
+  }) => eventsApiClient.updateRegistration(args.registrationId, args.payload, args.scope)
 );
 
 export const cancelEventRegistrationV2 = createAsyncThunk(

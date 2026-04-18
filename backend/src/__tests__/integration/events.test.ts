@@ -560,6 +560,89 @@ describe('Event API Integration Tests', () => {
   });
 
   describe('PUT /api/v2/events/registrations/:id', () => {
+    const createContact = async (label: string): Promise<string> => {
+      const result = await pool.query<{ id: string }>(
+        `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
+         VALUES ('${label}', 'Registrant', $1, NULL, NULL)
+         RETURNING id`,
+        [`${label.toLowerCase()}-${unique()}@example.com`]
+      );
+
+      const contactId = result.rows[0].id;
+      createdContactIds.push(contactId);
+      return contactId;
+    };
+
+    const createRecurringEvent = async (
+      label: string,
+      options: { capacity?: number; waitlistEnabled?: boolean; occurrenceCount?: number } = {}
+    ): Promise<{ eventId: string }> => {
+      const start = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+      const occurrenceCount = options.occurrenceCount ?? 3;
+      const recurrenceEndDate = new Date(
+        start.getTime() + ((occurrenceCount - 1) * 7 + 1) * 24 * 60 * 60 * 1000
+      );
+
+      const response = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: `${label} recurring event`,
+          event_type: 'community',
+          capacity: options.capacity ?? 5,
+          waitlist_enabled: options.waitlistEnabled ?? true,
+          is_recurring: true,
+          recurrence_pattern: 'weekly',
+          recurrence_interval: 1,
+          recurrence_end_date: recurrenceEndDate.toISOString(),
+          start_date: start.toISOString(),
+          end_date: end.toISOString(),
+        })
+        .expect(201);
+
+      const eventId = unwrap<{ event_id: string }>(response.body).event_id;
+      createdScopedEventIds.push(eventId);
+      return { eventId };
+    };
+
+    const listRegistrationsForContact = async (
+      eventId: string,
+      contactId: string
+    ): Promise<
+      Array<{
+        registration_id: string;
+        occurrence_id: string;
+        series_enrollment_id: string | null;
+        registration_status: string;
+        notes: string | null;
+      }>
+    > => {
+      const result = await pool.query<{
+        registration_id: string;
+        occurrence_id: string;
+        series_enrollment_id: string | null;
+        registration_status: string;
+        notes: string | null;
+      }>(
+        `SELECT
+           er.id as registration_id,
+           er.occurrence_id,
+           er.series_enrollment_id,
+           er.registration_status,
+           er.notes
+         FROM event_registrations er
+         INNER JOIN event_occurrences eo ON eo.id = er.occurrence_id
+         WHERE er.event_id = $1
+           AND er.contact_id = $2
+         ORDER BY eo.start_date ASC`,
+        [eventId, contactId]
+      );
+
+      createdScopedRegistrationIds.push(...result.rows.map((row) => row.registration_id));
+      return result.rows;
+    };
+
     it('updates status, notes, and linked case while recording activity and active counts', async () => {
       const createEventResponse = await request(app)
         .post('/api/v2/events')
@@ -745,6 +828,226 @@ describe('Event API Integration Tests', () => {
           message: expect.stringMatching(/same contact/i),
         },
       });
+    });
+
+    it('accepts scope from the query string and rejects batch scope for single-occurrence registrations', async () => {
+      const createEventResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: 'Single-date registration scope event',
+          event_type: 'community',
+          capacity: 5,
+          start_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+        })
+        .expect(201);
+
+      const eventId = unwrap<{ event_id: string }>(createEventResponse.body).event_id;
+      createdScopedEventIds.push(eventId);
+      const contactId = await createContact('single-scope');
+
+      const registrationResponse = await request(app)
+        .post(`/api/v2/events/${eventId}/register`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          contact_id: contactId,
+        })
+        .expect(201);
+
+      const registrationId = unwrap<{ registration_id: string }>(registrationResponse.body).registration_id;
+      createdScopedRegistrationIds.push(registrationId);
+
+      const queryScopeResponse = await request(app)
+        .put(`/api/v2/events/registrations/${registrationId}?scope=future_occurrences`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ notes: 'Needs follow-up' })
+        .expect(400);
+
+      expect(queryScopeResponse.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: expect.stringMatching(/single-occurrence/i),
+        },
+      });
+
+      const bodyScopeResponse = await request(app)
+        .put(`/api/v2/events/registrations/${registrationId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          notes: 'Body scope should fail validation',
+          scope: 'series',
+        })
+        .expect(400);
+
+      expect(bodyScopeResponse.body).toMatchObject({
+        success: false,
+        error: {
+          message: 'Validation failed',
+        },
+      });
+      expect(JSON.stringify(bodyScopeResponse.body)).toMatch(/scope/i);
+    });
+
+    it('updates future occurrence registrations from the selected occurrence forward', async () => {
+      const { eventId } = await createRecurringEvent('future-scope');
+      const contactId = await createContact('future-scope');
+
+      await request(app)
+        .post(`/api/v2/events/${eventId}/register`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          contact_id: contactId,
+          enrollment_scope: 'series',
+        })
+        .expect(201);
+
+      const registrations = await listRegistrationsForContact(eventId, contactId);
+      expect(registrations).toHaveLength(3);
+
+      await request(app)
+        .put(`/api/v2/events/registrations/${registrations[1].registration_id}?scope=future_occurrences`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          registration_status: 'cancelled',
+          notes: 'Paused after intake',
+        })
+        .expect(200);
+
+      const updatedRegistrations = await listRegistrationsForContact(eventId, contactId);
+      expect(updatedRegistrations.map((row) => row.registration_status)).toEqual([
+        'registered',
+        'cancelled',
+        'cancelled',
+      ]);
+      expect(updatedRegistrations.map((row) => row.notes)).toEqual([null, 'Paused after intake', 'Paused after intake']);
+
+      const occurrenceCounts = await pool.query<{ registered_count: number }>(
+        `SELECT registered_count
+         FROM event_occurrences
+         WHERE event_id = $1
+         ORDER BY start_date ASC`,
+        [eventId]
+      );
+      expect(occurrenceCounts.rows.map((row) => row.registered_count)).toEqual([1, 0, 0]);
+    });
+
+    it('updates series enrollment status and notes when the series scope is used', async () => {
+      const { eventId } = await createRecurringEvent('series-scope');
+      const contactId = await createContact('series-scope');
+
+      await request(app)
+        .post(`/api/v2/events/${eventId}/register`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          contact_id: contactId,
+          enrollment_scope: 'series',
+          notes: 'Original enrollment note',
+        })
+        .expect(201);
+
+      const registrations = await listRegistrationsForContact(eventId, contactId);
+      expect(registrations).toHaveLength(3);
+
+      await request(app)
+        .put(`/api/v2/events/registrations/${registrations[1].registration_id}?scope=series`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          registration_status: 'waitlisted',
+          notes: 'Updated enrollment note',
+        })
+        .expect(200);
+
+      const updatedRegistrations = await listRegistrationsForContact(eventId, contactId);
+      expect(updatedRegistrations.map((row) => row.registration_status)).toEqual([
+        'registered',
+        'waitlisted',
+        'waitlisted',
+      ]);
+
+      const enrollmentState = await pool.query<{
+        registration_status: string;
+        notes: string | null;
+        modified_by: string | null;
+      }>(
+        `SELECT registration_status, notes, modified_by
+         FROM event_series_enrollments
+         WHERE id = $1`,
+        [registrations[1].series_enrollment_id]
+      );
+
+      expect(enrollmentState.rows[0]).toEqual({
+        registration_status: 'waitlisted',
+        notes: 'Updated enrollment note',
+        modified_by: adminUserId,
+      });
+    });
+
+    it('promotes waitlisted registrations when scoped cancellations free capacity', async () => {
+      const { eventId } = await createRecurringEvent('promotion-scope', {
+        capacity: 1,
+        waitlistEnabled: true,
+        occurrenceCount: 2,
+      });
+      const primaryContactId = await createContact('promotion-primary');
+      const waitlistedContactId = await createContact('promotion-waitlist');
+
+      await request(app)
+        .post(`/api/v2/events/${eventId}/register`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          contact_id: primaryContactId,
+          enrollment_scope: 'series',
+        })
+        .expect(201);
+
+      await request(app)
+        .post(`/api/v2/events/${eventId}/register`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          contact_id: waitlistedContactId,
+          enrollment_scope: 'series',
+        })
+        .expect(201);
+
+      const primaryRegistrations = await listRegistrationsForContact(eventId, primaryContactId);
+      const waitlistedRegistrations = await listRegistrationsForContact(eventId, waitlistedContactId);
+
+      expect(waitlistedRegistrations.map((row) => row.registration_status)).toEqual([
+        'waitlisted',
+        'waitlisted',
+      ]);
+
+      await request(app)
+        .put(`/api/v2/events/registrations/${primaryRegistrations[0].registration_id}?scope=series`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          registration_status: 'cancelled',
+          notes: 'Unable to attend',
+        })
+        .expect(200);
+
+      const updatedPrimaryRegistrations = await listRegistrationsForContact(eventId, primaryContactId);
+      const promotedRegistrations = await listRegistrationsForContact(eventId, waitlistedContactId);
+
+      expect(updatedPrimaryRegistrations.map((row) => row.registration_status)).toEqual([
+        'cancelled',
+        'cancelled',
+      ]);
+      expect(promotedRegistrations.map((row) => row.registration_status)).toEqual([
+        'registered',
+        'registered',
+      ]);
+
+      const occurrenceCounts = await pool.query<{ registered_count: number }>(
+        `SELECT registered_count
+         FROM event_occurrences
+         WHERE event_id = $1
+         ORDER BY start_date ASC`,
+        [eventId]
+      );
+      expect(occurrenceCounts.rows.map((row) => row.registered_count)).toEqual([1, 1]);
     });
   });
 

@@ -15,6 +15,7 @@ export default function EventRegistrationsPanel({
   selectedOccurrence,
   occurrenceOptions = [],
   batchScope = 'occurrence',
+  supportsBatchScope = true,
   organizationTimezone,
   registrations,
   checkInSettings,
@@ -116,7 +117,6 @@ export default function EventRegistrationsPanel({
     setManageDraft,
     submitManageRegistration,
   } = useEventRegistrationManageFlow({
-    activeOccurrenceId: activeOccurrence?.occurrence_id ?? null,
     batchScope,
     onUpdateRegistration,
     onSendConfirmationEmail,
@@ -151,6 +151,7 @@ export default function EventRegistrationsPanel({
         activeOccurrence={activeOccurrence}
         batchScope={batchScope}
         occurrenceOptions={occurrenceOptions}
+        supportsBatchScope={supportsBatchScope}
         onChangeBatchScope={onChangeBatchScope}
         onSelectOccurrence={onSelectOccurrence}
       />

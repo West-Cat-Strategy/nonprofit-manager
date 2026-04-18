@@ -8,6 +8,8 @@ import type {
   CaseFormSchema,
 } from '../../../types/caseForms';
 
+export const DEFAULT_SINGLE_CHECKBOX_TEXT = 'I agree';
+
 export const CONTACT_MAPPING_FIELDS = [
   'first_name',
   'preferred_name',
@@ -42,6 +44,13 @@ export const createId = (): string =>
     ? crypto.randomUUID()
     : `cf_${Math.random().toString(36).slice(2, 10)}`;
 
+export function getDefaultPlaceholderForQuestionType(
+  type: CaseFormQuestionType,
+  multiple?: boolean
+): string {
+  return type === 'checkbox' && !multiple ? DEFAULT_SINGLE_CHECKBOX_TEXT : '';
+}
+
 export const createQuestion = (
   index: number,
   type: CaseFormQuestionType = 'text'
@@ -51,10 +60,14 @@ export const createQuestion = (
   type,
   label: `Question ${index}`,
   helper_text: '',
-  placeholder: '',
+  placeholder: getDefaultPlaceholderForQuestionType(type),
   required: false,
   mapping_target: null,
 });
+
+export const getQuestionPlaceholderLabel = (
+  question: Pick<CaseFormQuestion, 'type' | 'multiple'>
+): string => (question.type === 'checkbox' && !question.multiple ? 'Checkbox Text' : 'Placeholder');
 
 export const createBlankSchema = (title: string): CaseFormSchema => ({
   version: 1,

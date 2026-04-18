@@ -2,6 +2,7 @@ import { NextFunction, Response } from 'express';
 import type {
   CreateRegistrationDTO,
   EventConfirmationEmailResult,
+  EventMutationScope,
   UpdateRegistrationDTO,
 } from '@app-types/event';
 import { AuthRequest } from '@middleware/auth';
@@ -11,6 +12,8 @@ import { EventRegistrationUseCase } from '../usecases/registration.usecase';
 import type { EventsControllerSharedContext } from './events.controller.shared';
 import {
   getValidatedParams,
+  getValidatedQuery,
+  resolveMutationScope,
   sendEventHttpError,
 } from './events.controller.shared';
 
@@ -50,10 +53,13 @@ export const buildEventRegistrationMutationHandlers = (
       const params = getValidatedParams(req);
       const registration = await shared.ensureRegistrationEventAccess(params.id, req, res);
       if (!registration) return;
+      const query = getValidatedQuery(req);
+      const scope: EventMutationScope = resolveMutationScope(query.scope);
 
       const updated = await registrationUseCase.update(
         registration.registration_id,
         req.body as UpdateRegistrationDTO,
+        scope,
         {
           actorUserId: req.user?.id ?? null,
           source: 'staff',

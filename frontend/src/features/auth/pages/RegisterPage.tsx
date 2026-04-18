@@ -156,6 +156,8 @@ export default function Register() {
   const pendingPasskeyCopy = hasStagedPasskeys
     ? 'A passkey has been staged for this request. It will become available after an administrator approves your account.'
     : 'Optional: add a passkey now so it is ready once your account is approved.';
+  const pendingApprovalLoginCopy =
+    'You can return to the sign-in page now, but access will only work after your approval email arrives.';
 
   if (pendingApproval) {
     return (
@@ -172,6 +174,7 @@ export default function Register() {
           <p className="text-sm text-app-text">
             Your registration request has been submitted and is awaiting admin approval.
           </p>
+          <p className="text-sm text-app-text-muted">{pendingApprovalLoginCopy}</p>
           {hasStagedPasskeys && !passkeySetupAllowed && (
             <div className="rounded-2xl border border-app-border bg-app-surface px-4 py-3 text-sm text-app-text-muted">
               A passkey has already been staged for this request and will activate after approval.
@@ -203,7 +206,7 @@ export default function Register() {
                   to="/login"
                   className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover"
                 >
-                  Continue to login
+                  Return to sign-in page
                 </Link>
               </div>
             </div>
@@ -213,7 +216,7 @@ export default function Register() {
               to="/login"
               className="inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover"
             >
-              Back to Login
+              Return to sign-in page
             </Link>
           )}
         </div>

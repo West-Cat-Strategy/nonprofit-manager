@@ -160,9 +160,10 @@ export class EventRepository {
   updateRegistration(
     registrationId: string,
     data: UpdateRegistrationDTO,
+    scope: EventMutationScope,
     context?: EventRegistrationMutationContext
   ): Promise<EventRegistration> {
-    return this.eventService.updateRegistration(registrationId, data, context);
+    return this.eventService.updateRegistration(registrationId, data, scope, context);
   }
 
   checkInAttendee(registrationId: string, options?: CheckInOptions): Promise<CheckInResult> {

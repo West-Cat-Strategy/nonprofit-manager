@@ -6,6 +6,7 @@ import type {
   EventCheckInSettings,
   CreateRegistrationDTO,
   EventRegistration,
+  EventMutationScope,
   EventWalkInCheckInDTO,
   EventWalkInCheckInResult,
   PublicEventCheckInDTO,
@@ -54,9 +55,10 @@ export class EventRegistrationUseCase {
   update(
     registrationId: string,
     data: UpdateRegistrationDTO,
+    scope: EventMutationScope,
     context?: EventRegistrationMutationContext
   ): Promise<EventRegistration> {
-    return this.repository.updateRegistration(registrationId, data, context);
+    return this.repository.updateRegistration(registrationId, data, scope, context);
   }
 
   checkIn(registrationId: string, options?: CheckInOptions): Promise<CheckInResult> {

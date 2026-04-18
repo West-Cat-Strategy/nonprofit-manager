@@ -1,6 +1,7 @@
 import {
   CreateRegistrationDTO,
   EventConfirmationEmailResult,
+  EventMutationScope,
   EventRegistration,
   EventRegistrationMutationContext,
   RegistrationStatus,
@@ -74,6 +75,7 @@ const normalizeRegistrationMutationError = (error: unknown): Error => {
 
   if (
     error.message === 'No fields to update' ||
+    error.message === 'Batch scope is unavailable for single-occurrence registrations' ||
     error.message === 'Case must belong to the same contact as the registration' ||
     error.message === 'Event is at full capacity' ||
     error.message.startsWith('Checked-in attendees cannot be moved to')
@@ -244,89 +246,91 @@ export const registerContactMutation = async (
       resolvedRegistration = primaryRegistration;
     }
 
-    const lockedOccurrence = await getLockedOccurrence(
-      ctx,
-      event_id,
-      resolvedOccurrence.occurrence_id,
-      client
-    );
-    if (!lockedOccurrence) {
-      throw new Error('Occurrence not found');
-    }
-
-    const existing = await getExistingOccurrenceRegistration(
-      lockedOccurrence.occurrence_id,
-      contact_id,
-      client,
-      true
-    );
-    if (existing) {
-      throw new Error('Contact is already registered for this occurrence');
-    }
-
-    const { registrationStatus, waitlistPosition } = await determineRegistrationStatus(
-      lockedOccurrence,
-      registration_status,
-      client
-    );
-    const created = await createRegistrationRecord(
-      {
-        eventId: event_id,
-        occurrenceId: lockedOccurrence.occurrence_id,
-        contactId: contact_id,
-        caseId: linkedCase.caseId,
-        registrationStatus,
-        waitlistPosition,
-        notes: notes?.trim() || null,
-      },
-      client
-    );
-
-    await recordActivityEventSafely(
-      {
-        type: 'event_registration',
-        title: 'Event registration',
-        description: buildRegistrationDescription(registrationStatus),
-        userId: context.actorUserId ?? null,
-        entityType: 'event',
-        entityId: event_id,
-        relatedEntityType: 'contact',
-        relatedEntityId: contact_id,
-        sourceTable: 'event_registrations',
-        sourceRecordId: created.registration_id,
-        metadata: {
-          eventId: event_id,
-          eventName: event.event_name,
-          registrationId: created.registration_id,
-          registrationStatus,
-          occurrenceId: created.occurrence_id,
-          caseId: linkedCase.caseId,
-          caseNumber: linkedCase.caseNumber,
-          caseTitle: linkedCase.caseTitle,
-          source: context.source || 'staff',
-        },
-      },
-      client,
-      {
-        eventId: event_id,
-        contactId: contact_id,
-        source: context.source || 'staff-registration',
-      }
-    );
-
-    await recalculateCounts(ctx, event_id, lockedOccurrence.occurrence_id, client);
-    await client.query('COMMIT');
-    postCommitActions.push(() =>
-      maybeSendConfirmationEmail(
+    if (!resolvedRegistration) {
+      const lockedOccurrence = await getLockedOccurrence(
         ctx,
-        created.registration_id,
-        context.actorUserId ?? null,
-        registrationStatus,
-        send_confirmation_email
-      )
-    );
+        event_id,
+        resolvedOccurrence.occurrence_id,
+        client
+      );
+      if (!lockedOccurrence) {
+        throw new Error('Occurrence not found');
+      }
 
-    resolvedRegistration = created;
+      const existing = await getExistingOccurrenceRegistration(
+        lockedOccurrence.occurrence_id,
+        contact_id,
+        client,
+        true
+      );
+      if (existing) {
+        throw new Error('Contact is already registered for this occurrence');
+      }
+
+      const { registrationStatus, waitlistPosition } = await determineRegistrationStatus(
+        lockedOccurrence,
+        registration_status,
+        client
+      );
+      const created = await createRegistrationRecord(
+        {
+          eventId: event_id,
+          occurrenceId: lockedOccurrence.occurrence_id,
+          contactId: contact_id,
+          caseId: linkedCase.caseId,
+          registrationStatus,
+          waitlistPosition,
+          notes: notes?.trim() || null,
+        },
+        client
+      );
+
+      await recordActivityEventSafely(
+        {
+          type: 'event_registration',
+          title: 'Event registration',
+          description: buildRegistrationDescription(registrationStatus),
+          userId: context.actorUserId ?? null,
+          entityType: 'event',
+          entityId: event_id,
+          relatedEntityType: 'contact',
+          relatedEntityId: contact_id,
+          sourceTable: 'event_registrations',
+          sourceRecordId: created.registration_id,
+          metadata: {
+            eventId: event_id,
+            eventName: event.event_name,
+            registrationId: created.registration_id,
+            registrationStatus,
+            occurrenceId: created.occurrence_id,
+            caseId: linkedCase.caseId,
+            caseNumber: linkedCase.caseNumber,
+            caseTitle: linkedCase.caseTitle,
+            source: context.source || 'staff',
+          },
+        },
+        client,
+        {
+          eventId: event_id,
+          contactId: contact_id,
+          source: context.source || 'staff-registration',
+        }
+      );
+
+      await recalculateCounts(ctx, event_id, lockedOccurrence.occurrence_id, client);
+      await client.query('COMMIT');
+      postCommitActions.push(() =>
+        maybeSendConfirmationEmail(
+          ctx,
+          created.registration_id,
+          context.actorUserId ?? null,
+          registrationStatus,
+          send_confirmation_email
+        )
+      );
+
+      resolvedRegistration = created;
+    }
   } catch (error) {
     await client.query('ROLLBACK');
     throw normalizeRegistrationMutationError(error);
@@ -353,6 +357,7 @@ export const updateRegistrationMutation = async (
   ctx: EventRegistrationServiceContext,
   registrationId: string,
   updateData: UpdateRegistrationDTO,
+  scope: EventMutationScope,
   context: EventRegistrationMutationContext = {}
 ): Promise<EventRegistration> => {
   const client = await ctx.pool.connect();
@@ -360,6 +365,8 @@ export const updateRegistrationMutation = async (
   let currentEventId: string | undefined;
   let currentContactId: string | undefined;
   const postCommitActions: Array<() => Promise<void>> = [];
+  const trimmedNotes =
+    updateData.notes === undefined ? undefined : updateData.notes.trim() || null;
 
   try {
     await client.query('BEGIN');
@@ -403,144 +410,235 @@ export const updateRegistrationMutation = async (
       throw new Error('Occurrence not found');
     }
 
-    const nextStatus = updateData.registration_status ?? current.registration_status;
-    if (current.checked_in && !isRegistrationCountedAsActive(nextStatus)) {
-      throw new Error(`Checked-in attendees cannot be moved to ${nextStatus}`);
-    }
-
-    const countDelta = getRegistrationCountDelta(current.registration_status, nextStatus);
-    if (
-      countDelta > 0 &&
-      occurrence.capacity &&
-      occurrence.registered_count >= occurrence.capacity &&
-      nextStatus !== RegistrationStatus.WAITLISTED
-    ) {
-      if (!occurrence.waitlist_enabled) {
-        throw new Error('Event is at full capacity');
-      }
-      throw new Error('Checked-in attendees cannot be moved to a full occurrence');
+    if (scope !== 'occurrence' && !current.series_enrollment_id) {
+      throw createEventHttpError(
+        'VALIDATION_ERROR',
+        400,
+        'Batch scope is unavailable for single-occurrence registrations'
+      );
     }
 
     const resolvedCaseId =
       updateData.case_id === undefined ? current.case_id : updateData.case_id ?? null;
     const linkedCase = await resolveCaseLink(resolvedCaseId, current.contact_id, client);
 
-    const fields: string[] = [];
-    const values: QueryValue[] = [];
-    let paramCount = 1;
-
-    if (updateData.registration_status !== undefined) {
-      fields.push(`registration_status = $${paramCount++}`);
-      values.push(updateData.registration_status);
-      if (updateData.registration_status === RegistrationStatus.WAITLISTED) {
-        const waitlistPosition = await getNextWaitlistPosition(current.occurrence_id, client);
-        fields.push(`waitlist_position = $${paramCount++}`);
-        values.push(waitlistPosition);
-      } else if (current.registration_status === RegistrationStatus.WAITLISTED) {
-        fields.push(`waitlist_position = NULL`);
-      }
-    }
-    if (updateData.notes !== undefined) {
-      fields.push(`notes = $${paramCount++}`);
-      values.push(updateData.notes);
-    }
-    if (updateData.case_id !== undefined) {
-      fields.push(`case_id = $${paramCount++}`);
-      values.push(linkedCase.caseId);
-    }
-    if (updateData.checked_in !== undefined) {
-      fields.push(`checked_in = $${paramCount++}`);
-      values.push(updateData.checked_in);
-    }
-    if (updateData.check_in_time !== undefined) {
-      fields.push(`check_in_time = $${paramCount++}`);
-      values.push(updateData.check_in_time);
-    }
-    if (updateData.checked_in_by !== undefined) {
-      fields.push(`checked_in_by = $${paramCount++}`);
-      values.push(updateData.checked_in_by);
-    }
-    if (updateData.check_in_method !== undefined) {
-      fields.push(`check_in_method = $${paramCount++}`);
-      values.push(updateData.check_in_method);
-    }
-
-    if (fields.length === 0) {
+    if (
+      updateData.registration_status === undefined &&
+      updateData.case_id === undefined &&
+      trimmedNotes === undefined &&
+      updateData.checked_in === undefined &&
+      updateData.check_in_time === undefined &&
+      updateData.checked_in_by === undefined &&
+      updateData.check_in_method === undefined
+    ) {
       throw new Error('No fields to update');
     }
 
-    fields.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(registrationId);
+    const targetRegistrations =
+      scope === 'occurrence'
+        ? [current]
+        : (
+            await client.query<LockedRegistrationRow>(
+              `SELECT
+                 er.id as registration_id,
+                 er.event_id,
+                 er.occurrence_id,
+                 er.contact_id,
+                 er.case_id,
+                 er.registration_status,
+                 er.waitlist_position,
+                 er.checked_in,
+                 er.series_enrollment_id
+               FROM event_registrations er
+               INNER JOIN event_occurrences eo ON eo.id = er.occurrence_id
+               WHERE er.series_enrollment_id = $1
+                 AND eo.start_date >= $2
+               ORDER BY eo.start_date ASC
+               FOR UPDATE`,
+              [current.series_enrollment_id, occurrence.start_date]
+            )
+          ).rows;
 
-    await client.query(
-      `UPDATE event_registrations
-       SET ${fields.join(', ')}
-       WHERE id = $${paramCount}`,
-      values
-    );
+    const promotedRegistrationIds = new Set<string>();
+    const confirmationTargets = new Map<string, RegistrationStatus>();
 
-    await recalculateCounts(ctx, current.event_id, current.occurrence_id, client);
-
-    let promotedRegistrationId: string | null = null;
-    if (
-      current.registration_status !== RegistrationStatus.WAITLISTED &&
-      nextStatus === RegistrationStatus.CANCELLED
-    ) {
-      promotedRegistrationId = await maybePromoteWaitlistedRegistration(
+    for (const target of targetRegistrations) {
+      const targetOccurrence = await getLockedOccurrence(
         ctx,
-        client,
-        event,
-        occurrence,
-        context.actorUserId ?? null,
-        registrationId
+        target.event_id,
+        target.occurrence_id,
+        client
       );
-    } else if (countDelta < 0) {
-      promotedRegistrationId = await maybePromoteWaitlistedRegistration(
-        ctx,
-        client,
-        event,
-        occurrence,
-        context.actorUserId ?? null,
-        nextStatus === RegistrationStatus.WAITLISTED ? registrationId : null
+      if (!targetOccurrence) {
+        throw new Error('Occurrence not found');
+      }
+
+      const nextStatus = updateData.registration_status ?? target.registration_status;
+      if (target.checked_in && !isRegistrationCountedAsActive(nextStatus)) {
+        throw new Error(`Checked-in attendees cannot be moved to ${nextStatus}`);
+      }
+
+      const countDelta = getRegistrationCountDelta(target.registration_status, nextStatus);
+      if (
+        countDelta > 0 &&
+        targetOccurrence.capacity &&
+        targetOccurrence.registered_count >= targetOccurrence.capacity &&
+        nextStatus !== RegistrationStatus.WAITLISTED
+      ) {
+        throw new Error('Event is at full capacity');
+      }
+
+      const fields: string[] = [];
+      const values: QueryValue[] = [];
+      let paramCount = 1;
+
+      if (updateData.registration_status !== undefined) {
+        fields.push(`registration_status = $${paramCount++}`);
+        values.push(nextStatus);
+
+        if (nextStatus === RegistrationStatus.WAITLISTED) {
+          const shouldAssignWaitlistPosition =
+            target.registration_status !== RegistrationStatus.WAITLISTED ||
+            target.waitlist_position == null;
+
+          if (shouldAssignWaitlistPosition) {
+            const waitlistPosition = await getNextWaitlistPosition(target.occurrence_id, client);
+            fields.push(`waitlist_position = $${paramCount++}`);
+            values.push(waitlistPosition);
+          }
+        } else if (target.registration_status === RegistrationStatus.WAITLISTED) {
+          fields.push('waitlist_position = NULL');
+        }
+      }
+
+      if (trimmedNotes !== undefined) {
+        fields.push(`notes = $${paramCount++}`);
+        values.push(trimmedNotes);
+      }
+      if (updateData.case_id !== undefined) {
+        fields.push(`case_id = $${paramCount++}`);
+        values.push(linkedCase.caseId);
+      }
+      if (updateData.checked_in !== undefined) {
+        fields.push(`checked_in = $${paramCount++}`);
+        values.push(updateData.checked_in);
+      }
+      if (updateData.check_in_time !== undefined) {
+        fields.push(`check_in_time = $${paramCount++}`);
+        values.push(updateData.check_in_time);
+      }
+      if (updateData.checked_in_by !== undefined) {
+        fields.push(`checked_in_by = $${paramCount++}`);
+        values.push(updateData.checked_in_by);
+      }
+      if (updateData.check_in_method !== undefined) {
+        fields.push(`check_in_method = $${paramCount++}`);
+        values.push(updateData.check_in_method);
+      }
+
+      fields.push('updated_at = CURRENT_TIMESTAMP');
+      values.push(target.registration_id);
+
+      await client.query(
+        `UPDATE event_registrations
+         SET ${fields.join(', ')}
+         WHERE id = $${paramCount}`,
+        values
       );
+
+      await recalculateCounts(ctx, target.event_id, target.occurrence_id, client);
+
+      if (countDelta < 0) {
+        const promotedRegistrationId = await maybePromoteWaitlistedRegistration(
+          ctx,
+          client,
+          event,
+          targetOccurrence,
+          context.actorUserId ?? null,
+          nextStatus === RegistrationStatus.WAITLISTED || nextStatus === RegistrationStatus.CANCELLED
+            ? target.registration_id
+            : null
+        );
+
+        if (promotedRegistrationId) {
+          promotedRegistrationIds.add(promotedRegistrationId);
+        }
+      }
+
+      if (nextStatus !== target.registration_status) {
+        await recordActivityEventSafely(
+          {
+            type: 'event_registration_updated',
+            title: 'Event registration updated',
+            description: buildRegistrationDescription(nextStatus, {
+              previousStatus: target.registration_status,
+              action: 'updated',
+            }),
+            userId: context.actorUserId ?? null,
+            entityType: 'event',
+            entityId: target.event_id,
+            relatedEntityType: 'contact',
+            relatedEntityId: target.contact_id,
+            sourceTable: 'event_registrations',
+            sourceRecordId: target.registration_id,
+            metadata: {
+              eventId: target.event_id,
+              eventName: event.event_name,
+              registrationId: target.registration_id,
+              previousStatus: target.registration_status,
+              nextStatus,
+              registrationStatus: nextStatus,
+              occurrenceId: target.occurrence_id,
+              caseId: linkedCase.caseId,
+              caseNumber: linkedCase.caseNumber,
+              caseTitle: linkedCase.caseTitle,
+              source: context.source || 'staff',
+            },
+          },
+          client,
+          {
+            eventId: target.event_id,
+            contactId: target.contact_id,
+            source: context.source || 'staff-registration-update',
+          }
+        );
+      }
+
+      if (
+        !isRegistrationCountedAsActive(target.registration_status) &&
+        isRegistrationCountedAsActive(nextStatus)
+      ) {
+        confirmationTargets.set(target.registration_id, nextStatus);
+      }
     }
 
-    if (nextStatus !== current.registration_status) {
-      await recordActivityEventSafely(
-        {
-          type: 'event_registration_updated',
-          title: 'Event registration updated',
-          description: buildRegistrationDescription(nextStatus, {
-            previousStatus: current.registration_status,
-            action: 'updated',
-          }),
-          userId: context.actorUserId ?? null,
-          entityType: 'event',
-          entityId: current.event_id,
-          relatedEntityType: 'contact',
-          relatedEntityId: current.contact_id,
-          sourceTable: 'event_registrations',
-          sourceRecordId: registrationId,
-          metadata: {
-            eventId: current.event_id,
-            eventName: event.event_name,
-            registrationId,
-            previousStatus: current.registration_status,
-            nextStatus,
-            registrationStatus: nextStatus,
-            occurrenceId: current.occurrence_id,
-            caseId: linkedCase.caseId,
-            caseNumber: linkedCase.caseNumber,
-            caseTitle: linkedCase.caseTitle,
-            source: context.source || 'staff',
-          },
-        },
-        client,
-        {
-          eventId: current.event_id,
-          contactId: current.contact_id,
-          source: context.source || 'staff-registration-update',
-        }
+    if (
+      scope === 'series' &&
+      current.series_enrollment_id &&
+      (updateData.registration_status !== undefined || trimmedNotes !== undefined)
+    ) {
+      const fields: string[] = [];
+      const values: QueryValue[] = [];
+      let paramCount = 1;
+
+      if (updateData.registration_status !== undefined) {
+        fields.push(`registration_status = $${paramCount++}`);
+        values.push(updateData.registration_status);
+      }
+      if (trimmedNotes !== undefined) {
+        fields.push(`notes = $${paramCount++}`);
+        values.push(trimmedNotes);
+      }
+      fields.push(`modified_by = $${paramCount++}`);
+      values.push(context.actorUserId ?? null);
+      fields.push('updated_at = CURRENT_TIMESTAMP');
+      values.push(current.series_enrollment_id);
+
+      await client.query(
+        `UPDATE event_series_enrollments
+         SET ${fields.join(', ')}
+         WHERE id = $${paramCount}`,
+        values
       );
     }
 
@@ -550,19 +648,19 @@ export const updateRegistrationMutation = async (
     }
     updatedRegistration = updated;
 
-    if (nextStatus !== current.registration_status && isRegistrationCountedAsActive(nextStatus)) {
+    for (const [confirmationRegistrationId, registrationStatus] of confirmationTargets.entries()) {
       postCommitActions.push(() =>
         maybeSendConfirmationEmail(
           ctx,
-          registrationId,
+          confirmationRegistrationId,
           context.actorUserId ?? null,
-          nextStatus,
+          registrationStatus,
           true
         )
       );
     }
 
-    if (promotedRegistrationId) {
+    for (const promotedRegistrationId of promotedRegistrationIds) {
       postCommitActions.push(() =>
         maybeSendConfirmationEmail(
           ctx,

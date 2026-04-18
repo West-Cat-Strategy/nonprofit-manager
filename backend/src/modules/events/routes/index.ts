@@ -75,6 +75,7 @@ export const createEventsV2Routes = (): Router => {
   eventsV2Routes.put(
     '/registrations/:id',
     validateParams(eventIdParamsSchema),
+    validateQuery(eventMutationScopeQuerySchema),
     validateBody(updateRegistrationSchema),
     controller.updateRegistration
   );

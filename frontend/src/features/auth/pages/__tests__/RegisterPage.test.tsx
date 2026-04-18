@@ -105,6 +105,10 @@ describe('Register page', () => {
 
     expect(await screen.findByRole('heading', { name: /registration submitted/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /set up passkey/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /return to sign-in page/i })).toHaveAttribute('href', '/login');
+    expect(
+      screen.getByText(/access will only work after your approval email arrives/i)
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /set up passkey/i }));
 
@@ -122,6 +126,7 @@ describe('Register page', () => {
       name: 'New User',
     });
     expect(await screen.findByText(/passkey has been staged/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /return to sign-in page/i })).toHaveAttribute('href', '/login');
   });
 
   it('still submits a pending approval when passkey setup is unavailable', async () => {
@@ -147,6 +152,9 @@ describe('Register page', () => {
 
     expect(await screen.findByRole('heading', { name: /registration submitted/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /set up passkey/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /back to login/i })).toHaveAttribute('href', '/login');
+    expect(screen.getByRole('link', { name: /return to sign-in page/i })).toHaveAttribute('href', '/login');
+    expect(
+      screen.getByText(/access will only work after your approval email arrives/i)
+    ).toBeInTheDocument();
   });
 });

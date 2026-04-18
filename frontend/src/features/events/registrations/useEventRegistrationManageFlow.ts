@@ -1,15 +1,22 @@
 import { useCallback, useState } from 'react';
 import { casesApiClient } from '../../cases/api/casesApiClient';
-import type { EventRegistration, UpdateRegistrationDTO } from '../../../types/event';
+import type {
+  EventBatchScope,
+  EventRegistration,
+  UpdateRegistrationDTO,
+} from '../../../types/event';
 import type {
   RegistrationCaseOption,
   RegistrationManageDraft,
 } from '../components/eventRegistrationsPanelShared';
 
 interface UseEventRegistrationManageFlowArgs {
-  activeOccurrenceId?: string | null;
-  batchScope: 'occurrence' | 'future_occurrences' | 'series';
-  onUpdateRegistration: (registrationId: string, payload: UpdateRegistrationDTO) => Promise<void>;
+  batchScope: EventBatchScope;
+  onUpdateRegistration: (
+    registrationId: string,
+    payload: UpdateRegistrationDTO,
+    scope?: EventBatchScope
+  ) => Promise<void>;
   onSendConfirmationEmail?: (registrationId: string) => Promise<void>;
 }
 
@@ -23,7 +30,6 @@ const toCaseOptions = (
   }));
 
 export function useEventRegistrationManageFlow({
-  activeOccurrenceId,
   batchScope,
   onUpdateRegistration,
   onSendConfirmationEmail,
@@ -93,18 +99,20 @@ export function useEventRegistrationManageFlow({
     setManageMessage(null);
 
     try {
-      await onUpdateRegistration(editingRegistrationId, {
-        registration_status: manageDraft.registration_status,
-        notes: manageDraft.notes.trim() || undefined,
-        case_id: manageDraft.case_id || null,
-        occurrence_id: activeOccurrenceId ?? undefined,
-        scope: batchScope,
-      });
+      await onUpdateRegistration(
+        editingRegistrationId,
+        {
+          registration_status: manageDraft.registration_status,
+          notes: manageDraft.notes.trim() || undefined,
+          case_id: manageDraft.case_id || null,
+        },
+        batchScope
+      );
       setManageMessage('Registration updated.');
     } catch (error) {
       setManageError(error instanceof Error ? error.message : 'Failed to update registration.');
     }
-  }, [activeOccurrenceId, batchScope, editingRegistrationId, manageDraft, onUpdateRegistration]);
+  }, [batchScope, editingRegistrationId, manageDraft, onUpdateRegistration]);
 
   const handleSendConfirmationEmail = useCallback(
     async (registrationId: string) => {

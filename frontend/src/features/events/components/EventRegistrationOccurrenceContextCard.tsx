@@ -10,6 +10,7 @@ interface EventRegistrationOccurrenceContextCardProps {
   activeOccurrence: EventOccurrence | null;
   batchScope: EventBatchScope;
   occurrenceOptions: EventOccurrence[];
+  supportsBatchScope?: boolean;
   onChangeBatchScope?: (scope: EventBatchScope) => void;
   onSelectOccurrence?: (occurrenceId: string) => void;
 }
@@ -18,6 +19,7 @@ export function EventRegistrationOccurrenceContextCard({
   activeOccurrence,
   batchScope,
   occurrenceOptions,
+  supportsBatchScope = true,
   onChangeBatchScope,
   onSelectOccurrence,
 }: EventRegistrationOccurrenceContextCardProps) {
@@ -66,32 +68,41 @@ export function EventRegistrationOccurrenceContextCard({
             <p className="mt-2 text-xs text-app-text-muted">{getOccurrenceDateRange(activeOccurrence)}</p>
           ) : (
             <p className="mt-2 text-xs text-app-text-muted">
-              This event currently behaves like a single occurrence series placeholder.
+              This event currently has a single working date.
             </p>
           )}
         </div>
 
         <div className="rounded-md border border-app-border bg-app-surface p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-app-text-muted">Batch scope</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {(['occurrence', 'future_occurrences', 'series'] as const).map((scope) => (
-              <button
-                key={scope}
-                type="button"
-                onClick={() => onChangeBatchScope?.(scope)}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-                  batchScope === scope
-                    ? 'bg-app-accent text-[var(--app-accent-foreground)]'
-                    : 'bg-app-surface-muted text-app-text-muted'
-                }`}
-              >
-                {getEventBatchScopeLabel(scope)}
-              </button>
-            ))}
-          </div>
+          {supportsBatchScope ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(['occurrence', 'future_occurrences', 'series'] as const).map((scope) => (
+                <button
+                  key={scope}
+                  type="button"
+                  onClick={() => onChangeBatchScope?.(scope)}
+                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                    batchScope === scope
+                      ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                      : 'bg-app-surface-muted text-app-text-muted'
+                  }`}
+                >
+                  {getEventBatchScopeLabel(scope)}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-2">
+              <span className="inline-flex rounded-full bg-app-accent px-3 py-1.5 text-sm font-medium text-[var(--app-accent-foreground)]">
+                {getEventBatchScopeLabel('occurrence')}
+              </span>
+            </div>
+          )}
           <p className="mt-2 text-xs text-app-text-muted">
-            Registration updates respect the selected scope so occurrence-only fixes and broader series actions stay
-            explicit.
+            {supportsBatchScope
+              ? 'Registration updates respect the selected scope so occurrence-only fixes and broader series actions stay explicit.'
+              : 'This is a single-date event, so registration updates apply to this occurrence only.'}
           </p>
         </div>
       </div>

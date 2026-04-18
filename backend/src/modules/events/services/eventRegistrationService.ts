@@ -7,6 +7,7 @@ import {
   EventConfirmationEmailResult,
   EventRegistration,
   EventRegistrationMutationContext,
+  EventMutationScope,
   EventWalkInCheckInDTO,
   EventWalkInCheckInResult,
   RegistrationFilters,
@@ -104,9 +105,10 @@ export class EventRegistrationService {
   async updateRegistration(
     registrationId: string,
     updateData: UpdateRegistrationDTO,
+    scope: EventMutationScope,
     context: EventRegistrationMutationContext = {}
   ): Promise<EventRegistration> {
-    return updateRegistrationMutation(this.context, registrationId, updateData, context);
+    return updateRegistrationMutation(this.context, registrationId, updateData, scope, context);
   }
 
   async checkInAttendee(

@@ -2,21 +2,22 @@ const mockQuery = jest.fn();
 const mockListRecentActivities = jest.fn();
 const mockListActivitiesForEntity = jest.fn();
 
-jest.mock('../../config/database', () => ({
+jest.mock('@config/database', () => ({
   __esModule: true,
   default: {
     query: mockQuery,
   },
 }));
 
-jest.mock('../../services/activityEventService', () => ({
+jest.mock('@services/activityEventService', () => ({
   activityEventService: {
     listRecentActivities: (...args: unknown[]) => mockListRecentActivities(...args),
     listActivitiesForEntity: (...args: unknown[]) => mockListActivitiesForEntity(...args),
   },
 }));
 
-import { ActivityService } from '../../services/activityService';
+import activityService, { ActivityService } from '../../modules/activities/services/activityService';
+import rootActivityService, { ActivityService as RootActivityService } from '../../services/activityService';
 
 describe('ActivityService', () => {
   let service: ActivityService;
@@ -24,6 +25,11 @@ describe('ActivityService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     service = new ActivityService();
+  });
+
+  it('keeps the root service as a compatibility wrapper over the module-owned implementation', () => {
+    expect(rootActivityService).toBe(activityService);
+    expect(RootActivityService).toBe(ActivityService);
   });
 
   it('merges recent activities, keeps primary duplicates, and scopes every feed query to the organization', async () => {

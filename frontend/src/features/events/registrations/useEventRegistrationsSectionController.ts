@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import type {
   CreateEventReminderAutomationDTO,
   EventCheckInSettings,
+  EventBatchScope,
   EventOccurrence,
   EventReminderAutomation,
   UpdateRegistrationDTO,
@@ -55,7 +56,8 @@ export interface EventRegistrationsSectionController {
   handleUpdateCheckInSettings: (enabled: boolean) => Promise<void>;
   handleUpdateRegistration: (
     registrationId: string,
-    payload: UpdateRegistrationDTO
+    payload: UpdateRegistrationDTO,
+    scope?: EventBatchScope
   ) => Promise<void>;
   registrationState: RootState['events']['registration'];
   remindersState: RootState['events']['reminders'];
@@ -202,10 +204,11 @@ export default function useEventRegistrationsSectionController({
 
   const handleUpdateRegistration = async (
     registrationId: string,
-    payload: UpdateRegistrationDTO
+    payload: UpdateRegistrationDTO,
+    scope: EventBatchScope = 'occurrence'
   ) => {
     try {
-      await dispatch(updateEventRegistrationV2({ registrationId, payload })).unwrap();
+      await dispatch(updateEventRegistrationV2({ registrationId, payload, scope })).unwrap();
       showSuccess('Registration updated');
       refreshDetailData();
     } catch (error) {

@@ -1,12 +1,12 @@
 // Mock database pool and logger before imports
 const mockQuery = jest.fn();
 
-jest.mock('../../config/database', () => ({
+jest.mock('@config/database', () => ({
   __esModule: true,
   default: { query: mockQuery },
 }));
 
-jest.mock('../../config/logger', () => ({
+jest.mock('@config/logger', () => ({
   logger: {
     info: jest.fn(),
     error: jest.fn(),
@@ -15,7 +15,7 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
-jest.mock('../../services/contactMethodSyncService', () => ({
+jest.mock('@services/contactMethodSyncService', () => ({
   syncContactMethodSummaries: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -27,7 +27,7 @@ import {
   deleteContactEmail,
   getPrimaryEmail,
 } from '../../services/contactEmailService';
-import { syncContactMethodSummaries } from '../../services/contactMethodSyncService';
+import { syncContactMethodSummaries } from '@services/contactMethodSyncService';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 

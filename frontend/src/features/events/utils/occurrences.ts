@@ -44,6 +44,18 @@ export const getEventBatchScopeHint = (scope: EventBatchScope): string => {
   }
 };
 
+export const supportsEventBatchScope = (event: Event | null | undefined): boolean => {
+  if (!event) {
+    return false;
+  }
+
+  return Boolean(
+    event.is_recurring ||
+      (event.occurrence_count ?? 0) > 1 ||
+      (event.occurrences?.length ?? 0) > 1
+  );
+};
+
 export const getOccurrenceDateRange = (occurrence: Pick<EventOccurrence, 'start_date' | 'end_date'>): string => {
   const start = safeParseDate(occurrence.start_date);
   const end = safeParseDate(occurrence.end_date);

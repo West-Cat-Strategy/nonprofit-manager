@@ -226,13 +226,15 @@ describe('EventRegistrationsPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => {
-      expect(onUpdateRegistration).toHaveBeenCalledWith('registration-1', {
-        registration_status: 'confirmed',
-        notes: 'Arriving with spouse',
-        case_id: 'case-1',
-        occurrence_id: undefined,
-        scope: 'occurrence',
-      });
+      expect(onUpdateRegistration).toHaveBeenCalledWith(
+        'registration-1',
+        {
+          registration_status: 'confirmed',
+          notes: 'Arriving with spouse',
+          case_id: 'case-1',
+        },
+        'occurrence'
+      );
     });
 
     expect(await screen.findByText('Registration updated.')).toBeInTheDocument();
@@ -253,7 +255,7 @@ describe('EventRegistrationsPanel', () => {
     expect(screen.getByText('Waitlisted contacts cannot check in')).toBeInTheDocument();
   });
 
-  it('surfaces batch scope controls and confirmation email actions', async () => {
+  it('surfaces batch scope controls and confirmation email actions for recurring events', async () => {
     const { onSendConfirmationEmail } = setup();
 
     expect(screen.getByRole('button', { name: 'This occurrence' })).toBeInTheDocument();
@@ -264,5 +266,17 @@ describe('EventRegistrationsPanel', () => {
     await waitFor(() => {
       expect(onSendConfirmationEmail).toHaveBeenCalledWith('registration-1');
     });
+  });
+
+  it('hides future and series scopes for single-date events', () => {
+    setup({
+      supportsBatchScope: false,
+    });
+
+    expect(screen.getByText(/single-date event/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Whole series' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'This and future occurrences' })
+    ).not.toBeInTheDocument();
   });
 });

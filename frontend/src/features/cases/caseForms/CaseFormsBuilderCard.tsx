@@ -9,6 +9,8 @@ import {
   CONTACT_MAPPING_FIELDS,
   createId,
   createQuestion,
+  getDefaultPlaceholderForQuestionType,
+  getQuestionPlaceholderLabel,
   formatLogicRulesText,
   formatOptionsText,
   parseLogicRulesText,
@@ -239,6 +241,12 @@ export function CaseFormsBuilderCard({
                                 ? {
                                     ...item,
                                     type: nextType,
+                                    placeholder:
+                                      nextType === 'checkbox' &&
+                                      !item.multiple &&
+                                      !item.placeholder
+                                        ? getDefaultPlaceholderForQuestionType(nextType, item.multiple)
+                                        : item.placeholder,
                                     options:
                                       ['select', 'radio', 'checkbox'].includes(nextType)
                                         ? item.options || [{ label: 'Option 1', value: 'option_1' }]
@@ -258,7 +266,9 @@ export function CaseFormsBuilderCard({
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-black uppercase text-black/70">Placeholder</label>
+                      <label className="mb-1 block text-xs font-black uppercase text-black/70">
+                        {getQuestionPlaceholderLabel(question)}
+                      </label>
                       <input
                         value={question.placeholder || ''}
                         onChange={(event) =>
@@ -314,7 +324,18 @@ export function CaseFormsBuilderCard({
                           updateSection(section.id, (current) => ({
                             ...current,
                             questions: current.questions.map((item) =>
-                              item.id === question.id ? { ...item, multiple: event.target.checked } : item
+                              item.id === question.id
+                                ? {
+                                    ...item,
+                                    multiple: event.target.checked,
+                                    placeholder:
+                                      !event.target.checked &&
+                                      item.type === 'checkbox' &&
+                                      !item.placeholder
+                                        ? getDefaultPlaceholderForQuestionType(item.type, false)
+                                        : item.placeholder,
+                                  }
+                                : item
                             ),
                           }))
                         }

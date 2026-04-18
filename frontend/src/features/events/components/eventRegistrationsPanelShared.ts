@@ -43,6 +43,7 @@ export interface EventRegistrationsPanelProps {
   selectedOccurrence?: EventOccurrence | null;
   occurrenceOptions?: EventOccurrence[];
   batchScope?: EventBatchScope;
+  supportsBatchScope?: boolean;
   organizationTimezone: string;
   registrations: EventRegistration[];
   checkInSettings: EventCheckInSettings | null;
@@ -57,7 +58,8 @@ export interface EventRegistrationsPanelProps {
   onCheckIn: (registrationId: string) => Promise<void>;
   onUpdateRegistration: (
     registrationId: string,
-    payload: UpdateRegistrationDTO
+    payload: UpdateRegistrationDTO,
+    scope?: EventBatchScope
   ) => Promise<void>;
   onCancelRegistration: (registrationId: string) => Promise<void>;
   onSendReminders: (payload: {

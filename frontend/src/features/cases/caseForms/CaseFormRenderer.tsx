@@ -7,6 +7,8 @@ import {
   isCaseFormQuestionVisible,
 } from './caseFormUtils';
 
+import { DEFAULT_SINGLE_CHECKBOX_TEXT } from './caseFormsPanelUtils';
+
 interface CaseFormRendererProps {
   schema: CaseFormSchema;
   answers: Record<string, unknown>;
@@ -195,7 +197,9 @@ export default function CaseFormRenderer({
                                     onAnswerChange(question.key, event.target.checked)
                                   }
                                 />
-                                <span id={optionLabelId}>{question.placeholder || 'Checked'}</span>
+                                <span id={optionLabelId}>
+                                  {question.placeholder || DEFAULT_SINGLE_CHECKBOX_TEXT}
+                                </span>
                               </label>
                             );
                           })()}

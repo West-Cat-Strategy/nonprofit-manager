@@ -26,6 +26,7 @@ export default function useEventDetailController() {
     handleSelectTab,
     selectedOccurrence,
     setBatchScope,
+    supportsBatchScope,
   } = useEventScheduleState({ event });
 
   const metaDescription =
@@ -100,5 +101,6 @@ export default function useEventDetailController() {
     registrations,
     selectedOccurrence,
     setBatchScope,
+    supportsBatchScope,
   };
 }
