@@ -1,14 +1,13 @@
 # 📊 Nonprofit Manager - Planning & Progress
 
 **Current Phase:** Phase 4 - Modularity Refactor  
-**Live Snapshot:** 22 active rows: 7 In Progress, 2 Blocked, 9 Review, 4 Ready.
+**Live Snapshot:** 24 active rows: 9 In Progress, 2 Blocked, 10 Review, 3 Ready.
 **History:** Historical roadmap, logs, trackers, and legacy reference sections moved to [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md).
 
 ## 🤝 Coordination
 
 - Update this file before editing tracked work.
 - Keep one active task per agent by default unless a coordinated exception is documented here.
-- Coordinated exception, 2026-04-14: the rescue wave is split across parallel frontend, backend/integrations, scripts/skills, and validation tracks; Codex has closed `P4-T37` and `P4-T38` to Review, while `P4-T39A` remains backend-owned by Antigravity.
 - Coordinated exception, 2026-04-14: Codex is handling a narrow user-requested contacts UX follow-up under `P4-T7C` while `P4-T9` owns the Docker-backed E2E admin-bootstrap/auth-fixture stabilization lane in the current tree.
 - Coordinated exception, 2026-04-15: `P4-T7C` is split across parallel lanes for the events series/calendar/waitlist/check-in overhaul.
   Lead: `Codex`
@@ -27,18 +26,6 @@
   Backend lanes: `case form persistence + staff/portal/public contracts + client-file writeback`
   Frontend lanes: `staff case forms workspace + portal assigned forms + public secure-link completion`
   Other lanes: `targeted migration/contracts validation + backend/frontend type coverage + DB/docs/QA follow-through`
-  Integration owner: `Codex`
-- Coordinated exception, 2026-04-16: deploy-unblock size-policy refactor and findings remediation wave are proceeding across shared cases, events, admin, dashboard, route-catalog, and validation-tooling surfaces so `make ci` can pass again without changing policy baselines.
-  Lead: `Codex`
-  Backend lanes: `case forms use-case facade + staff/portal/public/access/submission shards`, `events registration controller + registration-service query/mutation/check-in/settings split`
-  Frontend lanes: `webhooks feature-owned API settings extraction`, `case forms runtime-owner split + component bridge cleanup`, `event registrations subfeature split`, `event editor subfeature split + alert-token follow-through`, `staff events workspace split`, `staff route catalog section extraction + admin metadata typing`, `dashboard typing fallout remediation`
-  Other lanes: `UI-audit token classification fix + baseline refresh`, `targeted policy/type/lint/test reruns before a full CI pass`
-  Integration owner: `Codex`
-- Coordinated exception, 2026-04-16: `P4-T49` is a user-requested dead-code prune lane proceeding in parallel to the current modularization wave.
-  Lead: `Codex`
-  Backend lanes: `orphaned middleware/utils/validation/barrel cleanup`, `legacy route export + alias retirement`, `dependency manifest trimming`
-  Frontend lanes: `legacy wrapper/component prune`, `case-form shim retirement`, `partial helper export cleanup`
-  Other lanes: `knip baseline + stale docs/tooling cleanup + targeted validation reruns`
   Integration owner: `Codex`
 - Coordinated exception, 2026-04-16: `P4-T9` is split across parallel lanes for Playwright harness runtime-contract stabilization.
   Lead: `Codex`
@@ -63,12 +50,6 @@
   Backend lanes: `auth reset shared core`, `reports shared controller extraction`, `contacts emails/phones/relationships ownership cleanup`
   Frontend lanes: `none`
   Other lanes: `activities closeout + targeted backend validation`
-  Integration owner: `Codex`
-- Coordinated exception, 2026-04-16: `P4-T50` is split across parallel lanes for the user-requested runtime efficiency remediation wave.
-  Lead: `Codex`
-  Backend lanes: `reports direct-export guard + startup performance gate tightening`, `tax receipt batching + grants summary cache/invalidation`
-  Frontend lanes: `dashboard lane-scoped data loading + workbench prefetch removal`, `cases responsive single-tree rendering`
-  Other lanes: `lead-owned workboard/docs consistency + targeted validation reruns`
   Integration owner: `Codex`
 - Coordinated exception, 2026-04-16: `P4-T7` is split across a user-requested repo-wide UI/UX remediation wave.
   Lead: `Codex`
@@ -123,7 +104,7 @@ Use this temporary note format before any tracked modularization task is split a
 | P4-T6 | Workflow-first UI/UX polish (cases/intake + full portal) | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | main (triage note: [P4-T6_CLUSTER_CLOSEOUT_2026-04-14.md](P4-T6_CLUSTER_CLOSEOUT_2026-04-14.md) confirms the current cases/intake and portal surfaces, but the parent row remains broader than the row-local proof, so it stays in Review) |
 | P4-T6A | Shared UX primitives + follow-ups QoL | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | main (triage note: [P4-T6_CLUSTER_CLOSEOUT_2026-04-14.md](P4-T6_CLUSTER_CLOSEOUT_2026-04-14.md) shows the shared UX primitives on `main`, but the row remains underspecified around its follow-up scope, so it stays in Review) |
 | P4-T6D | Portal secondary pages hardening + verification | Phase 4 | Review | Codex | Mar 2, 2026 | TBD | main (triage note: [P4-T6_CLUSTER_CLOSEOUT_2026-04-14.md](P4-T6_CLUSTER_CLOSEOUT_2026-04-14.md) confirms several portal secondary-page tests, but the notes/forms/reminders proof is still incomplete, so it stays in Review) |
-| P4-T7 | Full app UI/UX replacement (all themes, all routes) | Phase 4 | Ready | — | — | TBD | — |
+| P4-T7 | Full app UI/UX replacement (all themes, all routes) | Phase 4 | In Progress | Codex | Apr 16, 2026 | TBD | main (active 2026-04-18: the user-requested repo-wide UI/UX remediation wave remains in flight across framework shell and navigation hardening, portal/auth/public cleanup, and staff workflow follow-through while the shared portal password-reset contract, route-catalog updates, UX smoke coverage, and auth-fixture stabilization dependencies stay aligned with the live `P4-T9` lane) |
 | P4-T7C | Core app pages migration (people/engagement/finance/analytics/admin/builder/workflows) | Phase 4 | In Progress | Codex | Apr 14, 2026 | TBD | main (active 2026-04-18: the next admin/builder modularization pass is targeting the website builder gallery as the highest-churn builder-owned surface still carrying oversized page-local orchestration, while the earlier staff events UX refresh remains in flight across `/events`, `/events/calendar`, `/events/new`, `/events/:id/edit`, and `/events/:id` with real registration batch-scope updates through the `/registrations/:id?scope=` contract, event-detail overview metrics and timing that honor the actively selected occurrence, and current follow-through on preserving calendar/detail return context through the editor path so the modularized events rollout stays safe) |
 | P4-T7E | Accessibility + interaction hardening | Phase 4 | Ready | — | — | TBD | — |
 | P4-T9 | Setup and launch stabilization + test expansion | Phase 4 | In Progress | Codex | Apr 14, 2026 | TBD | main (active 2026-04-14 auth-fixture stabilization lane: runtime-aware admin credential defaults and DB-backed shared-user recovery are in place, and the current-branch follow-up is finalizing the host-runtime contract so Playwright-managed runs keep strict registration disabled while E2E user creation consistently routes through the managed helper path before the mobile timeout fallout is re-evaluated) |
