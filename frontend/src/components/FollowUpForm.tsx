@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { createFollowUp, updateFollowUp } from '../features/followUps/state';
 import { useToast } from '../contexts/useToast';
+import { getFollowUpErrorMessage } from '../features/followUps/utils/followUpErrorMessage';
 import type {
   FollowUp,
   CreateFollowUpDTO,
@@ -35,6 +36,7 @@ export default function FollowUpForm({
   const dispatch = useAppDispatch();
   const { loading } = useAppSelector((state) => state.followUps);
   const { showSuccess, showError } = useToast();
+  const isContactSurface = entityType === 'contact';
 
   // Form state
   const [title, setTitle] = useState(existingFollowUp?.title || '');
@@ -119,13 +121,20 @@ export default function FollowUpForm({
         showSuccess('Follow-up scheduled successfully');
         onSuccess?.(result);
       }
-    } catch {
-      showError(isEditing ? 'Failed to update follow-up' : 'Failed to schedule follow-up');
+    } catch (error) {
+      showError(getFollowUpErrorMessage(
+        error,
+        isEditing ? 'Failed to update follow-up' : 'Failed to schedule follow-up'
+      ));
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      data-testid={isContactSurface ? 'contact-followup-form' : undefined}
+      className="space-y-4"
+    >
       {/* Title */}
       <div>
         <label htmlFor="followup-title" className="block text-sm font-semibold text-app-text-label mb-1">

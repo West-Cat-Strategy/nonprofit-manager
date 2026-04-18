@@ -13,6 +13,7 @@ import {
   clearEntityFollowUps,
   rescheduleFollowUp,
 } from '../features/followUps/state';
+import { getFollowUpErrorMessage } from '../features/followUps/utils/followUpErrorMessage';
 import { useToast } from '../contexts/useToast';
 import FollowUpForm from './FollowUpForm';
 import type { FollowUp, FollowUpEntityType } from '../types/followup';
@@ -70,6 +71,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
   const [actionOutcomeVisibility, setActionOutcomeVisibility] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'scheduled' | 'completed' | 'cancelled' | 'overdue'>('all');
   const [outcomeDefinitions, setOutcomeDefinitions] = useState<OutcomeDefinition[]>([]);
+  const isContactSurface = entityType === 'contact';
 
   useEffect(() => {
     dispatch(fetchEntityFollowUps({ entityType, entityId }));
@@ -151,8 +153,8 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
       ).unwrap();
       showSuccess('Follow-up marked as complete');
       resetActionDraft();
-    } catch {
-      showError('Failed to complete follow-up');
+    } catch (error) {
+      showError(getFollowUpErrorMessage(error, 'Failed to complete follow-up'));
     }
   };
 
@@ -188,8 +190,8 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
       ).unwrap();
       showSuccess('Follow-up cancelled');
       resetActionDraft();
-    } catch {
-      showError('Failed to cancel follow-up');
+    } catch (error) {
+      showError(getFollowUpErrorMessage(error, 'Failed to cancel follow-up'));
     }
   };
 
@@ -199,15 +201,14 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
     try {
       await dispatch(deleteFollowUp(followUpId)).unwrap();
       showSuccess('Follow-up deleted');
-    } catch {
-      showError('Failed to delete follow-up');
+    } catch (error) {
+      showError(getFollowUpErrorMessage(error, 'Failed to delete follow-up'));
     }
   };
 
   const handleFormSuccess = () => {
     setShowForm(false);
     setEditingFollowUp(null);
-    dispatch(fetchEntityFollowUps({ entityType, entityId }));
   };
 
   const handleEdit = (followUp: FollowUp) => {
@@ -222,8 +223,8 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
     try {
       await dispatch(rescheduleFollowUp({ followUpId, newDate })).unwrap();
       showSuccess('Follow-up rescheduled');
-    } catch {
-      showError('Failed to reschedule follow-up');
+    } catch (error) {
+      showError(getFollowUpErrorMessage(error, 'Failed to reschedule follow-up'));
     }
   };
 
@@ -271,6 +272,7 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
               setEditingFollowUp(null);
               setShowForm(!showForm);
             }}
+            data-testid={isContactSurface ? 'contact-followup-toggle' : undefined}
             className="px-3 py-1.5 text-sm font-semibold bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover transition-colors"
           >
             {showForm ? 'Cancel' : '+ Schedule Follow-up'}
@@ -313,10 +315,14 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
           {filteredFollowUps.map((followUp) => {
             const overdueStatus = isOverdue(followUp);
             const displayStatus = overdueStatus ? 'overdue' : followUp.status;
+            const isActiveDraft = actionFollowUpId === followUp.id;
+            const isCompleteDraft = isActiveDraft && actionMode === 'complete';
+            const isCancelDraft = isActiveDraft && actionMode === 'cancel';
 
             return (
               <div
                 key={followUp.id}
+                data-testid={isContactSurface ? 'contact-followup-card' : undefined}
                 className={`p-4 rounded-lg border-2 ${
                   overdueStatus
                     ? 'border-app-border dark:border-app-accent bg-app-accent-soft dark:bg-app-accent-hover/20'
@@ -439,15 +445,15 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                   <div className="flex flex-col gap-1">
                     {followUp.status === 'scheduled' && (
                       <>
-                        <button
-                          onClick={() => handleComplete(followUp)}
-                          className="px-2 py-1 text-xs font-medium text-app-accent-text dark:text-app-text-muted hover:bg-app-accent-soft dark:hover:bg-app-accent-hover/50 rounded transition-colors"
-                        >
-                          {actionFollowUpId === followUp.id && actionMode === 'complete'
-                            ? 'Save Complete'
-                            : '✓ Complete'}
-                        </button>
-                        {!(actionFollowUpId === followUp.id && actionMode) && (
+                        {!isCancelDraft && (
+                          <button
+                            onClick={() => handleComplete(followUp)}
+                            className="px-2 py-1 text-xs font-medium text-app-accent-text dark:text-app-text-muted hover:bg-app-accent-soft dark:hover:bg-app-accent-hover/50 rounded transition-colors"
+                          >
+                            {isCompleteDraft ? 'Save Complete' : '✓ Complete'}
+                          </button>
+                        )}
+                        {!isActiveDraft && (
                           <button
                             onClick={() => handleQuickReschedule(followUp.id, 1)}
                             className="px-2 py-1 text-xs font-medium text-app-text-muted hover:bg-app-hover rounded transition-colors"
@@ -455,27 +461,29 @@ export default function FollowUpList({ entityType, entityId }: FollowUpListProps
                             Reschedule +1d
                           </button>
                         )}
-                        {actionFollowUpId === followUp.id && actionMode && (
+                        {!isCompleteDraft && (
+                          <button
+                            onClick={() => handleCancelFollowUp(followUp)}
+                            className="px-2 py-1 text-xs font-medium text-app-accent-text dark:text-app-text-muted hover:bg-app-accent-soft dark:hover:bg-app-accent-hover/50 rounded transition-colors"
+                          >
+                            {isCancelDraft ? 'Save Cancel' : 'Cancel'}
+                          </button>
+                        )}
+                        {isActiveDraft && (
                           <button
                             onClick={resetActionDraft}
                             className="px-2 py-1 text-xs font-medium text-app-text-muted hover:bg-app-hover rounded transition-colors"
                           >
-                            Cancel
+                            Discard Draft
                           </button>
                         )}
-                        {!(actionFollowUpId === followUp.id && actionMode) && (
+                        {!isActiveDraft && (
                           <>
                             <button
                               onClick={() => handleEdit(followUp)}
                               className="px-2 py-1 text-xs font-medium text-app-accent-text hover:bg-app-accent-soft-hover rounded transition-colors"
                             >
                               Edit
-                            </button>
-                            <button
-                              onClick={() => handleCancelFollowUp(followUp)}
-                              className="px-2 py-1 text-xs font-medium text-app-accent-text dark:text-app-text-muted hover:bg-app-accent-soft dark:hover:bg-app-accent-hover/50 rounded transition-colors"
-                            >
-                              Cancel
                             </button>
                           </>
                         )}

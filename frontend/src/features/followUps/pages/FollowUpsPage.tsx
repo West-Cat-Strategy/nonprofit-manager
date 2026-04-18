@@ -22,6 +22,7 @@ import type {
 } from '../../../types/followup';
 import FollowUpEntityPicker from '../components/FollowUpEntityPicker';
 import RescheduleFollowUpDialog from '../components/RescheduleFollowUpDialog';
+import { getFollowUpErrorMessage } from '../utils/followUpErrorMessage';
 import { parseAllowedValue, parsePositiveInteger } from '../../../utils/persistedFilters';
 
 const PAGE_SIZE = 20;
@@ -183,21 +184,33 @@ export default function FollowUpsPage() {
   };
 
   const handleComplete = async (followUpId: string) => {
-    await dispatch(completeFollowUp({ followUpId, data: {} }));
-    await refresh();
+    try {
+      await dispatch(completeFollowUp({ followUpId, data: {} })).unwrap();
+      await refresh();
+    } catch (error) {
+      showError(getFollowUpErrorMessage(error, 'Failed to complete follow-up'));
+    }
   };
 
   const handleCancelFollowUp = async (followUpId: string) => {
-    await dispatch(cancelFollowUp({ followUpId, data: {} }));
-    await refresh();
+    try {
+      await dispatch(cancelFollowUp({ followUpId, data: {} })).unwrap();
+      await refresh();
+    } catch (error) {
+      showError(getFollowUpErrorMessage(error, 'Failed to cancel follow-up'));
+    }
   };
 
   const handleDelete = async (followUpId: string) => {
     const confirmed = await confirm(confirmPresets.delete('Follow-up'));
     if (!confirmed) return;
 
-    await dispatch(deleteFollowUp(followUpId));
-    await refresh();
+    try {
+      await dispatch(deleteFollowUp(followUpId)).unwrap();
+      await refresh();
+    } catch (error) {
+      showError(getFollowUpErrorMessage(error, 'Failed to delete follow-up'));
+    }
   };
 
   const handleSaveReschedule = async (scheduledDate: string, scheduledTime?: string) => {
@@ -213,11 +226,11 @@ export default function FollowUpsPage() {
           newDate: scheduledDate,
           newTime: scheduledTime,
         })
-      );
+      ).unwrap();
       await refresh();
       setRescheduleTarget(null);
-    } catch {
-      showError('Failed to reschedule follow-up');
+    } catch (error) {
+      showError(getFollowUpErrorMessage(error, 'Failed to reschedule follow-up'));
     } finally {
       setIsRescheduling(false);
     }

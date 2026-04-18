@@ -4,7 +4,21 @@ import { vi } from 'vitest';
 import FollowUpsPage from '../FollowUpsPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
-const dispatchMock = vi.fn(() => Promise.resolve({}));
+const showErrorMock = vi.fn();
+const dispatchMock = vi.fn((action: { type?: string }) => {
+  if (
+    action.type === 'followups/reschedule' ||
+    action.type === 'followups/complete' ||
+    action.type === 'followups/cancel' ||
+    action.type === 'followups/delete'
+  ) {
+    return {
+      unwrap: () => Promise.resolve({}),
+    };
+  }
+
+  return Promise.resolve({});
+});
 const confirmMock = vi.fn(() => Promise.resolve(true));
 
 const rescheduleFollowUpMock = vi.fn((payload: unknown) => ({ type: 'followups/reschedule', payload }));
@@ -76,7 +90,7 @@ vi.mock('../../../../features/followUps/state', () => ({
 }));
 
 vi.mock('../../../../contexts/useToast', () => ({
-  useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn() }),
+  useToast: () => ({ showSuccess: vi.fn(), showError: showErrorMock }),
 }));
 
 vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
@@ -275,5 +289,37 @@ describe('FollowUpsPage', () => {
     mockState.followUps.error = 'Unable to load follow-ups';
     renderWithProviders(<FollowUpsPage />);
     expect(screen.getByText('Unable to load follow-ups')).toBeInTheDocument();
+  });
+
+  it('surfaces backend validation messages when completing a follow-up fails', async () => {
+    dispatchMock.mockImplementation((action: { type?: string }) => {
+      if (action.type === 'followups/complete') {
+        return {
+          unwrap: () => Promise.reject('completed_notes: Please capture the completion note'),
+        };
+      }
+
+      if (
+        action.type === 'followups/reschedule' ||
+        action.type === 'followups/cancel' ||
+        action.type === 'followups/delete'
+      ) {
+        return {
+          unwrap: () => Promise.resolve({}),
+        };
+      }
+
+      return Promise.resolve({});
+    });
+
+    renderWithProviders(<FollowUpsPage />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^complete$/i })[0]);
+
+    await waitFor(() => {
+      expect(showErrorMock).toHaveBeenCalledWith(
+        'completed_notes: Please capture the completion note'
+      );
+    });
   });
 });

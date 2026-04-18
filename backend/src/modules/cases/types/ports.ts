@@ -34,7 +34,7 @@ export interface CaseCatalogPort {
 }
 
 export interface CaseLifecyclePort {
-  createCase(data: CreateCaseDTO, userId?: string): Promise<unknown>;
+  createCase(data: CreateCaseDTO, userId?: string, organizationId?: string): Promise<unknown>;
   updateCase(caseId: string, data: UpdateCaseDTO, userId?: string): Promise<unknown>;
   updateCaseStatus(caseId: string, data: UpdateCaseStatusDTO, userId?: string): Promise<unknown>;
   reassignCase(caseId: string, data: ReassignCaseDTO, userId?: string): Promise<unknown>;

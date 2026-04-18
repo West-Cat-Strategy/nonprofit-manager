@@ -5,6 +5,7 @@
 import { Pool, PoolClient } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import { getRequestContext } from '@config/requestContext';
 import * as contactNoteOutcomeImpactService from '../services/contactNoteOutcomeImpactService';
 import type {
   ContactNote,
@@ -305,6 +306,11 @@ export async function getContactNotesTimeline(
   contactId: string
 ): Promise<ContactNotesTimelineResponse> {
   try {
+    const organizationId =
+      getRequestContext()?.organizationId
+      || getRequestContext()?.accountId
+      || getRequestContext()?.tenantId
+      || null;
     const countsResult = await pool.query<{
       contact_notes: string;
       case_notes: string;
@@ -317,7 +323,12 @@ export async function getContactNotesTimeline(
           SELECT COUNT(*)::text
           FROM case_notes csn
           INNER JOIN cases c ON c.id = csn.case_id
+          LEFT JOIN contacts con ON con.id = c.contact_id
           WHERE c.contact_id = $1
+            AND (
+              $3::uuid IS NULL
+              OR COALESCE(c.account_id, con.account_id) = $3::uuid
+            )
         ) AS case_notes,
         (
           SELECT COUNT(*)::text
@@ -327,7 +338,7 @@ export async function getContactNotesTimeline(
             AND ae.activity_type = ANY($2::text[])
         ) AS event_activity
       `,
-      [contactId, [...CONTACT_TIMELINE_EVENT_ACTIVITY_TYPES]]
+      [contactId, [...CONTACT_TIMELINE_EVENT_ACTIVITY_TYPES], organizationId]
     );
 
     const timelineResult = await pool.query<ContactNoteTimelineItem>(
@@ -403,8 +414,13 @@ export async function getContactNotesTimeline(
           ${CASE_NOTE_OUTCOME_IMPACTS_JSON}
         FROM case_notes csn
         INNER JOIN cases c ON c.id = csn.case_id
+        LEFT JOIN contacts con ON con.id = c.contact_id
         LEFT JOIN users cu ON cu.id = csn.created_by
         WHERE c.contact_id = $1
+          AND (
+            $3::uuid IS NULL
+            OR COALESCE(c.account_id, con.account_id) = $3::uuid
+          )
 
         UNION ALL
 
@@ -479,7 +495,7 @@ export async function getContactNotesTimeline(
       ORDER BY timeline.created_at DESC, timeline.id DESC
       LIMIT 200
       `,
-      [contactId, [...CONTACT_TIMELINE_EVENT_ACTIVITY_TYPES]]
+      [contactId, [...CONTACT_TIMELINE_EVENT_ACTIVITY_TYPES], organizationId]
     );
 
     const rawCounts = countsResult.rows[0] || {

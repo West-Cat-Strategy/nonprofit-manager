@@ -7,7 +7,11 @@ import { sendData, sendFailure } from '../mappers/responseMode';
 export const createCaseLifecycleController = (useCase: CaseLifecycleUseCase) => {
   const createCase = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const created = await useCase.create(req.body as CreateCaseDTO, req.user?.id);
+      const created = await useCase.create(
+        req.body as CreateCaseDTO,
+        req.user?.id,
+        req.organizationId || req.accountId || req.tenantId
+      );
       sendData(res, created, 201);
     } catch (error) {
       next(error);

@@ -340,7 +340,11 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
       )}
 
       {isAddingNote && (
-        <form onSubmit={handleSubmitNote} className="bg-app-surface rounded-lg border border-app-border p-4">
+        <form
+          onSubmit={handleSubmitNote}
+          className="bg-app-surface rounded-lg border border-app-border p-4"
+          data-testid="contact-note-form"
+        >
           <h3 className="text-lg font-semibold mb-4">Add Note</h3>
 
           <div className="mb-4">
@@ -390,6 +394,7 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
                 }
                 title="Select case to associate with this note"
                 className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-transparent"
+                data-testid="contact-note-case-select"
               >
                 <option value="">No case (general note)</option>
                 {contactCases.map((caseItem) => (
@@ -590,7 +595,13 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
               : 'border-app-border';
 
             return (
-              <div key={item.id} className={`bg-app-surface rounded-lg border p-4 ${cardClass}`}>
+              <div
+                key={item.id}
+                className={`bg-app-surface rounded-lg border p-4 ${cardClass}`}
+                data-testid="contact-note-card"
+                data-note-id={item.id}
+                data-case-id={item.case_id || undefined}
+              >
                 <div className="flex items-start justify-between gap-4 mb-2">
                   <div className="flex items-start gap-3">
                     <span className="text-2xl">{getTimelineIcon(item)}</span>
@@ -738,6 +749,9 @@ const ContactNotesPanel = ({ contactId, openOnMount = false, onOpenHandled }: Co
                       <Link
                         to={`/cases/${item.case_id}`}
                         className="inline-flex items-center rounded border border-app-border bg-app-surface-muted px-3 py-1.5 text-xs font-black uppercase text-app-text hover:bg-app-hover"
+                        data-testid="contact-note-case-link"
+                        data-note-id={item.id}
+                        data-case-id={item.case_id}
                       >
                         Open Case {item.case_number ? `(${item.case_number})` : ''}
                       </Link>

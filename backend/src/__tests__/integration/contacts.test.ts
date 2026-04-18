@@ -1033,6 +1033,227 @@ describe('Contact API Integration Tests', () => {
       expect(payload.items[1].id).toBe(caseNoteId);
       expect(payload.items[2].id).toBe(contactNoteId);
     });
+
+    it('excludes case notes whose case does not resolve to the active organization', async () => {
+      const suffix = unique();
+      const contactCreateResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Scoped',
+          last_name: 'Timeline',
+          email: `timeline-scope-${suffix}@example.com`,
+        }))
+        .expect(201);
+
+      const contactId = payloadFromResponse<{ contact_id: string }>(contactCreateResponse.body).contact_id;
+
+      const secondaryAccountResponse = await request(app)
+        .post('/api/v2/accounts')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          account_name: `Timeline Scope ${suffix}`,
+          account_type: 'organization',
+        })
+        .expect(201);
+
+      const secondaryAccountId = accountIdFromResponse(secondaryAccountResponse.body);
+      expect(secondaryAccountId).toBeTruthy();
+
+      if (!secondaryAccountId) {
+        throw new Error('Failed to create secondary account');
+      }
+
+      const caseTypeResult = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM case_types
+         WHERE is_active = true
+         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         LIMIT 1`
+      );
+      const caseStatusResult = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM case_statuses
+         WHERE is_active = true
+         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         LIMIT 1`
+      );
+
+      const createdCaseIds: string[] = [];
+      const createdCaseNoteIds: string[] = [];
+
+      try {
+        const activeCaseId = (
+          await pool.query<{ id: string }>(
+            `INSERT INTO cases (
+               case_number,
+               contact_id,
+               account_id,
+               case_type_id,
+               status_id,
+               title,
+               assigned_to,
+               created_by,
+               modified_by,
+               created_at,
+               updated_at
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $7, NOW(), NOW())
+             RETURNING id`,
+            [
+              `CASE-SCOPE-${suffix}-A`,
+              contactId,
+              testAccountId,
+              caseTypeResult.rows[0].id,
+              caseStatusResult.rows[0].id,
+              'Timeline Scoped Case',
+              staffUserId,
+            ]
+          )
+        ).rows[0].id;
+        createdCaseIds.push(activeCaseId);
+
+        const externalCaseId = (
+          await pool.query<{ id: string }>(
+            `INSERT INTO cases (
+               case_number,
+               contact_id,
+               account_id,
+               case_type_id,
+               status_id,
+               title,
+               assigned_to,
+               created_by,
+               modified_by,
+               created_at,
+               updated_at
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $7, NOW(), NOW())
+             RETURNING id`,
+            [
+              `CASE-SCOPE-${suffix}-B`,
+              contactId,
+              secondaryAccountId,
+              caseTypeResult.rows[0].id,
+              caseStatusResult.rows[0].id,
+              'Timeline External Case',
+              staffUserId,
+            ]
+          )
+        ).rows[0].id;
+        createdCaseIds.push(externalCaseId);
+
+        const activeCaseNoteId = (
+          await pool.query<{ id: string }>(
+            `INSERT INTO case_notes (
+               case_id,
+               note_type,
+               subject,
+               content,
+               is_internal,
+               visible_to_client,
+               is_important,
+               created_by,
+               updated_by,
+               created_at,
+               updated_at
+             ) VALUES (
+               $1,
+               'note',
+               'Active org case note',
+               'This note should be visible in the active organization timeline',
+               false,
+               true,
+               false,
+               $2,
+               $2,
+               $3,
+               $3
+             )
+             RETURNING id`,
+            [activeCaseId, staffUserId, '2026-04-13T10:00:00.000Z']
+          )
+        ).rows[0].id;
+        createdCaseNoteIds.push(activeCaseNoteId);
+
+        const externalCaseNoteId = (
+          await pool.query<{ id: string }>(
+            `INSERT INTO case_notes (
+               case_id,
+               note_type,
+               subject,
+               content,
+               is_internal,
+               visible_to_client,
+               is_important,
+               created_by,
+               updated_by,
+               created_at,
+               updated_at
+             ) VALUES (
+               $1,
+               'note',
+               'External org case note',
+               'This note should be hidden from the active organization timeline',
+               false,
+               true,
+               false,
+               $2,
+               $2,
+               $3,
+               $3
+             )
+             RETURNING id`,
+            [externalCaseId, staffUserId, '2026-04-14T10:00:00.000Z']
+          )
+        ).rows[0].id;
+        createdCaseNoteIds.push(externalCaseNoteId);
+
+        const response = await withStaffAuth(request(app)
+          .get(`/api/v2/contacts/${contactId}/notes/timeline`))
+          .expect(200);
+
+        const payload = payloadFromResponse<{
+          items: Array<{
+            id: string;
+            source_type: string;
+            case_id: string | null;
+            case_number: string | null;
+          }>;
+          counts: {
+            all: number;
+            contact_notes: number;
+            case_notes: number;
+            event_activity: number;
+          };
+        }>(response.body);
+
+        expect(payload.counts).toEqual({
+          all: 1,
+          contact_notes: 0,
+          case_notes: 1,
+          event_activity: 0,
+        });
+
+        const caseNoteItems = payload.items.filter((item) => item.source_type === 'case_note');
+        expect(caseNoteItems).toEqual([
+          expect.objectContaining({
+            id: activeCaseNoteId,
+            case_id: activeCaseId,
+            case_number: `CASE-SCOPE-${suffix}-A`,
+          }),
+        ]);
+        expect(caseNoteItems.map((item) => item.id)).not.toContain(externalCaseNoteId);
+      } finally {
+        if (createdCaseNoteIds.length > 0) {
+          await pool.query('DELETE FROM case_notes WHERE id = ANY($1::uuid[])', [createdCaseNoteIds]);
+        }
+        if (createdCaseIds.length > 0) {
+          await pool.query('DELETE FROM cases WHERE id = ANY($1::uuid[])', [createdCaseIds]);
+        }
+        await pool.query('DELETE FROM contacts WHERE id = $1', [contactId]);
+        await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [secondaryAccountId]);
+        await pool.query('DELETE FROM accounts WHERE id = $1', [secondaryAccountId]);
+      }
+    });
   });
 
   describe('PUT /api/v2/contacts/:id', () => {

@@ -54,8 +54,8 @@ export class CaseRepository implements CaseCatalogPort, CaseLifecyclePort {
     return getCaseStatusesQuery(pool);
   }
 
-  async createCase(data: CreateCaseDTO, userId?: string): Promise<unknown> {
-    return createCaseQuery(pool, data, userId);
+  async createCase(data: CreateCaseDTO, userId?: string, organizationId?: string): Promise<unknown> {
+    return createCaseQuery(pool, data, userId, organizationId);
   }
 
   async updateCase(caseId: string, data: UpdateCaseDTO, userId?: string): Promise<unknown> {

@@ -12,6 +12,7 @@ import {
   createTestEvent,
   getAuthHeaders,
 } from '../helpers/database';
+import { unwrapSuccess } from '../helpers/apiEnvelope';
 
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 const apiURL = process.env.API_URL || 'http://localhost:3001';
@@ -261,6 +262,76 @@ async function waitForContactDetailReady(page: Page, headingMatcher?: RegExp): P
   }
 }
 
+type CaseListItem = {
+  id?: string;
+  title?: string;
+  case_number?: string;
+};
+
+function extractCaseListItems(payload: unknown): CaseListItem[] {
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  const record = payload as Record<string, unknown>;
+  const candidates = [
+    record.cases,
+    record.items,
+    record.data,
+    record.results,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate as CaseListItem[];
+    }
+
+    if (!candidate || typeof candidate !== 'object') {
+      continue;
+    }
+
+    const nested = candidate as Record<string, unknown>;
+    if (Array.isArray(nested.cases)) {
+      return nested.cases as CaseListItem[];
+    }
+    if (Array.isArray(nested.items)) {
+      return nested.items as CaseListItem[];
+    }
+    if (Array.isArray(nested.data)) {
+      return nested.data as CaseListItem[];
+    }
+  }
+
+  return [];
+}
+
+async function waitForCaseAssociation(
+  page: Page,
+  token: string,
+  contactId: string,
+  caseTitle: string
+): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const headers = await getContactReadHeaders(page, token);
+        const response = await page.request.get(
+          `${apiURL}/api/v2/cases?contact_id=${contactId}&limit=25&search=${encodeURIComponent(caseTitle)}`,
+          { headers }
+        );
+
+        if (!response.ok()) {
+          return false;
+        }
+
+        const payload = unwrapSuccess<unknown>(await response.json());
+        return extractCaseListItems(payload).some((caseItem) => caseItem.title === caseTitle);
+      },
+      { timeout: 30000, intervals: [500, 1000, 2000] }
+    )
+    .toBe(true);
+}
+
 async function createContactPhone(
   page: Page,
   token: string,
@@ -380,6 +451,123 @@ test.describe('Contacts Module', () => {
       (url) => !url.includes(`contact_id=${contactId}`)
     );
     expect(unscopedCaseRequests).toEqual([]);
+  });
+
+  test('should create a case from contact detail, show it on case surfaces, and open it from the notes timeline', async ({
+    authenticatedPage,
+    authToken,
+  }, testInfo) => {
+    test.skip(
+      /^Mobile /.test(testInfo.project.name) || testInfo.project.name === 'Tablet',
+      'Desktop-only contact detail regression coverage'
+    );
+
+    const suffix = uniqueSuffix();
+    const firstName = `Case${suffix}`;
+    const lastName = 'Link';
+    const caseTitle = `Contact detail case ${suffix}`;
+    const noteContent = `Linked case note ${suffix}`;
+    const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
+      firstName,
+      lastName,
+      email: `contact.case.${suffix}@example.com`,
+      phone: '5550202233',
+    });
+
+    await waitForContactAvailability(authenticatedPage, authToken, contactId);
+    await authenticatedPage.goto(`/contacts/${contactId}`);
+    await waitForContactDetailReady(authenticatedPage, new RegExp(`${firstName} ${lastName}`, 'i'));
+
+    await authenticatedPage.getByRole('link', { name: /create case/i }).first().click();
+    await authenticatedPage.waitForURL(new RegExp(`/cases/new\\?contact_id=${contactId}`), { timeout: 30000 });
+    await expect(authenticatedPage.getByText(/prefilled context applied/i)).toBeVisible();
+    await expect(authenticatedPage.locator('input[name="contact_id"]')).toHaveValue(contactId);
+
+    const createCaseRegion = authenticatedPage.getByRole('region', { name: /create case/i });
+    const caseTypeCheckbox = createCaseRegion.getByRole('checkbox').first();
+    await expect(caseTypeCheckbox).toBeVisible({ timeout: 30000 });
+    await caseTypeCheckbox.check();
+    await expect(caseTypeCheckbox).toBeChecked();
+    await authenticatedPage.locator('#case-title').fill(caseTitle);
+    await authenticatedPage.locator('#case-description').fill('Created from the contact detail page.');
+
+    const createCaseResponsePromise = authenticatedPage.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && response.url().includes('/api/v2/cases'),
+      { timeout: 30000 }
+    );
+
+    const [createCaseResponse] = await Promise.all([
+      createCaseResponsePromise,
+      authenticatedPage.getByTestId('case-form-primary-submit').click(),
+    ]);
+    expect(createCaseResponse.ok()).toBeTruthy();
+    const createdCasePayload = unwrapSuccess<{
+      id?: string;
+      data?: { id?: string };
+    }>(await createCaseResponse.json());
+    const createdCaseId = createdCasePayload?.id || createdCasePayload?.data?.id;
+    if (!createdCaseId) {
+      throw new Error(`Missing case id in create response: ${JSON.stringify(createdCasePayload)}`);
+    }
+
+    await authenticatedPage.waitForURL(/\/cases(?:[/?#]|$)/, { timeout: 30000 });
+    await waitForCaseAssociation(authenticatedPage, authToken, contactId, caseTitle);
+
+    await expect(authenticatedPage.getByRole('heading', { name: /cases/i }).first()).toBeVisible();
+    const casesSearchInput = authenticatedPage.getByPlaceholder(/search by case number, title, or description/i);
+    await casesSearchInput.fill(caseTitle);
+    await casesSearchInput.press('Enter');
+    await expect(authenticatedPage.locator('tbody tr').filter({ hasText: caseTitle }).first()).toBeVisible({
+      timeout: 30000,
+    });
+
+    await authenticatedPage.goto(`/contacts/${contactId}`);
+    await waitForContactDetailReady(authenticatedPage, new RegExp(`${firstName} ${lastName}`, 'i'));
+
+    const associatedCaseLink = authenticatedPage.getByRole('link', { name: new RegExp(caseTitle, 'i') }).first();
+    await expect(associatedCaseLink).toBeVisible({ timeout: 30000 });
+
+    await authenticatedPage.getByRole('tab', { name: /notes/i }).click();
+    const notesPanel = authenticatedPage.locator('#tabpanel-notes');
+    await expect(notesPanel.getByRole('heading', { name: /notes timeline/i })).toBeVisible();
+    await notesPanel.getByRole('button', { name: /\+ add note/i }).click();
+
+    const noteForm = notesPanel.getByTestId('contact-note-form');
+    await expect(noteForm).toBeVisible({ timeout: 30000 });
+    const noteCaseSelect = noteForm.getByTestId('contact-note-case-select');
+    await expect(noteCaseSelect).toBeVisible({ timeout: 30000 });
+    await expect(noteCaseSelect.locator(`option[value="${createdCaseId}"]`)).toHaveCount(1, {
+      timeout: 30000,
+    });
+    await noteCaseSelect.selectOption({ value: createdCaseId });
+    await noteForm.getByLabel(/subject/i).fill(`Case follow-up ${suffix}`);
+    await noteForm.getByLabel(/content/i).fill(noteContent);
+
+    const addNoteResponsePromise = authenticatedPage.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && response.url().includes(`/api/v2/contacts/${contactId}/notes`),
+      { timeout: 30000 }
+    );
+
+    await noteForm.getByRole('button', { name: /^add note$/i }).click();
+
+    const addNoteResponse = await addNoteResponsePromise;
+    expect(addNoteResponse.ok()).toBeTruthy();
+    const createdNoteRequest = addNoteResponse.request().postDataJSON() as { case_id?: string };
+    expect(createdNoteRequest.case_id).toBe(createdCaseId);
+
+    const savedNoteCard = notesPanel
+      .getByTestId('contact-note-card')
+      .filter({ hasText: noteContent })
+      .first();
+    await expect(savedNoteCard).toBeVisible({ timeout: 30000 });
+    const timelineCaseLink = savedNoteCard.getByTestId('contact-note-case-link');
+    await expect(timelineCaseLink).toBeVisible();
+    await timelineCaseLink.click();
+
+    await authenticatedPage.waitForURL(new RegExp(`/cases/${createdCaseId}(?:[/?#]|$)`), { timeout: 30000 });
+    await expect(authenticatedPage.getByText(caseTitle).first()).toBeVisible({ timeout: 30000 });
   });
 
   test('should validate create form required and format errors', async ({ authenticatedPage }) => {
@@ -614,6 +802,81 @@ test.describe('Contacts Module', () => {
     await expect(
       authenticatedPage.locator('#tabpanel-payments').getByRole('heading', { name: /payment history/i }).first()
     ).toBeVisible();
+  });
+
+  test('should save a follow-up from the contact detail page and keep it visible after reload', async ({
+    authenticatedPage,
+    authToken,
+  }, testInfo) => {
+    test.skip(
+      /^Mobile /.test(testInfo.project.name) || testInfo.project.name === 'Tablet',
+      'Desktop-only contact detail regression coverage'
+    );
+
+    const suffix = uniqueSuffix();
+    const firstName = `Follow${suffix}`;
+    const lastName = 'Contact';
+    const followUpTitle = `Contact follow-up ${suffix}`;
+    const followUpDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
+      firstName,
+      lastName,
+      email: `contact.followup.${suffix}@example.com`,
+      phone: '5550204444',
+    });
+
+    await waitForContactAvailability(authenticatedPage, authToken, contactId);
+    await authenticatedPage.goto(`/contacts/${contactId}`);
+    await waitForContactDetailReady(authenticatedPage, new RegExp(`${firstName} ${lastName}`, 'i'));
+
+    await authenticatedPage.getByRole('tab', { name: /follow-ups/i }).click();
+    const followUpsPanel = authenticatedPage.locator('#tabpanel-followups');
+    await expect(followUpsPanel).toBeVisible();
+    await followUpsPanel.getByTestId('contact-followup-toggle').click();
+
+    const followUpForm = followUpsPanel.getByTestId('contact-followup-form');
+    await expect(followUpForm).toBeVisible({ timeout: 30000 });
+    await followUpForm.getByLabel(/title/i).fill(followUpTitle);
+    await followUpForm.getByLabel(/description/i).fill('Saved from the contact detail surface.');
+    await followUpForm.getByLabel(/^date/i).fill(followUpDate);
+    await followUpForm.getByLabel(/^time$/i).fill('10:15');
+    await followUpForm.getByLabel(/method/i).selectOption('phone');
+
+    const createFollowUpResponsePromise = authenticatedPage.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && response.url().includes('/api/v2/follow-ups'),
+      { timeout: 30000 }
+    );
+
+    await followUpForm.getByRole('button', { name: /schedule follow-up/i }).click();
+
+    const createFollowUpResponse = await createFollowUpResponsePromise;
+    expect(createFollowUpResponse.ok()).toBeTruthy();
+    const createFollowUpRequest = createFollowUpResponse.request().postDataJSON() as {
+      entity_type?: string;
+      entity_id?: string;
+    };
+    expect(createFollowUpRequest.entity_type).toBe('contact');
+    expect(createFollowUpRequest.entity_id).toBe(contactId);
+
+    const savedFollowUpCard = followUpsPanel
+      .getByTestId('contact-followup-card')
+      .filter({ hasText: followUpTitle })
+      .first();
+    await expect(savedFollowUpCard).toBeVisible({
+      timeout: 30000,
+    });
+
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
+    await waitForContactDetailReady(authenticatedPage, new RegExp(`${firstName} ${lastName}`, 'i'));
+    await authenticatedPage.getByRole('tab', { name: /follow-ups/i }).click();
+
+    const reloadedFollowUpsPanel = authenticatedPage.locator('#tabpanel-followups');
+    const reloadedFollowUpCard = reloadedFollowUpsPanel
+      .getByTestId('contact-followup-card')
+      .filter({ hasText: followUpTitle })
+      .first();
+    await expect(reloadedFollowUpCard).toBeVisible({ timeout: 30000 });
   });
 
   test('should create tasks from the contact detail page', async ({ authenticatedPage, authToken }) => {

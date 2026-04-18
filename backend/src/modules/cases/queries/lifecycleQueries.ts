@@ -1,5 +1,6 @@
 import { Pool, PoolClient, QueryResult } from 'pg';
 import { logger } from '@config/logger';
+import { getRequestContext } from '@config/requestContext';
 import type {
   BulkStatusUpdateDTO,
   Case,
@@ -169,8 +170,16 @@ const persistCaseOutcomeAssignments = async (
 export const createCaseQuery = async (
   db: Pool,
   data: CreateCaseDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<Case> => {
+  const resolvedAccountId =
+    data.account_id
+    || organizationId
+    || getRequestContext()?.organizationId
+    || getRequestContext()?.accountId
+    || getRequestContext()?.tenantId
+    || null;
   const statusResult = await db.query(
     `SELECT id FROM case_statuses WHERE status_type = 'intake' AND is_active = true ORDER BY sort_order LIMIT 1`
   );
@@ -205,7 +214,7 @@ export const createCaseQuery = async (
         [
           caseNumber,
           data.contact_id,
-          data.account_id || null,
+          resolvedAccountId,
           caseTypeIds[0],
           statusId,
           data.title,

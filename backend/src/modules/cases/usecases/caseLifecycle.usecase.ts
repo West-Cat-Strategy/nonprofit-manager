@@ -50,7 +50,7 @@ const normalizeTags = (tags: string[] | undefined): string[] | undefined => {
 export class CaseLifecycleUseCase {
   constructor(private readonly repository: CaseLifecyclePort) {}
 
-  create(data: CreateCaseDTO, userId?: string): Promise<unknown> {
+  create(data: CreateCaseDTO, userId?: string, organizationId?: string): Promise<unknown> {
     const caseTypeIds = resolvePreferredStrings(data.case_type_ids, data.case_type_id);
     const caseOutcomeValues = resolvePreferredStrings(
       data.case_outcome_values,
@@ -74,7 +74,7 @@ export class CaseLifecycleUseCase {
       outcome: primaryCaseOutcome,
       case_outcome_values: caseOutcomeValues.length > 0 ? caseOutcomeValues : undefined,
     };
-    return this.repository.createCase(normalizedData, userId);
+    return this.repository.createCase(normalizedData, userId, organizationId);
   }
 
   update(caseId: string, data: UpdateCaseDTO, userId?: string): Promise<unknown> {

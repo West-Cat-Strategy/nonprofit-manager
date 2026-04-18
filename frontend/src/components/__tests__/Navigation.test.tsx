@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import Navigation from '../Navigation';
 import { renderWithProviders } from '../../test/testUtils';
+import { THEME_IDS } from '../../theme/themeRegistry';
 
 const {
   handleLogoutMock,
@@ -159,7 +160,7 @@ const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
     secondaryItems,
   },
   themeState: {
-    availableThemes: ['neobrutalist', 'clean-modern'],
+    availableThemes: THEME_IDS,
     isDarkMode: false,
     setTheme: setThemeMock,
     theme: 'neobrutalist',
@@ -403,10 +404,20 @@ describe('Navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: /user menu/i }));
 
     const adminSettingsLinks = screen.getAllByRole('link', { name: /^admin settings$/i });
+    const themeHeading = screen.getByText(/^theme$/i);
+    const userMenuPanel = themeHeading.closest('div[data-shell-transition]');
+
     expect(adminSettingsLinks).not.toHaveLength(0);
     expect(
       adminSettingsLinks.every((link) => link.getAttribute('href') === '/settings/admin/dashboard')
     ).toBe(true);
+    expect(
+      Boolean(
+        adminSettingsLinks[0].compareDocumentPosition(themeHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+      )
+    ).toBe(true);
+    expect(userMenuPanel?.className).toContain('max-h-[min(28rem,calc(100vh-6rem))]');
+    expect(userMenuPanel?.className).toContain('overflow-y-auto');
     expect(screen.getByRole('button', { name: /switch to dark/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /editorial ops/i })).toBeInTheDocument();
     expect(screen.getByText(/warm operational surfaces, serif headlines/i)).toBeInTheDocument();

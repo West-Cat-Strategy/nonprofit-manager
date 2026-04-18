@@ -587,6 +587,55 @@ test.describe("UI/UX regression flows", () => {
     runtimeIssues.detach();
   });
 
+  test("short desktop viewport keeps admin settings reachable from the user menu", async ({
+    authenticatedPage,
+  }, testInfo) => {
+    test.skip(
+      /^Mobile /.test(testInfo.project.name) || testInfo.project.name === "Tablet",
+      "Desktop-only coverage",
+    );
+
+    const runtimeIssues = trackRuntimeIssues(authenticatedPage);
+    const viewportHeight = 640;
+
+    await authenticatedPage.setViewportSize({ width: 1280, height: viewportHeight });
+    await authenticatedPage.goto("/dashboard");
+
+    const userMenuButton = authenticatedPage
+      .getByRole("button", { name: /user menu/i })
+      .first();
+    await expect(userMenuButton).toBeVisible({ timeout: 10000 });
+    await userMenuButton.click();
+
+    const adminSettingsLink = authenticatedPage
+      .getByRole("link", { name: /admin settings/i })
+      .first();
+    await expect(adminSettingsLink).toBeVisible({ timeout: 10000 });
+
+    const linkBounds = await adminSettingsLink.boundingBox();
+    expect(
+      (linkBounds?.y ?? Number.POSITIVE_INFINITY) +
+        (linkBounds?.height ?? Number.POSITIVE_INFINITY),
+    ).toBeLessThanOrEqual(viewportHeight);
+
+    await adminSettingsLink.click();
+
+    const routeState = await resolveAdminRouteState(
+      authenticatedPage,
+      "/settings/admin",
+      /admin hub|admin settings/i,
+    );
+    expect(routeState).toBe("accessible");
+    await expect(
+      authenticatedPage
+        .getByRole("heading", { name: /admin hub|admin settings/i })
+        .first(),
+    ).toBeVisible();
+
+    expectNoRuntimeIssues("short desktop user menu", runtimeIssues);
+    runtimeIssues.detach();
+  });
+
   test("mobile navigation drawer keeps the compact section layout", async ({
     authenticatedPage,
   }, testInfo) => {

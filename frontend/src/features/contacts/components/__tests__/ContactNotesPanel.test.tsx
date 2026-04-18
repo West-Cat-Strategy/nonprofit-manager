@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import ContactNotes from '../ContactNotesPanel';
 import contactsReducer from '../../state';
@@ -195,6 +195,88 @@ describe('ContactNotesPanel', () => {
 
     const resetCheckbox = await screen.findByRole('checkbox', { name: /maintained employment/i });
     expect(resetCheckbox).not.toBeChecked();
+  });
+
+  it('renders stable note hooks for case-linked notes and keeps the case link inside the right card', async () => {
+    mockApi.get.mockResolvedValueOnce(
+      createTimelineResponse([
+        {
+          id: 'note-linked',
+          source_type: 'contact_note',
+          note_type: 'note',
+          title: null,
+          content: 'Linked note',
+          case_id: 'case-1',
+          case_number: 'CASE-001',
+          case_title: 'Housing support',
+          event_id: null,
+          event_name: null,
+          activity_type: null,
+          registration_status: null,
+          previous_registration_status: null,
+          next_registration_status: null,
+          checked_in: false,
+          check_in_method: null,
+          is_internal: false,
+          is_important: false,
+          is_pinned: false,
+          is_alert: false,
+          is_portal_visible: false,
+          created_at: '2026-03-12T00:00:00.000Z',
+          updated_at: '2026-03-12T00:00:00.000Z',
+          created_by: 'user-1',
+          created_by_first_name: 'Staff',
+          created_by_last_name: 'Member',
+          outcome_impacts: [],
+        },
+        {
+          id: 'note-other',
+          source_type: 'contact_note',
+          note_type: 'call',
+          title: null,
+          content: 'Unlinked note',
+          case_id: null,
+          case_number: null,
+          case_title: null,
+          event_id: null,
+          event_name: null,
+          activity_type: null,
+          registration_status: null,
+          previous_registration_status: null,
+          next_registration_status: null,
+          checked_in: false,
+          check_in_method: null,
+          is_internal: false,
+          is_important: false,
+          is_pinned: false,
+          is_alert: false,
+          is_portal_visible: false,
+          created_at: '2026-03-11T00:00:00.000Z',
+          updated_at: '2026-03-11T00:00:00.000Z',
+          created_by: 'user-2',
+          created_by_first_name: 'Casey',
+          created_by_last_name: 'Worker',
+          outcome_impacts: [],
+        },
+      ])
+    );
+
+    renderContactNotes();
+
+    fireEvent.click(screen.getByRole('button', { name: /\+ add note/i }));
+
+    expect(await screen.findByTestId('contact-note-case-select')).toBeInTheDocument();
+
+    const cards = await screen.findAllByTestId('contact-note-card');
+    expect(cards).toHaveLength(2);
+
+    const linkedCards = cards.filter((card) => card.getAttribute('data-note-id') === 'note-linked');
+    expect(linkedCards).toHaveLength(1);
+
+    const [linkedCard] = linkedCards;
+    const linkedCaseLink = within(linkedCard).getByTestId('contact-note-case-link');
+    expect(linkedCaseLink).toHaveAttribute('data-note-id', 'note-linked');
+    expect(linkedCaseLink).toHaveAttribute('data-case-id', 'case-1');
   });
 
   it('posts outcome impacts for case-linked notes and renders saved outcome chips', async () => {

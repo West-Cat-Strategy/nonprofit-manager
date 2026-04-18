@@ -73,6 +73,7 @@ export default function Navigation() {
     desktopOverflowItems.some((item) => isNavItemActive(item.id, item.path)) ||
     utilityNavLinks.some((item) => isNavItemActive(item.id, item.path));
 
+  const cappedNavPopoverPanelClass = 'max-h-[min(28rem,calc(100vh-6rem))] overflow-y-auto';
   const desktopActionButtonClass =
     'inline-flex items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-2.5 py-2 text-sm font-semibold text-app-text shadow-sm transition hover:bg-app-surface-muted hover:text-app-text-heading focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2 sm:px-3';
   const activeDesktopButtonClass =
@@ -256,7 +257,7 @@ export default function Navigation() {
                 <NavPopover
                   open={moreMenuOpen}
                   onClose={() => setMoreMenuOpen(false)}
-                  panelClassName="max-h-[min(28rem,calc(100vh-6rem))] w-80 overflow-y-auto p-2"
+                  panelClassName={`${cappedNavPopoverPanelClass} w-80 p-2`}
                   panelRef={moreMenuRef}
                 >
                   <nav id="topnav-more-menu" aria-label="More navigation">
@@ -426,7 +427,7 @@ export default function Navigation() {
               open={userMenuOpen}
               onClose={() => setUserMenuOpen(false)}
               align="right"
-              panelClassName="w-80 py-2"
+              panelClassName={`${cappedNavPopoverPanelClass} w-80 py-2`}
               panelRef={userMenuRef}
             >
               <div id="topnav-user-menu" aria-label="User menu links">
@@ -451,6 +452,25 @@ export default function Navigation() {
                 >
                   User Settings
                 </Link>
+                {canOpenAdminSettings ? (
+                  <div className="border-t border-app-border px-3 py-3">
+                    <Link
+                      to={adminSettingsPath}
+                      className="block rounded px-1 py-1.5 text-sm text-app-text transition hover:bg-app-hover"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Admin Settings
+                    </Link>
+                    <div className="mt-2 border-t border-app-border-muted pt-2">
+                      <AdminQuickActionsBar
+                        role={user?.role}
+                        compact
+                        maxItems={4}
+                        onActionClick={() => setUserMenuOpen(false)}
+                      />
+                    </div>
+                  </div>
+                ) : null}
                 <div className="border-t border-app-border px-3 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-app-text-subtle">
                     Theme
@@ -514,25 +534,6 @@ export default function Navigation() {
                     </button>
                   </div>
                 </div>
-                {canOpenAdminSettings ? (
-                  <div className="border-t border-app-border px-3 py-3">
-                    <Link
-                      to={adminSettingsPath}
-                      className="block rounded px-1 py-1.5 text-sm text-app-text transition hover:bg-app-hover"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      Admin Settings
-                    </Link>
-                    <div className="mt-2 border-t border-app-border-muted pt-2">
-                      <AdminQuickActionsBar
-                        role={user?.role}
-                        compact
-                        maxItems={4}
-                        onActionClick={() => setUserMenuOpen(false)}
-                      />
-                    </div>
-                  </div>
-                ) : null}
                 <button
                   type="button"
                   onClick={() => {

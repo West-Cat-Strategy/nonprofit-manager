@@ -42,6 +42,7 @@ The `check-*.ts` scripts are the repo policy gates that back `make lint`, `make 
 - [lib/config.sh](lib/config.sh) and [lib/import-audit.ts](lib/import-audit.ts) provide shared config/audit helpers for the policy checks.
 - `backend/scripts/run-integration-tests.sh` is backend-owned and is invoked from the backend test workflow.
 - `perf/p4-t9h-capture.sh` and `perf/p4-t9h-seed.sql` support the documented performance artifact workflow.
+- [support/cbis-case-visibility-repair.sql](support/cbis-case-visibility-repair.sql) is the scoped manual-support SQL helper for auditing and repairing the user-reported CBIS hidden-case records after the case visibility hotfix.
 
 ## Backup And Restore Helpers
 

@@ -4,15 +4,12 @@ import { followUpService } from '@services/followUpService';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { badRequest, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 import { logger } from '@config/logger';
-import {
-  requirePermissionSafe,
-  sendForbidden,
-  sendUnauthorized,
-} from '@services/authGuardService';
+import { requirePermissionSafe, sendForbidden, sendUnauthorized } from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
 import type { FollowUpEntityType, FollowUpFilters } from '@app-types/followUp';
 
-const getOrgId = (req: AuthRequest): string | null => req.organizationId || req.accountId || req.tenantId || null;
+const getOrgId = (req: AuthRequest): string | null =>
+  req.organizationId || req.accountId || req.tenantId || null;
 
 const ensurePermission = (req: AuthRequest, res: Response, permission: Permission): boolean => {
   const guard = requirePermissionSafe(req, permission);
@@ -25,6 +22,32 @@ const ensurePermission = (req: AuthRequest, res: Response, permission: Permissio
     return false;
   }
   return true;
+};
+
+const getBadRequestMessage = (error: unknown): string | null => {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  const candidate = error as Error & {
+    statusCode?: unknown;
+    cause?: unknown;
+  };
+
+  if (candidate.statusCode === 400) {
+    return error.message;
+  }
+
+  if (candidate.cause instanceof Error) {
+    const nested = candidate.cause as Error & {
+      statusCode?: unknown;
+    };
+    if (nested.statusCode === 400) {
+      return nested.message;
+    }
+  }
+
+  return null;
 };
 
 export const followUpController = {
@@ -158,7 +181,12 @@ export const followUpController = {
       }
 
       const params = (req.validatedParams ?? req.params) as { id: string };
-      const updated = await followUpService.updateFollowUp(organizationId, params.id, userId, req.body);
+      const updated = await followUpService.updateFollowUp(
+        organizationId,
+        params.id,
+        userId,
+        req.body
+      );
       if (!updated) {
         notFoundMessage(res, 'Follow-up not found');
         return;
@@ -201,7 +229,12 @@ export const followUpController = {
       }
 
       const params = (req.validatedParams ?? req.params) as { id: string };
-      const completed = await followUpService.completeFollowUp(organizationId, params.id, userId, req.body || {});
+      const completed = await followUpService.completeFollowUp(
+        organizationId,
+        params.id,
+        userId,
+        req.body || {}
+      );
 
       if (!completed) {
         notFoundMessage(res, 'Follow-up not found');
@@ -210,9 +243,9 @@ export const followUpController = {
 
       sendSuccess(res, completed);
     } catch (error) {
-      const errorRecord = error as unknown as Record<string, unknown>;
-      if (error instanceof Error && 'statusCode' in errorRecord) {
-        badRequest(res, error.message);
+      const badRequestMessage = getBadRequestMessage(error);
+      if (badRequestMessage) {
+        badRequest(res, badRequestMessage);
         return;
       }
       serverError(res, 'Failed to complete follow-up');
@@ -245,9 +278,9 @@ export const followUpController = {
 
       sendSuccess(res, cancelled);
     } catch (error) {
-      const errorRecord = error as unknown as Record<string, unknown>;
-      if (error instanceof Error && 'statusCode' in errorRecord) {
-        badRequest(res, error.message);
+      const badRequestMessage = getBadRequestMessage(error);
+      if (badRequestMessage) {
+        badRequest(res, badRequestMessage);
         return;
       }
       serverError(res, 'Failed to cancel follow-up');

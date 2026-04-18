@@ -6,6 +6,7 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { followUpsApiClient } from '../api/followUpsApiClient';
+import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import type {
   FollowUp,
   FollowUpWithEntity,
@@ -62,92 +63,157 @@ const initialState: FollowUpsState = {
   filters: {},
 };
 
+const getErrorMessage = (error: unknown, fallbackMessage: string) =>
+  formatApiErrorMessageWith(fallbackMessage)(error);
+
 // Fetch all follow-ups with filters
 export const fetchFollowUps = createAsyncThunk(
   'followUps/fetchFollowUps',
-  async (params: { filters?: FollowUpFilters; page?: number; limit?: number } = {}) => {
-    return followUpsApiClient.fetchFollowUps(params);
+  async (
+    params: { filters?: FollowUpFilters; page?: number; limit?: number } = {},
+    { rejectWithValue }
+  ) => {
+    try {
+      return await followUpsApiClient.fetchFollowUps(params);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch follow-ups'));
+    }
   }
 );
 
 // Fetch follow-ups for a specific entity (case or task)
 export const fetchEntityFollowUps = createAsyncThunk(
   'followUps/fetchEntityFollowUps',
-  async ({ entityType, entityId }: { entityType: FollowUpEntityType; entityId: string }) => {
-    return followUpsApiClient.fetchEntityFollowUps(entityType, entityId);
+  async (
+    { entityType, entityId }: { entityType: FollowUpEntityType; entityId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await followUpsApiClient.fetchEntityFollowUps(entityType, entityId);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch follow-ups'));
+    }
   }
 );
 
 // Fetch a single follow-up by ID
 export const fetchFollowUpById = createAsyncThunk(
   'followUps/fetchFollowUpById',
-  async (followUpId: string) => {
-    return followUpsApiClient.fetchFollowUpById(followUpId);
+  async (followUpId: string, { rejectWithValue }) => {
+    try {
+      return await followUpsApiClient.fetchFollowUpById(followUpId);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch follow-up'));
+    }
   }
 );
 
 // Create a new follow-up
 export const createFollowUp = createAsyncThunk(
   'followUps/createFollowUp',
-  async (data: CreateFollowUpDTO) => {
-    return followUpsApiClient.createFollowUp(data);
+  async (data: CreateFollowUpDTO, { rejectWithValue }) => {
+    try {
+      return await followUpsApiClient.createFollowUp(data);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create follow-up'));
+    }
   }
 );
 
 // Update a follow-up
 export const updateFollowUp = createAsyncThunk(
   'followUps/updateFollowUp',
-  async ({ followUpId, data }: { followUpId: string; data: UpdateFollowUpDTO }) => {
-    return followUpsApiClient.updateFollowUp(followUpId, data);
+  async (
+    { followUpId, data }: { followUpId: string; data: UpdateFollowUpDTO },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await followUpsApiClient.updateFollowUp(followUpId, data);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update follow-up'));
+    }
   }
 );
 
 // Complete a follow-up
 export const completeFollowUp = createAsyncThunk(
   'followUps/completeFollowUp',
-  async ({ followUpId, data }: { followUpId: string; data?: CompleteFollowUpDTO }) => {
-    return followUpsApiClient.completeFollowUp(followUpId, data);
+  async (
+    { followUpId, data }: { followUpId: string; data?: CompleteFollowUpDTO },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await followUpsApiClient.completeFollowUp(followUpId, data);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to complete follow-up'));
+    }
   }
 );
 
 // Cancel a follow-up
 export const cancelFollowUp = createAsyncThunk(
   'followUps/cancelFollowUp',
-  async ({ followUpId, data }: { followUpId: string; data?: CompleteFollowUpDTO }) => {
-    return followUpsApiClient.cancelFollowUp(followUpId, data);
+  async (
+    { followUpId, data }: { followUpId: string; data?: CompleteFollowUpDTO },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await followUpsApiClient.cancelFollowUp(followUpId, data);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to cancel follow-up'));
+    }
   }
 );
 
 // Reschedule a follow-up
 export const rescheduleFollowUp = createAsyncThunk(
   'followUps/rescheduleFollowUp',
-  async ({ followUpId, newDate, newTime }: { followUpId: string; newDate: string; newTime?: string }) => {
-    return followUpsApiClient.rescheduleFollowUp(followUpId, newDate, newTime);
+  async (
+    { followUpId, newDate, newTime }: { followUpId: string; newDate: string; newTime?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await followUpsApiClient.rescheduleFollowUp(followUpId, newDate, newTime);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to reschedule follow-up'));
+    }
   }
 );
 
 // Delete a follow-up
 export const deleteFollowUp = createAsyncThunk(
   'followUps/deleteFollowUp',
-  async (followUpId: string) => {
-    await followUpsApiClient.deleteFollowUp(followUpId);
-    return followUpId;
+  async (followUpId: string, { rejectWithValue }) => {
+    try {
+      await followUpsApiClient.deleteFollowUp(followUpId);
+      return followUpId;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to delete follow-up'));
+    }
   }
 );
 
 // Fetch follow-up summary
 export const fetchFollowUpSummary = createAsyncThunk(
   'followUps/fetchFollowUpSummary',
-  async (filters?: FollowUpFilters) => {
-    return followUpsApiClient.fetchFollowUpSummary(filters);
+  async (filters: FollowUpFilters | undefined, { rejectWithValue }) => {
+    try {
+      return await followUpsApiClient.fetchFollowUpSummary(filters);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch follow-up summary'));
+    }
   }
 );
 
 // Fetch upcoming follow-ups (for dashboard)
 export const fetchUpcomingFollowUps = createAsyncThunk(
   'followUps/fetchUpcomingFollowUps',
-  async (limit: number = 10) => {
-    return followUpsApiClient.fetchUpcomingFollowUps(limit);
+  async (limit: number = 10, { rejectWithValue }) => {
+    try {
+      return await followUpsApiClient.fetchUpcomingFollowUps(limit);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch upcoming follow-ups'));
+    }
   }
 );
 
@@ -185,7 +251,7 @@ const followUpsSlice = createSlice({
       })
       .addCase(fetchFollowUps.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch follow-ups';
+        state.error = (action.payload as string) || action.error.message || 'Failed to fetch follow-ups';
       })
 
     // Fetch entity follow-ups
@@ -199,7 +265,7 @@ const followUpsSlice = createSlice({
       })
       .addCase(fetchEntityFollowUps.rejected, (state, action) => {
         state.entityLoading = false;
-        state.error = action.error.message || 'Failed to fetch follow-ups';
+        state.error = (action.payload as string) || action.error.message || 'Failed to fetch follow-ups';
       })
 
     // Fetch single follow-up
@@ -213,7 +279,7 @@ const followUpsSlice = createSlice({
       })
       .addCase(fetchFollowUpById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch follow-up';
+        state.error = (action.payload as string) || action.error.message || 'Failed to fetch follow-up';
       })
 
     // Create follow-up
@@ -228,7 +294,7 @@ const followUpsSlice = createSlice({
       })
       .addCase(createFollowUp.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to create follow-up';
+        state.error = (action.payload as string) || action.error.message || 'Failed to create follow-up';
       })
 
     // Update follow-up
@@ -256,7 +322,7 @@ const followUpsSlice = createSlice({
       })
       .addCase(updateFollowUp.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to update follow-up';
+        state.error = (action.payload as string) || action.error.message || 'Failed to update follow-up';
       })
 
     // Complete follow-up
@@ -273,6 +339,9 @@ const followUpsSlice = createSlice({
           state.followUps[allIndex] = { ...state.followUps[allIndex], ...completed };
         }
       })
+      .addCase(completeFollowUp.rejected, (state, action) => {
+        state.error = (action.payload as string) || action.error.message || 'Failed to complete follow-up';
+      })
 
     // Cancel follow-up
       .addCase(cancelFollowUp.fulfilled, (state, action) => {
@@ -287,6 +356,9 @@ const followUpsSlice = createSlice({
         if (allIndex !== -1) {
           state.followUps[allIndex] = { ...state.followUps[allIndex], ...cancelled };
         }
+      })
+      .addCase(cancelFollowUp.rejected, (state, action) => {
+        state.error = (action.payload as string) || action.error.message || 'Failed to cancel follow-up';
       })
 
     // Reschedule follow-up
@@ -303,6 +375,9 @@ const followUpsSlice = createSlice({
           state.followUps[allIndex] = { ...state.followUps[allIndex], ...rescheduled };
         }
       })
+      .addCase(rescheduleFollowUp.rejected, (state, action) => {
+        state.error = (action.payload as string) || action.error.message || 'Failed to reschedule follow-up';
+      })
 
     // Delete follow-up
       .addCase(deleteFollowUp.fulfilled, (state, action) => {
@@ -312,6 +387,9 @@ const followUpsSlice = createSlice({
         if (state.selectedFollowUp?.id === deletedId) {
           state.selectedFollowUp = null;
         }
+      })
+      .addCase(deleteFollowUp.rejected, (state, action) => {
+        state.error = (action.payload as string) || action.error.message || 'Failed to delete follow-up';
       })
 
     // Fetch summary

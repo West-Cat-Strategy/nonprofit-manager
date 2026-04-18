@@ -3,6 +3,8 @@ import { casesApiClient } from '../api/casesApiClient';
 import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import type {
   CaseWithDetails,
+  CaseStatus,
+  CaseType,
   CreateCaseDTO,
   UpdateCaseDTO,
   UpdateCaseStatusDTO,
@@ -14,10 +16,10 @@ const CONTACT_CASE_CACHE_TTL_MS = 2 * 60 * 1000;
 
 export interface CasesCoreState {
   currentCase: CaseWithDetails | null;
-  caseTypes: any[];
-  caseStatuses: any[];
+  caseTypes: CaseType[];
+  caseStatuses: CaseStatus[];
   contactCasesByContactId: Record<string, {
-    cases: any[];
+    cases: CaseWithDetails[];
     loading: boolean;
     error: string | null;
     fetchedAt: number | null;
@@ -33,6 +35,63 @@ const initialState: CasesCoreState = {
   contactCasesByContactId: {},
   loading: false,
   error: null,
+};
+
+const markContactCasesCacheStale = (state: CasesCoreState, contactId?: string | null) => {
+  if (!contactId) {
+    return;
+  }
+
+  const existing = state.contactCasesByContactId[contactId];
+  if (!existing) {
+    return;
+  }
+
+  state.contactCasesByContactId[contactId] = {
+    ...existing,
+    error: null,
+    fetchedAt: null,
+  };
+};
+
+const upsertCachedContactCase = (state: CasesCoreState, caseRecord: CaseWithDetails) => {
+  const contactId = caseRecord.contact_id;
+  if (!contactId) {
+    return;
+  }
+
+  const existing = state.contactCasesByContactId[contactId];
+  if (!existing) {
+    return;
+  }
+
+  state.contactCasesByContactId[contactId] = {
+    ...existing,
+    cases: [caseRecord, ...existing.cases.filter((entry) => entry.id !== caseRecord.id)],
+    error: null,
+    fetchedAt: null,
+  };
+};
+
+const removeCachedContactCase = (
+  state: CasesCoreState,
+  payload: { id: string; contactId?: string | null }
+) => {
+  if (!payload.contactId) {
+    return;
+  }
+
+  const existing = state.contactCasesByContactId[payload.contactId];
+  if (!existing) {
+    return;
+  }
+
+  state.contactCasesByContactId[payload.contactId] = {
+    ...existing,
+    cases: existing.cases.filter((entry) => entry.id !== payload.id),
+    error: null,
+    fetchedAt: null,
+  };
 };
 
 // Async Thunks
@@ -71,10 +130,27 @@ export const updateCase = createAsyncThunk(
 
 export const deleteCase = createAsyncThunk(
   'casesCore/deleteCase',
-  async (id: string, { rejectWithValue }) => {
+  async (id: string, { getState, rejectWithValue }) => {
     try {
       await casesApiClient.deleteCase(id);
-      return id;
+      const state = getState() as { cases?: { core: CasesCoreState } };
+      const currentCase = state.cases?.core?.currentCase;
+
+      if (currentCase?.id === id) {
+        return {
+          id,
+          contactId: currentCase.contact_id,
+        };
+      }
+
+      const cachedContactId = Object.entries(
+        state.cases?.core?.contactCasesByContactId ?? {}
+      ).find(([, entry]) => entry.cases.some((caseRecord) => caseRecord.id === id))?.[0];
+
+      return {
+        id,
+        contactId: cachedContactId,
+      };
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, 'Failed to delete case'));
     }
@@ -189,8 +265,10 @@ const casesCoreSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(createCase.fulfilled, (state) => {
+      .addCase(createCase.fulfilled, (state, action) => {
         state.loading = false;
+        upsertCachedContactCase(state, action.payload);
+        markContactCasesCacheStale(state, action.payload.contact_id);
       })
       .addCase(updateCase.fulfilled, (state, action) => {
         state.loading = false;
@@ -200,9 +278,11 @@ const casesCoreSlice = createSlice({
       })
       .addCase(deleteCase.fulfilled, (state, action) => {
         state.loading = false;
-        if (state.currentCase?.id === action.payload) {
+        if (state.currentCase?.id === action.payload.id) {
           state.currentCase = null;
         }
+        removeCachedContactCase(state, action.payload);
+        markContactCasesCacheStale(state, action.payload.contactId);
       })
       .addCase(updateCaseStatus.fulfilled, (state, action) => {
         if (state.currentCase?.id === action.payload.id) {
