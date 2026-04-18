@@ -3,11 +3,15 @@ import api from '../../../../../services/api';
 import type { AuditLogPage, UserSearchResult, UserSecurityInfo } from '../types';
 import { type AccessDraft, type ConfirmedUserDetails, readList } from './userSettingsData';
 
+type NotifyFn = (message: string) => void;
+
 export const useUserLookupSecurity = ({
   clearFormError,
   setFormErrorFromError,
   loadUserDetails,
   setUserAccessDraft,
+  showSuccess,
+  showError,
 }: {
   clearFormError: () => void;
   setFormErrorFromError: (error: unknown, fallbackMessage?: string) => void;
@@ -17,6 +21,8 @@ export const useUserLookupSecurity = ({
       | AccessDraft
       | ((prev: AccessDraft) => AccessDraft)
   ) => void;
+  showSuccess: NotifyFn;
+  showError: NotifyFn;
 }) => {
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userSearchResults, setUserSearchResults] = useState<UserSearchResult[]>([]);
@@ -70,10 +76,10 @@ export const useUserLookupSecurity = ({
         setUserAuditLogPage(logsResponse.data || { logs: [], total: 0 });
         setShowSecurityModal(true);
       } catch {
-        alert('Failed to load user information');
+        showError('Failed to load user information');
       }
     },
-    [loadUserDetails, setUserAccessDraft]
+    [loadUserDetails, setUserAccessDraft, showError]
   );
 
   const fetchUserAccessInfo = useCallback(
@@ -84,10 +90,10 @@ export const useUserLookupSecurity = ({
         setUserAccessDraft(userDetails.access);
         setShowAccessModal(true);
       } catch {
-        alert('Failed to load user access information');
+        showError('Failed to load user access information');
       }
     },
-    [loadUserDetails, setUserAccessDraft]
+    [loadUserDetails, setUserAccessDraft, showError]
   );
 
   const handleResetUserPassword = useCallback(async () => {
@@ -112,7 +118,7 @@ export const useUserLookupSecurity = ({
       setShowResetPasswordModal(false);
       setNewPassword('');
       setConfirmPassword('');
-      alert('Password has been reset successfully');
+      showSuccess('Password reset successfully');
     } catch {
       setFormErrorFromError(new Error('Failed to reset password'), 'Failed to reset password');
     }
@@ -122,6 +128,7 @@ export const useUserLookupSecurity = ({
     newPassword,
     selectedUser,
     setFormErrorFromError,
+    showSuccess,
   ]);
 
   const handleResetUserEmail = useCallback(async () => {
@@ -141,22 +148,24 @@ export const useUserLookupSecurity = ({
       setShowResetEmailModal(false);
       setNewEmail('');
       setSelectedUser((prev) => (prev ? { ...prev, email: newEmail } : null));
-      alert('Email has been updated successfully');
+      showSuccess('Email updated successfully');
     } catch {
       setFormErrorFromError(new Error('Failed to update email'), 'Failed to update email');
     }
-  }, [clearFormError, newEmail, selectedUser, setFormErrorFromError]);
+  }, [clearFormError, newEmail, selectedUser, setFormErrorFromError, showSuccess]);
 
   const handleToggleUserLock = useCallback(async () => {
     if (!selectedUser) return;
+    const nextLocked = !selectedUser.isLocked;
 
     try {
-      await api.put(`/users/${selectedUser.id}`, { isLocked: !selectedUser.isLocked });
-      setSelectedUser((prev) => (prev ? { ...prev, isLocked: !prev.isLocked } : null));
+      await api.put(`/users/${selectedUser.id}`, { isLocked: nextLocked });
+      setSelectedUser((prev) => (prev ? { ...prev, isLocked: nextLocked } : null));
+      showSuccess(nextLocked ? 'Account locked' : 'Account unlocked');
     } catch {
-      alert('Failed to update user lock status');
+      showError('Failed to update user lock status');
     }
-  }, [selectedUser]);
+  }, [selectedUser, showError, showSuccess]);
 
   return {
     userSearchQuery,

@@ -5,21 +5,28 @@ import { useUserInvitations } from './useUserInvitations';
 import { useUserLookupSecurity } from './useUserLookupSecurity';
 
 type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
+type NotifyFn = (message: string) => void;
 
 export const useUsersSettings = ({
   activeSection,
   confirm,
   setFormErrorFromError,
   clearFormError,
+  showSuccess,
+  showError,
 }: {
   activeSection: string;
   confirm: ConfirmFn;
   setFormErrorFromError: (error: unknown, fallbackMessage?: string) => void;
   clearFormError: () => void;
+  showSuccess: NotifyFn;
+  showError: NotifyFn;
 }) => {
   const groupsAndAccess = useUserGroupsAndAccess({
     confirm,
     setFormErrorFromError,
+    showSuccess,
+    showError,
   });
 
   const lookupSecurity = useUserLookupSecurity({
@@ -27,25 +34,31 @@ export const useUsersSettings = ({
     setFormErrorFromError,
     loadUserDetails: groupsAndAccess.loadUserDetails,
     setUserAccessDraft: groupsAndAccess.setUserAccessDraft,
+    showSuccess,
+    showError,
   });
 
   const invitations = useUserInvitations({
     confirm,
     setFormErrorFromError,
     clearFormError,
+    showSuccess,
+    showError,
   });
+  const fetchInvitations = invitations.fetchInvitations;
+  const loadGroupsAndAccounts = groupsAndAccess.loadGroupsAndAccounts;
 
   useEffect(() => {
     if (activeSection === 'users') {
-      void invitations.fetchInvitations();
+      void fetchInvitations();
     }
-  }, [activeSection, invitations.fetchInvitations]);
+  }, [activeSection, fetchInvitations]);
 
   useEffect(() => {
     if (activeSection === 'users' || activeSection === 'groups') {
-      void groupsAndAccess.loadGroupsAndAccounts();
+      void loadGroupsAndAccounts();
     }
-  }, [activeSection, groupsAndAccess.loadGroupsAndAccounts]);
+  }, [activeSection, loadGroupsAndAccounts]);
 
   const handleSaveUserAccess = useCallback(
     async () =>

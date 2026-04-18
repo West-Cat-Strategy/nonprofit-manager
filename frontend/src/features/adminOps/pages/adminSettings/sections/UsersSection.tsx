@@ -18,7 +18,7 @@ interface UsersSectionProps {
   onGoToRoles: () => void;
   onGoToGroups: () => void;
   invitations: UserInvitation[];
-  onResendInvitation: (invitationId: string) => void;
+  onResendInvitation: (invitation: UserInvitation) => void;
   onRevokeInvitation: (invitationId: string) => void;
   organizationAccounts: OrganizationAccount[];
 }
@@ -373,7 +373,7 @@ export default function UsersSection({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => onResendInvitation(invitation.id)}
+                      onClick={() => onResendInvitation(invitation)}
                       className="px-3 py-1.5 text-sm font-medium text-app-accent hover:text-app-accent-hover"
                     >
                       Resend

@@ -13,13 +13,18 @@ import {
 } from './userSettingsData';
 
 type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
+type NotifyFn = (message: string) => void;
 
 export const useUserGroupsAndAccess = ({
   confirm,
   setFormErrorFromError,
+  showSuccess,
+  showError,
 }: {
   confirm: ConfirmFn;
   setFormErrorFromError: (error: unknown, fallbackMessage?: string) => void;
+  showSuccess: NotifyFn;
+  showError: NotifyFn;
 }) => {
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [groupEditor, setGroupEditor] = useState<GroupEditorState>(null);
@@ -86,13 +91,20 @@ export const useUserGroupsAndAccess = ({
           setUserAccessDraft(details.access);
         });
         options.setShowAccessModal(false);
+        showSuccess('User access updated');
       } catch (error: unknown) {
         setFormErrorFromError(error, 'Failed to update user access');
       } finally {
         setSavingUserAccess(false);
       }
     },
-    [loadUserDetails, setFormErrorFromError, userAccessDraft.groups, userAccessDraft.organizationAccess]
+    [
+      loadUserDetails,
+      setFormErrorFromError,
+      showSuccess,
+      userAccessDraft.groups,
+      userAccessDraft.organizationAccess,
+    ]
   );
 
   const openCreateGroup = useCallback(() => {
@@ -135,12 +147,13 @@ export const useUserGroupsAndAccess = ({
       await loadGroupsAndAccounts();
       setShowGroupModal(false);
       setGroupEditor(null);
+      showSuccess(groupEditor.id ? 'Group updated' : 'Group created');
     } catch {
-      alert('Failed to save group');
+      showError('Failed to save group');
     } finally {
       setSavingGroup(false);
     }
-  }, [groupEditor, loadGroupsAndAccounts]);
+  }, [groupEditor, loadGroupsAndAccounts, showError, showSuccess]);
 
   const handleDeleteGroup = useCallback(
     async (groupId: string) => {
@@ -155,11 +168,12 @@ export const useUserGroupsAndAccess = ({
       try {
         await api.delete(`/admin/groups/${groupId}`);
         await loadGroupsAndAccounts();
+        showSuccess('Group deleted');
       } catch {
-        alert('Failed to delete group');
+        showError('Failed to delete group');
       }
     },
-    [confirm, loadGroupsAndAccounts]
+    [confirm, loadGroupsAndAccounts, showError, showSuccess]
   );
 
   const resetGroupModal = useCallback(() => {

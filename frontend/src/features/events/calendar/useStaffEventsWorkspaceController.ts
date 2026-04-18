@@ -95,6 +95,7 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
   const selectedEventType = searchParams.get('type') ?? '';
   const selectedStatus = normalizeEventStatus(searchParams.get('status'));
   const selectedScope = normalizeScope(searchParams.get('scope'), isAdmin);
+  const requestedEntryId = searchParams.get('entry');
 
   const [searchInput, setSearchInput] = useState(appliedSearch);
   const [visibleRange, setVisibleRange] = useState<{ startDate: string; endDate: string } | null>(
@@ -228,11 +229,13 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
 
   useEffect(() => {
     setSelectedEntryId((current) =>
-      current && selectedDateEntries.some((entry) => entry.id === current)
-        ? current
-        : (selectedDateEntries[0]?.id ?? null)
+      requestedEntryId && selectedDateEntries.some((entry) => entry.id === requestedEntryId)
+        ? requestedEntryId
+        : current && selectedDateEntries.some((entry) => entry.id === current)
+          ? current
+          : (selectedDateEntries[0]?.id ?? null)
     );
-  }, [selectedDateEntries]);
+  }, [requestedEntryId, selectedDateEntries]);
 
   const selectedEntry = useMemo(
     () => entries.find((entry) => entry.id === selectedEntryId) ?? null,
@@ -269,6 +272,7 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
       const nextSelectedDate = getVisibleMonthDate(nextMonth, selectedDate);
 
       writeSearchParams({
+        entry: null,
         month: formatMonthParam(nextMonth),
         date: formatDateParam(nextSelectedDate),
       });
@@ -279,6 +283,7 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
   const handleSelectDate = useCallback(
     (date: Date) => {
       writeSearchParams({
+        entry: null,
         month: formatMonthParam(date),
         date: formatDateParam(date),
       });
@@ -295,6 +300,7 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
 
       setSelectedEntryId(entry.id);
       writeSearchParams({
+        entry: entry.id,
         month: formatMonthParam(entryDate),
         date: formatDateParam(entryDate),
       });

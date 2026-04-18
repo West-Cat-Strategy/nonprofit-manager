@@ -5,6 +5,7 @@ import type {
   PortalAdminAppointmentInboxItem,
   PortalAppointmentSlot,
 } from '../../adminOps/contracts';
+import { createEventDetailTarget } from '../navigation/eventRouteTargets';
 import { getEventOccurrenceLabel, getOccurrenceDateRange } from '../utils/occurrences';
 import { formatDateParam, parseValidIsoDate } from './staffCalendarQuery';
 
@@ -34,20 +35,13 @@ export const formatEventType = (value: string | undefined): string => {
 
 export const buildEventDetailHref = (
   occurrence: EventOccurrence,
-  options: { tab?: 'overview' | 'schedule' | 'registrations' } = {}
-): string => {
-  const params = new URLSearchParams();
-
-  if (options.tab) {
-    params.set('tab', options.tab);
-  }
-  if (occurrence.occurrence_id) {
-    params.set('occurrence', occurrence.occurrence_id);
-  }
-
-  const query = params.toString();
-  return query ? `/events/${occurrence.event_id}?${query}` : `/events/${occurrence.event_id}`;
-};
+  options: { tab?: 'overview' | 'schedule' | 'registrations'; returnTo?: string | null } = {}
+): string =>
+  createEventDetailTarget(occurrence.event_id, {
+    tab: options.tab,
+    occurrenceId: occurrence.occurrence_id,
+    returnTo: options.returnTo,
+  });
 
 export const normalizeOccurrenceEntry = (
   occurrence: EventOccurrence

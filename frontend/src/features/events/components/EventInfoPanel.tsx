@@ -15,7 +15,24 @@ const formatEventDateTime = (date: string): string => {
 };
 
 export default function EventInfoPanel({ event, occurrences = [], selectedOccurrence }: EventInfoPanelProps) {
-  const capacityPercentage = event.capacity ? ((event.registered_count || 0) / event.capacity) * 100 : 0;
+  const hasOccurrenceContext = Boolean(
+    selectedOccurrence &&
+      (event.is_recurring || occurrences.length > 1 || (event.occurrence_count ?? 0) > 1)
+  );
+  const overviewOccurrence = hasOccurrenceContext ? selectedOccurrence : null;
+  const displayedStart = overviewOccurrence?.start_date ?? event.start_date;
+  const displayedEnd = overviewOccurrence?.end_date ?? event.end_date;
+  const displayedCapacity = overviewOccurrence?.capacity ?? event.capacity;
+  const displayedRegistered = overviewOccurrence?.registered_count ?? (event.registered_count || 0);
+  const displayedAttended = overviewOccurrence?.attended_count ?? (event.attended_count || 0);
+  const locationName = overviewOccurrence?.location_name ?? event.location_name;
+  const addressLine1 = overviewOccurrence?.address_line1 ?? event.address_line1;
+  const addressLine2 = overviewOccurrence?.address_line2 ?? event.address_line2;
+  const city = overviewOccurrence?.city ?? event.city;
+  const stateProvince = overviewOccurrence?.state_province ?? event.state_province;
+  const postalCode = overviewOccurrence?.postal_code ?? event.postal_code;
+  const country = overviewOccurrence?.country ?? event.country;
+  const capacityPercentage = displayedCapacity ? (displayedRegistered / displayedCapacity) * 100 : 0;
   const nextOccurrence = selectedOccurrence ?? occurrences[0] ?? null;
 
   return (
@@ -60,12 +77,16 @@ export default function EventInfoPanel({ event, occurrences = [], selectedOccurr
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
-          <h3 className="mb-2 text-lg font-semibold">Start Date & Time</h3>
-          <p className="text-app-text-muted">{formatEventDateTime(event.start_date)}</p>
+          <h3 className="mb-2 text-lg font-semibold">
+            {overviewOccurrence ? 'Selected Start' : 'Start Date & Time'}
+          </h3>
+          <p className="text-app-text-muted">{formatEventDateTime(displayedStart)}</p>
         </div>
         <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
-          <h3 className="mb-2 text-lg font-semibold">End Date & Time</h3>
-          <p className="text-app-text-muted">{formatEventDateTime(event.end_date)}</p>
+          <h3 className="mb-2 text-lg font-semibold">
+            {overviewOccurrence ? 'Selected End' : 'End Date & Time'}
+          </h3>
+          <p className="text-app-text-muted">{formatEventDateTime(displayedEnd)}</p>
         </div>
       </div>
 
@@ -89,19 +110,19 @@ export default function EventInfoPanel({ event, occurrences = [], selectedOccurr
 
       <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
         <h3 className="mb-2 text-lg font-semibold">Location</h3>
-        {event.location_name ? (
+        {locationName ? (
           <div className="text-app-text-muted">
-            <p className="font-medium">{event.location_name}</p>
-            {event.address_line1 && <p>{event.address_line1}</p>}
-            {event.address_line2 && <p>{event.address_line2}</p>}
-            {(event.city || event.state_province || event.postal_code) && (
+            <p className="font-medium">{locationName}</p>
+            {addressLine1 && <p>{addressLine1}</p>}
+            {addressLine2 && <p>{addressLine2}</p>}
+            {(city || stateProvince || postalCode) && (
               <p>
-                {event.city && `${event.city}, `}
-                {event.state_province && `${event.state_province} `}
-                {event.postal_code}
+                {city && `${city}, `}
+                {stateProvince && `${stateProvince} `}
+                {postalCode}
               </p>
             )}
-            {event.country && <p>{event.country}</p>}
+            {country && <p>{country}</p>}
           </div>
         ) : (
           <p className="text-app-text-muted">Location to be determined</p>
@@ -111,9 +132,9 @@ export default function EventInfoPanel({ event, occurrences = [], selectedOccurr
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
           <h3 className="mb-2 text-lg font-semibold">Capacity</h3>
-          {event.capacity ? (
+          {displayedCapacity ? (
             <div>
-              <p className="text-2xl font-bold">{event.capacity}</p>
+              <p className="text-2xl font-bold">{displayedCapacity}</p>
               <div className="mt-2 h-2 rounded-full bg-app-surface-muted">
                 <div
                   className={`h-2 rounded-full ${
@@ -126,7 +147,10 @@ export default function EventInfoPanel({ event, occurrences = [], selectedOccurr
                   style={{ width: `${Math.min(capacityPercentage, 100)}%` }}
                 />
               </div>
-              <p className="mt-1 text-sm text-app-text-muted">{Math.round(capacityPercentage)}% full</p>
+              <p className="mt-1 text-sm text-app-text-muted">
+                {Math.round(capacityPercentage)}% full
+                {overviewOccurrence ? ' for the selected occurrence' : ''}
+              </p>
             </div>
           ) : (
             <p className="text-app-text-muted">Unlimited</p>
@@ -135,12 +159,18 @@ export default function EventInfoPanel({ event, occurrences = [], selectedOccurr
 
         <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
           <h3 className="mb-2 text-lg font-semibold">Registered</h3>
-          <p className="text-2xl font-bold text-app-accent">{event.registered_count || 0}</p>
+          <p className="text-2xl font-bold text-app-accent">{displayedRegistered}</p>
+          <p className="mt-1 text-sm text-app-text-muted">
+            {overviewOccurrence ? 'For the selected occurrence' : 'Across this event'}
+          </p>
         </div>
 
         <div className="rounded-lg border border-app-border bg-app-surface-muted/60 p-4">
           <h3 className="mb-2 text-lg font-semibold">Attended</h3>
-          <p className="text-2xl font-bold text-app-accent">{event.attended_count || 0}</p>
+          <p className="text-2xl font-bold text-app-accent">{displayedAttended}</p>
+          <p className="mt-1 text-sm text-app-text-muted">
+            {overviewOccurrence ? 'Checked in for the selected occurrence' : 'Checked in so far'}
+          </p>
         </div>
       </div>
 

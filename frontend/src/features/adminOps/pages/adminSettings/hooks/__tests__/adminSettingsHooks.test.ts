@@ -30,6 +30,9 @@ const mockedApi = api as unknown as {
 };
 
 describe('admin settings hooks', () => {
+  const showSuccess = vi.fn();
+  const showError = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockedApi.get.mockResolvedValue({ data: {} });
@@ -37,6 +40,8 @@ describe('admin settings hooks', () => {
     mockedApi.put.mockResolvedValue({ data: {} });
     mockedApi.patch.mockResolvedValue({ data: {} });
     mockedApi.delete.mockResolvedValue({ data: {} });
+    showSuccess.mockReset();
+    showError.mockReset();
   });
 
   it('keeps the admin settings utility contract intact', () => {
@@ -241,6 +246,8 @@ describe('admin settings hooks', () => {
         confirm: vi.fn().mockResolvedValue(true),
         setFormErrorFromError,
         clearFormError,
+        showSuccess,
+        showError,
       })
     );
 
@@ -276,6 +283,7 @@ describe('admin settings hooks', () => {
       password: 'new-password',
     });
     expect(setFormErrorFromError).not.toHaveBeenCalled();
+    expect(showSuccess).toHaveBeenCalledWith('Password reset successfully');
   });
 
   it('loads user access details and saves access assignments', async () => {
@@ -327,6 +335,8 @@ describe('admin settings hooks', () => {
         confirm: vi.fn().mockResolvedValue(true),
         setFormErrorFromError: vi.fn(),
         clearFormError: vi.fn(),
+        showSuccess,
+        showError,
       })
     );
 
@@ -375,6 +385,8 @@ describe('admin settings hooks', () => {
         confirm,
         setFormErrorFromError: vi.fn(),
         clearFormError: vi.fn(),
+        showSuccess,
+        showError,
       })
     );
 
@@ -408,6 +420,8 @@ describe('admin settings hooks', () => {
 
     expect(confirm).toHaveBeenCalled();
     expect(mockedApi.delete).toHaveBeenCalledWith('/admin/groups/group-1');
+    expect(showSuccess).toHaveBeenCalledWith('Group created');
+    expect(showSuccess).toHaveBeenCalledWith('Group deleted');
   });
 
   it('handles role CRUD actions', async () => {
@@ -423,7 +437,12 @@ describe('admin settings hooks', () => {
       return Promise.resolve({ data: {} });
     });
     const confirm = vi.fn().mockResolvedValue(true);
-    const { result } = renderHook(() => useRolesSettings(confirm));
+    const { result } = renderHook(() =>
+      useRolesSettings(confirm, {
+        showSuccess,
+        showError,
+      })
+    );
 
     act(() => {
       result.current.setEditingRole({
@@ -457,6 +476,48 @@ describe('admin settings hooks', () => {
 
     expect(confirm).toHaveBeenCalled();
     expect(mockedApi.delete).toHaveBeenCalledWith('/admin/roles/role-123');
+    expect(showSuccess).toHaveBeenCalledWith('Role created');
+    expect(showSuccess).toHaveBeenCalledWith('Role deleted');
+  });
+
+  it('opens the invite modal with the refreshed link after resend', async () => {
+    mockedApi.post.mockImplementation((url: string) => {
+      if (url === '/invitations/invite-1/resend') {
+        return Promise.resolve({
+          data: {
+            inviteUrl: 'https://invite.local/refreshed',
+            emailDelivery: { requested: true, sent: true },
+          },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    const { result } = renderHook(() =>
+      useUsersSettings({
+        activeSection: 'users',
+        confirm: vi.fn().mockResolvedValue(true),
+        setFormErrorFromError: vi.fn(),
+        clearFormError: vi.fn(),
+        showSuccess,
+        showError,
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleResendInvitation({
+        id: 'invite-1',
+        email: 'invitee@example.com',
+        role: 'staff',
+        message: 'Welcome aboard',
+      });
+    });
+
+    expect(mockedApi.post).toHaveBeenCalledWith('/invitations/invite-1/resend');
+    expect(result.current.showInviteModal).toBe(true);
+    expect(result.current.inviteUrl).toBe('https://invite.local/refreshed');
+    expect(result.current.inviteEmail).toBe('invitee@example.com');
+    expect(showSuccess).toHaveBeenCalledWith('Invitation resent');
   });
 
   it('handles portal approve/invite/status/reminder actions', async () => {

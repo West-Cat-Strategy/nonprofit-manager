@@ -21,6 +21,7 @@ const mockState = {
         status: 'planned',
         is_public: true,
         is_recurring: false,
+        next_occurrence_id: undefined,
         start_date: '2026-06-01T18:00:00.000Z',
         end_date: '2026-06-01T20:00:00.000Z',
         registered_count: 3,
@@ -191,6 +192,8 @@ describe('EventDetailPage deferred registrations loading', () => {
   beforeEach(() => {
     dispatchMock.mockClear();
     navigateMock.mockClear();
+    mockState.events.detail.event.is_recurring = false;
+    mockState.events.detail.event.next_occurrence_id = undefined;
   });
 
   it('fetches only event detail on initial info-tab render', async () => {
@@ -243,9 +246,44 @@ describe('EventDetailPage deferred registrations loading', () => {
       'href',
       '/events/calendar'
     );
+    expect(screen.getByRole('link', { name: /edit event/i }).getAttribute('href')).toMatch(
+      /^\/events\/event-123\/edit(\?occurrence=occurrence-1)?$/
+    );
+  });
+
+  it('preserves the calendar return target when opening edit from a calendar-selected occurrence', async () => {
+    const calendarReturnTo = '/events?month=2026-05&date=2026-05-12&entry=event%3Aevent-123%3Aoccurrence-2';
+    const currentDetailTarget = `/events/event-123?occurrence=occurrence-2&return_to=${encodeURIComponent(calendarReturnTo)}`;
+
+    renderWithProviders(<EventDetailPage />, {
+      route: currentDetailTarget,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /back to events/i })).toHaveAttribute(
+        'href',
+        calendarReturnTo
+      );
+    });
+
+    expect(screen.getByRole('link', { name: /back to calendar/i })).toHaveAttribute(
+      'href',
+      calendarReturnTo
+    );
     expect(screen.getByRole('link', { name: /edit event/i })).toHaveAttribute(
       'href',
-      '/events/event-123/edit'
+      `/events/event-123/edit?occurrence=occurrence-2&return_to=${encodeURIComponent(currentDetailTarget)}`
     );
+  });
+
+  it('uses the selected occurrence registration count before the registrations tab loads', async () => {
+    mockState.events.detail.event.is_recurring = true;
+    mockState.events.detail.event.next_occurrence_id = 'occurrence-2';
+
+    renderWithProviders(<EventDetailPage />);
+
+    expect(
+      await screen.findByRole('button', { name: /registrations \(2\)/i })
+    ).toBeInTheDocument();
   });
 });

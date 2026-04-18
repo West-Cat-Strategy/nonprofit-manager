@@ -152,4 +152,39 @@ describe('EventEditorForm', () => {
       expect(navigateMock).toHaveBeenCalledWith('/events');
     });
   });
+
+  it('returns to the preserved workspace route when create is cancelled', () => {
+    const returnTo = '/events?month=2026-06&date=2026-06-15&entry=event%3Aevent-123%3Aocc-1';
+
+    renderWithProviders(<EventEditorForm onSubmit={mockOnSubmit} />, {
+      route: `/events/new?return_to=${encodeURIComponent(returnTo)}`,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(navigateMock).toHaveBeenCalledWith(returnTo);
+  });
+
+  it('returns to the preserved workspace route after save succeeds', async () => {
+    const returnTo = '/events?month=2026-06&date=2026-06-15&entry=event%3Aevent-123%3Aocc-1';
+    mockOnSubmit.mockResolvedValue({ event_id: 'event-123' });
+
+    renderWithProviders(<EventEditorForm onSubmit={mockOnSubmit} />, {
+      route: `/events/new?return_to=${encodeURIComponent(returnTo)}`,
+    });
+
+    fireEvent.change(screen.getByLabelText(/event name/i), {
+      target: { value: 'Return Safe Event' },
+    });
+    fireEvent.change(screen.getByLabelText(/start date and time/i), {
+      target: { value: '2026-06-15T10:00' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /create event/i }));
+
+    await waitFor(() => {
+      expect(syncReminderAutomationsMock).toHaveBeenCalledWith('event-123', { items: [] });
+      expect(navigateMock).toHaveBeenCalledWith(returnTo);
+    });
+  });
 });

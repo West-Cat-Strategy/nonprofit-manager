@@ -4,8 +4,18 @@ import type { ConfirmOptions } from '../../../../../hooks/useConfirmDialog';
 import type { PermissionCatalogItem, Role } from '../types';
 
 type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
+type NotifyFn = (message: string) => void;
 
-export const useRolesSettings = (confirm: ConfirmFn) => {
+export const useRolesSettings = (
+  confirm: ConfirmFn,
+  {
+    showSuccess,
+    showError,
+  }: {
+    showSuccess: NotifyFn;
+    showError: NotifyFn;
+  }
+) => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<PermissionCatalogItem[]>([]);
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -61,10 +71,11 @@ export const useRolesSettings = (confirm: ConfirmFn) => {
       await loadRoles();
       setShowRoleModal(false);
       setEditingRole(null);
+      showSuccess(editingRole.id ? 'Role updated' : 'Role created');
     } catch {
-      alert('Failed to save role');
+      showError('Failed to save role');
     }
-  }, [editingRole, loadRoles]);
+  }, [editingRole, loadRoles, showError, showSuccess]);
 
   const handleDeleteRole = useCallback(
     async (roleId: string) => {
@@ -79,11 +90,12 @@ export const useRolesSettings = (confirm: ConfirmFn) => {
       try {
         await api.delete(`/admin/roles/${roleId}`);
         await loadRoles();
+        showSuccess('Role deleted');
       } catch {
-        alert('Failed to delete role');
+        showError('Failed to delete role');
       }
     },
-    [confirm, loadRoles]
+    [confirm, loadRoles, showError, showSuccess]
   );
 
   return {

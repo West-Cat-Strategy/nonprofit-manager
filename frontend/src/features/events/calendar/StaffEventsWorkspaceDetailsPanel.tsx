@@ -11,6 +11,7 @@ import {
   getOccurrenceDateRange,
   type StaffCalendarEntry,
 } from '../scheduling/staffCalendarEntries';
+import { createEventEditTarget } from '../navigation/eventRouteTargets';
 import type { PortalAdminAppointmentInboxItem, PortalAppointmentSlot } from '../../adminOps/contracts';
 import type { EventOccurrence } from '../../../types/event';
 
@@ -22,6 +23,7 @@ interface StaffEventsWorkspaceDetailsPanelProps {
   selectedOccurrenceLabel: string | null;
   canUseEventActions: boolean;
   savingEntryId: string | null;
+  workspaceTarget: string | null;
   onConfirmAppointment: (appointmentId: string) => Promise<void>;
   onCheckInAppointment: (appointment: PortalAdminAppointmentInboxItem) => Promise<void>;
   onCancelAppointment: (appointment: PortalAdminAppointmentInboxItem) => Promise<void>;
@@ -37,6 +39,7 @@ export default function StaffEventsWorkspaceDetailsPanel({
   selectedOccurrenceLabel,
   canUseEventActions,
   savingEntryId,
+  workspaceTarget,
   onConfirmAppointment,
   onCheckInAppointment,
   onCancelAppointment,
@@ -120,13 +123,16 @@ export default function StaffEventsWorkspaceDetailsPanel({
 
               <div className="flex flex-wrap gap-2">
                 <Link
-                  to={buildEventDetailHref(selectedOccurrence)}
+                  to={buildEventDetailHref(selectedOccurrence, { returnTo: workspaceTarget })}
                   className={staffEventsPrimaryActionClassName}
                 >
                   View details
                 </Link>
                 <Link
-                  to={`/events/${selectedOccurrence.event_id}/edit`}
+                  to={createEventEditTarget(selectedOccurrence.event_id, {
+                    occurrenceId: selectedOccurrence.occurrence_id,
+                    returnTo: workspaceTarget,
+                  })}
                   className={staffEventsSecondaryActionClassName}
                 >
                   Edit event
@@ -140,7 +146,10 @@ export default function StaffEventsWorkspaceDetailsPanel({
                   </Link>
                 ) : null}
                 <Link
-                  to={buildEventDetailHref(selectedOccurrence, { tab: 'registrations' })}
+                  to={buildEventDetailHref(selectedOccurrence, {
+                    tab: 'registrations',
+                    returnTo: workspaceTarget,
+                  })}
                   className={staffEventsSecondaryActionClassName}
                 >
                   Open registrations

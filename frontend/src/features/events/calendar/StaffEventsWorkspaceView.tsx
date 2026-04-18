@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import StaffEventsPageShell, {
@@ -6,6 +6,10 @@ import StaffEventsPageShell, {
   staffEventsPrimaryActionClassName,
   staffEventsSecondaryActionClassName,
 } from '../components/StaffEventsPageShell';
+import {
+  buildCurrentEventRouteTarget,
+  createEventCreateTarget,
+} from '../navigation/eventRouteTargets';
 import useStaffEventsWorkspaceController from './useStaffEventsWorkspaceController';
 import StaffEventsWorkspaceFiltersPanel from './StaffEventsWorkspaceFiltersPanel';
 import StaffEventsWorkspaceCalendarPanel from './StaffEventsWorkspaceCalendarPanel';
@@ -13,6 +17,7 @@ import StaffEventsWorkspaceAgendaPanel from './StaffEventsWorkspaceAgendaPanel';
 import StaffEventsWorkspaceDetailsPanel from './StaffEventsWorkspaceDetailsPanel';
 
 export default function StaffEventsWorkspaceView() {
+  const location = useLocation();
   const controller = useStaffEventsWorkspaceController();
   const {
     dialogState,
@@ -54,6 +59,9 @@ export default function StaffEventsWorkspaceView() {
     handleToggleSlotStatus,
     handleManageSlots,
   } = controller;
+  const workspaceTarget = buildCurrentEventRouteTarget(location.pathname, location.search);
+  const workspaceReturnTo =
+    location.pathname !== '/events' || location.search ? workspaceTarget : null;
 
   return (
     <StaffEventsPageShell
@@ -73,7 +81,10 @@ export default function StaffEventsWorkspaceView() {
       }
       actions={
         <>
-          <Link to="/events/new" className={staffEventsPrimaryActionClassName}>
+          <Link
+            to={createEventCreateTarget(workspaceReturnTo)}
+            className={staffEventsPrimaryActionClassName}
+          >
             Create event
           </Link>
           <Link to="/events/check-in" className={staffEventsSecondaryActionClassName}>
@@ -130,6 +141,7 @@ export default function StaffEventsWorkspaceView() {
             selectedOccurrenceLabel={selectedOccurrenceLabel}
             canUseEventActions={canUseEventActions}
             savingEntryId={savingEntryId}
+            workspaceTarget={workspaceReturnTo}
             onConfirmAppointment={handleConfirmAppointment}
             onCheckInAppointment={handleCheckInAppointment}
             onCancelAppointment={handleCancelAppointment}

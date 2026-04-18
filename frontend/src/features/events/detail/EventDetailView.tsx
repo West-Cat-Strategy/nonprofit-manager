@@ -18,8 +18,10 @@ export default function EventDetailView() {
   const {
     activeTab,
     batchScope,
+    calendarTarget,
     calendarEvent,
     detailState,
+    editTarget,
     event,
     eventOccurrences,
     handleSelectOccurrence,
@@ -28,6 +30,7 @@ export default function EventDetailView() {
     navigateToEdit,
     organizationTimezone,
     registrations,
+    returnTarget,
     selectedOccurrence,
     setBatchScope,
     supportsBatchScope,
@@ -38,7 +41,7 @@ export default function EventDetailView() {
       <StaffEventsPageShell
         title="Event detail"
         description="Loading the latest event overview, schedule, and registration data."
-        backHref="/events"
+        backHref={returnTarget}
         backLabel="Back to events"
       >
         <div className="rounded-xl border border-app-border bg-app-surface p-6 text-sm text-app-text-muted shadow-sm">
@@ -53,7 +56,7 @@ export default function EventDetailView() {
       <StaffEventsPageShell
         title="Event detail"
         description="This event could not be loaded."
-        backHref="/events"
+        backHref={returnTarget}
         backLabel="Back to events"
       >
         <div className="rounded-xl border border-app-border bg-app-accent-soft p-6 text-sm text-app-accent-text shadow-sm">
@@ -63,11 +66,16 @@ export default function EventDetailView() {
     );
   }
 
+  const registrationCount =
+    activeTab === 'registrations' && !registrations.registrationState.loading
+      ? registrations.registrationState.registrations.length
+      : selectedOccurrence?.registered_count ?? event.registered_count;
+
   return (
     <StaffEventsPageShell
       title={event.event_name}
       description="Review the overview, schedule, registrations, reminders, and check-in settings for this event."
-      backHref="/events"
+      backHref={returnTarget}
       backLabel="Back to events"
       metadata={
         <>
@@ -96,10 +104,13 @@ export default function EventDetailView() {
               description: event.description || `Join us for ${event.event_name}`,
             }}
           />
-          <Link to="/events/calendar" className={staffEventsSecondaryActionClassName}>
+          <Link to={calendarTarget} className={staffEventsSecondaryActionClassName}>
             Back to calendar
           </Link>
-          <Link to={`/events/${event.event_id}/edit`} className={staffEventsPrimaryActionClassName}>
+          <Link
+            to={editTarget ?? `/events/${event.event_id}/edit`}
+            className={staffEventsPrimaryActionClassName}
+          >
             Edit event
           </Link>
         </>
@@ -138,7 +149,7 @@ export default function EventDetailView() {
                 : 'bg-app-surface-muted text-app-text hover:bg-app-surface-muted/80'
             }`}
           >
-            Registrations ({registrations.registrationState.registrations.length || event.registered_count})
+            Registrations ({registrationCount})
           </button>
         </nav>
       </section>

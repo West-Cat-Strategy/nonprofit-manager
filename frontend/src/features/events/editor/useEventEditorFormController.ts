@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { differenceInMinutes } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useUnsavedChangesGuard } from '../../../hooks/useUnsavedChangesGuard';
 import { getUserTimezoneCached } from '../../../services/userPreferencesService';
 import type { CreateEventDTO, Event, UpdateEventDTO } from '../../../types/event';
 import { eventsApiClient } from '../api/eventsApiClient';
+import { resolveEventReturnTarget } from '../navigation/eventRouteTargets';
 import { getBrowserTimeZone } from '../utils/reminderTime';
 import {
   buildEventSubmitPayload,
@@ -56,6 +57,7 @@ export function useEventEditorFormController({
   isEdit = false,
 }: UseEventEditorFormControllerArgs): UseEventEditorFormControllerResult {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -69,6 +71,7 @@ export function useEventEditorFormController({
   const [formData, setFormData] = useState<EventEditorFormData>(() =>
     event ? mapEventToFormData(event) : createEmptyFormData()
   );
+  const returnTarget = resolveEventReturnTarget(searchParams.get('return_to'), '/events');
 
   useEffect(() => {
     let isMounted = true;
@@ -255,7 +258,7 @@ export function useEventEditorFormController({
   };
 
   const handleCancel = (): void => {
-    navigate('/events');
+    navigate(returnTarget);
   };
 
   const syncReminderAutomations = async (eventId: string): Promise<void> => {
@@ -275,7 +278,7 @@ export function useEventEditorFormController({
       await syncReminderAutomations(savedEventIdForRetry);
       setSavedEventIdForRetry(null);
       setIsDirty(false);
-      navigate('/events');
+      navigate(returnTarget);
     } catch (requestError: unknown) {
       const message =
         requestError instanceof Error
@@ -311,7 +314,7 @@ export function useEventEditorFormController({
           await syncReminderAutomations(eventId);
           setSavedEventIdForRetry(null);
           setIsDirty(false);
-          navigate('/events');
+          navigate(returnTarget);
           return;
         } catch (requestError: unknown) {
           const message =
@@ -328,7 +331,7 @@ export function useEventEditorFormController({
       }
 
       setIsDirty(false);
-      navigate('/events');
+      navigate(returnTarget);
     } catch (requestError: unknown) {
       const message = requestError instanceof Error ? requestError.message : null;
       setError(message || 'Failed to save event');

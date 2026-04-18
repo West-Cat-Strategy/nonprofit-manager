@@ -6,15 +6,20 @@ import type { UserInvitation } from '../types';
 import { readList } from './userSettingsData';
 
 type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
+type NotifyFn = (message: string) => void;
 
 export const useUserInvitations = ({
   confirm,
   setFormErrorFromError,
   clearFormError,
+  showSuccess,
+  showError,
 }: {
   confirm: ConfirmFn;
   setFormErrorFromError: (error: unknown, fallbackMessage?: string) => void;
   clearFormError: () => void;
+  showSuccess: NotifyFn;
+  showError: NotifyFn;
 }) => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [invitations, setInvitations] = useState<UserInvitation[]>([]);
@@ -108,24 +113,32 @@ export const useUserInvitations = ({
       try {
         await api.delete(`/invitations/${invitationId}`);
         await fetchInvitations();
+        showSuccess('Invitation revoked');
       } catch {
-        alert('Failed to revoke invitation');
+        showError('Failed to revoke invitation');
       }
     },
-    [confirm, fetchInvitations]
+    [confirm, fetchInvitations, showError, showSuccess]
   );
 
   const handleResendInvitation = useCallback(
-    async (invitationId: string) => {
+    async (invitation: Pick<UserInvitation, 'id' | 'email' | 'role' | 'message'>) => {
       try {
-        const response = await api.post(`/invitations/${invitationId}/resend`);
-        alert(`Invitation resent! New link:\n${response.data.inviteUrl}`);
+        const response = await api.post(`/invitations/${invitation.id}/resend`);
+        setInviteEmail(invitation.email);
+        setInviteRole(invitation.role);
+        setInviteMessage(invitation.message || '');
+        setInviteUrl(response.data.inviteUrl ?? null);
+        setInviteEmailDelivery(response.data.emailDelivery || null);
+        clearFormError();
+        setShowInviteModal(true);
+        showSuccess('Invitation resent');
         await fetchInvitations();
       } catch {
-        alert('Failed to resend invitation');
+        showError('Failed to resend invitation');
       }
     },
-    [fetchInvitations]
+    [clearFormError, fetchInvitations, showError, showSuccess]
   );
 
   const resetInviteModal = useCallback(() => {

@@ -116,14 +116,19 @@ describe('EventList page', () => {
     renderWithProviders(<EventList />, {
       route: '/events?month=2026-05&date=2026-05-12',
     });
+    const returnTo = encodeURIComponent('/events?month=2026-05&date=2026-05-12');
 
     await waitFor(() => {
       expect(screen.getByRole('link', { name: 'View details' })).toBeInTheDocument();
     });
 
+    expect(screen.getByRole('link', { name: 'View details' })).toHaveAttribute(
+      'href',
+      `/events/event-1?occurrence=occ-1&return_to=${returnTo}`
+    );
     expect(screen.getByRole('link', { name: 'Edit event' })).toHaveAttribute(
       'href',
-      '/events/event-1/edit'
+      `/events/event-1/edit?occurrence=occ-1&return_to=${returnTo}`
     );
     expect(screen.getByRole('link', { name: 'Check-in' })).toHaveAttribute(
       'href',
@@ -131,7 +136,70 @@ describe('EventList page', () => {
     );
     expect(screen.getByRole('link', { name: 'Open registrations' })).toHaveAttribute(
       'href',
-      '/events/event-1?tab=registrations&occurrence=occ-1'
+      `/events/event-1?tab=registrations&occurrence=occ-1&return_to=${returnTo}`
+    );
+  });
+
+  it('restores the selected entry from the URL when multiple events share the same date', async () => {
+    listEventOccurrencesMock.mockResolvedValue([
+      {
+        occurrence_id: 'occ-1',
+        event_id: 'event-1',
+        event_name: 'Spring Gala',
+        occurrence_name: 'Opening Night',
+        event_type: 'fundraiser',
+        status: 'planned',
+        is_public: true,
+        description: 'Annual fundraiser',
+        start_date: '2026-05-12T18:00:00.000Z',
+        end_date: '2026-05-12T20:00:00.000Z',
+        location_name: 'Main Hall',
+        capacity: 120,
+        registered_count: 42,
+        attended_count: 0,
+        waitlist_enabled: true,
+        public_checkin_enabled: true,
+        public_checkin_pin_configured: true,
+      },
+      {
+        occurrence_id: 'occ-2',
+        event_id: 'event-2',
+        event_name: 'Community Clinic',
+        occurrence_name: 'Afternoon Session',
+        event_type: 'community',
+        status: 'planned',
+        is_public: false,
+        description: 'Drop-in support clinic',
+        start_date: '2026-05-12T15:00:00.000Z',
+        end_date: '2026-05-12T16:30:00.000Z',
+        location_name: 'Room 2',
+        capacity: 40,
+        registered_count: 18,
+        attended_count: 0,
+        waitlist_enabled: false,
+        public_checkin_enabled: false,
+        public_checkin_pin_configured: false,
+      },
+    ]);
+
+    const selectedEntryId = 'event:event-2:occ-2';
+    const route = `/events?month=2026-05&date=2026-05-12&entry=${encodeURIComponent(selectedEntryId)}`;
+    const returnTo = encodeURIComponent(
+      `/events?month=2026-05&date=2026-05-12&entry=${encodeURIComponent(selectedEntryId)}`
+    );
+
+    renderWithProviders(<EventList />, { route });
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: 'Edit event' })).toHaveAttribute(
+        'href',
+        `/events/event-2/edit?occurrence=occ-2&return_to=${returnTo}`
+      );
+    });
+
+    expect(screen.getByRole('link', { name: 'View details' })).toHaveAttribute(
+      'href',
+      `/events/event-2?occurrence=occ-2&return_to=${returnTo}`
     );
   });
 

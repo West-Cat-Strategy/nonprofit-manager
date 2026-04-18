@@ -56,7 +56,7 @@ const OutcomeDefinitionsSection = lazy(
 
 export default function AdminSettings() {
   const location = useLocation();
-  const { showSuccess } = useToast();
+  const { showSuccess, showError } = useToast();
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const {
     error: formError,
@@ -108,7 +108,10 @@ export default function AdminSettings() {
     openEditRole,
     handleSaveRole,
     handleDeleteRole,
-  } = useRolesSettings(confirm);
+  } = useRolesSettings(confirm, {
+    showSuccess,
+    showError,
+  });
 
   const {
     activeSection,
@@ -191,6 +194,8 @@ export default function AdminSettings() {
     confirm,
     setFormErrorFromError,
     clearFormError,
+    showSuccess,
+    showError,
   });
 
   const {
