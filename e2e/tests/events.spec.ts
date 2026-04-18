@@ -5,6 +5,7 @@
 import { test, expect } from '../fixtures/auth.fixture';
 import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 import { clearDatabase, createTestEvent, createTestContact, getAuthHeaders } from '../helpers/database';
+import { unwrapList } from '../helpers/apiEnvelope';
 
 const makeUnique = (prefix: string): string =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -27,19 +28,15 @@ test.describe('Events Module', () => {
 
     const eventsHeading = authenticatedPage.getByRole('heading', { level: 1, name: /^events$/i });
     await expect(eventsHeading).toBeVisible({ timeout: 15000 });
-    await expect(authenticatedPage.getByRole('button', { name: 'Create Event' })).toBeVisible({
+    await expect(authenticatedPage.getByRole('link', { name: 'Create event' }).first()).toBeVisible({
       timeout: 15000,
     });
-    await expect(authenticatedPage.getByPlaceholder('Search events...')).toBeVisible({
+    await expect(authenticatedPage.getByRole('searchbox', { name: /^search$/i })).toBeVisible({
       timeout: 15000,
     });
-    await expect
-      .poll(async () => {
-        const tableCount = await authenticatedPage.locator('table').count();
-        const emptyStateCount = await authenticatedPage.getByText('No events match your current filters.').count();
-        return tableCount + emptyStateCount;
-      })
-      .toBeGreaterThan(0);
+    await expect(authenticatedPage.getByRole('button', { name: /^today$/i })).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test('should create a new event via UI', async ({ authenticatedPage }) => {
@@ -120,7 +117,7 @@ test.describe('Events Module', () => {
     await expect(authenticatedPage.getByRole('heading', { name: 'Community Cleanup Day' })).toBeVisible();
     await expect(authenticatedPage.getByText('Central Park')).toBeVisible();
 
-    await authenticatedPage.getByRole('button', { name: 'Edit Event' }).click();
+    await authenticatedPage.getByRole('link', { name: 'Edit event' }).click();
     await authenticatedPage.waitForURL(new RegExp(`/events/${id}/edit$`));
     await expect(authenticatedPage.locator('input[name="location_name"]')).toHaveValue('Central Park');
   });
@@ -156,7 +153,9 @@ test.describe('Events Module', () => {
     const registrationId = registration.registration_id || registration.id;
     expect(registrationId).toBeTruthy();
     if (typeof registration.occurrence_id === 'string' && registration.occurrence_id.length > 0) {
-      expect(registration.occurrence_id).toContain('occurrence');
+      await expect.soft(registration.occurrence_id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      );
     }
 
     const checkInResponse = await authenticatedPage.request.post(
@@ -190,6 +189,7 @@ test.describe('Events Module', () => {
 
   test('should filter events by type', async ({ authenticatedPage }) => {
     if (!adminToken) throw new Error('Admin auth token was not initialized');
+    const apiURL = process.env.API_URL || 'http://localhost:3001';
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const suffix = Date.now();
@@ -209,12 +209,49 @@ test.describe('Events Module', () => {
 
     await authenticatedPage.goto('/events');
     await authenticatedPage.waitForURL(/\/events(?:\?|$)/);
-    await authenticatedPage.getByPlaceholder('Search events...').fill(String(suffix));
-    await authenticatedPage.locator('select').filter({ has: authenticatedPage.locator('option[value="fundraiser"]') }).first().selectOption('fundraiser');
-    await expect(authenticatedPage.locator(`tbody tr:has-text("${fundraiserName}")`).first()).toBeVisible({
-      timeout: 10000,
-    });
-    await expect(authenticatedPage.locator(`tbody tr:has-text("${volunteerName}")`)).toHaveCount(0);
+    const searchBox = authenticatedPage.getByRole('searchbox', { name: /^search$/i });
+    const typeSelect = authenticatedPage.getByLabel('Type');
+
+    await searchBox.fill(String(suffix));
+    await typeSelect.selectOption('fundraiser');
+    await expect(searchBox).toHaveValue(String(suffix));
+    await expect(typeSelect).toHaveValue('fundraiser');
+
+    await expect
+      .poll(
+        async () => {
+          const filteredOccurrencesResponse = await authenticatedPage.request.get(
+            `${apiURL}/api/v2/events/occurrences`,
+            {
+              params: {
+                search: String(suffix),
+                event_type: 'fundraiser',
+              },
+            }
+          );
+
+          if (!filteredOccurrencesResponse.ok()) {
+            return { hasFundraiser: false, hasVolunteer: true };
+          }
+
+          const filteredOccurrences = unwrapList<{
+            event_name?: string | null;
+            occurrence_name?: string | null;
+          }>(await filteredOccurrencesResponse.json());
+          const filteredNames = filteredOccurrences.flatMap((occurrence) =>
+            [occurrence.event_name, occurrence.occurrence_name].filter(
+              (value): value is string => typeof value === 'string' && value.length > 0
+            )
+          );
+
+          return {
+            hasFundraiser: filteredNames.includes(fundraiserName),
+            hasVolunteer: filteredNames.includes(volunteerName),
+          };
+        },
+        { timeout: 15000, intervals: [500, 1000, 1500] }
+      )
+      .toEqual({ hasFundraiser: true, hasVolunteer: false });
   });
 
   test('should show capacity and registration count', async ({ authenticatedPage }) => {

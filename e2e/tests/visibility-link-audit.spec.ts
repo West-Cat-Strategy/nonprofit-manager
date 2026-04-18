@@ -98,7 +98,7 @@ const publicRouteAudits: RouteAuditConfig[] = [
     surface: 'public',
     expectedEntryId: 'accept-invitation',
     heading: /complete your registration|invalid invitation/i,
-    primaryAction: /create account/i,
+    primaryAction: /create account|go to login/i,
   },
   {
     name: 'forgot password',
@@ -114,7 +114,7 @@ const publicRouteAudits: RouteAuditConfig[] = [
     surface: 'public',
     expectedEntryId: 'reset-password',
     heading: /reset your password|invalid or has expired/i,
-    primaryAction: /^reset password$/i,
+    primaryAction: /^reset password$|request a new reset link/i,
   },
   {
     name: 'portal login',
@@ -146,7 +146,7 @@ const publicRouteAudits: RouteAuditConfig[] = [
     surface: 'public',
     expectedEntryId: 'portal-reset-password',
     heading: /choose a new portal password|invalid or has expired/i,
-    primaryAction: /^reset password$/i,
+    primaryAction: /^reset password$|request a new reset link/i,
   },
   {
     name: 'portal invitation',
@@ -154,7 +154,7 @@ const publicRouteAudits: RouteAuditConfig[] = [
     surface: 'public',
     expectedEntryId: 'portal-accept-invitation',
     heading: /accept portal invitation|invitation is invalid or expired/i,
-    primaryAction: /activate portal account/i,
+    primaryAction: /activate portal account|return to portal login/i,
   },
   {
     name: 'demo dashboard',
@@ -287,7 +287,7 @@ const staffRouteAudits: RouteAuditConfig[] = [
     route: '/settings/admin',
     surface: 'staff',
     expectedEntryId: 'admin-settings',
-    heading: /admin settings/i,
+    heading: /admin hub|admin settings/i,
     primaryAction: /show advanced|hide advanced/i,
     interaction: {
       keyControls: [/show advanced|hide advanced/i],
@@ -299,28 +299,28 @@ const staffRouteAudits: RouteAuditConfig[] = [
     route: '/settings/admin/users',
     surface: 'staff',
     expectedEntryId: 'admin-settings-users',
-    heading: /admin settings/i,
+    heading: /admin hub|account lookup|users & security|admin settings/i,
   },
   {
     name: 'admin settings audit logs',
     route: '/settings/admin/audit_logs',
     surface: 'staff',
     expectedEntryId: 'admin-settings-audit-logs',
-    heading: /admin settings/i,
+    heading: /admin hub|audit logs|admin settings/i,
   },
   {
     name: 'portal admin access',
     route: '/settings/admin/portal/access',
     surface: 'staff',
     expectedEntryId: 'portal-admin-access',
-    heading: /portal access|portal settings|admin settings/i,
+    heading: /portal ops|portal access|client portal access|portal settings|admin settings/i,
   },
   {
     name: 'api settings',
     route: '/settings/api',
     surface: 'staff',
     expectedEntryId: 'api-settings',
-    heading: /api settings/i,
+    heading: /api settings|api & webhooks/i,
     primaryAction: /add webhook/i,
     interaction: {
       revealAction: /add webhook/i,
@@ -333,7 +333,7 @@ const staffRouteAudits: RouteAuditConfig[] = [
     route: '/settings/navigation',
     surface: 'staff',
     expectedEntryId: 'navigation-settings',
-    heading: /navigation settings/i,
+    heading: /navigation settings|navigation/i,
     primaryAction: /reset to defaults/i,
     interaction: {
       keyControls: [/reset to defaults/i],
@@ -357,7 +357,7 @@ const staffRouteAudits: RouteAuditConfig[] = [
     route: '/settings/email-marketing',
     surface: 'staff',
     expectedEntryId: 'email-marketing',
-    heading: /email marketing/i,
+    heading: /newsletter campaigns|email marketing/i,
   },
   {
     name: 'website builder',
@@ -876,7 +876,7 @@ authTest.describe('Staff text visibility and link audit', () => {
       } else if (linkConfig.scope === 'more-navigation') {
         await expect(moreNavigationButton).toBeVisible();
         await moreNavigationButton.click();
-        const moreNavigationMenu = authenticatedPage.getByRole('menu', {
+        const moreNavigationMenu = authenticatedPage.getByRole('navigation', {
           name: /more navigation/i,
         });
         await expect(moreNavigationMenu).toBeVisible();

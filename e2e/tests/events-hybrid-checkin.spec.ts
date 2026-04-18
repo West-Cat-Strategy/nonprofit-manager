@@ -171,7 +171,9 @@ test.describe('Events Hybrid Check-In', () => {
 
     const kioskAttendeeEmail = `public-kiosk-${now}@example.com`;
     await authenticatedPage.goto(`/event-check-in/${eventId}`);
-    await expect(authenticatedPage.getByText(eventName)).toBeVisible({ timeout: 30000 });
+    await expect(authenticatedPage.getByRole('heading', { level: 1, name: eventName })).toBeVisible({
+      timeout: 30000,
+    });
 
     await authenticatedPage.getByLabel('First name').fill('Public');
     await authenticatedPage.getByLabel('Last name').fill('Attendee');
@@ -233,7 +235,9 @@ test.describe('Events Hybrid Check-In', () => {
       );
     }
     if (typeof portalRegistration.occurrence_id === 'string' && portalRegistration.occurrence_id.length > 0) {
-      expect(portalRegistration.occurrence_id).toContain('occurrence');
+      await expect.soft(portalRegistration.occurrence_id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      );
     }
 
     await authenticatedPage.goto('/events/check-in');

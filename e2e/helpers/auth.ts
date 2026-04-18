@@ -13,6 +13,7 @@ const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket 
 const HTTP_SCHEME = ['http', '://'].join('');
 const DEFAULT_ADMIN_EMAIL = 'admin@example.com';
 const PLAYWRIGHT_MANAGED_ADMIN_PASSWORD = 'Admin123!@#';
+const DOCKER_SETUP_ADMIN_PASSWORD = PLAYWRIGHT_MANAGED_ADMIN_PASSWORD;
 const DOCKER_SEEDED_ADMIN_PASSWORD = 'password123';
 const backendRequire = createRequire(path.resolve(__dirname, '..', '..', 'backend', 'package.json'));
 const { Client: PgClient } = backendRequire('pg') as {
@@ -132,7 +133,8 @@ type DecodedJwtPayload = {
   [key: string]: unknown;
 };
 
-type AdminRuntimeProfile = 'docker-seeded' | 'playwright-managed';
+type AdminRuntimeProfile = 'docker-seeded' | 'docker-setup' | 'playwright-managed';
+type SetupRequiredState = boolean | null;
 
 type ResolvedAdminCredentials = {
   email: string;
@@ -142,6 +144,11 @@ type ResolvedAdminCredentials = {
   explicitOverride: boolean;
   runtimeProfile: AdminRuntimeProfile;
 };
+
+type DefaultAdminCredentialProfile = Pick<
+  ResolvedAdminCredentials,
+  'password' | 'passwordSource' | 'runtimeProfile'
+>;
 
 const unwrapApiData = <T>(payload: ApiSuccessEnvelope<T> | T): T => {
   if (
@@ -221,22 +228,57 @@ const shouldAllowExternallyManagedAuthFallbacks = (): boolean =>
 const shouldUseManagedTestUserCreation = (): boolean =>
   !shouldAllowExternallyManagedAuthFallbacks();
 
-const getDefaultAdminPasswordForRuntime = (
-  dockerBackedRun: boolean
-): Pick<ResolvedAdminCredentials, 'password' | 'passwordSource' | 'runtimeProfile'> =>
-  dockerBackedRun
-    ? {
-        password: DOCKER_SEEDED_ADMIN_PASSWORD,
-        passwordSource: 'default(docker-seeded mock data admin@example.com/password123)',
-        runtimeProfile: 'docker-seeded',
-      }
-    : {
-        password: PLAYWRIGHT_MANAGED_ADMIN_PASSWORD,
-        passwordSource: 'default(playwright-managed setup admin@example.com/Admin123!@#)',
-        runtimeProfile: 'playwright-managed',
-      };
+const getPlaywrightManagedAdminCredentialProfile = (): DefaultAdminCredentialProfile => ({
+  password: PLAYWRIGHT_MANAGED_ADMIN_PASSWORD,
+  passwordSource: 'default(playwright-managed setup admin@example.com/Admin123!@#)',
+  runtimeProfile: 'playwright-managed',
+});
 
-const resolveAdminCredentialCandidates = (): {
+const getDockerSeededAdminCredentialProfile = (): DefaultAdminCredentialProfile => ({
+  password: DOCKER_SEEDED_ADMIN_PASSWORD,
+  passwordSource: 'default(docker-seeded mock data admin@example.com/password123)',
+  runtimeProfile: 'docker-seeded',
+});
+
+const getDockerSetupAdminCredentialProfile = (): DefaultAdminCredentialProfile => ({
+  password: DOCKER_SETUP_ADMIN_PASSWORD,
+  passwordSource: 'default(docker-first-setup admin@example.com/Admin123!@#)',
+  runtimeProfile: 'docker-setup',
+});
+
+export const resolveDefaultAdminCredentialProfiles = ({
+  dockerBackedRun,
+  setupRequired = null,
+}: {
+  dockerBackedRun: boolean;
+  setupRequired?: SetupRequiredState;
+}): {
+  primary: DefaultAdminCredentialProfile;
+  alternate: DefaultAdminCredentialProfile | null;
+} => {
+  if (!dockerBackedRun) {
+    return {
+      primary: getPlaywrightManagedAdminCredentialProfile(),
+      alternate: getDockerSeededAdminCredentialProfile(),
+    };
+  }
+
+  if (setupRequired === true) {
+    return {
+      primary: getDockerSetupAdminCredentialProfile(),
+      alternate: getDockerSeededAdminCredentialProfile(),
+    };
+  }
+
+  return {
+    primary: getDockerSeededAdminCredentialProfile(),
+    alternate: getDockerSetupAdminCredentialProfile(),
+  };
+};
+
+const resolveAdminCredentialCandidates = (
+  options: { setupRequired?: SetupRequiredState } = {}
+): {
   primary: ResolvedAdminCredentials;
   alternate: ResolvedAdminCredentials | null;
 } => {
@@ -244,7 +286,11 @@ const resolveAdminCredentialCandidates = (): {
   const adminPasswordFromEnv = process.env.ADMIN_USER_PASSWORD?.trim();
   const explicitOverride = Boolean(adminEmailFromEnv || adminPasswordFromEnv);
   const dockerBackedRun = isDockerBackedRun();
-  const runtimeDefault = getDefaultAdminPasswordForRuntime(dockerBackedRun);
+  const { primary: runtimeDefault, alternate: alternateDefault } =
+    resolveDefaultAdminCredentialProfiles({
+      dockerBackedRun,
+      setupRequired: options.setupRequired ?? null,
+    });
   const primary: ResolvedAdminCredentials = {
     email: adminEmailFromEnv || DEFAULT_ADMIN_EMAIL,
     password: adminPasswordFromEnv || runtimeDefault.password,
@@ -258,7 +304,10 @@ const resolveAdminCredentialCandidates = (): {
     return { primary, alternate: null };
   }
 
-  const alternateDefault = getDefaultAdminPasswordForRuntime(!dockerBackedRun);
+  if (!alternateDefault) {
+    return { primary, alternate: null };
+  }
+
   const alternate: ResolvedAdminCredentials = {
     email: DEFAULT_ADMIN_EMAIL,
     password: alternateDefault.password,
@@ -274,8 +323,10 @@ const resolveAdminCredentialCandidates = (): {
 const formatAdminCredentialSources = (credentials: ResolvedAdminCredentials): string =>
   `${credentials.emailSource}, ${credentials.passwordSource}`;
 
-export const getConfiguredAdminCredentials = (): { email: string; password: string } => {
-  const { primary } = resolveAdminCredentialCandidates();
+export const getConfiguredAdminCredentials = (
+  options: { setupRequired?: SetupRequiredState } = {}
+): { email: string; password: string } => {
+  const { primary } = resolveAdminCredentialCandidates(options);
   return {
     email: primary.email,
     password: primary.password,
@@ -1416,8 +1467,13 @@ export async function ensureAdminLoginViaAPI(
     return currentAdminSession;
   }
 
+  const initialSetupStatus = await getSetupStatusOrNull(page, { attempts: 3, delayMs: 200 }).catch(
+    () => null
+  );
   const { primary: primaryAdminCredentials, alternate: alternateAdminCredentials } =
-    resolveAdminCredentialCandidates();
+    resolveAdminCredentialCandidates({
+      setupRequired: initialSetupStatus?.setupRequired ?? null,
+    });
   const adminEmail = primaryAdminCredentials.email;
   const adminPassword = primaryAdminCredentials.password;
   const strictAdminAuth = isStrictAdminAuthRequired();

@@ -124,6 +124,9 @@ function CustomDashboardContent() {
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const [showAddWidget, setShowAddWidget] = useState(false);
   const [creatingDefault, setCreatingDefault] = useState(false);
+  const [isNarrowViewport, setIsNarrowViewport] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < DEFAULT_BREAKPOINTS.sm : false
+  );
   const hasInitializedRef = useRef(false);
   const layoutCommitTimeoutRef = useRef<number | null>(null);
   const pendingLayoutRef = useRef<WidgetLayout[] | null>(null);
@@ -167,6 +170,24 @@ function CustomDashboardContent() {
 
   const breakpoints = currentDashboard?.breakpoints ?? DEFAULT_BREAKPOINTS;
   const cols = currentDashboard?.cols ?? DEFAULT_COLS;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia(`(max-width: ${Math.max(0, breakpoints.sm - 1)}px)`);
+    const syncViewportMode = () => setIsNarrowViewport(mediaQuery.matches);
+    syncViewportMode();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncViewportMode);
+      return () => mediaQuery.removeEventListener('change', syncViewportMode);
+    }
+
+    mediaQuery.addListener(syncViewportMode);
+    return () => mediaQuery.removeListener(syncViewportMode);
+  }, [breakpoints.sm]);
 
   const responsiveLayouts = useMemo(
     () => buildResponsiveLayouts(currentDashboard?.layout ?? [], cols),
@@ -411,7 +432,9 @@ function CustomDashboardContent() {
               </h1>
               <p className="mt-3 text-sm leading-6 text-app-text-muted sm:text-base">
                 {editMode
-                  ? 'Layout editing is active. Drag cards by their handles and resize them to match how you work.'
+                  ? isNarrowViewport
+                    ? 'Layout editing is active. On smaller screens widgets stack vertically so the editor stays readable while you manage your dashboard.'
+                    : 'Layout editing is active. Drag cards by their handles and resize them to match how you work.'
                   : 'Use this space for the deeper layout changes that complement the fast-launch workbench.'}
               </p>
             </div>
@@ -484,28 +507,41 @@ function CustomDashboardContent() {
           </div>
 
           <div className="mt-5">
-            <ResponsiveGridLayout
-              className="layout"
-              layouts={responsiveLayouts}
-              breakpoints={breakpoints}
-              cols={cols}
-              rowHeight={86}
-              margin={[16, 16]}
-              containerPadding={[0, 0]}
-              isDraggable={editMode}
-              isResizable={editMode}
-              draggableHandle=".drag-handle"
-              onLayoutChange={handleLayoutChange}
-            >
-              {currentDashboard.widgets.map((widget) => (
-                <div
-                  key={widget.id}
-                  className="overflow-hidden rounded-2xl border border-app-border/70 bg-app-surface shadow-sm"
-                >
-                  {renderWidget(widget)}
-                </div>
-              ))}
-            </ResponsiveGridLayout>
+            {isNarrowViewport ? (
+              <div className="space-y-4">
+                {currentDashboard.widgets.map((widget) => (
+                  <div
+                    key={widget.id}
+                    className="overflow-hidden rounded-2xl border border-app-border/70 bg-app-surface shadow-sm"
+                  >
+                    {renderWidget(widget)}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <ResponsiveGridLayout
+                className="layout"
+                layouts={responsiveLayouts}
+                breakpoints={breakpoints}
+                cols={cols}
+                rowHeight={86}
+                margin={[16, 16]}
+                containerPadding={[0, 0]}
+                isDraggable={editMode}
+                isResizable={editMode}
+                draggableHandle=".drag-handle"
+                onLayoutChange={handleLayoutChange}
+              >
+                {currentDashboard.widgets.map((widget) => (
+                  <div
+                    key={widget.id}
+                    className="overflow-hidden rounded-2xl border border-app-border/70 bg-app-surface shadow-sm"
+                  >
+                    {renderWidget(widget)}
+                  </div>
+                ))}
+              </ResponsiveGridLayout>
+            )}
           </div>
         </section>
 

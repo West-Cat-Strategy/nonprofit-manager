@@ -71,7 +71,7 @@ test.describe('Donations Module', () => {
     await authenticatedPage.waitForURL(/\/donations(?:\?|$)/);
 
     await expect(authenticatedPage.getByRole('heading', { level: 1, name: /^donations$/i })).toBeVisible();
-    await expect(authenticatedPage.getByRole('button', { name: 'Record Donation' }).first()).toBeVisible();
+    await expect(authenticatedPage.getByRole('link', { name: 'Record Donation' }).first()).toBeVisible();
     await expect(authenticatedPage.getByPlaceholder(/search donations/i)).toBeVisible();
   });
 
@@ -185,9 +185,16 @@ test.describe('Donations Module', () => {
     const updateResponse = await updateResponsePromise;
     expect(updateResponse.ok()).toBeTruthy();
 
-    await authenticatedPage.waitForURL('/donations');
-    await authenticatedPage.goto(`/donations/${donationId}`);
-    await expect(authenticatedPage.getByText('completed').first()).toBeVisible();
+    await authenticatedPage.waitForURL(/\/donations(?:\?|$)/);
+
+    const headers = await getAuthHeaders(authenticatedPage, authToken);
+    const donationDetailResponse = await authenticatedPage.request.get(
+      `${apiURL}/api/v2/donations/${donationId}`,
+      { headers }
+    );
+    expect(donationDetailResponse.ok()).toBeTruthy();
+    const donationDetail = unwrapSuccess<Record<string, unknown>>(await donationDetailResponse.json());
+    expect(donationDetail.payment_status).toBe('completed');
   });
 
   test('should mark receipt as sent', async ({ authenticatedPage, authToken }) => {

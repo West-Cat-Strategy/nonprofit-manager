@@ -58,8 +58,7 @@ export interface EventRegistrationServiceContext {
   confirmations: EventConfirmationService;
 }
 
-export const REGISTRATION_SELECT = `
-  SELECT
+const REGISTRATION_COLUMNS_SELECT = `
     er.id as registration_id,
     er.event_id,
     er.occurrence_id,
@@ -79,7 +78,18 @@ export const REGISTRATION_SELECT = `
     er.confirmation_email_error as confirmation_email_last_error,
     er.notes,
     er.created_at,
-    er.updated_at,
+    er.updated_at
+`;
+
+const REGISTRATION_ROW_SELECT = `
+  SELECT
+    ${REGISTRATION_COLUMNS_SELECT.trim()}
+  FROM event_registrations er
+`;
+
+export const REGISTRATION_SELECT = `
+  SELECT
+    ${REGISTRATION_COLUMNS_SELECT.trim()},
     TRIM(CONCAT(c.first_name, ' ', c.last_name)) as contact_name,
     c.email as contact_email,
     e.name as event_name,
@@ -246,11 +256,11 @@ export const getExistingOccurrenceRegistration = async (
 ): Promise<EventRegistration | null> => {
   const lockClause = lock ? 'FOR UPDATE' : '';
   const result = await queryable.query<EventRegistration>(
-    `${REGISTRATION_SELECT}
+    `${REGISTRATION_ROW_SELECT}
      WHERE er.occurrence_id = $1
        AND er.contact_id = $2
-     ${lockClause}
-     LIMIT 1`,
+     LIMIT 1
+     ${lockClause}`,
     [occurrenceId, contactId]
   );
 

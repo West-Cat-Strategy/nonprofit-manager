@@ -49,7 +49,7 @@ test.describe('Tasks Module', () => {
 
   test('should display tasks list page', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/tasks');
-    await expect(authenticatedPage.getByRole('button', { name: '+ New Task' })).toBeVisible();
+    await expect(authenticatedPage.getByRole('link', { name: '+ New Task' })).toBeVisible();
     await expect(authenticatedPage.getByLabel('Search tasks')).toBeVisible();
   });
 
@@ -79,7 +79,7 @@ test.describe('Tasks Module', () => {
 
     await authenticatedPage.goto(`/tasks/${id}`);
     await expect(authenticatedPage.getByRole('heading', { name: 'Review grant application' })).toBeVisible();
-    await authenticatedPage.getByRole('button', { name: 'Edit' }).click();
+    await authenticatedPage.getByRole('link', { name: 'Edit' }).click();
     await authenticatedPage.waitForURL(new RegExp(`/tasks/${id}/edit$`));
     await authenticatedPage.selectOption('select[name="priority"]', 'urgent');
     await expect(authenticatedPage.getByRole('button', { name: 'Update Task' })).toBeVisible();

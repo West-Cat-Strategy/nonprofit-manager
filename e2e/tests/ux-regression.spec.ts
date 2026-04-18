@@ -465,7 +465,7 @@ const gotoAdminRouteWithFallback = async (
 };
 
 test.describe("UI/UX regression flows", () => {
-  test("global navigation stays compact below xl and expands at xl", async ({
+  test("global navigation stays compact below lg and expands at lg", async ({
     authenticatedPage,
   }) => {
     const runtimeIssues = trackRuntimeIssues(authenticatedPage);
@@ -489,7 +489,7 @@ test.describe("UI/UX regression flows", () => {
     );
     const alertsLink = authenticatedPage.locator('a[aria-label="Alerts"]');
 
-    await authenticatedPage.setViewportSize({ width: 1024, height: 900 });
+    await authenticatedPage.setViewportSize({ width: 900, height: 900 });
     await authenticatedPage.goto("/dashboard");
     await expect(globalNav).toBeVisible({ timeout: 10000 });
     await expect(primaryNav).toBeHidden();
@@ -538,13 +538,13 @@ test.describe("UI/UX regression flows", () => {
     await expect(userMenuButton).toBeVisible({ timeout: 10000 });
     await expect(mainMenuButton).toBeHidden();
     await expect(
-      authenticatedPage.getByText(/today at a glance/i).first(),
+      authenticatedPage.getByRole("heading", { name: /workbench overview/i }).first(),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByText(/pinned shortcuts/i).first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole("button", { name: /create intake/i }).first(),
+      authenticatedPage.getByRole("link", { name: /create intake/i }).first(),
     ).toBeVisible();
 
     await moreButton.click();
@@ -557,13 +557,11 @@ test.describe("UI/UX regression flows", () => {
 
     await userMenuButton.click();
     await expect(
-      authenticatedPage
-        .getByRole("menuitem", { name: /admin settings/i })
-        .first(),
+      authenticatedPage.getByRole("link", { name: /admin settings/i }).first(),
     ).toBeVisible();
     await expect(
       authenticatedPage
-        .getByRole("menuitem", { name: /switch to (light|dark)/i })
+        .getByRole("button", { name: /switch to (light|dark)/i })
         .first(),
     ).toBeVisible();
 
@@ -765,7 +763,7 @@ test.describe("UI/UX regression flows", () => {
     await authenticatedPage.goto("/settings/navigation");
     await expect(
       authenticatedPage
-        .getByRole("heading", { name: /navigation settings/i })
+        .getByRole("heading", { name: /navigation settings|navigation/i })
         .first(),
     ).toBeVisible();
     await expectNoHorizontalOverflow(authenticatedPage, "/settings/navigation");
@@ -779,19 +777,26 @@ test.describe("UI/UX regression flows", () => {
   }) => {
     const runtimeIssues = trackRuntimeIssues(authenticatedPage);
 
-    const checks: Array<{ path: string; heading: RegExp; action: RegExp }> = [
-      { path: "/contacts", heading: /people/i, action: /new person/i },
-      { path: "/cases", heading: /cases/i, action: /new case/i },
-      { path: "/donations", heading: /donations/i, action: /record donation/i },
+    const checks: Array<{
+      path: string;
+      heading: RegExp;
+      action: RegExp;
+      actionRole: "button" | "link";
+    }> = [
+      { path: "/contacts", heading: /people/i, action: /new person/i, actionRole: "button" },
+      { path: "/cases", heading: /cases/i, action: /new case/i, actionRole: "button" },
+      { path: "/donations", heading: /donations/i, action: /record donation/i, actionRole: "link" },
       {
         path: "/reports/templates",
         heading: /report templates/i,
         action: /create custom report/i,
+        actionRole: "button",
       },
       {
         path: "/settings/navigation",
-        heading: /navigation settings/i,
+        heading: /navigation settings|navigation/i,
         action: /reset to defaults/i,
+        actionRole: "button",
       },
     ];
 
@@ -801,7 +806,7 @@ test.describe("UI/UX regression flows", () => {
         authenticatedPage.getByRole("heading", { name: check.heading }).first(),
       ).toBeVisible();
       await expect(
-        authenticatedPage.getByRole("button", { name: check.action }).first(),
+        authenticatedPage.getByRole(check.actionRole, { name: check.action }).first(),
       ).toBeVisible();
     }
 
@@ -860,7 +865,7 @@ test.describe("UI/UX regression flows", () => {
     const adminHubState = await gotoAdminRouteWithFallback(
       page,
       "/settings/admin",
-      /admin settings/i,
+      /admin hub|admin settings/i,
     );
     if (adminHubState === "redirected") {
       test.skip(
@@ -869,7 +874,7 @@ test.describe("UI/UX regression flows", () => {
       );
     }
     await expect(
-      page.getByRole("heading", { name: /admin settings/i }).first(),
+      page.getByRole("heading", { name: /admin hub|admin settings/i }).first(),
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: /quick actions/i }),
@@ -913,42 +918,42 @@ test.describe("UI/UX regression flows", () => {
     }> = [
       {
         path: "/settings/admin/portal/access",
-        heading: /portal admin - access/i,
+        heading: /portal ops|client portal access|portal admin - access/i,
         action: /refresh/i,
       },
       {
         path: "/settings/admin/portal/users",
-        heading: /portal admin - users/i,
+        heading: /portal ops|users|portal admin - users/i,
         action: /refresh/i,
       },
       {
         path: "/settings/admin/portal/conversations",
-        heading: /portal admin - conversations/i,
+        heading: /portal ops|conversations|portal admin - conversations/i,
         action: /refresh conversations/i,
       },
       {
         path: "/settings/admin/portal/appointments",
-        heading: /portal admin - appointments/i,
+        heading: /portal ops|appointments|portal admin - appointments/i,
         action: /refresh inbox/i,
       },
       {
         path: "/settings/admin/portal/slots",
-        heading: /portal admin - slots/i,
+        heading: /portal ops|slots|portal admin - slots/i,
         action: /refresh slots/i,
       },
       {
         path: "/settings/email-marketing",
-        heading: /email marketing/i,
+        heading: /newsletter campaigns|email marketing/i,
         action: /new campaign|admin\.mailchimp\.com/i,
       },
       {
         path: "/settings/api",
-        heading: /api settings/i,
+        heading: /api settings|api & webhooks/i,
         action: /add webhook/i,
       },
       {
         path: "/settings/navigation",
-        heading: /navigation settings/i,
+        heading: /navigation settings|navigation/i,
         action: /reset to defaults/i,
       },
       {

@@ -437,14 +437,14 @@ test.describe.serial('help center screenshot refresh', () => {
 
     await gotoApp(page, '/events');
     await waitForPageReady(page, {
-      selectors: ['h1:has-text("Events")', 'button:has-text("Create Event")', 'text=Event Catalog'],
+      selectors: ['h1:has-text("Events")', 'button:has-text("Today")', 'text=Calendar'],
       timeoutMs: 30_000,
     });
     recordShot('events/event-list.png', await writeShot(page, 'events/event-list.png'));
 
     await gotoApp(page, `/events/${seeded.events[0].id}`);
     await waitForPageReady(page, {
-      selectors: [`h1:has-text("${seeded.events[0].name}")`, 'text=Event Info'],
+      selectors: [`h1:has-text("${seeded.events[0].name}")`, 'button:has-text("Overview")'],
       timeoutMs: 30_000,
     });
     recordShot('events/event-detail.png', await writeShot(page, 'events/event-detail.png'));
@@ -458,7 +458,7 @@ test.describe.serial('help center screenshot refresh', () => {
 
     await gotoApp(page, '/donations');
     await waitForPageReady(page, {
-      selectors: ['h1:has-text("Donations")', 'button:has-text("Record Donation")', 'table'],
+      selectors: ['h1:has-text("Donations")', 'input[aria-label="Search donations"]', 'table'],
       timeoutMs: 30_000,
     });
     recordShot('donations/donations-list.png', await writeShot(page, 'donations/donations-list.png'));

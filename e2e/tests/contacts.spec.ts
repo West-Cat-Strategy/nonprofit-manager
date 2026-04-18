@@ -581,8 +581,11 @@ test.describe('Contacts Module', () => {
     await waitForContactDetailReady(authenticatedPage, new RegExp(`${firstName} ${lastName}`, 'i'));
 
     await authenticatedPage.getByRole('tab', { name: /notes/i }).click();
-    await expect(authenticatedPage.locator('#tabpanel-notes').getByText(/notes timeline/i)).toBeVisible();
-    await expect(authenticatedPage.locator('#tabpanel-notes').getByText(/no notes yet/i)).toBeVisible();
+    const notesPanel = authenticatedPage.locator('#tabpanel-notes');
+    await expect(notesPanel.getByRole('heading', { name: /notes timeline/i })).toBeVisible();
+    await expect(
+      notesPanel.getByText(/no (matching )?notes yet/i)
+    ).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /tasks/i }).click();
     await expect(authenticatedPage.locator('#tabpanel-tasks').getByRole('button', { name: /new task/i })).toBeVisible();
@@ -590,11 +593,14 @@ test.describe('Contacts Module', () => {
 
     await authenticatedPage.getByRole('tab', { name: /activity/i }).click();
     const activityPanel = authenticatedPage.locator('#tabpanel-activity');
-    await expect(activityPanel.getByText(/activity timeline/i)).toBeVisible();
+    await expect(activityPanel.getByRole('heading', { name: /activity timeline/i })).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /communications/i }).click();
-    await expect(authenticatedPage.locator('#tabpanel-communications').getByText(/^communications$/i)).toBeVisible();
-    await expect(authenticatedPage.locator('#tabpanel-communications').getByText(/no communications yet/i)).toBeVisible();
+    const communicationsPanel = authenticatedPage.locator('#tabpanel-communications');
+    await expect(
+      communicationsPanel.getByRole('heading', { name: /^communications$/i })
+    ).toBeVisible();
+    await expect(communicationsPanel.getByText(/no communications yet/i)).toBeVisible();
 
     await authenticatedPage.getByRole('tab', { name: /follow-ups/i }).click();
     await expect(authenticatedPage.locator('#tabpanel-followups')).toBeVisible();

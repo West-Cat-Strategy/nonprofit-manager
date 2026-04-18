@@ -52,6 +52,7 @@ export default function StaffEventsWorkspaceAgendaPanel({
                 key={entry.id}
                 type="button"
                 onClick={() => onSelectEntry(entry)}
+                data-testid="mobile-event-card"
                 className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${
                   selectedEntryId === entry.id
                     ? 'border-app-accent bg-app-accent-soft/20'

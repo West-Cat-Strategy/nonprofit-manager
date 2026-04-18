@@ -132,7 +132,9 @@ test.describe('Volunteers Module', () => {
             new RegExp(`/volunteers/${targetVolunteerId}/edit$`)
         );
 
-        await authenticatedPage.getByLabel(/availability status/i).selectOption('available');
+        const availabilityStatusSelect = authenticatedPage.getByLabel(/availability status/i);
+        await expect(availabilityStatusSelect).toHaveValue('limited');
+        await availabilityStatusSelect.selectOption('available');
         const updateVolunteerResponse = authenticatedPage.waitForResponse(
             (response) =>
                 response.request().method() === 'PUT' &&

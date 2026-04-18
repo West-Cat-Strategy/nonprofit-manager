@@ -96,25 +96,28 @@ These commands assume:
 - Public site: `http://127.0.0.1:8006`
 - `SKIP_WEBSERVER=1`
 - `PW_REUSE_EXISTING_SERVER=1`
+- `make docker-up-dev` uses the starter-only init path, so a fresh volume lands on `/setup` until the E2E helper completes first-time admin setup
+- Optional mock-data snapshots that explicitly load `database/seeds/003_mock_data.sql` still expose the seeded `admin@example.com` account described below
 
 ## Admin Credential Contract
 
 When `ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` are unset, the E2E helper chooses the default admin credentials from the runtime:
 
 - Playwright-managed runtime (`npm test`, `npm run test:ci`, headed/debug/UI runs): `admin@example.com` / `Admin123!@#`
-- Docker-backed runtime (`npm run test:docker*`) with the repo mock-data seed loaded: `admin@example.com` / `password123`
+- Docker-backed starter-only runtime from `make docker-up-dev`: the helper completes first-time setup with `admin@example.com` / `Admin123!@#`
+- Docker-backed runtime with `database/seeds/003_mock_data.sql` loaded explicitly: `admin@example.com` / `password123`
 
 Set `ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` explicitly only when:
 
 - your Docker snapshot uses a different seeded admin account
-- your local Playwright-managed test DB was prepared with a different setup-created admin
+- your starter-only Docker or Playwright-managed runtime was prepared with a different setup-created admin
 - you want strict route-health checks to pin a specific known admin account
 
 ## Registration Policy Contract
 
 - Playwright-managed host runs (`npm test`, `npm run test:smoke`, `npm run test:ci`, headed/debug/UI runs) force `BYPASS_REGISTRATION_POLICY_IN_TEST=false`.
 - In that runtime, E2E helpers create test users through the authenticated admin-managed user path instead of `/api/v2/auth/register`.
-- Wrapper-driven docker runs force `BYPASS_REGISTRATION_POLICY_IN_TEST=true`, which keeps the seeded-admin direct-registration and shared-user fallback path available.
+- Wrapper-driven docker runs force `BYPASS_REGISTRATION_POLICY_IN_TEST=true`, which keeps the starter-only first-time setup path plus the seeded-admin direct-registration and shared-user fallback path available.
 - Other externally managed runtimes such as ad hoc `SKIP_WEBSERVER=1` runs may still opt into direct registration and shared-user fallback with `BYPASS_REGISTRATION_POLICY_IN_TEST=true`.
 - If an externally managed runtime sets `BYPASS_REGISTRATION_POLICY_IN_TEST=false`, the helpers fall back to the managed-user path instead of the direct-registration path.
 

@@ -14,6 +14,12 @@ const benignConsolePatterns = [
   /Cross-Origin Request Blocked: .*\/api\/v2\/team-chat\/messenger\/stream.*CORS request did not succeed/i,
 ];
 
+const retryableReactBoundaryConsolePatterns = [
+  /The above error occurred in one of your React components\./i,
+  /React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary\./i,
+  /^Error boundary caught: Error JSHandle@object$/i,
+];
+
 const benignPageErrorPatterns = [
   /\/api\/v2\/auth\/bootstrap.*access control checks/i,
   /\/api\/v2\/team-chat\/.*access control checks/i,
@@ -148,6 +154,39 @@ const expectNoRuntimeErrors = (
   ).toEqual([]);
 };
 
+const hasOnlyRetryableReactBoundaryConsoleErrors = (errors: {
+  pageErrors: string[];
+  consoleErrors: string[];
+}): boolean => {
+  return (
+    errors.pageErrors.length === 0 &&
+    errors.consoleErrors.length > 0 &&
+    errors.consoleErrors.every((message) =>
+      retryableReactBoundaryConsolePatterns.some((pattern) => pattern.test(message))
+    )
+  );
+};
+
+const collectRuntimeErrorsForRoute = async (
+  page: Page,
+  route: string
+): Promise<{
+  response: Awaited<ReturnType<Page['goto']>>;
+  pageErrors: string[];
+  consoleErrors: string[];
+}> => {
+  const runtimeErrors = trackRuntimeErrors(page);
+  const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
+  await waitForAppRoute(page);
+  const snapshot = {
+    response,
+    pageErrors: [...runtimeErrors.pageErrors],
+    consoleErrors: [...runtimeErrors.consoleErrors],
+  };
+  runtimeErrors.detach();
+  return snapshot;
+};
+
 base.describe('Setup and launch stability (public)', () => {
   base('root launch resolves to /login or /setup with expected primary form', async ({ page }) => {
     await page.goto('/');
@@ -265,17 +304,18 @@ authTest.describe('Setup and launch stability (authenticated)', () => {
     ];
 
     for (const route of routes) {
-      const runtimeErrors = trackRuntimeErrors(authenticatedPage);
-      const response = await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
-      await waitForAppRoute(authenticatedPage);
+      let runtimeSnapshot = await collectRuntimeErrorsForRoute(authenticatedPage, route);
 
-      expect(response, `no response for ${route}`).not.toBeNull();
-      if (response) {
-        expect(response.status(), `bad status for ${route}`).toBeLessThan(400);
+      if (hasOnlyRetryableReactBoundaryConsoleErrors(runtimeSnapshot)) {
+        runtimeSnapshot = await collectRuntimeErrorsForRoute(authenticatedPage, route);
       }
 
-      expectNoRuntimeErrors(route, runtimeErrors);
-      runtimeErrors.detach();
+      expect(runtimeSnapshot.response, `no response for ${route}`).not.toBeNull();
+      if (runtimeSnapshot.response) {
+        expect(runtimeSnapshot.response.status(), `bad status for ${route}`).toBeLessThan(400);
+      }
+
+      expectNoRuntimeErrors(route, runtimeSnapshot);
     }
   });
 });

@@ -131,7 +131,7 @@ test.describe.serial('dashboard release polish', () => {
       url: /\/dashboard\?panel=settings$/,
       selectors: [
         'h1:has-text("Workbench Overview")',
-        'button:has-text("Create Intake")',
+        'a:has-text("Create intake"):visible',
         'a:has-text("Manage Navigation"):visible',
         'button:has-text("Close View Settings")',
         'a:has-text("Customize Layout"):visible',
@@ -140,7 +140,7 @@ test.describe.serial('dashboard release polish', () => {
       timeoutMs: 30_000,
     });
 
-    const createIntake = page.getByRole('button', { name: /create intake/i }).first();
+    const createIntake = page.getByRole('link', { name: /create intake/i }).first();
     const closeViewSettings = page.getByRole('button', { name: /close view settings/i }).first();
     await createIntake.focus();
     await expect(createIntake).toBeFocused();

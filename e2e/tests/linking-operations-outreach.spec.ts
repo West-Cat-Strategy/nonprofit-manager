@@ -86,7 +86,7 @@ test('outreach route exposes primary campaign actions', async ({ authenticatedPa
   });
 
   await authenticatedPage.getByRole('button', { name: 'NEW BLAST' }).click();
-  await expect(authenticatedPage).toHaveURL(/\/contacts\?action=email/);
+  await expect(authenticatedPage).toHaveURL('/settings/communications');
 
   await authenticatedPage.goto(OUTREACH_ROUTE, { waitUntil: 'domcontentloaded' });
   await authenticatedPage.getByRole('button', { name: 'VIEW REPORTS' }).click();

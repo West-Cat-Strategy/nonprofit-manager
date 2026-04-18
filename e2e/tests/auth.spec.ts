@@ -153,15 +153,16 @@ test.describe('Authentication Flow', () => {
     expect(user).toContain(tempEmail);
   });
 
-  test('dashboard startup does not request analytics/task summary endpoints', async ({ page }) => {
-    const startupRequests: string[] = [];
+  test('dashboard startup loads workbench summary endpoints without duplicate refetches', async ({ page }) => {
+    const analyticsSummaryRequests: string[] = [];
+    const taskSummaryRequests: string[] = [];
     page.on('request', (request) => {
       const url = request.url();
-      if (
-        /\/api\/(?:v2\/)?analytics\/summary(?:\?|$)/.test(url) ||
-        /\/api\/(?:v2\/)?tasks\/summary(?:\?|$)/.test(url)
-      ) {
-        startupRequests.push(url);
+      if (/\/api\/(?:v2\/)?analytics\/summary(?:\?|$)/.test(url)) {
+        analyticsSummaryRequests.push(url);
+      }
+      if (/\/api\/(?:v2\/)?tasks\/summary(?:\?|$)/.test(url)) {
+        taskSummaryRequests.push(url);
       }
     });
     await gotoDashboardWithApiAuth(page);
@@ -181,12 +182,15 @@ test.describe('Authentication Flow', () => {
       )
       .toBe(true);
 
-    await expect(page.getByText(/today at a glance/i).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /workbench overview/i }).first()).toBeVisible();
     await expect(page.getByText(/pinned shortcuts/i).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /create intake/i }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /create intake/i }).first()).toBeVisible();
 
+    await expect.poll(() => analyticsSummaryRequests.length, { timeout: 10000 }).toBeGreaterThan(0);
+    await expect.poll(() => taskSummaryRequests.length, { timeout: 10000 }).toBeGreaterThan(0);
     await page.waitForTimeout(800);
-    expect(startupRequests).toEqual([]);
+    expect(analyticsSummaryRequests).toHaveLength(1);
+    expect(taskSummaryRequests).toHaveLength(1);
   });
 
   test('authenticated route transitions do not repeatedly refetch preferences/branding', async ({ page }) => {

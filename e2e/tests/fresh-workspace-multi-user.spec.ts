@@ -596,12 +596,14 @@ async function assertAdminSurface(
   users: Array<{ email: string; role: string }>
 ): Promise<void> {
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText(/today at a glance/i).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: /workbench overview/i }).first()).toBeVisible({
+    timeout: 30_000,
+  });
 
   await page.goto('/settings/admin/users', { waitUntil: 'domcontentloaded' });
   await waitForPageReady(page, {
     url: /\/settings\/admin\/users(?:[/?#]|$)/,
-    selectors: ['h2:has-text("User Lookup")', 'input[aria-label="Search users"]'],
+    selectors: ['h2:has-text("Account Lookup")', 'input[aria-label="Search users"]'],
     timeoutMs: 30_000,
   });
 
@@ -675,6 +677,9 @@ async function assertManagerSurface(
 async function assertStaffSurface(page: Page, seeded: SeededRecord): Promise<void> {
   await page.goto('/tasks', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: /tasks/i })).toBeVisible({ timeout: 30_000 });
+  const taskSearchInput = page.getByLabel('Search tasks');
+  await taskSearchInput.fill(seeded.task.subject);
+  await expect(taskSearchInput).toHaveValue(seeded.task.subject);
   await expect(page.locator('tbody tr').filter({ hasText: seeded.task.subject }).first()).toBeVisible({
     timeout: 30_000,
   });
