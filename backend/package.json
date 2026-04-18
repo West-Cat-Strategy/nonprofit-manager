@@ -23,7 +23,6 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "type-check": "tsc --noEmit",
-    "schema:export": "ts-node --transpileOnly scripts/export-schema-bundle.ts",
     "test:integration": "bash scripts/run-integration-tests.sh",
     "test:integration:coverage": "jest --forceExit --coverage src/__tests__/integration"
   },

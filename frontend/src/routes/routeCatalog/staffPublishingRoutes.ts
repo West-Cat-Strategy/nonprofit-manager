@@ -85,19 +85,3 @@ export const staffPublishingRouteCatalogEntries: readonly RouteCatalogEntry[] = 
     path: '/website-builder/:templateId',
   }),
 ];
-
-export const staffPublishingRouteCatalogAuditTargets = [
-  { path: '/website-builder' },
-  { path: '/websites' },
-  { href: '/website-builder' },
-  { path: '/websites/:siteId' },
-  { path: '/websites/:siteId/overview' },
-  { path: '/websites/:siteId/content' },
-  { path: '/websites/:siteId/newsletters' },
-  { path: '/websites/:siteId/forms' },
-  { path: '/websites/:siteId/integrations' },
-  { path: '/websites/:siteId/publishing' },
-  { path: '/websites/:siteId/builder' },
-  { path: '/website-builder/:templateId/preview' },
-  { path: '/website-builder/:templateId' },
-] as const;

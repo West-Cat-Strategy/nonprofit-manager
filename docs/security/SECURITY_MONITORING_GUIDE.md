@@ -740,83 +740,13 @@ rm /tmp/logs-${MONTH}.jsonl*
 
 ### Automated Reports
 
-#### Daily Security Report (Email to Security Team)
+#### Daily Security Review
 
-```python
-# scripts/daily-security-report.py
+The repo does not ship a maintained automated daily email reporter. For the local review path, use the current repo-owned checks plus your deployment-provider monitoring:
 
-from datetime import datetime, timedelta
-from elasticsearch import Elasticsearch
-
-es = Elasticsearch(['elasticsearch:9200'])
-yesterday = datetime.now() - timedelta(days=1)
-
-# Query metrics for past day
-failed_logins = es.count(
-    index="logs-*",
-    body={
-        "query": {
-            "bool": {
-                "must": [
-                    {"match": {"action": "login_failed"}},
-                    {"range": {"timestamp": {"gte": yesterday}}}
-                ]
-            }
-        }
-    }
-)
-
-pii_accesses = es.search(
-    index="logs-*",
-    body={
-        "query": {
-            "bool": {
-                "must": [
-                    {"match": {"action": "pii_accessed"}},
-                    {"range": {"timestamp": {"gte": yesterday}}}
-                ]
-            }
-        },
-        "aggs": {
-            "by_type": {
-                "terms": {"field": "fields_accessed.keyword"}
-            }
-        }
-    }
-)
-
-# Generate email
-report = f"""
-DAILY SECURITY REPORT - {yesterday.date()}
-
-Authentication:
-- Failed logins: {failed_logins['count']}
-- MFA failures: [from logs]
-- New IP logins: [from logs]
-
-Data Access:
-- PII accesses: {pii_accesses['hits']['total']['value']}
-- Most accessed field: {pii_accesses['aggregations']['by_type']['buckets'][0]['key']}
-- Unauthorized accesses: [from logs]
-
-API:
-- Request errors: [from logs]
-- Rate limit hits: [from logs]
-- Slow queries: [from logs]
-
-Infrastructure:
-- Container restarts: [from logs]
-- Database connection pool usage: [from logs]
-
-Alerts Triggered:
-[List all alerts]
-
-Action Items:
-[List any required investigations]
-"""
-
-send_email("security@company.com", "Daily Security Report", report)
-```
+- `make security-scan`
+- `make quality-baseline`
+- runtime logs, provider alerts, and backup/restore verification from the active deployment environment
 
 #### Monthly Compliance Report (For Auditors)
 

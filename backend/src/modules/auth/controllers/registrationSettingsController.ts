@@ -1,28 +1,12 @@
 /**
- * Registration Settings Controller
- * Endpoints for managing registration settings (admin) and querying
- * registration status (public), plus the pending-registration approval workflow.
+ * Registration status controller
+ * Public endpoint for querying whether self-registration is available.
  */
 
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '@middleware/auth';
-import { logger } from '@config/logger';
-import { conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
-import {
-  getRegistrationSettings,
-  getRegistrationMode,
-  updateRegistrationSettings,
-} from '@modules/admin/usecases/registrationSettingsUseCase';
-import {
-  listPendingRegistrations,
-} from '@modules/admin/usecases/listPendingRegistrationsUseCase';
-import {
-  approvePendingRegistration,
-} from '@modules/admin/usecases/approveRegistrationUseCase';
-import {
-  rejectPendingRegistration,
-} from '@modules/admin/usecases/rejectRegistrationUseCase';
+import { getRegistrationMode } from '@modules/admin/usecases/registrationSettingsUseCase';
 
 // ---------------------------------------------------------------------------
 // Public
@@ -42,127 +26,6 @@ export const getRegistrationStatus = async (
     const mode = await getRegistrationMode();
     return sendSuccess(res, { registrationEnabled: mode !== 'disabled', mode });
   } catch (error) {
-    next(error);
-  }
-};
-
-// ---------------------------------------------------------------------------
-// Admin — registration settings
-// ---------------------------------------------------------------------------
-
-/**
- * GET /api/admin/registration-settings
- */
-export const getRegistrationSettingsHandler = async (
-  _req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<Response | void> => {
-  try {
-    const settings = await getRegistrationSettings();
-    return sendSuccess(res, settings);
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * PUT /api/admin/registration-settings
- */
-export const updateRegistrationSettingsHandler = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<Response | void> => {
-  try {
-    const { registrationMode, defaultRole } = req.body;
-    const userId = req.user?.id;
-    const updated = await updateRegistrationSettings(
-      { registrationMode, defaultRole },
-      userId
-    );
-    logger.info(`Registration settings updated by user ${userId}`);
-    return sendSuccess(res, updated);
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ---------------------------------------------------------------------------
-// Admin — pending registrations
-// ---------------------------------------------------------------------------
-
-/**
- * GET /api/admin/pending-registrations
- */
-export const listPendingRegistrationsHandler = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<Response | void> => {
-  try {
-    const query = (req.validatedQuery ?? req.query) as { status?: string };
-    const status = typeof query.status === 'string' ? query.status : undefined;
-    const validStatuses = ['pending', 'approved', 'rejected'];
-    const filterStatus = status && validStatuses.includes(status) ? status as 'pending' | 'approved' | 'rejected' : undefined;
-    const items = await listPendingRegistrations(filterStatus);
-    return sendSuccess(res, { data: items });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * POST /api/admin/pending-registrations/:id/approve
- */
-export const approvePendingRegistrationHandler = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<Response | void> => {
-  try {
-    const { id } = req.params as { id: string };
-    const reviewedBy = req.user?.id;
-    if (!reviewedBy) {
-      return unauthorized(res, 'Authentication required');
-    }
-    const result = await approvePendingRegistration(id, reviewedBy);
-    return sendSuccess(res, { message: 'Registration approved', user: result.user });
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      return notFoundMessage(res, error.message);
-    }
-    if (error instanceof Error && (error.message.includes('already been') || error.message.includes('already exists'))) {
-      return conflict(res, error.message);
-    }
-    next(error);
-  }
-};
-
-/**
- * POST /api/admin/pending-registrations/:id/reject
- */
-export const rejectPendingRegistrationHandler = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<Response | void> => {
-  try {
-    const { id } = req.params as { id: string };
-    const reviewedBy = req.user?.id;
-    if (!reviewedBy) {
-      return unauthorized(res, 'Authentication required');
-    }
-    const { reason } = req.body;
-    const result = await rejectPendingRegistration(id, reviewedBy, reason);
-    return sendSuccess(res, { message: 'Registration rejected', data: result });
-  } catch (error: unknown) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      return notFoundMessage(res, error.message);
-    }
-    if (error instanceof Error && error.message.includes('already been')) {
-      return conflict(res, error.message);
-    }
     next(error);
   }
 };

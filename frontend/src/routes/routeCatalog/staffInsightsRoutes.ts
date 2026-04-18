@@ -117,21 +117,3 @@ export const staffInsightsRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     path: '/alerts/history',
   }),
 ];
-
-export const staffInsightsRouteCatalogAuditTargets = [
-  { path: '/analytics' },
-  { href: '/analytics' },
-  { path: '/dashboard/custom' },
-  { path: '/reports' },
-  { href: '/reports/builder' },
-  { path: '/reports/builder' },
-  { path: '/reports/templates' },
-  { path: '/reports/saved' },
-  { path: '/reports/scheduled' },
-  { path: '/reports/outcomes' },
-  { path: '/reports/workflow-coverage' },
-  { path: '/alerts' },
-  { href: '/alerts' },
-  { path: '/alerts/instances' },
-  { path: '/alerts/history' },
-] as const;

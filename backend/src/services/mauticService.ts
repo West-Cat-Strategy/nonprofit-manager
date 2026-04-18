@@ -399,48 +399,10 @@ export async function bulkSyncContacts(request: BulkSyncRequest): Promise<BulkSy
   };
 }
 
-export async function getSegment(segmentId: string): Promise<MauticSegment | null> {
-  if (!isConfigured) {
-    return null;
-  }
-
-  try {
-    const response = await mauticRequest<{
-      segment?: {
-        id: string | number;
-        name: string;
-        contacts?: number;
-        member_count?: number;
-      };
-      details?: {
-        id: string | number;
-        name: string;
-        contacts?: number;
-        member_count?: number;
-      };
-    }>(`/api/segments/${segmentId}`);
-
-    const segment = response.segment || response.details;
-    if (!segment) {
-      return null;
-    }
-
-    return {
-      id: String(segment.id),
-      name: segment.name,
-      memberCount: Number(segment.contacts ?? segment.member_count ?? 0),
-    };
-  } catch (error) {
-    logger.error('Failed to get Mautic segment', { error, segmentId });
-    throw error;
-  }
-}
-
 export default {
   isMauticConfigured,
   getStatus,
   getSegments,
   syncContact,
   bulkSyncContacts,
-  getSegment,
 };

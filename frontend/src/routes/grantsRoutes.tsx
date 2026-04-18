@@ -108,5 +108,3 @@ export function createGrantsRoutes(ProtectedRoute: React.ComponentType<RouteWrap
     </>
   );
 }
-
-export default createGrantsRoutes;

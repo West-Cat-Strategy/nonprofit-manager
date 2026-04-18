@@ -1,7 +1,7 @@
 /**
  * Registration Settings Controller
- * Endpoints for managing registration settings (admin) and querying
- * registration status (public), plus the pending-registration approval workflow.
+ * Endpoints for managing registration settings (admin) and the
+ * pending-registration approval workflow.
  */
 
 import { Response, NextFunction } from 'express';
@@ -11,7 +11,6 @@ import { conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers'
 import { sendSuccess } from '@modules/shared/http/envelope';
 import {
   getRegistrationSettings,
-  getRegistrationMode,
   updateRegistrationSettings,
 } from '../usecases/registrationSettingsUseCase';
 import {
@@ -23,32 +22,6 @@ import {
 import {
   rejectPendingRegistration,
 } from '../usecases/rejectRegistrationUseCase';
-
-// ---------------------------------------------------------------------------
-// Public
-// ---------------------------------------------------------------------------
-
-/**
- * GET /api/auth/registration-status
- * Public (no auth required) — the login page calls this to decide whether to
- * show a "Register" button.
- */
-export const getRegistrationStatus = async (
-  _req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<Response | void> => {
-  try {
-    const mode = await getRegistrationMode();
-    return sendSuccess(res, { registrationEnabled: mode !== 'disabled', mode });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ---------------------------------------------------------------------------
-// Admin — registration settings
-// ---------------------------------------------------------------------------
 
 /**
  * GET /api/admin/registration-settings

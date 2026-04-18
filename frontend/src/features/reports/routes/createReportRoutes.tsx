@@ -75,5 +75,3 @@ export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrap
     </>
   );
 }
-
-export default createReportRoutes;
