@@ -1,5 +1,8 @@
 # Product Analytics Integration Research
 
+**Last Updated:** 2026-04-19
+
+
 This document is a technology-evaluation snapshot, not a declaration of the currently deployed analytics stack. Use [../features/TELEMETRY.md](../features/TELEMETRY.md) for the repo's telemetry feature context and the live workboard for any active analytics migration or rollout work.
 
 ## Overview

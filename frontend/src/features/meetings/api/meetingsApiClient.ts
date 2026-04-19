@@ -45,12 +45,12 @@ export class MeetingsApiClient {
   }
 
   async updateMeeting(meetingId: string, payload: Partial<Meeting>): Promise<Meeting> {
-    const response = await api.put<ApiEnvelope<Meeting>>(`/v2/meetings/${meetingId}`, payload);
+    const response = await api.patch<ApiEnvelope<Meeting>>(`/v2/meetings/${meetingId}`, payload);
     return unwrapApiData(response.data);
   }
 
   async addAgendaItem(meetingId: string, payload: Partial<MeetingAgendaItem>): Promise<MeetingAgendaItem> {
-    const response = await api.post<ApiEnvelope<MeetingAgendaItem>>(`/v2/meetings/${meetingId}/agenda`, payload);
+    const response = await api.post<ApiEnvelope<MeetingAgendaItem>>(`/v2/meetings/${meetingId}/agenda-items`, payload);
     return unwrapApiData(response.data);
   }
 

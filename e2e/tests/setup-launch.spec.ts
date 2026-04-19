@@ -25,7 +25,7 @@ const benignPageErrorPatterns = [
   /\/api\/v2\/team-chat\/.*access control checks/i,
   /error loading dynamically imported module:/i,
   /error loading dynamically imported module: .*\/src\/components\/dashboard\/useQuickLookup\.tsx/i,
-  /error loading dynamically imported module: .*\/src\/components\/navigation\/NavigationQuickLookupDialog\.tsx/i,
+  /error loading dynamically imported module: .*\/src\/features\/navigation\/components\/StaffNavigationQuickLookupDialog\.tsx/i,
   /error loading dynamically imported module: .*\/src\/features\/contacts\/pages\/ContactListPage\.tsx/i,
   /error loading dynamically imported module: .*\/src\/features\/contacts\/pages\/ContactDetailPage\.tsx/i,
   /Importing a module script failed/i,

@@ -1,5 +1,8 @@
 # Website Builder - Template System Documentation
 
+**Last Updated:** 2026-04-19
+
+
 ## Overview
 
 The Website Builder Template System allows nonprofits to create, customize, and preview professional websites using pre-built templates or building from scratch.
@@ -759,7 +762,7 @@ POST /api/v2/templates/:templateId/versions/:versionId/restore
 
 For additional help:
 
-- **Documentation**: [docs/INDEX.md](../INDEX.md)
+- **Documentation**: [docs/README.md](../README.md)
 - **Architecture**: [ARCHITECTURE.md](../development/ARCHITECTURE.md)
 - **Contributing**: [CONTRIBUTING.md](../../CONTRIBUTING.md)
 - **Email**: maintainer@example.com

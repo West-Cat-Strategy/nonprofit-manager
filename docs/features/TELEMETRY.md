@@ -1,5 +1,8 @@
 # Telemetry and Monitoring
 
+**Last Updated:** 2026-04-19
+
+
 The Nonprofit Manager includes a self-hosted monitoring system to track application health, performance, and user activity without sacrificing privacy.
 
 ## Prometheus Metrics

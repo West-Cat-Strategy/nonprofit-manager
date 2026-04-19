@@ -273,10 +273,10 @@ This creates:
 ## Environment Variables
 
 ```bash
-# Base URL for published sites
+## Base URL for published sites
 SITE_BASE_URL=https://sites.westcat.ca
 
-# SSL provisioning (for production with Let's Encrypt)
+## SSL provisioning (for production with Let's Encrypt)
 ACME_EMAIL=admin@westcat.ca
 ACME_DIRECTORY=https://acme-v02.api.letsencrypt.org/directory
 ```

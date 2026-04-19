@@ -1,4 +1,4 @@
-import type { TabularExportColumn } from '@modules/shared/export/tabularExport';
+
 import type { ImportFieldOption } from '@modules/shared/import/peopleImportParser';
 import type { ImportRowError } from '@modules/shared/import/importUtils';
 import type { ContactFilters } from '@app-types/contact';

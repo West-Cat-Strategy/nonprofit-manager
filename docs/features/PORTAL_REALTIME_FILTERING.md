@@ -1,5 +1,8 @@
 # Portal Realtime + Filtering Contracts (P4-T7D)
 
+**Last Updated:** 2026-04-19
+
+
 ## Scope
 This document describes the P4-T7D contract extension for client and admin portal messaging/appointments.
 

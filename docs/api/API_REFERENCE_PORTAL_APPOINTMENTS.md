@@ -1,5 +1,8 @@
 # Portal Appointments API Reference
 
+**Last Updated:** 2026-04-19
+
+
 Current appointment contracts for portal users (`/api/v2/portal`) and staff operations (`/api/v2/portal/admin`).
 
 ## Auth

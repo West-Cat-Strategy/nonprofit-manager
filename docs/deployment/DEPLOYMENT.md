@@ -1,5 +1,8 @@
 # Deployment Guide
 
+**Last Updated:** 2026-04-19
+
+
 This guide covers deploying the Nonprofit Manager platform to production.
 
 Workspace note: this checkout includes the Dockerfiles plus the compose manifests and overlays used by the repo's local and deployment scripts. For image-only validation here, prefer `make docker-build` and `make docker-validate`.
@@ -38,7 +41,7 @@ NODE_ENV=production
 PORT=3000
 LOG_LEVEL=info
 
-# Database
+## Database
 DB_HOST=your_db_host
 DB_PORT=5432
 DB_NAME=nonprofit_manager
@@ -47,21 +50,21 @@ DB_PASSWORD=strong_password_here
 DB_AT_REST_ENCRYPTION_MODE=managed
 DB_AT_REST_PROVIDER=rds
 DB_AT_REST_VERIFIED=true
-# Self-hosted LUKS alternative:
-# DB_AT_REST_ENCRYPTION_MODE=luks
-# POSTGRES_DATA_DIR=/srv/nonprofit-manager/postgres
-# DB_LUKS_MAPPING_NAME=nonprofit-manager-db
-# BACKUP_DIR=/srv/nonprofit-manager/backups/database
+## Self-hosted LUKS alternative:
+## DB_AT_REST_ENCRYPTION_MODE=luks
+## POSTGRES_DATA_DIR=/srv/nonprofit-manager/postgres
+## DB_LUKS_MAPPING_NAME=nonprofit-manager-db
+## BACKUP_DIR=/srv/nonprofit-manager/backups/database
 
-# JWT - CHANGE THESE!
+## JWT - CHANGE THESE!
 JWT_SECRET=your_strong_secret_key_minimum_32_characters
 JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
-# CORS
+## CORS
 CORS_ORIGIN=https://westcat.ca
 
-# Rate Limiting
+## Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=1500
 AUTH_RATE_LIMIT_WINDOW_MS=900000
@@ -71,20 +74,20 @@ MAX_LOGIN_ATTEMPTS=15
 ACCOUNT_LOCKOUT_DURATION_MS=300000
 PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS=600000
 PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS=300
-# Password reset uses the built-in 30/hour default.
+## Password reset uses the built-in 30/hour default.
 
-# Security
+## Security
 MAX_LOGIN_ATTEMPTS=15
 ACCOUNT_LOCKOUT_DURATION_MS=300000
 
-# Monitoring
+## Monitoring
 SENTRY_DSN=your_sentry_dsn
 ENABLE_MONITORING=true
 ```
 
 **Frontend `.env`:**
 ```bash
-# Frontend proxy base; the mounted application API remains /api/v2/*
+## Frontend proxy base; the mounted application API remains /api/v2/*
 VITE_API_URL=/api
 VITE_ENABLE_ANALYTICS=true
 VITE_ANALYTICS_ID=your_analytics_id
@@ -111,10 +114,10 @@ Serve the frontend and backend from the same public origin (`westcat.ca`) and le
 
 1. **Get SSL Certificate** (using Let's Encrypt):
 ```bash
-# Install certbot
+## Install certbot
 sudo apt-get install certbot
 
-# Get certificate
+## Get certificate
 sudo certbot certonly --standalone -d westcat.ca
 ```
 
@@ -207,16 +210,16 @@ SHOW ssl;  -- Should return 'on'
 
 3. **Manual Setup (if not using managed service):**
 ```bash
-# Generate certificate (self-signed for testing):
+## Generate certificate (self-signed for testing):
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout /var/lib/postgresql/server.key \
   -out /var/lib/postgresql/server.crt
 
-# Set permissions
+## Set permissions
 chmod 600 /var/lib/postgresql/server.key
 chown postgres:postgres /var/lib/postgresql/server.*
 
-# Update postgresql.conf
+## Update postgresql.conf
 echo "ssl = on" >> /etc/postgresql/14/main/postgresql.conf
 echo "ssl_cert_file = '/var/lib/postgresql/server.crt'" >> /etc/postgresql/14/main/postgresql.conf
 echo "ssl_key_file = '/var/lib/postgresql/server.key'" >> /etc/postgresql/14/main/postgresql.conf
@@ -231,22 +234,22 @@ The Node.js backend in `backend/src/config/database.ts` automatically:
 - Treats `DB_SSL_ENABLED` as a managed/external-database knob only; local-Postgres deployments ignore it because the backend forces DB TLS off
 
 ```bash
-# Production database config
+## Production database config
 DB_HOST=your-prod-database.com
 DB_PORT=5432
 DB_NAME=nonprofit_manager
 DB_USER=nonprofit_app_user
 DB_PASSWORD=your_strong_random_password
 
-# SSL enforcement (recommended: true for strict validation)
-# Set to false ONLY for self-signed certificates in development
+## SSL enforcement (recommended: true for strict validation)
+## Set to false ONLY for self-signed certificates in development
 DB_SSL_REJECT_UNAUTHORIZED=true
 
-# For LUKS-backed and self-hosted deployments, the backend disables DB TLS automatically.
-# Do not rely on DB_SSL_ENABLED for local Postgres over the compose network.
+## For LUKS-backed and self-hosted deployments, the backend disables DB TLS automatically.
+## Do not rely on DB_SSL_ENABLED for local Postgres over the compose network.
 
-# (Optional) Custom CA certificate path
-# DB_SSL_CA_PATH=/path/to/ca-bundle.crt
+## (Optional) Custom CA certificate path
+## DB_SSL_CA_PATH=/path/to/ca-bundle.crt
 ```
 
 ### Redis Encryption in Transit
@@ -262,7 +265,7 @@ Use AWS ElastiCache, Azure Cache for Redis, or GCP Memorystore:
 3. Update environment variable:
 
 ```bash
-# Production Redis with TLS
+## Production Redis with TLS
 REDIS_URL=rediss://:AUTH_TOKEN_HERE@your-redis.cache.amazonaws.com:6380
 REDIS_ENABLED=true
 REDIS_TLS_REJECT_UNAUTHORIZED=true
@@ -273,19 +276,19 @@ REDIS_TLS_REJECT_UNAUTHORIZED=true
 If running Redis yourself:
 
 ```bash
-# Generate TLS certificates for Redis
+## Generate TLS certificates for Redis
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout /etc/redis/redis.key \
   -out /etc/redis/redis.crt
 
-# Configure Redis (redis.conf)
+## Configure Redis (redis.conf)
 port 0  # Disable unencrypted port
 tls-port 6380
 tls-cert-file /etc/redis/redis.crt
 tls-key-file /etc/redis/redis.key
 requirepass YOUR_STRONG_PASSWORD
 
-# Connect backend via TLS
+## Connect backend via TLS
 REDIS_URL=rediss://:YOUR_STRONG_PASSWORD@localhost:6380
 ```
 
@@ -308,16 +311,16 @@ This tells browsers to **always** use HTTPS for your domain. To enable HSTS prel
 After deployment, verify your security headers:
 
 ```bash
-# Check HSTS header
+## Check HSTS header
 curl -I https://your-domain.com
 
-# Expected headers:
-# Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-# X-Content-Type-Options: nosniff
-# X-Frame-Options: DENY
-# Referrer-Policy: no-referrer
+## Expected headers:
+## Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+## X-Content-Type-Options: nosniff
+## X-Frame-Options: DENY
+## Referrer-Policy: no-referrer
 
-# Use online checker: securityheaders.com
+## Use online checker: securityheaders.com
 ```
 
 ---
@@ -333,7 +336,7 @@ NODE_ENV=production
 PORT=3000
 LOG_LEVEL=info
 
-# Database
+## Database
 DB_HOST=your_db_host
 DB_PORT=5432
 DB_NAME=nonprofit_manager
@@ -341,20 +344,20 @@ DB_USER=your_db_user
 DB_PASSWORD=strong_password_here
 DB_SSL_REJECT_UNAUTHORIZED=true
 
-# Redis
+## Redis
 REDIS_URL=rediss://:your_redis_password@your-redis-host:6380
 REDIS_ENABLED=true
 REDIS_TLS_REJECT_UNAUTHORIZED=true
 
-# JWT - CHANGE THESE!
+## JWT - CHANGE THESE!
 JWT_SECRET=your_strong_secret_key_minimum_32_characters
 JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
-# CORS (must be HTTPS in production)
+## CORS (must be HTTPS in production)
 CORS_ORIGIN=https://westcat.ca
 
-# Rate Limiting
+## Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=1500
 AUTH_RATE_LIMIT_WINDOW_MS=900000
@@ -364,21 +367,21 @@ MAX_LOGIN_ATTEMPTS=15
 ACCOUNT_LOCKOUT_DURATION_MS=300000
 PUBLIC_EVENT_CHECKIN_RATE_LIMIT_WINDOW_MS=600000
 PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS=300
-# Password reset uses the built-in 30/hour default.
+## Password reset uses the built-in 30/hour default.
 
-# Security
+## Security
 MAX_LOGIN_ATTEMPTS=15
 ACCOUNT_LOCKOUT_DURATION_MS=300000
 ENFORCE_SECURE_CONFIG=true
 
-# Monitoring
+## Monitoring
 SENTRY_DSN=your_sentry_dsn
 ENABLE_MONITORING=true
 ```
 
 **Frontend `.env`:**
 ```bash
-# Frontend proxy base; the mounted application API remains /api/v2/*
+## Frontend proxy base; the mounted application API remains /api/v2/*
 VITE_API_URL=/api
 VITE_ENABLE_ANALYTICS=true
 VITE_ANALYTICS_ID=your_analytics_id
@@ -398,11 +401,11 @@ cd nonprofit-manager
 ### 2. Configure Environment
 
 ```bash
-# Copy and edit environment files
+## Copy and edit environment files
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 
-# Edit with your production values
+## Edit with your production values
 nano backend/.env
 nano frontend/.env
 ```
@@ -430,10 +433,10 @@ Push the images to your registry or hand them to your runtime or orchestrator. T
 ### 5. Verify Deployment
 
 ```bash
-# Check backend health
+## Check backend health
 curl http://127.0.0.1:8000/health
 
-# Check frontend
+## Check frontend
 curl http://127.0.0.1:8001/
 ```
 
@@ -448,18 +451,18 @@ The rest of this section describes generic manual/self-managed production deploy
 ```bash
 cd /path/to/nonprofit-manager
 
-# Install dependencies
+## Install dependencies
 npm ci
 
-# Build TypeScript
+## Build TypeScript
 cd backend
 npm run build
 
-# Start with PM2 (recommended)
+## Start with PM2 (recommended)
 npm install -g pm2
 pm2 start dist/index.js --name nonprofit-backend
 
-# Or use systemd service (see systemd section below)
+## Or use systemd service (see systemd section below)
 ```
 
 ### Frontend Deployment
@@ -467,15 +470,15 @@ pm2 start dist/index.js --name nonprofit-backend
 ```bash
 cd /path/to/nonprofit-manager
 
-# Install dependencies
+## Install dependencies
 npm ci
 
-# Build for production
+## Build for production
 cd frontend
 npm run build
 
-# Serve with nginx (recommended)
-# Copy dist/ contents to /var/www/nonprofit-manager/
+## Serve with nginx (recommended)
+## Copy dist/ contents to /var/www/nonprofit-manager/
 ```
 
 ### Nginx Configuration
@@ -540,30 +543,30 @@ make db-verify
 If you are managing PostgreSQL directly, apply the bootstrap contract explicitly:
 
 ```bash
-# Connect to PostgreSQL
+## Connect to PostgreSQL
 psql -U postgres
 
-# Create database
+## Create database
 CREATE DATABASE nonprofit_manager;
 
-# Create runtime user (if needed)
+## Create runtime user (if needed)
 CREATE USER nonprofit_app_user WITH ENCRYPTED PASSWORD 'your_password';
 GRANT ALL PRIVILEGES ON DATABASE nonprofit_manager TO nonprofit_app_user;
 
-# Exit psql
+## Exit psql
 \q
 
-# Run the bootstrap contract
+## Run the bootstrap contract
 psql -U nonprofit_app_user -d nonprofit_manager -f database/initdb/000_init.sql
 ```
 
 ### Future Migrations
 
 ```bash
-# 1. Create the ordered migration file under database/migrations/
-# 2. Add it to database/migrations/manifest.tsv
-# 3. Add it to database/initdb/000_init.sql
-# 4. Validate the canonical bootstrap contract
+## 1. Create the ordered migration file under database/migrations/
+## 2. Add it to database/migrations/manifest.tsv
+## 3. Add it to database/initdb/000_init.sql
+## 4. Validate the canonical bootstrap contract
 make db-verify
 ```
 
@@ -580,10 +583,10 @@ make db-verify
 For one-off migrations or disaster recovery that need a database-creating archive instead of the recurring SQL and gzip flow, use [db-export-archive.sh](../../scripts/db-export-archive.sh) and [db-restore-archive.sh](../../scripts/db-restore-archive.sh). Those helpers wrap `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create -d postgres`, honor `DB_COMPOSE_ENV_FILE` for production-like stacks, block managed-production usage, and require explicit restore confirmation variables before destructive restores.
 
 ```bash
-# Daily automated backup for local Postgres production modes
+## Daily automated backup for local Postgres production modes
 0 2 * * * BACKUP_DIR=/srv/nonprofit-manager/backups/database ./scripts/db-backup.sh
 
-# Restore from backup
+## Restore from backup
 gunzip -c /srv/nonprofit-manager/backups/database/backup_20260201_020000.sql.gz | psql -U nonprofit_app_user -d nonprofit_manager
 ```
 
@@ -625,10 +628,10 @@ make db-verify
 ### Manual Deployment Process
 
 ```bash
-# Run local CI before deploy
+## Run local CI before deploy
 make ci
 
-# Tag a release
+## Tag a release
 git tag -a v1.0.0 -m "Release version 1.0.0"
 git push origin v1.0.0
 ```
@@ -640,25 +643,25 @@ Before release, review the checklist in `../development/RELEASE_CHECKLIST.md`.
 ### Health Checks
 
 ```bash
-# Backend health endpoint
+## Backend health endpoint
 curl https://westcat.ca/health
 
-# Compatibility aliases remain available
+## Compatibility aliases remain available
 curl https://westcat.ca/api/health
 curl https://westcat.ca/api/v2/health
 
-# Expected response
+## Expected response
 {"status":"ok","timestamp":"2026-02-01T..."}
 ```
 
 ### Log Management
 
 ```bash
-# View Docker logs if you are running named containers locally
+## View Docker logs if you are running named containers locally
 docker logs nonprofit-manager-backend
 docker logs nonprofit-manager-frontend
 
-# PM2 logs (manual deployment)
+## PM2 logs (manual deployment)
 pm2 logs nonprofit-backend
 ```
 
@@ -705,10 +708,10 @@ Then restart the backend so any in-memory fallback state is cleared.
 ### Security Audits
 
 ```bash
-# Run security audit
+## Run security audit
 npm audit
 
-# Check Docker image vulnerabilities
+## Check Docker image vulnerabilities
 docker scan nonprofit-manager-backend:latest
 docker scan nonprofit-manager-frontend:latest
 ```
@@ -718,32 +721,32 @@ docker scan nonprofit-manager-frontend:latest
 ### Docker Rollback
 
 ```bash
-# List available tags
+## List available tags
 docker images | grep nonprofit
 
-# Stop current containers
+## Stop current containers
 docker stop nonprofit-manager-backend nonprofit-manager-frontend
 
-# Deploy previous version
-# Redeploy the previous tagged images through your orchestrator
+## Deploy previous version
+## Redeploy the previous tagged images through your orchestrator
 ```
 
 ### Database Rollback
 
 ```bash
-# Restore from backup
+## Restore from backup
 psql -U nonprofit_app_user -d nonprofit_manager < /backups/nonprofit_20260131.sql
 ```
 
 ### Emergency Rollback
 
 ```bash
-# Quick rollback script
+## Quick rollback script
 #!/bin/bash
 docker stop nonprofit-manager-backend nonprofit-manager-frontend
 git checkout tags/v1.0.0  # Replace with stable version
 make docker-build
-# Redeploy the rebuilt previous-tag images through your orchestrator
+## Redeploy the rebuilt previous-tag images through your orchestrator
 ```
 
 ## Troubleshooting
@@ -751,22 +754,22 @@ make docker-build
 ### Backend Won't Start
 
 ```bash
-# Check logs
+## Check logs
 docker logs nonprofit-manager-backend
 
-# Common issues:
-# 1. Database connection failed
-#    - Verify DB_HOST, DB_USER, DB_PASSWORD in .env
-# 2. Port already in use
-#    - Change PORT in .env
-# 3. Missing environment variables
-#    - Ensure all required vars are set
+## Common issues:
+## 1. Database connection failed
+##    - Verify DB_HOST, DB_USER, DB_PASSWORD in .env
+## 2. Port already in use
+##    - Change PORT in .env
+## 3. Missing environment variables
+##    - Ensure all required vars are set
 ```
 
 ### Frontend Build Failures
 
 ```bash
-# Clear cache and rebuild
+## Clear cache and rebuild
 rm -rf frontend/node_modules
 rm -rf frontend/dist
 npm install
@@ -776,10 +779,10 @@ npm run build
 ### Database Connection Issues
 
 ```bash
-# Test connection
+## Test connection
 docker exec -it nonprofit-manager-postgres psql -U postgres -c "SELECT version();"
 
-# Check PostgreSQL logs
+## Check PostgreSQL logs
 docker logs nonprofit-manager-postgres
 ```
 

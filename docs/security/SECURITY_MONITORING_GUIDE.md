@@ -1,5 +1,8 @@
 # Security Monitoring & Detection Guide
 
+**Last Updated:** 2026-04-19
+
+
 This guide outlines how to monitor the application for security threats, anomalies, and compliance violations in real-time.
 
 ## Table of Contents
@@ -122,7 +125,7 @@ service:auth AND action:login_failed
 ### Alert: Brute Force Attack Detection
 
 ```yaml
-# Alert Rule: Brute Force Detection
+## Alert Rule: Brute Force Detection
 name: "Brute Force Attack Detected"
 severity: CRITICAL
 condition: 
@@ -142,7 +145,7 @@ actions:
 ### Alert: New IP Address Login (Suspicious)
 
 ```yaml
-# Alert Rule: New IP Login
+## Alert Rule: New IP Login
 name: "Login from Unusual Location"
 severity: HIGH
 condition:
@@ -155,9 +158,9 @@ actions:
   - "Send 2FA challenge"
   - "Log IP for historical tracking"
 
-# Example: User typically logs in from Vancouver, BC (203.0.113.0/24)
-# Today logs in from Singapore (198.51.100.0/24)
-# → Alert, require additional 2FA
+## Example: User typically logs in from Vancouver, BC (203.0.113.0/24)
+## Today logs in from Singapore (198.51.100.0/24)
+## → Alert, require additional 2FA
 ```
 
 ### Auth Alias Deprecation Monitoring
@@ -472,13 +475,13 @@ actions:
 ### Container Health Monitoring
 
 ```bash
-# Monitor Docker container status
+## Monitor Docker container status
 docker stats --no-stream
 
-# Alert on container restart
+## Alert on container restart
 docker events --filter type=container | grep restart
 
-# Monitor memory usage
+## Monitor memory usage
 docker stats --format "table {{.Container}}\t{{.MemUsage}}"
 ```
 
@@ -524,14 +527,14 @@ actions:
 Each alert should be tuned to your organization:
 
 ```python
-# Example: Rate Limiting Threshold
+## Example: Rate Limiting Threshold
 
 baseline_requests_per_sec = 100  # Normal peak
 threshold = baseline_requests_per_sec * 1.5  # 150 reqs/sec = alert
 
-# For brute force: 5 failures per 10 minutes is reasonable
-# For mass data access: depends on your org (bulk export vs normal = 50 records)
-# For error rates: depends on service (API: 5%, background jobs: 10%)
+## For brute force: 5 failures per 10 minutes is reasonable
+## For mass data access: depends on your org (bulk export vs normal = 50 records)
+## For error rates: depends on service (API: 5%, background jobs: 10%)
 ```
 
 ---
@@ -701,29 +704,29 @@ Database audit logs   | Monthly partitions, oldest > 1 year archived
 
 ```bash
 #!/bin/bash
-# Monthly archival workflow
+## Monthly archival workflow
 
-# Monthly archival to S3
+## Monthly archival to S3
 MONTH=$(date +%Y-%m)
 ARCHIVE_NAME="logs-${MONTH}.tar.gz"
 
-# Export from Elasticsearch
+## Export from Elasticsearch
 curl -X GET "elasticsearch:9200/logs-*-${MONTH}/_search?scroll=1m" \
   | jq -c '.hits.hits[]' \
   > /tmp/logs-${MONTH}.jsonl
 
-# Encrypt with org's key
+## Encrypt with org's key
 openssl enc -aes-256-cbc -in /tmp/logs-${MONTH}.jsonl \
   -out /tmp/logs-${MONTH}.jsonl.enc \
   -K $ARCHIVE_ENCRYPTION_KEY
 
-# Upload to S3 with 7-year retention
+## Upload to S3 with 7-year retention
 aws s3 cp /tmp/logs-${MONTH}.jsonl.enc \
   s3://compliance-archive/logs-${MONTH}/ \
   --storage-class GLACIER \
   --sse AES256
 
-# Cleanup local
+## Cleanup local
 rm /tmp/logs-${MONTH}.jsonl*
 ```
 
@@ -751,7 +754,7 @@ The repo does not ship a maintained automated daily email reporter. For the loca
 #### Monthly Compliance Report (For Auditors)
 
 ```markdown
-# Monthly Security Compliance Report - February 2026
+## Monthly Security Compliance Report - February 2026
 
 ## Executive Summary
 - Security incidents: 0 critical, 1 high, 0 medium
@@ -939,11 +942,11 @@ TRIGGER: Alert "Rate Limit Triggered" >5 times in 1 minute
 ### PagerDuty Integration
 
 ```yaml
-# .env configuration
+## .env configuration
 PAGERDUTY_INTEGRATION_URL=events.pagerduty.com/v2/enqueue
 PAGERDUTY_ROUTING_KEY=...
 
-# Alert firing example
+## Alert firing example
 POST events.pagerduty.com/v2/enqueue
 {
   "routing_key": "${PAGERDUTY_ROUTING_KEY}",
@@ -1029,20 +1032,20 @@ async function sendSecurityAlert(alert: SecurityAlert) {
 ### Validation Steps
 
 ```bash
-# Test Elasticsearch connectivity
+## Test Elasticsearch connectivity
 curl -s elasticsearch:9200 | jq .
 
-# Test Kibana alerting
+## Test Kibana alerting
 curl -X GET "kibana:5601/api/alerting/rules"
 
-# Test Slack integration
+## Test Slack integration
 curl -X POST ${SLACK_WEBHOOK_URL} \
   -d '{"text": "Test alert from monitoring system"}'
 
-# Test log parsing
+## Test log parsing
 cat /var/log/app.log | jq . | head -20
 
-# Verify alert rules exist
+## Verify alert rules exist
 curl -s elasticsearch:9200/_watcher/watch/_all | jq '.watches | length'
 ```
 

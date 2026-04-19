@@ -4,6 +4,7 @@ import type {
   CaseNote,
   CreateCaseNoteDTO,
 } from '../../../types/case';
+import type { OutcomeDefinition } from '../../../types/outcomes';
 import type {
   InteractionOutcomeImpact,
   UpdateInteractionOutcomesInput,
@@ -11,7 +12,7 @@ import type {
 
 export interface CaseNotesState {
   notes: CaseNote[];
-  outcomeDefinitions: any[]; // Adjust type as needed
+  outcomeDefinitions: OutcomeDefinition[];
   interactionOutcomeImpacts: Record<string, InteractionOutcomeImpact[]>;
   loading: boolean;
   saving: boolean;

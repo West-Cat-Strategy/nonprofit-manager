@@ -1,5 +1,8 @@
 # wc-manage Pattern Adoption Audit for nonprofit-manager
 
+**Last Updated:** 2026-04-19
+
+
 **Date:** 2026-02-23  
 **Scope:** API guardrails first, with modularity and CI/release policy as secondary tracks.
 

@@ -1,5 +1,8 @@
 # Phase 3: External Security Testing & Advanced Controls
 
+**Last Updated:** 2026-04-19
+
+
 This document is a planning roadmap for a security phase, not a statement that every control below is already implemented. Use [SECURITY_MONITORING_GUIDE.md](SECURITY_MONITORING_GUIDE.md), [INCIDENT_RESPONSE_RUNBOOK.md](INCIDENT_RESPONSE_RUNBOOK.md), and the live workboard to confirm current operational posture.
 
 ## Overview
@@ -237,14 +240,14 @@ export function MFAEnforcement() {
 Enable in PostgreSQL configuration:
 
 ```ini
-# postgresql.conf
+## postgresql.conf
 log_statement = 'all'  # Log all statements (or 'mod' for modifications only)
 log_min_duration_statement = 1000  # Log queries taking >1 second
 log_connections = on
 log_disconnections = on
 log_statement_stats = on
 
-# Log file settings
+## Log file settings
 log_directory = 'pg_log'
 log_filename = 'postgresql-%a.log'
 log_truncate_on_rotation = on
@@ -269,7 +272,7 @@ Forward logs to centralized logging service via Filebeat or Fluent/Bit.
 **Scope Document**:
 
 ```markdown
-# Penetration Test Scope
+## Penetration Test Scope
 
 ## Systems In Scope
 - API Backend (backend.nonprofit-manager.com)
@@ -433,7 +436,7 @@ graph TD
 **Critical Issues Runbook**:
 
 ```markdown
-# Incident Runbook: Unauthorized Data Access
+## Incident Runbook: Unauthorized Data Access
 
 ## Severity: CRITICAL
 
@@ -512,7 +515,7 @@ graph TD
 **Keep Updated & Accessible**:
 
 ```yaml
-# incident-response.yml
+## incident-response.yml
 incident_commander:
   - name: "Bryan Crockett"
     title: "CTO"

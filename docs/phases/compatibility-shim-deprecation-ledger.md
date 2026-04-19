@@ -1,5 +1,8 @@
 # Compatibility Shim Deprecation Ledger
 
+**Last Updated:** 2026-04-19
+
+
 **Last updated:** April 13, 2026
 
 This ledger tracks shims retained for wave-safe compatibility and their planned retirement. At present, there are no active root shim files in the current tree; the remaining legacy payment surface is the tombstoned `/api/payments/*` path.

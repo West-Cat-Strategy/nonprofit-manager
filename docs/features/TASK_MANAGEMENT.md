@@ -1,5 +1,8 @@
 # Advanced Task Management
 
+**Last Updated:** 2026-04-19
+
+
 The Task Management module provides sophisticated tools for planning, tracking, and executing complex projects within your nonprofit organization.
 
 ## Key Features

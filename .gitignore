@@ -9,8 +9,10 @@ node_modules/
 # ==============================
 # Workspace-local and generated artifacts
 # ==============================
+.cache/
 .docker/backups/
 .docker/postgres/
+output/playwright/
 output/pdf/
 
 # ==============================
@@ -22,8 +24,6 @@ output/pdf/
 !.env.*.example
 .deploy.conf
 .deploy.conf.*
-!.deploy.conf.example
-!.deploy.conf.*.example
 
 # ==============================
 # Build artifacts
@@ -50,6 +50,7 @@ id_ed25519
 # Testing and reports
 # ==============================
 coverage/
+frontend/test_output*.txt
 test-results/
 test-results.json
 playwright-report/

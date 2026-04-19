@@ -1,5 +1,8 @@
 # P4-T4F CRM + Cases Reporting Adoption Spec
 
+**Last Updated:** 2026-04-19
+
+
 ## Locked Decisions
 
 1. `P4-T4F` remains a reporting-only parallel lane to `P4-T4`; chat module scope is unchanged.

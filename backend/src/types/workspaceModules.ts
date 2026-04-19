@@ -18,6 +18,7 @@ export const WORKSPACE_MODULE_KEYS = [
   'scheduledReports',
   'alerts',
   'websites',
+  'meetings',
 ] as const;
 
 export type WorkspaceModuleKey = (typeof WORKSPACE_MODULE_KEYS)[number];
@@ -46,6 +47,7 @@ export const createDefaultWorkspaceModulesConfig = (): WorkspaceModulesConfig =>
   scheduledReports: true,
   alerts: true,
   websites: true,
+  meetings: true,
 });
 
 export const normalizeWorkspaceModulesConfig = (

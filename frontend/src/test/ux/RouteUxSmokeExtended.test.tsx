@@ -4,10 +4,10 @@ import { vi } from 'vitest';
 import Login from '../../features/auth/pages/LoginPage';
 import Register from '../../features/auth/pages/RegisterPage';
 import Setup from '../../features/auth/pages/SetupPage';
-import AcceptInvitation from '../../features/auth/pages/AcceptInvitationPage';
+import AcceptInvitation from '../../features/invitations/pages/AcceptInvitationPage';
 import ForgotPassword from '../../features/auth/pages/ForgotPasswordPage';
 import ResetPassword from '../../features/auth/pages/ResetPasswordPage';
-import PortalAcceptInvitation from '../../features/portal/pages/PortalAcceptInvitationPage';
+import PortalAcceptInvitation from '../../features/invitations/pages/PortalAcceptInvitationPage';
 import PortalForgotPassword from '../../features/portal/pages/PortalForgotPasswordPage';
 import PortalLogin from '../../features/portal/pages/PortalLoginPage';
 import PortalResetPassword from '../../features/portal/pages/PortalResetPasswordPage';
@@ -51,6 +51,9 @@ vi.mock('../../contexts/BrandingContext', () => ({
     setBranding: mockSetBranding,
     refreshBranding: vi.fn(),
   }),
+}));
+vi.mock('../../hooks/useUnsavedChangesGuard', () => ({
+  useUnsavedChangesGuard: vi.fn(),
 }));
 
 const apiMatchers = {

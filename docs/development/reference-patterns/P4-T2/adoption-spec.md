@@ -1,5 +1,8 @@
 # P4-T2 Adoption Spec
 
+**Last Updated:** 2026-04-19
+
+
 ## Scope
 
 Three feature domains were implemented:

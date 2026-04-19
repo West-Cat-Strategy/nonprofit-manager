@@ -657,7 +657,7 @@ Response:
 ### 1. Run Database Migration
 
 ```bash
-# Apply the case management schema
+## Apply the case management schema
 psql -U postgres -d nonprofit_manager -f database/migrations/009_case_management.sql
 ```
 
@@ -671,15 +671,15 @@ npm run dev
 ### 3. Test API
 
 ```bash
-# Get case types
+## Get case types
 curl localhost:3000/api/v2/cases/types \
   -H "Authorization: Bearer YOUR_TOKEN"
 
-# Get case statuses
+## Get case statuses
 curl localhost:3000/api/v2/cases/statuses \
   -H "Authorization: Bearer YOUR_TOKEN"
 
-# Create a case
+## Create a case
 curl -X POST localhost:3000/api/v2/cases \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \

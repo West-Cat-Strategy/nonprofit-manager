@@ -92,7 +92,6 @@ mountV2Routes('/activities', activitiesV2Routes);
 mountV2Routes('/export', exportV2Routes);
 mountV2Routes('/invitations', invitationsV2Routes);
 mountV2Routes('/mailchimp', mailchimpV2Routes);
-mountV2Routes('/meetings', meetingsV2Routes);
 mountV2Routes('/payments', paymentsV2Routes);
 mountV2Routes('/public/events', publicEventsV2Routes);
 mountV2Routes('/public/newsletters', publicPublishingV2Routes);
@@ -134,6 +133,7 @@ mountWorkspaceModuleRoutes(
 );
 mountWorkspaceModuleRoutes('/reconciliation', 'reconciliation', reconciliationV2Routes);
 mountWorkspaceModuleRoutes('/alerts', 'alerts', alertsV2Routes);
+mountWorkspaceModuleRoutes('/meetings', 'meetings', meetingsV2Routes);
 
 export function registerV2Routes(app: Application): void {
   const v2Enabled = process.env.API_V2_ENABLED !== 'false';

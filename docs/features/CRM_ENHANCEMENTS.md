@@ -1,5 +1,8 @@
 # CRM Enhancements
 
+**Last Updated:** 2026-04-19
+
+
 The CRM module has been upgraded with automated workflows and intelligence to help nonprofit managers prioritize their constituent engagement.
 
 ## Key Features

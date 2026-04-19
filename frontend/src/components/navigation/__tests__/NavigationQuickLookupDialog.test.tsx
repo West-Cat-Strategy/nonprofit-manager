@@ -4,7 +4,7 @@ import type { ChangeEvent, KeyboardEvent } from 'react';
 import type * as ReactRouterDom from 'react-router-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import NavigationQuickLookupDialog from '../NavigationQuickLookupDialog';
+import NavigationQuickLookupDialog from '../../../features/navigation/components/StaffNavigationQuickLookupDialog';
 
 type QuickLookupMockState = {
   searchTerm: string;

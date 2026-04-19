@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import type { CaseFilter, CaseSummary, CaseTimelineEvent, CaseWithDetails } from '@app-types/case';
+import type { CaseFilter, CaseTimelineEvent, CaseWithDetails } from '@app-types/case';
 import { buildCaseProvenance } from '../utils/importProvenance';
 import {
   decodeTimelineCursor,

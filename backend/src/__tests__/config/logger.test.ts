@@ -1,4 +1,7 @@
-import { maskSensitiveData } from '@config/logger';
+import { createLogFormat, maskSensitiveData } from '@config/logger';
+
+const SPLAT_SYMBOL = Symbol.for('splat');
+const MESSAGE_SYMBOL = Symbol.for('message');
 
 describe('logger redaction', () => {
   it('redacts common personal data keys recursively', () => {
@@ -43,5 +46,47 @@ describe('logger redaction', () => {
         public: 'safe',
       },
     });
+  });
+
+  it('redacts interpolated %s payloads before the final log line is rendered', () => {
+    const format = createLogFormat();
+    const transformed = format.transform(
+      {
+        level: 'info',
+        message: 'Token %s',
+        [SPLAT_SYMBOL]: ['super-secret-token'],
+      } as any,
+      format.options
+    );
+
+    expect(transformed).toBeDefined();
+    expect(transformed?.message).toBe('Token [REDACTED]');
+    expect(String(transformed?.[MESSAGE_SYMBOL])).not.toContain('super-secret-token');
+  });
+
+  it('redacts interpolated %o payloads before the final log line is rendered', () => {
+    const format = createLogFormat();
+    const transformed = format.transform(
+      {
+        level: 'info',
+        message: 'Payload %o',
+        [SPLAT_SYMBOL]: [
+          {
+            secret: 'top-secret',
+            nested: {
+              token: 'nested-secret',
+            },
+          },
+        ],
+      } as any,
+      format.options
+    );
+
+    expect(transformed).toBeDefined();
+    expect(String(transformed?.message)).not.toContain('top-secret');
+    expect(String(transformed?.message)).not.toContain('nested-secret');
+    expect(String(transformed?.message)).toContain('[REDACTED]');
+    expect(String(transformed?.[MESSAGE_SYMBOL])).not.toContain('top-secret');
+    expect(String(transformed?.[MESSAGE_SYMBOL])).not.toContain('nested-secret');
   });
 });

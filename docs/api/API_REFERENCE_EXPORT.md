@@ -339,7 +339,7 @@ curl -X POST http://localhost:3000/api/v2/export/comprehensive \
 ### Export with Filters
 
 ```bash
-# Export large donations only
+## Export large donations only
 curl -X POST http://localhost:3000/api/v2/export/donations \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -454,7 +454,7 @@ Exports can be automated using cron jobs or scheduled tasks:
 
 ```bash
 #!/bin/bash
-# Monthly donation export script
+## Monthly donation export script
 
 TOKEN="your-jwt-token"
 MONTH=$(date -d "last month" +%Y-%m)

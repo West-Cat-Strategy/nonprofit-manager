@@ -1,6 +1,6 @@
 # Nonprofit Manager
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-19
 
 Nonprofit Manager is a platform for nonprofit teams that need their daily operations, fundraising, reporting, and web workflows to live in one place instead of across disconnected tools.
 
@@ -53,10 +53,10 @@ Technology snapshot: TypeScript, React 19, Express, PostgreSQL, Redis, Tailwind 
 
 - Product specification: [docs/product/product-spec.md](docs/product/product-spec.md)
 - Feature inventory: [docs/features/FEATURE_MATRIX.md](docs/features/FEATURE_MATRIX.md)
-- Staff help center: [docs/help-center/staff/index.html](docs/help-center/staff/index.html)
+- Workflow personas: [docs/product/persona-workflows.md](docs/product/persona-workflows.md)
 - API reference: [docs/api/README.md](docs/api/README.md)
 - Deployment guide: [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md)
-- Full documentation catalog: [docs/INDEX.md](docs/INDEX.md)
+- Full documentation catalog: [docs/README.md](docs/README.md)
 
 ## For Contributors
 
@@ -64,9 +64,14 @@ If you want to contribute code or docs, use this handoff path:
 
 1. [CONTRIBUTING.md](CONTRIBUTING.md) for workflow, validation, tracked-work expectations, and handoff
 2. [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup and runtime choices
-3. [docs/README.md](docs/README.md) or [docs/INDEX.md](docs/INDEX.md) for the rest of the documentation map
+3. [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md) for active implementation conventions
+4. [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for repo guardrails
+5. [docs/testing/TESTING.md](docs/testing/TESTING.md) for the validation command map
+6. [docs/README.md](docs/README.md) for the rest of the documentation map
 
-If you are already working in a specific surface after that, continue with [agents.md](agents.md) for terminology and coordination context, [backend/README.md](backend/README.md), [frontend/README.md](frontend/README.md), or [docs/testing/TESTING.md](docs/testing/TESTING.md) as needed.
+If the task is tracked, open [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before editing.
+
+If you are already working in a specific surface after that, continue with [agents.md](agents.md) for terminology and coordination context, [backend/README.md](backend/README.md), [frontend/README.md](frontend/README.md), [docs/api/README.md](docs/api/README.md), or [docs/testing/TESTING.md](docs/testing/TESTING.md) as needed.
 
 ## License
 

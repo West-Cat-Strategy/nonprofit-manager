@@ -1,6 +1,6 @@
 # Subagent Modularization Guide
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-19
 
 Use this guide when a tracked modularization task needs coordinated parallel contributors. The default remains one active task per agent. Parallel lanes are an exception that must be documented on the live workboard before implementation starts.
 
@@ -57,10 +57,10 @@ For frontend monoliths, extract from the inside out: local hooks, controller hel
 
 - `testing` / `e2e`
 - `api` / `deployment`
-- `product` / `features` / `help-center`
+- `product` / `features` / `validation`
 - `service readmes` / `scripts` / `quick-reference`
 
-For docs-heavy waves, keep shared entry docs such as `README.md`, `CONTRIBUTING.md`, `docs/README.md`, `docs/INDEX.md`, documentation style guides, and the workboard lead-owned unless the lane contract explicitly assigns them.
+For docs-heavy waves, keep shared entry docs such as `README.md`, `CONTRIBUTING.md`, `docs/README.md`, documentation style guides, and the workboard lead-owned unless the lane contract explicitly assigns them.
 
 ## Lane Contract Template
 

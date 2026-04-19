@@ -1,5 +1,8 @@
 # Data Backup API Reference
 
+**Last Updated:** 2026-04-19
+
+
 Admin-only API documentation for exporting a full data backup.
 
 ## Overview

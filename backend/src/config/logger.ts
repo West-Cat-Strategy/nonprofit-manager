@@ -1,9 +1,7 @@
 import winston from 'winston';
-import * as http from 'http';
-import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
-import Transport from 'winston-transport';
+import type { TransformableInfo } from 'logform';
 import { getRequestContext } from '@config/requestContext';
 
 // Fields that should be masked in logs
@@ -87,6 +85,45 @@ const maskSensitiveData = (obj: unknown): unknown => {
   return masked;
 };
 
+const SPLAT_SYMBOL = Symbol.for('splat');
+
+const sanitizeSplatValue = (value: unknown): unknown => {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(sanitizeSplatValue);
+  }
+
+  if (typeof value === 'object') {
+    const masked: Record<string, unknown> = {};
+    for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+      masked[key] = sanitizeSplatValue(nestedValue);
+    }
+    return masked;
+  }
+
+  return '[REDACTED]';
+};
+
+const sanitizeSplatArgs = winston.format((info: TransformableInfo) => {
+  const splatInfo = info as TransformableInfo & Record<symbol, unknown>;
+  const splatValue = splatInfo[SPLAT_SYMBOL];
+
+  if (splatValue === undefined) {
+    return info;
+  }
+
+  if (Array.isArray(splatValue)) {
+    splatInfo[SPLAT_SYMBOL] = splatValue.map(sanitizeSplatValue);
+  } else {
+    splatInfo[SPLAT_SYMBOL] = sanitizeSplatValue(splatValue);
+  }
+
+  return splatInfo;
+});
+
 // Custom format to mask sensitive data
 const sensitiveDataMasker = winston.format((info) => {
   // Mask any metadata objects
@@ -137,94 +174,18 @@ const requestContextInjector = winston.format((info) => {
   return info;
 });
 
-const logFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.errors({ stack: true }),
-  requestContextInjector(),
-  sensitiveDataMasker(),
-  winston.format.splat(),
-  winston.format.json()
-);
+export const createLogFormat = () =>
+  winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.errors({ stack: true }),
+    requestContextInjector(),
+    sanitizeSplatArgs(),
+    winston.format.splat(),
+    sensitiveDataMasker(),
+    winston.format.json()
+  );
 
-// Custom HTTP transport for log aggregation (e.g., ELK, Loki, Datadog)
-class HttpLogTransport extends Transport {
-  private host: string;
-  private port: number;
-  private path: string;
-  private protocol: string;
-
-  constructor(options: any = {}) {
-    super(options);
-    this.host = options.host;
-    this.port = options.port;
-    this.path = options.path || '/logs';
-    this.protocol = options.protocol || 'http';
-  }
-
-  log(info: any, callback?: () => void): void {
-    setImmediate(() => {
-      this.send(info).catch((error: Error) => {
-        if (callback) {
-          callback();
-        }
-        // Log transport errors to console without failing
-        // eslint-disable-next-line no-console
-        console.error('HttpLogTransport error:', error.message);
-      });
-    });
-
-    if (callback) {
-      callback();
-    }
-  }
-
-  private async send(info: any): Promise<void> {
-    try {
-      const data = JSON.stringify({
-        timestamp: new Date().toISOString(),
-        level: info.level,
-        message: info.message,
-        service: info.service || 'nonprofit-manager-api',
-        environment: process.env.NODE_ENV || 'development',
-        version: process.env.RELEASE_VERSION || '1.0.0',
-        ...info,
-      });
-
-      const options = {
-        hostname: this.host,
-        port: this.port,
-        path: this.path,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(data),
-          'X-API-Key': process.env.LOG_AGGREGATION_API_KEY || '',
-        },
-      };
-
-      const protocol = this.protocol === 'https' ? https : http;
-      const request = protocol.request(options, (response) => {
-        if (response.statusCode && response.statusCode > 299) {
-          // eslint-disable-next-line no-console
-          console.error(`Log aggregation returned status ${response.statusCode}`);
-        }
-        response.on('data', () => { });
-        response.on('end', () => { });
-      });
-
-      request.on('error', (error: Error) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to send logs to aggregation service:', error.message);
-      });
-
-      request.write(data);
-      request.end();
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Error sending log to aggregation service:', error instanceof Error ? error.message : String(error));
-    }
-  }
-}
+const logFormat = createLogFormat();
 
 const parsePositiveInteger = (value: string | undefined, fallback: number): number => {
   const parsed = Number.parseInt(value || '', 10);
@@ -266,14 +227,30 @@ if (enableFileLogging) {
 
 // Add log aggregation transport if configured
 if (process.env.LOG_AGGREGATION_ENABLED === 'true' && process.env.LOG_AGGREGATION_HOST) {
-  (transports as any).push(
-    new HttpLogTransport({
+  const httpTransport = new winston.transports.Http({
       host: process.env.LOG_AGGREGATION_HOST,
       port: parseInt(process.env.LOG_AGGREGATION_PORT || '8080'),
       path: process.env.LOG_AGGREGATION_PATH || '/logs',
       protocol: process.env.LOG_AGGREGATION_PROTOCOL || 'http',
-    })
-  );
+      headers: {
+        'X-API-Key': process.env.LOG_AGGREGATION_API_KEY || '',
+      },
+      ssl: process.env.LOG_AGGREGATION_PROTOCOL === 'https',
+    } as unknown as winston.transports.HttpTransportOptions);
+
+  httpTransport.on('warn', (info) => {
+    // Keep aggregation failures visible without failing application logging.
+    // eslint-disable-next-line no-console
+    console.error('Log aggregation warning:', String(info.message ?? info));
+  });
+
+  httpTransport.on('error', (error) => {
+    // Keep aggregation failures visible without throwing from logger initialization.
+    // eslint-disable-next-line no-console
+    console.error('Log aggregation error:', error instanceof Error ? error.message : String(error));
+  });
+
+  (transports as any).push(httpTransport);
 }
 
 export const logger = winston.createLogger({

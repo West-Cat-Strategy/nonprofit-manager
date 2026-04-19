@@ -9,7 +9,8 @@ import {
   useDashboardData,
   useDashboardDonationTrends,
 } from '../DashboardDataContext';
-import { renderWithProviders } from '../../../../test/testUtils';
+import { logout } from '../../../auth/state';
+import { createTestStore, renderWithProviders } from '../../../../test/testUtils';
 
 const analyticsSummaryMock = vi.fn();
 const donationTrendsMock = vi.fn();
@@ -184,6 +185,42 @@ describe('DashboardDataContext', () => {
     expect(screen.getByTestId('assigned-total')).toHaveTextContent('4');
     expect(screen.getByTestId('loading-state')).toHaveTextContent('idle');
     expect(donationTrendsMock).not.toHaveBeenCalled();
+  });
+
+  it('resets loaded dashboard data when authentication is cleared', async () => {
+    const store = createTestStore({
+      auth: {
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'admin',
+        },
+        isAuthenticated: true,
+        authLoading: false,
+        loading: false,
+      },
+    });
+
+    renderWithProviders(
+      <DashboardDataProvider lanes={WORKBENCH_DASHBOARD_LANES}>
+        <DashboardCompatibilityConsumer />
+      </DashboardDataProvider>,
+      { store }
+    );
+
+    await waitFor(() => expect(screen.getByTestId('urgent-cases')).toHaveTextContent('2'));
+
+    await act(async () => {
+      store.dispatch(logout());
+    });
+
+    await waitFor(() => expect(screen.getByTestId('urgent-cases')).toHaveTextContent('-1'));
+    expect(screen.getByTestId('assigned-total')).toHaveTextContent('0');
+    expect(screen.getByTestId('loading-state')).toHaveTextContent('idle');
+    expect(screen.getByTestId('trend-error')).toHaveTextContent('none');
+    expect(screen.getByTestId('task-error')).toHaveTextContent('none');
   });
 
   it('surfaces request errors per data lane', async () => {

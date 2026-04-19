@@ -1,5 +1,8 @@
 # People Module - Refactor, Enhance & Extend Plan
 
+**Last Updated:** 2026-04-19
+
+
 This document is a historical planning artifact for people-module expansion work. Use [FEATURE_MATRIX.md](FEATURE_MATRIX.md) for the current capability map and [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for active tracked work before treating any phase below as current scope.
 
 ## Current State Summary

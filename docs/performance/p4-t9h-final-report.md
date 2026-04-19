@@ -1,5 +1,8 @@
 # P4-T9H Final Report
 
+**Last Updated:** 2026-04-19
+
+
 Date: 2026-03-15  
 Task: `P4-T9H`  
 Status: `Done` (strict closure rerun passed on 2026-04-14; performance evidence remains authoritative)
@@ -53,7 +56,7 @@ Runtime evidence is now captured with Docker-backed PostgreSQL 16 using:
 Artifacts:
 
 - Summary: `docs/performance/artifacts/p4-t9h/summary.md`
-- Raw plans: `docs/performance/artifacts/p4-t9h/raw/*.json`
+- Archived evidence note: `docs/performance/archive/README.md`
 
 Measured results for `%supportwave%` search/list paths on the synthetic seeded dataset:
 
@@ -76,4 +79,4 @@ Plan notes:
 
 ## Next Step
 
-Move `P4-T9H` to Review using this report plus the existing performance artifacts as the row-local evidence package.
+Move `P4-T9H` to Review using this report plus the retained summary artifact as the row-local evidence package.

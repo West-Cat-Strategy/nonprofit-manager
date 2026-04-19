@@ -7,7 +7,7 @@
 - Audit date: `2026-04-18`
 - Surface: authenticated staff app only
 - Review lanes: navigation and information architecture, workflow ergonomics, and visual cohesion
-- Primary comparison docs: [../product/persona-workflows.md](../product/persona-workflows.md) and [../help-center/staff/quick-start.html](../help-center/staff/quick-start.html)
+- Primary comparison docs: [../product/persona-workflows.md](../product/persona-workflows.md), [../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts](../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts), and [../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts)
 - Representative staff surfaces reviewed: Workbench, People, Cases, Donations, and Report Builder
 
 ## Evidence Summary
@@ -23,20 +23,20 @@
 - `Static evidence reviewed`
   - Code and route ownership: [../../frontend/src/components/Navigation.tsx](../../frontend/src/components/Navigation.tsx), [../../frontend/src/components/navigation/MobileNavigationDrawer.tsx](../../frontend/src/components/navigation/MobileNavigationDrawer.tsx), [../../frontend/src/components/workspace/WorkspaceHeader.tsx](../../frontend/src/components/workspace/WorkspaceHeader.tsx), [../../frontend/src/components/workspace/SurfaceContextBar.tsx](../../frontend/src/components/workspace/SurfaceContextBar.tsx), [../../frontend/src/features/navigation/hooks/useStaffNavigationViewModel.ts](../../frontend/src/features/navigation/hooks/useStaffNavigationViewModel.ts), [../../frontend/src/hooks/useNavigationPreferences.ts](../../frontend/src/hooks/useNavigationPreferences.ts), and the route catalog files under [../../frontend/src/routes/routeCatalog/](../../frontend/src/routes/routeCatalog/).
   - Representative page implementations: [../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx](../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx), [../../frontend/src/features/contacts/pages/ContactListPage.tsx](../../frontend/src/features/contacts/pages/ContactListPage.tsx), [../../frontend/src/features/cases/pages/CaseListPage.tsx](../../frontend/src/features/cases/pages/CaseListPage.tsx), [../../frontend/src/features/finance/pages/DonationListPage.tsx](../../frontend/src/features/finance/pages/DonationListPage.tsx), and [../../frontend/src/features/reports/pages/ReportBuilderPage.tsx](../../frontend/src/features/reports/pages/ReportBuilderPage.tsx).
-  - Existing staff screenshots: [../help-center/staff/assets/screenshots/quick-start/dashboard-entry-point.png](../help-center/staff/assets/screenshots/quick-start/dashboard-entry-point.png), [../help-center/staff/assets/screenshots/people-accounts/people-list.png](../help-center/staff/assets/screenshots/people-accounts/people-list.png), [../help-center/staff/assets/screenshots/cases/cases-list.png](../help-center/staff/assets/screenshots/cases/cases-list.png), [../help-center/staff/assets/screenshots/donations/donations-list.png](../help-center/staff/assets/screenshots/donations/donations-list.png), and [../help-center/staff/assets/screenshots/reports/report-builder.png](../help-center/staff/assets/screenshots/reports/report-builder.png).
+  - The retired HTML manual screenshots were removed during the 2026-04-19 docs prune, so the durable evidence set for this audit is now the live login artifact plus the route, page, and test references listed above.
 
 ## Findings
 
 ### Navigation And Information Architecture
 
 1. `Critical friction`: the default desktop navigation hides too much of the documented daily staff path behind `More`.
-   Evidence: [../help-center/staff/quick-start.html](../help-center/staff/quick-start.html) trains staff on Workbench, People, Events, Donations, and Reports as the stable first-day path, but [../../frontend/src/features/navigation/hooks/useStaffNavigationViewModel.ts](../../frontend/src/features/navigation/hooks/useStaffNavigationViewModel.ts) hard-caps desktop primary visibility while [../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts) and [../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts) place Donations and Reports deeper in the hierarchy.
+   Evidence: the current route catalogs still position Workbench, People, Events, Donations, and Reports as core staff destinations, but [../../frontend/src/features/navigation/hooks/useStaffNavigationViewModel.ts](../../frontend/src/features/navigation/hooks/useStaffNavigationViewModel.ts) hard-caps desktop primary visibility while [../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts) and [../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts) place Donations and Reports deeper in the hierarchy.
 
 2. `High-value improvement`: desktop and mobile teach different maps of the same workspace.
    Evidence: the desktop rail is driven by nav grouping and ordering, while mobile re-sorts by `mobilePriority`, producing a different set of first-touch destinations from the same catalog. See [../../frontend/src/features/navigation/hooks/useStaffNavigationViewModel.ts](../../frontend/src/features/navigation/hooks/useStaffNavigationViewModel.ts), [../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts](../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts), and [../../frontend/src/routes/peopleRouteDescriptors.tsx](../../frontend/src/routes/peopleRouteDescriptors.tsx).
 
 3. `High-value improvement`: naming drift forces staff to translate between `Home`, `Dashboard`, and `Workbench Overview`.
-   Evidence: [../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts](../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts), [../../frontend/src/components/Navigation.tsx](../../frontend/src/components/Navigation.tsx), and [../help-center/staff/quick-start.html](../help-center/staff/quick-start.html) describe the same destination differently.
+   Evidence: [../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts](../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts), [../../frontend/src/components/Navigation.tsx](../../frontend/src/components/Navigation.tsx), and [../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx](../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx) describe the same destination differently.
 
 4. `High-value improvement`: the context bar computes useful local navigation but the staff shell suppresses it.
    Evidence: [../../frontend/src/components/workspace/SurfaceContextBar.tsx](../../frontend/src/components/workspace/SurfaceContextBar.tsx) supports local navigation, but [../../frontend/src/components/workspace/WorkspaceHeader.tsx](../../frontend/src/components/workspace/WorkspaceHeader.tsx) sets `showLocalNavigation={false}`, leaving breadcrumbs without a browsable in-area map for deeper staff surfaces.
@@ -47,7 +47,7 @@
    Evidence: the quick-start expects Workbench to be the first stop for reviewing work that needs attention, but [../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx](../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx) and the current screenshot emphasize `Manage Navigation`, `Customize View`, and `Customize Layout` alongside operational actions.
 
 6. `High-value improvement`: People search adds ceremony instead of reducing time to the primary task.
-   Evidence: [../help-center/staff/quick-start.html](../help-center/staff/quick-start.html) tells staff to search for an existing person before creating one, but [../../frontend/src/features/contacts/pages/ContactListPage.tsx](../../frontend/src/features/contacts/pages/ContactListPage.tsx) and [../../frontend/src/features/people/components/FilterPanel.tsx](../../frontend/src/features/people/components/FilterPanel.tsx) wrap a simple live-search use case in a heavier `Refine results` ritual and retain dense row actions that compete with simply opening a record.
+   Evidence: the current staff people routes and list-page implementations position contact lookup as a first-touch workflow, but [../../frontend/src/features/contacts/pages/ContactListPage.tsx](../../frontend/src/features/contacts/pages/ContactListPage.tsx) and [../../frontend/src/features/people/components/FilterPanel.tsx](../../frontend/src/features/people/components/FilterPanel.tsx) wrap a simple live-search use case in a heavier `Refine results` ritual and retain dense row actions that compete with simply opening a record.
 
 7. `Critical friction`: Cases supports queue-heavy work, but the first viewport is overloaded before staff can start triage.
    Evidence: [../../frontend/src/features/cases/pages/CaseListPage.tsx](../../frontend/src/features/cases/pages/CaseListPage.tsx) stacks metrics, search, multiple filters, sort, saved views, quick filters, toggles, chips, and bulk actions above the main work area, which clashes with the queue-first case-manager expectations in [../product/persona-workflows.md](../product/persona-workflows.md).
@@ -56,7 +56,7 @@
    Evidence: People behaves like a live-search screen, Donations refreshes on filter changes, and Cases mixes staged and immediate filtering. See [../../frontend/src/features/contacts/hooks/useContactListPage.tsx](../../frontend/src/features/contacts/hooks/useContactListPage.tsx), [../../frontend/src/features/finance/pages/DonationListPage.tsx](../../frontend/src/features/finance/pages/DonationListPage.tsx), and [../../frontend/src/features/cases/hooks/useCaseListQueryState.ts](../../frontend/src/features/cases/hooks/useCaseListQueryState.ts).
 
 9. `High-value improvement`: Report Builder is powerful but too expert-first for recurring nonprofit reporting.
-   Evidence: [../help-center/staff/quick-start.html](../help-center/staff/quick-start.html) frames reporting as a short recurring workflow, but [../../frontend/src/features/reports/pages/ReportBuilderPage.tsx](../../frontend/src/features/reports/pages/ReportBuilderPage.tsx) exposes a long builder stack before the simpler repeatable path is clear.
+   Evidence: [../product/persona-workflows.md](../product/persona-workflows.md), [../../frontend/src/features/reports/pages/ReportBuilderPage.tsx](../../frontend/src/features/reports/pages/ReportBuilderPage.tsx), and [../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx](../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx) show that recurring reporting is a core staff workflow, but the builder still exposes a long expert-first stack before the simpler repeatable path is clear.
 
 10. `High-value improvement`: Donations is the cleanest reviewed operational page, but row-level action density still dilutes the primary task.
     Evidence: [../../frontend/src/features/finance/pages/DonationListPage.tsx](../../frontend/src/features/finance/pages/DonationListPage.tsx) pairs clear summary stats and a strong top-level CTA with dense per-row action clusters, which weakens scanability during everyday exception handling.
@@ -73,7 +73,7 @@
 
 ### Quick Wins
 
-- Choose one canonical label for the home hub and use it consistently across navigation, breadcrumbs, screenshots, and help-center content.
+- Choose one canonical label for the home hub and use it consistently across navigation, breadcrumbs, screenshots, and contributor docs.
 - Promote the default daily staff destinations so Donations and Reports do not feel peripheral to the main workspace.
 - Let the shared context bar own the page-primary action and demote customization or admin controls into tertiary menus where possible.
 - Reduce row action density on People and Donations so `Open` or `View` is the dominant first action and specialist actions move into overflow menus.
@@ -94,16 +94,16 @@
 ## Commands And Artifacts
 
 ```bash
-# Playwright-managed live review attempt
+## Playwright-managed live review attempt
 DB_AUTO_START=true COMPOSE_MODE=ci DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres ./scripts/db-migrate.sh
 cd backend && NODE_ENV=test PORT=3001 ... npx ts-node -r tsconfig-paths/register --transpileOnly src/index.ts
 cd frontend && VITE_API_URL=http://127.0.0.1:3001/api npm run dev -- --host 127.0.0.1 --port 5173
 
-# Direct-runtime fallback
+## Direct-runtime fallback
 cd backend && NODE_ENV=development PORT=3000 DB_HOST=127.0.0.1 DB_PORT=8002 DB_NAME=nonprofit_manager DB_USER=nonprofit_app_user DB_PASSWORD=nonprofit_app_password REDIS_ENABLED=false CORS_ORIGIN=http://127.0.0.1:5174,http://localhost:5174 npx ts-node -r tsconfig-paths/register --transpileOnly src/index.ts
 cd frontend && VITE_API_URL=http://127.0.0.1:3000/api npm run dev -- --host 127.0.0.1 --port 5174
 
-# Fresh login screenshot artifact
+## Fresh login screenshot artifact
 playwright-cli -s=staff-audit screenshot --filename output/playwright/staff-audit/login-page.png
 ```
 

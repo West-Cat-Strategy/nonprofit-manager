@@ -39,11 +39,11 @@ For full application runtime selection and app-port expectations, use [../develo
 
 **Verify Prerequisites:**
 ```bash
-# Check Docker (if using Docker)
+## Check Docker (if using Docker)
 docker --version
 docker compose version
 
-# Check PostgreSQL (if using native)
+## Check PostgreSQL (if using native)
 psql --version
 which psql
 ```
@@ -57,7 +57,7 @@ which psql
 ### 1. Start the Optional Compose Dev Stack
 
 ```bash
-# From project root
+## From project root
 make dev
 ```
 
@@ -148,10 +148,10 @@ Download and install from [postgresql.org](https://www.postgresql.org/download/w
 ### 2. Create Databases
 
 ```bash
-# Create development database
+## Create development database
 createdb nonprofit_manager
 
-# Create test database (for running tests)
+## Create test database (for running tests)
 createdb nonprofit_manager_test
 ```
 
@@ -192,7 +192,7 @@ make db-migrate
 
 **Run the canonical bootstrap contract in manifest order:**
 ```bash
-# From project root
+## From project root
 psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 ```
 
@@ -236,10 +236,10 @@ psql -U postgres -d nonprofit_manager -f database/seeds/003_mock_data.sql
 ### Verify Seed Data
 
 ```bash
-# Docker
+## Docker
 docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager -c "SELECT id, email, role FROM users;"
 
-# Native
+## Native
 psql -U postgres -d nonprofit_manager -c "SELECT id, email, role FROM users;"
 ```
 
@@ -257,20 +257,20 @@ psql -U postgres -d nonprofit_manager -c "SELECT id, email, role FROM users;"
 ### 1. Verify Database Exists
 
 ```bash
-# Docker
+## Docker
 docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -c "\l nonprofit_manager"
 
-# Native
+## Native
 psql -U postgres -c "\l nonprofit_manager"
 ```
 
 ### 2. Verify All Tables
 
 ```bash
-# Docker
+## Docker
 docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager -c "\dt"
 
-# Native
+## Native
 psql -U postgres -d nonprofit_manager -c "\dt"
 ```
 
@@ -291,26 +291,26 @@ This is a smoke test, not an exhaustive inventory. Feature-specific tables, junc
 ### 3. Verify Foreign Keys and Indexes
 
 ```bash
-# Check foreign keys
+## Check foreign keys
 psql -U postgres -d nonprofit_manager -c "SELECT conname, conrelid::regclass, confrelid::regclass FROM pg_constraint WHERE contype = 'f';"
 
-# Check indexes
+## Check indexes
 psql -U postgres -d nonprofit_manager -c "SELECT tablename, indexname FROM pg_indexes WHERE schemaname = 'public' ORDER BY tablename, indexname;"
 ```
 
 ### 4. Run Migration Verification Script
 
 ```bash
-# Bootstrap/admin connection used to rebuild or inspect the isolated test DB
+## Bootstrap/admin connection used to rebuild or inspect the isolated test DB
 export DB_NAME=nonprofit_manager_test
 export DB_USER=postgres
 export DB_PASSWORD=postgres
 
-# Optional disposable runtime-role override for the RLS probe
+## Optional disposable runtime-role override for the RLS probe
 export APP_DB_USER=nonprofit_app_user
 export APP_DB_PASSWORD=nonprofit_app_password
 
-# Run verification
+## Run verification
 make db-verify
 ```
 
@@ -366,10 +366,10 @@ make db-verify
 
 **Native:**
 ```bash
-# 1. Add the ordered migration file under database/migrations/
-# 2. Update database/migrations/manifest.tsv
-# 3. Update database/initdb/000_init.sql to include the migration
-# 4. Re-run the canonical contract gate
+## 1. Add the ordered migration file under database/migrations/
+## 2. Update database/migrations/manifest.tsv
+## 3. Update database/initdb/000_init.sql to include the migration
+## 4. Re-run the canonical contract gate
 make db-verify
 ```
 
@@ -377,19 +377,19 @@ make db-verify
 
 **Backup:**
 ```bash
-# Docker
+## Docker
 docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres pg_dump -U postgres nonprofit_manager > backup_$(date +%Y%m%d).sql
 
-# Native
+## Native
 pg_dump -U postgres nonprofit_manager > backup_$(date +%Y%m%d).sql
 ```
 
 **Restore:**
 ```bash
-# Docker
+## Docker
 docker compose -p nonprofit-dev -f docker-compose.dev.yml exec -T postgres psql -U postgres -d nonprofit_manager < backup_20260201.sql
 
-# Native
+## Native
 psql -U postgres -d nonprofit_manager < backup_20260201.sql
 ```
 
@@ -397,14 +397,14 @@ psql -U postgres -d nonprofit_manager < backup_20260201.sql
 
 **Update `backend/.env`:**
 ```dotenv
-# Compose dev stack / Docker environment (from host machine)
+## Compose dev stack / Docker environment (from host machine)
 DB_HOST=localhost
 DB_PORT=8002
 DB_NAME=nonprofit_manager
 DB_USER=postgres
 DB_PASSWORD=postgres
 
-# Same compose network / container-to-container
+## Same compose network / container-to-container
 DB_HOST=postgres
 DB_PORT=5432
 DB_NAME=nonprofit_manager
@@ -420,48 +420,48 @@ DB_PASSWORD=postgres
 
 **Docker:**
 ```bash
-# Check if service is running
+## Check if service is running
 docker compose -p nonprofit-dev -f docker-compose.dev.yml ps postgres
 
-# Check service logs
+## Check service logs
 docker compose -p nonprofit-dev -f docker-compose.dev.yml logs postgres
 
-# Check health status
+## Check health status
 docker compose -p nonprofit-dev -f docker-compose.dev.yml ps postgres
 
-# Restart service
+## Restart service
 docker compose -p nonprofit-dev -f docker-compose.dev.yml restart postgres
 ```
 
 **Native:**
 ```bash
-# Check if PostgreSQL is running
+## Check if PostgreSQL is running
 pg_isready -h localhost -p 5432
 
-# macOS: Check service status
+## macOS: Check service status
 brew services list | grep postgresql
 
-# Linux: Check service status
+## Linux: Check service status
 sudo systemctl status postgresql
 
-# Start PostgreSQL
-# macOS
+## Start PostgreSQL
+## macOS
 brew services start postgresql@14
-# Linux
+## Linux
 sudo systemctl start postgresql
 ```
 
 ### Problem: Permission denied for database
 
 ```bash
-# Grant all privileges to user
+## Grant all privileges to user
 psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE nonprofit_manager TO postgres;"
 ```
 
 ### Problem: Database already exists error
 
 ```bash
-# Drop existing database first (⚠️ deletes data)
+## Drop existing database first (⚠️ deletes data)
 dropdb nonprofit_manager
 createdb nonprofit_manager
 ```
@@ -469,10 +469,10 @@ createdb nonprofit_manager
 ### Problem: Migration fails with "relation already exists"
 
 ```bash
-# Check what tables exist
+## Check what tables exist
 psql -U postgres -d nonprofit_manager -c "\dt"
 
-# If needed, drop all tables and replay the canonical bootstrap contract
+## If needed, drop all tables and replay the canonical bootstrap contract
 psql -U postgres -d nonprofit_manager -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 ```
@@ -481,16 +481,16 @@ psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 
 **Find what's using the port:**
 ```bash
-# macOS/Linux
+## macOS/Linux
 lsof -i :8002
 
-# Kill the process if needed
+## Kill the process if needed
 kill -9 <PID>
 ```
 
 **Or change Docker port mapping:**
 ```yaml
-# In docker-compose.dev.yml
+## In docker-compose.dev.yml
 ports:
   - "5433:5432"  # Use port 5433 on host
 ```
@@ -498,13 +498,13 @@ ports:
 ### Problem: Slow query performance
 
 ```bash
-# Check for missing indexes
+## Check for missing indexes
 psql -U postgres -d nonprofit_manager -c "SELECT schemaname, tablename, indexname FROM pg_indexes WHERE schemaname = 'public';"
 
-# Analyze tables
+## Analyze tables
 psql -U postgres -d nonprofit_manager -c "ANALYZE;"
 
-# Check query performance
+## Check query performance
 psql -U postgres -d nonprofit_manager -c "EXPLAIN ANALYZE SELECT * FROM users;"
 ```
 

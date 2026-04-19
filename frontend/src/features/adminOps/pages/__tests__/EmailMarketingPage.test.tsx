@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import EmailMarketingPage from '../EmailMarketingPage';
+import EmailMarketingPage from '../../../mailchimp/pages/EmailMarketingPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 import api from '../../../../services/api';
 

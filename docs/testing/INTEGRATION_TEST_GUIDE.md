@@ -61,11 +61,11 @@ Do not use them as the supported path for:
 
 If an older shell scenario still matters, port the behavior into a Jest integration spec instead of extending the shell scripts.
 
-For historical rollout context only, see [INTEGRATION_TESTING_PHASE2.md](INTEGRATION_TESTING_PHASE2.md). That document is not the active command source of truth.
+For historical rollout context only, see [archive/INTEGRATION_TESTING_PHASE2.md](archive/INTEGRATION_TESTING_PHASE2.md). That document is not the active command source of truth.
 
 ## Related Docs
 
 - [TESTING.md](TESTING.md)
-- [INTEGRATION_TESTING_PHASE2.md](INTEGRATION_TESTING_PHASE2.md) for historical scenario mapping
+- [archive/INTEGRATION_TESTING_PHASE2.md](archive/INTEGRATION_TESTING_PHASE2.md) for historical scenario mapping
 - [../../backend/README.md](../../backend/README.md)
 - [../../backend/tests/integration/README.md](../../backend/tests/integration/README.md) for the historical shell-script directory

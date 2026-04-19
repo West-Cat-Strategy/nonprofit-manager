@@ -1,5 +1,8 @@
 # P4-T4F CRM + Cases Reporting Pattern Catalog
 
+**Last Updated:** 2026-04-19
+
+
 ## Scope
 
 - Target: reporting-only enhancement lane for CRM opportunities + case workload analytics in `nonprofit-manager`.

@@ -25,6 +25,12 @@ import {
   TaskList,
   TeamChatInboxPage,
 } from '../features/engagement/routeComponents';
+import {
+  MeetingCreate,
+  MeetingDetail,
+  MeetingEdit,
+  MeetingList,
+} from '../features/meetings/routeComponents';
 
 // Lazy load event pages
 
@@ -122,6 +128,24 @@ export function createEngagementRoutes(
           element={<NeoBrutalistRoute><TeamChatInboxPage /></NeoBrutalistRoute>}
         />
       )}
+
+      {/* Meeting Routes */}
+      <Route
+        path="/meetings"
+        element={<NeoBrutalistRoute><MeetingList /></NeoBrutalistRoute>}
+      />
+      <Route
+        path="/meetings/new"
+        element={<NeoBrutalistRoute><MeetingCreate /></NeoBrutalistRoute>}
+      />
+      <Route
+        path="/meetings/:id/edit"
+        element={<NeoBrutalistRoute><MeetingEdit /></NeoBrutalistRoute>}
+      />
+      <Route
+        path="/meetings/:id"
+        element={<NeoBrutalistRoute><MeetingDetail /></NeoBrutalistRoute>}
+      />
     </>
   );
 }

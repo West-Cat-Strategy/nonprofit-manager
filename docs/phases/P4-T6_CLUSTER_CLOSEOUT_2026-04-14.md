@@ -1,5 +1,8 @@
 # P4-T6 Cluster Closeout
 
+**Last Updated:** 2026-04-19
+
+
 **Date:** 2026-04-14  
 **Rows reviewed:** `P4-T6`, `P4-T6A`, `P4-T6B`, `P4-T6D`
 
@@ -36,7 +39,7 @@
   - Conclusion: keep in `Review`.
 - `P4-T6B`
   - Current-tree proof: cases/intake workflow behavior is concrete in `frontend/src/features/cases/pages/CaseListPage.tsx`, `frontend/src/features/cases/pages/__tests__/CaseListPage.test.tsx`, `frontend/src/features/cases/pages/__tests__/CaseDetailTabs.test.tsx`, `frontend/src/features/workflows/pages/IntakeNewPage.tsx`, and `frontend/src/test/ux/RouteUxSmoke.test.tsx`.
-  - Existing supplemental proof: the current tree still matches the existing cases/intake docs and E2E surfaces, including `docs/help-center/staff/cases.html` and `e2e/tests/cases.spec.ts`.
+  - Existing supplemental proof: the current tree still matches the existing cases/intake docs and E2E surfaces, including `docs/features/CASE_MANAGEMENT_SYSTEM.md` and `e2e/tests/cases.spec.ts`.
   - Conclusion: close today and remove from the live workboard.
 - `P4-T6D`
   - Current-tree proof: several portal secondary-page surfaces still have direct tests, including `frontend/src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx`, `frontend/src/features/portal/pages/__tests__/PortalCalendarPage.test.tsx`, and `frontend/src/features/portal/pages/__tests__/PortalEventsPage.test.tsx`.

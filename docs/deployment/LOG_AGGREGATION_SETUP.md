@@ -1,5 +1,8 @@
 # Log Aggregation Setup Guide
 
+**Last Updated:** 2026-04-19
+
+
 ## Overview
 
 This guide explains how to set up centralized log aggregation for the Nonprofit Manager application. Log aggregation is critical for:
@@ -20,7 +23,7 @@ This guide explains how to set up centralized log aggregation for the Nonprofit 
 1. **Docker Compose Configuration**:
 
 ```yaml
-# Use docker-compose.elk.yml together with .env.elk
+## Use docker-compose.elk.yml together with .env.elk
 elasticsearch:
   image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
   env_file:
@@ -526,7 +529,7 @@ docker logs backend | grep -i "log aggregation"
 
 4. Verify HTTP transport is initialized:
 ```bash
-# Check logger.ts for HttpLogTransport registration
+## Check logger.ts for HttpLogTransport registration
 ```
 
 5. Confirm the ELK overlay has credentials loaded:

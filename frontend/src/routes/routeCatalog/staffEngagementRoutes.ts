@@ -186,4 +186,38 @@ export const staffEngagementRouteCatalogEntries: readonly RouteCatalogEntry[] = 
       pinnedEligible: true,
     },
   }),
+  staffRoute({
+    id: 'meetings',
+    title: 'Meetings',
+    section: 'Engagement',
+    path: '/meetings',
+    primaryAction: { label: 'New meeting', href: '/meetings/new' },
+    staffNav: {
+      group: 'secondary',
+      order: 120,
+      label: 'Meetings',
+      shortLabel: 'Meetings',
+      ariaLabel: 'Go to meetings',
+      icon: '🤝',
+      pinnedEligible: true,
+    },
+  }),
+  staffRoute({
+    id: 'meeting-create',
+    title: 'Create Meeting',
+    section: 'Engagement',
+    path: '/meetings/new',
+  }),
+  staffRoute({
+    id: 'meeting-detail',
+    title: 'Meeting Detail',
+    section: 'Engagement',
+    path: '/meetings/:id',
+  }),
+  staffRoute({
+    id: 'meeting-edit',
+    title: 'Edit Meeting',
+    section: 'Engagement',
+    path: '/meetings/:id/edit',
+  }),
 ];

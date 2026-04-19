@@ -58,15 +58,20 @@ function expressionContainsValidator(node, pattern) {
     return node.arguments.some((argument) => expressionContainsValidator(argument, pattern));
   }
 
+  if (
+    ts.isAsExpression(node) ||
+    ts.isTypeAssertionExpression(node) ||
+    ts.isNonNullExpression(node) ||
+    ts.isParenthesizedExpression(node)
+  ) {
+    return expressionContainsValidator(node.expression, pattern);
+  }
+
   if (ts.isArrayLiteralExpression(node)) {
     return node.elements.some((element) => expressionContainsValidator(element, pattern));
   }
 
   if (ts.isSpreadElement(node)) {
-    return expressionContainsValidator(node.expression, pattern);
-  }
-
-  if (ts.isParenthesizedExpression(node)) {
     return expressionContainsValidator(node.expression, pattern);
   }
 
@@ -83,6 +88,8 @@ function analyzeRouteValidationSource(filePath, text, kind = 'route') {
   );
   const issues = [];
   let routeDefinitionCount = 0;
+  let firstRouteCallNode = null;
+  let hasAnyValidation = false;
 
   function visit(node) {
     if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
@@ -109,6 +116,17 @@ function analyzeRouteValidationSource(filePath, text, kind = 'route') {
     }
 
     routeDefinitionCount += 1;
+    if (!firstRouteCallNode) {
+      firstRouteCallNode = node;
+    }
+
+    if (
+      middlewareArguments.some((argument) =>
+        expressionContainsValidator(argument, anyValidatorPattern)
+      )
+    ) {
+      hasAnyValidation = true;
+    }
 
     if (!allowlistedFiles.has(filePath) && routePath.includes(':')) {
       const hasParamsValidation = middlewareArguments.some((argument) =>
@@ -127,17 +145,16 @@ function analyzeRouteValidationSource(filePath, text, kind = 'route') {
 
   visit(sourceFile);
 
-  if (kind !== 'entrypoint' && !allowlistedFiles.has(filePath) && routeDefinitionCount > 0) {
-    const hasAnyValidation = anyValidatorPattern.test(text);
-    if (!hasAnyValidation) {
-      const firstRouteCall = text.match(/\.\s*(?:get|post|put|patch|delete|all)\s*\(/);
-      const line = firstRouteCall && firstRouteCall.index != null
-        ? text.slice(0, firstRouteCall.index).split(/\r?\n/).length
-        : 1;
-      issues.push(
-        `${relativeToRepo(filePath)}:${line} defines routes without any recognized validation middleware`
-      );
-    }
+  if (
+    kind !== 'entrypoint' &&
+    !allowlistedFiles.has(filePath) &&
+    routeDefinitionCount > 0 &&
+    !hasAnyValidation
+  ) {
+    const line = firstRouteCallNode ? getLineNumber(sourceFile, firstRouteCallNode) : 1;
+    issues.push(
+      `${relativeToRepo(filePath)}:${line} defines routes without any recognized validation middleware`
+    );
   }
 
   return { issues, routeDefinitionCount };

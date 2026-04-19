@@ -1,33 +1,15 @@
 import { Pool, type PoolClient } from 'pg';
-import type { ContactFilters } from '@app-types/contact';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import {
   buildTabularExport,
   type GeneratedTabularFile,
   type TabularExportColumn,
 } from '@modules/shared/export/tabularExport';
-import { parsePeopleImportFile, type ImportFieldOption } from '@modules/shared/import/peopleImportParser';
-import { lookupScopedAccounts } from '@modules/shared/import/scopedAccountLookup';
-import {
-  findDuplicateMappedFields,
-  getImportRowNumber,
-  getMappedValue,
-  hasAnyMappedValue,
-  hasMappedField,
-  parseBooleanLike,
-  parseDelimitedList,
-  toNullableString,
-  toTrimmedString,
-  type ImportRowError,
-} from '@modules/shared/import/importUtils';
-import { logger } from '@config/logger';
-import { decrypt, encrypt } from '@utils/encryption';
-import { createContactSchema, updateContactSchema } from '@validations/contact';
-import { resolveContactRoleNames } from '../shared/contactRoleFilters';
+import { parsePeopleImportFile } from '@modules/shared/import/peopleImportParser';
+import { encrypt } from '@utils/encryption';
 
 import {
   type ContactExportRequest,
-  type ContactImportAction,
   type ContactImportCommitResult,
   type ContactImportPreview,
   type ExportableContactQueryRow,
@@ -42,6 +24,12 @@ import {
   CONTACT_TEMPLATE_COLUMNS,
 } from './contactImportExport.constants';
 import { buildContactWhereClause } from './contactImportExport.utils';
+import {
+  analyzeContactImport,
+  type ContactImportAnalysis,
+  exportContactRow,
+  resolveExportColumns,
+} from './internal/contactImportExport.helpers';
 
 export class ContactImportExportUseCase {
   constructor(private readonly pool: Pool) {}
@@ -52,7 +40,13 @@ export class ContactImportExportUseCase {
     scope?: DataScopeFilter,
     viewerRole?: string
   ): Promise<GeneratedTabularFile> {
-    const columns = this.resolveColumns(request.columns, viewerRole);
+    const columns = resolveExportColumns(
+      request.columns,
+      viewerRole,
+      CONTACT_DEFAULT_EXPORT_COLUMN_KEYS,
+      CONTACT_EXPORT_COLUMNS,
+      CONTACT_PHN_EXPORT_ROLES
+    ) as Array<TabularExportColumn<ExportableContactRow>>;
     const includePhn = columns.some((column) => column.key === 'phn');
     const { clause, values } = buildContactWhereClause(organizationId, request, scope, request.ids);
     const sortColumn = CONTACT_SORT_COLUMNS[request.sort_by || ''] ?? CONTACT_SORT_COLUMNS.last_name;
@@ -115,10 +109,7 @@ export class ContactImportExportUseCase {
       values
     );
 
-    const rows = result.rows.map((row) => ({
-      ...row,
-      phn: includePhn ? this.decryptExportPhn(row.phn_encrypted, row.contact_id) : null,
-    }));
+    const rows = result.rows.map((row) => exportContactRow(row, includePhn));
 
     return buildTabularExport({
       format: request.format,
@@ -231,361 +222,14 @@ export class ContactImportExportUseCase {
     }
   }
 
-  private resolveColumns(
-    requested?: string[],
-    viewerRole?: string
-  ): Array<TabularExportColumn<ExportableContactRow>> {
-    const defaults = ['contact_id', 'email'];
-    const selected =
-      requested && requested.length > 0
-        ? Array.from(
-            new Set([
-              ...defaults,
-              ...requested.filter(
-                (key) => key !== 'phn' || this.canExportPhn(viewerRole)
-              ),
-            ])
-          )
-        : CONTACT_DEFAULT_EXPORT_COLUMN_KEYS;
-
-    return selected
-      .map((key) => CONTACT_EXPORT_COLUMNS.find((column) => column.key === key))
-      .filter((column): column is TabularExportColumn<ExportableContactRow> => Boolean(column));
-  }
-
-  private canExportPhn(viewerRole?: string): boolean {
-    if (typeof viewerRole !== 'string') {
-      return false;
-    }
-
-    return CONTACT_PHN_EXPORT_ROLES.has(viewerRole.trim().toLowerCase());
-  }
-
-  private decryptExportPhn(phnEncrypted: string | null, contactId: string): string | null {
-    if (!phnEncrypted) {
-      return null;
-    }
-
-    try {
-      return decrypt(phnEncrypted);
-    } catch (error) {
-      logger.warn('Failed to decrypt contact PHN during export; returning null', {
-        contactId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return null;
-    }
-  }
-
   private async analyzeImport(
     parsed: Awaited<ReturnType<typeof parsePeopleImportFile>>,
     organizationId: string,
     scope?: DataScopeFilter
-  ): Promise<{
-    actions: ContactImportAction[];
-    toCreate: number;
-    toUpdate: number;
-    totalRows: number;
-    rowErrors: ImportRowError[];
-    warnings: string[];
-  }> {
-    const rowErrors: ImportRowError[] = [];
-    const warnings = [...parsed.warnings];
-    const actions: ContactImportAction[] = [];
-
-    const duplicateMappings = findDuplicateMappedFields(parsed.mapping);
-    if (duplicateMappings.length > 0) {
-      rowErrors.push({
-        row_number: 0,
-        messages: duplicateMappings.map((field) => `Multiple columns map to "${field}"`),
-      });
-    }
-
-    const rows = parsed.rows.filter((row) => hasAnyMappedValue(row, parsed.mapping));
-    const contactIds = rows
-      .map((row) => toTrimmedString(getMappedValue(row, parsed.mapping, 'contact_id')))
-      .filter((value): value is string => Boolean(value));
-    const emails = rows
-      .map((row) => toTrimmedString(getMappedValue(row, parsed.mapping, 'email'))?.toLowerCase())
-      .filter((value): value is string => Boolean(value));
-    const accountIds = rows
-      .map((row) => toTrimmedString(getMappedValue(row, parsed.mapping, 'account_id')))
-      .filter((value): value is string => Boolean(value));
-    const accountNumbers = rows
-      .map((row) => toTrimmedString(getMappedValue(row, parsed.mapping, 'account_number')))
-      .filter((value): value is string => Boolean(value));
-
-    const existingContacts = await this.lookupExistingContacts(contactIds, emails, organizationId, scope);
-    const accountLookup = await this.lookupAccounts(
-      accountIds,
-      accountNumbers,
-      organizationId,
-      scope
-    );
-    const availableRoles = await this.lookupRoleNames();
-
-    rows.forEach((row, rowIndex) => {
-      const rowNumber = getImportRowNumber(parsed.dataset, rowIndex);
-      const payload = this.mapRow(row, parsed.mapping);
-      const messages: string[] = [];
-
-      if (payload.roles) {
-        const missingRoles = payload.roles.filter((role) => !availableRoles.has(role));
-        if (missingRoles.length > 0) {
-          messages.push(`Unknown contact role(s): ${missingRoles.join(', ')}`);
-        }
-      }
-
-      const resolvedAccount = this.resolveAccountReference(
-        payload,
-        accountLookup,
-        organizationId,
-        parsed.mapping,
-        messages
-      );
-
-      let matchedContactId: string | undefined;
-      if (payload.contact_id) {
-        matchedContactId = existingContacts.byId.get(payload.contact_id);
-        if (!matchedContactId) {
-          messages.push(`Contact ID ${payload.contact_id} was not found in the active organization.`);
-        }
-      } else if (payload.email) {
-        const matches = existingContacts.byEmail.get(payload.email.toLowerCase()) ?? [];
-        if (matches.length > 1) {
-          messages.push(`Email ${payload.email} matches multiple contacts in the active organization.`);
-        } else if (matches.length === 1) {
-          matchedContactId = matches[0];
-        }
-      }
-
-      const schema = matchedContactId ? updateContactSchema : createContactSchema;
-      const validationPayload = {
-        ...payload,
-        ...(resolvedAccount !== undefined ? { account_id: resolvedAccount } : {}),
-      };
-      const validation = schema.safeParse(validationPayload);
-      if (!validation.success) {
-        messages.push(...validation.error.issues.map((issue) => issue.message));
-      }
-
-      if (messages.length > 0) {
-        rowErrors.push({ row_number: rowNumber, messages });
-        return;
-      }
-
-      if (!validation.success) {
-        return;
-      }
-
-      const validatedPayload = validation.data as ParsedContactRow;
-
-      if (matchedContactId) {
-        actions.push({
-          action: 'update',
-          rowNumber,
-          contactId: matchedContactId,
-          payload: validatedPayload,
-          ...(resolvedAccount !== undefined ? { resolvedAccountId: resolvedAccount } : {}),
-        });
-      } else {
-        actions.push({
-          action: 'create',
-          rowNumber,
-          payload: validatedPayload,
-          resolvedAccountId: resolvedAccount ?? organizationId,
-        });
-      }
-    });
-
-    return {
-      actions,
-      toCreate: actions.filter((action) => action.action === 'create').length,
-      toUpdate: actions.filter((action) => action.action === 'update').length,
-      totalRows: rows.length,
-      rowErrors,
-      warnings,
-    };
+  ): Promise<ContactImportAnalysis> {
+    return analyzeContactImport(parsed, organizationId, scope, this.pool);
   }
 
-  private mapRow(
-    row: Record<string, string | null>,
-    mapping: Record<string, string>
-  ): ParsedContactRow {
-    const parseArrayField = (field: 'tags' | 'roles'): string[] | undefined => {
-      if (!hasMappedField(mapping, field)) {
-        return undefined;
-      }
-
-      const value = getMappedValue(row, mapping, field);
-      return value === null ? [] : parseDelimitedList(value);
-    };
-
-    return {
-      contact_id: toTrimmedString(getMappedValue(row, mapping, 'contact_id')),
-      account_id: toNullableString(getMappedValue(row, mapping, 'account_id')),
-      account_number: toNullableString(getMappedValue(row, mapping, 'account_number')),
-      first_name: toNullableString(getMappedValue(row, mapping, 'first_name')),
-      preferred_name: toNullableString(getMappedValue(row, mapping, 'preferred_name')),
-      last_name: toNullableString(getMappedValue(row, mapping, 'last_name')),
-      middle_name: toNullableString(getMappedValue(row, mapping, 'middle_name')),
-      salutation: toNullableString(getMappedValue(row, mapping, 'salutation')),
-      suffix: toNullableString(getMappedValue(row, mapping, 'suffix')),
-      birth_date: toNullableString(getMappedValue(row, mapping, 'birth_date')),
-      gender: toNullableString(getMappedValue(row, mapping, 'gender')),
-      pronouns: toNullableString(getMappedValue(row, mapping, 'pronouns')),
-      phn: toNullableString(getMappedValue(row, mapping, 'phn')),
-      email: toNullableString(getMappedValue(row, mapping, 'email')),
-      phone: toNullableString(getMappedValue(row, mapping, 'phone')),
-      mobile_phone: toNullableString(getMappedValue(row, mapping, 'mobile_phone')),
-      address_line1: toNullableString(getMappedValue(row, mapping, 'address_line1')),
-      address_line2: toNullableString(getMappedValue(row, mapping, 'address_line2')),
-      city: toNullableString(getMappedValue(row, mapping, 'city')),
-      state_province: toNullableString(getMappedValue(row, mapping, 'state_province')),
-      postal_code: toNullableString(getMappedValue(row, mapping, 'postal_code')),
-      country: toNullableString(getMappedValue(row, mapping, 'country')),
-      no_fixed_address: parseBooleanLike(getMappedValue(row, mapping, 'no_fixed_address')),
-      job_title: toNullableString(getMappedValue(row, mapping, 'job_title')),
-      department: toNullableString(getMappedValue(row, mapping, 'department')),
-      preferred_contact_method: toNullableString(getMappedValue(row, mapping, 'preferred_contact_method')),
-      do_not_email: parseBooleanLike(getMappedValue(row, mapping, 'do_not_email')),
-      do_not_phone: parseBooleanLike(getMappedValue(row, mapping, 'do_not_phone')),
-      do_not_text: parseBooleanLike(getMappedValue(row, mapping, 'do_not_text')),
-      do_not_voicemail: parseBooleanLike(getMappedValue(row, mapping, 'do_not_voicemail')),
-      notes: toNullableString(getMappedValue(row, mapping, 'notes')),
-      tags: parseArrayField('tags'),
-      roles: parseArrayField('roles'),
-      is_active: parseBooleanLike(getMappedValue(row, mapping, 'is_active')),
-    };
-  }
-
-  private resolveAccountReference(
-    payload: ParsedContactRow,
-    accountLookup: { byId: Map<string, string>; byNumber: Map<string, string> },
-    organizationId: string,
-    mapping: Record<string, string>,
-    messages: string[]
-  ): string | null | undefined {
-    const accountIdWasMapped = hasMappedField(mapping, 'account_id');
-    const accountNumberWasMapped = hasMappedField(mapping, 'account_number');
-
-    if (!accountIdWasMapped && !accountNumberWasMapped) {
-      return undefined;
-    }
-
-    let resolvedFromId: string | undefined;
-    let resolvedFromNumber: string | undefined;
-
-    if (payload.account_id) {
-      resolvedFromId = accountLookup.byId.get(payload.account_id);
-      if (!resolvedFromId) {
-        messages.push(`Account ID ${payload.account_id} was not found.`);
-      }
-    }
-
-    if (payload.account_number) {
-      resolvedFromNumber = accountLookup.byNumber.get(payload.account_number);
-      if (!resolvedFromNumber) {
-        messages.push(`Account number ${payload.account_number} was not found.`);
-      }
-    }
-
-    if (resolvedFromId && resolvedFromNumber && resolvedFromId !== resolvedFromNumber) {
-      messages.push('Account ID and account number reference different accounts.');
-      return undefined;
-    }
-
-    return resolvedFromId ?? resolvedFromNumber ?? organizationId;
-  }
-
-  private async lookupExistingContacts(
-    contactIds: string[],
-    emails: string[],
-    organizationId: string,
-    scope?: DataScopeFilter
-  ): Promise<{
-    byId: Map<string, string>;
-    byEmail: Map<string, string[]>;
-  }> {
-    if (contactIds.length === 0 && emails.length === 0) {
-      return { byId: new Map(), byEmail: new Map() };
-    }
-
-    const conditions = ['c.account_id = $1'];
-    const values: Array<string | string[]> = [organizationId];
-    let parameter = 2;
-
-    const identityConditions: string[] = [];
-    if (contactIds.length) {
-      identityConditions.push(`c.id = ANY($${parameter}::uuid[])`);
-      values.push(contactIds);
-      parameter += 1;
-    }
-    if (emails.length) {
-      identityConditions.push(`LOWER(c.email) = ANY($${parameter}::text[])`);
-      values.push(emails);
-      parameter += 1;
-    }
-
-    conditions.push(`(${identityConditions.join(' OR ')})`);
-    appendContactScopeConditions(conditions, values, scope, parameter);
-
-    const result = await this.pool.query<{ contact_id: string; email: string | null }>(
-      `
-        SELECT c.id AS contact_id, c.email
-        FROM contacts c
-        WHERE ${conditions.join(' AND ')}
-      `,
-      values
-    );
-
-    const byEmail = new Map<string, string[]>();
-    result.rows.forEach((row) => {
-      if (row.email) {
-        const key = row.email.toLowerCase();
-        const ids = byEmail.get(key) ?? [];
-        ids.push(row.contact_id);
-        byEmail.set(key, ids);
-      }
-    });
-
-    return {
-      byId: new Map(result.rows.map((row) => [row.contact_id, row.contact_id])),
-      byEmail,
-    };
-  }
-
-  private async lookupAccounts(
-    accountIds: string[],
-    accountNumbers: string[],
-    organizationId: string,
-    scope?: DataScopeFilter
-  ): Promise<{
-    byId: Map<string, string>;
-    byNumber: Map<string, string>;
-  }> {
-    const rows = await lookupScopedAccounts(
-      this.pool,
-      accountIds,
-      accountNumbers,
-      organizationId,
-      scope
-    );
-
-    return {
-      byId: new Map(rows.map((row) => [row.account_id, row.account_id])),
-      byNumber: new Map(
-        rows
-          .filter((row) => Boolean(row.account_number))
-          .map((row) => [row.account_number as string, row.account_id])
-      ),
-    };
-  }
-
-  private async lookupRoleNames(): Promise<Set<string>> {
-    const result = await this.pool.query<{ name: string }>('SELECT name FROM contact_roles');
-    return new Set(result.rows.map((row) => row.name));
-  }
 
   private async insertContact(
     client: PoolClient,

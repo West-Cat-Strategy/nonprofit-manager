@@ -1,5 +1,8 @@
 # Report Generator Guide
 
+**Last Updated:** 2026-04-19
+
+
 ## Overview
 
 The reporting system supports ad-hoc analytics and recurring delivery.

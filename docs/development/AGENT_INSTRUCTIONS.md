@@ -1,6 +1,6 @@
 # Agent Instructions For Nonprofit Manager
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-19
 
 Use this file for repo-specific coding-agent guardrails. It is not the setup guide or the full docs catalog.
 
@@ -8,9 +8,11 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 
 1. [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow, validation defaults, and handoff expectations
 2. [GETTING_STARTED.md](GETTING_STARTED.md) for runtime choice, ports, and setup
-3. [../../README.md](../../README.md) for product context
-4. [../INDEX.md](../INDEX.md) if you need the broader docs map
-5. [../phases/planning-and-progress.md](../phases/planning-and-progress.md) before tracked work
+3. [CONVENTIONS.md](CONVENTIONS.md) for active implementation conventions
+4. [../testing/TESTING.md](../testing/TESTING.md) for the validation command map
+5. [../../README.md](../../README.md) for product context
+6. [../README.md](../README.md) if you need the documentation catalog
+7. [../phases/planning-and-progress.md](../phases/planning-and-progress.md) before tracked work
 
 ## Core Rules
 
@@ -43,8 +45,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 - [../../CONTRIBUTING.md](../../CONTRIBUTING.md) owns contributor workflow and handoff.
 - [GETTING_STARTED.md](GETTING_STARTED.md) owns runtime setup, ports, and local env guidance.
 - [../../README.md](../../README.md) owns the product overview and contributor handoff.
-- [../README.md](../README.md) is the short docs landing page.
-- [../INDEX.md](../INDEX.md) is the guided catalog.
+- [../README.md](../README.md) is the documentation catalog.
 - [../testing/TESTING.md](../testing/TESTING.md) is the validation command map.
 - Repo-local contributor skills live under [../../.codex/skills/](../../.codex/skills/) and should stay aligned when contributor-workflow guidance changes.
 

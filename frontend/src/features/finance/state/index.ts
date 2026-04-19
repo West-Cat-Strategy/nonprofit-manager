@@ -3,6 +3,7 @@ import donationsReducer from './donationsCore';
 import recurringDonationsReducer from './recurringDonationsCore';
 import paymentsReducer from './paymentsCore';
 import reconciliationReducer from './reconciliationCore';
+import type { RootState } from '../../../store';
 
 const financeReducer = combineReducers({
   donations: donationsReducer,
@@ -32,7 +33,7 @@ export {
 } from './reconciliationCore';
 
 // Selectors
-export const selectDonations = (state: any) => state.finance.donations;
-export const selectRecurringDonations = (state: any) => state.finance.recurring;
-export const selectPayments = (state: any) => state.finance.payments;
-export const selectReconciliation = (state: any) => state.finance.reconciliation;
+export const selectDonations = (state: RootState) => state.finance.donations;
+export const selectRecurringDonations = (state: RootState) => state.finance.recurring;
+export const selectPayments = (state: RootState) => state.finance.payments;
+export const selectReconciliation = (state: RootState) => state.finance.reconciliation;

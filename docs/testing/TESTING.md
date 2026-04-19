@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-19
 
 This file is the active test command map for nonprofit-manager. Use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports; use this file when you need to choose the right validation command.
 
@@ -13,9 +13,7 @@ This file is the active test command map for nonprofit-manager. Use [../../CONTR
 | Backend Jest integration workflow | Active, scoped | [INTEGRATION_TEST_GUIDE.md](INTEGRATION_TEST_GUIDE.md) |
 | Playwright runtime wrappers and browser contracts | Active, scoped | [../../e2e/README.md](../../e2e/README.md) |
 | Dark-mode accessibility audit flow | Active, focused | [DARK_MODE_ACCESSIBILITY_AUDIT.md](DARK_MODE_ACCESSIBILITY_AUDIT.md) |
-| Volunteer-management manual QA checklist | Historical, narrow | [MANUAL_TESTING_GUIDE.md](MANUAL_TESTING_GUIDE.md) |
-| Original Phase 2 integration rollout map | Historical context | [INTEGRATION_TESTING_PHASE2.md](INTEGRATION_TESTING_PHASE2.md) |
-| Older frontend coverage snapshot | Historical snapshot | [TESTING_STATUS.md](TESTING_STATUS.md) |
+| Historical testing references | Historical only | [archive/README.md](archive/README.md) |
 
 ## Test Layers
 
@@ -28,7 +26,7 @@ This file is the active test command map for nonprofit-manager. Use [../../CONTR
 | Backend unit/integration | `cd backend && npm test` / `cd backend && npm test -- src/__tests__/integration` | `npm test` prepares the CI-style test DB before running the full Jest suite; add a narrower Jest path when you only need one backend integration file |
 | Frontend unit/component | `cd frontend && npm test -- --run` | Frontend uses Vitest |
 | E2E | `cd e2e && npm test` | Wrapper-driven host commands use the Playwright-managed `5173/3001` contract; `npm run test:docker*` default to the externally managed Docker contract on `8005/8004`, and `make test-e2e-docker-smoke` provisions an isolated Docker smoke stack on `18005/18004`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. |
-| Docs validation | `make check-links` and `make lint-doc-api-versioning` | Use when docs changed |
+| Docs validation | `make check-links` | Use for any docs change; add `make lint-doc-api-versioning` when API wording/examples or versioned API docs changed |
 | Tooling regression coverage | `make test-tooling` | Targeted contract suite for route-audit, selector, helper-script, and wrapper changes |
 
 ## Runtime Matrix
@@ -56,6 +54,7 @@ Coverage and release commands:
 
 ```bash
 make ci
+make ci-fast
 make test-coverage
 make test-coverage-full
 make ci-full
@@ -111,13 +110,15 @@ npm run test:ci:mobile
 
 ## Docs And Contract Checks
 
-Run these when documentation, migration docs, or database contract expectations change:
+Run `make check-links` for any docs change. Add the extra commands below only when the change touches those areas:
 
 ```bash
-make db-verify
 make check-links
 make lint-doc-api-versioning
 ```
+
+- Add `make lint-doc-api-versioning` when API wording, API examples, or versioned API docs changed.
+- Add `make db-verify` when migration docs or database contract expectations changed.
 
 ## Choosing A Smaller Check Set
 
@@ -129,7 +130,7 @@ When the change set does not justify the full suite, use the repo selector:
 
 Use `--mode strict` when the change touches shared runtime orchestration, Docker/test wrappers, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks.
 Run the emitted commands in order.
-Code and runtime changes should include at least one behavior-test command; docs-only changes stay on docs checks.
+Code and runtime changes should include at least one behavior-test command; docs-only changes stay on `make check-links` unless API wording/examples changed.
 
 ## Related References
 
@@ -140,4 +141,4 @@ Code and runtime changes should include at least one behavior-test command; docs
 - [INTEGRATION_TEST_GUIDE.md](INTEGRATION_TEST_GUIDE.md)
 - [DARK_MODE_ACCESSIBILITY_AUDIT.md](DARK_MODE_ACCESSIBILITY_AUDIT.md)
 
-Historical-only references remain in this folder for context, but the active contributor workflow should flow from this file into the narrower guide you need next.
+Historical-only references now live under [archive/README.md](archive/README.md), but the active contributor workflow should flow from this file into the narrower guide you need next.

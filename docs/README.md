@@ -1,39 +1,93 @@
 # Documentation Home
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-19
 
-Use this directory as the documentation hub for contributors, operators, and support workflows. This page is intentionally short: its job is to point you to the right source of truth, not to duplicate onboarding or setup guidance.
+Welcome to the Nonprofit Manager documentation hub. Use this guide to find setup instructions, architectural overviews, and feature specifications.
 
 ## Start Here
 
-- Need the contributor workflow, validation expectations, or handoff path? Open [../CONTRIBUTING.md](../CONTRIBUTING.md).
-- Need local setup, ports, or runtime choices? Open [development/GETTING_STARTED.md](development/GETTING_STARTED.md).
-- Need product context before you edit? Open [../README.md](../README.md).
-- Need current tracked ownership and status? Open [phases/planning-and-progress.md](phases/planning-and-progress.md).
+If you are contributing to the repository, follow this path in order:
+
+1. [**Contributor Workflow**](../CONTRIBUTING.md) - Essential rules for code, docs, and validation.
+2. [**Getting Started**](development/GETTING_STARTED.md) - Local setup, ports, and runtime choices.
+3. [**Conventions**](development/CONVENTIONS.md) - Code style, directory structure, and active patterns.
+4. [**Agent Instructions**](development/AGENT_INSTRUCTIONS.md) - Repo guardrails and architecture boundaries.
+5. [**Testing Matrix**](testing/TESTING.md) - Choose the smallest honest validation set.
+6. This file when you need the rest of the docs map.
+
+If the task is tracked, open [**Planning and Progress**](phases/planning-and-progress.md) before editing.
 
 ## Source Of Truth Map
 
-| Topic | Primary Doc |
-|---|---|
-| Contributor workflow, validation, and handoff | [../CONTRIBUTING.md](../CONTRIBUTING.md) |
-| Runtime setup, ports, and local environment choices | [development/GETTING_STARTED.md](development/GETTING_STARTED.md) |
-| Product overview and contributor handoff | [../README.md](../README.md) |
-| Coding-agent guardrails | [development/AGENT_INSTRUCTIONS.md](development/AGENT_INSTRUCTIONS.md) |
-| Full documentation catalog | [INDEX.md](INDEX.md) |
-| Tracked work ownership and status | [phases/planning-and-progress.md](phases/planning-and-progress.md) |
+| Topic | Primary Doc | Notes |
+|---|---|---|
+| Product & Strategy | [../README.md](../README.md) | User-facing overview and contributor handoff |
+| Contributor Workflow | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Start here before any edits |
+| Environment & Setup | [development/GETTING_STARTED.md](development/GETTING_STARTED.md) | Runtime, ports, and local environment |
+| AI Agent Guardrails | [development/AGENT_INSTRUCTIONS.md](development/AGENT_INSTRUCTIONS.md) | Repo-specific rules for coding assistants |
+| Validation & Testing | [testing/TESTING.md](testing/TESTING.md) | Active test-command selection map |
+| Live Project Status | [phases/planning-and-progress.md](phases/planning-and-progress.md) | Current tracked work and blockers |
+| Repository Index | This file | Guided category map for all documentation |
 
-## Browse By Need
+---
 
-- Architecture and repo conventions: [development/CONVENTIONS.md](development/CONVENTIONS.md), [development/ARCHITECTURE.md](development/ARCHITECTURE.md)
-- Testing and validation: [testing/TESTING.md](testing/TESTING.md), [../e2e/README.md](../e2e/README.md)
-- API and integration references: [api/README.md](api/README.md)
-- Deployment and operations: [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md)
-- Agent terminology and workboard context: [../agents.md](../agents.md), [phases/planning-and-progress.md](phases/planning-and-progress.md)
-- Product and help-center docs: [features/FEATURE_MATRIX.md](features/FEATURE_MATRIX.md), [help-center/staff/index.html](help-center/staff/index.html)
-- Full guided catalog: [INDEX.md](INDEX.md)
+## Full Documentation Catalog
 
-## Keep In Mind
+### Development & Onboarding
+- [Architecture Overview](development/ARCHITECTURE.md)
+- [Coding Conventions](development/CONVENTIONS.md)
+- [Troubleshooting Guide](development/TROUBLESHOOTING.md)
+- [Release Checklist](development/RELEASE_CHECKLIST.md)
+- [Subagent Modularization Guide](development/SUBAGENT_MODULARIZATION_GUIDE.md)
+- [Agent Terminology](../agents.md)
+- [Quick Command Reference](quick-reference/QUICK_REFERENCE.md)
 
-- [../CONTRIBUTING.md](../CONTRIBUTING.md) is the contributor entry point.
-- [development/GETTING_STARTED.md](development/GETTING_STARTED.md) owns runtime setup details.
-- [INDEX.md](INDEX.md) is the guided catalog when you need the broader map.
+### Backend & API
+- [Backend Architecture](../backend/README.md)
+- [API Entry Point](api/README.md)
+- [API Integration Guide (Stripe, Mailchimp, Webhooks)](api/API_INTEGRATION_GUIDE.md)
+- [OpenAPI Specification](api/openapi.yaml)
+- [Postman Setup](api/postman/README.md)
+
+### Frontend & UI
+- [Frontend Architecture](../frontend/README.md)
+- [Frontend Setup](../frontend/SETUP.md)
+- [Component Testing](testing/COMPONENT_TESTING.md)
+- [Theme System](THEME_SYSTEM.md)
+- [UI Style Template](ui/user_interface_template_information.md)
+
+### Testing & Quality
+- [Test Matrix (Main)](testing/TESTING.md)
+- [Integration Test Guide](testing/INTEGRATION_TEST_GUIDE.md)
+- [Testing Archive](testing/archive/README.md)
+- [Playwright E2E Setup](../e2e/README.md)
+- [Validation Schemas Reference](validation/VALIDATION_SCHEMAS_REFERENCE.md)
+
+### Features & Product
+- [Feature Matrix](features/FEATURE_MATRIX.md)
+- [Product Specification](product/product-spec.md)
+- [User Personas](product/user-personas.md)
+- [Persona Workflows](product/persona-workflows.md)
+
+### Deployment & Operations
+- [Deployment Guide](deployment/DEPLOYMENT.md)
+- [Database Setup & Migrations](deployment/DB_SETUP.md)
+- [Security Monitoring Guide](security/SECURITY_MONITORING_GUIDE.md)
+- [Incident Response Runbook](security/INCIDENT_RESPONSE_RUNBOOK.md)
+- [Plausible Analytics Setup](deployment/PLAUSIBLE_SETUP.md)
+- [Log Aggregation Setup](deployment/LOG_AGGREGATION_SETUP.md)
+
+### Governance & History
+- [Planning and Progress](phases/planning-and-progress.md)
+- [Documentation Style Guide](DOCUMENTATION_STYLE_GUIDE.md)
+- [Help Center Archive Note](archive/help-center/README.md)
+- [Historical Archives](phases/archive/README.md)
+
+---
+
+## Quick Picks
+
+- Need setup help fast? Open [development/GETTING_STARTED.md](development/GETTING_STARTED.md).
+- Need contributor rules? Open [../CONTRIBUTING.md](../CONTRIBUTING.md).
+- Need the current workboard? Open [phases/planning-and-progress.md](phases/planning-and-progress.md).
+- Need the API doc entry? Open [api/README.md](api/README.md).

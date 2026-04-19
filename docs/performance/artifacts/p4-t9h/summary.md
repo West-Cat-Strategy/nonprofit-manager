@@ -1,5 +1,8 @@
 # P4-T9H Explain Summary
 
+**Last Updated:** 2026-04-19
+
+
 Generated: 2026-03-13 23:26:04Z
 Search pattern: `%supportwave%`
 Dataset: synthetic Docker-backed PostgreSQL 16 capture from `scripts/perf/p4-t9h-capture.sh`
@@ -11,4 +14,4 @@ Dataset: synthetic Docker-backed PostgreSQL 16 capture from `scripts/perf/p4-t9h
 | Tasks | 55.402 | 2.347 | 53.055 | Aggregate count plus sorted page query over `tasks` | `WindowAgg`, `Bitmap Index Scan` via `idx_tasks_staff_search_trgm`, `Bitmap Heap Scan on tasks` | This is the clearest trigram win in the synthetic capture; the list path no longer needs a separate count query either. |
 | Cases | 39.230 | 13.812 | 25.418 | Aggregate count plus page query with correlated note/document count probes | `WindowAgg` plus page-scoped `case_notes` / `case_documents` index probes | Correlated per-row counts were replaced with page-scoped aggregate joins, cutting repeated related-table work. |
 
-Raw plan JSON files live in `docs/performance/artifacts/p4-t9h/raw/`.
+The raw explain-plan JSON bundle captured during the task was pruned on 2026-04-19 after this summary and the final report retained the important measurements and plan-level takeaways.

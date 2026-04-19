@@ -1,5 +1,8 @@
 # User Interface Template Information
 
+**Last Updated:** 2026-04-19
+
+
 > Document Type: Canonical UI Constitution
 > Version: 2.0.0
 > Last Updated: March 6, 2026

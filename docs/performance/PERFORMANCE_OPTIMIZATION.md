@@ -1,5 +1,8 @@
 # Performance Optimization Guide
 
+**Last Updated:** 2026-04-19
+
+
 Comprehensive guide to performance optimizations implemented in the Nonprofit Manager application.
 
 ## Table of Contents

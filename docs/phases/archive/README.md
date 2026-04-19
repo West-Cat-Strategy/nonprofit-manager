@@ -1,8 +1,17 @@
 # Phase Documentation Archive
 
-**Last Updated**: 2026-02-18
+**Last Updated**: 2026-04-19
 
 This directory contains historical phase completion reports, session summaries, and workboard history snapshots.
+
+## 2026-04-19 Prune Summary
+
+- Moved dated handoff and release artifacts out of the active `docs/phases/` top level:
+  - [P2_T16_T17_PR_DRAFT_2026-02-24.md](P2_T16_T17_PR_DRAFT_2026-02-24.md)
+  - [P2_T16_T17_REVIEW_HANDOFF_2026-02-24.md](P2_T16_T17_REVIEW_HANDOFF_2026-02-24.md)
+  - [PHASE_3_EXECUTION_REPORT.md](PHASE_3_EXECUTION_REPORT.md)
+  - [RELEASE_v0.1.1_2026-04-07.md](RELEASE_v0.1.1_2026-04-07.md)
+- Kept [../planning-and-progress.md](../planning-and-progress.md) as the single live workboard.
 
 ---
 
@@ -128,4 +137,4 @@ New phase files should:
 
 - [../planning-and-progress.md](../planning-and-progress.md) — Active workboard (current work)
 - [../../development/GETTING_STARTED.md](../../development/GETTING_STARTED.md) — Setup guide
-- [../../INDEX.md](../../INDEX.md) — Documentation index
+- [../../README.md](../../README.md) — Documentation catalog

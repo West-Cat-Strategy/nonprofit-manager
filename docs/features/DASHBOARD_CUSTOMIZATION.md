@@ -1,5 +1,8 @@
 # Dashboard Customization Feature
 
+**Last Updated:** 2026-04-19
+
+
 ## Overview
 
 This document describes the customizable dashboard feature implementation with drag-and-drop widgets. The feature allows users to personalize their dashboard by adding, removing, rearranging, and resizing widgets.

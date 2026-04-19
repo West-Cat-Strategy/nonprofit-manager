@@ -1,5 +1,8 @@
 # Opportunities Pipeline
 
+**Last Updated:** 2026-04-19
+
+
 ## Overview
 
 The opportunities pipeline introduces a dedicated stage-based domain for opportunity tracking.

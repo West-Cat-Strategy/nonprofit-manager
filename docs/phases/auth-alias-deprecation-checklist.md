@@ -1,5 +1,8 @@
 # Auth Alias Deprecation Checklist
 
+**Last Updated:** 2026-04-19
+
+
 ## Scope
 This checklist tracks deferred retirement of legacy auth input aliases (`snake_case`) while preserving current behavior.
 

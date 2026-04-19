@@ -136,16 +136,16 @@ Update these in the environment if your setup differs:
 Stripe webhooks require signature verification and are best tested using Stripe CLI:
 
 ```bash
-# Install Stripe CLI
+## Install Stripe CLI
 brew install stripe/stripe-cli/stripe
 
-# Login to Stripe
+## Login to Stripe
 stripe login
 
-# Forward webhooks to local server
+## Forward webhooks to local server
 stripe listen --forward-to localhost:3000/api/v2/payments/webhook
 
-# Trigger test events
+## Trigger test events
 stripe trigger payment_intent.succeeded
 stripe trigger payment_intent.payment_failed
 stripe trigger charge.refunded
@@ -214,15 +214,15 @@ Mailchimp webhooks can be tested directly in Postman:
 Newman is Postman's command-line collection runner:
 
 ```bash
-# Install Newman
+## Install Newman
 npm install -g newman
 
-# Run collection
+## Run collection
 newman run Nonprofit-Manager-API.postman_collection.json \
   -e Nonprofit-Manager.postman_environment.json \
   --reporters cli,json
 
-# Run specific folder
+## Run specific folder
 newman run Nonprofit-Manager-API.postman_collection.json \
   -e Nonprofit-Manager.postman_environment.json \
   --folder "Payments"

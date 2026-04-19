@@ -1,5 +1,8 @@
 # Follow-up Lifecycle
 
+**Last Updated:** 2026-04-19
+
+
 ## Overview
 
 The follow-up lifecycle feature manages scheduleable reminders tied to cases and tasks.

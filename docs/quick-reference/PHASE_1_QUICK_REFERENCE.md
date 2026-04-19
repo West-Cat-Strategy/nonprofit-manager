@@ -380,19 +380,19 @@ See `utils/permissions.ts` for complete matrix.
 ## Cheat Sheet
 
 ```bash
-# Run type checking
+## Run type checking
 npm run type-check
 
-# Run validation tests
+## Run validation tests
 npm test -- src/__tests__/unit/validations/schemas.test.ts
 
-# Run all tests
+## Run all tests
 npm test
 
-# Lint code
+## Lint code
 npm run lint
 
-# Start dev server
+## Start dev server
 npm run dev
 ```
 

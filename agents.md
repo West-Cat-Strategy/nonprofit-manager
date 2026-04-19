@@ -6,7 +6,7 @@ This page explains the three meanings of "agents" in this repo. It is an orienta
 
 **Document Role:** Orientation and terminology only.
 **Use This Page For:** Understanding what "agents" means in this repo and finding the correct canonical doc.
-**Go Elsewhere For:** Contributor workflow in [CONTRIBUTING.md](CONTRIBUTING.md), runtime setup and ports in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md), docs navigation in [docs/README.md](docs/README.md) or [docs/INDEX.md](docs/INDEX.md), and live tracked work in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md).
+**Go Elsewhere For:** Contributor workflow in [CONTRIBUTING.md](CONTRIBUTING.md), runtime setup and ports in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md), docs navigation in [docs/README.md](docs/README.md), and live tracked work in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md).
 
 1. Developer agents: AI assistants contributing code and docs under repo rules.
 2. Multi-agent coordination: the task workflow for parallel contributors.
@@ -24,38 +24,23 @@ There are no autonomous AI agents running independently in the application. The 
 
 ## Developer Agents
 
-Start with the canonical repo docs:
+Developer agents are AI assistants (like the one you are interacting with now) that contribute code, documentation, and validation support to the repository.
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and handoff path.
-- [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup, runtime choice, and current ports.
-- [docs/README.md](docs/README.md) for the short docs landing page.
-- [README.md](README.md) for the product overview and runtime matrix.
-- [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for coding-agent guardrails.
-- [docs/INDEX.md](docs/INDEX.md) for the full documentation catalog.
+For the full set of technical guardrails, architecture boundaries, and validation requirements for developer agents, see:
 
-Repo-specific reminders:
-
-- Keep active backend code under `backend/src/modules/<domain>/` and active frontend code under `frontend/src/features/<domain>/`.
-- Active API surfaces use `/api/v2/*`; health aliases remain documented exceptions.
-- Validate input with Zod and the repo validation middleware, and use the current auth-guard helpers rather than legacy `require*OrError` wrappers in new work.
-- For auth and permission behavior, treat [backend/src/services/authGuardService.ts](backend/src/services/authGuardService.ts) and [backend/src/utils/permissions.ts](backend/src/utils/permissions.ts) as implementation sources of truth.
-- Preserve the canonical response envelopes and keep docs, commands, and ports aligned with current repo behavior.
-- When implementation details matter, defer to the owning service README or the relevant docs section instead of duplicating policy here.
+- [**docs/development/AGENT_INSTRUCTIONS.md**](docs/development/AGENT_INSTRUCTIONS.md)
 
 ## Multi-Agent Coordination
 
-The live workboard is [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md). Treat it as the source of truth for tracked work, status changes, ownership, and blockers.
+Multi-agent coordination refers to the workflow used when multiple contributors (human or AI) are working on the repository simultaneously, particularly during large refactoring or modularization tasks.
 
-Working rules:
+For the live workboard and coordination status, see:
 
-- Sign out tracked work in the workboard before editing code or docs.
-- Keep one active task per agent by default; only split work when the task explicitly documents a coordinated parallel path.
-- For modularization work that needs subagents, follow [docs/development/SUBAGENT_MODULARIZATION_GUIDE.md](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md) and document the temporary coordinated exception before parallel edits begin.
-- Use task IDs in commits and PR titles so work stays traceable.
-- Move work to Blocked or Review as soon as the status changes, and record the reason and next step.
-- Before marking work Done, follow the validation and review expectations in [CONTRIBUTING.md](CONTRIBUTING.md).
+- [**docs/phases/planning-and-progress.md**](docs/phases/planning-and-progress.md)
 
-This page intentionally does not duplicate the current phase, active subtasks, or next-ready task list.
+For guidance on splitting large tasks into parallel lanes, see:
+
+- [**docs/development/SUBAGENT_MODULARIZATION_GUIDE.md**](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md)
 
 ## User-Agent Tracking
 
@@ -92,7 +77,7 @@ Some services behave like automated delivery systems, but they are still ordinar
 - [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md)
 - [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md)
 - [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md)
-- [docs/INDEX.md](docs/INDEX.md)
+- [docs/README.md](docs/README.md)
 - [backend/README.md](backend/README.md)
 - [frontend/README.md](frontend/README.md)
 - [docs/testing/TESTING.md](docs/testing/TESTING.md)

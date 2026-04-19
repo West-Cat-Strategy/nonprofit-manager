@@ -1,5 +1,8 @@
 # Auth Alias Telemetry Operations Guide
 
+**Last Updated:** 2026-04-19
+
+
 Date: 2026-04-14
 
 This guide defines the production-facing query and dashboard workflow for `P4-T9I`. Use it to measure legacy auth alias usage for:

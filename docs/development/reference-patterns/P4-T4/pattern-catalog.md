@@ -1,5 +1,8 @@
 # P4-T4 Team Chat Pattern Catalog
 
+**Last Updated:** 2026-04-19
+
+
 ## Scope
 
 - Target: internal team chat for case collaboration in `nonprofit-manager`

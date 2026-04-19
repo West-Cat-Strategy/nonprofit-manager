@@ -1,8 +1,10 @@
 # API Documentation Index
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-19
 
 Use this file as the entry point for active Nonprofit Manager API documentation. When route summaries need confirmation, verify them against [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) and the mounted module route files under `backend/src/modules/**/routes/`.
+
+For contributor navigation, follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md) -> [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) -> [../development/CONVENTIONS.md](../development/CONVENTIONS.md) -> [../development/AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md) -> [../testing/TESTING.md](../testing/TESTING.md) -> [../README.md](../README.md) before diving into API-specific docs.
 
 ## Quick Navigation
 
@@ -94,3 +96,5 @@ Additional `details` or validation-specific fields may appear on some error resp
 - [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md)
 - [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md)
 - [postman/README.md](postman/README.md)
+- [../README.md](../README.md)
+- [../../CONTRIBUTING.md](../../CONTRIBUTING.md)

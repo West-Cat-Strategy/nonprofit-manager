@@ -1,22 +1,59 @@
 # Persona Workflow Audit (2026-04-18)
 
+**Last Updated:** 2026-04-19
+
+
 ## Scope
 
 - Date: `2026-04-18`
 - Source personas: [Production User Personas](../product/user-personas.md) and [Persona Workflow Planning Pack](../product/persona-workflows.md)
 - Scope: Executive Director, Fundraiser, Nonprofit Administrator, Board Member, Case Manager, and Rehab Worker
 - Method: one lead synthesis pass plus six persona-specific subagent lanes using non-mutating workflow checks against docs, route catalogs, frontend tests, backend tests, and Playwright specs
-- Mutation policy: the audit evidence collection was non-mutating; implementing this validation artifact adds this report plus a catalog entry in [docs/INDEX.md](../INDEX.md)
+- Mutation policy: the audit evidence collection was non-mutating; implementing this validation artifact adds this report plus a catalog entry in [docs/README.md](../README.md)
 
 ## Methodology
 
 - Each persona lane started from the existing product persona pack and workflow pack, then traced the current repo surfaces that claim to support that role.
 - Evidence sources were limited to current repo docs, route catalogs, backend and frontend implementation seams, existing test files, and commands actually run during the audit pass.
 - This document uses four evidence labels throughout:
-  - `supported in docs`: the workflow is clearly represented in the current persona pack, help-center docs, feature docs, routes, or API/docs structure
+  - `supported in docs`: the workflow is clearly represented in the current persona pack, feature docs, routes, code, or API/docs structure
   - `runnable evidence observed`: the audit found passing or partially observed command/test evidence in the current tree
   - `blocked/interrupted attempts`: a command was started or selected but could not complete cleanly because of an external lock, an intentional stop, or local runtime contention
   - `current gaps or drift`: the strongest repo-side mismatch between the documented workflow and current runnable proof
+
+## New Workflow Evidence Matrix (v1 additions)
+
+The workflows below were added or elevated during this documentation pass. Status uses the shared `workflow_status` values from [persona-workflows.md](../product/persona-workflows.md): `supported`, `partial`, `external only`, or `missing`.
+
+| workflow_id | role | workflow_status | support_rationale | gap_owner |
+|---|---|---|---|---|
+| executive-director-monthly-strategic-board-pack | Executive Director | partial | Reports, dashboards, and scheduling surfaces exist and can assemble a board view, but no dedicated board-packet assembly workspace exists today. | Product backlog (governance-reporting workspace) |
+| executive-director-annual-board-990-compliance-command-center | Executive Director | external only | Core finance data and permissions are in-app, while filing, legal review routing, and formal 990 package assembly remain outside this app. | Product backlog + Finance/compliance team |
+| executive-director-restricted-funds-stewardship-gate | Executive Director | partial | Donation/account views support restricted flags and donor tracking, but restricted-use policy checks and exceptions still rely on accounting and donor stewardship systems. | Product backlog (restricted-funds workflow controls) |
+| executive-director-governance-risk-escalation | Executive Director | partial | Executive oversight surfaces are present for escalation context, but no formal governance exception workflow is first-class in-product. | Product backlog (governance escalation UX) |
+| fundraiser-prospect-research-to-pipeline | Fundraiser | partial | People/accounts and opportunities surfaces support intake and pipeline states; discovery/research scoring is external to core CRM screens. | Fundraising product + CRM integrations |
+| fundraiser-donor-stewardship-and-impact-comms-cadence | Fundraiser | partial | Reporting and donor snapshots support cadence tracking; impact comms and preference orchestration remain partially external. | Fundraising operations/process owner |
+| fundraiser-grant-and-campaign-lifecycle-with-deadlines | Fundraiser | partial | Opportunity and reporting support helps track campaigns, but grant filing/compliance checkpoints and campaign calendar authority are external today. | Product backlog + Grants/finance integration owner |
+| fundraiser-restricted-donation-and-donor-preference-workflow | Fundraiser | partial | Donation surface supports capture and review; donor preference governance and restriction control workflow still depends on policy and external consent tooling. | Fundraising operations and compliance policy |
+| fundraiser-gift-entry-verification-acknowledgment-handoff | Fundraiser | partial | Gift validation and reporting is in-app, while formal acknowledgment sequence tooling and some finance controls are outside current app scope. | Product backlog (fundraiser workflow harmonization) |
+| nonprofit-administrator-user-onboarding-offboarding-access-lifecycle | Nonprofit Administrator | supported | User/role assignments and permission visibility are represented in admin routing and permission surfaces. | None (operational excellence runbook still recommended) |
+| nonprofit-administrator-board-ready-reporting-cycle | Nonprofit Administrator | partial | Report scheduling is supported, but board-ready packet governance, sign-off trails, and export policy workflows are not a dedicated module. | Product backlog (board reporting package) |
+| nonprofit-administrator-compliance-documentation-vault-retention-audit-artifacts | Nonprofit Administrator | missing | No dedicated in-app documentation vault or retention timer for compliance artifacts exists; only ad-hoc manual storage patterns. | Product backlog (compliance documentation layer) |
+| nonprofit-administrator-audit-risk-ledger-and-corrective-actions | Nonprofit Administrator | partial | Route and access checks exist, but an explicit correction ledger and owner/action audit trail are not first-class UX yet. | Admin product owner |
+| board-member-governance-meeting-cadence-and-packet-review | Board Member | partial | Read-only reports and dashboards support oversight preparation; no dedicated board-member packet planner exists. | Product backlog + board ops process |
+| board-member-delegation-authority-matrix-and-committee-charter-traceability | Board Member | missing | No committee charter authority matrix module in app; delegation remains documented externally. | Board operations / product backlog |
+| board-member-conflict-of-interest-disclosure-and-recusal-handling | Board Member | missing | The app has no conflict/recusal data model; only read-only organizational context is available in product. | Governance process owner |
+| board-member-board-governance-dashboard-kpis-and-compliance-risk | Board Member | partial | Dashboard/report visibility is usable, but board-specific KPI/guardrail interpretation and risk scoring remain workflow-level extensions. | Product backlog (board dashboard specialization) |
+| case-manager-referral-and-eligibility-compliance-intake | Case Manager | partial | Cases/intake and contact surfaces support referral workflow, but formal eligibility rule engines and consent templates remain externalized. | Case operations + Product backlog |
+| case-manager-person-centered-plan-and-reassessment-cycle | Case Manager | partial | Case notes/services support plans and reassessment, while fully person-centered plan lifecycle and template enforcement are still external. | Product backlog + clinical operations |
+| case-manager-secure-progress-notes-and-outcome-timeline | Case Manager | partial | Note and timeline features exist; secure retention and legal-compliance tagging remain uneven across all case contexts. | Product backlog + data governance |
+| case-manager-handoff-and-transition-workflow | Case Manager | partial | Case reassignment and notes are possible in-product, but standardized handoff work packets are not yet a first-class pattern. | Product backlog (handoff orchestration) |
+| case-manager-case-closure-continuity-workflow | Case Manager | partial | Closure can be represented by status/history, but continuity-of-care closure packet expectations are not standardized in app. | Case operations + Product backlog |
+| rehab-worker-eligibility-and-functional-vocational-assessment | Rehabilitation Worker | partial | Case and service screens support assessment capture; dedicated vocational assessment tools and scorecards are outside current model. | Clinical programs + Product backlog |
+| rehab-worker-individualized-employment-plan-creation-and-updates | Rehabilitation Worker | missing | Individualized Employment Plan authoring/updating requires rehab-specific templates not currently represented. | Product backlog (rehab IPE workflows) |
+| rehab-worker-follow-up-and-contact-cadence-for-compliance-windows | Rehabilitation Worker | partial | Follow-up and appointment tools are present, but compliance window policy and escalation windows are external conventions. | Product backlog + compliance operations |
+| rehab-worker-service-authorization-and-referral-transitions | Rehabilitation Worker | partial | Case transitions and follow-up routing exist; authorization approvals and referral APIs remain external in most deployments. | Referral partner integration owner + Product backlog |
+| rehab-worker-placement-and-outcome-tracking | Rehabilitation Worker | partial | Service activity can be tracked, but placement-outcome reporting and employment benchmarks are not dedicated rehab workflows. | Product backlog + workforce outcomes owner |
 
 ## Persona Findings
 
@@ -33,7 +70,7 @@
 
 - The persona-to-role mapping is implemented in the repo: `Executive Director` maps to `admin` in [contactDirectory.usecase.ts](../../backend/src/modules/contacts/usecases/contactDirectory.usecase.ts).
 - The expected dashboard, analytics, reporting, and admin surfaces are present in the route catalogs and module routers: [staffHomeRoutes.ts](../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts), [staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts), [createReportRoutes.tsx](../../frontend/src/features/reports/routes/createReportRoutes.tsx), [adminRouteManifest.ts](../../frontend/src/features/adminOps/adminRouteManifest.ts), and [backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts).
-- The supporting docs are aligned at a surface level: [dashboard-analytics.html](../help-center/staff/dashboard-analytics.html), [reports.html](../help-center/staff/reports.html), [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), [FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), and [beta-appendix.html](../help-center/staff/beta-appendix.html).
+- The supporting docs are aligned at a surface level: [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), [FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts), [WorkbenchDashboardPage.tsx](../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx), and [createReportRoutes.tsx](../../frontend/src/features/reports/routes/createReportRoutes.tsx).
 
 **Runnable evidence observed**
 
@@ -55,8 +92,8 @@
 **High-signal evidence paths**
 
 - [../product/persona-workflows.md](../product/persona-workflows.md)
-- [../help-center/staff/dashboard-analytics.html](../help-center/staff/dashboard-analytics.html)
-- [../help-center/staff/reports.html](../help-center/staff/reports.html)
+- [../features/REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md)
+- [../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx](../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx)
 - [../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts)
 - [../../frontend/src/features/adminOps/adminRouteManifest.ts](../../frontend/src/features/adminOps/adminRouteManifest.ts)
 - [../../e2e/tests/reports.spec.ts](../../e2e/tests/reports.spec.ts)
@@ -72,7 +109,7 @@
 
 **Supported in docs**
 
-- The role maps cleanly onto four real product lanes: People and Accounts, Donations, Reports and Scheduled Reports, and Opportunities. Supporting docs include [people-accounts.html](../help-center/staff/people-accounts.html), [donations.html](../help-center/staff/donations.html), [reports.html](../help-center/staff/reports.html), [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), and [OPPORTUNITIES_PIPELINE.md](../features/OPPORTUNITIES_PIPELINE.md).
+- The role maps cleanly onto four real product lanes: People and Accounts, Donations, Reports and Scheduled Reports, and Opportunities. Supporting docs include [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), [OPPORTUNITIES_PIPELINE.md](../features/OPPORTUNITIES_PIPELINE.md), [staffPeopleRoutes.ts](../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts), [staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts), and [staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts).
 - The route catalogs and backend mounts line up with that workflow framing: [staffPeopleRoutes.ts](../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts), [staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts), [staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts), [staffEngagementRoutes.ts](../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts), [backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts), and [backend/src/modules/donations/routes/index.ts](../../backend/src/modules/donations/routes/index.ts).
 
 **Runnable evidence observed**
@@ -102,8 +139,8 @@
 
 **High-signal evidence paths**
 
-- [../help-center/staff/people-accounts.html](../help-center/staff/people-accounts.html)
-- [../help-center/staff/donations.html](../help-center/staff/donations.html)
+- [../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts](../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts)
+- [../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts)
 - [../features/OPPORTUNITIES_PIPELINE.md](../features/OPPORTUNITIES_PIPELINE.md)
 - [../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts)
 - [../../e2e/tests/donations.spec.ts](../../e2e/tests/donations.spec.ts)
@@ -121,7 +158,7 @@
 **Supported in docs**
 
 - The admin settings and portal-admin structure are strongly codified in [adminNavigationCatalog.ts](../../frontend/src/features/adminOps/adminNavigationCatalog.ts), [adminRouteManifest.ts](../../frontend/src/features/adminOps/adminRouteManifest.ts), [adminRoutes.tsx](../../frontend/src/routes/adminRoutes.tsx), and [backend/src/modules/admin/routes/index.ts](../../backend/src/modules/admin/routes/index.ts).
-- Permissions, roles, groups, branding, organization settings, communications providers, and scheduled reporting are all represented in current code and docs: [permissions.ts](../../backend/src/utils/permissions.ts), [roleCatalogUseCase.ts](../../backend/src/modules/admin/usecases/roleCatalogUseCase.ts), [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), [quick-start.html](../help-center/staff/quick-start.html), [faq.html](../help-center/staff/faq.html), and [beta-appendix.html](../help-center/staff/beta-appendix.html).
+- Permissions, roles, groups, branding, organization settings, communications providers, and scheduled reporting are all represented in current code and docs: [permissions.ts](../../backend/src/utils/permissions.ts), [roleCatalogUseCase.ts](../../backend/src/modules/admin/usecases/roleCatalogUseCase.ts), [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), [adminNavigationCatalog.ts](../../frontend/src/features/adminOps/adminNavigationCatalog.ts), [adminRouteManifest.ts](../../frontend/src/features/adminOps/adminRouteManifest.ts), and [ScheduledReportsPage.test.tsx](../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx).
 
 **Runnable evidence observed**
 
@@ -131,7 +168,7 @@
 **Current gaps or drift**
 
 - The original route-catalog integrity concern was a validator truthfulness issue, not a current product mismatch: the checker now traverses transitive catalog sources, including descriptor-driven people routes, and [check-route-catalog-drift.ts](../../scripts/check-route-catalog-drift.ts) passes cleanly.
-- The help-center already treats admin settings and provider configuration as changing areas, and the current runnable proof is still much stronger at the unit/component level than at the full operator workflow level.
+- The current docs already treat admin settings and provider configuration as moving targets, and the runnable proof is still much stronger at the unit/component level than at the full operator workflow level.
 - Access provisioning is documented as `Supported`, but this audit only validated the role/permission/controller seams, not a full invitation, offboarding, or access-update run.
 
 **Commands run or attempted**
@@ -147,9 +184,9 @@
 
 **High-signal evidence paths**
 
-- [../help-center/staff/quick-start.html](../help-center/staff/quick-start.html)
-- [../help-center/staff/faq.html](../help-center/staff/faq.html)
-- [../help-center/staff/beta-appendix.html](../help-center/staff/beta-appendix.html)
+- [../../frontend/src/features/adminOps/adminNavigationCatalog.ts](../../frontend/src/features/adminOps/adminNavigationCatalog.ts)
+- [../../frontend/src/features/adminOps/adminRouteManifest.ts](../../frontend/src/features/adminOps/adminRouteManifest.ts)
+- [../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx](../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx)
 - [../../frontend/src/features/adminOps/adminNavigationCatalog.ts](../../frontend/src/features/adminOps/adminNavigationCatalog.ts)
 - [../../backend/src/modules/admin/routes/index.ts](../../backend/src/modules/admin/routes/index.ts)
 - [../../backend/src/__tests__/services/scheduledReportService.test.ts](../../backend/src/__tests__/services/scheduledReportService.test.ts)
@@ -208,7 +245,7 @@
 
 **Supported in docs**
 
-- Case intake, detail, queue, portal, and reporting workflows are clearly documented in [cases.html](../help-center/staff/cases.html), [portal/cases.html](../help-center/portal/cases.html), [FOLLOW_UP_LIFECYCLE.md](../features/FOLLOW_UP_LIFECYCLE.md), [CASE_CLIENT_VISIBILITY_AND_FILES.md](../features/CASE_CLIENT_VISIBILITY_AND_FILES.md), [dashboard-analytics.html](../help-center/staff/dashboard-analytics.html), and [reports.html](../help-center/staff/reports.html).
+- Case intake, detail, queue, portal, and reporting workflows are clearly documented in [CASE_MANAGEMENT_SYSTEM.md](../features/CASE_MANAGEMENT_SYSTEM.md), [FOLLOW_UP_LIFECYCLE.md](../features/FOLLOW_UP_LIFECYCLE.md), [CASE_CLIENT_VISIBILITY_AND_FILES.md](../features/CASE_CLIENT_VISIBILITY_AND_FILES.md), [API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md), and [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md).
 - Staff routes and backend modules exist for case list/create/detail, follow-ups, portal visibility, and reporting: [engagementRoutes.tsx](../../frontend/src/routes/engagementRoutes.tsx), [peopleRoutes.tsx](../../frontend/src/routes/peopleRoutes.tsx), [portalRoutes.tsx](../../frontend/src/routes/portalRoutes.tsx), [backend/src/modules/cases/routes/index.ts](../../backend/src/modules/cases/routes/index.ts), [backend/src/modules/followUps/routes/index.ts](../../backend/src/modules/followUps/routes/index.ts), [backend/src/modules/portal/routes/index.ts](../../backend/src/modules/portal/routes/index.ts), and [backend/src/modules/reports/routes/index.ts](../../backend/src/modules/reports/routes/index.ts).
 
 **Runnable evidence observed**
@@ -236,7 +273,7 @@
 
 **High-signal evidence paths**
 
-- [../help-center/staff/cases.html](../help-center/staff/cases.html)
+- [../features/CASE_MANAGEMENT_SYSTEM.md](../features/CASE_MANAGEMENT_SYSTEM.md)
 - [../features/FOLLOW_UP_LIFECYCLE.md](../features/FOLLOW_UP_LIFECYCLE.md)
 - [../features/CASE_CLIENT_VISIBILITY_AND_FILES.md](../features/CASE_CLIENT_VISIBILITY_AND_FILES.md)
 - [../../frontend/src/features/cases/pages/CaseDetailPage.tsx](../../frontend/src/features/cases/pages/CaseDetailPage.tsx)
@@ -255,7 +292,7 @@
 **Supported in docs**
 
 - The repo intentionally models this lane as inferred `staff` rather than a rehab-specific role in [user-personas.md](../product/user-personas.md).
-- The supporting surfaces are the same case, portal, follow-up, appointment, and reporting surfaces documented in [cases.html](../help-center/staff/cases.html), [portal/cases.html](../help-center/portal/cases.html), [CASE_MANAGEMENT_SYSTEM.md](../features/CASE_MANAGEMENT_SYSTEM.md), [CASE_CLIENT_VISIBILITY_AND_FILES.md](../features/CASE_CLIENT_VISIBILITY_AND_FILES.md), [API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md), and [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md).
+- The supporting surfaces are the same case, portal, follow-up, appointment, and reporting surfaces documented in [CASE_MANAGEMENT_SYSTEM.md](../features/CASE_MANAGEMENT_SYSTEM.md), [CASE_CLIENT_VISIBILITY_AND_FILES.md](../features/CASE_CLIENT_VISIBILITY_AND_FILES.md), [API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md), [FOLLOW_UP_LIFECYCLE.md](../features/FOLLOW_UP_LIFECYCLE.md), and [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md).
 
 **Runnable evidence observed**
 
@@ -297,7 +334,7 @@
 - Board Member support has real `viewer`-role mapping, capability-aware report landing, and read-only UI gating, but the effective `viewer` permission set is still broader than the documented oversight-only posture.
 - Case Manager support is strongest in intake wiring, follow-ups, portal-safe sharing, and now status-change/saved-view/staff-appointments proof; the shallower area remains broader supervision and outcomes-review workflows.
 - Rehab Worker support is real but generic rather than rehab-specific; service logging proof is weaker than notes/forms/follow-up proof, while referral and rehab-plan-adjustment workflows remain only partially evidenced.
-- Across personas, the docs story is often stronger than the current end-to-end proof. This is especially visible where the repo has solid route catalogs, help-center coverage, or targeted unit tests but weaker uninterrupted Playwright or workflow-level runs.
+- Across personas, the docs story is often stronger than the current end-to-end proof. This is especially visible where the repo has solid route catalogs, feature docs, or targeted unit tests but weaker uninterrupted Playwright or workflow-level runs.
 - Local validation conditions matter. Multiple persona lanes encountered E2E lock contention, interrupted runs, or shared-env backend preflight issues, so this audit treats blocked and interrupted attempts as signal about the validation surface rather than as workflow failures.
 
 ## Command Ledger

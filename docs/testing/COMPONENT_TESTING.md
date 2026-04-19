@@ -69,22 +69,22 @@ frontend/src/
 ```bash
 cd frontend
 
-# Run the full frontend suite once
+## Run the full frontend suite once
 npm test -- --run
 
-# Run tests in watch mode (re-run on file changes)
+## Run tests in watch mode (re-run on file changes)
 npm test -- --watch
 
-# Run tests for a specific file once
+## Run tests for a specific file once
 npm test -- --run Button.test.tsx
 
-# Run tests matching a pattern once
+## Run tests matching a pattern once
 npm test -- --run --testNamePattern="should render"
 
-# Open the Vitest UI
+## Open the Vitest UI
 npm run test:ui
 
-# Check coverage
+## Check coverage
 npm run test:coverage
 ```
 

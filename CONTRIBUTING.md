@@ -1,6 +1,6 @@
 # Contributing to Nonprofit Manager
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-19
 
 Use this guide when you are contributing code, documentation, validation, or release support to Nonprofit Manager. Treat it as the contributor workflow, validation, and handoff entry point. The root [README.md](README.md) stays product-facing; setup and runtime details stay in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md).
 
@@ -12,7 +12,7 @@ Read these core guides in order when you are orienting to a new task:
 2. [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md) for code, docs, and workflow conventions
 3. [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for repo guardrails and active architecture boundaries
 4. [docs/testing/TESTING.md](docs/testing/TESTING.md) for the validation matrix and runtime-aware test guidance
-5. [docs/INDEX.md](docs/INDEX.md) for the full documentation catalog
+5. [docs/README.md](docs/README.md) for the documentation catalog
 
 Use the narrower guides only when your change needs them:
 
@@ -20,12 +20,12 @@ Use the narrower guides only when your change needs them:
 |---|---|
 | Product context and contributor handoff | [README.md](README.md) |
 | Agent terminology and coordination overview | [agents.md](agents.md) |
-| Backend module and API work | [backend/README.md](backend/README.md) |
+| Backend module work | [backend/README.md](backend/README.md) |
+| API reference and route summaries | [docs/api/README.md](docs/api/README.md) |
 | Frontend feature and route work | [frontend/README.md](frontend/README.md) |
 | Playwright and browser validation | [e2e/README.md](e2e/README.md) |
 | Helper scripts | [scripts/README.md](scripts/README.md) |
-| Short docs landing page | [docs/README.md](docs/README.md) |
-| Full documentation catalog | [docs/INDEX.md](docs/INDEX.md) |
+| Documentation catalog | [docs/README.md](docs/README.md) |
 
 ## Contribution Flow
 
@@ -73,9 +73,8 @@ Prefer root commands first. Use package-level scripts only when the change is na
 ## Documentation Hygiene
 
 - Keep Markdown links relative.
-- Keep the docs entry flow aligned: [README.md](README.md) for product context, this file for contributor workflow, [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup/runtime, [docs/README.md](docs/README.md) for the short docs landing page, and [docs/INDEX.md](docs/INDEX.md) for the full catalog.
-- Treat [docs/INDEX.md](docs/INDEX.md) as the documentation catalog.
-- Treat [docs/README.md](docs/README.md) as the short docs landing page.
+- Keep the docs entry flow aligned: [README.md](README.md), this file, [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md), [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md), [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md), [docs/testing/TESTING.md](docs/testing/TESTING.md), then [docs/README.md](docs/README.md).
+- Treat [docs/README.md](docs/README.md) as the primary documentation entry point.
 - Treat [scripts/README.md](scripts/README.md) as the helper-script index.
 - Use `/api/v2/*` in active API docs unless you are documenting a health alias or another documented compatibility exception.
 - Keep the root [README.md](README.md) user-facing; contributor onboarding belongs here and in `docs/development/*`.

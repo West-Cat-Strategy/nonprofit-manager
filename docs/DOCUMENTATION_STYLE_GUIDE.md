@@ -1,6 +1,6 @@
 # Documentation Style Guide
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-19
 
 Use this guide when creating or updating documentation in nonprofit-manager.
 
@@ -9,8 +9,7 @@ Use this guide when creating or updating documentation in nonprofit-manager.
 - [../README.md](../README.md) is the product overview and contributor handoff.
 - [../CONTRIBUTING.md](../CONTRIBUTING.md) is the contributor entry point, workflow, and validation guide.
 - [development/GETTING_STARTED.md](development/GETTING_STARTED.md) is the setup and runtime guide.
-- [README.md](README.md) inside `docs/` is the short docs landing page.
-- [INDEX.md](INDEX.md) is the guided documentation catalog.
+- [README.md](README.md) inside `docs/` is the documentation catalog.
 - [phases/planning-and-progress.md](phases/planning-and-progress.md) is the live workboard and status log.
 - [../scripts/README.md](../scripts/README.md) is the root helper-script index.
 - Service READMEs such as [../backend/README.md](../backend/README.md) and [../frontend/README.md](../frontend/README.md) should explain their own surfaces, but should not replace [../CONTRIBUTING.md](../CONTRIBUTING.md) as the contributor start path.
@@ -18,7 +17,7 @@ Use this guide when creating or updating documentation in nonprofit-manager.
 
 Contributor path reminder:
 
-- Keep the happy path aligned as [../CONTRIBUTING.md](../CONTRIBUTING.md) -> [development/GETTING_STARTED.md](development/GETTING_STARTED.md) -> [README.md](README.md) or [INDEX.md](INDEX.md), depending whether the reader needs a short landing page or the broader catalog.
+- Keep the happy path aligned as [../README.md](../README.md) -> [../CONTRIBUTING.md](../CONTRIBUTING.md) -> [development/GETTING_STARTED.md](development/GETTING_STARTED.md) -> [development/CONVENTIONS.md](development/CONVENTIONS.md) -> [development/AGENT_INSTRUCTIONS.md](development/AGENT_INSTRUCTIONS.md) -> [testing/TESTING.md](testing/TESTING.md) -> [README.md](README.md).
 
 ## Before You Write
 
@@ -105,7 +104,7 @@ Examples:
 - Use ISO dates in active docs when practical: `2026-03-11`.
 - Use exact dates instead of relative wording when status matters.
 - Keep workboard changes in [phases/planning-and-progress.md](phases/planning-and-progress.md), not in scattered status notes across active docs.
-- Label historical or narrow-scope docs in `docs/INDEX.md` rather than overloading contributor entry docs with caveats.
+- Label historical or narrow-scope docs in `docs/README.md` rather than overloading contributor entry docs with caveats.
 
 ## Maintenance Checklist
 
@@ -116,4 +115,4 @@ Before handoff:
 - [ ] Updated adjacent entry docs when navigation changed
 - [ ] Removed stale GitHub Actions or other deprecated workflow language if the doc is active
 - [ ] Ran `make check-links`
-- [ ] Ran `make lint-doc-api-versioning` when docs include API examples
+- [ ] Ran `make lint-doc-api-versioning` when API wording, examples, or versioned API docs changed

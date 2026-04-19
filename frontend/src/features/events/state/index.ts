@@ -5,6 +5,7 @@ import registrationReducer from './eventRegistrationSlice';
 import remindersReducer from './eventRemindersSlice';
 import mutationReducer from './eventMutationSlice';
 import automationReducer from './eventAutomationSlice';
+import type { RootState } from '../../../store';
 
 const eventsReducer = combineReducers({
   list: listReducer,
@@ -25,8 +26,8 @@ export * from './eventMutationSlice';
 export * from './eventAutomationSlice';
 
 // Selectors
-export const selectEventsList = (state: any) => state.events.list;
-export const selectEventDetail = (state: any) => state.events.detail;
-export const selectEventRegistration = (state: any) => state.events.registration;
-export const selectEventReminders = (state: any) => state.events.reminders;
-export const selectEventAutomation = (state: any) => state.events.automation;
+export const selectEventsList = (state: RootState) => state.events.list;
+export const selectEventDetail = (state: RootState) => state.events.detail;
+export const selectEventRegistration = (state: RootState) => state.events.registration;
+export const selectEventReminders = (state: RootState) => state.events.reminders;
+export const selectEventAutomation = (state: RootState) => state.events.automation;

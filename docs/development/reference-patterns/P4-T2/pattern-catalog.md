@@ -1,5 +1,8 @@
 # P4-T2 Pattern Catalog
 
+**Last Updated:** 2026-04-19
+
+
 Date: 2026-03-02
 
 ## PAT-021 Follow-up Lifecycle State Transitions

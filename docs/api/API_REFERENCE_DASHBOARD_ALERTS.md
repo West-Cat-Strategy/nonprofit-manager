@@ -583,11 +583,11 @@ GET /api/v2/alerts/stats
 ### Complete Dashboard Workflow
 
 ```bash
-# 1. Get user's dashboards
+## 1. Get user's dashboards
 curl -X GET http://localhost:3000/api/v2/dashboard/configs \
   -H "Authorization: Bearer $TOKEN"
 
-# 2. Create custom dashboard
+## 2. Create custom dashboard
 curl -X POST http://localhost:3000/api/v2/dashboard/configs \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -604,7 +604,7 @@ curl -X POST http://localhost:3000/api/v2/dashboard/configs \
     "layout": [{"i": "widget-1", "x": 0, "y": 0, "w": 6, "h": 2}]
   }'
 
-# 3. Update layout after drag-and-drop
+## 3. Update layout after drag-and-drop
 curl -X PUT http://localhost:3000/api/v2/dashboard/configs/$DASHBOARD_ID/layout \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -616,7 +616,7 @@ curl -X PUT http://localhost:3000/api/v2/dashboard/configs/$DASHBOARD_ID/layout 
 ### Complete Alert Workflow
 
 ```bash
-# 1. Test alert configuration
+## 1. Test alert configuration
 curl -X POST http://localhost:3000/api/v2/alerts/test \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -631,21 +631,21 @@ curl -X POST http://localhost:3000/api/v2/alerts/test \
     "enabled": true
   }'
 
-# 2. Create alert if test passes
+## 2. Create alert if test passes
 curl -X POST http://localhost:3000/api/v2/alerts/configs \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{ ... same body as test ... }'
 
-# 3. Get alert statistics
+## 3. Get alert statistics
 curl -X GET http://localhost:3000/api/v2/alerts/stats \
   -H "Authorization: Bearer $TOKEN"
 
-# 4. Get triggered alerts
+## 4. Get triggered alerts
 curl -X GET "http://localhost:3000/api/v2/alerts/instances?status=triggered&limit=10" \
   -H "Authorization: Bearer $TOKEN"
 
-# 5. Acknowledge an alert
+## 5. Acknowledge an alert
 curl -X PATCH http://localhost:3000/api/v2/alerts/instances/$INSTANCE_ID/acknowledge \
   -H "Authorization: Bearer $TOKEN"
 ```

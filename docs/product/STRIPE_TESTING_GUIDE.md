@@ -1,5 +1,8 @@
 # Payment Provider Testing Guide
 
+**Last Updated:** 2026-04-19
+
+
 ## Overview
 
 This guide covers testing the payment integration in sandbox mode, including Stripe, PayPal, Square, payment processing, webhooks, and error handling.
@@ -18,7 +21,7 @@ This guide covers testing the payment integration in sandbox mode, including Str
 ### Required Environment Variables
 
 ```bash
-# Provider Configuration
+## Provider Configuration
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...

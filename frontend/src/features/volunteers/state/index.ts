@@ -2,6 +2,7 @@ import { combineReducers } from '@reduxjs/toolkit';
 import coreReducer from './volunteersCore';
 import listReducer from './volunteersListSlice';
 import assignmentsReducer from './volunteerAssignmentsSlice';
+import type { RootState } from '../../../store';
 
 const volunteersReducer = combineReducers({
   core: coreReducer,
@@ -17,6 +18,6 @@ export * from './volunteersListSlice';
 export * from './volunteerAssignmentsSlice';
 
 // Selectors
-export const selectVolunteersCore = (state: any) => state.volunteers.core;
-export const selectVolunteersList = (state: any) => state.volunteers.list;
-export const selectVolunteerAssignments = (state: any) => state.volunteers.assignments;
+export const selectVolunteersCore = (state: RootState) => state.volunteers.core;
+export const selectVolunteersList = (state: RootState) => state.volunteers.list;
+export const selectVolunteerAssignments = (state: RootState) => state.volunteers.assignments;

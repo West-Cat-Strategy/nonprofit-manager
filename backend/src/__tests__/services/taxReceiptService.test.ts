@@ -161,17 +161,19 @@ describe('TaxReceiptService', () => {
 
   it('reuses an existing official receipt and emails the stored PDF when requested', async () => {
     mockedSendMail.mockResolvedValue(true);
+    const payeeName = 'ACME <Friends> & "Co"';
 
     mockQuery
       .mockResolvedValueOnce({
         rows: [makeDonationRow()],
       })
       .mockResolvedValueOnce({
-        rows: [makeReceiptRow()],
+        rows: [makeReceiptRow({ payee_name: payeeName })],
       })
       .mockResolvedValueOnce({
         rows: [
           makeReceiptRow({
+            payee_name: payeeName,
             pdf_content: Buffer.from('pdf-content'),
           }),
         ],
@@ -194,6 +196,10 @@ describe('TaxReceiptService', () => {
     expect(mockedSendMail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'override@example.com',
+        text: expect.stringContaining(`Hello ${payeeName},`),
+        html: expect.stringContaining(
+          'Hello ACME &lt;Friends&gt; &amp; &quot;Co&quot;,'
+        ),
         attachments: [
           expect.objectContaining({
             filename: 'TR-2026-00001.pdf',
@@ -202,6 +208,17 @@ describe('TaxReceiptService', () => {
         ],
       })
     );
+    expect(
+      mockQuery.mock.calls.some(
+        ([sql, params]) =>
+          typeof sql === 'string' &&
+          sql.includes('UPDATE tax_receipts') &&
+          Array.isArray(params) &&
+          params[0] === 'receipt-1' &&
+          params[1] === 'sent' &&
+          params[2] === null
+      )
+    ).toBe(true);
   });
 
   it('batches annual official receipt item inserts into a single UNNEST query', async () => {

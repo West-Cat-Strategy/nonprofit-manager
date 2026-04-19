@@ -1,5 +1,8 @@
 # Events API Reference (`/api/v2/events`)
 
+**Last Updated:** 2026-04-19
+
+
 This document describes the current Events v2 contract, including registration check-in metadata, reminder automation, QR scan check-in, public kiosk check-in, and portal QR pass fields.
 
 ## Auth and Envelope

@@ -1,16 +1,15 @@
 import { analyzeRouteValidationSource } from '../../../../scripts/check-route-validation-policy.ts';
 
 describe('check-route-validation-policy', () => {
-  it('flags direct API routes in app entrypoints when validation middleware is missing', () => {
+  it('allows route files when validation middleware is present in the route call chain', () => {
     const result = analyzeRouteValidationSource(
-      '/Users/bryan/projects/nonprofit-manager/backend/src/index.ts',
-      "app.post('/api/v2/admin/audit-log', createAuditLogHandler);\n",
-      'entrypoint'
+      '/Users/bryan/projects/nonprofit-manager/backend/src/modules/example/routes/index.ts',
+      "router.post('/example', validateBody(exampleSchema), createExample);\n",
+      'route'
     );
 
-    expect(result.issues).toEqual([
-      'backend/src/index.ts:1 defines routes without a validation middleware',
-    ]);
+    expect(result.issues).toEqual([]);
+    expect(result.routeDefinitionCount).toBe(1);
   });
 
   it('allows validated direct API routes in app entrypoints', () => {
@@ -32,7 +31,49 @@ describe('check-route-validation-policy', () => {
     );
 
     expect(result.issues).toEqual([
-      'backend/src/modules/example/routes/index.ts:1 defines routes without a validation middleware',
+      'backend/src/modules/example/routes/index.ts:1 defines routes without any recognized validation middleware',
     ]);
+    expect(result.routeDefinitionCount).toBe(1);
+  });
+
+  it('ignores validator names that appear only in comments and strings', () => {
+    const result = analyzeRouteValidationSource(
+      '/Users/bryan/projects/nonprofit-manager/backend/src/modules/example/routes/index.ts',
+      [
+        "const routeLabel = 'validateBody(validateParams)';",
+        '// validateBody(validateParams) should not count',
+        "router.post('/example', createExample);",
+        '',
+      ].join('\n'),
+      'route'
+    );
+
+    expect(result.issues).toEqual([
+      'backend/src/modules/example/routes/index.ts:3 defines routes without any recognized validation middleware',
+    ]);
+    expect(result.routeDefinitionCount).toBe(1);
+  });
+
+  it('ignores validator calls that live only in helper-local dead code', () => {
+    const result = analyzeRouteValidationSource(
+      '/Users/bryan/projects/nonprofit-manager/backend/src/modules/example/routes/index.ts',
+      [
+        'function buildValidation() {',
+        '  if (false) {',
+        '    return validateBody(exampleSchema);',
+        '  }',
+        '  return null;',
+        '}',
+        'const helperValidation = buildValidation();',
+        "router.post('/example', createExample);",
+        '',
+      ].join('\n'),
+      'route'
+    );
+
+    expect(result.issues).toEqual([
+      'backend/src/modules/example/routes/index.ts:8 defines routes without any recognized validation middleware',
+    ]);
+    expect(result.routeDefinitionCount).toBe(1);
   });
 });

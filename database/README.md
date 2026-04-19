@@ -80,23 +80,23 @@ The `database/initdb/000_init.sql` script runs the canonical migration chain in 
 
 **Development Environment:**
 ```bash
-# Using the optional Docker dev stack (recommended)
+## Using the optional Docker dev stack (recommended)
 make dev
 make db-migrate
 
-# Show canonical migration status
+## Show canonical migration status
 ./scripts/db-migrate.sh --status
 
-# Verify migrations against the isolated test database
+## Verify migrations against the isolated test database
 make db-verify
 
-# Or replay the canonical bootstrap contract against a disposable native Postgres database
+## Or replay the canonical bootstrap contract against a disposable native Postgres database
 psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 ```
 
 **Production Environment:**
 ```bash
-# Use the canonical migration runner
+## Use the canonical migration runner
 COMPOSE_MODE=prod ./scripts/db-migrate.sh
 ```
 
@@ -119,23 +119,9 @@ Legacy compatibility fields such as `id` and `checksum` still exist in the table
 
 ### Backup and Restore
 
-**Backup:**
-```bash
-# Using pg_dump
-pg_dump -U postgres -h localhost -d nonprofit_manager > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Using Docker
-docker exec nonprofit-db pg_dump -U postgres nonprofit_manager > backup.sql
-```
-
-**Restore:**
-```bash
-# Using psql
-psql -U postgres -d nonprofit_manager < backup.sql
-
-# Using Docker
-docker exec -i nonprofit-db psql -U postgres -d nonprofit_manager < backup.sql
-```
+Use [../docs/deployment/DB_SETUP.md](../docs/deployment/DB_SETUP.md) as the canonical source for
+backup and restore commands. It owns the current Docker Compose invocation, native `pg_dump` /
+`psql` examples, and restore verification guidance.
 
 ### Health Checks
 
@@ -145,17 +131,10 @@ The database includes health check endpoints for monitoring:
 
 ## Environment Configuration
 
-### Development
-- Container: `nonprofit-db-dev`
-- Port: `8002`
-- Database: `nonprofit_manager`
-- Auto-initialization with migrations and seeds
-
-### Production
-- Container: `nonprofit-db`
-- Port: `8012`
-- Database: `nonprofit_manager`
-- Bootstrap through the repo helper or `database/initdb/000_init.sql`, not individual migration files
+Current dev-stack ports, Compose runtime details, and deployment-specific database setup live in
+[../docs/development/GETTING_STARTED.md](../docs/development/GETTING_STARTED.md) and
+[../docs/deployment/DB_SETUP.md](../docs/deployment/DB_SETUP.md). Keep this README focused on the
+database contract rather than container-name snapshots.
 
 ## Security Considerations
 

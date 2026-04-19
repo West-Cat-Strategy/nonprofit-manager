@@ -6,3 +6,4 @@ export * as newsletterProviderService from '@services/newsletterProviderService'
 export { getPortalActivity, logPortalActivity } from '@services/portalActivityService';
 export { syncUserRole } from '@modules/invitations/services/invitationService';
 export * as webhookService from '@modules/webhooks/services/webhookService';
+export * as meetingService from '@modules/meetings/services/meetingService';

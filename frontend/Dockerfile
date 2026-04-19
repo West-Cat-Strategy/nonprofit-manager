@@ -20,6 +20,7 @@ FROM base AS deps
 
 COPY --from=workspace /frontend/package.json ./package.json
 COPY --from=workspace-deps /workspace/node_modules ./node_modules
+COPY --from=workspace-deps /workspace/frontend/node_modules ./node_modules
 RUN rm -rf ./node_modules/@nonprofit-manager/contracts
 
 FROM deps AS app

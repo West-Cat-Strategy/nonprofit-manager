@@ -1,5 +1,8 @@
 # Security Incident Response Runbooks
 
+**Last Updated:** 2026-04-19
+
+
 ## Critical Incident Runbook Template
 
 ### Incident: [Type - e.g., "Unauthorized Data Access", "System Compromise", "DDoS"]
@@ -65,7 +68,7 @@
 **If PII was potentially accessed**:
 
 ```bash
-# Query who accessed PII in the time window
+## Query who accessed PII in the time window
 docker exec postgres psql -U postgres -d nonprofit_manager << 'SQL'
 SELECT * FROM pii_access_audit 
 WHERE accessed_at > '2026-02-14 12:00:00'::TIMESTAMP WITH TIME ZONE
@@ -75,7 +78,7 @@ SQL
 ```
 
 ```bash
-# Check for unusual database queries
+## Check for unusual database queries
 docker logs backend-api | grep -i "SELECT.*contacts" | tail -50
 ```
 
@@ -90,16 +93,16 @@ docker logs backend-api | grep -i "SELECT.*contacts" | tail -50
 **If attacker may have gained system access**:
 
 ```bash
-# Check running processes
+## Check running processes
 docker top backend-api
 
-# Check recent file modifications
+## Check recent file modifications
 docker exec backend-api find /app -mtime -1 -type f
 
-# Check environment variables (check for stolen secrets)
+## Check environment variables (check for stolen secrets)
 docker exec backend-api env | grep -i "secret\|key\|password"
 
-# Check for reverse shells or suspicious connections
+## Check for reverse shells or suspicious connections
 docker exec backend-api netstat -tulpn | grep ESTABLISHED
 ```
 
@@ -111,26 +114,26 @@ docker exec backend-api netstat -tulpn | grep ESTABLISHED
 ### 2.3 Query Logs for Timeline
 
 ```bash
-# API request logs around incident time
+## API request logs around incident time
 docker logs backend-api --since 2h | grep "2026-02-14 12:" > /tmp/incident-logs.txt
 
-# Check failed authentication attempts
+## Check failed authentication attempts
 docker logs backend-api | grep -i "failed\|unauthorized" | tail -100
 
-# Check for suspicious API endpoints being hit
+## Check for suspicious API endpoints being hit
 docker logs backend-api | grep -E "(admin|users|secrets)" | tail -50
 ```
 
 ### 2.4 Check for Lateral Movement
 
 ```bash
-# Did attacker try to access other systems?
+## Did attacker try to access other systems?
 docker exec backend-api curl -s internal-wiki.company.local 2>&1 | head
 
-# Check if they modified database users
+## Check if they modified database users
 docker exec postgres psql -U postgres -d nonprofit_manager -c "SELECT * FROM pg_user;"
 
-# Check if they created backdoor accounts
+## Check if they created backdoor accounts
 SELECT * FROM users WHERE created_at > NOW() - INTERVAL '24 hours';
 ```
 
@@ -141,15 +144,15 @@ SELECT * FROM users WHERE created_at > NOW() - INTERVAL '24 hours';
 ### 3.1 Immediate Mitigation (Non-Destructive)
 
 ```bash
-# If API traffic is abusive, prefer infrastructure-level controls first:
-# - tighten edge/WAF or reverse-proxy limits
-# - restrict ingress by source IP or path
-# - scale down exposed surfaces while preserving logs
+## If API traffic is abusive, prefer infrastructure-level controls first:
+## - tighten edge/WAF or reverse-proxy limits
+## - restrict ingress by source IP or path
+## - scale down exposed surfaces while preserving logs
 #
-# Confirm any application-level mitigation endpoint from the current codebase
-# before documenting or using it during an incident.
+## Confirm any application-level mitigation endpoint from the current codebase
+## before documenting or using it during an incident.
 
-# Revoke potentially compromised API keys
+## Revoke potentially compromised API keys
 docker exec postgres psql -U postgres -d nonprofit_manager << 'SQL'
 UPDATE api_keys SET is_active = false 
 WHERE created_at < NOW() - INTERVAL '24 hours'
@@ -162,30 +165,30 @@ SQL
 **Only if system is still under active attack**:
 
 ```bash
-# Take API offline (before debugging)
+## Take API offline (before debugging)
 docker compose down
 
-# Preserve all logs/data
+## Preserve all logs/data
 tar -czvf incident-$(date +%s).tar.gz \
   backend/logs \
   /var/lib/docker/volumes \
   /tmp/incident-*
 
-# Restart with temporary measures
+## Restart with temporary measures
 docker compose up -d
 ```
 
 ### 3.3 Credential Rotation (High Priority)
 
 ```bash
-# Generate new secrets
+## Generate new secrets
 NEW_JWT_SECRET=$(openssl rand -hex 32)
 NEW_DB_PASSWORD=$(openssl rand -base64 32)
 NEW_ENCRYPTION_KEY=$(openssl rand -hex 32)
 
-# Update .env and restart
-# Rotate all authentication tokens
-# Force password resets for users
+## Update .env and restart
+## Rotate all authentication tokens
+## Force password resets for users
 ```
 
 ---
@@ -195,21 +198,21 @@ NEW_ENCRYPTION_KEY=$(openssl rand -hex 32)
 **Critical: Do NOT delete anything yet**
 
 ```bash
-# Capture complete state
+## Capture complete state
 docker inspect backend-api > /tmp/incident-container-state.json
 docker ps -a > /tmp/incident-all-containers.txt
 
-# Export database
+## Export database
 pg_dump -U postgres nonprofit_manager > /tmp/incident-db-export.sql
 pg_dump -U postgres nonprofit_manager audit_log | gzip > /tmp/incident-audit-log.sql.gz
 
-# Export logs (10 days)
+## Export logs (10 days)
 docker logs --tail 100000 backend-api > /tmp/backend-logs.txt 2>&1
 
-# Preserve directory structure
+## Preserve directory structure
 tar -cvf /tmp/incident-filesystem.tar $(docker exec backend-api find / -mtime -1 -type f 2>/dev/null | head -1000)
 
-# Create checksums (proof of integrity)
+## Create checksums (proof of integrity)
 sha256sum /tmp/incident-* > /tmp/incident-checksums.txt
 ```
 

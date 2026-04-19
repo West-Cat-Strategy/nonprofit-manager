@@ -1,5 +1,8 @@
 # P4-T4 Team Chat Adoption Spec
 
+**Last Updated:** 2026-04-19
+
+
 ## Locked Decisions
 
 1. Case-scoped team chat only in v1.

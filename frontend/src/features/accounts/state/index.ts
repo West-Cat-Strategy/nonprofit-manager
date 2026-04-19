@@ -1,6 +1,7 @@
 import { combineReducers } from '@reduxjs/toolkit';
 import coreReducer from './accountsCore';
 import listReducer from './accountsListSlice';
+import type { RootState } from '../../../store';
 
 const accountsReducer = combineReducers({
   core: coreReducer,
@@ -14,5 +15,5 @@ export * from './accountsCore';
 export * from './accountsListSlice';
 
 // Selectors
-export const selectAccountsCore = (state: any) => state.accounts.core;
-export const selectAccountsList = (state: any) => state.accounts.list;
+export const selectAccountsCore = (state: RootState) => state.accounts.core;
+export const selectAccountsList = (state: RootState) => state.accounts.list;

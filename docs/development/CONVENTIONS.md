@@ -109,8 +109,7 @@ Package-level type checking uses `npm run type-check`, not `npm run typecheck`.
 - [../../CONTRIBUTING.md](../../CONTRIBUTING.md) is the contributor entry point and workflow guide.
 - [GETTING_STARTED.md](GETTING_STARTED.md) is the setup and runtime guide.
 - [../../README.md](../../README.md) is the product overview and contributor handoff.
-- [../README.md](../README.md) is the short docs landing page.
-- [../INDEX.md](../INDEX.md) is the guided catalog.
+- [../README.md](../README.md) is the documentation catalog.
 - [../testing/TESTING.md](../testing/TESTING.md) owns the validation command map.
 - Use relative links in local docs.
 - Verify commands, ports, and env guidance against the repo before documenting them.

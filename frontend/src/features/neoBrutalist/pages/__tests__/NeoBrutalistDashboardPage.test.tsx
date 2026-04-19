@@ -91,8 +91,8 @@ vi.mock('../../../../services/api');
 vi.mock('../../../../features/contacts/routePreload', () => ({
   preloadContactsPeopleRoute: preloadContactsPeopleRouteMock,
 }));
-vi.mock('../../../../components/navigation/preloadNavigationQuickLookupDialog', () => ({
-  preloadNavigationQuickLookupDialog: preloadNavigationQuickLookupDialogMock,
+vi.mock('../../../../features/navigation/preloadStaffNavigationQuickLookupDialog', () => ({
+  preloadStaffNavigationQuickLookupDialog: preloadNavigationQuickLookupDialogMock,
 }));
 vi.mock('../../../../features/dashboard/context/DashboardDataContext', () => ({
   DashboardDataProvider: ({ children }: { children: ReactNode }) => children,
