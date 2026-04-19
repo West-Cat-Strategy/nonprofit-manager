@@ -154,8 +154,7 @@ export function DashboardDataProvider({ children, lanes }: DashboardDataProvider
   const [errors, setErrors] = useState<Partial<Record<DashboardDataKey, string>>>(initialContextValue.errors);
   const [hasStartedLoading, setHasStartedLoading] = useState(initialContextValue.hasStartedLoading);
 
-  const laneSignature = lanes.join('|');
-  const enabledLanes = useMemo(() => new Set<DashboardDataKey>(lanes), [laneSignature]);
+  const enabledLanes = useMemo(() => new Set<DashboardDataKey>(lanes), [lanes]);
 
   useEffect(() => {
     let cancelled = false;

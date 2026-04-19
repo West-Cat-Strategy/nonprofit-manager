@@ -7,6 +7,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Donation, CreateDonationDTO, UpdateDonationDTO } from '../types/donation';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
+import { fetchAccounts } from '../features/accounts/state';
+import { fetchContacts } from '../features/contacts/state';
+import type { Account } from '../features/accounts/types/contracts';
+import type { Contact } from '../types/contact';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 
 interface DonationFormProps {
   donation?: Donation | null;
@@ -102,8 +107,40 @@ const toDateTimeLocalValue = (value: unknown): string => {
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 16);
 };
 
+const formatAccountOptionLabel = (account: Account): string => {
+  const segments = [account.account_name];
+
+  if (account.category) {
+    segments.push(account.category);
+  }
+
+  if (account.email) {
+    segments.push(account.email);
+  }
+
+  return segments.join(' • ');
+};
+
+const formatContactOptionLabel = (contact: Contact): string => {
+  const name = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'Unnamed contact';
+  const segments = [name];
+
+  if (contact.account_name) {
+    segments.push(contact.account_name);
+  }
+
+  if (contact.email) {
+    segments.push(contact.email);
+  }
+
+  return segments.join(' • ');
+};
+
 const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit = false }) => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { accounts, loading: accountsLoading } = useAppSelector((state) => state.accounts.list);
+  const { contacts, loading: contactsLoading } = useAppSelector((state) => state.contacts.list);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -141,6 +178,28 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
       setIsDirty(false);
     }
   }, [donation]);
+
+  useEffect(() => {
+    if (accounts.length === 0 && !accountsLoading) {
+      void dispatch(
+        fetchAccounts({
+          page: 1,
+          limit: 100,
+          is_active: true,
+        })
+      );
+    }
+
+    if (contacts.length === 0 && !contactsLoading) {
+      void dispatch(
+        fetchContacts({
+          page: 1,
+          limit: 100,
+          isActive: true,
+        })
+      );
+    }
+  }, [accounts.length, accountsLoading, contacts.length, contactsLoading, dispatch]);
 
   useUnsavedChangesGuard({
     hasUnsavedChanges: isDirty && !loading,
@@ -182,6 +241,10 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
         throw new Error('Amount must be greater than 0');
       }
 
+      if (!formData.account_id && !formData.contact_id) {
+        throw new Error('Select an account or contact before recording the donation');
+      }
+
       await onSubmit(formData);
       setIsDirty(false);
       navigate('/donations');
@@ -192,9 +255,88 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
     }
   };
 
+  const sortedAccounts = [...accounts].sort((left, right) =>
+    left.account_name.localeCompare(right.account_name)
+  );
+  const sortedContacts = [...contacts].sort((left, right) => {
+    const leftName = `${left.first_name || ''} ${left.last_name || ''}`.trim();
+    const rightName = `${right.first_name || ''} ${right.last_name || ''}`.trim();
+    return leftName.localeCompare(rightName);
+  });
+  const selectedAccountMissing =
+    Boolean(formData.account_id) &&
+    !sortedAccounts.some((account) => account.account_id === formData.account_id);
+  const selectedContactMissing =
+    Boolean(formData.contact_id) &&
+    !sortedContacts.some((contact) => contact.contact_id === formData.contact_id);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-app-surface shadow-md rounded-lg p-6">
       {error && <div className="p-4 bg-app-accent-soft text-app-accent-text rounded-md">{error}</div>}
+
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Donor Linkage</h3>
+        <p className="mb-4 text-sm text-app-text-muted">
+          Link each manual donation to an account, a contact, or both so donor reporting stays accurate.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="account_id" className="block text-sm font-medium mb-1">
+              Linked Account
+            </label>
+            <select
+              id="account_id"
+              name="account_id"
+              value={formData.account_id || ''}
+              onChange={handleChange}
+              className={donationFieldClassName}
+            >
+              <option value="">No linked account</option>
+              {selectedAccountMissing ? (
+                <option value={formData.account_id}>
+                  {donation?.account_name || `Current account (${formData.account_id})`}
+                </option>
+              ) : null}
+              {sortedAccounts.map((account) => (
+                <option key={account.account_id} value={account.account_id}>
+                  {formatAccountOptionLabel(account)}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-app-text-subtle">
+              {accountsLoading ? 'Loading donor accounts...' : 'Optional when a contact is linked.'}
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="contact_id" className="block text-sm font-medium mb-1">
+              Linked Contact
+            </label>
+            <select
+              id="contact_id"
+              name="contact_id"
+              value={formData.contact_id || ''}
+              onChange={handleChange}
+              className={donationFieldClassName}
+            >
+              <option value="">No linked contact</option>
+              {selectedContactMissing ? (
+                <option value={formData.contact_id}>
+                  {donation?.contact_name || `Current contact (${formData.contact_id})`}
+                </option>
+              ) : null}
+              {sortedContacts.map((contact) => (
+                <option key={contact.contact_id} value={contact.contact_id}>
+                  {formatContactOptionLabel(contact)}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-app-text-subtle">
+              {contactsLoading ? 'Loading donor contacts...' : 'Optional when an account is linked.'}
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div>
         <h3 className="text-lg font-semibold mb-4">Donation Details</h3>

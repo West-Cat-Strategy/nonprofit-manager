@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
@@ -23,7 +23,7 @@ export default function PortalForms() {
   const [draftAnswers, setDraftAnswers] = useState<Record<string, unknown>>({});
   const [filter, setFilter] = useState<'active' | 'completed'>('active');
 
-  const loadForms = async (): Promise<void> => {
+  const loadForms = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
@@ -39,9 +39,9 @@ export default function PortalForms() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
 
-  const loadDetail = async (assignmentId: string): Promise<void> => {
+  const loadDetail = useCallback(async (assignmentId: string): Promise<void> => {
     try {
       const nextDetail = await portalCaseFormsApiClient.getForm(assignmentId);
       setDetail(nextDetail);
@@ -51,11 +51,11 @@ export default function PortalForms() {
       setError(message);
       showError(message);
     }
-  };
+  }, [showError]);
 
   useEffect(() => {
     void loadForms();
-  }, []);
+  }, [loadForms]);
 
   useEffect(() => {
     if (selectedAssignmentId) {
@@ -63,7 +63,7 @@ export default function PortalForms() {
     } else {
       setDetail(null);
     }
-  }, [selectedAssignmentId]);
+  }, [loadDetail, selectedAssignmentId]);
 
   const isCompletedStatus = (status: string): boolean =>
     ['submitted', 'reviewed', 'closed', 'expired', 'cancelled'].includes(status);

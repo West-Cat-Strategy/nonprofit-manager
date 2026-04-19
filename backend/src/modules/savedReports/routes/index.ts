@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { requirePermission } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from '@validations/shared';
 import { REPORT_ENTITIES } from '@app-types/report';
+import { Permission } from '@utils/permissions';
 import { createSavedReportsController } from '../controllers/savedReports.controller';
 
 const reportEntitySchema = z.enum(REPORT_ENTITIES);
@@ -64,29 +66,52 @@ export const createSavedReportsRoutes = (): Router => {
 
   router.use(authenticate);
 
-  router.get('/', validateQuery(savedReportListQuerySchema), controller.getSavedReports);
+  router.get(
+    '/',
+    requirePermission(Permission.REPORT_VIEW),
+    validateQuery(savedReportListQuerySchema),
+    controller.getSavedReports
+  );
 
   router.get(
     '/share/principals',
+    requirePermission(Permission.REPORT_CREATE),
     validateQuery(sharePrincipalsQuerySchema),
     controller.getSharePrincipals
   );
 
-  router.get('/:id', validateParams(reportIdParamsSchema), controller.getSavedReportById);
+  router.get(
+    '/:id',
+    requirePermission(Permission.REPORT_VIEW),
+    validateParams(reportIdParamsSchema),
+    controller.getSavedReportById
+  );
 
-  router.post('/', validateBody(createSavedReportSchema), controller.createSavedReport);
+  router.post(
+    '/',
+    requirePermission(Permission.REPORT_CREATE),
+    validateBody(createSavedReportSchema),
+    controller.createSavedReport
+  );
 
   router.put(
     '/:id',
+    requirePermission(Permission.REPORT_CREATE),
     validateParams(reportIdParamsSchema),
     validateBody(updateSavedReportSchema),
     controller.updateSavedReport
   );
 
-  router.delete('/:id', validateParams(reportIdParamsSchema), controller.deleteSavedReport);
+  router.delete(
+    '/:id',
+    requirePermission(Permission.REPORT_CREATE),
+    validateParams(reportIdParamsSchema),
+    controller.deleteSavedReport
+  );
 
   router.post(
     '/:id/share',
+    requirePermission(Permission.REPORT_CREATE),
     validateParams(reportIdParamsSchema),
     validateBody(reportShareSchema),
     controller.shareReport
@@ -94,6 +119,7 @@ export const createSavedReportsRoutes = (): Router => {
 
   router.delete(
     '/:id/share',
+    requirePermission(Permission.REPORT_CREATE),
     validateParams(reportIdParamsSchema),
     validateBody(reportShareDeleteSchema),
     controller.removeShare
@@ -101,6 +127,7 @@ export const createSavedReportsRoutes = (): Router => {
 
   router.post(
     '/:id/public-link',
+    requirePermission(Permission.REPORT_CREATE),
     validateParams(reportIdParamsSchema),
     validateBody(reportPublicLinkSchema),
     controller.generatePublicLink
@@ -108,6 +135,7 @@ export const createSavedReportsRoutes = (): Router => {
 
   router.delete(
     '/:id/public-link',
+    requirePermission(Permission.REPORT_CREATE),
     validateParams(reportIdParamsSchema),
     controller.revokePublicLink
   );

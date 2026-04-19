@@ -5,11 +5,12 @@ import { forbidden, notFoundMessage, serverError, unauthorized } from '@utils/re
 import { extractToken, AUTH_COOKIE_NAME } from '@utils/cookieHelper';
 import {
   createRequestAuthorizationContext,
-  hasRoleAccess,
   resolveRolesForUser,
 } from '@services/authorization';
+import { guardWithRole } from '@services/authGuardService';
 import { setRequestContext } from '@config/requestContext';
 import { normalizeRoleSlug } from '@utils/roleSlug';
+import { getAuthenticatedOrganizationId } from '@modules/auth/lib/authQueries';
 import {
   APP_SESSION_TOKEN_ISSUER,
   verifyTokenWithOptionalIssuer,
@@ -29,6 +30,7 @@ interface JwtPayload extends AppSessionTokenPayload {
 export type RequestedOrganizationSource = 'header' | 'query' | 'param';
 
 type ResolvedOrganizationSource = RequestedOrganizationSource | 'token';
+const ORGANIZATION_RESOLUTION_FAILED = Symbol('organization-resolution-failed');
 
 interface AccountContextRow {
   id: string;
@@ -97,7 +99,7 @@ const setOrganizationContext = (
 };
 
 const getRequestedOrganizationId = (req: AuthRequest): string | undefined =>
-  req.requestedOrganizationId || req.organizationId || req.accountId || req.tenantId;
+  req.requestedOrganizationId;
 
 const validateResolvedOrganization = async (
   req: AuthRequest,
@@ -180,6 +182,146 @@ const validateResolvedOrganization = async (
   }
 };
 
+const extractAppSessionPayload = (req: AuthRequest, res: Response): JwtPayload | null => {
+  const token = extractToken(req.cookies, req.headers.authorization, AUTH_COOKIE_NAME);
+
+  if (!token) {
+    unauthorized(res, 'No token provided');
+    return null;
+  }
+
+  const decoded = verifyTokenWithOptionalIssuer<JwtPayload>(token, APP_SESSION_TOKEN_ISSUER);
+  if (decoded.type && decoded.type !== 'app') {
+    unauthorized(res, 'Invalid or expired token');
+    return null;
+  }
+
+  return decoded;
+};
+
+const loadAuthenticatedSessionUser = async (
+  decoded: JwtPayload,
+  res: Response
+): Promise<AuthSessionUserRow | null> => {
+  const sessionResult = await pool.query<AuthSessionUserRow>(
+    `SELECT id, email, role, is_active, COALESCE(auth_revision, 0) AS auth_revision
+     FROM users
+     WHERE id = $1`,
+    [decoded.id]
+  );
+  const sessionUser = sessionResult.rows[0];
+
+  if (!sessionUser || !sessionUser.is_active) {
+    unauthorized(res, 'Invalid or expired token');
+    return null;
+  }
+
+  if ((decoded.authRevision ?? 0) !== Number(sessionUser.auth_revision || 0)) {
+    unauthorized(res, 'Invalid or expired token');
+    return null;
+  }
+
+  return sessionUser;
+};
+
+const attachAuthenticatedUser = (
+  req: AuthRequest,
+  decoded: JwtPayload,
+  sessionUser: AuthSessionUserRow
+): string => {
+  const normalizedRole = normalizeRoleSlug(sessionUser.role) ?? sessionUser.role;
+
+  req.user = {
+    ...decoded,
+    email: sessionUser.email,
+    role: normalizedRole,
+  };
+
+  return normalizedRole;
+};
+
+const resolveAuthenticatedOrganizationContext = async (
+  req: AuthRequest,
+  res: Response,
+  sessionUser: AuthSessionUserRow,
+  normalizedRole: string
+): Promise<string | undefined | typeof ORGANIZATION_RESOLUTION_FAILED> => {
+  const tokenOrganizationId = req.user?.organizationId || req.user?.organization_id;
+  const requestedOrganizationId = getRequestedOrganizationId(req);
+  const shouldValidateResolvedContext = shouldValidateOrganizationContext();
+
+  if (requestedOrganizationId) {
+    const usingExplicitOrganizationSwitch =
+      !tokenOrganizationId || requestedOrganizationId !== tokenOrganizationId;
+
+    if (usingExplicitOrganizationSwitch || shouldValidateResolvedContext) {
+      const isValid = await validateResolvedOrganization(req, res, {
+        organizationId: requestedOrganizationId,
+        userId: sessionUser.id,
+        userRole: normalizedRole,
+        source: usingExplicitOrganizationSwitch
+          ? req.requestedOrganizationSource || 'header'
+          : 'token',
+        validateAccess: usingExplicitOrganizationSwitch,
+      });
+      if (!isValid) {
+        return ORGANIZATION_RESOLUTION_FAILED;
+      }
+    }
+
+    return usingExplicitOrganizationSwitch ? requestedOrganizationId : tokenOrganizationId;
+  }
+
+  if (tokenOrganizationId && shouldValidateResolvedContext) {
+    const isValid = await validateResolvedOrganization(req, res, {
+      organizationId: tokenOrganizationId,
+      userId: sessionUser.id,
+      userRole: normalizedRole,
+      source: 'token',
+      validateAccess: false,
+    });
+    if (!isValid) {
+      return ORGANIZATION_RESOLUTION_FAILED;
+    }
+  }
+
+  if (tokenOrganizationId) {
+    return tokenOrganizationId;
+  }
+
+  const fallbackOrganizationId = await getAuthenticatedOrganizationId(sessionUser.id);
+  if (fallbackOrganizationId && shouldValidateResolvedContext) {
+    const isValid = await validateResolvedOrganization(req, res, {
+      organizationId: fallbackOrganizationId,
+      userId: sessionUser.id,
+      userRole: normalizedRole,
+      source: 'token',
+      validateAccess: false,
+    });
+    if (!isValid) {
+      return ORGANIZATION_RESOLUTION_FAILED;
+    }
+  }
+
+  return fallbackOrganizationId ?? undefined;
+};
+
+const hydrateAuthorizationContext = async (
+  req: AuthRequest,
+  sessionUser: AuthSessionUserRow,
+  normalizedRole: string,
+  organizationId?: string
+): Promise<void> => {
+  setOrganizationContext(req, organizationId, sessionUser.id);
+  const resolvedRoles = await resolveRolesForUser(sessionUser.id, normalizedRole);
+  req.authorizationContext = createRequestAuthorizationContext(
+    sessionUser.id,
+    normalizedRole,
+    organizationId,
+    resolvedRoles
+  );
+};
+
 export const authenticate = (
   req: AuthRequest,
   res: Response,
@@ -187,89 +329,28 @@ export const authenticate = (
 ): Promise<Response | void> => {
   return (async () => {
     try {
-      // Extract token from cookies first (preferred), then Authorization header (backward compatible)
-      const token = extractToken(req.cookies, req.headers.authorization, AUTH_COOKIE_NAME);
-
-      if (!token) {
-        return unauthorized(res, 'No token provided');
+      const decoded = extractAppSessionPayload(req, res);
+      if (!decoded) {
+        return;
       }
 
-      const decoded = verifyTokenWithOptionalIssuer<JwtPayload>(token, APP_SESSION_TOKEN_ISSUER);
-      if (decoded.type && decoded.type !== 'app') {
-        return unauthorized(res, 'Invalid or expired token');
+      const sessionUser = await loadAuthenticatedSessionUser(decoded, res);
+      if (!sessionUser) {
+        return;
       }
 
-      const sessionResult = await pool.query<AuthSessionUserRow>(
-        `SELECT id, email, role, is_active, COALESCE(auth_revision, 0) AS auth_revision
-         FROM users
-         WHERE id = $1`,
-        [decoded.id]
+      const normalizedRole = attachAuthenticatedUser(req, decoded, sessionUser);
+      const organizationId = await resolveAuthenticatedOrganizationContext(
+        req,
+        res,
+        sessionUser,
+        normalizedRole
       );
-      const sessionUser = sessionResult.rows[0];
-      if (!sessionUser || !sessionUser.is_active) {
-        return unauthorized(res, 'Invalid or expired token');
+      if (organizationId === ORGANIZATION_RESOLUTION_FAILED) {
+        return;
       }
 
-      if ((decoded.authRevision ?? 0) !== Number(sessionUser.auth_revision || 0)) {
-        return unauthorized(res, 'Invalid or expired token');
-      }
-
-      const normalizedRole = normalizeRoleSlug(sessionUser.role) ?? sessionUser.role;
-      const tokenOrganizationId = decoded.organizationId || decoded.organization_id;
-      const requestedOrganizationId = getRequestedOrganizationId(req);
-
-      req.user = {
-        ...decoded,
-        email: sessionUser.email,
-        role: normalizedRole,
-      };
-
-      let organizationId = tokenOrganizationId;
-      const shouldValidateResolvedContext = shouldValidateOrganizationContext();
-
-      if (requestedOrganizationId) {
-        const usingExplicitOrganizationSwitch =
-          !tokenOrganizationId || requestedOrganizationId !== tokenOrganizationId;
-
-        if (usingExplicitOrganizationSwitch || shouldValidateResolvedContext) {
-          const isValid = await validateResolvedOrganization(req, res, {
-            organizationId: requestedOrganizationId,
-            userId: sessionUser.id,
-            userRole: normalizedRole,
-            source: usingExplicitOrganizationSwitch
-              ? req.requestedOrganizationSource || 'header'
-              : 'token',
-            validateAccess: usingExplicitOrganizationSwitch || shouldValidateResolvedContext,
-          });
-          if (!isValid) {
-            return;
-          }
-        }
-
-        organizationId = usingExplicitOrganizationSwitch
-          ? requestedOrganizationId
-          : tokenOrganizationId;
-      } else if (tokenOrganizationId && shouldValidateResolvedContext) {
-        const isValid = await validateResolvedOrganization(req, res, {
-          organizationId: tokenOrganizationId,
-          userId: sessionUser.id,
-          userRole: normalizedRole,
-          source: 'token',
-          validateAccess: true,
-        });
-        if (!isValid) {
-          return;
-        }
-      }
-
-      setOrganizationContext(req, organizationId, sessionUser.id);
-      const resolvedRoles = await resolveRolesForUser(sessionUser.id, normalizedRole);
-      req.authorizationContext = createRequestAuthorizationContext(
-        sessionUser.id,
-        normalizedRole,
-        organizationId,
-        resolvedRoles
-      );
+      await hydrateAuthorizationContext(req, sessionUser, normalizedRole, organizationId);
       next();
     } catch {
       return unauthorized(res, 'Invalid or expired token');
@@ -279,12 +360,8 @@ export const authenticate = (
 
 export const authorize = (...allowedRoles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): Response | void => {
-    if (!req.user) {
-      return unauthorized(res, 'Unauthorized');
-    }
-
-    if (!hasRoleAccess(req.user.role, allowedRoles, req.authorizationContext?.roles)) {
-      return forbidden(res, 'Forbidden: Insufficient permissions');
+    if (!guardWithRole(req, res, ...allowedRoles)) {
+      return;
     }
 
     next();

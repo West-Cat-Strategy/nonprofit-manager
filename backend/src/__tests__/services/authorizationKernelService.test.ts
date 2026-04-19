@@ -1,4 +1,5 @@
 import { buildAuthorizationSnapshot } from '@services/authorization';
+import { hasPermission, Permission } from '@utils/permissions';
 
 jest.mock('@config/logger', () => ({
   logger: {
@@ -217,6 +218,23 @@ describe('authorizationKernelService', () => {
       allowed: false,
       source: 'analytics_subscriber',
     });
+  });
+
+  it('keeps snapshot static permissions aligned with the direct permission matrix helpers', async () => {
+    installStandardDbMock();
+
+    const snapshot = await buildAuthorizationSnapshot({
+      userId: 'staff-id',
+      primaryRole: 'user',
+    });
+
+    expect(snapshot.user.primaryRole).toBe('staff');
+    expect(snapshot.matrix.staticPermissions[Permission.CONTACT_EDIT].allowed).toBe(
+      hasPermission('user', Permission.CONTACT_EDIT)
+    );
+    expect(snapshot.matrix.staticPermissions[Permission.ADMIN_USERS].allowed).toBe(
+      hasPermission('user', Permission.ADMIN_USERS)
+    );
   });
 
   it('gracefully falls back when role/permission/field tables are unavailable', async () => {

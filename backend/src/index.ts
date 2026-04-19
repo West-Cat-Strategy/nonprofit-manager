@@ -14,7 +14,6 @@ import { successEnvelopeMiddleware } from './middleware/successEnvelope';
 import { csrfMiddleware } from './middleware/csrf';
 import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/correlationId';
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
-import { orgContextMiddleware } from './middleware/orgContext';
 import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import { registerV2Routes } from '@routes/v2';
@@ -187,9 +186,6 @@ app.use(metricsMiddleware);
 app.use('/health', healthRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/v2/health', healthRoutes);
-
-// Organization/tenant context middleware (optional)
-app.use('/api', orgContextMiddleware);
 
 // Logging middleware with correlation ID
 if (requestLoggingEnabled) {

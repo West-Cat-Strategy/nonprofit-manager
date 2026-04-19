@@ -28,6 +28,7 @@ import {
   sectionPrimaryActionLabelById,
   toOptions,
 } from '../lib/grantsPageRegistry';
+import { isReadOnlyGrantsSection } from '../lib/grantsSectionAdapters';
 import type {
   EditableGrantRecord,
   FieldDescriptor,
@@ -233,7 +234,7 @@ export default function GrantsPage() {
         Refresh
       </SecondaryButton>
       <PrimaryButton
-        onClick={activeSection === 'calendar' || activeSection === 'activities' ? refreshData : handleNewRecord}
+        onClick={isReadOnlyGrantsSection(activeSection) ? refreshData : handleNewRecord}
         disabled={saving || loading}
       >
         {sectionPrimaryActionLabelById(activeSection)}
@@ -248,6 +249,7 @@ export default function GrantsPage() {
     onStatusChange: updateStatus,
     onAwardApplication: handleAwardApplication,
   });
+  const activeSectionIsReadOnly = isReadOnlyGrantsSection(activeSection);
 
   const currentPaginationText = pagination
     ? `Page ${pagination.page} of ${pagination.total_pages} • ${pagination.total} records`
@@ -485,7 +487,7 @@ export default function GrantsPage() {
           loading,
           saving,
         })}
-        {activeSection === 'calendar' || activeSection === 'activities' ? (
+        {activeSectionIsReadOnly ? (
           <SectionCard
             title={`${sectionLabelById(activeSection)} overview`}
             subtitle="These sections are read-only views of upcoming deadlines and recent activity."

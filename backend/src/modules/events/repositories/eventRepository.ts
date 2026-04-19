@@ -77,7 +77,11 @@ type EventServicePort = Pick<
 export class EventRepository {
   constructor(private readonly eventService: EventServicePort = services.event) {}
 
-  getEvents(filters: EventFilters, pagination: PaginationParams, scope?: DataScopeFilter): Promise<PaginatedEvents> {
+  getEvents(
+    filters: EventFilters,
+    pagination: PaginationParams,
+    scope?: DataScopeFilter
+  ): Promise<PaginatedEvents> {
     return this.eventService.getEvents(filters, pagination, scope);
   }
 
@@ -101,7 +105,10 @@ export class EventRepository {
     return this.eventService.listEventOccurrences(filters, scope);
   }
 
-  getEventOccurrenceById(occurrenceId: string, scope?: DataScopeFilter): Promise<EventOccurrence | null> {
+  getEventOccurrenceById(
+    occurrenceId: string,
+    scope?: DataScopeFilter
+  ): Promise<EventOccurrence | null> {
     return this.eventService.getEventOccurrenceById(occurrenceId, scope);
   }
 
@@ -114,8 +121,8 @@ export class EventRepository {
     return this.eventService.updateEventOccurrence(occurrenceId, data, scope, userId);
   }
 
-  createEvent(data: CreateEventDTO, userId: string): Promise<Event> {
-    return this.eventService.createEvent(data, userId);
+  createEvent(data: CreateEventDTO, userId: string, organizationId: string): Promise<Event> {
+    return this.eventService.createEvent(data, userId, organizationId);
   }
 
   updateEvent(eventId: string, data: UpdateEventDTO, userId: string): Promise<Event> {
@@ -126,19 +133,31 @@ export class EventRepository {
     return this.eventService.deleteEvent(eventId, userId);
   }
 
-  getEventAttendanceSummary(referenceDate: Date, scope?: DataScopeFilter): Promise<EventAttendanceSummary> {
+  getEventAttendanceSummary(
+    referenceDate: Date,
+    scope?: DataScopeFilter
+  ): Promise<EventAttendanceSummary> {
     return this.eventService.getEventAttendanceSummary(referenceDate, scope);
   }
 
-  getEventRegistrations(eventId: string, filters?: RegistrationFilters): Promise<EventRegistration[]> {
+  getEventRegistrations(
+    eventId: string,
+    filters?: RegistrationFilters
+  ): Promise<EventRegistration[]> {
     return this.eventService.getEventRegistrations(eventId, filters);
   }
 
-  getContactRegistrations(contactId: string, scope?: DataScopeFilter): Promise<EventRegistration[]> {
+  getContactRegistrations(
+    contactId: string,
+    scope?: DataScopeFilter
+  ): Promise<EventRegistration[]> {
     return this.eventService.getContactRegistrations(contactId, scope);
   }
 
-  getRegistrationByTokenGlobal(token: string, scope?: DataScopeFilter): Promise<EventRegistration | null> {
+  getRegistrationByTokenGlobal(
+    token: string,
+    scope?: DataScopeFilter
+  ): Promise<EventRegistration | null> {
     return this.eventService.getRegistrationByTokenGlobal(token, scope);
   }
 
@@ -170,11 +189,17 @@ export class EventRepository {
     return this.eventService.checkInAttendee(registrationId, options);
   }
 
-  cancelRegistration(registrationId: string): Promise<void> {
-    return this.eventService.cancelRegistration(registrationId);
+  cancelRegistration(
+    registrationId: string,
+    context?: EventRegistrationMutationContext
+  ): Promise<void> {
+    return this.eventService.cancelRegistration(registrationId, context);
   }
 
-  getEventCheckInSettings(eventId: string, occurrenceId?: string): Promise<EventCheckInSettings | null> {
+  getEventCheckInSettings(
+    eventId: string,
+    occurrenceId?: string
+  ): Promise<EventCheckInSettings | null> {
     return this.eventService.getEventCheckInSettings(eventId, occurrenceId);
   }
 
@@ -202,7 +227,10 @@ export class EventRepository {
     return this.eventService.walkInCheckIn(eventId, data, checkedInBy);
   }
 
-  listPublicEventsByOwner(ownerUserId: string, query: PublicEventsQuery): Promise<PublicEventsListData> {
+  listPublicEventsByOwner(
+    ownerUserId: string,
+    query: PublicEventsQuery
+  ): Promise<PublicEventsListData> {
     return this.eventService.listPublicEventsByOwner(ownerUserId, query);
   }
 
@@ -224,11 +252,17 @@ export class EventRepository {
     return this.eventService.sendRegistrationConfirmationEmail(registrationId, sentBy);
   }
 
-  getPublicCheckInInfo(eventId: string, occurrenceId?: string): Promise<PublicEventCheckInInfo | null> {
+  getPublicCheckInInfo(
+    eventId: string,
+    occurrenceId?: string
+  ): Promise<PublicEventCheckInInfo | null> {
     return this.eventService.getPublicCheckInInfo(eventId, occurrenceId);
   }
 
-  submitPublicCheckIn(eventId: string, data: PublicEventCheckInDTO): Promise<PublicEventCheckInResult> {
+  submitPublicCheckIn(
+    eventId: string,
+    data: PublicEventCheckInDTO
+  ): Promise<PublicEventCheckInResult> {
     return this.eventService.submitPublicCheckIn(eventId, data);
   }
 
@@ -258,14 +292,35 @@ export class EventRepository {
     data: UpdateEventReminderAutomationDTO,
     userId: string
   ): Promise<unknown> {
-    return eventReminderAutomationService.updateEventReminderAutomation(eventId, automationId, data, userId);
+    return eventReminderAutomationService.updateEventReminderAutomation(
+      eventId,
+      automationId,
+      data,
+      userId
+    );
   }
 
-  cancelReminderAutomation(eventId: string, automationId: string, userId: string): Promise<unknown> {
-    return eventReminderAutomationService.cancelEventReminderAutomation(eventId, automationId, userId);
+  cancelReminderAutomation(
+    eventId: string,
+    automationId: string,
+    userId: string
+  ): Promise<unknown> {
+    return eventReminderAutomationService.cancelEventReminderAutomation(
+      eventId,
+      automationId,
+      userId
+    );
   }
 
-  syncReminderAutomations(eventId: string, data: SyncEventReminderAutomationsDTO, userId: string): Promise<unknown[]> {
-    return eventReminderAutomationService.syncPendingEventReminderAutomations(eventId, data, userId);
+  syncReminderAutomations(
+    eventId: string,
+    data: SyncEventReminderAutomationsDTO,
+    userId: string
+  ): Promise<unknown[]> {
+    return eventReminderAutomationService.syncPendingEventReminderAutomations(
+      eventId,
+      data,
+      userId
+    );
   }
 }

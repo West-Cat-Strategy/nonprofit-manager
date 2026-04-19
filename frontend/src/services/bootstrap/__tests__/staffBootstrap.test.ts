@@ -27,6 +27,7 @@ import {
 describe('staffBootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.pushState({}, '', '/');
     window.localStorage.clear();
     clearStaffBootstrapSnapshot();
     clearWorkspaceModuleAccessCache();
@@ -247,5 +248,31 @@ describe('staffBootstrap', () => {
       preferences: {},
     });
     expect(getUserPreferencesCachedSync()).toEqual({});
+  });
+
+  it('skips the staff bootstrap probe on demo routes', async () => {
+    window.history.pushState({}, '', '/demo/dashboard');
+
+    const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
+
+    expect(api.get).not.toHaveBeenCalled();
+    expect(snapshot).toMatchObject({
+      status: 'anonymous',
+      user: null,
+      organizationId: null,
+    });
+  });
+
+  it('skips the staff bootstrap probe on portal routes', async () => {
+    window.history.pushState({}, '', '/portal/login');
+
+    const snapshot = await getStaffBootstrapSnapshot({ forceRefresh: true });
+
+    expect(api.get).not.toHaveBeenCalled();
+    expect(snapshot).toMatchObject({
+      status: 'anonymous',
+      user: null,
+      organizationId: null,
+    });
   });
 });

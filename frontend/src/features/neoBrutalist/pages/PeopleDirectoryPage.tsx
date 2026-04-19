@@ -246,7 +246,27 @@ export default function PeopleDirectory() {
             <div className="p-6">
                 {/* Banner - PINK */}
                 <div className="bg-[var(--loop-pink)] border-2 border-black dark:border-white shadow-[4px_4px_0px_0px_var(--shadow-color)] p-8 mb-6">
-                    <h2 className="text-3xl font-black mb-2 uppercase text-app-brutal-ink">DIRECTORY</h2>
+                    <h2 className="text-3xl font-black mb-2 uppercase text-app-brutal-ink">LEGACY DIRECTORY</h2>
+                    <p className="max-w-3xl font-bold text-app-brutal-ink">
+                        `/people` remains available for compatibility, but the canonical staff workflow now lives under
+                        People at `/contacts` and donor organizations at `/accounts`.
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/contacts')}
+                            className="border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-transform hover:-translate-y-0.5"
+                        >
+                            Open People
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/accounts')}
+                            className="border-2 border-black bg-[var(--loop-yellow)] px-4 py-2 font-black uppercase text-black shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-transform hover:-translate-y-0.5"
+                        >
+                            Open Accounts
+                        </button>
+                    </div>
                 </div>
 
                 {/* Search Bar */}

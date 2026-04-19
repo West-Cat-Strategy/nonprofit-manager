@@ -537,6 +537,82 @@ describe('portalAuthController', () => {
       );
     });
 
+    it.each([
+      {
+        label: 'accepted invitations',
+        invitation: {
+          id: 'invitation-1',
+          email: 'member@example.com',
+          contact_id: 'contact-1',
+          created_by: 'staff-1',
+          expires_at: new Date('2026-06-01T00:00:00.000Z'),
+          accepted_at: new Date('2026-04-02T00:00:00.000Z'),
+        },
+        message: 'Invitation already accepted',
+      },
+      {
+        label: 'expired invitations',
+        invitation: {
+          id: 'invitation-1',
+          email: 'member@example.com',
+          contact_id: 'contact-1',
+          created_by: 'staff-1',
+          expires_at: new Date('2026-04-01T00:00:00.000Z'),
+          accepted_at: null,
+        },
+        message: 'Invitation expired',
+      },
+    ])('applies the same token-state rule to validation and acceptance for $label', async ({ invitation, message }) => {
+      const validateReq = createBaseRequest({ params: { token: 'state-token' } });
+      const acceptReq = createBaseRequest({
+        params: { token: 'state-token' },
+        body: {
+          firstName: 'New',
+          lastName: 'Member',
+          password: 'Secret123!',
+        },
+      });
+
+      mockPortalAuthService.getPortalInvitationByToken
+        .mockResolvedValueOnce(invitation)
+        .mockResolvedValueOnce(invitation);
+
+      await portalAuthController.validatePortalInvitation(
+        validateReq as Request,
+        mockResponse,
+        mockNext
+      );
+      await portalAuthController.acceptPortalInvitation(
+        acceptReq as Request,
+        mockResponse,
+        mockNext
+      );
+
+      expect((mockResponse.status as jest.Mock).mock.calls).toContainEqual([400]);
+      expect((mockResponse.json as jest.Mock).mock.calls).toEqual(
+        expect.arrayContaining([
+          [
+            expect.objectContaining({
+              success: false,
+              error: expect.objectContaining({
+                code: 'bad_request',
+                message,
+              }),
+            }),
+          ],
+          [
+            expect.objectContaining({
+              success: false,
+              error: expect.objectContaining({
+                code: 'bad_request',
+                message,
+              }),
+            }),
+          ],
+        ])
+      );
+    });
+
     it('returns the invitation payload when validation succeeds', async () => {
       const req = createBaseRequest({ params: { token: 'valid-token' } });
       mockPortalAuthService.getPortalInvitationByToken.mockResolvedValueOnce({

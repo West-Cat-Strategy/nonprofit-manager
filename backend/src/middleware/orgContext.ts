@@ -1,13 +1,8 @@
-import { Response, NextFunction } from 'express';
+import { NextFunction, Response } from 'express';
 import type { AuthRequest, RequestedOrganizationSource } from './auth';
 
 const ORG_HEADER_KEYS = ['x-organization-id', 'x-org-id', 'x-account-id', 'x-tenant-id'];
 const ORG_QUERY_KEYS = ['organization_id', 'org_id', 'tenant_id'];
-const stripVersionPrefix = (value: string): string =>
-  value.replace(/^\/api\/v\d+\b/i, '').replace(/^\/v\d+\b/i, '') || '/';
-
-const matchesPathPrefix = (value: string, prefix: string): boolean =>
-  value === prefix || value.startsWith(`${prefix}/`);
 
 const normalizeId = (value: unknown): string | undefined => {
   if (typeof value !== 'string') return undefined;
@@ -53,63 +48,29 @@ const getOrgContext = (
   return {};
 };
 
-const AUTH_CONTEXT_AWARE_PREFIXES = ['/auth/bootstrap', '/auth/me', '/auth/check-access'];
-
-export const orgContextMiddleware = async (
-  req: AuthRequest,
-  _res: Response,
-  next: NextFunction
-): Promise<void | Response> => {
-  if (req.method === 'OPTIONS') {
-    return next();
-  }
-
-  const path = req.path || '';
-  const fullPath = req.originalUrl || req.url || path;
-  const normalizedPath = fullPath.split('?')[0];
-  const versionlessPath = stripVersionPrefix(path);
-  const versionlessNormalizedPath = stripVersionPrefix(normalizedPath);
-  const skipPrefixes = ['/auth', '/payments/webhook', '/admin', '/invitations'];
-  const shouldPreserveAuthContext =
-    AUTH_CONTEXT_AWARE_PREFIXES.some(
-      (prefix) =>
-        matchesPathPrefix(path, prefix) ||
-        matchesPathPrefix(normalizedPath, prefix) ||
-        matchesPathPrefix(versionlessPath, prefix) ||
-        matchesPathPrefix(versionlessNormalizedPath, prefix)
-    );
-  if (
-    !shouldPreserveAuthContext &&
-    skipPrefixes.some(
-      (prefix) =>
-        matchesPathPrefix(path, prefix) ||
-        matchesPathPrefix(normalizedPath, prefix) ||
-        matchesPathPrefix(versionlessPath, prefix) ||
-        matchesPathPrefix(versionlessNormalizedPath, prefix)
-    )
-  ) {
-    return next();
-  }
-
-  if (
-    req.method === 'POST' &&
-    (matchesPathPrefix(path, '/accounts') ||
-      matchesPathPrefix(normalizedPath, '/accounts') ||
-      matchesPathPrefix(versionlessPath, '/accounts') ||
-      matchesPathPrefix(versionlessNormalizedPath, '/accounts'))
-  ) {
-    return next();
-  }
-
+const applyRequestedOrganizationContext = (req: AuthRequest): void => {
   const { id, source } = getOrgContext(req);
-
   if (!id) {
-    return next();
+    return;
   }
 
   req.requestedOrganizationId = id;
   req.requestedOrganizationSource = source;
-  return next();
 };
 
+export const captureRequestedOrganizationContext = (
+  req: AuthRequest,
+  _res: Response,
+  next: NextFunction
+): void => {
+  if (req.method === 'OPTIONS') {
+    next();
+    return;
+  }
+
+  applyRequestedOrganizationContext(req);
+  next();
+};
+
+export const orgContextMiddleware = captureRequestedOrganizationContext;
 export default orgContextMiddleware;

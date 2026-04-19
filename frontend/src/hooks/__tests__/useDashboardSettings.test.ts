@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../../services/api';
 import {
@@ -29,10 +29,18 @@ const mockedApi = api as unknown as {
   patch: ReturnType<typeof vi.fn>;
 };
 
-describe('useDashboardSettings cache behavior', () => {
-  let nowMs = 1_000_000;
+const flushDashboardSettings = async () => {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+};
+
+describe('useDashboardSettings', () => {
+  const nowMs = 1_000_000;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     authState = { isAuthenticated: true };
     localStorage.clear();
     __resetDashboardSettingsServerCacheForTests();
@@ -53,56 +61,59 @@ describe('useDashboardSettings cache behavior', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
-  it('uses local defaults on mount without issuing a startup GET request', async () => {
+  it('fetches authenticated dashboard settings once and reuses the confirmed server snapshot on remount', async () => {
     const firstMount = renderHook(() => useDashboardSettings());
-    await waitFor(() => expect(firstMount.result.current.isLoading).toBe(false));
-    expect(mockedApi.get).not.toHaveBeenCalled();
+    await flushDashboardSettings();
+
+    expect(firstMount.result.current.isLoading).toBe(false);
+    expect(mockedApi.get).toHaveBeenCalledTimes(1);
+    expect(firstMount.result.current.settings.showQuickLookup).toBe(false);
+    expect(firstMount.result.current.settings.showFocusQueue).toBe(false);
     firstMount.unmount();
 
     const secondMount = renderHook(() => useDashboardSettings());
-    await waitFor(() => expect(secondMount.result.current.isLoading).toBe(false));
-    expect(mockedApi.get).not.toHaveBeenCalled();
-    expect(secondMount.result.current.settings.showQuickLookup).toBe(true);
-    expect(secondMount.result.current.settings.showWorkspaceSummary).toBe(true);
-    expect(secondMount.result.current.settings.showPinnedWorkstreams).toBe(true);
-    expect(secondMount.result.current.settings.showFocusQueue).toBe(true);
+    await flushDashboardSettings();
+
+    expect(secondMount.result.current.isLoading).toBe(false);
+    expect(mockedApi.get).toHaveBeenCalledTimes(1);
+    expect(secondMount.result.current.settings.showQuickLookup).toBe(false);
+    expect(secondMount.result.current.settings.showFocusQueue).toBe(false);
     secondMount.unmount();
   });
 
-  it('persists locally changed settings across remounts without refetching startup preferences', async () => {
-    const firstMount = renderHook(() => useDashboardSettings());
-    await waitFor(() => expect(firstMount.result.current.isLoading).toBe(false));
+  it('does not PATCH dashboard settings just from hydrating local fallback and server data', async () => {
+    localStorage.setItem(
+      'dashboardSettings',
+      JSON.stringify({
+        showQuickLookup: true,
+        showFocusQueue: true,
+      })
+    );
 
-    act(() => {
-      firstMount.result.current.setSettings({
-        ...firstMount.result.current.settings,
-        showQuickLookup: false,
-      });
+    const mount = renderHook(() => useDashboardSettings());
+    await flushDashboardSettings();
+
+    expect(mount.result.current.isLoading).toBe(false);
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+      await Promise.resolve();
     });
-    await waitFor(() => {
-      expect(JSON.parse(localStorage.getItem('dashboardSettings') || '{}')).toMatchObject({
-        showQuickLookup: false,
-      });
-    });
-    firstMount.unmount();
 
-    nowMs += 5 * 60 * 1000 + 1;
-
-    const secondMount = renderHook(() => useDashboardSettings());
-    await waitFor(() => expect(secondMount.result.current.isLoading).toBe(false));
-    expect(mockedApi.get).not.toHaveBeenCalled();
-    expect(secondMount.result.current.settings.showQuickLookup).toBe(false);
-    secondMount.unmount();
+    expect(mockedApi.get).toHaveBeenCalledTimes(1);
+    expect(mockedApi.patch).not.toHaveBeenCalled();
+    expect(mount.result.current.settings.showQuickLookup).toBe(false);
+    mount.unmount();
   });
 
   it('uses bootstrap-seeded dashboard settings without issuing a duplicate GET', async () => {
     localStorage.setItem(
       'dashboardSettings',
       JSON.stringify({
-        showQuickLookup: false,
+        showQuickLookup: true,
       })
     );
     setUserPreferencesCached({
@@ -112,14 +123,49 @@ describe('useDashboardSettings cache behavior', () => {
     } as never);
 
     const mount = renderHook(() => useDashboardSettings());
-    await waitFor(() => expect(mount.result.current.isLoading).toBe(false));
+    await flushDashboardSettings();
 
+    expect(mount.result.current.isLoading).toBe(false);
     expect(mockedApi.get).not.toHaveBeenCalled();
     expect(mount.result.current.settings.showQuickLookup).toBe(false);
     mount.unmount();
   });
 
+  it('persists user-initiated changes after hydration instead of on initial open', async () => {
+    const mount = renderHook(() => useDashboardSettings());
+    await flushDashboardSettings();
+
+    expect(mount.result.current.isLoading).toBe(false);
+    act(() => {
+      mount.result.current.setSettings({
+        ...mount.result.current.settings,
+        showWorkspaceSummary: false,
+      });
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(JSON.parse(localStorage.getItem('dashboardSettings') || '{}')).toMatchObject({
+      showWorkspaceSummary: false,
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    expect(mockedApi.patch).toHaveBeenCalledTimes(1);
+    expect(mockedApi.patch).toHaveBeenCalledWith('/auth/preferences/dashboard_settings', {
+      value: expect.objectContaining({
+        showWorkspaceSummary: false,
+      }),
+    });
+    mount.unmount();
+  });
+
   it('normalizes legacy insight settings into the new view-settings shape', async () => {
+    authState = { isAuthenticated: false };
     localStorage.setItem(
       'dashboardSettings',
       JSON.stringify({
@@ -130,11 +176,13 @@ describe('useDashboardSettings cache behavior', () => {
     );
 
     const mount = renderHook(() => useDashboardSettings());
-    await waitFor(() => expect(mount.result.current.isLoading).toBe(false));
+    await flushDashboardSettings();
 
+    expect(mount.result.current.isLoading).toBe(false);
     expect(mount.result.current.settings.showQuickLookup).toBe(false);
     expect(mount.result.current.settings.showInsightStrip).toBe(false);
     expect(mount.result.current.settings.showFocusQueue).toBe(true);
+    expect(mockedApi.get).not.toHaveBeenCalled();
     mount.unmount();
   });
 });

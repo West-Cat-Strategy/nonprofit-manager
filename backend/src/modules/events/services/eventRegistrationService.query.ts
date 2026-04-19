@@ -1,7 +1,4 @@
-import type {
-  EventRegistration,
-  RegistrationFilters,
-} from '@app-types/event';
+import type { EventRegistration, RegistrationFilters } from '@app-types/event';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import {
   EventRegistrationServiceContext,
@@ -23,7 +20,7 @@ export const getContactRegistrations = (
   contactId: string,
   scope?: DataScopeFilter
 ): Promise<EventRegistration[]> =>
-  getContactRegistrationsQuery(ctx.pool, contactId, scope?.createdByUserIds);
+  getContactRegistrationsQuery(ctx.pool, contactId, scope?.accountIds);
 
 export const getRegistrationById = (
   ctx: EventRegistrationServiceContext,
@@ -41,4 +38,4 @@ export const getRegistrationByTokenAcrossScope = (
   token: string,
   scope?: DataScopeFilter
 ): Promise<EventRegistration | null> =>
-  getRegistrationByTokenGlobal(ctx.pool, token, scope?.createdByUserIds);
+  getRegistrationByTokenGlobal(ctx.pool, token, scope?.accountIds);

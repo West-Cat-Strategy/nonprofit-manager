@@ -46,7 +46,11 @@ export const buildEventRegistrationMutationHandlers = (
     }
   };
 
-  const updateRegistration = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const updateRegistration = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     if (!shared.ensurePermission(req, res, Permission.EVENT_EDIT)) return;
 
     try {
@@ -78,7 +82,11 @@ export const buildEventRegistrationMutationHandlers = (
     }
   };
 
-  const cancelRegistration = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const cancelRegistration = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     if (!shared.ensurePermission(req, res, Permission.EVENT_EDIT)) return;
 
     try {
@@ -86,7 +94,10 @@ export const buildEventRegistrationMutationHandlers = (
       const registration = await shared.ensureRegistrationEventAccess(params.id, req, res);
       if (!registration) return;
 
-      await registrationUseCase.cancel(registration.registration_id);
+      await registrationUseCase.cancel(registration.registration_id, {
+        actorUserId: req.user?.id ?? null,
+        source: 'staff',
+      });
       res.status(204).send();
     } catch (error) {
       if (sendEventHttpError(res, error)) {

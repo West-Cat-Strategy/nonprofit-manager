@@ -16,6 +16,7 @@ import { cancelPendingAutomationsForEvent } from '@services/eventReminderAutomat
 import { EventOccurrenceService } from './eventOccurrenceService';
 import { createEventHttpError } from '../eventHttpErrors';
 import { QueryValue } from './shared';
+import { appendAccountScopeCondition, setTransactionUserContext } from './tenancy';
 
 const EVENT_SUMMARY_SELECT = `
   SELECT
@@ -50,6 +51,7 @@ const EVENT_SUMMARY_SELECT = `
     next_occurrence.status as next_occurrence_status,
     e.created_at,
     e.updated_at,
+    e.organization_id,
     e.created_by,
     e.modified_by
   FROM events e
@@ -99,7 +101,9 @@ export class EventCatalogService {
     let paramCount = 1;
 
     if (search) {
-      conditions.push(`(e.name ILIKE $${paramCount} OR COALESCE(e.description, '') ILIKE $${paramCount})`);
+      conditions.push(
+        `(e.name ILIKE $${paramCount} OR COALESCE(e.description, '') ILIKE $${paramCount})`
+      );
       params.push(`%${search}%`);
       paramCount += 1;
     }
@@ -134,11 +138,7 @@ export class EventCatalogService {
       paramCount += 1;
     }
 
-    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
-      conditions.push(`e.created_by = ANY($${paramCount}::uuid[])`);
-      params.push(scope.createdByUserIds);
-      paramCount += 1;
-    }
+    appendAccountScopeCondition(conditions, params, scope, 'e.organization_id');
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -170,7 +170,12 @@ export class EventCatalogService {
       status: 'e.status',
       event_type: 'e.event_type',
     };
-    const { sortColumn, sortOrder } = resolveSort(sort_by, sort_order, sortColumnMap, 'COALESCE(next_occurrence.start_date, e.start_date)');
+    const { sortColumn, sortOrder } = resolveSort(
+      sort_by,
+      sort_order,
+      sortColumnMap,
+      'COALESCE(next_occurrence.start_date, e.start_date)'
+    );
 
     const dataResult = await this.pool.query<Event>(
       `${EVENT_SUMMARY_SELECT}
@@ -195,10 +200,7 @@ export class EventCatalogService {
     const params: QueryValue[] = [eventId];
     const conditions = ['e.id = $1'];
 
-    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
-      conditions.push(`e.created_by = ANY($${params.length + 1}::uuid[])`);
-      params.push(scope.createdByUserIds);
-    }
+    appendAccountScopeCondition(conditions, params, scope, 'e.organization_id');
 
     const result = await this.pool.query<Event>(
       `${EVENT_SUMMARY_SELECT}
@@ -212,7 +214,11 @@ export class EventCatalogService {
       return null;
     }
 
-    const occurrences = await this.occurrences.getOccurrencesForEvent(eventId, { include_cancelled: true }, scope);
+    const occurrences = await this.occurrences.getOccurrencesForEvent(
+      eventId,
+      { include_cancelled: true },
+      scope
+    );
     return {
       ...row,
       occurrences,
@@ -238,31 +244,22 @@ export class EventCatalogService {
       999
     );
 
-    const scopeCondition =
-      scope?.createdByUserIds && scope.createdByUserIds.length > 0
-        ? ' AND e.created_by = ANY($2::uuid[])'
-        : '';
-    const monthScopeCondition =
-      scope?.createdByUserIds && scope.createdByUserIds.length > 0
-        ? ' AND e.created_by = ANY($3::uuid[])'
-        : '';
-
+    const upcomingConditions = [
+      'eo.start_date >= $1',
+      "eo.status NOT IN ('cancelled', 'completed')",
+    ];
+    const monthConditions = ['eo.start_date >= $1', 'eo.start_date <= $2'];
     const upcomingParams: QueryValue[] = [referenceDate];
     const monthParams: QueryValue[] = [startOfMonth, endOfMonth];
-
-    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
-      upcomingParams.push(scope.createdByUserIds);
-      monthParams.push(scope.createdByUserIds);
-    }
+    appendAccountScopeCondition(upcomingConditions, upcomingParams, scope, 'e.organization_id');
+    appendAccountScopeCondition(monthConditions, monthParams, scope, 'e.organization_id');
 
     const [upcomingResult, monthResult] = await Promise.all([
       this.pool.query<{ upcoming_events: number }>(
         `SELECT COUNT(*)::int as upcoming_events
          FROM event_occurrences eo
          INNER JOIN events e ON e.id = eo.event_id
-         WHERE eo.start_date >= $1
-           AND eo.status NOT IN ('cancelled', 'completed')
-           ${scopeCondition}`,
+         WHERE ${upcomingConditions.join(' AND ')}`,
         upcomingParams
       ),
       this.pool.query<{ total_this_month: number; avg_attendance: number }>(
@@ -271,9 +268,7 @@ export class EventCatalogService {
            COALESCE(AVG(eo.attended_count), 0)::float as avg_attendance
          FROM event_occurrences eo
          INNER JOIN events e ON e.id = eo.event_id
-         WHERE eo.start_date >= $1
-           AND eo.start_date <= $2
-           ${monthScopeCondition}`,
+         WHERE ${monthConditions.join(' AND ')}`,
         monthParams
       ),
     ]);
@@ -285,11 +280,16 @@ export class EventCatalogService {
     };
   }
 
-  async createEvent(eventData: CreateEventDTO, userId: string): Promise<Event> {
+  async createEvent(
+    eventData: CreateEventDTO,
+    userId: string,
+    organizationId: string
+  ): Promise<Event> {
     const client = await this.pool.connect();
 
     try {
       await client.query('BEGIN');
+      await setTransactionUserContext(client, userId);
 
       const {
         event_name,
@@ -320,16 +320,18 @@ export class EventCatalogService {
 
       const result = await client.query<{ event_id: string }>(
         `INSERT INTO events (
+          organization_id,
           name, description, event_type, status, is_public, is_recurring, recurrence_pattern,
           recurrence_interval, recurrence_end_date, start_date, end_date,
           location_name, address_line1, address_line2, city, state_province,
           postal_code, country, capacity, waitlist_enabled, created_by, modified_by
         )
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $21
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $22
         )
         RETURNING id as event_id`,
         [
+          organizationId,
           event_name,
           description || null,
           event_type,
@@ -362,7 +364,7 @@ export class EventCatalogService {
       await this.occurrences.syncOccurrencesForEvent(eventId, client);
       await client.query('COMMIT');
 
-      const created = await this.getEventById(eventId);
+      const created = await this.getEventById(eventId, { accountIds: [organizationId] });
       if (!created) {
         throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
       }
@@ -382,6 +384,7 @@ export class EventCatalogService {
 
     try {
       await client.query('BEGIN');
+      await setTransactionUserContext(client, userId);
 
       const fields: string[] = [];
       const values: QueryValue[] = [];
@@ -429,7 +432,11 @@ export class EventCatalogService {
       await this.occurrences.syncOccurrencesForEvent(eventId, client);
 
       if (updatedRow.status === 'cancelled' || updatedRow.status === 'completed') {
-        await cancelPendingAutomationsForEvent(eventId, `event_status_${updatedRow.status}`, userId);
+        await cancelPendingAutomationsForEvent(
+          eventId,
+          `event_status_${updatedRow.status}`,
+          userId
+        );
       } else if (new Date(updatedRow.start_date).getTime() <= Date.now()) {
         await cancelPendingAutomationsForEvent(eventId, 'event_start_passed', userId);
       }
@@ -455,6 +462,7 @@ export class EventCatalogService {
 
     try {
       await client.query('BEGIN');
+      await setTransactionUserContext(client, userId);
 
       await client.query(
         `UPDATE events
@@ -494,7 +502,10 @@ export class EventCatalogService {
     return this.occurrences.listOccurrences(filters, scope);
   }
 
-  async getOccurrenceById(occurrenceId: string, scope?: DataScopeFilter): Promise<EventOccurrence | null> {
+  async getOccurrenceById(
+    occurrenceId: string,
+    scope?: DataScopeFilter
+  ): Promise<EventOccurrence | null> {
     return this.occurrences.getOccurrenceById(occurrenceId, scope);
   }
 

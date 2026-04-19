@@ -1,13 +1,13 @@
-import { screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
 import type * as ReactRouterDomModule from 'react-router-dom';
+import type * as DashboardDataContextModule from '../../context/DashboardDataContext';
 import type * as DashboardStateModule from '../../state';
 import { vi } from 'vitest';
 import CustomDashboard from '../CustomDashboardPage';
-import { renderWithProviders } from '../../../../test/testUtils';
 
-const { dispatchMock, dashboardState } = vi.hoisted(() => ({
+const { dispatchMock, dashboardState, gridLayoutPropsSpy } = vi.hoisted(() => ({
   dispatchMock: vi.fn(),
   dashboardState: {
     dashboard: {
@@ -22,6 +22,7 @@ const { dispatchMock, dashboardState } = vi.hoisted(() => ({
       isAuthenticated: true,
     },
   },
+  gridLayoutPropsSpy: vi.fn(),
 }));
 
 const createDashboard = (overrides: Record<string, unknown> = {}) => ({
@@ -47,15 +48,16 @@ const createDashboard = (overrides: Record<string, unknown> = {}) => ({
 });
 
 vi.mock('../../../../features/dashboard/context/DashboardDataContext', async () => {
-  const actual = await vi.importActual<
-    typeof import('../../../../features/dashboard/context/DashboardDataContext')
-  >('../../../../features/dashboard/context/DashboardDataContext');
+  const actual = await vi.importActual<typeof DashboardDataContextModule>(
+    '../../../../features/dashboard/context/DashboardDataContext'
+  );
 
   return {
     ...actual,
     DashboardDataProvider: ({ children }: { children: ReactNode }) => children,
   };
 });
+
 vi.mock('../../../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
   useAppSelector: (selector: (state: typeof dashboardState) => unknown) => selector(dashboardState),
@@ -70,7 +72,10 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('react-grid-layout/legacy', () => ({
-  Responsive: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Responsive: (props: { children: ReactNode }) => {
+    gridLayoutPropsSpy(props);
+    return <div>{props.children}</div>;
+  },
   WidthProvider: (Component: React.ComponentType<{ children?: ReactNode }>) => Component,
 }));
 
@@ -116,11 +121,22 @@ vi.mock('../../state', async () => {
   };
 });
 
+const getLatestGridProps = () =>
+  (gridLayoutPropsSpy.mock.calls.at(-1)?.[0] as
+    | {
+        onLayoutChange?: (layout: unknown, layouts: unknown) => void;
+        onDragStop?: (layout: unknown) => void;
+        onResizeStop?: (layout: unknown) => void;
+      }
+    | undefined) ?? {};
+
 describe('CustomDashboardPage', () => {
   beforeEach(() => {
     dispatchMock.mockReset();
+    gridLayoutPropsSpy.mockReset();
     dispatchMock.mockImplementation((action: { type: string }) => ({
-      unwrap: () => Promise.resolve(action.type === 'dashboard/fetchDashboards' ? [createDashboard()] : undefined),
+      unwrap: () =>
+        Promise.resolve(action.type === 'dashboard/fetchDashboards' ? [createDashboard()] : undefined),
     }));
     dashboardState.dashboard.currentDashboard = createDashboard();
     dashboardState.dashboard.dashboards = [createDashboard()];
@@ -145,7 +161,7 @@ describe('CustomDashboardPage', () => {
       layout: [{ i: 'legacy-recent-contacts', x: 0, y: 0, w: 4, h: 2 }],
     });
 
-    renderWithProviders(<CustomDashboard />, { route: '/dashboard/custom' });
+    render(<CustomDashboard />);
 
     expect(screen.getByText(/saved legacy widget/i)).toBeInTheDocument();
     expect(screen.getByText(/older dashboard layout/i)).toBeInTheDocument();
@@ -155,7 +171,7 @@ describe('CustomDashboardPage', () => {
     dashboardState.dashboard.editMode = true;
     const user = userEvent.setup();
 
-    renderWithProviders(<CustomDashboard />, { route: '/dashboard/custom' });
+    render(<CustomDashboard />);
 
     await user.click(screen.getByRole('button', { name: /add widget/i }));
 
@@ -165,5 +181,77 @@ describe('CustomDashboardPage', () => {
     expect(screen.getByText('Upcoming Follow-ups')).toBeInTheDocument();
     expect(screen.queryByText('Recent Contacts')).not.toBeInTheDocument();
     expect(screen.queryByText('Upcoming Events')).not.toBeInTheDocument();
+  });
+
+  it('keeps grid edits local until drag stop commits them to Redux', () => {
+    dashboardState.dashboard.editMode = true;
+
+    render(<CustomDashboard />);
+    dispatchMock.mockClear();
+
+    const nextLayout = [{ i: 'widget-quick-actions', x: 2, y: 1, w: 5, h: 3 }];
+
+    act(() => {
+      getLatestGridProps().onLayoutChange?.(nextLayout, {
+        lg: nextLayout,
+        md: nextLayout,
+        sm: nextLayout,
+        xs: nextLayout,
+      });
+    });
+
+    expect(dispatchMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'dashboard/updateLayout' })
+    );
+
+    act(() => {
+      getLatestGridProps().onDragStop?.(nextLayout);
+    });
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'dashboard/updateLayout',
+        payload: nextLayout,
+      })
+    );
+  });
+
+  it('uses the local layout draft when saving before a drag-stop commit', async () => {
+    dashboardState.dashboard.editMode = true;
+    const user = userEvent.setup();
+
+    render(<CustomDashboard />);
+    dispatchMock.mockClear();
+
+    const nextLayout = [{ i: 'widget-quick-actions', x: 3, y: 2, w: 6, h: 4 }];
+
+    act(() => {
+      getLatestGridProps().onLayoutChange?.(nextLayout, {
+        lg: nextLayout,
+        md: nextLayout,
+        sm: nextLayout,
+        xs: nextLayout,
+      });
+    });
+
+    await user.click(screen.getByRole('button', { name: /save layout/i }));
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'dashboard/updateLayout',
+        payload: nextLayout,
+      })
+    );
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'dashboard/updateDashboard',
+        payload: expect.objectContaining({
+          id: 'dash-1',
+          config: expect.objectContaining({
+            layout: nextLayout,
+          }),
+        }),
+      })
+    );
   });
 });

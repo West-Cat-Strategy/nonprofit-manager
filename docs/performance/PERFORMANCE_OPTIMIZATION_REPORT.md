@@ -309,7 +309,7 @@ return result;
 ## Additional Optimizations Implemented (Post-Review)
 
 ### 9. ✅ Memoize Dashboard VolunteerWidget Stats (Frontend)
-**File:** [../../frontend/src/components/VolunteerWidget.tsx](../../frontend/src/components/VolunteerWidget.tsx)
+**File:** [../../frontend/src/components/dashboard/VolunteerHoursWidget.tsx](../../frontend/src/components/dashboard/VolunteerHoursWidget.tsx)
 
 Wrapped `calculatedStats` computation in `useMemo`:
 - **Before:** 4 `filter()` calls + 1 `reduce()` recalculated on every render

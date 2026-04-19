@@ -7,7 +7,10 @@ source "$SCRIPT_DIR/lib/common.sh"
 scan_audit() {
   local dir="$1"
   if [[ -d "$dir" ]]; then
-    run bash -lc "cd '$dir' && npm audit --omit=dev --audit-level=moderate"
+    if run bash -lc "cd '$dir' && npm audit --omit=dev --audit-level=moderate"; then
+      return 0
+    fi
+    return 1
   fi
 }
 
@@ -58,9 +61,19 @@ scan_secrets_with_gitleaks() {
 
 cd "$PROJECT_ROOT"
 
-scan_audit backend
-scan_audit frontend
+overall_status=0
 
-run scan_secrets_with_gitleaks
+if ! scan_audit backend; then
+  overall_status=1
+fi
+
+if ! scan_audit frontend; then
+  overall_status=1
+fi
+
+if ! run scan_secrets_with_gitleaks; then
+  overall_status=1
+fi
 
 echo "Security scan complete."
+exit "$overall_status"

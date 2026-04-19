@@ -20,32 +20,45 @@ This guide explains how to set up centralized log aggregation for the Nonprofit 
 1. **Docker Compose Configuration**:
 
 ```yaml
-# Add to docker-compose.yml
+# Use docker-compose.elk.yml together with .env.elk
 elasticsearch:
   image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+  env_file:
+    - .env.elk
   environment:
     - discovery.type=single-node
-    - xpack.security.enabled=false
+    - xpack.security.enabled=true
+    - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
   ports:
-    - "9200:9200"
+    - "127.0.0.1:9200:9200"
   volumes:
     - elasticsearch_data:/usr/share/elasticsearch/data
 
 logstash:
   image: docker.elastic.co/logstash/logstash:8.5.0
+  env_file:
+    - .env.elk
+  environment:
+    - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    - ELASTICSEARCH_USERNAME=${ELK_ELASTICSEARCH_USERNAME:-elastic}
+    - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
   volumes:
     - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
   ports:
-    - "8080:8080"
+    - "127.0.0.1:8080:8080"
   depends_on:
     - elasticsearch
 
 kibana:
   image: docker.elastic.co/kibana/kibana:8.5.0
+  env_file:
+    - .env.elk
   ports:
-    - "5601:5601"
+    - "127.0.0.1:5601:5601"
   environment:
-    - ELASTICSEARCH_HOSTS=elasticsearch:9200
+    - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    - ELASTICSEARCH_USERNAME=${ELK_ELASTICSEARCH_USERNAME:-elastic}
+    - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
   depends_on:
     - elasticsearch
 ```
@@ -72,14 +85,24 @@ filter {
 output {
   elasticsearch {
     hosts => ["elasticsearch:9200"]
+    user => "${ELASTICSEARCH_USERNAME}"
+    password => "${ELASTICSEARCH_PASSWORD}"
     index => "logs-%{+YYYY.MM.dd}"
   }
 }
 ```
 
-3. **Environment Variables** (`.env.production`):
+3. **Environment Variables** (`.env.elk` and `.env.production`):
+
+Create `.env.elk` from `.env.elk.example` before starting the overlay:
 
 ```bash
+cp .env.elk.example .env.elk
+```
+
+```bash
+ELASTIC_PASSWORD=replace-with-a-long-random-password
+
 LOG_AGGREGATION_ENABLED=true
 LOG_AGGREGATION_HOST=logstash
 LOG_AGGREGATION_PORT=8080
@@ -88,7 +111,8 @@ LOG_AGGREGATION_PROTOCOL=http
 ```
 
 4. **Kibana Dashboard**:
-   - Visit `localhost:5601`
+   - Visit `http://127.0.0.1:5601`
+   - Sign in with the `elastic` user and the password from `.env.elk`
    - Create index pattern: `logs-*`
    - Create dashboards to monitor:
      - Request rates by endpoint
@@ -267,6 +291,8 @@ LOG_AGGREGATION_ENABLED=false
 | `LOG_AGGREGATION_PROTOCOL` | No | `http` | `http` or `https` |
 | `LOG_AGGREGATION_API_KEY` | No | - | API key if required by service |
 | `LOG_LEVEL` | No | `info` | Log level: `error`, `warn`, `info`, `debug` |
+| `ELASTIC_PASSWORD` | Yes for ELK | - | Password for the local ELK overlay's authenticated Elasticsearch/Kibana access |
+| `ELK_ELASTICSEARCH_USERNAME` | No | `elastic` | Elasticsearch user that Kibana and Logstash use in the local ELK overlay |
 
 ---
 
@@ -501,6 +527,11 @@ docker logs backend | grep -i "log aggregation"
 4. Verify HTTP transport is initialized:
 ```bash
 # Check logger.ts for HttpLogTransport registration
+```
+
+5. Confirm the ELK overlay has credentials loaded:
+```bash
+docker compose -f docker-compose.elk.yml --env-file .env.elk config > /dev/null
 ```
 
 ### Performance issues with log aggregation

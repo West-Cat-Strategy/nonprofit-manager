@@ -69,11 +69,11 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================================
 -- EVENTS + REGISTRATIONS
 -- ============================================================================
-INSERT INTO events (id, name, description, event_type, start_date, end_date, location_name, capacity, status, created_at)
+INSERT INTO events (id, organization_id, name, description, event_type, start_date, end_date, location_name, capacity, status, created_at)
 VALUES
-  ('e1111111-1111-1111-1111-111111111111', 'Annual Gala Dinner', 'Flagship fundraising event with dinner and auction.', 'fundraiser', '2026-03-15 18:00:00', '2026-03-15 23:00:00', 'Grand Ballroom, Hilton Hotel', 300, 'planned', NOW()),
-  ('e2222222-2222-2222-2222-222222222222', 'Volunteer Appreciation Day', 'Thank you event for volunteers.', 'appreciation', '2026-04-20 12:00:00', '2026-04-20 16:00:00', 'Community Center', 100, 'planned', NOW()),
-  ('e3333333-3333-3333-3333-333333333333', 'Community Cleanup Day', 'Neighborhood cleanup initiative.', 'community', '2026-04-05 09:00:00', '2026-04-05 14:00:00', 'Riverside Park', 50, 'planned', NOW())
+  ('e1111111-1111-1111-1111-111111111111', 'aaaa1111-1111-1111-1111-111111111111', 'Annual Gala Dinner', 'Flagship fundraising event with dinner and auction.', 'fundraiser', '2026-03-15 18:00:00', '2026-03-15 23:00:00', 'Grand Ballroom, Hilton Hotel', 300, 'planned', NOW()),
+  ('e2222222-2222-2222-2222-222222222222', 'aaaa1111-1111-1111-1111-111111111111', 'Volunteer Appreciation Day', 'Thank you event for volunteers.', 'appreciation', '2026-04-20 12:00:00', '2026-04-20 16:00:00', 'Community Center', 100, 'planned', NOW()),
+  ('e3333333-3333-3333-3333-333333333333', 'aaaa3333-3333-3333-3333-333333333333', 'Community Cleanup Day', 'Neighborhood cleanup initiative.', 'community', '2026-04-05 09:00:00', '2026-04-05 14:00:00', 'Riverside Park', 50, 'planned', NOW())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO event_registrations (id, event_id, contact_id, registration_status, checked_in, created_at)

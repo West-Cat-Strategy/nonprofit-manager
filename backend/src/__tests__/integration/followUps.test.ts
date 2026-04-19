@@ -446,45 +446,46 @@ describe('Follow-up API Integration Tests', () => {
       name: 'create',
       method: 'post' as const,
       path: () => '/api/v2/follow-ups',
-      payload: {
+      payload: () => ({
         entity_type: 'contact',
         entity_id: contactId,
         title: 'Viewer create attempt',
         scheduled_date: '2032-07-01',
-      },
+        assigned_to: staffUserId,
+      }),
     },
     {
       name: 'update',
       method: 'put' as const,
       path: (id: string) => `/api/v2/follow-ups/${id}`,
-      payload: {
+      payload: () => ({
         title: 'Viewer update attempt',
-      },
+      }),
     },
     {
       name: 'complete',
       method: 'post' as const,
       path: (id: string) => `/api/v2/follow-ups/${id}/complete`,
-      payload: {
+      payload: () => ({
         completed_notes: 'Viewer complete attempt',
-      },
+      }),
     },
     {
       name: 'cancel',
       method: 'post' as const,
       path: (id: string) => `/api/v2/follow-ups/${id}/cancel`,
-      payload: {
+      payload: () => ({
         completed_notes: 'Viewer cancel attempt',
-      },
+      }),
     },
     {
       name: 'reschedule',
       method: 'post' as const,
       path: (id: string) => `/api/v2/follow-ups/${id}/reschedule`,
-      payload: {
+      payload: () => ({
         scheduled_date: '2032-07-02',
         scheduled_time: '10:30',
-      },
+      }),
     },
   ])('returns forbidden for viewer-role $name requests', async ({ method, path, payload }) => {
     const protectedFollowUpId = await createSeedFollowUp({
@@ -495,7 +496,7 @@ describe('Follow-up API Integration Tests', () => {
     });
 
     const req = request(app)[method](path(protectedFollowUpId));
-    const response = await withOrgAuth(viewerToken, req.send(payload)).expect(403);
+    const response = await withOrgAuth(viewerToken, req.send(payload())).expect(403);
 
     expectCanonicalError(response, 'forbidden');
   });

@@ -5,12 +5,14 @@ import { trackLoginAttempt } from '@middleware/accountLockout';
 import { PortalAuthRequest } from '@middleware/portalAuth';
 import { logPortalActivity } from '@services/domains/integration';
 import * as portalAuthService from '@services/portalAuthService';
+import { type GuardFailure } from '@services/authGuardService';
 import * as portalPasswordResetService from '@services/portalPasswordResetService';
 import { badRequest, conflict, forbidden, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { clearPortalAuthCookie, setPortalAuthCookie } from '@utils/cookieHelper';
 import { shouldExposeAuthTokensInResponse } from '@utils/authResponse';
-import { sendSuccess } from '@modules/shared/http/envelope';
+import { sendError, sendSuccess } from '@modules/shared/http/envelope';
 import { issuePortalSessionToken } from '@utils/sessionTokens';
+import { getValidPortalInvitation } from '../lib/portalInvitationState';
 
 interface PortalSignupRequest {
   email: string;
@@ -38,6 +40,14 @@ const mapPortalSessionUser = (user: {
 
 const buildPortalToken = (payload: { id: string; email: string; contactId: string | null }) => {
   return issuePortalSessionToken(payload);
+};
+
+const sendInvitationFailure = (
+  res: Response,
+  error: GuardFailure,
+  correlationId?: string
+): Response => {
+  return sendError(res, error.code, error.message, error.statusCode, undefined, correlationId);
 };
 
 export const portalSignup = async (
@@ -193,10 +203,7 @@ export const portalForgotPassword = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { email } = req.body as { email?: string };
-    if (!email) {
-      return badRequest(res, 'Email is required');
-    }
+    const { email } = req.body as { email: string };
 
     await portalPasswordResetService.requestPortalPasswordReset(email);
 
@@ -216,10 +223,6 @@ export const validatePortalResetToken = async (
 ): Promise<Response | void> => {
   try {
     const { token } = req.params;
-    if (!token) {
-      return badRequest(res, 'Token is required');
-    }
-
     const portalUserId = await portalPasswordResetService.validatePortalResetToken(token);
 
     return sendSuccess(res, {
@@ -236,19 +239,10 @@ export const portalResetPassword = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { token, password, password_confirm } = req.body as {
-      token?: string;
-      password?: string;
-      password_confirm?: string;
+    const { token, password } = req.body as {
+      token: string;
+      password: string;
     };
-
-    if (!token || !password) {
-      return badRequest(res, 'Token and new password are required');
-    }
-
-    if (password !== password_confirm) {
-      return badRequest(res, 'Passwords do not match');
-    }
 
     const success = await portalPasswordResetService.resetPortalPassword(token, password);
     if (!success) {
@@ -274,20 +268,12 @@ export const validatePortalInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { token } = req.params;
-    const invitationToken = Array.isArray(token) ? token[0] : token;
-    const invitation = await portalAuthService.getPortalInvitationByToken(invitationToken);
-    if (!invitation) {
-      return notFoundMessage(res, 'Invitation not found');
+    const { token } = req.params as { token: string };
+    const invitationResult = await getValidPortalInvitation(token);
+    if (!invitationResult.ok) {
+      return sendInvitationFailure(res, invitationResult.error, req.correlationId);
     }
-
-    if (invitation.accepted_at) {
-      return badRequest(res, 'Invitation already accepted');
-    }
-
-    if (new Date(invitation.expires_at) < new Date()) {
-      return badRequest(res, 'Invitation expired');
-    }
+    const invitation = invitationResult.data.invitation;
 
     return sendSuccess(res, {
       valid: true,
@@ -308,26 +294,18 @@ export const acceptPortalInvitation = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const { token } = req.params;
-    const invitationToken = Array.isArray(token) ? token[0] : token;
+    const { token } = req.params as { token: string };
     const { firstName, lastName, password } = req.body as {
       firstName: string;
       lastName: string;
       password: string;
     };
 
-    const invitation = await portalAuthService.getPortalInvitationByToken(invitationToken);
-    if (!invitation) {
-      return notFoundMessage(res, 'Invitation not found');
+    const invitationResult = await getValidPortalInvitation(token);
+    if (!invitationResult.ok) {
+      return sendInvitationFailure(res, invitationResult.error, req.correlationId);
     }
-
-    if (invitation.accepted_at) {
-      return badRequest(res, 'Invitation already accepted');
-    }
-
-    if (new Date(invitation.expires_at) < new Date()) {
-      return badRequest(res, 'Invitation expired');
-    }
+    const invitation = invitationResult.data.invitation;
 
     const normalizedEmail = invitation.email.toLowerCase();
     const existingUserId = await portalAuthService.findPortalUserIdByEmail(normalizedEmail);

@@ -4,7 +4,7 @@
 # This replaces GitHub Actions with local commands.
 # All CI/CD operations can be run locally or via git hooks.
 
-.PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-e2e-docker-smoke test-coverage quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
+.PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-e2e-docker-smoke test-coverage test-coverage-full test-tooling quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-up-dev docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
@@ -26,15 +26,29 @@ DEV_ENV_FILE ?= .env.development
 COMPOSE_PROJECT_PROD ?= nonprofit-prod
 COMPOSE_PROJECT_DEV ?= nonprofit-dev
 COMPOSE_PROJECT_CI ?= nonprofit-ci
+COMPOSE_PROJECT_SMOKE ?= nonprofit-smoke
+DEV_DB_PORT ?= 8002
+DEV_REDIS_PORT ?= 8003
+DEV_BACKEND_PORT ?= 8004
+DEV_FRONTEND_PORT ?= 8005
+DEV_PUBLIC_SITE_PORT ?= 8006
+SMOKE_DB_PORT ?= 18002
+SMOKE_REDIS_PORT ?= 18003
+SMOKE_BACKEND_PORT ?= 18004
+SMOKE_FRONTEND_PORT ?= 18005
+SMOKE_PUBLIC_SITE_PORT ?= 18006
+KEEP_SMOKE_STACK ?= 0
 BACKEND_DOCKER_IMAGE ?= nonprofit-manager-backend:latest
 FRONTEND_DOCKER_IMAGE ?= nonprofit-manager-frontend:latest
-DOCKER_CONTRACTS_BUILD_CONTEXT ?= --build-context contracts=contracts
+DOCKER_WORKSPACE_BUILD_CONTEXT ?= --build-context workspace=.
 
 COMPOSE_PROD_ARGS := -p $(COMPOSE_PROJECT_PROD) --env-file $(PROD_ENV_FILE) -f docker-compose.yml
 COMPOSE_DEV_ARGS := -p $(COMPOSE_PROJECT_DEV) -f docker-compose.dev.yml
 COMPOSE_DEV_CADDY_ARGS := $(COMPOSE_DEV_ARGS) -f docker-compose.caddy.yml
+COMPOSE_DEV_SMOKE_ARGS := -p $(COMPOSE_PROJECT_SMOKE) -f docker-compose.dev.yml
 COMPOSE_CI_INFRA_ARGS := -p $(COMPOSE_PROJECT_CI) -f docker-compose.yml -f docker-compose.host-access.yml -f docker-compose.ci.yml
 E2E_NPM_RUN := cd e2e && npm run
+SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true
 
 #------------------------------------------------------------------------------
 # Help
@@ -79,11 +93,13 @@ help:
 	@echo "  make lint-route-catalog-drift Enforce routeCatalog stays aligned with registered routes"
 	@echo "  make lint-fix       Run linters and auto-fix issues"
 	@echo "  make typecheck      Run TypeScript type checking"
-	@echo "  make test           Run backend/frontend tests + host Playwright CI + Docker smoke gate"
-	@echo "  make test-coverage  Run backend/frontend coverage + host and Docker Playwright smoke gates"
+	@echo "  make test           Run backend/frontend tests + host Playwright CI + isolated Docker smoke gate"
+	@echo "  make test-coverage  Run backend/frontend coverage + host smoke + isolated Docker smoke gate"
+	@echo "  make test-coverage-full  Run backend/frontend coverage + host CI Playwright matrix + isolated Docker smoke gate"
+	@echo "  make test-tooling   Run the targeted tooling-contract regression tests"
 	@echo "  make quality-baseline Generate code quality baseline report"
 	@echo "  make check-links    Validate markdown links"
-	@echo "  make test-e2e-docker-smoke Run the Docker-backed Playwright smoke gate"
+	@echo "  make test-e2e-docker-smoke Run the Docker-backed Playwright smoke gate against the isolated smoke stack"
 	@echo ""
 	@echo "$(GREEN)CI Pipelines:$(RESET)"
 	@echo "  make ci             Run full CI (lint + typecheck + test + build)"
@@ -104,7 +120,7 @@ help:
 	@echo ""
 	@echo "$(GREEN)Database:$(RESET)"
 	@echo "  make db-migrate     Bootstrap or inspect the local database contract"
-	@echo "  make db-verify      Verify the isolated test database contract"
+	@echo "  make db-verify      Verify manifest/initdb parity and the isolated test database contract"
 	@echo ""
 	@echo "$(GREEN)Setup:$(RESET)"
 	@echo "  make hooks          Install git hooks for local CI"
@@ -131,10 +147,10 @@ install-dev: install hooks
 dev: docker-up-dev
 	@echo ""
 	@echo "$(GREEN)Development environment started!$(RESET)"
-	@echo "  Frontend: http://localhost:8005"
-	@echo "  Backend:  http://localhost:8004"
-	@echo "  Database: localhost:8002"
-	@echo "  Redis:    localhost:8003"
+	@echo "  Frontend: http://localhost:$(DEV_FRONTEND_PORT)"
+	@echo "  Backend:  http://localhost:$(DEV_BACKEND_PORT)"
+	@echo "  Database: localhost:$(DEV_DB_PORT)"
+	@echo "  Redis:    localhost:$(DEV_REDIS_PORT)"
 	@echo ""
 
 docker-up:
@@ -177,9 +193,9 @@ docker-up-caddy:
 	  echo "$(RED)Compose caddy stack is unavailable until the manifests are restored.$(RESET)"; \
 	  exit 1; \
 	fi
-	CADDY_BACKEND_UPSTREAM=host.docker.internal:8004 \
-	CADDY_FRONTEND_UPSTREAM=host.docker.internal:8005 \
-	CADDY_PUBLIC_SITE_UPSTREAM=host.docker.internal:8006 \
+	CADDY_BACKEND_UPSTREAM=host.docker.internal:$(DEV_BACKEND_PORT) \
+	CADDY_FRONTEND_UPSTREAM=host.docker.internal:$(DEV_FRONTEND_PORT) \
+	CADDY_PUBLIC_SITE_UPSTREAM=host.docker.internal:$(DEV_PUBLIC_SITE_PORT) \
 	CADDY_PUBLIC_SITE_DOMAIN=sites.localhost \
 	CADDY_DOMAIN=localhost \
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_CADDY_ARGS) up -d
@@ -214,18 +230,18 @@ docker-logs:
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) logs -f
 
 docker-build:
-	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
-	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
+	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
+	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
 	@echo "$(GREEN)Docker images built!$(RESET)"
 
 docker-rebuild:
-	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) --no-cache -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
-	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) --no-cache -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
+	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) --no-cache -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
+	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) --no-cache -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
 	@echo "$(GREEN)Docker images rebuilt without cache!$(RESET)"
 
 docker-validate:
-	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) --pull --no-cache -f backend/Dockerfile backend
-	docker build $(DOCKER_CONTRACTS_BUILD_CONTEXT) --pull --no-cache -f frontend/Dockerfile frontend
+	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) --pull --no-cache -f backend/Dockerfile backend
+	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) --pull --no-cache -f frontend/Dockerfile frontend
 	@echo "$(GREEN)Dockerfile validation complete!$(RESET)"
 
 #------------------------------------------------------------------------------
@@ -234,50 +250,8 @@ docker-validate:
 lint:
 	@echo "$(BLUE)Linting backend...$(RESET)"
 	cd backend && npm run lint
-	@echo "$(BLUE)Checking rate-limit key policy...$(RESET)"
-	node scripts/check-rate-limit-key-policy.ts
-	@echo "$(BLUE)Checking success envelope policy...$(RESET)"
-	node scripts/check-success-envelope-policy.ts
-	@echo "$(BLUE)Checking route validation policy...$(RESET)"
-	node scripts/check-route-validation-policy.ts
-	@echo "$(BLUE)Checking query contract policy...$(RESET)"
-	node scripts/check-query-contract-policy.ts
-	@echo "$(BLUE)Checking express-validator migration policy...$(RESET)"
-	node scripts/check-express-validator-policy.ts
-	@echo "$(BLUE)Checking controller SQL boundary policy...$(RESET)"
-	node scripts/check-controller-sql-policy.ts
-	@echo "$(BLUE)Checking legacy auth guard policy...$(RESET)"
-	node scripts/check-auth-guard-policy.ts
-	@echo "$(BLUE)Checking migration manifest policy...$(RESET)"
-	node scripts/check-migration-manifest-policy.ts
-	@echo "$(BLUE)Checking duplicate backend test paths...$(RESET)"
-	node scripts/check-duplicate-test-tree.ts
-	@echo "$(BLUE)Checking docs API versioning policy...$(RESET)"
-	node scripts/check-doc-api-versioning.ts
-	@echo "$(BLUE)Checking v2 module ownership policy...$(RESET)"
-	node scripts/check-v2-module-ownership-policy.ts
-	@echo "$(BLUE)Checking module boundary policy...$(RESET)"
-	node scripts/check-module-boundary-policy.ts
-	@echo "$(BLUE)Checking module route proxy policy...$(RESET)"
-	node scripts/check-module-route-proxy-policy.ts
-	@echo "$(BLUE)Checking canonical module import policy...$(RESET)"
-	node scripts/check-canonical-module-import-policy.ts
-	@echo "$(BLUE)Checking implementation size policy...$(RESET)"
-	node scripts/check-implementation-size-policy.ts
-	@echo "$(BLUE)Checking frontend feature boundary policy...$(RESET)"
-	node scripts/check-frontend-feature-boundary-policy.ts
-	@echo "$(BLUE)Checking frontend legacy slice import policy...$(RESET)"
-	node scripts/check-frontend-legacy-slice-import-policy.ts
-	@echo "$(BLUE)Checking frontend legacy page path policy...$(RESET)"
-	node scripts/check-frontend-legacy-page-path-policy.ts
-	@echo "$(BLUE)Checking route integrity...$(RESET)"
-	node scripts/check-route-integrity.ts
-	@echo "$(BLUE)Checking route catalog drift...$(RESET)"
-	node scripts/check-route-catalog-drift.ts
-	@echo "$(BLUE)Running UI audit baseline...$(RESET)"
-	node scripts/ui-audit.ts --enforce-baseline
-	@echo "$(BLUE)Checking backend legacy controller wrapper policy...$(RESET)"
-	node scripts/check-backend-legacy-controller-wrapper-policy.ts
+	@echo "$(BLUE)Running shared policy checks...$(RESET)"
+	bash scripts/run-policy-checks.sh
 	@echo "$(BLUE)Linting frontend...$(RESET)"
 	cd frontend && npm run lint
 	@echo "$(GREEN)Linting complete!$(RESET)"
@@ -429,6 +403,23 @@ test-coverage:
 	@$(MAKE) --no-print-directory test-e2e-docker-smoke
 	@echo "$(GREEN)Coverage reports and smoke gates complete!$(RESET)"
 
+test-coverage-full:
+	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
+	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
+	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
+	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
+	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
+	cd backend && npm test -- --coverage --runInBand
+	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
+	cd frontend && npm test -- --run --coverage
+	@echo "$(BLUE)Running Playwright E2E host CI matrix...$(RESET)"
+	$(E2E_NPM_RUN) test:ci
+	@$(MAKE) --no-print-directory test-e2e-docker-smoke
+	@echo "$(GREEN)Coverage reports and full behavior gates complete!$(RESET)"
+
+test-tooling:
+	node --test scripts/tests/tooling-contracts.test.cjs
+
 test-backend:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
@@ -443,11 +434,26 @@ test-e2e:
 	$(E2E_NPM_RUN) test:ci
 
 test-e2e-docker-smoke:
-	@echo "$(BLUE)Ensuring Docker app stack is running for Playwright smoke...$(RESET)"
-	@$(MAKE) --no-print-directory docker-up-dev
-	@echo "$(BLUE)Running Docker-backed Playwright smoke tests...$(RESET)"
-	$(E2E_NPM_RUN) test:docker:smoke
-	@echo "$(GREEN)Docker-backed Playwright smoke gate complete!$(RESET)"
+	@set -eu; \
+	cleanup() { \
+	  if [ "$${KEEP_SMOKE_STACK:-$(KEEP_SMOKE_STACK)}" = "1" ]; then \
+	    echo "$(YELLOW)Keeping isolated Docker smoke stack $(COMPOSE_PROJECT_SMOKE) on ports $(SMOKE_FRONTEND_PORT)/$(SMOKE_BACKEND_PORT)/$(SMOKE_PUBLIC_SITE_PORT).$(RESET)"; \
+	    return 0; \
+	  fi; \
+	  echo "$(BLUE)Stopping isolated Docker smoke stack $(COMPOSE_PROJECT_SMOKE)...$(RESET)"; \
+	  $(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) down --remove-orphans >/dev/null 2>&1 || true; \
+	}; \
+	trap cleanup EXIT; \
+	echo "$(BLUE)Starting isolated Docker smoke stack $(COMPOSE_PROJECT_SMOKE) on ports $(SMOKE_FRONTEND_PORT)/$(SMOKE_BACKEND_PORT)/$(SMOKE_PUBLIC_SITE_PORT)...$(RESET)"; \
+	$(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) up -d; \
+	echo "$(BLUE)Running Docker-backed Playwright smoke tests against the isolated stack...$(RESET)"; \
+	E2E_REQUIRED_PORTS="$(SMOKE_BACKEND_PORT) $(SMOKE_FRONTEND_PORT)" \
+	E2E_BACKEND_PORT=$(SMOKE_BACKEND_PORT) \
+	E2E_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) \
+	E2E_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) \
+	E2E_DB_PORT=$(SMOKE_DB_PORT) \
+	$(E2E_NPM_RUN) test:docker:smoke; \
+	echo "$(GREEN)Docker-backed Playwright smoke gate complete!$(RESET)"
 
 quality-baseline:
 	@./scripts/quality-baseline.sh
@@ -549,7 +555,7 @@ db-migrate:
 	@./scripts/db-migrate.sh
 
 db-verify:
-	@echo "$(BLUE)Verifying migrations...$(RESET)"
+	@echo "$(BLUE)Verifying the manifest/initdb contract and isolated test database...$(RESET)"
 	@./scripts/verify-migrations.sh
 
 #------------------------------------------------------------------------------

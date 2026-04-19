@@ -19,6 +19,13 @@ type DashboardSettingsSnapshot = {
   fetchedAt: number;
 };
 
+type DashboardSettingsSyncState = {
+  localFallback: DashboardSettings;
+  serverSnapshot: DashboardSettings | null;
+  hydrated: boolean;
+  dirty: boolean;
+};
+
 let dashboardSettingsSnapshot: DashboardSettingsSnapshot | null = null;
 let dashboardSettingsInFlight: Promise<DashboardSettings | null> | null = null;
 
@@ -39,6 +46,24 @@ const setDashboardSettingsSnapshot = (settings: DashboardSettings): void => {
     fetchedAt: Date.now(),
   };
 };
+
+const areDashboardSettingsEqual = (
+  left: DashboardSettings,
+  right: DashboardSettings
+): boolean =>
+  Object.keys(defaultDashboardSettings).every((key) => {
+    const settingKey = key as keyof DashboardSettings;
+    return left[settingKey] === right[settingKey];
+  });
+
+const createDashboardSettingsSyncState = (
+  localFallback: DashboardSettings
+): DashboardSettingsSyncState => ({
+  localFallback,
+  serverSnapshot: getFreshDashboardSettingsSnapshot(),
+  hydrated: false,
+  dirty: false,
+});
 
 const fetchServerDashboardSettings = async (): Promise<DashboardSettings | null> => {
   const freshSnapshot = getFreshDashboardSettingsSnapshot();
@@ -98,29 +123,89 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [settings, setSettingsState] = useState<DashboardSettings>(() => loadDashboardSettings());
   const [isLoading, setIsLoading] = useState(true);
+  const [syncState, setSyncStateState] = useState<DashboardSettingsSyncState>(() =>
+    createDashboardSettingsSyncState(loadDashboardSettings())
+  );
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  const settingsRef = useRef(settings);
+  const syncStateRef = useRef(syncState);
+
+  const setSyncState = useCallback(
+    (
+      updater:
+        | DashboardSettingsSyncState
+        | ((current: DashboardSettingsSyncState) => DashboardSettingsSyncState)
+    ) => {
+      setSyncStateState((current) => {
+        const nextState = typeof updater === 'function' ? updater(current) : updater;
+        syncStateRef.current = nextState;
+        return nextState;
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   // Load settings on mount
   useEffect(() => {
     isMountedRef.current = true;
     const localSettings = loadDashboardSettings();
     setSettingsState(localSettings);
-    setDashboardSettingsSnapshot(localSettings);
+    settingsRef.current = localSettings;
+    setSyncState((current) => ({
+      ...current,
+      localFallback: localSettings,
+      hydrated: false,
+      dirty: false,
+    }));
 
     const fetchServerSettings = async () => {
       try {
         if (!isAuthenticated) {
+          setSyncState((current) => ({
+            ...current,
+            hydrated: true,
+            dirty: false,
+          }));
           setIsLoading(false);
           return;
         }
         const serverSettings = await fetchServerDashboardSettings();
-        if (serverSettings && isMountedRef.current) {
-          setSettingsState(serverSettings);
-          saveDashboardSettings(serverSettings);
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        if (serverSettings) {
+          const shouldApplyServerSettings = !syncStateRef.current.dirty;
+          if (shouldApplyServerSettings) {
+            settingsRef.current = serverSettings;
+            setSettingsState(serverSettings);
+          }
+
+          setSyncState((current) => ({
+            localFallback: shouldApplyServerSettings ? serverSettings : current.localFallback,
+            serverSnapshot: serverSettings,
+            hydrated: true,
+            dirty: current.dirty,
+          }));
+        } else {
+          setSyncState((current) => ({
+            ...current,
+            hydrated: true,
+          }));
         }
       } catch {
         // Keep local settings if server fetch fails
+        if (isMountedRef.current) {
+          setSyncState((current) => ({
+            ...current,
+            hydrated: true,
+          }));
+        }
       } finally {
         if (isMountedRef.current) {
           setIsLoading(false);
@@ -133,46 +218,84 @@ export function useDashboardSettings(): UseDashboardSettingsResult {
     return () => {
       isMountedRef.current = false;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, setSyncState]);
+
+  useEffect(() => {
+    saveDashboardSettings(settings);
+  }, [settings]);
 
   // Save settings with debounce
   useEffect(() => {
-    if (isLoading) return;
-
-    saveDashboardSettings(settings);
+    if (!syncState.hydrated || !syncState.dirty || !isAuthenticated) {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      return undefined;
+    }
 
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
     }
 
+    const settingsToPersist = settings;
     saveTimerRef.current = setTimeout(async () => {
       try {
-        if (!isAuthenticated) return;
         await api.patch(`/auth/preferences/${DASHBOARD_SETTINGS_PREF_KEY}`, {
-          value: settings,
+          value: settingsToPersist,
         });
-        mergeUserPreferencesCached(DASHBOARD_SETTINGS_PREF_KEY, settings);
+        mergeUserPreferencesCached(DASHBOARD_SETTINGS_PREF_KEY, settingsToPersist);
         clearStaffBootstrapSnapshot();
-        setDashboardSettingsSnapshot(settings);
+        setDashboardSettingsSnapshot(settingsToPersist);
+        setSyncState({
+          localFallback: settingsRef.current,
+          serverSnapshot: settingsToPersist,
+          hydrated: true,
+          dirty: !areDashboardSettingsEqual(settingsRef.current, settingsToPersist),
+        });
       } catch {
         // Ignore save errors (local cache still updated)
+      } finally {
+        saveTimerRef.current = null;
       }
     }, SAVE_DEBOUNCE_MS);
 
     return () => {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
       }
     };
-  }, [settings, isLoading, isAuthenticated]);
+  }, [isAuthenticated, settings, setSyncState, syncState.dirty, syncState.hydrated]);
 
   const setSettings = useCallback((newSettings: DashboardSettings) => {
-    setSettingsState(newSettings);
-  }, []);
+    const normalizedSettings = normalizeDashboardSettings(newSettings);
+    if (areDashboardSettingsEqual(settingsRef.current, normalizedSettings)) {
+      return;
+    }
+
+    settingsRef.current = normalizedSettings;
+    setSettingsState(normalizedSettings);
+    setSyncState((current) => ({
+      ...current,
+      localFallback: normalizedSettings,
+      dirty: isAuthenticated ? true : current.dirty,
+    }));
+  }, [isAuthenticated, setSyncState]);
 
   const resetSettings = useCallback(() => {
+    if (areDashboardSettingsEqual(settingsRef.current, defaultDashboardSettings)) {
+      return;
+    }
+
+    settingsRef.current = defaultDashboardSettings;
     setSettingsState(defaultDashboardSettings);
-  }, []);
+    setSyncState((current) => ({
+      ...current,
+      localFallback: defaultDashboardSettings,
+      dirty: isAuthenticated ? true : current.dirty,
+    }));
+  }, [isAuthenticated, setSyncState]);
 
   return {
     settings,

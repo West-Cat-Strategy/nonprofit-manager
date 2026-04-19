@@ -1,16 +1,11 @@
-import pool from '@config/database';
+import { withUserContextTransaction } from '@config/database';
 import { logger } from '@config/logger';
 import { syncUserRole } from '@services/domains/integration';
 import { seedDefaultOrganizationAccess } from '@services/accountAccessService';
 import { sendMail } from '@services/emailService';
-import type { PoolClient } from 'pg';
 import { getRegistrationSettings } from './registrationSettingsUseCase';
 import { normalizeRoleSlug } from '@utils/roleSlug';
 import * as repo from '../repositories/pendingRegistrationRepository';
-
-const setApprovalAuditContext = async (client: PoolClient, userId: string): Promise<void> => {
-  await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
-};
 
 export async function approvePendingRegistration(
   id: string,
@@ -43,14 +38,9 @@ export async function approvePendingRegistration(
   const settings = await getRegistrationSettings();
   const normalizedRole = normalizeRoleSlug(settings.defaultRole) ?? settings.defaultRole;
 
-  // Use a transaction for the multi-step update
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await setApprovalAuditContext(client, reviewedBy);
-
+  const user = await withUserContextTransaction(reviewedBy, async (client) => {
     // Create the real user with the stored password hash
-    const user = await repo.createRealUser(
+    const createdUser = await repo.createRealUser(
       {
         email: pending.email,
         passwordHash: pending.password_hash,
@@ -64,36 +54,31 @@ export async function approvePendingRegistration(
     );
 
     // Sync role (internal integration)
-    await syncUserRole(user.id, user.role, client);
+    await syncUserRole(createdUser.id, createdUser.role, client);
     await seedDefaultOrganizationAccess(
       {
-        userId: user.id,
-        role: user.role,
+        userId: createdUser.id,
+        role: createdUser.role,
         grantedBy: reviewedBy,
       },
       client
     );
-    await repo.attachPendingRegistrationCredentialsToUser(id, user.id, client);
+    await repo.attachPendingRegistrationCredentialsToUser(id, createdUser.id, client);
 
     // Mark pending as approved
     await repo.updatePendingStatus(id, 'approved', reviewedBy, null, client);
 
-    await client.query('COMMIT');
+    return createdUser;
+  });
 
-    logger.info(`Pending registration approved: ${pending.email} by user ${reviewedBy}`);
+  logger.info(`Pending registration approved: ${pending.email} by user ${reviewedBy}`);
 
-    // Best-effort: notify user
-    sendApprovalEmail(pending.email, pending.first_name).catch((err) => {
-      logger.warn('Failed to send approval notification', err);
-    });
+  // Best-effort: notify user
+  sendApprovalEmail(pending.email, pending.first_name).catch((err) => {
+    logger.warn('Failed to send approval notification', err);
+  });
 
-    return { user };
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
+  return { user };
 }
 
 async function sendApprovalEmail(email: string, firstName: string | null): Promise<void> {

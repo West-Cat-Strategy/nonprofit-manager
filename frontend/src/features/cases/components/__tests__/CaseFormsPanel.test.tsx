@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import CaseFormsPanel from '../CaseFormsPanel';
 import { renderWithProviders } from '../../../../test/testUtils';
@@ -7,6 +7,8 @@ const listRecommendedDefaultsMock = vi.fn();
 const listAssignmentsMock = vi.fn();
 const getAssignmentMock = vi.fn();
 const sendMock = vi.fn();
+const showSuccessMock = vi.fn();
+const showErrorMock = vi.fn();
 
 vi.mock('../../api/caseFormsApiClient', () => ({
   staffCaseFormsApiClient: {
@@ -28,8 +30,8 @@ vi.mock('../../api/caseFormsApiClient', () => ({
 
 vi.mock('../../../../contexts/useToast', () => ({
   useToast: () => ({
-    showSuccess: vi.fn(),
-    showError: vi.fn(),
+    showSuccess: showSuccessMock,
+    showError: showErrorMock,
   }),
 }));
 
@@ -124,15 +126,20 @@ describe('CaseFormsPanel', () => {
       />
     );
 
+    await waitFor(() => {
+      expect(screen.queryByText(/loading forms/i)).not.toBeInTheDocument();
+    });
     expect(await screen.findByRole('button', { name: /copy link/i })).toBeInTheDocument();
 
-    const deliveryTargetSelect = screen.getAllByRole('combobox').at(-1);
-    expect(deliveryTargetSelect).toBeDefined();
-
-    fireEvent.change(deliveryTargetSelect as Element, {
+    const deliveryTargetSelect = screen.getByRole('combobox', { name: /delivery target/i });
+    fireEvent.change(deliveryTargetSelect, {
       target: { value: 'portal' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /send to portal/i }));
+    expect((deliveryTargetSelect as HTMLSelectElement).value).toBe('portal');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /send/i }));
+    });
 
     await waitFor(() => {
       expect(sendMock).toHaveBeenCalledWith('case-1', 'assignment-1', {

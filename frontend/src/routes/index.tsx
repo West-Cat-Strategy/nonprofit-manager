@@ -24,7 +24,6 @@ import {
   ThemeAudit,
 } from '../features/neoBrutalist/routeComponents';
 import { WorkbenchDashboard } from '../features/dashboard/routeComponents';
-import { ContactPrint } from '../features/contacts/routeComponents';
 import { PublicReportSnapshot } from '../features/savedReports/routeComponents';
 import { logout } from '../features/auth/state';
 import { portalLogout } from '../features/portalAuth/state';
@@ -32,7 +31,7 @@ import { PublicEventCheckInPage, PublicEventsPage } from '../features/events/rou
 import { RecurringDonationCheckoutResult } from '../features/finance/routeComponents';
 
 // Import route creators
-import { createPeopleRoutes } from './peopleRoutes';
+import { createPeopleRoutes, createStandalonePeopleRoutes } from './peopleRoutes';
 import { createEngagementRoutes } from './engagementRoutes';
 import { createFinanceRoutes } from './financeRoutes';
 import { createGrantsRoutes } from './grantsRoutes';
@@ -93,14 +92,7 @@ const AppRoutes = () => {
           path="/recurring-donations/checkout-result"
           element={<RecurringDonationCheckoutResult />}
         />
-        <Route
-          path="/contacts/:id/print"
-          element={
-            <ProtectedRoute>
-              <ContactPrint />
-            </ProtectedRoute>
-          }
-        />
+        {createStandalonePeopleRoutes(ProtectedRoute)}
         {createPortalPublicRoutes()}
       </Route>
 

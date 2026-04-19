@@ -173,6 +173,7 @@ describe('WebsiteIntegrationsPage', () => {
         })
       );
     });
+    expect(thunkMocks.fetchWebsiteIntegrations).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Mautic settings saved.')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Donation provider'), {
@@ -198,6 +199,7 @@ describe('WebsiteIntegrationsPage', () => {
         })
       );
     });
+    expect(thunkMocks.fetchWebsiteIntegrations).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Donation provider settings saved.')).toBeInTheDocument();
   });
 
@@ -240,6 +242,7 @@ describe('WebsiteIntegrationsPage', () => {
         })
       );
     });
+    expect(thunkMocks.fetchWebsiteIntegrations).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Mailchimp settings saved.')).toBeInTheDocument();
   });
 });

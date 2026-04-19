@@ -15,6 +15,7 @@ describe('EventOccurrenceService.syncOccurrencesForEvent', () => {
     const scheduledStart = new Date('2026-06-15T18:00:00.000Z');
     const seriesRow = {
       event_id: 'event-1',
+      organization_id: 'acct-1',
       event_name: 'Community Clinic',
       description: null,
       status: EventStatus.PLANNED,
@@ -48,6 +49,10 @@ describe('EventOccurrenceService.syncOccurrencesForEvent', () => {
       .mockResolvedValueOnce({ rows: [], rowCount: 1 });
 
     await service.syncOccurrencesForEvent('event-1');
+
+    const insertCall = mockQuery.mock.calls[1] as [string, unknown[]];
+    expect(insertCall[0]).toContain('organization_id');
+    expect(insertCall[1][1]).toBe('acct-1');
 
     const deleteCall = mockQuery.mock.calls[2] as [string, unknown[]];
     expect(deleteCall[0]).toContain('scheduled_start_date = ANY($2::timestamptz[])');

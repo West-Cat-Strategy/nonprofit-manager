@@ -118,8 +118,11 @@ export class EventRegistrationService {
     return checkInAttendeeMutation(this.context, registrationId, options);
   }
 
-  async cancelRegistration(registrationId: string): Promise<void> {
-    return cancelRegistrationMutation(this.context, registrationId);
+  async cancelRegistration(
+    registrationId: string,
+    context: EventRegistrationMutationContext = {}
+  ): Promise<void> {
+    return cancelRegistrationMutation(this.context, registrationId, context);
   }
 
   async getEventCheckInSettings(

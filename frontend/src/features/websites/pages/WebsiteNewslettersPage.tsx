@@ -13,7 +13,6 @@ import {
   clearWebsitesError,
   createWebsiteNewsletterListPreset,
   fetchWebsiteNewsletterWorkspace,
-  fetchWebsiteOverview,
   refreshWebsiteNewsletterWorkspace,
   selectWebsiteIntegrations,
   updateWebsiteNewsletterIntegration,
@@ -127,8 +126,6 @@ const WebsiteNewslettersPage: React.FC = () => {
     );
 
     if (updateWebsiteNewsletterIntegration.fulfilled.match(result)) {
-      await dispatch(fetchWebsiteNewsletterWorkspace(siteId));
-      void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
       setNotice({
         tone: 'success',
         message:
@@ -151,7 +148,6 @@ const WebsiteNewslettersPage: React.FC = () => {
     setNotice(null);
     const result = await dispatch(refreshWebsiteNewsletterWorkspace(siteId));
     if (refreshWebsiteNewsletterWorkspace.fulfilled.match(result)) {
-      await dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
       setNotice({ tone: 'success', message: 'Newsletter workspace refreshed.' });
     } else {
       setNotice({
@@ -203,7 +199,6 @@ const WebsiteNewslettersPage: React.FC = () => {
       (editingPresetId && updateWebsiteNewsletterListPreset.fulfilled.match(result)) ||
       (!editingPresetId && createWebsiteNewsletterListPreset.fulfilled.match(result))
     ) {
-      await dispatch(fetchWebsiteNewsletterWorkspace(siteId));
       setEditingPresetId(null);
       setPresetDraft(emptyPresetDraft);
       setNotice({
@@ -223,7 +218,6 @@ const WebsiteNewslettersPage: React.FC = () => {
     setNotice(null);
     const result = await dispatch(deleteWebsiteNewsletterListPreset({ siteId, listId: presetId }));
     if (deleteWebsiteNewsletterListPreset.fulfilled.match(result)) {
-      await dispatch(fetchWebsiteNewsletterWorkspace(siteId));
       setNotice({ tone: 'success', message: 'Newsletter list deleted.' });
     } else {
       setNotice({
@@ -250,7 +244,6 @@ const WebsiteNewslettersPage: React.FC = () => {
         },
       })
     );
-    void dispatch(fetchWebsiteNewsletterWorkspace(siteId));
   };
 
   const startEditPreset = (preset: WebsiteNewsletterListPreset) => {

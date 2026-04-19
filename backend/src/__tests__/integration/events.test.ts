@@ -1,5 +1,6 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import { Client } from 'pg';
 import app from '../../index';
 import pool from '../../config/database';
 import { getJwtSecret } from '../../config/jwt';
@@ -9,6 +10,10 @@ describe('Event API Integration Tests', () => {
   let adminUserId: string;
   let managerAuthToken: string;
   let managerUserId: string;
+  let organizationId: string;
+  let secondaryOrganizationId: string;
+  const createdAccountIds: string[] = [];
+  const createdDataScopeIds: string[] = [];
   const createdContactIds: string[] = [];
   const createdScopedEventIds: string[] = [];
   const createdScopedRegistrationIds: string[] = [];
@@ -19,6 +24,17 @@ describe('Event API Integration Tests', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const unwrap = <T>(body: { data?: T } | T): T =>
     (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
+  const createAppRoleClient = async (): Promise<Client> => {
+    const client = new Client({
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: Number.parseInt(process.env.DB_PORT || '8012', 10),
+      database: process.env.DB_NAME || 'nonprofit_manager_test',
+      user: process.env.APP_DB_USER || process.env.DB_APP_USER || 'nonprofit_app_user',
+      password: process.env.APP_DB_PASSWORD || process.env.DB_APP_PASSWORD || 'nonprofit_app_password',
+    });
+    await client.connect();
+    return client;
+  };
   const expectCanonicalError = (response: request.Response, code: string): void => {
     expect(response.body).toMatchObject({
       success: false,
@@ -87,11 +103,13 @@ describe('Event API Integration Tests', () => {
   const insertOccurrenceForEvent = async (
     eventId: string,
     eventName: string,
-    userId: string
+    userId: string,
+    organizationIdOverride: string
   ): Promise<string> => {
     const result = await pool.query<{ id: string }>(
       `INSERT INTO event_occurrences (
          event_id,
+         organization_id,
          sequence_index,
          scheduled_start_date,
          scheduled_end_date,
@@ -104,18 +122,19 @@ describe('Event API Integration Tests', () => {
        )
        VALUES (
          $1,
+         $2,
          0,
          NOW() + interval '1 day',
          NOW() + interval '1 day 2 hours',
          NOW() + interval '1 day',
          NOW() + interval '1 day 2 hours',
          'planned',
-         $2,
          $3,
-         $3
+         $4,
+         $4
        )
        RETURNING id`,
-      [eventId, eventName, userId]
+      [eventId, organizationIdOverride, eventName, userId]
     );
 
     return result.rows[0].id;
@@ -131,9 +150,6 @@ describe('Event API Integration Tests', () => {
     );
 
     adminUserId = adminUserResult.rows[0].id;
-    authToken = jwt.sign({ id: adminUserId, email: adminEmail, role: 'admin' }, getJwtSecret(), {
-      expiresIn: '1h',
-    });
 
     const managerEmail = `event-manager-${unique()}@example.com`;
     const managerUserResult = await pool.query<{ id: string }>(
@@ -143,15 +159,42 @@ describe('Event API Integration Tests', () => {
       [managerEmail, '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG']
     );
     managerUserId = managerUserResult.rows[0].id;
-    managerAuthToken = jwt.sign(
-      { id: managerUserId, email: managerEmail, role: 'manager' },
+    createdUserIds.push(managerUserId);
+
+    const orgResult = await pool.query<{ id: string }>(
+      `INSERT INTO accounts (account_name, account_type, is_active, created_by, modified_by, created_at, updated_at)
+       VALUES ($1, 'organization', true, $2, $2, NOW(), NOW())
+       RETURNING id`,
+      [`Events Org ${unique()}`, adminUserId]
+    );
+    organizationId = orgResult.rows[0].id;
+    createdAccountIds.push(organizationId);
+
+    const secondaryOrgResult = await pool.query<{ id: string }>(
+      `INSERT INTO accounts (account_name, account_type, is_active, created_by, modified_by, created_at, updated_at)
+       VALUES ($1, 'organization', true, $2, $2, NOW(), NOW())
+       RETURNING id`,
+      [`Events Org Secondary ${unique()}`, adminUserId]
+    );
+    secondaryOrganizationId = secondaryOrgResult.rows[0].id;
+    createdAccountIds.push(secondaryOrganizationId);
+
+    authToken = jwt.sign(
+      { id: adminUserId, email: adminEmail, role: 'admin', organizationId },
       getJwtSecret(),
       { expiresIn: '1h' }
     );
-    createdUserIds.push(managerUserId);
+    managerAuthToken = jwt.sign(
+      { id: managerUserId, email: managerEmail, role: 'manager', organizationId },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
   });
 
   afterAll(async () => {
+    if (createdDataScopeIds.length > 0) {
+      await pool.query('DELETE FROM data_scopes WHERE id = ANY($1::uuid[])', [createdDataScopeIds]);
+    }
     if (createdContactIds.length > 0) {
       await pool.query(
         `DELETE FROM activity_events
@@ -180,8 +223,14 @@ describe('Event API Integration Tests', () => {
     }
 
     if (createdTemplateIds.length > 0) {
-      await pool.query('DELETE FROM template_pages WHERE template_id = ANY($1::uuid[])', [createdTemplateIds]);
+      await pool.query('DELETE FROM template_pages WHERE template_id = ANY($1::uuid[])', [
+        createdTemplateIds,
+      ]);
       await pool.query('DELETE FROM templates WHERE id = ANY($1::uuid[])', [createdTemplateIds]);
+    }
+
+    if (createdAccountIds.length > 0) {
+      await pool.query('DELETE FROM accounts WHERE id = ANY($1::uuid[])', [createdAccountIds]);
     }
 
     if (createdUserIds.length > 0) {
@@ -189,9 +238,167 @@ describe('Event API Integration Tests', () => {
     }
 
     if (adminUserId) {
-      await pool.query('DELETE FROM events WHERE created_by = $1 OR modified_by = $1', [adminUserId]);
+      await pool.query('DELETE FROM events WHERE created_by = $1 OR modified_by = $1', [
+        adminUserId,
+      ]);
       await pool.query('DELETE FROM users WHERE id = $1', [adminUserId]);
     }
+  });
+
+  describe('database RLS contract', () => {
+    it('prevents cross-organization event reads and writes for the app role', async () => {
+      await pool.query(
+        `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+         VALUES ($1, $2, 'editor', $3, true)
+         ON CONFLICT (user_id, account_id) DO UPDATE
+         SET access_level = EXCLUDED.access_level,
+             granted_by = EXCLUDED.granted_by,
+             is_active = EXCLUDED.is_active`,
+        [managerUserId, organizationId, adminUserId]
+      );
+
+      const allowedEventName = `RLS Allowed Event ${unique()}`;
+      const allowedEventResult = await pool.query<{ id: string }>(
+        `INSERT INTO events (organization_id, name, event_type, start_date, end_date, created_by, modified_by)
+         VALUES ($1, $2, 'community', NOW() + interval '1 day', NOW() + interval '1 day 2 hours', $3, $3)
+         RETURNING id`,
+        [organizationId, allowedEventName, adminUserId]
+      );
+      const allowedEventId = allowedEventResult.rows[0].id;
+      createdScopedEventIds.push(allowedEventId);
+
+      const blockedEventName = `RLS Blocked Event ${unique()}`;
+      const blockedEventResult = await pool.query<{ id: string }>(
+        `INSERT INTO events (organization_id, name, event_type, start_date, end_date, created_by, modified_by)
+         VALUES ($1, $2, 'community', NOW() + interval '1 day', NOW() + interval '1 day 2 hours', $3, $3)
+         RETURNING id`,
+        [secondaryOrganizationId, blockedEventName, adminUserId]
+      );
+      const blockedEventId = blockedEventResult.rows[0].id;
+      createdScopedEventIds.push(blockedEventId);
+
+      const allowedOccurrenceId = await insertOccurrenceForEvent(
+        allowedEventId,
+        allowedEventName,
+        adminUserId,
+        organizationId
+      );
+      const blockedOccurrenceId = await insertOccurrenceForEvent(
+        blockedEventId,
+        blockedEventName,
+        adminUserId,
+        secondaryOrganizationId
+      );
+
+      const appClient = await createAppRoleClient();
+
+      try {
+        await appClient.query("SELECT set_config('app.current_user_id', $1, false)", [managerUserId]);
+
+        const visibleEvents = await appClient.query<{ id: string }>(
+          `SELECT id
+           FROM events
+           WHERE id = ANY($1::uuid[])
+           ORDER BY id`,
+          [[allowedEventId, blockedEventId]]
+        );
+        expect(visibleEvents.rows.map((row) => row.id)).toEqual([allowedEventId]);
+
+        const visibleOccurrences = await appClient.query<{ id: string }>(
+          `SELECT id
+           FROM event_occurrences
+           WHERE id = ANY($1::uuid[])
+           ORDER BY id`,
+          [[allowedOccurrenceId, blockedOccurrenceId]]
+        );
+        expect(visibleOccurrences.rows.map((row) => row.id)).toEqual([allowedOccurrenceId]);
+
+        const writableEventName = `RLS Writable Event ${unique()}`;
+        const writableEventResult = await appClient.query<{ id: string }>(
+          `INSERT INTO events (organization_id, name, event_type, start_date, end_date, created_by, modified_by)
+           VALUES ($1, $2, 'community', NOW() + interval '2 day', NOW() + interval '2 day 2 hours', $3, $3)
+           RETURNING id`,
+          [organizationId, writableEventName, managerUserId]
+        );
+        const writableEventId = writableEventResult.rows[0].id;
+        createdScopedEventIds.push(writableEventId);
+
+        const writableOccurrenceResult = await appClient.query<{ id: string }>(
+          `INSERT INTO event_occurrences (
+             event_id,
+             organization_id,
+             sequence_index,
+             scheduled_start_date,
+             scheduled_end_date,
+             start_date,
+             end_date,
+             status,
+             event_name,
+             created_by,
+             modified_by
+           )
+           VALUES (
+             $1,
+             $2,
+             0,
+             NOW() + interval '2 day',
+             NOW() + interval '2 day 2 hours',
+             NOW() + interval '2 day',
+             NOW() + interval '2 day 2 hours',
+             'planned',
+             $3,
+             $4,
+             $4
+           )
+           RETURNING id`,
+          [writableEventId, organizationId, writableEventName, managerUserId]
+        );
+        expect(writableOccurrenceResult.rows[0]?.id).toBeTruthy();
+
+        await expect(
+          appClient.query(
+            `INSERT INTO events (organization_id, name, event_type, start_date, end_date, created_by, modified_by)
+             VALUES ($1, $2, 'community', NOW() + interval '3 day', NOW() + interval '3 day 2 hours', $3, $3)`,
+            [secondaryOrganizationId, `RLS Rejected Event ${unique()}`, managerUserId]
+          )
+        ).rejects.toThrow(/row-level security|permission denied/i);
+
+        await expect(
+          appClient.query(
+            `INSERT INTO event_occurrences (
+               event_id,
+               organization_id,
+               sequence_index,
+               scheduled_start_date,
+               scheduled_end_date,
+               start_date,
+               end_date,
+               status,
+               event_name,
+               created_by,
+               modified_by
+             )
+             VALUES (
+               $1,
+               $2,
+               99,
+               NOW() + interval '3 day',
+               NOW() + interval '3 day 2 hours',
+               NOW() + interval '3 day',
+               NOW() + interval '3 day 2 hours',
+               'planned',
+               $3,
+               $4,
+               $4
+             )`,
+            [blockedEventId, secondaryOrganizationId, blockedEventName, managerUserId]
+          )
+        ).rejects.toThrow(/row-level security|permission denied|must have an organization/i);
+      } finally {
+        await appClient.query('RESET app.current_user_id').catch(() => undefined);
+        await appClient.end();
+      }
+    });
   });
 
   describe('POST /api/v2/events', () => {
@@ -210,7 +417,9 @@ describe('Event API Integration Tests', () => {
         })
         .expect(201);
 
-      const event = unwrap<{ event_id: string; event_name: string; event_type: string }>(response.body);
+      const event = unwrap<{ event_id: string; event_name: string; event_type: string }>(
+        response.body
+      );
       expect(response.body).toMatchObject({
         success: true,
         data: {
@@ -253,7 +462,9 @@ describe('Event API Integration Tests', () => {
         })
         .expect(201);
 
-      const event = unwrap<{ event_id: string; event_name: string; event_type: string }>(response.body);
+      const event = unwrap<{ event_id: string; event_name: string; event_type: string }>(
+        response.body
+      );
       expect(response.body).toMatchObject({
         success: true,
         data: {
@@ -605,7 +816,9 @@ describe('Event API Integration Tests', () => {
         })
         .expect(200);
 
-      const event = unwrap<{ event_name: string; location_name: string; status: string }>(response.body);
+      const event = unwrap<{ event_name: string; location_name: string; status: string }>(
+        response.body
+      );
       expect(event.event_name).toBe('Updated Event Name');
       expect(event.location_name).toBe('New Location');
       expect(event.status).toBe('active');
@@ -732,28 +945,18 @@ describe('Event API Integration Tests', () => {
   });
 
   describe('GET /api/v2/events/registrations?contact_id=', () => {
-    it('enforces created_by data scope filtering for contact registration listing', async () => {
-      const outOfScopeCreator = await pool.query<{ id: string }>(
-        `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
-         VALUES ($1, $2, 'Scope', 'Blocked', 'staff', NOW(), NOW())
+    it('enforces account data scope filtering for contact registration listing', async () => {
+      const dataScopeResult = await pool.query<{ id: string }>(
+        `INSERT INTO data_scopes (name, resource, scope_filter, user_id, priority, is_active)
+         VALUES ($1, 'events', $2::jsonb, $3, 1000, true)
          RETURNING id`,
         [
-          `event-scope-blocked-${unique()}@example.com`,
-          '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG',
-        ]
-      );
-      const outOfScopeCreatorId = outOfScopeCreator.rows[0].id;
-      createdUserIds.push(outOfScopeCreatorId);
-
-      await pool.query(
-        `INSERT INTO data_scopes (name, resource, scope_filter, user_id, priority, is_active)
-         VALUES ($1, 'events', $2::jsonb, $3, 1000, true)`,
-        [
           `events-scope-${unique()}`,
-          JSON.stringify({ createdByUserIds: [adminUserId] }),
+          JSON.stringify({ accountIds: [organizationId] }),
           managerUserId,
         ]
       );
+      createdDataScopeIds.push(dataScopeResult.rows[0].id);
 
       const contactResult = await pool.query<{ id: string }>(
         `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
@@ -766,32 +969,34 @@ describe('Event API Integration Tests', () => {
 
       const allowedEventName = `Scope Allowed Event ${unique()}`;
       const allowedEventResult = await pool.query<{ id: string }>(
-        `INSERT INTO events (name, event_type, start_date, end_date, created_by, modified_by)
-         VALUES ($1, 'community', NOW() + interval '1 day', NOW() + interval '1 day 2 hours', $2, $2)
+        `INSERT INTO events (organization_id, name, event_type, start_date, end_date, created_by, modified_by)
+         VALUES ($1, $2, 'community', NOW() + interval '1 day', NOW() + interval '1 day 2 hours', $3, $3)
          RETURNING id`,
-        [allowedEventName, adminUserId]
+        [organizationId, allowedEventName, adminUserId]
       );
       const allowedEventId = allowedEventResult.rows[0].id;
       createdScopedEventIds.push(allowedEventId);
       const allowedOccurrenceId = await insertOccurrenceForEvent(
         allowedEventId,
         allowedEventName,
-        adminUserId
+        adminUserId,
+        organizationId
       );
 
       const blockedEventName = `Scope Blocked Event ${unique()}`;
       const blockedEventResult = await pool.query<{ id: string }>(
-        `INSERT INTO events (name, event_type, start_date, end_date, created_by, modified_by)
-         VALUES ($1, 'community', NOW() + interval '1 day', NOW() + interval '1 day 2 hours', $2, $2)
+        `INSERT INTO events (organization_id, name, event_type, start_date, end_date, created_by, modified_by)
+         VALUES ($1, $2, 'community', NOW() + interval '1 day', NOW() + interval '1 day 2 hours', $3, $3)
          RETURNING id`,
-        [blockedEventName, outOfScopeCreatorId]
+        [secondaryOrganizationId, blockedEventName, adminUserId]
       );
       const blockedEventId = blockedEventResult.rows[0].id;
       createdScopedEventIds.push(blockedEventId);
       const blockedOccurrenceId = await insertOccurrenceForEvent(
         blockedEventId,
         blockedEventName,
-        outOfScopeCreatorId
+        adminUserId,
+        secondaryOrganizationId
       );
 
       const allowedRegistrationResult = await pool.query<{ id: string }>(
@@ -818,7 +1023,9 @@ describe('Event API Integration Tests', () => {
         .set('Authorization', `Bearer ${managerAuthToken}`)
         .expect(200);
 
-      const registrations = unwrap<Array<{ registration_id: string; event_id: string }>>(response.body);
+      const registrations = unwrap<Array<{ registration_id: string; event_id: string }>>(
+        response.body
+      );
       expect(registrations).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1130,7 +1337,9 @@ describe('Event API Integration Tests', () => {
         })
         .expect(201);
 
-      const registrationId = unwrap<{ registration_id: string }>(registrationResponse.body).registration_id;
+      const registrationId = unwrap<{ registration_id: string }>(
+        registrationResponse.body
+      ).registration_id;
       createdScopedRegistrationIds.push(registrationId);
 
       const queryScopeResponse = await request(app)
@@ -1182,7 +1391,9 @@ describe('Event API Integration Tests', () => {
       expect(registrations).toHaveLength(3);
 
       await request(app)
-        .put(`/api/v2/events/registrations/${registrations[1].registration_id}?scope=future_occurrences`)
+        .put(
+          `/api/v2/events/registrations/${registrations[1].registration_id}?scope=future_occurrences`
+        )
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           registration_status: 'cancelled',
@@ -1196,7 +1407,11 @@ describe('Event API Integration Tests', () => {
         'cancelled',
         'cancelled',
       ]);
-      expect(updatedRegistrations.map((row) => row.notes)).toEqual([null, 'Paused after intake', 'Paused after intake']);
+      expect(updatedRegistrations.map((row) => row.notes)).toEqual([
+        null,
+        'Paused after intake',
+        'Paused after intake',
+      ]);
 
       const occurrenceCounts = await pool.query<{ registered_count: number }>(
         `SELECT registered_count
@@ -1287,7 +1502,10 @@ describe('Event API Integration Tests', () => {
         .expect(201);
 
       const primaryRegistrations = await listRegistrationsForContact(eventId, primaryContactId);
-      const waitlistedRegistrations = await listRegistrationsForContact(eventId, waitlistedContactId);
+      const waitlistedRegistrations = await listRegistrationsForContact(
+        eventId,
+        waitlistedContactId
+      );
 
       expect(waitlistedRegistrations.map((row) => row.registration_status)).toEqual([
         'waitlisted',
@@ -1303,7 +1521,10 @@ describe('Event API Integration Tests', () => {
         })
         .expect(200);
 
-      const updatedPrimaryRegistrations = await listRegistrationsForContact(eventId, primaryContactId);
+      const updatedPrimaryRegistrations = await listRegistrationsForContact(
+        eventId,
+        primaryContactId
+      );
       const promotedRegistrations = await listRegistrationsForContact(eventId, waitlistedContactId);
 
       expect(updatedPrimaryRegistrations.map((row) => row.registration_status)).toEqual([
@@ -1705,7 +1926,13 @@ describe('Event API Integration Tests', () => {
           published_at
         ) VALUES ($1, $2, $3, $4, $5, '{}'::jsonb, 'v1', NOW())
         RETURNING id`,
-        [args.userId, args.templateId, `${args.subdomain} site`, args.subdomain, args.status ?? 'published']
+        [
+          args.userId,
+          args.templateId,
+          `${args.subdomain} site`,
+          args.subdomain,
+          args.status ?? 'published',
+        ]
       );
       const siteId = result.rows[0].id;
       createdSiteIds.push(siteId);
@@ -1713,8 +1940,14 @@ describe('Event API Integration Tests', () => {
     };
 
     it('returns owner-scoped public events and supports include_past/type/search filters', async () => {
-      const adminTemplateId = await createTemplateForUser(adminUserId, `public-catalog-admin-${unique()}`);
-      const managerTemplateId = await createTemplateForUser(managerUserId, `public-catalog-manager-${unique()}`);
+      const adminTemplateId = await createTemplateForUser(
+        adminUserId,
+        `public-catalog-admin-${unique()}`
+      );
+      const managerTemplateId = await createTemplateForUser(
+        managerUserId,
+        `public-catalog-manager-${unique()}`
+      );
       const adminSiteKey = `evtpub-a-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
       const managerSiteKey = `evtpub-b-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
@@ -1737,10 +1970,14 @@ describe('Event API Integration Tests', () => {
           event_type: 'fundraiser',
           is_public: true,
           start_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-          end_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(
+            Date.now() + 3 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000
+          ).toISOString(),
         })
         .expect(201);
-      const upcomingFundraiserId = unwrap<{ event_id: string }>(upcomingFundraiserResponse.body).event_id;
+      const upcomingFundraiserId = unwrap<{ event_id: string }>(
+        upcomingFundraiserResponse.body
+      ).event_id;
       createdScopedEventIds.push(upcomingFundraiserId);
 
       const pastFundraiserResponse = await request(app)
@@ -1751,7 +1988,9 @@ describe('Event API Integration Tests', () => {
           event_type: 'fundraiser',
           is_public: true,
           start_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          end_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(
+            Date.now() - 5 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000
+          ).toISOString(),
         })
         .expect(201);
       const pastFundraiserId = unwrap<{ event_id: string }>(pastFundraiserResponse.body).event_id;
@@ -1765,7 +2004,9 @@ describe('Event API Integration Tests', () => {
           event_type: 'fundraiser',
           is_public: false,
           start_date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-          end_date: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(
+            Date.now() + 4 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000
+          ).toISOString(),
         })
         .expect(201);
       const privateEventId = unwrap<{ event_id: string }>(privateEventResponse.body).event_id;
@@ -1779,7 +2020,9 @@ describe('Event API Integration Tests', () => {
           event_type: 'fundraiser',
           is_public: true,
           start_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-          end_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(
+            Date.now() + 5 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000
+          ).toISOString(),
         })
         .expect(201);
       const managerEventId = unwrap<{ event_id: string }>(managerEventResponse.body).event_id;
@@ -1854,9 +2097,10 @@ describe('Event API Integration Tests', () => {
         })
         .expect(200);
 
-      const data = unwrap<{ items: Array<{ event_id: string }>; site: { subdomain: string | null } }>(
-        response.body
-      );
+      const data = unwrap<{
+        items: Array<{ event_id: string }>;
+        site: { subdomain: string | null };
+      }>(response.body);
       expect(data.site.subdomain).toBe(siteKey);
       expect(data.items.map((item) => item.event_id)).toContain(eventId);
     });
@@ -1905,9 +2149,11 @@ describe('Event API Integration Tests', () => {
       const infoResponse = await request(app)
         .get(`/api/v2/public/events/${eventId}/check-in`)
         .expect(200);
-      const info = unwrap<{ event_id: string; public_checkin_enabled: boolean; checkin_open: boolean }>(
-        infoResponse.body
-      );
+      const info = unwrap<{
+        event_id: string;
+        public_checkin_enabled: boolean;
+        checkin_open: boolean;
+      }>(infoResponse.body);
       expect(info.event_id).toBe(eventId);
       expect(info.public_checkin_enabled).toBe(true);
       expect(info.checkin_open).toBe(true);

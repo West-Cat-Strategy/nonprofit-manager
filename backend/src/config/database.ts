@@ -62,8 +62,10 @@ const config: PoolConfig = {
   database: process.env.DB_NAME || 'nonprofit_manager',
   user:
     process.env.DB_USER ||
-    (process.env.NODE_ENV === 'production' ? 'nonprofit_app_user_prod' : 'postgres'),
-  password: process.env.DB_PASSWORD || 'postgres',
+    (process.env.NODE_ENV === 'production' ? 'nonprofit_app_user_prod' : 'nonprofit_app_user'),
+  password:
+    process.env.DB_PASSWORD ??
+    (process.env.NODE_ENV === 'production' ? undefined : 'nonprofit_app_password'),
   max: DATABASE.POOL_MAX_CONNECTIONS,
   idleTimeoutMillis: DATABASE.IDLE_TIMEOUT_MS,
   connectionTimeoutMillis: DATABASE.CONNECTION_TIMEOUT_MS,
@@ -75,27 +77,48 @@ const config: PoolConfig = {
   ssl: resolveDatabaseSslConfig(),
 };
 
-const pool = new Pool(config);
+const rawPool = new Pool(config);
 
-const originalQuery = pool.query.bind(pool);
+const originalQuery = rawPool.query.bind(rawPool);
+type DatabaseQuery = typeof rawPool.query;
 
 /**
  * Executes a query directly against the pool without RLS transaction overhead.
  * Use for public data, health checks, or when RLS is not required.
  */
-export const fastQuery: typeof pool.query = originalQuery;
+export const fastQuery: DatabaseQuery = originalQuery;
+
+export const setCurrentUserId = async (
+  client: Pick<PoolClient, 'query'>,
+  userId: string,
+  options: { local?: boolean } = {}
+): Promise<void> => {
+  await client.query(
+    options.local
+      ? `SELECT set_config('app.current_user_id', $1, true)`
+      : `SELECT set_config('app.current_user_id', $1, false)`,
+    [userId]
+  );
+};
+
+export const resetCurrentUserId = async (client: Pick<PoolClient, 'query'>): Promise<void> => {
+  await client.query('RESET app.current_user_id');
+};
 
 /**
- * Execute multiple queries within a single RLS context transaction.
+ * Execute multiple queries within a single transaction and optionally bind
+ * the authenticated user once for every statement in that transaction.
  */
-export async function withRLSContext<T>(
-  userId: string,
-  fn: (client: PoolClient) => Promise<T>
+export async function withDatabaseTransaction<T>(
+  fn: (client: PoolClient) => Promise<T>,
+  options: { userId?: string | null } = {}
 ): Promise<T> {
-  const client = await pool.connect();
+  const client = await rawPool.connect();
   try {
     await client.query('BEGIN');
-    await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
+    if (options.userId) {
+      await setCurrentUserId(client, options.userId, { local: true });
+    }
     const result = await fn(client);
     await client.query('COMMIT');
     return result;
@@ -111,18 +134,47 @@ export async function withRLSContext<T>(
   }
 }
 
-// Override default pool.query to inject RLS context when userId is present
-pool.query = (async (...args: any[]) => {
+export async function withUserContextTransaction<T>(
+  userId: string,
+  fn: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  return withDatabaseTransaction(fn, { userId });
+}
+
+export async function withRequestContextTransaction<T>(
+  fn: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  const context = getRequestContext();
+  return withDatabaseTransaction(fn, { userId: context?.userId ?? null });
+}
+
+export const requestContextQuery: DatabaseQuery = (async (...args: any[]) => {
   const context = getRequestContext();
   if (!context?.userId) {
-    return (originalQuery as any).apply(pool, args);
+    return (originalQuery as any)(...args);
   }
 
-  return withRLSContext(context.userId, (client) => (client.query as any).apply(client, args));
-}) as typeof pool.query;
+  const client = await rawPool.connect();
+  try {
+    await setCurrentUserId(client, context.userId);
+    return await (client.query as any)(...args);
+  } finally {
+    try {
+      await resetCurrentUserId(client);
+    } catch (error) {
+      logger.warn('Failed to reset app.current_user_id after request-scoped query', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    client.release();
+  }
+}) as DatabaseQuery;
+
+// Backward-compatible alias while callers migrate to the more explicit helper name.
+export const withRLSContext = withUserContextTransaction;
 
 // Handle pool errors gracefully without crashing the application
-pool.on('error', (err: Error) => {
+rawPool.on('error', (err: Error) => {
   logger.error('Unexpected error on idle database client', {
     error: err.message,
     stack: err.stack,
@@ -130,5 +182,21 @@ pool.on('error', (err: Error) => {
   });
 });
 
+const pool = new Proxy(rawPool, {
+  get(target, prop, receiver) {
+    if (prop === 'query') {
+      return requestContextQuery;
+    }
+
+    const value = Reflect.get(target, prop, receiver);
+    if (typeof value === 'function') {
+      return value.bind(target);
+    }
+
+    return value;
+  },
+}) as Pool;
+
 export type { PoolClient };
+export { rawPool };
 export default pool;

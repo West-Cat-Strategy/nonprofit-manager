@@ -7,24 +7,14 @@ import { THEME_IDS } from '../../theme/themeRegistry';
 const {
   handleLogoutMock,
   preloadContactsPeopleRouteMock,
-  preloadNavigationQuickLookupDialogMock,
+  preloadQuickLookupDialogMock,
   setThemeMock,
   toggleDarkModeMock,
   viewModelRef,
 } = vi.hoisted(() => ({
   handleLogoutMock: vi.fn(),
   preloadContactsPeopleRouteMock: vi.fn(() => Promise.resolve([])),
-  preloadNavigationQuickLookupDialogMock: vi.fn(() =>
-    Promise.resolve({
-      default: ({ onClose }: { onClose: () => void }) => (
-        <div role="dialog" aria-label="Search people">
-          <button type="button" onClick={onClose} aria-label="Close search dialog">
-            Close
-          </button>
-        </div>
-      ),
-    })
-  ),
+  preloadQuickLookupDialogMock: vi.fn(),
   setThemeMock: vi.fn(),
   toggleDarkModeMock: vi.fn(),
   viewModelRef: { current: null } as NavigationViewModelRef,
@@ -84,8 +74,8 @@ const utilityNavLinks = [
     ariaLabel: 'Analytics',
   },
   {
-    id: 'reports-builder',
-    path: '/reports/builder',
+    id: 'reports',
+    path: '/reports',
     label: 'Reports',
     shortLabel: 'Reports',
     icon: '📄',
@@ -93,22 +83,14 @@ const utilityNavLinks = [
   },
 ];
 
-vi.mock('../navigation/preloadNavigationQuickLookupDialog', () => ({
-  preloadNavigationQuickLookupDialog: preloadNavigationQuickLookupDialogMock,
-}));
-
-vi.mock('../../features/contacts/routePreload', () => ({
-  preloadContactsPeopleRoute: preloadContactsPeopleRouteMock,
-}));
-
-vi.mock('../dashboard', () => ({
-  useQuickLookup: () => ({
-    searchTerm: '',
-    results: [],
-    isLoading: false,
-    clearSearch: vi.fn(),
-    handleSearchChange: vi.fn(),
-  }),
+vi.mock('../../features/navigation/components/StaffNavigationQuickLookupDialog', () => ({
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div role="dialog" aria-label="Search people">
+      <button type="button" onClick={onClose} aria-label="Close search dialog">
+        Close
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('../../features/navigation/hooks/useStaffNavigationViewModel', () => ({
@@ -116,6 +98,15 @@ vi.mock('../../features/navigation/hooks/useStaffNavigationViewModel', () => ({
 }));
 
 const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
+  adminQuickActions: [
+    {
+      id: 'admin-hub',
+      label: 'Admin Hub',
+      description: 'Open the hybrid admin settings command center',
+      to: '/settings/admin/dashboard',
+      icon: '🏛️',
+    },
+  ],
   adminSettingsPath: '/settings/admin/dashboard',
   alertsLink: {
     id: 'alerts-overview',
@@ -159,6 +150,8 @@ const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
     primaryItems,
     secondaryItems,
   },
+  prefetchPeopleRoute: preloadContactsPeopleRouteMock,
+  prefetchQuickLookupDialog: preloadQuickLookupDialogMock,
   themeState: {
     availableThemes: THEME_IDS,
     isDarkMode: false,
@@ -212,7 +205,7 @@ describe('Navigation', () => {
     );
     expect(screen.getByRole('link', { name: /^reports$/i })).toHaveAttribute(
       'href',
-      '/reports/builder'
+      '/reports'
     );
 
     expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
@@ -220,7 +213,7 @@ describe('Navigation', () => {
       'app-accent-contrast-ink'
     );
     expect(preloadContactsPeopleRouteMock).not.toHaveBeenCalled();
-    expect(preloadNavigationQuickLookupDialogMock).not.toHaveBeenCalled();
+    expect(preloadQuickLookupDialogMock).not.toHaveBeenCalled();
   });
 
   it('prefetches the People route only when the user shows intent on the navigation item', () => {
@@ -239,12 +232,12 @@ describe('Navigation', () => {
     renderWithProviders(<Navigation />, { route: '/dashboard' });
 
     const searchButton = screen.getByRole('button', { name: /^search$/i });
-    expect(preloadNavigationQuickLookupDialogMock).not.toHaveBeenCalled();
+    expect(preloadQuickLookupDialogMock).not.toHaveBeenCalled();
 
     fireEvent.mouseEnter(searchButton);
     fireEvent.focus(searchButton);
 
-    expect(preloadNavigationQuickLookupDialogMock).toHaveBeenCalledTimes(2);
+    expect(preloadQuickLookupDialogMock).toHaveBeenCalledTimes(2);
   });
 
   it('renders the branded logo without the accent tile wrapper', () => {

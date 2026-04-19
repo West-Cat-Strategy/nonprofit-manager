@@ -1,24 +1,17 @@
 import type {
   AdminSettingsSectionDefinitionEntry,
-  AdminWorkspaceDefinitionEntry,
 } from '../../features/adminOps/adminNavigationCatalog';
+import { adminRouteDescriptors } from '../../features/adminOps/adminRouteDescriptors';
 import type { RouteCatalogEntry } from './types';
 import { adminRoute, settingsRoute, staffRoute } from './shared';
 import {
   getAdminSettingsRouteMeta,
-  getAdminWorkspaceRouteMeta,
 } from './staffAdminRouteMeta';
 
 type AdminRouteSeed = Parameters<typeof adminRoute>[0];
-type SettingsRouteSeed = Parameters<typeof settingsRoute>[0];
 
 type AdminRouteOverrides = Omit<
   Partial<AdminRouteSeed>,
-  'id' | 'title' | 'path' | 'adminSurface' | 'adminLabel' | 'adminDescription' | 'adminIcon'
->;
-
-type SettingsRouteOverrides = Omit<
-  Partial<SettingsRouteSeed>,
   'id' | 'title' | 'path' | 'adminSurface' | 'adminLabel' | 'adminDescription' | 'adminIcon'
 >;
 
@@ -32,36 +25,6 @@ const buildAdminSettingsCatalogEntry = (
     path: meta.path,
     adminSurface: meta.surface,
     adminLabel: meta.label,
-    adminDescription: meta.description,
-    adminIcon: meta.icon,
-    ...overrides,
-  });
-
-const buildWorkspaceAdminCatalogEntry = (
-  meta: AdminWorkspaceDefinitionEntry,
-  overrides: AdminRouteOverrides = {}
-) =>
-  adminRoute({
-    id: meta.routeId,
-    title: meta.title,
-    path: meta.path,
-    adminSurface: meta.surface,
-    adminLabel: meta.title,
-    adminDescription: meta.description,
-    adminIcon: meta.icon,
-    ...overrides,
-  });
-
-const buildWorkspaceSettingsCatalogEntry = (
-  meta: AdminWorkspaceDefinitionEntry,
-  overrides: SettingsRouteOverrides = {}
-) =>
-  settingsRoute({
-    id: meta.routeId,
-    title: meta.title,
-    path: meta.path,
-    adminSurface: meta.surface,
-    adminLabel: meta.title,
     adminDescription: meta.description,
     adminIcon: meta.icon,
     ...overrides,
@@ -85,16 +48,29 @@ const adminSettingsRolesMeta = getAdminSettingsRouteMeta('admin-settings-roles')
 const adminSettingsAuditLogsMeta = getAdminSettingsRouteMeta('admin-settings-audit-logs');
 const adminSettingsOtherMeta = getAdminSettingsRouteMeta('admin-settings-other');
 
-const apiSettingsMeta = getAdminWorkspaceRouteMeta('api-settings');
-const navigationSettingsMeta = getAdminWorkspaceRouteMeta('navigation-settings');
-const backupSettingsMeta = getAdminWorkspaceRouteMeta('backup-settings');
-const communicationsWorkspaceMeta = getAdminWorkspaceRouteMeta('communications');
-const socialMediaMeta = getAdminWorkspaceRouteMeta('social-media');
-const portalAdminAccessMeta = getAdminWorkspaceRouteMeta('portal-admin-access');
-const portalAdminUsersMeta = getAdminWorkspaceRouteMeta('portal-admin-users');
-const portalAdminConversationsMeta = getAdminWorkspaceRouteMeta('portal-admin-conversations');
-const portalAdminAppointmentsMeta = getAdminWorkspaceRouteMeta('portal-admin-appointments');
-const portalAdminSlotsMeta = getAdminWorkspaceRouteMeta('portal-admin-slots');
+const descriptorCatalogEntries: readonly RouteCatalogEntry[] = adminRouteDescriptors.flatMap((descriptor) => {
+  if (!descriptor.catalog) {
+    return [];
+  }
+
+  const catalog = descriptor.catalog;
+  const seed = {
+    id: catalog.id,
+    title: catalog.title ?? descriptor.title,
+    path: descriptor.path,
+    adminSurface: descriptor.adminSurface,
+    parentId: catalog.parentId,
+    featureStatus: catalog.featureStatus,
+    showInMobileDrawerUtilities: catalog.showInMobileDrawerUtilities,
+    adminNav: catalog.adminNav,
+  };
+
+  if (catalog.factory === 'admin') {
+    return [adminRoute(seed)];
+  }
+
+  return [settingsRoute(seed)];
+});
 
 export const staffAdminRouteCatalogEntries: readonly RouteCatalogEntry[] = [
   staffRoute({
@@ -135,12 +111,6 @@ export const staffAdminRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     section: 'Core',
     path: '/outreach',
   }),
-  settingsRoute({
-    id: 'user-settings',
-    title: 'User Settings',
-    path: '/settings/user',
-    featureStatus: 'available',
-  }),
   buildAdminSettingsCatalogEntry(adminSettingsDashboardMeta, {
     adminNav:
       adminSettingsDashboardMeta.surface === 'core'
@@ -162,64 +132,5 @@ export const staffAdminRouteCatalogEntries: readonly RouteCatalogEntry[] = [
   buildAdminSettingsCatalogEntry(adminSettingsRolesMeta),
   buildAdminSettingsCatalogEntry(adminSettingsAuditLogsMeta),
   buildAdminSettingsCatalogEntry(adminSettingsOtherMeta),
-  buildWorkspaceSettingsCatalogEntry(apiSettingsMeta, {
-    adminNav: { mode: 'settings', order: 120, label: apiSettingsMeta.title },
-    featureStatus: 'available',
-    showInMobileDrawerUtilities: true,
-  }),
-  buildWorkspaceSettingsCatalogEntry(navigationSettingsMeta, {
-    adminNav: { mode: 'settings', order: 130, label: 'Navigation' },
-    featureStatus: 'available',
-    showInMobileDrawerUtilities: true,
-  }),
-  buildWorkspaceAdminCatalogEntry(backupSettingsMeta, {
-    adminNav: { mode: 'settings', order: 140, label: backupSettingsMeta.title },
-  }),
-  buildWorkspaceSettingsCatalogEntry(communicationsWorkspaceMeta, {
-    adminNav: {
-      mode: 'settings',
-      order: 150,
-      label: communicationsWorkspaceMeta.title,
-      matchPrefixes: ['/settings/email-marketing'],
-    },
-    featureStatus: 'available',
-  }),
-  settingsRoute({
-    id: 'email-marketing',
-    title: 'Newsletter Campaigns',
-    path: '/settings/email-marketing',
-    parentId: 'communications',
-    featureStatus: 'available',
-  }),
-  buildWorkspaceAdminCatalogEntry(socialMediaMeta, {
-    adminNav: { mode: 'settings', order: 160, label: socialMediaMeta.title },
-    featureStatus: 'available',
-  }),
-  buildWorkspaceAdminCatalogEntry(portalAdminAccessMeta, {
-    adminNav: [
-      {
-        mode: 'settings',
-        order: 110,
-        label: portalAdminAccessMeta.title,
-        matchPrefixes: ['/settings/admin/portal'],
-      },
-      {
-        mode: 'portal',
-        order: 20,
-        label: 'Access',
-      },
-    ],
-  }),
-  buildWorkspaceAdminCatalogEntry(portalAdminUsersMeta, {
-    adminNav: { mode: 'portal', order: 30, label: 'Users' },
-  }),
-  buildWorkspaceAdminCatalogEntry(portalAdminConversationsMeta, {
-    adminNav: { mode: 'portal', order: 40, label: 'Conversations' },
-  }),
-  buildWorkspaceAdminCatalogEntry(portalAdminAppointmentsMeta, {
-    adminNav: { mode: 'portal', order: 50, label: 'Appointments' },
-  }),
-  buildWorkspaceAdminCatalogEntry(portalAdminSlotsMeta, {
-    adminNav: { mode: 'portal', order: 60, label: 'Slots' },
-  }),
+  ...descriptorCatalogEntries,
 ];

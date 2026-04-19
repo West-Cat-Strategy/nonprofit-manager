@@ -10,8 +10,8 @@ Usage: scripts/ci.sh [--fast] [--audit] [--coverage] [--build] [--unit-only] [--
 
 Run the repo-local validation flow that backs the Makefile CI targets.
 
-  --coverage    Run the coverage-focused test path (backend/frontend coverage plus host and Docker Playwright smoke)
-  --unit-only   Run backend/frontend unit coverage only, skipping integration and Playwright
+  --coverage    Run the stronger coverage-focused test path (backend/frontend coverage plus host CI Playwright matrix and Docker smoke)
+  --unit-only   Run backend/frontend unit coverage only as a relaxed developer signal, skipping integration and Playwright
 EOF
 }
 
@@ -84,7 +84,7 @@ if [[ "$unit_only" -eq 1 ]]; then
   run bash -lc 'cd frontend && npm run test:coverage'
 else
   if [[ "$coverage" -eq 1 ]]; then
-    run make test-coverage
+    run make test-coverage-full
   else
     run make test
   fi

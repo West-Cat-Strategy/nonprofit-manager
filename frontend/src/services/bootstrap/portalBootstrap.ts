@@ -18,6 +18,7 @@ type PortalBootstrapResponse = {
 };
 
 const PORTAL_BOOTSTRAP_TTL_MS = 60_000;
+const PORTAL_BOOTSTRAP_STORAGE_KEY = 'portal_bootstrap_snapshot';
 const portalBootstrapMode = import.meta.env.VITE_UI_PORTAL_BOOTSTRAP_MODE as
   | 'anonymous'
   | 'authenticated'
@@ -33,6 +34,77 @@ let inFlightSnapshot: Promise<PortalBootstrapSnapshot> | null = null;
 
 const isFresh = (snapshot: PortalBootstrapSnapshot): boolean =>
   Date.now() - snapshot.fetchedAt < PORTAL_BOOTSTRAP_TTL_MS;
+
+const isGuestPortalRoute = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return (
+    window.location.pathname.startsWith('/portal/login') ||
+    window.location.pathname.startsWith('/portal/signup') ||
+    window.location.pathname.startsWith('/portal/forgot-password') ||
+    window.location.pathname.startsWith('/portal/reset-password') ||
+    window.location.pathname.startsWith('/portal/accept-invitation')
+  );
+};
+
+const readPortalBootstrapSnapshotFromStorage = (): PortalBootstrapSnapshot | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(PORTAL_BOOTSTRAP_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<PortalBootstrapSnapshot>;
+    if (
+      typeof parsed.fetchedAt !== 'number' ||
+      (parsed.status !== 'authenticated' && parsed.status !== 'anonymous')
+    ) {
+      return null;
+    }
+
+    if (parsed.status === 'authenticated') {
+      const user = parsed.user;
+      if (!user || typeof user !== 'object') {
+        return null;
+      }
+      const candidate = user as PortalUser;
+      if (
+        typeof candidate.id !== 'string' ||
+        candidate.id.length === 0 ||
+        typeof candidate.email !== 'string' ||
+        candidate.email.length === 0
+      ) {
+        return null;
+      }
+    }
+
+    return parsed as PortalBootstrapSnapshot;
+  } catch {
+    return null;
+  }
+};
+
+const persistPortalBootstrapSnapshot = (snapshot: PortalBootstrapSnapshot): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    if (snapshot.status === 'authenticated' && snapshot.user) {
+      window.sessionStorage.setItem(PORTAL_BOOTSTRAP_STORAGE_KEY, JSON.stringify(snapshot));
+    } else {
+      window.sessionStorage.removeItem(PORTAL_BOOTSTRAP_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage failures; in-memory cache still serves the current tab.
+  }
+};
 
 const normalizePortalUser = (payload: Record<string, unknown>): PortalUser | null => {
   const userPayload =
@@ -55,11 +127,19 @@ const normalizePortalUser = (payload: Record<string, unknown>): PortalUser | nul
         ? userPayload.contactId
         : typeof userPayload.contact_id === 'string'
           ? userPayload.contact_id
-          : null,
+      : null,
   };
 };
 
 const fetchPortalBootstrapSnapshot = async (): Promise<PortalBootstrapSnapshot> => {
+  if (isGuestPortalRoute()) {
+    return {
+      status: 'anonymous',
+      user: null,
+      fetchedAt: Date.now(),
+    };
+  }
+
   if (portalBootstrapMode === 'anonymous') {
     return {
       status: 'anonymous',
@@ -107,8 +187,28 @@ export const getPortalBootstrapSnapshot = async (options?: {
 }): Promise<PortalBootstrapSnapshot> => {
   const forceRefresh = options?.forceRefresh === true;
 
+  if (options?.fallbackUser) {
+    return setPortalBootstrapSnapshot(options.fallbackUser);
+  }
+
   if (!forceRefresh && cachedSnapshot && isFresh(cachedSnapshot)) {
     return cachedSnapshot;
+  }
+
+  if (!forceRefresh && !cachedSnapshot) {
+    const storedSnapshot = readPortalBootstrapSnapshotFromStorage();
+    if (storedSnapshot?.status === 'authenticated' && isFresh(storedSnapshot)) {
+      cachedSnapshot = storedSnapshot;
+      return cachedSnapshot;
+    }
+  }
+
+  if (!forceRefresh && isGuestPortalRoute()) {
+    return {
+      status: 'anonymous',
+      user: null,
+      fetchedAt: Date.now(),
+    };
   }
 
   if (!forceRefresh && inFlightSnapshot) {
@@ -119,11 +219,15 @@ export const getPortalBootstrapSnapshot = async (options?: {
   inFlightSnapshot = request;
 
   try {
-    let snapshot = await request;
-    if (!snapshot.user && options?.fallbackUser) {
-      snapshot = setPortalBootstrapSnapshot(options.fallbackUser);
+    const snapshot = await request;
+    if (snapshot.user) {
+      cachedSnapshot = snapshot;
+      persistPortalBootstrapSnapshot(snapshot);
+      return snapshot;
     }
+
     cachedSnapshot = snapshot;
+    persistPortalBootstrapSnapshot(snapshot);
     return snapshot;
   } finally {
     if (inFlightSnapshot === request) {
@@ -138,10 +242,43 @@ export const setPortalBootstrapSnapshot = (user: PortalUser | null): PortalBoots
     user,
     fetchedAt: Date.now(),
   };
+  persistPortalBootstrapSnapshot(cachedSnapshot);
   return cachedSnapshot;
 };
 
 export const clearPortalBootstrapSnapshot = (): void => {
   cachedSnapshot = null;
   inFlightSnapshot = null;
+  persistPortalBootstrapSnapshot({
+    status: 'anonymous',
+    user: null,
+    fetchedAt: Date.now(),
+  });
+};
+
+export const __setPortalBootstrapSnapshotForTests = (
+  snapshot: PortalBootstrapSnapshot | null
+): void => {
+  if (snapshot) {
+    cachedSnapshot = snapshot;
+    persistPortalBootstrapSnapshot(snapshot);
+    return;
+  }
+
+  clearPortalBootstrapSnapshot();
+};
+
+export const __seedPortalBootstrapSnapshotStorageForTests = (
+  snapshot: PortalBootstrapSnapshot | null
+): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (!snapshot) {
+    window.sessionStorage.removeItem(PORTAL_BOOTSTRAP_STORAGE_KEY);
+    return;
+  }
+
+  window.sessionStorage.setItem(PORTAL_BOOTSTRAP_STORAGE_KEY, JSON.stringify(snapshot));
 };

@@ -26,6 +26,7 @@ make lint
 make typecheck
 make test
 make test-e2e-docker-smoke
+make test-tooling
 make ci
 make ci-fast
 make ci-full
@@ -94,9 +95,11 @@ make db-verify
 
 - Docs-only change: `make check-links` and `make lint-doc-api-versioning`
 - Small mixed change: `./scripts/select-checks.sh --base HEAD~1 --mode fast`
+- Shared tooling/runtime/docs change: `./scripts/select-checks.sh --base HEAD~1 --mode strict`
 - Release-facing change: `make ci-full`
 - Package-level type checking: `cd backend && npm run type-check` or `cd frontend && npm run type-check`
 - Backend integration rerun: `cd backend && npm test -- src/__tests__/integration`
+- Script and wrapper contract change: `make test-tooling`
 
 ## Key References
 
@@ -118,7 +121,7 @@ make db-verify
 
 ### Port conflicts
 
-- Backend default: `3000` for direct runtime, `8004` for the Docker dev stack
-- Frontend default: `8005` for direct runtime or Docker dev stack, `5173` for Playwright
-- `make test` already includes the host Playwright CI matrix and the Docker-backed smoke gate; use `make test-e2e-docker-smoke` when you only need the Docker E2E gate
+- Backend default: `3000` for direct runtime, `8004` for the Docker dev stack, `18004` for the isolated smoke stack
+- Frontend default: `8005` for direct runtime or Docker dev stack, `5173` for Playwright, `18005` for the isolated smoke stack
+- `make test` already includes the host Playwright CI matrix and the isolated Docker-backed smoke gate; use `make test-e2e-docker-smoke` when you only need the Docker E2E gate
 - Change the relevant env file if you need a different local port map

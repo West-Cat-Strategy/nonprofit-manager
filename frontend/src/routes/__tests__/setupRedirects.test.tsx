@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
+import type * as NavigationPreferencesModule from '../../hooks/useNavigationPreferences';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
@@ -77,26 +78,31 @@ vi.mock('../../features/adminOps/routeComponents', async () => {
   };
 });
 
-vi.mock('../../hooks/useNavigationPreferences', () => ({
-  useNavigationPreferences: () => ({
-    pinnedItems: [],
-    primaryItems: [],
-    secondaryItems: [],
-    enabledItems: [],
-    togglePinned: vi.fn(),
-    allItems: [],
-    toggleItem: vi.fn(),
-    resetToDefaults: vi.fn(),
-    reorderItems: vi.fn(),
-    moveItemUp: vi.fn(),
-    moveItemDown: vi.fn(),
-    isLoading: false,
-    isSynced: true,
-    isSaving: false,
-    syncStatus: 'synced',
-    maxPinnedItems: 3,
-  }),
-}));
+vi.mock('../../hooks/useNavigationPreferences', async (importOriginal) => {
+  const actual = await importOriginal<typeof NavigationPreferencesModule>();
+  return {
+    ...actual,
+    invalidateNavigationPreferencesCache: vi.fn(),
+    useNavigationPreferences: () => ({
+      pinnedItems: [],
+      primaryItems: [],
+      secondaryItems: [],
+      enabledItems: [],
+      togglePinned: vi.fn(),
+      allItems: [],
+      toggleItem: vi.fn(),
+      resetToDefaults: vi.fn(),
+      reorderItems: vi.fn(),
+      moveItemUp: vi.fn(),
+      moveItemDown: vi.fn(),
+      isLoading: false,
+      isSynced: true,
+      isSaving: false,
+      syncStatus: 'synced',
+      maxPinnedItems: 3,
+    }),
+  };
+});
 
 const mockUseSetupCheck = vi.mocked(useSetupCheck);
 
@@ -240,6 +246,52 @@ describe('AppRoutes setup startup redirects', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('location')).toHaveTextContent(expectedLocation);
+    });
+  });
+
+  it.each([
+    ['/settings/communications', /communications page/i, '/settings/communications'],
+    ['/settings/email-marketing', /communications page/i, '/settings/email-marketing'],
+    ['/settings/admin/portal/access', /portal panel: access/i, '/settings/admin/portal/access'],
+  ])(
+    'renders canonical routed surfaces through the real AppRoutes tree for %s',
+    async (route, heading, expectedLocation) => {
+      renderAppRoutes(route, {
+        user: {
+          id: 'user-1',
+          email: 'admin@example.com',
+          firstName: 'Admin',
+          lastName: 'User',
+          role: 'admin',
+        },
+        isAuthenticated: true,
+        authLoading: false,
+      });
+
+      expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+      expect(screen.getByTestId('location')).toHaveTextContent(expectedLocation);
+    }
+  );
+
+  it('redirects authenticated staff routes to /login when the app unauthorized event fires', async () => {
+    renderAppRoutes('/settings/communications', {
+      user: {
+        id: 'user-1',
+        email: 'admin@example.com',
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'admin',
+      },
+      isAuthenticated: true,
+      authLoading: false,
+    });
+
+    expect(await screen.findByRole('heading', { name: /communications page/i })).toBeInTheDocument();
+
+    window.dispatchEvent(new Event('app:unauthorized'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent('/login');
     });
   });
 });

@@ -23,6 +23,8 @@ describe('database config', () => {
     DB_AT_REST_ENCRYPTION_MODE: process.env.DB_AT_REST_ENCRYPTION_MODE,
     DB_SSL_ENABLED: process.env.DB_SSL_ENABLED,
     DB_SSL_REJECT_UNAUTHORIZED: process.env.DB_SSL_REJECT_UNAUTHORIZED,
+    DB_USER: process.env.DB_USER,
+    DB_PASSWORD: process.env.DB_PASSWORD,
   };
   const restoreEnv = (): void => {
     (Object.keys(originalEnv) as Array<keyof typeof originalEnv>).forEach((key) => {
@@ -94,6 +96,22 @@ describe('database config', () => {
     expect(mockedPoolCtor).toHaveBeenCalledWith(
       expect.objectContaining({
         ssl: false,
+      })
+    );
+  });
+
+  it('defaults non-production runtime connections to the local app role', async () => {
+    delete process.env.NODE_ENV;
+    delete process.env.DB_USER;
+    delete process.env.DB_PASSWORD;
+
+    await loadDatabaseModule();
+
+    const mockedPoolCtor = getMockedPoolCtor();
+    expect(mockedPoolCtor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user: 'nonprofit_app_user',
+        password: 'nonprofit_app_password',
       })
     );
   });

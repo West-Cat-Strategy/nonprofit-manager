@@ -24,8 +24,70 @@ is_local_postgres_db_mode() {
   [[ "$lowered" == "luks" || "$lowered" == "self_hosted" ]]
 }
 
+require_env_file() {
+  local file="${1:-}"
+
+  if [[ -z "$file" ]]; then
+    echo "Env file path is required" >&2
+    return 1
+  fi
+
+  if [[ ! -f "$file" ]]; then
+    echo "Env file not found: $file" >&2
+    return 1
+  fi
+}
+
+env_file_var_names() {
+  local file="${1:-}"
+
+  awk '
+    /^[[:space:]]*(export[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*=/ {
+      line = $0
+      sub(/^[[:space:]]*export[[:space:]]+/, "", line)
+      sub(/=.*/, "", line)
+      gsub(/[[:space:]]+$/, "", line)
+      print line
+    }
+  ' "$file"
+}
+
+load_env_file_defaults() {
+  local file="${1:-}"
+  local key
+  local entry
+  local value
+  local -A env_keys=()
+
+  require_env_file "$file" || return 1
+
+  while IFS= read -r key; do
+    [[ -n "$key" ]] && env_keys["$key"]=1
+  done < <(env_file_var_names "$file")
+
+  if [[ "${#env_keys[@]}" -eq 0 ]]; then
+    return 0
+  fi
+
+  if ! bash -lc 'set -a; source "$1" >/dev/null 2>&1' _ "$file"; then
+    echo "Unable to load env file: $file" >&2
+    return 1
+  fi
+
+  while IFS= read -r -d '' entry; do
+    key="${entry%%=*}"
+    value="${entry#*=}"
+
+    if [[ -n "${env_keys[$key]:-}" && -z "${!key+x}" ]]; then
+      export "$key=$value"
+    fi
+  done < <(bash -lc 'set -a; source "$1" >/dev/null 2>&1; env -0' _ "$file")
+}
+
 validate_production_db_at_rest_contract() {
-  if [[ "${NODE_ENV:-}" != "production" ]]; then
+  local runtime_env="${1:-${NODE_ENV:-}}"
+
+  if [[ "$(to_lower "$runtime_env")" != "production" ]]; then
     return 0
   fi
 

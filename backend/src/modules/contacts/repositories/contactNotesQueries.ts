@@ -511,6 +511,8 @@ export async function getContactNotesTimeline(
           ON e.id = ae.entity_id
         LEFT JOIN cases linked_case
           ON linked_case.id = COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id)
+        LEFT JOIN contacts con
+          ON con.id = ae.related_entity_id
         LEFT JOIN users au
           ON au.id = ae.actor_user_id
         WHERE ae.related_entity_type = 'contact'
@@ -519,7 +521,10 @@ export async function getContactNotesTimeline(
           AND (
             $3::uuid IS NULL
             OR (COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NULL AND con.account_id = $3::uuid)
-            OR (COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NOT NULL AND c.account_id = $3::uuid)
+            OR (
+              COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NOT NULL
+              AND linked_case.account_id = $3::uuid
+            )
           )
       ) timeline
       ORDER BY timeline.created_at DESC, timeline.id DESC

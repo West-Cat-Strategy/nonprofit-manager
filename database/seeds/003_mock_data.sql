@@ -83,13 +83,13 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================================
 -- EVENTS
 -- ============================================================================
-INSERT INTO events (id, name, description, event_type, start_date, end_date, location_name, capacity, status, created_at, created_by)
+INSERT INTO events (id, organization_id, name, description, event_type, start_date, end_date, location_name, capacity, status, created_at, created_by)
 VALUES
-  ('e1111111-1111-1111-1111-111111111111', 'Annual Gala Dinner', 'Our flagship fundraising event featuring dinner, silent auction, and live entertainment.', 'fundraiser', '2026-03-15 18:00:00', '2026-03-15 23:00:00', 'Grand Ballroom, Hilton Hotel', 300, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('e2222222-2222-2222-2222-222222222222', 'Volunteer Appreciation Day', 'Thank you event for all our amazing volunteers.', 'appreciation', '2026-04-20 12:00:00', '2026-04-20 16:00:00', 'Community Center', 100, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('e3333333-3333-3333-3333-333333333333', 'Community Cleanup Day', 'Join us for our spring neighborhood cleanup initiative.', 'community', '2026-04-05 09:00:00', '2026-04-05 14:00:00', 'Riverside Park', 50, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('e4444444-4444-4444-4444-444444444444', 'Board Meeting Q1', 'Quarterly board of directors meeting.', 'meeting', '2026-02-15 14:00:00', '2026-02-15 17:00:00', 'Main Office, Conference Room A', 15, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
-  ('e5555555-5555-5555-5555-555555555555', 'Youth Mentorship Workshop', 'Training session for new youth mentors.', 'workshop', '2026-02-28 10:00:00', '2026-02-28 15:00:00', 'Youth Education Center', 25, 'planned', NOW(), '11111111-1111-1111-1111-111111111111')
+  ('e1111111-1111-1111-1111-111111111111', 'aaaa1111-1111-1111-1111-111111111111', 'Annual Gala Dinner', 'Our flagship fundraising event featuring dinner, silent auction, and live entertainment.', 'fundraiser', '2026-03-15 18:00:00', '2026-03-15 23:00:00', 'Grand Ballroom, Hilton Hotel', 300, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('e2222222-2222-2222-2222-222222222222', 'aaaa1111-1111-1111-1111-111111111111', 'Volunteer Appreciation Day', 'Thank you event for all our amazing volunteers.', 'appreciation', '2026-04-20 12:00:00', '2026-04-20 16:00:00', 'Community Center', 100, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('e3333333-3333-3333-3333-333333333333', 'aaaa3333-3333-3333-3333-333333333333', 'Community Cleanup Day', 'Join us for our spring neighborhood cleanup initiative.', 'community', '2026-04-05 09:00:00', '2026-04-05 14:00:00', 'Riverside Park', 50, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('e4444444-4444-4444-4444-444444444444', 'aaaa1111-1111-1111-1111-111111111111', 'Board Meeting Q1', 'Quarterly board of directors meeting.', 'meeting', '2026-02-15 14:00:00', '2026-02-15 17:00:00', 'Main Office, Conference Room A', 15, 'planned', NOW(), '11111111-1111-1111-1111-111111111111'),
+  ('e5555555-5555-5555-5555-555555555555', 'aaaa2222-2222-2222-2222-222222222222', 'Youth Mentorship Workshop', 'Training session for new youth mentors.', 'workshop', '2026-02-28 10:00:00', '2026-02-28 15:00:00', 'Youth Education Center', 25, 'planned', NOW(), '11111111-1111-1111-1111-111111111111')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================

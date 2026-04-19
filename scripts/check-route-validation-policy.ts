@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 const path = require('path');
+const ts = require('typescript');
 const {
-  repoRoot,
-  relativeToRepo,
   readText,
+  relativeToRepo,
+  repoRoot,
   walkFiles,
 } = require('./lib/policy-utils.ts');
+const { expressionToRouteValue } = require('./lib/route-audit.ts');
 
 const allowlistedFiles = new Set([
   path.join(repoRoot, 'backend/src/routes/health.ts'),
@@ -23,64 +25,125 @@ const entrypointFiles = [
   path.join(repoRoot, 'backend/src/public-site.ts'),
 ];
 
-const ROUTE_METHOD_DETECT_REGEX = /\.\s*(?:get|post|put|patch|delete|all)\s*\(/;
-const DIRECT_API_ROUTE_REGEX = /\b(?:app|router)\.\s*(?:get|post|put|patch|delete|all)\s*\(\s*(['"`])\/api[^'"`]*\1/g;
-const VALIDATOR_REGEX = /\bvalidate(?:Body|Params|Query|Request)\b|\bzodValidation\b|\bvalidateInput\b/g;
+const routeMethods = new Set(['get', 'post', 'put', 'patch', 'delete', 'all']);
+const anyValidatorPattern = /\bvalidate(?:Body|Params|Query|Request)\b|\bzodValidation\b|\bvalidateInput\b/;
+const paramsValidatorPattern = /\bvalidate(?:Params|Request)\b|\bzodValidation\b|\bvalidateInput\b/;
 
-const getLineNumber = (text, index) => text.slice(0, index).split(/\r?\n/).length;
+function scriptKindForPath(filePath) {
+  return filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+}
 
-const hasValidationMiddleware = (text, index) => {
-  const slice = text.slice(index, index + 300);
-  return VALIDATOR_REGEX.test(slice);
-};
+function getLineNumber(sourceFile, node) {
+  return sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+}
 
-const analyzeRouteValidationSource = (filePath, text, kind = 'route') => {
+function expressionContainsValidator(node, pattern) {
+  if (!node) {
+    return false;
+  }
+
+  if (ts.isIdentifier(node)) {
+    return pattern.test(node.text);
+  }
+
+  if (ts.isPropertyAccessExpression(node)) {
+    return pattern.test(node.name.text);
+  }
+
+  if (ts.isCallExpression(node)) {
+    if (expressionContainsValidator(node.expression, pattern)) {
+      return true;
+    }
+
+    return node.arguments.some((argument) => expressionContainsValidator(argument, pattern));
+  }
+
+  if (ts.isArrayLiteralExpression(node)) {
+    return node.elements.some((element) => expressionContainsValidator(element, pattern));
+  }
+
+  if (ts.isSpreadElement(node)) {
+    return expressionContainsValidator(node.expression, pattern);
+  }
+
+  if (ts.isParenthesizedExpression(node)) {
+    return expressionContainsValidator(node.expression, pattern);
+  }
+
+  return false;
+}
+
+function analyzeRouteValidationSource(filePath, text, kind = 'route') {
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKindForPath(filePath)
+  );
   const issues = [];
   let routeDefinitionCount = 0;
 
-  if (kind === 'entrypoint') {
-    const matches = [...text.matchAll(DIRECT_API_ROUTE_REGEX)];
-    routeDefinitionCount = matches.length;
+  function visit(node) {
+    if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
+      ts.forEachChild(node, visit);
+      return;
+    }
 
-    for (const match of matches) {
-      if (!hasValidationMiddleware(text, match.index)) {
+    const methodName = node.expression.name.text;
+    if (!routeMethods.has(methodName)) {
+      ts.forEachChild(node, visit);
+      return;
+    }
+
+    const [firstArgument, ...middlewareArguments] = node.arguments;
+    const routePath = expressionToRouteValue(firstArgument);
+    if (!routePath || !routePath.startsWith('/')) {
+      ts.forEachChild(node, visit);
+      return;
+    }
+
+    if (kind === 'entrypoint' && !routePath.startsWith('/api')) {
+      ts.forEachChild(node, visit);
+      return;
+    }
+
+    routeDefinitionCount += 1;
+
+    if (!allowlistedFiles.has(filePath) && routePath.includes(':')) {
+      const hasParamsValidation = middlewareArguments.some((argument) =>
+        expressionContainsValidator(argument, paramsValidatorPattern)
+      );
+
+      if (!hasParamsValidation) {
         issues.push(
-          `${relativeToRepo(filePath)}:${getLineNumber(text, match.index)} defines routes without a validation middleware`
+          `${relativeToRepo(filePath)}:${getLineNumber(sourceFile, node)} defines parameterized route ${routePath} without params validation middleware`
         );
       }
     }
 
-    return { issues, routeDefinitionCount };
+    ts.forEachChild(node, visit);
   }
 
-  const hasRouteDefinitions = ROUTE_METHOD_DETECT_REGEX.test(text);
-  if (!hasRouteDefinitions) {
-    return { issues, routeDefinitionCount };
+  visit(sourceFile);
+
+  if (kind !== 'entrypoint' && !allowlistedFiles.has(filePath) && routeDefinitionCount > 0) {
+    const hasAnyValidation = anyValidatorPattern.test(text);
+    if (!hasAnyValidation) {
+      const firstRouteCall = text.match(/\.\s*(?:get|post|put|patch|delete|all)\s*\(/);
+      const line = firstRouteCall && firstRouteCall.index != null
+        ? text.slice(0, firstRouteCall.index).split(/\r?\n/).length
+        : 1;
+      issues.push(
+        `${relativeToRepo(filePath)}:${line} defines routes without any recognized validation middleware`
+      );
+    }
   }
-
-  if (allowlistedFiles.has(filePath)) {
-    return { issues, routeDefinitionCount: 1 };
-  }
-
-  const validatorMatches = text.match(
-    /\bvalidate(?:Body|Params|Query|Request)\b|\bzodValidation\b|\bvalidateInput\b/g
-  );
-  routeDefinitionCount = 1;
-
-  if (validatorMatches && validatorMatches.length > 0) {
-    return { issues, routeDefinitionCount };
-  }
-
-  const firstRouteIndex = text.search(ROUTE_METHOD_DETECT_REGEX);
-  const line = firstRouteIndex >= 0 ? getLineNumber(text, firstRouteIndex) : 1;
-  issues.push(
-    `${relativeToRepo(filePath)}:${line} defines routes without a validation middleware`
-  );
 
   return { issues, routeDefinitionCount };
-};
+}
 
-const main = () => {
+function main() {
   const files = [
     ...walkFiles(routeRoots, {
       extensions: ['.ts'],
@@ -119,8 +182,8 @@ const main = () => {
     process.exit(1);
   }
 
-  console.log('Route validation policy check passed.');
-};
+  console.log('Route validation policy check passed (parameterized routes and route files use recognized validation middleware).');
+}
 
 if (require.main === module) {
   main();

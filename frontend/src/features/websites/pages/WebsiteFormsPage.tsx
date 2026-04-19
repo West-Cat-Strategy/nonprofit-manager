@@ -18,7 +18,6 @@ import {
 import {
   clearWebsitesError,
   fetchWebsiteForms,
-  fetchWebsiteOverview,
   selectWebsiteForms,
   selectWebsiteIntegrations,
   updateWebsiteForm,
@@ -102,11 +101,6 @@ const WebsiteFormsPage: React.FC = () => {
     setDrafts(nextDrafts);
   }, [forms]);
 
-  const refreshOverview = () => {
-    if (!siteId) return;
-    void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
-  };
-
   const integrationStatus = integrations ?? overview?.integrations ?? emptyIntegrationStatus;
 
   const groupedForms = useMemo(() => {
@@ -139,8 +133,6 @@ const WebsiteFormsPage: React.FC = () => {
       })
     );
     if (updateWebsiteForm.fulfilled.match(result)) {
-      await dispatch(fetchWebsiteForms(siteId));
-      refreshOverview();
       setNotice({ tone: 'success', message: 'Form settings saved.' });
     } else {
       setNotice({

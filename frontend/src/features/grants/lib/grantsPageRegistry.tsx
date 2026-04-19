@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { DangerButton, SecondaryButton } from '../../../components/ui';
 import { formatCurrency, formatDate, formatDateOnly, formatDateSmart, toDateInputValue } from '../../../utils/format';
 import {
@@ -33,92 +34,13 @@ import type {
   SelectOption,
   TableColumn,
 } from './grantsPageTypes';
-
-export const SECTION_DEFINITIONS: ReadonlyArray<{
-  id: GrantsSectionId;
-  label: string;
-  path: string;
-  description: string;
-  primaryActionLabel: string;
-}> = [
-  {
-    id: 'funders',
-    label: 'Funders',
-    path: '/grants/funders',
-    description: 'Track federal, provincial, and private funders with contacts and totals.',
-    primaryActionLabel: 'New funder',
-  },
-  {
-    id: 'programs',
-    label: 'Programs',
-    path: '/grants/programs',
-    description: 'Manage grant programs, application windows, and award timelines.',
-    primaryActionLabel: 'New program',
-  },
-  {
-    id: 'recipients',
-    label: 'Recipients',
-    path: '/grants/recipients',
-    description: 'Keep recipient organizations, contacts, and geographies organized.',
-    primaryActionLabel: 'New recipient',
-  },
-  {
-    id: 'funded-programs',
-    label: 'Funded Programs',
-    path: '/grants/funded-programs',
-    description: 'Track the internal programs and initiatives funded by grants.',
-    primaryActionLabel: 'New funded program',
-  },
-  {
-    id: 'applications',
-    label: 'Applications',
-    path: '/grants/applications',
-    description: 'Review applications, status changes, and award conversions.',
-    primaryActionLabel: 'New application',
-  },
-  {
-    id: 'awards',
-    label: 'Awards',
-    path: '/grants/awards',
-    description: 'Track award records, commitments, and outstanding balances.',
-    primaryActionLabel: 'New award',
-  },
-  {
-    id: 'disbursements',
-    label: 'Disbursements',
-    path: '/grants/disbursements',
-    description: 'Manage the payment schedule and payout status for each grant.',
-    primaryActionLabel: 'New disbursement',
-  },
-  {
-    id: 'reports',
-    label: 'Reports',
-    path: '/grants/reports',
-    description: 'Follow reporting deadlines, submissions, and review outcomes.',
-    primaryActionLabel: 'New report',
-  },
-  {
-    id: 'documents',
-    label: 'Documents',
-    path: '/grants/documents',
-    description: 'Attach grant agreements, submissions, and supporting documents.',
-    primaryActionLabel: 'New document',
-  },
-  {
-    id: 'calendar',
-    label: 'Calendar',
-    path: '/grants/calendar',
-    description: 'Monitor upcoming due dates, milestones, and payment events.',
-    primaryActionLabel: 'Refresh calendar',
-  },
-  {
-    id: 'activities',
-    label: 'Activity Log',
-    path: '/grants/activities',
-    description: 'Review the audit trail for grants, applications, and related records.',
-    primaryActionLabel: 'Refresh activity',
-  },
-] as const;
+export {
+  SECTION_DEFINITIONS,
+  getSectionFromPath,
+  sectionDescriptionById,
+  sectionLabelById,
+  sectionPrimaryActionLabelById,
+} from './grantsSectionAdapters';
 
 export const EMPTY_LOOKUPS: GrantsLookupState = {
   funders: [],
@@ -224,23 +146,6 @@ const formatMoney = (value: number | null | undefined, currency = 'CAD'): string
 
 const formatNumberOrDash = (value: number | null | undefined): string =>
   value === null || value === undefined ? '—' : String(value);
-
-export const sectionLabelById = (sectionId: GrantsSectionId): string =>
-  SECTION_DEFINITIONS.find((definition) => definition.id === sectionId)?.label ?? 'Grants';
-
-export const sectionDescriptionById = (sectionId: GrantsSectionId): string =>
-  SECTION_DEFINITIONS.find((definition) => definition.id === sectionId)?.description ??
-  'Internal grants tracking.';
-
-export const sectionPrimaryActionLabelById = (sectionId: GrantsSectionId): string =>
-  SECTION_DEFINITIONS.find((definition) => definition.id === sectionId)?.primaryActionLabel ??
-  'New record';
-
-export const getSectionFromPath = (pathname: string): GrantsSectionId => {
-  const normalizedPath = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
-  const match = SECTION_DEFINITIONS.find((definition) => normalizedPath === definition.path);
-  return match?.id ?? 'funders';
-};
 
 export const getRowKey = (section: GrantsSectionId, row: GrantsTableRow): string => {
   switch (section) {

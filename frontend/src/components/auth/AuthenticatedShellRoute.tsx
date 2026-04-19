@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
+import StaffShellFeatureBoundary from '../../features/navigation/components/StaffShellFeatureBoundary';
 import Layout from '../Layout';
 import PageLoader from '../PageLoader';
 
@@ -15,9 +16,11 @@ const AuthenticatedShellRoute = () => {
   }
 
   return (
-    <Layout>
-      <Outlet />
-    </Layout>
+    <StaffShellFeatureBoundary>
+      <Layout>
+        <Outlet />
+      </Layout>
+    </StaffShellFeatureBoundary>
   );
 };
 

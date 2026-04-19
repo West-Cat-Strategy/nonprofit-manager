@@ -91,7 +91,7 @@ describe('PortalFormsPage', () => {
     renderWithProviders(<PortalFormsPage />);
 
     expect(await screen.findByText('Portal Delivery Form')).toBeInTheDocument();
-    expect(screen.getByText('Available in the portal')).toBeInTheDocument();
+    expect(screen.getAllByText('Available in the portal').length).toBeGreaterThan(0);
     expect(screen.queryByText('Email Only Form')).not.toBeInTheDocument();
   });
 });

@@ -1,15 +1,8 @@
 import { Response } from 'express';
-import type {
-  EventMutationScope,
-  EventRegistration,
-} from '@app-types/event';
+import type { EventMutationScope, EventRegistration } from '@app-types/event';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { AuthRequest } from '@middleware/auth';
-import {
-  requirePermissionSafe,
-  sendForbidden,
-  sendUnauthorized,
-} from '@services/authGuardService';
+import { requirePermissionSafe, sendForbidden, sendUnauthorized } from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
 import { sendError } from '../../shared/http/envelope';
 import { isEventHttpError } from '../eventHttpErrors';
@@ -32,11 +25,7 @@ export interface EventCalendarPayload {
 }
 
 export const escapeIcsText = (value: string): string =>
-  value
-    .replace(/\\/g, '\\\\')
-    .replace(/\r?\n/g, '\\n')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,');
+  value.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,');
 
 export const toIcsUtc = (value: Date): string => {
   const iso = value.toISOString();
@@ -62,11 +51,20 @@ export const buildEventLocation = (event: EventCalendarPayload): string | null =
 export const getScopeFilter = (req: AuthRequest): DataScopeFilter | undefined =>
   req.dataScope?.filter as DataScopeFilter | undefined;
 
+export const getRequestOrganizationId = (req: AuthRequest): string | undefined => {
+  if (req.organizationId || req.accountId) {
+    return req.organizationId ?? req.accountId;
+  }
+
+  const scopedAccountIds = getScopeFilter(req)?.accountIds;
+  return scopedAccountIds?.length === 1 ? scopedAccountIds[0] : undefined;
+};
+
 export const getValidatedQuery = (req: AuthRequest): Record<string, unknown> =>
-  ((req.validatedQuery ?? req.query) ?? {}) as Record<string, unknown>;
+  (req.validatedQuery ?? req.query ?? {}) as Record<string, unknown>;
 
 export const getValidatedParams = (req: AuthRequest): Record<string, string> =>
-  ((req.validatedParams ?? req.params) ?? {}) as Record<string, string>;
+  (req.validatedParams ?? req.params ?? {}) as Record<string, string>;
 
 export const resolveMutationScope = (value: unknown): EventMutationScope =>
   value === 'future_occurrences' || value === 'series' ? value : 'occurrence';

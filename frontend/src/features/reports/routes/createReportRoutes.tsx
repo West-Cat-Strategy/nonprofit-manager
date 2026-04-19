@@ -1,5 +1,9 @@
+/* eslint-disable react-refresh/only-export-components */
+
 import type { ReactNode } from 'react';
 import { Navigate, Route } from 'react-router-dom';
+import { useAppSelector } from '../../../store/hooks';
+import { getReportAccess } from '../../auth/state/reportAccess';
 import {
   OutcomesReportRoutePage,
   ReportBuilderRoutePage,
@@ -13,6 +17,64 @@ interface RouteWrapperProps {
   children: ReactNode;
 }
 
+const getReadOnlyReportsPath = (
+  access: ReturnType<typeof getReportAccess>
+): string => {
+  if (access.canViewReports || access.canManageReports) {
+    return '/reports/saved';
+  }
+
+  if (access.canViewScheduledReports || access.canManageScheduledReports) {
+    return '/reports/scheduled';
+  }
+
+  return '/dashboard';
+};
+
+function ReportsLandingRedirect() {
+  const user = useAppSelector((state) => state.auth.user);
+  const access = getReportAccess(user);
+
+  if (access.canManageReports) {
+    return <Navigate to="/reports/builder" replace />;
+  }
+
+  return <Navigate to={getReadOnlyReportsPath(access)} replace />;
+}
+
+function ReportManagementRoute({ children }: RouteWrapperProps) {
+  const user = useAppSelector((state) => state.auth.user);
+  const access = getReportAccess(user);
+
+  if (access.canManageReports) {
+    return <>{children}</>;
+  }
+
+  return <Navigate to={getReadOnlyReportsPath(access)} replace />;
+}
+
+function ReportViewRoute({ children }: RouteWrapperProps) {
+  const user = useAppSelector((state) => state.auth.user);
+  const access = getReportAccess(user);
+
+  if (access.canViewReports || access.canManageReports) {
+    return <>{children}</>;
+  }
+
+  return <Navigate to={getReadOnlyReportsPath(access)} replace />;
+}
+
+function ScheduledReportViewRoute({ children }: RouteWrapperProps) {
+  const user = useAppSelector((state) => state.auth.user);
+  const access = getReportAccess(user);
+
+  if (access.canViewScheduledReports || access.canManageScheduledReports) {
+    return <>{children}</>;
+  }
+
+  return <Navigate to={getReadOnlyReportsPath(access)} replace />;
+}
+
 export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrapperProps>) {
   return (
     <>
@@ -20,7 +82,9 @@ export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrap
         path="/reports/builder"
         element={
           <ProtectedRoute>
-            <ReportBuilderRoutePage />
+            <ReportManagementRoute>
+              <ReportBuilderRoutePage />
+            </ReportManagementRoute>
           </ProtectedRoute>
         }
       />
@@ -28,7 +92,9 @@ export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrap
         path="/reports/templates"
         element={
           <ProtectedRoute>
-            <ReportTemplatesRoutePage />
+            <ReportManagementRoute>
+              <ReportTemplatesRoutePage />
+            </ReportManagementRoute>
           </ProtectedRoute>
         }
       />
@@ -36,7 +102,9 @@ export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrap
         path="/reports/saved"
         element={
           <ProtectedRoute>
-            <SavedReportsRoutePage />
+            <ReportViewRoute>
+              <SavedReportsRoutePage />
+            </ReportViewRoute>
           </ProtectedRoute>
         }
       />
@@ -44,7 +112,9 @@ export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrap
         path="/reports/scheduled"
         element={
           <ProtectedRoute>
-            <ScheduledReportsRoutePage />
+            <ScheduledReportViewRoute>
+              <ScheduledReportsRoutePage />
+            </ScheduledReportViewRoute>
           </ProtectedRoute>
         }
       />
@@ -52,7 +122,9 @@ export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrap
         path="/reports/outcomes"
         element={
           <ProtectedRoute>
-            <OutcomesReportRoutePage />
+            <ReportViewRoute>
+              <OutcomesReportRoutePage />
+            </ReportViewRoute>
           </ProtectedRoute>
         }
       />
@@ -60,7 +132,9 @@ export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrap
         path="/reports/workflow-coverage"
         element={
           <ProtectedRoute>
-            <WorkflowCoverageRoutePage />
+            <ReportViewRoute>
+              <WorkflowCoverageRoutePage />
+            </ReportViewRoute>
           </ProtectedRoute>
         }
       />
@@ -68,7 +142,7 @@ export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrap
         path="/reports"
         element={
           <ProtectedRoute>
-            <Navigate to="/reports/builder" replace />
+            <ReportsLandingRedirect />
           </ProtectedRoute>
         }
       />

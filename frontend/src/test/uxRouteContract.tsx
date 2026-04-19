@@ -3,6 +3,7 @@ import { screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { expect, vi } from 'vitest';
 import { renderWithProviders } from './testUtils';
+import type { RootState } from '../store';
 
 export type RouteUxCase = {
   name: string;
@@ -14,6 +15,7 @@ export type RouteUxCase = {
   primaryActionRole?: 'button' | 'link';
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   requireMainLandmark?: boolean;
+  preloadedState?: Partial<RootState>;
   contractAssertion?: () => Promise<void> | void;
 };
 
@@ -29,6 +31,7 @@ export async function assertRouteUxContract({
   primaryActionRole = 'button',
   headingLevel = 1,
   requireMainLandmark = false,
+  preloadedState,
   contractAssertion,
 }: RouteUxCase): Promise<void> {
   renderWithProviders(
@@ -39,7 +42,7 @@ export async function assertRouteUxContract({
     ) : (
       page
     ),
-    { route }
+    { route, preloadedState }
   );
 
   if (requireMainLandmark) {

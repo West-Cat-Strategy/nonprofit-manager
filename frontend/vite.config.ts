@@ -173,6 +173,14 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
     coverage: {
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.d.ts',
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.spec.{ts,tsx}',
+        'src/**/__tests__/**',
+        'src/test/**',
+      ],
       reporter: ['text', 'json-summary', 'html'],
       thresholds: {
         lines: 48,

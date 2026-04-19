@@ -9,12 +9,16 @@ CALLER_SET_DB_PORT="${DB_PORT+x}"
 CALLER_SET_DB_NAME="${DB_NAME+x}"
 CALLER_SET_DB_USER="${DB_USER+x}"
 CALLER_SET_DB_PASSWORD="${DB_PASSWORD+x}"
+CALLER_SET_DB_ADMIN_USER="${DB_ADMIN_USER+x}"
+CALLER_SET_DB_ADMIN_PASSWORD="${DB_ADMIN_PASSWORD+x}"
 MODE="${COMPOSE_MODE:-dev}"
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-8002}"
 DB_NAME="${DB_NAME:-nonprofit_manager}"
-DB_USER="${DB_USER:-postgres}"
-DB_PASSWORD="${DB_PASSWORD:-postgres}"
+DB_USER="${DB_USER:-nonprofit_app_user}"
+DB_PASSWORD="${DB_PASSWORD:-nonprofit_app_password}"
+DB_ADMIN_USER="${DB_ADMIN_USER:-postgres}"
+DB_ADMIN_PASSWORD="${DB_ADMIN_PASSWORD:-postgres}"
 TEST_CONTAINER_NAME="${DB_TEST_CONTAINER_NAME:-nonprofit-manager-test-postgres}"
 TEST_VOLUME_NAME="${DB_TEST_VOLUME_NAME:-nonprofit-manager-test-postgres-data}"
 TEST_IMAGE="${DB_TEST_IMAGE:-postgres:14-alpine}"
@@ -39,29 +43,50 @@ normalize_test_db_contract() {
     return 0
   fi
 
-  if [[ "$CALLER_SET_DB_HOST" == "x" && "$CALLER_SET_DB_PORT" == "x" && "$CALLER_SET_DB_NAME" == "x" && "$CALLER_SET_DB_USER" == "x" && "$CALLER_SET_DB_PASSWORD" == "x" ]]; then
-    return 0
+  if [[ "$CALLER_SET_DB_HOST" != "x" ]]; then
+    DB_HOST="127.0.0.1"
   fi
+  if [[ "$CALLER_SET_DB_PORT" != "x" ]]; then
+    DB_PORT="8012"
+  fi
+  if [[ "$CALLER_SET_DB_NAME" != "x" ]]; then
+    DB_NAME="nonprofit_manager_test"
+  fi
+  if [[ "$CALLER_SET_DB_USER" != "x" ]]; then
+    DB_USER="postgres"
+  fi
+  if [[ "$CALLER_SET_DB_PASSWORD" != "x" ]]; then
+    DB_PASSWORD="postgres"
+  fi
+  if [[ "$CALLER_SET_DB_ADMIN_USER" != "x" ]]; then
+    DB_ADMIN_USER="postgres"
+  fi
+  if [[ "$CALLER_SET_DB_ADMIN_PASSWORD" != "x" ]]; then
+    DB_ADMIN_PASSWORD="postgres"
+  fi
+}
 
-  DB_HOST="127.0.0.1"
-  DB_PORT="8012"
-  DB_NAME="nonprofit_manager_test"
-  DB_USER="postgres"
-  DB_PASSWORD="postgres"
+expected_manifest_migration_count() {
+  awk -F '\t' '/^[0-9]/ { count += 1 } END { print count + 0 }' "$PROJECT_ROOT/database/migrations/manifest.tsv"
 }
 
 wait_for_schema_migrations() {
   local container="$1"
   local attempt=1
   local max_attempts=60
+  local expected_count
+  local observed_count
+
+  expected_count="$(expected_manifest_migration_count)"
 
   while true; do
-    if docker exec "$container" psql -U "$DB_USER" -d "$DB_NAME" -Atqc 'SELECT 1 FROM schema_migrations LIMIT 1;' >/dev/null 2>&1; then
+    observed_count="$(docker exec "$container" psql -U "$DB_ADMIN_USER" -d "$DB_NAME" -Atqc 'SELECT COUNT(*) FROM schema_migrations WHERE canonical_filename IS NOT NULL;' 2>/dev/null || true)"
+    if [[ "$observed_count" =~ ^[0-9]+$ ]] && [[ "$observed_count" -ge "$expected_count" ]]; then
       return 0
     fi
 
     if [[ "$attempt" -ge "$max_attempts" ]]; then
-      log_error "Timed out waiting for PostgreSQL migrations in $container on port $DB_PORT."
+      log_error "Timed out waiting for PostgreSQL migrations in $container on port $DB_PORT (observed ${observed_count:-0} of ${expected_count} manifest migrations)."
       docker logs "$container" --tail 100 >&2 || true
       return 1
     fi
@@ -78,7 +103,7 @@ wait_for_host_connection() {
   local max_attempts=30
 
   while true; do
-    if PGPASSWORD="$DB_PASSWORD" psql -h "$host" -p "$port" -U "$DB_USER" -d "$DB_NAME" -Atqc 'SELECT 1;' >/dev/null 2>&1; then
+    if PGPASSWORD="$DB_ADMIN_PASSWORD" psql -h "$host" -p "$port" -U "$DB_ADMIN_USER" -d "$DB_NAME" -Atqc 'SELECT 1;' >/dev/null 2>&1; then
       return 0
     fi
 
@@ -127,8 +152,8 @@ ensure_test_database() {
       --name "$TEST_CONTAINER_NAME" \
       -p "127.0.0.1:${DB_PORT}:5432" \
       -e POSTGRES_DB="$DB_NAME" \
-      -e POSTGRES_USER="$DB_USER" \
-      -e POSTGRES_PASSWORD="$DB_PASSWORD" \
+      -e POSTGRES_USER="$DB_ADMIN_USER" \
+      -e POSTGRES_PASSWORD="$DB_ADMIN_PASSWORD" \
       -v "$TEST_VOLUME_NAME:/var/lib/postgresql/data" \
       -v "$PROJECT_ROOT/database/initdb/000_init.sql:/docker-entrypoint-initdb.d/000_init.sql:ro" \
       -v "$PROJECT_ROOT/database/migrations:/migrations:ro" \
@@ -165,7 +190,7 @@ show_status() {
   if is_test_db; then
     if docker ps --filter "name=^/${TEST_CONTAINER_NAME}$" --format '{{.ID}}' | grep -q .; then
       log_info "Test database container $TEST_CONTAINER_NAME is running."
-      docker exec "$TEST_CONTAINER_NAME" psql -U "$DB_USER" -d "$DB_NAME" -Atqc 'SELECT COUNT(*) FROM schema_migrations;' || true
+      docker exec "$TEST_CONTAINER_NAME" psql -U "$DB_ADMIN_USER" -d "$DB_NAME" -Atqc 'SELECT COUNT(*) FROM schema_migrations;' || true
     else
       log_warn "Test database container $TEST_CONTAINER_NAME is not running."
       return 1
@@ -181,7 +206,7 @@ show_status() {
   fi
 
   log_info "Development postgres service is running."
-  docker exec "$container_id" psql -U postgres -d nonprofit_manager -Atqc 'SELECT COUNT(*) FROM schema_migrations;' || true
+  docker exec "$container_id" psql -U "$DB_ADMIN_USER" -d "$DB_NAME" -Atqc 'SELECT COUNT(*) FROM schema_migrations;' || true
 }
 
 main() {

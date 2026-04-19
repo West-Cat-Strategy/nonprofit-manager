@@ -13,6 +13,10 @@ jest.mock('@utils/sessionTokens', () => ({
   verifyTokenWithOptionalIssuer: jest.fn(),
 }));
 
+jest.mock('@modules/auth/lib/authQueries', () => ({
+  getAuthenticatedOrganizationId: jest.fn(),
+}));
+
 const createMockResponse = () => {
   const res: Record<string, jest.Mock> = {};
   res.status = jest.fn().mockReturnValue(res);
@@ -27,6 +31,9 @@ const pool = jest.requireMock('@config/database').default as {
 };
 const { verifyTokenWithOptionalIssuer } = jest.requireMock('@utils/sessionTokens') as {
   verifyTokenWithOptionalIssuer: jest.Mock;
+};
+const { getAuthenticatedOrganizationId } = jest.requireMock('@modules/auth/lib/authQueries') as {
+  getAuthenticatedOrganizationId: jest.Mock;
 };
 
 describe('auth middleware', () => {
@@ -148,17 +155,27 @@ describe('auth middleware', () => {
         type: 'app',
         authRevision: 2,
       });
-      pool.query.mockResolvedValueOnce({
-        rows: [
-          {
-            id: 'user-1',
-            email: 'db@example.com',
-            role: 'manager',
-            is_active: true,
-            auth_revision: 2,
-          },
-        ],
-      });
+      pool.query
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'user-1',
+              email: 'db@example.com',
+              role: 'manager',
+              is_active: true,
+              auth_revision: 2,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'org-1',
+              is_active: true,
+            },
+          ],
+        });
+      getAuthenticatedOrganizationId.mockResolvedValueOnce('org-1');
 
       await authenticate(req, res, next);
 
@@ -169,10 +186,13 @@ describe('auth middleware', () => {
         type: 'app',
         authRevision: 2,
       });
+      expect(req.organizationId).toBe('org-1');
+      expect(req.accountId).toBe('org-1');
+      expect(req.tenantId).toBe('org-1');
       expect(next).toHaveBeenCalled();
     });
 
-    it('revalidates token-bound organization context against live membership access', async () => {
+    it('revalidates token-bound organization context against live account status', async () => {
       const req = {
         headers: { authorization: 'Bearer org-token' },
       } as AuthRequest;
@@ -206,9 +226,6 @@ describe('auth middleware', () => {
               is_active: true,
             },
           ],
-        })
-        .mockResolvedValueOnce({
-          rows: [{ id: 'access-1' }],
         });
 
       await authenticate(req, res, next);
@@ -218,15 +235,10 @@ describe('auth middleware', () => {
         expect.stringContaining('FROM accounts'),
         ['org-1']
       );
-      expect(pool.query).toHaveBeenNthCalledWith(
-        3,
-        expect.stringContaining('FROM user_account_access'),
-        ['user-1', 'org-1']
-      );
       expect(req.organizationContextValidated).toEqual({
         organizationId: 'org-1',
         isActive: true,
-        accessValidated: true,
+        accessValidated: false,
       });
       expect(next).toHaveBeenCalled();
     });
@@ -246,7 +258,7 @@ describe('auth middleware', () => {
           success: false,
           error: expect.objectContaining({
             code: 'unauthorized',
-            message: 'Unauthorized',
+            message: 'Unauthorized: No authenticated user',
           }),
         })
       );
@@ -268,7 +280,7 @@ describe('auth middleware', () => {
           success: false,
           error: expect.objectContaining({
             code: 'forbidden',
-            message: 'Forbidden: Insufficient permissions',
+            message: 'Forbidden: Requires role [admin]',
           }),
         })
       );

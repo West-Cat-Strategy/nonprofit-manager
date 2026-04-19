@@ -25,28 +25,39 @@ export const recurringFrequencySchema = z.enum(['weekly', 'monthly', 'quarterly'
 export type RecurringFrequency = z.infer<typeof recurringFrequencySchema>;
 
 // Create donation
-export const createDonationSchema = z.object({
-  amount: z.number().positive('Amount must be greater than 0'),
-  currency: z.string().length(3).default('CAD'),
-  donation_date: z.coerce.date(),
-  payment_method: paymentMethodSchema.optional(),
-  payment_status: paymentStatusSchema.optional(),
-  payment_provider: paymentProviderSchema.optional(),
-  account_id: uuidSchema.optional(),
-  contact_id: uuidSchema.optional(),
-  recurring_plan_id: uuidSchema.optional(),
-  provider_transaction_id: z.string().max(255).optional(),
-  provider_checkout_session_id: z.string().max(255).optional(),
-  provider_subscription_id: z.string().max(255).optional(),
-  provider_customer_id: z.string().max(255).optional(),
-  stripe_subscription_id: z.string().max(255).optional(),
-  stripe_invoice_id: z.string().max(255).optional(),
-  is_recurring: z.boolean().optional(),
-  recurring_frequency: recurringFrequencySchema.optional(),
-  campaign_name: z.string().max(100).optional(),
-  designation: z.string().max(100).optional(),
-  notes: z.string().max(500).optional(),
-});
+export const createDonationSchema = z
+  .object({
+    amount: z.number().positive('Amount must be greater than 0'),
+    currency: z.string().length(3).default('CAD'),
+    donation_date: z.coerce.date(),
+    payment_method: paymentMethodSchema.optional(),
+    payment_status: paymentStatusSchema.optional(),
+    payment_provider: paymentProviderSchema.optional(),
+    account_id: uuidSchema.optional(),
+    contact_id: uuidSchema.optional(),
+    recurring_plan_id: uuidSchema.optional(),
+    transaction_id: z.string().max(255).optional(),
+    provider_transaction_id: z.string().max(255).optional(),
+    provider_checkout_session_id: z.string().max(255).optional(),
+    provider_subscription_id: z.string().max(255).optional(),
+    provider_customer_id: z.string().max(255).optional(),
+    stripe_subscription_id: z.string().max(255).optional(),
+    stripe_invoice_id: z.string().max(255).optional(),
+    is_recurring: z.boolean().optional(),
+    recurring_frequency: recurringFrequencySchema.optional(),
+    campaign_name: z.string().max(100).optional(),
+    designation: z.string().max(100).optional(),
+    notes: z.string().max(500).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.account_id && !value.contact_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Provide account_id or contact_id for donation linkage',
+        path: ['account_id'],
+      });
+    }
+  });
 
 export type CreateDonationInput = z.infer<typeof createDonationSchema>;
 
@@ -61,6 +72,7 @@ export const updateDonationSchema = z.object({
   account_id: uuidSchema.optional(),
   contact_id: uuidSchema.optional(),
   recurring_plan_id: uuidSchema.nullable().optional(),
+  transaction_id: z.string().max(255).optional(),
   provider_transaction_id: z.string().max(255).nullable().optional(),
   provider_checkout_session_id: z.string().max(255).nullable().optional(),
   provider_subscription_id: z.string().max(255).nullable().optional(),

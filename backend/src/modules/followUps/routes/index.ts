@@ -104,36 +104,36 @@ export const createFollowUpsRoutes = (): Router => {
   router.get('/:id', validateParams(followUpIdParamSchema), controller.getFollowUpById);
   router.post(
     '/',
-    validateBody(createFollowUpSchema),
     requirePermission(Permission.FOLLOWUP_CREATE),
+    validateBody(createFollowUpSchema),
     controller.createFollowUp
   );
   router.put(
     '/:id',
     validateParams(followUpIdParamSchema),
-    validateBody(updateFollowUpSchema),
     requirePermission(Permission.FOLLOWUP_EDIT),
+    validateBody(updateFollowUpSchema),
     controller.updateFollowUp
   );
   router.post(
     '/:id/complete',
     validateParams(followUpIdParamSchema),
-    validateBody(completeFollowUpSchema),
     requirePermission(Permission.FOLLOWUP_EDIT),
+    validateBody(completeFollowUpSchema),
     controller.completeFollowUp
   );
   router.post(
     '/:id/cancel',
     validateParams(followUpIdParamSchema),
-    validateBody(cancelFollowUpSchema),
     requirePermission(Permission.FOLLOWUP_EDIT),
+    validateBody(cancelFollowUpSchema),
     controller.cancelFollowUp
   );
   router.post(
     '/:id/reschedule',
     validateParams(followUpIdParamSchema),
-    validateBody(rescheduleFollowUpSchema),
     requirePermission(Permission.FOLLOWUP_EDIT),
+    validateBody(rescheduleFollowUpSchema),
     controller.rescheduleFollowUp
   );
   router.delete(

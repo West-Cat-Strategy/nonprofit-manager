@@ -1,9 +1,9 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { InputHTMLAttributes, ReactNode } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import type * as ReactRouterDomModule from 'react-router-dom';
 import { vi } from 'vitest';
 import CaseListPage from '../CaseListPage';
-import { renderWithProviders } from '../../../../test/testUtils';
 
 const navigateMock = vi.hoisted(() => vi.fn());
 const dispatchMock = vi.hoisted(() => vi.fn());
@@ -192,8 +192,16 @@ vi.mock('../../../../features/cases/components/CaseListFiltersBar', () => ({
 }));
 
 describe('Case list page', () => {
+  const renderCaseListPage = () =>
+    render(
+      <MemoryRouter initialEntries={['/cases']}>
+        <CaseListPage />
+      </MemoryRouter>
+    );
+
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     mockState.cases.list.total = 1;
     mockState.cases.list.filters = {
       page: 1,
@@ -208,7 +216,7 @@ describe('Case list page', () => {
   it('renders only the mobile results tree and paginator on small viewports', () => {
     mockState.cases.list.total = 40;
 
-    renderWithProviders(<CaseListPage />, { route: '/cases' });
+    renderCaseListPage();
 
     expect(screen.getAllByTestId('mobile-case-card')).toHaveLength(1);
     expect(screen.queryByLabelText('Select all visible cases')).not.toBeInTheDocument();
@@ -224,7 +232,7 @@ describe('Case list page', () => {
     mockState.cases.list.total = 40;
     setViewport(true);
 
-    renderWithProviders(<CaseListPage />, { route: '/cases' });
+    renderCaseListPage();
 
     expect(screen.queryAllByTestId('mobile-case-card')).toHaveLength(0);
     expect(screen.getByLabelText('Select all visible cases')).toBeInTheDocument();
@@ -233,7 +241,7 @@ describe('Case list page', () => {
   });
 
   it('shows provenance badges and syncs the imported-only filter', () => {
-    renderWithProviders(<CaseListPage />, { route: '/cases' });
+    renderCaseListPage();
 
     expect(screen.getByText('Imported')).toBeInTheDocument();
     expect(screen.getByText('1 table')).toBeInTheDocument();
@@ -247,5 +255,88 @@ describe('Case list page', () => {
         payload: expect.objectContaining({ imported_only: true }),
       })
     );
+  });
+
+  it('hydrates deep-link filters before the initial cases fetch', () => {
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/cases?search=urgent%20intake&status=status-1&imported_only=true&quick_filter=due_soon&due_within_days=5&page=2&limit=10&sort_by=due_date&sort_order=asc',
+        ]}
+      >
+        <CaseListPage />
+      </MemoryRouter>
+    );
+
+    const fetchCaseCalls = dispatchMock.mock.calls.filter(
+      ([action]) => action?.type === 'cases/fetchCases'
+    );
+
+    expect(fetchCaseCalls).toHaveLength(1);
+    expect(fetchCaseCalls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        type: 'cases/fetchCases',
+        payload: expect.objectContaining({
+          search: 'urgent intake',
+          status_id: 'status-1',
+          imported_only: true,
+          quick_filter: 'due_soon',
+          due_within_days: 5,
+          page: 2,
+          limit: 10,
+          sort_by: 'due_date',
+          sort_order: 'asc',
+        }),
+      })
+    );
+  });
+
+  it('saves, reapplies, and deletes a saved view so staff can recover queue state', () => {
+    renderCaseListPage();
+
+    fireEvent.change(screen.getByLabelText('Search cases'), {
+      target: { value: 'Housing support' },
+    });
+    fireEvent.click(screen.getByLabelText('Show imported cases only'));
+    fireEvent.change(screen.getByLabelText('Saved view name'), {
+      target: { value: 'Imported housing queue' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /save view/i }));
+
+    const storedViews = JSON.parse(localStorage.getItem('cases.savedViews') || '[]') as Array<{
+      id: string;
+      name: string;
+      filters: { search?: string; imported_only?: boolean };
+    }>;
+
+    expect(storedViews).toHaveLength(1);
+    expect(storedViews[0]).toMatchObject({
+      name: 'Imported housing queue',
+      filters: {
+        search: 'Housing support',
+        imported_only: true,
+      },
+    });
+    expect(screen.getByLabelText('Saved case views')).toHaveValue(storedViews[0].id);
+
+    dispatchMock.mockClear();
+    fireEvent.change(screen.getByLabelText('Saved case views'), {
+      target: { value: storedViews[0].id },
+    });
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'cases/setFilters',
+        payload: expect.objectContaining({
+          search: 'Housing support',
+          imported_only: true,
+        }),
+      })
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+
+    expect(screen.getByLabelText('Saved case views')).toHaveValue('');
+    expect(localStorage.getItem('cases.savedViews')).toBe('[]');
   });
 });

@@ -207,6 +207,8 @@ psql "postgresql://postgres:your_password@localhost:5432/nonprofit_manager" \
 psql -U postgres -d nonprofit_manager -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;"
 ```
 
+Do not run individual `database/migrations/NNN_*.sql` files directly. The canonical manual path is always `database/initdb/000_init.sql`, which replays the manifest-ordered bootstrap contract.
+
 ---
 
 ## Loading Seed Data
@@ -299,16 +301,26 @@ psql -U postgres -d nonprofit_manager -c "SELECT tablename, indexname FROM pg_in
 ### 4. Run Migration Verification Script
 
 ```bash
-# Set environment variables
+# Bootstrap/admin connection used to rebuild or inspect the isolated test DB
 export DB_NAME=nonprofit_manager_test
 export DB_USER=postgres
 export DB_PASSWORD=postgres
+
+# Optional disposable runtime-role override for the RLS probe
+export APP_DB_USER=nonprofit_app_user
+export APP_DB_PASSWORD=nonprofit_app_password
 
 # Run verification
 make db-verify
 ```
 
-**Expected behavior:** the isolated `nonprofit_manager_test` database is rebuilt or verified on port `8012`, then the helper reports a populated `schema_migrations` table.
+**Expected behavior:** the isolated `nonprofit_manager_test` database is rebuilt or verified on port `8012`, then the helper:
+- validates the migration manifest policy and `database/initdb/000_init.sql` ordering
+- confirms the canonical `schema_migrations` rows plus the core-table/FK smoke checks
+- asserts starter bootstrap rows from seeds `002`, `006`, `007`, and `008`
+- provisions and validates a disposable non-superuser app role for the RLS probe
+- fails if the known superseded indexes are still present
+- confirms the required forward audit-log partition window plus `audit_log_default`
 
 ---
 
@@ -345,16 +357,20 @@ createdb nonprofit_manager
 psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 ```
 
-### Scenario 3: Apply New Migration
+### Scenario 3: Validate A New Migration
 
 **Docker:**
 ```bash
-make db-migrate
+make db-verify
 ```
 
 **Native:**
 ```bash
-psql -U postgres -d nonprofit_manager -f database/migrations/003_new_migration.sql
+# 1. Add the ordered migration file under database/migrations/
+# 2. Update database/migrations/manifest.tsv
+# 3. Update database/initdb/000_init.sql to include the migration
+# 4. Re-run the canonical contract gate
+make db-verify
 ```
 
 ### Scenario 4: Backup and Restore
@@ -456,7 +472,7 @@ createdb nonprofit_manager
 # Check what tables exist
 psql -U postgres -d nonprofit_manager -c "\dt"
 
-# If needed, drop all tables and re-run migrations
+# If needed, drop all tables and replay the canonical bootstrap contract
 psql -U postgres -d nonprofit_manager -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 ```

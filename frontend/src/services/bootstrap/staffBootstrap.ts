@@ -57,6 +57,17 @@ const DASHBOARD_SETTINGS_STORAGE_KEY = 'dashboardSettings';
 const isFresh = (snapshot: StaffBootstrapSnapshot): boolean =>
   Date.now() - snapshot.fetchedAt < STAFF_BOOTSTRAP_TTL_MS;
 
+const isStaffBootstrapBypassRoute = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return (
+    window.location.pathname.startsWith('/demo/') ||
+    window.location.pathname.startsWith('/portal/')
+  );
+};
+
 const normalizeStartupPreferences = (value: unknown): UserPreferences | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
@@ -154,6 +165,18 @@ const buildAuthenticatedSnapshot = (input: {
 };
 
 const fetchStaffBootstrapSnapshot = async (): Promise<StaffBootstrapSnapshot> => {
+  if (isStaffBootstrapBypassRoute()) {
+    return {
+      status: 'anonymous',
+      user: null,
+      organizationId: null,
+      branding: null,
+      preferences: null,
+      workspaceModules: createDefaultWorkspaceModuleSettings(),
+      fetchedAt: Date.now(),
+    };
+  }
+
   if (staffBootstrapMode === 'anonymous') {
     return {
       status: 'anonymous',

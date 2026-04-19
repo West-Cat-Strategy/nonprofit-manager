@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   EmptyState,
@@ -59,7 +59,7 @@ export default function PublicCaseFormPage() {
   const [detail, setDetail] = useState<CaseFormAssignmentDetail | null>(null);
   const [draftAnswers, setDraftAnswers] = useState<Record<string, unknown>>({});
 
-  const loadForm = async (): Promise<void> => {
+  const loadForm = useCallback(async (): Promise<void> => {
     if (!token) {
       setError('This secure form link is missing its access token.');
       setLoading(false);
@@ -81,11 +81,11 @@ export default function PublicCaseFormPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError, token]);
 
   useEffect(() => {
     void loadForm();
-  }, [token]);
+  }, [loadForm]);
 
   const assets = useMemo(() => {
     if (!detail) return [];

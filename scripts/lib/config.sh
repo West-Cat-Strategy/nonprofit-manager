@@ -6,10 +6,13 @@ PROJECT_ROOT="$(cd "$CONFIG_DIR/../.." && pwd)"
 
 if docker compose version >/dev/null 2>&1; then
   COMPOSE_CMD=(docker compose)
+  COMPOSE_AVAILABLE=1
 elif docker-compose version >/dev/null 2>&1; then
   COMPOSE_CMD=(docker-compose)
+  COMPOSE_AVAILABLE=1
 else
-  COMPOSE_CMD=(docker compose)
+  COMPOSE_CMD=()
+  COMPOSE_AVAILABLE=0
 fi
 
 COMPOSE_PROJECT_DEV="${COMPOSE_PROJECT_DEV:-nonprofit-dev}"
@@ -39,6 +42,11 @@ require_abs_path() {
 }
 
 compose() {
+  if [[ "$COMPOSE_AVAILABLE" != "1" ]]; then
+    echo "Docker Compose is required, but neither 'docker compose' nor 'docker-compose' is available." >&2
+    return 1
+  fi
+
   "${COMPOSE_CMD[@]}" "$@"
 }
 

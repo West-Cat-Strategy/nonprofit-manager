@@ -257,12 +257,16 @@ describe('CaseService', () => {
   describe('updateCase', () => {
     it('builds SET clause only for provided fields', async () => {
       const updated = { id: 'case-1', title: 'New Title' };
-      mockQuery.mockResolvedValueOnce({ rows: [updated] });
+      mockQuery
+        .mockResolvedValueOnce({
+          rows: [{ case_id: 'case-1', contact_id: 'contact-1', account_id: null }],
+        })
+        .mockResolvedValueOnce({ rows: [updated] });
 
       const result = await service.updateCase('case-1', { title: 'New Title' }, 'user-1');
 
       expect(result).toEqual(updated);
-      const sql = mockQuery.mock.calls[0][0] as string;
+      const sql = mockQuery.mock.calls[1][0] as string;
       expect(sql).toMatch(/title = \$1/);
       // Should not include fields not provided
       expect(sql).not.toMatch(/description/);
@@ -270,12 +274,16 @@ describe('CaseService', () => {
     });
 
     it('always includes modified_by and updated_at', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'case-1' }] });
+      mockQuery
+        .mockResolvedValueOnce({
+          rows: [{ case_id: 'case-1', contact_id: 'contact-1', account_id: null }],
+        })
+        .mockResolvedValueOnce({ rows: [{ id: 'case-1' }] });
 
       await service.updateCase('case-1', { title: 'T' }, 'editor-user');
 
-      const sql = mockQuery.mock.calls[0][0] as string;
-      const params = mockQuery.mock.calls[0][1] as unknown[];
+      const sql = mockQuery.mock.calls[1][0] as string;
+      const params = mockQuery.mock.calls[1][1] as unknown[];
 
       expect(sql).toMatch(/modified_by/);
       expect(sql).toMatch(/updated_at = NOW\(\)/);
@@ -288,6 +296,9 @@ describe('CaseService', () => {
   describe('updateCaseStatus', () => {
     it('fetches current status, updates it, and inserts a status_change note', async () => {
       const updatedCase = { id: 'case-1', status_id: 'status-new' };
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ case_id: 'case-1', contact_id: 'contact-1', account_id: null }],
+      });
       const client = {
         query: jest
           .fn()

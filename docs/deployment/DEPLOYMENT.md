@@ -533,7 +533,7 @@ make db-migrate
 make db-verify
 ```
 
-`make db-migrate` brings up or inspects the current database contract, and `make db-verify` validates the isolated `_test` database against the migration manifest.
+`make db-migrate` brings up or inspects the current database contract, and `make db-verify` validates the isolated `_test` database against the migration manifest. `make db-verify` also checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window.
 
 ### Manual PostgreSQL Setup
 
@@ -546,25 +546,25 @@ psql -U postgres
 # Create database
 CREATE DATABASE nonprofit_manager;
 
-# Create user (if needed)
-CREATE USER nonprofit_user WITH ENCRYPTED PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE nonprofit_manager TO nonprofit_user;
+# Create runtime user (if needed)
+CREATE USER nonprofit_app_user WITH ENCRYPTED PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE nonprofit_manager TO nonprofit_app_user;
 
 # Exit psql
 \q
 
 # Run the bootstrap contract
-psql -U nonprofit_user -d nonprofit_manager -f database/initdb/000_init.sql
+psql -U nonprofit_app_user -d nonprofit_manager -f database/initdb/000_init.sql
 ```
 
 ### Future Migrations
 
 ```bash
-# Create new migration file
-touch database/migrations/003_your_migration_name.sql
-
-# Run new migration
-psql -U nonprofit_user -d nonprofit_manager -f database/migrations/003_your_migration_name.sql
+# 1. Create the ordered migration file under database/migrations/
+# 2. Add it to database/migrations/manifest.tsv
+# 3. Add it to database/initdb/000_init.sql
+# 4. Validate the canonical bootstrap contract
+make db-verify
 ```
 
 ### Backup Strategy
@@ -577,14 +577,14 @@ psql -U nonprofit_user -d nonprofit_manager -f database/migrations/003_your_migr
 - `self_hosted`
   - Set `BACKUP_DIR` to an absolute host path on the runtime host and document the operational risk acceptance alongside your backup schedule.
 
-For one-off migrations or disaster recovery that need a database-creating archive instead of the recurring SQL and gzip flow, use [db-export-archive.sh](../../scripts/db-export-archive.sh) and [db-restore-archive.sh](../../scripts/db-restore-archive.sh). Those helpers wrap `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create -d postgres`.
+For one-off migrations or disaster recovery that need a database-creating archive instead of the recurring SQL and gzip flow, use [db-export-archive.sh](../../scripts/db-export-archive.sh) and [db-restore-archive.sh](../../scripts/db-restore-archive.sh). Those helpers wrap `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create -d postgres`, honor `DB_COMPOSE_ENV_FILE` for production-like stacks, block managed-production usage, and require explicit restore confirmation variables before destructive restores.
 
 ```bash
 # Daily automated backup for local Postgres production modes
 0 2 * * * BACKUP_DIR=/srv/nonprofit-manager/backups/database ./scripts/db-backup.sh
 
 # Restore from backup
-gunzip -c /srv/nonprofit-manager/backups/database/backup_20260201_020000.sql.gz | psql -U nonprofit_user -d nonprofit_manager
+gunzip -c /srv/nonprofit-manager/backups/database/backup_20260201_020000.sql.gz | psql -U nonprofit_app_user -d nonprofit_manager
 ```
 
 ## Local CI Runner (No GitHub Actions)
@@ -607,6 +607,7 @@ make hooks
 ```
 
 This installs local hooks for the repo's standard lint/type-check flow.
+It now resolves Git's active hooks path, preserves differing existing hooks by default, and supports `./scripts/install-git-hooks.sh --dry-run` when you want to inspect the install plan first.
 
 ### Migration Verification (Local)
 
@@ -615,7 +616,9 @@ Migration verification only runs against a database whose name ends with `_test`
 ```bash
 export DB_NAME=nonprofit_manager_test
 export DB_USER=postgres
-export DB_PASSWORD=your_password
+export DB_PASSWORD=postgres
+export APP_DB_USER=nonprofit_app_user
+export APP_DB_PASSWORD=nonprofit_app_password
 make db-verify
 ```
 
@@ -729,7 +732,7 @@ docker stop nonprofit-manager-backend nonprofit-manager-frontend
 
 ```bash
 # Restore from backup
-psql -U nonprofit_user -d nonprofit_manager < /backups/nonprofit_20260131.sql
+psql -U nonprofit_app_user -d nonprofit_manager < /backups/nonprofit_20260131.sql
 ```
 
 ### Emergency Rollback

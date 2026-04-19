@@ -296,17 +296,30 @@ const ROLE_PERMISSIONS: Record<CanonicalPermissionRole, Permission[]> = {
   ],
 };
 
+const normalizeCandidateRole = (role: string): CanonicalPermissionRole | null => {
+  const normalizedRole = normalizeRoleSlug(role);
+  return normalizedRole ? (normalizedRole as CanonicalPermissionRole) : null;
+};
+
+const getCandidatePermissions = (role: string): Permission[] => {
+  const normalizedRole = normalizeCandidateRole(role);
+  return normalizedRole ? ROLE_PERMISSIONS[normalizedRole] || [] : [];
+};
+
+export const normalizePermissionRoles = (roles: string[]): CanonicalPermissionRole[] =>
+  Array.from(
+    new Set(
+      roles
+        .map((role) => normalizeCandidateRole(role))
+        .filter((role): role is CanonicalPermissionRole => role !== null)
+    )
+  );
+
 /**
  * Check if a role has a specific permission
  */
 export function hasPermission(role: string, permission: Permission | string): boolean {
-  const normalizedRole = normalizeRoleSlug(role);
-  if (!normalizedRole) return false;
-
-  const permissions = ROLE_PERMISSIONS[normalizedRole as CanonicalPermissionRole];
-  if (!permissions) return false;
-
-  return permissions.includes(permission as Permission);
+  return getCandidatePermissions(role).includes(permission as Permission);
 }
 
 /**
@@ -317,6 +330,22 @@ export function hasAnyPermission(
   permissions: (Permission | string)[]
 ): boolean {
   return permissions.some((perm) => hasPermission(role, perm));
+}
+
+export function hasPermissionForRoles(
+  roles: string[],
+  permission: Permission | string
+): boolean {
+  return normalizePermissionRoles(roles).some((role) =>
+    ROLE_PERMISSIONS[role].includes(permission as Permission)
+  );
+}
+
+export function hasAnyPermissionForRoles(
+  roles: string[],
+  permissions: (Permission | string)[]
+): boolean {
+  return permissions.some((permission) => hasPermissionForRoles(roles, permission));
 }
 
 /**
@@ -333,8 +362,7 @@ export function hasAllPermissions(
  * Get all permissions for a role
  */
 export function getPermissionsForRole(role: string): Permission[] {
-  const normalizedRole = normalizeRoleSlug(role);
-  return normalizedRole ? ROLE_PERMISSIONS[normalizedRole as CanonicalPermissionRole] || [] : [];
+  return getCandidatePermissions(role);
 }
 
 /**

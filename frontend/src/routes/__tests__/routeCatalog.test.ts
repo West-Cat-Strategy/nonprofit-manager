@@ -50,9 +50,39 @@ describe('routeCatalog matching', () => {
   });
 
   it('matches canonical and dynamic routes', () => {
-    expect(matchRouteCatalogEntry('/reports/builder')?.id).toBe('reports');
+    expect(matchRouteCatalogEntry('/reports')?.id).toBe('reports');
+    expect(matchRouteCatalogEntry('/reports/builder')?.id).toBe('reports-builder');
     expect(matchRouteCatalogEntry('/reports/saved')?.id).toBe('reports-saved');
     expect(matchRouteCatalogEntry('/reports/scheduled')?.id).toBe('reports-scheduled');
+  });
+
+  it('matches cataloged analytics, engagement, and publishing routes that the drift checker audits', () => {
+    expect(matchRouteCatalogEntry('/analytics')?.id).toBe('analytics');
+    expect(matchRouteCatalogEntry('/dashboard/custom')?.id).toBe('dashboard-custom');
+    expect(matchRouteCatalogEntry('/alerts')?.id).toBe('alerts-overview');
+    expect(matchRouteCatalogEntry('/alerts/instances')?.id).toBe('alerts-instances');
+    expect(matchRouteCatalogEntry('/alerts/history')?.id).toBe('alerts-history');
+    expect(matchRouteCatalogEntry('/external-service-providers')?.id).toBe(
+      'external-service-providers'
+    );
+    expect(matchRouteCatalogEntry('/website-builder')?.id).toBe('website-builder');
+    expect(matchRouteCatalogEntry('/website-builder/sample-template/preview')?.id).toBe(
+      'website-builder-preview'
+    );
+    expect(matchRouteCatalogEntry('/events')?.id).toBe('events');
+    expect(matchRouteCatalogEntry('/tasks')?.id).toBe('tasks');
+    expect(matchRouteCatalogEntry('/cases')?.id).toBe('cases');
+    expect(matchRouteCatalogEntry('/accounts')?.id).toBe('accounts');
+    expect(matchRouteCatalogEntry('/accounts/new')?.id).toBe('account-create');
+    expect(matchRouteCatalogEntry('/contacts')?.id).toBe('contacts');
+    expect(matchRouteCatalogEntry('/contacts/11111111-1111-4111-8111-111111111111')?.id).toBe(
+      'contact-detail'
+    );
+    expect(matchRouteCatalogEntry('/volunteers')?.id).toBe('volunteers');
+    expect(
+      matchRouteCatalogEntry('/volunteers/11111111-1111-4111-8111-111111111111/assignments/new')
+        ?.id
+    ).toBe('volunteer-assignment-create');
   });
 
   it('groups staff navigation into top-level areas with active state driven by the route area', () => {

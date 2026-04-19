@@ -26,7 +26,7 @@ Run stricter checks when the change is high-risk or release-facing:
 - [ ] `make test-e2e-docker-smoke`
 - [ ] `cd e2e && npm run test:ci`
 
-Use [../../scripts/select-checks.sh](../../scripts/select-checks.sh) or the repo check matrix when the change set is smaller and you need a narrower validated sequence.
+Use [../../scripts/select-checks.sh](../../scripts/select-checks.sh) or the repo check matrix when the change set is smaller and you need a narrower validated sequence. Prefer `--mode strict` for shared runtime, hook, Docker, deploy, or runtime-doc changes.
 
 ## Documentation And Contract Checks
 

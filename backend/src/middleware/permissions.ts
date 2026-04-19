@@ -5,13 +5,12 @@
 
 import { Response, NextFunction } from 'express';
 import type { AuthRequest } from '@middleware/auth';
-import { forbidden } from '@utils/responseHelpers';
 import { type Permission } from '@utils/permissions';
 import {
-  hasAnyStaticPermissionAccess,
-  hasRoleAccess,
-  hasStaticPermissionAccess,
-} from '@services/authorization';
+  guardWithAnyPermission,
+  guardWithPermission,
+  guardWithRole,
+} from '@services/authGuardService';
 
 /**
  * Require a specific permission
@@ -19,22 +18,9 @@ import {
  */
 export function requirePermission(permission: Permission | string) {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      forbidden(res, 'Unauthorized: No user');
+    if (!guardWithPermission(req, res, permission)) {
       return;
     }
-
-    if (
-      !hasStaticPermissionAccess(
-        req.user.role,
-        permission,
-        req.authorizationContext?.roles
-      )
-    ) {
-      forbidden(res, `Permission denied: requires '${permission}'`);
-      return;
-    }
-
     next();
   };
 }
@@ -45,22 +31,9 @@ export function requirePermission(permission: Permission | string) {
  */
 export function requireAnyPermission(...permissions: (Permission | string)[]) {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      forbidden(res, 'Unauthorized: No user');
+    if (!guardWithAnyPermission(req, res, ...permissions)) {
       return;
     }
-
-    const hasAny = hasAnyStaticPermissionAccess(
-      req.user.role,
-      permissions,
-      req.authorizationContext?.roles
-    );
-
-    if (!hasAny) {
-      forbidden(res, 'Permission denied: none of the required permissions granted');
-      return;
-    }
-
     next();
   };
 }
@@ -71,16 +44,9 @@ export function requireAnyPermission(...permissions: (Permission | string)[]) {
  */
 export function requireRole(...roles: string[]) {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      forbidden(res, 'Unauthorized: No user');
+    if (!guardWithRole(req, res, ...roles)) {
       return;
     }
-
-    if (!hasRoleAccess(req.user.role, roles, req.authorizationContext?.roles)) {
-      forbidden(res, `Permission denied: requires role [${roles.join(', ')}]`);
-      return;
-    }
-
     next();
   };
 }

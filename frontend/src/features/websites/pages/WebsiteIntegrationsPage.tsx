@@ -13,7 +13,6 @@ import { deriveWebsiteManagementSnapshot, getWebsiteConsoleUrlTarget } from '../
 import {
   clearWebsitesError,
   fetchWebsiteIntegrations,
-  fetchWebsiteOverview,
   selectWebsiteIntegrations,
   updateWebsiteNewsletterIntegration,
   updateWebsiteStripeIntegration,
@@ -118,8 +117,6 @@ const WebsiteIntegrationsPage: React.FC = () => {
     );
 
     if (updateWebsiteNewsletterIntegration.fulfilled.match(result)) {
-      await dispatch(fetchWebsiteIntegrations(siteId));
-      void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
       setNotice({
         tone: 'success',
         message:
@@ -157,8 +154,6 @@ const WebsiteIntegrationsPage: React.FC = () => {
       })
     );
     if (updateWebsiteStripeIntegration.fulfilled.match(result)) {
-      await dispatch(fetchWebsiteIntegrations(siteId));
-      void dispatch(fetchWebsiteOverview({ siteId, period: 30 }));
       setNotice({ tone: 'success', message: 'Donation provider settings saved.' });
     } else {
       setNotice({

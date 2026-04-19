@@ -1,9 +1,8 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
 import CaseDetail from '../CaseDetailPage';
-import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn(() => Promise.resolve({ unwrap: () => Promise.resolve({}) }));
 const validCaseId = '22222222-2222-4222-8222-222222222222';
@@ -138,19 +137,20 @@ function LocationProbe() {
 }
 
 function renderCaseDetail(route: string) {
-  return renderWithProviders(
-    <Routes>
-      <Route
-        path="/cases/:id"
-        element={
-          <>
-            <CaseDetail />
-            <LocationProbe />
-          </>
-        }
-      />
-    </Routes>,
-    { route }
+  return render(
+    <MemoryRouter initialEntries={[route]}>
+      <Routes>
+        <Route
+          path="/cases/:id"
+          element={
+            <>
+              <CaseDetail />
+              <LocationProbe />
+            </>
+          }
+        />
+      </Routes>
+    </MemoryRouter>
   );
 }
 
@@ -175,6 +175,19 @@ describe('Case detail tabs URL sync', () => {
 
     expect(screen.getByRole('tab', { name: /documents/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('location-search')).toHaveTextContent('tab=documents');
+  });
+
+  it('keeps the staff appointments workspace on a stable case-detail tab route', () => {
+    renderCaseDetail(`/cases/${validCaseId}`);
+
+    fireEvent.click(screen.getByRole('tab', { name: /appointments/i }));
+
+    expect(screen.getByRole('tab', { name: /appointments/i })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByText('Appointments panel')).toBeInTheDocument();
+    expect(screen.getByTestId('location-search')).toHaveTextContent('tab=appointments');
   });
 
   it('renders a local invalid-link state and skips case fetches for non-UUID params', () => {

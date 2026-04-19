@@ -14,6 +14,8 @@ import {
   SelectField,
   TextareaField,
 } from '../../../components/ui';
+import { useAppSelector } from '../../../store/hooks';
+import { getReportAccess } from '../../auth/state/reportAccess';
 import useReportBuilderController from '../hooks/useReportBuilderController';
 import type {
   AggregateFunction,
@@ -46,6 +48,8 @@ const statusStyles: Record<ReportExportJob['status'], string> = {
 
 function ReportBuilder() {
   const navigate = useNavigate();
+  const user = useAppSelector((state) => state.auth.user);
+  const { canExportReports, canManageReports } = getReportAccess(user);
   const {
     aggregations,
     allOutputFields,
@@ -242,21 +246,25 @@ function ReportBuilder() {
 
         <SectionCard title="8. Generate & Export">
           <div className="flex flex-wrap gap-2">
-            <PrimaryButton
-              onClick={() => void handleGenerateReport()}
-              disabled={loading || (selectedFields.length === 0 && aggregations.length === 0)}
-            >
-              {loading ? 'Generating...' : 'Generate Report'}
-            </PrimaryButton>
+            {canManageReports && (
+              <>
+                <PrimaryButton
+                  onClick={() => void handleGenerateReport()}
+                  disabled={loading || (selectedFields.length === 0 && aggregations.length === 0)}
+                >
+                  {loading ? 'Generating...' : 'Generate Report'}
+                </PrimaryButton>
 
-            <SecondaryButton
-              onClick={() => setShowSaveDialog(true)}
-              disabled={selectedFields.length === 0 && aggregations.length === 0}
-            >
-              Save Definition
-            </SecondaryButton>
+                <SecondaryButton
+                  onClick={() => setShowSaveDialog(true)}
+                  disabled={selectedFields.length === 0 && aggregations.length === 0}
+                >
+                  Save Definition
+                </SecondaryButton>
+              </>
+            )}
 
-            {reportRows.length > 0 && (
+            {canExportReports && reportRows.length > 0 && (
               <>
                 <SecondaryButton onClick={() => void handleStartExport('csv')}>
                   Export CSV
@@ -318,7 +326,7 @@ function ReportBuilder() {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {job.status === 'completed' && (
+                      {canExportReports && job.status === 'completed' && (
                         <SecondaryButton
                           onClick={() => void handleDownloadExportJob(job)}
                           disabled={downloadingJobId === job.id}
@@ -326,9 +334,11 @@ function ReportBuilder() {
                           {downloadingJobId === job.id ? 'Downloading...' : 'Download'}
                         </SecondaryButton>
                       )}
-                      <SecondaryButton onClick={() => void handleRetryExportJob(job)}>
-                        Retry Export
-                      </SecondaryButton>
+                      {canExportReports && (
+                        <SecondaryButton onClick={() => void handleRetryExportJob(job)}>
+                          Retry Export
+                        </SecondaryButton>
+                      )}
                     </div>
                   </div>
                 </div>

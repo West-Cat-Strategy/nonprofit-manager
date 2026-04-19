@@ -36,6 +36,9 @@ const mockClientQuery = jest.fn((sql: string, params?: unknown[]) => {
   if (normalized === 'BEGIN' || normalized === 'COMMIT' || normalized === 'ROLLBACK') {
     return Promise.resolve({ rows: [], rowCount: 0 });
   }
+  if (normalized.includes("SET_CONFIG('APP.CURRENT_USER_ID'")) {
+    return Promise.resolve({ rows: [], rowCount: 1 });
+  }
   return mockQuery(sql, params);
 });
 const mockPool = {
@@ -46,6 +49,7 @@ const mockPool = {
 const buildOccurrenceRow = (overrides: Record<string, unknown> = {}) => ({
   occurrence_id: 'occ-123',
   event_id: 'event-123',
+  organization_id: 'acct-1',
   sequence_index: 0,
   occurrence_index: 0,
   series_id: 'event-123',
@@ -84,6 +88,7 @@ const buildOccurrenceRow = (overrides: Record<string, unknown> = {}) => ({
 
 const buildSeriesRow = (overrides: Record<string, unknown> = {}) => ({
   event_id: 'event-123',
+  organization_id: 'acct-1',
   event_name: 'Mock Event',
   description: null,
   status: EventStatus.PLANNED,
@@ -112,7 +117,11 @@ const buildSeriesRow = (overrides: Record<string, unknown> = {}) => ({
 
 const queueEventSyncAndFetch = (eventId: string, summaryRow: Record<string, unknown>) => {
   mockQuery
-    .mockResolvedValueOnce({ rows: [buildSeriesRow({ event_id: eventId, event_name: summaryRow.event_name ?? 'Mock Event' })] })
+    .mockResolvedValueOnce({
+      rows: [
+        buildSeriesRow({ event_id: eventId, event_name: summaryRow.event_name ?? 'Mock Event' }),
+      ],
+    })
     .mockResolvedValueOnce({ rows: [], rowCount: 1 })
     .mockResolvedValueOnce({ rows: [], rowCount: 1 })
     .mockResolvedValueOnce({ rows: [], rowCount: 1 })
@@ -128,7 +137,9 @@ describe('EventService', () => {
   const mockSendSms = sendSms as jest.MockedFunction<typeof sendSms>;
   const mockGetTwilioSettings = getTwilioSettings as jest.MockedFunction<typeof getTwilioSettings>;
   const mockCancelPendingAutomationsForEvent =
-    cancelPendingAutomationsForEvent as jest.MockedFunction<typeof cancelPendingAutomationsForEvent>;
+    cancelPendingAutomationsForEvent as jest.MockedFunction<
+      typeof cancelPendingAutomationsForEvent
+    >;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -262,9 +273,7 @@ describe('EventService', () => {
         registered_count: 50,
       };
 
-      mockQuery
-        .mockResolvedValueOnce({ rows: [mockEvent] })
-        .mockResolvedValueOnce({ rows: [] });
+      mockQuery.mockResolvedValueOnce({ rows: [mockEvent] }).mockResolvedValueOnce({ rows: [] });
 
       const result = await eventService.getEventById('123');
 
@@ -350,7 +359,8 @@ describe('EventService', () => {
           start_date: new Date('2024-06-15'),
           end_date: new Date('2024-06-15T18:00:00Z'),
         },
-        'user-123'
+        'user-123',
+        'acct-1'
       );
 
       expect(result).toEqual({ ...mockCreatedEvent, occurrences: [] });
@@ -371,7 +381,7 @@ describe('EventService', () => {
       mockQuery.mockResolvedValueOnce({ rows: [{ event_id: 'new-uuid' }] });
       queueEventSyncAndFetch('new-uuid', { event_id: 'new-uuid', ...eventData });
 
-      const result = await eventService.createEvent(eventData, 'user-123');
+      const result = await eventService.createEvent(eventData, 'user-123', 'acct-1');
 
       expect(result.event_name).toBe('Full Event');
       expect(result.capacity).toBe(200);
@@ -398,14 +408,16 @@ describe('EventService', () => {
           start_date: new Date('2026-06-15T18:00:00Z'),
           end_date: new Date('2026-06-15T20:00:00Z'),
         },
-        'user-123'
+        'user-123',
+        'acct-1'
       );
 
       const args = mockQuery.mock.calls[0][1];
-      expect(args[5]).toBe(false);
-      expect(args[6]).toBeNull();
+      expect(args[0]).toBe('acct-1');
+      expect(args[6]).toBe(false);
       expect(args[7]).toBeNull();
       expect(args[8]).toBeNull();
+      expect(args[9]).toBeNull();
     });
   });
 
@@ -438,7 +450,9 @@ describe('EventService', () => {
     });
 
     it('should throw error when no fields to update', async () => {
-      await expect(eventService.updateEvent('123', {}, 'user-123')).rejects.toThrow('No fields to update');
+      await expect(eventService.updateEvent('123', {}, 'user-123')).rejects.toThrow(
+        'No fields to update'
+      );
     });
 
     it('should clear recurrence fields when is_recurring is set to false', async () => {
@@ -449,11 +463,7 @@ describe('EventService', () => {
         is_recurring: false,
       });
 
-      await eventService.updateEvent(
-        '123',
-        { is_recurring: false },
-        'user-123'
-      );
+      await eventService.updateEvent('123', { is_recurring: false }, 'user-123');
 
       const sql = mockQuery.mock.calls[0][0] as string;
       const values = mockQuery.mock.calls[0][1];
@@ -471,10 +481,10 @@ describe('EventService', () => {
 
       await eventService.deleteEvent('123', 'user-123');
 
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining("status = 'cancelled'"),
-        ['user-123', '123']
-      );
+      expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining("status = 'cancelled'"), [
+        'user-123',
+        '123',
+      ]);
     });
 
     it('should complete even when event not found', async () => {
@@ -501,9 +511,13 @@ describe('EventService', () => {
     });
 
     it('should filter by registration_status', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ registration_id: '1', registration_status: 'confirmed' }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ registration_id: '1', registration_status: 'confirmed' }],
+      });
 
-      await eventService.getEventRegistrations('event-123', { registration_status: RegistrationStatus.CONFIRMED });
+      await eventService.getEventRegistrations('event-123', {
+        registration_status: RegistrationStatus.CONFIRMED,
+      });
 
       const call = mockQuery.mock.calls[0];
       expect(call[1]).toContain('confirmed');
@@ -590,7 +604,9 @@ describe('EventService', () => {
       const now = Date.now();
 
       mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }],
+      });
       mockQuery.mockResolvedValueOnce({
         rows: [
           {
@@ -639,7 +655,9 @@ describe('EventService', () => {
       const now = Date.now();
 
       mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }],
+      });
       mockQuery.mockResolvedValueOnce({
         rows: [
           {
@@ -680,7 +698,9 @@ describe('EventService', () => {
       const now = Date.now();
 
       mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }],
+      });
       mockQuery.mockResolvedValueOnce({
         rows: [
           {
@@ -721,7 +741,9 @@ describe('EventService', () => {
       const now = Date.now();
 
       mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }],
+      });
       mockQuery.mockResolvedValueOnce({
         rows: [
           {
@@ -762,7 +784,9 @@ describe('EventService', () => {
       const now = Date.now();
 
       mockQuery.mockResolvedValueOnce({ rows: [mockRegistrationCheck] });
-      mockQuery.mockResolvedValueOnce({ rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }],
+      });
       mockQuery.mockResolvedValueOnce({
         rows: [
           {
@@ -806,7 +830,9 @@ describe('EventService', () => {
           },
         ],
       });
-      mockQuery.mockResolvedValueOnce({ rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }] });
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ event_id: 'event-123', event_name: 'Community Clinic' }],
+      });
       mockQuery.mockResolvedValueOnce({
         rows: [
           {
@@ -828,13 +854,17 @@ describe('EventService', () => {
 
       await eventService.cancelRegistration('123');
 
-      expect(mockQuery).toHaveBeenCalledWith('DELETE FROM event_registrations WHERE id = $1', ['123']);
+      expect(mockQuery).toHaveBeenCalledWith('DELETE FROM event_registrations WHERE id = $1', [
+        '123',
+      ]);
     });
 
     it('should throw when registration not found', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
-      await expect(eventService.cancelRegistration('nonexistent')).rejects.toThrow('Registration not found');
+      await expect(eventService.cancelRegistration('nonexistent')).rejects.toThrow(
+        'Registration not found'
+      );
     });
   });
 
@@ -852,29 +882,27 @@ describe('EventService', () => {
       expect(result).toEqual(mockRegistrations);
     });
 
-    it('applies event creator scope filtering when provided', async () => {
+    it('applies organization scope filtering when provided', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
       await eventService.getContactRegistrations('contact-123', {
-        createdByUserIds: ['user-1'],
+        accountIds: ['acct-1'],
       });
 
       const [sql, params] = mockQuery.mock.calls[0] as [string, unknown[]];
-      expect(sql).toContain('e.created_by = ANY');
-      expect(params).toEqual(['contact-123', ['user-1']]);
+      expect(sql).toContain('e.organization_id = ANY');
+      expect(params).toEqual(['contact-123', ['acct-1']]);
     });
   });
 
   describe('listPublicEventsByOwner', () => {
     it('returns owner-scoped public events with pagination metadata', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '2' }] })
-        .mockResolvedValueOnce({
-          rows: [
-            { event_id: 'event-1', event_name: 'Upcoming Event' },
-            { event_id: 'event-2', event_name: 'Community Meetup' },
-          ],
-        });
+      mockQuery.mockResolvedValueOnce({ rows: [{ count: '2' }] }).mockResolvedValueOnce({
+        rows: [
+          { event_id: 'event-1', event_name: 'Upcoming Event' },
+          { event_id: 'event-2', event_name: 'Community Meetup' },
+        ],
+      });
 
       const result = await eventService.listPublicEventsByOwner('owner-1', {
         limit: 2,
@@ -890,18 +918,16 @@ describe('EventService', () => {
       });
 
       const [countSql, countParams] = mockQuery.mock.calls[0] as [string, unknown[]];
-      expect(countSql).toContain("is_public = true");
+      expect(countSql).toContain('is_public = true');
       expect(countSql).toContain("status IN ('planned', 'active', 'postponed')");
       expect(countSql).toContain('end_date >= NOW()');
       expect(countParams).toEqual(['owner-1']);
     });
 
     it('applies search/type/include_past filters and sorting controls', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ count: '1' }] })
-        .mockResolvedValueOnce({
-          rows: [{ event_id: 'event-3', event_name: 'Past Fundraiser' }],
-        });
+      mockQuery.mockResolvedValueOnce({ rows: [{ count: '1' }] }).mockResolvedValueOnce({
+        rows: [{ event_id: 'event-3', event_name: 'Past Fundraiser' }],
+      });
 
       await eventService.listPublicEventsByOwner('owner-2', {
         search: 'Fundraiser',
@@ -1065,7 +1091,9 @@ describe('EventService', () => {
       );
 
       expect(result.email.skipped).toBe(1);
-      expect(result.warnings).toContain('Email reminders were requested, but SMTP is not configured.');
+      expect(result.warnings).toContain(
+        'Email reminders were requested, but SMTP is not configured.'
+      );
       expect(mockSendMail).not.toHaveBeenCalled();
     });
 

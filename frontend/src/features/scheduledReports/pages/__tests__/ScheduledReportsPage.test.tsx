@@ -7,6 +7,22 @@ import { vi } from 'vitest';
 import ScheduledReportsPage from '../ScheduledReportsPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
+const buildAuthState = (permissions: string[]) => ({
+  auth: {
+    user: {
+      id: 'user-1',
+      email: 'manager@example.com',
+      firstName: 'Manager',
+      lastName: 'User',
+      role: 'manager',
+      permissions,
+    },
+    isAuthenticated: true,
+    authLoading: false,
+    loading: false,
+  },
+});
+
 const {
   clearFormMock,
   closeEditDialogMock,
@@ -188,7 +204,14 @@ describe('ScheduledReportsPage', () => {
     const user = userEvent.setup();
     controllerStateRef.current.showCreate = true;
 
-    renderWithProviders(<ScheduledReportsPage />);
+    renderWithProviders(<ScheduledReportsPage />, {
+      preloadedState: buildAuthState([
+        'report:view',
+        'report:export',
+        'scheduled_report:view',
+        'scheduled_report:manage',
+      ]),
+    });
 
     expect(screen.getByRole('heading', { name: /scheduled reports/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/saved report/i)).toBeInTheDocument();
@@ -216,7 +239,14 @@ describe('ScheduledReportsPage', () => {
       }),
     ];
 
-    renderWithProviders(<ScheduledReportsPage />);
+    renderWithProviders(<ScheduledReportsPage />, {
+      preloadedState: buildAuthState([
+        'report:view',
+        'report:export',
+        'scheduled_report:view',
+        'scheduled_report:manage',
+      ]),
+    });
 
     await user.type(screen.getByLabelText(/search schedules/i), 'paused');
     await user.selectOptions(screen.getByLabelText(/status/i), 'paused');
@@ -245,7 +275,14 @@ describe('ScheduledReportsPage', () => {
       'schedule-1': [successfulRun, failedRun],
     };
 
-    renderWithProviders(<ScheduledReportsPage />);
+    renderWithProviders(<ScheduledReportsPage />, {
+      preloadedState: buildAuthState([
+        'report:view',
+        'report:export',
+        'scheduled_report:view',
+        'scheduled_report:manage',
+      ]),
+    });
 
     expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
     expect(screen.getByText(/recent runs/i)).toBeInTheDocument();
@@ -266,12 +303,24 @@ describe('ScheduledReportsPage', () => {
     controllerStateRef.current.loading = true;
     controllerStateRef.current.error = 'Failed to fetch scheduled reports';
 
-    const { rerender } = renderWithProviders(<ScheduledReportsPage />);
+    const managerState = buildAuthState([
+      'report:view',
+      'report:export',
+      'scheduled_report:view',
+      'scheduled_report:manage',
+    ]);
+
+    const initialRender = renderWithProviders(<ScheduledReportsPage />, {
+      preloadedState: managerState,
+    });
 
     expect(screen.getByText(/loading schedules/i)).toBeInTheDocument();
 
     controllerStateRef.current.loading = false;
-    rerender(<ScheduledReportsPage />);
+    initialRender.unmount();
+    const errorRender = renderWithProviders(<ScheduledReportsPage />, {
+      preloadedState: managerState,
+    });
     expect(screen.getByText(/failed to fetch scheduled reports/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /try again/i }));
@@ -279,10 +328,37 @@ describe('ScheduledReportsPage', () => {
 
     controllerStateRef.current.error = null;
     controllerStateRef.current.sortedReports = [];
-    rerender(<ScheduledReportsPage />);
+    errorRender.unmount();
+    renderWithProviders(<ScheduledReportsPage />, {
+      preloadedState: managerState,
+    });
 
     expect(screen.getByText(/no schedules created yet/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /create first schedule/i }));
     expect(setShowCreateMock).toHaveBeenCalledWith(true);
+  });
+
+  it('keeps schedule history visible while hiding management actions for read-only viewers', async () => {
+    const user = userEvent.setup();
+    controllerStateRef.current.historyReportId = 'schedule-1';
+    controllerStateRef.current.runsByReportId = {
+      'schedule-1': [successfulRun, failedRun],
+    };
+
+    renderWithProviders(<ScheduledReportsPage />, {
+      preloadedState: buildAuthState(['report:view', 'scheduled_report:view']),
+    });
+
+    expect(screen.queryByRole('button', { name: /new schedule/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /pause/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /run now/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /edit/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /view runs|hide runs/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /download artifact/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /retry failed run/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /hide runs/i }));
+    expect(handleOpenHistoryMock).toHaveBeenCalledWith('schedule-1');
   });
 });

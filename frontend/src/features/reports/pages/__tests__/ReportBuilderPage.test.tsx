@@ -7,6 +7,22 @@ import { vi } from 'vitest';
 import ReportBuilderPage from '../ReportBuilderPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
+const buildAuthState = (permissions: string[]) => ({
+  auth: {
+    user: {
+      id: 'user-1',
+      email: 'manager@example.com',
+      firstName: 'Manager',
+      lastName: 'User',
+      role: 'manager',
+      permissions,
+    },
+    isAuthenticated: true,
+    authLoading: false,
+    loading: false,
+  },
+});
+
 const {
   handleDownloadExportJobMock,
   handleEntityChangeMock,
@@ -171,7 +187,9 @@ describe('ReportBuilderPage', () => {
   });
 
   it('renders the report builder header and navigation actions', () => {
-    renderWithProviders(<ReportBuilderPage />);
+    renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
+    });
 
     expect(screen.getByRole('heading', { name: /report builder/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /kpi templates/i })).toBeInTheDocument();
@@ -181,7 +199,9 @@ describe('ReportBuilderPage', () => {
 
   it('navigates to related reporting routes from the page header', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ReportBuilderPage />);
+    renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
+    });
 
     await user.click(screen.getByRole('button', { name: /kpi templates/i }));
     await user.click(screen.getByRole('button', { name: /workflow coverage/i }));
@@ -192,7 +212,9 @@ describe('ReportBuilderPage', () => {
 
   it('delegates entity changes and report generation to the controller', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ReportBuilderPage />);
+    renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
+    });
 
     await user.click(screen.getByRole('button', { name: /accounts/i }));
     await user.click(screen.getByRole('button', { name: /generate report/i }));
@@ -203,7 +225,9 @@ describe('ReportBuilderPage', () => {
 
   it('starts exports and retries recent export jobs through the controller', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ReportBuilderPage />);
+    renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
+    });
 
     await user.click(screen.getByRole('button', { name: /export csv/i }));
     await user.click(screen.getByRole('button', { name: /retry export/i }));
@@ -216,13 +240,17 @@ describe('ReportBuilderPage', () => {
 
   it('opens and closes the save dialog through controller setters', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ReportBuilderPage />);
+    renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
+    });
 
     await user.click(screen.getByRole('button', { name: /save definition/i }));
     expect(setShowSaveDialogMock).toHaveBeenCalledWith(true);
 
     controllerState.showSaveDialog = true;
-    renderWithProviders(<ReportBuilderPage />);
+    renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create', 'report:export']),
+    });
 
     await user.type(screen.getByLabelText(/report name/i), ' Updated');
     await user.type(screen.getByLabelText(/description/i), ' Notes');
@@ -233,5 +261,19 @@ describe('ReportBuilderPage', () => {
     expect(setSavedReportDescriptionMock).toHaveBeenCalled();
     expect(handleSaveReportMock).toHaveBeenCalled();
     expect(resetSaveDialogMock).toHaveBeenCalled();
+  });
+
+  it('hides export affordances when the user lacks report export permission', () => {
+    renderWithProviders(<ReportBuilderPage />, {
+      preloadedState: buildAuthState(['report:view', 'report:create']),
+    });
+
+    expect(screen.getByRole('button', { name: /generate report/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save definition/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /export csv/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /export excel/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /export pdf/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /retry export/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /download/i })).not.toBeInTheDocument();
   });
 });

@@ -4,16 +4,17 @@ import Avatar from './Avatar';
 import NavPopover from './navigation/NavPopover';
 import MobileNavigationDrawer from './navigation/MobileNavigationDrawer';
 import ThemePreviewSwatch from './theme/ThemePreviewSwatch';
-import AdminQuickActionsBar from '../features/adminOps/components/AdminQuickActionsBar';
-import { preloadContactsPeopleRoute } from '../features/contacts/routePreload';
 import useStaffNavigationViewModel from '../features/navigation/hooks/useStaffNavigationViewModel';
 import { classNames } from './ui/classNames';
-import { preloadNavigationQuickLookupDialog } from './navigation/preloadNavigationQuickLookupDialog';
 import { THEME_REGISTRY } from '../theme/themeRegistry';
-const NavigationQuickLookupDialog = lazy(preloadNavigationQuickLookupDialog);
+
+const StaffNavigationQuickLookupDialog = lazy(
+  () => import('../features/navigation/components/StaffNavigationQuickLookupDialog')
+);
 
 export default function Navigation() {
   const {
+    adminQuickActions,
     adminSettingsPath,
     branding,
     canOpenAdminSettings,
@@ -27,6 +28,8 @@ export default function Navigation() {
     mobileDrawerUtilityLinks,
     mobileNavigationPreferences,
     navigationPreferences: { favoriteItems },
+    prefetchPeopleRoute,
+    prefetchQuickLookupDialog,
     themeState: { availableThemes, isDarkMode, setTheme, theme, toggleDarkMode },
     utilityNavLinks,
     user,
@@ -60,14 +63,6 @@ export default function Navigation() {
     );
     item?.focus();
   };
-
-  const prefetchStaffPeoplePath = useCallback(() => {
-    void preloadContactsPeopleRoute();
-  }, []);
-
-  const prefetchQuickLookup = useCallback(() => {
-    void preloadNavigationQuickLookupDialog();
-  }, []);
 
   const hasActiveDesktopOverflowItem =
     desktopOverflowItems.some((item) => isNavItemActive(item.id, item.path)) ||
@@ -202,8 +197,8 @@ export default function Navigation() {
                 <Link
                   key={item.id}
                   to={item.path}
-                  onMouseEnter={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
-                  onFocus={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
+                  onMouseEnter={item.id === 'contacts' ? prefetchPeopleRoute : undefined}
+                  onFocus={item.id === 'contacts' ? prefetchPeopleRoute : undefined}
                   aria-current={isNavItemActive(item.id, item.path) ? 'page' : undefined}
                   className={classNames(
                     'inline-flex min-w-0 max-w-[9rem] items-center rounded-full border px-3 py-2 text-sm font-semibold transition lg:max-w-[11rem]',
@@ -275,9 +270,9 @@ export default function Navigation() {
                                 isNavItemActive(item.id, item.path) ? 'page' : undefined
                               }
                               onMouseEnter={
-                                item.id === 'contacts' ? prefetchStaffPeoplePath : undefined
+                                item.id === 'contacts' ? prefetchPeopleRoute : undefined
                               }
-                              onFocus={item.id === 'contacts' ? prefetchStaffPeoplePath : undefined}
+                              onFocus={item.id === 'contacts' ? prefetchPeopleRoute : undefined}
                               onClick={() => setMoreMenuOpen(false)}
                               className={classNames(
                                 'flex items-center gap-3 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm transition',
@@ -341,8 +336,8 @@ export default function Navigation() {
               closeAllMenus();
               setSearchOpen(true);
             }}
-            onMouseEnter={prefetchQuickLookup}
-            onFocus={prefetchQuickLookup}
+            onMouseEnter={prefetchQuickLookupDialog}
+            onFocus={prefetchQuickLookupDialog}
             aria-label="Search"
             aria-haspopup="dialog"
             aria-expanded={searchOpen}
@@ -462,12 +457,20 @@ export default function Navigation() {
                       Admin Settings
                     </Link>
                     <div className="mt-2 border-t border-app-border-muted pt-2">
-                      <AdminQuickActionsBar
-                        role={user?.role}
-                        compact
-                        maxItems={4}
-                        onActionClick={() => setUserMenuOpen(false)}
-                      />
+                      {adminQuickActions.slice(0, 4).map((action) => (
+                        <Link
+                          key={action.id}
+                          to={action.to}
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-app-text hover:bg-app-hover"
+                        >
+                          <span aria-hidden="true">{action.icon}</span>
+                          <div>
+                            <p className="font-medium text-app-text">{action.label}</p>
+                            <p className="text-xs text-app-text-muted">{action.description}</p>
+                          </div>
+                        </Link>
+                      ))}
                     </div>
                   </div>
                 ) : null}
@@ -599,6 +602,7 @@ export default function Navigation() {
           <MobileNavigationDrawer
             adminSettingsPath={adminSettingsPath}
             appName={branding.appName || 'Nonprofit Manager'}
+            canOpenAdminSettings={canOpenAdminSettings}
             favoriteItems={favoriteItems}
             isDarkMode={isDarkMode}
             isNavItemActive={isNavItemActive}
@@ -619,7 +623,7 @@ export default function Navigation() {
 
       {searchOpen ? (
         <Suspense fallback={null}>
-          <NavigationQuickLookupDialog onClose={() => setSearchOpen(false)} />
+          <StaffNavigationQuickLookupDialog onClose={() => setSearchOpen(false)} />
         </Suspense>
       ) : null}
     </nav>

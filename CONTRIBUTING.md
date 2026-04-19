@@ -64,7 +64,7 @@ Use the smallest validation set that still covers your change.
 |---|---|
 | Docs-only | `make check-links` |
 | Docs with API wording/examples | `make check-links` and `make lint-doc-api-versioning` |
-| Smaller scoped code change | `./scripts/select-checks.sh --base HEAD~1 --mode fast` |
+| Smaller scoped code change | `./scripts/select-checks.sh --base HEAD~1 --mode fast` (use `--mode strict` for shared runtime, hook, Docker, or runtime-doc changes) |
 | Broader code change | `make lint`, `make typecheck`, and `make test` |
 | Full confidence pass | `make ci`, `make ci-fast`, or `make ci-full` as appropriate |
 

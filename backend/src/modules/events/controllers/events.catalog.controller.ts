@@ -20,6 +20,7 @@ import {
   buildEventLocation,
   escapeIcsText,
   EventCalendarPayload,
+  getRequestOrganizationId,
   getScopeFilter,
   getValidatedParams,
   getValidatedQuery,
@@ -82,7 +83,11 @@ export const buildEventsCatalogHandlers = (
     }
   };
 
-  const getOccurrences = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const getOccurrences = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     if (!shared.ensurePermission(req, res, Permission.EVENT_VIEW)) return;
 
     try {
@@ -109,12 +114,19 @@ export const buildEventsCatalogHandlers = (
     }
   };
 
-  const getOccurrence = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const getOccurrence = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     if (!shared.ensurePermission(req, res, Permission.EVENT_VIEW)) return;
 
     try {
       const params = getValidatedParams(req);
-      const occurrence = await catalogUseCase.getOccurrenceById(params.occurrenceId, getScopeFilter(req));
+      const occurrence = await catalogUseCase.getOccurrenceById(
+        params.occurrenceId,
+        getScopeFilter(req)
+      );
       if (!occurrence) {
         sendError(res, 'OCCURRENCE_NOT_FOUND', 'Occurrence not found', 404);
         return;
@@ -142,7 +154,11 @@ export const buildEventsCatalogHandlers = (
     }
   };
 
-  const downloadCalendarIcs = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const downloadCalendarIcs = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     if (!shared.ensurePermission(req, res, Permission.EVENT_VIEW)) return;
 
     try {
@@ -154,27 +170,30 @@ export const buildEventsCatalogHandlers = (
         return;
       }
 
-      const occurrenceId = typeof query.occurrence_id === 'string' ? query.occurrence_id : undefined;
+      const occurrenceId =
+        typeof query.occurrence_id === 'string' ? query.occurrence_id : undefined;
       const occurrence = occurrenceId
         ? await catalogUseCase.getOccurrenceById(occurrenceId, getScopeFilter(req))
         : null;
 
-      const event = (occurrence
-        ? {
-            event_id: eventRaw.event_id,
-            event_name: occurrence.occurrence_name ?? occurrence.event_name,
-            description: occurrence.description ?? eventRaw.description,
-            start_date: occurrence.start_date,
-            end_date: occurrence.end_date,
-            location_name: occurrence.location_name,
-            address_line1: occurrence.address_line1,
-            address_line2: occurrence.address_line2,
-            city: occurrence.city,
-            state_province: occurrence.state_province,
-            postal_code: occurrence.postal_code,
-            country: occurrence.country,
-          }
-        : eventRaw) as EventCalendarPayload;
+      const event = (
+        occurrence
+          ? {
+              event_id: eventRaw.event_id,
+              event_name: occurrence.occurrence_name ?? occurrence.event_name,
+              description: occurrence.description ?? eventRaw.description,
+              start_date: occurrence.start_date,
+              end_date: occurrence.end_date,
+              location_name: occurrence.location_name,
+              address_line1: occurrence.address_line1,
+              address_line2: occurrence.address_line2,
+              city: occurrence.city,
+              state_province: occurrence.state_province,
+              postal_code: occurrence.postal_code,
+              country: occurrence.country,
+            }
+          : eventRaw
+      ) as EventCalendarPayload;
       const startDate = new Date(event.start_date);
       const endDate = new Date(event.end_date);
 
@@ -233,18 +252,41 @@ export const buildEventsCatalogHandlers = (
     }
   };
 
-  const createEvent = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const createEvent = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     if (!shared.ensurePermission(req, res, Permission.EVENT_CREATE)) return;
 
     try {
-      const event = await catalogUseCase.create(req.body as CreateEventDTO, req.user!.id);
+      const organizationId = getRequestOrganizationId(req);
+      if (!organizationId) {
+        sendError(
+          res,
+          'VALIDATION_ERROR',
+          'An active organization context is required to create an event',
+          400
+        );
+        return;
+      }
+
+      const event = await catalogUseCase.create(
+        req.body as CreateEventDTO,
+        req.user!.id,
+        organizationId
+      );
       sendSuccess(res, event, 201);
     } catch (error) {
       next(error);
     }
   };
 
-  const updateEvent = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const updateEvent = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     if (!shared.ensurePermission(req, res, Permission.EVENT_EDIT)) return;
 
     try {
@@ -252,7 +294,11 @@ export const buildEventsCatalogHandlers = (
       const canAccess = await shared.ensureEventAccess(params.id, req, res);
       if (!canAccess) return;
 
-      const event = await catalogUseCase.update(params.id, req.body as UpdateEventDTO, req.user!.id);
+      const event = await catalogUseCase.update(
+        params.id,
+        req.body as UpdateEventDTO,
+        req.user!.id
+      );
       if (!event) {
         sendError(res, 'EVENT_NOT_FOUND', 'Event not found', 404);
         return;
@@ -266,7 +312,11 @@ export const buildEventsCatalogHandlers = (
     }
   };
 
-  const updateOccurrence = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const updateOccurrence = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     if (!shared.ensurePermission(req, res, Permission.EVENT_EDIT)) return;
 
     try {
@@ -307,7 +357,11 @@ export const buildEventsCatalogHandlers = (
     }
   };
 
-  const deleteEvent = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const deleteEvent = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     if (!shared.ensurePermission(req, res, Permission.EVENT_DELETE)) return;
 
     try {

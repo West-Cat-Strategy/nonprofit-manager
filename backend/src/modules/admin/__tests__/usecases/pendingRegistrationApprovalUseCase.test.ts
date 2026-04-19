@@ -11,6 +11,24 @@ jest.mock('@config/database', () => ({
   default: {
     connect: jest.fn(),
   },
+  withUserContextTransaction: jest.fn(async (userId: string, handler: (client: unknown) => Promise<unknown>) => {
+    const module = jest.requireMock('@config/database') as {
+      default: { connect: jest.Mock };
+    };
+    const client = await module.default.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.current_user_id', $1, true)", [userId]);
+      const result = await handler(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }),
 }));
 
 jest.mock('@config/logger', () => ({

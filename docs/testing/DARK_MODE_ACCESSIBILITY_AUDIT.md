@@ -32,7 +32,7 @@ cd e2e
 npx playwright test tests/dark-mode-accessibility-audit.spec.ts --project=chromium
 ```
 
-When you run this through the repo wrapper on the Playwright-managed host runtime, the harness now promotes the frontend to the compiled preview server for the long audit sweep instead of reusing a fragile dev server. The Docker audit path still uses the externally managed `8005/8004/8006` stack.
+When you run this through the repo wrapper on the Playwright-managed host runtime, the harness now promotes the frontend to the compiled preview server for the long audit sweep instead of reusing a fragile dev server. The Docker audit path still uses the externally managed Docker contract and defaults to `8005/8004/8006`, but it can also target the repo's isolated smoke stack if you pass `E2E_*_PORT` overrides.
 
 ## Outputs
 

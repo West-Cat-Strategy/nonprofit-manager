@@ -1,4 +1,8 @@
-import { hasPermission, Permission } from '@utils/permissions';
+import {
+  hasAnyPermissionForRoles,
+  hasPermissionForRoles,
+  Permission,
+} from '@utils/permissions';
 import type {
   AuthorizationDecision,
   AuthorizationSubscriberContext,
@@ -13,7 +17,7 @@ const evaluatePermissionAcrossRoles = (
   roles: string[],
   permission: Permission | string
 ): AuthorizationDecision => ({
-  allowed: roles.some((role) => hasPermission(role, permission)),
+  allowed: hasPermissionForRoles(roles, permission),
   source: SOURCE,
 });
 
@@ -23,7 +27,7 @@ export const hasStaticPermissionAccess = (
   roles?: string[]
 ): boolean => {
   const candidates = roles && roles.length > 0 ? roles : [primaryRole];
-  return candidates.some((role) => hasPermission(role, permission));
+  return hasPermissionForRoles(candidates, permission);
 };
 
 export const hasAnyStaticPermissionAccess = (
@@ -32,9 +36,7 @@ export const hasAnyStaticPermissionAccess = (
   roles?: string[]
 ): boolean => {
   const candidates = roles && roles.length > 0 ? roles : [primaryRole];
-  return permissions.some((permission) =>
-    candidates.some((role) => hasPermission(role, permission))
-  );
+  return hasAnyPermissionForRoles(candidates, permissions);
 };
 
 const buildStaticPermissionMatrix = (context: AuthorizationSubscriberContext): StaticPermissionMatrix => {

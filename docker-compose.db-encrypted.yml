@@ -11,7 +11,7 @@ services:
     ports:
       - "127.0.0.1:8012:5432"
     volumes:
-      - ${POSTGRES_DATA_DIR:-nonprofit-manager-postgres-data}:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_DIR:?POSTGRES_DATA_DIR must point at the encrypted host mount}:/var/lib/postgresql/data
       - ./database/initdb/000_init.sql:/docker-entrypoint-initdb.d/000_init.sql:ro
       - ./database/migrations:/migrations:ro
       - ./database/seeds:/seeds:ro
@@ -43,6 +43,3 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-volumes:
-  nonprofit-manager-postgres-data:

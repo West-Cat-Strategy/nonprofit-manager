@@ -55,7 +55,9 @@ describe('registerContactMutation', () => {
   const mockCreateRegistrationRecord = jest.mocked(helpers.createRegistrationRecord);
   const mockDetermineRegistrationStatus = jest.mocked(helpers.determineRegistrationStatus);
   const mockGetEventRow = jest.mocked(helpers.getEventRow);
-  const mockGetExistingOccurrenceRegistration = jest.mocked(helpers.getExistingOccurrenceRegistration);
+  const mockGetExistingOccurrenceRegistration = jest.mocked(
+    helpers.getExistingOccurrenceRegistration
+  );
   const mockGetLockedOccurrence = jest.mocked(helpers.getLockedOccurrence);
   const mockMaybeSendConfirmationEmail = jest.mocked(helpers.maybeSendConfirmationEmail);
   const mockRecalculateCounts = jest.mocked(helpers.recalculateCounts);
@@ -107,7 +109,11 @@ describe('registerContactMutation', () => {
     );
 
     expect(result).toBe(createdRegistration);
-    expect(mockQuery.mock.calls.map(([sql]) => sql)).toEqual(['BEGIN', 'COMMIT']);
+    expect(mockQuery.mock.calls.map(([sql]) => sql)).toEqual([
+      'BEGIN',
+      "SELECT set_config('app.current_user_id', $1, true)",
+      'COMMIT',
+    ]);
     expect(mockMaybeSendConfirmationEmail).toHaveBeenCalledWith(
       ctx,
       'reg-1',

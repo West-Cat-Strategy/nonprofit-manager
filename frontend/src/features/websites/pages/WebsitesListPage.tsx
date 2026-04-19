@@ -64,7 +64,6 @@ const buildWebsiteListSearchParams = (params: {
 const WebsitesListPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
-  const searchParamsString = searchParams.toString();
   const { sites, pagination, isLoading, error, searchParams: mirroredSearchParams } = useAppSelector(
     (state) => state.websites
   );
@@ -81,14 +80,14 @@ const WebsitesListPage: React.FC = () => {
         parseAllowedValue(searchParams.get('sortOrder'), WEBSITE_SORT_ORDER_VALUES) ||
         DEFAULT_WEBSITE_LIST_PARAMS.sortOrder,
     }),
-    [searchParamsString]
+    [searchParams]
   );
   const resolvedSearchParamsKey = JSON.stringify(resolvedSearchParams);
   const mirroredSearchParamsKey = JSON.stringify(mirroredSearchParams);
 
   useEffect(() => {
     const normalizedSearchParams = buildWebsiteListSearchParams(resolvedSearchParams);
-    if (searchParamsString !== normalizedSearchParams.toString()) {
+    if (searchParams.toString() !== normalizedSearchParams.toString()) {
       setSearchParams(normalizedSearchParams, { replace: true });
       return;
     }
@@ -103,7 +102,7 @@ const WebsitesListPage: React.FC = () => {
     mirroredSearchParamsKey,
     resolvedSearchParams,
     resolvedSearchParamsKey,
-    searchParamsString,
+    searchParams,
     setSearchParams,
   ]);
 

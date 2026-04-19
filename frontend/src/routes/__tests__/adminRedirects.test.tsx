@@ -210,7 +210,7 @@ describe('admin route redirects', () => {
 
   it('redirects legacy admin email settings to communications', async () => {
     renderAdminRoutes('/settings/admin/email');
-    expect(await screen.findByText('/settings/admin/communications')).toBeInTheDocument();
-    expectCurrentLocation('/settings/admin/communications');
+    expect(await screen.findByText('/settings/communications')).toBeInTheDocument();
+    expectCurrentLocation('/settings/communications');
   });
 });

@@ -28,34 +28,38 @@ e2e_lock_file() {
   printf '%s\n' "${E2E_LOCK_FILE:-/tmp/nonprofit-manager-e2e.lock}"
 }
 
-e2e_read_lock_pid() {
-  local lock_file
+e2e_lock_metadata_file() {
+  printf '%s\n' "$(e2e_lock_file)/owner"
+}
 
-  lock_file="$(e2e_lock_file)"
-  if [[ ! -f "$lock_file" ]]; then
+e2e_read_lock_pid() {
+  local metadata_file
+
+  metadata_file="$(e2e_lock_metadata_file)"
+  if [[ ! -f "$metadata_file" ]]; then
     echo ""
     return
   fi
 
   local metadata
   local lock_pid
-  metadata="$(<"$lock_file")"
+  metadata="$(<"$metadata_file")"
   IFS=':' read -r lock_pid _ <<<"$metadata"
   printf '%s' "${lock_pid//[^0-9]/}"
 }
 
 e2e_read_lock_pgid() {
-  local lock_file
+  local metadata_file
 
-  lock_file="$(e2e_lock_file)"
-  if [[ ! -f "$lock_file" ]]; then
+  metadata_file="$(e2e_lock_metadata_file)"
+  if [[ ! -f "$metadata_file" ]]; then
     echo ""
     return
   fi
 
   local metadata
   local lock_pgid
-  metadata="$(<"$lock_file")"
+  metadata="$(<"$metadata_file")"
   IFS=':' read -r _ lock_pgid <<<"$metadata"
   printf '%s' "${lock_pgid//[^0-9]/}"
 }
@@ -90,15 +94,14 @@ e2e_wait_for_pid_exit() {
 e2e_write_lock_metadata() {
   local pid="$1"
   local pgid="$2"
-  local lock_file
+  local metadata_file
 
-  lock_file="$(e2e_lock_file)"
-  mkdir -p "$(dirname "$lock_file")"
+  metadata_file="$(e2e_lock_metadata_file)"
 
   if [[ -n "$pgid" ]]; then
-    printf '%s:%s\n' "$pid" "$pgid" > "$lock_file"
+    printf '%s:%s\n' "$pid" "$pgid" > "$metadata_file"
   else
-    printf '%s\n' "$pid" > "$lock_file"
+    printf '%s\n' "$pid" > "$metadata_file"
   fi
 }
 
@@ -134,41 +137,66 @@ e2e_cleanup_lock() {
 
   current_pid="$(e2e_read_lock_pid)"
   if [[ "$current_pid" == "$$" ]]; then
-    rm -f "$(e2e_lock_file)"
+    rm -rf "$(e2e_lock_file)"
   fi
 }
 
 e2e_acquire_lock() {
-  local lock_file
+  local lock_dir
   local lock_pid
   local lock_pgid
   local current_pgid
+  local attempt=1
+  local max_attempts=5
 
-  lock_file="$(e2e_lock_file)"
-  mkdir -p "$(dirname "$lock_file")"
-
-  lock_pid="$(e2e_read_lock_pid)"
-  lock_pgid="$(e2e_read_lock_pgid)"
+  lock_dir="$(e2e_lock_file)"
+  mkdir -p "$(dirname "$lock_dir")"
   current_pgid="$(e2e_process_group "$$")"
 
-  if [[ "$lock_pid" == "$$" ]]; then
-    rm -f "$lock_file"
-    lock_pid=""
-    lock_pgid=""
-  fi
+  while [[ "$attempt" -le "$max_attempts" ]]; do
+    if mkdir "$lock_dir" 2>/dev/null; then
+      e2e_write_lock_metadata "$$" "$current_pgid"
+      return 0
+    fi
 
-  if e2e_pid_is_alive "$lock_pid"; then
+    lock_pid="$(e2e_read_lock_pid)"
+    lock_pgid="$(e2e_read_lock_pgid)"
+
+    if [[ "$lock_pid" == "$$" ]]; then
+      rm -rf "$lock_dir"
+      attempt=$((attempt + 1))
+      continue
+    fi
+
+    if [[ -z "$lock_pid" ]] || ! e2e_pid_is_alive "$lock_pid"; then
+      rm -rf "$lock_dir"
+      attempt=$((attempt + 1))
+      continue
+    fi
+
     if [[ "${E2E_RUNNER_ACTION:-fail}" == "kill" ]]; then
       echo "E2E lock is held by PID $lock_pid. Terminating it because E2E_RUNNER_ACTION=kill." >&2
       e2e_terminate_lock_owner "$lock_pid" "$lock_pgid" "$current_pgid"
-    else
-      echo "Another E2E run is active (PID $lock_pid). Set E2E_RUNNER_ACTION=kill to terminate it." >&2
-      return 1
+      rm -rf "$lock_dir"
+      attempt=$((attempt + 1))
+      continue
     fi
+
+    echo "Another E2E run is active (PID $lock_pid). Set E2E_RUNNER_ACTION=kill to terminate it." >&2
+    return 1
+  done
+
+  echo "Unable to acquire the E2E lock after ${max_attempts} attempts." >&2
+  return 1
+}
+
+e2e_require_port_inspector() {
+  if command -v lsof >/dev/null 2>&1; then
+    return 0
   fi
 
-  rm -f "$lock_file"
-  e2e_write_lock_metadata "$$" "$current_pgid"
+  log_error "E2E port preflight requires 'lsof', but it is not installed or not on PATH."
+  return 1
 }
 
 e2e_collect_listener_pids() {
@@ -176,6 +204,8 @@ e2e_collect_listener_pids() {
   local collected=""
   local port
   local pids
+
+  e2e_require_port_inspector || return 1
 
   for port in $ports; do
     pids="$(lsof -nP -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
@@ -193,6 +223,8 @@ e2e_log_port_usage() {
   local ports="${1:-${E2E_REQUIRED_PORTS:-3001 5173}}"
   local port
   local listeners
+
+  e2e_require_port_inspector || return 1
 
   for port in $ports; do
     listeners="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"

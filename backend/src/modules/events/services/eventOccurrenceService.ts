@@ -10,11 +10,13 @@ import type {
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { QueryValue } from './shared';
 import { createEventHttpError } from '../eventHttpErrors';
+import { appendAccountScopeCondition } from './tenancy';
 
 type Queryable = Pick<Pool, 'query'> | Pick<PoolClient, 'query'>;
 
 interface EventSeriesRow {
   event_id: string;
+  organization_id: string | null;
   event_name: string;
   description: string | null;
   status: EventStatus;
@@ -47,6 +49,7 @@ const OCCURRENCE_SELECT = `
   SELECT
     eo.id as occurrence_id,
     eo.event_id,
+    eo.organization_id,
     eo.sequence_index,
     eo.sequence_index as occurrence_index,
     eo.event_id as series_id,
@@ -104,7 +107,9 @@ const addRecurrence = (date: Date, pattern: RecurrencePattern, interval: number)
   }
 };
 
-const buildOccurrenceSchedule = (event: EventSeriesRow): Array<{
+const buildOccurrenceSchedule = (
+  event: EventSeriesRow
+): Array<{
   sequenceIndex: number;
   scheduledStartDate: Date;
   scheduledEndDate: Date;
@@ -122,7 +127,10 @@ const buildOccurrenceSchedule = (event: EventSeriesRow): Array<{
   const endBoundary = event.is_recurring
     ? event.recurrence_end_date
       ? new Date(event.recurrence_end_date)
-      : new Date(new Date(event.start_date).getTime() + DEFAULT_RECURRENCE_HORIZON_DAYS * 24 * 60 * 60 * 1000)
+      : new Date(
+          new Date(event.start_date).getTime() +
+            DEFAULT_RECURRENCE_HORIZON_DAYS * 24 * 60 * 60 * 1000
+        )
     : new Date(event.start_date);
 
   while (sequenceIndex === 0 || (event.is_recurring && currentStart <= endBoundary)) {
@@ -141,7 +149,11 @@ const buildOccurrenceSchedule = (event: EventSeriesRow): Array<{
       break;
     }
 
-    currentStart = addRecurrence(currentStart, event.recurrence_pattern, event.recurrence_interval || 1);
+    currentStart = addRecurrence(
+      currentStart,
+      event.recurrence_pattern,
+      event.recurrence_interval || 1
+    );
   }
 
   return schedule;
@@ -150,10 +162,14 @@ const buildOccurrenceSchedule = (event: EventSeriesRow): Array<{
 export class EventOccurrenceService {
   constructor(private readonly pool: Pool) {}
 
-  private async getSeriesRow(eventId: string, queryable: Queryable = this.pool): Promise<EventSeriesRow | null> {
+  private async getSeriesRow(
+    eventId: string,
+    queryable: Queryable = this.pool
+  ): Promise<EventSeriesRow | null> {
     const result = await queryable.query<EventSeriesRow>(
       `SELECT
          id as event_id,
+         organization_id,
          name as event_name,
          description,
          status,
@@ -193,10 +209,7 @@ export class EventOccurrenceService {
     const params: QueryValue[] = [occurrenceId];
     const conditions: string[] = ['eo.id = $1'];
 
-    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
-      conditions.push(`e.created_by = ANY($${params.length + 1}::uuid[])`);
-      params.push(scope.createdByUserIds);
-    }
+    appendAccountScopeCondition(conditions, params, scope, 'eo.organization_id');
 
     const result = await queryable.query<EventOccurrence>(
       `${OCCURRENCE_SELECT}
@@ -232,10 +245,7 @@ export class EventOccurrenceService {
       conditions.push(`eo.status != 'cancelled'`);
     }
 
-    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
-      conditions.push(`e.created_by = ANY($${params.length + 1}::uuid[])`);
-      params.push(scope.createdByUserIds);
-    }
+    appendAccountScopeCondition(conditions, params, scope, 'eo.organization_id');
 
     const result = await queryable.query<EventOccurrence>(
       `${OCCURRENCE_SELECT}
@@ -297,10 +307,7 @@ export class EventOccurrenceService {
       conditions.push(`eo.status != 'cancelled'`);
     }
 
-    if (scope?.createdByUserIds && scope.createdByUserIds.length > 0) {
-      conditions.push(`e.created_by = ANY($${params.length + 1}::uuid[])`);
-      params.push(scope.createdByUserIds);
-    }
+    appendAccountScopeCondition(conditions, params, scope, 'eo.organization_id');
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const result = await queryable.query<EventOccurrence>(
@@ -355,6 +362,7 @@ export class EventOccurrenceService {
       await queryable.query(
         `INSERT INTO event_occurrences (
            event_id,
+           organization_id,
            sequence_index,
            scheduled_start_date,
            scheduled_end_date,
@@ -379,12 +387,13 @@ export class EventOccurrenceService {
            modified_by
          )
          VALUES (
-           $1, $2, $3, $4, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
-           $18, $19, $20, $21
+           $1, $2, $3, $4, $5, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
+           $18, $19, $20, $21, $22
          )
          ON CONFLICT (event_id, scheduled_start_date)
          DO UPDATE
          SET
+           organization_id = EXCLUDED.organization_id,
            sequence_index = EXCLUDED.sequence_index,
            scheduled_end_date = EXCLUDED.scheduled_end_date,
            start_date = CASE WHEN event_occurrences.is_exception THEN event_occurrences.start_date ELSE EXCLUDED.start_date END,
@@ -408,6 +417,7 @@ export class EventOccurrenceService {
            updated_at = CURRENT_TIMESTAMP`,
         [
           event.event_id,
+          event.organization_id,
           item.sequenceIndex,
           item.scheduledStartDate,
           item.scheduledEndDate,
@@ -447,7 +457,10 @@ export class EventOccurrenceService {
     await this.recalculateEventCounts(eventId, queryable);
   }
 
-  async recalculateOccurrenceCounts(occurrenceId: string, queryable: Queryable = this.pool): Promise<void> {
+  async recalculateOccurrenceCounts(
+    occurrenceId: string,
+    queryable: Queryable = this.pool
+  ): Promise<void> {
     await queryable.query(
       `UPDATE event_occurrences eo
        SET
@@ -569,7 +582,9 @@ export class EventOccurrenceService {
 
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined) {
-          fields.push(`${occurrenceFieldMap[key as keyof UpdateEventOccurrenceDTO]} = $${paramCount}`);
+          fields.push(
+            `${occurrenceFieldMap[key as keyof UpdateEventOccurrenceDTO]} = $${paramCount}`
+          );
           values.push(value as QueryValue);
           paramCount += 1;
         }
@@ -625,7 +640,9 @@ export class EventOccurrenceService {
 
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined) {
-        occurrenceFields.push(`${occurrenceFieldMap[key as keyof UpdateEventOccurrenceDTO]} = $${occurrenceParamCount}`);
+        occurrenceFields.push(
+          `${occurrenceFieldMap[key as keyof UpdateEventOccurrenceDTO]} = $${occurrenceParamCount}`
+        );
         occurrenceValues.push(value as QueryValue);
         occurrenceParamCount += 1;
       }

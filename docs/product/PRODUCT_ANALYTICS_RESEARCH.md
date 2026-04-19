@@ -250,7 +250,7 @@ version: '3.8'
 
 services:
   plausible:
-    image: plausible/analytics:latest
+    image: ghcr.io/plausible/community-edition:v3.1.0
     restart: always
     command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:

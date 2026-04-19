@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     id SERIAL PRIMARY KEY,
     filename VARCHAR(255) NOT NULL UNIQUE,
     applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    checksum VARCHAR(64),
     migration_id TEXT,
     canonical_filename TEXT
 );
@@ -112,6 +111,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/093_case_form_builder.sql
 \i /migrations/094_case_form_delivery_targets_and_review_followups.sql
 \i /migrations/095_portal_password_reset_tokens.sql
+\i /migrations/096_database_hardening_and_event_tenancy.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -228,7 +228,8 @@ VALUES
     ('092_pending_registration_passkeys_and_policy_groups.sql', '092', '092_pending_registration_passkeys_and_policy_groups.sql'),
     ('093_case_form_builder.sql', '093', '093_case_form_builder.sql'),
     ('094_case_form_delivery_targets_and_review_followups.sql', '094', '094_case_form_delivery_targets_and_review_followups.sql'),
-    ('095_portal_password_reset_tokens.sql', '095', '095_portal_password_reset_tokens.sql')
+    ('095_portal_password_reset_tokens.sql', '095', '095_portal_password_reset_tokens.sql'),
+    ('096_database_hardening_and_event_tenancy.sql', '096', '096_database_hardening_and_event_tenancy.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

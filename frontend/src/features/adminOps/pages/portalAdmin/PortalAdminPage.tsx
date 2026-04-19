@@ -99,6 +99,8 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
     clearFormError,
   });
 
+  const realtimePanelActive = panel === 'conversations' || panel === 'slots';
+
   const {
     streamStatus: portalStreamStatus,
     conversationFilters: portalConversationFilters,
@@ -134,7 +136,7 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
     updatePortalSlotStatus,
     deletePortalSlot,
   } = usePortalAdminRealtime({
-    active: true,
+    active: realtimePanelActive,
     showSuccess,
     showError,
     notifyError,
@@ -143,10 +145,12 @@ export default function PortalAdminPage({ panel }: PortalAdminPageProps) {
 
   const refreshPortalDataWithRealtime = useCallback(async () => {
     await refreshPortalData({
-      refreshConversations: () => fetchPortalConversations({ offsetValue: 0 }),
-      refreshSlots: () => fetchPortalSlots({ offsetValue: 0 }),
+      refreshConversations: realtimePanelActive
+        ? () => fetchPortalConversations({ offsetValue: 0 })
+        : undefined,
+      refreshSlots: realtimePanelActive ? () => fetchPortalSlots({ offsetValue: 0 }) : undefined,
     });
-  }, [fetchPortalConversations, fetchPortalSlots, refreshPortalData]);
+  }, [fetchPortalConversations, fetchPortalSlots, realtimePanelActive, refreshPortalData]);
 
   const handleDeletePortalSlot = useCallback(
     async (slotId: string) => {

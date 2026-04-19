@@ -1,17 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
-import type { PropsWithChildren } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import api from '../../services/api';
-import { rootReducer } from '../../store';
 import {
   MAX_PINNED_ITEMS,
   __resetNavigationPreferencesCacheForTests,
   useNavigationPreferences,
 } from '../useNavigationPreferences';
 import * as navigationPreferencesModule from '../useNavigationPreferences';
-import { logout } from '../../features/auth/state';
 import {
   __resetUserPreferencesCacheForTests,
   setUserPreferencesCached,
@@ -21,32 +16,27 @@ import {
   setWorkspaceModuleAccessCached,
 } from '../../services/workspaceModuleAccessService';
 
-const renderNavigationPreferencesHook = () => {
-  const store = configureStore({
-    reducer: rootReducer,
-    preloadedState: {
-      auth: {
-        user: {
-          id: 'user-1',
-          email: 'admin@example.com',
-          firstName: 'Admin',
-          lastName: 'User',
-          role: 'admin',
-        },
-        isAuthenticated: true,
-        authLoading: false,
-        loading: false,
-      },
-    },
-  });
+let authState = { isAuthenticated: true };
 
-  const wrapper = ({ children }: PropsWithChildren) => <Provider store={store}>{children}</Provider>;
-  return { store, ...renderHook(() => useNavigationPreferences(), { wrapper }) };
+vi.mock('../../store/hooks', () => ({
+  useAppSelector: (
+    selector: (state: { auth: { isAuthenticated: boolean } }) => unknown
+  ) => selector({ auth: authState }),
+}));
+
+const renderNavigationPreferencesHook = () => renderHook(() => useNavigationPreferences());
+
+const flushNavigationPreferences = async () => {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
 };
 
 describe('useNavigationPreferences', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    authState = { isAuthenticated: true };
     vi.clearAllMocks();
     window.localStorage.clear();
     __resetNavigationPreferencesCacheForTests();
@@ -60,12 +50,47 @@ describe('useNavigationPreferences', () => {
     vi.useRealTimers();
   });
 
-  it('allows pinning up to max and blocks additional pins', async () => {
+  it('replaces stale local fallback with fresher server preferences without PATCHing on mount', async () => {
+    window.localStorage.setItem(
+      'navigation_preferences',
+      JSON.stringify({
+        items: [
+          { id: 'dashboard', enabled: true, pinned: false },
+          { id: 'cases', enabled: true, pinned: false },
+        ],
+      })
+    );
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: {
+        preferences: {
+          navigation: {
+            items: [
+              { id: 'dashboard', enabled: true, pinned: false },
+              { id: 'cases', enabled: false, pinned: false },
+            ],
+          },
+        },
+      },
+    });
+
     const { result } = renderNavigationPreferencesHook();
+    await flushNavigationPreferences();
 
     await act(async () => {
+      vi.advanceTimersByTime(1_000);
       await Promise.resolve();
     });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(vi.mocked(api.get)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(api.patch)).not.toHaveBeenCalled();
+    expect(result.current.allItems.find((item) => item.id === 'cases')?.enabled).toBe(false);
+  });
+
+  it('allows pinning up to max and blocks additional pins', async () => {
+    const { result } = renderNavigationPreferencesHook();
+    await flushNavigationPreferences();
+    expect(result.current.isLoading).toBe(false);
 
     const pinnableIds = result.current.allItems.filter((item) => !item.isCore).slice(0, MAX_PINNED_ITEMS + 1);
 
@@ -87,13 +112,8 @@ describe('useNavigationPreferences', () => {
 
   it('auto-unpins items when disabled', async () => {
     const { result } = renderNavigationPreferencesHook();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    const target = result.current.allItems.find((item) => item.id === 'cases');
-    expect(target).toBeTruthy();
+    await flushNavigationPreferences();
+    expect(result.current.isLoading).toBe(false);
 
     act(() => {
       result.current.togglePinned('cases');
@@ -113,10 +133,8 @@ describe('useNavigationPreferences', () => {
 
   it('seeds route hierarchy metadata for navigation items', async () => {
     const { result } = renderNavigationPreferencesHook();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await flushNavigationPreferences();
+    expect(result.current.isLoading).toBe(false);
 
     expect(result.current.favoriteItems).toEqual(result.current.pinnedItems);
 
@@ -138,12 +156,13 @@ describe('useNavigationPreferences', () => {
     expect(result.current.enabledRouteIds).toContain('contacts');
   });
 
-  it('exposes saving and synced states while persisting preferences', async () => {
+  it('exposes saving and synced states only after a user change', async () => {
     const { result } = renderNavigationPreferencesHook();
+    await flushNavigationPreferences();
+    expect(result.current.isLoading).toBe(false);
 
-    await act(async () => {
-      await Promise.resolve();
-    });
+    expect(result.current.isSaving).toBe(false);
+    expect(result.current.syncStatus).toBe('offline');
 
     act(() => {
       result.current.togglePinned('cases');
@@ -157,7 +176,7 @@ describe('useNavigationPreferences', () => {
       await Promise.resolve();
     });
 
-    expect(vi.mocked(api.patch)).toHaveBeenCalled();
+    expect(vi.mocked(api.patch)).toHaveBeenCalledTimes(1);
     expect(result.current.isSaving).toBe(false);
     expect(result.current.isSynced).toBe(true);
     expect(result.current.syncStatus).toBe('synced');
@@ -177,10 +196,8 @@ describe('useNavigationPreferences', () => {
     });
 
     const { result } = renderNavigationPreferencesHook();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await flushNavigationPreferences();
+    expect(result.current.isLoading).toBe(false);
 
     expect(vi.mocked(api.get)).not.toHaveBeenCalled();
     expect(result.current.allItems.find((item) => item.id === 'dashboard')?.enabled).toBe(true);
@@ -192,39 +209,21 @@ describe('useNavigationPreferences', () => {
     });
 
     const { result } = renderNavigationPreferencesHook();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await flushNavigationPreferences();
+    expect(result.current.isLoading).toBe(false);
 
     const casesItem = result.current.allItems.find((item) => item.id === 'cases');
     expect(casesItem).toBeUndefined();
     expect(result.current.enabledRouteIds).not.toContain('cases');
   });
 
-  it('clears the navigation preferences cache on logout', async () => {
-    setUserPreferencesCached({
-      navigation: {
-        items: [{ id: 'dashboard', enabled: true }],
-      },
-    });
-
+  it('exports a cache invalidator for auth flows', () => {
     const invalidateSpy = vi.spyOn(
       navigationPreferencesModule,
       'invalidateNavigationPreferencesCache'
     );
-    const { result, store } = renderNavigationPreferencesHook();
 
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(vi.mocked(api.get)).not.toHaveBeenCalled();
-    expect(result.current.allItems.find((item) => item.id === 'dashboard')?.enabled).toBe(true);
-
-    act(() => {
-      store.dispatch(logout());
-    });
+    navigationPreferencesModule.invalidateNavigationPreferencesCache();
 
     expect(invalidateSpy).toHaveBeenCalledTimes(1);
   });

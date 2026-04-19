@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { vi } from 'vitest';
 import type * as WebsitesStateModule from '../../state';
@@ -169,6 +169,52 @@ describe('WebsiteNewslettersPage', () => {
     expect(
       screen.getByText(/choose the active newsletter audience, manage reusable list presets/i)
     ).toBeInTheDocument();
+  });
+
+  it('saves and refreshes the workspace without redundant follow-up fetches', async () => {
+    renderPage();
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'websites/fetchNewsletterWorkspace',
+          payload: 'site-1',
+        })
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save active audience' }));
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'websites/updateNewsletterIntegration',
+          payload: {
+            siteId: 'site-1',
+            data: {
+              provider: 'mautic',
+              selectedAudienceId: 'seg-1',
+              selectedAudienceName: 'Supporters',
+              selectedPresetId: 'preset-1',
+            },
+          },
+        })
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh audiences' }));
+
+    await waitFor(() => {
+      expect(dispatchMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'websites/refreshNewsletterWorkspace',
+          payload: 'site-1',
+        })
+      );
+    });
+
+    expect(thunkMocks.fetchWebsiteNewsletterWorkspace).toHaveBeenCalledTimes(1);
+    expect(thunkMocks.fetchWebsiteOverview).not.toHaveBeenCalled();
   });
 });
 

@@ -139,7 +139,11 @@ export const getDefaultOrganizationId = async (): Promise<string | null> => {
 
 export const getAuthenticatedOrganizationId = async (userId: string): Promise<string | null> => {
   const accessOverview = await getUserAccessOverview(userId);
-  return accessOverview.organizationAccess[0] ?? null;
+  if (accessOverview.organizationAccess[0]) {
+    return accessOverview.organizationAccess[0];
+  }
+
+  return getDefaultOrganizationId();
 };
 
 export const findUserIdByEmail = async (email: string): Promise<string | null> => {

@@ -4,7 +4,7 @@
  * Canonical payment-result implementation for feature-owned finance routes.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch } from '../../../store/hooks';
 import api from '../../../services/api';
@@ -36,6 +36,21 @@ const PROVIDER_LABELS: Record<PaymentProvider, string> = {
   square: 'Square',
 };
 
+const readAndClearCheckoutContext = (): StoredCheckoutContext | null => {
+  const checkoutContextRaw = sessionStorage.getItem('payment_checkout_context');
+  sessionStorage.removeItem('payment_checkout_context');
+
+  if (!checkoutContextRaw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(checkoutContextRaw) as StoredCheckoutContext;
+  } catch {
+    return null;
+  }
+};
+
 const parseDonorName = (name: string | undefined): { first_name: string; last_name: string } => {
   const trimmed = (name || '').trim();
   if (!trimmed) {
@@ -58,22 +73,7 @@ const PaymentResult: React.FC = () => {
   const [status, setStatus] = useState<ResultStatus>('loading');
   const [message, setMessage] = useState('');
 
-  const readAndClearCheckoutContext = (): StoredCheckoutContext | null => {
-    const checkoutContextRaw = sessionStorage.getItem('payment_checkout_context');
-    sessionStorage.removeItem('payment_checkout_context');
-
-    if (!checkoutContextRaw) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(checkoutContextRaw) as StoredCheckoutContext;
-    } catch {
-      return null;
-    }
-  };
-
-  const persistDonationRecord = async (
+  const persistDonationRecord = useCallback(async (
     provider: PaymentProvider,
     paymentIntentId: string,
     providerIntent: {
@@ -86,6 +86,7 @@ const PaymentResult: React.FC = () => {
       return;
     }
 
+    const donorEmail = checkoutContext.donorEmail.toLowerCase();
     const donorSearch = await api.get('/contacts', {
       params: { search: checkoutContext.donorEmail, limit: 1, is_active: true },
     });
@@ -94,7 +95,7 @@ const PaymentResult: React.FC = () => {
       contact_id?: string;
     }>;
     const existingContact = contacts.find(
-      (contact) => (contact.email || '').toLowerCase() === checkoutContext!.donorEmail!.toLowerCase()
+      (contact) => (contact.email || '').toLowerCase() === donorEmail
     );
 
     let contactId = existingContact?.contact_id || null;
@@ -137,7 +138,7 @@ const PaymentResult: React.FC = () => {
     };
 
     await dispatch(createDonation(donationData)).unwrap();
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     let checkoutContext = readAndClearCheckoutContext();
@@ -208,7 +209,7 @@ const PaymentResult: React.FC = () => {
 
       void verifyPayment();
     }
-  }, [searchParams, dispatch]);
+  }, [dispatch, persistDonationRecord, searchParams]);
 
   const getStatusIcon = () => {
     switch (status) {

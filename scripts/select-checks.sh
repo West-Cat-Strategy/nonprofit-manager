@@ -26,7 +26,9 @@ while [[ $# -gt 0 ]]; do
       cat <<'EOF'
 Usage: scripts/select-checks.sh [--base <ref>] [--files "<file list>"] [--mode fast|strict]
 
-Print a small, ordered set of repo checks based on the changed files.
+Print an ordered set of repo checks based on the changed files.
+  fast   emits the smallest safe slice for the touched surfaces
+  strict broadens docs/runtime/orchestration changes into higher-confidence checks
 EOF
       exit 0
       ;;
@@ -36,6 +38,15 @@ EOF
       ;;
   esac
 done
+
+case "$mode" in
+  fast|strict)
+    ;;
+  *)
+    echo "Unknown mode: $mode (expected fast or strict)" >&2
+    exit 2
+    ;;
+esac
 
 if [[ -z "$files_arg" ]]; then
   if [[ -n "$base" ]]; then
@@ -68,11 +79,18 @@ has_backend=0
 has_frontend=0
 has_e2e=0
 has_database=0
-has_shared_runtime=0
+has_runtime_orchestration=0
+has_runtime_docs=0
+has_hook_tooling=0
+has_link_checker_tool=0
+has_doc_api_linter_tool=0
+has_policy_tooling=0
+has_security_tooling=0
+has_tooling_contracts=0
 
 is_docs_path() {
   case "$1" in
-    README.md|CONTRIBUTING.md|AGENTS.md|agents.md|docs/*|backend/README.md|frontend/README.md|frontend/SETUP.md|e2e/README.md|database/README.md)
+    README.md|CONTRIBUTING.md|AGENTS.md|agents.md|docs/*|backend/README.md|frontend/README.md|frontend/SETUP.md|e2e/README.md|database/README.md|scripts/README.md)
       return 0
       ;;
     *)
@@ -92,11 +110,25 @@ is_api_docs_path() {
   esac
 }
 
+is_runtime_docs_path() {
+  case "$1" in
+    docs/testing/*|docs/development/GETTING_STARTED.md|docs/development/TROUBLESHOOTING.md|docs/development/AGENT_INSTRUCTIONS.md|e2e/README.md|scripts/README.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 for file in "${changed_files[@]}"; do
   if is_docs_path "$file"; then
     has_docs=1
     if is_api_docs_path "$file"; then
       has_api_docs=1
+    fi
+    if is_runtime_docs_path "$file"; then
+      has_runtime_docs=1
     fi
     continue
   fi
@@ -114,16 +146,46 @@ for file in "${changed_files[@]}"; do
     database/*)
       has_database=1
       ;;
-    scripts/*|Makefile|package.json|package-lock.json|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|contracts/*)
-      has_shared_runtime=1
+    scripts/check-links.sh)
+      has_link_checker_tool=1
+      ;;
+    scripts/check-doc-api-versioning.ts)
+      has_doc_api_linter_tool=1
+      has_tooling_contracts=1
+      ;;
+    scripts/check-*.ts|scripts/ui-audit.ts)
+      has_policy_tooling=1
+      has_tooling_contracts=1
+      ;;
+    scripts/security-scan.sh)
+      has_security_tooling=1
+      has_tooling_contracts=1
+      ;;
+    scripts/install-git-hooks.sh|scripts/hooks/*|.githooks/*)
+      has_hook_tooling=1
+      has_tooling_contracts=1
+      ;;
+    scripts/db-*.sh|scripts/verify-migrations.sh)
+      has_database=1
+      has_runtime_orchestration=1
+      has_tooling_contracts=1
+      ;;
+    Makefile|package.json|package-lock.json|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|contracts/*|scripts/ci.sh|scripts/deploy.sh|scripts/e2e-*.sh|scripts/select-checks.sh|scripts/tests/*|backend/scripts/run-*.sh)
+      has_runtime_orchestration=1
+      has_tooling_contracts=1
+      case "$file" in
+        docker-compose*.yml|docker-compose*.yaml)
+          has_database=1
+          ;;
+      esac
       ;;
     *)
-      has_shared_runtime=1
+      has_runtime_orchestration=1
       ;;
   esac
 done
 
-surface_count=$((has_backend + has_frontend + has_e2e + has_database + has_shared_runtime))
+surface_count=$((has_backend + has_frontend + has_e2e + has_database + has_runtime_orchestration))
 commands=()
 
 add_command() {
@@ -147,6 +209,14 @@ add_doc_commands() {
   if [[ $has_api_docs -eq 1 ]]; then
     add_command "make lint-doc-api-versioning"
   fi
+
+  if [[ $has_link_checker_tool -eq 1 ]]; then
+    add_command "make check-links"
+  fi
+
+  if [[ $has_doc_api_linter_tool -eq 1 ]]; then
+    add_command "make lint-doc-api-versioning"
+  fi
 }
 
 add_backend_commands() {
@@ -165,12 +235,41 @@ add_e2e_commands() {
   add_command "cd e2e && npm run test:smoke"
 }
 
-if [[ "$mode" == "strict" ]]; then
-  add_doc_commands
+add_doc_commands
 
+if [[ $has_policy_tooling -eq 1 ]]; then
+  add_command "make lint"
+  if [[ "$mode" == "strict" ]]; then
+    add_command "make typecheck"
+  fi
+fi
+
+if [[ $has_security_tooling -eq 1 ]]; then
+  add_command "make security-scan"
+fi
+
+if [[ $has_tooling_contracts -eq 1 ]]; then
+  add_command "make test-tooling"
+fi
+
+if [[ $has_hook_tooling -eq 1 ]]; then
+  add_command "./scripts/install-git-hooks.sh --dry-run"
+  if [[ "$mode" == "strict" ]]; then
+    add_command "make lint"
+    add_command "make typecheck"
+  fi
+fi
+
+if [[ $has_runtime_docs -eq 1 && $surface_count -eq 0 && "$mode" == "strict" ]]; then
+  add_command "make test-e2e-docker-smoke"
+fi
+
+if [[ "$mode" == "strict" ]]; then
   if [[ $surface_count -eq 0 ]]; then
     :
-  elif [[ $has_database -eq 1 || $has_shared_runtime -eq 1 || $surface_count -gt 1 ]]; then
+  elif [[ $has_database -eq 1 || $has_runtime_orchestration -eq 1 || $surface_count -gt 1 ]]; then
+    add_command "make lint"
+    add_command "make typecheck"
     add_command "make test"
     if [[ $has_database -eq 1 ]]; then
       add_command "make db-verify"
@@ -180,24 +279,31 @@ if [[ "$mode" == "strict" ]]; then
   elif [[ $has_frontend -eq 1 ]]; then
     add_frontend_commands
   elif [[ $has_e2e -eq 1 ]]; then
-    add_e2e_commands
+    add_command "cd e2e && npm run test:ci"
   fi
 else
-  add_doc_commands
-
   if [[ $surface_count -eq 0 ]]; then
     :
-  elif [[ $has_database -eq 1 || $has_shared_runtime -eq 1 || $surface_count -gt 1 ]]; then
-    add_command "make test"
-    if [[ $has_database -eq 1 ]]; then
-      add_command "make db-verify"
-    fi
-  elif [[ $has_backend -eq 1 ]]; then
+  fi
+
+  if [[ $has_backend -eq 1 ]]; then
     add_backend_commands
-  elif [[ $has_frontend -eq 1 ]]; then
+  fi
+
+  if [[ $has_frontend -eq 1 ]]; then
     add_frontend_commands
-  elif [[ $has_e2e -eq 1 ]]; then
+  fi
+
+  if [[ $has_e2e -eq 1 ]]; then
     add_e2e_commands
+  fi
+
+  if [[ $has_runtime_orchestration -eq 1 ]]; then
+    add_command "make test-e2e-docker-smoke"
+  fi
+
+  if [[ $has_database -eq 1 ]]; then
+    add_command "make db-verify"
   fi
 fi
 

@@ -1,8 +1,6 @@
 import request from 'supertest';
-import jwt from 'jsonwebtoken';
 import app from '../../index';
 import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
 import { ContactService } from '../../services/contactService';
 
 describe('Contact API Integration Tests', () => {
@@ -13,6 +11,7 @@ describe('Contact API Integration Tests', () => {
   let testAccountId: string;
   let creatorUserId: string;
   let staffUserId: string;
+  let viewerUserId: string;
   const contactService = new ContactService(pool);
   const createdEventIds: string[] = [];
   const createdAppointmentIds: string[] = [];
@@ -89,27 +88,6 @@ describe('Contact API Integration Tests', () => {
     creatorUserId = accountOwnerResult.rows[0]?.created_by || '';
     expect(creatorUserId).toBeTruthy();
 
-    viewerAuthToken = jwt.sign(
-      {
-        id: creatorUserId,
-        email,
-        role: 'viewer',
-        organizationId: testAccountId,
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
-    adminAuthToken = jwt.sign(
-      {
-        id: creatorUserId,
-        email,
-        role: 'admin',
-        organizationId: testAccountId,
-      },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
-
     const staffEmail = `contact-staff-${unique()}@example.com`;
     await request(app)
       .post('/api/v2/auth/register')
@@ -129,6 +107,46 @@ describe('Contact API Integration Tests', () => {
     staffUserId = staffRoleResult.rows[0]?.id || '';
     expect(staffUserId).toBeTruthy();
 
+    const viewerEmail = `contact-viewer-${unique()}@example.com`;
+    await request(app)
+      .post('/api/v2/auth/register')
+      .send({
+        email: viewerEmail,
+        password: sharedPassword,
+        password_confirm: sharedPassword,
+        first_name: 'Viewer',
+        last_name: 'Tester',
+      })
+      .expect(201);
+
+    const viewerRoleResult = await pool.query<{ id: string }>(
+      'UPDATE users SET role = $1 WHERE email = $2 RETURNING id',
+      ['viewer', viewerEmail.toLowerCase()]
+    );
+    viewerUserId = viewerRoleResult.rows[0]?.id || '';
+    expect(viewerUserId).toBeTruthy();
+
+    await pool.query(
+      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+       VALUES
+         ($1, $3, 'admin', $1, TRUE),
+         ($2, $3, 'staff', $1, TRUE),
+         ($4, $3, 'viewer', $1, TRUE)
+       ON CONFLICT (user_id, account_id)
+       DO UPDATE SET access_level = EXCLUDED.access_level, granted_by = EXCLUDED.granted_by, is_active = TRUE`,
+      [creatorUserId, staffUserId, testAccountId, viewerUserId]
+    );
+
+    await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', creatorUserId]);
+
+    const adminLoginResponse = await request(app)
+      .post('/api/v2/auth/login')
+      .send({ email, password: sharedPassword })
+      .expect(200);
+    authToken = tokenFromResponse(adminLoginResponse.body) || '';
+    adminAuthToken = authToken;
+    expect(adminAuthToken).toBeTruthy();
+
     const staffLoginResponse = await request(app)
       .post('/api/v2/auth/login')
       .send({ email: staffEmail, password: sharedPassword })
@@ -136,15 +154,12 @@ describe('Contact API Integration Tests', () => {
     staffAuthToken = tokenFromResponse(staffLoginResponse.body) || '';
     expect(staffAuthToken).toBeTruthy();
 
-    await pool.query(
-      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
-       VALUES
-         ($1, $3, 'admin', $1, TRUE),
-         ($2, $3, 'staff', $1, TRUE)
-       ON CONFLICT (user_id, account_id)
-       DO UPDATE SET access_level = EXCLUDED.access_level, granted_by = EXCLUDED.granted_by, is_active = TRUE`,
-      [creatorUserId, staffUserId, testAccountId]
-    );
+    const viewerLoginResponse = await request(app)
+      .post('/api/v2/auth/login')
+      .send({ email: viewerEmail, password: sharedPassword })
+      .expect(200);
+    viewerAuthToken = tokenFromResponse(viewerLoginResponse.body) || '';
+    expect(viewerAuthToken).toBeTruthy();
   });
 
   afterAll(async () => {
@@ -633,6 +648,7 @@ describe('Contact API Integration Tests', () => {
 
       const eventResult = await pool.query<{ id: string }>(
         `INSERT INTO events (
+           organization_id,
            name,
            event_type,
            start_date,
@@ -640,9 +656,9 @@ describe('Contact API Integration Tests', () => {
            location_name,
            created_by,
            modified_by
-         ) VALUES ($1, 'community', NOW() + interval '4 days', NOW() + interval '4 days 2 hours', 'Town Hall', $2, $2)
+         ) VALUES ($1, $2, 'community', NOW() + interval '4 days', NOW() + interval '4 days 2 hours', 'Town Hall', $3, $3)
          RETURNING id`,
-        [`Reminder Event ${suffix}`, staffUserId]
+        [testAccountId, `Reminder Event ${suffix}`, staffUserId]
       );
       const eventId = eventResult.rows[0].id;
       createdEventIds.push(eventId);
@@ -915,6 +931,7 @@ describe('Contact API Integration Tests', () => {
       const eventId = (
         await pool.query<{ id: string }>(
           `INSERT INTO events (
+             organization_id,
              name,
              event_type,
              start_date,
@@ -924,15 +941,16 @@ describe('Contact API Integration Tests', () => {
              modified_by
            ) VALUES (
              $1,
+             $2,
              'community',
              NOW() + interval '5 days',
              NOW() + interval '5 days 2 hours',
              'Community Hall',
-             $2,
-             $2
+             $3,
+             $3
            )
            RETURNING id`,
-          [`Timeline Event ${suffix}`, staffUserId]
+          [testAccountId, `Timeline Event ${suffix}`, staffUserId]
         )
       ).rows[0].id;
       createdEventIds.push(eventId);

@@ -77,6 +77,18 @@ const clampLayoutForCols = (layout: WidgetLayout[], targetCols: number): WidgetL
     };
   });
 
+const areWidgetLayoutsEqual = (left: WidgetLayout[], right: WidgetLayout[]): boolean =>
+  JSON.stringify(left) === JSON.stringify(right);
+
+const applyLayoutToWidgets = (
+  widgets: DashboardWidget[],
+  layout: WidgetLayout[]
+): DashboardWidget[] =>
+  widgets.map((widget) => {
+    const nextLayout = layout.find((item) => item.i === widget.id);
+    return nextLayout ? { ...widget, layout: nextLayout } : widget;
+  });
+
 const buildResponsiveLayouts = (
   layout: WidgetLayout[],
   cols: Record<string, number>
@@ -127,9 +139,8 @@ function CustomDashboardContent() {
   const [isNarrowViewport, setIsNarrowViewport] = useState(
     typeof window !== 'undefined' ? window.innerWidth < DEFAULT_BREAKPOINTS.sm : false
   );
+  const [layoutDraft, setLayoutDraft] = useState<WidgetLayout[] | null>(null);
   const hasInitializedRef = useRef(false);
-  const layoutCommitTimeoutRef = useRef<number | null>(null);
-  const pendingLayoutRef = useRef<WidgetLayout[] | null>(null);
 
   useEffect(() => {
     const initializeDashboard = async () => {
@@ -159,17 +170,17 @@ function CustomDashboardContent() {
     }
   }, [dispatch, isAuthenticated]);
 
-  useEffect(
-    () => () => {
-      if (layoutCommitTimeoutRef.current !== null) {
-        window.clearTimeout(layoutCommitTimeoutRef.current);
-      }
-    },
-    []
-  );
-
   const breakpoints = currentDashboard?.breakpoints ?? DEFAULT_BREAKPOINTS;
   const cols = currentDashboard?.cols ?? DEFAULT_COLS;
+
+  useEffect(() => {
+    if (!currentDashboard) {
+      setLayoutDraft(null);
+      return;
+    }
+
+    setLayoutDraft(currentDashboard.layout);
+  }, [currentDashboard]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -190,8 +201,8 @@ function CustomDashboardContent() {
   }, [breakpoints.sm]);
 
   const responsiveLayouts = useMemo(
-    () => buildResponsiveLayouts(currentDashboard?.layout ?? [], cols),
-    [cols, currentDashboard?.layout]
+    () => buildResponsiveLayouts(layoutDraft ?? currentDashboard?.layout ?? [], cols),
+    [cols, currentDashboard?.layout, layoutDraft]
   );
 
   const pickerTemplates = useMemo(
@@ -219,38 +230,29 @@ function CustomDashboardContent() {
       return;
     }
 
-    pendingLayoutRef.current = serializeLayout(layout);
-    if (layoutCommitTimeoutRef.current !== null) {
-      window.clearTimeout(layoutCommitTimeoutRef.current);
-    }
-
-    layoutCommitTimeoutRef.current = window.setTimeout(() => {
-      if (pendingLayoutRef.current) {
-        dispatch(updateLayout(pendingLayoutRef.current));
-      }
-      layoutCommitTimeoutRef.current = null;
-    }, 120);
+    setLayoutDraft(serializeLayout(layout));
   };
 
-  const commitPendingLayout = () => {
-    if (pendingLayoutRef.current) {
-      dispatch(updateLayout(pendingLayoutRef.current));
-      pendingLayoutRef.current = null;
+  const commitLayoutDraft = (nextLayout: WidgetLayout[] | null) => {
+    if (!currentDashboard || !nextLayout) {
+      return;
     }
 
-    if (layoutCommitTimeoutRef.current !== null) {
-      window.clearTimeout(layoutCommitTimeoutRef.current);
-      layoutCommitTimeoutRef.current = null;
+    if (areWidgetLayoutsEqual(currentDashboard.layout, nextLayout)) {
+      return;
     }
+
+    dispatch(updateLayout(nextLayout));
   };
 
   const handleSaveLayout = async () => {
     if (!currentDashboard?.id) return;
 
-    commitPendingLayout();
+    const nextLayout = layoutDraft ?? currentDashboard.layout;
+    commitLayoutDraft(nextLayout);
     const nextDashboard = {
-      widgets: currentDashboard.widgets,
-      layout: currentDashboard.layout,
+      widgets: applyLayoutToWidgets(currentDashboard.widgets, nextLayout),
+      layout: nextLayout,
       breakpoints: currentDashboard.breakpoints,
       cols: currentDashboard.cols,
     };
@@ -265,6 +267,7 @@ function CustomDashboardContent() {
   };
 
   const handleCancelEdit = () => {
+    setLayoutDraft(currentDashboard?.layout ?? null);
     dispatch(setEditMode(false));
     if (currentDashboard?.id) {
       void dispatch(fetchDashboard(currentDashboard.id));
@@ -293,6 +296,7 @@ function CustomDashboardContent() {
         config: nextDashboard,
       })
     );
+    setLayoutDraft(nextDashboard.layout);
     dispatch(setEditMode(false));
   };
 
@@ -531,6 +535,8 @@ function CustomDashboardContent() {
                 isResizable={editMode}
                 draggableHandle=".drag-handle"
                 onLayoutChange={handleLayoutChange}
+                onDragStop={(layout: Layout) => commitLayoutDraft(serializeLayout(layout))}
+                onResizeStop={(layout: Layout) => commitLayoutDraft(serializeLayout(layout))}
               >
                 {currentDashboard.widgets.map((widget) => (
                   <div

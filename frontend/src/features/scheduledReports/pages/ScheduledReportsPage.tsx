@@ -11,6 +11,8 @@ import {
   SectionCard,
   SelectField,
 } from '../../../components/ui';
+import { useAppSelector } from '../../../store/hooks';
+import { getReportAccess } from '../../auth/state/reportAccess';
 import type { ScheduledReportFormat, ScheduledReportFrequency } from '../../../types/scheduledReport';
 import useScheduledReportsController from '../hooks/useScheduledReportsController';
 
@@ -32,6 +34,8 @@ const formatSchedule = (
 };
 
 export default function ScheduledReportsPage() {
+  const user = useAppSelector((state) => state.auth.user);
+  const { canExportReports, canManageScheduledReports } = getReportAccess(user);
   const {
     clearForm,
     closeEditDialog,
@@ -231,21 +235,30 @@ export default function ScheduledReportsPage() {
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Scheduled Reports"
-          description="Schedule recurring report delivery with run history and on-demand execution."
+          description={
+            canManageScheduledReports
+              ? 'Schedule recurring report delivery with run history and on-demand execution.'
+              : 'Review schedule status and delivery history. Creating or modifying schedules is limited to report managers.'
+          }
           actions={
+            canManageScheduledReports ? (
             <PrimaryButton onClick={() => setShowCreate((prev) => !prev)}>
               {showCreate ? 'Close Creator' : 'New Schedule'}
             </PrimaryButton>
+            ) : undefined
           }
         />
 
-        {showCreate &&
+        {canManageScheduledReports &&
+          showCreate &&
           renderScheduleForm('create', handleCreate, () => {
             clearForm();
             setShowCreate(false);
           })}
 
-        {editTarget && renderScheduleForm('edit', handleSaveEdit, closeEditDialog)}
+        {canManageScheduledReports &&
+          editTarget &&
+          renderScheduleForm('edit', handleSaveEdit, closeEditDialog)}
 
         <SectionCard title="Filters" subtitle="Search and narrow schedules by status.">
           <div className="grid gap-3 md:grid-cols-3">
@@ -277,11 +290,26 @@ export default function ScheduledReportsPage() {
         ) : sortedReports.length === 0 ? (
           <EmptyState
             title="No schedules created yet"
-            description="Create a schedule to automatically send saved reports to stakeholders."
-            action={<PrimaryButton onClick={() => setShowCreate(true)}>Create first schedule</PrimaryButton>}
+            description={
+              canManageScheduledReports
+                ? 'Create a schedule to automatically send saved reports to stakeholders.'
+                : 'Schedules shared with you will appear here once report managers create them.'
+            }
+            action={
+              canManageScheduledReports ? (
+                <PrimaryButton onClick={() => setShowCreate(true)}>Create first schedule</PrimaryButton>
+              ) : undefined
+            }
           />
         ) : (
-          <SectionCard title="Schedules" subtitle="Manage status, run reports now, and inspect run history.">
+          <SectionCard
+            title="Schedules"
+            subtitle={
+              canManageScheduledReports
+                ? 'Manage status, run reports now, and inspect run history.'
+                : 'Inspect delivery status and review run history.'
+            }
+          >
             <div className="overflow-x-auto rounded-[var(--ui-radius-sm)] border border-app-border-muted">
               <table className="min-w-full divide-y divide-app-border-muted bg-app-surface text-sm">
                 <thead className="bg-app-surface-muted">
@@ -326,39 +354,45 @@ export default function ScheduledReportsPage() {
                         </td>
                         <td className="px-3 py-2">
                           <div className="flex flex-wrap gap-2">
-                            <SecondaryButton
-                              className="px-2 py-1 text-xs"
-                              onClick={() => void handleToggleScheduledReport(report.id)}
-                            >
-                              {report.is_active ? 'Pause' : 'Resume'}
-                            </SecondaryButton>
-                            <PrimaryButton
-                              className="px-2 py-1 text-xs"
-                              onClick={() => void handleRunNow(report.id)}
-                            >
-                              Run Now
-                            </PrimaryButton>
-                            <SecondaryButton
-                              className="px-2 py-1 text-xs"
-                              onClick={() => openEditDialog(report)}
-                            >
-                              Edit
-                            </SecondaryButton>
+                            {canManageScheduledReports && (
+                              <>
+                                <SecondaryButton
+                                  className="px-2 py-1 text-xs"
+                                  onClick={() => void handleToggleScheduledReport(report.id)}
+                                >
+                                  {report.is_active ? 'Pause' : 'Resume'}
+                                </SecondaryButton>
+                                <PrimaryButton
+                                  className="px-2 py-1 text-xs"
+                                  onClick={() => void handleRunNow(report.id)}
+                                >
+                                  Run Now
+                                </PrimaryButton>
+                                <SecondaryButton
+                                  className="px-2 py-1 text-xs"
+                                  onClick={() => openEditDialog(report)}
+                                >
+                                  Edit
+                                </SecondaryButton>
+                              </>
+                            )}
                             <SecondaryButton
                               className="px-2 py-1 text-xs"
                               onClick={() => void handleOpenHistory(report.id)}
                             >
                               {historyReportId === report.id ? 'Hide Runs' : 'View Runs'}
                             </SecondaryButton>
-                            <SecondaryButton
-                              className="px-2 py-1 text-xs text-app-accent-text"
-                              onClick={() => {
-                                if (!window.confirm('Delete this schedule?')) return;
-                                void handleDelete(report.id);
-                              }}
-                            >
-                              Delete
-                            </SecondaryButton>
+                            {canManageScheduledReports && (
+                              <SecondaryButton
+                                className="px-2 py-1 text-xs text-app-accent-text"
+                                onClick={() => {
+                                  if (!window.confirm('Delete this schedule?')) return;
+                                  void handleDelete(report.id);
+                                }}
+                              >
+                                Delete
+                              </SecondaryButton>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -391,7 +425,7 @@ export default function ScheduledReportsPage() {
                                     {run.error_message && (
                                       <p className="mt-1 text-[11px] text-app-accent-text">Error: {run.error_message}</p>
                                     )}
-                                    {run.status === 'success' && run.reportExportJobId && (
+                                    {canExportReports && run.status === 'success' && run.reportExportJobId && (
                                       <SecondaryButton
                                         className="mt-2 px-2 py-1 text-[11px]"
                                         onClick={() => void handleDownloadRunArtifact(run)}
@@ -402,7 +436,7 @@ export default function ScheduledReportsPage() {
                                           : 'Download Artifact'}
                                       </SecondaryButton>
                                     )}
-                                    {run.status === 'failed' && (
+                                    {canManageScheduledReports && run.status === 'failed' && (
                                       <SecondaryButton
                                         className="mt-2 px-2 py-1 text-[11px]"
                                         onClick={() => void handleRunNow(report.id)}

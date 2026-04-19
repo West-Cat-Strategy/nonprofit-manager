@@ -7,6 +7,22 @@ import { vi } from 'vitest';
 import SavedReportsPage from '../SavedReportsPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
+const buildAuthState = (permissions: string[]) => ({
+  auth: {
+    user: {
+      id: 'user-1',
+      email: 'manager@example.com',
+      firstName: 'Manager',
+      lastName: 'User',
+      role: 'manager',
+      permissions,
+    },
+    isAuthenticated: true,
+    authLoading: false,
+    loading: false,
+  },
+});
+
 const {
   closeShareDialogMock,
   confirmMock,
@@ -217,7 +233,14 @@ describe('SavedReportsPage', () => {
 
   it('renders saved report cards and delegates card actions to the controller', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<SavedReportsPage />);
+    renderWithProviders(<SavedReportsPage />, {
+      preloadedState: buildAuthState([
+        'report:view',
+        'report:create',
+        'scheduled_report:view',
+        'scheduled_report:manage',
+      ]),
+    });
 
     expect(screen.getByText('Donor Growth')).toBeInTheDocument();
     expect(screen.getByText('Accounts Snapshot')).toBeInTheDocument();
@@ -241,7 +264,14 @@ describe('SavedReportsPage', () => {
     controllerStateRef.current.scheduleFrequency = 'monthly';
     controllerStateRef.current.scheduleDayOfMonth = '15';
 
-    renderWithProviders(<SavedReportsPage />);
+    renderWithProviders(<SavedReportsPage />, {
+      preloadedState: buildAuthState([
+        'report:view',
+        'report:create',
+        'scheduled_report:view',
+        'scheduled_report:manage',
+      ]),
+    });
 
     await user.type(screen.getByLabelText(/recipients \(comma-separated\)/i), 'ops@example.org');
     await user.clear(screen.getByLabelText(/day of month/i));
@@ -260,7 +290,14 @@ describe('SavedReportsPage', () => {
     controllerStateRef.current.shareTarget = reports[0];
     controllerStateRef.current.publicLinkDisplay = '/public/reports/public-token-1';
 
-    renderWithProviders(<SavedReportsPage />);
+    renderWithProviders(<SavedReportsPage />, {
+      preloadedState: buildAuthState([
+        'report:view',
+        'report:create',
+        'scheduled_report:view',
+        'scheduled_report:manage',
+      ]),
+    });
 
     await user.type(screen.getByLabelText(/search users/i), 'Alex');
     await user.click(screen.getByRole('button', { name: /^search$/i }));
@@ -297,7 +334,16 @@ describe('SavedReportsPage', () => {
     controllerStateRef.current.error = 'Failed to fetch saved reports';
     controllerStateRef.current.loading = true;
 
-    const { rerender } = renderWithProviders(<SavedReportsPage />);
+    const managerState = buildAuthState([
+      'report:view',
+      'report:create',
+      'scheduled_report:view',
+      'scheduled_report:manage',
+    ]);
+
+    const initialRender = renderWithProviders(<SavedReportsPage />, {
+      preloadedState: managerState,
+    });
 
     expect(screen.getByText(/failed to fetch saved reports/i)).toBeInTheDocument();
     expect(screen.getByText(/loading saved reports/i)).toBeInTheDocument();
@@ -308,17 +354,39 @@ describe('SavedReportsPage', () => {
     controllerStateRef.current.loading = false;
     controllerStateRef.current.error = null;
     controllerStateRef.current.filteredReports = [];
-    rerender(<SavedReportsPage />);
+    initialRender.unmount();
+    const emptyRender = renderWithProviders(<SavedReportsPage />, {
+      preloadedState: managerState,
+    });
 
     expect(screen.getByText(/no saved reports found/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /create your first report/i }));
     expect(navigateMock).toHaveBeenCalledWith('/reports/builder');
 
     controllerStateRef.current.filteredReports = reports;
-    rerender(<SavedReportsPage />);
+    emptyRender.unmount();
+    renderWithProviders(<SavedReportsPage />, {
+      preloadedState: managerState,
+    });
     await user.click(screen.getAllByRole('button', { name: /delete/i })[0]);
 
     expect(confirmMock).toHaveBeenCalled();
     expect(handleDeleteReportMock).toHaveBeenCalledWith('saved-report-1');
+  });
+
+  it('keeps the page read-only for users without report management capability', () => {
+    renderWithProviders(<SavedReportsPage />, {
+      preloadedState: buildAuthState(['report:view', 'scheduled_report:view']),
+    });
+
+    expect(screen.getByText('Donor Growth')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /create new report/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /load & run/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /schedule/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /share/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/creating, sharing, and scheduling are limited to report managers/i)
+    ).toBeInTheDocument();
   });
 });

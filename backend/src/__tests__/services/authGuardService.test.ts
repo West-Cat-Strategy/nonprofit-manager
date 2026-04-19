@@ -2,10 +2,13 @@ import type { Response } from 'express';
 import pool from '@config/database';
 import type { AuthRequest } from '@middleware/auth';
 import {
+  guardWithAnyPermission,
   guardWithPermission,
   guardWithRole,
   requireActiveOrganizationSafe,
+  requireAnyPermissionSafe,
   requirePermissionSafe,
+  requireRoleSafe,
   requireUserSafe,
 } from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
@@ -118,6 +121,82 @@ describe('authGuardService', () => {
           code: 'unauthorized',
           message: 'Unauthorized: No authenticated user',
           statusCode: 401,
+        },
+      });
+    });
+  });
+
+  describe('requireAnyPermissionSafe', () => {
+    it('grants access when any resolved role matches one of the requested permissions', () => {
+      const result = requireAnyPermissionSafe(
+        buildRequest({
+          authorizationContext: {
+            userId: baseUser.id,
+            primaryRole: 'viewer',
+            roles: ['viewer', 'manager'],
+            hydratedAt: new Date().toISOString(),
+          },
+        }),
+        [Permission.ADMIN_USERS, Permission.EVENT_CREATE]
+      );
+
+      expect(result).toEqual({
+        ok: true,
+        data: {
+          user: baseUser,
+        },
+      });
+    });
+
+    it('returns a canonical forbidden error when no permission matches', () => {
+      const result = requireAnyPermissionSafe(buildRequest(), [
+        Permission.ADMIN_USERS,
+        Permission.EVENT_CREATE,
+      ]);
+
+      expect(result).toEqual({
+        ok: false,
+        error: {
+          code: 'forbidden',
+          message: `Forbidden: Requires one of [${Permission.ADMIN_USERS}, ${Permission.EVENT_CREATE}]`,
+          statusCode: 403,
+        },
+      });
+    });
+  });
+
+  describe('requireRoleSafe', () => {
+    it('grants access when a resolved role matches', () => {
+      const result = requireRoleSafe(
+        buildRequest({
+          authorizationContext: {
+            userId: baseUser.id,
+            primaryRole: 'viewer',
+            roles: ['viewer', 'manager'],
+            hydratedAt: new Date().toISOString(),
+          },
+        }),
+        'admin',
+        'manager'
+      );
+
+      expect(result).toEqual({
+        ok: true,
+        data: {
+          user: baseUser,
+        },
+      });
+    });
+
+    it('returns a canonical role failure when no role matches', () => {
+      const result = requireRoleSafe(buildRequest(), 'admin', 'manager');
+
+      expect(result).toEqual({
+        ok: false,
+        error: {
+          code: 'forbidden',
+          message: 'Forbidden: Requires role [admin, manager]',
+          statusCode: 403,
         },
       });
     });
@@ -260,7 +339,7 @@ describe('authGuardService', () => {
       const result = guardWithRole(buildRequest({ user: undefined }), res, 'admin');
 
       expect(result).toBe(false);
-      expect(mockUnauthorized).toHaveBeenCalledWith(res, 'Unauthorized');
+      expect(mockUnauthorized).toHaveBeenCalledWith(res, 'Unauthorized: No authenticated user');
       expect(mockForbidden).not.toHaveBeenCalled();
     });
 
@@ -270,7 +349,7 @@ describe('authGuardService', () => {
       const result = guardWithRole(buildRequest(), res, 'admin');
 
       expect(result).toBe(false);
-      expect(mockForbidden).toHaveBeenCalledWith(res, 'Forbidden');
+      expect(mockForbidden).toHaveBeenCalledWith(res, 'Forbidden: Requires role [admin]');
       expect(mockUnauthorized).not.toHaveBeenCalled();
     });
   });
@@ -321,6 +400,46 @@ describe('authGuardService', () => {
       expect(mockForbidden).toHaveBeenCalledWith(
         res,
         `Forbidden: Permission '${Permission.ADMIN_USERS}' not granted`
+      );
+      expect(mockUnauthorized).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('guardWithAnyPermission', () => {
+    it('authorizes when any permission is granted across resolved roles', () => {
+      const result = guardWithAnyPermission(
+        buildRequest({
+          authorizationContext: {
+            userId: baseUser.id,
+            primaryRole: 'viewer',
+            roles: ['viewer', 'manager'],
+            hydratedAt: new Date().toISOString(),
+          },
+        }),
+        buildResponse(),
+        Permission.ADMIN_USERS,
+        Permission.EVENT_CREATE
+      );
+
+      expect(result).toBe(true);
+      expect(mockUnauthorized).not.toHaveBeenCalled();
+      expect(mockForbidden).not.toHaveBeenCalled();
+    });
+
+    it('propagates the shared forbidden message when none of the permissions match', () => {
+      const res = buildResponse();
+
+      const result = guardWithAnyPermission(
+        buildRequest(),
+        res,
+        Permission.ADMIN_USERS,
+        Permission.EVENT_CREATE
+      );
+
+      expect(result).toBe(false);
+      expect(mockForbidden).toHaveBeenCalledWith(
+        res,
+        `Forbidden: Requires one of [${Permission.ADMIN_USERS}, ${Permission.EVENT_CREATE}]`
       );
       expect(mockUnauthorized).not.toHaveBeenCalled();
     });

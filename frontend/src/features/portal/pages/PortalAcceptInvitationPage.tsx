@@ -14,11 +14,15 @@ interface InvitationInfo {
   expiresAt: string;
 }
 
+const isLikelyInvitationToken = (value: string | undefined): boolean =>
+  Boolean(value && value.length >= 20 && /^[A-Za-z0-9._-]+$/.test(value));
+
 export default function PortalAcceptInvitation() {
   const { token } = useParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
+  const [validationDeferred, setValidationDeferred] = useState(false);
   const { error, details, setFromError, clear } = useApiError({ notify: true });
   const [formData, setFormData] = useState({
     firstName: '',
@@ -33,12 +37,20 @@ export default function PortalAcceptInvitation() {
       try {
         const response = await portalApi.get(`/portal/auth/invitations/validate/${token}`);
         setInvitation(response.data.invitation);
+        setValidationDeferred(false);
         clear();
       } catch (err) {
         setFromError(err, 'Invitation is invalid or expired');
       }
     };
     if (token) {
+      if (!isLikelyInvitationToken(token)) {
+        setValidationDeferred(true);
+        setInvitation(null);
+        clear();
+        return;
+      }
+
       loadInvite();
     }
   }, [token, clear, setFromError]);
@@ -106,7 +118,19 @@ export default function PortalAcceptInvitation() {
 
       <ErrorBanner message={error} correlationId={details?.correlationId} className="mt-4" />
 
-      {!invitation && !error && (
+      {validationDeferred && !error && (
+        <div className="mt-6 rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
+          This invitation link looks like a placeholder or preview token, so we are skipping
+          validation until you open the real email link.
+          <div className="mt-3">
+            <Link to="/portal/login" className="font-medium text-app-text-heading hover:underline">
+              Return to portal sign in
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {!invitation && !error && !validationDeferred && (
         <p className="mt-6 text-sm text-app-text-muted" aria-live="polite">
           Validating invitation...
         </p>
@@ -166,6 +190,12 @@ export default function PortalAcceptInvitation() {
             Activate Portal Account
           </PrimaryButton>
         </form>
+      )}
+
+      {validationDeferred && !error && !invitation && (
+        <p className="mt-4 text-sm text-app-text-muted">
+          We&apos;re waiting for a real invitation link before loading account details.
+        </p>
       )}
 
       {error && (

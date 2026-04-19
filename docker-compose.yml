@@ -17,15 +17,18 @@ x-runtime-env: &runtime-env
   PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS: ${PUBLIC_EVENT_CHECKIN_RATE_LIMIT_MAX_REQUESTS:-300}
   MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS:-5}
   ACCOUNT_LOCKOUT_DURATION_MS: ${ACCOUNT_LOCKOUT_DURATION_MS:-900000}
-  DB_AT_REST_ENCRYPTION_MODE: ${DB_AT_REST_ENCRYPTION_MODE:-managed}
-  DB_AT_REST_PROVIDER: ${DB_AT_REST_PROVIDER:-other}
-  DB_AT_REST_VERIFIED: ${DB_AT_REST_VERIFIED:-true}
-  DB_LUKS_MAPPING_NAME: ${DB_LUKS_MAPPING_NAME:-nonprofit-manager-db}
-  POSTGRES_DATA_DIR: ${POSTGRES_DATA_DIR:-/var/lib/nonprofit-manager/postgres}
-  BACKUP_DIR: ${BACKUP_DIR:-/var/lib/nonprofit-manager/backups/database}
+  DB_AT_REST_ENCRYPTION_MODE: ${DB_AT_REST_ENCRYPTION_MODE}
+  DB_AT_REST_PROVIDER: ${DB_AT_REST_PROVIDER}
+  DB_AT_REST_VERIFIED: ${DB_AT_REST_VERIFIED}
+  DB_LUKS_MAPPING_NAME: ${DB_LUKS_MAPPING_NAME}
+  POSTGRES_DATA_DIR: ${POSTGRES_DATA_DIR}
+  BACKUP_DIR: ${BACKUP_DIR}
 
-x-contracts-build-contexts: &contracts-build-contexts
-  contracts: ./contracts
+x-build-contexts: &build-contexts
+  workspace: .
+
+x-runtime-env-file: &runtime-env-file
+  - ${RUNTIME_ENV_FILE:-.env.production}
 
 services:
   redis:
@@ -44,11 +47,10 @@ services:
     build:
       context: ./backend
       target: production
-      additional_contexts: *contracts-build-contexts
+      additional_contexts: *build-contexts
     restart: unless-stopped
     init: true
-    env_file:
-      - .env.production
+    env_file: *runtime-env-file
     expose:
       - "8000"
     environment:
@@ -72,7 +74,7 @@ services:
     build:
       context: ./frontend
       target: production
-      additional_contexts: *contracts-build-contexts
+      additional_contexts: *build-contexts
       args:
         VITE_API_URL: ${VITE_API_URL:-/api}
     restart: unless-stopped
@@ -90,11 +92,10 @@ services:
     build:
       context: ./backend
       target: production
-      additional_contexts: *contracts-build-contexts
+      additional_contexts: *build-contexts
     restart: unless-stopped
     init: true
-    env_file:
-      - .env.production
+    env_file: *runtime-env-file
     expose:
       - "8006"
     environment:

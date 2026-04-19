@@ -11,48 +11,47 @@ if [[ -z "$MODE" ]]; then
   exit 2
 fi
 
-get_env_file_value() {
-  local file="$1"
-  local key="$2"
-
-  if [[ ! -f "$file" ]]; then
-    return 0
-  fi
-
-  awk -F= -v key="$key" '$1 == key { sub(/^[^=]+=/, "", $0); print $0; exit }' "$file"
-}
-
 require_cmd docker
-validate_production_db_at_rest_contract
 
 deploy_local() {
   compose_with_project_files "${COMPOSE_PROJECT_DEV:-nonprofit-dev}" "$PROJECT_ROOT/docker-compose.dev.yml" -- up -d --build --remove-orphans
 }
 
 deploy_production_like() {
-  local env_file="$PROJECT_ROOT/.env.production"
-  local caddy_domain="localhost"
+  local env_file=""
+  local compose_project=""
+  local caddy_domain=""
   local caddy_backend_upstream=""
   local caddy_frontend_upstream=""
   local caddy_public_site_upstream=""
-  local caddy_public_site_domain="sites.westcat.ca"
-  local use_host_caddy="${DEPLOY_USE_HOST_CADDY:-0}"
+  local caddy_public_site_domain=""
+  local use_host_caddy="0"
   local -a compose_files=(
     "$PROJECT_ROOT/docker-compose.yml"
     "$PROJECT_ROOT/docker-compose.host-access.yml"
   )
 
-  if [[ "$MODE" == "staging" && -f "$PROJECT_ROOT/.env.staging" ]]; then
-    env_file="$PROJECT_ROOT/.env.staging"
-  fi
+  case "$MODE" in
+    staging)
+      env_file="${DEPLOY_STAGING_ENV_FILE:-$PROJECT_ROOT/.env.staging}"
+      compose_project="${COMPOSE_PROJECT_STAGING:-nonprofit-staging}"
+      ;;
+    production)
+      env_file="${DEPLOY_PRODUCTION_ENV_FILE:-$PROJECT_ROOT/.env.production}"
+      compose_project="$COMPOSE_PROJECT_PROD"
+      ;;
+  esac
 
-  local db_at_rest_mode="${DB_AT_REST_ENCRYPTION_MODE:-}"
-  if [[ -z "$db_at_rest_mode" && -f "$env_file" ]]; then
-    db_at_rest_mode="$(
-      grep -E '^DB_AT_REST_ENCRYPTION_MODE=' "$env_file" | tail -n1 | cut -d= -f2-
-    )"
-  fi
-  db_at_rest_mode="$(to_lower "$db_at_rest_mode")"
+  require_env_file "$env_file"
+  load_env_file_defaults "$env_file"
+
+  export NODE_ENV=production
+  validate_production_db_at_rest_contract "production"
+
+  use_host_caddy="${DEPLOY_USE_HOST_CADDY:-0}"
+
+  local db_at_rest_mode
+  db_at_rest_mode="$(to_lower "${DB_AT_REST_ENCRYPTION_MODE:-}")"
 
   case "$db_at_rest_mode" in
     luks)
@@ -64,10 +63,8 @@ deploy_production_like() {
   esac
 
   if [[ "$MODE" == "production" ]]; then
-    caddy_domain="${CADDY_DOMAIN:-$(get_env_file_value "$env_file" CADDY_DOMAIN)}"
-    caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-$(get_env_file_value "$env_file" CADDY_PUBLIC_SITE_DOMAIN)}"
-    caddy_domain="${caddy_domain:-westcat.ca}"
-    caddy_public_site_domain="${caddy_public_site_domain:-sites.westcat.ca}"
+    caddy_domain="${CADDY_DOMAIN:-westcat.ca}"
+    caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-sites.westcat.ca}"
 
     if [[ "$caddy_domain" == "$caddy_public_site_domain" ]]; then
       caddy_public_site_domain="sites.${caddy_domain}"
@@ -82,6 +79,8 @@ deploy_production_like() {
       caddy_public_site_upstream="${CADDY_PUBLIC_SITE_UPSTREAM:-host.docker.internal:8006}"
     fi
   else
+    caddy_domain="${CADDY_DOMAIN:-localhost}"
+    caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-sites.localhost}"
     compose_files+=("$PROJECT_ROOT/docker-compose.caddy.yml")
   fi
 
@@ -90,9 +89,9 @@ deploy_production_like() {
     echo "Set DEPLOY_EXECUTE=1 to run the deployment command."
     echo "Planned command:"
     if [[ -n "$caddy_backend_upstream" ]]; then
-      echo "  DEPLOY_USE_HOST_CADDY=$use_host_caddy CADDY_DOMAIN=$caddy_domain CADDY_PUBLIC_SITE_DOMAIN=$caddy_public_site_domain CADDY_BACKEND_UPSTREAM=$caddy_backend_upstream CADDY_FRONTEND_UPSTREAM=$caddy_frontend_upstream CADDY_PUBLIC_SITE_UPSTREAM=$caddy_public_site_upstream ${COMPOSE_CMD[*]} -p $COMPOSE_PROJECT_PROD --env-file $env_file"
+      echo "  RUNTIME_ENV_FILE=$env_file DEPLOY_USE_HOST_CADDY=$use_host_caddy CADDY_DOMAIN=$caddy_domain CADDY_PUBLIC_SITE_DOMAIN=$caddy_public_site_domain CADDY_BACKEND_UPSTREAM=$caddy_backend_upstream CADDY_FRONTEND_UPSTREAM=$caddy_frontend_upstream CADDY_PUBLIC_SITE_UPSTREAM=$caddy_public_site_upstream ${COMPOSE_CMD[*]} -p $compose_project --env-file $env_file"
     else
-      echo "  DEPLOY_USE_HOST_CADDY=$use_host_caddy CADDY_DOMAIN=$caddy_domain CADDY_PUBLIC_SITE_DOMAIN=$caddy_public_site_domain ${COMPOSE_CMD[*]} -p $COMPOSE_PROJECT_PROD --env-file $env_file"
+      echo "  RUNTIME_ENV_FILE=$env_file DEPLOY_USE_HOST_CADDY=$use_host_caddy CADDY_DOMAIN=$caddy_domain CADDY_PUBLIC_SITE_DOMAIN=$caddy_public_site_domain ${COMPOSE_CMD[*]} -p $compose_project --env-file $env_file"
     fi
     for compose_file in "${compose_files[@]}"; do
       echo "    -f $compose_file"
@@ -102,16 +101,18 @@ deploy_production_like() {
   fi
 
   if [[ -n "$caddy_backend_upstream" ]]; then
+    RUNTIME_ENV_FILE="$env_file" \
     CADDY_DOMAIN="$caddy_domain" \
     CADDY_PUBLIC_SITE_DOMAIN="$caddy_public_site_domain" \
     CADDY_BACKEND_UPSTREAM="$caddy_backend_upstream" \
     CADDY_FRONTEND_UPSTREAM="$caddy_frontend_upstream" \
     CADDY_PUBLIC_SITE_UPSTREAM="$caddy_public_site_upstream" \
-    compose_with_project_files "$COMPOSE_PROJECT_PROD" "${compose_files[@]}" -- --env-file "$env_file" up -d --build --remove-orphans
+    compose_with_project_files "$compose_project" "${compose_files[@]}" -- --env-file "$env_file" up -d --build --remove-orphans
   else
+    RUNTIME_ENV_FILE="$env_file" \
     CADDY_DOMAIN="$caddy_domain" \
     CADDY_PUBLIC_SITE_DOMAIN="$caddy_public_site_domain" \
-    compose_with_project_files "$COMPOSE_PROJECT_PROD" "${compose_files[@]}" -- --env-file "$env_file" up -d --build --remove-orphans
+    compose_with_project_files "$compose_project" "${compose_files[@]}" -- --env-file "$env_file" up -d --build --remove-orphans
   fi
 }
 

@@ -155,16 +155,22 @@ Default Playwright runtime:
 - Backend API: `http://127.0.0.1:3001`
 
 The harness loads `.env.test` first and then `.env.test.local`, so local overrides win last.
+Wrapper-driven docker commands still default to `8005/8004/8006`, while the repo-root `make test-e2e-docker-smoke` target provisions its own isolated smoke stack on `18005/18004/18006` unless `KEEP_SMOKE_STACK=1`.
 
 ## Verification And Next Docs
+
+When you need the repo-owned database contract, use `make db-migrate` for the active database and `make db-verify` for the disposable isolated test database. Avoid running individual `database/migrations/NNN_*.sql` files directly; use `database/initdb/000_init.sql` only when you are manually replaying the full manifest-ordered bootstrap contract against native Postgres.
 
 Use the smallest relevant verification for the change you are making. Common commands:
 
 ```bash
+make db-migrate
+make db-verify
 make lint
 make typecheck
 make test
 make test-e2e-docker-smoke
+make test-tooling
 make check-links
 make lint-doc-api-versioning
 cd backend && npm run type-check

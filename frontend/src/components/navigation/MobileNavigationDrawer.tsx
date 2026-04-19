@@ -1,6 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent, type RefObject } from 'react';
 import { Link } from 'react-router-dom';
-import { canAccessAdminSettings } from '../../features/auth/state/adminAccess';
 import type { NavigationItem } from '../../hooks/useNavigationPreferences';
 import Avatar from '../Avatar';
 import { classNames } from '../ui/classNames';
@@ -24,6 +23,7 @@ interface NavigationDrawerUser {
 interface MobileNavigationDrawerProps {
   adminSettingsPath: string;
   appName: string;
+  canOpenAdminSettings: boolean;
   favoriteItems: NavigationItem[];
   isDarkMode: boolean;
   isNavItemActive: (id: string, path: string) => boolean;
@@ -59,6 +59,7 @@ function getFocusableElements(container: HTMLDivElement | null): HTMLElement[] {
 export default function MobileNavigationDrawer({
   adminSettingsPath,
   appName,
+  canOpenAdminSettings,
   favoriteItems,
   isDarkMode,
   isNavItemActive,
@@ -71,7 +72,6 @@ export default function MobileNavigationDrawer({
   user,
   utilityNavLinks,
 }: MobileNavigationDrawerProps) {
-  const canOpenAdminSettings = canAccessAdminSettings(user);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 

@@ -33,6 +33,7 @@ import {
   resolveCaseLink,
   type LockedRegistrationRow,
 } from './eventRegistrationService.helpers';
+import { setTransactionUserContext } from './tenancy';
 
 const runPostCommitActionSafely = async (
   action: () => Promise<void>,
@@ -112,13 +113,18 @@ export const registerContactMutation = async (
 
   try {
     await client.query('BEGIN');
+    await setTransactionUserContext(client, context.actorUserId ?? null);
 
     const event = await getEventRow(ctx, event_id, client);
     if (!event) {
       throw new Error('Event not found');
     }
 
-    const resolvedOccurrence = await ctx.occurrences.resolveOccurrence(event_id, occurrence_id, client);
+    const resolvedOccurrence = await ctx.occurrences.resolveOccurrence(
+      event_id,
+      occurrence_id,
+      client
+    );
     if (!resolvedOccurrence) {
       throw new Error('Occurrence not found');
     }
@@ -155,7 +161,12 @@ export const registerContactMutation = async (
           continue;
         }
 
-        const lockedCandidate = await getLockedOccurrence(ctx, event_id, candidate.occurrence_id, client);
+        const lockedCandidate = await getLockedOccurrence(
+          ctx,
+          event_id,
+          candidate.occurrence_id,
+          client
+        );
         if (!lockedCandidate) {
           continue;
         }
@@ -365,11 +376,11 @@ export const updateRegistrationMutation = async (
   let currentEventId: string | undefined;
   let currentContactId: string | undefined;
   const postCommitActions: Array<() => Promise<void>> = [];
-  const trimmedNotes =
-    updateData.notes === undefined ? undefined : updateData.notes.trim() || null;
+  const trimmedNotes = updateData.notes === undefined ? undefined : updateData.notes.trim() || null;
 
   try {
     await client.query('BEGIN');
+    await setTransactionUserContext(client, context.actorUserId ?? null);
 
     const currentResult = await client.query<LockedRegistrationRow>(
       `SELECT
@@ -419,7 +430,7 @@ export const updateRegistrationMutation = async (
     }
 
     const resolvedCaseId =
-      updateData.case_id === undefined ? current.case_id : updateData.case_id ?? null;
+      updateData.case_id === undefined ? current.case_id : (updateData.case_id ?? null);
     const linkedCase = await resolveCaseLink(resolvedCaseId, current.contact_id, client);
 
     if (
@@ -555,7 +566,8 @@ export const updateRegistrationMutation = async (
           event,
           targetOccurrence,
           context.actorUserId ?? null,
-          nextStatus === RegistrationStatus.WAITLISTED || nextStatus === RegistrationStatus.CANCELLED
+          nextStatus === RegistrationStatus.WAITLISTED ||
+            nextStatus === RegistrationStatus.CANCELLED
             ? target.registration_id
             : null
         );
@@ -697,7 +709,8 @@ export const updateRegistrationMutation = async (
 
 export const cancelRegistrationMutation = async (
   ctx: EventRegistrationServiceContext,
-  registrationId: string
+  registrationId: string,
+  context: EventRegistrationMutationContext = {}
 ): Promise<void> => {
   const client = await ctx.pool.connect();
   let promotedRegistrationId: string | null | undefined;
@@ -705,6 +718,7 @@ export const cancelRegistrationMutation = async (
 
   try {
     await client.query('BEGIN');
+    await setTransactionUserContext(client, context.actorUserId ?? null);
 
     const registrationResult = await client.query<LockedRegistrationRow>(
       `SELECT

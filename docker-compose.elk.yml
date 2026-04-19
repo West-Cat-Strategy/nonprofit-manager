@@ -2,16 +2,26 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
     restart: unless-stopped
+    init: true
+    env_file:
+      - .env.elk
     environment:
       discovery.type: single-node
-      xpack.security.enabled: "false"
+      xpack.security.enabled: ${ELK_SECURITY_ENABLED:-true}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD in .env.elk}
       ES_JAVA_OPTS: -Xms512m -Xmx512m
+    security_opt:
+      - no-new-privileges:true
     ports:
-      - "9200:9200"
+      - "127.0.0.1:9200:9200"
     volumes:
       - elk-elasticsearch-data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=1s > /dev/null"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS -u elastic:$$ELASTIC_PASSWORD http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=1s > /dev/null",
+        ]
       interval: 10s
       timeout: 10s
       retries: 20
@@ -20,24 +30,40 @@ services:
   logstash:
     image: docker.elastic.co/logstash/logstash:8.5.0
     restart: unless-stopped
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    volumes:
-      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-    ports:
-      - "8080:8080"
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.5.0
-    restart: unless-stopped
+    init: true
+    env_file:
+      - .env.elk
     depends_on:
       elasticsearch:
         condition: service_healthy
     environment:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: ${ELK_ELASTICSEARCH_USERNAME:-elastic}
+      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD in .env.elk}
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    security_opt:
+      - no-new-privileges:true
     ports:
-      - "5601:5601"
+      - "127.0.0.1:8080:8080"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.5.0
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env.elk
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: ${ELK_ELASTICSEARCH_USERNAME:-elastic}
+      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD in .env.elk}
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:5601:5601"
 
 volumes:
   elk-elasticsearch-data:

@@ -5,7 +5,7 @@
 
 import crypto from 'crypto';
 import { logger } from '@config/logger';
-import pool from '@config/database';
+import pool, { withDatabaseTransaction } from '@config/database';
 import type {
   PaymentReconciliation,
   ReconciliationItem,
@@ -163,10 +163,6 @@ export async function createReconciliation(
     const reconciliationId = crypto.randomUUID();
 
     const reconciliation = await withTransaction(async (client) => {
-      if (userId) {
-        await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
-      }
-
       const reconciliationResult = await client.query(
         `
         INSERT INTO payment_reconciliations (
@@ -241,7 +237,7 @@ export async function createReconciliation(
       });
 
       return updateResult.rows[0];
-    });
+    }, { userId });
 
     return reconciliation;
   } catch (error) {
@@ -250,23 +246,11 @@ export async function createReconciliation(
   }
 }
 
-async function withTransaction<T>(fn: (client: Queryable) => Promise<T>): Promise<T> {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const result = await fn(client);
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    try {
-      await client.query('ROLLBACK');
-    } catch {
-      // Ignore rollback failures while preserving the original error.
-    }
-    throw error;
-  } finally {
-    client.release();
-  }
+async function withTransaction<T>(
+  fn: (client: Queryable) => Promise<T>,
+  options: { userId?: string } = {}
+): Promise<T> {
+  return withDatabaseTransaction((client) => fn(client), { userId: options.userId ?? null });
 }
 
 /**

@@ -13,12 +13,16 @@ import {
   SelectField,
 } from '../../../components/ui';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
+import { useAppSelector } from '../../../store/hooks';
+import { getReportAccess } from '../../auth/state/reportAccess';
 import useSavedReportsController from '../hooks/useSavedReportsController';
 import type { ReportEntity } from '../../../types/report';
 import type { ScheduledReportFormat, ScheduledReportFrequency } from '../../../types/scheduledReport';
 
 function SavedReports() {
   const navigate = useNavigate();
+  const user = useAppSelector((state) => state.auth.user);
+  const { canManageReports, canManageScheduledReports } = getReportAccess(user);
   const { dialogState, confirm, handleConfirm, handleCancel } = useConfirmDialog();
   const {
     closeShareDialog,
@@ -91,9 +95,15 @@ function SavedReports() {
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
         <PageHeader
           title="Saved Reports"
-          description="Reuse, share, and schedule previously-defined report configurations."
+          description={
+            canManageReports || canManageScheduledReports
+              ? 'Reuse, share, and schedule previously-defined report configurations.'
+              : 'Browse saved report definitions. Creating, sharing, and scheduling are limited to report managers.'
+          }
           actions={
+            canManageReports ? (
             <PrimaryButton onClick={() => navigate('/reports/builder')}>Create New Report</PrimaryButton>
+            ) : undefined
           }
         />
 
@@ -124,11 +134,17 @@ function SavedReports() {
         ) : filteredReports.length === 0 ? (
           <EmptyState
             title="No saved reports found"
-            description="Build and save a report definition to make it reusable."
+            description={
+              canManageReports
+                ? 'Build and save a report definition to make it reusable.'
+                : 'Saved reports shared with you will appear here.'
+            }
             action={
+              canManageReports ? (
               <PrimaryButton onClick={() => navigate('/reports/builder')}>
                 Create Your First Report
               </PrimaryButton>
+              ) : undefined
             }
           />
         ) : (
@@ -172,23 +188,42 @@ function SavedReports() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <PrimaryButton className="px-3 py-2 text-xs" onClick={() => handleLoadReport(report)}>
-                      Load & Run
-                    </PrimaryButton>
-                    <SecondaryButton className="px-3 py-2 text-xs" onClick={() => setScheduleTarget(report)}>
-                      Schedule
-                    </SecondaryButton>
-                    <SecondaryButton className="px-3 py-2 text-xs" onClick={() => openShareDialog(report)}>
-                      Share
-                    </SecondaryButton>
-                    <SecondaryButton
-                      className="px-3 py-2 text-xs text-app-accent-text"
-                      onClick={() => void handleConfirmDelete(report.id, report.name)}
-                    >
-                      Delete
-                    </SecondaryButton>
-                  </div>
+                  {(canManageReports || canManageScheduledReports) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {canManageReports && (
+                        <PrimaryButton
+                          className="px-3 py-2 text-xs"
+                          onClick={() => handleLoadReport(report)}
+                        >
+                          Load & Run
+                        </PrimaryButton>
+                      )}
+                      {canManageScheduledReports && (
+                        <SecondaryButton
+                          className="px-3 py-2 text-xs"
+                          onClick={() => setScheduleTarget(report)}
+                        >
+                          Schedule
+                        </SecondaryButton>
+                      )}
+                      {canManageReports && (
+                        <>
+                          <SecondaryButton
+                            className="px-3 py-2 text-xs"
+                            onClick={() => openShareDialog(report)}
+                          >
+                            Share
+                          </SecondaryButton>
+                          <SecondaryButton
+                            className="px-3 py-2 text-xs text-app-accent-text"
+                            onClick={() => void handleConfirmDelete(report.id, report.name)}
+                          >
+                            Delete
+                          </SecondaryButton>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </SectionCard>
             ))}
@@ -221,7 +256,7 @@ function SavedReports() {
           </div>
         )}
 
-        {scheduleTarget && (
+        {scheduleTarget && canManageScheduledReports && (
           <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop p-4">
             <div className="w-full max-w-3xl rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface p-5 shadow-lg">
               <PageHeader
@@ -319,7 +354,7 @@ function SavedReports() {
           </div>
         )}
 
-        {shareTarget && (
+        {shareTarget && canManageReports && (
           <div className="fixed inset-0 z-50 flex items-center justify-center app-popup-backdrop p-4">
             <div className="max-h-[90vh] w-full max-w-5xl overflow-auto rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface p-5 shadow-lg">
               <PageHeader

@@ -117,8 +117,12 @@ export class EventService {
     return this.catalog.getEventAttendanceSummary(referenceDate, scope);
   }
 
-  async createEvent(eventData: CreateEventDTO, userId: string): Promise<Event> {
-    return this.catalog.createEvent(eventData, userId);
+  async createEvent(
+    eventData: CreateEventDTO,
+    userId: string,
+    organizationId: string
+  ): Promise<Event> {
+    return this.catalog.createEvent(eventData, userId, organizationId);
   }
 
   async updateEvent(eventId: string, eventData: UpdateEventDTO, userId: string): Promise<Event> {
@@ -136,7 +140,10 @@ export class EventService {
     return this.registration.getEventRegistrations(eventId, filters);
   }
 
-  async getContactRegistrations(contactId: string, scope?: DataScopeFilter): Promise<EventRegistration[]> {
+  async getContactRegistrations(
+    contactId: string,
+    scope?: DataScopeFilter
+  ): Promise<EventRegistration[]> {
     return this.registration.getContactRegistrations(contactId, scope);
   }
 
@@ -148,7 +155,10 @@ export class EventService {
     return this.registration.getRegistrationByToken(eventId, token);
   }
 
-  async getRegistrationByTokenGlobal(token: string, scope?: DataScopeFilter): Promise<EventRegistration | null> {
+  async getRegistrationByTokenGlobal(
+    token: string,
+    scope?: DataScopeFilter
+  ): Promise<EventRegistration | null> {
     return this.registration.getRegistrationByTokenGlobal(token, scope);
   }
 
@@ -168,15 +178,24 @@ export class EventService {
     return this.registration.updateRegistration(registrationId, updateData, scope, context);
   }
 
-  async checkInAttendee(registrationId: string, options: CheckInOptions = {}): Promise<CheckInResult> {
+  async checkInAttendee(
+    registrationId: string,
+    options: CheckInOptions = {}
+  ): Promise<CheckInResult> {
     return this.registration.checkInAttendee(registrationId, options);
   }
 
-  async cancelRegistration(registrationId: string): Promise<void> {
-    return this.registration.cancelRegistration(registrationId);
+  async cancelRegistration(
+    registrationId: string,
+    context?: EventRegistrationMutationContext
+  ): Promise<void> {
+    return this.registration.cancelRegistration(registrationId, context);
   }
 
-  async getEventCheckInSettings(eventId: string, occurrenceId?: string): Promise<EventCheckInSettings | null> {
+  async getEventCheckInSettings(
+    eventId: string,
+    occurrenceId?: string
+  ): Promise<EventCheckInSettings | null> {
     return this.registration.getEventCheckInSettings(eventId, occurrenceId);
   }
 
@@ -211,7 +230,10 @@ export class EventService {
     return this.registration.sendRegistrationConfirmationEmail(registrationId, sentBy);
   }
 
-  async getPublicCheckInInfo(eventId: string, occurrenceId?: string): Promise<PublicEventCheckInInfo | null> {
+  async getPublicCheckInInfo(
+    eventId: string,
+    occurrenceId?: string
+  ): Promise<PublicEventCheckInInfo | null> {
     return this.publicEvents.getPublicCheckInInfo(eventId, occurrenceId);
   }
 

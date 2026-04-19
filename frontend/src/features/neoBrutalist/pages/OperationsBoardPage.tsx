@@ -4,20 +4,31 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import LoopApiService from '../../../services/LoopApiService';
+import { getDemoTasks, isDemoPath } from '../../../services/loop/demo';
 import type { Task, TaskCategory } from '../../../types/schema';
 
 export default function OperationsBoard() {
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { pathname } = useLocation();
+    const isDemoRoute = isDemoPath(pathname);
+    const [tasks, setTasks] = useState<Task[]>(() => (isDemoRoute ? getDemoTasks() : []));
+    const [loading, setLoading] = useState(() => !isDemoRoute);
     const [filterCategory, setFilterCategory] = useState<TaskCategory | 'all'>('all');
     const [sortBy, setSortBy] = useState<'dueDate' | 'title' | 'category'>('dueDate');
     const [showFilterMenu, setShowFilterMenu] = useState(false);
     const [showSortMenu, setShowSortMenu] = useState(false);
 
     useEffect(() => {
+        if (isDemoRoute) {
+            setTasks(getDemoTasks());
+            setLoading(false);
+            return;
+        }
+
         const fetchTasks = async () => {
+            setLoading(true);
             try {
                 const data = await LoopApiService.getTasks();
                 setTasks(data);
@@ -28,7 +39,7 @@ export default function OperationsBoard() {
             }
         };
         fetchTasks();
-    }, []);
+    }, [isDemoRoute]);
 
     const handleFilter = () => setShowFilterMenu(!showFilterMenu);
     const handleSort = () => setShowSortMenu(!showSortMenu);

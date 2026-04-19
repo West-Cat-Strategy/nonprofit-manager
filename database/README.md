@@ -90,8 +90,8 @@ make db-migrate
 # Verify migrations against the isolated test database
 make db-verify
 
-# Or directly with psql
-psql -U postgres -d nonprofit_manager -f database/migrations/001_initial_schema.sql
+# Or replay the canonical bootstrap contract against a disposable native Postgres database
+psql -U postgres -d nonprofit_manager -f database/initdb/000_init.sql
 ```
 
 **Production Environment:**
@@ -103,17 +103,17 @@ COMPOSE_MODE=prod ./scripts/db-migrate.sh
 ### Migration Scripts
 
 - `scripts/db-migrate.sh` - Starts or inspects the active database contract and reports migration status
-- `scripts/verify-migrations.sh` - Rebuilds or verifies the isolated `*_test` database contract
+- `scripts/verify-migrations.sh` - Rebuilds or verifies the isolated `*_test` database contract, including manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, forbidden duplicate indexes, and the audit-log partition window
 
 ### Migration Tracking
 
-The system uses a `schema_migrations` table to track applied migrations:
-- `id` - Auto-incrementing primary key
-- `filename` - Migration filename
+The system uses `schema_migrations` to track applied canonical migrations:
+- `filename` - Applied migration filename
 - `migration_id` - Stable canonical migration identifier
 - `canonical_filename` - Canonical filename for the applied migration
 - `applied_at` - Timestamp when applied
-- `checksum` - MD5 hash of the migration file for integrity checking
+
+Legacy compatibility fields such as `id` and `checksum` still exist in the table, but they are not the active repo-enforced contract. Treat the manifest plus `database/initdb/000_init.sql` as canonical.
 
 ## Database Operations
 
@@ -155,7 +155,7 @@ The database includes health check endpoints for monitoring:
 - Container: `nonprofit-db`
 - Port: `8012`
 - Database: `nonprofit_manager`
-- Manual migration application required
+- Bootstrap through the repo helper or `database/initdb/000_init.sql`, not individual migration files
 
 ## Security Considerations
 
@@ -191,7 +191,7 @@ The database includes health check endpoints for monitoring:
 ### Common Issues
 
 **Migration Failures:**
-- Check migration file syntax
+- Run `make db-verify` to validate manifest/initdb parity and the isolated bootstrap contract
 - Verify database permissions
 - Ensure dependent objects exist
 

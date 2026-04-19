@@ -34,6 +34,8 @@ describe('Auth MFA Integration Tests', () => {
       [mfaEmail, passwordHash, encrypt(mfaSecret)]
     );
 
+    const userId = userResult.rows[0].id;
+
     const existingOrganization = await pool.query<{ id: string }>(
       `SELECT id
        FROM accounts
@@ -45,17 +47,27 @@ describe('Auth MFA Integration Tests', () => {
 
     if (existingOrganization.rows[0]?.id) {
       expectedOrganizationId = existingOrganization.rows[0].id;
-      return;
+    } else {
+      const createdOrganization = await pool.query<{ id: string }>(
+        `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
+         VALUES ($1, 'organization', $2, $2)
+         RETURNING id`,
+        [`MFA Test Org ${unique()}`, userId]
+      );
+
+      expectedOrganizationId = createdOrganization.rows[0].id;
     }
 
-    const createdOrganization = await pool.query<{ id: string }>(
-      `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
-       VALUES ($1, 'organization', $2, $2)
-       RETURNING id`,
-      [`MFA Test Org ${unique()}`, userResult.rows[0].id]
+    await pool.query(
+      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+       VALUES ($1, $2, 'viewer', $1, TRUE)
+       ON CONFLICT (user_id, account_id)
+       DO UPDATE SET
+         access_level = EXCLUDED.access_level,
+         granted_by = EXCLUDED.granted_by,
+         is_active = TRUE`,
+      [userId, expectedOrganizationId]
     );
-
-    expectedOrganizationId = createdOrganization.rows[0].id;
   });
 
   afterAll(async () => {
@@ -76,6 +88,7 @@ describe('Auth MFA Integration Tests', () => {
     }
 
     await safeDelete('DELETE FROM user_roles WHERE user_id = ANY($1)', [userIds]);
+    await safeDelete('DELETE FROM user_account_access WHERE user_id = ANY($1)', [userIds]);
     await safeDelete('DELETE FROM audit_logs WHERE user_id = ANY($1)', [userIds]);
     await safeDelete('DELETE FROM accounts WHERE created_by = ANY($1)', [userIds]);
     await safeDelete('DELETE FROM users WHERE id = ANY($1)', [userIds]);

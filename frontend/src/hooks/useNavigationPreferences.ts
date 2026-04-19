@@ -52,6 +52,13 @@ type PersistedNavigationPreferences = {
   items: PersistedNavigationItem[];
 };
 
+type NavigationPreferencesSyncState = {
+  localFallback: NavigationPreferences;
+  serverSnapshot: NavigationPreferences | null;
+  hydrated: boolean;
+  dirty: boolean;
+};
+
 export const MAX_PINNED_ITEMS = 3;
 
 const STORAGE_KEY = 'navigation_preferences';
@@ -90,6 +97,12 @@ const isPinnedEligible = (item: Pick<NavigationItem, 'id' | 'isCore' | 'enabled'
 
 const isEffectivelyEnabled = (item: Pick<NavigationItem, 'enabled' | 'workspaceEnabled'>): boolean =>
   item.enabled && item.workspaceEnabled;
+
+const areNavigationPreferencesEqual = (
+  left: NavigationPreferences,
+  right: NavigationPreferences
+): boolean =>
+  JSON.stringify(toPersistedPreferences(left)) === JSON.stringify(toPersistedPreferences(right));
 
 const normalizeNavigationItem = (
   defaultItem: NavigationItem,
@@ -199,6 +212,13 @@ function loadFromLocalStorage(defaultItems: NavigationItem[]): NavigationPrefere
   return { items: defaultItems };
 }
 
+const normalizeNavigationPreferences = (
+  preferences: NavigationPreferences,
+  defaultItems: NavigationItem[]
+): NavigationPreferences => ({
+  items: clampPinnedItems(mergeWithDefaults(preferences.items, defaultItems)),
+});
+
 function saveToLocalStorage(preferences: NavigationPreferences): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersistedPreferences(preferences)));
@@ -212,6 +232,11 @@ const toPersistedPreferences = (
 ): PersistedNavigationPreferences => ({
   items: preferences.items.map(({ workspaceEnabled: _workspaceEnabled, lockedByWorkspace: _lockedByWorkspace, ...item }) => item),
 });
+
+const currentServerSnapshotMatchesPreferences = (
+  serverSnapshot: NavigationPreferences | null,
+  preferences: NavigationPreferences
+): boolean => (serverSnapshot ? areNavigationPreferencesEqual(serverSnapshot, preferences) : false);
 
 const cachePreferencesSnapshot = (preferences: NavigationPreferences): void => {
   preferencesSnapshot = {
@@ -274,41 +299,98 @@ export function useNavigationPreferences() {
     [workspaceModules]
   );
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  const [preferences, setPreferences] = useState<NavigationPreferences>(() => {
+  const [preferences, setPreferencesState] = useState<NavigationPreferences>(() =>
+    loadFromLocalStorage(defaultNavigationItems)
+  );
+  const [syncState, setSyncStateState] = useState<NavigationPreferencesSyncState>(() => {
     const localPreferences = loadFromLocalStorage(defaultNavigationItems);
-    cachePreferencesSnapshot(localPreferences);
-    return localPreferences;
+    return {
+      localFallback: localPreferences,
+      serverSnapshot:
+        preferencesSnapshot && isPreferencesSnapshotFresh(preferencesSnapshot)
+          ? normalizeNavigationPreferences(preferencesSnapshot.preferences, defaultNavigationItems)
+          : null,
+      hydrated: false,
+      dirty: false,
+    };
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSynced, setIsSynced] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const preferencesRef = useRef(preferences);
+  const syncStateRef = useRef(syncState);
 
-  // Fetch preferences from API on mount
+  const setSyncState = useCallback(
+    (
+      updater:
+        | NavigationPreferencesSyncState
+        | ((current: NavigationPreferencesSyncState) => NavigationPreferencesSyncState)
+    ) => {
+      setSyncStateState((current) => {
+        const nextState = typeof updater === 'function' ? updater(current) : updater;
+        syncStateRef.current = nextState;
+        return nextState;
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    preferencesRef.current = preferences;
+  }, [preferences]);
+
   useEffect(() => {
     if (!isAuthenticated) {
       setIsLoading(false);
       setIsSynced(false);
       setIsSaving(false);
-      return;
+      setSyncState((current) => ({
+        ...current,
+        hydrated: true,
+        dirty: false,
+      }));
+      return undefined;
     }
 
     let isMounted = true;
     const fetchPreferences = async () => {
       try {
         const serverPreferences = await getServerPreferences(defaultNavigationItems);
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
 
         if (serverPreferences) {
-          setPreferences(serverPreferences);
-          saveToLocalStorage(serverPreferences);
-          setIsSynced(true);
+          const shouldApplyServerPreferences = !syncStateRef.current.dirty;
+          if (shouldApplyServerPreferences) {
+            preferencesRef.current = serverPreferences;
+            setPreferencesState(serverPreferences);
+          }
+
+          setSyncState((current) => ({
+            localFallback: shouldApplyServerPreferences ? serverPreferences : current.localFallback,
+            serverSnapshot: serverPreferences,
+            hydrated: true,
+            dirty: current.dirty,
+          }));
+          setIsSynced(shouldApplyServerPreferences);
         } else {
+          setSyncState((current) => ({
+            ...current,
+            hydrated: true,
+          }));
           setIsSynced(false);
         }
       } catch {
-        if (!isMounted) return;
-        // If API fails, use localStorage (offline support)
+        if (!isMounted) {
+          return;
+        }
+
+        setSyncState((current) => ({
+          ...current,
+          hydrated: true,
+        }));
         setIsSynced(false);
       } finally {
         if (isMounted) {
@@ -322,90 +404,162 @@ export function useNavigationPreferences() {
     return () => {
       isMounted = false;
     };
-  }, [defaultNavigationItems, isAuthenticated]);
+  }, [defaultNavigationItems, isAuthenticated, setSyncState]);
 
-  // Save to API with debounce
-  const saveToApi = useCallback((newPrefs: NavigationPreferences) => {
-    // Clear any pending save.
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    saveToLocalStorage(preferences);
+  }, [preferences]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !syncState.hydrated || !syncState.dirty) {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      setIsSaving(false);
+      return undefined;
+    }
+
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
     setIsSaving(true);
     setIsSynced(false);
+    const preferencesToPersist = preferences;
 
-    // Debounce API save by 500ms.
     saveTimeoutRef.current = setTimeout(async () => {
       try {
+        const persistedPreferences = toPersistedPreferences(preferencesToPersist);
         await api.patch(`/auth/preferences/${PREFERENCE_KEY}`, {
-          value: toPersistedPreferences(newPrefs),
+          value: persistedPreferences,
         });
-        mergeUserPreferencesCached(PREFERENCE_KEY, toPersistedPreferences(newPrefs));
+        mergeUserPreferencesCached(PREFERENCE_KEY, persistedPreferences);
         clearStaffBootstrapSnapshot();
-        setIsSynced(true);
+        cachePreferencesSnapshot(preferencesToPersist);
+        const nextDirty = !areNavigationPreferencesEqual(
+          preferencesRef.current,
+          preferencesToPersist
+        );
+        setSyncState((current) => ({
+          ...current,
+          localFallback: preferencesRef.current,
+          serverSnapshot: preferencesToPersist,
+          dirty: nextDirty,
+        }));
+        setIsSynced(!nextDirty);
       } catch {
         setIsSynced(false);
-        // API save failed, but localStorage is already updated.
       } finally {
         setIsSaving(false);
+        saveTimeoutRef.current = null;
       }
     }, 500);
-  }, []);
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
       }
     };
-  }, []);
+  }, [isAuthenticated, preferences, setSyncState, syncState.dirty, syncState.hydrated]);
 
-  // Reload preferences when localStorage changes (e.g., from another tab)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) {
-        const nextPreferences = loadFromLocalStorage(defaultNavigationItems);
-        cachePreferencesSnapshot(nextPreferences);
-        setPreferences(nextPreferences);
+      if (e.key !== STORAGE_KEY) {
+        return;
       }
+
+      const nextPreferences = loadFromLocalStorage(defaultNavigationItems);
+      preferencesRef.current = nextPreferences;
+      setPreferencesState(nextPreferences);
+      setSyncState((current) => ({
+        ...current,
+        localFallback: nextPreferences,
+        dirty: false,
+      }));
+      setIsSaving(false);
+      setIsSynced(
+        currentServerSnapshotMatchesPreferences(syncStateRef.current.serverSnapshot, nextPreferences)
+      );
     };
+
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [defaultNavigationItems]);
+  }, [defaultNavigationItems, setSyncState]);
 
   useEffect(() => {
-    setPreferences((prev) => {
-      const nextPreferences = {
-        items: clampPinnedItems(mergeWithDefaults(prev.items, defaultNavigationItems)),
-      };
-      cachePreferencesSnapshot(nextPreferences);
-      return nextPreferences;
-    });
-  }, [defaultNavigationItems]);
+    const nextPreferences = normalizeNavigationPreferences(
+      preferencesRef.current,
+      defaultNavigationItems
+    );
+    const nextServerSnapshot = syncStateRef.current.serverSnapshot
+      ? normalizeNavigationPreferences(syncStateRef.current.serverSnapshot, defaultNavigationItems)
+      : null;
+    const serverSnapshotChanged = nextServerSnapshot
+      ? !currentServerSnapshotMatchesPreferences(syncStateRef.current.serverSnapshot, nextServerSnapshot)
+      : syncStateRef.current.serverSnapshot !== null;
 
-  const updatePreferences = useCallback((newPrefs: NavigationPreferences) => {
-    const normalizedPrefs = {
-      items: clampPinnedItems(mergeWithDefaults(newPrefs.items, defaultNavigationItems)),
-    };
-
-    setPreferences(normalizedPrefs);
-    saveToLocalStorage(normalizedPrefs);
-    cachePreferencesSnapshot(normalizedPrefs);
-
-    // Save to API if authenticated.
-    if (isAuthenticated) {
-      saveToApi(normalizedPrefs);
+    if (
+      areNavigationPreferencesEqual(preferencesRef.current, nextPreferences) &&
+      !serverSnapshotChanged
+    ) {
       return;
     }
 
-    setIsSaving(false);
-    setIsSynced(false);
-  }, [defaultNavigationItems, isAuthenticated, saveToApi]);
+    preferencesRef.current = nextPreferences;
+    setPreferencesState(nextPreferences);
+    setSyncState((current) => ({
+      ...current,
+      localFallback: nextPreferences,
+      serverSnapshot: nextServerSnapshot,
+    }));
+    if (nextServerSnapshot) {
+      setIsSynced(areNavigationPreferencesEqual(nextPreferences, nextServerSnapshot));
+    }
+  }, [defaultNavigationItems, setSyncState]);
+
+  const updatePreferences = useCallback(
+    (buildNextPreferences: (current: NavigationPreferences) => NavigationPreferences) => {
+      const nextPreferences = normalizeNavigationPreferences(
+        buildNextPreferences(preferencesRef.current),
+        defaultNavigationItems
+      );
+
+      if (areNavigationPreferencesEqual(preferencesRef.current, nextPreferences)) {
+        return;
+      }
+
+      preferencesRef.current = nextPreferences;
+      setPreferencesState(nextPreferences);
+      setSyncState((current) => ({
+        ...current,
+        localFallback: nextPreferences,
+        dirty: isAuthenticated ? true : current.dirty,
+      }));
+      setIsSynced(false);
+
+      if (!isAuthenticated) {
+        setIsSaving(false);
+      } else if (syncStateRef.current.hydrated) {
+        setIsSaving(true);
+      }
+    },
+    [defaultNavigationItems, isAuthenticated, setSyncState]
+  );
 
   const toggleItem = useCallback((itemId: string) => {
-    setPreferences((prev) => {
-      const newItems = prev.items.map((item) => {
+    updatePreferences((current) => ({
+      items: current.items.map((item) => {
         if (item.id === itemId && !item.isCore) {
           if (item.lockedByWorkspace) {
             return item;
@@ -418,16 +572,13 @@ export function useNavigationPreferences() {
           };
         }
         return item;
-      });
-      const newPrefs = { items: newItems };
-      updatePreferences(newPrefs);
-      return newPrefs;
-    });
+      }),
+    }));
   }, [updatePreferences]);
 
   const setItemEnabled = useCallback((itemId: string, enabled: boolean) => {
-    setPreferences((prev) => {
-      const newItems = prev.items.map((item) => {
+    updatePreferences((current) => ({
+      items: current.items.map((item) => {
         if (item.id === itemId && !item.isCore) {
           if (item.lockedByWorkspace) {
             return item;
@@ -435,96 +586,102 @@ export function useNavigationPreferences() {
           return { ...item, enabled, pinned: enabled ? item.pinned : false };
         }
         return item;
-      });
-      const newPrefs = { items: newItems };
-      updatePreferences(newPrefs);
-      return newPrefs;
-    });
+      }),
+    }));
   }, [updatePreferences]);
 
   const togglePinned = useCallback((itemId: string) => {
-    setPreferences((prev) => {
-      const target = prev.items.find((item) => item.id === itemId);
+    updatePreferences((current) => {
+      const target = current.items.find((item) => item.id === itemId);
       if (!target || !isPinnedEligible(target) || !target.workspaceEnabled) {
-        return prev;
+        return current;
       }
 
-      const currentlyPinnedCount = prev.items.filter((item) => item.pinned).length;
+      const currentlyPinnedCount = current.items.filter((item) => item.pinned).length;
       const tryingToPin = !target.pinned;
       if (tryingToPin && currentlyPinnedCount >= MAX_PINNED_ITEMS) {
-        return prev;
+        return current;
       }
 
-      const newItems = prev.items.map((item) => {
-        if (item.id !== itemId) return item;
-        return { ...item, pinned: !item.pinned };
-      });
-      const newPrefs = { items: newItems };
-      updatePreferences(newPrefs);
-      return newPrefs;
+      return {
+        items: current.items.map((item) =>
+          item.id === itemId ? { ...item, pinned: !item.pinned } : item
+        ),
+      };
     });
   }, [updatePreferences]);
 
   const reorderItems = useCallback((fromIndex: number, toIndex: number) => {
-    setPreferences((prev) => {
-      // Don't allow moving Dashboard (always at index 0)
+    updatePreferences((current) => {
       if (fromIndex === 0 || toIndex === 0) {
-        return prev;
+        return current;
       }
 
-      const newItems = [...prev.items];
+      const newItems = [...current.items];
       const [movedItem] = newItems.splice(fromIndex, 1);
       newItems.splice(toIndex, 0, movedItem);
-      const newPrefs = { items: newItems };
-      updatePreferences(newPrefs);
-      return newPrefs;
+      return { items: newItems };
     });
   }, [updatePreferences]);
 
   const moveItemUp = useCallback((itemId: string) => {
-    // Don't allow moving Dashboard
     if (itemId === 'dashboard') {
       return;
     }
 
-    setPreferences((prev) => {
-      const index = prev.items.findIndex((item) => item.id === itemId);
-      // Can't move up if at position 0 or 1 (Dashboard is always at 0)
+    updatePreferences((current) => {
+      const index = current.items.findIndex((item) => item.id === itemId);
       if (index <= 1) {
-        return prev;
+        return current;
       }
-      const newItems = [...prev.items];
+
+      const newItems = [...current.items];
       [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
-      const newPrefs = { items: newItems };
-      updatePreferences(newPrefs);
-      return newPrefs;
+      return { items: newItems };
     });
   }, [updatePreferences]);
 
   const moveItemDown = useCallback((itemId: string) => {
-    // Don't allow moving Dashboard
     if (itemId === 'dashboard') {
       return;
     }
 
-    setPreferences((prev) => {
-      const index = prev.items.findIndex((item) => item.id === itemId);
-      if (index < 1 || index >= prev.items.length - 1) {
-        return prev;
+    updatePreferences((current) => {
+      const index = current.items.findIndex((item) => item.id === itemId);
+      if (index < 1 || index >= current.items.length - 1) {
+        return current;
       }
-      const newItems = [...prev.items];
+
+      const newItems = [...current.items];
       [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
-      const newPrefs = { items: newItems };
-      updatePreferences(newPrefs);
-      return newPrefs;
+      return { items: newItems };
     });
   }, [updatePreferences]);
 
   const resetToDefaults = useCallback(() => {
-    const defaultPrefs = { items: defaultNavigationItems };
-    updatePreferences(defaultPrefs);
-    setPreferences(defaultPrefs);
-  }, [defaultNavigationItems, updatePreferences]);
+    const defaultPreferences = normalizeNavigationPreferences(
+      { items: defaultNavigationItems },
+      defaultNavigationItems
+    );
+    if (areNavigationPreferencesEqual(preferencesRef.current, defaultPreferences)) {
+      return;
+    }
+
+    preferencesRef.current = defaultPreferences;
+    setPreferencesState(defaultPreferences);
+    setSyncState((current) => ({
+      ...current,
+      localFallback: defaultPreferences,
+      dirty: isAuthenticated ? true : current.dirty,
+    }));
+    setIsSynced(false);
+
+    if (!isAuthenticated) {
+      setIsSaving(false);
+    } else if (syncStateRef.current.hydrated) {
+      setIsSaving(true);
+    }
+  }, [defaultNavigationItems, isAuthenticated, setSyncState]);
 
   const enabledItems = preferences.items.filter((item) => isEffectivelyEnabled(item));
   const pinnedItems = enabledItems.filter((item) => item.pinned).slice(0, MAX_PINNED_ITEMS);

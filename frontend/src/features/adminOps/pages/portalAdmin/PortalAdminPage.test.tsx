@@ -297,7 +297,9 @@ describe('PortalAdminPage', () => {
         expect.objectContaining({ activeSection: 'portal' })
       );
       expect(portalAdminRealtimeMock).toHaveBeenCalledWith(
-        expect.objectContaining({ active: true })
+        expect.objectContaining({
+          active: panel === 'conversations' || panel === 'slots',
+        })
       );
     }
   );

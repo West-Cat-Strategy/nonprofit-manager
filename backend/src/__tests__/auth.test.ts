@@ -19,6 +19,15 @@ jest.mock('@services/domains/integration', () => ({
   syncUserRole: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('@services/accountAccessService', () => ({
+  __esModule: true,
+  getUserAccessOverview: jest.fn().mockResolvedValue({
+    organizationAccess: ['org-1'],
+  }),
+  seedDefaultOrganizationAccess: jest.fn().mockResolvedValue('org-1'),
+  upsertUserOrganizationAccess: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('@config/database', () => ({
   __esModule: true,
   default: {

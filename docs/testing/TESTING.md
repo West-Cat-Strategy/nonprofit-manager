@@ -21,12 +21,15 @@ This file is the active test command map for nonprofit-manager. Use [../../CONTR
 
 | Layer | Primary Command | Notes |
 |------|------------------|-------|
-| Repo-wide validation | `make test` | Runs backend/frontend tests, the host Playwright CI matrix, and the Docker-backed smoke gate |
-| Coverage variant | `make test-coverage` | Runs backend/frontend coverage, host Playwright smoke, and the Docker-backed smoke gate |
+| DB contract verification | `make db-verify` | Rebuilds the isolated `_test` database and checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window |
+| Repo-wide validation | `make test` | Runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
+| Coverage variant (fast local lane) | `make test-coverage` | Runs backend/frontend coverage, host Playwright smoke, and the isolated Docker-backed smoke gate |
+| Coverage gate (full behavior lane) | `make test-coverage-full` | Runs backend/frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
 | Backend unit/integration | `cd backend && npm test` / `cd backend && npm test -- src/__tests__/integration` | `npm test` prepares the CI-style test DB before running the full Jest suite; add a narrower Jest path when you only need one backend integration file |
 | Frontend unit/component | `cd frontend && npm test -- --run` | Frontend uses Vitest |
-| E2E | `cd e2e && npm test` | Wrapper-driven host commands always use the Playwright-managed `5173/3001` contract; `npm run test:docker*` always target the externally managed Docker contract on `8005/8004`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. |
+| E2E | `cd e2e && npm test` | Wrapper-driven host commands use the Playwright-managed `5173/3001` contract; `npm run test:docker*` default to the externally managed Docker contract on `8005/8004`, and `make test-e2e-docker-smoke` provisions an isolated Docker smoke stack on `18005/18004`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. |
 | Docs validation | `make check-links` and `make lint-doc-api-versioning` | Use when docs changed |
+| Tooling regression coverage | `make test-tooling` | Targeted contract suite for route-audit, selector, helper-script, and wrapper changes |
 
 ## Runtime Matrix
 
@@ -35,13 +38,15 @@ This file is the active test command map for nonprofit-manager. Use [../../CONTR
 | Docker development | `8005` | `8004` | Started with `make dev` |
 | Direct backend runtime | n/a | `3000` | `cd backend && npm run dev` |
 | E2E harness | `5173` | `3001` | Started by Playwright |
-| Docker-backed E2E | `8005` | `8004` | Start with `make docker-up-dev`, then run `cd e2e && npm run test:docker*` |
+| Docker-backed E2E (manual dev stack) | `8005` | `8004` | Start with `make docker-up-dev`, then run `cd e2e && npm run test:docker*` |
+| Docker-backed E2E (isolated smoke gate) | `18005` | `18004` | Provisioned automatically by `make test-e2e-docker-smoke`; uses compose project `nonprofit-smoke` and tears down unless `KEEP_SMOKE_STACK=1` |
 
 ## Default Commands
 
 Run from the repo root unless noted otherwise. Prefer these before package-level commands:
 
 ```bash
+make db-verify
 make lint
 make typecheck
 make test
@@ -52,10 +57,17 @@ Coverage and release commands:
 ```bash
 make ci
 make test-coverage
+make test-coverage-full
 make ci-full
 make ci-unit
 make test-e2e-docker-smoke
+make test-tooling
 ```
+
+`make ci-full` now uses the stronger `make test-coverage-full` lane, so coverage runs still include the host Playwright CI matrix instead of dropping down to the smaller smoke-only host run.
+
+`make ci-unit` remains a relaxed, non-gating developer signal for backend/frontend unit coverage only. It is useful for quick local feedback, but it is not the repo's full coverage acceptance path.
+`make test-tooling` is the targeted regression suite for selector, route-catalog audit, wrapper, and shell-helper contract changes.
 
 ## Package-Level Commands
 
@@ -99,9 +111,10 @@ npm run test:ci:mobile
 
 ## Docs And Contract Checks
 
-Run these when documentation or API examples change:
+Run these when documentation, migration docs, or database contract expectations change:
 
 ```bash
+make db-verify
 make check-links
 make lint-doc-api-versioning
 ```
@@ -114,6 +127,7 @@ When the change set does not justify the full suite, use the repo selector:
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
+Use `--mode strict` when the change touches shared runtime orchestration, Docker/test wrappers, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks.
 Run the emitted commands in order.
 Code and runtime changes should include at least one behavior-test command; docs-only changes stay on docs checks.
 

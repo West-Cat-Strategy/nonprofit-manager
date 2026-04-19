@@ -47,6 +47,7 @@ export type ConfirmationEmailStatus = 'pending' | 'sent' | 'failed' | 'skipped';
 export interface EventOccurrence {
   occurrence_id: string;
   event_id: string;
+  organization_id?: string | null;
   series_id?: string | null;
   sequence_index: number;
   occurrence_index?: number;
@@ -97,6 +98,7 @@ export interface EventSeriesEnrollment {
 
 export interface Event {
   event_id: string;
+  organization_id?: string | null;
   series_id?: string | null;
   event_name: string;
   description: string | null;
@@ -532,12 +534,7 @@ export interface EventReminderSummary {
 
 export type ReminderTriggerType = 'manual' | 'automated';
 export type EventReminderTimingType = 'relative' | 'absolute';
-export type EventReminderAttemptStatus =
-  | 'sent'
-  | 'partial'
-  | 'failed'
-  | 'skipped'
-  | 'cancelled';
+export type EventReminderAttemptStatus = 'sent' | 'partial' | 'failed' | 'skipped' | 'cancelled';
 
 export interface EventReminderAutomation {
   id: string;

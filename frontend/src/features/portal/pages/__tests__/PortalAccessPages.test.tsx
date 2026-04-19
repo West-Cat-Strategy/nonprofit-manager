@@ -7,6 +7,7 @@ import PortalLoginPage from '../PortalLoginPage';
 import PortalSignupPage from '../PortalSignupPage';
 import PortalForgotPasswordPage from '../PortalForgotPasswordPage';
 import PortalResetPasswordPage from '../PortalResetPasswordPage';
+import PortalAcceptInvitationPage from '../PortalAcceptInvitationPage';
 
 const portalGetMock = vi.fn();
 const portalPostMock = vi.fn();
@@ -110,5 +111,23 @@ describe('Portal access pages', () => {
     expect(
       await screen.findByText(/your portal password has been reset successfully/i)
     ).toBeInTheDocument();
+  });
+
+  it('skips placeholder invitation validation and shows a guest-state hint', async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/portal/accept-invitation/:token" element={<PortalAcceptInvitationPage />} />
+      </Routes>,
+      { route: '/portal/accept-invitation/test-token' }
+    );
+
+    expect(portalGetMock).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(/skipping validation until you open the real email link/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /return to portal sign in/i })).toHaveAttribute(
+      'href',
+      '/portal/login'
+    );
   });
 });

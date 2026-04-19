@@ -73,7 +73,7 @@ const apiMatchers = {
 } satisfies Record<string, TestApiMatcher>;
 
 const portalMatchers = {
-  acceptInvitationValidate: '/portal/auth/invitations/validate/test-token',
+  acceptInvitationValidate: '/portal/auth/invitations/validate/test-token-1234567890',
   resetPasswordValidate: '/portal/auth/reset-password/test-token',
 } as const;
 
@@ -296,7 +296,7 @@ const smokeCases: SmokeCase[] = [
   },
   {
     name: 'portal-accept-invitation',
-    route: '/portal/accept-invitation/test-token',
+    route: '/portal/accept-invitation/test-token-1234567890',
     path: '/portal/accept-invitation/:token',
     page: <PortalAcceptInvitation />,
     heading: /accept portal invitation/i,

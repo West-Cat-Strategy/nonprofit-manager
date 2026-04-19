@@ -33,9 +33,9 @@ services:
         hard: 262144
 
   plausible:
-    image: plausible/analytics:latest
+    image: ghcr.io/plausible/community-edition:v3.1.0
     restart: unless-stopped
-    command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+    command: sh -c "/entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:
       plausible_db:
         condition: service_healthy
@@ -44,7 +44,7 @@ services:
     env_file:
       - .env.plausible
     environment:
-      BASE_URL: ${PLAUSIBLE_BASE_URL:-localhost:8000}
+      BASE_URL: ${PLAUSIBLE_BASE_URL:-http://localhost:8000}
       SECRET_KEY_BASE: ${PLAUSIBLE_SECRET_KEY_BASE:-replace-me}
       TOTP_VAULT_KEY: ${PLAUSIBLE_TOTP_VAULT_KEY:-replace-me}
       DATABASE_URL: postgres://postgres:${PLAUSIBLE_DB_PASSWORD:-postgres}@plausible_db:5432/plausible_db
@@ -56,8 +56,9 @@ services:
       SMTP_USER_NAME: ${PLAUSIBLE_SMTP_USER:-}
       SMTP_USER_PWD: ${PLAUSIBLE_SMTP_PASSWORD:-}
       SMTP_HOST_SSL_ENABLED: ${PLAUSIBLE_SMTP_SSL:-false}
+      HTTP_PORT: ${PLAUSIBLE_HTTP_PORT:-8000}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:${PLAUSIBLE_HOST_PORT:-8000}:${PLAUSIBLE_HTTP_PORT:-8000}"
 
 volumes:
   plausible-postgres-data:

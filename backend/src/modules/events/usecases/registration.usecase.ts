@@ -65,8 +65,8 @@ export class EventRegistrationUseCase {
     return this.repository.checkInAttendee(registrationId, options);
   }
 
-  cancel(registrationId: string): Promise<void> {
-    return this.repository.cancelRegistration(registrationId);
+  cancel(registrationId: string, context?: EventRegistrationMutationContext): Promise<void> {
+    return this.repository.cancelRegistration(registrationId, context);
   }
 
   getCheckInSettings(eventId: string, occurrenceId?: string): Promise<EventCheckInSettings | null> {
@@ -118,7 +118,10 @@ export class EventRegistrationUseCase {
     return this.repository.getPublicCheckInInfo(eventId, occurrenceId);
   }
 
-  submitPublicCheckIn(eventId: string, data: PublicEventCheckInDTO): Promise<PublicEventCheckInResult> {
+  submitPublicCheckIn(
+    eventId: string,
+    data: PublicEventCheckInDTO
+  ): Promise<PublicEventCheckInResult> {
     return this.repository.submitPublicCheckIn(eventId, data);
   }
 }

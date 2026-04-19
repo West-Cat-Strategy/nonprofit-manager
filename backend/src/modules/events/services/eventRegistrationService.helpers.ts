@@ -1,9 +1,5 @@
 import { Pool, type PoolClient } from 'pg';
-import {
-  EventCheckInSettings,
-  EventRegistration,
-  RegistrationStatus,
-} from '@app-types/event';
+import { EventCheckInSettings, EventRegistration, RegistrationStatus } from '@app-types/event';
 import { logger } from '@config/logger';
 import { EventConfirmationService } from './eventConfirmationService';
 import { EventOccurrenceService } from './eventOccurrenceService';
@@ -15,6 +11,7 @@ import {
   isRegistrationCountedAsActive,
   recordActivityEventSafely,
 } from './shared';
+import { appendAccountScopeCondition } from './tenancy';
 
 export interface EventRegistrationCaseLink {
   caseId: string | null;
@@ -292,7 +289,8 @@ export const determineRegistrationStatus = async (
 }> => {
   const desiredStatus = requestedStatus ?? RegistrationStatus.REGISTERED;
   const wantsActiveStatus =
-    desiredStatus === RegistrationStatus.REGISTERED || desiredStatus === RegistrationStatus.CONFIRMED;
+    desiredStatus === RegistrationStatus.REGISTERED ||
+    desiredStatus === RegistrationStatus.CONFIRMED;
 
   if (desiredStatus === RegistrationStatus.WAITLISTED) {
     return {
@@ -403,7 +401,10 @@ export const createRegistrationRecord = async (
     ]
   );
 
-  return (await getRegistrationByIdInternal(result.rows[0]!.registration_id, queryable)) as EventRegistration;
+  return (await getRegistrationByIdInternal(
+    result.rows[0]!.registration_id,
+    queryable
+  )) as EventRegistration;
 };
 
 export const maybePromoteWaitlistedRegistration = async (
@@ -586,15 +587,17 @@ export const getRegistrationByToken = async (
 export const getRegistrationByTokenGlobal = async (
   queryable: Queryable,
   token: string,
-  scopeCreatedByUserIds?: string[]
+  scopeAccountIds?: string[]
 ): Promise<EventRegistration | null> => {
   const params: QueryValue[] = [token];
   const conditions: string[] = ['er.check_in_token = $1'];
 
-  if (scopeCreatedByUserIds && scopeCreatedByUserIds.length > 0) {
-    conditions.push(`e.created_by = ANY($${params.length + 1}::uuid[])`);
-    params.push(scopeCreatedByUserIds);
-  }
+  appendAccountScopeCondition(
+    conditions,
+    params,
+    scopeAccountIds ? { accountIds: scopeAccountIds } : undefined,
+    'e.organization_id'
+  );
 
   const result = await queryable.query<EventRegistration>(
     `${REGISTRATION_SELECT}
@@ -646,15 +649,17 @@ export const getEventRegistrationsQuery = async (
 export const getContactRegistrationsQuery = async (
   queryable: Queryable,
   contactId: string,
-  scopeCreatedByUserIds?: string[]
+  scopeAccountIds?: string[]
 ): Promise<EventRegistration[]> => {
   const conditions: string[] = ['er.contact_id = $1'];
   const params: QueryValue[] = [contactId];
 
-  if (scopeCreatedByUserIds && scopeCreatedByUserIds.length > 0) {
-    conditions.push(`e.created_by = ANY($${params.length + 1}::uuid[])`);
-    params.push(scopeCreatedByUserIds);
-  }
+  appendAccountScopeCondition(
+    conditions,
+    params,
+    scopeAccountIds ? { accountIds: scopeAccountIds } : undefined,
+    'e.organization_id'
+  );
 
   const result = await queryable.query<EventRegistration>(
     `${REGISTRATION_SELECT}

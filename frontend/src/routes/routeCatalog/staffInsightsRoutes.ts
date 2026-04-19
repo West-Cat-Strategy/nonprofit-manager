@@ -29,8 +29,8 @@ export const staffInsightsRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     title: 'Reports',
     section: 'Analytics',
     path: '/reports',
-    href: '/reports/builder',
-    primaryAction: { label: 'Generate report', href: '/reports/builder' },
+    href: '/reports',
+    primaryAction: { label: 'Open reports', href: '/reports' },
     showInMobileDrawerUtilities: true,
     staffNav: {
       group: 'utility',

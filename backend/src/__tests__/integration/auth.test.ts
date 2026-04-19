@@ -44,6 +44,45 @@ describe('Auth API Integration Tests', () => {
 
     return created.rows[0].id;
   };
+  const withClearedOrganizationAccess = async <T>(
+    userId: string,
+    run: () => Promise<T>
+  ): Promise<T> => {
+    const existingAccess = await pool.query<{
+      account_id: string;
+      access_level: string;
+      granted_by: string | null;
+      is_active: boolean;
+    }>(
+      `SELECT
+         account_id::text,
+         access_level,
+         granted_by::text,
+         COALESCE(is_active, true) AS is_active
+       FROM user_account_access
+       WHERE user_id = $1`,
+      [userId]
+    );
+
+    await pool.query('DELETE FROM user_account_access WHERE user_id = $1', [userId]);
+
+    try {
+      return await run();
+    } finally {
+      for (const row of existingAccess.rows) {
+        await pool.query(
+          `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (user_id, account_id)
+           DO UPDATE SET access_level = EXCLUDED.access_level,
+                         granted_by = EXCLUDED.granted_by,
+                         is_active = EXCLUDED.is_active,
+                         granted_at = CURRENT_TIMESTAMP`,
+          [userId, row.account_id, row.access_level, row.granted_by, row.is_active]
+        );
+      }
+    }
+  };
 
   afterAll(async () => {
     const safeDelete = async (query: string, params: unknown[]) => {
@@ -241,20 +280,22 @@ describe('Auth API Integration Tests', () => {
       );
 
       const user = userResult.rows[0];
-      const legacyToken = jwt.sign(
-        {
-          id: user.id,
-          email: testEmail,
-          role: user.role,
-        },
-        getJwtSecret(),
-        { expiresIn: '1h' }
-      );
+      const response = await withClearedOrganizationAccess(user.id, async () => {
+        const legacyToken = jwt.sign(
+          {
+            id: user.id,
+            email: testEmail,
+            role: user.role,
+          },
+          getJwtSecret(),
+          { expiresIn: '1h' }
+        );
 
-      const response = await request(app)
-        .get('/api/v2/auth/me')
-        .set('Authorization', `Bearer ${legacyToken}`)
-        .expect(200);
+        return request(app)
+          .get('/api/v2/auth/me')
+          .set('Authorization', `Bearer ${legacyToken}`)
+          .expect(200);
+      });
 
       expect(response.body.organizationId).toBe(expectedOrganizationId);
       expect(response.body.data.organizationId).toBe(expectedOrganizationId);
@@ -473,6 +514,34 @@ describe('Auth API Integration Tests', () => {
       });
       expect(response.body.data.preferences).not.toHaveProperty('organization');
       expect(response.body.data.preferences).not.toHaveProperty('notifications');
+    });
+
+    it('backfills bootstrap organizationId for legacy tokens without active access rows', async () => {
+      const expectedOrganizationId = await ensureDefaultOrganizationId();
+      const userResult = await pool.query<{ id: string; role: string }>(
+        'SELECT id, role FROM users WHERE email = $1',
+        [testEmail]
+      );
+
+      const user = userResult.rows[0];
+      const response = await withClearedOrganizationAccess(user.id, async () => {
+        const legacyToken = jwt.sign(
+          {
+            id: user.id,
+            email: testEmail,
+            role: user.role,
+          },
+          getJwtSecret(),
+          { expiresIn: '1h' }
+        );
+
+        return request(app)
+          .get('/api/v2/auth/bootstrap')
+          .set('Authorization', `Bearer ${legacyToken}`)
+          .expect(200);
+      });
+
+      expect(response.body.data.organizationId).toBe(expectedOrganizationId);
     });
 
     it('requires authentication', async () => {

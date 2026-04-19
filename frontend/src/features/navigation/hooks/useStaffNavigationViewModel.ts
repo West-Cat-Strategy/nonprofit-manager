@@ -1,8 +1,10 @@
 import { useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { getAdminQuickActionsForRole } from '../../adminOps/components/adminQuickActions';
 import { logoutAsync } from '../../auth/state';
 import { canAccessAdminSettings } from '../../auth/state/adminAccess';
+import { preloadContactsPeopleRoute } from '../../contacts/routePreload';
 import { useNavigationPreferences } from '../../../hooks/useNavigationPreferences';
 import { useWorkspaceModuleAccess } from '../../workspaceModules/useWorkspaceModuleAccess';
 import { useBranding } from '../../../contexts/BrandingContext';
@@ -15,6 +17,7 @@ import {
   normalizeRouteLocation,
 } from '../../../routes/routeCatalog';
 import { getAdminSettingsPath } from '../../adminOps/adminRoutePaths';
+import { preloadStaffNavigationQuickLookupDialog } from '../preloadStaffNavigationQuickLookupDialog';
 import type { NavigationDrawerLink } from '../../../components/navigation/MobileNavigationDrawer';
 
 const routeFlags = {
@@ -119,6 +122,15 @@ export function useStaffNavigationViewModel() {
   const utilityNavLinks = utilityEntries.filter((entry) => entry.path !== alertsLink.path);
   const adminSettingsPath = getAdminSettingsPath('dashboard');
   const canOpenAdminSettings = canAccessAdminSettings(user);
+  const adminQuickActions = useMemo(() => getAdminQuickActionsForRole(user?.role), [user?.role]);
+
+  const prefetchPeopleRoute = useCallback(() => {
+    void preloadContactsPeopleRoute();
+  }, []);
+
+  const prefetchQuickLookupDialog = useCallback(() => {
+    void preloadStaffNavigationQuickLookupDialog();
+  }, []);
 
   const handleLogout = useCallback(() => {
     dispatch(logoutAsync()).finally(() => navigate('/login', { replace: true }));
@@ -132,6 +144,7 @@ export function useStaffNavigationViewModel() {
 
   return {
     activeRouteIds,
+    adminQuickActions,
     adminSettingsPath,
     alertsLink,
     branding,
@@ -152,6 +165,8 @@ export function useStaffNavigationViewModel() {
     mobileNavigationPreferences,
     navigationPreferences,
     normalizedCurrentLocation,
+    prefetchPeopleRoute,
+    prefetchQuickLookupDialog,
     themeState,
     utilityEntries,
     utilityNavLinks,

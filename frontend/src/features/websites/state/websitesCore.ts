@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, isAnyOf } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { WebsiteEntry } from '../../../types/websiteBuilder';
 import { websitesApiClient } from '../api/websitesApiClient';
@@ -31,7 +31,14 @@ import type {
 import {
   buildInitialWebsitesCoreState,
   getWebsiteErrorMessage,
+  mergeWebsiteForm,
+  patchWebsiteSiteSummary,
+  resolveWebsiteSiteId,
+  setWebsiteSavingPending,
+  setWebsiteSavingRejected,
   syncCurrentSiteDataFromOverview,
+  syncWebsiteForms,
+  syncWebsiteIntegrations,
   updateCurrentSiteData,
   type WebsiteCurrentSiteData,
 } from './websitesCoreHelpers';
@@ -145,11 +152,11 @@ export const updateWebsiteNewsletterIntegration = createAsyncThunk<
 export const refreshWebsiteNewsletterWorkspace = createAsyncThunk<WebsiteIntegrationStatus, string>(
   'websites/refreshNewsletterWorkspace',
   async (siteId, { rejectWithValue }) => {
-  try {
-    return await websitesApiClient.refreshNewsletterWorkspace(siteId);
-  } catch (error) {
-    return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to refresh newsletter workspace'));
-  }
+    try {
+      return await websitesApiClient.refreshNewsletterWorkspace(siteId);
+    } catch (error) {
+      return rejectWithValue(getWebsiteErrorMessage(error, 'Failed to refresh newsletter workspace'));
+    }
   }
 );
 
@@ -464,169 +471,25 @@ const websitesSlice = createSlice({
 
     builder
       .addCase(fetchWebsiteForms.fulfilled, (state, action) => {
-        updateCurrentSiteData(state, action.meta.arg, { forms: action.payload });
+        syncWebsiteForms(state, action.meta.arg, action.payload);
       })
       .addCase(updateWebsiteForm.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
+        setWebsiteSavingPending(state);
       })
       .addCase(updateWebsiteForm.fulfilled, (state, action) => {
         state.isSaving = false;
-        const currentForms =
-          state.currentSiteData.siteId === action.meta.arg.siteId
-            ? state.currentSiteData.forms
-            : [];
-        updateCurrentSiteData(state, action.meta.arg.siteId, {
-          forms: currentForms.map((form) =>
-            form.formKey === action.payload.formKey ? action.payload : form
-          ),
-        });
-        if (
-          state.overview?.site.id === action.meta.arg.siteId &&
-          state.overview.forms.some((form) => form.formKey === action.payload.formKey)
-        ) {
-          state.overview.forms = state.overview.forms.map((form) =>
-            form.formKey === action.payload.formKey ? action.payload : form
-          );
-        }
+        mergeWebsiteForm(state, action.meta.arg.siteId, action.payload);
       })
       .addCase(updateWebsiteForm.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
+        setWebsiteSavingRejected(state, action.payload as string | undefined);
       });
 
     builder
       .addCase(fetchWebsiteIntegrations.fulfilled, (state, action) => {
-        updateCurrentSiteData(state, action.meta.arg, { integrations: action.payload });
-        if (state.overview?.site.id === action.meta.arg) {
-          state.overview.integrations = action.payload;
-        }
+        syncWebsiteIntegrations(state, action.meta.arg, action.payload);
       })
       .addCase(fetchWebsiteNewsletterWorkspace.fulfilled, (state, action) => {
-        updateCurrentSiteData(state, action.meta.arg, { integrations: action.payload });
-        if (state.overview?.site.id === action.meta.arg) {
-          state.overview.integrations = action.payload;
-        }
-      })
-      .addCase(updateWebsiteNewsletterIntegration.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
-      })
-      .addCase(updateWebsiteNewsletterIntegration.fulfilled, (state, action) => {
-        state.isSaving = false;
-        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
-        if (state.overview?.site.id === action.meta.arg.siteId) {
-          state.overview.integrations = action.payload;
-        }
-      })
-      .addCase(updateWebsiteNewsletterIntegration.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
-      })
-      .addCase(refreshWebsiteNewsletterWorkspace.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
-      })
-      .addCase(refreshWebsiteNewsletterWorkspace.fulfilled, (state, action) => {
-        state.isSaving = false;
-        updateCurrentSiteData(state, action.meta.arg, { integrations: action.payload });
-        if (state.overview?.site.id === action.meta.arg) {
-          state.overview.integrations = action.payload;
-        }
-      })
-      .addCase(refreshWebsiteNewsletterWorkspace.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
-      })
-      .addCase(createWebsiteNewsletterListPreset.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
-      })
-      .addCase(createWebsiteNewsletterListPreset.fulfilled, (state, action) => {
-        state.isSaving = false;
-        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
-        if (state.overview?.site.id === action.meta.arg.siteId) {
-          state.overview.integrations = action.payload;
-        }
-      })
-      .addCase(createWebsiteNewsletterListPreset.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
-      })
-      .addCase(updateWebsiteNewsletterListPreset.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
-      })
-      .addCase(updateWebsiteNewsletterListPreset.fulfilled, (state, action) => {
-        state.isSaving = false;
-        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
-        if (state.overview?.site.id === action.meta.arg.siteId) {
-          state.overview.integrations = action.payload;
-        }
-      })
-      .addCase(updateWebsiteNewsletterListPreset.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
-      })
-      .addCase(deleteWebsiteNewsletterListPreset.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
-      })
-      .addCase(deleteWebsiteNewsletterListPreset.fulfilled, (state, action) => {
-        state.isSaving = false;
-        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
-        if (state.overview?.site.id === action.meta.arg.siteId) {
-          state.overview.integrations = action.payload;
-        }
-      })
-      .addCase(deleteWebsiteNewsletterListPreset.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
-      })
-      .addCase(updateWebsiteMailchimpIntegration.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
-      })
-      .addCase(updateWebsiteMailchimpIntegration.fulfilled, (state, action) => {
-        state.isSaving = false;
-        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
-        if (state.overview?.site.id === action.meta.arg.siteId) {
-          state.overview.integrations = action.payload;
-        }
-      })
-      .addCase(updateWebsiteMailchimpIntegration.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
-      })
-      .addCase(updateWebsiteStripeIntegration.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
-      })
-      .addCase(updateWebsiteStripeIntegration.fulfilled, (state, action) => {
-        state.isSaving = false;
-        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
-        if (state.overview?.site.id === action.meta.arg.siteId) {
-          state.overview.integrations = action.payload;
-        }
-      })
-      .addCase(updateWebsiteStripeIntegration.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
-      })
-      .addCase(updateWebsiteFacebookIntegration.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
-      })
-      .addCase(updateWebsiteFacebookIntegration.fulfilled, (state, action) => {
-        state.isSaving = false;
-        updateCurrentSiteData(state, action.meta.arg.siteId, { integrations: action.payload });
-        if (state.overview?.site.id === action.meta.arg.siteId) {
-          state.overview.integrations = action.payload;
-        }
-      })
-      .addCase(updateWebsiteFacebookIntegration.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
+        syncWebsiteIntegrations(state, action.meta.arg, action.payload);
       });
 
     builder.addCase(fetchWebsiteAnalytics.fulfilled, (state, action) => {
@@ -734,40 +597,27 @@ const websitesSlice = createSlice({
 
     builder
       .addCase(updateWebsiteSite.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
+        setWebsiteSavingPending(state);
       })
       .addCase(updateWebsiteSite.fulfilled, (state, action) => {
         state.isSaving = false;
-        if (state.overview?.site.id === action.payload.id) {
-          state.overview.site = {
-            ...state.overview.site,
-            ...action.payload,
-          };
-        }
-        state.sites = state.sites.map((site) =>
-          site.id === action.payload.id ? { ...site, ...action.payload } : site
-        );
+        patchWebsiteSiteSummary(state, action.payload);
       })
       .addCase(updateWebsiteSite.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
+        setWebsiteSavingRejected(state, action.payload as string | undefined);
       })
       .addCase(publishWebsiteSite.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
+        setWebsiteSavingPending(state);
       })
       .addCase(publishWebsiteSite.fulfilled, (state, action) => {
         state.isSaving = false;
         state.lastPublishResult = action.payload;
       })
       .addCase(publishWebsiteSite.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
+        setWebsiteSavingRejected(state, action.payload as string | undefined);
       })
       .addCase(rollbackWebsiteVersion.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
+        setWebsiteSavingPending(state);
       })
       .addCase(rollbackWebsiteVersion.fulfilled, (state, action) => {
         state.isSaving = false;
@@ -787,40 +637,76 @@ const websitesSlice = createSlice({
         }
       })
       .addCase(rollbackWebsiteVersion.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
+        setWebsiteSavingRejected(state, action.payload as string | undefined);
       })
       .addCase(unpublishWebsiteSite.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
+        setWebsiteSavingPending(state);
       })
       .addCase(unpublishWebsiteSite.fulfilled, (state, action) => {
         state.isSaving = false;
-        if (state.overview?.site.id === action.payload.id) {
-          state.overview.site = {
-            ...state.overview.site,
-            ...action.payload,
-          };
-        }
-        state.sites = state.sites.map((site) =>
-          site.id === action.payload.id ? { ...site, ...action.payload } : site
-        );
+        patchWebsiteSiteSummary(state, action.payload);
       })
       .addCase(unpublishWebsiteSite.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
+        setWebsiteSavingRejected(state, action.payload as string | undefined);
       })
       .addCase(invalidateWebsiteCache.pending, (state) => {
-        state.isSaving = true;
-        state.error = null;
+        setWebsiteSavingPending(state);
       })
       .addCase(invalidateWebsiteCache.fulfilled, (state) => {
         state.isSaving = false;
       })
       .addCase(invalidateWebsiteCache.rejected, (state, action) => {
-        state.isSaving = false;
-        state.error = action.payload as string;
+        setWebsiteSavingRejected(state, action.payload as string | undefined);
       });
+
+    builder.addMatcher(
+      isAnyOf(
+        updateWebsiteNewsletterIntegration.pending,
+        refreshWebsiteNewsletterWorkspace.pending,
+        createWebsiteNewsletterListPreset.pending,
+        updateWebsiteNewsletterListPreset.pending,
+        deleteWebsiteNewsletterListPreset.pending,
+        updateWebsiteMailchimpIntegration.pending,
+        updateWebsiteStripeIntegration.pending,
+        updateWebsiteFacebookIntegration.pending
+      ),
+      (state) => {
+        setWebsiteSavingPending(state);
+      }
+    );
+
+    builder.addMatcher(
+      isAnyOf(
+        updateWebsiteNewsletterIntegration.fulfilled,
+        refreshWebsiteNewsletterWorkspace.fulfilled,
+        createWebsiteNewsletterListPreset.fulfilled,
+        updateWebsiteNewsletterListPreset.fulfilled,
+        deleteWebsiteNewsletterListPreset.fulfilled,
+        updateWebsiteMailchimpIntegration.fulfilled,
+        updateWebsiteStripeIntegration.fulfilled,
+        updateWebsiteFacebookIntegration.fulfilled
+      ),
+      (state, action) => {
+        state.isSaving = false;
+        syncWebsiteIntegrations(state, resolveWebsiteSiteId(action.meta.arg), action.payload);
+      }
+    );
+
+    builder.addMatcher(
+      isAnyOf(
+        updateWebsiteNewsletterIntegration.rejected,
+        refreshWebsiteNewsletterWorkspace.rejected,
+        createWebsiteNewsletterListPreset.rejected,
+        updateWebsiteNewsletterListPreset.rejected,
+        deleteWebsiteNewsletterListPreset.rejected,
+        updateWebsiteMailchimpIntegration.rejected,
+        updateWebsiteStripeIntegration.rejected,
+        updateWebsiteFacebookIntegration.rejected
+      ),
+      (state, action) => {
+        setWebsiteSavingRejected(state, action.payload as string | undefined);
+      }
+    );
   },
 });
 

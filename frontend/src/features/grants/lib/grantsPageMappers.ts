@@ -42,316 +42,315 @@ const toStringOrDefault = (value: string | null | undefined, fallback: string): 
 export const toGrantJurisdiction = (value: string | null | undefined): GrantJurisdiction | undefined =>
   value && GRANT_JURISDICTIONS.includes(value as GrantJurisdiction) ? (value as GrantJurisdiction) : undefined;
 
-export const createBlankFormValues = (section: GrantsSectionId): FormState => {
-  const today = toDateInputValue(new Date());
-  switch (section) {
-    case 'funders':
-      return {
-        name: '',
-        jurisdiction: '',
-        funder_type: '',
-        contact_name: '',
-        contact_email: '',
-        contact_phone: '',
-        website: '',
-        notes: '',
-        active: 'true',
-      };
-    case 'programs':
-      return {
-        funder_id: '',
-        name: '',
-        program_code: '',
-        fiscal_year: '',
-        jurisdiction: '',
-        status: 'draft',
-        application_open_at: '',
-        application_due_at: '',
-        award_date: '',
-        expiry_date: '',
-        total_budget: '',
-        notes: '',
-      };
-    case 'recipients':
-      return {
-        name: '',
-        legal_name: '',
-        jurisdiction: '',
-        province: '',
-        city: '',
-        contact_name: '',
-        contact_email: '',
-        contact_phone: '',
-        website: '',
-        status: 'active',
-        notes: '',
-        active: 'true',
-      };
-    case 'funded-programs':
-      return {
-        recipient_organization_id: '',
-        name: '',
-        description: '',
-        owner_user_id: '',
-        status: 'planned',
-        start_date: '',
-        end_date: '',
-        budget: '',
-        notes: '',
-      };
-    case 'applications':
-      return {
-        application_number: '',
-        title: '',
-        funder_id: '',
-        program_id: '',
-        recipient_organization_id: '',
-        funded_program_id: '',
-        status: 'draft',
-        requested_amount: '',
-        approved_amount: '',
-        currency: 'CAD',
-        submitted_at: '',
-        reviewed_at: '',
-        decision_at: '',
-        due_at: '',
-        outcome_reason: '',
-        notes: '',
-      };
-    case 'awards':
-      return {
-        grant_number: '',
-        title: '',
-        application_id: '',
-        funder_id: '',
-        program_id: '',
-        recipient_organization_id: '',
-        funded_program_id: '',
-        status: 'active',
-        amount: '',
-        committed_amount: '',
-        currency: 'CAD',
-        fiscal_year: '',
-        jurisdiction: '',
-        award_date: today,
-        reviewed_at: '',
-        decision_at: '',
-        start_date: '',
-        end_date: '',
-        expiry_date: '',
-        reporting_frequency: 'annual',
-        next_report_due_at: '',
-        closeout_due_at: '',
-        notes: '',
-      };
-    case 'disbursements':
-      return {
-        grant_id: '',
-        tranche_label: '',
-        scheduled_date: today,
-        paid_at: '',
-        amount: '',
-        currency: 'CAD',
-        status: 'scheduled',
-        method: '',
-        notes: '',
-      };
-    case 'reports':
-      return {
-        grant_id: '',
-        report_type: 'quarterly',
-        period_start: '',
-        period_end: '',
-        due_at: '',
-        submitted_at: '',
-        status: 'draft',
-        summary: '',
-        outstanding_items: '',
-        notes: '',
-      };
-    case 'documents':
-      return {
-        grant_id: '',
-        application_id: '',
-        report_id: '',
-        document_type: '',
-        file_name: '',
-        file_url: '',
-        mime_type: '',
-        file_size: '',
-        notes: '',
-        uploaded_by: '',
-      };
-    case 'calendar':
-    case 'activities':
-      return {};
-    default:
-      return {};
-  }
+const createEmptyGrantFormValues = (): FormState => ({});
+
+export const BLANK_FORM_VALUES_BY_SECTION: Record<GrantsSectionId, () => FormState> = {
+  funders: () => ({
+    name: '',
+    jurisdiction: '',
+    funder_type: '',
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    website: '',
+    notes: '',
+    active: 'true',
+  }),
+  programs: () => ({
+    funder_id: '',
+    name: '',
+    program_code: '',
+    fiscal_year: '',
+    jurisdiction: '',
+    status: 'draft',
+    application_open_at: '',
+    application_due_at: '',
+    award_date: '',
+    expiry_date: '',
+    total_budget: '',
+    notes: '',
+  }),
+  recipients: () => ({
+    name: '',
+    legal_name: '',
+    jurisdiction: '',
+    province: '',
+    city: '',
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    website: '',
+    status: 'active',
+    notes: '',
+    active: 'true',
+  }),
+  'funded-programs': () => ({
+    recipient_organization_id: '',
+    name: '',
+    description: '',
+    owner_user_id: '',
+    status: 'planned',
+    start_date: '',
+    end_date: '',
+    budget: '',
+    notes: '',
+  }),
+  applications: () => ({
+    application_number: '',
+    title: '',
+    funder_id: '',
+    program_id: '',
+    recipient_organization_id: '',
+    funded_program_id: '',
+    status: 'draft',
+    requested_amount: '',
+    approved_amount: '',
+    currency: 'CAD',
+    submitted_at: '',
+    reviewed_at: '',
+    decision_at: '',
+    due_at: '',
+    outcome_reason: '',
+    notes: '',
+  }),
+  awards: () => {
+    const today = toDateInputValue(new Date());
+    return {
+      grant_number: '',
+      title: '',
+      application_id: '',
+      funder_id: '',
+      program_id: '',
+      recipient_organization_id: '',
+      funded_program_id: '',
+      status: 'active',
+      amount: '',
+      committed_amount: '',
+      currency: 'CAD',
+      fiscal_year: '',
+      jurisdiction: '',
+      award_date: today,
+      reviewed_at: '',
+      decision_at: '',
+      start_date: '',
+      end_date: '',
+      expiry_date: '',
+      reporting_frequency: 'annual',
+      next_report_due_at: '',
+      closeout_due_at: '',
+      notes: '',
+    };
+  },
+  disbursements: () => {
+    const today = toDateInputValue(new Date());
+    return {
+      grant_id: '',
+      tranche_label: '',
+      scheduled_date: today,
+      paid_at: '',
+      amount: '',
+      currency: 'CAD',
+      status: 'scheduled',
+      method: '',
+      notes: '',
+    };
+  },
+  reports: () => ({
+    grant_id: '',
+    report_type: 'quarterly',
+    period_start: '',
+    period_end: '',
+    due_at: '',
+    submitted_at: '',
+    status: 'draft',
+    summary: '',
+    outstanding_items: '',
+    notes: '',
+  }),
+  documents: () => ({
+    grant_id: '',
+    application_id: '',
+    report_id: '',
+    document_type: '',
+    file_name: '',
+    file_url: '',
+    mime_type: '',
+    file_size: '',
+    notes: '',
+    uploaded_by: '',
+  }),
+  calendar: createEmptyGrantFormValues,
+  activities: createEmptyGrantFormValues,
+};
+
+export const createBlankFormValues = (section: GrantsSectionId): FormState =>
+  BLANK_FORM_VALUES_BY_SECTION[section]?.() ?? {};
+
+export const RECORD_TO_FORM_VALUES_BY_SECTION: Record<
+  GrantsSectionId,
+  (record: EditableGrantRecord) => FormState
+> = {
+  funders: (record) => {
+    const funder = record as GrantFunder;
+    return {
+      name: funder.name,
+      jurisdiction: funder.jurisdiction,
+      funder_type: funder.funder_type ?? '',
+      contact_name: funder.contact_name ?? '',
+      contact_email: funder.contact_email ?? '',
+      contact_phone: funder.contact_phone ?? '',
+      website: funder.website ?? '',
+      notes: funder.notes ?? '',
+      active: String(funder.active),
+    };
+  },
+  programs: (record) => {
+    const program = record as GrantProgram;
+    return {
+      funder_id: program.funder_id,
+      name: program.name,
+      program_code: program.program_code ?? '',
+      fiscal_year: program.fiscal_year ?? '',
+      jurisdiction: program.jurisdiction,
+      status: program.status,
+      application_open_at: toNullableString(program.application_open_at),
+      application_due_at: toNullableString(program.application_due_at),
+      award_date: toNullableString(program.award_date),
+      expiry_date: toNullableString(program.expiry_date),
+      total_budget: toNumberString(program.total_budget),
+      notes: program.notes ?? '',
+    };
+  },
+  recipients: (record) => {
+    const recipient = record as RecipientOrganization;
+    return {
+      name: recipient.name,
+      legal_name: recipient.legal_name ?? '',
+      jurisdiction: recipient.jurisdiction ?? '',
+      province: recipient.province ?? '',
+      city: recipient.city ?? '',
+      contact_name: recipient.contact_name ?? '',
+      contact_email: recipient.contact_email ?? '',
+      contact_phone: recipient.contact_phone ?? '',
+      website: recipient.website ?? '',
+      status: recipient.status,
+      notes: recipient.notes ?? '',
+      active: String(recipient.active),
+    };
+  },
+  'funded-programs': (record) => {
+    const fundedProgram = record as FundedProgram;
+    return {
+      recipient_organization_id: fundedProgram.recipient_organization_id,
+      name: fundedProgram.name,
+      description: fundedProgram.description ?? '',
+      owner_user_id: fundedProgram.owner_user_id ?? '',
+      status: fundedProgram.status,
+      start_date: toNullableString(fundedProgram.start_date),
+      end_date: toNullableString(fundedProgram.end_date),
+      budget: toNumberString(fundedProgram.budget),
+      notes: fundedProgram.notes ?? '',
+    };
+  },
+  applications: (record) => {
+    const application = record as GrantApplication;
+    return {
+      application_number: application.application_number,
+      title: application.title,
+      funder_id: application.funder_id,
+      program_id: application.program_id ?? '',
+      recipient_organization_id: application.recipient_organization_id ?? '',
+      funded_program_id: application.funded_program_id ?? '',
+      status: application.status,
+      requested_amount: String(application.requested_amount),
+      approved_amount: toNumberString(application.approved_amount),
+      currency: application.currency,
+      submitted_at: toNullableString(application.submitted_at),
+      reviewed_at: toNullableString(application.reviewed_at),
+      decision_at: toNullableString(application.decision_at),
+      due_at: toNullableString(application.due_at),
+      outcome_reason: application.outcome_reason ?? '',
+      notes: application.notes ?? '',
+    };
+  },
+  awards: (record) => {
+    const award = record as GrantAward;
+    return {
+      grant_number: award.grant_number,
+      title: award.title,
+      application_id: award.application_id ?? '',
+      funder_id: award.funder_id,
+      program_id: award.program_id ?? '',
+      recipient_organization_id: award.recipient_organization_id ?? '',
+      funded_program_id: award.funded_program_id ?? '',
+      status: award.status,
+      amount: String(award.amount),
+      committed_amount: String(award.committed_amount),
+      currency: award.currency,
+      fiscal_year: award.fiscal_year ?? '',
+      jurisdiction: award.jurisdiction,
+      award_date: toNullableString(award.award_date),
+      reviewed_at: '',
+      decision_at: '',
+      start_date: toNullableString(award.start_date),
+      end_date: toNullableString(award.end_date),
+      expiry_date: toNullableString(award.expiry_date),
+      reporting_frequency: award.reporting_frequency ?? '',
+      next_report_due_at: toNullableString(award.next_report_due_at),
+      closeout_due_at: toNullableString(award.closeout_due_at),
+      notes: award.notes ?? '',
+    };
+  },
+  disbursements: (record) => {
+    const disbursement = record as GrantDisbursement;
+    return {
+      grant_id: disbursement.grant_id,
+      tranche_label: disbursement.tranche_label ?? '',
+      scheduled_date: toNullableString(disbursement.scheduled_date),
+      paid_at: toNullableString(disbursement.paid_at),
+      amount: String(disbursement.amount),
+      currency: disbursement.currency,
+      status: disbursement.status,
+      method: disbursement.method ?? '',
+      notes: disbursement.notes ?? '',
+    };
+  },
+  reports: (record) => {
+    const report = record as GrantReport;
+    return {
+      grant_id: report.grant_id,
+      report_type: report.report_type,
+      period_start: toNullableString(report.period_start),
+      period_end: toNullableString(report.period_end),
+      due_at: report.due_at,
+      submitted_at: toNullableString(report.submitted_at),
+      status: report.status,
+      summary: report.summary ?? '',
+      outstanding_items: report.outstanding_items ?? '',
+      notes: report.notes ?? '',
+    };
+  },
+  documents: (record) => {
+    const document = record as GrantDocument;
+    return {
+      grant_id: document.grant_id ?? '',
+      application_id: document.application_id ?? '',
+      report_id: document.report_id ?? '',
+      document_type: document.document_type,
+      file_name: document.file_name,
+      file_url: document.file_url,
+      mime_type: document.mime_type,
+      file_size: String(document.file_size),
+      notes: document.notes ?? '',
+      uploaded_by: document.uploaded_by ?? '',
+    };
+  },
+  calendar: createEmptyGrantFormValues,
+  activities: createEmptyGrantFormValues,
 };
 
 export function recordToFormValues(section: GrantsSectionId, record: EditableGrantRecord): FormState {
-  switch (section) {
-    case 'funders': {
-      const funder = record as GrantFunder;
-      return {
-        name: funder.name,
-        jurisdiction: funder.jurisdiction,
-        funder_type: funder.funder_type ?? '',
-        contact_name: funder.contact_name ?? '',
-        contact_email: funder.contact_email ?? '',
-        contact_phone: funder.contact_phone ?? '',
-        website: funder.website ?? '',
-        notes: funder.notes ?? '',
-        active: String(funder.active),
-      };
-    }
-    case 'programs': {
-      const program = record as GrantProgram;
-      return {
-        funder_id: program.funder_id,
-        name: program.name,
-        program_code: program.program_code ?? '',
-        fiscal_year: program.fiscal_year ?? '',
-        jurisdiction: program.jurisdiction,
-        status: program.status,
-        application_open_at: toNullableString(program.application_open_at),
-        application_due_at: toNullableString(program.application_due_at),
-        award_date: toNullableString(program.award_date),
-        expiry_date: toNullableString(program.expiry_date),
-        total_budget: toNumberString(program.total_budget),
-        notes: program.notes ?? '',
-      };
-    }
-    case 'recipients': {
-      const recipient = record as RecipientOrganization;
-      return {
-        name: recipient.name,
-        legal_name: recipient.legal_name ?? '',
-        jurisdiction: recipient.jurisdiction ?? '',
-        province: recipient.province ?? '',
-        city: recipient.city ?? '',
-        contact_name: recipient.contact_name ?? '',
-        contact_email: recipient.contact_email ?? '',
-        contact_phone: recipient.contact_phone ?? '',
-        website: recipient.website ?? '',
-        status: recipient.status,
-        notes: recipient.notes ?? '',
-        active: String(recipient.active),
-      };
-    }
-    case 'funded-programs': {
-      const fundedProgram = record as FundedProgram;
-      return {
-        recipient_organization_id: fundedProgram.recipient_organization_id,
-        name: fundedProgram.name,
-        description: fundedProgram.description ?? '',
-        owner_user_id: fundedProgram.owner_user_id ?? '',
-        status: fundedProgram.status,
-        start_date: toNullableString(fundedProgram.start_date),
-        end_date: toNullableString(fundedProgram.end_date),
-        budget: toNumberString(fundedProgram.budget),
-        notes: fundedProgram.notes ?? '',
-      };
-    }
-    case 'applications': {
-      const application = record as GrantApplication;
-      return {
-        application_number: application.application_number,
-        title: application.title,
-        funder_id: application.funder_id,
-        program_id: application.program_id ?? '',
-        recipient_organization_id: application.recipient_organization_id ?? '',
-        funded_program_id: application.funded_program_id ?? '',
-        status: application.status,
-        requested_amount: String(application.requested_amount),
-        approved_amount: toNumberString(application.approved_amount),
-        currency: application.currency,
-        submitted_at: toNullableString(application.submitted_at),
-        reviewed_at: toNullableString(application.reviewed_at),
-        decision_at: toNullableString(application.decision_at),
-        due_at: toNullableString(application.due_at),
-        outcome_reason: application.outcome_reason ?? '',
-        notes: application.notes ?? '',
-      };
-    }
-    case 'awards': {
-      const award = record as GrantAward;
-      return {
-        grant_number: award.grant_number,
-        title: award.title,
-        application_id: award.application_id ?? '',
-        funder_id: award.funder_id,
-        program_id: award.program_id ?? '',
-        recipient_organization_id: award.recipient_organization_id ?? '',
-        funded_program_id: award.funded_program_id ?? '',
-        status: award.status,
-        amount: String(award.amount),
-        committed_amount: String(award.committed_amount),
-        currency: award.currency,
-        fiscal_year: award.fiscal_year ?? '',
-        jurisdiction: award.jurisdiction,
-        award_date: toNullableString(award.award_date),
-        reviewed_at: '',
-        decision_at: '',
-        start_date: toNullableString(award.start_date),
-        end_date: toNullableString(award.end_date),
-        expiry_date: toNullableString(award.expiry_date),
-        reporting_frequency: award.reporting_frequency ?? '',
-        next_report_due_at: toNullableString(award.next_report_due_at),
-        closeout_due_at: toNullableString(award.closeout_due_at),
-        notes: award.notes ?? '',
-      };
-    }
-    case 'disbursements': {
-      const disbursement = record as GrantDisbursement;
-      return {
-        grant_id: disbursement.grant_id,
-        tranche_label: disbursement.tranche_label ?? '',
-        scheduled_date: toNullableString(disbursement.scheduled_date),
-        paid_at: toNullableString(disbursement.paid_at),
-        amount: String(disbursement.amount),
-        currency: disbursement.currency,
-        status: disbursement.status,
-        method: disbursement.method ?? '',
-        notes: disbursement.notes ?? '',
-      };
-    }
-    case 'reports': {
-      const report = record as GrantReport;
-      return {
-        grant_id: report.grant_id,
-        report_type: report.report_type,
-        period_start: toNullableString(report.period_start),
-        period_end: toNullableString(report.period_end),
-        due_at: report.due_at,
-        submitted_at: toNullableString(report.submitted_at),
-        status: report.status,
-        summary: report.summary ?? '',
-        outstanding_items: report.outstanding_items ?? '',
-        notes: report.notes ?? '',
-      };
-    }
-    case 'documents': {
-      const document = record as GrantDocument;
-      return {
-        grant_id: document.grant_id ?? '',
-        application_id: document.application_id ?? '',
-        report_id: document.report_id ?? '',
-        document_type: document.document_type,
-        file_name: document.file_name,
-        file_url: document.file_url,
-        mime_type: document.mime_type,
-        file_size: String(document.file_size),
-        notes: document.notes ?? '',
-        uploaded_by: document.uploaded_by ?? '',
-      };
-    }
-    case 'calendar':
-    case 'activities':
-    default:
-      return {};
-  }
+  return RECORD_TO_FORM_VALUES_BY_SECTION[section]?.(record) ?? {};
 }
 
 export function buildFunderPayload(values: FormState): CreateGrantFunderDTO {

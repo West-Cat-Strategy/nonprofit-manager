@@ -73,12 +73,14 @@ ON CONFLICT (id) DO NOTHING;
 -- EVENTS
 -- ============================================================================
 INSERT INTO events (
+  organization_id,
   id, name, description, event_type, status, start_date, end_date,
   location_name, address_line1, city, state_province, postal_code, country,
   capacity, registered_count, attended_count, created_at
 )
 VALUES
   (
+    '10000000-0000-0000-0000-000000000002',
     '40000000-0000-0000-0000-000000000001',
     'Twilight Town Community Cleanup',
     'Neighborhood cleanup + supply drive to support youth programs.',
@@ -98,6 +100,7 @@ VALUES
     NOW()
   ),
   (
+    '10000000-0000-0000-0000-000000000003',
     '40000000-0000-0000-0000-000000000002',
     'Keyblade Food Drive',
     'Food drive benefiting the Traverse Town Community Kitchen.',
@@ -117,6 +120,7 @@ VALUES
     NOW()
   ),
   (
+    '10000000-0000-0000-0000-000000000001',
     '40000000-0000-0000-0000-000000000003',
     'Radiant Garden Restoration Gala',
     'Fundraising gala supporting housing and emergency assistance programs.',

@@ -4,6 +4,9 @@ import reducer, {
   fetchWebsiteForms,
   fetchWebsiteIntegrations,
   fetchWebsiteOverview,
+  refreshWebsiteNewsletterWorkspace,
+  updateWebsiteForm,
+  updateWebsiteNewsletterIntegration,
 } from '../websitesCore';
 import {
   selectWebsiteAnalytics,
@@ -211,5 +214,41 @@ describe('website selectors', () => {
     expect(selectWebsiteForms({ websites: state })).toEqual(updatedForms);
     expect(selectWebsiteIntegrations({ websites: state })).toEqual(updatedIntegrations);
     expect(selectWebsiteAnalytics({ websites: state })).toEqual(updatedAnalytics);
+  });
+
+  it('keeps overview and selectors current after website mutations patch cached resources', () => {
+    let state = reducer(
+      undefined,
+      fetchWebsiteOverview.fulfilled(overviewPayload, 'req-1', { siteId: 'site-1', period: 30 })
+    );
+
+    state = reducer(
+      state,
+      updateWebsiteForm.fulfilled(updatedForms[0], 'req-2', {
+        siteId: 'site-1',
+        formKey: 'contact-form-1',
+        data: {
+          heading: 'Reach out today',
+        },
+      })
+    );
+    state = reducer(
+      state,
+      updateWebsiteNewsletterIntegration.fulfilled(updatedIntegrations, 'req-3', {
+        siteId: 'site-1',
+        data: {
+          provider: 'mautic',
+        },
+      })
+    );
+    state = reducer(
+      state,
+      refreshWebsiteNewsletterWorkspace.fulfilled(updatedIntegrations, 'req-4', 'site-1')
+    );
+
+    expect(selectWebsiteForms({ websites: state })).toEqual(updatedForms);
+    expect(selectWebsiteIntegrations({ websites: state })).toEqual(updatedIntegrations);
+    expect(state.overview?.forms).toEqual(updatedForms);
+    expect(state.overview?.integrations).toEqual(updatedIntegrations);
   });
 });

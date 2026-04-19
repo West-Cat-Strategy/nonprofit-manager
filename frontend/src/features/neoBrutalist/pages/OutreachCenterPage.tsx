@@ -9,17 +9,29 @@ import { MagnifyingGlassIcon, EnvelopeIcon, CalendarIcon, CurrencyDollarIcon, Gl
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import BrutalInput from '../../../components/neo-brutalist/BrutalInput';
 import LoopApiService from '../../../services/LoopApiService';
+import { getDemoCampaignEvents, getDemoCampaignStats, isDemoPath } from '../../../services/loop/demo';
 import type { CampaignStats, CampaignEvent } from '../../../types/schema';
+import { useLocation } from 'react-router-dom';
 
 export default function OutreachCenter() {
-    const [stats, setStats] = useState<CampaignStats | null>(null);
-    const [events, setEvents] = useState<CampaignEvent[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { pathname } = useLocation();
+    const isDemoRoute = isDemoPath(pathname);
+    const [stats, setStats] = useState<CampaignStats | null>(() => (isDemoRoute ? getDemoCampaignStats() : null));
+    const [events, setEvents] = useState<CampaignEvent[]>(() => (isDemoRoute ? getDemoCampaignEvents() : []));
+    const [loading, setLoading] = useState(() => !isDemoRoute);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
+        if (isDemoRoute) {
+            setStats(getDemoCampaignStats());
+            setEvents(getDemoCampaignEvents());
+            setLoading(false);
+            return;
+        }
+
         const fetchData = async () => {
+            setLoading(true);
             try {
                 const [statsData, eventsData] = await Promise.all([
                     LoopApiService.getCampaignStats(),
@@ -34,7 +46,7 @@ export default function OutreachCenter() {
             }
         };
         fetchData();
-    }, []);
+    }, [isDemoRoute]);
 
     const handleNewItem = () => navigate('/events/new');
     const handleNewBlast = () => navigate('/settings/communications');

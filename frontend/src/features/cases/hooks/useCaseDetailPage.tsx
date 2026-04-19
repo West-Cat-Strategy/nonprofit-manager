@@ -3,16 +3,12 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   clearCurrentCase,
-  createCaseMilestone,
   deleteCase,
-  deleteCaseMilestone,
   fetchCaseById,
   fetchCaseMilestones,
   fetchCaseOutcomeDefinitions,
   fetchCaseStatuses,
   updateCase,
-  updateCaseMilestone,
-  updateCaseStatus,
 } from '../state';
 import { useToast } from '../../../contexts/useToast';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
@@ -20,6 +16,8 @@ import type { CaseMilestone, CaseStatus, CaseStatusType, CaseWithDetails } from 
 import type { OutcomeDefinition } from '../../../types/outcomes';
 import { isUuid } from '../../../utils/uuid';
 import { formatCaseOutcomeLabel, summarizeLabels } from '../utils/caseClassification';
+import { useCaseMilestones } from './useCaseMilestones';
+import { useCaseStatusChange } from './useCaseStatusChange';
 
 export type CaseDetailTab =
   | 'overview'
@@ -135,17 +133,6 @@ export const useCaseDetailPage = () => {
   const requestedTab = searchParams.get('tab');
   const initialTab: CaseDetailTab = resolveTab(requestedTab);
   const [activeTab, setActiveTab] = useState<CaseDetailTab>(initialTab);
-  const [isChangingStatus, setIsChangingStatus] = useState(false);
-  const [newStatusId, setNewStatusId] = useState('');
-  const [statusChangeNotes, setStatusChangeNotes] = useState('');
-  const [statusOutcomeDefinitionIds, setStatusOutcomeDefinitionIds] = useState<string[]>([]);
-  const [statusOutcomeVisibility, setStatusOutcomeVisibility] = useState(false);
-  const [showMilestoneForm, setShowMilestoneForm] = useState(false);
-  const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
-  const [milestoneName, setMilestoneName] = useState('');
-  const [milestoneDescription, setMilestoneDescription] = useState('');
-  const [milestoneDueDate, setMilestoneDueDate] = useState('');
-  const [milestoneCompleted, setMilestoneCompleted] = useState(false);
   const [timelineRefreshKey, setTimelineRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -175,16 +162,6 @@ export const useCaseDetailPage = () => {
     [caseOutcomeDefinitions]
   );
 
-  const selectedStatusDefinition = useMemo(
-    () => caseStatuses.find((status: CaseStatus) => status.id === newStatusId),
-    [caseStatuses, newStatusId]
-  );
-
-  const selectedStatusRequiresOutcome =
-    selectedStatusDefinition?.status_type === 'review' ||
-    selectedStatusDefinition?.status_type === 'closed' ||
-    selectedStatusDefinition?.status_type === 'cancelled';
-
   const caseTypeLabels = useMemo(
     () =>
       summarizeLabels(
@@ -212,8 +189,6 @@ export const useCaseDetailPage = () => {
   );
 
   const caseProvenance = currentCase?.provenance ?? null;
-
-  const completedMilestones = caseMilestones.filter((milestone: CaseMilestone) => milestone.is_completed).length;
 
   const tabs = useMemo<Array<CaseTabConfig>>(() => {
     if (!currentCase) {
@@ -263,23 +238,6 @@ export const useCaseDetailPage = () => {
     [searchParams, setSearchParams]
   );
 
-  const closeStatusChangeModal = useCallback(() => {
-    setIsChangingStatus(false);
-    setNewStatusId('');
-    setStatusChangeNotes('');
-    setStatusOutcomeDefinitionIds([]);
-    setStatusOutcomeVisibility(false);
-  }, []);
-
-  const resetMilestoneForm = useCallback(() => {
-    setShowMilestoneForm(false);
-    setEditingMilestone(null);
-    setMilestoneName('');
-    setMilestoneDescription('');
-    setMilestoneDueDate('');
-    setMilestoneCompleted(false);
-  }, []);
-
   const refreshCaseArtifacts = useCallback(() => {
     if (!id) {
       return;
@@ -288,6 +246,56 @@ export const useCaseDetailPage = () => {
     dispatch(fetchCaseById(id));
     setTimelineRefreshKey((value) => value + 1);
   }, [dispatch, id]);
+
+  const {
+    isChangingStatus,
+    setIsChangingStatus,
+    newStatusId,
+    setNewStatusId,
+    statusChangeNotes,
+    setStatusChangeNotes,
+    statusOutcomeDefinitionIds,
+    setStatusOutcomeDefinitionIds,
+    statusOutcomeVisibility,
+    setStatusOutcomeVisibility,
+    selectedStatusRequiresOutcome,
+    closeStatusChangeModal,
+    handleStatusChange,
+  } = useCaseStatusChange({
+    caseId: id,
+    caseStatuses,
+    dispatch,
+    onStatusUpdated: refreshCaseArtifacts,
+    showSuccess,
+    showError,
+  });
+
+  const {
+    showMilestoneForm,
+    setShowMilestoneForm,
+    editingMilestone,
+    milestoneName,
+    setMilestoneName,
+    milestoneDescription,
+    setMilestoneDescription,
+    milestoneDueDate,
+    setMilestoneDueDate,
+    milestoneCompleted,
+    setMilestoneCompleted,
+    completedMilestones,
+    resetMilestoneForm,
+    handleSaveMilestone,
+    handleEditMilestone,
+    handleDeleteMilestone,
+    handleToggleMilestoneComplete,
+  } = useCaseMilestones({
+    caseId: id,
+    caseMilestones,
+    dispatch,
+    confirm,
+    showSuccess,
+    showError,
+  });
 
   const handleToggleClientViewable = useCallback(async () => {
     if (!id || !currentCase) return;
@@ -341,155 +349,6 @@ export const useCaseDetailPage = () => {
       return colors[statusType];
     },
     []
-  );
-
-  const handleStatusChange = useCallback(async () => {
-    if (!id || !newStatusId) return;
-
-    const nextStatus = caseStatuses.find((status: CaseStatus) => status.id === newStatusId);
-    const requiresOutcome =
-      nextStatus?.status_type === 'review' ||
-      nextStatus?.status_type === 'closed' ||
-      nextStatus?.status_type === 'cancelled';
-
-    if (!statusChangeNotes.trim()) {
-      showError('Status change notes are required');
-      return;
-    }
-
-    if (requiresOutcome && statusOutcomeDefinitionIds.length === 0) {
-      showError('Select at least one outcome for this status change');
-      return;
-    }
-
-    try {
-      await dispatch(
-        updateCaseStatus({
-          id,
-          data: {
-            new_status_id: newStatusId,
-            notes: statusChangeNotes.trim(),
-            outcome_definition_ids: requiresOutcome ? statusOutcomeDefinitionIds : undefined,
-            outcome_visibility: requiresOutcome ? statusOutcomeVisibility : undefined,
-          },
-        })
-      ).unwrap();
-
-      showSuccess('Status updated successfully');
-      closeStatusChangeModal();
-      dispatch(fetchCaseById(id));
-      setTimelineRefreshKey((value) => value + 1);
-    } catch (err) {
-      console.error('Failed to update status:', err);
-      showError('Failed to update status');
-    }
-  }, [
-    caseStatuses,
-    closeStatusChangeModal,
-    dispatch,
-    id,
-    newStatusId,
-    showError,
-    showSuccess,
-    statusChangeNotes,
-    statusOutcomeDefinitionIds,
-    statusOutcomeVisibility,
-  ]);
-
-  const handleSaveMilestone = useCallback(async () => {
-    if (!id || !milestoneName.trim()) return;
-
-    try {
-      if (editingMilestone) {
-        await dispatch(
-          updateCaseMilestone({
-            milestoneId: editingMilestone.id,
-            data: {
-              milestone_name: milestoneName,
-              description: milestoneDescription || undefined,
-              due_date: milestoneDueDate || undefined,
-              is_completed: milestoneCompleted,
-            },
-          })
-        ).unwrap();
-        showSuccess('Milestone updated');
-      } else {
-        await dispatch(
-          createCaseMilestone({
-            caseId: id,
-            data: {
-              milestone_name: milestoneName,
-              description: milestoneDescription || undefined,
-              due_date: milestoneDueDate || undefined,
-            },
-          })
-        ).unwrap();
-        showSuccess('Milestone created');
-      }
-
-      resetMilestoneForm();
-      dispatch(fetchCaseMilestones(id));
-    } catch (err) {
-      console.error('Failed to save milestone:', err);
-      showError('Failed to save milestone');
-    }
-  }, [
-    dispatch,
-    editingMilestone,
-    id,
-    milestoneCompleted,
-    milestoneDescription,
-    milestoneDueDate,
-    milestoneName,
-    resetMilestoneForm,
-    showError,
-    showSuccess,
-  ]);
-
-  const handleEditMilestone = useCallback((milestone: CaseMilestone) => {
-    setEditingMilestone(milestone);
-    setMilestoneName(milestone.milestone_name);
-    setMilestoneDescription(milestone.description || '');
-    setMilestoneDueDate(milestone.due_date ? milestone.due_date.split('T')[0] : '');
-    setMilestoneCompleted(milestone.is_completed);
-    setShowMilestoneForm(true);
-  }, []);
-
-  const handleDeleteMilestone = useCallback(
-    async (milestoneId: string) => {
-      if (!id) return;
-      const confirmed = await confirm(confirmPresets.delete('Milestone'));
-      if (!confirmed) return;
-
-      try {
-        await dispatch(deleteCaseMilestone(milestoneId)).unwrap();
-        showSuccess('Milestone deleted');
-        dispatch(fetchCaseMilestones(id));
-      } catch (err) {
-        console.error('Failed to delete milestone:', err);
-        showError('Failed to delete milestone');
-      }
-    },
-    [confirm, dispatch, id, showError, showSuccess]
-  );
-
-  const handleToggleMilestoneComplete = useCallback(
-    async (milestone: CaseMilestone) => {
-      if (!id) return;
-      try {
-        await dispatch(
-          updateCaseMilestone({
-            milestoneId: milestone.id,
-            data: { is_completed: !milestone.is_completed },
-          })
-        ).unwrap();
-        dispatch(fetchCaseMilestones(id));
-      } catch (err) {
-        console.error('Failed to toggle milestone:', err);
-        showError('Failed to update milestone');
-      }
-    },
-    [dispatch, id, showError]
   );
 
   const handleOpenNotes = useCallback(() => setActiveTabWithUrl('notes'), [setActiveTabWithUrl]);

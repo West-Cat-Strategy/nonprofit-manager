@@ -1,10 +1,6 @@
 import type { AuthRequest } from '@middleware/auth';
 import { createEventsController } from '../events.controller';
-import {
-  requirePermissionSafe,
-  sendForbidden,
-  sendUnauthorized,
-} from '@services/authGuardService';
+import { requirePermissionSafe, sendForbidden, sendUnauthorized } from '@services/authGuardService';
 import { sendError, sendSuccess } from '../../../shared/http/envelope';
 
 jest.mock('@services/authGuardService', () => ({
@@ -28,6 +24,7 @@ const createEventHttpError = (code: string, statusCode: number, message: string)
 
 const baseReq = (): MockReq => ({
   user: { id: 'user-1', role: 'admin' } as AuthRequest['user'],
+  organizationId: 'acct-1',
   dataScope: { filter: { accountIds: ['acct-1'] } } as AuthRequest['dataScope'],
   validatedParams: { id: 'event-1' },
   validatedQuery: {},
@@ -36,6 +33,7 @@ const baseReq = (): MockReq => ({
 
 describe('events.controller', () => {
   const catalogUseCase = {
+    create: jest.fn(),
     getById: jest.fn(),
   };
   const registrationUseCase = {
@@ -95,11 +93,18 @@ describe('events.controller', () => {
   });
 
   it('returns forbidden when event is outside data scope', async () => {
-    catalogUseCase.getById.mockResolvedValueOnce(null).mockResolvedValueOnce({ event_id: 'event-1' });
+    catalogUseCase.getById
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ event_id: 'event-1' });
 
     await controller.getCheckInSettings(baseReq() as AuthRequest, res, next);
 
-    expect(sendError).toHaveBeenCalledWith(res, 'FORBIDDEN', 'Event is outside your data scope', 403);
+    expect(sendError).toHaveBeenCalledWith(
+      res,
+      'FORBIDDEN',
+      'Event is outside your data scope',
+      403
+    );
     expect(registrationUseCase.getCheckInSettings).not.toHaveBeenCalled();
   });
 
@@ -159,6 +164,26 @@ describe('events.controller', () => {
     expect(sendSuccess).toHaveBeenCalledWith(
       res,
       expect.arrayContaining([expect.objectContaining({ registration_id: 'reg-1' })])
+    );
+  });
+
+  it('passes the resolved organization context when creating an event', async () => {
+    const req = {
+      ...baseReq(),
+      body: {
+        event_name: 'Scoped Event',
+        event_type: 'meeting',
+      },
+    } as AuthRequest;
+    catalogUseCase.create.mockResolvedValueOnce({ event_id: 'event-1', organization_id: 'acct-1' });
+
+    await controller.createEvent(req, res, next);
+
+    expect(catalogUseCase.create).toHaveBeenCalledWith(req.body, 'user-1', 'acct-1');
+    expect(sendSuccess).toHaveBeenCalledWith(
+      res,
+      expect.objectContaining({ event_id: 'event-1', organization_id: 'acct-1' }),
+      201
     );
   });
 
@@ -374,7 +399,11 @@ describe('events.controller', () => {
     ['EVENT_NOT_FOUND', 404, 'Event not found'],
     ['CHECKIN_ERROR', 400, 'Event is at full capacity'],
     ['CHECKIN_ERROR', 400, 'Event is not accepting check-ins'],
-    ['CHECKIN_ERROR', 400, 'Check-in is available 180 minutes before start until 240 minutes after end.'],
+    [
+      'CHECKIN_ERROR',
+      400,
+      'Check-in is available 180 minutes before start until 240 minutes after end.',
+    ],
   ])(
     'maps walk-in error "%s" to %s',
     async (expectedCode: string, expectedStatus: number, message: string) => {

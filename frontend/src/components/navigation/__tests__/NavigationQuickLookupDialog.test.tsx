@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ChangeEvent, KeyboardEvent } from 'react';
+import type * as ReactRouterDom from 'react-router-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import NavigationQuickLookupDialog from '../NavigationQuickLookupDialog';
@@ -33,12 +34,12 @@ const { navigateMock, lookupStateRef } = vi.hoisted(() => ({
   lookupStateRef: { current: null as QuickLookupMockState | null },
 }));
 
-vi.mock('../../dashboard/useQuickLookup', () => ({
-  useQuickLookup: () => lookupStateRef.current,
+vi.mock('../../../features/navigation/hooks/useStaffQuickLookup', () => ({
+  useStaffQuickLookup: () => lookupStateRef.current,
 }));
 
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  const actual = await vi.importActual<typeof ReactRouterDom>('react-router-dom');
   return {
     ...actual,
     useNavigate: () => navigateMock,

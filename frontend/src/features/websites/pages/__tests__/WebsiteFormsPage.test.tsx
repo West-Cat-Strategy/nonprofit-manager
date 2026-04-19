@@ -190,6 +190,7 @@ describe('WebsiteFormsPage', () => {
         })
       );
     });
+    expect(thunkMocks.fetchWebsiteForms).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Form settings saved.')).toBeInTheDocument();
   });
 

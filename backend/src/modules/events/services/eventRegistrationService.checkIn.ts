@@ -26,6 +26,7 @@ import {
   resolveCaseLink,
   type LockedRegistrationRow,
 } from './eventRegistrationService.helpers';
+import { setTransactionUserContext } from './tenancy';
 
 const runPostCommitActionSafely = async (
   action: () => Promise<void>,
@@ -86,6 +87,7 @@ export const checkInAttendeeMutation = async (
 
   try {
     await client.query('BEGIN');
+    await setTransactionUserContext(client, options.checkedInBy ?? null);
 
     const registrationResult = await client.query<LockedRegistrationRow>(
       `SELECT
@@ -229,7 +231,6 @@ export const checkInAttendeeMutation = async (
   }
 };
 
-
 export const walkInCheckInMutation = async (
   ctx: EventRegistrationServiceContext,
   eventId: string,
@@ -244,18 +245,28 @@ export const walkInCheckInMutation = async (
 
   try {
     await client.query('BEGIN');
+    await setTransactionUserContext(client, checkedInBy);
 
     const event = await getEventRow(ctx, eventId, client);
     if (!event) {
       throw new Error('Event not found');
     }
 
-    const resolvedOccurrence = await ctx.occurrences.resolveOccurrence(eventId, data.occurrence_id, client);
+    const resolvedOccurrence = await ctx.occurrences.resolveOccurrence(
+      eventId,
+      data.occurrence_id,
+      client
+    );
     if (!resolvedOccurrence) {
       throw new Error('Occurrence not found');
     }
 
-    const occurrence = await getLockedOccurrence(ctx, eventId, resolvedOccurrence.occurrence_id, client);
+    const occurrence = await getLockedOccurrence(
+      ctx,
+      eventId,
+      resolvedOccurrence.occurrence_id,
+      client
+    );
     if (!occurrence) {
       throw new Error('Occurrence not found');
     }

@@ -13,30 +13,20 @@ import type {
 } from '../types/contracts';
 import { grantsApiClient } from '../api/grantsApiClient';
 import {
-  buildApplicationPayload,
-  buildAwardPayload,
   buildAwardPayloadFromApplication,
-  buildDisbursementPayload,
-  buildDocumentPayload,
-  buildFundedProgramPayload,
-  buildFunderPayload,
-  buildProgramPayload,
-  buildRecipientPayload,
-  buildReportPayload,
-  createBlankFormValues,
-  recordToFormValues,
   toGrantJurisdiction,
 } from '../lib/grantsPageMappers';
+import { EMPTY_LOOKUPS } from '../lib/grantsPageRegistry';
 import {
-  EMPTY_LOOKUPS,
-  SECTION_DEFINITIONS,
+  getGrantsSectionAdapter,
   getSectionFromPath,
+  isEditableGrantsSection,
+  isReadOnlyGrantsSection,
   sectionLabelById,
-} from '../lib/grantsPageRegistry';
+} from '../lib/grantsSectionAdapters';
 import type {
   EditableGrantRecord,
   FormState,
-  GrantsLoadResult,
   GrantsLookupState,
   GrantsSectionId,
   GrantsTableRow,
@@ -72,7 +62,8 @@ const createEmptyLookupCache = (): LookupCache => ({
 export function useGrantsPageData() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState<GrantsSectionId>(getSectionFromPath(location.pathname));
+  const initialSection = getSectionFromPath(location.pathname);
+  const [activeSection, setActiveSection] = useState<GrantsSectionId>(initialSection);
   const [summary, setSummary] = useState<GrantSummary | null>(null);
   const [rows, setRows] = useState<GrantsTableRow[]>([]);
   const [pagination, setPagination] = useState<GrantPagination | null>(null);
@@ -83,7 +74,9 @@ export function useGrantsPageData() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [formValues, setFormValues] = useState<FormState>(createBlankFormValues(activeSection));
+  const [formValues, setFormValues] = useState<FormState>(
+    getGrantsSectionAdapter(initialSection).createBlankFormValues()
+  );
   const [searchInput, setSearchInput] = useState(EMPTY_FILTER_VALUE);
   const [appliedSearch, setAppliedSearch] = useState(EMPTY_FILTER_VALUE);
   const [statusFilter, setStatusFilter] = useState(EMPTY_FILTER_VALUE);
@@ -111,7 +104,7 @@ export function useGrantsPageData() {
 
   useEffect(() => {
     setSelectedId(null);
-    setFormValues(createBlankFormValues(activeSection));
+    setFormValues(getGrantsSectionAdapter(activeSection).createBlankFormValues());
     setPage(1);
     setError(null);
     setNotice(null);
@@ -129,9 +122,9 @@ export function useGrantsPageData() {
   }, [searchInput]);
 
   useEffect(() => {
-    const matched = SECTION_DEFINITIONS.find((definition) => definition.id === activeSection);
-    if (matched && location.pathname !== matched.path) {
-      navigate(matched.path, { replace: true });
+    const sectionAdapter = getGrantsSectionAdapter(activeSection);
+    if (location.pathname !== sectionAdapter.path) {
+      navigate(sectionAdapter.path, { replace: true });
     }
   }, [activeSection, location.pathname, navigate]);
 
@@ -207,89 +200,28 @@ export function useGrantsPageData() {
     return request;
   };
 
-  const loadCurrentRows = async (): Promise<Pick<GrantsLoadResult, 'rows' | 'pagination'>> => {
-    if (activeSection === 'calendar') {
-      const calendarRows = await grantsApiClient.getCalendar({
-        start_date: dueAfterFilter || undefined,
-        end_date: dueBeforeFilter || undefined,
-        limit,
-      });
-
-      return {
-        rows: calendarRows,
-        pagination: null,
-      };
-    }
-
-    if (activeSection === 'activities') {
-      const result = await grantsApiClient.listActivities({
-        ...buildListQuery(),
-        sort_by: 'created_at',
-        sort_order: 'desc',
-      });
-
-      return {
-        rows: result.data,
-        pagination: result.pagination,
-      };
-    }
-
-    if (activeSection === 'funders') {
-      const result = await grantsApiClient.listFunders(buildListQuery());
-      return { rows: result.data, pagination: result.pagination };
-    }
-
-    if (activeSection === 'programs') {
-      const result = await grantsApiClient.listPrograms(buildListQuery());
-      return { rows: result.data, pagination: result.pagination };
-    }
-
-    if (activeSection === 'recipients') {
-      const result = await grantsApiClient.listRecipients(buildListQuery());
-      return { rows: result.data, pagination: result.pagination };
-    }
-
-    if (activeSection === 'funded-programs') {
-      const result = await grantsApiClient.listFundedPrograms(buildListQuery());
-      return { rows: result.data, pagination: result.pagination };
-    }
-
-    if (activeSection === 'applications') {
-      const result = await grantsApiClient.listApplications(buildListQuery());
-      return { rows: result.data, pagination: result.pagination };
-    }
-
-    if (activeSection === 'awards') {
-      const result = await grantsApiClient.listAwards(buildListQuery());
-      return { rows: result.data, pagination: result.pagination };
-    }
-
-    if (activeSection === 'disbursements') {
-      const result = await grantsApiClient.listDisbursements(buildListQuery());
-      return { rows: result.data, pagination: result.pagination };
-    }
-
-    if (activeSection === 'reports') {
-      const result = await grantsApiClient.listReports(buildListQuery());
-      return { rows: result.data, pagination: result.pagination };
-    }
-
-    if (activeSection === 'documents') {
-      const result = await grantsApiClient.listDocuments(buildListQuery());
-      return { rows: result.data, pagination: result.pagination };
-    }
-
-    return {
-      rows: [],
-      pagination: null,
-    };
-  };
-
   useEffect(() => {
     const run = async () => {
       const requestId = latestRequestIdRef.current + 1;
       latestRequestIdRef.current = requestId;
       const shouldRefreshLookups = refreshCount !== lastLookupRefreshRef.current;
+      const sectionAdapter = getGrantsSectionAdapter(activeSection);
+      const listQuery: GrantListFilters = {
+        search: appliedSearch || undefined,
+        status: statusFilter || undefined,
+        funder_id: funderFilter || undefined,
+        program_id: programFilter || undefined,
+        recipient_organization_id: recipientFilter || undefined,
+        funded_program_id: fundedProgramFilter || undefined,
+        jurisdiction: toGrantJurisdiction(jurisdictionFilter),
+        fiscal_year: fiscalYearFilter || undefined,
+        due_before: dueBeforeFilter || undefined,
+        due_after: dueAfterFilter || undefined,
+        min_amount: minAmountFilter ? Number(minAmountFilter) : undefined,
+        max_amount: maxAmountFilter ? Number(maxAmountFilter) : undefined,
+        page,
+        limit,
+      };
 
       setLoading(true);
       setError(null);
@@ -301,7 +233,7 @@ export function useGrantsPageData() {
             jurisdiction: toGrantJurisdiction(jurisdictionFilter),
             fiscal_year: fiscalYearFilter || undefined,
           }),
-          loadCurrentRows(),
+          sectionAdapter.loadRows(listQuery),
         ]);
 
         if (requestId !== latestRequestIdRef.current) {
@@ -432,13 +364,13 @@ export function useGrantsPageData() {
 
   const handleNewRecord = () => {
     setSelectedId(null);
-    setFormValues(createBlankFormValues(activeSection));
+    setFormValues(getGrantsSectionAdapter(activeSection).createBlankFormValues());
     setNotice(null);
   };
 
   const handleSelectRecord = (record: EditableGrantRecord) => {
     setSelectedId(record.id);
-    setFormValues(recordToFormValues(activeSection, record));
+    setFormValues(getGrantsSectionAdapter(activeSection).recordToFormValues(record));
     setNotice(null);
   };
 
@@ -479,7 +411,7 @@ export function useGrantsPageData() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (activeSection === 'calendar' || activeSection === 'activities') {
+    if (isReadOnlyGrantsSection(activeSection)) {
       return;
     }
 
@@ -487,64 +419,20 @@ export function useGrantsPageData() {
     setError(null);
 
     try {
-      if (activeSection === 'applications' && selectedId) {
-        await grantsApiClient.updateApplication(selectedId, buildApplicationPayload(formValues));
-        setNotice('Application updated.');
-      } else if (activeSection === 'applications') {
-        await grantsApiClient.createApplication(buildApplicationPayload(formValues));
-        setNotice('Application created.');
-      } else if (activeSection === 'awards' && selectedId) {
-        await grantsApiClient.updateAward(selectedId, buildAwardPayload(formValues, lookups));
-        setNotice('Award updated.');
-      } else if (activeSection === 'awards') {
-        await grantsApiClient.createAward(buildAwardPayload(formValues, lookups));
-        setNotice('Award created.');
-      } else if (activeSection === 'disbursements' && selectedId) {
-        await grantsApiClient.updateDisbursement(selectedId, buildDisbursementPayload(formValues));
-        setNotice('Disbursement updated.');
-      } else if (activeSection === 'disbursements') {
-        await grantsApiClient.createDisbursement(buildDisbursementPayload(formValues));
-        setNotice('Disbursement created.');
-      } else if (activeSection === 'reports' && selectedId) {
-        await grantsApiClient.updateReport(selectedId, buildReportPayload(formValues));
-        setNotice('Report updated.');
-      } else if (activeSection === 'reports') {
-        await grantsApiClient.createReport(buildReportPayload(formValues));
-        setNotice('Report created.');
-      } else if (activeSection === 'documents' && selectedId) {
-        await grantsApiClient.updateDocument(selectedId, buildDocumentPayload(formValues));
-        setNotice('Document updated.');
-      } else if (activeSection === 'documents') {
-        await grantsApiClient.createDocument(buildDocumentPayload(formValues));
-        setNotice('Document created.');
-      } else if (activeSection === 'funders' && selectedId) {
-        await grantsApiClient.updateFunder(selectedId, buildFunderPayload(formValues));
-        setNotice('Funder updated.');
-      } else if (activeSection === 'funders') {
-        await grantsApiClient.createFunder(buildFunderPayload(formValues));
-        setNotice('Funder created.');
-      } else if (activeSection === 'programs' && selectedId) {
-        await grantsApiClient.updateProgram(selectedId, buildProgramPayload(formValues));
-        setNotice('Program updated.');
-      } else if (activeSection === 'programs') {
-        await grantsApiClient.createProgram(buildProgramPayload(formValues));
-        setNotice('Program created.');
-      } else if (activeSection === 'recipients' && selectedId) {
-        await grantsApiClient.updateRecipient(selectedId, buildRecipientPayload(formValues));
-        setNotice('Recipient updated.');
-      } else if (activeSection === 'recipients') {
-        await grantsApiClient.createRecipient(buildRecipientPayload(formValues));
-        setNotice('Recipient created.');
-      } else if (activeSection === 'funded-programs' && selectedId) {
-        await grantsApiClient.updateFundedProgram(selectedId, buildFundedProgramPayload(formValues));
-        setNotice('Funded program updated.');
-      } else if (activeSection === 'funded-programs') {
-        await grantsApiClient.createFundedProgram(buildFundedProgramPayload(formValues));
-        setNotice('Funded program created.');
+      const sectionAdapter = getGrantsSectionAdapter(activeSection);
+      if (!isEditableGrantsSection(sectionAdapter)) {
+        return;
       }
 
+      setNotice(
+        await sectionAdapter.saveRecord({
+          selectedId,
+          formValues,
+          lookups,
+        })
+      );
       setSelectedId(null);
-      setFormValues(createBlankFormValues(activeSection));
+      setFormValues(sectionAdapter.createBlankFormValues());
       refreshData();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Failed to save grant record.');
@@ -568,29 +456,15 @@ export function useGrantsPageData() {
     setError(null);
 
     try {
-      if (activeSection === 'funders') {
-        await grantsApiClient.deleteFunder(id);
-      } else if (activeSection === 'programs') {
-        await grantsApiClient.deleteProgram(id);
-      } else if (activeSection === 'recipients') {
-        await grantsApiClient.deleteRecipient(id);
-      } else if (activeSection === 'funded-programs') {
-        await grantsApiClient.deleteFundedProgram(id);
-      } else if (activeSection === 'applications') {
-        await grantsApiClient.deleteApplication(id);
-      } else if (activeSection === 'awards') {
-        await grantsApiClient.deleteAward(id);
-      } else if (activeSection === 'disbursements') {
-        await grantsApiClient.deleteDisbursement(id);
-      } else if (activeSection === 'reports') {
-        await grantsApiClient.deleteReport(id);
-      } else if (activeSection === 'documents') {
-        await grantsApiClient.deleteDocument(id);
+      const sectionAdapter = getGrantsSectionAdapter(activeSection);
+      if (!isEditableGrantsSection(sectionAdapter)) {
+        return;
       }
 
+      await sectionAdapter.deleteRecord(id);
       setNotice(`${sectionLabelById(activeSection)} deleted.`);
       setSelectedId(null);
-      setFormValues(createBlankFormValues(activeSection));
+      setFormValues(sectionAdapter.createBlankFormValues());
       refreshData();
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : 'Failed to delete grant record.');

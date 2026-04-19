@@ -65,7 +65,8 @@ describe('CaseLifecycleUseCase', () => {
         assigned_team: 'Team 1',
         tags: ['alpha', 'beta', 'alpha'],
       }),
-      ' user-9 '
+      ' user-9 ',
+      undefined
     );
   });
 
@@ -104,7 +105,8 @@ describe('CaseLifecycleUseCase', () => {
         closure_reason: 'Reason',
         tags: ['one', 'two'],
       }),
-      ' user-3 '
+      ' user-3 ',
+      undefined
     );
   });
 });

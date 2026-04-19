@@ -61,6 +61,90 @@ export const updateCurrentSiteData = (
   };
 };
 
+export const resolveWebsiteSiteId = (
+  siteId: string | { siteId: string } | null | undefined
+): string | null => {
+  if (!siteId) {
+    return null;
+  }
+
+  return typeof siteId === 'string' ? siteId : siteId.siteId;
+};
+
+export const setWebsiteSavingPending = (state: WebsitesCoreState) => {
+  state.isSaving = true;
+  state.error = null;
+};
+
+export const setWebsiteSavingRejected = (
+  state: WebsitesCoreState,
+  error: string | null | undefined
+) => {
+  state.isSaving = false;
+  state.error = error ?? null;
+};
+
+export const syncWebsiteForms = (
+  state: WebsitesCoreState,
+  siteId: string | null | undefined,
+  forms: WebsiteFormDefinition[]
+) => {
+  const resolvedSiteId = resolveWebsiteSiteId(siteId);
+  updateCurrentSiteData(state, resolvedSiteId, { forms });
+
+  if (resolvedSiteId && state.overview?.site.id === resolvedSiteId) {
+    state.overview.forms = forms;
+  }
+};
+
+export const mergeWebsiteForm = (
+  state: WebsitesCoreState,
+  siteId: string | null | undefined,
+  form: WebsiteFormDefinition
+) => {
+  const resolvedSiteId = resolveWebsiteSiteId(siteId);
+  const currentForms =
+    resolvedSiteId && state.currentSiteData.siteId === resolvedSiteId
+      ? state.currentSiteData.forms
+      : (state.overview?.site.id === resolvedSiteId ? state.overview.forms : null) ?? [];
+  const nextForms = currentForms.some((existingForm) => existingForm.formKey === form.formKey)
+    ? currentForms.map((existingForm) =>
+        existingForm.formKey === form.formKey ? form : existingForm
+      )
+    : [...currentForms, form];
+
+  syncWebsiteForms(state, resolvedSiteId, nextForms);
+};
+
+export const syncWebsiteIntegrations = (
+  state: WebsitesCoreState,
+  siteId: string | null | undefined,
+  integrations: WebsiteIntegrationStatus
+) => {
+  const resolvedSiteId = resolveWebsiteSiteId(siteId);
+  updateCurrentSiteData(state, resolvedSiteId, { integrations });
+
+  if (resolvedSiteId && state.overview?.site.id === resolvedSiteId) {
+    state.overview.integrations = integrations;
+  }
+};
+
+export const patchWebsiteSiteSummary = (
+  state: WebsitesCoreState,
+  sitePatch: Partial<WebsiteOverviewSummary['site']> & { id: string }
+) => {
+  if (state.overview?.site.id === sitePatch.id) {
+    state.overview.site = {
+      ...state.overview.site,
+      ...sitePatch,
+    };
+  }
+
+  state.sites = state.sites.map((site) =>
+    site.id === sitePatch.id ? { ...site, ...sitePatch } : site
+  );
+};
+
 export const buildInitialWebsitesCoreState = (): Omit<
   WebsiteState,
   'forms' | 'integrations' | 'analytics'

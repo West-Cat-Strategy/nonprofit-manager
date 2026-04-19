@@ -7,7 +7,7 @@ import pool from '@config/database';
 import type { AuthRequest } from '@middleware/auth';
 import type { Response } from 'express';
 import { unauthorized, forbidden } from '@utils/responseHelpers';
-import { type Permission } from '@utils/permissions';
+import { type Permission, hasAnyPermissionForRoles } from '@utils/permissions';
 import {
   hasRoleAccess,
   hasStaticPermissionAccess,
@@ -31,6 +31,8 @@ export type SafeGuardResult<T> =
       error: GuardFailure;
     };
 
+type AuthenticatedUser = NonNullable<AuthRequest['user']>;
+
 const getOrganizationId = (req: AuthRequest): string | undefined => {
   return req.organizationId || req.accountId || req.tenantId;
 };
@@ -41,10 +43,33 @@ const requireUserError = (): GuardFailure => ({
   statusCode: 401,
 });
 
+const requireRoleError = (allowedRoles: string[]): GuardFailure => ({
+  code: 'forbidden',
+  message: `Forbidden: Requires role [${allowedRoles.join(', ')}]`,
+  statusCode: 403,
+});
+
+const requirePermissionError = (permission: Permission | string): GuardFailure => ({
+  code: 'forbidden',
+  message: `Forbidden: Permission '${permission}' not granted`,
+  statusCode: 403,
+});
+
+const requireAnyPermissionError = (permissions: (Permission | string)[]): GuardFailure => ({
+  code: 'forbidden',
+  message: `Forbidden: Requires one of [${permissions.join(', ')}]`,
+  statusCode: 403,
+});
+
+const getCandidateRoles = (
+  user: AuthenticatedUser,
+  req: AuthRequest
+): string[] => req.authorizationContext?.roles || [user.role];
+
 /**
  * Safe variants: deterministic result contract for route/controller callers.
  */
-export function requireUserSafe(req: AuthRequest): SafeGuardResult<{ user: any }> {
+export function requireUserSafe(req: AuthRequest): SafeGuardResult<{ user: AuthenticatedUser }> {
   if (!req.user) {
     return { ok: false, error: requireUserError() };
   }
@@ -58,27 +83,52 @@ export function requireUserSafe(req: AuthRequest): SafeGuardResult<{ user: any }
 export function requirePermissionSafe(
   req: AuthRequest,
   permission: Permission | string
-): SafeGuardResult<{ user: any }> {
+): SafeGuardResult<{ user: AuthenticatedUser }> {
   const userResult = requireUserSafe(req);
   if (!userResult.ok) {
     return userResult;
   }
 
-  if (
-    !hasStaticPermissionAccess(
-      userResult.data.user.role,
-      permission,
-      req.authorizationContext?.roles
-    )
-  ) {
-    return {
-      ok: false,
-      error: {
-        code: 'forbidden',
-        message: `Forbidden: Permission '${permission}' not granted`,
-        statusCode: 403,
-      },
-    };
+  if (!hasStaticPermissionAccess(userResult.data.user.role, permission, req.authorizationContext?.roles)) {
+    return { ok: false, error: requirePermissionError(permission) };
+  }
+
+  return {
+    ok: true,
+    data: { user: userResult.data.user },
+  };
+}
+
+export function requireAnyPermissionSafe(
+  req: AuthRequest,
+  permissions: (Permission | string)[]
+): SafeGuardResult<{ user: AuthenticatedUser }> {
+  const userResult = requireUserSafe(req);
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  if (!hasAnyPermissionForRoles(getCandidateRoles(userResult.data.user, req), permissions)) {
+    return { ok: false, error: requireAnyPermissionError(permissions) };
+  }
+
+  return {
+    ok: true,
+    data: { user: userResult.data.user },
+  };
+}
+
+export function requireRoleSafe(
+  req: AuthRequest,
+  ...allowedRoles: string[]
+): SafeGuardResult<{ user: AuthenticatedUser }> {
+  const userResult = requireUserSafe(req);
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  if (!hasRoleAccess(userResult.data.user.role, allowedRoles, req.authorizationContext?.roles)) {
+    return { ok: false, error: requireRoleError(allowedRoles) };
   }
 
   return {
@@ -89,17 +139,10 @@ export function requirePermissionSafe(
 
 export async function requireActiveOrganizationSafe(
   req: AuthRequest
-): Promise<SafeGuardResult<{ user: any; organizationId: string }>> {
+): Promise<SafeGuardResult<{ user: AuthenticatedUser; organizationId: string }>> {
   const userResult = requireUserSafe(req);
   if (!userResult.ok) {
-    return {
-      ok: false,
-      error: {
-        code: 'unauthorized',
-        message: 'Unauthorized: No authenticated user',
-        statusCode: 401,
-      },
-    };
+    return { ok: false, error: requireUserError() };
   }
 
   const organizationId = getOrganizationId(req);
@@ -178,18 +221,18 @@ export function sendForbidden(res: Response, message: string = 'Forbidden'): voi
  * Middleware-style role guard - next if authorized, otherwise send response
  */
 export function guardWithRole(req: AuthRequest, res: Response, ...allowedRoles: string[]): boolean {
-  const userResult = requireUserSafe(req);
-  if (!userResult.ok) {
-    sendUnauthorized(res);
+  const guardResult = requireRoleSafe(req, ...allowedRoles);
+  if (guardResult.ok) {
+    return true;
+  }
+
+  if (guardResult.error.code === 'unauthorized') {
+    sendUnauthorized(res, guardResult.error.message);
     return false;
   }
 
-  if (!hasRoleAccess(userResult.data.user.role, allowedRoles, req.authorizationContext?.roles)) {
-    sendForbidden(res);
-    return false;
-  }
-
-  return true;
+  sendForbidden(res, guardResult.error.message);
+  return false;
 }
 
 export function guardWithPermission(
@@ -211,9 +254,28 @@ export function guardWithPermission(
   return false;
 }
 
+export function guardWithAnyPermission(
+  req: AuthRequest,
+  res: Response,
+  ...permissions: (Permission | string)[]
+): boolean {
+  const guardResult = requireAnyPermissionSafe(req, permissions);
+  if (guardResult.ok) {
+    return true;
+  }
+
+  if (guardResult.error.code === 'unauthorized') {
+    sendUnauthorized(res, guardResult.error.message);
+    return false;
+  }
+
+  sendForbidden(res, guardResult.error.message);
+  return false;
+}
+
 /**
  * Extract user safely from request
  */
-export function getUser(req: AuthRequest): any {
+export function getUser(req: AuthRequest): AuthenticatedUser | undefined {
   return req.user;
 }

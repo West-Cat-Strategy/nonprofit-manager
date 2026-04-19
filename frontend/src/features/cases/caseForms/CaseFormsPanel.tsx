@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BrutalCard } from '../../../components/neo-brutalist';
 import { useToast } from '../../../contexts/useToast';
 import type {
@@ -58,7 +58,7 @@ export default function CaseFormsPanel({
   );
   const [logicDrafts, setLogicDrafts] = useState<Record<string, string>>({});
 
-  const loadAssignments = async (preserveSelection = true): Promise<void> => {
+  const loadAssignments = useCallback(async (preserveSelection = true): Promise<void> => {
     setLoading(true);
     try {
       const [defaults, assignmentList] = await Promise.all([
@@ -78,9 +78,9 @@ export default function CaseFormsPanel({
     } finally {
       setLoading(false);
     }
-  };
+  }, [caseId, selectedAssignmentId, showError]);
 
-  const loadDetail = async (assignmentId: string): Promise<void> => {
+  const loadDetail = useCallback(async (assignmentId: string): Promise<void> => {
     try {
       const nextDetail = await staffCaseFormsApiClient.getAssignment(caseId, assignmentId);
       setDetail(nextDetail);
@@ -104,11 +104,11 @@ export default function CaseFormsPanel({
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Failed to load form detail');
     }
-  };
+  }, [caseId, clientEmail, showError]);
 
   useEffect(() => {
     void loadAssignments(false);
-  }, [caseId]);
+  }, [loadAssignments]);
 
   useEffect(() => {
     if (selectedAssignmentId) {
@@ -116,7 +116,7 @@ export default function CaseFormsPanel({
     } else {
       setDetail(null);
     }
-  }, [selectedAssignmentId]);
+  }, [loadDetail, selectedAssignmentId]);
 
   const assignment = detail?.assignment ?? null;
   const assignmentAccessLinkUrl = assignment?.access_link_url ?? null;

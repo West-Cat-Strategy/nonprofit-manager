@@ -4,12 +4,23 @@ FROM node:20-alpine3.20@sha256:3bc9a4c4cc25cfde1e8f946341c85f333c36517aafda829b4
 
 WORKDIR /app
 
+FROM base AS workspace-deps
+
+WORKDIR /workspace
+
+COPY --from=workspace /package.json /package-lock.json ./
+COPY --from=workspace /backend/package.json ./backend/package.json
+COPY --from=workspace /frontend/package.json ./frontend/package.json
+COPY --from=workspace /contracts/package.json ./contracts/package.json
+COPY --from=workspace /e2e/package.json ./e2e/package.json
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
+    npm ci --workspace frontend --include-workspace-root=false --no-audit --no-fund
+
 FROM base AS deps
 
-COPY package.json ./
-COPY --from=contracts / /contracts
-RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm install --no-package-lock --no-audit --no-fund
+COPY --from=workspace /frontend/package.json ./package.json
+COPY --from=workspace-deps /workspace/node_modules ./node_modules
+RUN rm -rf ./node_modules/@nonprofit-manager/contracts
 
 FROM deps AS app
 
@@ -17,13 +28,11 @@ COPY index.html grants-smoke.html postcss.config.js tailwind.config.js vite.conf
 COPY public ./public
 COPY src ./src
 # Keep the shared contracts package available for type-checking without
-# widening the main frontend build context.
-# This image expects the shared `contracts` build context that make docker-build
-# and make docker-validate pass through via Docker Buildx additional contexts.
-COPY --from=contracts /package.json ./node_modules/@nonprofit-manager/contracts/package.json
-COPY --from=contracts /index.d.ts ./node_modules/@nonprofit-manager/contracts/index.d.ts
-COPY --from=contracts /messaging.d.ts ./node_modules/@nonprofit-manager/contracts/messaging.d.ts
-COPY --from=contracts /websiteBuilder.d.ts ./node_modules/@nonprofit-manager/contracts/websiteBuilder.d.ts
+# widening the frontend build context itself.
+COPY --from=workspace /contracts/package.json ./node_modules/@nonprofit-manager/contracts/package.json
+COPY --from=workspace /contracts/index.d.ts ./node_modules/@nonprofit-manager/contracts/index.d.ts
+COPY --from=workspace /contracts/messaging.d.ts ./node_modules/@nonprofit-manager/contracts/messaging.d.ts
+COPY --from=workspace /contracts/websiteBuilder.d.ts ./node_modules/@nonprofit-manager/contracts/websiteBuilder.d.ts
 
 FROM app AS build
 

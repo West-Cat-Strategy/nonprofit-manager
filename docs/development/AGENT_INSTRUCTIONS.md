@@ -72,6 +72,7 @@ cd backend && npm run type-check
 cd frontend && npm run type-check
 make check-links
 make lint-doc-api-versioning
+make test-tooling
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 

@@ -5,8 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import OutreachCenterPage from '../OutreachCenterPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
-const { mockNavigate, mockGetCampaignStats, mockGetCampaignEvents } = vi.hoisted(() => ({
+const { mockNavigate, mockLocation, mockGetCampaignStats, mockGetCampaignEvents } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
+  mockLocation: vi.fn(() => ({ pathname: '/outreach' })),
   mockGetCampaignStats: vi.fn(),
   mockGetCampaignEvents: vi.fn(),
 }));
@@ -16,6 +17,7 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
+    useLocation: () => mockLocation(),
   };
 });
 
@@ -49,6 +51,7 @@ describe('OutreachCenterPage', () => {
 
   it('routes the new blast CTA to communications settings', async () => {
     const user = userEvent.setup();
+    mockLocation.mockReturnValue({ pathname: '/outreach' });
 
     renderWithProviders(<OutreachCenterPage />, {
       route: '/outreach',
@@ -61,5 +64,20 @@ describe('OutreachCenterPage', () => {
     await user.click(screen.getByRole('button', { name: /new blast/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/settings/communications');
+  });
+
+  it('renders deterministic demo outreach data without calling the staff outreach APIs', async () => {
+    mockLocation.mockReturnValue({ pathname: '/demo/outreach' });
+
+    renderWithProviders(<OutreachCenterPage />, {
+      route: '/demo/outreach',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('1,234')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Demo Spring Community Night')).toBeInTheDocument();
+    expect(screen.getByText('Demo Volunteer Welcome')).toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { Router, Application } from 'express';
 import { authenticate } from '@middleware/domains/auth';
+import { captureRequestedOrganizationContext } from '@middleware/orgContext';
 import { requireWorkspaceModuleEnabled } from '@middleware/requireWorkspaceModuleEnabled';
 import { portalV2Routes } from '@modules/portal';
 import { eventsV2Routes, publicEventsV2Routes } from '@modules/events';
@@ -49,43 +50,62 @@ import type { WorkspaceModuleKey } from '@app-types/workspaceModules';
 
 export const apiV2Routes = Router();
 
+const mountV2Routes = (
+  path: string,
+  router: Router,
+  options?: {
+    authenticate?: boolean;
+    workspaceModuleKey?: WorkspaceModuleKey;
+  }
+): void => {
+  const middleware = [captureRequestedOrganizationContext];
+
+  if (options?.authenticate) {
+    middleware.push(authenticate);
+  }
+
+  if (options?.workspaceModuleKey) {
+    middleware.push(requireWorkspaceModuleEnabled(options.workspaceModuleKey));
+  }
+
+  apiV2Routes.use(path, ...middleware, router);
+};
+
 const mountWorkspaceModuleRoutes = (
   path: string,
   moduleKey: WorkspaceModuleKey,
   router: Router
 ): void => {
-  apiV2Routes.use(
-    path,
-    authenticate,
-    requireWorkspaceModuleEnabled(moduleKey),
-    router
-  );
+  mountV2Routes(path, router, {
+    authenticate: true,
+    workspaceModuleKey: moduleKey,
+  });
 };
 
-apiV2Routes.use('/auth', authV2Routes);
-apiV2Routes.use('/users', usersV2Routes);
-apiV2Routes.use('/ingest', ingestV2Routes);
-apiV2Routes.use('/admin', adminV2Routes);
-apiV2Routes.use('/backup', backupV2Routes);
-apiV2Routes.use('/plausible', plausibleProxyV2Routes);
-apiV2Routes.use('/activities', activitiesV2Routes);
-apiV2Routes.use('/export', exportV2Routes);
-apiV2Routes.use('/invitations', invitationsV2Routes);
-apiV2Routes.use('/mailchimp', mailchimpV2Routes);
-apiV2Routes.use('/meetings', meetingsV2Routes);
-apiV2Routes.use('/payments', paymentsV2Routes);
-apiV2Routes.use('/public/events', publicEventsV2Routes);
-apiV2Routes.use('/public/newsletters', publicPublishingV2Routes);
-apiV2Routes.use('/public/forms', publicWebsiteFormsV2Routes);
-apiV2Routes.use('/public/case-forms', publicCaseFormsV2Routes);
-apiV2Routes.use('/public/reports', publicReportsV2Routes);
-apiV2Routes.use('/social-media', socialMediaV2Routes);
-apiV2Routes.use('/sites', publishingV2Routes);
-apiV2Routes.use('/templates', templatesV2Routes);
-apiV2Routes.use('/webhooks', webhooksV2Routes);
-apiV2Routes.use('/portal/auth', portalAuthV2Routes);
-apiV2Routes.use('/portal/admin', portalAdminV2Routes);
-apiV2Routes.use('/portal', portalV2Routes);
+mountV2Routes('/auth', authV2Routes);
+mountV2Routes('/users', usersV2Routes);
+mountV2Routes('/ingest', ingestV2Routes);
+mountV2Routes('/admin', adminV2Routes);
+mountV2Routes('/backup', backupV2Routes);
+mountV2Routes('/plausible', plausibleProxyV2Routes);
+mountV2Routes('/activities', activitiesV2Routes);
+mountV2Routes('/export', exportV2Routes);
+mountV2Routes('/invitations', invitationsV2Routes);
+mountV2Routes('/mailchimp', mailchimpV2Routes);
+mountV2Routes('/meetings', meetingsV2Routes);
+mountV2Routes('/payments', paymentsV2Routes);
+mountV2Routes('/public/events', publicEventsV2Routes);
+mountV2Routes('/public/newsletters', publicPublishingV2Routes);
+mountV2Routes('/public/forms', publicWebsiteFormsV2Routes);
+mountV2Routes('/public/case-forms', publicCaseFormsV2Routes);
+mountV2Routes('/public/reports', publicReportsV2Routes);
+mountV2Routes('/social-media', socialMediaV2Routes);
+mountV2Routes('/sites', publishingV2Routes);
+mountV2Routes('/templates', templatesV2Routes);
+mountV2Routes('/webhooks', webhooksV2Routes);
+mountV2Routes('/portal/auth', portalAuthV2Routes);
+mountV2Routes('/portal/admin', portalAdminV2Routes);
+mountV2Routes('/portal', portalV2Routes);
 mountWorkspaceModuleRoutes('/events', 'events', eventsV2Routes);
 mountWorkspaceModuleRoutes('/accounts', 'accounts', accountsV2Routes);
 mountWorkspaceModuleRoutes('/volunteers', 'volunteers', volunteersV2Routes);
@@ -94,7 +114,7 @@ mountWorkspaceModuleRoutes('/analytics', 'analytics', analyticsV2Routes);
 mountWorkspaceModuleRoutes('/reports', 'reports', reportsV2Routes);
 mountWorkspaceModuleRoutes('/saved-reports', 'reports', savedReportsV2Routes);
 mountWorkspaceModuleRoutes('/scheduled-reports', 'scheduledReports', scheduledReportsV2Routes);
-apiV2Routes.use('/dashboard', dashboardV2Routes);
+mountV2Routes('/dashboard', dashboardV2Routes);
 mountWorkspaceModuleRoutes('/follow-ups', 'followUps', followUpsV2Routes);
 mountWorkspaceModuleRoutes('/cases', 'cases', casesV2Routes);
 mountWorkspaceModuleRoutes('/contacts', 'contacts', contactsV2Routes);

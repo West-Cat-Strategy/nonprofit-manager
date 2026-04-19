@@ -5,6 +5,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 source "$PROJECT_ROOT/scripts/lib/db-at-rest.sh"
 
+DB_COMPOSE_ENV_FILE="${DB_COMPOSE_ENV_FILE:-}"
+
+if [[ -n "$DB_COMPOSE_ENV_FILE" ]]; then
+  require_env_file "$DB_COMPOSE_ENV_FILE"
+  load_env_file_defaults "$DB_COMPOSE_ENV_FILE"
+fi
+
 DB_NAME="${DB_NAME:-nonprofit_manager}"
 DB_USER="${DB_USER:-postgres}"
 DB_PASSWORD="${DB_PASSWORD:-postgres}"
@@ -16,12 +23,26 @@ TIMESTAMP="${TIMESTAMP:-$(date -u +%Y%m%d-%H%M%SZ)}"
 DB_COMPOSE_PROJECT="${DB_COMPOSE_PROJECT:-$COMPOSE_PROJECT_DEV}"
 DB_COMPOSE_FILE="${DB_COMPOSE_FILE:-$PROJECT_ROOT/docker-compose.dev.yml}"
 DB_COMPOSE_FILES_RAW="${DB_COMPOSE_FILES:-$DB_COMPOSE_FILE}"
-DB_COMPOSE_ENV_FILE="${DB_COMPOSE_ENV_FILE:-}"
 
 ARCHIVE_OUTPUT="${1:-${DB_ARCHIVE_FILE:-}}"
+validate_production_db_at_rest_contract
+DB_AT_REST_MODE="$(to_lower "${DB_AT_REST_ENCRYPTION_MODE:-}")"
+
+if [[ "${NODE_ENV:-}" == "production" && "$DB_AT_REST_MODE" == "managed" ]]; then
+  echo "db-export-archive.sh is intentionally blocked in managed production mode; use provider-managed snapshots or exports instead." >&2
+  exit 1
+fi
+
 if [[ -z "$ARCHIVE_OUTPUT" ]]; then
   validate_backup_dir_for_local_db
   ARCHIVE_OUTPUT="$BACKUP_DIR/nonprofit-manager-archive-$TIMESTAMP.dump"
+fi
+
+if [[ "${NODE_ENV:-}" == "production" ]]; then
+  if ! require_abs_path "$ARCHIVE_OUTPUT"; then
+    echo "ARCHIVE_OUTPUT must be an absolute path for production archive exports" >&2
+    exit 1
+  fi
 fi
 
 compose_db() {

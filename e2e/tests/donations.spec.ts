@@ -77,7 +77,7 @@ test.describe('Donations Module', () => {
 
   test('should create a new donation via UI', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('create');
-    await createTestAccount(authenticatedPage, authToken, {
+    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
       name: `Test Donor ${unique}`,
       email: `${unique}@example.com`,
     });
@@ -85,8 +85,16 @@ test.describe('Donations Module', () => {
     await authenticatedPage.goto('/donations/new');
     await authenticatedPage.waitForURL(/\/donations\/new$/);
 
+    const accountSelect = authenticatedPage.locator('select[name="account_id"]');
+    await expect(accountSelect).toBeVisible();
+    await expect
+      .poll(async () => accountSelect.locator(`option[value="${accountId}"]`).count())
+      .toBeGreaterThan(0);
+
+    await accountSelect.selectOption(accountId);
     await authenticatedPage.fill('input[name="amount"]', '500.00');
     await authenticatedPage.fill('input[name="donation_date"]', '2026-01-15T14:00');
+    await authenticatedPage.fill('input[name="transaction_id"]', `MANUAL-${unique}`);
     await authenticatedPage.selectOption('select[name="payment_method"]', 'credit_card');
     await authenticatedPage.selectOption('select[name="payment_status"]', 'completed');
 
@@ -109,8 +117,32 @@ test.describe('Donations Module', () => {
       return;
     }
 
-    // Current form does not capture account/contact but backend requires one.
-    expect(createResponse.ok()).toBeFalsy();
+    expect(createResponse.ok()).toBeTruthy();
+    await authenticatedPage.waitForURL(/\/donations(?:\?|$)/);
+    await expect(authenticatedPage.getByRole('heading', { level: 1, name: /^donations$/i })).toBeVisible();
+  });
+
+  test('should reject donation creation without donor linkage at the API boundary', async ({
+    authenticatedPage,
+    authToken,
+  }) => {
+    const headers = await getAuthHeaders(authenticatedPage, authToken);
+    const response = await authenticatedPage.request.post(`${apiURL}/api/v2/donations`, {
+      headers,
+      data: {
+        amount: 125,
+        currency: 'CAD',
+        donation_date: '2026-01-15T14:00:00.000Z',
+        payment_method: 'cash',
+        payment_status: 'completed',
+        transaction_id: `MANUAL-${makeUnique('missing-linkage')}`,
+      },
+    });
+
+    expect(response.ok()).toBeFalsy();
+    expect(response.status()).toBe(400);
+    const responseText = await response.text();
+    expect(responseText).toMatch(/account_id|contact_id|donation linkage/i);
   });
 
   test('should show validation errors for required fields', async ({ authenticatedPage }) => {
@@ -381,14 +413,20 @@ test.describe('Donations Module', () => {
 
   test('should handle recurring donations', async ({ authenticatedPage, authToken }) => {
     const unique = makeUnique('recurring');
-    await createTestAccount(authenticatedPage, authToken, {
+    const { id: accountId } = await createTestAccount(authenticatedPage, authToken, {
       name: `Recurring Donor ${unique}`,
       email: `${unique}@example.com`,
     });
 
     await authenticatedPage.goto('/donations/new');
+    const accountSelect = authenticatedPage.locator('select[name="account_id"]');
+    await expect(accountSelect).toBeVisible();
+    await expect.poll(async () => accountSelect.locator(`option[value="${accountId}"]`).count()).toBe(1);
+
+    await accountSelect.selectOption(accountId);
     await authenticatedPage.fill('input[name="amount"]', '50.00');
     await authenticatedPage.fill('input[name="donation_date"]', '2026-01-15T14:00');
+    await authenticatedPage.fill('input[name="transaction_id"]', `RECUR-${unique}`);
     await authenticatedPage.check('input[name="is_recurring"]');
     await authenticatedPage.selectOption('select[name="recurring_frequency"]', 'monthly');
 
@@ -410,7 +448,8 @@ test.describe('Donations Module', () => {
       return;
     }
 
-    expect(createResponse.ok()).toBeFalsy();
+    expect(createResponse.ok()).toBeTruthy();
+    await authenticatedPage.waitForURL(/\/donations(?:\?|$)/);
   });
 
   test('should paginate donations list', async ({ authenticatedPage, authToken }) => {

@@ -123,6 +123,8 @@ Use these docs when the task touches operational safety, schema references, or p
 | [security/SECURITY_MONITORING_GUIDE.md](security/SECURITY_MONITORING_GUIDE.md) | You need the active security monitoring contract |
 | [security/INCIDENT_RESPONSE_RUNBOOK.md](security/INCIDENT_RESPONSE_RUNBOOK.md) | You need incident response procedures |
 | [validation/VALIDATION_SCHEMAS_REFERENCE.md](validation/VALIDATION_SCHEMAS_REFERENCE.md) | You need validation schema reference material |
+| [validation/persona-workflow-audit-2026-04-18.md](validation/persona-workflow-audit-2026-04-18.md) | You need the evidence-first persona workflow audit comparing the current persona docs against runnable repo proof and drift |
+| [validation/staff-app-ui-ux-strategic-audit-2026-04-18.md](validation/staff-app-ui-ux-strategic-audit-2026-04-18.md) | You need the staff-app-only UI/UX audit covering navigation, workflow ergonomics, visual cohesion, and the current live-runtime blockers |
 | [performance/PERFORMANCE_OPTIMIZATION.md](performance/PERFORMANCE_OPTIMIZATION.md) | You need active performance guidance |
 | [performance/PERFORMANCE_OPTIMIZATION_REPORT.md](performance/PERFORMANCE_OPTIMIZATION_REPORT.md) | You need the historical optimization report |
 

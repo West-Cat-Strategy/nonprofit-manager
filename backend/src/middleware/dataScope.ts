@@ -3,6 +3,7 @@ import pool from '@config/database';
 import { logger } from '@config/logger';
 import { AuthRequest } from './auth';
 import type { DataScopeContext, DataScopeFilter } from '@app-types/dataScope';
+import { sendError } from '@modules/shared/http/envelope';
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -31,7 +32,7 @@ const normalizeFilter = (filter: unknown): DataScopeFilter | undefined => {
 };
 
 export const loadDataScope = (resource: string) => {
-  return async (req: AuthRequest, _res: Response, next: NextFunction): Promise<void> => {
+  return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user?.id;
       const userRole = req.user?.role;
@@ -69,7 +70,14 @@ export const loadDataScope = (resource: string) => {
       return next();
     } catch (error) {
       logger.error('Failed to load data scope', { error, resource, userId: req.user?.id });
-      return next();
+      sendError(
+        res,
+        'data_scope_lookup_failed',
+        'Failed to load data scope',
+        500,
+        { resource },
+        req.correlationId
+      );
     }
   };
 };

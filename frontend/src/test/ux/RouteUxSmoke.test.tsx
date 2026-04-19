@@ -101,6 +101,28 @@ const expectGetRequest = async (matcher: TestApiMatcher) => {
   });
 };
 
+const reportManagerState = {
+  auth: {
+    user: {
+      id: 'user-report-manager',
+      email: 'reports@example.org',
+      firstName: 'Report',
+      lastName: 'Manager',
+      role: 'manager',
+      permissions: [
+        'report:view',
+        'report:create',
+        'report:export',
+        'scheduled_report:view',
+        'scheduled_report:manage',
+      ],
+    },
+    isAuthenticated: true,
+    authLoading: false,
+    loading: false,
+  },
+} as const;
+
 const registerSharedRouteApi = () => {
   registerTestApiGet(apiMatchers.accounts, {
     data: {
@@ -546,6 +568,7 @@ const smokeCases: SmokeCase[] = [
     page: <ScheduledReportsPage />,
     heading: /scheduled reports/i,
     primaryActionPattern: /new schedule/i,
+    preloadedState: reportManagerState,
     contractAssertion: async () => {
       await expectGetRequest(apiMatchers.scheduledReports);
       await expectGetRequest(apiMatchers.savedReports);
@@ -557,6 +580,7 @@ const smokeCases: SmokeCase[] = [
     page: <SavedReportsPage />,
     heading: /saved reports/i,
     primaryActionPattern: /create new report/i,
+    preloadedState: reportManagerState,
     contractAssertion: () => expectGetRequest(apiMatchers.savedReports),
   },
   {
@@ -565,6 +589,7 @@ const smokeCases: SmokeCase[] = [
     page: <ReportBuilderPage />,
     heading: /report builder/i,
     primaryActionPattern: /generate report/i,
+    preloadedState: reportManagerState,
     contractAssertion: async () => {
       await expectGetRequest(apiMatchers.reportFields);
       await expectGetRequest(apiMatchers.exportJobs);

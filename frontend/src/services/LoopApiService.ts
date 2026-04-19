@@ -27,6 +27,15 @@ import {
 import { getCampaignStats, getCampaignEvents } from './loop/campaign';
 import { getOrganizations } from './loop/organizations';
 import { getTasks } from './loop/tasks';
+import {
+  getDemoCampaignEvents,
+  getDemoCampaignStats,
+  getDemoTasks,
+  isDemoPath,
+} from './loop/demo';
+
+const isDemoContext = (): boolean =>
+  typeof window !== 'undefined' && isDemoPath(window.location.pathname);
 
 /**
  * LOOP API Service Class
@@ -68,10 +77,18 @@ class LoopApiService {
   // ==========================================================================
 
   async getCampaignStats(): Promise<CampaignStats> {
+    if (isDemoContext()) {
+      return getDemoCampaignStats();
+    }
+
     return getCampaignStats();
   }
 
   async getCampaignEvents(): Promise<CampaignEvent[]> {
+    if (isDemoContext()) {
+      return getDemoCampaignEvents();
+    }
+
     return getCampaignEvents();
   }
 
@@ -88,6 +105,10 @@ class LoopApiService {
   // ==========================================================================
 
   async getTasks(): Promise<Task[]> {
+    if (isDemoContext()) {
+      return getDemoTasks();
+    }
+
     return getTasks();
   }
 }

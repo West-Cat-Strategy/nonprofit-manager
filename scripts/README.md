@@ -20,9 +20,9 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [db-restore-archive.sh](db-restore-archive.sh) | Restore a Postgres custom-format archive with `pg_restore --create`. | Manual ops / disaster recovery |
 | [verify-migrations.sh](verify-migrations.sh) | Verify the isolated `_test` database contract and manifest parity. | `make db-verify` |
 | [deploy.sh](deploy.sh) | Run the local, staging, or production deployment wrapper. | `make deploy-local` / `make deploy-staging` / `make deploy` |
-| [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-local git hooks. | `make hooks` |
-| [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files. | `./scripts/select-checks.sh` |
-| [e2e-playwright.sh](e2e-playwright.sh) | Apply the repo's standard host or Docker Playwright defaults before delegating to the shared runner. | `e2e` package scripts |
+| [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-managed hooks into Git's resolved hooks path and preserve differing existing hooks unless you pass `--force`. | `make hooks` / `./scripts/install-git-hooks.sh --dry-run` |
+| [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files, with distinct `fast` and `strict` modes. | `./scripts/select-checks.sh --mode fast` |
+| [e2e-playwright.sh](e2e-playwright.sh) | Apply the repo's standard host or Docker Playwright defaults before delegating to the shared runner, while still honoring explicit runtime overrides such as `BASE_URL`, `API_URL`, and `E2E_*_PORT`. | `e2e` package scripts |
 | [e2e-run-with-lock.sh](e2e-run-with-lock.sh) | Run Playwright with the shared lock plus built-in port preflight and retry safeguards. | `e2e` package scripts |
 
 ## Policy Checks
@@ -58,12 +58,12 @@ If you just need a quick repo check, start with:
 make lint
 make typecheck
 make test
-make test-coverage
-make test-e2e-docker-smoke
 ```
 
-`make test` runs backend/frontend tests, the host Playwright CI matrix, and the named Docker-backed smoke gate `make test-e2e-docker-smoke`.
-`make test-coverage` is the coverage-focused companion to `make test`: it runs backend and frontend coverage, host Playwright smoke, and the same Docker-backed smoke gate.
+`make test` runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate.
+`make test-coverage` is the coverage-focused companion to `make test`: it runs backend and frontend coverage, host Playwright smoke, and the same isolated Docker-backed smoke gate.
+`make test-coverage-full` is the higher-confidence coverage lane: it runs backend and frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate.
+`make test-tooling` runs the targeted tooling-contract regression suite for selector, route-audit, helper-script, and wrapper changes.
 The full Playwright CI matrix stays gated to the default browser projects; `Mobile Safari` and `Tablet` remain manual/ad hoc projects that you can run explicitly when needed.
 
 If your change is docs-only, use:
@@ -79,4 +79,5 @@ If you need a narrower sequence, ask the selector helper for a recommendation:
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
+Use `--mode strict` when the change touches shared runtime orchestration, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks.
 Code and runtime changes should emit at least one behavior-test command. Docs-only changes stay on docs validation.

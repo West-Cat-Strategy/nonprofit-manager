@@ -19,7 +19,11 @@ import { EventRepository } from '../repositories/eventRepository';
 export class EventCatalogUseCase {
   constructor(private readonly repository: EventRepository) {}
 
-  list(filters: EventFilters, pagination: PaginationParams, scope?: DataScopeFilter): Promise<PaginatedEvents> {
+  list(
+    filters: EventFilters,
+    pagination: PaginationParams,
+    scope?: DataScopeFilter
+  ): Promise<PaginatedEvents> {
     return this.repository.getEvents(filters, pagination, scope);
   }
 
@@ -43,7 +47,10 @@ export class EventCatalogUseCase {
     return this.repository.listEventOccurrences(filters, scope);
   }
 
-  getOccurrenceById(occurrenceId: string, scope?: DataScopeFilter): Promise<EventOccurrence | null> {
+  getOccurrenceById(
+    occurrenceId: string,
+    scope?: DataScopeFilter
+  ): Promise<EventOccurrence | null> {
     return this.repository.getEventOccurrenceById(occurrenceId, scope);
   }
 
@@ -64,8 +71,8 @@ export class EventCatalogUseCase {
     return this.repository.getPublicEventBySlug(ownerUserId, slug);
   }
 
-  create(data: CreateEventDTO, userId: string): Promise<Event> {
-    return this.repository.createEvent(data, userId);
+  create(data: CreateEventDTO, userId: string, organizationId: string): Promise<Event> {
+    return this.repository.createEvent(data, userId, organizationId);
   }
 
   update(eventId: string, data: UpdateEventDTO, userId: string): Promise<Event> {

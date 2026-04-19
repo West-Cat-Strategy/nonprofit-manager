@@ -1,2 +1,1 @@
-export const preloadNavigationQuickLookupDialog = () =>
-  import('./NavigationQuickLookupDialog');
+export { preloadStaffNavigationQuickLookupDialog as preloadNavigationQuickLookupDialog } from '../../features/navigation/preloadStaffNavigationQuickLookupDialog';

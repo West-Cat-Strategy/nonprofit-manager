@@ -29,10 +29,10 @@ That order matches `playwright.config.ts`, which calls `dotenv.config` for `.env
 The wrapper-driven runtime commands are mode-defining:
 
 - `npm test`, `npm run test:smoke`, `npm run test:ci`, `npm run test:ci:mobile`, `npm run test:headed`, `npm run test:debug`, and `npm run test:ui` always use the Playwright-managed host contract on `127.0.0.1:5173/3001`.
-- `npm run test:docker*` always use the externally managed Docker contract on `127.0.0.1:8005/8004/8006` with `SKIP_WEBSERVER=1`.
+- `npm run test:docker*` default to the externally managed Docker contract on `127.0.0.1:8005/8004/8006` with `SKIP_WEBSERVER=1`.
 - Those wrapper contracts also pin `BYPASS_REGISTRATION_POLICY_IN_TEST=false` for host runs and `BYPASS_REGISTRATION_POLICY_IN_TEST=true` for docker runs.
 
-Those wrapper commands intentionally ignore mixed-mode overrides for `SKIP_WEBSERVER`, `BASE_URL`, `API_URL`, `E2E_BACKEND_PORT`, and `E2E_FRONTEND_PORT`. If you need an ad hoc hybrid target, run `npx playwright test ...` directly with explicit env vars instead of the wrapper script.
+The wrapper still enforces the host-vs-docker mode contract, but explicit overrides for `BASE_URL`, `API_URL`, `E2E_BACKEND_PORT`, `E2E_FRONTEND_PORT`, `E2E_PUBLIC_SITE_PORT`, and `E2E_DB_PORT` are honored inside that mode. That makes it possible to point `npm run test:docker*` at an alternate externally managed stack such as the repo's isolated smoke project.
 
 ## Setup
 
@@ -77,11 +77,11 @@ npm run test:report
 - `npm run test:smoke`: Chromium smoke slice
 - `npm run test:ci`: Chromium, Firefox, and WebKit functional matrix, then `npm run test:ci:mobile`
 - `npm run test:ci:mobile`: Mobile Chrome regression slice against the Playwright-managed host runtime
-- `npm run test:docker`: run against an already running Docker app stack on `8005/8004/8006`
-- `npm run test:docker:smoke`: Chromium smoke slice against Docker-hosted services on `8005/8004/8006`
-- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services on `8005/8004/8006`, then `npm run test:docker:ci:mobile`
-- `npm run test:docker:ci:mobile`: Mobile Chrome regression slice against Docker-hosted services on `8005/8004/8006`
-- `npm run test:docker:audit`: dedicated Chromium dark-mode route audit against Docker-hosted services on `8005/8004/8006`
+- `npm run test:docker`: run against an already running Docker app stack, defaulting to `8005/8004/8006`
+- `npm run test:docker:smoke`: Chromium smoke slice against Docker-hosted services, defaulting to `8005/8004/8006`
+- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services, defaulting to `8005/8004/8006`, then `npm run test:docker:ci:mobile`
+- `npm run test:docker:ci:mobile`: Mobile Chrome regression slice against Docker-hosted services, defaulting to `8005/8004/8006`
+- `npm run test:docker:audit`: dedicated Chromium dark-mode route audit against Docker-hosted services, defaulting to `8005/8004/8006`
 - `npm run test:report`: open the HTML report
 
 `Mobile Safari` and `Tablet` are defined in `playwright.config.ts` for manual/ad hoc `--project` runs. They are intentionally excluded from the CI wrappers above.
@@ -91,8 +91,9 @@ npm run test:report
 Repo-root CI flows call these E2E commands today:
 
 - `make test`: backend tests, frontend tests, `npm run test:ci`, then the named Docker-backed smoke gate `make test-e2e-docker-smoke`
-- `make test-e2e-docker-smoke`: `make docker-up-dev`, then `npm run test:docker:smoke`
+- `make test-e2e-docker-smoke`: provisions the isolated `nonprofit-smoke` compose project on `18005/18004/18006`, runs `npm run test:docker:smoke` against that stack, then tears it down unless `KEEP_SMOKE_STACK=1`
 - `make test-coverage`: backend/frontend coverage, `npm run test:smoke`, then `make test-e2e-docker-smoke`
+- `make test-coverage-full`: backend/frontend coverage, `npm run test:ci`, then `make test-e2e-docker-smoke`
 - `make ci`: `./scripts/ci.sh --build`, which runs `make lint`, `make typecheck`, `make test`, and `make build`
 - `make ci-full`: `./scripts/ci.sh --build --audit --coverage`, which runs `make lint`, `make typecheck`, `make test-coverage`, `make build`, and `make security-audit`
 
@@ -100,7 +101,7 @@ Repo-root CI flows call these E2E commands today:
 
 ## Docker App Stack Runtime
 
-If you want Playwright to target the Docker development stack instead of starting host processes:
+If you want Playwright to target the long-lived Docker development stack instead of starting host processes:
 
 ```bash
 make docker-up-dev
@@ -125,6 +126,21 @@ These commands assume:
 - `PW_REUSE_EXISTING_SERVER=1`
 - `make docker-up-dev` uses the starter-only init path, so a fresh volume lands on `/setup` until the E2E helper completes first-time admin setup
 - Optional mock-data snapshots that explicitly load `database/seeds/003_mock_data.sql` still expose the seeded `admin@example.com` account described below
+
+If you want the repo-root smoke gate instead of the long-lived dev stack, run:
+
+```bash
+make test-e2e-docker-smoke
+```
+
+By default that target provisions an isolated compose project named `nonprofit-smoke` on:
+
+- Frontend: `http://127.0.0.1:18005`
+- Backend API: `http://127.0.0.1:18004`
+- Public site: `http://127.0.0.1:18006`
+- Test database: `127.0.0.1:18002`
+
+Set `KEEP_SMOKE_STACK=1` if you want the isolated smoke stack to stay up for follow-up inspection.
 
 ## Admin Credential Contract
 
@@ -206,7 +222,7 @@ npm run test:debug
 npx playwright test --debug
 ```
 
-If you want to reuse already running services on the Playwright-managed host runtime, set `PW_REUSE_EXISTING_SERVER=1`. If you want to target an externally managed runtime without the wrapper defaults, run `npx playwright test ...` directly with explicit `SKIP_WEBSERVER=1`, `BASE_URL`, and `API_URL`, or use the `npm run test:docker*` commands above for the standard Docker contract.
+If you want to reuse already running services on the Playwright-managed host runtime, set `PW_REUSE_EXISTING_SERVER=1`. If you want to target an externally managed runtime, use `npm run test:docker*` with explicit `E2E_*_PORT`, `BASE_URL`, or `API_URL` overrides, or run `npx playwright test ...` directly when you need a fully custom hybrid contract.
 
 ## Related References
 
