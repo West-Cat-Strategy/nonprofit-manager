@@ -79,6 +79,14 @@ const buildTemplatePageSections = (formSuccessMessage: string) => [
         successMessage: 'Donation started.',
         suggestedAmounts: [25, 50, 100],
       },
+      {
+        id: 'referral-form-1',
+        type: 'referral-form',
+        heading: 'Referral',
+        successMessage: 'Referral saved.',
+        submitText: 'Submit referral',
+        includePhone: true,
+      },
     ],
   },
 ];
@@ -128,6 +136,7 @@ describe('Publishing API Integration', () => {
   let activeSiteId: string;
   let blockedSiteId: string;
   let analyticsSiteId: string;
+  const createdCaseIds: string[] = [];
   const createdContactIds: string[] = [];
   const createdDonationIds: string[] = [];
 
@@ -324,8 +333,18 @@ describe('Publishing API Integration', () => {
       await pool.query('DELETE FROM donations WHERE id = ANY($1::uuid[])', [createdDonationIds]);
     }
 
+    if (createdCaseIds.length > 0) {
+      await pool.query('DELETE FROM cases WHERE id = ANY($1::uuid[])', [createdCaseIds]);
+    }
+
     if (createdContactIds.length > 0) {
       await pool.query('DELETE FROM contacts WHERE id = ANY($1::uuid[])', [createdContactIds]);
+    }
+
+    if (accountId) {
+      await pool.query('DELETE FROM donations WHERE account_id = $1', [accountId]);
+      await pool.query('DELETE FROM cases WHERE account_id = $1', [accountId]);
+      await pool.query('DELETE FROM contacts WHERE account_id = $1', [accountId]);
     }
 
     if (analyticsSiteId || activeSiteId || blockedSiteId) {
@@ -416,6 +435,7 @@ describe('Publishing API Integration', () => {
       expect.arrayContaining([
         expect.objectContaining({ formKey: 'contact-form-1', formType: 'contact-form' }),
         expect.objectContaining({ formKey: 'newsletter-1', formType: 'newsletter-signup' }),
+        expect.objectContaining({ formKey: 'referral-form-1', formType: 'referral-form' }),
       ])
     );
   });
@@ -509,6 +529,116 @@ describe('Publishing API Integration', () => {
     if (publicResult.contactId) {
       createdContactIds.push(publicResult.contactId);
     }
+  });
+
+  it('submits public referral forms and records intake case analytics', async () => {
+    const referralEmail = `publishing-referral-${unique()}@example.com`;
+    const referralPhone = `(604) 555-${Date.now().toString().slice(-4)}`;
+    const publicSubmitResponse = await request(app)
+      .post(`/api/v2/public/forms/${activeSiteId}/referral-form-1/submit`)
+      .set('Referer', 'https://published.example/contact')
+      .set('User-Agent', 'Publishing referral integration test')
+      .send({
+        first_name: 'Grace',
+        last_name: 'Hopper',
+        email: referralEmail,
+        phone: referralPhone,
+        subject: 'Housing referral',
+        referral_source: 'Community Partner',
+        notes: 'Needs support this week.',
+        urgent: true,
+        visitorId: 'visitor-referral-1',
+        sessionId: 'session-referral-1',
+      })
+      .expect(201);
+
+    const publicResult = unwrap<{ caseId?: string; contactId?: string; message: string }>(
+      publicSubmitResponse.body
+    );
+    expect(publicResult.message).toBe('Referral saved.');
+    expect(publicResult.caseId).toBeTruthy();
+    expect(publicResult.contactId).toBeTruthy();
+
+    if (publicResult.caseId) {
+      createdCaseIds.push(publicResult.caseId);
+    }
+    if (publicResult.contactId) {
+      createdContactIds.push(publicResult.contactId);
+    }
+
+    const caseResult = await pool.query<{
+      contact_id: string;
+      account_id: string;
+      title: string;
+      description: string | null;
+      source: string | null;
+      referral_source: string | null;
+      is_urgent: boolean;
+      client_viewable: boolean;
+      intake_subject: string | null;
+      intake_referral_source: string | null;
+    }>(
+      `SELECT
+         contact_id,
+         account_id,
+         title,
+         description,
+         source,
+         referral_source,
+         is_urgent,
+         client_viewable,
+         intake_data->>'subject' AS intake_subject,
+         intake_data->>'referral_source' AS intake_referral_source
+       FROM cases
+       WHERE id = $1`,
+      [publicResult.caseId]
+    );
+
+    expect(caseResult.rows[0]).toMatchObject({
+      contact_id: publicResult.contactId,
+      account_id: accountId,
+      title: 'Housing referral',
+      description: 'Needs support this week.',
+      source: 'referral',
+      referral_source: 'Community Partner',
+      is_urgent: true,
+      client_viewable: false,
+      intake_subject: 'Housing referral',
+      intake_referral_source: 'Community Partner',
+    });
+
+    const analyticsResult = await pool.query<{
+      event_type: string;
+      page_path: string;
+      form_key: string | null;
+      form_type: string | null;
+      source_entity_type: string | null;
+      source_entity_id: string | null;
+    }>(
+      `SELECT
+         event_type,
+         page_path,
+         event_data->>'formKey' AS form_key,
+         event_data->>'formType' AS form_type,
+         event_data->>'sourceEntityType' AS source_entity_type,
+         event_data->>'sourceEntityId' AS source_entity_id
+       FROM site_analytics
+       WHERE site_id = $1
+         AND event_type = 'form_submit'
+         AND event_data->>'formKey' = 'referral-form-1'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [activeSiteId]
+    );
+
+    expect(analyticsResult.rows[0]).toMatchObject({
+      event_type: 'form_submit',
+      page_path: '/contact',
+      form_key: 'referral-form-1',
+      form_type: 'referral-form',
+      source_entity_type: 'case',
+      source_entity_id: publicResult.caseId,
+    });
   });
 
   it('submits public donation forms with the configured payment provider', async () => {

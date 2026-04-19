@@ -193,14 +193,22 @@ test('e2e playwright host wrapper preserves explicit runtime overrides', () => {
   assert.equal(env.E2E_FRONTEND_PORT, '5301');
   assert.equal(env.BASE_URL, 'http://127.0.0.1:5301');
   assert.equal(env.API_URL, 'http://127.0.0.1:4301');
+  assert.equal(env.E2E_REQUIRED_PORTS, '4301 5301');
+  assert.equal(
+    env.E2E_READY_URLS,
+    'http://127.0.0.1:4301/health/live http://127.0.0.1:5301'
+  );
   assert.equal(env.SKIP_WEBSERVER, '0');
 });
 
-test('e2e playwright docker wrapper carries DB port through the E2E contract', () => {
+test('e2e playwright docker wrapper carries ports and readiness URLs through the E2E contract', () => {
   const result = run(
     'bash',
     ['scripts/e2e-playwright.sh', 'docker', '--direct', 'env'],
     {
+      E2E_BACKEND_PORT: '8104',
+      E2E_FRONTEND_PORT: '8105',
+      E2E_PUBLIC_SITE_PORT: '8106',
       E2E_DB_PORT: '9102',
     }
   );
@@ -210,6 +218,11 @@ test('e2e playwright docker wrapper carries DB port through the E2E contract', (
   const env = parseEnvironment(result.stdout);
   assert.equal(env.DB_PORT, '9102');
   assert.equal(env.E2E_DB_PORT, '9102');
+  assert.equal(env.E2E_REQUIRED_PORTS, '8104 8105 8106');
+  assert.equal(
+    env.E2E_READY_URLS,
+    'http://127.0.0.1:8104/health/ready http://127.0.0.1:8105 http://127.0.0.1:8106/health/ready'
+  );
   assert.equal(env.SKIP_WEBSERVER, '1');
 });
 
@@ -270,6 +283,19 @@ test('select-checks recommends tooling regression coverage for orchestration cha
     './scripts/install-git-hooks.sh --dry-run',
     'make test-e2e-docker-smoke',
     'make db-verify',
+  ]);
+});
+
+test('docker build helper keeps workspace dependency validation explicit', () => {
+  const result = run('bash', ['scripts/docker-build-images.sh', 'validate', '--dry-run']);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split('\n'), [
+    'docker build --build-context workspace=. --pull --no-cache --target workspace-deps -f backend/Dockerfile backend',
+    'docker build --build-context workspace=. --pull --no-cache --target workspace-production-deps -f backend/Dockerfile backend',
+    'docker build --build-context workspace=. --pull --no-cache -f backend/Dockerfile backend',
+    'docker build --build-context workspace=. --pull --no-cache --target workspace-deps -f frontend/Dockerfile frontend',
+    'docker build --build-context workspace=. --pull --no-cache -f frontend/Dockerfile frontend',
   ]);
 });
 

@@ -80,6 +80,8 @@ case "$mode" in
     export E2E_USE_DEV_RUNTIME="${E2E_USE_DEV_RUNTIME:-0}"
     export E2E_COMPOSE_MODE="${E2E_COMPOSE_MODE:-ci}"
     export PW_REUSE_EXISTING_SERVER="${PW_REUSE_EXISTING_SERVER:-1}"
+    export E2E_REQUIRED_PORTS="${E2E_REQUIRED_PORTS:-${E2E_BACKEND_PORT} ${E2E_FRONTEND_PORT}}"
+    export E2E_READY_URLS="${E2E_READY_URLS:-http://${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}/health/live http://${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT}}"
     ;;
   docker)
     # Docker mode is always an externally managed runtime contract.
@@ -105,6 +107,8 @@ case "$mode" in
     export E2E_RUNNER_ACTION="${E2E_RUNNER_ACTION:-kill}"
     export E2E_PORT_ACTION="${E2E_PORT_ACTION:-warn}"
     export PW_REUSE_EXISTING_SERVER="${PW_REUSE_EXISTING_SERVER:-1}"
+    export E2E_REQUIRED_PORTS="${E2E_REQUIRED_PORTS:-${E2E_BACKEND_PORT} ${E2E_FRONTEND_PORT} ${E2E_PUBLIC_SITE_PORT}}"
+    export E2E_READY_URLS="${E2E_READY_URLS:-http://${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}/health/ready http://${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT} http://${E2E_BACKEND_HOST}:${E2E_PUBLIC_SITE_PORT}/health/ready}"
     ;;
   *)
     echo "Unknown mode: $mode" >&2

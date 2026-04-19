@@ -41,6 +41,7 @@ KEEP_SMOKE_STACK ?= 0
 BACKEND_DOCKER_IMAGE ?= nonprofit-manager-backend:latest
 FRONTEND_DOCKER_IMAGE ?= nonprofit-manager-frontend:latest
 DOCKER_WORKSPACE_BUILD_CONTEXT ?= --build-context workspace=.
+DOCKER_DIRECT_BUILD_HELPER := DOCKER_WORKSPACE_BUILD_CONTEXT="$(DOCKER_WORKSPACE_BUILD_CONTEXT)" BACKEND_DOCKER_IMAGE="$(BACKEND_DOCKER_IMAGE)" FRONTEND_DOCKER_IMAGE="$(FRONTEND_DOCKER_IMAGE)" ./scripts/docker-build-images.sh
 
 COMPOSE_PROD_ARGS := -p $(COMPOSE_PROJECT_PROD) --env-file $(PROD_ENV_FILE) -f docker-compose.yml
 COMPOSE_DEV_ARGS := -p $(COMPOSE_PROJECT_DEV) -f docker-compose.dev.yml
@@ -60,7 +61,7 @@ help:
 	@echo "  make install        Install all dependencies"
 	@echo "  make install-dev    Install dependencies plus git hooks and dev tooling"
 	@echo "  make docker-build   Build backend/frontend Docker images directly"
-	@echo "  make docker-validate Validate both Dockerfiles with clean direct builds"
+	@echo "  make docker-validate Validate both Dockerfiles and workspace dependency stages with clean direct builds"
 	@echo "  make docker-rebuild Rebuild backend/frontend Docker images without cache"
 	@echo "  make dev            Start the optional compose dev stack"
 	@echo "  make docker-up      Start the production compose stack"
@@ -180,6 +181,10 @@ docker-up-dev:
 	  exit 1; \
 	fi
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) up -d
+	@./scripts/wait-for-http-ready.sh \
+	  "http://127.0.0.1:$(DEV_BACKEND_PORT)/health/ready" \
+	  "http://127.0.0.1:$(DEV_FRONTEND_PORT)" \
+	  "http://127.0.0.1:$(DEV_PUBLIC_SITE_PORT)/health/ready"
 
 docker-up-caddy:
 	@missing=0; \
@@ -230,18 +235,15 @@ docker-logs:
 	$(DOCKER_COMPOSE) $(COMPOSE_DEV_ARGS) logs -f
 
 docker-build:
-	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
-	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
+	$(DOCKER_DIRECT_BUILD_HELPER) build
 	@echo "$(GREEN)Docker images built!$(RESET)"
 
 docker-rebuild:
-	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) --no-cache -f backend/Dockerfile -t $(BACKEND_DOCKER_IMAGE) backend
-	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) --no-cache -f frontend/Dockerfile -t $(FRONTEND_DOCKER_IMAGE) frontend
+	$(DOCKER_DIRECT_BUILD_HELPER) rebuild
 	@echo "$(GREEN)Docker images rebuilt without cache!$(RESET)"
 
 docker-validate:
-	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) --pull --no-cache -f backend/Dockerfile backend
-	docker build $(DOCKER_WORKSPACE_BUILD_CONTEXT) --pull --no-cache -f frontend/Dockerfile frontend
+	$(DOCKER_DIRECT_BUILD_HELPER) validate
 	@echo "$(GREEN)Dockerfile validation complete!$(RESET)"
 
 #------------------------------------------------------------------------------
@@ -446,13 +448,19 @@ test-e2e-docker-smoke:
 	trap cleanup EXIT; \
 	echo "$(BLUE)Starting isolated Docker smoke stack $(COMPOSE_PROJECT_SMOKE) on ports $(SMOKE_FRONTEND_PORT)/$(SMOKE_BACKEND_PORT)/$(SMOKE_PUBLIC_SITE_PORT)...$(RESET)"; \
 	$(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) up -d; \
+	./scripts/wait-for-http-ready.sh \
+	  "http://127.0.0.1:$(SMOKE_BACKEND_PORT)/health/ready" \
+	  "http://127.0.0.1:$(SMOKE_FRONTEND_PORT)" \
+	  "http://127.0.0.1:$(SMOKE_PUBLIC_SITE_PORT)/health/ready"; \
 	echo "$(BLUE)Running Docker-backed Playwright smoke tests against the isolated stack...$(RESET)"; \
-	E2E_REQUIRED_PORTS="$(SMOKE_BACKEND_PORT) $(SMOKE_FRONTEND_PORT)" \
+	cd e2e && \
+	E2E_REQUIRED_PORTS="$(SMOKE_BACKEND_PORT) $(SMOKE_FRONTEND_PORT) $(SMOKE_PUBLIC_SITE_PORT)" \
+	E2E_READY_URLS="http://127.0.0.1:$(SMOKE_BACKEND_PORT)/health/ready http://127.0.0.1:$(SMOKE_FRONTEND_PORT) http://127.0.0.1:$(SMOKE_PUBLIC_SITE_PORT)/health/ready" \
 	E2E_BACKEND_PORT=$(SMOKE_BACKEND_PORT) \
 	E2E_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) \
 	E2E_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) \
 	E2E_DB_PORT=$(SMOKE_DB_PORT) \
-	$(E2E_NPM_RUN) test:docker:smoke; \
+	npm run test:docker:smoke; \
 	echo "$(GREEN)Docker-backed Playwright smoke gate complete!$(RESET)"
 
 quality-baseline:

@@ -594,7 +594,7 @@ describe('PublicWebsiteFormService', () => {
         last_name: 'Hopper',
         email: 'grace@example.com',
         phone: '(604) 555-1212',
-        mobile_phone: '(604) 555-1212',
+        mobile_phone: undefined,
         notes: 'Needs support this week.',
         tags: ['public-site', 'referral', 'intake'],
       },

@@ -123,11 +123,16 @@ async function configureDonationHomepage(
   }
 }
 
-async function deleteDonationFlowArtifacts(
-  donationIds: string[],
-  contactIds: string[]
-): Promise<void> {
-  if (donationIds.length === 0 && contactIds.length === 0) {
+async function deletePublicSubmissionArtifacts(input: {
+  caseIds?: string[];
+  donationIds?: string[];
+  contactIds?: string[];
+}): Promise<void> {
+  const caseIds = input.caseIds || [];
+  const donationIds = input.donationIds || [];
+  const contactIds = input.contactIds || [];
+
+  if (caseIds.length === 0 && donationIds.length === 0 && contactIds.length === 0) {
     return;
   }
 
@@ -136,6 +141,9 @@ async function deleteDonationFlowArtifacts(
     await client.connect();
     if (donationIds.length > 0) {
       await client.query('DELETE FROM donations WHERE id = ANY($1::uuid[])', [donationIds]);
+    }
+    if (caseIds.length > 0) {
+      await client.query('DELETE FROM cases WHERE id = ANY($1::uuid[])', [caseIds]);
     }
     if (contactIds.length > 0) {
       await client.query('DELETE FROM contacts WHERE id = ANY($1::uuid[])', [contactIds]);
@@ -153,6 +161,8 @@ test.describe('Public website starter', () => {
     const templateId = await getSystemTemplateId(authenticatedPage, authToken);
     const uniqueDomain = `community-hub-${Date.now().toString(36)}.localhost`;
     const siteName = `Community Hub ${Date.now()}`;
+    const createdCaseIds: string[] = [];
+    const createdContactIds: string[] = [];
     let newsletterEntryId = '';
     const siteId = await createWebsiteSite(authenticatedPage, authToken, templateId, {
       name: siteName,
@@ -203,13 +213,84 @@ test.describe('Public website starter', () => {
 
       await authenticatedPage.goto(`${publicBase}/contact`, { waitUntil: 'domcontentloaded' });
       await expect(authenticatedPage.getByRole('heading', { name: /contact and referral/i })).toBeVisible();
-      const contactTextboxes = authenticatedPage.getByRole('main').getByRole('textbox');
-      await expect(contactTextboxes.nth(0)).toBeVisible();
-      await expect(contactTextboxes.nth(1)).toBeVisible();
-      await expect(contactTextboxes.nth(2)).toBeVisible();
-      await expect(contactTextboxes.nth(3)).toBeVisible();
       await expect(authenticatedPage.getByRole('button', { name: /send message/i })).toBeVisible();
-      await authenticatedPage.getByRole('button', { name: /send message/i }).click();
+      const referralForm = authenticatedPage
+        .locator('form[data-public-site-form="true"]')
+        .filter({ has: authenticatedPage.locator('input[name="subject"]') });
+      await expect(referralForm).toHaveCount(1);
+      await expect(referralForm.getByRole('button', { name: /submit referral/i })).toBeVisible();
+
+      const referralEmail = `referral-${Date.now()}@example.com`;
+      const referralPhone = `(604) 555-${Date.now().toString().slice(-4)}`;
+      await referralForm.locator('input[name="first_name"]').fill('Grace');
+      await referralForm.locator('input[name="last_name"]').fill('Hopper');
+      await referralForm.locator('input[name="email"]').fill(referralEmail);
+      await referralForm.locator('input[name="phone"]').fill(referralPhone);
+      await referralForm.locator('input[name="subject"]').fill('Housing referral');
+      await referralForm.locator('input[name="referral_source"]').fill('Community Partner');
+      await referralForm.locator('textarea[name="notes"]').fill('Needs support this week.');
+      await referralForm.locator('input[name="urgent"]').check();
+
+      const submitResponsePromise = authenticatedPage.waitForResponse((response) => {
+        return (
+          response.request().method() === 'POST' &&
+          response.url().includes(`/api/v2/public/forms/${siteId}/referral-form-block/submit`)
+        );
+      });
+      await referralForm.getByRole('button', { name: /submit referral/i }).click();
+
+      const submitResponse = await submitResponsePromise;
+      const submitRawBody = await submitResponse.text();
+      expect(
+        submitResponse.ok(),
+        `Public referral submit failed (${submitResponse.status()}): ${submitRawBody}`
+      ).toBeTruthy();
+      const submitBody = unwrapBody<{ caseId?: string; contactId?: string; message?: string }>(
+        JSON.parse(submitRawBody)
+      );
+      expect(submitBody.message).toBe(
+        'Thanks. The referral has been recorded and routed for follow-up.'
+      );
+      expect(submitBody.caseId).toBeTruthy();
+      expect(submitBody.contactId).toBeTruthy();
+
+      if (submitBody.caseId) {
+        createdCaseIds.push(submitBody.caseId);
+      }
+      if (submitBody.contactId) {
+        createdContactIds.push(submitBody.contactId);
+      }
+
+      await expect(referralForm.locator('[data-form-status]')).toHaveText(
+        'Thanks. The referral has been recorded and routed for follow-up.'
+      );
+
+      const client = new PgClient(getDatabaseConfig());
+      try {
+        await client.connect();
+        const result = await client.query<{
+          contact_id: string;
+          title: string;
+          source: string | null;
+          referral_source: string | null;
+          is_urgent: boolean;
+        }>(
+          `SELECT contact_id, title, source, referral_source, is_urgent
+           FROM cases
+           WHERE id = $1`,
+          [submitBody.caseId]
+        );
+
+        expect(result.rows[0]).toMatchObject({
+          contact_id: submitBody.contactId,
+          title: 'Housing referral',
+          source: 'referral',
+          referral_source: 'Community Partner',
+          is_urgent: true,
+        });
+      } finally {
+        await client.end().catch(() => undefined);
+      }
 
       await authenticatedPage.goto(`${publicBase}/?preview=true`, { waitUntil: 'domcontentloaded' });
       await expect(
@@ -220,6 +301,10 @@ test.describe('Public website starter', () => {
       );
       expect(hasOverflow).toBe(false);
     } finally {
+      await deletePublicSubmissionArtifacts({
+        caseIds: createdCaseIds,
+        contactIds: createdContactIds,
+      });
       if (newsletterEntryId) {
         void deleteWebsiteEntry(authenticatedPage, authToken, siteId, newsletterEntryId).catch(() => undefined);
       }
@@ -318,7 +403,10 @@ test.describe('Public website starter', () => {
         await client.end().catch(() => undefined);
       }
     } finally {
-      await deleteDonationFlowArtifacts(createdDonationIds, createdContactIds);
+      await deletePublicSubmissionArtifacts({
+        donationIds: createdDonationIds,
+        contactIds: createdContactIds,
+      });
       await deleteWebsiteSite(authenticatedPage, authToken, siteId).catch(() => undefined);
       await deleteTemplate(authenticatedPage, authToken, templateId).catch(() => undefined);
     }

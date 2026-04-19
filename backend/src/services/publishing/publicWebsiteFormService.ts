@@ -178,7 +178,6 @@ export class PublicWebsiteFormService {
         `UPDATE contacts
          SET account_id = COALESCE(account_id, $1),
              phone = COALESCE(phone, $2),
-             mobile_phone = COALESCE(mobile_phone, $2),
              notes = CASE
                WHEN $3::text IS NULL OR trim($3::text) = '' THEN notes
                WHEN notes IS NULL OR trim(notes) = '' THEN $3
@@ -199,7 +198,7 @@ export class PublicWebsiteFormService {
         last_name: identity.lastName,
         email: identity.email,
         phone: identity.phone,
-        mobile_phone: identity.phone,
+        mobile_phone: undefined,
         notes: identity.message,
         tags: defaultTags,
       },

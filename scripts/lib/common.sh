@@ -319,6 +319,53 @@ e2e_stabilize_ports() {
   return 0
 }
 
+e2e_probe_http_url() {
+  local url="$1"
+  local request_timeout="${E2E_HTTP_READY_REQUEST_TIMEOUT_SECONDS:-5}"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl --silent --fail --location --max-time "$request_timeout" --output /dev/null "$url" >/dev/null 2>&1
+    return $?
+  fi
+
+  if command -v wget >/dev/null 2>&1; then
+    wget -q --timeout="$request_timeout" -O /dev/null "$url" >/dev/null 2>&1
+    return $?
+  fi
+
+  log_error "E2E HTTP readiness checks require 'curl' or 'wget', but neither was found on PATH."
+  return 1
+}
+
+e2e_wait_for_http_urls() {
+  local max_attempts="${E2E_HTTP_READY_MAX_ATTEMPTS:-60}"
+  local interval_seconds="${E2E_HTTP_READY_INTERVAL_SECONDS:-1}"
+  local attempt
+  local url
+
+  if [[ "$#" -eq 0 ]]; then
+    return 0
+  fi
+
+  for url in "$@"; do
+    attempt=1
+    while [[ "$attempt" -le "$max_attempts" ]]; do
+      if e2e_probe_http_url "$url"; then
+        log_info "HTTP ready: $url"
+        break
+      fi
+
+      if [[ "$attempt" -eq "$max_attempts" ]]; then
+        log_error "Timed out waiting for HTTP readiness: $url"
+        return 1
+      fi
+
+      sleep "$interval_seconds"
+      attempt=$((attempt + 1))
+    done
+  done
+}
+
 e2e_preflight_ports() {
   local ports="${E2E_REQUIRED_PORTS:-3001 5173}"
 
@@ -326,5 +373,13 @@ e2e_preflight_ports() {
     return 1
   fi
 
-  log_success "E2E port preflight passed (ports stable and ready: $ports)."
+  if [[ -n "${E2E_READY_URLS:-}" ]]; then
+    # shellcheck disable=SC2086
+    if ! e2e_wait_for_http_urls ${E2E_READY_URLS}; then
+      return 1
+    fi
+    log_success "E2E HTTP readiness passed (${E2E_READY_URLS})."
+  fi
+
+  log_success "E2E port preflight passed (ports stable: $ports)."
 }

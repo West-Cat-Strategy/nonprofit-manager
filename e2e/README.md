@@ -33,6 +33,7 @@ The wrapper-driven runtime commands are mode-defining:
 - Those wrapper contracts also pin `BYPASS_REGISTRATION_POLICY_IN_TEST=false` for host runs and `BYPASS_REGISTRATION_POLICY_IN_TEST=true` for docker runs.
 
 The wrapper still enforces the host-vs-docker mode contract, but explicit overrides for `BASE_URL`, `API_URL`, `E2E_BACKEND_PORT`, `E2E_FRONTEND_PORT`, `E2E_PUBLIC_SITE_PORT`, and `E2E_DB_PORT` are honored inside that mode. That makes it possible to point `npm run test:docker*` at an alternate externally managed stack such as the repo's isolated smoke project.
+The shared runner now preflights both the configured ports and the selected runtime's HTTP readiness URLs before Playwright starts, so Docker-backed runs fail on the real stack endpoints instead of silently falling back to the default `8005/8004/8006` contract.
 
 ## Setup
 
