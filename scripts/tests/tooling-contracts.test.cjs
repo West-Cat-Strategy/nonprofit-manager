@@ -194,11 +194,32 @@ test('e2e playwright host wrapper preserves explicit runtime overrides', () => {
   assert.equal(env.BASE_URL, 'http://127.0.0.1:5301');
   assert.equal(env.API_URL, 'http://127.0.0.1:4301');
   assert.equal(env.E2E_REQUIRED_PORTS, '4301 5301');
+  assert.equal(env.PW_REUSE_EXISTING_SERVER, '0');
+  assert.equal(env.E2E_PORT_ACTION, 'kill');
+  assert.equal(env.E2E_READY_URLS, undefined);
+  assert.equal(env.SKIP_WEBSERVER, '0');
+});
+
+test('e2e playwright host wrapper enables readiness preflight only for explicit server reuse', () => {
+  const result = run(
+    'bash',
+    ['scripts/e2e-playwright.sh', 'host', '--direct', 'env'],
+    {
+      PW_REUSE_EXISTING_SERVER: '1',
+      E2E_BACKEND_PORT: '4301',
+      E2E_FRONTEND_PORT: '5301',
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+
+  const env = parseEnvironment(result.stdout);
+  assert.equal(env.PW_REUSE_EXISTING_SERVER, '1');
+  assert.equal(env.E2E_PORT_ACTION, 'warn');
   assert.equal(
     env.E2E_READY_URLS,
     'http://127.0.0.1:4301/health/live http://127.0.0.1:5301'
   );
-  assert.equal(env.SKIP_WEBSERVER, '0');
 });
 
 test('e2e playwright docker wrapper carries ports and readiness URLs through the E2E contract', () => {

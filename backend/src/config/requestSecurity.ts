@@ -1,4 +1,5 @@
-import type { CorsOptions } from 'cors';
+import type { CorsOptions, CorsOptionsDelegate } from 'cors';
+import type { Request } from 'express';
 
 const normalizeOrigin = (value: string): string => {
   const trimmed = value.trim();
@@ -28,6 +29,65 @@ const validateCorsOrigins = (allowedOrigins: string[], nodeEnv: string | undefin
   }
 };
 
+type CorsOptionsInput = {
+  nodeEnv?: string;
+  corsOrigin?: string;
+  fallbackOrigins: string[];
+  onDeniedOrigin?: (origin: string) => void;
+};
+
+const resolveAllowedOrigins = (input: CorsOptionsInput): string[] => {
+  const allowedOrigins = parseOriginList(input.corsOrigin, input.fallbackOrigins);
+  validateCorsOrigins(allowedOrigins, input.nodeEnv);
+  return allowedOrigins;
+};
+
+const resolveRequestOrigin = (req: Pick<Request, 'protocol' | 'get'>): string | undefined => {
+  const forwardedHost = req.get('x-forwarded-host')?.split(',')[0]?.trim();
+  const host = forwardedHost || req.get('host')?.trim();
+  if (!host) {
+    return undefined;
+  }
+
+  const forwardedProto = req.get('x-forwarded-proto')?.split(',')[0]?.trim();
+  const protocol = forwardedProto || req.protocol || 'http';
+  return normalizeOrigin(`${protocol}://${host}`);
+};
+
+const buildCorsOptions = (
+  input: CorsOptionsInput,
+  allowedOrigins: string[],
+  requestOrigin?: string
+): CorsOptions => ({
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    if (
+      input.nodeEnv === 'development' ||
+      allowedOrigins.includes(normalizedOrigin) ||
+      allowedOrigins.includes('*') ||
+      normalizedOrigin === requestOrigin
+    ) {
+      callback(null, true);
+      return;
+    }
+
+    input.onDeniedOrigin?.(origin);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Organization-Id'],
+  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+  maxAge: 86400,
+  optionsSuccessStatus: 200,
+});
+
 export const resolveTrustProxy = (rawValue: string | undefined): boolean | number | string => {
   const raw = (rawValue || '').trim().toLowerCase();
   if (!raw) {
@@ -45,49 +105,21 @@ export const resolveTrustProxy = (rawValue: string | undefined): boolean | numbe
   return raw;
 };
 
-export const createCorsOptions = (input: {
-  nodeEnv?: string;
-  corsOrigin?: string;
-  fallbackOrigins: string[];
-  onDeniedOrigin?: (origin: string) => void;
-}): CorsOptions => {
-  const allowedOrigins = parseOriginList(input.corsOrigin, input.fallbackOrigins);
-  validateCorsOrigins(allowedOrigins, input.nodeEnv);
+export const createCorsOptions = (input: CorsOptionsInput): CorsOptions =>
+  buildCorsOptions(input, resolveAllowedOrigins(input));
 
-  const options: CorsOptions = {
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
+export const createCorsOptionsDelegate = (
+  input: CorsOptionsInput
+): CorsOptionsDelegate<Request> => {
+  const allowedOrigins = resolveAllowedOrigins(input);
 
-      const normalizedOrigin = normalizeOrigin(origin);
-
-      if (
-        input.nodeEnv === 'development' ||
-        allowedOrigins.includes(normalizedOrigin) ||
-        allowedOrigins.includes('*')
-      ) {
-        callback(null, true);
-        return;
-      }
-
-      input.onDeniedOrigin?.(origin);
-      callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Organization-Id'],
-    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
-    maxAge: 86400,
-    optionsSuccessStatus: 200,
+  return (req, callback) => {
+    callback(null, buildCorsOptions(input, allowedOrigins, resolveRequestOrigin(req)));
   };
-
-  return options;
 };
 
 export const requestSecurityHelpers = {
   createCorsOptions,
+  createCorsOptionsDelegate,
   resolveTrustProxy,
 };
-

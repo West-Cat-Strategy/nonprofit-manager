@@ -32,7 +32,6 @@ test.describe('Ingest Workflows', () => {
       'Content-Type': 'application/json',
       'X-CSRF-Token': String(csrfToken),
       ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
-      Cookie: '',
     };
 
     const postPreview = async (data: { format: string; text: string }) => {

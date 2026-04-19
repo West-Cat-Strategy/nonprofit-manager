@@ -9,6 +9,7 @@ x-backend-dev-env: &backend-dev-env
   DB_USER: nonprofit_app_user
   DB_PASSWORD: nonprofit_app_password
   BYPASS_REGISTRATION_POLICY_IN_TEST: ${DEV_BYPASS_REGISTRATION_POLICY_IN_TEST:-false}
+  BYPASS_MFA_FOR_TESTS: ${DEV_BYPASS_MFA_FOR_TESTS:-false}
   SITE_BASE_URL: ${DEV_SITE_BASE_URL:-http://sites.localhost}
 
 x-workspace-build-contexts: &workspace-build-contexts

@@ -126,8 +126,8 @@ const getDatabaseConnectionConfig = (): {
   host: process.env.DB_HOST || process.env.E2E_DB_HOST || '127.0.0.1',
   port: Number(process.env.DB_PORT || process.env.E2E_DB_PORT || '8012'),
   database: process.env.DB_NAME || process.env.E2E_DB_NAME || 'nonprofit_manager_test',
-  user: process.env.DB_USER || process.env.E2E_DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || process.env.E2E_DB_PASSWORD || 'postgres',
+  user: process.env.E2E_DB_ADMIN_USER || process.env.TEST_DB_ADMIN_USER || 'postgres',
+  password: process.env.E2E_DB_ADMIN_PASSWORD || process.env.TEST_DB_ADMIN_PASSWORD || 'postgres',
 });
 
 const hardResetContacts = async (): Promise<void> => {
@@ -155,7 +155,10 @@ async function getCachedAuthHeaders(
     const csrfResponse = await withRequestRetry(
       () =>
         page.request.get(`${apiURL}/api/v2/auth/csrf-token`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
+          },
         }),
       'fetch csrf token'
     );
@@ -178,8 +181,6 @@ async function getCachedAuthHeaders(
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
     'X-CSRF-Token': csrfToken,
-    // Force backend auth middleware to use Authorization instead of any stale auth cookie.
-    Cookie: '',
   };
 
   if (organizationId) {

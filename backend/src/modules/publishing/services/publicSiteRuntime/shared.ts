@@ -160,10 +160,11 @@ export const buildPublicFormRuntimeScript = (): string => `
       async function submitForm(form) {
         var statusNode = form.querySelector('[data-form-status]');
         var payload = {};
+        var formData = new FormData(form);
         var visitorId = localStorage.getItem('npm_visitor_id');
         var sessionId = sessionStorage.getItem('npm_session_id');
-        Array.prototype.forEach.call(new FormData(form).entries(), function(entry) {
-          payload[entry[0]] = entry[1];
+        formData.forEach(function(value, key) {
+          payload[key] = value;
         });
         if (visitorId) {
           payload.visitorId = visitorId;

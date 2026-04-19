@@ -7,6 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '@config/database';
+import { withUserContextTransaction } from '@config/database';
 import { logger } from '@config/logger';
 import { getJwtSecret } from '@config/jwt';
 import { AuthRequest } from '@middleware/auth';
@@ -229,11 +230,16 @@ export const acceptInvitation = async (
     const newUser = userResult.rows[0];
 
     await syncUserRole(newUser.id, newUser.role);
-    await seedDefaultOrganizationAccess({
-      userId: newUser.id,
-      role: newUser.role,
-      grantedBy: invitation.createdBy,
-    });
+    await withUserContextTransaction(newUser.id, (client) =>
+      seedDefaultOrganizationAccess(
+        {
+          userId: newUser.id,
+          role: newUser.role,
+          grantedBy: invitation.createdBy,
+        },
+        client
+      )
+    );
 
     // Mark invitation as accepted
     await invitationService.markInvitationAccepted(invitation.id, newUser.id);

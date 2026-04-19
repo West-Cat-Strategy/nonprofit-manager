@@ -1,5 +1,6 @@
 import type { Response } from 'express';
 import pool from '@config/database';
+import { withUserContextTransaction } from '@config/database';
 import { requireUserSafe } from '@services/authGuardService';
 import { getUserAccessOverview } from '@services/accountAccessService';
 import { normalizeRoleSlug } from '@utils/roleSlug';
@@ -100,6 +101,10 @@ export interface ProfileUpdateInput {
   notifications?: Record<string, unknown>;
 }
 
+type QueryExecutor = {
+  query: typeof pool.query;
+};
+
 export const requireAuthenticatedUser = (
   req: AuthRequest,
   res: Response
@@ -116,9 +121,9 @@ export const requireAuthenticatedUser = (
   };
 };
 
-export const getDefaultOrganizationId = async (): Promise<string | null> => {
+export const getDefaultOrganizationId = async (db: QueryExecutor = pool): Promise<string | null> => {
   try {
-    const result = await pool.query(
+    const result = await db.query(
       `SELECT id
        FROM accounts
        WHERE account_type = 'organization'
@@ -138,12 +143,14 @@ export const getDefaultOrganizationId = async (): Promise<string | null> => {
 };
 
 export const getAuthenticatedOrganizationId = async (userId: string): Promise<string | null> => {
-  const accessOverview = await getUserAccessOverview(userId);
-  if (accessOverview.organizationAccess[0]) {
-    return accessOverview.organizationAccess[0];
-  }
+  return withUserContextTransaction(userId, async (client) => {
+    const accessOverview = await getUserAccessOverview(userId, client);
+    if (accessOverview.organizationAccess[0]) {
+      return accessOverview.organizationAccess[0];
+    }
 
-  return getDefaultOrganizationId();
+    return getDefaultOrganizationId(client);
+  });
 };
 
 export const findUserIdByEmail = async (email: string): Promise<string | null> => {
@@ -218,11 +225,13 @@ export const createOrganizationAccount = async (
   accountName: string,
   userId: string
 ): Promise<string | null> => {
-  const result = await pool.query(
-    `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
-     VALUES ($1, 'organization', $2, $2)
-     RETURNING id`,
-    [accountName, userId]
+  const result = await withUserContextTransaction(userId, async (client) =>
+    client.query(
+      `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
+       VALUES ($1, 'organization', $2, $2)
+       RETURNING id`,
+      [accountName, userId]
+    )
   );
   return result.rows[0]?.id || null;
 };

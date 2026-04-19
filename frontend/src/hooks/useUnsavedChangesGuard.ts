@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useBeforeUnload, useBlocker } from 'react-router-dom';
+import { useContext, useEffect } from 'react';
+import { UNSAFE_NavigationContext, useBeforeUnload } from 'react-router-dom';
 
 interface UseUnsavedChangesGuardOptions {
   hasUnsavedChanges: boolean;
@@ -9,24 +9,37 @@ interface UseUnsavedChangesGuardOptions {
 const DEFAULT_MESSAGE =
   'You have unsaved changes. Are you sure you want to leave this page? Your changes will be lost.';
 
+type NavigationTransition = {
+  retry(): void;
+};
+
+type NavigatorWithBlock = {
+  block?: (blocker: (transition: NavigationTransition) => void) => (() => void) | void;
+};
+
 export function useUnsavedChangesGuard({
   hasUnsavedChanges,
   message = DEFAULT_MESSAGE,
 }: UseUnsavedChangesGuardOptions): void {
-  const blocker = useBlocker(hasUnsavedChanges);
+  const navigationContext = useContext(UNSAFE_NavigationContext);
+  const navigator = (navigationContext as { navigator?: NavigatorWithBlock } | null)?.navigator;
 
   useEffect(() => {
-    if (blocker.state !== 'blocked') {
+    if (!hasUnsavedChanges || typeof navigator?.block !== 'function') {
       return;
     }
 
-    if (window.confirm(message)) {
-      blocker.proceed();
-      return;
-    }
+    const unblock = navigator.block((transition) => {
+      if (!window.confirm(message)) {
+        return;
+      }
 
-    blocker.reset();
-  }, [blocker, message]);
+      unblock?.();
+      transition.retry();
+    });
+
+    return unblock;
+  }, [hasUnsavedChanges, message, navigator]);
 
   useBeforeUnload(
     (event) => {

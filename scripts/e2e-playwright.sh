@@ -76,12 +76,17 @@ case "$mode" in
     set_runtime_env API_URL "${API_URL:-http://${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}}"
     set_runtime_env SKIP_WEBSERVER "0"
     set_runtime_env BYPASS_REGISTRATION_POLICY_IN_TEST "false"
-    export E2E_PORT_ACTION="${E2E_PORT_ACTION:-kill}"
     export E2E_USE_DEV_RUNTIME="${E2E_USE_DEV_RUNTIME:-0}"
     export E2E_COMPOSE_MODE="${E2E_COMPOSE_MODE:-ci}"
-    export PW_REUSE_EXISTING_SERVER="${PW_REUSE_EXISTING_SERVER:-1}"
+    export PW_REUSE_EXISTING_SERVER="${PW_REUSE_EXISTING_SERVER:-0}"
+    if [[ "${PW_REUSE_EXISTING_SERVER}" == "1" ]]; then
+      export E2E_PORT_ACTION="${E2E_PORT_ACTION:-warn}"
+      export E2E_READY_URLS="${E2E_READY_URLS:-http://${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}/health/live http://${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT}}"
+    else
+      export E2E_PORT_ACTION="${E2E_PORT_ACTION:-kill}"
+      unset E2E_READY_URLS
+    fi
     export E2E_REQUIRED_PORTS="${E2E_REQUIRED_PORTS:-${E2E_BACKEND_PORT} ${E2E_FRONTEND_PORT}}"
-    export E2E_READY_URLS="${E2E_READY_URLS:-http://${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}/health/live http://${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT}}"
     ;;
   docker)
     # Docker mode is always an externally managed runtime contract.

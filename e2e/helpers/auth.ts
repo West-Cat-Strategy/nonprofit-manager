@@ -503,8 +503,8 @@ const getAuthDatabaseConfig = (): {
   port: Number(process.env.DB_PORT || process.env.E2E_DB_PORT || '8012'),
   database:
     process.env.DB_NAME || process.env.E2E_DB_NAME || process.env.TEST_DB_NAME || 'nonprofit_manager_test',
-  user: process.env.DB_USER || process.env.E2E_DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || process.env.E2E_DB_PASSWORD || 'postgres',
+  user: process.env.E2E_DB_ADMIN_USER || process.env.TEST_DB_ADMIN_USER || 'postgres',
+  password: process.env.E2E_DB_ADMIN_PASSWORD || process.env.TEST_DB_ADMIN_PASSWORD || 'postgres',
 });
 
 const ensureDatabaseBackedTestUser = async (
@@ -1148,8 +1148,6 @@ const promoteUserToAdminViaApi = async (
         'Content-Type': 'application/json',
         'X-CSRF-Token': csrfToken,
         'X-Organization-Id': organizationId,
-        // Force the backend to honor the Authorization header instead of any stale cookie.
-        Cookie: '',
       },
       data: {
         role: 'admin',
@@ -1191,7 +1189,6 @@ const getCurrentUserForSession = async (
       headers: {
         Authorization: `Bearer ${token}`,
         'X-Organization-Id': organizationId,
-        Cookie: '',
       },
     })
   );
@@ -2233,7 +2230,6 @@ async function createManagedTestUser(
     'Content-Type': 'application/json',
     'X-CSRF-Token': csrfToken,
     ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
-    Cookie: '',
   };
 
   const response = await withNetworkRetry(() =>

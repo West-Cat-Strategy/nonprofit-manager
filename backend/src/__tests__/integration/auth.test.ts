@@ -44,6 +44,63 @@ describe('Auth API Integration Tests', () => {
 
     return created.rows[0].id;
   };
+  const ensureOrganizationAccessForUser = async (email: string): Promise<string> => {
+    const userResult = await pool.query<{ id: string }>(
+      'SELECT id FROM users WHERE email = $1',
+      [email]
+    );
+
+    const userId = userResult.rows[0]?.id;
+    if (!userId) {
+      throw new Error(`User ${email} must exist before seeding organization access`);
+    }
+
+    const existingAccess = await pool.query<{ account_id: string }>(
+      `SELECT account_id::text
+       FROM user_account_access
+       WHERE user_id = $1
+         AND is_active = true
+       ORDER BY granted_at ASC
+       LIMIT 1`,
+      [userId]
+    );
+    if (existingAccess.rows[0]?.account_id) {
+      return existingAccess.rows[0].account_id;
+    }
+
+    const existingOrganization = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM accounts
+       WHERE account_type = 'organization'
+         AND COALESCE(is_active, true) = true
+       ORDER BY created_at ASC
+       LIMIT 1`
+    );
+
+    const accountId =
+      existingOrganization.rows[0]?.id ||
+      (
+        await pool.query<{ id: string }>(
+          `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
+           VALUES ($1, 'organization', $2, $2)
+           RETURNING id`,
+          [`Auth Access Org ${unique()}`, userId]
+        )
+      ).rows[0].id;
+
+    await pool.query(
+      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+       VALUES ($1, $2, 'editor', $1, true)
+       ON CONFLICT (user_id, account_id)
+       DO UPDATE SET access_level = EXCLUDED.access_level,
+                     granted_by = EXCLUDED.granted_by,
+                     is_active = true,
+                     granted_at = CURRENT_TIMESTAMP`,
+      [userId, accountId]
+    );
+
+    return accountId;
+  };
   const withClearedOrganizationAccess = async <T>(
     userId: string,
     run: () => Promise<T>
@@ -203,6 +260,28 @@ describe('Auth API Integration Tests', () => {
       await agent
         .post('/api/v2/auth/logout')
         .set('X-CSRF-Token', response.body.csrfToken)
+        .expect(200);
+    });
+
+    it('issues an organization-bound token when the user has org access', async () => {
+      const expectedOrganizationId = await ensureOrganizationAccessForUser(testEmail);
+
+      const response = await request(app)
+        .post('/api/v2/auth/login')
+        .send({
+          email: testEmail,
+          password: testPassword,
+        })
+        .expect(200);
+
+      expect(response.body.organizationId).toBe(expectedOrganizationId);
+
+      const decoded = jwt.verify(response.body.token, getJwtSecret()) as { organizationId?: string };
+      expect(decoded.organizationId).toBe(expectedOrganizationId);
+
+      await request(app)
+        .get('/api/v2/templates/system')
+        .set('Authorization', `Bearer ${response.body.token}`)
         .expect(200);
     });
 

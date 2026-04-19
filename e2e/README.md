@@ -1,6 +1,6 @@
 # E2E Tests
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-19
 
 Playwright tests live here. For the overall testing strategy, see [../docs/testing/TESTING.md](../docs/testing/TESTING.md).
 
@@ -33,7 +33,7 @@ The wrapper-driven runtime commands are mode-defining:
 - Those wrapper contracts also pin `BYPASS_REGISTRATION_POLICY_IN_TEST=false` for host runs and `BYPASS_REGISTRATION_POLICY_IN_TEST=true` for docker runs.
 
 The wrapper still enforces the host-vs-docker mode contract, but explicit overrides for `BASE_URL`, `API_URL`, `E2E_BACKEND_PORT`, `E2E_FRONTEND_PORT`, `E2E_PUBLIC_SITE_PORT`, and `E2E_DB_PORT` are honored inside that mode. That makes it possible to point `npm run test:docker*` at an alternate externally managed stack such as the repo's isolated smoke project.
-The shared runner now preflights both the configured ports and the selected runtime's HTTP readiness URLs before Playwright starts, so Docker-backed runs fail on the real stack endpoints instead of silently falling back to the default `8005/8004/8006` contract.
+Host wrapper runs now default to fresh Playwright-managed services (`PW_REUSE_EXISTING_SERVER=0`) and let Playwright own the web-server readiness check. The shared runner still preflights ports for every mode, and it preflights HTTP readiness URLs for Docker-backed runs plus explicit host reuse runs so externally managed stacks fail on the real endpoints instead of silently falling back to the default `8005/8004/8006` contract.
 
 ## Setup
 
@@ -140,6 +140,7 @@ By default that target provisions an isolated compose project named `nonprofit-s
 - Backend API: `http://127.0.0.1:18004`
 - Public site: `http://127.0.0.1:18006`
 - Test database: `127.0.0.1:18002`
+- Backend MFA bypass: `DEV_BYPASS_MFA_FOR_TESTS=true` for deterministic admin bootstrap in the isolated smoke stack only
 
 Set `KEEP_SMOKE_STACK=1` if you want the isolated smoke stack to stay up for follow-up inspection.
 
@@ -223,7 +224,7 @@ npm run test:debug
 npx playwright test --debug
 ```
 
-If you want to reuse already running services on the Playwright-managed host runtime, set `PW_REUSE_EXISTING_SERVER=1`. If you want to target an externally managed runtime, use `npm run test:docker*` with explicit `E2E_*_PORT`, `BASE_URL`, or `API_URL` overrides, or run `npx playwright test ...` directly when you need a fully custom hybrid contract.
+If you want to reuse already running services on the Playwright-managed host runtime, set `PW_REUSE_EXISTING_SERVER=1`; the wrapper will switch its port preflight into reuse mode instead of killing the occupied listeners. If you want to target an externally managed runtime, use `npm run test:docker*` with explicit `E2E_*_PORT`, `BASE_URL`, or `API_URL` overrides, or run `npx playwright test ...` directly when you need a fully custom hybrid contract.
 
 ## Related References
 

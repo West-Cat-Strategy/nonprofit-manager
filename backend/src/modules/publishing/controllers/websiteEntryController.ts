@@ -1,4 +1,5 @@
 import type { Response, NextFunction, Request } from 'express';
+import { setRequestContext } from '@config/requestContext';
 import type { AuthRequest } from '@middleware/auth';
 import { badRequest, noContent, notFoundMessage } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
@@ -423,6 +424,15 @@ export const submitPublicWebsiteForm = async (
       notFoundMessage(res, 'Published site not found');
       return;
     }
+
+    const actingUserId = site.ownerUserId || site.userId || undefined;
+    const organizationId = site.organizationId || undefined;
+    setRequestContext({
+      userId: actingUserId,
+      organizationId,
+      accountId: organizationId,
+      tenantId: organizationId,
+    });
 
     const result = await publicWebsiteFormService.submitForm(
       site,

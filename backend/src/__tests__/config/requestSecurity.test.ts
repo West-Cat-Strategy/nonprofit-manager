@@ -1,4 +1,8 @@
-import { createCorsOptions, resolveTrustProxy } from '../../config/requestSecurity';
+import {
+  createCorsOptions,
+  createCorsOptionsDelegate,
+  resolveTrustProxy,
+} from '../../config/requestSecurity';
 
 const invokeOriginCheck = (
   originCallback: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => void,
@@ -9,6 +13,29 @@ const invokeOriginCheck = (
       resolve({ allowed: Boolean(allowed), error });
     });
   });
+
+const invokeDelegateOriginCheck = async (
+  delegate: ReturnType<typeof createCorsOptionsDelegate>,
+  input: { protocol?: string; headers?: Record<string, string | undefined> },
+  origin?: string
+) => {
+  const request = {
+    protocol: input.protocol || 'https',
+    get: (name: string) => input.headers?.[name.toLowerCase()],
+  } as any;
+
+  const options = await new Promise<any>((resolve, reject) => {
+    delegate(request, (error, value) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(value);
+    });
+  });
+
+  return invokeOriginCheck(options.origin as any, origin);
+};
 
 describe('requestSecurity helpers', () => {
   it('fails closed when wildcard origins are combined with credentials outside development', () => {
@@ -48,6 +75,39 @@ describe('requestSecurity helpers', () => {
     const allowed = await invokeOriginCheck(corsOptions.origin as any, 'https://untrusted.example');
 
     expect(allowed).toEqual({ allowed: true, error: null });
+  });
+
+  it('allows same-host public-site origins even when they are not prelisted', async () => {
+    const delegate = createCorsOptionsDelegate({
+      nodeEnv: 'production',
+      corsOrigin: 'https://admin.westcat.ca',
+      fallbackOrigins: ['http://localhost:5173'],
+    });
+
+    const allowed = await invokeDelegateOriginCheck(
+      delegate,
+      {
+        protocol: 'https',
+        headers: {
+          host: 'community.westcat.ca',
+        },
+      },
+      'https://community.westcat.ca'
+    );
+    const denied = await invokeDelegateOriginCheck(
+      delegate,
+      {
+        protocol: 'https',
+        headers: {
+          host: 'community.westcat.ca',
+        },
+      },
+      'https://evil.example'
+    );
+
+    expect(allowed).toEqual({ allowed: true, error: null });
+    expect(denied.allowed).toBe(false);
+    expect(denied.error?.message).toBe('Not allowed by CORS');
   });
 
   it('parses trust proxy values safely', () => {

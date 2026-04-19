@@ -24,6 +24,7 @@ import {
 import { escapeHtml } from '@services/site-generator/escapeHtml';
 import { generateComponentHtml } from '@services/site-generator/componentRenderer';
 import { sanitizeNewsletterHtml } from '@services/publishing/newsletterHtmlSanitizer';
+import { sanitizeRenderableUrl } from '@services/site-generator/urlSanitizer';
 import { PublicSiteRouteResolver } from './routeResolver';
 import {
   buildAnalyticsScript,
@@ -35,6 +36,33 @@ import {
 
 type PublicEventsPort = Pick<EventService, 'listPublicEventsByOwner'>;
 type WebsiteEntriesPort = Pick<WebsiteEntryService, 'listPublicNewsletters'>;
+
+const resolveGridTemplateColumns = (columns: Array<{ width?: string }> | undefined): string => {
+  if (!columns || columns.length === 0) {
+    return 'repeat(auto-fit, minmax(240px, 1fr))';
+  }
+
+  const tracks = columns.map((column) => {
+    const width = typeof column.width === 'string' ? column.width.trim() : '';
+    const match = width.match(/^(\d+)\s*\/\s*(\d+)$/);
+    if (match) {
+      const numerator = Number.parseInt(match[1] || '1', 10);
+      const denominator = Number.parseInt(match[2] || '1', 10);
+      if (Number.isFinite(numerator) && Number.isFinite(denominator) && denominator > 0) {
+        return `${Math.max(1, numerator)}fr`;
+      }
+    }
+
+    const parsed = Number.parseFloat(width);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return `${parsed}fr`;
+    }
+
+    return '1fr';
+  });
+
+  return tracks.join(' ');
+};
 
 export class PublicSiteRenderer {
   constructor(
@@ -183,6 +211,91 @@ export class PublicSiteRenderer {
     `;
   }
 
+  private async renderNestedComponents(
+    site: PublishedSite,
+    components: PublishedComponent[] | undefined,
+    theme: PublishedTheme,
+    context: RuntimeContext
+  ): Promise<string> {
+    const nestedComponents = components || [];
+    const rendered = await Promise.all(
+      nestedComponents.map((nestedComponent) => this.renderComponent(site, nestedComponent, theme, context))
+    );
+    return rendered.join('\n');
+  }
+
+  private async renderHeroComponent(
+    site: PublishedSite,
+    component: RenderablePublishedComponent,
+    theme: PublishedTheme,
+    context: RuntimeContext
+  ): Promise<string> {
+    const backgroundColor = (component.backgroundColor as string) || theme.colors.surface;
+    const backgroundImage = sanitizeRenderableUrl(component.backgroundImage as string);
+    const overlay = component.overlay !== false && Boolean(backgroundImage);
+    const overlayColor = (component.overlayColor as string) || '#000000';
+    const overlayOpacity =
+      typeof component.overlayOpacity === 'number' ? component.overlayOpacity : 0.45;
+    const height = (component.height as string) || undefined;
+    const minHeight = (component.minHeight as string) || '28rem';
+    const verticalAlign = (component.verticalAlign as string) || 'center';
+    const justifyContentMap: Record<string, string> = {
+      top: 'flex-start',
+      center: 'center',
+      bottom: 'flex-end',
+    };
+    const nestedHtml = await this.renderNestedComponents(
+      site,
+      (component.components as PublishedComponent[]) || [],
+      theme,
+      context
+    );
+
+    return `
+      <div class="hero-component" style="position: relative; overflow: hidden; display: flex; align-items: ${justifyContentMap[verticalAlign] || 'center'}; min-height: ${minHeight}; ${height ? `height: ${height};` : ''} border-radius: ${theme.borderRadius.lg}; background-color: ${backgroundColor}; padding: clamp(2rem, 4vw, 3.5rem);">
+        ${backgroundImage ? `<div aria-hidden="true" style="position: absolute; inset: 0; background-image: url('${backgroundImage}'); background-size: cover; background-position: center;"></div>` : ''}
+        ${overlay ? `<div aria-hidden="true" style="position: absolute; inset: 0; background: ${overlayColor}; opacity: ${overlayOpacity};"></div>` : ''}
+        <div style="position: relative; z-index: 1; width: 100%;">
+          ${nestedHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  private async renderColumnsComponent(
+    site: PublishedSite,
+    component: RenderablePublishedComponent,
+    theme: PublishedTheme,
+    context: RuntimeContext
+  ): Promise<string> {
+    const columns =
+      (component.columns as Array<{ width?: string; components?: PublishedComponent[] }>) || [];
+    const gap = (component.gap as string) || '1.5rem';
+    const templateColumns = resolveGridTemplateColumns(columns);
+    const columnsHtml = await Promise.all(
+      columns.map(async (column) => {
+        const nestedHtml = await this.renderNestedComponents(
+          site,
+          column.components || [],
+          theme,
+          context
+        );
+
+        return `
+          <div class="columns-column" style="min-width: 0;">
+            ${nestedHtml}
+          </div>
+        `;
+      })
+    );
+
+    return `
+      <div class="columns-component" style="display: grid; gap: ${gap}; grid-template-columns: ${templateColumns}; align-items: stretch;">
+        ${columnsHtml.join('\n')}
+      </div>
+    `;
+  }
+
   private async renderComponent(
     site: PublishedSite,
     component: PublishedComponent,
@@ -190,6 +303,20 @@ export class PublicSiteRenderer {
     context: RuntimeContext
   ): Promise<string> {
     switch (component.type) {
+      case 'hero':
+        return this.renderHeroComponent(
+          site,
+          component as RenderablePublishedComponent,
+          theme,
+          context
+        );
+      case 'columns':
+        return this.renderColumnsComponent(
+          site,
+          component as RenderablePublishedComponent,
+          theme,
+          context
+        );
       case 'contact-form':
         return this.renderPublicForm(
           site,

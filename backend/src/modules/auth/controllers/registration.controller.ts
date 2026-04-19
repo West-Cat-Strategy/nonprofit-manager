@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
+import { withUserContextTransaction } from '@config/database';
 import { logger } from '@config/logger';
 import { AuthRequest } from '@middleware/auth';
 import { PASSWORD } from '@config/constants';
@@ -120,11 +121,16 @@ export const register = async (
     await runStep('syncUserRole', () => syncUserRole(user.id, user.role));
     const organizationId =
       (await runStep('seedDefaultOrganizationAccess', () =>
-        seedDefaultOrganizationAccess({
-          userId: user.id,
-          role: user.role,
-          grantedBy: user.id,
-        }))) ?? null;
+        withUserContextTransaction(user.id, (client) =>
+          seedDefaultOrganizationAccess(
+            {
+              userId: user.id,
+              role: user.role,
+              grantedBy: user.id,
+            },
+            client
+          )
+        ))) ?? null;
     const token = issueAppSessionToken({
       id: user.id,
       email: user.email,
@@ -208,12 +214,17 @@ export const setupFirstUser = async (
     const orgName = trimmedOrgName && trimmedOrgName.length > 0 ? trimmedOrgName : defaultOrgName;
     const organizationId = await createOrganizationAccount(orgName, user.id);
     if (organizationId) {
-      await upsertUserOrganizationAccess({
-        userId: user.id,
-        accountId: organizationId,
-        accessLevel: 'admin',
-        grantedBy: user.id,
-      });
+      await withUserContextTransaction(user.id, (client) =>
+        upsertUserOrganizationAccess(
+          {
+            userId: user.id,
+            accountId: organizationId,
+            accessLevel: 'admin',
+            grantedBy: user.id,
+          },
+          client
+        )
+      );
     }
 
     const token = issueAppSessionToken({

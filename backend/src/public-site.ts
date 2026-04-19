@@ -17,7 +17,7 @@ import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/cor
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
 import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
 import { validateBody, validateParams } from './middleware/zodValidation';
-import { createCorsOptions, resolveTrustProxy } from './config/requestSecurity';
+import { createCorsOptionsDelegate, resolveTrustProxy } from './config/requestSecurity';
 import { validateProductionSecurityConfig } from './config/productionSecurityConfig';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import pool from './config/database';
@@ -78,8 +78,8 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         fontSrc: ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
         connectSrc: resolveConnectSrc('http://localhost:8000'),
@@ -115,7 +115,7 @@ app.use(
   })
 );
 
-const corsOptions = createCorsOptions({
+const corsOptions = createCorsOptionsDelegate({
   nodeEnv: process.env.NODE_ENV,
   corsOrigin: process.env.CORS_ORIGIN,
   fallbackOrigins: ['http://localhost:8006', 'http://127.0.0.1:8006'],

@@ -49,7 +49,7 @@ COMPOSE_DEV_CADDY_ARGS := $(COMPOSE_DEV_ARGS) -f docker-compose.caddy.yml
 COMPOSE_DEV_SMOKE_ARGS := -p $(COMPOSE_PROJECT_SMOKE) -f docker-compose.dev.yml
 COMPOSE_CI_INFRA_ARGS := -p $(COMPOSE_PROJECT_CI) -f docker-compose.yml -f docker-compose.host-access.yml -f docker-compose.ci.yml
 E2E_NPM_RUN := cd e2e && npm run
-SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true
+SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true
 
 #------------------------------------------------------------------------------
 # Help
@@ -443,10 +443,11 @@ test-e2e-docker-smoke:
 	    return 0; \
 	  fi; \
 	  echo "$(BLUE)Stopping isolated Docker smoke stack $(COMPOSE_PROJECT_SMOKE)...$(RESET)"; \
-	  $(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) down --remove-orphans >/dev/null 2>&1 || true; \
+	  $(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) down --remove-orphans --volumes >/dev/null 2>&1 || true; \
 	}; \
 	trap cleanup EXIT; \
 	echo "$(BLUE)Starting isolated Docker smoke stack $(COMPOSE_PROJECT_SMOKE) on ports $(SMOKE_FRONTEND_PORT)/$(SMOKE_BACKEND_PORT)/$(SMOKE_PUBLIC_SITE_PORT)...$(RESET)"; \
+	$(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) down --remove-orphans --volumes >/dev/null 2>&1 || true; \
 	$(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) up -d; \
 	./scripts/wait-for-http-ready.sh \
 	  "http://127.0.0.1:$(SMOKE_BACKEND_PORT)/health/ready" \

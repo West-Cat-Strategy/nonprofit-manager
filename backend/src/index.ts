@@ -20,7 +20,7 @@ import { registerV2Routes } from '@routes/v2';
 import { setPaymentPool } from '@modules/payments';
 import { renderPublishedWebsite } from '@modules/publishing/controllers';
 import pool from './config/database';
-import { createCorsOptions, resolveTrustProxy } from './config/requestSecurity';
+import { createCorsOptionsDelegate, resolveTrustProxy } from './config/requestSecurity';
 import { validateProductionSecurityConfig } from './config/productionSecurityConfig';
 
 if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
@@ -98,10 +98,9 @@ app.use(
       directives: {
         // Default to self for anything not explicitly allowed
         defaultSrc: ["'self'"],
-        // Scripts: only from self + nonce for inline if needed
-        scriptSrc: ["'self'"],
-        // Styles: from self (avoid unsafe-inline; use CSS files instead)
-        styleSrc: ["'self'"],
+        // Generated public-site pages ship small inline runtime scripts/styles.
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
         // Images: self, data URIs (for small inlined images), and https:// 
         imgSrc: ["'self'", 'data:', 'https:'],
         // Fonts: self and Google Fonts if used
@@ -152,7 +151,7 @@ app.use(compression({
 }));
 
 // CORS configuration
-const corsOptions = createCorsOptions({
+const corsOptions = createCorsOptionsDelegate({
   nodeEnv: process.env.NODE_ENV,
   corsOrigin: process.env.CORS_ORIGIN,
   fallbackOrigins: ['http://localhost:5173'],

@@ -1,6 +1,6 @@
 # Script Index
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-19
 
 This directory contains the repo-local helpers used by the Makefile, deployment scripts, and docs workflow.
 Prefer the `make` targets when they exist. Call the scripts directly when you need the narrower entrypoint.
@@ -24,7 +24,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [install-git-hooks.sh](install-git-hooks.sh) | Install the repo-managed hooks into Git's resolved hooks path and preserve differing existing hooks unless you pass `--force`. | `make hooks` / `./scripts/install-git-hooks.sh --dry-run` |
 | [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files, with distinct `fast` and `strict` modes. | `./scripts/select-checks.sh --mode fast` |
 | [e2e-playwright.sh](e2e-playwright.sh) | Apply the repo's standard host or Docker Playwright defaults before delegating to the shared runner, while still honoring explicit runtime overrides such as `BASE_URL`, `API_URL`, and `E2E_*_PORT`. | `e2e` package scripts |
-| [e2e-run-with-lock.sh](e2e-run-with-lock.sh) | Run Playwright with the shared lock plus built-in port and HTTP-readiness preflight and retry safeguards. | `e2e` package scripts |
+| [e2e-run-with-lock.sh](e2e-run-with-lock.sh) | Run Playwright with the shared lock plus built-in port safeguards and externally managed HTTP-readiness preflight/retry checks. | `e2e` package scripts |
 | [wait-for-http-ready.sh](wait-for-http-ready.sh) | Poll one or more local HTTP endpoints until they answer successfully. | `make docker-up-dev` / `make test-e2e-docker-smoke` |
 
 ## Policy Checks

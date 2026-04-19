@@ -1,7 +1,7 @@
 import { doubleCsrf } from 'csrf-csrf';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '@config/logger';
-import { AUTH_COOKIE_NAME, PORTAL_AUTH_COOKIE_NAME, extractToken } from '@utils/cookieHelper';
+import { AUTH_COOKIE_NAME, PORTAL_AUTH_COOKIE_NAME } from '@utils/cookieHelper';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
@@ -30,16 +30,34 @@ const getCsrfSecret = (): string => {
 const getAuthSessionToken = (
   req: Request
 ): { token: string; prefix: 'auth' | 'portal' } | null => {
-  const authToken = extractToken(req.cookies, req.headers.authorization, AUTH_COOKIE_NAME);
+  const authorizationHeader = req.headers.authorization;
+  const bearerToken =
+    typeof authorizationHeader === 'string' && authorizationHeader.startsWith('Bearer ')
+      ? authorizationHeader.slice(7)
+      : null;
+
+  if (bearerToken) {
+    if (req.cookies?.[PORTAL_AUTH_COOKIE_NAME] === bearerToken) {
+      return { token: bearerToken, prefix: 'portal' };
+    }
+
+    if (req.cookies?.[AUTH_COOKIE_NAME] === bearerToken) {
+      return { token: bearerToken, prefix: 'auth' };
+    }
+
+    const requestPath = req.originalUrl?.split('?')[0] || req.path || '';
+    return {
+      token: bearerToken,
+      prefix: /^\/api(?:\/v2)?\/portal(?:\/|$)/.test(requestPath) ? 'portal' : 'auth',
+    };
+  }
+
+  const authToken = req.cookies?.[AUTH_COOKIE_NAME];
   if (authToken) {
     return { token: authToken, prefix: 'auth' };
   }
 
-  const portalAuthToken = extractToken(
-    req.cookies,
-    req.headers.authorization,
-    PORTAL_AUTH_COOKIE_NAME
-  );
+  const portalAuthToken = req.cookies?.[PORTAL_AUTH_COOKIE_NAME];
   if (portalAuthToken) {
     return { token: portalAuthToken, prefix: 'portal' };
   }

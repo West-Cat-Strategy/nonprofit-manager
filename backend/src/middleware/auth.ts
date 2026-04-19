@@ -340,6 +340,7 @@ export const authenticate = (
       }
 
       const normalizedRole = attachAuthenticatedUser(req, decoded, sessionUser);
+      clearOrganizationContext(req, sessionUser.id);
       const organizationId = await resolveAuthenticatedOrganizationContext(
         req,
         res,

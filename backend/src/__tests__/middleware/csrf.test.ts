@@ -106,6 +106,7 @@ describe('csrf middleware', () => {
     expect(
       resolveCsrfSessionIdentifier(
         createRequest({
+          cookies: { auth_token: 'stale-cookie-token' },
           headers: {
             authorization: 'Bearer bearer-token-456',
             'user-agent': 'Mozilla/5.0',
@@ -121,6 +122,20 @@ describe('csrf middleware', () => {
         })
       )
     ).toBe('portal:portal-token-789');
+
+    expect(
+      resolveCsrfSessionIdentifier(
+        createRequest({
+          path: '/api/v2/portal/messages',
+          originalUrl: '/api/v2/portal/messages',
+          cookies: { auth_token: 'stale-staff-cookie' },
+          headers: {
+            authorization: 'Bearer portal-bearer-token-321',
+            'user-agent': 'Mozilla/5.0',
+          },
+        })
+      )
+    ).toBe('portal:portal-bearer-token-321');
 
     expect(
       resolveCsrfSessionIdentifier(

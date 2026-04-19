@@ -14,6 +14,7 @@ import {
 } from '@app-types/account';
 import { Contact } from '@app-types/contact';
 import { logger } from '@config/logger';
+import { withUserContextTransaction } from '@config/database';
 import { resolveSort } from '@utils/queryHelpers';
 import type { DataScopeFilter } from '@app-types/dataScope';
 import { mapContactRow, type ContactRecord } from './contactServiceHelpers';
@@ -324,63 +325,54 @@ export class AccountService {
    * Create new account
    */
   async createAccount(data: CreateAccountDTO, userId: string): Promise<Account> {
-    const client = await this.pool.connect();
     try {
-      await client.query('BEGIN');
+      const account = await withUserContextTransaction(userId, async (client) => {
+        // Prevent account_number collisions under concurrent account creation.
+        // We serialize just the number allocation using a transaction-scoped advisory lock.
+        await client.query('SELECT pg_advisory_xact_lock($1)', [911_000_001]);
 
-      // Prevent account_number collisions under concurrent account creation.
-      // We serialize just the number allocation using a transaction-scoped advisory lock.
-      await client.query('SELECT pg_advisory_xact_lock($1)', [911_000_001]);
+        const accountNumber = await this.generateAccountNumber(client);
+        const result = await client.query(
+          `INSERT INTO accounts (
+             account_number, account_name, account_type,
+             category,
+             email, phone, website, description,
+             address_line1, address_line2, city, state_province, postal_code, country,
+             tax_id,
+             created_by, modified_by
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)
+           RETURNING id as account_id, account_number, account_name, account_type, category,
+             email, phone, website, description,
+             address_line1, address_line2, city, state_province, postal_code, country,
+             tax_id, is_active, created_at, updated_at, created_by, modified_by`,
+          [
+            accountNumber,
+            data.account_name,
+            data.account_type,
+            data.category || null,
+            data.email || null,
+            data.phone || null,
+            data.website || null,
+            data.description || null,
+            data.address_line1 || null,
+            data.address_line2 || null,
+            data.city || null,
+            data.state_province || null,
+            data.postal_code || null,
+            data.country || null,
+            data.tax_id || null,
+            userId,
+          ]
+        );
 
-      const accountNumber = await this.generateAccountNumber(client);
+        return result.rows[0];
+      });
 
-      const result = await client.query(
-        `INSERT INTO accounts (
-           account_number, account_name, account_type,
-           category,
-           email, phone, website, description,
-           address_line1, address_line2, city, state_province, postal_code, country,
-           tax_id,
-           created_by, modified_by
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)
-         RETURNING id as account_id, account_number, account_name, account_type, category,
-           email, phone, website, description,
-           address_line1, address_line2, city, state_province, postal_code, country,
-           tax_id, is_active, created_at, updated_at, created_by, modified_by`,
-        [
-          accountNumber,
-          data.account_name,
-          data.account_type,
-          data.category || null,
-          data.email || null,
-          data.phone || null,
-          data.website || null,
-          data.description || null,
-          data.address_line1 || null,
-          data.address_line2 || null,
-          data.city || null,
-          data.state_province || null,
-          data.postal_code || null,
-          data.country || null,
-          data.tax_id || null,
-          userId,
-        ]
-      );
-
-      await client.query('COMMIT');
-
-      logger.info(`Account created: ${result.rows[0].account_id}`);
-      return result.rows[0];
+      logger.info(`Account created: ${account.account_id}`);
+      return account;
     } catch (error) {
-      try {
-        await client.query('ROLLBACK');
-      } catch {
-        // ignore rollback errors; original error is what matters
-      }
       logger.error('Error creating account:', error);
       throw Object.assign(new Error('Failed to create account'), { cause: error });
-    } finally {
-      client.release();
     }
   }
 
