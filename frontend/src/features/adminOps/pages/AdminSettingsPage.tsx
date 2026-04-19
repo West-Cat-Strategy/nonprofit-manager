@@ -18,7 +18,7 @@ import AdminSettingsSectionNav from './adminSettings/components/AdminSettingsSec
 import GroupEditorModal from './adminSettings/components/GroupEditorModal';
 import UserAccessModal from './adminSettings/components/UserAccessModal';
 import UserSecurityModal from './adminSettings/components/UserSecurityModal';
-import InviteUserModal from './adminSettings/components/InviteUserModal';
+import InviteUserModal from '../../invitations/components/InviteUserModal';
 import RoleEditorModal from './adminSettings/components/RoleEditorModal';
 import ResetUserPasswordModal from './adminSettings/components/ResetUserPasswordModal';
 import ResetUserEmailModal from './adminSettings/components/ResetUserEmailModal';

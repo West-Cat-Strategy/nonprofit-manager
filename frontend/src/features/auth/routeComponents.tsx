@@ -9,7 +9,7 @@ import { lazy } from 'react';
 export const Setup = lazy(() => import('./pages/SetupPage'));
 export const Login = lazy(() => import('./pages/LoginPage'));
 export const Register = lazy(() => import('./pages/RegisterPage'));
-export const AcceptInvitation = lazy(() => import('./pages/AcceptInvitationPage'));
+export const AcceptInvitation = lazy(() => import('../invitations/pages/AcceptInvitationPage'));
 export const AdminRegistrationReview = lazy(() => import('./pages/AdminRegistrationReviewPage'));
 export const ForgotPassword = lazy(() => import('./pages/ForgotPasswordPage'));
 export const ResetPassword = lazy(() => import('./pages/ResetPasswordPage'));

@@ -1,0 +1,872 @@
+import { Pool } from 'pg';
+import pool from '@config/database';
+import { logger } from '@config/logger';
+import { createCaseWorkflowArtifacts } from '@services/caseWorkflowService';
+import {
+  FOLLOW_UP_ENTITY_COLUMNS,
+  FOLLOW_UP_RETURNING_COLUMNS,
+  FOLLOW_UP_SELECT_COLUMNS,
+} from '@services/followUpQueryColumns';
+import type {
+  CompleteFollowUpDTO,
+  CreateFollowUpDTO,
+  FollowUp,
+  FollowUpFilters,
+  FollowUpSummary,
+  FollowUpWithEntity,
+  UpdateFollowUpDTO,
+} from '@app-types/followUp';
+
+type FollowUpQueryRow = {
+  id: string;
+  organization_id: string;
+  entity_type: FollowUp['entity_type'];
+  entity_id: string;
+  title: string;
+  description: string | null;
+  scheduled_date: string | Date;
+  scheduled_time: string | null;
+  frequency: FollowUp['frequency'];
+  frequency_end_date: string | Date | null;
+  method: FollowUp['method'] | null;
+  status: FollowUp['status'];
+  completed_date: string | Date | null;
+  completed_notes: string | null;
+  assigned_to: string | null;
+  assigned_to_name?: string | null;
+  reminder_minutes_before: number | null;
+  created_by: string | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+  case_number?: string | null;
+  case_title?: string | null;
+  case_priority?: string | null;
+  contact_name?: string | null;
+  direct_contact_name?: string | null;
+  task_subject?: string | null;
+  task_priority?: string | null;
+  total_count?: string | number;
+  assigned_email?: string | null;
+};
+
+const STALE_PROCESSING_MINUTES = 10;
+
+const toIsoDate = (value: string | Date | null | undefined): string | null => {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+  return value.toISOString().slice(0, 10);
+};
+
+const toIsoTime = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+  return value.slice(0, 5);
+};
+
+const normalizeDateInput = (value: string | Date): string => {
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const trimmed = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const parsed = new Date(trimmed);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return trimmed;
+};
+
+const normalizeTimeInput = (value?: string | null): string => {
+  if (!value) return '23:59:59';
+
+  const trimmed = value.trim();
+  if (!trimmed) return '23:59:59';
+
+  const match = trimmed.match(/^(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (match) {
+    const [, hours, minutes, seconds] = match;
+    return `${hours}:${minutes}:${seconds || '00'}`;
+  }
+
+  return trimmed;
+};
+
+const combineDateTime = (date: string | Date, time?: string | null): Date => {
+  const normalizedDate = normalizeDateInput(date);
+  const normalizedTime = normalizeTimeInput(time);
+  return new Date(`${normalizedDate}T${normalizedTime}Z`);
+};
+
+const computeNextScheduledDate = (
+  date: string | Date,
+  frequency: FollowUp['frequency']
+): string | null => {
+  if (frequency === 'once') return null;
+  const current = new Date(`${normalizeDateInput(date)}T00:00:00Z`);
+
+  if (frequency === 'daily') current.setUTCDate(current.getUTCDate() + 1);
+  if (frequency === 'weekly') current.setUTCDate(current.getUTCDate() + 7);
+  if (frequency === 'biweekly') current.setUTCDate(current.getUTCDate() + 14);
+  if (frequency === 'monthly') current.setUTCMonth(current.getUTCMonth() + 1);
+
+  return current.toISOString().slice(0, 10);
+};
+
+const mapRow = (row: FollowUpQueryRow): FollowUpWithEntity => {
+  const base: FollowUp = {
+    id: row.id,
+    organization_id: row.organization_id,
+    entity_type: row.entity_type,
+    entity_id: row.entity_id,
+    title: row.title,
+    description: row.description,
+    scheduled_date: toIsoDate(row.scheduled_date) || '',
+    scheduled_time: toIsoTime(row.scheduled_time || null),
+    frequency: row.frequency,
+    frequency_end_date: toIsoDate(row.frequency_end_date || null),
+    method: row.method,
+    status: row.status,
+    completed_date: row.completed_date ? new Date(row.completed_date).toISOString() : null,
+    completed_notes: row.completed_notes,
+    assigned_to: row.assigned_to,
+    assigned_to_name: row.assigned_to_name || undefined,
+    reminder_minutes_before: row.reminder_minutes_before,
+    created_by: row.created_by,
+    created_at: new Date(row.created_at).toISOString(),
+    updated_at: new Date(row.updated_at).toISOString(),
+  };
+
+  return {
+    ...base,
+    case_number: row.case_number || undefined,
+    case_title: row.case_title || undefined,
+    case_priority: row.case_priority || undefined,
+    contact_name: row.contact_name || undefined,
+    direct_contact_name: row.direct_contact_name || undefined,
+    task_subject: row.task_subject || undefined,
+    task_priority: row.task_priority || undefined,
+  };
+};
+
+export class FollowUpService {
+  constructor(private readonly db: Pool) {}
+
+  private async upsertNotificationForFollowUp(followUpId: string): Promise<void> {
+    const followUpResult = await this.db.query<FollowUpQueryRow>(
+      `SELECT fu.id,
+              fu.organization_id,
+              fu.scheduled_date,
+              fu.scheduled_time,
+              fu.reminder_minutes_before,
+              fu.status,
+              fu.assigned_to,
+              u.email AS assigned_email
+       FROM follow_ups fu
+       LEFT JOIN users u ON u.id = fu.assigned_to
+       WHERE fu.id = $1
+       LIMIT 1`,
+      [followUpId]
+    );
+
+    const followUp = followUpResult.rows[0];
+    if (!followUp) return;
+
+    if (
+      followUp.status !== 'scheduled' ||
+      followUp.reminder_minutes_before === null ||
+      followUp.reminder_minutes_before === undefined
+    ) {
+      await this.db.query(
+        `DELETE FROM follow_up_notifications
+         WHERE follow_up_id = $1
+           AND status IN ('pending', 'processing')`,
+        [followUpId]
+      );
+      return;
+    }
+
+    const scheduledAt = combineDateTime(
+      followUp.scheduled_date,
+      followUp.scheduled_time || null
+    );
+    const reminderAt = new Date(
+      scheduledAt.getTime() - followUp.reminder_minutes_before * 60 * 1000
+    );
+
+    await this.db.query(
+      `INSERT INTO follow_up_notifications (
+         organization_id,
+         follow_up_id,
+         scheduled_for,
+         status,
+         recipient_email
+       )
+       VALUES ($1, $2, $3, 'pending', $4)
+       ON CONFLICT (follow_up_id)
+       DO UPDATE
+         SET scheduled_for = EXCLUDED.scheduled_for,
+             status = 'pending',
+             processing_started_at = NULL,
+             recipient_email = EXCLUDED.recipient_email,
+             error_message = NULL,
+             updated_at = NOW()`,
+      [
+        followUp.organization_id,
+        followUpId,
+        reminderAt.toISOString(),
+        followUp.assigned_email || null,
+      ]
+    );
+  }
+
+  async getFollowUps(
+    organizationId: string,
+    filters: FollowUpFilters
+  ): Promise<{
+    data: FollowUpWithEntity[];
+    pagination: { page: number; limit: number; total: number; pages: number };
+  }> {
+    const page = filters.page || 1;
+    const limit = filters.limit || 20;
+    const offset = (page - 1) * limit;
+
+    const where: string[] = ['fu.organization_id = $1'];
+    const values: unknown[] = [organizationId];
+
+    const addFilter = (clause: string, value?: unknown): void => {
+      if (value === undefined || value === null || value === '') return;
+      values.push(value);
+      where.push(clause.replace('?', `$${values.length}`));
+    };
+
+    addFilter('fu.entity_type = ?', filters.entity_type);
+    addFilter('fu.entity_id = ?', filters.entity_id);
+
+    if (filters.status && filters.status !== 'overdue') {
+      addFilter('fu.status = ?', filters.status);
+    }
+
+    addFilter('fu.assigned_to = ?', filters.assigned_to);
+    addFilter('fu.scheduled_date >= ?', filters.date_from);
+    addFilter('fu.scheduled_date <= ?', filters.date_to);
+
+    if (filters.status === 'overdue' || filters.overdue_only) {
+      where.push(
+        `fu.status = 'scheduled' AND (fu.scheduled_date::timestamp + COALESCE(fu.scheduled_time, '23:59:59'::time)) < NOW()`
+      );
+    }
+
+    const whereClause = `WHERE ${where.join(' AND ')}`;
+
+    const rowsResult = await this.db.query<FollowUpQueryRow>(
+      `SELECT
+         ${FOLLOW_UP_ENTITY_COLUMNS},
+         COUNT(*) OVER() AS total_count
+       FROM follow_ups fu
+       LEFT JOIN users assignee ON assignee.id = fu.assigned_to
+       LEFT JOIN cases c ON fu.entity_type = 'case' AND fu.entity_id = c.id
+       LEFT JOIN contacts con ON c.contact_id = con.id
+       LEFT JOIN contacts direct_contact ON fu.entity_type = 'contact' AND fu.entity_id = direct_contact.id
+       LEFT JOIN tasks t ON fu.entity_type = 'task' AND fu.entity_id = t.id
+       ${whereClause}
+       ORDER BY fu.scheduled_date ASC, fu.scheduled_time ASC NULLS LAST, fu.created_at DESC
+       LIMIT $${values.length + 1}
+       OFFSET $${values.length + 2}`,
+      [...values, limit, offset]
+    );
+
+    const total = Number.parseInt(String(rowsResult.rows[0]?.total_count ?? '0'), 10);
+
+    return {
+      data: rowsResult.rows.map(mapRow),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getFollowUpSummary(
+    organizationId: string,
+    filters: Omit<FollowUpFilters, 'page' | 'limit'>
+  ): Promise<FollowUpSummary> {
+    const where: string[] = ['organization_id = $1'];
+    const values: unknown[] = [organizationId];
+
+    const addFilter = (clause: string, value?: unknown): void => {
+      if (value === undefined || value === null || value === '') return;
+      values.push(value);
+      where.push(clause.replace('?', `$${values.length}`));
+    };
+
+    addFilter('entity_type = ?', filters.entity_type);
+    addFilter('entity_id = ?', filters.entity_id);
+    addFilter('assigned_to = ?', filters.assigned_to);
+
+    if (filters.date_from) addFilter('scheduled_date >= ?', filters.date_from);
+    if (filters.date_to) addFilter('scheduled_date <= ?', filters.date_to);
+
+    const whereClause = `WHERE ${where.join(' AND ')}`;
+
+    const result = await this.db.query<{
+      total: string;
+      scheduled: string;
+      completed: string;
+      cancelled: string;
+      overdue: string;
+      due_today: string;
+      due_this_week: string;
+    }>(
+      `SELECT
+         COUNT(*)::text AS total,
+         COUNT(*) FILTER (WHERE status = 'scheduled')::text AS scheduled,
+         COUNT(*) FILTER (WHERE status = 'completed')::text AS completed,
+         COUNT(*) FILTER (WHERE status = 'cancelled')::text AS cancelled,
+         COUNT(*) FILTER (
+           WHERE status = 'scheduled'
+             AND (scheduled_date::timestamp + COALESCE(scheduled_time, '23:59:59'::time)) < NOW()
+         )::text AS overdue,
+         COUNT(*) FILTER (
+           WHERE status = 'scheduled' AND scheduled_date = CURRENT_DATE
+         )::text AS due_today,
+         COUNT(*) FILTER (
+           WHERE status = 'scheduled'
+             AND scheduled_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'
+         )::text AS due_this_week
+       FROM follow_ups
+       ${whereClause}`,
+      values
+    );
+
+    const row = result.rows[0];
+    return {
+      total: Number.parseInt(row?.total || '0', 10),
+      scheduled: Number.parseInt(row?.scheduled || '0', 10),
+      completed: Number.parseInt(row?.completed || '0', 10),
+      cancelled: Number.parseInt(row?.cancelled || '0', 10),
+      overdue: Number.parseInt(row?.overdue || '0', 10),
+      due_today: Number.parseInt(row?.due_today || '0', 10),
+      due_this_week: Number.parseInt(row?.due_this_week || '0', 10),
+    };
+  }
+
+  async getUpcomingFollowUps(
+    organizationId: string,
+    limit = 10
+  ): Promise<FollowUpWithEntity[]> {
+    const result = await this.db.query<FollowUpQueryRow>(
+      `SELECT
+         ${FOLLOW_UP_ENTITY_COLUMNS}
+       FROM follow_ups fu
+       LEFT JOIN users assignee ON assignee.id = fu.assigned_to
+       LEFT JOIN cases c ON fu.entity_type = 'case' AND fu.entity_id = c.id
+       LEFT JOIN contacts con ON c.contact_id = con.id
+       LEFT JOIN contacts direct_contact ON fu.entity_type = 'contact' AND fu.entity_id = direct_contact.id
+       LEFT JOIN tasks t ON fu.entity_type = 'task' AND fu.entity_id = t.id
+       WHERE fu.organization_id = $1
+         AND fu.status = 'scheduled'
+       ORDER BY fu.scheduled_date ASC, fu.scheduled_time ASC NULLS LAST
+       LIMIT $2`,
+      [organizationId, limit]
+    );
+
+    return result.rows.map(mapRow);
+  }
+
+  async getEntityFollowUps(
+    organizationId: string,
+    entityType: FollowUp['entity_type'],
+    entityId: string
+  ): Promise<FollowUp[]> {
+    const result = await this.db.query<FollowUpQueryRow>(
+        `SELECT
+         ${FOLLOW_UP_SELECT_COLUMNS},
+         assignee.first_name || ' ' || assignee.last_name AS assigned_to_name
+       FROM follow_ups fu
+       LEFT JOIN users assignee ON assignee.id = fu.assigned_to
+       WHERE fu.organization_id = $1
+         AND fu.entity_type = $2
+         AND fu.entity_id = $3
+       ORDER BY fu.scheduled_date ASC, fu.scheduled_time ASC NULLS LAST, fu.created_at DESC`,
+      [organizationId, entityType, entityId]
+    );
+
+    return result.rows.map(mapRow);
+  }
+
+  async getFollowUpById(
+    organizationId: string,
+    followUpId: string
+  ): Promise<FollowUp | null> {
+    const result = await this.db.query<FollowUpQueryRow>(
+        `SELECT
+         ${FOLLOW_UP_SELECT_COLUMNS},
+         assignee.first_name || ' ' || assignee.last_name AS assigned_to_name
+       FROM follow_ups fu
+       LEFT JOIN users assignee ON assignee.id = fu.assigned_to
+       WHERE fu.organization_id = $1
+         AND fu.id = $2
+       LIMIT 1`,
+      [organizationId, followUpId]
+    );
+
+    if (result.rows.length === 0) return null;
+    return mapRow(result.rows[0]);
+  }
+
+  async createFollowUp(
+    organizationId: string,
+    userId: string,
+    data: CreateFollowUpDTO
+  ): Promise<FollowUp> {
+    const result = await this.db.query<FollowUpQueryRow>(
+      `INSERT INTO follow_ups (
+         organization_id,
+         entity_type,
+         entity_id,
+         title,
+         description,
+         scheduled_date,
+         scheduled_time,
+         frequency,
+         frequency_end_date,
+         method,
+         assigned_to,
+         reminder_minutes_before,
+         created_by,
+         modified_by
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
+       RETURNING ${FOLLOW_UP_RETURNING_COLUMNS}`,
+      [
+        organizationId,
+        data.entity_type,
+        data.entity_id,
+        data.title,
+        data.description || null,
+        data.scheduled_date,
+        data.scheduled_time || null,
+        data.frequency || 'once',
+        data.frequency_end_date || null,
+        data.method || null,
+        data.assigned_to || null,
+        data.reminder_minutes_before ?? null,
+        userId,
+      ]
+    );
+
+    await this.upsertNotificationForFollowUp(result.rows[0].id);
+    return mapRow(result.rows[0]);
+  }
+
+  async updateFollowUp(
+    organizationId: string,
+    followUpId: string,
+    userId: string,
+    data: UpdateFollowUpDTO
+  ): Promise<FollowUp | null> {
+    const updates: string[] = [];
+    const values: unknown[] = [organizationId, followUpId];
+
+    const addUpdate = (field: string, value: unknown): void => {
+      values.push(value);
+      updates.push(`${field} = $${values.length}`);
+    };
+
+    if (data.title !== undefined) addUpdate('title', data.title);
+    if (data.description !== undefined) addUpdate('description', data.description);
+    if (data.scheduled_date !== undefined) addUpdate('scheduled_date', data.scheduled_date);
+    if (data.scheduled_time !== undefined) addUpdate('scheduled_time', data.scheduled_time);
+    if (data.frequency !== undefined) addUpdate('frequency', data.frequency);
+    if (data.frequency_end_date !== undefined) addUpdate('frequency_end_date', data.frequency_end_date);
+    if (data.method !== undefined) addUpdate('method', data.method);
+    if (data.status !== undefined && data.status !== 'overdue') addUpdate('status', data.status);
+    if (data.assigned_to !== undefined) addUpdate('assigned_to', data.assigned_to);
+    if (data.reminder_minutes_before !== undefined) {
+      addUpdate('reminder_minutes_before', data.reminder_minutes_before);
+    }
+
+    if (updates.length === 0) {
+      return this.getFollowUpById(organizationId, followUpId);
+    }
+
+    values.push(userId);
+    updates.push(`modified_by = $${values.length}`);
+    updates.push('updated_at = NOW()');
+
+    const result = await this.db.query<FollowUpQueryRow>(
+      `UPDATE follow_ups
+       SET ${updates.join(', ')}
+       WHERE organization_id = $1
+         AND id = $2
+       RETURNING ${FOLLOW_UP_RETURNING_COLUMNS}`,
+      values
+    );
+
+    if (result.rows.length === 0) return null;
+    await this.upsertNotificationForFollowUp(followUpId);
+    return mapRow(result.rows[0]);
+  }
+
+  async completeFollowUp(
+    organizationId: string,
+    followUpId: string,
+    userId: string,
+    data: CompleteFollowUpDTO
+  ): Promise<FollowUp | null> {
+    const completionNotes = data.completed_notes?.trim() || '';
+    if (!completionNotes) {
+      throw Object.assign(new Error('Completion notes are required'), {
+        statusCode: 400,
+        code: 'validation_error',
+      });
+    }
+
+    const client = await this.db.connect();
+    try {
+      await client.query('BEGIN');
+
+      const currentResult = await client.query<FollowUpQueryRow>(
+        `SELECT ${FOLLOW_UP_RETURNING_COLUMNS}
+         FROM follow_ups
+         WHERE organization_id = $1
+           AND id = $2
+         LIMIT 1`,
+        [organizationId, followUpId]
+      );
+
+      if (currentResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return null;
+      }
+
+      const current = currentResult.rows[0];
+      const outcomeDefinitionIds = data.outcome_definition_ids || [];
+      if (current.entity_type === 'case' && outcomeDefinitionIds.length === 0) {
+        throw Object.assign(new Error('Case follow-ups require at least one outcome definition'), {
+          statusCode: 400,
+          code: 'validation_error',
+        });
+      }
+
+      const updateResult = await client.query<FollowUpQueryRow>(
+        `UPDATE follow_ups
+         SET status = 'completed',
+             completed_date = NOW(),
+             completed_notes = $3,
+             modified_by = $4,
+             updated_at = NOW()
+         WHERE organization_id = $1
+           AND id = $2
+         RETURNING ${FOLLOW_UP_RETURNING_COLUMNS}`,
+        [organizationId, followUpId, completionNotes, userId]
+      );
+
+      await client.query(
+        `DELETE FROM follow_up_notifications
+         WHERE follow_up_id = $1
+           AND status IN ('pending', 'processing')`,
+        [followUpId]
+      );
+
+      if (current.entity_type === 'case') {
+        await createCaseWorkflowArtifacts(client, {
+          caseId: current.entity_id,
+          userId,
+          note: {
+            noteType: 'update',
+            subject: 'Follow-up completed',
+            content: completionNotes,
+            sourceEntityType: 'follow_up',
+            sourceEntityId: followUpId,
+          },
+          outcomes: {
+            outcomeDefinitionIds,
+            notes: completionNotes,
+            visibleToClient: Boolean(data.outcome_visibility),
+            workflowStage: 'follow_up',
+            sourceEntityType: 'follow_up',
+            sourceEntityId: followUpId,
+          },
+        });
+      }
+
+      const shouldScheduleNext =
+        (data.schedule_next !== false && current.frequency !== 'once') ||
+        Boolean(data.next_scheduled_date);
+
+      if (shouldScheduleNext) {
+        const nextDate =
+          data.next_scheduled_date ||
+          computeNextScheduledDate(current.scheduled_date, current.frequency);
+
+        if (nextDate) {
+          const endDate = current.frequency_end_date
+            ? new Date(`${current.frequency_end_date}T00:00:00Z`)
+            : null;
+          const candidate = new Date(`${nextDate}T00:00:00Z`);
+
+          if (!endDate || candidate <= endDate) {
+            const insertedResult = await client.query<{ id: string }>(
+              `INSERT INTO follow_ups (
+                 organization_id,
+                 entity_type,
+                 entity_id,
+                 title,
+                 description,
+                 scheduled_date,
+                 scheduled_time,
+                 frequency,
+                 frequency_end_date,
+                 method,
+                 status,
+                 assigned_to,
+                 reminder_minutes_before,
+                 created_by,
+                 modified_by
+               )
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'scheduled', $11, $12, $13, $13)
+               RETURNING id`,
+              [
+                current.organization_id,
+                current.entity_type,
+                current.entity_id,
+                current.title,
+                current.description || null,
+                nextDate,
+                current.scheduled_time || null,
+                current.frequency,
+                current.frequency_end_date || null,
+                current.method || null,
+                current.assigned_to || null,
+                current.reminder_minutes_before ?? null,
+                userId,
+              ]
+            );
+
+            await this.upsertNotificationForFollowUp(insertedResult.rows[0].id);
+          }
+        }
+      }
+
+      await client.query('COMMIT');
+      return mapRow(updateResult.rows[0]);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Failed to complete follow-up', {
+        error,
+        organizationId,
+        followUpId,
+      });
+      throw Object.assign(new Error('Failed to complete follow-up'), { cause: error });
+    } finally {
+      client.release();
+    }
+  }
+
+  async cancelFollowUp(
+    organizationId: string,
+    followUpId: string,
+    userId: string,
+    data: CompleteFollowUpDTO
+  ): Promise<FollowUp | null> {
+    const cancellationNotes = data.completed_notes?.trim() || '';
+    if (!cancellationNotes) {
+      throw Object.assign(new Error('Cancellation notes are required'), {
+        statusCode: 400,
+        code: 'validation_error',
+      });
+    }
+
+    const client = await this.db.connect();
+    try {
+      await client.query('BEGIN');
+
+      const currentResult = await client.query<FollowUpQueryRow>(
+        `SELECT ${FOLLOW_UP_RETURNING_COLUMNS}
+         FROM follow_ups
+         WHERE organization_id = $1
+           AND id = $2
+         FOR UPDATE`,
+        [organizationId, followUpId]
+      );
+
+      const current = currentResult.rows[0];
+      if (!current) {
+        await client.query('ROLLBACK');
+        return null;
+      }
+
+      const outcomeDefinitionIds = data.outcome_definition_ids || [];
+      if (current.entity_type === 'case' && outcomeDefinitionIds.length === 0) {
+        throw Object.assign(new Error('Case follow-ups require at least one outcome definition'), {
+          statusCode: 400,
+          code: 'validation_error',
+        });
+      }
+
+      const result = await client.query<FollowUpQueryRow>(
+        `UPDATE follow_ups
+         SET status = 'cancelled',
+             completed_notes = $4,
+             modified_by = $3,
+             updated_at = NOW()
+         WHERE organization_id = $1
+           AND id = $2
+         RETURNING ${FOLLOW_UP_RETURNING_COLUMNS}`,
+        [organizationId, followUpId, userId, cancellationNotes]
+      );
+
+      await client.query(
+        `DELETE FROM follow_up_notifications
+         WHERE follow_up_id = $1
+           AND status IN ('pending', 'processing')`,
+        [followUpId]
+      );
+
+      if (current.entity_type === 'case') {
+        await createCaseWorkflowArtifacts(client, {
+          caseId: current.entity_id,
+          userId,
+          note: {
+            noteType: 'update',
+            subject: 'Follow-up cancelled',
+            content: cancellationNotes,
+            sourceEntityType: 'follow_up',
+            sourceEntityId: followUpId,
+          },
+          outcomes: {
+            outcomeDefinitionIds,
+            notes: cancellationNotes,
+            visibleToClient: Boolean(data.outcome_visibility),
+            workflowStage: 'follow_up',
+            sourceEntityType: 'follow_up',
+            sourceEntityId: followUpId,
+          },
+        });
+      }
+
+      await client.query('COMMIT');
+      return mapRow(result.rows[0]);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Failed to cancel follow-up', {
+        error,
+        organizationId,
+        followUpId,
+      });
+      throw Object.assign(new Error('Failed to cancel follow-up'), { cause: error });
+    } finally {
+      client.release();
+    }
+  }
+
+  async rescheduleFollowUp(
+    organizationId: string,
+    followUpId: string,
+    userId: string,
+    scheduledDate: string,
+    scheduledTime?: string | null
+  ): Promise<FollowUp | null> {
+    const result = await this.db.query<FollowUpQueryRow>(
+      `UPDATE follow_ups
+       SET scheduled_date = $3,
+           scheduled_time = $4,
+           status = 'scheduled',
+           completed_date = NULL,
+           completed_notes = NULL,
+           modified_by = $5,
+           updated_at = NOW()
+       WHERE organization_id = $1
+         AND id = $2
+       RETURNING ${FOLLOW_UP_RETURNING_COLUMNS}`,
+      [organizationId, followUpId, scheduledDate, scheduledTime || null, userId]
+    );
+
+    if (result.rows.length === 0) return null;
+
+    await this.upsertNotificationForFollowUp(followUpId);
+    return mapRow(result.rows[0]);
+  }
+
+  async deleteFollowUp(
+    organizationId: string,
+    followUpId: string
+  ): Promise<boolean> {
+    const result = await this.db.query(
+      `DELETE FROM follow_ups
+       WHERE organization_id = $1
+         AND id = $2
+       RETURNING id`,
+      [organizationId, followUpId]
+    );
+
+    return result.rows.length > 0;
+  }
+
+  async claimDueNotifications(batchSize: number): Promise<Array<{
+    id: string;
+    follow_up_id: string;
+    organization_id: string;
+    recipient_email: string | null;
+  }>> {
+    const result = await this.db.query<{
+      id: string;
+      follow_up_id: string;
+      organization_id: string;
+      recipient_email: string | null;
+    }>(
+      `WITH due AS (
+         SELECT id
+         FROM follow_up_notifications
+         WHERE status IN ('pending', 'processing')
+           AND scheduled_for <= NOW()
+           AND (
+             status = 'pending'
+             OR (
+               status = 'processing'
+               AND processing_started_at < NOW() - INTERVAL '${STALE_PROCESSING_MINUTES} minutes'
+             )
+           )
+         ORDER BY scheduled_for ASC
+         LIMIT $1
+         FOR UPDATE SKIP LOCKED
+       )
+       UPDATE follow_up_notifications n
+       SET status = 'processing',
+           processing_started_at = NOW(),
+           attempt_count = attempt_count + 1,
+           updated_at = NOW()
+       FROM due
+       WHERE n.id = due.id
+       RETURNING n.id, n.follow_up_id, n.organization_id, n.recipient_email`,
+      [batchSize]
+    );
+
+    return result.rows;
+  }
+
+  async markNotificationResult(
+    notificationId: string,
+    payload: { status: 'sent' | 'failed' | 'skipped'; errorMessage?: string | null }
+  ): Promise<void> {
+    await this.db.query(
+      `UPDATE follow_up_notifications
+       SET status = $2,
+           sent_at = CASE WHEN $2 IN ('sent', 'skipped') THEN NOW() ELSE sent_at END,
+           processing_started_at = NULL,
+           error_message = $3,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [notificationId, payload.status, payload.errorMessage || null]
+    );
+  }
+}
+
+export const followUpService = new FollowUpService(pool);

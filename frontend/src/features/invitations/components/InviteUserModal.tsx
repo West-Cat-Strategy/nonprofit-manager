@@ -1,6 +1,6 @@
-import ErrorBanner from '../../../../../components/ErrorBanner';
-import type { RoleSelectorItem } from '../types';
-import { getRoleDisplayLabel } from '../utils';
+import ErrorBanner from '../../../components/ErrorBanner';
+import type { RoleSelectorItem } from '../../adminOps/contracts';
+import { getRoleDisplayLabel } from '../../adminOps/pages/adminSettings/utils';
 
 type InviteEmailDelivery = {
   requested: boolean;

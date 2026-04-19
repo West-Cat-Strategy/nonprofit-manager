@@ -6,13 +6,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch } from '../../../store/hooks';
-import { setCredentials } from '../state';
+import { setCredentials } from '../../auth/state';
 import api from '../../../services/api';
 import { useApiError } from '../../../hooks/useApiError';
 import ErrorBanner from '../../../components/ErrorBanner';
 import { validatePassword } from '../../../utils/validation';
 import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
-import { primeStaffSession } from '../utils/primeStaffSession';
+import { primeStaffSession } from '../../auth/utils/primeStaffSession';
 
 interface InvitationInfo {
   email: string;

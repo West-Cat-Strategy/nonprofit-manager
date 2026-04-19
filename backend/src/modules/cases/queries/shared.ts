@@ -8,6 +8,72 @@ type PgExecutor = Pool | PoolClient;
 const resolveOrganizationId = (organizationId?: string): string | undefined =>
   organizationId || getRequestContext()?.organizationId || getRequestContext()?.accountId || getRequestContext()?.tenantId;
 
+export const CASE_COLUMNS = `
+  c.id,
+  c.case_number,
+  c.contact_id,
+  c.account_id,
+  c.case_type_id,
+  c.outcome,
+  c.status_id,
+  c.priority,
+  c.title,
+  c.description,
+  c.source,
+  c.referral_source,
+  c.intake_date,
+  c.opened_date,
+  c.closed_date,
+  c.due_date,
+  c.assigned_to,
+  c.assigned_team,
+  c.outcome_notes,
+  c.closure_reason,
+  c.intake_data,
+  c.custom_data,
+  c.is_urgent,
+  c.requires_followup,
+  c.followup_date,
+  c.tags,
+  c.client_viewable,
+  c.created_at,
+  c.updated_at,
+  c.created_by,
+  c.modified_by,
+  COALESCE((
+    SELECT ARRAY_AGG(cta.case_type_id ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC)
+    FROM case_type_assignments cta
+    WHERE cta.case_id = c.id
+  ), CASE WHEN c.case_type_id IS NOT NULL THEN ARRAY[c.case_type_id]::uuid[] ELSE ARRAY[]::uuid[] END) AS case_type_ids,
+  COALESCE((
+    SELECT ARRAY_AGG(ct.name ORDER BY cta.is_primary DESC, cta.sort_order ASC, cta.created_at ASC, cta.id ASC)
+    FROM case_type_assignments cta
+    INNER JOIN case_types ct ON ct.id = cta.case_type_id
+    WHERE cta.case_id = c.id
+  ), CASE
+    WHEN c.case_type_id IS NOT NULL THEN ARRAY[
+      COALESCE(
+        (
+          SELECT ct_scalar.name
+          FROM case_types ct_scalar
+          WHERE ct_scalar.id = c.case_type_id
+          LIMIT 1
+        ),
+        c.case_type_id::text
+      )
+    ]::text[]
+    ELSE ARRAY[]::text[]
+  END) AS case_type_names,
+  COALESCE((
+    SELECT ARRAY_AGG(coa.outcome_value ORDER BY coa.is_primary DESC, coa.sort_order ASC, coa.created_at ASC, coa.id ASC)
+    FROM case_outcome_assignments coa
+    WHERE coa.case_id = c.id
+  ), CASE
+    WHEN c.outcome IS NOT NULL AND btrim(c.outcome) <> '' THEN ARRAY[c.outcome]::text[]
+    ELSE ARRAY[]::text[]
+  END) AS case_outcome_values
+`;
+
 export const DEFAULT_TIMELINE_LIMIT = 50;
 export const MAX_TIMELINE_LIMIT = 200;
 

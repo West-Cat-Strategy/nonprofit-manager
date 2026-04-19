@@ -6,7 +6,7 @@ import ErrorBanner from '../../../components/ErrorBanner';
 import { useAppDispatch } from '../../../store/hooks';
 import { portalLogin } from '../../portalAuth/state';
 import { AuthHeroShell, FormField, PrimaryButton } from '../../../components/ui';
-import { focusElement, focusFirstInvalidField } from '../utils/formFocus';
+import { focusElement, focusFirstInvalidField } from '../../portal/utils/formFocus';
 
 interface InvitationInfo {
   email: string;
