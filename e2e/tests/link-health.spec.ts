@@ -1,4 +1,4 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, type ConsoleMessage, type Request, type Response } from '@playwright/test';
 import '../helpers/testEnv';
 import { test as authTest } from '../fixtures/auth.fixture';
 import type { Page } from '@playwright/test';
@@ -6,9 +6,20 @@ import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 import { unwrapSuccess } from '../helpers/apiEnvelope';
 import { getAuthHeaders } from '../helpers/database';
 import { loginPortalUserUI, provisionApprovedPortalUser, type ProvisionedPortalUser } from '../helpers/portal';
+import { adminRouteManifest } from '../../frontend/src/features/adminOps/adminRouteManifest';
+import { normalizeRouteLocation } from '../../frontend/src/routes/routeCatalog';
 
 const HTTP_SCHEME = ['http', '://'].join('');
 const apiURL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
+const baseURL = process.env.BASE_URL || `${HTTP_SCHEME}127.0.0.1:5173`;
+const runtimeOrigins = new Set([new URL(baseURL).origin, new URL(apiURL).origin]);
+const authBootstrapRequestPatterns = [
+  /\/api\/(?:v2\/)?auth\/csrf-token(?:\?|$)/,
+  /\/api\/(?:v2\/)?auth\/me(?:\?|$)/,
+  /\/api\/(?:v2\/)?auth\/bootstrap(?:\?|$)/,
+  /\/api\/(?:v2\/)?auth\/registration-status(?:\?|$)/,
+  /\/api\/(?:v2\/)?auth\/setup-status(?:\?|$)/,
+];
 
 const publicRoutes = [
   '/',
@@ -83,11 +94,11 @@ const staffAuthenticatedRoutes = [
   '/website-builder',
 ];
 
-const removedCompatibilityRoutes = [
-  { route: '/email-marketing', canonical: '/settings/email-marketing' },
-  { route: '/admin/audit-logs', canonical: '/settings/admin/audit_logs' },
-  { route: '/settings/organization', canonical: '/settings/admin/organization' },
-];
+const isRedirectRoute = (
+  entry: (typeof adminRouteManifest)[number]
+): entry is Extract<(typeof adminRouteManifest)[number], { kind: 'redirect' }> => entry.kind === 'redirect';
+
+const legacyRedirectRoutes = adminRouteManifest.filter(isRedirectRoute);
 
 const portalAuthenticatedRoutes = [
   '/portal',
@@ -103,11 +114,148 @@ const portalAuthenticatedRoutes = [
   '/portal/reminders',
 ];
 
-const assertRouteLoads = async (page: Page, route: string) => {
-  const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
-  expect(response, `no response for ${route}`).not.toBeNull();
-  if (response) {
-    expect(response.status(), `bad status for ${route}`).toBeLessThan(400);
+type RouteRuntimeIssueTracker = {
+  pageErrors: string[];
+  consoleErrors: string[];
+  requestFailures: string[];
+  failedResponses: string[];
+  detach: () => void;
+};
+
+const routeErrorResourceTypes = new Set(['fetch', 'xhr', 'script', 'stylesheet']);
+const abortErrorPatterns = [/net::ERR_ABORTED/i, /net::ERR_BLOCKED_BY_CLIENT/i, /NS_BINDING_ABORTED/i];
+
+const isRuntimeBootstrapAllowed = (url: string, allowAuthBootstrapNoise: boolean): boolean =>
+  allowAuthBootstrapNoise && authBootstrapRequestPatterns.some((pattern) => pattern.test(url));
+
+const trackRouteRuntimeIssues = (
+  page: Page,
+  options: { allowAuthBootstrapNoise?: boolean } = {}
+): RouteRuntimeIssueTracker => {
+  const { allowAuthBootstrapNoise = false } = options;
+  const pageErrors: string[] = [];
+  const consoleErrors: string[] = [];
+  const requestFailures: string[] = [];
+  const failedResponses: string[] = [];
+
+  const onPageError = (error: Error) => {
+    pageErrors.push(error.message);
+  };
+
+  const onConsole = (message: ConsoleMessage) => {
+    if (message.type() !== 'error') {
+      return;
+    }
+
+    const text = message.text();
+    if (/favicon\.ico/i.test(text) || /ResizeObserver loop limit exceeded/i.test(text)) {
+      return;
+    }
+
+    if (
+      allowAuthBootstrapNoise &&
+      authBootstrapRequestPatterns.some((pattern) => pattern.test(text)) &&
+      /status of (?:401|403)/i.test(text)
+    ) {
+      return;
+    }
+
+    consoleErrors.push(text);
+  };
+
+  const onRequestFailed = (request: Request) => {
+    const resourceType = request.resourceType();
+    if (!routeErrorResourceTypes.has(resourceType)) {
+      return;
+    }
+
+    if (!runtimeOrigins.has(new URL(request.url()).origin)) {
+      return;
+    }
+
+    const failure = request.failure()?.errorText || 'unknown failure';
+    if (abortErrorPatterns.some((pattern) => pattern.test(failure))) {
+      return;
+    }
+
+    requestFailures.push(`${resourceType} ${request.url()} (${failure})`);
+  };
+
+  const onResponse = (response: Response) => {
+    const request = response.request();
+    const resourceType = request.resourceType();
+    if (!routeErrorResourceTypes.has(resourceType)) {
+      return;
+    }
+
+    if (!runtimeOrigins.has(new URL(response.url()).origin)) {
+      return;
+    }
+
+    const status = response.status();
+    if (status < 400) {
+      return;
+    }
+
+    const url = response.url();
+    if (isRuntimeBootstrapAllowed(url, allowAuthBootstrapNoise) && (status === 401 || status === 403)) {
+      return;
+    }
+
+    failedResponses.push(`${resourceType} ${request.method()} ${url} (${status})`);
+  };
+
+  page.on('pageerror', onPageError);
+  page.on('console', onConsole);
+  page.on('requestfailed', onRequestFailed);
+  page.on('response', onResponse);
+
+  return {
+    pageErrors,
+    consoleErrors,
+    requestFailures,
+    failedResponses,
+    detach: () => {
+      page.off('pageerror', onPageError);
+      page.off('console', onConsole);
+      page.off('requestfailed', onRequestFailed);
+      page.off('response', onResponse);
+    },
+  };
+};
+
+const expectRouteRuntimeClean = (route: string, issues: RouteRuntimeIssueTracker): void => {
+  expect(issues.pageErrors, `${route} threw page errors:\n${issues.pageErrors.join('\n')}`).toEqual([]);
+  expect(issues.consoleErrors, `${route} emitted console errors:\n${issues.consoleErrors.join('\n')}`).toEqual(
+    []
+  );
+  expect(
+    issues.requestFailures,
+    `${route} had request failures:\n${issues.requestFailures.join('\n')}`
+  ).toEqual([]);
+  expect(
+    issues.failedResponses,
+    `${route} had failed network responses:\n${issues.failedResponses.join('\n')}`
+  ).toEqual([]);
+};
+
+const waitForRouteToSettle = async (page: Page): Promise<void> => {
+  await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
+  await page.waitForTimeout(250);
+};
+
+const assertRouteLoads = async (page: Page, route: string, options: { allowAuthBootstrapNoise?: boolean } = {}) => {
+  const runtimeIssues = trackRouteRuntimeIssues(page, options);
+  try {
+    const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
+    expect(response, `no response for ${route}`).not.toBeNull();
+    if (response) {
+      expect(response.status(), `bad status for ${route}`).toBeLessThan(400);
+    }
+    await waitForRouteToSettle(page);
+    expectRouteRuntimeClean(route, runtimeIssues);
+  } finally {
+    runtimeIssues.detach();
   }
 };
 
@@ -182,7 +330,7 @@ const provisionPortalCaseFixture = async (page: Page): Promise<ProvisionedPortal
 base.describe('Public route health', () => {
   for (const route of publicRoutes) {
     base(`loads ${route}`, async ({ page }) => {
-      await assertRouteLoads(page, route);
+      await assertRouteLoads(page, route, { allowAuthBootstrapNoise: true });
     });
   }
 });
@@ -201,13 +349,10 @@ authTest.describe('Authenticated staff route health', () => {
     await expect(saveCaseButton).toHaveText(/save case/i);
   });
 
-  for (const { route, canonical } of removedCompatibilityRoutes) {
-    authTest(`legacy route ${route} no longer resolves to ${canonical}`, async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
-
-      const currentUrl = new URL(authenticatedPage.url(), 'http://localhost');
-      expect(`${currentUrl.pathname}${currentUrl.search}`).not.toBe(canonical);
-      expect(['/dashboard', '/login']).toContain(currentUrl.pathname);
+  for (const { path, redirectsTo } of legacyRedirectRoutes) {
+    authTest(`legacy route ${path} resolves to ${redirectsTo}`, async ({ authenticatedPage }) => {
+      await assertRouteLoads(authenticatedPage, path);
+      expect(normalizeRouteLocation(authenticatedPage.url())).toBe(normalizeRouteLocation(redirectsTo));
     });
   }
 });
@@ -228,7 +373,7 @@ base.describe('Authenticated portal route health', () => {
 
   for (const route of portalAuthenticatedRoutes) {
     base(`loads ${route}`, async ({ page }) => {
-      await assertRouteLoads(page, route);
+      await assertRouteLoads(page, route, { allowAuthBootstrapNoise: true });
     });
   }
 

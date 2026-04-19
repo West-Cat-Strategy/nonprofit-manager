@@ -1,6 +1,6 @@
 # Subagent Modularization Guide
 
-**Last Updated:** 2026-04-14
+**Last Updated:** 2026-04-18
 
 Use this guide when a tracked modularization task needs coordinated parallel contributors. The default remains one active task per agent. Parallel lanes are an exception that must be documented on the live workboard before implementation starts.
 
@@ -52,6 +52,15 @@ Choose the narrowest safe lane that matches the task.
 - split `engagement` into owned subfeatures such as `events`, `tasks`, `cases`, `followUps`, and `teamChat` instead of assigning one umbrella lane
 
 For frontend monoliths, extract from the inside out: local hooks, controller helpers, panels, and tab subcomponents first. Avoid shared route composition files unless the lead explicitly owns that work.
+
+### Docs And Validation
+
+- `testing` / `e2e`
+- `api` / `deployment`
+- `product` / `features` / `help-center`
+- `service readmes` / `scripts` / `quick-reference`
+
+For docs-heavy waves, keep shared entry docs such as `README.md`, `CONTRIBUTING.md`, `docs/README.md`, `docs/INDEX.md`, documentation style guides, and the workboard lead-owned unless the lane contract explicitly assigns them.
 
 ## Lane Contract Template
 

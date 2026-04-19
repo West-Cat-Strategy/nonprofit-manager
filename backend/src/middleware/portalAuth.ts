@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { unauthorized } from '@utils/responseHelpers';
 import { extractToken, PORTAL_AUTH_COOKIE_NAME } from '@utils/cookieHelper';
+import * as portalAuthService from '@services/portalAuthService';
 import {
   PORTAL_SESSION_TOKEN_ISSUER,
   verifyTokenWithOptionalIssuer,
@@ -19,11 +20,11 @@ export interface PortalAuthRequest
   portalUser?: PortalJwtPayload;
 }
 
-export const authenticatePortal = (
+export const authenticatePortal = async (
   req: PortalAuthRequest,
   res: Response,
   next: NextFunction
-): Response | void => {
+): Promise<Response | void> => {
   try {
     // Prefer portal auth cookie, with Authorization header as fallback.
     const token = extractToken(req.cookies, req.headers.authorization, PORTAL_AUTH_COOKIE_NAME);
@@ -39,7 +40,16 @@ export const authenticatePortal = (
       return unauthorized(res, 'Invalid token type');
     }
 
-    req.portalUser = decoded;
+    const profile = await portalAuthService.getPortalUserProfileById(decoded.id);
+    if (!profile || profile.status !== 'active' || !profile.is_verified) {
+      return unauthorized(res, 'Invalid or expired token');
+    }
+
+    req.portalUser = {
+      ...decoded,
+      email: profile.email,
+      contactId: profile.contact_id,
+    };
     next();
   } catch {
     return unauthorized(res, 'Invalid or expired token');

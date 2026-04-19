@@ -1,5 +1,9 @@
 # Database Schema Documentation
 
+**Last Updated:** 2026-04-18
+
+Use this file for schema/bootstrap orientation only. For live database runtime setup, migrations, and environment-specific operations, use [../docs/deployment/DB_SETUP.md](../docs/deployment/DB_SETUP.md) and the repo scripts it references.
+
 ## Overview
 
 The Nonprofit Manager database schema follows the Microsoft Common Data Model (CDM) conventions for entity naming and relationships. This ensures consistency, interoperability, and industry best practices.
@@ -42,6 +46,8 @@ The schema uses CDM-standard field names where applicable:
 - UUID primary keys for scalability
 
 ## Database Structure
+
+Treat the files under `database/` and the migration scripts as the source of truth. This README is intentionally higher-level and should not replace the environment-specific deployment or verification guides.
 
 ### Migrations
 Database migrations are stored in `database/migrations/` and are ordered by `database/migrations/manifest.tsv`. Canonical migration filenames follow `NNN_descriptive_name.sql`, with letter suffixes allowed when a sequence split must remain backward compatible (for example, `060a_*`, `060b_*`).
@@ -192,7 +198,9 @@ The database includes health check endpoints for monitoring:
 **Connection Issues:**
 - Verify container is running: `docker ps`
 - Check environment variables
-- Test connectivity: `pg_isready -h localhost -p 5432`
+- Test connectivity against the runtime you chose:
+  - Docker dev host port: `pg_isready -h localhost -p 8002`
+  - Direct/local Postgres: use the actual port from your env config
 
 **Performance Issues:**
 - Run `EXPLAIN ANALYZE` on slow queries

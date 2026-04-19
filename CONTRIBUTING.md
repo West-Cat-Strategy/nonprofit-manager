@@ -1,25 +1,39 @@
 # Contributing to Nonprofit Manager
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-18
 
-Use this guide when you are contributing code, documentation, validation, or release support to Nonprofit Manager. Treat this file as the contributor entry point. The root [README.md](README.md) is the product overview and contributor handoff; this file is the contributor and developer workflow guide.
+Use this guide when you are contributing code, documentation, validation, or release support to Nonprofit Manager. Treat it as the contributor workflow, validation, and handoff entry point. The root [README.md](README.md) stays product-facing; setup and runtime details stay in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md).
 
 ## Start Here
 
-Read these in order before making changes:
+Read these core guides in order when you are orienting to a new task:
 
-1. [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for environment setup and runtime choice
+1. [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for environment setup and runtime choice when your task needs local setup
 2. [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md) for code, docs, and workflow conventions
-3. [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for repo guardrails
+3. [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for repo guardrails and active architecture boundaries
 4. [docs/testing/TESTING.md](docs/testing/TESTING.md) for the validation matrix and runtime-aware test guidance
 5. [docs/INDEX.md](docs/INDEX.md) for the full documentation catalog
 
-Use narrower guides only when your change needs them:
+Use the narrower guides only when your change needs them:
 
-- [backend/README.md](backend/README.md) for backend module and API work
-- [frontend/README.md](frontend/README.md) for frontend feature and route work
-- [e2e/README.md](e2e/README.md) for Playwright and browser validation
-- [scripts/README.md](scripts/README.md) for root helper scripts
+| Need | Guide |
+|---|---|
+| Product context and contributor handoff | [README.md](README.md) |
+| Agent terminology and coordination overview | [agents.md](agents.md) |
+| Backend module and API work | [backend/README.md](backend/README.md) |
+| Frontend feature and route work | [frontend/README.md](frontend/README.md) |
+| Playwright and browser validation | [e2e/README.md](e2e/README.md) |
+| Helper scripts | [scripts/README.md](scripts/README.md) |
+| Short docs landing page | [docs/README.md](docs/README.md) |
+| Full documentation catalog | [docs/INDEX.md](docs/INDEX.md) |
+
+## Contribution Flow
+
+1. Confirm the task scope and whether tracked-work updates are required.
+2. Choose a runtime only if the task needs one, and use [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) instead of restating setup details here.
+3. Make the smallest scoped change that solves the task while preserving unrelated work already in the tree.
+4. Run the smallest validation set that still covers the change.
+5. Update tracked status, risks, and next steps before handing work off.
 
 ## Tracked Work
 
@@ -30,19 +44,12 @@ If your task is tracked, update [docs/phases/planning-and-progress.md](docs/phas
 - Use task IDs in commits and pull request titles when the work is tracked.
 - Move work to `Blocked` or `Review` as soon as the status changes, with a short reason and next step.
 
-## Setup And Runtime
-
-Keep setup details in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) instead of duplicating them here.
-
-- Choose a runtime before debugging and stay consistent while you work.
-- Do not assume Docker dev, direct runtime, and Playwright use the same ports or env settings.
-- Verify commands, ports, and environment guidance from the repo before documenting them as fact.
-
-## Working Agreement
+## While You Work
 
 - Keep changes scoped to the task you picked up.
 - Preserve unrelated user edits already present in the worktree.
 - Prefer repo-root `make` targets over ad hoc command combinations.
+- Use [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup, ports, and runtime expectations instead of duplicating them here.
 - Keep docs synchronized when commands, ports, workflows, contracts, or navigation change.
 - Use the current repo patterns instead of reintroducing retired ones.
 - In coordinated modularization work, keep one lead owner for shared seams such as the workboard, backend v2 registrar, frontend route catalogs, and final integration validation.
@@ -66,6 +73,7 @@ Prefer root commands first. Use package-level scripts only when the change is na
 ## Documentation Hygiene
 
 - Keep Markdown links relative.
+- Keep the docs entry flow aligned: [README.md](README.md) for product context, this file for contributor workflow, [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup/runtime, [docs/README.md](docs/README.md) for the short docs landing page, and [docs/INDEX.md](docs/INDEX.md) for the full catalog.
 - Treat [docs/INDEX.md](docs/INDEX.md) as the documentation catalog.
 - Treat [docs/README.md](docs/README.md) as the short docs landing page.
 - Treat [scripts/README.md](scripts/README.md) as the helper-script index.

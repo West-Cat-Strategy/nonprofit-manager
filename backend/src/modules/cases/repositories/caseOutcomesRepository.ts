@@ -22,7 +22,7 @@ import {
 } from '../queries/outcomesQueries';
 
 export class CaseOutcomesRepository implements CaseOutcomesPort {
-  async listOutcomeDefinitions(includeInactive?: boolean, organizationId?: string): Promise<unknown[]> {
+  async listOutcomeDefinitions(includeInactive?: boolean, _organizationId?: string): Promise<unknown[]> {
     return outcomeDefinitionService.listOutcomeDefinitions(includeInactive === true);
   }
 

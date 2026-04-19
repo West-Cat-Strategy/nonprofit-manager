@@ -18,7 +18,7 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
   - No mixed top-level error payload variants remain in middleware/controller helpers.
   - Correlation header/body consistency is preserved under handled and unhandled errors.
 - Verification commands:
-  - `cd backend && npm run test:integration -- routeGuardrails.test.ts`
+  - `cd backend && npm test -- src/__tests__/integration/routeGuardrails.test.ts`
   - `node scripts/check-success-envelope-policy.ts`
 
 ## P4-T1D-A2 Correlation ID Normalization and Fallback Policy
@@ -34,7 +34,7 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
   - Preserve user-provided correlation IDs that meet policy.
   - Always set response header and pass same value into error envelope field.
 - Verification commands:
-  - `cd backend && npm run test:integration -- routeGuardrails.test.ts`
+  - `cd backend && npm test -- src/__tests__/integration/routeGuardrails.test.ts`
   - `cd backend && npm test -- --runInBand -- testPathPattern=correlation`
 
 ## P4-T1D-A3 Auth Guard Contract Split (Strict vs Safe)
@@ -50,7 +50,7 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
   - Permission checks can evaluate activation/availability state before mutating operations.
 - Verification commands:
   - `cd backend && npm test -- --runInBand -- testPathPattern=authGuardService`
-  - `cd backend && npm run test:integration -- routeGuardrails.test.ts`
+  - `cd backend && npm test -- src/__tests__/integration/routeGuardrails.test.ts`
 
 ## P4-T1D-A4 Rate-Limit Key Namespace Expansion
 
@@ -66,7 +66,7 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
   - Policy script blocks any raw literal key generator expressions.
 - Verification commands:
   - `node scripts/check-rate-limit-key-policy.ts`
-  - `cd backend && npm run test:integration -- routeGuardrails.test.ts`
+  - `cd backend && npm test -- src/__tests__/integration/routeGuardrails.test.ts`
 
 ## P4-T1D-A5 Route Guardrail Matrix Expansion
 
@@ -78,7 +78,7 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
   - Matrix includes at minimum: auth-required, validation-required, webhook auth/idempotency, rate-limit contract, correlation determinism.
   - Assertions validate error `code` and response-envelope structure, not only status code.
 - Verification commands:
-  - `cd backend && npm run test:integration -- routeGuardrails.test.ts`
+  - `cd backend && npm test -- src/__tests__/integration/routeGuardrails.test.ts`
 
 ## P4-T1D-A6 Webhook Outbox + Dead-Letter Semantics
 
@@ -93,8 +93,8 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
   - Terminal dead-letter state is emitted after max attempts with retained last error metadata.
   - Event enqueue path is decoupled from synchronous request success path.
 - Verification commands:
-  - `cd backend && npm run test:integration -- webhooks`
-  - `cd backend && npm run test:integration -- routeGuardrails.test.ts`
+  - `cd backend && npm test -- src/__tests__/integration/webhooks`
+  - `cd backend && npm test -- src/__tests__/integration/routeGuardrails.test.ts`
 
 ## P4-T1D-A7 Webhook Security Idempotency Layer
 
@@ -109,8 +109,8 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
   - Signature + timestamp validation failures return deterministic canonical errors.
   - Inbound handler maintains fail-safe acknowledgement behavior where provider retry storms are a risk.
 - Verification commands:
-  - `cd backend && npm run test:integration -- webhooks`
-  - `cd backend && npm run test:integration -- routeGuardrails.test.ts`
+  - `cd backend && npm test -- src/__tests__/integration/webhooks`
+  - `cd backend && npm test -- src/__tests__/integration/routeGuardrails.test.ts`
 
 ## P4-T1D-A8 Append-Only Audit Write Helper
 
@@ -125,7 +125,7 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
   - Audit writes are append-only.
 - Verification commands:
   - `cd backend && npm test -- --runInBand -- testPathPattern=audit`
-  - `cd backend && npm run test:integration`
+  - `cd backend && npm test -- src/__tests__/integration`
 
 ## P4-T1D-A9 Scheduler Runtime Guardrails
 
@@ -154,7 +154,7 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
   - Legacy and Zod-based validation middleware converge on one details contract.
   - Route guardrail tests assert detail shape for at least two invalid payload classes.
 - Verification commands:
-  - `cd backend && npm run test:integration -- routeGuardrails.test.ts`
+  - `cd backend && npm test -- src/__tests__/integration/routeGuardrails.test.ts`
   - `cd backend && npm test -- --runInBand`
 
 - Minimal validation runset for this documentation phase:

@@ -1,5 +1,9 @@
 # Database Schema Diagram
 
+**Last Updated:** 2026-04-18
+
+Use this diagram as a simplified orientation aid, not as the canonical schema contract. The actual schema lives in migrations, current database setup docs, and runtime code paths.
+
 ## Entity Relationship Diagram (ERD)
 
 This diagram is a simplified overview of the core Nonprofit Manager schema. It uses Microsoft Common Data Model (CDM) conventions where useful, but it intentionally omits many feature-specific tables, bridge tables, and migration-only columns so the main relationships stay readable.

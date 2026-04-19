@@ -215,7 +215,7 @@ export class PublicWebsiteFormService {
        FROM case_types
        WHERE is_active = true
          AND requires_intake = true
-       ORDER BY sort_order ASC, created_at ASC
+       ORDER BY name ASC, created_at ASC
        LIMIT 1`
     );
 
@@ -227,7 +227,7 @@ export class PublicWebsiteFormService {
       `SELECT id
        FROM case_types
        WHERE is_active = true
-       ORDER BY sort_order ASC, created_at ASC
+       ORDER BY name ASC, created_at ASC
        LIMIT 1`
     );
 

@@ -170,8 +170,6 @@ describe('UserSettingsPage', () => {
       );
     });
 
-    await screen.findByText(/profile saved successfully/i);
-
     expect(store.getState().auth.user?.profilePicture).toBe(savedProfile.profilePicture);
     expect(store.getState().auth.user?.lastName).toBe('Updated');
 
@@ -225,10 +223,57 @@ describe('UserSettingsPage', () => {
       );
     });
 
-    await screen.findByText(/profile saved successfully/i);
-
     expect(store.getState().auth.user?.profilePicture).toBeNull();
     const snapshot = await getStaffBootstrapSnapshot();
     expect(snapshot.user?.profilePicture).toBeNull();
+  });
+
+  it('keeps save disabled until a failed profile load is retried successfully', async () => {
+    const user = userEvent.setup();
+    mockedLoopApiService.getUserProfile
+      .mockRejectedValueOnce(new Error('profile fetch failed'))
+      .mockResolvedValueOnce(baseProfile);
+
+    const store = createTestStore({
+      auth: {
+        user: {
+          id: 'user-1',
+          email: baseProfile.email,
+          firstName: baseProfile.firstName,
+          lastName: baseProfile.lastName,
+          role: 'admin',
+          profilePicture: null,
+        },
+        isAuthenticated: true,
+        authLoading: false,
+        loading: false,
+      },
+    });
+
+    renderWithProviders(<UserSettingsPage />, {
+      store,
+      route: '/settings/user',
+    });
+
+    await screen.findByText(/profile data unavailable\. retry to enable saving\./i);
+
+    const saveButton = screen.getByRole('button', { name: /save all changes/i });
+    expect(saveButton).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: /retry loading profile/i }));
+
+    await waitFor(() => {
+      expect(mockedLoopApiService.getUserProfile).toHaveBeenCalledTimes(2);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /save all changes/i })).toBeEnabled();
+    });
+
+    await user.click(screen.getByRole('button', { name: /save all changes/i }));
+
+    await waitFor(() => {
+      expect(mockedLoopApiService.updateUserProfile).toHaveBeenCalled();
+    });
   });
 });

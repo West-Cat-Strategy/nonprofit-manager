@@ -5,6 +5,8 @@
 **Status:** 18 High-Impact Optimizations Implemented (13 Initial + 5 Post-Review)  
 **Expected Impact:** 40-60% reduction in initial load time, 30-50% improvement in runtime performance
 
+This report preserves specific optimization waves and validation snapshots. Treat it as historical evidence plus follow-on notes, not as the live performance source of truth for the current tree.
+
 ---
 
 ## Executive Summary
@@ -75,7 +77,7 @@ A comprehensive code review identified **23 critical efficiency issues** across 
 ## Implemented Optimizations
 
 ### 1. ✅ HTTP Response Compression (Backend)
-**File:** [backend/src/index.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/index.ts)  
+**File:** [../../backend/src/index.ts](../../backend/src/index.ts)
 **Impact:** 60-85% bandwidth reduction for JSON responses
 
 - Added `compression` middleware with gzip/brotli encoding
@@ -89,7 +91,7 @@ A comprehensive code review identified **23 critical efficiency issues** across 
 ---
 
 ### 2. ✅ Vite Bundle Code Splitting (Frontend)
-**File:** [frontend/vite.config.ts](https://github.com/example/nonprofit-manager/blob/main/frontend/vite.config.ts)
+**File:** [../../frontend/vite.config.ts](../../frontend/vite.config.ts)
 
 **Optimized chunk strategy:**
 - `vendor-react`: React, React DOM, React Router (cached across all routes)
@@ -158,7 +160,7 @@ Wrapped all 6 recharts components with `React.memo()`:
 ---
 
 ### 5. ✅ Database Pool Consolidation (Backend)
-**File:** [backend/src/index.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/index.ts)
+**File:** [../../backend/src/index.ts](../../backend/src/index.ts)
 
 **Removed duplicate unconfigured pool:**
 - **Before:** Two separate `Pool` instances
@@ -175,7 +177,7 @@ Wrapped all 6 recharts components with `React.memo()`:
 ---
 
 ### 6. ✅ Metrics Map Cleanup (Backend)
-**File:** [backend/src/middleware/metrics.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/middleware/metrics.ts)
+**File:** [../../backend/src/middleware/metrics.ts](../../backend/src/middleware/metrics.ts)
 
 **Fixed unbounded `Map` growth:**
 - Added periodic cleanup interval (1 hour)
@@ -198,7 +200,7 @@ Memory: bounded to ~1-5MB even after months of operation
 ---
 
 ### 7. ✅ Account Lockout Map Cleanup (Backend)
-**File:** [backend/src/middleware/accountLockout.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/middleware/accountLockout.ts)
+**File:** [../../backend/src/middleware/accountLockout.ts](../../backend/src/middleware/accountLockout.ts)
 
 **Fixed unbounded `loginAttempts` Map growth:**
 - Original: Only removed locked entries after expiry
@@ -307,7 +309,7 @@ return result;
 ## Additional Optimizations Implemented (Post-Review)
 
 ### 9. ✅ Memoize Dashboard VolunteerWidget Stats (Frontend)
-**File:** [frontend/src/components/VolunteerWidget.tsx](https://github.com/example/nonprofit-manager/blob/main/frontend/src/components/VolunteerWidget.tsx)
+**File:** [../../frontend/src/components/VolunteerWidget.tsx](../../frontend/src/components/VolunteerWidget.tsx)
 
 Wrapped `calculatedStats` computation in `useMemo`:
 - **Before:** 4 `filter()` calls + 1 `reduce()` recalculated on every render
@@ -317,7 +319,7 @@ Wrapped `calculatedStats` computation in `useMemo`:
 ---
 
 ### 10. ✅ Add Pagination to Contact Notes (Backend)
-**File:** [backend/src/modules/contacts/repositories/contactNotesQueries.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/modules/contacts/repositories/contactNotesQueries.ts)
+**File:** [../../backend/src/modules/contacts/repositories/contactNotesQueries.ts](../../backend/src/modules/contacts/repositories/contactNotesQueries.ts)
 
 Added pagination support to `getContactNotes()`:
 - Parameters: `limit` (default: 50), `offset` (default: 0)
@@ -330,7 +332,7 @@ Added pagination support to `getContactNotes()`:
 ---
 
 ### 11. ✅ Add Pagination to Account Contacts (Backend)
-**File:** [backend/src/services/accountService.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/services/accountService.ts)
+**File:** [../../backend/src/services/accountService.ts](../../backend/src/services/accountService.ts)
 
 Added pagination support to `getAccountContacts()`:
 - Parameters: `limit` (default: 50), `offset` (default: 0)
@@ -343,7 +345,7 @@ Added pagination support to `getAccountContacts()`:
 ---
 
 ### 12. ✅ Fix N+1 Query Pattern in Mailchimp Sync (Backend)
-**File:** [backend/src/services/mailchimpService.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/services/mailchimpService.ts)
+**File:** [../../backend/src/services/mailchimpService.ts](../../backend/src/services/mailchimpService.ts)
 
 Converted sequential bulk sync to parallel operations:
 - **Before:** `for (const id of ids) { await syncContact(id); }` — sequential, blocks
@@ -357,8 +359,8 @@ Converted sequential bulk sync to parallel operations:
 
 ### 13. ✅ Convert Sync File I/O to Async (Backend)
 **Files:**
-- [https://github.com/example/nonprofit-manager/blob/main/backend/src/services/exportService.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/services/exportService.ts)
-- [https://github.com/example/nonprofit-manager/blob/main/backend/src/services/fileStorageService.ts](https://github.com/example/nonprofit-manager/blob/main/backend/src/services/fileStorageService.ts)
+- [../../backend/src/services/exportService.ts](../../backend/src/services/exportService.ts)
+- [../../backend/src/services/fileStorageService.ts](../../backend/src/services/fileStorageService.ts)
 
 **Changes:**
 1. **exportService constructor:** Lazy async initialization (non-blocking)
@@ -392,7 +394,7 @@ Converted sequential bulk sync to parallel operations:
 
 ### Frontend (P1 - High Priority)
 1. **Nested Suspense boundaries** — Show layout while route loads
-   - File: [routes/index.tsx](https://github.com/example/nonprofit-manager/blob/main/frontend/src/routes/index.tsx)
+   - File: [../../frontend/src/routes/index.tsx](../../frontend/src/routes/index.tsx)
    - Impact: Better perceived performance on route transitions
 
 2. **Memoize CaseList handlers and formatters**

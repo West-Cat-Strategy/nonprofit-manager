@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { expect, vi } from 'vitest';
 import { renderWithProviders } from './testUtils';
@@ -14,6 +14,7 @@ export type RouteUxCase = {
   primaryActionRole?: 'button' | 'link';
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   requireMainLandmark?: boolean;
+  contractAssertion?: () => Promise<void> | void;
 };
 
 export const createConsoleErrorSpy = () =>
@@ -28,6 +29,7 @@ export async function assertRouteUxContract({
   primaryActionRole = 'button',
   headingLevel = 1,
   requireMainLandmark = false,
+  contractAssertion,
 }: RouteUxCase): Promise<void> {
   renderWithProviders(
     path ? (
@@ -40,15 +42,21 @@ export async function assertRouteUxContract({
     { route }
   );
 
-  await waitFor(() => {
-    if (requireMainLandmark) {
-      expect(screen.getByRole('main')).toBeInTheDocument();
-    }
-    expect(screen.getByRole('heading', { name: heading, level: headingLevel })).toBeInTheDocument();
-    expect(
-      screen.getAllByRole(primaryActionRole, {
-        name: primaryActionPattern,
-      }).length
-    ).toBeGreaterThan(0);
+  if (requireMainLandmark) {
+    expect(await screen.findByRole('main')).toBeInTheDocument();
+  }
+
+  expect(
+    await screen.findByRole('heading', {
+      name: heading,
+      level: headingLevel,
+    })
+  ).toBeInTheDocument();
+
+  const actions = await screen.findAllByRole(primaryActionRole, {
+    name: primaryActionPattern,
   });
+  expect(actions.length).toBeGreaterThan(0);
+
+  await contractAssertion?.();
 }

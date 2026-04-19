@@ -18,7 +18,7 @@ import { sendSuccess } from '@modules/shared/http/envelope';
 import { normalizeRoleSlug } from '@utils/roleSlug';
 import { issueAppSessionToken } from '@utils/sessionTokens';
 import {
-  getDefaultOrganizationId,
+  getAuthenticatedOrganizationId,
   LoginRequest,
   UserRow,
   requireAuthenticatedUser,
@@ -135,7 +135,7 @@ export const login = async (
       }
 
       logger.info(`MFA required for user: ${user.email}`, { ip: clientIp, correlationId });
-      const organizationId = await getDefaultOrganizationId();
+      const organizationId = await getAuthenticatedOrganizationId(user.id);
       return sendSuccess(res, {
         ...issueTotpMfaChallenge({
           id: user.id,
@@ -150,7 +150,7 @@ export const login = async (
 
     await trackLoginAttempt(normalizedEmail, true, user.id, clientIp);
 
-    const organizationId = await getDefaultOrganizationId();
+    const organizationId = await getAuthenticatedOrganizationId(user.id);
     const token = issueAppSessionToken({
       id: user.id,
       email: user.email,

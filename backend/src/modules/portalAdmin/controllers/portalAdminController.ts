@@ -31,15 +31,13 @@ import {
   isPortalRealtimeEnabled,
   openPortalRealtimeStream,
 } from '@services/portalRealtimeService';
-import { badRequest, conflict, forbidden, notFoundMessage } from '@utils/responseHelpers';
+import { guardWithPermission } from '@services/authGuardService';
+import { badRequest, conflict, notFoundMessage } from '@utils/responseHelpers';
+import { Permission } from '@utils/permissions';
 import { sendSuccess } from '@modules/shared/http/envelope';
 
 const ensureAdmin = (req: AuthRequest, res: Response): boolean => {
-  if (req.user?.role !== 'admin') {
-    forbidden(res, 'Admin access required');
-    return false;
-  }
-  return true;
+  return guardWithPermission(req, res, Permission.ADMIN_USERS);
 };
 
 const notifyPortalUser = async (args: {

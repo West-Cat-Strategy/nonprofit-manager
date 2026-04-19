@@ -1,8 +1,17 @@
-# Testing Status Report
+# Historical Testing Status Snapshot
 
-**Date**: 2026-02-02
-**Phase**: Week 1 - Component Testing
-**Goal**: Achieve 70-80% frontend test coverage
+**Snapshot Date:** 2026-02-02
+**Reviewed:** 2026-04-18
+**Original Phase Label:** Week 1 - Component Testing
+**Original Goal:** Achieve 70-80% frontend test coverage
+
+This file is a historical frontend-testing snapshot and is not maintained as the live source of truth.
+
+Use these docs for current guidance instead:
+
+- [TESTING.md](TESTING.md) for the active validation matrix
+- [COMPONENT_TESTING.md](COMPONENT_TESTING.md) for current Vitest/component-test patterns
+- [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for current tracked status and ownership
 
 ---
 

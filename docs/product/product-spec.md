@@ -1,5 +1,13 @@
 Product Specification — Nonprofit Manager
 
+This document is a product-vision snapshot for the platform rather than the live implementation contract. Use [../../README.md](../../README.md) for the current product overview, [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md) for capability-level status, and [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for active tracked scope.
+
+Related product docs:
+
+- [Production User Personas](user-personas.md)
+- [Persona Workflow Planning Pack](persona-workflows.md)
+- [Product Analytics Research](PRODUCT_ANALYTICS_RESEARCH.md)
+
 Overview
 
 Nonprofit Manager is an all-in-one platform for nonprofit organizations to manage volunteers, events, donors, supporters, tasks, and communications. The product prioritizes usability, security, and analytics, and aligns data and schemas with Microsoft Common Data Model (CDM).

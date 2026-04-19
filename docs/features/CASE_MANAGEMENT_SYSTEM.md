@@ -5,6 +5,8 @@
 **Created:** February 2, 2026
 **Last Updated:** March 3, 2026
 
+This is a broad case-management capability reference that also preserves earlier design/spec context. For live implementation status and tracked scope, start with [FEATURE_MATRIX.md](FEATURE_MATRIX.md), [../phases/planning-and-progress.md](../phases/planning-and-progress.md), and [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md) for the newer client-visibility contract.
+
 ---
 
 ## Overview
@@ -688,13 +690,14 @@ curl -X POST localhost:3000/api/v2/cases \
 
 ## Support & Documentation
 
-- **API Documentation**: See API_INTEGRATION_GUIDE.md
-- **Database Schema**: See 009_case_management.sql
-- **Type Definitions**: See backend/src/types/case.ts
-- **Workflow**: [planning-and-progress.md](../phases/planning-and-progress.md)
+- **API Documentation**: [../api/API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md)
+- **Case Visibility Contract**: [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md)
+- **Database Schema**: `009_case_management.sql`
+- **Type Definitions**: `backend/src/types/case.ts`
+- **Workflow**: [../phases/planning-and-progress.md](../phases/planning-and-progress.md)
 
 ---
 
 **Document Version:** 2.0
-**Last Updated:** February 23, 2026
-**System Status:** ✅ Backend + Frontend + Portal Visibility Implemented
+**Snapshot Summary Date:** February 23, 2026
+**Status Snapshot:** Backend + Frontend + Portal Visibility Implemented at the time of this summary; confirm current follow-on scope in the live workboard.

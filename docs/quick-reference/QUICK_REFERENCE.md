@@ -25,6 +25,7 @@ Run these from the repo root unless noted otherwise:
 make lint
 make typecheck
 make test
+make test-e2e-docker-smoke
 make ci
 make ci-fast
 make ci-full
@@ -95,6 +96,7 @@ make db-verify
 - Small mixed change: `./scripts/select-checks.sh --base HEAD~1 --mode fast`
 - Release-facing change: `make ci-full`
 - Package-level type checking: `cd backend && npm run type-check` or `cd frontend && npm run type-check`
+- Backend integration rerun: `cd backend && npm test -- src/__tests__/integration`
 
 ## Key References
 
@@ -118,4 +120,5 @@ make db-verify
 
 - Backend default: `3000` for direct runtime, `8004` for the Docker dev stack
 - Frontend default: `8005` for direct runtime or Docker dev stack, `5173` for Playwright
+- `make test` already includes the host Playwright CI matrix and the Docker-backed smoke gate; use `make test-e2e-docker-smoke` when you only need the Docker E2E gate
 - Change the relevant env file if you need a different local port map

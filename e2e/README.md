@@ -4,6 +4,8 @@
 
 Playwright tests live here. For the overall testing strategy, see [../docs/testing/TESTING.md](../docs/testing/TESTING.md).
 
+Use [../docs/development/GETTING_STARTED.md](../docs/development/GETTING_STARTED.md) for repo setup and runtime ports. This file owns the Playwright-specific wrapper contracts, runtime assumptions, and debugging notes.
+
 ## Default Runtime
 
 The Playwright harness starts frontend and backend processes unless `SKIP_WEBSERVER=1`.
@@ -17,10 +19,12 @@ Default addresses from `playwright.config.ts`:
 
 These defaults are specific to the Playwright-managed runtime. They do not match the optional Docker dev stack or the direct backend/frontend runtime.
 
-Local file overrides load in this order:
+Local file overrides load in this order, with later values overriding earlier ones:
 
 1. `.env.test`
 2. `.env.test.local`
+
+That order matches `playwright.config.ts`, which calls `dotenv.config` for `.env.test` first and then `.env.test.local` with `override: true`.
 
 The wrapper-driven runtime commands are mode-defining:
 
@@ -59,7 +63,11 @@ npm run test:debug
 npm run test:ui
 npm run test:ci
 npm run test:ci:mobile
+npm run test:docker
+npm run test:docker:smoke
+npm run test:docker:ci
 npm run test:docker:ci:mobile
+npm run test:docker:audit
 npm run test:report
 ```
 
@@ -67,16 +75,28 @@ npm run test:report
 
 - `npm test`: local default run using the Playwright web servers
 - `npm run test:smoke`: Chromium smoke slice
-- `npm run test:ci`: Chromium, Firefox, and WebKit functional matrix
+- `npm run test:ci`: Chromium, Firefox, and WebKit functional matrix, then `npm run test:ci:mobile`
 - `npm run test:ci:mobile`: Mobile Chrome regression slice against the Playwright-managed host runtime
 - `npm run test:docker`: run against an already running Docker app stack on `8005/8004/8006`
 - `npm run test:docker:smoke`: Chromium smoke slice against Docker-hosted services on `8005/8004/8006`
-- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services on `8005/8004/8006`
+- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services on `8005/8004/8006`, then `npm run test:docker:ci:mobile`
 - `npm run test:docker:ci:mobile`: Mobile Chrome regression slice against Docker-hosted services on `8005/8004/8006`
 - `npm run test:docker:audit`: dedicated Chromium dark-mode route audit against Docker-hosted services on `8005/8004/8006`
 - `npm run test:report`: open the HTML report
 
 `Mobile Safari` and `Tablet` are defined in `playwright.config.ts` for manual/ad hoc `--project` runs. They are intentionally excluded from the CI wrappers above.
+
+## Root CI-Gated Matrix
+
+Repo-root CI flows call these E2E commands today:
+
+- `make test`: backend tests, frontend tests, `npm run test:ci`, then the named Docker-backed smoke gate `make test-e2e-docker-smoke`
+- `make test-e2e-docker-smoke`: `make docker-up-dev`, then `npm run test:docker:smoke`
+- `make test-coverage`: backend/frontend coverage, `npm run test:smoke`, then `make test-e2e-docker-smoke`
+- `make ci`: `./scripts/ci.sh --build`, which runs `make lint`, `make typecheck`, `make test`, and `make build`
+- `make ci-full`: `./scripts/ci.sh --build --audit --coverage`, which runs `make lint`, `make typecheck`, `make test-coverage`, `make build`, and `make security-audit`
+
+`make ci-unit` is the unit-only coverage lane and intentionally skips Playwright.
 
 ## Docker App Stack Runtime
 
@@ -88,6 +108,12 @@ cd e2e
 npm run test:docker:smoke
 npm run test:docker:ci
 npm run test:docker:audit
+```
+
+If you want the repo-root Docker smoke gate instead of the package-level command, run:
+
+```bash
+make test-e2e-docker-smoke
 ```
 
 These commands assume:

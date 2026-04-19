@@ -309,22 +309,74 @@ const SUCCESS_CONTRACT_CASES: Array<{
   method: 'get' | 'post';
   path: string;
   tokenKind?: 'user' | 'admin';
+  assertResponse: (response: request.Response) => void;
 }> = [
   {
     name: 'auth setup-status success envelope',
     method: 'get',
     path: '/api/v2/auth/setup-status',
+    assertResponse: (response) => {
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          setupRequired: expect.any(Boolean),
+          userCount: expect.any(Number),
+        },
+        setupRequired: expect.any(Boolean),
+        userCount: expect.any(Number),
+      });
+      expect(response.body.setupRequired).toBe(response.body.data.setupRequired);
+      expect(response.body.userCount).toBe(response.body.data.userCount);
+    },
   },
   {
     name: 'payments config success envelope',
     method: 'get',
     path: '/api/v2/payments/config',
+    assertResponse: (response) => {
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          defaultProvider: expect.any(String),
+          enabledProviders: expect.any(Array),
+          providers: expect.objectContaining({
+            stripe: expect.any(Object),
+            paypal: expect.any(Object),
+            square: expect.any(Object),
+          }),
+        },
+        defaultProvider: expect.any(String),
+        enabledProviders: expect.any(Array),
+        providers: expect.any(Object),
+      });
+      expect(response.body.defaultProvider).toBe(response.body.data.defaultProvider);
+      expect(response.body.enabledProviders).toEqual(response.body.data.enabledProviders);
+      expect(response.body.providers).toEqual(response.body.data.providers);
+    },
   },
   {
     name: 'admin roles success envelope',
     method: 'get',
     path: '/api/v2/admin/roles',
     tokenKind: 'admin',
+    assertResponse: (response) => {
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          roles: expect.any(Array),
+        },
+        roles: expect.any(Array),
+      });
+      expect(response.body.roles).toEqual(response.body.data.roles);
+      if (response.body.data.roles.length > 0) {
+        expect(response.body.data.roles[0]).toMatchObject({
+          id: expect.any(String),
+          name: expect.any(String),
+          label: expect.any(String),
+          permissions: expect.any(Array),
+        });
+      }
+    },
   },
 ];
 
@@ -336,20 +388,24 @@ const expectCanonicalError = (response: request.Response, code: string): void =>
       message: expect.any(String),
     },
   });
+  expect(response.body.data).toBeUndefined();
 };
 
 const CORRELATION_ID_POLICY = /^[A-Za-z0-9._:-]{8,128}$/;
 
 describe('Route Guardrails Integration', () => {
-  let authToken: string;
-  let authTokenNoOrgContext: string;
-  let authTokenAdmin: string;
-  let guardrailUserIdentity: {
+  type GuardrailIdentity = {
     id: string;
     email: string;
     firstName: string;
     lastName: string;
-  } | null = null;
+  };
+
+  let authToken: string;
+  let authTokenNoOrgContext: string;
+  let authTokenAdmin: string;
+  let guardrailUserIdentity: GuardrailIdentity | null = null;
+  let guardrailAdminIdentity: GuardrailIdentity | null = null;
   const activeOrgId = randomUUID();
   const inactiveOrgId = randomUUID();
   const activeOrgAccountNumber = `GR-ACT-${activeOrgId.slice(0, 8)}`;
@@ -360,15 +416,18 @@ describe('Route Guardrails Integration', () => {
       includeOrgContext?: boolean;
     }
   ): string => {
-    if (!guardrailUserIdentity) {
-      throw new Error('Guardrail user identity has not been initialized');
+    const identity =
+      role === 'admin' ? guardrailAdminIdentity : guardrailUserIdentity;
+
+    if (!identity) {
+      throw new Error(`Guardrail ${role} identity has not been initialized`);
     }
 
     const includeOrgContext = options?.includeOrgContext ?? true;
     return jwt.sign(
       {
-        id: guardrailUserIdentity.id,
-        email: guardrailUserIdentity.email,
+        id: identity.id,
+        email: identity.email,
         role,
         ...(includeOrgContext ? { organizationId: activeOrgId } : {}),
       },
@@ -383,28 +442,36 @@ describe('Route Guardrails Integration', () => {
     authTokenAdmin = buildToken('admin', { includeOrgContext: true });
   };
 
-  const ensureGuardrailUserExists = async (): Promise<void> => {
-    if (!guardrailUserIdentity) return;
-
+  const upsertGuardrailIdentity = async (
+    identity: GuardrailIdentity | null,
+    role: 'user' | 'admin'
+  ): Promise<void> => {
+    if (!identity) return;
     await pool.query(
       `INSERT INTO users (id, email, password_hash, first_name, last_name, role, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, 'user', true, NOW(), NOW())
+       VALUES ($1, $2, $3, $4, $5, $6, true, NOW(), NOW())
        ON CONFLICT (id)
        DO UPDATE SET
          email = EXCLUDED.email,
          first_name = EXCLUDED.first_name,
          last_name = EXCLUDED.last_name,
-         role = 'user',
+         role = EXCLUDED.role,
          is_active = true,
          updated_at = NOW()`,
       [
-        guardrailUserIdentity.id,
-        guardrailUserIdentity.email,
+        identity.id,
+        identity.email,
         '$2b$10$2B5xCiFv0to6v3sQm6rQOu/xM2bYf7jdd2fNf7q5sWubEjkVif7PO',
-        guardrailUserIdentity.firstName,
-        guardrailUserIdentity.lastName,
+        identity.firstName,
+        identity.lastName,
+        role,
       ]
     );
+  };
+
+  const ensureGuardrailUsersExist = async (): Promise<void> => {
+    await upsertGuardrailIdentity(guardrailUserIdentity, 'user');
+    await upsertGuardrailIdentity(guardrailAdminIdentity, 'admin');
   };
 
   const upsertGuardrailOrgs = async (): Promise<void> => {
@@ -453,14 +520,20 @@ describe('Route Guardrails Integration', () => {
       firstName: registeredUser?.firstName || registeredUser?.first_name || 'Guardrail',
       lastName: registeredUser?.lastName || registeredUser?.last_name || 'Tester',
     };
+    guardrailAdminIdentity = {
+      id: randomUUID(),
+      email: `guardrails-admin-${unique}@example.com`,
+      firstName: 'Guardrail',
+      lastName: 'Admin',
+    };
 
-    await ensureGuardrailUserExists();
+    await ensureGuardrailUsersExist();
     refreshAuthTokens();
     await upsertGuardrailOrgs();
   });
 
   beforeEach(async () => {
-    await ensureGuardrailUserExists();
+    await ensureGuardrailUsersExist();
     await upsertGuardrailOrgs();
     await pool.query(
       `CREATE TABLE IF NOT EXISTS organization_settings (
@@ -478,6 +551,10 @@ describe('Route Guardrails Integration', () => {
 
   afterAll(async () => {
     await pool.query('DELETE FROM accounts WHERE id IN ($1, $2)', [activeOrgId, inactiveOrgId]);
+    const guardrailIds = [guardrailUserIdentity?.id, guardrailAdminIdentity?.id].filter(Boolean);
+    if (guardrailIds.length > 0) {
+      await pool.query('DELETE FROM users WHERE id = ANY($1::uuid[])', [guardrailIds]);
+    }
   });
 
   describe('auth-required route matrix', () => {
@@ -865,10 +942,7 @@ describe('Route Guardrails Integration', () => {
       }
 
       const response = await req.expect(200);
-      expect(response.body).toMatchObject({
-        success: true,
-        data: expect.anything(),
-      });
+      testCase.assertResponse(response);
     });
 
     it('portal admin requests list uses canonical success envelope', async () => {
@@ -1010,7 +1084,7 @@ describe('Route Guardrails Integration', () => {
     });
   });
 
-  it('returns provider webhook ack payloads without success-envelope wrapping for stale and duplicate paths', async () => {
+  it('returns provider webhook ack payloads without success-envelope wrapping for replay and duplicate paths', async () => {
     const staleWebhookApp = express();
     staleWebhookApp.use('/api/v2/payments/webhook', express.raw({ type: 'application/json' }));
     staleWebhookApp.post('/api/v2/payments/webhook', handleWebhook);
@@ -1018,32 +1092,34 @@ describe('Route Guardrails Integration', () => {
     const paymentPool = { query: jest.fn() };
     setPaymentPool(paymentPool as any);
 
-    const staleSpy = jest
+    const replaySpy = jest
       .spyOn(stripeService, 'constructWebhookEvent')
       .mockReturnValueOnce({
-        id: 'evt-stale-guardrail',
+        id: 'evt-replay-guardrail',
         type: 'charge.refunded',
         created: new Date(Date.now() - 10 * 60 * 1000),
         data: { object: {} },
       } as any)
       .mockReturnValueOnce({
-        id: 'evt-duplicate-guardrail',
+        id: 'evt-replay-guardrail',
         type: 'charge.refunded',
         created: new Date(),
         data: { object: {} },
       } as any);
 
-    (paymentPool.query as jest.Mock).mockResolvedValueOnce({ rowCount: 0, rows: [] });
+    (paymentPool.query as jest.Mock)
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 'receipt-1' }] })
+      .mockResolvedValue({ rowCount: 0, rows: [] });
 
-    const staleResponse = await request(staleWebhookApp)
+    const replayResponse = await request(staleWebhookApp)
       .post('/api/v2/payments/webhook')
       .set('stripe-signature', 'sig_test')
       .set('Content-Type', 'application/json')
       .send('{}')
       .expect(200);
 
-    expect(staleResponse.body).toEqual({ received: true, rejected: true });
-    expect(staleResponse.body.success).toBeUndefined();
+    expect(replayResponse.body).toEqual({ received: true });
+    expect(replayResponse.body.success).toBeUndefined();
 
     const duplicateResponse = await request(staleWebhookApp)
       .post('/api/v2/payments/webhook')
@@ -1055,7 +1131,7 @@ describe('Route Guardrails Integration', () => {
     expect(duplicateResponse.body).toEqual({ received: true, duplicate: true });
     expect(duplicateResponse.body.success).toBeUndefined();
 
-    staleSpy.mockRestore();
+    replaySpy.mockRestore();
   });
 
   it('keeps correlation IDs isolated across concurrent requests', async () => {

@@ -1,493 +1,71 @@
-# Integration Test Execution Guide
+# Backend Integration Test Guide
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-18
 
-This is a narrow backend integration-testing reference for the shell-based workflows under `backend/tests/integration/`.
-For the active repo-wide testing map, start with [TESTING.md](TESTING.md).
+This guide documents the supported backend integration-testing workflow for nonprofit-manager. For the repo-wide testing map, start with [TESTING.md](TESTING.md). For runtime setup and ports, use [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md). For backend runtime details, use [../../backend/README.md](../../backend/README.md).
 
----
+## Supported Command Surface
 
-## What We Built
+Run backend integration suites through `npm test` from `backend/`:
 
-### Comprehensive Test Suite
-
-1. **Full System Integration Test** (`integration-full-system.sh`)
-   - Tests all 6 Phase 2 modules in a single comprehensive workflow
-   - Creates realistic interconnected test data
-   - Validates ~30 different integration points
-   - Automatically cleans up test data
-
-2. **Automated Setup** (`setup-test-environment.sh`)
-   - Checks server availability
-   - Obtains authentication token automatically
-   - Configures environment for testing
-   - Creates reusable configuration
-
-3. **Test Master Runner** (`run-all-integration-tests.sh`)
-   - Runs all test scenarios in sequence
-   - Provides comprehensive summary
-   - Tracks pass/fail rates
-
-4. **Documentation**
-   - Test results template for tracking
-   - Comprehensive README with instructions
-   - Quick start guides
-
----
-
-## How to Run Integration Tests
-
-### Prerequisites
-
-Before running tests, ensure:
-
-1. **Database is migrated**
-   ```bash
-   # From the repo root
-   make db-migrate
-   ```
-
-2. **You are using the direct backend runtime**
-   - These scripts assume a backend at `http://localhost:3000`
-   - They do not target the Docker dev stack on `8004` unless you override the script environment
-
-3. **You have admin credentials**
-   - Email: `admin@example.com`
-   - Password: your admin password
-
-### Option 1: Quick Start
-
-The fastest way to run all tests:
-
-```bash
-# 1. Start the backend server (terminal 1)
-cd backend
-npm run dev
-
-# 2. Run tests (terminal 2)
-cd backend/tests/integration
-./setup-test-environment.sh
-# Enter admin password when prompted
-
-# 3. Run comprehensive test
-./integration-full-system.sh
-```
-
-### Option 2: Run All Test Scenarios
-
-To run the complete test suite:
-
-```bash
-# After setup-test-environment.sh
-./run-all-integration-tests.sh
-```
-
-This runs:
-- Full system integration test
-- Volunteer event registration test
-- Business rules enforcement test
-- (Future) Case workflow test
-- (Future) Data consistency test
-- (Future) Reporting test
-
-### Option 3: Run Individual Tests
-
-For targeted testing:
-
-```bash
-# Full system (recommended)
-./integration-full-system.sh
-
-# Specific scenarios
-./integration-volunteer-event.sh
-./integration-business-rules.sh
-```
-
----
-
-## What the Tests Validate
-
-### Module Coverage
-
-#### ✅ Foundation Modules
-- Account creation and management
-- Contact creation and management
-- Account-contact linking
-- Multiple contact relationships
-
-#### ✅ Donations Module
-- Donation creation
-- Donor linking
-- Donation history tracking
-- Amount and payment tracking
-
-#### ✅ Volunteers Module
-- Volunteer record creation
-- Contact linking
-- Skills and availability tracking
-- Hours logging
-
-#### ✅ Events Module
-- Event creation with all types
-- Registration management
-- Capacity enforcement
-- Duplicate prevention
-- Check-in tracking
-- Attendance statistics
-
-#### ✅ Tasks Module
-- Task creation
-- Status management
-- Assignment tracking
-- Due date handling
-
-#### ✅ Cases Module
-- Case creation
-- Client linking
-- Notes management
-- Status workflow
-
-### Cross-Module Integration
-
-- ✅ **Contact has multiple roles**: Same contact can be donor, volunteer, and client
-- ✅ **Account-Contact hierarchy**: Contacts properly linked to accounts
-- ✅ **Event-Volunteer relationship**: Volunteers can register for events
-- ✅ **Donor-Event relationship**: Donors can attend events
-- ✅ **Statistics accuracy**: Counts and aggregations are correct
-
-### Data Integrity
-
-- ✅ **Foreign keys**: All relationships enforced
-- ✅ **Cascade deletes**: Child records cleaned up properly
-- ✅ **Duplicate prevention**: Same contact can't register twice
-- ✅ **Required fields**: Validation working correctly
-- ✅ **Constraints**: Business rules enforced (capacity, deadlines)
-
----
-
-## Expected Results
-
-### Successful Test Run
-
-When all tests pass, you should see:
-
-```
-══════════════════════════════════════════════════════════
-Integration Test Results
-══════════════════════════════════════════════════════════
-
-Total Tests:      30
-Passed:           30
-Failed:           0
-Pass Rate:        100%
-
-✓ ALL INTEGRATION TESTS PASSED!
-
-The system is functioning correctly across all modules.
-All cross-module relationships are working as expected.
-```
-
-### If Tests Fail
-
-If tests fail, you'll see output like:
-
-```
-SECTION 3: Volunteers Module
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Creating volunteer record...
-  ✗ Failed to create volunteer record
-
-Total Tests:      15
-Passed:           10
-Failed:           5
-Pass Rate:        67%
-
-✗ SOME INTEGRATION TESTS FAILED
-```
-
----
-
-## Troubleshooting
-
-### Issue: Authentication Failed
-
-**Symptom:**
-```
-✗ Authentication failed
-```
-
-**Solution:**
-- Verify admin user exists in database
-- Check email is correct: `admin@example.com`
-- Verify password is correct
-- Ensure database migrations have run
-
-### Issue: Server Not Running
-
-**Symptom:**
-```
-✗ Server is not running at localhost:3000/api
-```
-
-**Solution:**
 ```bash
 cd backend
-npm run dev
+npm test -- src/__tests__/integration
+npm test -- src/__tests__/integration/routeGuardrails.test.ts
+npm test -- src/__tests__/integration/authorization.test.ts
+npm test -- src/__tests__/integration/events.test.ts
+npm test -- --coverage src/__tests__/integration
 ```
 
-Wait for server to fully start before running tests.
+`npm test` is the supported entrypoint because it prepares the CI-style backend test database contract before invoking Jest.
 
-### Issue: Database Connection Error
+## What This Covers
 
-**Symptom:**
-Tests fail with database errors
+- Route and envelope guardrails under `src/__tests__/integration/routeGuardrails.test.ts`
+- Authorization and role-access integration coverage under `src/__tests__/integration/authorization.test.ts`
+- Event workflow and registration contracts under `src/__tests__/integration/events.test.ts`
+- Additional backend integration suites under `src/__tests__/integration/**/*.test.ts`
 
-**Solution:**
-1. Check PostgreSQL is running
-2. Verify database credentials in `.env`
-3. Run migrations: `make db-migrate`
-4. Check database exists
+## When To Run Which Command
 
-### Issue: Module Not Found Errors
+| Goal | Command | Notes |
+|------|---------|-------|
+| Full backend integration sweep | `cd backend && npm test -- src/__tests__/integration` | Runs all backend integration specs with prepared test DB |
+| Focused contract check | `cd backend && npm test -- src/__tests__/integration/routeGuardrails.test.ts` | Good for response-envelope, auth, and validation policy work |
+| Focused authorization check | `cd backend && npm test -- src/__tests__/integration/authorization.test.ts` | Good for role/permission integration behavior |
+| Focused events check | `cd backend && npm test -- src/__tests__/integration/events.test.ts` | Good for event CRUD, registration, and public-event contracts |
+| Coverage run | `cd backend && npm test -- --coverage src/__tests__/integration` | Use when you need coverage output for integration specs |
 
-**Symptom:**
-Tests fail because endpoints return 404
+## Supported Validation Pattern
 
-**Solution:**
-- Verify all backend modules are implemented
-- Check routes are properly registered through the current backend entrypoints
-- Ensure migrations have created necessary tables
-
-### Issue: Permission Errors
-
-**Symptom:**
-Tests fail with 403 Forbidden
-
-**Solution:**
-- Ensure user has admin role
-- Check authentication middleware
-- Verify token is valid (not expired)
-
----
-
-## Interpreting Results
-
-### Green Tests ✅
-Indicates feature is working correctly:
-- Module functionality is correct
-- Data relationships are maintained
-- Business rules are enforced
-
-### Red Tests ❌
-Indicates issues that need fixing:
-- **Critical**: Blocks core functionality
-- **High**: Significantly impacts features
-- **Medium**: Has workarounds
-- **Low**: Minor issues
-
-### Test Output Details
-
-Each test provides:
-- **Test name**: What is being tested
-- **Pass/Fail status**: Whether it succeeded
-- **Response data**: For debugging failures
-- **Cleanup status**: Whether test data was removed
-
----
-
-## Next Steps After Running Tests
-
-### If All Tests Pass (100%)
-
-Excellent! Your system is working correctly. Next:
-
-1. **Document Results**
-   ```bash
-   cd backend/tests/integration
-   cp TEST_RESULTS_TEMPLATE.md test-results-$(date +%Y%m%d).md
-   # Fill in the results
-   ```
-
-2. **Update Roadmap**
-   - Mark Week 1 integration testing as complete
-   - Move to Week 1 remaining tasks or Week 2
-
-3. **Move to Next Phase**
-   - Build volunteer components (AvailabilityCalendar, TimeTracker)
-   - Write component tests
-   - Manual QA testing
-
-### If Some Tests Fail (< 100%)
-
-1. **Document Failures**
-   - Copy error messages
-   - Note which modules failed
-   - Identify patterns (all in one module?)
-
-2. **Prioritize Fixes**
-   - **Critical failures** (core CRUD broken): Fix immediately
-   - **High priority** (features broken): Fix before proceeding
-   - **Medium/Low priority**: Can be addressed later
-
-3. **Fix and Re-test**
-   - Fix identified issues
-   - Re-run specific test: `./integration-full-system.sh`
-   - Verify fix didn't break other tests
-
-4. **Iterate Until Green**
-   - Keep fixing and testing
-   - Goal is 100% pass rate before proceeding
-
----
-
-## Test Data
-
-### What Data Is Created
-
-Each test run creates:
-- 1 organization account
-- 3-4 contacts (donor, volunteer, client)
-- 1 volunteer record
-- 1 donation
-- 1-2 events
-- 2-3 event registrations
-- 1 task
-- 1 case with notes
-- 1 volunteer hours log
-
-### Data Cleanup
-
-Tests automatically clean up ALL test data:
-- Runs DELETE commands for all created records
-- Uses proper cascade deletes
-- Leaves database in clean state
-
-You can verify cleanup:
-```sql
-SELECT * FROM contacts WHERE email LIKE '%@example.com';
-SELECT * FROM events WHERE name LIKE '%Test%';
-```
-
-Should return 0 results after test completion.
-
----
-
-## Current Repo Workflow
-
-This guide documents a narrow shell-script workflow. For the active contributor validation path, use the repo-native commands:
+For backend-only changes, pair the narrowest integration slice with the standard backend checks:
 
 ```bash
-make test
-cd backend && npm run test:integration
+cd backend
+npm run lint
+npm run type-check
+npm test -- <focused spec path>
 ```
 
-Use [TESTING.md](TESTING.md) and [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for the current repo-level validation expectations instead of older CI examples.
+Broaden from a single spec to `src/__tests__/integration` only when the change spans multiple backend contract seams.
 
----
+## Unsupported Legacy Path
 
-## Performance Benchmarks
+The shell scripts under `backend/tests/integration/` are historical artifacts, not the active contributor workflow.
 
-Track test execution time to identify performance issues:
+Do not use them as the supported path for:
 
-| Test | Expected Duration | Threshold |
-|------|------------------|-----------|
-| Full system test | 10-15 seconds | < 30s |
-| Setup environment | 2-3 seconds | < 10s |
-| Individual tests | 1-2 seconds each | < 5s |
+- manual auth-token shell setup
+- direct `/api/*` shell flows
+- ad hoc database cleanup instructions
 
-If tests take longer, investigate:
-- Database query performance
-- API endpoint optimization
-- Network latency issues
+If an older shell scenario still matters, port the behavior into a Jest integration spec instead of extending the shell scripts.
 
----
+For historical rollout context only, see [INTEGRATION_TESTING_PHASE2.md](INTEGRATION_TESTING_PHASE2.md). That document is not the active command source of truth.
 
-## Best Practices
+## Related Docs
 
-### Running Tests
-
-1. **Always run on clean database** (or test database)
-2. **Run tests before committing** major changes
-3. **Document failures** in detail
-4. **Re-run after fixes** to verify
-5. **Keep test data realistic** but minimal
-
-### Maintaining Tests
-
-1. **Update tests** when adding features
-2. **Add new scenarios** for complex workflows
-3. **Keep tests independent** (don't rely on order)
-4. **Clean up test data** (always)
-5. **Review test results** regularly
-
-### Test-Driven Development
-
-For new features:
-1. Write integration test first
-2. Run test (should fail)
-3. Implement feature
-4. Run test (should pass)
-5. Refactor if needed
-6. Commit both code and test
-
----
-
-## Success Criteria
-
-Integration testing is considered **complete** when:
-
-- ✅ All test scripts execute without errors
-- ✅ 100% pass rate achieved
-- ✅ All modules tested (6/6 modules)
-- ✅ Cross-module relationships validated
-- ✅ Data integrity confirmed
-- ✅ Business rules enforced
-- ✅ Results documented
-- ✅ Any issues found are tracked
-
----
-
-## Additional Resources
-
-- **Test Scripts**: `backend/tests/integration/`
-- **Test Documentation**: `backend/tests/integration/README.md`
-- **Results Template**: `backend/tests/integration/TEST_RESULTS_TEMPLATE.md`
-- **Phase 2 Overview**: `docs/INTEGRATION_TESTING_PHASE2.md`
-- **API Documentation**: `docs/API_REFERENCE_*.md`
-
----
-
-## Quick Reference Commands
-
-```bash
-# Start server
-cd backend && npm run dev
-
-# Setup and run all tests
-cd backend/tests/integration
-./setup-test-environment.sh
-./run-all-integration-tests.sh
-
-# Run specific test
-./integration-full-system.sh
-
-# Check server status
-curl localhost:3000/health/live
-
-# Clean test data (if needed)
-psql -d nonprofit_manager -c "DELETE FROM contacts WHERE email LIKE '%@example.com';"
-```
-
----
-
-## Conclusion
-
-The integration test suite is **ready to run** and will validate that all Phase 2 modules work together correctly. Running these tests is the next critical step in ensuring system quality before proceeding to additional features.
-
-**Action Required**: Run the tests and document results!
-
-```bash
-cd backend/tests/integration
-./setup-test-environment.sh
-./integration-full-system.sh
-```
+- [TESTING.md](TESTING.md)
+- [INTEGRATION_TESTING_PHASE2.md](INTEGRATION_TESTING_PHASE2.md) for historical scenario mapping
+- [../../backend/README.md](../../backend/README.md)
+- [../../backend/tests/integration/README.md](../../backend/tests/integration/README.md) for the historical shell-script directory

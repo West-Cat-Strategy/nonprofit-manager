@@ -57,9 +57,12 @@ npm run lint
 npm run type-check
 npm test
 npm run test:unit
-npm run test:integration
+npm test -- src/__tests__/integration
+npm test -- src/__tests__/integration/routeGuardrails.test.ts
 npm run test:coverage
 ```
+
+Supported backend integration runs go through `npm test` so the repo-preferred CI-style test database contract is prepared before Jest executes. The legacy shell scripts under `tests/integration/` are kept only as historical artifacts and are not part of the supported contributor workflow.
 
 Reset persisted auth lockouts and auth rate-limit buckets:
 

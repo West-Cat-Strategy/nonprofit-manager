@@ -93,6 +93,7 @@ describe('eventReminderAutomationService', () => {
       const [, params] = mockQuery.mock.calls[0];
       expect(params).toEqual([
         'event-1',
+        null,
         'relative',
         60,
         null,

@@ -10,6 +10,8 @@ import {
   __resetNavigationPreferencesCacheForTests,
   useNavigationPreferences,
 } from '../useNavigationPreferences';
+import * as navigationPreferencesModule from '../useNavigationPreferences';
+import { logout } from '../../features/auth/state';
 import {
   __resetUserPreferencesCacheForTests,
   setUserPreferencesCached,
@@ -39,7 +41,7 @@ const renderNavigationPreferencesHook = () => {
   });
 
   const wrapper = ({ children }: PropsWithChildren) => <Provider store={store}>{children}</Provider>;
-  return renderHook(() => useNavigationPreferences(), { wrapper });
+  return { store, ...renderHook(() => useNavigationPreferences(), { wrapper }) };
 };
 
 describe('useNavigationPreferences', () => {
@@ -198,5 +200,32 @@ describe('useNavigationPreferences', () => {
     const casesItem = result.current.allItems.find((item) => item.id === 'cases');
     expect(casesItem).toBeUndefined();
     expect(result.current.enabledRouteIds).not.toContain('cases');
+  });
+
+  it('clears the navigation preferences cache on logout', async () => {
+    setUserPreferencesCached({
+      navigation: {
+        items: [{ id: 'dashboard', enabled: true }],
+      },
+    });
+
+    const invalidateSpy = vi.spyOn(
+      navigationPreferencesModule,
+      'invalidateNavigationPreferencesCache'
+    );
+    const { result, store } = renderNavigationPreferencesHook();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(vi.mocked(api.get)).not.toHaveBeenCalled();
+    expect(result.current.allItems.find((item) => item.id === 'dashboard')?.enabled).toBe(true);
+
+    act(() => {
+      store.dispatch(logout());
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledTimes(1);
   });
 });

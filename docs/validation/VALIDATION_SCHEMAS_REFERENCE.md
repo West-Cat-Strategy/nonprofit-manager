@@ -2,8 +2,10 @@
 
 **Location**: `backend/src/validations/`  
 **Framework**: Zod v3.22.4  
-**Total Schemas**: 44 across 9 files  
-**Status**: ✅ Complete with tests
+**Validation File Inventory**: 14 top-level files as of 2026-04-18
+**Status**: Reference snapshot; verify on-disk exports for live coverage
+
+Use `backend/src/validations/index.ts` and the current directory contents as the source of truth for active validation coverage. Some newer validation surfaces may have been added after the original version of this document.
 
 ---
 
@@ -11,16 +13,20 @@
 
 ```
 backend/src/validations/
-├── index.ts                 # Central export point
-├── shared.ts               # Base schemas (15): email, password, UUID, date, file, etc.
-├── auth.ts                 # Auth schemas (12): login, register, 2FA, passkey, setup
-├── user.ts                 # User schemas (6): create, update, filter, preferences
-├── volunteer.ts            # Volunteer schemas (6): create, update, filter, hours
-├── event.ts                # Event schemas (3): create, update, filter
-├── contact.ts              # Contact schemas (6): create, update, filter (Phase 2)
-├── donation.ts             # Donation schemas (6): create, update, filter (Phase 2)
-├── case.ts                 # Case schemas (4): create, update, filter (Phase 2)
-└── task.ts                 # Task schemas (4): create, update, filter (Phase 2)
+├── admin.ts               # Admin validation surfaces
+├── auth.ts                # Auth, register, passkey, MFA, and setup validation
+├── caseForms.ts           # Case-form validation
+├── contact.ts             # Contact validation
+├── donation.ts            # Donation validation
+├── event.ts               # Event validation
+├── grant.ts               # Grant validation
+├── outcomeDefinition.ts   # Outcome-definition validation
+├── outcomeImpact.ts       # Outcome-impact validation
+├── portal.ts              # Portal validation
+├── shared.ts              # Shared primitives
+├── teamChat.ts            # Team-chat validation
+├── user.ts                # User and preference validation
+└── volunteer.ts           # Volunteer and volunteer-hours validation
 ```
 
 ---

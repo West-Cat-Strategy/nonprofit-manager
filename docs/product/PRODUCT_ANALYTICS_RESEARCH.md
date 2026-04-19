@@ -1,5 +1,7 @@
 # Product Analytics Integration Research
 
+This document is a technology-evaluation snapshot, not a declaration of the currently deployed analytics stack. Use [../features/TELEMETRY.md](../features/TELEMETRY.md) for the repo's telemetry feature context and the live workboard for any active analytics migration or rollout work.
+
 ## Overview
 
 This document evaluates privacy-focused analytics solutions for the Nonprofit Manager application. Given the sensitive nature of nonprofit data and the importance of donor trust, we prioritize solutions that are privacy-first, GDPR/CCPA compliant, and provide meaningful insights without compromising user privacy.

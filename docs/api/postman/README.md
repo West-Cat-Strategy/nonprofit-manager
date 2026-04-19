@@ -1,6 +1,6 @@
 # Postman Collection Guide
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-18
 
 ## Overview
 
@@ -25,9 +25,12 @@ This directory contains Postman collection and environment files for testing the
 
 1. Click environment dropdown in top-right corner
 2. Select "Nonprofit Manager - Local"
-3. Verify `base_url` is set to `http://localhost:3000/api`
+3. Verify `base_url` is set to `http://localhost:3000/api/v2`
 
-This environment assumes the direct backend runtime. If you want to target the Docker dev backend instead, use `http://localhost:8004/api`.
+Runtime alternatives:
+- Direct backend runtime: `http://localhost:3000/api/v2`
+- Docker dev backend: `http://localhost:8004/api/v2`
+- Frontend/browser proxy: `http://localhost:8005/api/v2` when you intentionally want to test through the frontend dev proxy
 
 ### 3. Start Backend Server
 
@@ -36,7 +39,7 @@ cd backend
 npm run dev
 ```
 
-The collection base URL points at `/api`, and the active application endpoints under that base are `/api/v2/*`. Health aliases remain documented separately.
+The collection base URL points directly at `/api/v2`. Health aliases such as `/health`, `/api/health`, and `/api/v2/health` remain documented separately.
 
 ## Using the Collection
 
@@ -46,14 +49,15 @@ The collection base URL points at `/api`, and the active application endpoints u
    - Navigate to `Authentication > Login`
    - Update email/password in request body if needed
    - Click **Send**
-   - Access token is automatically saved to `access_token` variable
-   - All subsequent requests use this token
+   - The login request establishes the session cookie for the selected host
+   - When `EXPOSE_AUTH_TOKENS_IN_RESPONSE=true`, the collection also saves `data.token` to `access_token`
+   - If bearer-token exposure is disabled, keep using the session cookie flow after login
 
 ### Automated Variable Storage
 
 The collection includes scripts that automatically save IDs for chaining requests:
 
-- Login saves `access_token`
+- Login saves `access_token` when the runtime exposes bearer tokens
 - Create Contact saves `test_contact_id`
 - Create Donation saves `test_donation_id`
 - Create Payment Intent saves `test_payment_intent_id`
@@ -123,7 +127,7 @@ These are automatically set by test scripts:
 
 Update these in the environment if your setup differs:
 
-- `base_url` - API base URL (default: `http://localhost:3000/api`)
+- `base_url` - API base URL (default: `http://localhost:3000/api/v2`)
 
 ## Testing Webhooks
 

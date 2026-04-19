@@ -4,6 +4,8 @@
 
 This document outlines the step-by-step plan to implement three new UI themes for the Nonprofit Manager application: **Sea Breeze**, **Corporate Minimalist**, and **Dark Glassmorphism**.
 
+This is a historical planning document for a specific theming exploration. The active UI source of truth is [user_interface_template_information.md](user_interface_template_information.md), and live rollout status belongs in [../phases/planning-and-progress.md](../phases/planning-and-progress.md) rather than in this plan.
+
 ## Prerequisites: Theme Engine Refactor
 
 Before implementing specific themes, the application must be refactored to support dynamic theming beyond a simple light/dark toggle.

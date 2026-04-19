@@ -13,12 +13,15 @@ import PortalLogin from '../../features/portal/pages/PortalLoginPage';
 import PortalResetPassword from '../../features/portal/pages/PortalResetPasswordPage';
 import PortalSignup from '../../features/portal/pages/PortalSignupPage';
 import NavigationSettings from '../../features/adminOps/pages/NavigationSettingsPage';
-import ApiSettings from '../../features/adminOps/pages/ApiSettingsPage';
+import ApiSettings from '../../features/webhooks/pages/ApiSettingsPage';
 import DataBackup from '../../features/adminOps/pages/DataBackupPage';
-import CommunicationsPage from '../../features/adminOps/pages/EmailMarketingPage';
+import CommunicationsPage from '../../features/mailchimp/pages/EmailMarketingPage';
 import AdminSettings from '../../features/adminOps/pages/AdminSettingsPage';
-import api from '../../services/api';
-import portalApi from '../../services/portalApi';
+import {
+  getTestApiCalls,
+  registerTestApiGet,
+  type TestApiMatcher,
+} from '../../test/setup';
 import { renderWithProviders } from '../../test/testUtils';
 import { assertRouteUxContract, createConsoleErrorSpy } from '../../test/uxRouteContract';
 
@@ -28,7 +31,6 @@ const { mockPortalApiGet, mockPortalApiPost, mockSetBranding } = vi.hoisted(() =
   mockSetBranding: vi.fn(),
 }));
 
-vi.mock('../../services/api');
 vi.mock('../../services/portalApi', () => ({
   default: {
     get: (...args: unknown[]) => mockPortalApiGet(...args),
@@ -51,13 +53,109 @@ vi.mock('../../contexts/BrandingContext', () => ({
   }),
 }));
 
-const mockApi = api as unknown as {
-  get: ReturnType<typeof vi.fn>;
+const apiMatchers = {
+  adminBranding: '/admin/branding',
+  adminOrganizationSettings: '/admin/organization-settings',
+  adminPermissions: '/admin/permissions',
+  adminRoles: '/admin/roles',
+  authPreferences: '/auth/preferences',
+  authRegistrationStatus: '/auth/registration-status',
+  contacts: /^\/v2\/contacts(?:\?|$)/,
+  invitationValidate: '/invitations/validate/test-token',
+  mailchimpCampaigns: '/mailchimp/campaigns',
+  mailchimpLists: '/mailchimp/lists',
+  mailchimpStatus: '/mailchimp/status',
+  resetPasswordValidate: '/auth/reset-password/test-token',
+  webhooksApiKeys: '/webhooks/api-keys',
+  webhooksApiKeyScopes: '/webhooks/api-keys/scopes',
+  webhooksEndpoints: '/webhooks/endpoints',
+  webhooksEvents: '/webhooks/events',
+} satisfies Record<string, TestApiMatcher>;
+
+const portalMatchers = {
+  acceptInvitationValidate: '/portal/auth/invitations/validate/test-token',
+  resetPasswordValidate: '/portal/auth/reset-password/test-token',
+} as const;
+
+const expectGetRequest = async (matcher: TestApiMatcher) => {
+  await waitFor(() => {
+    expect(getTestApiCalls('get', matcher).length).toBeGreaterThan(0);
+  });
 };
 
-const mockPortalApi = portalApi as unknown as {
-  get: ReturnType<typeof vi.fn>;
-  post: ReturnType<typeof vi.fn>;
+const registerSharedApiMocks = () => {
+  registerTestApiGet(apiMatchers.authRegistrationStatus, {
+    data: { registrationEnabled: true },
+  });
+  registerTestApiGet(apiMatchers.webhooksEndpoints, { data: [] });
+  registerTestApiGet(apiMatchers.webhooksEvents, { data: [] });
+  registerTestApiGet(apiMatchers.webhooksApiKeys, { data: [] });
+  registerTestApiGet(apiMatchers.webhooksApiKeyScopes, { data: [] });
+  registerTestApiGet(apiMatchers.authPreferences, {
+    data: { preferences: {} },
+  });
+  registerTestApiGet(apiMatchers.adminBranding, { data: {} });
+  registerTestApiGet(apiMatchers.adminOrganizationSettings, {
+    data: {
+      config: {},
+      updatedAt: null,
+    },
+  });
+  registerTestApiGet(apiMatchers.adminPermissions, {
+    data: { permissions: [] },
+  });
+  registerTestApiGet(apiMatchers.adminRoles, { data: { roles: [] } });
+  registerTestApiGet(apiMatchers.mailchimpStatus, {
+    data: { configured: false, accountName: null, listCount: 0 },
+  });
+  registerTestApiGet(apiMatchers.mailchimpLists, { data: [] });
+  registerTestApiGet(apiMatchers.mailchimpCampaigns, { data: [] });
+  registerTestApiGet(apiMatchers.contacts, {
+    data: {
+      data: [],
+      pagination: { total: 0, page: 1, limit: 100, total_pages: 0 },
+    },
+  });
+  registerTestApiGet(apiMatchers.invitationValidate, {
+    data: {
+      valid: true,
+      invitation: {
+        email: 'invitee@example.org',
+        role: 'Coordinator',
+        message: null,
+        invitedBy: 'Admin User',
+        expiresAt: '2026-12-31T00:00:00.000Z',
+      },
+    },
+  });
+  registerTestApiGet(apiMatchers.resetPasswordValidate, {
+    data: { valid: true },
+  });
+};
+
+const registerPortalApiMocks = () => {
+  mockPortalApiGet.mockImplementation((url: string) => {
+    if (url === portalMatchers.resetPasswordValidate) {
+      return Promise.resolve({ data: { valid: true } });
+    }
+    if (url === portalMatchers.acceptInvitationValidate) {
+      return Promise.resolve({
+        data: {
+          invitation: {
+            email: 'portal@example.org',
+            contactId: 'contact-1',
+            expiresAt: '2026-12-31T00:00:00.000Z',
+          },
+        },
+      });
+    }
+
+    throw new Error(`[test portal api] Unregistered GET ${url}`);
+  });
+
+  mockPortalApiPost.mockImplementation((url: string) => {
+    throw new Error(`[test portal api] Unregistered POST ${url}`);
+  });
 };
 
 type SmokeCase = {
@@ -69,6 +167,7 @@ type SmokeCase = {
   primaryActionPattern: RegExp;
   primaryActionRole?: 'button' | 'link';
   requireMainLandmark?: boolean;
+  contractAssertion: () => Promise<void> | void;
 };
 
 const smokeCases: SmokeCase[] = [
@@ -79,6 +178,10 @@ const smokeCases: SmokeCase[] = [
     heading: /welcome back to nonprofit manager/i,
     primaryActionPattern: /sign in/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      await expectGetRequest(apiMatchers.authRegistrationStatus);
+      expect(await screen.findByLabelText(/email address/i)).toBeInTheDocument();
+    },
   },
   {
     name: 'register',
@@ -87,6 +190,9 @@ const smokeCases: SmokeCase[] = [
     heading: /get started with nonprofit manager/i,
     primaryActionPattern: /create account/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      expect(await screen.findByLabelText(/confirm password/i)).toBeInTheDocument();
+    },
   },
   {
     name: 'setup',
@@ -95,6 +201,9 @@ const smokeCases: SmokeCase[] = [
     heading: /build your nonprofit workspace in minutes/i,
     primaryActionPattern: /create admin account/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      expect(await screen.findByLabelText(/organization name/i)).toBeInTheDocument();
+    },
   },
   {
     name: 'forgot-password',
@@ -103,6 +212,11 @@ const smokeCases: SmokeCase[] = [
     heading: /forgot your password/i,
     primaryActionPattern: /send reset link/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      expect(
+        await screen.findByText(/enter your email address and we'll send you a link/i)
+      ).toBeInTheDocument();
+    },
   },
   {
     name: 'accept-invitation',
@@ -112,6 +226,10 @@ const smokeCases: SmokeCase[] = [
     heading: /complete your registration/i,
     primaryActionPattern: /create account/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      await expectGetRequest(apiMatchers.invitationValidate);
+      expect(await screen.findByDisplayValue('invitee@example.org')).toBeInTheDocument();
+    },
   },
   {
     name: 'reset-password',
@@ -121,6 +239,10 @@ const smokeCases: SmokeCase[] = [
     heading: /reset your password/i,
     primaryActionPattern: /^reset password$/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      await expectGetRequest(apiMatchers.resetPasswordValidate);
+      expect(await screen.findByLabelText(/new password/i)).toBeInTheDocument();
+    },
   },
   {
     name: 'portal-login',
@@ -129,6 +251,9 @@ const smokeCases: SmokeCase[] = [
     heading: /client portal login/i,
     primaryActionPattern: /sign in/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      expect(await screen.findByLabelText(/email/i)).toBeInTheDocument();
+    },
   },
   {
     name: 'portal-signup',
@@ -137,6 +262,9 @@ const smokeCases: SmokeCase[] = [
     heading: /request portal access/i,
     primaryActionPattern: /submit request/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      expect(await screen.findByLabelText(/confirm password/i)).toBeInTheDocument();
+    },
   },
   {
     name: 'portal-forgot-password',
@@ -145,6 +273,11 @@ const smokeCases: SmokeCase[] = [
     heading: /reset your portal password/i,
     primaryActionPattern: /send reset link/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      expect(
+        await screen.findByText(/enter the email you use to sign in to the client portal/i)
+      ).toBeInTheDocument();
+    },
   },
   {
     name: 'portal-reset-password',
@@ -154,6 +287,12 @@ const smokeCases: SmokeCase[] = [
     heading: /choose a new portal password/i,
     primaryActionPattern: /^reset password$/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      await waitFor(() => {
+        expect(mockPortalApiGet).toHaveBeenCalledWith(portalMatchers.resetPasswordValidate);
+      });
+      expect(await screen.findByLabelText(/new password/i)).toBeInTheDocument();
+    },
   },
   {
     name: 'portal-accept-invitation',
@@ -163,6 +302,12 @@ const smokeCases: SmokeCase[] = [
     heading: /accept portal invitation/i,
     primaryActionPattern: /activate portal account/i,
     requireMainLandmark: true,
+    contractAssertion: async () => {
+      await waitFor(() => {
+        expect(mockPortalApiGet).toHaveBeenCalledWith(portalMatchers.acceptInvitationValidate);
+      });
+      expect(await screen.findByDisplayValue('portal@example.org')).toBeInTheDocument();
+    },
   },
   {
     name: 'navigation-settings',
@@ -170,6 +315,9 @@ const smokeCases: SmokeCase[] = [
     page: <NavigationSettings />,
     heading: /^navigation$/i,
     primaryActionPattern: /reset to defaults/i,
+    contractAssertion: async () => {
+      expect(await screen.findByText(/navigation menu items/i)).toBeInTheDocument();
+    },
   },
   {
     name: 'api-settings',
@@ -177,6 +325,10 @@ const smokeCases: SmokeCase[] = [
     page: <ApiSettings />,
     heading: /api & webhooks/i,
     primaryActionPattern: /add webhook/i,
+    contractAssertion: async () => {
+      await expectGetRequest(apiMatchers.webhooksEndpoints);
+      await expectGetRequest(apiMatchers.webhooksEvents);
+    },
   },
   {
     name: 'admin-settings',
@@ -184,6 +336,10 @@ const smokeCases: SmokeCase[] = [
     page: <AdminSettings />,
     heading: /admin hub/i,
     primaryActionPattern: /show advanced|hide advanced/i,
+    contractAssertion: async () => {
+      await expectGetRequest(apiMatchers.adminOrganizationSettings);
+      await expectGetRequest(apiMatchers.adminRoles);
+    },
   },
   {
     name: 'data-backup',
@@ -191,6 +347,9 @@ const smokeCases: SmokeCase[] = [
     page: <DataBackup />,
     heading: /data backup/i,
     primaryActionPattern: /download backup/i,
+    contractAssertion: async () => {
+      expect(await screen.findByText(/include secrets \(full backup\)/i)).toBeInTheDocument();
+    },
   },
   {
     name: 'communications',
@@ -199,6 +358,15 @@ const smokeCases: SmokeCase[] = [
     heading: /newsletter campaigns/i,
     primaryActionPattern: /admin\.mailchimp\.com\/account\/api/i,
     primaryActionRole: 'link',
+    contractAssertion: async () => {
+      await expectGetRequest(apiMatchers.mailchimpStatus);
+      expect(
+        await screen.findByRole('heading', {
+          name: /newsletter provider not configured/i,
+          level: 2,
+        })
+      ).toBeInTheDocument();
+    },
   },
 ];
 
@@ -208,91 +376,8 @@ describe('Route UX smoke (auth/portal/settings)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     consoleErrorSpy = createConsoleErrorSpy();
-
-    mockApi.get.mockImplementation((url: string) => {
-      if (url === '/auth/registration-status') {
-        return Promise.resolve({ data: { registrationEnabled: true } });
-      }
-      if (url === '/webhooks/endpoints') {
-        return Promise.resolve({ data: [] });
-      }
-      if (url === '/webhooks/events') {
-        return Promise.resolve({ data: [] });
-      }
-      if (url === '/webhooks/api-keys') {
-        return Promise.resolve({ data: [] });
-      }
-      if (url === '/webhooks/api-keys/scopes') {
-        return Promise.resolve({ data: [] });
-      }
-      if (url === '/auth/preferences') {
-        return Promise.resolve({ data: { preferences: {} } });
-      }
-      if (url === '/admin/branding') {
-        return Promise.resolve({ data: {} });
-      }
-      if (url === '/admin/roles') {
-        return Promise.resolve({ data: { roles: [] } });
-      }
-      if (url === '/mailchimp/status') {
-        return Promise.resolve({ data: { configured: false, accountName: null, listCount: 0 } });
-      }
-      if (url === '/mailchimp/lists') {
-        return Promise.resolve({ data: [] });
-      }
-      if (url === '/mailchimp/campaigns') {
-        return Promise.resolve({ data: [] });
-      }
-      if (url.startsWith('/v2/contacts')) {
-        return Promise.resolve({
-          data: {
-            data: [],
-            pagination: { total: 0, page: 1, limit: 100, total_pages: 0 },
-          },
-        });
-      }
-      if (url === '/invitations/validate/test-token') {
-        return Promise.resolve({
-          data: {
-            valid: true,
-            invitation: {
-              email: 'invitee@example.org',
-              role: 'Coordinator',
-              message: null,
-              invitedBy: 'Admin User',
-              expiresAt: new Date().toISOString(),
-            },
-          },
-        });
-      }
-      if (url === '/auth/reset-password/test-token') {
-        return Promise.resolve({ data: { valid: true } });
-      }
-
-      return Promise.resolve({ data: {} });
-    });
-
-    mockPortalApiGet.mockImplementation((url: string) => {
-      if (url === '/portal/auth/reset-password/test-token') {
-        return Promise.resolve({ data: { valid: true } });
-      }
-      if (url === '/portal/auth/invitations/validate/test-token') {
-        return Promise.resolve({
-          data: {
-            invitation: {
-              email: 'portal@example.org',
-              contactId: 'contact-1',
-              expiresAt: new Date().toISOString(),
-            },
-          },
-        });
-      }
-
-      return Promise.resolve({ data: {} });
-    });
-    mockPortalApiPost.mockResolvedValue({ data: {} });
-    mockPortalApi.get = mockPortalApiGet;
-    mockPortalApi.post = mockPortalApiPost;
+    registerSharedApiMocks();
+    registerPortalApiMocks();
   });
 
   afterEach(() => {
@@ -308,32 +393,14 @@ describe('Route UX smoke (auth/portal/settings)', () => {
       ).toBeInTheDocument();
     });
 
-    expect(mockApi.get).toHaveBeenCalledWith('/mailchimp/status');
-    expect(mockApi.get).not.toHaveBeenCalledWith('/mailchimp/lists');
-    expect(mockApi.get).not.toHaveBeenCalledWith('/mailchimp/campaigns');
+    await expectGetRequest(apiMatchers.mailchimpStatus);
+    expect(getTestApiCalls('get', apiMatchers.mailchimpLists)).toHaveLength(0);
+    expect(getTestApiCalls('get', apiMatchers.mailchimpCampaigns)).toHaveLength(0);
   });
 
   it('loads Mailchimp list and campaign data when the integration is configured', async () => {
-    mockApi.get.mockImplementation((url: string) => {
-      if (url === '/mailchimp/status') {
-        return Promise.resolve({ data: { configured: true, accountName: 'Test Org', listCount: 1 } });
-      }
-      if (url === '/mailchimp/lists') {
-        return Promise.resolve({ data: [] });
-      }
-      if (url === '/mailchimp/campaigns') {
-        return Promise.resolve({ data: [] });
-      }
-      if (url.startsWith('/v2/contacts')) {
-        return Promise.resolve({
-          data: {
-            data: [],
-            pagination: { total: 0, page: 1, limit: 100, total_pages: 0 },
-          },
-        });
-      }
-
-      return Promise.resolve({ data: {} });
+    registerTestApiGet(apiMatchers.mailchimpStatus, {
+      data: { configured: true, accountName: 'Test Org', listCount: 1 },
     });
 
     renderWithProviders(<CommunicationsPage />, { route: '/settings/communications' });
@@ -342,9 +409,9 @@ describe('Route UX smoke (auth/portal/settings)', () => {
       expect(screen.getByText(/connected to mailchimp/i)).toBeInTheDocument();
     });
 
-    expect(mockApi.get).toHaveBeenCalledWith('/mailchimp/status');
-    expect(mockApi.get).toHaveBeenCalledWith('/mailchimp/lists');
-    expect(mockApi.get).toHaveBeenCalledWith('/mailchimp/campaigns');
+    await expectGetRequest(apiMatchers.mailchimpStatus);
+    await expectGetRequest(apiMatchers.mailchimpLists);
+    await expectGetRequest(apiMatchers.mailchimpCampaigns);
   });
 
   it.each(smokeCases)(

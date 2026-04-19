@@ -2,7 +2,7 @@ import type { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { sendError } from '@modules/shared/http/envelope';
 import { requireActiveOrganizationSafe } from '@services/authGuardService';
-import { getDefaultOrganizationId } from './authQueries';
+import { getAuthenticatedOrganizationId } from './authQueries';
 
 export const resolveAuthenticatedOrganizationId = async (
   req: AuthRequest,
@@ -11,7 +11,7 @@ export const resolveAuthenticatedOrganizationId = async (
   const organizationId = req.organizationId || req.accountId || req.tenantId;
 
   if (!organizationId) {
-    return getDefaultOrganizationId();
+    return req.user?.id ? getAuthenticatedOrganizationId(req.user.id) : null;
   }
 
   const result = await requireActiveOrganizationSafe(req);

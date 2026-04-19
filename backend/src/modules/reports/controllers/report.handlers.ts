@@ -14,7 +14,7 @@ import {
   ReportExportJobArtifactGoneError,
   ReportExportJobArtifactNotReadyError,
 } from '@services/reportExportJobService';
-import { DirectReportExportTooLargeError } from '@services/reportService';
+import { DirectReportExportTooLargeError } from '@modules/reports/services/reportService';
 import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import {
   requirePermissionSafe,

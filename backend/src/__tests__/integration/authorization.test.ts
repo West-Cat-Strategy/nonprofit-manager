@@ -24,6 +24,72 @@ describe('Authorization Integration Tests', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const unwrap = <T>(body: { data?: T } | T): T =>
     (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
+  const extractPaginatedData = <T>(
+    body: Record<string, unknown>
+  ): { data: T[]; pagination: Record<string, unknown> } => {
+    if (Array.isArray(body.data) && body.pagination) {
+      return {
+        data: body.data as T[],
+        pagination: body.pagination as Record<string, unknown>,
+      };
+    }
+
+    if (
+      body.data &&
+      typeof body.data === 'object' &&
+      !Array.isArray(body.data) &&
+      Array.isArray((body.data as { data?: unknown[] }).data) &&
+      (body.data as { pagination?: Record<string, unknown> }).pagination
+    ) {
+      return body.data as { data: T[]; pagination: Record<string, unknown> };
+    }
+
+    throw new Error(`Unexpected paginated response shape: ${JSON.stringify(body)}`);
+  };
+  const extractTaskList = <T>(
+    body: Record<string, unknown>
+  ): { tasks: T[]; pagination: Record<string, unknown> } => {
+    if (Array.isArray(body.tasks) && body.pagination) {
+      return {
+        tasks: body.tasks as T[],
+        pagination: body.pagination as Record<string, unknown>,
+      };
+    }
+
+    if (
+      body.data &&
+      typeof body.data === 'object' &&
+      !Array.isArray(body.data) &&
+      Array.isArray((body.data as { tasks?: unknown[] }).tasks) &&
+      (body.data as { pagination?: Record<string, unknown> }).pagination
+    ) {
+      return body.data as { tasks: T[]; pagination: Record<string, unknown> };
+    }
+
+    throw new Error(`Unexpected task list response shape: ${JSON.stringify(body)}`);
+  };
+  const expectCanonicalUnauthorized = (response: request.Response): void => {
+    expect(response.body).toMatchObject({
+      success: false,
+      error: {
+        code: 'unauthorized',
+        message: expect.any(String),
+      },
+    });
+  };
+  const seededAccountName = `Auth Test Organization ${unique()}`;
+  const seededContactEmail = `auth-test-contact-${unique()}@example.com`;
+  const seededEventName = `Admin Test Event ${unique()}`;
+  const seededTaskSubject = `Admin Test Task ${unique()}`;
+  const seededVolunteerSkill = `Skill-${unique()}`;
+  const testRoles = ['admin', 'manager', 'staff', 'volunteer', 'viewer'] as const;
+  const organizationAccessByRole: Record<(typeof testRoles)[number], 'admin' | 'editor' | 'viewer'> = {
+    admin: 'admin',
+    manager: 'editor',
+    staff: 'editor',
+    volunteer: 'viewer',
+    viewer: 'viewer',
+  };
   let defaultOrganizationId: string | null = null;
   const ensureTestUsersExist = async (): Promise<void> => {
     for (const testUser of testUsers) {
@@ -64,9 +130,32 @@ describe('Authorization Integration Tests', () => {
     }
   };
 
+  const ensureTestOrganizationAccess = async (): Promise<void> => {
+    if (!defaultOrganizationId) {
+      return;
+    }
+
+    for (const role of testRoles) {
+      const userId = userIds[role];
+      if (!userId) {
+        continue;
+      }
+
+      await pool.query(
+        `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+         VALUES ($1, $2, $3, $4, TRUE)
+         ON CONFLICT (user_id, account_id)
+         DO UPDATE SET access_level = EXCLUDED.access_level,
+                       granted_by = EXCLUDED.granted_by,
+                       is_active = TRUE`,
+        [userId, defaultOrganizationId, organizationAccessByRole[role], userIds.admin]
+      );
+    }
+  };
+
   beforeAll(async () => {
     // Create test users with different roles
-    const roles = ['admin', 'manager', 'staff', 'volunteer', 'viewer'];
+    const roles = [...testRoles];
     const password = 'Test123!Strong';
 
     for (const role of roles) {
@@ -160,12 +249,14 @@ describe('Authorization Integration Tests', () => {
       );
     }
 
+    await ensureTestOrganizationAccess();
+
     // Create test data using admin user
     const accountResponse = await request(app)
       .post('/api/v2/accounts')
       .set('Authorization', `Bearer ${tokens.admin}`)
       .send({
-        account_name: 'Auth Test Organization',
+        account_name: seededAccountName,
         account_type: 'organization',
         category: 'donor',
       });
@@ -173,6 +264,7 @@ describe('Authorization Integration Tests', () => {
     const accountPayload = unwrap<{ account_id?: string; id?: string }>(accountResponse.body);
     if (accountPayload.account_id || accountPayload.id) {
       testData.accountId = accountPayload.account_id ?? accountPayload.id ?? '';
+      testData.accountName = seededAccountName;
     }
 
     // Create a test contact
@@ -182,18 +274,20 @@ describe('Authorization Integration Tests', () => {
       .send({
         first_name: 'Auth',
         last_name: 'TestContact',
-        email: `auth-test-contact-${unique()}@example.com`,
+        email: seededContactEmail,
         account_id: testData.accountId,
       });
 
     const contactPayload = unwrap<{ contact_id?: string; id?: string }>(contactResponse.body);
     if (contactPayload.contact_id || contactPayload.id) {
       testData.contactId = contactPayload.contact_id ?? contactPayload.id ?? '';
+      testData.contactEmail = seededContactEmail;
     }
   });
 
   beforeEach(async () => {
     await ensureTestUsersExist();
+    await ensureTestOrganizationAccess();
   });
 
   afterAll(async () => {
@@ -234,6 +328,7 @@ describe('Authorization Integration Tests', () => {
       );
       // Accounts reference users via created_by; remove account rows before deleting users.
       await pool.query('DELETE FROM accounts WHERE created_by = ANY($1::uuid[])', [testUserIds]);
+      await pool.query('DELETE FROM user_account_access WHERE user_id = ANY($1::uuid[])', [testUserIds]);
     }
     if (testData.contactId) {
       await pool.query('DELETE FROM contacts WHERE id = $1', [testData.contactId]);
@@ -262,16 +357,32 @@ describe('Authorization Integration Tests', () => {
         for (const role of ['admin', 'manager', 'staff']) {
           const response = await request(app)
             .get('/api/v2/accounts')
+            .query({ search: testData.accountName })
             .set('Authorization', `Bearer ${tokens[role]}`);
 
           expect(response.status).toBe(200);
-          expect(response.body).toHaveProperty('data');
+          const payload = extractPaginatedData<{ account_id?: string; id?: string; account_name: string }>(
+            response.body as Record<string, unknown>
+          );
+          expect(payload.pagination).toMatchObject({
+            page: expect.any(Number),
+            limit: expect.any(Number),
+            total: expect.any(Number),
+          });
+          expect(payload.data).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                account_name: testData.accountName,
+              }),
+            ])
+          );
         }
       });
 
       it('should require authentication', async () => {
         const response = await request(app).get('/api/v2/accounts');
         expect(response.status).toBe(401);
+        expectCanonicalUnauthorized(response);
       });
     });
 
@@ -292,11 +403,12 @@ describe('Authorization Integration Tests', () => {
 
     describe('POST /api/v2/accounts', () => {
       it('should allow admin to create accounts', async () => {
+        const accountName = `Admin Created Account ${unique()}`;
         const response = await request(app)
           .post('/api/v2/accounts')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
-            account_name: 'Admin Created Account',
+            account_name: accountName,
             account_type: 'individual',
             category: 'donor',
           });
@@ -304,19 +416,31 @@ describe('Authorization Integration Tests', () => {
         expect(response.status).toBe(201);
 
         // Clean up
-        const createdAccount = unwrap<{ account_id?: string; id?: string }>(response.body);
+        const createdAccount = unwrap<{ account_id?: string; id?: string; account_name?: string }>(
+          response.body
+        );
         const createdAccountId = createdAccount.account_id ?? createdAccount.id;
+        expect(createdAccount.account_name).toBe(accountName);
         if (createdAccountId) {
+          const persisted = await pool.query<{ account_name: string; created_by: string }>(
+            'SELECT account_name, created_by FROM accounts WHERE id = $1',
+            [createdAccountId]
+          );
+          expect(persisted.rows[0]).toMatchObject({
+            account_name: accountName,
+            created_by: userIds.admin,
+          });
           await pool.query('DELETE FROM accounts WHERE id = $1', [createdAccountId]);
         }
       });
 
       it('should allow manager to create accounts', async () => {
+        const accountName = `Manager Created Account ${unique()}`;
         const response = await request(app)
           .post('/api/v2/accounts')
           .set('Authorization', `Bearer ${tokens.manager}`)
           .send({
-            account_name: 'Manager Created Account',
+            account_name: accountName,
             account_type: 'individual',
             category: 'donor',
           });
@@ -324,19 +448,31 @@ describe('Authorization Integration Tests', () => {
         expect(response.status).toBe(201);
 
         // Clean up
-        const createdAccount = unwrap<{ account_id?: string; id?: string }>(response.body);
+        const createdAccount = unwrap<{ account_id?: string; id?: string; account_name?: string }>(
+          response.body
+        );
         const createdAccountId = createdAccount.account_id ?? createdAccount.id;
+        expect(createdAccount.account_name).toBe(accountName);
         if (createdAccountId) {
+          const persisted = await pool.query<{ account_name: string; created_by: string }>(
+            'SELECT account_name, created_by FROM accounts WHERE id = $1',
+            [createdAccountId]
+          );
+          expect(persisted.rows[0]).toMatchObject({
+            account_name: accountName,
+            created_by: userIds.manager,
+          });
           await pool.query('DELETE FROM accounts WHERE id = $1', [createdAccountId]);
         }
       });
 
       it('should allow staff to create accounts', async () => {
+        const accountName = `Staff Created Account ${unique()}`;
         const response = await request(app)
           .post('/api/v2/accounts')
           .set('Authorization', `Bearer ${tokens.staff}`)
           .send({
-            account_name: 'Staff Created Account',
+            account_name: accountName,
             account_type: 'individual',
             category: 'donor',
           });
@@ -344,9 +480,20 @@ describe('Authorization Integration Tests', () => {
         expect(response.status).toBe(201);
 
         // Clean up
-        const createdAccount = unwrap<{ account_id?: string; id?: string }>(response.body);
+        const createdAccount = unwrap<{ account_id?: string; id?: string; account_name?: string }>(
+          response.body
+        );
         const createdAccountId = createdAccount.account_id ?? createdAccount.id;
+        expect(createdAccount.account_name).toBe(accountName);
         if (createdAccountId) {
+          const persisted = await pool.query<{ account_name: string; created_by: string }>(
+            'SELECT account_name, created_by FROM accounts WHERE id = $1',
+            [createdAccountId]
+          );
+          expect(persisted.rows[0]).toMatchObject({
+            account_name: accountName,
+            created_by: userIds.staff,
+          });
           await pool.query('DELETE FROM accounts WHERE id = $1', [createdAccountId]);
         }
       });
@@ -379,6 +526,8 @@ describe('Authorization Integration Tests', () => {
           });
 
         expect(response.status).toBe(200);
+        const payload = unwrap<{ account_name?: string }>(response.body);
+        expect(payload.account_name).toBe('Updated by Manager');
       });
     });
 
@@ -394,7 +543,8 @@ describe('Authorization Integration Tests', () => {
             category: 'donor',
           });
 
-        const accountId = createResponse.body.id;
+        const createdAccount = unwrap<{ account_id?: string; id?: string }>(createResponse.body);
+        const accountId = createdAccount.account_id ?? createdAccount.id;
         if (!accountId) return;
 
         const response = await request(app)
@@ -402,6 +552,11 @@ describe('Authorization Integration Tests', () => {
           .set('Authorization', `Bearer ${tokens.admin}`);
 
         expect(response.status).toBe(204);
+        const persisted = await pool.query<{ is_active: boolean }>(
+          'SELECT is_active FROM accounts WHERE id = $1',
+          [accountId]
+        );
+        expect(persisted.rows[0]).toMatchObject({ is_active: false });
       });
     });
   });
@@ -412,56 +567,85 @@ describe('Authorization Integration Tests', () => {
         for (const role of ['admin', 'manager', 'staff']) {
           const response = await request(app)
             .get('/api/v2/contacts')
+            .query({ search: testData.contactEmail })
             .set('Authorization', `Bearer ${tokens[role]}`);
 
           expect(response.status).toBe(200);
-          expect(response.body).toHaveProperty('data');
+          const payload = extractPaginatedData<{ contact_id?: string; id?: string; email?: string }>(
+            response.body as Record<string, unknown>
+          );
+          expect(payload.data).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                contact_id: testData.contactId,
+              }),
+            ])
+          );
         }
       });
 
       it('should require authentication', async () => {
         const response = await request(app).get('/api/v2/contacts');
         expect(response.status).toBe(401);
+        expectCanonicalUnauthorized(response);
       });
     });
 
     describe('POST /api/v2/contacts', () => {
       it('should allow admin to create contacts', async () => {
+        const email = `admin-contact-${unique()}@example.com`;
         const response = await request(app)
           .post('/api/v2/contacts')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             first_name: 'Admin',
             last_name: 'Contact',
-            email: `admin-contact-${unique()}@example.com`,
+            email,
           });
 
         expect(response.status).toBe(201);
 
         // Clean up
-        const createdContact = unwrap<{ contact_id?: string; id?: string }>(response.body);
+        const createdContact = unwrap<{ contact_id?: string; id?: string; email?: string }>(
+          response.body
+        );
         const createdContactId = createdContact.contact_id ?? createdContact.id;
+        expect(createdContactId).toEqual(expect.any(String));
         if (createdContactId) {
+          const persisted = await pool.query<{ email: string }>(
+            'SELECT email FROM contacts WHERE id = $1',
+            [createdContactId]
+          );
+          expect(persisted.rows[0]).toMatchObject({ email });
           await pool.query('DELETE FROM contacts WHERE id = $1', [createdContactId]);
         }
       });
 
       it('should allow staff to create contacts', async () => {
+        const email = `staff-contact-${unique()}@example.com`;
         const response = await request(app)
           .post('/api/v2/contacts')
           .set('Authorization', `Bearer ${tokens.staff}`)
           .send({
             first_name: 'Staff',
             last_name: 'Contact',
-            email: `staff-contact-${unique()}@example.com`,
+            email,
           });
 
         expect(response.status).toBe(201);
 
         // Clean up
-        const createdContact = unwrap<{ contact_id?: string; id?: string }>(response.body);
+        const createdContact = unwrap<{ contact_id?: string; id?: string; email?: string }>(
+          response.body
+        );
         const createdContactId = createdContact.contact_id ?? createdContact.id;
+        expect(createdContactId).toEqual(expect.any(String));
         if (createdContactId) {
+          const persisted = await pool.query<{ email: string }>(
+            'SELECT email FROM contacts WHERE id = $1',
+            [createdContactId]
+          );
+          expect(persisted.rows[0]).toMatchObject({ email });
           await pool.query('DELETE FROM contacts WHERE id = $1', [createdContactId]);
         }
       });
@@ -479,6 +663,8 @@ describe('Authorization Integration Tests', () => {
           });
 
         expect(response.status).toBe(200);
+        const payload = unwrap<{ first_name?: string }>(response.body);
+        expect(payload.first_name).toBe('UpdatedByAdmin');
       });
     });
   });
@@ -501,7 +687,20 @@ describe('Authorization Integration Tests', () => {
           });
 
         expect(response.status).toBe(201);
-        testDonationId = response.body.id;
+        const donation = unwrap<{ donation_id?: string; id?: string; amount?: number; account_id?: string }>(
+          response.body
+        );
+        testDonationId = donation.donation_id ?? donation.id ?? '';
+        expect(Number(donation.amount)).toBe(100);
+        expect(donation.account_id).toBe(testData.accountId);
+        if (testDonationId) {
+          const persisted = await pool.query<{ amount: number; account_id: string }>(
+            'SELECT amount, account_id FROM donations WHERE id = $1',
+            [testDonationId]
+          );
+          expect(Number(persisted.rows[0].amount)).toBe(100);
+          expect(persisted.rows[0].account_id).toBe(testData.accountId);
+        }
       });
 
       it('should require authentication', async () => {
@@ -512,6 +711,7 @@ describe('Authorization Integration Tests', () => {
         });
 
         expect(response.status).toBe(401);
+        expectCanonicalUnauthorized(response);
       });
     });
 
@@ -519,10 +719,25 @@ describe('Authorization Integration Tests', () => {
       it('should allow authenticated users to list donations', async () => {
         const response = await request(app)
           .get('/api/v2/donations')
+          .query({ account_id: testData.accountId })
           .set('Authorization', `Bearer ${tokens.admin}`);
 
         expect(response.status).toBe(200);
-        expect(response.body).toHaveProperty('data');
+        const payload = extractPaginatedData<{ donation_id?: string; id?: string; account_id?: string }>(
+          response.body as Record<string, unknown>
+        );
+        expect(payload.data).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              account_id: testData.accountId,
+            }),
+          ])
+        );
+        if (testDonationId) {
+          expect(payload.data.map((donation) => donation.donation_id ?? donation.id)).toContain(
+            testDonationId
+          );
+        }
       });
     });
 
@@ -542,7 +757,7 @@ describe('Authorization Integration Tests', () => {
           .post('/api/v2/events')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
-            event_name: 'Admin Test Event',
+            event_name: seededEventName,
             event_type: 'fundraiser',
             status: 'planned',
             start_date: '2024-06-01T10:00:00Z',
@@ -550,7 +765,12 @@ describe('Authorization Integration Tests', () => {
           });
 
         expect(response.status).toBe(201);
-        testEventId = response.body.data?.event_id ?? response.body.event_id ?? response.body.id;
+        const event = unwrap<{ event_id?: string; id?: string; event_name?: string; status?: string }>(
+          response.body
+        );
+        testEventId = event.event_id ?? event.id ?? '';
+        expect(event.event_name).toBe(seededEventName);
+        expect(event.status).toBe('planned');
       });
 
       it('should require authentication', async () => {
@@ -560,6 +780,7 @@ describe('Authorization Integration Tests', () => {
         });
 
         expect(response.status).toBe(401);
+        expectCanonicalUnauthorized(response);
       });
     });
 
@@ -568,9 +789,23 @@ describe('Authorization Integration Tests', () => {
         for (const role of ['admin', 'manager', 'staff', 'volunteer']) {
           const response = await request(app)
             .get('/api/v2/events')
+            .query({ search: seededEventName })
             .set('Authorization', `Bearer ${tokens[role]}`);
 
           expect(response.status).toBe(200);
+          const payload = extractPaginatedData<{ event_id?: string; id?: string; event_name?: string }>(
+            response.body as Record<string, unknown>
+          );
+          expect(payload.data).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                event_name: seededEventName,
+              }),
+            ])
+          );
+          if (testEventId) {
+            expect(payload.data.map((event) => event.event_id ?? event.id)).toContain(testEventId);
+          }
         }
       });
     });
@@ -591,28 +826,35 @@ describe('Authorization Integration Tests', () => {
           .post('/api/v2/tasks')
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
-            subject: 'Admin Test Task',
+            subject: seededTaskSubject,
             priority: 'high',
           });
 
         expect(response.status).toBe(201);
-        testTaskId = response.body.id;
+        const task = unwrap<{ id?: string; subject?: string; priority?: string }>(response.body);
+        testTaskId = task.id ?? '';
+        expect(task.subject).toBe(seededTaskSubject);
+        expect(task.priority).toBe('high');
       });
 
       it('should allow staff to create tasks', async () => {
+        const subject = `Staff Test Task ${unique()}`;
         const response = await request(app)
           .post('/api/v2/tasks')
           .set('Authorization', `Bearer ${tokens.staff}`)
           .send({
-            subject: 'Staff Test Task',
+            subject,
             priority: 'normal',
           });
 
         expect(response.status).toBe(201);
+        const task = unwrap<{ id?: string; subject?: string; priority?: string }>(response.body);
+        expect(task.subject).toBe(subject);
+        expect(task.priority).toBe('normal');
 
         // Clean up
-        if (response.body.id) {
-          await pool.query('DELETE FROM tasks WHERE id = $1', [response.body.id]);
+        if (task.id) {
+          await pool.query('DELETE FROM tasks WHERE id = $1', [task.id]);
         }
       });
     });
@@ -621,9 +863,23 @@ describe('Authorization Integration Tests', () => {
       it('should allow authenticated users to list tasks', async () => {
         const response = await request(app)
           .get('/api/v2/tasks')
+          .query({ search: seededTaskSubject })
           .set('Authorization', `Bearer ${tokens.admin}`);
 
         expect(response.status).toBe(200);
+        const payload = extractTaskList<{ id?: string; subject?: string }>(
+          response.body as Record<string, unknown>
+        );
+        expect(payload.tasks).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              subject: seededTaskSubject,
+            }),
+          ])
+        );
+        if (testTaskId) {
+          expect(payload.tasks.map((task) => task.id)).toContain(testTaskId);
+        }
       });
     });
 
@@ -646,12 +902,19 @@ describe('Authorization Integration Tests', () => {
           .set('Authorization', `Bearer ${tokens.admin}`)
           .send({
             contact_id: testData.contactId,
-            skills: ['Teaching', 'Organizing'],
+            skills: [seededVolunteerSkill, 'Organizing'],
             availability_status: 'available',
           });
 
         expect(response.status).toBe(201);
-        testVolunteerId = response.body.id;
+        const volunteer = unwrap<{ id?: string; contact_id?: string; skills?: string[] }>(
+          response.body
+        );
+        testVolunteerId = volunteer.id ?? '';
+        expect(volunteer.contact_id).toBe(testData.contactId);
+        expect(volunteer.skills).toEqual(
+          expect.arrayContaining([seededVolunteerSkill, 'Organizing'])
+        );
       });
 
       it('should require authentication', async () => {
@@ -661,6 +924,7 @@ describe('Authorization Integration Tests', () => {
         });
 
         expect(response.status).toBe(401);
+        expectCanonicalUnauthorized(response);
       });
     });
 
@@ -668,9 +932,24 @@ describe('Authorization Integration Tests', () => {
       it('should allow authenticated users to list volunteers', async () => {
         const response = await request(app)
           .get('/api/v2/volunteers')
+          .query({ skills: seededVolunteerSkill })
           .set('Authorization', `Bearer ${tokens.admin}`);
 
         expect(response.status).toBe(200);
+        const payload = extractPaginatedData<{ id?: string; contact_id?: string; skills?: string[] }>(
+          response.body as Record<string, unknown>
+        );
+        expect(payload.data).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              contact_id: testData.contactId,
+              skills: expect.arrayContaining([seededVolunteerSkill]),
+            }),
+          ])
+        );
+        if (testVolunteerId) {
+          expect(payload.data.map((volunteer) => volunteer.id)).toContain(testVolunteerId);
+        }
       });
     });
 
@@ -691,6 +970,7 @@ describe('Authorization Integration Tests', () => {
         .set('Authorization', `Bearer ${expiredToken}`);
 
       expect(response.status).toBe(401);
+      expectCanonicalUnauthorized(response);
     });
 
     it('should reject malformed tokens', async () => {
@@ -699,6 +979,7 @@ describe('Authorization Integration Tests', () => {
         .set('Authorization', 'Bearer not-a-valid-token');
 
       expect(response.status).toBe(401);
+      expectCanonicalUnauthorized(response);
     });
 
     it('should reject missing Bearer prefix', async () => {
@@ -707,6 +988,7 @@ describe('Authorization Integration Tests', () => {
         .set('Authorization', tokens.admin);
 
       expect(response.status).toBe(401);
+      expectCanonicalUnauthorized(response);
     });
   });
 });

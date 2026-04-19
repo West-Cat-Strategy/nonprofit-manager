@@ -2,7 +2,7 @@
 
 **Nonprofit Manager - Payment Reconciliation & Integration APIs**
 **Version:** 1.0
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-18
 
 ---
 
@@ -25,28 +25,43 @@
 
 The Nonprofit Manager API provides comprehensive endpoints for managing payment reconciliation, Stripe integration, Mailchimp campaigns, and webhook notifications. This guide covers integration patterns, authentication, and best practices for all API endpoints.
 
-**Base URL:**
+Examples in this guide focus on the payload inside the canonical success envelope. Live JSON responses from `/api` routes return `{ "success": true, "data": ... }` on success and `{ "success": false, "error": ... }` on failure unless an endpoint explicitly documents an exception.
+
+**Base URLs:**
 ```
-Production: api.your-nonprofit.org
-Development: localhost:3000
+Production same-origin API: https://westcat.ca/api/v2
+Direct backend runtime: http://localhost:3000/api/v2
+Docker dev backend: http://localhost:8004/api/v2
+Frontend/browser proxy: /api/v2
 ```
 
 **API Version:** v2
+
+`VITE_API_URL=/api` is the frontend proxy base, not the mounted application route family. Active app endpoints remain `/api/v2/*`, with health aliases documented separately.
 
 ---
 
 ## Authentication
 
-### JWT Bearer Token
+### Browser Sessions And Bearer Tokens
 
-All API requests (except webhooks) require authentication via JWT Bearer tokens.
+Browser shells authenticate primarily with HttpOnly session cookies. API and test clients can still use bearer tokens when the runtime explicitly exposes them.
 
-**Header Format:**
+**Browser flow:**
+- `POST /api/v2/auth/login` or `POST /api/v2/portal/auth/login` establishes the session cookie.
+- `GET /api/v2/auth/bootstrap` or `GET /api/v2/portal/auth/bootstrap` returns the startup auth context for the signed-in shell.
+- Postman or browser-based tooling can keep using the session cookie after login.
+
+**Bearer header format:**
 ```
 Authorization: Bearer <your_jwt_token>
 ```
 
-**Obtaining a Token:**
+**Token exposure note:**
+- `data.token` is only returned when the backend runtime enables `EXPOSE_AUTH_TOKENS_IN_RESPONSE=true`.
+- If token exposure is disabled, login still succeeds through cookies; use the session cookie flow instead of expecting a bearer token in the response body.
+
+**Login request:**
 ```bash
 POST /api/v2/auth/login
 Content-Type: application/json
@@ -57,20 +72,24 @@ Content-Type: application/json
 }
 ```
 
-**Response:**
+**Response shape:**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "role": "admin"
+  "success": true,
+  "data": {
+    "csrfToken": "csrf-token",
+    "organizationId": "uuid",
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com",
+      "role": "admin"
+    },
+    "token": "optional-when-token-exposure-is-enabled"
   }
 }
 ```
 
-**Token Expiration:** 24 hours
-**Refresh:** Re-authenticate to obtain a new token
+**Session/token lifecycle:** Re-authenticate when the session or test token expires.
 
 ---
 
@@ -489,10 +508,13 @@ function verifyWebhookSignature(payload, signature, secret) {
 
 ```json
 {
-  "error": "Error message description",
-  "code": "ERROR_CODE",
-  "details": {
-    "field": "additional context"
+  "success": false,
+  "error": {
+    "code": "validation_error",
+    "message": "Error message description",
+    "details": {
+      "field": "additional context"
+    }
   }
 }
 ```
@@ -509,23 +531,25 @@ function verifyWebhookSignature(payload, signature, secret) {
 - `500 Internal Server Error` - Server error
 - `503 Service Unavailable` - Service temporarily unavailable
 
-### Common Error Codes
+### Common Error Envelope
 
-- `INVALID_REQUEST` - Malformed request
-- `AUTHENTICATION_REQUIRED` - No auth token provided
-- `INSUFFICIENT_PERMISSIONS` - User lacks required role
-- `RESOURCE_NOT_FOUND` - Requested resource doesn't exist
-- `STRIPE_NOT_CONFIGURED` - Stripe integration not set up
-- `RECONCILIATION_FAILED` - Reconciliation process failed
-- `RATE_LIMIT_EXCEEDED` - Too many requests
+```json
+{
+  "success": false,
+  "error": {
+    "code": "validation_error",
+    "message": "Human-readable error message"
+  }
+}
+```
+
+Common generic codes include `validation_error`, `bad_request`, `unauthorized`, `forbidden`, `not_found`, and `rate_limit_exceeded`. Module-specific error codes may add more detail.
 
 ---
 
 ## Rate Limiting
 
-**Limits:**
-- 100 requests per minute per IP
-- 1000 requests per hour per user
+**Limits:** Rate limits depend on the active runtime configuration. Check the response headers and the backend env values for the current contract.
 
 **Headers:**
 ```
@@ -537,8 +561,11 @@ X-RateLimit-Reset: 1643760000
 **Rate Limit Exceeded Response:**
 ```json
 {
-  "error": "Rate limit exceeded",
-  "retry_after": 60
+  "success": false,
+  "error": {
+    "code": "rate_limit_exceeded",
+    "message": "Too many requests, please try again later."
+  }
 }
 ```
 
@@ -560,14 +587,16 @@ try {
     body: JSON.stringify(data)
   });
 
+  const result = await response.json();
+
   if (!response.ok) {
-    const error = await response.json();
-    console.error('API Error:', error);
+    console.error('API Error:', result.error || result);
     // Handle error appropriately
+    return;
   }
 
-  const result = await response.json();
-  // Process successful response
+  const payload = result.data ?? result;
+  // Process successful response payload
 } catch (error) {
   console.error('Network error:', error);
 }
@@ -586,10 +615,11 @@ async function fetchAllReconciliations() {
       `/api/v2/reconciliation?page=${page}&limit=20`
     );
     const data = await response.json();
+    const payload = data.data ?? data;
 
-    allReconciliations.push(...data.reconciliations);
+    allReconciliations.push(...payload.reconciliations);
 
-    if (page >= data.pagination.total_pages) break;
+    if (page >= payload.pagination.total_pages) break;
     page++;
   }
 
@@ -616,10 +646,10 @@ fetch('/api/v2/reconciliation', {
 ### 4. Webhook Security
 Always verify webhook signatures before processing events.
 
-### 5. Token Management
-- Store tokens securely (never in localStorage for production)
-- Refresh tokens before expiration
-- Implement token rotation
+### 5. Session And Token Management
+- Prefer cookie-based sessions for browser clients.
+- If you enable bearer-token exposure for Postman or other API tooling, store tokens securely and clear them after use.
+- Re-authenticate when the session or token expires instead of relying on undocumented refresh behavior.
 
 ---
 
@@ -670,7 +700,7 @@ await generatePDFReport(summary);
 
 ```javascript
 // Frontend: Create payment intent
-const { clientSecret } = await fetch('/api/v2/payments/intents', {
+const paymentIntentResponse = await fetch('/api/v2/payments/intents', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${token}`,
@@ -683,6 +713,8 @@ const { clientSecret } = await fetch('/api/v2/payments/intents', {
     receiptEmail: 'donor@example.com'
   })
 }).then(r => r.json());
+
+const { clientSecret } = paymentIntentResponse.data ?? paymentIntentResponse;
 
 // Use Stripe.js to confirm payment
 const { error, paymentIntent } = await stripe.confirmCardPayment(
@@ -716,5 +748,5 @@ For API support:
 ---
 
 **Document Version:** 1.0
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-18
 **Generated by:** Nonprofit Manager API Team

@@ -7,6 +7,7 @@ import {
   setStaffBootstrapSnapshot,
 } from '../../../services/bootstrap/staffBootstrap';
 import { invalidateBrandingCache } from '../../../services/brandingService';
+import { invalidateNavigationPreferencesCache } from '../../../hooks/useNavigationPreferences';
 import { invalidateUserPreferencesCache } from '../../../services/userPreferencesService';
 import { clearWorkspaceModuleAccessCache } from '../../../services/workspaceModuleAccessService';
 
@@ -130,6 +131,7 @@ const authSlice = createSlice({
       state.authLoading = false;
       clearStaffBootstrapSnapshot();
       invalidateBrandingCache();
+      invalidateNavigationPreferencesCache();
       invalidateUserPreferencesCache();
       clearWorkspaceModuleAccessCache();
       localStorage.removeItem('user');
@@ -165,6 +167,7 @@ const authSlice = createSlice({
         state.authLoading = false;
         clearStaffBootstrapSnapshot();
         invalidateBrandingCache();
+        invalidateNavigationPreferencesCache();
         invalidateUserPreferencesCache();
         clearWorkspaceModuleAccessCache();
         localStorage.removeItem('user');

@@ -1,0 +1,1075 @@
+{
+  "version": "2026-04-18.generated-from-schemaRegistry",
+  "tables": [
+    {
+      "name": "accounts",
+      "fields": [
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "account_number",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "account_name",
+          "type": "string",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "account_type",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "category",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "website",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "address_line1",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "address_line2",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "state_province",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "postal_code",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "country",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "tax_id",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": false,
+          "enum_values": []
+        }
+      ]
+    },
+    {
+      "name": "contacts",
+      "fields": [
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "account_number",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "last_name",
+          "type": "string",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "middle_name",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "salutation",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "suffix",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "birth_date",
+          "type": "date",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "gender",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "pronouns",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "phn",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "mobile_phone",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "job_title",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "department",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "preferred_contact_method",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "do_not_email",
+          "type": "boolean",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "do_not_phone",
+          "type": "boolean",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "address_line1",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "address_line2",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "state_province",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "postal_code",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "country",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "roles",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": false,
+          "enum_values": []
+        }
+      ]
+    },
+    {
+      "name": "donations",
+      "fields": [
+        {
+          "name": "donation_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "donation_number",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "donation_date",
+          "type": "datetime",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "payment_method",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "payment_status",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "transaction_id",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "campaign_name",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "designation",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "is_recurring",
+          "type": "boolean",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "recurring_frequency",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "receipt_sent",
+          "type": "boolean",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "receipt_sent_date",
+          "type": "datetime",
+          "required": false,
+          "enum_values": []
+        }
+      ]
+    },
+    {
+      "name": "events",
+      "fields": [
+        {
+          "name": "event_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "event_name",
+          "type": "string",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "event_type",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "start_date",
+          "type": "datetime",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "end_date",
+          "type": "datetime",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "location_name",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "address_line1",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "address_line2",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "city",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "state_province",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "postal_code",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "country",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "capacity",
+          "type": "number",
+          "required": false,
+          "enum_values": []
+        }
+      ]
+    },
+    {
+      "name": "event_registrations",
+      "fields": [
+        {
+          "name": "registration_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "event_id",
+          "type": "uuid",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "registration_status",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "checked_in",
+          "type": "boolean",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "check_in_time",
+          "type": "datetime",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        }
+      ]
+    },
+    {
+      "name": "volunteers",
+      "fields": [
+        {
+          "name": "volunteer_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "account_number",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "last_name",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "mobile_phone",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "roles",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "skills",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "availability_status",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "availability_notes",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "background_check_status",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "background_check_date",
+          "type": "date",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "background_check_expiry",
+          "type": "date",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "preferred_roles",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "certifications",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "max_hours_per_week",
+          "type": "number",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "emergency_contact_name",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "emergency_contact_phone",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "emergency_contact_relationship",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "is_active",
+          "type": "boolean",
+          "required": false,
+          "enum_values": []
+        }
+      ]
+    },
+    {
+      "name": "activities",
+      "fields": [
+        {
+          "name": "activity_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "case_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "event_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "activity_type",
+          "type": "enum",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "activity_date",
+          "type": "datetime",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "staff_name",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "source_table",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        }
+      ]
+    },
+    {
+      "name": "cases",
+      "fields": [
+        {
+          "name": "case_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "contact_id",
+          "type": "uuid",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "account_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "case_number",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "case_type",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "priority",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "source",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "referral_source",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "intake_date",
+          "type": "datetime",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "opened_date",
+          "type": "datetime",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "closed_date",
+          "type": "datetime",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "outcome",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "outcome_notes",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "closure_reason",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "requires_followup",
+          "type": "boolean",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "followup_date",
+          "type": "date",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        }
+      ]
+    },
+    {
+      "name": "follow_ups",
+      "fields": [
+        {
+          "name": "follow_up_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "organization_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "entity_type",
+          "type": "enum",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "entity_id",
+          "type": "uuid",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "scheduled_date",
+          "type": "date",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "scheduled_time",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "frequency",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "frequency_end_date",
+          "type": "date",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "method",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "completed_date",
+          "type": "datetime",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "completed_notes",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "assigned_to",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        }
+      ]
+    },
+    {
+      "name": "tasks",
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "enum_values": []
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "priority",
+          "type": "enum",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "assigned_to",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "due_date",
+          "type": "datetime",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "start_date",
+          "type": "datetime",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "completed_date",
+          "type": "datetime",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "related_contact_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "related_case_id",
+          "type": "uuid",
+          "required": false,
+          "enum_values": []
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "required": false,
+          "enum_values": []
+        }
+      ]
+    }
+  ]
+}

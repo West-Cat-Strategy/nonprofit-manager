@@ -1,9 +1,21 @@
-# Manual Testing Guide - Volunteer Management Features
+# Historical Manual Testing Guide - Volunteer Management Features
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-18
 
-This is a narrow manual QA checklist for older volunteer-management flows.
-For the active testing workflow and command map, start with [TESTING.md](TESTING.md).
+This is a narrow manual QA checklist for older volunteer-management flows. It is retained as a scoped historical reference, not as the active contributor setup or regression workflow.
+
+Start with these docs before using this checklist:
+
+- [TESTING.md](TESTING.md) for the active test-command map
+- [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports
+- [../../e2e/README.md](../../e2e/README.md) when browser-driven verification is a better fit than manual volunteer QA
+
+This checklist assumes the direct runtime contract:
+
+- backend on `http://localhost:3000`
+- frontend on `http://localhost:8005`
+
+Do not treat the setup notes below as the source of truth for runtime selection; use `GETTING_STARTED.md` for that.
 
 ---
 
@@ -12,22 +24,16 @@ For the active testing workflow and command map, start with [TESTING.md](TESTING
 ### Starting the Application
 
 ```bash
-# Terminal 1 - Start Backend (direct runtime on localhost:3000)
+# Terminal 1 - Direct backend runtime
 cd backend
 npm run dev
 
-# Terminal 2 - Start Frontend (Vite defaults to localhost:8005 in this repo)
+# Terminal 2 - Direct frontend runtime
 cd frontend
 npm run dev
-
-# Terminal 3 - Ensure Postgres is available
-# Option A: use the optional Docker dev stack
-make dev
-#
-# Option B: use your own local/managed Postgres and backend env config
 ```
 
-If you use `make dev`, remember the Docker dev backend runs on `8004`; this checklist assumes the direct backend runtime on `3000`.
+Provide Postgres and Redis using the path you selected in [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md). This checklist assumes the direct backend runtime on `3000`, not the Docker dev backend on `8004`.
 
 ### Test Account
 - Email: test@example.com

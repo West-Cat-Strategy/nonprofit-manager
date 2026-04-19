@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-04-18
 
-Use this file when you only need the frontend. For the full contributor path, start at [../README.md](../README.md).
+Use this file when you only need the frontend runtime details. For the full contributor path, start at [../CONTRIBUTING.md](../CONTRIBUTING.md); for the broader runtime matrix, use [../docs/development/GETTING_STARTED.md](../docs/development/GETTING_STARTED.md).
 
 ## Prerequisites
 
@@ -23,6 +23,8 @@ Set `VITE_API_URL` in `frontend/.env.local`:
 
 - `http://localhost:3000/api` if the backend is running directly
 - `http://localhost:8004/api` if the backend is running in the Docker dev stack
+
+`VITE_API_URL` stays on the frontend proxy base (`/api`) because the browser client composes route segments under that prefix. Active contributor docs should still describe application endpoints as `/api/v2/*`, except for the documented health aliases.
 
 Start the frontend:
 
@@ -54,6 +56,7 @@ npm run test:coverage
 
 ## Related Docs
 
+- [../CONTRIBUTING.md](../CONTRIBUTING.md)
 - [README.md](README.md)
 - [../docs/development/GETTING_STARTED.md](../docs/development/GETTING_STARTED.md)
 - [../docs/testing/COMPONENT_TESTING.md](../docs/testing/COMPONENT_TESTING.md)

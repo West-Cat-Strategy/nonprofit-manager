@@ -22,9 +22,7 @@
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "type-check": "tsc --noEmit",
-    "test:integration": "bash scripts/run-integration-tests.sh",
-    "test:integration:coverage": "jest --forceExit --coverage src/__tests__/integration"
+    "type-check": "tsc --noEmit"
   },
   "keywords": [
     "nonprofit",

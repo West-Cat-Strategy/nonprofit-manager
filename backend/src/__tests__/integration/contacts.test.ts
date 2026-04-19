@@ -803,7 +803,7 @@ describe('Contact API Integration Tests', () => {
         `SELECT id
          FROM case_types
          WHERE is_active = true
-         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         ORDER BY name ASC, created_at ASC
          LIMIT 1`
       );
       const caseStatusResult = await pool.query<{ id: string }>(
@@ -1068,7 +1068,7 @@ describe('Contact API Integration Tests', () => {
         `SELECT id
          FROM case_types
          WHERE is_active = true
-         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         ORDER BY name ASC, created_at ASC
          LIMIT 1`
       );
       const caseStatusResult = await pool.query<{ id: string }>(

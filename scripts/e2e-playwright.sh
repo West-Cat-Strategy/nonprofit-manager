@@ -25,6 +25,20 @@ set_runtime_env() {
   export "$name"
 }
 
+uses_durable_audit_runtime() {
+  local arg
+
+  for arg in "$@"; do
+    case "$arg" in
+      *tests/dark-mode-accessibility-audit.spec.ts|*tests/performance.startup.spec.ts)
+        return 0
+        ;;
+    esac
+  done
+
+  return 1
+}
+
 if [[ $# -lt 2 ]]; then
   usage >&2
   exit 2
@@ -98,6 +112,11 @@ case "$mode" in
     exit 2
     ;;
 esac
+
+if uses_durable_audit_runtime "$@"; then
+  export E2E_FORCE_COMPILED_RUNTIME="${E2E_FORCE_COMPILED_RUNTIME:-1}"
+  export PW_REUSE_EXISTING_SERVER="0"
+fi
 
 cd "$PROJECT_ROOT/e2e"
 if [[ "$run_mode" == "direct" ]]; then

@@ -1,8 +1,8 @@
 # Development Conventions
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-18
 
-Use this file for active coding and workflow conventions. For setup, see [GETTING_STARTED.md](GETTING_STARTED.md).
+Use this file for active coding and workflow conventions after you have the contributor path from [../../CONTRIBUTING.md](../../CONTRIBUTING.md) and the runtime contract from [GETTING_STARTED.md](GETTING_STARTED.md). Keep this page focused on repo behavior and patterns, not onboarding.
 
 ## Toolchain
 
@@ -10,7 +10,7 @@ Use this file for active coding and workflow conventions. For setup, see [GETTIN
 - npm `10+`
 - Docker for the optional compose-based local stack
 
-Repo-root commands:
+Prefer repo-root commands when they cover the work:
 
 ```bash
 make lint
@@ -110,7 +110,8 @@ Package-level type checking uses `npm run type-check`, not `npm run typecheck`.
 - [GETTING_STARTED.md](GETTING_STARTED.md) is the setup and runtime guide.
 - [../../README.md](../../README.md) is the product overview and contributor handoff.
 - [../README.md](../README.md) is the short docs landing page.
-- [../INDEX.md](../INDEX.md) is the catalog.
+- [../INDEX.md](../INDEX.md) is the guided catalog.
+- [../testing/TESTING.md](../testing/TESTING.md) owns the validation command map.
 - Use relative links in local docs.
 - Verify commands, ports, and env guidance against the repo before documenting them.
 

@@ -1,6 +1,8 @@
 # Dark Mode Accessibility Audit
 
-This audit exercises the shared route catalog in dark mode and produces a findings report with evidence.
+**Last Updated:** 2026-04-18
+
+This audit exercises the shared route catalog in dark mode and produces a findings report with evidence. Use [TESTING.md](TESTING.md) for the broader validation matrix and [../../e2e/README.md](../../e2e/README.md) for the Playwright runtime contract.
 
 ## What It Covers
 
@@ -26,9 +28,11 @@ The audit checks:
 ## Command
 
 ```bash
-cd /Users/bryan/projects/nonprofit-manager/e2e
+cd e2e
 npx playwright test tests/dark-mode-accessibility-audit.spec.ts --project=chromium
 ```
+
+When you run this through the repo wrapper on the Playwright-managed host runtime, the harness now promotes the frontend to the compiled preview server for the long audit sweep instead of reusing a fragile dev server. The Docker audit path still uses the externally managed `8005/8004/8006` stack.
 
 ## Outputs
 

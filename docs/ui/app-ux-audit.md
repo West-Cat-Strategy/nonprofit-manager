@@ -2,6 +2,8 @@
 
 Generated: 2026-04-17T06:17:45Z
 
+This file is a generated audit snapshot from a specific verification pass. Use it as evidence for that run, not as the evergreen source of route health or active remediation status; defer to the live workboard for current follow-through.
+
 ## Baseline
 
 - Static route issues before fixes: 4

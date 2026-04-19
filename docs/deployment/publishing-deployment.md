@@ -1,6 +1,15 @@
 # Website Publishing & Deployment Guide
 
+**Last Updated:** 2026-04-18
+
 This guide covers the website publishing system, including custom domains, SSL certificates, and version management.
+
+This document covers the publishing API surface mounted under `/api/v2/sites/*`. For a live route inventory, verify against [../../backend/src/modules/publishing/routes/index.ts](../../backend/src/modules/publishing/routes/index.ts).
+
+Base URL choices for local testing:
+- Direct backend runtime: `http://localhost:3000/api/v2`
+- Docker dev backend: `http://localhost:8004/api/v2`
+- Same-origin browser/public-site proxy: `/api/v2`
 
 ## Overview
 
@@ -11,6 +20,8 @@ The publishing system allows users to:
 - Rollback to previous versions
 
 ## API Endpoints
+
+Examples below show relative paths. Prepend the base URL for the runtime you are using.
 
 ### Site Management
 
@@ -54,8 +65,11 @@ The publishing system allows users to:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v2/sites/:siteId/analytics` | GET | Get analytics summary |
+| `/api/v2/sites/:siteId/analytics` | GET | Get analytics summary (compatibility alias) |
+| `/api/v2/sites/:siteId/analytics/summary` | GET | Get analytics summary |
 | `/api/v2/sites/:siteId/track` | POST | Record analytics event (public) |
+
+Additional site-console routes also live under `/api/v2/sites/:siteId/*`, including overview, forms, newsletters, and integrations management. This guide stays focused on deployment-facing publishing flows.
 
 ## Custom Domain Setup
 

@@ -202,11 +202,21 @@ describe('Case API Integration Tests', () => {
     organizationId = accountIdFromResponse(accountResponse.body) || '';
     expect(organizationId).toBeTruthy();
 
+    await pool.query(
+      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+       VALUES ($1, $2, 'owner', $1, true)
+       ON CONFLICT (user_id, account_id) DO UPDATE
+       SET access_level = EXCLUDED.access_level,
+           granted_by = EXCLUDED.granted_by,
+           is_active = true`,
+      [userId, organizationId]
+    );
+
     const caseTypeResult = await pool.query<{ id: string }>(
       `SELECT id
        FROM case_types
        WHERE is_active = true
-       ORDER BY sort_order ASC NULLS LAST, created_at ASC
+       ORDER BY name ASC, created_at ASC
        LIMIT 1`
     );
     caseTypeId = caseTypeResult.rows[0]?.id || '';

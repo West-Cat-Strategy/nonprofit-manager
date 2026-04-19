@@ -272,6 +272,67 @@ describe('Portal Auth API Integration', () => {
     }
   });
 
+  it('rejects portal sessions immediately after the user is suspended', async () => {
+    const suffix = unique();
+    let portalUserId: string | null = null;
+    let contactId: string | null = null;
+    const email = `portal-suspended-${suffix}@example.com`;
+
+    try {
+      const contactResult = await pool.query(
+        `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
+         VALUES ($1, $2, $3, $4, $4)
+         RETURNING id`,
+        ['Portal', 'SuspendTest', email, null]
+      );
+      contactId = contactResult.rows[0].id as string;
+
+      const portalUserResult = await pool.query(
+        `INSERT INTO portal_users (contact_id, email, password_hash, status, is_verified)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id`,
+        [contactId, email, '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG', 'active', true]
+      );
+      portalUserId = portalUserResult.rows[0].id as string;
+
+      const token = jwt.sign(
+        { id: portalUserId, email, contactId, type: 'portal' as const },
+        getJwtSecret(),
+        { expiresIn: '1h' }
+      );
+
+      await pool.query('UPDATE portal_users SET status = $1 WHERE id = $2', ['suspended', portalUserId]);
+
+      const response = await request(app)
+        .get('/api/v2/portal/auth/me')
+        .set('Cookie', [`portal_auth_token=${token}`])
+        .expect(401);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'unauthorized',
+          message: 'Invalid or expired token',
+        },
+      });
+    } finally {
+      try {
+        if (portalUserId) {
+          await pool.query('DELETE FROM portal_users WHERE id = $1', [portalUserId]);
+        }
+      } catch {
+        // Ignore cleanup errors in integration tests.
+      }
+      if (contactId) {
+        try {
+          await pool.query('DELETE FROM contacts WHERE id = $1', [contactId]);
+        } catch {
+          // Ignore cleanup errors in integration tests.
+        }
+      }
+    }
+  });
+
   it('locks portal login after repeated failed attempts', async () => {
     const previousLockoutFlag = process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST;
     process.env.ENABLE_ACCOUNT_LOCKOUT_IN_TEST = 'true';

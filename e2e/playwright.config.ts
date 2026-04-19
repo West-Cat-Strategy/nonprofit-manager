@@ -80,15 +80,16 @@ const E2E_REGISTRATION_MAX_ATTEMPTS = process.env.E2E_REGISTRATION_MAX_ATTEMPTS 
 const E2E_MAX_LOGIN_ATTEMPTS = process.env.E2E_MAX_LOGIN_ATTEMPTS || '15';
 const clearFrontendPortCommand =
   `for p in $(lsof -ti tcp:${E2E_FRONTEND_PORT} 2>/dev/null); do kill -9 "$p" 2>/dev/null || true; done`;
-const useCompiledCiRuntime = FORCE_COMPILED_RUNTIME || (RUNNING_IN_CI && !USE_DEV_RUNTIME);
-const WEB_SERVER_TIMEOUT_MS = RUNNING_IN_CI ? 300 * 1000 : 120 * 1000;
+// Compiled preview builds are the durable path for CI and the long-running audit slices.
+const useCompiledRuntime = FORCE_COMPILED_RUNTIME || (RUNNING_IN_CI && !USE_DEV_RUNTIME);
+const WEB_SERVER_TIMEOUT_MS = RUNNING_IN_CI || useCompiledRuntime ? 300 * 1000 : 120 * 1000;
 
-const backendRuntimeCommand = useCompiledCiRuntime
+const backendRuntimeCommand = useCompiledRuntime
   ? 'npm run build && node dist/index.js'
   : 'npx ts-node -r tsconfig-paths/register --transpileOnly src/index.ts';
 const backendStartCommand = `cd .. && DB_AUTO_START=true COMPOSE_MODE=ci DB_HOST=${E2E_DB_HOST} DB_PORT=${E2E_DB_PORT} DB_NAME=${E2E_DB_NAME} DB_USER=${E2E_DB_USER} DB_PASSWORD=${E2E_DB_PASSWORD} ./scripts/db-migrate.sh && cd backend && ${backendRuntimeCommand}`;
 
-const frontendRuntimeCommand = useCompiledCiRuntime
+const frontendRuntimeCommand = useCompiledRuntime
   ? `${clearFrontendPortCommand} && npm run build && ${clearFrontendPortCommand} && npx vite preview --host ${E2E_FRONTEND_HOST} --port ${E2E_FRONTEND_PORT} --strictPort`
   : `${clearFrontendPortCommand} && npm run dev -- --host ${E2E_FRONTEND_HOST} --port ${E2E_FRONTEND_PORT}`;
 const frontendStartCommand = `cd ../frontend && ${frontendRuntimeCommand}`;

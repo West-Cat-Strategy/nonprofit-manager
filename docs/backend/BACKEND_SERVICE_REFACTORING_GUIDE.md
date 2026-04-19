@@ -1,5 +1,9 @@
 # Backend Service Refactoring Guide
 
+**Last Updated:** 2026-04-18
+
+Use this guide as a historical/planning reference for backend service decomposition ideas. For current backend ownership and active runtime boundaries, start with [../../backend/README.md](../../backend/README.md), [../development/ARCHITECTURE.md](../development/ARCHITECTURE.md), and [../phases/planning-and-progress.md](../phases/planning-and-progress.md).
+
 ## Overview
 The backend services have grown large and are handling multiple concerns in a single file. This guide proposes refactoring them into smaller, focused services following the Single Responsibility Principle.
 
@@ -17,6 +21,8 @@ The backend services have grown large and are handling multiple concerns in a si
    - Sort logic duplicated
 
 ## Refactoring Strategy
+
+This document describes a proposed shape, not a blanket instruction to reintroduce service-owned business logic outside the active module boundaries. When current module ownership disagrees with an older example here, follow the current module structure.
 
 ### 1. Extract Common Patterns
 

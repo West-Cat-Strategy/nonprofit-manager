@@ -10,10 +10,10 @@ import { getAdminSettingsPath, parseAdminSettingsSection } from './adminRoutePat
 
 export const AdminSettings = lazy(() => import('./pages/AdminSettingsPage'));
 export const UserSettings = lazy(() => import('./pages/UserSettingsPage'));
-export const ApiSettings = lazy(() => import('./pages/ApiSettingsPage'));
+export const ApiSettings = lazy(() => import('../webhooks/pages/ApiSettingsPage'));
 export const NavigationSettings = lazy(() => import('./pages/NavigationSettingsPage'));
 export const DataBackup = lazy(() => import('./pages/DataBackupPage'));
-export const CommunicationsPage = lazy(() => import('./pages/EmailMarketingPage'));
+export const CommunicationsPage = lazy(() => import('../mailchimp/pages/EmailMarketingPage'));
 export const SocialMedia = lazy(() => import('./pages/SocialMediaPage'));
 export const PortalAdminPage = lazy(() => import('./pages/portalAdmin/PortalAdminPage'));
 

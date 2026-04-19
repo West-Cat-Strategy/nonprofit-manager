@@ -13,6 +13,11 @@ info:
     clients where explicitly documented.
 servers:
   - url: http://localhost:3000/api/v2
+    description: Direct backend runtime
+  - url: http://localhost:8004/api/v2
+    description: Docker dev backend
+  - url: /api/v2
+    description: Same-origin frontend proxy or production ingress
 paths:
   /auth/register:
     post:

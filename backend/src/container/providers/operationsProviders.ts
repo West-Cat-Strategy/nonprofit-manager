@@ -5,7 +5,7 @@ import { AnalyticsService } from '@services/analytics';
 import { BackupService } from '@services/backupService';
 import { DashboardService } from '@services/dashboardService';
 import { ExportService } from '@services/exportService';
-import { ReportService } from '@services/reportService';
+import { ReportService } from '@modules/reports/services/reportService';
 import { SavedReportService } from '@services/savedReportService';
 import { ReportTemplateService } from '@services/reportTemplateService';
 import { PIIService } from '@services/piiService';

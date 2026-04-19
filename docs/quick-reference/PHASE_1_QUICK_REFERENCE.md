@@ -1,10 +1,8 @@
-/**
- * QUICK START: Using Phase 1 Tools
- * 
- * Fast reference for implementing the new validation and permission systems
- */
-
 # Phase 1 Quick Reference
+
+**Last Updated:** 2026-04-18
+
+This file is a historical quick reference from the earlier Phase 1 validation and permission rollout. It is not the source of truth for current auth-guard helpers or current controller patterns. For active guidance, use [../development/AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md), [../development/CONVENTIONS.md](../development/CONVENTIONS.md), and the current implementation in `backend/src/services/authGuardService.ts`.
 
 ## 1. Validating a Request in Routes
 

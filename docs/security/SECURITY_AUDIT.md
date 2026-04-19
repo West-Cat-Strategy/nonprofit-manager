@@ -4,6 +4,8 @@
 **Audit Date:** February 1, 2026
 **Auditor:** Automated Security Scanning + Manual Review
 
+This report is a historical audit snapshot from 2026-02-01. Package versions, scan counts, and remediation status may have changed since then; use current repo scans plus [SECURITY_MONITORING_GUIDE.md](SECURITY_MONITORING_GUIDE.md) and [INCIDENT_RESPONSE_RUNBOOK.md](INCIDENT_RESPONSE_RUNBOOK.md) for live operations.
+
 ---
 
 ## Executive Summary

@@ -55,5 +55,4 @@ POST /api/v2/backup/export
 
 ## Notes
 
-- This export is intended for portability and convenience. For disaster recovery, you should still use database-native backups (e.g. `pg_dump`) as described in `docs/DEPLOYMENT.md`.
-
+- This export is intended for portability and convenience. For disaster recovery, you should still use database-native backups (e.g. `pg_dump`) as described in [../deployment/DEPLOYMENT.md](../deployment/DEPLOYMENT.md).

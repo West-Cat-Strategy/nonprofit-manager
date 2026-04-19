@@ -1,96 +1,63 @@
 # Agent Instructions For Nonprofit Manager
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-18
 
-This file is for coding agents and contributors making repository changes.
+Use this file for repo-specific coding-agent guardrails. It is not the setup guide or the full docs catalog.
+
+## Read In This Order
+
+1. [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow, validation defaults, and handoff expectations
+2. [GETTING_STARTED.md](GETTING_STARTED.md) for runtime choice, ports, and setup
+3. [../../README.md](../../README.md) for product context
+4. [../INDEX.md](../INDEX.md) if you need the broader docs map
+5. [../phases/planning-and-progress.md](../phases/planning-and-progress.md) before tracked work
 
 ## Core Rules
 
 1. Update [../phases/planning-and-progress.md](../phases/planning-and-progress.md) before starting tracked work.
-2. Keep one active task per agent by default unless the workboard explicitly documents a coordinated parallel exception.
-3. Preserve existing user changes in the worktree unless the task requires touching them.
+2. Keep one active task per agent by default unless the workboard documents a coordinated exception.
+3. Preserve unrelated user changes already present in the worktree.
 4. Prefer repo-native validation commands and policies over ad hoc checks.
 5. Update active docs when commands, ports, workflows, or contracts change.
-6. When modularization work needs parallel lanes, follow [SUBAGENT_MODULARIZATION_GUIDE.md](SUBAGENT_MODULARIZATION_GUIDE.md) and keep one lead owner on shared registrars, catalogs, and workboard state.
+6. Use [SUBAGENT_MODULARIZATION_GUIDE.md](SUBAGENT_MODULARIZATION_GUIDE.md) when tracked modularization work needs coordinated parallel lanes.
 
-## Current Stack
+## Architecture Checkpoints
 
-### Backend
-
-- Node.js + TypeScript
-- Express
-- PostgreSQL via `pg`
-- Redis
-- Zod validation middleware
-
-### Frontend
-
-- React 19
-- React Router 7
-- Redux Toolkit
-- Vite
-- Tailwind CSS
-
-### Testing
-
-- Jest for backend
-- Vitest for frontend
-- Playwright in `e2e/`
-
-## Active Architecture Boundaries
-
-### Backend
-
-- Active runtime APIs are under `/api/v2/*`.
+- Active application APIs live under `/api/v2/*`.
 - Health aliases remain available at `/health`, `/api/health`, and `/api/v2/health`.
-- Domain-owned backend code lives under `backend/src/modules/<domain>/`.
-- `backend/src/routes/v2/index.ts` must import from `@modules/*` only.
-- New request handling should preserve the route -> controller -> service/usecase -> data-access separation.
+- Active backend code belongs under `backend/src/modules/<domain>/`.
+- `backend/src/routes/v2/index.ts` should import from `@modules/*` only.
+- Active frontend code belongs under `frontend/src/features/<domain>/`.
+- `frontend/src/pages/**` is a legacy compatibility path; new runtime pages belong in `frontend/src/features/**`.
+- Preserve the route -> controller -> service or use case -> data access separation.
 
-### Frontend
+## Validation, Auth, Permissions, And Responses
 
-- Feature-owned frontend code lives under `frontend/src/features/<domain>/`.
-- `frontend/src/pages/**` is a legacy compatibility path; active runtime pages belong in `frontend/src/features/**`.
-- Migrated features should read state from feature-owned state packages, not legacy `store/slices` imports.
+- Validate inputs with Zod and the repo validation middleware.
+- Treat `backend/src/services/authGuardService.ts` and `backend/src/utils/permissions.ts` as the implementation sources of truth for auth and permission behavior.
+- Do not reintroduce legacy `require*OrError` helpers in new work.
+- Preserve the canonical success and error response envelopes already used by the active API surface.
 
-## Validation, Auth, And Responses
+## Documentation Boundaries
 
-- Validate inputs with Zod schemas and repo validation middleware.
-- Use the current auth-guard helpers in `backend/src/services/authGuardService.ts`.
-- Do not reintroduce legacy `require*OrError` helpers in new controller or module work.
-- Preserve the canonical envelope shapes:
+- [../../CONTRIBUTING.md](../../CONTRIBUTING.md) owns contributor workflow and handoff.
+- [GETTING_STARTED.md](GETTING_STARTED.md) owns runtime setup, ports, and local env guidance.
+- [../../README.md](../../README.md) owns the product overview and contributor handoff.
+- [../README.md](../README.md) is the short docs landing page.
+- [../INDEX.md](../INDEX.md) is the guided catalog.
+- [../testing/TESTING.md](../testing/TESTING.md) is the validation command map.
+- Repo-local contributor skills live under [../../.codex/skills/](../../.codex/skills/) and should stay aligned when contributor-workflow guidance changes.
 
-```json
-{
-  "success": true,
-  "data": {}
-}
-```
+## Docs Work
 
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable error description"
-  }
-}
-```
+- Use relative links in repo docs.
+- Verify commands, ports, and environment guidance from the repo before documenting them as fact.
+- Update adjacent entry docs when contributor navigation changes.
+- Run `make check-links` for docs changes and add `make lint-doc-api-versioning` when API wording or examples changed.
 
-## Repo Workflow
+## Default Validation Commands
 
-- Contributor entry point: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
-- Default setup path: [GETTING_STARTED.md](GETTING_STARTED.md)
-- Product overview and contributor handoff: [../../README.md](../../README.md)
-- Service-specific guidance: [../../backend/README.md](../../backend/README.md) and [../../frontend/README.md](../../frontend/README.md)
-- Testing guidance: [../testing/TESTING.md](../testing/TESTING.md) and [../../e2e/README.md](../../e2e/README.md)
-- The workboard in [../phases/planning-and-progress.md](../phases/planning-and-progress.md) is the source of truth for tracked ownership and status changes.
-- Use [SUBAGENT_MODULARIZATION_GUIDE.md](SUBAGENT_MODULARIZATION_GUIDE.md) when a tracked modularization task needs a coordinated multi-agent exception.
-- Repo-local contributor skills are versioned under [../../.codex/skills/](../../.codex/skills/) and should be updated in-repo when contributor workflow guidance changes.
-
-## Validation Commands
-
-Prefer root commands:
+Prefer repo-root commands:
 
 ```bash
 make lint
@@ -108,44 +75,8 @@ make lint-doc-api-versioning
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
-Coverage thresholds are enforced by repo config. Do not restate a blanket percentage unless you have verified it from the current config.
-
-## Documentation Expectations
-
-- Treat [../../CONTRIBUTING.md](../../CONTRIBUTING.md) as the contributor entry point.
-- Treat [GETTING_STARTED.md](GETTING_STARTED.md) as the setup and runtime guide.
-- Treat [../../README.md](../../README.md) as the product overview and contributor handoff.
-- Treat [../README.md](../README.md) as the short docs landing page.
-- Treat [../INDEX.md](../INDEX.md) as the catalog, not the onboarding entry point.
-- Use relative links in docs.
-- Verify commands and ports from the repo before documenting them.
-
-## Common Implementation Patterns
-
-### Backend Work
-
-- Add or update a module under `backend/src/modules/<domain>/`.
-- Register new `/api/v2` routes through the module export path.
-- Keep controllers thin and data access out of controllers.
-- Add or update backend tests near the affected behavior.
-- In coordinated parallel work, keep shared registrar edits in lead-owned files and split delegated work by module boundary, not by arbitrary file chunks.
-
-### Frontend Work
-
-- Add or update a feature package under `frontend/src/features/<domain>/`.
-- Wire routes through the current route composition layer.
-- Keep state ownership in the feature package when the domain is already migrated.
-- Add or update frontend tests with the change.
-- In coordinated parallel work, split by feature lane, keep `frontend/src/routes/**` lead-owned unless explicitly assigned, and do not reintroduce `frontend/src/pages/**`.
-
-### Docs Work
-
-- Update entry docs when contributor navigation changes.
-- Run `make check-links`.
-- Run `make lint-doc-api-versioning` if API examples changed.
-
 ## Do Not Assume
 
-- Do not assume Docker dev, direct runtime, and Playwright runtime use the same ports.
+- Do not assume Docker dev, direct runtime, and Playwright use the same ports or env settings.
 - Do not assume a package-level `npm run typecheck` script exists; this repo uses `npm run type-check`.
-- Do not assume GitHub Actions is the required gate for active work; the repo uses local validation commands as the documented default path.
+- Do not assume GitHub Actions is the required default gate; local repo validation commands are the documented baseline.

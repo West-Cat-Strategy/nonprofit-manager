@@ -11,7 +11,6 @@ import type {
 } from '@app-types/case';
 import { createCaseWorkflowArtifacts } from '@services/caseWorkflowService';
 import { generateCaseNumber, normalizeCasePriority, requireCaseOwnership } from './shared';
-import { persistCaseOutcomeAssignments, persistCaseTypeAssignments } from './catalogQueries';
  
 type PgExecutor = Pool | PoolClient;
 
@@ -62,7 +61,7 @@ const resolveCaseOutcomeValues = (data: { outcome?: string | null; case_outcome_
 };
 
 const persistCaseTypeAssignments = async (
-  db: Pool,
+  db: PgExecutor,
   caseId: string,
   caseTypeIds: string[],
   userId?: string
@@ -136,7 +135,7 @@ export const upsertCaseTypeAssignments = async (
 };
 
 const persistCaseOutcomeAssignments = async (
-  db: Pool,
+  db: PgExecutor,
   caseId: string,
   outcomeValues: string[],
   userId?: string
@@ -271,7 +270,7 @@ export const updateCaseQuery = async (
   data: UpdateCaseDTO,
   userId?: string,
   organizationId?: string
-): Promise<unknown> => {
+): Promise<Case> => {
   await requireCaseOwnership(db, caseId, organizationId);
   const fields: string[] = [];
   const values: unknown[] = [];
@@ -387,7 +386,7 @@ export const updateCaseStatusQuery = async (
   data: UpdateCaseStatusDTO,
   userId?: string,
   organizationId?: string
-): Promise<unknown> => {
+): Promise<Case> => {
   await requireCaseOwnership(db, caseId, organizationId);
   const noteText = data.notes?.trim() || '';
   if (!noteText) {
@@ -496,7 +495,7 @@ export const reassignCaseQuery = async (
   data: ReassignCaseDTO,
   userId?: string,
   organizationId?: string
-): Promise<unknown> => {
+): Promise<Case> => {
   await requireCaseOwnership(db, caseId, organizationId);
   const currentCase = await db.query(`SELECT assigned_to FROM cases WHERE id = $1`, [caseId]);
   const previousAssignee = currentCase.rows[0]?.assigned_to;
@@ -542,7 +541,7 @@ export const bulkUpdateStatusQuery = async (
   data: BulkStatusUpdateDTO,
   userId?: string,
   organizationId?: string
-): Promise<unknown> => {
+): Promise<{ updated: number }> => {
   for (const caseId of data.case_ids) {
     await requireCaseOwnership(db, caseId, organizationId);
   }

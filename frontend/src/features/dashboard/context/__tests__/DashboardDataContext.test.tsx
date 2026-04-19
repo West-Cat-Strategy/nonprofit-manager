@@ -1,4 +1,5 @@
 import { act, screen, waitFor } from '@testing-library/react';
+import { useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CUSTOM_DASHBOARD_LANES,
@@ -245,18 +246,18 @@ describe('DashboardDataContext', () => {
 
   it('does not rerender a case-only lane consumer when donation trends update', async () => {
     const donationTrendsDeferred = createDeferred<Array<{ month: string; amount: number; count: number }>>();
-    let caseConsumerRenderCount = 0;
 
     donationTrendsMock.mockReset();
     donationTrendsMock.mockReturnValueOnce(donationTrendsDeferred.promise);
 
     function CaseSummaryLaneConsumer() {
-      caseConsumerRenderCount += 1;
+      const caseConsumerRenderCount = useRef(0);
+      caseConsumerRenderCount.current += 1;
       const caseSummaryLane = useDashboardCaseSummary();
 
       return (
         <div>
-          <div data-testid="case-lane-renders">{caseConsumerRenderCount}</div>
+          <div data-testid="case-lane-renders">{caseConsumerRenderCount.current}</div>
           <div data-testid="case-lane-urgent">{caseSummaryLane?.caseSummary?.by_priority.urgent ?? -1}</div>
         </div>
       );

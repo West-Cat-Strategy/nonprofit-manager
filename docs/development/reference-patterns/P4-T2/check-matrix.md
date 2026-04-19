@@ -15,7 +15,7 @@
 - `make db-verify`
 - `make lint`
 - `make typecheck`
-- `cd backend && npm run test:integration -- src/__tests__/integration/referencePatternRoutes.test.ts`
+- `cd backend && npm test -- src/__tests__/integration/referencePatternRoutes.test.ts`
 - `cd frontend && npm test -- src/pages/__tests__/RouteUxSmoke.test.tsx`
 - `cd e2e && npm run test:smoke`
 

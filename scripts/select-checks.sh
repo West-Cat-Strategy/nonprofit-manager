@@ -68,20 +68,38 @@ has_backend=0
 has_frontend=0
 has_e2e=0
 has_database=0
-has_scripts=0
+has_shared_runtime=0
+
+is_docs_path() {
+  case "$1" in
+    README.md|CONTRIBUTING.md|AGENTS.md|agents.md|docs/*|backend/README.md|frontend/README.md|frontend/SETUP.md|e2e/README.md|database/README.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+is_api_docs_path() {
+  case "$1" in
+    docs/api/*|README.md|backend/README.md|frontend/README.md|frontend/SETUP.md|e2e/README.md|database/README.md)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
 
 for file in "${changed_files[@]}"; do
-  case "$file" in
-    README.md|CONTRIBUTING.md|agents.md|docs/*|backend/README.md|frontend/README.md|frontend/SETUP.md|e2e/README.md|database/README.md)
-      has_docs=1
-      ;;
-  esac
-
-  case "$file" in
-    docs/api/*|README.md|backend/README.md|frontend/README.md|frontend/SETUP.md|e2e/README.md|database/README.md)
+  if is_docs_path "$file"; then
+    has_docs=1
+    if is_api_docs_path "$file"; then
       has_api_docs=1
-      ;;
-  esac
+    fi
+    continue
+  fi
 
   case "$file" in
     backend/*)
@@ -96,54 +114,101 @@ for file in "${changed_files[@]}"; do
     database/*)
       has_database=1
       ;;
-    scripts/*|Makefile)
-      has_scripts=1
+    scripts/*|Makefile|package.json|package-lock.json|tsconfig*.json|docker-compose*.yml|docker-compose*.yaml|contracts/*)
+      has_shared_runtime=1
+      ;;
+    *)
+      has_shared_runtime=1
       ;;
   esac
 done
 
+surface_count=$((has_backend + has_frontend + has_e2e + has_database + has_shared_runtime))
 commands=()
 
-if [[ "$mode" == "strict" ]]; then
-  commands+=("make lint" "make typecheck")
+add_command() {
+  local command="$1"
+  local existing
+
+  for existing in "${commands[@]}"; do
+    if [[ "$existing" == "$command" ]]; then
+      return
+    fi
+  done
+
+  commands+=("$command")
+}
+
+add_doc_commands() {
   if [[ $has_docs -eq 1 ]]; then
-    commands+=("make check-links")
+    add_command "make check-links"
   fi
+
   if [[ $has_api_docs -eq 1 ]]; then
-    commands+=("make lint-doc-api-versioning")
+    add_command "make lint-doc-api-versioning"
   fi
-  if [[ $has_database -eq 1 ]]; then
-    commands+=("make db-verify")
-  fi
-  if [[ $has_backend -eq 1 || $has_frontend -eq 1 || $has_scripts -eq 1 ]]; then
-    commands+=("make test")
-  fi
-  if [[ $has_e2e -eq 1 ]]; then
-    commands+=("cd e2e && npm run test:smoke")
+}
+
+add_backend_commands() {
+  add_command "cd backend && npm run lint"
+  add_command "cd backend && npm run type-check"
+  add_command "cd backend && npm test -- src/__tests__/integration"
+}
+
+add_frontend_commands() {
+  add_command "cd frontend && npm run lint"
+  add_command "cd frontend && npm run type-check"
+  add_command "cd frontend && npm test -- --run"
+}
+
+add_e2e_commands() {
+  add_command "cd e2e && npm run test:smoke"
+}
+
+if [[ "$mode" == "strict" ]]; then
+  add_doc_commands
+
+  if [[ $surface_count -eq 0 ]]; then
+    :
+  elif [[ $has_database -eq 1 || $has_shared_runtime -eq 1 || $surface_count -gt 1 ]]; then
+    add_command "make test"
+    if [[ $has_database -eq 1 ]]; then
+      add_command "make db-verify"
+    fi
+  elif [[ $has_backend -eq 1 ]]; then
+    add_backend_commands
+  elif [[ $has_frontend -eq 1 ]]; then
+    add_frontend_commands
+  elif [[ $has_e2e -eq 1 ]]; then
+    add_e2e_commands
   fi
 else
-  if [[ $has_docs -eq 1 ]]; then
-    commands+=("make check-links")
-  fi
-  if [[ $has_api_docs -eq 1 ]]; then
-    commands+=("make lint-doc-api-versioning")
-  fi
-  if [[ $has_backend -eq 1 || $has_scripts -eq 1 ]]; then
-    commands+=("make lint" "make typecheck")
-  fi
-  if [[ $has_frontend -eq 1 && $has_backend -eq 0 && $has_scripts -eq 0 ]]; then
-    commands+=("cd frontend && npm run lint" "cd frontend && npm run type-check")
-  fi
-  if [[ $has_e2e -eq 1 ]]; then
-    commands+=("cd e2e && npm run test:smoke")
-  fi
-  if [[ $has_database -eq 1 ]]; then
-    commands+=("make db-verify")
+  add_doc_commands
+
+  if [[ $surface_count -eq 0 ]]; then
+    :
+  elif [[ $has_database -eq 1 || $has_shared_runtime -eq 1 || $surface_count -gt 1 ]]; then
+    add_command "make test"
+    if [[ $has_database -eq 1 ]]; then
+      add_command "make db-verify"
+    fi
+  elif [[ $has_backend -eq 1 ]]; then
+    add_backend_commands
+  elif [[ $has_frontend -eq 1 ]]; then
+    add_frontend_commands
+  elif [[ $has_e2e -eq 1 ]]; then
+    add_e2e_commands
   fi
 fi
 
 if [[ ${#commands[@]} -eq 0 ]]; then
-  commands+=("make lint" "make typecheck")
+  if [[ "$mode" == "strict" ]]; then
+    add_command "make lint"
+    add_command "make typecheck"
+    add_command "make test"
+  else
+    add_command "make test"
+  fi
 fi
 
 printf '%s\n' "${commands[@]}"

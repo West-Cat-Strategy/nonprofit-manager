@@ -239,7 +239,7 @@ export const authenticate = (
             source: usingExplicitOrganizationSwitch
               ? req.requestedOrganizationSource || 'header'
               : 'token',
-            validateAccess: usingExplicitOrganizationSwitch,
+            validateAccess: usingExplicitOrganizationSwitch || shouldValidateResolvedContext,
           });
           if (!isValid) {
             return;
@@ -255,7 +255,7 @@ export const authenticate = (
           userId: sessionUser.id,
           userRole: normalizedRole,
           source: 'token',
-          validateAccess: false,
+          validateAccess: true,
         });
         if (!isValid) {
           return;

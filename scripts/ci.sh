@@ -10,7 +10,7 @@ Usage: scripts/ci.sh [--fast] [--audit] [--coverage] [--build] [--unit-only] [--
 
 Run the repo-local validation flow that backs the Makefile CI targets.
 
-  --coverage    Run the coverage-focused test path (backend/frontend coverage plus Playwright smoke)
+  --coverage    Run the coverage-focused test path (backend/frontend coverage plus host and Docker Playwright smoke)
   --unit-only   Run backend/frontend unit coverage only, skipping integration and Playwright
 EOF
 }

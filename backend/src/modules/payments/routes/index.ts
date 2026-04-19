@@ -20,9 +20,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
-import { requireRole } from '@middleware/permissions';
+import { requirePermission, requireRole } from '@middleware/permissions';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import * as paymentController from '../controllers';
+import { Permission } from '@utils/permissions';
 import { emailSchema, uuidSchema } from '@validations/shared';
 
 const router = Router();
@@ -91,6 +92,7 @@ router.post(
 router.get(
   '/intents/:id',
   authenticate,
+  requirePermission(Permission.PAYMENT_VIEW),
   validateParams(paymentIntentIdParamsSchema),
   paymentController.getPaymentIntent
 );
@@ -102,6 +104,7 @@ router.get(
 router.post(
   '/intents/:id/cancel',
   authenticate,
+  requirePermission(Permission.PAYMENT_PROCESS),
   validateParams(paymentIntentIdParamsSchema),
   paymentController.cancelPaymentIntent
 );

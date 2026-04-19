@@ -4,7 +4,6 @@
  * Authenticates requests using API keys instead of JWT tokens.
  * Supports:
  * - Authorization header: "Bearer npm_XXXXX"
- * - Query parameter: ?api_key=npm_XXXXX
  *
  * Performs:
  * - Key validation
@@ -14,10 +13,12 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import pool from '@config/database';
 import { logger } from '@config/logger';
 import * as apiKeyService from '@services/apiKeyService';
 import type { ApiKey, ApiKeyScope } from '@app-types/webhook';
 import { unauthorized, forbidden } from '@utils/responseHelpers';
+import { sendError } from '@modules/shared/http/envelope';
 
 export interface ApiKeyRequest extends Request {
   apiKey?: {
@@ -32,7 +33,6 @@ export interface ApiKeyRequest extends Request {
  *
  * Supports:
  * - Authorization header: "Bearer npm_XXXXX"
- * - Query parameter: ?api_key=npm_XXXXX
  */
 function extractApiKey(req: Request): string | null {
   // Check Authorization header
@@ -41,13 +41,42 @@ function extractApiKey(req: Request): string | null {
     return authHeader.substring(7);
   }
 
-  // Check query parameter
-  if (req.query.api_key && typeof req.query.api_key === 'string') {
-    return req.query.api_key;
-  }
-
   return null;
 }
+
+const hasQueryApiKey = (req: Request): boolean =>
+  Object.prototype.hasOwnProperty.call(req.query, 'api_key');
+
+const readRateLimitState = async (
+  apiKeyId: string
+): Promise<{ request_count: number; window_start_at: Date } | null> => {
+  const result = await pool.query<{ request_count: number; window_start_at: Date }>(
+    `SELECT request_count, window_start_at
+     FROM api_key_rate_limit_state
+     WHERE api_key_id = $1
+     LIMIT 1`,
+    [apiKeyId]
+  );
+
+  return result.rows[0] ?? null;
+};
+
+const isWindowExpired = (windowStartAt: Date, intervalMs: number): boolean => {
+  return Date.now() - windowStartAt.getTime() >= intervalMs;
+};
+
+const resetRateLimitWindow = async (apiKeyId: string): Promise<void> => {
+  await pool.query(
+    `INSERT INTO api_key_rate_limit_state (api_key_id, request_count, window_start_at, updated_at)
+     VALUES ($1, 1, NOW(), NOW())
+     ON CONFLICT (api_key_id)
+     DO UPDATE SET
+       request_count = 1,
+       window_start_at = NOW(),
+       updated_at = NOW()`,
+    [apiKeyId]
+  );
+};
 
 /**
  * API Key authentication middleware
@@ -57,6 +86,10 @@ function extractApiKey(req: Request): string | null {
  */
 export const authenticateApiKey = async (req: ApiKeyRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
+    if (hasQueryApiKey(req)) {
+      return unauthorized(res, 'API keys must be sent in the Authorization header');
+    }
+
     const apiKey = extractApiKey(req);
 
     if (!apiKey) {
@@ -74,7 +107,33 @@ export const authenticateApiKey = async (req: ApiKeyRequest, res: Response, next
       return unauthorized(res, 'Invalid API key');
     }
 
-    await apiKeyService.incrementRateLimit(validation.id);
+    const rateLimitState = await readRateLimitState(validation.id);
+    const windowExpired =
+      rateLimitState &&
+      isWindowExpired(new Date(rateLimitState.window_start_at), validation.rateLimitIntervalMs);
+
+    if (
+      rateLimitState &&
+      !windowExpired &&
+      validation.rateLimitRequests > 0 &&
+      validation.rateLimitIntervalMs > 0 &&
+      Number(rateLimitState.request_count) >= validation.rateLimitRequests
+    ) {
+      logger.warn('API key rate limit exceeded', {
+        apiKeyId: validation.id,
+        organizationId: validation.organizationId,
+        requests: validation.rateLimitRequests,
+        intervalMs: validation.rateLimitIntervalMs,
+      });
+      sendError(res, 'rate_limit_exceeded', 'API key rate limit exceeded', 429);
+      return;
+    }
+
+    if (!rateLimitState || windowExpired) {
+      await resetRateLimitWindow(validation.id);
+    } else {
+      await apiKeyService.incrementRateLimit(validation.id);
+    }
 
     // Attach API key info to request
     req.apiKey = {

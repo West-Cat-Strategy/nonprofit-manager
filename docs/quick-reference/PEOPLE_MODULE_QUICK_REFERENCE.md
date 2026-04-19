@@ -1,11 +1,17 @@
 # People Module - Quick Reference & Implementation Guide
 
+**Last Updated:** 2026-04-18
+
+This file is a historical implementation snapshot for the earlier people-module UI package, not the source of truth for the current frontend structure. For active contributor guidance, start with [../../frontend/README.md](../../frontend/README.md), [../development/CONVENTIONS.md](../development/CONVENTIONS.md), and [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md).
+
 ## Quick Links
 
-- 📋 **Full Enhancement Plan**: `PEOPLE_MODULE_ENHANCEMENTS.md`
-- 📝 **Implementation Summary**: `PEOPLE_MODULE_IMPLEMENTATION_SUMMARY.md`
-- 🔧 **Backend Refactoring**: `BACKEND_SERVICE_REFACTORING_GUIDE.md`
+- 📋 **Full Enhancement Plan**: [../features/PEOPLE_MODULE_ENHANCEMENTS.md](../features/PEOPLE_MODULE_ENHANCEMENTS.md)
+- 📝 **Implementation Summary**: [../features/PEOPLE_MODULE_IMPLEMENTATION_SUMMARY.md](../features/PEOPLE_MODULE_IMPLEMENTATION_SUMMARY.md)
+- 🔧 **Backend Refactoring Reference**: [../backend/BACKEND_SERVICE_REFACTORING_GUIDE.md](../backend/BACKEND_SERVICE_REFACTORING_GUIDE.md)
 - 🎨 **Types**: `frontend/src/types/people.ts`
+
+If a current implementation detail disagrees with an example below, trust the active frontend feature ownership and route structure instead of this snapshot.
 
 ---
 

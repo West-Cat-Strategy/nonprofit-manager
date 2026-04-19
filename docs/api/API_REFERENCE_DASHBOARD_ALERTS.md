@@ -1,5 +1,7 @@
 # Dashboard & Alerts API Reference
 
+**Last Updated:** 2026-04-18
+
 Complete API documentation for customizable dashboards and analytics alert configuration.
 
 ## Table of Contents
@@ -14,7 +16,16 @@ Complete API documentation for customizable dashboards and analytics alert confi
 
 ## Authentication
 
-All endpoints require authentication via JWT token in the Authorization header:
+Examples below assume a direct API client using a bearer token. Browser shells usually authenticate with the session cookie established by `POST /api/v2/auth/login` and then bootstrap through `GET /api/v2/auth/bootstrap`.
+
+Successful responses below show the payload inside `data` for brevity. Live `/api` JSON responses use the canonical envelope `{ "success": true, "data": ... }`.
+
+For local testing, prepend one of these base URLs to the relative paths in this guide:
+- Direct backend runtime: `http://localhost:3000/api/v2`
+- Docker dev backend: `http://localhost:8004/api/v2`
+- Frontend/browser proxy: `/api/v2`
+
+Bearer header format:
 
 ```
 Authorization: Bearer <your_jwt_token>
@@ -546,7 +557,11 @@ GET /api/v2/alerts/stats
 
 ```json
 {
-  "error": "Error message describing what went wrong"
+  "success": false,
+  "error": {
+    "code": "validation_error",
+    "message": "Error message describing what went wrong"
+  }
 }
 ```
 
@@ -569,11 +584,11 @@ GET /api/v2/alerts/stats
 
 ```bash
 # 1. Get user's dashboards
-curl -X GET localhost:3000/api/v2/dashboard/configs \
+curl -X GET http://localhost:3000/api/v2/dashboard/configs \
   -H "Authorization: Bearer $TOKEN"
 
 # 2. Create custom dashboard
-curl -X POST localhost:3000/api/v2/dashboard/configs \
+curl -X POST http://localhost:3000/api/v2/dashboard/configs \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -590,7 +605,7 @@ curl -X POST localhost:3000/api/v2/dashboard/configs \
   }'
 
 # 3. Update layout after drag-and-drop
-curl -X PUT localhost:3000/api/v2/dashboard/configs/$DASHBOARD_ID/layout \
+curl -X PUT http://localhost:3000/api/v2/dashboard/configs/$DASHBOARD_ID/layout \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -602,7 +617,7 @@ curl -X PUT localhost:3000/api/v2/dashboard/configs/$DASHBOARD_ID/layout \
 
 ```bash
 # 1. Test alert configuration
-curl -X POST localhost:3000/api/v2/alerts/test \
+curl -X POST http://localhost:3000/api/v2/alerts/test \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -617,21 +632,21 @@ curl -X POST localhost:3000/api/v2/alerts/test \
   }'
 
 # 2. Create alert if test passes
-curl -X POST localhost:3000/api/v2/alerts/configs \
+curl -X POST http://localhost:3000/api/v2/alerts/configs \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{ ... same body as test ... }'
 
 # 3. Get alert statistics
-curl -X GET localhost:3000/api/v2/alerts/stats \
+curl -X GET http://localhost:3000/api/v2/alerts/stats \
   -H "Authorization: Bearer $TOKEN"
 
 # 4. Get triggered alerts
-curl -X GET "localhost:3000/api/v2/alerts/instances?status=triggered&limit=10" \
+curl -X GET "http://localhost:3000/api/v2/alerts/instances?status=triggered&limit=10" \
   -H "Authorization: Bearer $TOKEN"
 
 # 5. Acknowledge an alert
-curl -X PATCH localhost:3000/api/v2/alerts/instances/$INSTANCE_ID/acknowledge \
+curl -X PATCH http://localhost:3000/api/v2/alerts/instances/$INSTANCE_ID/acknowledge \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -683,6 +698,6 @@ X-RateLimit-Reset: 1640995200
 ## Postman Collection
 
 Import the complete Postman collection from:
-`docs/postman/Nonprofit-Manager-API.postman_collection.json`
+`postman/Nonprofit-Manager-API.postman_collection.json`
 
 The collection includes all dashboard and alerts endpoints with example requests.

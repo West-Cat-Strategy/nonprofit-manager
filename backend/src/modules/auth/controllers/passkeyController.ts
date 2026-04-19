@@ -27,6 +27,7 @@ import {
   verifyTokenWithOptionalIssuer,
 } from '@utils/sessionTokens';
 import * as pendingRegistrationRepository from '@modules/admin/repositories/pendingRegistrationRepository';
+import { getAuthenticatedOrganizationId } from '../lib/authQueries';
 
 const CHALLENGE_TTL_MS = TIME.FIVE_MINUTES;
 
@@ -76,18 +77,6 @@ const issueAuthTokens = (
     organizationId,
     authRevision: user.auth_revision ?? 0,
   });
-};
-
-const getDefaultOrganizationId = async (): Promise<string | null> => {
-  const result = await pool.query(
-    `SELECT id
-     FROM accounts
-     WHERE account_type = 'organization'
-       AND COALESCE(is_active, true) = true
-     ORDER BY created_at ASC
-     LIMIT 1`
-  );
-  return result.rows[0]?.id || null;
 };
 
 const readPendingRegistrationFromToken = async (
@@ -563,7 +552,7 @@ export const loginVerify = async (
 
     await trackLoginAttempt(email, true, user.id, clientIp);
 
-    const organizationId = await getDefaultOrganizationId();
+    const organizationId = await getAuthenticatedOrganizationId(user.id);
     const token = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
     const csrfToken = generateAuthSessionCsrfToken(req, res, token);

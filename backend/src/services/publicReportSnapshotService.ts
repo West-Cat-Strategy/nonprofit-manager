@@ -4,7 +4,7 @@ import path from 'path';
 import { Pool } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
-import { ReportService } from '@services/reportService';
+import { ReportService } from '@modules/reports/services/reportService';
 import type { ReportDefinition, ReportEntity } from '@app-types/report';
 
 const DEFAULT_RETENTION_DAYS = 90;

@@ -1,5 +1,9 @@
 # Theme System Documentation
 
+**Last Updated:** 2026-04-18
+
+Use this doc when you are changing theme tokens, selector metadata, or shared shell presentation. For broader UI review history, use the docs under [ui/](ui/); for frontend runtime ownership, use [../frontend/README.md](../frontend/README.md).
+
 ## Overview
 
 The app supports 6 stable theme IDs with light/dark mode handling and a feature-flagged redesign layer.
@@ -93,6 +97,8 @@ Published UX audit artifacts:
 
 - `docs/ui/app-ux-audit.md`
 - `docs/ui/app-ux-audit.json`
+
+Treat those artifacts as evidence snapshots, not as the source of truth for current theme tokens.
 
 ## Migration Rules
 

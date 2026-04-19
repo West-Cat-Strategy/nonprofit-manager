@@ -1,8 +1,8 @@
 # Component Testing Guide
 
-**Last Updated**: 2026-03-19
+**Last Updated:** 2026-04-18
 
-How to test React components in nonprofit-manager using React Testing Library and Vitest.
+How to test React components in nonprofit-manager using React Testing Library and Vitest. For the active validation matrix and repo-default command selection, start with [TESTING.md](TESTING.md); this guide is the narrower frontend component-testing reference.
 
 ---
 
@@ -69,17 +69,20 @@ frontend/src/
 ```bash
 cd frontend
 
-# Run all component tests
-npm test
+# Run the full frontend suite once
+npm test -- --run
 
 # Run tests in watch mode (re-run on file changes)
 npm test -- --watch
 
-# Run tests for specific file
-npm test -- Button.test.tsx
+# Run tests for a specific file once
+npm test -- --run Button.test.tsx
 
-# Run tests matching pattern
-npm test -- --testNamePattern="should render"
+# Run tests matching a pattern once
+npm test -- --run --testNamePattern="should render"
+
+# Open the Vitest UI
+npm run test:ui
 
 # Check coverage
 npm run test:coverage

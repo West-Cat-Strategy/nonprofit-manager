@@ -84,15 +84,18 @@ ENABLE_MONITORING=true
 
 **Frontend `.env`:**
 ```bash
+# Frontend proxy base; the mounted application API remains /api/v2/*
 VITE_API_URL=/api
 VITE_ENABLE_ANALYTICS=true
 VITE_ANALYTICS_ID=your_analytics_id
 ```
 
 Public production endpoints:
-- App + API origin: `https://westcat.ca`
-- Public API base: `https://westcat.ca/api`
+- App origin: `https://westcat.ca`
+- Frontend proxy base: `https://westcat.ca/api`
+- Public application API surface: `https://westcat.ca/api/v2/*`
 - Canonical public health check: `https://westcat.ca/health`
+- Compatibility health aliases: `https://westcat.ca/api/health`, `https://westcat.ca/api/v2/health`
 
 ## Security: TLS/HTTPS & Encryption
 
@@ -104,7 +107,7 @@ The Nonprofit Manager application **must be served over HTTPS** in production. W
 
 #### Option 1: Docker with Caddy Reverse Proxy (Recommended)
 
-Serve the frontend and backend from the same public origin (`westcat.ca`) and let the reverse proxy route `/api` and `/health` to the backend while all other paths go to the frontend:
+Serve the frontend and backend from the same public origin (`westcat.ca`) and let the reverse proxy route `/api` (including `/api/v2/*`) and `/health` to the backend while all other paths go to the frontend:
 
 1. **Get SSL Certificate** (using Let's Encrypt):
 ```bash
@@ -123,7 +126,7 @@ sudo certbot certonly --standalone -d westcat.ca
    - Enable HTTP/2 for better performance
    - Set `Strict-Transport-Security` (HSTS) header with `max-age=31536000` (1 year) to force HTTPS
    - Redirect all HTTP traffic to HTTPS
-   - Route `/api` and `/health` to the backend and all other paths to the frontend
+   - Route `/api` (including `/api/v2/*`) and `/health` to the backend and all other paths to the frontend
    - Keep backend/frontend host ports (`8000`/`8001`) bound to `127.0.0.1` for host-local diagnostics only
    - If `DB_AT_REST_ENCRYPTION_MODE=managed`, use your production deployment workflow instead of starting the legacy compose stack locally so the host does not start a local `postgres` service
    - If `DB_AT_REST_ENCRYPTION_MODE=self_hosted`, keep the local `postgres` container loopback-bound and place `POSTGRES_DATA_DIR` and `BACKUP_DIR` on explicit host paths under your operational backup regime
@@ -146,6 +149,7 @@ If using a managed load balancer:
    ```bash
    # Use the public site origin in CORS and keep the frontend same-origin
    CORS_ORIGIN=https://westcat.ca
+   # Frontend proxy base; public app endpoints remain /api/v2/*
    VITE_API_URL=/api
    # Don't expose HTTP ports directly
    ```
@@ -374,6 +378,7 @@ ENABLE_MONITORING=true
 
 **Frontend `.env`:**
 ```bash
+# Frontend proxy base; the mounted application API remains /api/v2/*
 VITE_API_URL=/api
 VITE_ENABLE_ANALYTICS=true
 VITE_ANALYTICS_ID=your_analytics_id
@@ -426,13 +431,13 @@ Push the images to your registry or hand them to your runtime or orchestrator. T
 
 ```bash
 # Check backend health
-curl http://localhost:8000/health
+curl http://127.0.0.1:8000/health
 
 # Check frontend
-curl http://localhost:8001/
+curl http://127.0.0.1:8001/
 ```
 
-When using a public reverse proxy or load balancer, keep the backend and frontend loopback-bound and point ingress at the published ports or containers. The public `/health` endpoint should reflect backend health.
+When using a public reverse proxy or load balancer, keep the backend and frontend loopback-bound and point ingress at the published ports or containers. The public application API remains `/api/v2/*`, while `/health`, `/api/health`, and `/api/v2/health` stay available as documented health endpoints.
 
 ## Manual Deployment
 
@@ -502,7 +507,7 @@ server {
         add_header X-XSS-Protection "1; mode=block" always;
     }
 
-    # Backend API
+    # Backend API (/api/v2/* plus documented health aliases under /api/health)
     location /api {
         proxy_pass localhost:3000;
         proxy_http_version 1.1;
@@ -637,6 +642,7 @@ curl https://westcat.ca/health
 
 # Compatibility aliases remain available
 curl https://westcat.ca/api/health
+curl https://westcat.ca/api/v2/health
 
 # Expected response
 {"status":"ok","timestamp":"2026-02-01T..."}

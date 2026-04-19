@@ -9,13 +9,49 @@ import { ThemeProvider } from '../contexts/ThemeContext';
 import { type RootState, rootReducer } from '../store';
 
 type PreloadedState = Partial<RootState>;
+type LooseRecord = Record<string, unknown>;
 
-export const normalizeRootState = (state?: any): any => {
+type LegacyContactsState = LooseRecord & {
+  contacts?: unknown[];
+  loading?: boolean;
+  error?: unknown;
+  pagination?: unknown;
+  filters?: unknown;
+  availableTags?: unknown[];
+  core?: LooseRecord;
+  notes?: LooseRecord;
+  comms?: LooseRecord;
+  relationships?: LooseRecord;
+  documents?: LooseRecord;
+};
+
+type LegacyVolunteersState = LooseRecord & {
+  volunteers?: unknown[];
+  loading?: boolean;
+  error?: unknown;
+  pagination?: unknown;
+  filters?: unknown;
+  currentVolunteer?: unknown;
+  assignments?: LooseRecord;
+};
+
+type LegacyNormalizedState = LooseRecord & {
+  contacts?: LegacyContactsState;
+  volunteers?: LegacyVolunteersState;
+  events?: LooseRecord;
+  eventsList?: unknown;
+};
+
+export const normalizeRootState = (state?: LegacyNormalizedState) => {
   if (!state) return state;
-  const normalized = { ...state };
+  const normalized: LegacyNormalizedState = { ...state };
 
   // Normalize contacts: legacy flat state -> nested modular state
-  if (normalized.contacts && !normalized.contacts.list && (normalized.contacts.contacts || normalized.contacts.loading)) {
+  if (
+    normalized.contacts &&
+    !('list' in normalized.contacts) &&
+    (normalized.contacts.contacts || normalized.contacts.loading)
+  ) {
     const { contacts, loading, error, pagination, filters, availableTags, ...rest } = normalized.contacts;
     normalized.contacts = {
       core: { currentContact: null, loading: false, error: null, ...rest.core },
@@ -28,7 +64,11 @@ export const normalizeRootState = (state?: any): any => {
   }
 
   // Normalize volunteers: legacy flat state -> nested modular state
-  if (normalized.volunteers && !normalized.volunteers.list && (normalized.volunteers.volunteers || normalized.volunteers.loading)) {
+  if (
+    normalized.volunteers &&
+    !('list' in normalized.volunteers) &&
+    (normalized.volunteers.volunteers || normalized.volunteers.loading)
+  ) {
     const { volunteers, loading, error, pagination, filters, currentVolunteer, ...rest } = normalized.volunteers;
     normalized.volunteers = {
       core: { currentVolunteer: currentVolunteer || null, loading: false, error: null },
@@ -62,7 +102,7 @@ interface RenderOptions {
 export const createTestStore = (preloadedState?: PreloadedState) =>
   configureStore({
     reducer: rootReducer,
-    preloadedState: normalizeRootState(preloadedState),
+    preloadedState,
   });
 
 export const renderWithProviders = (ui: ReactElement, { store, preloadedState, route = '/' }: RenderOptions = {}) => {

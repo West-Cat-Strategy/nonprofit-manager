@@ -1,8 +1,8 @@
 # Release Checklist
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-04-18
 
-Use this checklist before handing work to review, preparing a release branch, or cutting a deployment candidate.
+Use this checklist before handing work to review, preparing a release branch, or cutting a deployment candidate. Use [../testing/TESTING.md](../testing/TESTING.md) when you need the fuller validation matrix and [GETTING_STARTED.md](GETTING_STARTED.md) when release verification depends on a specific runtime contract.
 
 ## Preflight
 
@@ -22,7 +22,8 @@ Run stricter checks when the change is high-risk or release-facing:
 
 - [ ] `make ci`
 - [ ] `make ci-full`
-- [ ] `cd backend && npm run test:integration`
+- [ ] `cd backend && npm test -- src/__tests__/integration`
+- [ ] `make test-e2e-docker-smoke`
 - [ ] `cd e2e && npm run test:ci`
 
 Use [../../scripts/select-checks.sh](../../scripts/select-checks.sh) or the repo check matrix when the change set is smaller and you need a narrower validated sequence.

@@ -15,13 +15,13 @@ describe('root store shape', () => {
     expect(keys).not.toContain('volunteersV2');
   });
 
-  it('transforms legacy flat preloaded state to modular nested state', () => {
-    const state = { 
-      eventsList: { contacts: [] } 
+  it('keeps legacy test-state normalization as an explicit compatibility helper', () => {
+    const state = {
+      eventsList: { contacts: [] }
     };
 
     const normalized = normalizeRootState(state);
-    expect(normalized.events.list).toEqual(state.eventsList);
-    expect(normalized.eventsList).toBeUndefined();
+    expect(normalized?.events?.list).toEqual(state.eventsList);
+    expect(normalized?.eventsList).toBeUndefined();
   });
 });

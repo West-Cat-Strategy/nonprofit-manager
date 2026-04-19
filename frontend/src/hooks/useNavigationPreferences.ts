@@ -563,9 +563,13 @@ export function useNavigationPreferences() {
   };
 }
 
-export const __resetNavigationPreferencesCacheForTests = (): void => {
+export const invalidateNavigationPreferencesCache = (): void => {
   preferencesSnapshot = null;
   preferencesInFlightPromise = null;
+};
+
+export const __resetNavigationPreferencesCacheForTests = (): void => {
+  invalidateNavigationPreferencesCache();
 };
 
 export default useNavigationPreferences;

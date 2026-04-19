@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import pool from '@config/database';
 import { requireUserSafe } from '@services/authGuardService';
+import { getUserAccessOverview } from '@services/accountAccessService';
 import { normalizeRoleSlug } from '@utils/roleSlug';
 import { unauthorized } from '@utils/responseHelpers';
 import type { AuthRequest } from '@middleware/auth';
@@ -134,6 +135,11 @@ export const getDefaultOrganizationId = async (): Promise<string | null> => {
     }
     throw error;
   }
+};
+
+export const getAuthenticatedOrganizationId = async (userId: string): Promise<string | null> => {
+  const accessOverview = await getUserAccessOverview(userId);
+  return accessOverview.organizationAccess[0] ?? null;
 };
 
 export const findUserIdByEmail = async (email: string): Promise<string | null> => {

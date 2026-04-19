@@ -2,6 +2,8 @@
 
 ## Date: February 14, 2026
 
+This document is a historical implementation snapshot from 2026-02-14. It is useful for provenance and earlier UI/component decisions, but it is not the live source of truth for current people-module scope or architecture.
+
 This document summarizes all the improvements, enhancements, and refactoring guidance provided for the People Module (Volunteers, Accounts, Contacts).
 
 ---

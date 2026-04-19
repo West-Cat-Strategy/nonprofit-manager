@@ -1,8 +1,12 @@
 # Database Setup Guide
 
+**Last Updated:** 2026-04-18
+
 **Complete runbook for setting up the Nonprofit Manager database**
 
 This guide covers multiple setup scenarios to ensure consistent database configuration across all development environments.
+
+For full application runtime selection and app-port expectations, use [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md). This guide focuses on the database contract only. In repo docs, the compose dev stack database is exposed on host port `8002`, while a native PostgreSQL install typically stays on `5432`.
 
 ---
 
@@ -377,14 +381,14 @@ psql -U postgres -d nonprofit_manager < backup_20260201.sql
 
 **Update `backend/.env`:**
 ```dotenv
-# Docker environment (from host machine)
+# Compose dev stack / Docker environment (from host machine)
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=8002
 DB_NAME=nonprofit_manager
 DB_USER=postgres
 DB_PASSWORD=postgres
 
-# Docker environment (from container)
+# Same compose network / container-to-container
 DB_HOST=postgres
 DB_PORT=5432
 DB_NAME=nonprofit_manager

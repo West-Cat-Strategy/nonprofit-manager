@@ -80,4 +80,36 @@ describe('payments routes authorization', () => {
 
     expect(paymentControllerMocks.createCustomer).toHaveBeenCalledTimes(1);
   });
+
+  it('blocks payment intent reads for non-finance roles', async () => {
+    const app = buildApp('volunteer');
+
+    await request(app).get('/api/v2/payments/intents/pi_test_123').expect(403);
+
+    expect(paymentControllerMocks.getPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('allows payment intent reads for finance roles', async () => {
+    const app = buildApp('manager');
+
+    await request(app).get('/api/v2/payments/intents/pi_test_123').expect(200);
+
+    expect(paymentControllerMocks.getPaymentIntent).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks payment intent cancellation for non-processing roles', async () => {
+    const app = buildApp('manager');
+
+    await request(app).post('/api/v2/payments/intents/pi_test_123/cancel').expect(403);
+
+    expect(paymentControllerMocks.cancelPaymentIntent).not.toHaveBeenCalled();
+  });
+
+  it('allows payment intent cancellation for processing roles', async () => {
+    const app = buildApp('admin');
+
+    await request(app).post('/api/v2/payments/intents/pi_test_123/cancel').expect(200);
+
+    expect(paymentControllerMocks.cancelPaymentIntent).toHaveBeenCalledTimes(1);
+  });
 });

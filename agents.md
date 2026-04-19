@@ -1,6 +1,12 @@
 # Agents in Nonprofit Manager
 
+**Last Updated:** 2026-04-18
+
 This page explains the three meanings of "agents" in this repo. It is an orientation page, not the canonical source for coding rules, task status, or implementation details.
+
+**Document Role:** Orientation and terminology only.
+**Use This Page For:** Understanding what "agents" means in this repo and finding the correct canonical doc.
+**Go Elsewhere For:** Contributor workflow in [CONTRIBUTING.md](CONTRIBUTING.md), runtime setup and ports in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md), docs navigation in [docs/README.md](docs/README.md) or [docs/INDEX.md](docs/INDEX.md), and live tracked work in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md).
 
 1. Developer agents: AI assistants contributing code and docs under repo rules.
 2. Multi-agent coordination: the task workflow for parallel contributors.
@@ -21,9 +27,10 @@ There are no autonomous AI agents running independently in the application. The 
 Start with the canonical repo docs:
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor workflow and handoff path.
+- [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup, runtime choice, and current ports.
+- [docs/README.md](docs/README.md) for the short docs landing page.
 - [README.md](README.md) for the product overview and runtime matrix.
 - [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) for coding-agent guardrails.
-- [CONTRIBUTING.md](CONTRIBUTING.md) for branch, review, and handoff workflow.
 - [docs/INDEX.md](docs/INDEX.md) for the full documentation catalog.
 
 Repo-specific reminders:
@@ -82,6 +89,7 @@ Some services behave like automated delivery systems, but they are still ordinar
 - [README.md](README.md)
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [docs/README.md](docs/README.md)
+- [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md)
 - [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md)
 - [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md)
 - [docs/INDEX.md](docs/INDEX.md)

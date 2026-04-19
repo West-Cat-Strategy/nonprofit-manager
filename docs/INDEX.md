@@ -1,154 +1,145 @@
 # Documentation Index
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-18
 
-This file is the full documentation catalog. If you are contributing in this repository, begin with [../CONTRIBUTING.md](../CONTRIBUTING.md) and [development/GETTING_STARTED.md](development/GETTING_STARTED.md). Read [../README.md](../README.md) first when you need product context.
+Use this file as the guided catalog for the repository. If you are new to the codebase, start with [../CONTRIBUTING.md](../CONTRIBUTING.md) and [development/GETTING_STARTED.md](development/GETTING_STARTED.md) before browsing the rest of this index.
 
-## Recommended Reading Order
+## Contributor Path
 
-1. [../CONTRIBUTING.md](../CONTRIBUTING.md)
-2. [development/GETTING_STARTED.md](development/GETTING_STARTED.md)
-3. [development/CONVENTIONS.md](development/CONVENTIONS.md)
-4. [development/ARCHITECTURE.md](development/ARCHITECTURE.md)
-5. [../README.md](../README.md) for product context
-6. [docs/README.md](README.md)
+Read these first when you are contributing:
 
-Tracked work starts in [phases/planning-and-progress.md](phases/planning-and-progress.md).
-Contributor workflow starts in [../CONTRIBUTING.md](../CONTRIBUTING.md), and setup/runtime guidance lives in [development/GETTING_STARTED.md](development/GETTING_STARTED.md).
+1. [../CONTRIBUTING.md](../CONTRIBUTING.md) for workflow, validation, and handoff expectations
+2. [development/GETTING_STARTED.md](development/GETTING_STARTED.md) for runtime choice, ports, and setup
+3. [../README.md](../README.md) for product context
+4. [development/CONVENTIONS.md](development/CONVENTIONS.md) for repo conventions
+5. [development/ARCHITECTURE.md](development/ARCHITECTURE.md) for current system shape
+6. [testing/TESTING.md](testing/TESTING.md) for the validation matrix
+7. [phases/planning-and-progress.md](phases/planning-and-progress.md) before tracked work
 
-## Staff Help Center
+## Source Of Truth Boundaries
 
-| Document | Purpose |
-|----------|---------|
-| [help-center/staff/index.html](help-center/staff/index.html) | Staff workflow hub and guide landing page |
-| [help-center/staff/quick-start.html](help-center/staff/quick-start.html) | Step-by-step first-day onboarding workflow |
-| [help-center/staff/workspace-basics.html](help-center/staff/workspace-basics.html) | Shared list, filter, detail, confirmation, and export workflow |
-| [help-center/staff/people-accounts.html](help-center/staff/people-accounts.html) | People and account record workflow |
-| [help-center/staff/cases.html](help-center/staff/cases.html) | Case queue, creation, detail, and portal-sharing workflow |
-| [help-center/staff/volunteers.html](help-center/staff/volunteers.html) | Volunteer readiness and assignment workflow |
-| [help-center/staff/events.html](help-center/staff/events.html) | Event setup, reminders, and live check-in workflow |
-| [help-center/staff/donations.html](help-center/staff/donations.html) | Donation tracking and receipt workflow |
-| [help-center/staff/dashboard-analytics.html](help-center/staff/dashboard-analytics.html) | Workbench overview and custom layout workflow |
-| [help-center/staff/reports.html](help-center/staff/reports.html) | Report builder, saved reports, and scheduling workflow |
-| [help-center/staff/faq.html](help-center/staff/faq.html) | Triage guide for filters, permissions, errors, and changing areas |
-| [help-center/staff/beta-appendix.html](help-center/staff/beta-appendix.html) | Boundary guide for deferred areas |
+| Need | Primary Doc | Notes |
+|---|---|---|
+| Product overview and contributor handoff | [../README.md](../README.md) | User-facing overview first, contributor handoff second |
+| Contributor workflow and review expectations | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Start here before editing |
+| Runtime setup, ports, and local env choices | [development/GETTING_STARTED.md](development/GETTING_STARTED.md) | Keep runtime guidance here instead of spreading it across docs |
+| Coding-agent guardrails | [development/AGENT_INSTRUCTIONS.md](development/AGENT_INSTRUCTIONS.md) | Repo-specific rules after the contributor path is clear |
+| Testing command map | [testing/TESTING.md](testing/TESTING.md) | Use for change-driven validation selection |
+| Current ownership and tracked status | [phases/planning-and-progress.md](phases/planning-and-progress.md) | Source of truth for tracked work |
+| Docs landing page | [README.md](README.md) | Short navigation page for the docs directory |
+| Full documentation catalog | This file | Guided category map for the broader doc set |
 
-## Portal Help Center
+## Contributor Setup And Workflow
 
-| Document | Purpose |
-|----------|---------|
-| [help-center/portal/cases.html](help-center/portal/cases.html) | Portal shared-case workflow for reading updates, uploading documents, messaging staff, and requesting appointments |
+Use this section when you are getting oriented or deciding which repo guide owns a question.
 
-## Development
+| Document | Open This When |
+|---|---|
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | You need the contributor workflow, handoff rules, or validation defaults |
+| [development/GETTING_STARTED.md](development/GETTING_STARTED.md) | You need runtime selection, setup steps, ports, or env expectations |
+| [development/CONVENTIONS.md](development/CONVENTIONS.md) | You need repo conventions for commands, paths, or active patterns |
+| [development/ARCHITECTURE.md](development/ARCHITECTURE.md) | You need the current backend/frontend architecture shape |
+| [development/AGENT_INSTRUCTIONS.md](development/AGENT_INSTRUCTIONS.md) | You are acting as a coding agent and need repo guardrails |
+| [development/SUBAGENT_MODULARIZATION_GUIDE.md](development/SUBAGENT_MODULARIZATION_GUIDE.md) | A tracked modularization task needs coordinated parallel lanes |
+| [development/TROUBLESHOOTING.md](development/TROUBLESHOOTING.md) | Setup or runtime behavior is not matching the expected contract |
+| [development/RELEASE_CHECKLIST.md](development/RELEASE_CHECKLIST.md) | You are preparing release or handoff work |
+| [../agents.md](../agents.md) | You need the repo’s terminology and orientation for developer agents, multi-agent coordination, or user-agent tracking |
+| [../backend/README.md](../backend/README.md) | You need backend-specific runtime or architecture details |
+| [../frontend/README.md](../frontend/README.md) | You need frontend-specific runtime or feature-ownership details |
+| [../frontend/SETUP.md](../frontend/SETUP.md) | You need extra frontend-only setup details |
+| [../scripts/README.md](../scripts/README.md) | You need the helper-script index |
 
-| Document | Purpose |
-|----------|---------|
-| [development/GETTING_STARTED.md](development/GETTING_STARTED.md) | Setup, runtime choices, and verification |
-| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Contributor workflow, validation, and handoff expectations |
-| [development/CONVENTIONS.md](development/CONVENTIONS.md) | Code, validation, and workflow conventions |
-| [development/ARCHITECTURE.md](development/ARCHITECTURE.md) | Architecture decisions and current system shape |
-| [development/AGENT_INSTRUCTIONS.md](development/AGENT_INSTRUCTIONS.md) | Coding-agent guardrails for this repo |
-| [development/SUBAGENT_MODULARIZATION_GUIDE.md](development/SUBAGENT_MODULARIZATION_GUIDE.md) | Coordinated parallel-work guide for tracked modularization tasks |
-| [development/TROUBLESHOOTING.md](development/TROUBLESHOOTING.md) | Common development issues |
-| [development/RELEASE_CHECKLIST.md](development/RELEASE_CHECKLIST.md) | Release and handoff checklist |
-| [../backend/README.md](../backend/README.md) | Backend-specific development guide |
-| [../frontend/README.md](../frontend/README.md) | Frontend-specific development guide |
-| [../frontend/SETUP.md](../frontend/SETUP.md) | Frontend-only setup details |
-| [../scripts/README.md](../scripts/README.md) | Utility scripts and policy checks |
+## Testing And Quality
 
-Notes:
-- `CONTRIBUTING.md` and `development/GETTING_STARTED.md` are the contributor happy path.
-- `README.md` is the product overview and contributor handoff.
-- The files in this section should describe current commands, ports, and workflow expectations.
+Start with [testing/TESTING.md](testing/TESTING.md) when choosing checks. Use the narrower guides only when the change or failure mode calls for them.
 
-## Testing
-
-| Document | Purpose |
-|----------|---------|
-| [testing/TESTING.md](testing/TESTING.md) | Test strategy, command map, and runtime matrix |
-| [testing/COMPONENT_TESTING.md](testing/COMPONENT_TESTING.md) | Frontend component testing patterns |
-| [testing/INTEGRATION_TEST_GUIDE.md](testing/INTEGRATION_TEST_GUIDE.md) | Narrow backend integration workflow and legacy script notes |
-| [testing/MANUAL_TESTING_GUIDE.md](testing/MANUAL_TESTING_GUIDE.md) | Narrow manual QA checklist for older volunteer-management flows |
-| [../e2e/README.md](../e2e/README.md) | Playwright test harness guide |
-
-Notes:
-- `testing/TESTING.md` is the active test-command map.
-- Some narrower guides remain useful reference material but are not the primary contributor workflow.
+| Document | Open This When |
+|---|---|
+| [testing/TESTING.md](testing/TESTING.md) | You need the active test matrix or runtime-aware validation guidance |
+| [testing/COMPONENT_TESTING.md](testing/COMPONENT_TESTING.md) | You are working on frontend component tests |
+| [testing/INTEGRATION_TEST_GUIDE.md](testing/INTEGRATION_TEST_GUIDE.md) | You need backend integration-test workflow details |
+| [testing/MANUAL_TESTING_GUIDE.md](testing/MANUAL_TESTING_GUIDE.md) | You need the narrower manual QA checklist |
+| [../e2e/README.md](../e2e/README.md) | You are using Playwright or triaging browser-driven checks |
 
 ## API And Integrations
 
-| Document | Purpose |
-|----------|---------|
-| [api/README.md](api/README.md) | API reference entry point |
-| [api/API_REFERENCE_DASHBOARD_ALERTS.md](api/API_REFERENCE_DASHBOARD_ALERTS.md) | Dashboard and alerts API reference |
-| [api/API_REFERENCE_EVENTS.md](api/API_REFERENCE_EVENTS.md) | Events API reference |
-| [api/API_REFERENCE_EXPORT.md](api/API_REFERENCE_EXPORT.md) | Reporting and export APIs |
-| [api/API_INTEGRATION_GUIDE.md](api/API_INTEGRATION_GUIDE.md) | Stripe, Mailchimp, and webhook integrations |
-| [api/postman/README.md](api/postman/README.md) | Postman collection guide |
-| [api/openapi.yaml](api/openapi.yaml) | OpenAPI specification |
+Use [api/README.md](api/README.md) as the entry point for API docs. Active application endpoints should be documented on `/api/v2/*` except the documented health aliases.
 
-Notes:
-- Active API guidance should use `/api/v2/*` except for documented health aliases.
-- Local examples in this section typically assume the direct backend runtime on `http://localhost:3000`.
+| Document | Open This When |
+|---|---|
+| [api/README.md](api/README.md) | You need the API doc entry point or host/runtime assumptions |
+| [api/API_REFERENCE_DASHBOARD_ALERTS.md](api/API_REFERENCE_DASHBOARD_ALERTS.md) | You need dashboard or alerts endpoint details |
+| [api/API_REFERENCE_EVENTS.md](api/API_REFERENCE_EVENTS.md) | You need event endpoint details |
+| [api/API_REFERENCE_EXPORT.md](api/API_REFERENCE_EXPORT.md) | You need reporting or export endpoint details |
+| [api/API_INTEGRATION_GUIDE.md](api/API_INTEGRATION_GUIDE.md) | You need Stripe, Mailchimp, or webhook integration guidance |
+| [api/postman/README.md](api/postman/README.md) | You need Postman collection setup details |
+| [api/openapi.yaml](api/openapi.yaml) | You need the OpenAPI contract source |
 
 ## Deployment And Operations
 
-| Document | Purpose |
-|----------|---------|
-| [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md) | Deployment guide |
-| [deployment/DB_SETUP.md](deployment/DB_SETUP.md) | Database setup and migration details |
-| [deployment/PLAUSIBLE_SETUP.md](deployment/PLAUSIBLE_SETUP.md) | Plausible analytics setup |
-| [deployment/LOG_AGGREGATION_SETUP.md](deployment/LOG_AGGREGATION_SETUP.md) | ELK/log aggregation setup |
+Use this section for environment, infrastructure, and operational guidance rather than contributor setup.
 
-## Product, Features, And Domain References
+| Document | Open This When |
+|---|---|
+| [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md) | You need the deployment workflow or hosting expectations |
+| [deployment/DB_SETUP.md](deployment/DB_SETUP.md) | You need database setup or migration details |
+| [deployment/PLAUSIBLE_SETUP.md](deployment/PLAUSIBLE_SETUP.md) | You are configuring Plausible analytics |
+| [deployment/LOG_AGGREGATION_SETUP.md](deployment/LOG_AGGREGATION_SETUP.md) | You are setting up ELK or log aggregation |
 
-| Document | Purpose |
-|----------|---------|
-| [help-center/staff/index.html](help-center/staff/index.html) | Staff workflow hub and HTML help center manual |
-| [help-center/staff/cases.html](help-center/staff/cases.html) | Staff case workflow guide |
-| [help-center/portal/cases.html](help-center/portal/cases.html) | Portal case workflow guide |
-| [features/FEATURE_MATRIX.md](features/FEATURE_MATRIX.md) | Feature inventory and status |
-| [features/PEOPLE_MODULE_ENHANCEMENTS.md](features/PEOPLE_MODULE_ENHANCEMENTS.md) | People module notes |
-| [features/TASK_MANAGEMENT.md](features/TASK_MANAGEMENT.md) | Task-management behavior |
-| [features/CASE_CLIENT_VISIBILITY_AND_FILES.md](features/CASE_CLIENT_VISIBILITY_AND_FILES.md) | Portal case visibility and files |
-| [product/product-spec.md](product/product-spec.md) | Product specification |
-| [product/STRIPE_TESTING_GUIDE.md](product/STRIPE_TESTING_GUIDE.md) | Stripe testing workflows |
+## Product, Features, And Help Center
+
+Use this section when you need product behavior, staff workflow context, or feature-level reference material.
+
+| Document | Open This When |
+|---|---|
+| [help-center/staff/index.html](help-center/staff/index.html) | You need the staff help-center hub |
+| [help-center/staff/quick-start.html](help-center/staff/quick-start.html) | You need first-day staff onboarding steps |
+| [help-center/staff/workspace-basics.html](help-center/staff/workspace-basics.html) | You need shared workspace behavior |
+| [help-center/staff/people-accounts.html](help-center/staff/people-accounts.html) | You need people or account workflow details |
+| [help-center/staff/cases.html](help-center/staff/cases.html) | You need staff case workflow guidance |
+| [help-center/staff/volunteers.html](help-center/staff/volunteers.html) | You need volunteer workflow details |
+| [help-center/staff/events.html](help-center/staff/events.html) | You need event workflow details |
+| [help-center/staff/donations.html](help-center/staff/donations.html) | You need donation workflow details |
+| [help-center/staff/dashboard-analytics.html](help-center/staff/dashboard-analytics.html) | You need dashboard or analytics workflow details |
+| [help-center/staff/reports.html](help-center/staff/reports.html) | You need report-builder or scheduled-report guidance |
+| [help-center/staff/faq.html](help-center/staff/faq.html) | You need staff troubleshooting or FAQ guidance |
+| [help-center/staff/beta-appendix.html](help-center/staff/beta-appendix.html) | You need deferred-area or beta boundary notes |
+| [help-center/portal/cases.html](help-center/portal/cases.html) | You need portal case-sharing workflow guidance |
+| [features/FEATURE_MATRIX.md](features/FEATURE_MATRIX.md) | You need the feature inventory and status map |
+| [features/PEOPLE_MODULE_ENHANCEMENTS.md](features/PEOPLE_MODULE_ENHANCEMENTS.md) | You need people-module notes |
+| [features/TASK_MANAGEMENT.md](features/TASK_MANAGEMENT.md) | You need task-management behavior notes |
+| [features/CASE_CLIENT_VISIBILITY_AND_FILES.md](features/CASE_CLIENT_VISIBILITY_AND_FILES.md) | You need portal case visibility/file rules |
+| [product/product-spec.md](product/product-spec.md) | You need the product specification |
+| [product/user-personas.md](product/user-personas.md) | You need the production user persona pack for product and UX planning |
+| [product/persona-workflows.md](product/persona-workflows.md) | You need the persona workflow planning pack that maps production roles to real-world app workflows and current coverage gaps |
+| [product/STRIPE_TESTING_GUIDE.md](product/STRIPE_TESTING_GUIDE.md) | You need Stripe-related product testing workflows |
 
 ## Security, Validation, And Performance
 
-| Document | Purpose |
-|----------|---------|
-| [security/SECURITY_MONITORING_GUIDE.md](security/SECURITY_MONITORING_GUIDE.md) | Security monitoring guidance |
-| [security/INCIDENT_RESPONSE_RUNBOOK.md](security/INCIDENT_RESPONSE_RUNBOOK.md) | Incident response procedures and ops checklist |
-| [validation/VALIDATION_SCHEMAS_REFERENCE.md](validation/VALIDATION_SCHEMAS_REFERENCE.md) | Validation schema reference |
-| [performance/PERFORMANCE_OPTIMIZATION.md](performance/PERFORMANCE_OPTIMIZATION.md) | Performance guidance |
-| [performance/PERFORMANCE_OPTIMIZATION_REPORT.md](performance/PERFORMANCE_OPTIMIZATION_REPORT.md) | Performance report |
+Use these docs when the task touches operational safety, schema references, or performance analysis.
 
-Notes:
-- Security and performance reports may include dated operational context; treat the procedural runbooks as current only where they match the active runtime and deployment contract.
+| Document | Open This When |
+|---|---|
+| [security/SECURITY_MONITORING_GUIDE.md](security/SECURITY_MONITORING_GUIDE.md) | You need the active security monitoring contract |
+| [security/INCIDENT_RESPONSE_RUNBOOK.md](security/INCIDENT_RESPONSE_RUNBOOK.md) | You need incident response procedures |
+| [validation/VALIDATION_SCHEMAS_REFERENCE.md](validation/VALIDATION_SCHEMAS_REFERENCE.md) | You need validation schema reference material |
+| [performance/PERFORMANCE_OPTIMIZATION.md](performance/PERFORMANCE_OPTIMIZATION.md) | You need active performance guidance |
+| [performance/PERFORMANCE_OPTIMIZATION_REPORT.md](performance/PERFORMANCE_OPTIMIZATION_REPORT.md) | You need the historical optimization report |
 
-## Planning And History
+## Planning, History, And Governance
 
-| Document | Purpose |
-|----------|---------|
-| [phases/planning-and-progress.md](phases/planning-and-progress.md) | Active workboard and status log |
-| [phases/archive/README.md](phases/archive/README.md) | Archived phase documents |
-| [DOCUMENTATION_STYLE_GUIDE.md](DOCUMENTATION_STYLE_GUIDE.md) | Documentation governance rules |
+Use this section for tracked work, archived records, and documentation governance.
 
-Notes:
-- `phases/planning-and-progress.md` is current operational state.
-- Archived phase documents and execution reports are historical references, not onboarding docs.
+| Document | Open This When |
+|---|---|
+| [phases/planning-and-progress.md](phases/planning-and-progress.md) | You need current tracked work, owners, or blockers |
+| [phases/archive/README.md](phases/archive/README.md) | You need archived phase documents |
+| [DOCUMENTATION_STYLE_GUIDE.md](DOCUMENTATION_STYLE_GUIDE.md) | You need documentation formatting or wording rules |
 
-## Quick Navigation
+## Quick Picks
 
-- Learn the staff workflow hub: [help-center/staff/index.html](help-center/staff/index.html)
-- Need the staff cases workflow: [help-center/staff/cases.html](help-center/staff/cases.html)
-- Need the portal cases workflow: [help-center/portal/cases.html](help-center/portal/cases.html)
-- Need setup help: [development/GETTING_STARTED.md](development/GETTING_STARTED.md)
-- Need contributor workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md)
-- Need current work status: [phases/planning-and-progress.md](phases/planning-and-progress.md)
-- Need backend details: [../backend/README.md](../backend/README.md)
-- Need frontend details: [../frontend/README.md](../frontend/README.md)
-- Need testing commands: [testing/TESTING.md](testing/TESTING.md)
-- Need API docs: [api/README.md](api/README.md)
-- Need helper scripts: [../scripts/README.md](../scripts/README.md)
+- Need setup help fast? Open [development/GETTING_STARTED.md](development/GETTING_STARTED.md).
+- Need contributor workflow rules? Open [../CONTRIBUTING.md](../CONTRIBUTING.md).
+- Need agent-specific repo guardrails? Open [development/AGENT_INSTRUCTIONS.md](development/AGENT_INSTRUCTIONS.md).
+- Need the current workboard? Open [phases/planning-and-progress.md](phases/planning-and-progress.md).
+- Need the API doc entry? Open [api/README.md](api/README.md).

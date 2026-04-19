@@ -5,7 +5,7 @@ import type { Pool, QueryResultRow } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
 import type { GeneratedTabularFile } from '@modules/shared/export/tabularExport';
-import { ReportService } from '@services/reportService';
+import { ReportService } from '@modules/reports/services/reportService';
 import type {
   ReportDefinition,
   ReportEntity,

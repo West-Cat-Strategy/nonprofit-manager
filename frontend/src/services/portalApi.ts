@@ -4,6 +4,7 @@ import { createPortalUnauthorizedHandler } from './portalUnauthorizedHandler';
 
 const portalApi = createApiClient({
   onUnauthorized: createPortalUnauthorizedHandler(),
+  includeOrganizationHeader: false,
 });
 
 const typedPortalApi = portalApi as typeof portalApi & {

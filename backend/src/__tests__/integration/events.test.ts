@@ -19,6 +19,107 @@ describe('Event API Integration Tests', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const unwrap = <T>(body: { data?: T } | T): T =>
     (body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : body) as T;
+  const expectCanonicalError = (response: request.Response, code: string): void => {
+    expect(response.body).toMatchObject({
+      success: false,
+      error: {
+        code,
+        message: expect.any(String),
+      },
+    });
+  };
+  const expectEventListPayload = (
+    response: request.Response
+  ): {
+    data: Array<Record<string, unknown>>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+    };
+  } => {
+    expect(response.body).toMatchObject({
+      success: true,
+      data: {
+        data: expect.any(Array),
+        pagination: {
+          page: expect.any(Number),
+          limit: expect.any(Number),
+          total: expect.any(Number),
+        },
+      },
+      pagination: {
+        page: expect.any(Number),
+        limit: expect.any(Number),
+        total: expect.any(Number),
+      },
+    });
+
+    const payload = unwrap<{
+      data: Array<Record<string, unknown>>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+      };
+    }>(response.body);
+
+    expect(response.body.pagination).toEqual(payload.pagination);
+    return payload;
+  };
+  const getFirstOccurrenceId = async (eventId: string): Promise<string> => {
+    const result = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM event_occurrences
+       WHERE event_id = $1
+       ORDER BY start_date ASC
+       LIMIT 1`,
+      [eventId]
+    );
+
+    const occurrenceId = result.rows[0]?.id;
+    if (!occurrenceId) {
+      throw new Error(`Expected an occurrence for event ${eventId}`);
+    }
+
+    return occurrenceId;
+  };
+  const insertOccurrenceForEvent = async (
+    eventId: string,
+    eventName: string,
+    userId: string
+  ): Promise<string> => {
+    const result = await pool.query<{ id: string }>(
+      `INSERT INTO event_occurrences (
+         event_id,
+         sequence_index,
+         scheduled_start_date,
+         scheduled_end_date,
+         start_date,
+         end_date,
+         status,
+         event_name,
+         created_by,
+         modified_by
+       )
+       VALUES (
+         $1,
+         0,
+         NOW() + interval '1 day',
+         NOW() + interval '1 day 2 hours',
+         NOW() + interval '1 day',
+         NOW() + interval '1 day 2 hours',
+         'planned',
+         $2,
+         $3,
+         $3
+       )
+       RETURNING id`,
+      [eventId, eventName, userId]
+    );
+
+    return result.rows[0].id;
+  };
 
   beforeAll(async () => {
     const adminEmail = `event-admin-${unique()}@example.com`;
@@ -110,13 +211,24 @@ describe('Event API Integration Tests', () => {
         .expect(201);
 
       const event = unwrap<{ event_id: string; event_name: string; event_type: string }>(response.body);
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          event_id: expect.any(String),
+          event_name: 'Annual Fundraiser Gala',
+          event_type: 'fundraiser',
+        },
+        event_id: expect.any(String),
+        event_name: 'Annual Fundraiser Gala',
+        event_type: 'fundraiser',
+      });
       expect(event).toHaveProperty('event_id');
       expect(event.event_name).toBe('Annual Fundraiser Gala');
       expect(event.event_type).toBe('fundraiser');
     });
 
     it('should require authentication', async () => {
-      await request(app)
+      const response = await request(app)
         .post('/api/v2/events')
         .send({
           event_name: 'Test Event',
@@ -125,6 +237,8 @@ describe('Event API Integration Tests', () => {
           end_date: '2024-07-01T16:00:00Z',
         })
         .expect(401);
+
+      expectCanonicalError(response, 'unauthorized');
     });
 
     it('should create event with required fields', async () => {
@@ -139,8 +253,18 @@ describe('Event API Integration Tests', () => {
         })
         .expect(201);
 
-      const event = unwrap<{ event_id: string }>(response.body);
+      const event = unwrap<{ event_id: string; event_name: string; event_type: string }>(response.body);
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          event_id: expect.any(String),
+          event_name: 'Basic Event',
+          event_type: 'meeting',
+        },
+      });
       expect(event).toHaveProperty('event_id');
+      expect(event.event_name).toBe('Basic Event');
+      expect(event.event_type).toBe('meeting');
     });
 
     it('should create event with capacity', async () => {
@@ -163,59 +287,196 @@ describe('Event API Integration Tests', () => {
 
   describe('GET /api/v2/events', () => {
     it('should return paginated list of events', async () => {
+      const searchTerm = `events-list-contract-${unique()}`;
+      const createResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: searchTerm,
+          event_type: 'community',
+          start_date: '2026-05-01T10:00:00Z',
+          end_date: '2026-05-01T12:00:00Z',
+        })
+        .expect(201);
+      const createdEventId = unwrap<{ event_id: string }>(createResponse.body).event_id;
+
       const response = await request(app)
         .get('/api/v2/events')
+        .query({ search: searchTerm })
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      const payload = unwrap<{ data: unknown[]; pagination: unknown }>(response.body);
-      expect(payload).toHaveProperty('data');
-      expect(payload).toHaveProperty('pagination');
-      expect(Array.isArray(payload.data)).toBe(true);
+      const payload = expectEventListPayload(response);
+      expect(payload.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            event_id: createdEventId,
+            event_name: searchTerm,
+          }),
+        ])
+      );
     });
 
     it('should support search query', async () => {
+      const searchTerm = `events-search-contract-${unique()}`;
+      const createResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: searchTerm,
+          event_type: 'fundraiser',
+          start_date: '2026-06-10T18:00:00Z',
+          end_date: '2026-06-10T20:00:00Z',
+          description: 'Search contract coverage event',
+        })
+        .expect(201);
+      const createdEventId = unwrap<{ event_id: string }>(createResponse.body).event_id;
+
       const response = await request(app)
-        .get('/api/v2/events?search=Gala')
+        .get('/api/v2/events')
+        .query({ search: searchTerm })
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      const payload = unwrap<{ data: unknown[] }>(response.body);
-      expect(payload).toHaveProperty('data');
+      const payload = expectEventListPayload(response);
+      expect(payload.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            event_id: createdEventId,
+            event_name: searchTerm,
+          }),
+        ])
+      );
     });
 
     it('should filter by event_type', async () => {
+      const includedResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: `events-type-included-${unique()}`,
+          event_type: 'fundraiser',
+          start_date: '2026-07-01T10:00:00Z',
+          end_date: '2026-07-01T12:00:00Z',
+        })
+        .expect(201);
+      const excludedResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: `events-type-excluded-${unique()}`,
+          event_type: 'meeting',
+          start_date: '2026-07-02T10:00:00Z',
+          end_date: '2026-07-02T12:00:00Z',
+        })
+        .expect(201);
+      const includedEventId = unwrap<{ event_id: string }>(includedResponse.body).event_id;
+      const excludedEventId = unwrap<{ event_id: string }>(excludedResponse.body).event_id;
+
       const response = await request(app)
-        .get('/api/v2/events?event_type=fundraiser')
+        .get('/api/v2/events')
+        .query({ event_type: 'fundraiser' })
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      const payload = unwrap<{ data: unknown[] }>(response.body);
-      expect(payload).toHaveProperty('data');
+      const payload = expectEventListPayload(response);
+      expect(payload.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            event_id: includedEventId,
+            event_type: 'fundraiser',
+          }),
+        ])
+      );
+      expect(payload.data.map((event) => event.event_id)).not.toContain(excludedEventId);
     });
 
     it('should filter by date range', async () => {
+      const inRangeResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: `events-range-included-${unique()}`,
+          event_type: 'community',
+          start_date: '2026-08-10T10:00:00Z',
+          end_date: '2026-08-10T12:00:00Z',
+        })
+        .expect(201);
+      const outOfRangeResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: `events-range-excluded-${unique()}`,
+          event_type: 'community',
+          start_date: '2026-10-10T10:00:00Z',
+          end_date: '2026-10-10T12:00:00Z',
+        })
+        .expect(201);
+      const inRangeEventId = unwrap<{ event_id: string }>(inRangeResponse.body).event_id;
+      const outOfRangeEventId = unwrap<{ event_id: string }>(outOfRangeResponse.body).event_id;
+
       const response = await request(app)
-        .get('/api/v2/events?start_date=2024-01-01&end_date=2024-12-31')
+        .get('/api/v2/events')
+        .query({
+          start_date: '2026-08-01',
+          end_date: '2026-08-31',
+        })
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      const payload = unwrap<{ data: unknown[] }>(response.body);
-      expect(payload).toHaveProperty('data');
+      const payload = expectEventListPayload(response);
+      expect(payload.data.map((event) => event.event_id)).toContain(inRangeEventId);
+      expect(payload.data.map((event) => event.event_id)).not.toContain(outOfRangeEventId);
     });
 
     it('should filter by status', async () => {
+      const plannedResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: `events-status-planned-${unique()}`,
+          event_type: 'community',
+          status: 'planned',
+          start_date: '2026-09-01T10:00:00Z',
+          end_date: '2026-09-01T12:00:00Z',
+        })
+        .expect(201);
+      const activeResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: `events-status-active-${unique()}`,
+          event_type: 'community',
+          status: 'active',
+          start_date: '2026-09-02T10:00:00Z',
+          end_date: '2026-09-02T12:00:00Z',
+        })
+        .expect(201);
+      const plannedEventId = unwrap<{ event_id: string }>(plannedResponse.body).event_id;
+      const activeEventId = unwrap<{ event_id: string }>(activeResponse.body).event_id;
+
       const response = await request(app)
-        .get('/api/v2/events?status=planned')
+        .get('/api/v2/events')
+        .query({ status: 'planned' })
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      const payload = unwrap<{ data: unknown[] }>(response.body);
-      expect(payload).toHaveProperty('data');
+      const payload = expectEventListPayload(response);
+      expect(payload.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            event_id: plannedEventId,
+            status: 'planned',
+          }),
+        ])
+      );
+      expect(payload.data.map((event) => event.event_id)).not.toContain(activeEventId);
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/v2/events').expect(401);
+      const response = await request(app).get('/api/v2/events').expect(401);
+
+      expectCanonicalError(response, 'unauthorized');
     });
   });
 
@@ -247,14 +508,18 @@ describe('Event API Integration Tests', () => {
     });
 
     it('should return 404 for non-existent event', async () => {
-      await request(app)
+      const response = await request(app)
         .get('/api/v2/events/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
+
+      expectCanonicalError(response, 'EVENT_NOT_FOUND');
     });
 
     it('should require authentication', async () => {
-      await request(app).get('/api/v2/events/1').expect(401);
+      const response = await request(app).get('/api/v2/events/1').expect(401);
+
+      expectCanonicalError(response, 'unauthorized');
     });
   });
 
@@ -310,13 +575,7 @@ describe('Event API Integration Tests', () => {
         .get('/api/v2/events/00000000-0000-0000-0000-000000000000/calendar.ics')
         .expect(401);
 
-      expect(response.body).toMatchObject({
-        success: false,
-        error: {
-          code: expect.any(String),
-          message: expect.any(String),
-        },
-      });
+      expectCanonicalError(response, 'unauthorized');
     });
   });
 
@@ -381,10 +640,12 @@ describe('Event API Integration Tests', () => {
     });
 
     it('should require authentication', async () => {
-      await request(app)
+      const response = await request(app)
         .put('/api/v2/events/1')
         .send({ event_name: 'Test' })
         .expect(401);
+
+      expectCanonicalError(response, 'unauthorized');
     });
   });
 
@@ -419,7 +680,9 @@ describe('Event API Integration Tests', () => {
     });
 
     it('should require authentication', async () => {
-      await request(app).delete('/api/v2/events/1').expect(401);
+      const response = await request(app).delete('/api/v2/events/1').expect(401);
+
+      expectCanonicalError(response, 'unauthorized');
     });
   });
 
@@ -501,38 +764,50 @@ describe('Event API Integration Tests', () => {
       const contactId = contactResult.rows[0].id;
       createdContactIds.push(contactId);
 
+      const allowedEventName = `Scope Allowed Event ${unique()}`;
       const allowedEventResult = await pool.query<{ id: string }>(
         `INSERT INTO events (name, event_type, start_date, end_date, created_by, modified_by)
          VALUES ($1, 'community', NOW() + interval '1 day', NOW() + interval '1 day 2 hours', $2, $2)
          RETURNING id`,
-        [`Scope Allowed Event ${unique()}`, adminUserId]
+        [allowedEventName, adminUserId]
       );
       const allowedEventId = allowedEventResult.rows[0].id;
       createdScopedEventIds.push(allowedEventId);
+      const allowedOccurrenceId = await insertOccurrenceForEvent(
+        allowedEventId,
+        allowedEventName,
+        adminUserId
+      );
 
+      const blockedEventName = `Scope Blocked Event ${unique()}`;
       const blockedEventResult = await pool.query<{ id: string }>(
         `INSERT INTO events (name, event_type, start_date, end_date, created_by, modified_by)
          VALUES ($1, 'community', NOW() + interval '1 day', NOW() + interval '1 day 2 hours', $2, $2)
          RETURNING id`,
-        [`Scope Blocked Event ${unique()}`, outOfScopeCreatorId]
+        [blockedEventName, outOfScopeCreatorId]
       );
       const blockedEventId = blockedEventResult.rows[0].id;
       createdScopedEventIds.push(blockedEventId);
+      const blockedOccurrenceId = await insertOccurrenceForEvent(
+        blockedEventId,
+        blockedEventName,
+        outOfScopeCreatorId
+      );
 
       const allowedRegistrationResult = await pool.query<{ id: string }>(
-        `INSERT INTO event_registrations (event_id, contact_id, registration_status)
-         VALUES ($1, $2, 'registered')
+        `INSERT INTO event_registrations (event_id, occurrence_id, contact_id, registration_status)
+         VALUES ($1, $2, $3, 'registered')
          RETURNING id`,
-        [allowedEventId, contactId]
+        [allowedEventId, allowedOccurrenceId, contactId]
       );
       const allowedRegistrationId = allowedRegistrationResult.rows[0].id;
       createdScopedRegistrationIds.push(allowedRegistrationId);
 
       const blockedRegistrationResult = await pool.query<{ id: string }>(
-        `INSERT INTO event_registrations (event_id, contact_id, registration_status)
-         VALUES ($1, $2, 'registered')
+        `INSERT INTO event_registrations (event_id, occurrence_id, contact_id, registration_status)
+         VALUES ($1, $2, $3, 'registered')
          RETURNING id`,
-        [blockedEventId, contactId]
+        [blockedEventId, blockedOccurrenceId, contactId]
       );
       const blockedRegistrationId = blockedRegistrationResult.rows[0].id;
       createdScopedRegistrationIds.push(blockedRegistrationId);
@@ -680,14 +955,14 @@ describe('Event API Integration Tests', () => {
         `SELECT id
          FROM case_types
          WHERE is_active = true
-         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         ORDER BY created_at ASC
          LIMIT 1`
       );
       const caseStatusResult = await pool.query<{ id: string }>(
         `SELECT id
          FROM case_statuses
          WHERE is_active = true
-         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         ORDER BY created_at ASC
          LIMIT 1`
       );
 
@@ -1715,12 +1990,13 @@ describe('Event API Integration Tests', () => {
         );
         const contactId = contactResult.rows[0].id;
         createdContactIds.push(contactId);
+        const occurrenceId = await getFirstOccurrenceId(eventId);
 
         const registrationResult = await pool.query<{ id: string }>(
-          `INSERT INTO event_registrations (event_id, contact_id, registration_status)
-           VALUES ($1, $2, $3)
+          `INSERT INTO event_registrations (event_id, occurrence_id, contact_id, registration_status)
+           VALUES ($1, $2, $3, $4)
            RETURNING id`,
-          [eventId, contactId, registrationStatus]
+          [eventId, occurrenceId, contactId, registrationStatus]
         );
         createdScopedRegistrationIds.push(registrationResult.rows[0].id);
 
@@ -1737,7 +2013,7 @@ describe('Event API Integration Tests', () => {
         expect(response.body).toMatchObject({
           success: false,
           error: {
-            code: 'CHECKIN_CLOSED',
+            code: 'CHECKIN_ERROR',
             message: expect.stringMatching(/cannot be checked in/i),
           },
         });

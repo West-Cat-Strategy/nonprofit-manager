@@ -7,7 +7,9 @@ import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { logger } from '@config/logger';
 import { recurringDonationService } from '@modules/recurringDonations/services/recurringDonationService';
+import { sendError, sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
 import { appendAuditLog } from '@services/auditService';
+import { requireActiveOrganizationSafe } from '@services/authGuardService';
 import paymentProviderService from '@services/paymentProviderService';
 import type { AuthRequest } from '@middleware/auth';
 import type {
@@ -17,7 +19,6 @@ import type {
   WebhookEvent,
 } from '@app-types/payment';
 import { badRequest, notFoundMessage, serverError } from '@utils/responseHelpers';
-import { sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
 
 // Database pool
 let pool: Pool;
@@ -48,6 +49,82 @@ const isNotFoundProviderError = (error: unknown): boolean => {
 
   const code = (error as { code?: unknown }).code;
   return code === 'not_found' || code === 'resource_missing';
+};
+
+const hasPaymentIntentOwnership = async (
+  organizationId: string,
+  provider: string,
+  paymentIntentId: string
+): Promise<boolean> => {
+  if (!pool) {
+    logger.error('Payment pool not initialized while checking payment intent ownership', {
+      paymentIntentId,
+      provider,
+      organizationId,
+    });
+    return false;
+  }
+
+  const result = await pool.query<{ donation_id: string }>(
+    `SELECT d.id as donation_id
+     FROM donations d
+     WHERE d.account_id = $1
+       AND d.payment_provider = $2
+       AND (
+         d.provider_transaction_id = $3
+         OR d.provider_checkout_session_id = $3
+         OR d.transaction_id = $3
+       )
+     LIMIT 1`,
+    [organizationId, provider, paymentIntentId]
+  );
+
+  return (result.rowCount ?? 0) > 0;
+};
+
+const resolvePaymentIntentAccess = async (
+  req: AuthRequest,
+  res: Response,
+  paymentIntentId: string,
+  provider: string,
+  failureMessage: string
+): Promise<{ organizationId: string } | null> => {
+  const organizationResult = await requireActiveOrganizationSafe(req);
+  if (!organizationResult.ok) {
+    sendError(
+      res,
+      organizationResult.error.code.toUpperCase(),
+      organizationResult.error.message,
+      organizationResult.error.statusCode,
+      undefined,
+      req.correlationId
+    );
+    return null;
+  }
+
+  try {
+    const ownsPaymentIntent = await hasPaymentIntentOwnership(
+      organizationResult.data.organizationId,
+      provider,
+      paymentIntentId
+    );
+
+    if (!ownsPaymentIntent) {
+      notFoundMessage(res, 'Payment intent not found');
+      return null;
+    }
+  } catch (error) {
+    logger.error('Error verifying payment intent ownership', {
+      error,
+      paymentIntentId,
+      provider,
+      organizationId: organizationResult.data.organizationId,
+    });
+    serverError(res, failureMessage);
+    return null;
+  }
+
+  return { organizationId: organizationResult.data.organizationId };
 };
 
 const registerPaymentWebhookReceipt = async (
@@ -194,6 +271,17 @@ export const getPaymentIntent = async (req: Request<{ id: string }>, res: Respon
       return;
     }
 
+    const access = await resolvePaymentIntentAccess(
+      req as AuthRequest,
+      res,
+      id,
+      provider,
+      'Failed to get payment intent'
+    );
+    if (!access) {
+      return;
+    }
+
     const paymentIntent = await paymentProviderService.getPaymentIntent(id, provider as any);
     sendSuccess(res, paymentIntent);
   } catch (error) {
@@ -219,6 +307,17 @@ export const cancelPaymentIntent = async (req: Request<{ id: string }>, res: Res
 
     if (!id) {
       badRequest(res, 'Payment intent ID is required');
+      return;
+    }
+
+    const access = await resolvePaymentIntentAccess(
+      req as AuthRequest,
+      res,
+      id,
+      provider,
+      'Failed to cancel payment intent'
+    );
+    if (!access) {
       return;
     }
 
@@ -465,19 +564,7 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
     return;
   }
 
-  const webhookMaxAge = 5 * 60 * 1000;
   const webhookAge = Date.now() - event.created.getTime();
-  if (webhookAge > webhookMaxAge) {
-    logger.warn('Webhook rejected: too old', {
-      eventId: event.id,
-      eventType: event.type,
-      provider: event.provider,
-      webhookAge,
-      maxAge: webhookMaxAge,
-    });
-    sendProviderAck(res, { received: true, rejected: true });
-    return;
-  }
 
   const receipt = await registerPaymentWebhookReceipt(event.provider, event.id, event.type);
   if (receipt.duplicate) {

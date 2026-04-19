@@ -59,9 +59,12 @@ make lint
 make typecheck
 make test
 make test-coverage
+make test-e2e-docker-smoke
 ```
 
-`make test-coverage` is the coverage-focused companion to `make test`: it runs backend and frontend coverage plus Playwright smoke tests. The full Playwright CI matrix stays gated to the default browser projects; `Mobile Safari` and `Tablet` remain manual/ad hoc projects that you can run explicitly when needed.
+`make test` runs backend/frontend tests, the host Playwright CI matrix, and the named Docker-backed smoke gate `make test-e2e-docker-smoke`.
+`make test-coverage` is the coverage-focused companion to `make test`: it runs backend and frontend coverage, host Playwright smoke, and the same Docker-backed smoke gate.
+The full Playwright CI matrix stays gated to the default browser projects; `Mobile Safari` and `Tablet` remain manual/ad hoc projects that you can run explicitly when needed.
 
 If your change is docs-only, use:
 
@@ -75,3 +78,5 @@ If you need a narrower sequence, ask the selector helper for a recommendation:
 ```bash
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
+
+Code and runtime changes should emit at least one behavior-test command. Docs-only changes stay on docs validation.

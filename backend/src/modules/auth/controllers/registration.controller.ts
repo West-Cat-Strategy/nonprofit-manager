@@ -19,7 +19,6 @@ import {
   createInitialAdminUser,
   createOrganizationAccount,
   findUserIdByEmail,
-  getDefaultOrganizationId,
   RegisterRequest,
   SetupRequest,
 } from '../lib/authQueries';
@@ -121,14 +120,11 @@ export const register = async (
     await runStep('syncUserRole', () => syncUserRole(user.id, user.role));
     const organizationId =
       (await runStep('seedDefaultOrganizationAccess', () =>
-        seedDefaultOrganizationAccess(
-          {
-            userId: user.id,
-            role: user.role,
-            grantedBy: user.id,
-          }
-        ))) ??
-      (await runStep('getDefaultOrganizationId', () => getDefaultOrganizationId()));
+        seedDefaultOrganizationAccess({
+          userId: user.id,
+          role: user.role,
+          grantedBy: user.id,
+        }))) ?? null;
     const token = issueAppSessionToken({
       id: user.id,
       email: user.email,

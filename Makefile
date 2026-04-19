@@ -4,7 +4,7 @@
 # This replaces GitHub Actions with local commands.
 # All CI/CD operations can be run locally or via git hooks.
 
-.PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-coverage quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
+.PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-e2e-docker-smoke test-coverage quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-up-dev docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
@@ -79,10 +79,11 @@ help:
 	@echo "  make lint-route-catalog-drift Enforce routeCatalog stays aligned with registered routes"
 	@echo "  make lint-fix       Run linters and auto-fix issues"
 	@echo "  make typecheck      Run TypeScript type checking"
-	@echo "  make test           Run backend, frontend, and Playwright E2E tests"
-	@echo "  make test-coverage  Run backend/frontend coverage + Playwright smoke tests"
+	@echo "  make test           Run backend/frontend tests + host Playwright CI + Docker smoke gate"
+	@echo "  make test-coverage  Run backend/frontend coverage + host and Docker Playwright smoke gates"
 	@echo "  make quality-baseline Generate code quality baseline report"
 	@echo "  make check-links    Validate markdown links"
+	@echo "  make test-e2e-docker-smoke Run the Docker-backed Playwright smoke gate"
 	@echo ""
 	@echo "$(GREEN)CI Pipelines:$(RESET)"
 	@echo "  make ci             Run full CI (lint + typecheck + test + build)"
@@ -409,8 +410,9 @@ test:
 	cd backend && npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
 	cd frontend && npm test -- --run
-	@echo "$(BLUE)Running Playwright E2E tests (all browsers)...$(RESET)"
+	@echo "$(BLUE)Running Playwright E2E host CI matrix...$(RESET)"
 	$(E2E_NPM_RUN) test:ci
+	@$(MAKE) --no-print-directory test-e2e-docker-smoke
 	@echo "$(GREEN)Tests complete!$(RESET)"
 
 test-coverage:
@@ -422,9 +424,10 @@ test-coverage:
 	cd backend && npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
 	cd frontend && npm test -- --run --coverage
-	@echo "$(BLUE)Running Playwright E2E smoke tests...$(RESET)"
+	@echo "$(BLUE)Running Playwright E2E host smoke tests...$(RESET)"
 	$(E2E_NPM_RUN) test:smoke
-	@echo "$(GREEN)Coverage reports generated!$(RESET)"
+	@$(MAKE) --no-print-directory test-e2e-docker-smoke
+	@echo "$(GREEN)Coverage reports and smoke gates complete!$(RESET)"
 
 test-backend:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
@@ -438,6 +441,13 @@ test-e2e:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
 	$(E2E_NPM_RUN) test:ci
+
+test-e2e-docker-smoke:
+	@echo "$(BLUE)Ensuring Docker app stack is running for Playwright smoke...$(RESET)"
+	@$(MAKE) --no-print-directory docker-up-dev
+	@echo "$(BLUE)Running Docker-backed Playwright smoke tests...$(RESET)"
+	$(E2E_NPM_RUN) test:docker:smoke
+	@echo "$(GREEN)Docker-backed Playwright smoke gate complete!$(RESET)"
 
 quality-baseline:
 	@./scripts/quality-baseline.sh

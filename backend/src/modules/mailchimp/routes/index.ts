@@ -6,8 +6,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
+import { requirePermission } from '@middleware/permissions';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import * as mailchimpController from '../controllers';
+import { Permission } from '@utils/permissions';
 import { emailSchema, isoDateTimeSchema, uuidSchema } from '@validations/shared';
 
 const router = Router();
@@ -92,16 +94,24 @@ const createCampaignSchema = z.object({
 });
 
 /**
+ * POST /api/mailchimp/webhook
+ * Mailchimp webhook handler (no auth - Mailchimp sends webhooks)
+ */
+router.post('/webhook', mailchimpController.handleWebhook);
+
+router.use(authenticate, requirePermission(Permission.ADMIN_SETTINGS));
+
+/**
  * GET /api/mailchimp/status
  * Get Mailchimp configuration status
  */
-router.get('/status', authenticate, mailchimpController.getStatus);
+router.get('/status', mailchimpController.getStatus);
 
 /**
  * GET /api/mailchimp/lists
  * Get all Mailchimp audiences/lists
  */
-router.get('/lists', authenticate, mailchimpController.getLists);
+router.get('/lists', mailchimpController.getLists);
 
 /**
  * GET /api/mailchimp/lists/:id
@@ -109,7 +119,6 @@ router.get('/lists', authenticate, mailchimpController.getLists);
  */
 router.get(
   '/lists/:id',
-  authenticate,
   validateParams(listIdParamsSchema),
   mailchimpController.getList
 );
@@ -120,7 +129,6 @@ router.get(
  */
 router.get(
   '/lists/:listId/tags',
-  authenticate,
   validateParams(listIdOnlyParamsSchema),
   mailchimpController.getListTags
 );
@@ -131,7 +139,6 @@ router.get(
  */
 router.get(
   '/lists/:listId/segments',
-  authenticate,
   validateParams(listIdOnlyParamsSchema),
   mailchimpController.getSegments
 );
@@ -142,7 +149,6 @@ router.get(
  */
 router.post(
   '/lists/:listId/segments',
-  authenticate,
   validateParams(listIdOnlyParamsSchema),
   validateBody(createSegmentSchema),
   mailchimpController.createSegment
@@ -154,7 +160,6 @@ router.post(
  */
 router.get(
   '/lists/:listId/members/:email',
-  authenticate,
   validateParams(listMemberParamsSchema),
   mailchimpController.getMember
 );
@@ -165,7 +170,6 @@ router.get(
  */
 router.delete(
   '/lists/:listId/members/:email',
-  authenticate,
   validateParams(listMemberParamsSchema),
   mailchimpController.deleteMember
 );
@@ -174,7 +178,7 @@ router.delete(
  * POST /api/mailchimp/members
  * Add or update a member in a list
  */
-router.post('/members', authenticate, validateBody(addMemberSchema), mailchimpController.addMember);
+router.post('/members', validateBody(addMemberSchema), mailchimpController.addMember);
 
 /**
  * POST /api/mailchimp/members/tags
@@ -182,7 +186,6 @@ router.post('/members', authenticate, validateBody(addMemberSchema), mailchimpCo
  */
 router.post(
   '/members/tags',
-  authenticate,
   validateBody(updateMemberTagsSchema),
   mailchimpController.updateMemberTags
 );
@@ -193,7 +196,6 @@ router.post(
  */
 router.post(
   '/sync/contact',
-  authenticate,
   validateBody(syncContactSchema),
   mailchimpController.syncContact
 );
@@ -204,7 +206,6 @@ router.post(
  */
 router.post(
   '/sync/bulk',
-  authenticate,
   validateBody(bulkSyncContactsSchema),
   mailchimpController.bulkSyncContacts
 );
@@ -215,7 +216,6 @@ router.post(
  */
 router.get(
   '/campaigns',
-  authenticate,
   validateQuery(campaignsQuerySchema),
   mailchimpController.getCampaigns
 );
@@ -226,7 +226,6 @@ router.get(
  */
 router.post(
   '/campaigns',
-  authenticate,
   validateBody(createCampaignSchema),
   mailchimpController.createCampaign
 );
@@ -237,16 +236,9 @@ router.post(
  */
 router.post(
   '/campaigns/:campaignId/send',
-  authenticate,
   validateParams(campaignIdParamsSchema),
   mailchimpController.sendCampaign
 );
-
-/**
- * POST /api/mailchimp/webhook
- * Mailchimp webhook handler (no auth - Mailchimp sends webhooks)
- */
-router.post('/webhook', mailchimpController.handleWebhook);
 
 export default router;
 

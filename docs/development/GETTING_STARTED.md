@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-04-18
 
-Use this guide to get a working nonprofit-manager development environment without guessing which runtime the docs assume. The ports differ by mode, so keep the runtime you choose in mind as you follow the steps.
+Use this guide to choose a local runtime, set up the matching environment, and confirm the expected ports. Keep broader contributor workflow in [../../CONTRIBUTING.md](../../CONTRIBUTING.md); this file is the runtime and setup source of truth.
 
 ## Prerequisites
 
@@ -21,23 +21,23 @@ docker compose version  # optional, only if you plan to use make dev
 git --version
 ```
 
-Dependency installs are workspace-rooted. Run `npm ci` from the repo root before using package-level scripts; the workspace directories no longer carry committed `package-lock.json` files.
+Run `npm ci` from the repo root before using package-level scripts. Dependency installs are workspace-rooted.
 
 ## Choose A Runtime
 
-| Goal | Recommended Path | Notes |
-|------|------------------|-------|
-| Dockerfile or image validation | Direct Dockerfile builds | Fastest way to verify container changes and packaged public assets |
-| Full-stack day-to-day development | Optional Docker Compose dev stack | Fastest path to a working app with Postgres and Redis included |
-| Backend-only feature work | Direct backend runtime | App runs on `3000`; you provide env config and infra |
-| Frontend-only feature work | Direct frontend runtime | App runs on `8005`; point it at a running backend |
-| Playwright or end-to-end validation | E2E harness | Playwright manages frontend/backend on `5173/3001` |
+Pick one runtime path and stay with it while debugging. The Docker dev stack, direct runtime, and Playwright harness all use different ports and env assumptions.
 
-Use the same runtime mode consistently while debugging. A direct backend on `3000` and the Docker dev backend on `8004` are both valid, but they are different setups with different env expectations.
+| Goal | Recommended Path | Local Contract |
+|---|---|---|
+| Validate Dockerfiles or production image packaging | Path 1: build-first Docker images | no long-running app; image build validation only |
+| Work full stack with Docker-managed Postgres and Redis | Path 2: optional compose dev stack | frontend `8005`, backend `8004`, public site `8006` |
+| Work on backend code outside Docker | Path 3: direct backend runtime | backend `3000` |
+| Work on frontend code against a chosen API | Path 4: direct frontend runtime | frontend `8005` |
+| Run Playwright-managed end-to-end checks | Path 5: E2E harness | frontend `5173`, backend `3001` |
 
 ## Path 1: Build-First Docker Images
 
-Use this when you are changing Dockerfiles or want to confirm the production images still package the right files.
+Use this when you are changing Dockerfiles or want to verify the packaged assets without starting the dev stack.
 
 ```bash
 make docker-build
@@ -46,12 +46,12 @@ make docker-validate
 
 Expected result:
 
-- The backend and frontend Dockerfiles both build successfully
-- The frontend production image includes `/usr/share/nginx/html/vite.svg` from `frontend/public`
+- The backend and frontend Dockerfiles both build successfully.
+- The frontend production image includes `/usr/share/nginx/html/vite.svg` from `frontend/public`.
 
 ## Path 2: Optional Compose Dev Stack
 
-Use this when you want local Postgres and Redis alongside the app.
+Use this when you want the app plus local Postgres and Redis under Docker.
 
 ```bash
 cp .env.development.example .env.development
@@ -74,22 +74,23 @@ curl http://localhost:8004/health
 
 ## Path 3: Direct Backend Runtime
 
-Use this when you want to run the backend outside Docker while still using either local or managed infrastructure.
+Use this when you want the backend outside Docker while connecting to either local or managed infrastructure.
 
-1. Ensure Postgres and Redis are available. You can use local services, managed services, or the optional compose dev stack from Path 2.
-
+1. Ensure Postgres and Redis are available. You can use local services, managed services, or the compose dev stack from Path 2.
 2. Create the backend env file:
 
 ```bash
 cp backend/.env.example backend/.env
 ```
 
-3. If you are using local Postgres/Redis services, update `backend/.env`:
+3. If you are using the compose dev stack or local services that match its default ports, update `backend/.env`:
 
 - `DB_HOST=localhost`
 - `DB_PORT=8002`
 - `REDIS_URL=redis://localhost:8003`
 - `CORS_ORIGIN=http://127.0.0.1:8005,http://localhost:8005`
+
+   If your database or Redis instance uses different host or port values, use those actual values instead.
 
 4. Install dependencies from the repo root, then start the backend:
 
@@ -112,7 +113,7 @@ curl http://localhost:3000/health/live
 
 ## Path 4: Direct Frontend Runtime
 
-Use this when you are working on frontend code and already have an API running.
+Use this when you are working on frontend code and already know which backend you want to target.
 
 ```bash
 cp frontend/.env.example frontend/.env.local
@@ -138,7 +139,7 @@ Expected endpoint:
 
 ## Path 5: E2E Harness
 
-Use this for Playwright-driven validation. The harness starts its own backend and frontend by default.
+Use this when Playwright should manage the frontend and backend runtime for end-to-end checks.
 
 ```bash
 cp e2e/.env.test.example e2e/.env.test.local
@@ -153,40 +154,27 @@ Default Playwright runtime:
 - Frontend: `http://127.0.0.1:5173`
 - Backend API: `http://127.0.0.1:3001`
 
-The harness loads `.env.test.local` first, then `.env.test`.
+The harness loads `.env.test` first and then `.env.test.local`, so local overrides win last.
 
-## Core Verification Commands
+## Verification And Next Docs
 
-Run the smallest useful set for your change. Prefer repo-root commands first:
+Use the smallest relevant verification for the change you are making. Common commands:
 
 ```bash
 make lint
 make typecheck
 make test
-```
-
-Common narrower commands:
-
-```bash
-cd backend && npm run type-check
-cd frontend && npm run type-check
-cd e2e && npm run test:smoke
+make test-e2e-docker-smoke
 make check-links
 make lint-doc-api-versioning
+cd backend && npm run type-check
+cd frontend && npm run type-check
 ```
 
-## What To Read Next
+Open these next only if you need more than setup guidance:
 
-1. [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
-2. [CONVENTIONS.md](CONVENTIONS.md)
-3. [ARCHITECTURE.md](ARCHITECTURE.md)
-4. [../../README.md](../../README.md) for product context
-5. [../README.md](../README.md) for the docs landing page
-6. [../../docs/phases/planning-and-progress.md](../../docs/phases/planning-and-progress.md) before tracked work
-
-## Troubleshooting
-
-- Backend or Docker setup issues: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-- Backend-specific details: [../../backend/README.md](../../backend/README.md)
-- Frontend-specific details: [../../frontend/README.md](../../frontend/README.md)
-- E2E details: [../../e2e/README.md](../../e2e/README.md)
+- [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and handoff expectations
+- [../testing/TESTING.md](../testing/TESTING.md) for the validation matrix
+- [CONVENTIONS.md](CONVENTIONS.md) for repo conventions
+- [../../backend/README.md](../../backend/README.md) or [../../frontend/README.md](../../frontend/README.md) for service-specific details
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) when the runtime does not match the expected contract

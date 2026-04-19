@@ -1,5 +1,7 @@
 # Analytics Export API Reference
 
+**Last Updated:** 2026-04-18
+
 Complete API documentation for exporting analytics data to CSV and Excel formats.
 
 ## Table of Contents
@@ -29,6 +31,15 @@ The Export API allows users to download analytics data in CSV or Excel format. A
 ## Authentication
 
 All endpoints require authentication and analytics permissions:
+
+Examples below assume a direct API client using a bearer token. Browser shells typically authenticate through the session cookie established by `POST /api/v2/auth/login`.
+
+Successful responses below describe the payload inside `data` for brevity. Live `/api` JSON responses use the canonical envelope `{ "success": true, "data": ... }`.
+
+For local testing, prepend one of these base URLs to the relative paths in this guide:
+- Direct backend runtime: `http://localhost:3000/api/v2`
+- Docker dev backend: `http://localhost:8004/api/v2`
+- Frontend/browser proxy: `/api/v2`
 
 ```
 Authorization: Bearer <your_jwt_token>
@@ -282,7 +293,7 @@ Downloads an Excel file with multiple sheets:
 ### Export Donations for Q1 2024 (CSV)
 
 ```bash
-curl -X POST localhost:3000/api/v2/export/donations \
+curl -X POST http://localhost:3000/api/v2/export/donations \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -297,7 +308,7 @@ curl -X POST localhost:3000/api/v2/export/donations \
 ### Export Volunteer Hours by Activity (Excel)
 
 ```bash
-curl -X POST localhost:3000/api/v2/export/volunteer-hours \
+curl -X POST http://localhost:3000/api/v2/export/volunteer-hours \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -313,7 +324,7 @@ curl -X POST localhost:3000/api/v2/export/volunteer-hours \
 ### Export Comprehensive Report (Excel)
 
 ```bash
-curl -X POST localhost:3000/api/v2/export/comprehensive \
+curl -X POST http://localhost:3000/api/v2/export/comprehensive \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -329,7 +340,7 @@ curl -X POST localhost:3000/api/v2/export/comprehensive \
 
 ```bash
 # Export large donations only
-curl -X POST localhost:3000/api/v2/export/donations \
+curl -X POST http://localhost:3000/api/v2/export/donations \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -350,7 +361,11 @@ curl -X POST localhost:3000/api/v2/export/donations \
 
 ```json
 {
-  "error": "Error message describing what went wrong"
+  "success": false,
+  "error": {
+    "code": "validation_error",
+    "message": "Error message describing what went wrong"
+  }
 }
 ```
 
@@ -368,21 +383,33 @@ curl -X POST localhost:3000/api/v2/export/donations \
 **Invalid Format:**
 ```json
 {
-  "error": "Invalid format"
+  "success": false,
+  "error": {
+    "code": "validation_error",
+    "message": "Invalid format"
+  }
 }
 ```
 
 **Missing Required Fields:**
 ```json
 {
-  "error": "Start date is required"
+  "success": false,
+  "error": {
+    "code": "validation_error",
+    "message": "Start date is required"
+  }
 }
 ```
 
 **Permission Denied:**
 ```json
 {
-  "error": "Insufficient permissions to access analytics"
+  "success": false,
+  "error": {
+    "code": "forbidden",
+    "message": "Insufficient permissions to access analytics"
+  }
 }
 ```
 
@@ -432,7 +459,7 @@ Exports can be automated using cron jobs or scheduled tasks:
 TOKEN="your-jwt-token"
 MONTH=$(date -d "last month" +%Y-%m)
 
-curl -X POST localhost:3000/api/v2/export/donations \
+curl -X POST http://localhost:3000/api/v2/export/donations \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{

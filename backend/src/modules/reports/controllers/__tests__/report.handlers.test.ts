@@ -7,7 +7,7 @@ import {
   sendForbidden,
   sendUnauthorized,
 } from '@services/authGuardService';
-import { DirectReportExportTooLargeError } from '@services/reportService';
+import { DirectReportExportTooLargeError } from '@modules/reports/services/reportService';
 import { Permission } from '@utils/permissions';
 
 jest.mock('@utils/responseHelpers', () => ({

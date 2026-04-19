@@ -4,6 +4,8 @@
 
 Master status of all features in nonprofit-manager.
 
+This matrix is a capability-oriented navigation aid, not the live workboard. Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for active ownership, blockers, and exact in-flight scope, and treat linked feature plans or summaries as historical snapshots when their intros say so.
+
 ---
 
 ## Overview
@@ -177,9 +179,9 @@ Use the workboard for the current dashboard and admin workspace refactor status.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **User Roles** | ✅ | Backend | [AGENTS.md](../../AGENTS.md) | `backend/src/services/authGuardService.ts` | Admin, Manager, Coordinator, Volunteer, Donor |
-| **Permissions** | ✅ | Backend | [AGENTS.md](../../AGENTS.md) | Same | 45+ granular permissions |
-| **Organization Access** | ✅ | Backend | Same | - | Multi-tenancy support |
+| **User Roles** | ✅ | Backend | [agents.md](../../agents.md) | `backend/src/services/authGuardService.ts` | Admin, Manager, Coordinator, Volunteer, Donor; live enforcement is code-owned |
+| **Permissions** | ✅ | Backend | [agents.md](../../agents.md) | Same | 45+ granular permissions; live checks also depend on `backend/src/utils/permissions.ts` |
+| **Organization Access** | ✅ | Backend | Same | - | Multi-tenancy support; current access rules are code-owned |
 | Password Reset | ✅ | Backend | - | - | Secure password recovery |
 | Session Management | ✅ | Backend | - | - | JWT token management |
 | Rate Limiting | ✅ | Backend | [AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md) | - | DDoS protection |
@@ -188,16 +190,16 @@ Use the workboard for the current dashboard and admin workspace refactor status.
 
 ---
 
-## Current Workboard Focus
+## Workboard Snapshot
 
-As of 2026-04-16, the active Phase 4 workboard is centered on:
+As of 2026-04-16, the active Phase 4 workboard was centered on:
 
 - Security hardening follow-through around approval-gated registration, session/auth behavior, and API-key or webhook controls
 - Dashboard and admin workspace refactors across `/dashboard`, `/dashboard/custom`, and `/settings/admin/*`
 - Dark-mode accessibility remediation and route-audit closure
 - Setup, launch, and E2E stabilization for runtime-aware local and Playwright flows
 
-Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for the authoritative owner, blocker, and next-step details.
+Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for the authoritative owner, blocker, and next-step details after this snapshot.
 
 ---
 
@@ -206,16 +208,16 @@ Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for
 For detailed specifications, use this navigation:
 
 **By Category**:
-- [PEOPLE_MODULE_ENHANCEMENTS.md](PEOPLE_MODULE_ENHANCEMENTS.md) — CRM and people features
-- [VOLUNTEER_COMPONENTS_STATUS.md](VOLUNTEER_COMPONENTS_STATUS.md) — Volunteer portal and tracking
+- [PEOPLE_MODULE_ENHANCEMENTS.md](PEOPLE_MODULE_ENHANCEMENTS.md) — Historical planning document for people-module expansion
+- [VOLUNTEER_COMPONENTS_STATUS.md](VOLUNTEER_COMPONENTS_STATUS.md) — Historical volunteer-component completion snapshot
 - [TASK_MANAGEMENT.md](TASK_MANAGEMENT.md) — Task system (planned)
 - [FOLLOW_UP_LIFECYCLE.md](FOLLOW_UP_LIFECYCLE.md) — Follow-up lifecycle and reminders
 - [REPORTING_GUIDE.md](REPORTING_GUIDE.md) — Reports and analytics
 - [OPPORTUNITIES_PIPELINE.md](OPPORTUNITIES_PIPELINE.md) — Stage-based opportunities pipeline
-- [TEMPLATE_SYSTEM.md](TEMPLATE_SYSTEM.md) — Templates and customization
-- [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) — Dashboard features
-- [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) — Case management (in development)
-- [CRM_ENHANCEMENTS.md](CRM_ENHANCEMENTS.md) — CRM improvements
+- [TEMPLATE_SYSTEM.md](TEMPLATE_SYSTEM.md) — Templates and website-builder customization
+- [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) — Current dashboard capability reference; use the workboard for ongoing refactors
+- [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) — Broad case-management reference with historical design/spec context
+- [CRM_ENHANCEMENTS.md](CRM_ENHANCEMENTS.md) — CRM improvement concepts and supporting context
 - [TELEMETRY.md](TELEMETRY.md) — Analytics and activity tracking
 
 **By Type**:
@@ -232,7 +234,7 @@ For detailed specifications, use this navigation:
 ### Have an idea for a new feature?
 
 1. Check if it's already listed as Planned (📋) or In Development (🟡)
-2. Open a task in [planning-and-progress.md](../phases/planning-and-progress.md) with a feature-request note
+2. Open or update a task in [../phases/planning-and-progress.md](../phases/planning-and-progress.md) with a feature-request note
 3. Describe what problem it solves and who would benefit
 4. Please provide use cases or examples
 
@@ -240,7 +242,7 @@ For detailed specifications, use this navigation:
 
 1. Find the feature above and note its status
 2. If In Development 🟡, check the documentation file for current progress
-3. See [GETTING_STARTED.md](../development/GETTING_STARTED.md) to set up the dev environment
+3. See [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) to set up the dev environment
 4. Check the workboard for related tasks or assign yourself
 5. Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md) workflow
 
@@ -250,4 +252,4 @@ For detailed specifications, use this navigation:
 
 - [../../CONTRIBUTING.md](../../CONTRIBUTING.md) — How to start contributing
 - [../product/product-spec.md](../product/product-spec.md) — Product requirements and vision
-- [../phases/planning-and-progress.md](../phases/planning-and-progress.md) — Current work in progress
+- [../phases/planning-and-progress.md](../phases/planning-and-progress.md) — Live tracked work

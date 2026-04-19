@@ -16,7 +16,7 @@ import {
   issueTotpMfaToken,
   verifyTokenWithOptionalIssuer,
 } from '@utils/sessionTokens';
-import { getDefaultOrganizationId } from '../lib/authQueries';
+import { getAuthenticatedOrganizationId } from '../lib/authQueries';
 import { enrollTotpSecret, verifyTotpCode } from '../lib/totp';
 
 const TOTP_ISSUER = process.env.TOTP_ISSUER || 'Nonprofit Manager';
@@ -296,7 +296,7 @@ export const completeTotpLogin = async (
 
     await trackLoginAttempt(email, true, user.id, clientIp);
 
-    const organizationId = await getDefaultOrganizationId();
+    const organizationId = await getAuthenticatedOrganizationId(user.id);
     const token = issueAuthTokens(user, organizationId);
     setAuthCookie(res, token);
     const csrfToken = generateAuthSessionCsrfToken(req, res, token);

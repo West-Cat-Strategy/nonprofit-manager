@@ -1,5 +1,7 @@
 # Phase 3: External Security Testing & Advanced Controls
 
+This document is a planning roadmap for a security phase, not a statement that every control below is already implemented. Use [SECURITY_MONITORING_GUIDE.md](SECURITY_MONITORING_GUIDE.md), [INCIDENT_RESPONSE_RUNBOOK.md](INCIDENT_RESPONSE_RUNBOOK.md), and the live workboard to confirm current operational posture.
+
 ## Overview
 
 Phase 3 focuses on:
