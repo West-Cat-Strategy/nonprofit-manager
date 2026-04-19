@@ -47,7 +47,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 - [../../README.md](../../README.md) owns the product overview and contributor handoff.
 - [../README.md](../README.md) is the documentation catalog.
 - [../testing/TESTING.md](../testing/TESTING.md) is the validation command map.
-- Repo-local contributor skills live under [../../.codex/skills/](../../.codex/skills/) and should stay aligned when contributor-workflow guidance changes.
+- Keep durable contributor-workflow guidance in tracked repo docs; local AI or editor workspace directories stay ignored and should not be treated as versioned repo contract.
 
 ## Docs Work
 

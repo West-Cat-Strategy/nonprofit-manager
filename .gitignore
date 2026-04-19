@@ -9,6 +9,19 @@ node_modules/
 # ==============================
 # Workspace-local and generated artifacts
 # ==============================
+.codex/
+.claude/
+.cursor/
+.windsurf/
+.continue/
+.roo/
+.direnv/
+.envrc
+*.local
+
+# ==============================
+# Generated workspace output
+# ==============================
 .cache/
 .docker/backups/
 .docker/postgres/

@@ -39,8 +39,8 @@ This artifact preserves the proof chain for the completed Phase 4 review rows re
 
 ### Repo-Local Contributor Workflow
 
-- `P4-T34`: the repo-local skill suite exists under `.codex/skills`, is tracked, and contributor docs reference it.
-- `P4-T42`: the rebuild/maintenance follow-on to `P4-T34` is now concrete on `main`; `.gitignore` re-includes `.codex/skills/**`, `git ls-files .codex/skills` lists the repo-local suite, and contributor docs treat the in-repo skills as versioned workflow guidance.
+- `P4-T34`: at the 2026-04-14 closeout point, the repo-local skill suite was present in the tree and contributor docs referenced it; the current repo policy has since returned local AI workspace tooling to ignored-only status.
+- `P4-T42`: the 2026-04-14 rebuild or maintenance follow-on to `P4-T34` was concrete on `main` at closeout time, but the current repo policy now keeps durable contributor workflow guidance in tracked docs instead of local AI workspace directories.
 
 ### Shared Modularity Closeouts
 
