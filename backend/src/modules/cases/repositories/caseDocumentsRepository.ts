@@ -10,12 +10,16 @@ import {
 } from '../queries/documentsQueries';
 
 export class CaseDocumentsRepository implements CaseDocumentsPort {
-  async getCaseDocuments(caseId: string): Promise<unknown[]> {
-    return getCaseDocumentsQuery(pool, caseId);
+  async getCaseDocuments(caseId: string, organizationId?: string): Promise<unknown[]> {
+    return getCaseDocumentsQuery(pool, caseId, organizationId);
   }
 
-  async getCaseDocumentById(caseId: string, documentId: string): Promise<unknown | null> {
-    return getCaseDocumentByIdQuery(pool, caseId, documentId);
+  async getCaseDocumentById(
+    caseId: string,
+    documentId: string,
+    organizationId?: string
+  ): Promise<unknown | null> {
+    return getCaseDocumentByIdQuery(pool, caseId, documentId, organizationId);
   }
 
   async createCaseDocument(input: {
@@ -30,15 +34,25 @@ export class CaseDocumentsRepository implements CaseDocumentsPort {
     description?: string;
     visibleToClient?: boolean;
     userId?: string;
+    organizationId?: string;
   }): Promise<unknown> {
     return createCaseDocumentQuery(pool, input);
   }
 
-  async updateCaseDocument(documentId: string, data: UpdateCaseDocumentDTO, userId?: string): Promise<unknown> {
-    return updateCaseDocumentQuery(pool, documentId, data, userId);
+  async updateCaseDocument(
+    documentId: string,
+    data: UpdateCaseDocumentDTO,
+    userId?: string,
+    organizationId?: string
+  ): Promise<unknown> {
+    return updateCaseDocumentQuery(pool, documentId, data, userId, organizationId);
   }
 
-  async deleteCaseDocument(documentId: string, userId?: string): Promise<boolean> {
-    return deleteCaseDocumentQuery(pool, documentId, userId);
+  async deleteCaseDocument(
+    documentId: string,
+    userId?: string,
+    organizationId?: string
+  ): Promise<boolean> {
+    return deleteCaseDocumentQuery(pool, documentId, userId, organizationId);
   }
 }

@@ -202,6 +202,7 @@ export default defineConfig({
           MAX_LOGIN_ATTEMPTS: E2E_MAX_LOGIN_ATTEMPTS,
           BYPASS_REGISTRATION_POLICY_IN_TEST: 'false',
           DISABLE_PII_MASKING_IN_TEST: 'false',
+          BYPASS_MFA_FOR_TESTS: 'true',
         },
       },
       {

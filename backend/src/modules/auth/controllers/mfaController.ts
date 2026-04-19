@@ -8,7 +8,6 @@ import { decrypt, encrypt } from '@utils/encryption';
 import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import { setAuthCookie } from '@utils/cookieHelper';
 import { buildAuthTokenResponse, generateAuthSessionCsrfToken } from '@utils/authResponse';
-import { authenticator } from '@otplib/preset-default';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { normalizeRoleSlug } from '@utils/roleSlug';
 import {
@@ -18,9 +17,8 @@ import {
   verifyTokenWithOptionalIssuer,
 } from '@utils/sessionTokens';
 import { getDefaultOrganizationId } from '../lib/authQueries';
+import { enrollTotpSecret, verifyTotpCode } from '../lib/totp';
 
-const TOTP_PERIOD_SECONDS = 30;
-const TOTP_WINDOW = 1;
 const TOTP_ISSUER = process.env.TOTP_ISSUER || 'Nonprofit Manager';
 
 interface TotpUserRow {
@@ -37,15 +35,6 @@ interface TotpUserRow {
   is_active?: boolean;
   auth_revision?: number;
 }
-
-const normalizeTotpCode = (code: string) => code.replace(/\s+/g, '');
-const loadOtplib = async () => {
-  authenticator.options = {
-    step: TOTP_PERIOD_SECONDS,
-    window: TOTP_WINDOW,
-  };
-  return authenticator;
-};
 
 const issueAuthTokens = (
   user: { id: string; email: string; role: string; auth_revision?: number },
@@ -114,9 +103,7 @@ export const enrollTotp = async (
       return conflict(res, '2FA is already enabled');
     }
 
-    const authenticator = await loadOtplib();
-    const secret = authenticator.generateSecret();
-    const otpauthUrl = authenticator.keyuri(result.rows[0].email, TOTP_ISSUER, secret);
+    const { secret, otpauthUrl } = enrollTotpSecret(result.rows[0].email, TOTP_ISSUER);
 
     await pool.query(
       `UPDATE users
@@ -159,8 +146,7 @@ export const enableTotp = async (
     }
 
     const secret = decrypt(result.rows[0].mfa_totp_pending_secret_enc);
-    const authenticator = await loadOtplib();
-    const isValid = authenticator.check(normalizeTotpCode(code), secret);
+    const isValid = verifyTotpCode(secret, code);
     if (!isValid) {
       return unauthorized(res, 'Invalid authentication code');
     }
@@ -212,8 +198,7 @@ export const disableTotp = async (
     }
 
     const secret = decrypt(user.mfa_totp_secret_enc);
-    const authenticator = await loadOtplib();
-    const isValid = authenticator.check(normalizeTotpCode(code), secret);
+    const isValid = verifyTotpCode(secret, code);
     if (!isValid) {
       return unauthorized(res, 'Invalid authentication code');
     }
@@ -303,8 +288,7 @@ export const completeTotpLogin = async (
     }
 
     const secret = decrypt(user.mfa_totp_secret_enc);
-    const authenticator = await loadOtplib();
-    const isValid = authenticator.check(normalizeTotpCode(code), secret);
+    const isValid = verifyTotpCode(secret, code);
     if (!isValid) {
       await trackLoginAttempt(email, false, user.id, clientIp);
       return unauthorized(res, 'Invalid authentication code');

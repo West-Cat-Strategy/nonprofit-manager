@@ -841,6 +841,21 @@ const provisionPortalCaseFixture = async (page: Page): Promise<ProvisionedPortal
 };
 
 base.describe('Public text visibility and link audit', () => {
+  base.beforeAll(async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    try {
+      await ensureEffectiveAdminLoginViaAPI(page, {
+        firstName: 'Visibility',
+        lastName: 'Audit',
+        organizationName: 'Visibility Audit Public Org',
+      });
+    } finally {
+      await context.close();
+    }
+  });
+
   for (const config of publicRouteAudits) {
     base(`audits ${config.name}`, async ({ page }) => {
       await auditRoute(page, config);

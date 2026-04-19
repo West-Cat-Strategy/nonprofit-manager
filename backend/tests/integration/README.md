@@ -329,7 +329,7 @@ jobs:
           node-version: '16'
 
       - name: Install dependencies
-        run: cd backend && npm install
+        run: npm ci
 
       - name: Setup database
         run: |

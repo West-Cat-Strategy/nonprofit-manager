@@ -20,7 +20,12 @@ export const createCaseLifecycleController = (useCase: CaseLifecycleUseCase) => 
 
   const updateCase = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const updated = await useCase.update(req.params.id, req.body as UpdateCaseDTO, req.user?.id);
+      const updated = await useCase.update(
+        req.params.id,
+        req.body as UpdateCaseDTO,
+        req.user?.id,
+        req.organizationId || req.accountId || req.tenantId
+      );
       sendData(res, updated);
     } catch (error) {
       next(error);
@@ -29,7 +34,12 @@ export const createCaseLifecycleController = (useCase: CaseLifecycleUseCase) => 
 
   const updateCaseStatus = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const updated = await useCase.updateStatus(req.params.id, req.body as UpdateCaseStatusDTO, req.user?.id);
+      const updated = await useCase.updateStatus(
+        req.params.id,
+        req.body as UpdateCaseStatusDTO,
+        req.user?.id,
+        req.organizationId || req.accountId || req.tenantId
+      );
       sendData(res, updated);
     } catch (error) {
       next(error);
@@ -38,7 +48,12 @@ export const createCaseLifecycleController = (useCase: CaseLifecycleUseCase) => 
 
   const reassignCase = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const updated = await useCase.reassign(req.params.id, req.body as ReassignCaseDTO, req.user?.id);
+      const updated = await useCase.reassign(
+        req.params.id,
+        req.body as ReassignCaseDTO,
+        req.user?.id,
+        req.organizationId || req.accountId || req.tenantId
+      );
       sendData(res, updated);
     } catch (error) {
       next(error);
@@ -53,7 +68,11 @@ export const createCaseLifecycleController = (useCase: CaseLifecycleUseCase) => 
         return;
       }
 
-      const result = await useCase.bulkUpdate(data, req.user?.id);
+      const result = await useCase.bulkUpdate(
+        data,
+        req.user?.id,
+        req.organizationId || req.accountId || req.tenantId
+      );
       sendData(res, result);
     } catch (error) {
       next(error);
@@ -62,7 +81,7 @@ export const createCaseLifecycleController = (useCase: CaseLifecycleUseCase) => 
 
   const deleteCase = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await useCase.delete(req.params.id);
+      await useCase.delete(req.params.id, req.organizationId || req.accountId || req.tenantId);
       res.status(204).send();
     } catch (error) {
       next(error);

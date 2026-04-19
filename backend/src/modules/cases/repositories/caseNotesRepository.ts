@@ -12,21 +12,21 @@ import {
 } from '../queries/notesQueries';
 
 export class CaseNotesRepository implements CaseNotesPort {
-  async getCaseNotes(caseId: string): Promise<unknown[]> {
-    return getCaseNotesQuery(pool, caseId);
+  async getCaseNotes(caseId: string, organizationId?: string): Promise<unknown[]> {
+    return getCaseNotesQuery(pool, caseId, organizationId);
   }
 
-  async createCaseNote(data: CreateCaseNoteDTO, userId?: string): Promise<unknown> {
+  async createCaseNote(data: CreateCaseNoteDTO, userId?: string, organizationId?: string): Promise<unknown> {
     const hasInlineOutcomes = data.outcome_impacts !== undefined || data.outcomes_mode !== undefined;
     if (!hasInlineOutcomes) {
-      return createCaseNoteQuery(pool, data, userId);
+      return createCaseNoteQuery(pool, data, userId, organizationId);
     }
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-
-      const createdNote = await createCaseNoteQuery(client, data, userId);
+ 
+      const createdNote = await createCaseNoteQuery(client, data, userId, organizationId);
       await outcomeImpactService.saveInteractionOutcomesWithExecutor(
         client,
         data.case_id,
@@ -37,8 +37,8 @@ export class CaseNotesRepository implements CaseNotesPort {
         },
         userId
       );
-
-      const hydratedNote = await getCaseNoteByIdQuery(client, createdNote.id);
+ 
+      const hydratedNote = await getCaseNoteByIdQuery(client, createdNote.id, organizationId);
       await client.query('COMMIT');
 
       return hydratedNote ?? createdNote;
@@ -58,17 +58,17 @@ export class CaseNotesRepository implements CaseNotesPort {
     }
   }
 
-  async updateCaseNote(noteId: string, data: UpdateCaseNoteDTO, userId?: string): Promise<unknown> {
+  async updateCaseNote(noteId: string, data: UpdateCaseNoteDTO, userId?: string, organizationId?: string): Promise<unknown> {
     const hasInlineOutcomes = data.outcome_impacts !== undefined || data.outcomes_mode !== undefined;
     if (!hasInlineOutcomes) {
-      return updateCaseNoteQuery(pool, noteId, data, userId);
+      return updateCaseNoteQuery(pool, noteId, data, userId, organizationId);
     }
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-
-      const updatedNote = await updateCaseNoteQuery(client, noteId, data, userId);
+ 
+      const updatedNote = await updateCaseNoteQuery(client, noteId, data, userId, organizationId);
       await outcomeImpactService.saveInteractionOutcomesWithExecutor(
         client,
         updatedNote.case_id,
@@ -79,8 +79,8 @@ export class CaseNotesRepository implements CaseNotesPort {
         },
         userId
       );
-
-      const hydratedNote = await getCaseNoteByIdQuery(client, updatedNote.id);
+ 
+      const hydratedNote = await getCaseNoteByIdQuery(client, updatedNote.id, organizationId);
       await client.query('COMMIT');
 
       return hydratedNote ?? updatedNote;
@@ -100,7 +100,7 @@ export class CaseNotesRepository implements CaseNotesPort {
     }
   }
 
-  async deleteCaseNote(noteId: string): Promise<boolean> {
-    return deleteCaseNoteQuery(pool, noteId);
+  async deleteCaseNote(noteId: string, organizationId?: string): Promise<boolean> {
+    return deleteCaseNoteQuery(pool, noteId, organizationId);
   }
 }

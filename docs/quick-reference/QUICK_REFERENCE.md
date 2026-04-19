@@ -1,6 +1,6 @@
 # Nonprofit Manager - Quick Reference
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-18
 
 Compact command map for day-to-day work in the nonprofit-manager repo.
 
@@ -48,8 +48,9 @@ make dev
 ### Direct Backend Runtime
 
 ```bash
-cd backend
+cd /path/to/nonprofit-manager
 npm ci
+cd backend
 npm run dev
 ```
 
@@ -58,8 +59,9 @@ npm run dev
 ### Direct Frontend Runtime
 
 ```bash
-cd frontend
+cd /path/to/nonprofit-manager
 npm ci
+cd frontend
 npm run dev
 ```
 
@@ -68,8 +70,9 @@ npm run dev
 ### Playwright / E2E Harness
 
 ```bash
-cd e2e
+cd /path/to/nonprofit-manager
 npm ci
+cd e2e
 npm test
 ```
 

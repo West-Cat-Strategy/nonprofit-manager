@@ -4,10 +4,14 @@ import type { CaseRelationship, CreateCaseRelationshipDTO } from '@app-types/cas
 
 type PgExecutor = Pool | PoolClient;
 
+import { requireCaseOwnership, requireCaseIdForRelationship } from './shared';
+
 export const getCaseRelationshipsQuery = async (
   db: PgExecutor,
-  caseId: string
+  caseId: string,
+  organizationId?: string
 ): Promise<CaseRelationship[]> => {
+  await requireCaseOwnership(db, caseId, organizationId);
   const result = await db.query(
     `SELECT cr.*,
             c.case_number as related_case_number,
@@ -25,8 +29,12 @@ export const createCaseRelationshipQuery = async (
   db: PgExecutor,
   caseId: string,
   data: CreateCaseRelationshipDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseRelationship> => {
+  await requireCaseOwnership(db, caseId, organizationId);
+  // Also check ownership of the related case
+  await requireCaseOwnership(db, data.related_case_id, organizationId);
   const result = await db.query(
     `INSERT INTO case_relationships (case_id, related_case_id, relationship_type, description, created_by)
      VALUES ($1, $2, $3, $4, $5)
@@ -39,8 +47,11 @@ export const createCaseRelationshipQuery = async (
 
 export const deleteCaseRelationshipQuery = async (
   db: PgExecutor,
-  relationshipId: string
+  relationshipId: string,
+  organizationId?: string
 ): Promise<void> => {
+  const caseId = await requireCaseIdForRelationship(db, relationshipId, organizationId);
+  await requireCaseOwnership(db, caseId, organizationId);
   await db.query(`DELETE FROM case_relationships WHERE id = $1`, [relationshipId]);
   logger.info('Case relationship deleted', { relationshipId });
 };

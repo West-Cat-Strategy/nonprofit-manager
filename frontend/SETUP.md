@@ -1,6 +1,6 @@
 # Frontend Setup Guide
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-04-18
 
 Use this file when you only need the frontend. For the full contributor path, start at [../README.md](../README.md).
 
@@ -13,9 +13,10 @@ Use this file when you only need the frontend. For the full contributor path, st
 ## Direct Frontend Setup
 
 ```bash
-cd frontend
-cp .env.example .env.local
+cp frontend/.env.example frontend/.env.local
+cd /path/to/nonprofit-manager
 npm ci
+cd frontend
 ```
 
 Set `VITE_API_URL` in `frontend/.env.local`:

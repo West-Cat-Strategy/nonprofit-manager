@@ -16,8 +16,7 @@ jest.mock('@services/activityEventService', () => ({
   },
 }));
 
-import activityService, { ActivityService } from '../../modules/activities/services/activityService';
-import rootActivityService, { ActivityService as RootActivityService } from '../../services/activityService';
+import { ActivityService } from '../../modules/activities/services/activityService';
 
 describe('ActivityService', () => {
   let service: ActivityService;
@@ -25,11 +24,6 @@ describe('ActivityService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     service = new ActivityService();
-  });
-
-  it('keeps the root service as a compatibility wrapper over the module-owned implementation', () => {
-    expect(rootActivityService).toBe(activityService);
-    expect(RootActivityService).toBe(ActivityService);
   });
 
   it('merges recent activities, keeps primary duplicates, and scopes every feed query to the organization', async () => {

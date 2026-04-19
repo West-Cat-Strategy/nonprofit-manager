@@ -1,6 +1,6 @@
 # Getting Started
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-18
 
 Use this guide to get a working nonprofit-manager development environment without guessing which runtime the docs assume. The ports differ by mode, so keep the runtime you choose in mind as you follow the steps.
 
@@ -20,6 +20,8 @@ docker --version
 docker compose version  # optional, only if you plan to use make dev
 git --version
 ```
+
+Dependency installs are workspace-rooted. Run `npm ci` from the repo root before using package-level scripts; the workspace directories no longer carry committed `package-lock.json` files.
 
 ## Choose A Runtime
 
@@ -79,8 +81,7 @@ Use this when you want to run the backend outside Docker while still using eithe
 2. Create the backend env file:
 
 ```bash
-cd backend
-cp .env.example .env
+cp backend/.env.example backend/.env
 ```
 
 3. If you are using local Postgres/Redis services, update `backend/.env`:
@@ -90,10 +91,12 @@ cp .env.example .env
 - `REDIS_URL=redis://localhost:8003`
 - `CORS_ORIGIN=http://127.0.0.1:8005,http://localhost:8005`
 
-4. Install and start the backend:
+4. Install dependencies from the repo root, then start the backend:
 
 ```bash
+cd /path/to/nonprofit-manager
 npm ci
+cd backend
 npm run dev
 ```
 
@@ -112,9 +115,10 @@ curl http://localhost:3000/health/live
 Use this when you are working on frontend code and already have an API running.
 
 ```bash
-cd frontend
-cp .env.example .env.local
+cp frontend/.env.example frontend/.env.local
+cd /path/to/nonprofit-manager
 npm ci
+cd frontend
 ```
 
 Set `VITE_API_URL` in `frontend/.env.local` to match the backend you are using:
@@ -137,9 +141,10 @@ Expected endpoint:
 Use this for Playwright-driven validation. The harness starts its own backend and frontend by default.
 
 ```bash
-cd e2e
+cp e2e/.env.test.example e2e/.env.test.local
+cd /path/to/nonprofit-manager
 npm ci
-cp .env.test.example .env.test.local
+cd e2e
 npm test
 ```
 

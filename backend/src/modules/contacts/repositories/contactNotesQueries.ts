@@ -318,7 +318,18 @@ export async function getContactNotesTimeline(
     }>(
       `
       SELECT
-        (SELECT COUNT(*)::text FROM contact_notes WHERE contact_id = $1) AS contact_notes,
+        (
+          SELECT COUNT(*)::text
+          FROM contact_notes cn
+          LEFT JOIN cases c ON c.id = cn.case_id
+          LEFT JOIN contacts con ON con.id = cn.contact_id
+          WHERE cn.contact_id = $1
+            AND (
+              $3::uuid IS NULL
+              OR (cn.case_id IS NULL AND con.account_id = $3::uuid)
+              OR (cn.case_id IS NOT NULL AND c.account_id = $3::uuid)
+            )
+        ) AS contact_notes,
         (
           SELECT COUNT(*)::text
           FROM case_notes csn
@@ -333,9 +344,17 @@ export async function getContactNotesTimeline(
         (
           SELECT COUNT(*)::text
           FROM activity_events ae
+          LEFT JOIN event_registrations er ON er.id = NULLIF(ae.metadata->>'registrationId', '')::uuid
+          LEFT JOIN cases c ON c.id = COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id)
+          LEFT JOIN contacts con ON con.id = ae.related_entity_id
           WHERE ae.related_entity_type = 'contact'
             AND ae.related_entity_id = $1::uuid
             AND ae.activity_type = ANY($2::text[])
+            AND (
+              $3::uuid IS NULL
+              OR (COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NULL AND con.account_id = $3::uuid)
+              OR (COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NOT NULL AND c.account_id = $3::uuid)
+            )
         ) AS event_activity
       `,
       [contactId, [...CONTACT_TIMELINE_EVENT_ACTIVITY_TYPES], organizationId]
@@ -378,7 +397,13 @@ export async function getContactNotesTimeline(
         FROM contact_notes cn
         LEFT JOIN users u ON u.id = cn.created_by
         LEFT JOIN cases c ON c.id = cn.case_id
+        LEFT JOIN contacts con ON con.id = cn.contact_id
         WHERE cn.contact_id = $1
+          AND (
+            $3::uuid IS NULL
+            OR (cn.case_id IS NULL AND con.account_id = $3::uuid)
+            OR (cn.case_id IS NOT NULL AND c.account_id = $3::uuid)
+          )
 
         UNION ALL
 
@@ -491,6 +516,11 @@ export async function getContactNotesTimeline(
         WHERE ae.related_entity_type = 'contact'
           AND ae.related_entity_id = $1::uuid
           AND ae.activity_type = ANY($2::text[])
+          AND (
+            $3::uuid IS NULL
+            OR (COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NULL AND con.account_id = $3::uuid)
+            OR (COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NOT NULL AND c.account_id = $3::uuid)
+          )
       ) timeline
       ORDER BY timeline.created_at DESC, timeline.id DESC
       LIMIT 200

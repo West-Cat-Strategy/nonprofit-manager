@@ -22,60 +22,77 @@ import {
 } from '../queries/outcomesQueries';
 
 export class CaseOutcomesRepository implements CaseOutcomesPort {
-  async listOutcomeDefinitions(includeInactive?: boolean): Promise<unknown[]> {
+  async listOutcomeDefinitions(includeInactive?: boolean, organizationId?: string): Promise<unknown[]> {
     return outcomeDefinitionService.listOutcomeDefinitions(includeInactive === true);
   }
 
-  async getInteractionOutcomes(caseId: string, interactionId: string): Promise<unknown[]> {
-    return outcomeImpactService.getInteractionOutcomes(caseId, interactionId);
+  async getInteractionOutcomes(caseId: string, interactionId: string, organizationId?: string): Promise<unknown[]> {
+    return outcomeImpactService.getInteractionOutcomes(caseId, interactionId, organizationId);
   }
 
   async saveInteractionOutcomes(
     caseId: string,
     interactionId: string,
     payload: UpdateInteractionOutcomeImpactsDTO,
-    userId?: string
+    userId?: string,
+    organizationId?: string
   ): Promise<unknown[]> {
-    return outcomeImpactService.saveInteractionOutcomes(caseId, interactionId, payload, userId);
+    return outcomeImpactService.saveInteractionOutcomes(caseId, interactionId, payload, userId, organizationId);
   }
 
-  async getCaseOutcomes(caseId: string): Promise<unknown[]> {
-    return getCaseOutcomesQuery(pool, caseId);
+  async getCaseOutcomes(caseId: string, organizationId?: string): Promise<unknown[]> {
+    return getCaseOutcomesQuery(pool, caseId, organizationId);
   }
 
-  async createCaseOutcome(caseId: string, data: CreateCaseOutcomeDTO, userId?: string): Promise<unknown> {
-    return createCaseOutcomeQuery(pool, caseId, data, userId);
+  async createCaseOutcome(
+    caseId: string,
+    data: CreateCaseOutcomeDTO,
+    userId?: string,
+    organizationId?: string
+  ): Promise<unknown> {
+    return createCaseOutcomeQuery(pool, caseId, data, userId, organizationId);
   }
 
-  async updateCaseOutcome(outcomeId: string, data: UpdateCaseOutcomeDTO, userId?: string): Promise<unknown> {
-    return updateCaseOutcomeQuery(pool, outcomeId, data, userId);
+  async updateCaseOutcome(
+    outcomeId: string,
+    data: UpdateCaseOutcomeDTO,
+    userId?: string,
+    organizationId?: string
+  ): Promise<unknown> {
+    return updateCaseOutcomeQuery(pool, outcomeId, data, userId, organizationId);
   }
 
-  async deleteCaseOutcome(outcomeId: string): Promise<boolean> {
-    return deleteCaseOutcomeQuery(pool, outcomeId);
+  async deleteCaseOutcome(outcomeId: string, organizationId?: string): Promise<boolean> {
+    return deleteCaseOutcomeQuery(pool, outcomeId, organizationId);
   }
 
-  async getCaseTopicDefinitions(caseId: string): Promise<unknown[]> {
-    return getCaseTopicDefinitionsQuery(pool, caseId);
+  async getCaseTopicDefinitions(caseId: string, organizationId?: string): Promise<unknown[]> {
+    return getCaseTopicDefinitionsQuery(pool, caseId, organizationId);
   }
 
   async createCaseTopicDefinition(
     caseId: string,
     data: CreateCaseTopicDefinitionDTO,
-    userId?: string
+    userId?: string,
+    organizationId?: string
   ): Promise<unknown> {
-    return createCaseTopicDefinitionQuery(pool, caseId, data, userId);
+    return createCaseTopicDefinitionQuery(pool, caseId, data, userId, organizationId);
   }
 
-  async getCaseTopicEvents(caseId: string): Promise<unknown[]> {
-    return getCaseTopicEventsQuery(pool, caseId);
+  async getCaseTopicEvents(caseId: string, organizationId?: string): Promise<unknown[]> {
+    return getCaseTopicEventsQuery(pool, caseId, organizationId);
   }
 
-  async addCaseTopicEvent(caseId: string, data: CreateCaseTopicEventDTO, userId?: string): Promise<unknown> {
-    return addCaseTopicEventQuery(pool, caseId, data, userId);
+  async addCaseTopicEvent(
+    caseId: string,
+    data: CreateCaseTopicEventDTO,
+    userId?: string,
+    organizationId?: string
+  ): Promise<unknown> {
+    return addCaseTopicEventQuery(pool, caseId, data, userId, organizationId);
   }
 
-  async deleteCaseTopicEvent(topicEventId: string): Promise<boolean> {
-    return deleteCaseTopicEventQuery(pool, topicEventId);
+  async deleteCaseTopicEvent(topicEventId: string, organizationId?: string): Promise<boolean> {
+    return deleteCaseTopicEventQuery(pool, topicEventId, organizationId);
   }
 }

@@ -28,7 +28,7 @@ Status: `Done` (strict closure complete; retry-resolved flakes documented)
 - Baseline notes: `docs/performance/p4-t9d-baseline-notes.md`
 - Frozen thresholds: `docs/performance/p4-t9d-thresholds.json`
 - Startup map updates: `docs/performance/p4-t9a-startup-request-map.md`
-- Strict-run retry artifacts: `e2e/test-results/*retry1`
+- Strict-run retry artifacts: transient `e2e/test-results/` output from the final strict run; the old retry folders are not retained in this checkout
 
 ## Metric Outcomes
 
@@ -65,11 +65,11 @@ Status: `Done` (strict closure complete; retry-resolved flakes documented)
 
 - Result: `CI Pipeline Passed!`
 - Playwright summary: `611 passed`, `3 skipped`, `4 flaky` (retry-resolved), runtime `~14.9m`
-- Retry artifact paths:
-  - `e2e/test-results/performance.startup-Startu-e630e--request-and-p75-thresholds-firefox-retry1/`
-  - `e2e/test-results/cases-Cases-Module-should--729dd-the-URL-and-through-refresh-webkit-retry1/`
-  - `e2e/test-results/contacts-Contacts-Module-s-e7932-on-in-create-and-edit-forms-webkit-retry1/`
-  - `e2e/test-results/contacts-Contacts-Module-s-c4086-d-filter-by-inactive-status-webkit-retry1/`
+- Retry-resolved cases captured in transient `e2e/test-results/` output during the final run:
+  - Firefox startup request-count / p75 threshold guard
+  - WebKit cases refresh URL-preservation flow
+  - WebKit contacts create/edit form flow
+  - WebKit contacts inactive-status filter flow
 
 ## Residual Risk (Non-Blocking)
 

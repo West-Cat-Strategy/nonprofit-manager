@@ -65,9 +65,10 @@ export const createCaseDocumentQuery = async (
     description?: string;
     visibleToClient?: boolean;
     userId?: string;
+    organizationId?: string;
   }
 ): Promise<CaseDocument> => {
-  const ownership = await requireCaseOwnership(db, input.caseId);
+  const ownership = await requireCaseOwnership(db, input.caseId, input.organizationId);
 
   const result = await db.query(
     `
@@ -118,10 +119,11 @@ export const updateCaseDocumentQuery = async (
   db: Pool,
   documentId: string,
   data: UpdateCaseDocumentDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseDocument> => {
-  const caseId = await requireCaseIdForDocument(db, documentId);
-  await requireCaseOwnership(db, caseId);
+  const caseId = await requireCaseIdForDocument(db, documentId, organizationId);
+  await requireCaseOwnership(db, caseId, organizationId);
 
   const fields: string[] = [];
   const values: unknown[] = [];
@@ -187,10 +189,11 @@ export const updateCaseDocumentQuery = async (
 export const deleteCaseDocumentQuery = async (
   db: Pool,
   documentId: string,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<boolean> => {
-  const caseId = await requireCaseIdForDocument(db, documentId);
-  await requireCaseOwnership(db, caseId);
+  const caseId = await requireCaseIdForDocument(db, documentId, organizationId);
+  await requireCaseOwnership(db, caseId, organizationId);
 
   const result = await db.query(
     `

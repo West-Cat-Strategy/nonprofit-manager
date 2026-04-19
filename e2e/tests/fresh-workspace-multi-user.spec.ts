@@ -2,6 +2,7 @@ import { expect, test, type Browser, type BrowserContext, type Page } from '@pla
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { enrollTotpSecret, generateTotpCodeForTest } from '../../backend/src/modules/auth/lib/totp';
 import { applyAuthTokenState, ensureEffectiveAdminLoginViaAPI, loginViaAPI } from '../helpers/auth';
 import { unwrapSuccess } from '../helpers/apiEnvelope';
 import { createTestAccount, createTestContact, getAuthHeaders } from '../helpers/database';
@@ -23,21 +24,6 @@ const { Client: PgClient } = backendRequire('pg') as {
     query(text: string, values?: unknown[]): Promise<unknown>;
   };
 };
-const { authenticator } = backendRequire('@otplib/preset-default') as {
-  authenticator: {
-    options: { step?: number; window?: number };
-    generate(secret: string): string;
-    generateSecret(): string;
-    check(code: string, secret: string): boolean;
-    keyuri(email: string, issuer: string, secret: string): string;
-  };
-};
-
-authenticator.options = {
-  step: 30,
-  window: 1,
-};
-
 test.describe.configure({ timeout: 300_000 });
 
 type UserCredentials = {
@@ -434,7 +420,7 @@ async function loginManagerWithMfaContext(
   const page = await context.newPage();
   await clearTotpStateForUser(userId);
 
-  const secret = authenticator.generateSecret();
+  const { secret } = enrollTotpSecret(credentials.email, 'Nonprofit Manager');
   await withDatabaseClient(async (client) => {
     await client.query(
       `UPDATE users
@@ -469,7 +455,7 @@ async function loginManagerWithMfaContext(
     throw new Error(`Expected MFA challenge for ${credentials.email}, got: ${JSON.stringify(loginPayload)}`);
   }
 
-  const mfaCode = authenticator.generate(secret);
+  const mfaCode = generateTotpCodeForTest(secret);
   const completeResponse = await page.request.post(`${API_URL}/api/v2/auth/login/2fa`, {
     data: {
       email: credentials.email,

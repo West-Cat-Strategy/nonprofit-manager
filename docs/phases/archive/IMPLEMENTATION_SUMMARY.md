@@ -21,7 +21,7 @@ Successfully implemented local CI runner, security, and observability infrastruc
 ### 3. ✅ Local CI Runner (No GitHub Actions)
 
 **Added local runner scripts:**
-- `scripts/local-ci.sh` for lint/type-check/tests
+- `scripts/ci.sh` for lint/type-check/tests
 - `scripts/install-git-hooks.sh` for optional pre-commit checks
 
 **Coverage:**
@@ -172,7 +172,7 @@ Successfully implemented local CI runner, security, and observability infrastruc
 ## Files Created/Modified
 
 ### Created (15 files):
-1. `scripts/local-ci.sh` - Local CI runner
+1. `scripts/ci.sh` - Local CI runner
 2. `scripts/install-git-hooks.sh` - Hook installer
 3. `scripts/hooks/pre-commit` - Fast local checks
 4. `backend/Dockerfile` - Production backend image

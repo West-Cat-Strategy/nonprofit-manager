@@ -7,7 +7,7 @@ WORKDIR /app
 FROM base AS deps
 
 # Shared dependency layer for build + dev targets.
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY --from=contracts / /contracts
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm install --no-package-lock --no-audit --no-fund
@@ -31,7 +31,7 @@ RUN ./node_modules/.bin/tsc -p tsconfig.docker.json && \
 
 FROM base AS production-deps
 
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY --from=contracts / /contracts
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm install --no-package-lock --omit=dev --no-audit --no-fund

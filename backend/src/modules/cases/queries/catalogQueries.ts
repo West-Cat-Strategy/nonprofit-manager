@@ -83,12 +83,18 @@ const CASE_SEARCH_SQL =
 
 export const getCasesQuery = async (
   db: Pool,
-  filter: CaseFilter = {}
+  filter: CaseFilter = {},
+  organizationId?: string
 ): Promise<{ cases: CaseWithDetails[]; total: number }> => {
   const filters: string[] = [];
   const params: unknown[] = [];
   let needsStatusJoin = false;
-  const organizationId = filter.organizationId || getRequestContext()?.organizationId || getRequestContext()?.accountId || getRequestContext()?.tenantId;
+  const resolvedOrganizationId =
+    organizationId ||
+    filter.organizationId ||
+    getRequestContext()?.organizationId ||
+    getRequestContext()?.accountId ||
+    getRequestContext()?.tenantId;
 
   const addFilter = (sql: string, value?: unknown) => {
     if (value !== undefined) {
@@ -177,8 +183,8 @@ export const getCasesQuery = async (
     filters.push(`${CASE_SEARCH_SQL} ILIKE $${params.length}`);
   }
 
-  if (organizationId) {
-    params.push(organizationId);
+  if (resolvedOrganizationId) {
+    params.push(resolvedOrganizationId);
     filters.push(`COALESCE(c.account_id, con.account_id) = $${params.length}`);
   }
 

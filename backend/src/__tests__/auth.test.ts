@@ -1,6 +1,5 @@
 import * as bcrypt from 'bcryptjs';
 import { Response } from 'express';
-import { validationResult } from 'express-validator';
 import pool from '@config/database';
 import { register, checkSetupStatus, setupFirstUser } from '../modules/auth/controllers/registration.controller';
 import { login } from '../modules/auth/controllers/session.controller';
@@ -31,10 +30,6 @@ jest.mock('bcryptjs', () => ({
   genSalt: jest.fn(),
   hash: jest.fn(),
   compare: jest.fn(),
-}));
-
-jest.mock('express-validator', () => ({
-  validationResult: jest.fn(),
 }));
 
 jest.mock('@middleware/accountLockout', () => ({
@@ -86,7 +81,6 @@ jest.mock('@modules/admin/repositories/pendingRegistrationRepository', () => ({
 
 describe('Auth API', () => {
   const queryMock = pool.query as jest.Mock;
-  const validationResultMock = validationResult as unknown as jest.Mock;
   const createPendingRegistrationMock = createPendingRegistration as jest.Mock;
   const getPendingRegistrationByEmailMock = getPendingRegistrationByEmail as jest.Mock;
   const setAccountLockStateMock = setAccountLockState as jest.Mock;
@@ -107,10 +101,6 @@ describe('Auth API', () => {
     getPendingRegistrationByEmailMock.mockResolvedValue(null);
     setAccountLockStateMock.mockReset();
     setAccountLockStateMock.mockResolvedValue(undefined);
-    validationResultMock.mockReturnValue({
-      isEmpty: () => true,
-      array: () => [],
-    });
   });
 
   describe('register', () => {

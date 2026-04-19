@@ -1,7 +1,6 @@
 # Keep the build context limited to files this Dockerfile copies.
 *
 !package.json
-!package-lock.json
 !index.html
 !grants-smoke.html
 !postcss.config.js

@@ -441,12 +441,13 @@ The rest of this section describes generic manual/self-managed production deploy
 ### Backend Deployment
 
 ```bash
-cd backend
+cd /path/to/nonprofit-manager
 
 # Install dependencies
-npm ci --only=production
+npm ci
 
 # Build TypeScript
+cd backend
 npm run build
 
 # Start with PM2 (recommended)
@@ -459,12 +460,13 @@ pm2 start dist/index.js --name nonprofit-backend
 ### Frontend Deployment
 
 ```bash
-cd frontend
+cd /path/to/nonprofit-manager
 
 # Install dependencies
 npm ci
 
 # Build for production
+cd frontend
 npm run build
 
 # Serve with nginx (recommended)

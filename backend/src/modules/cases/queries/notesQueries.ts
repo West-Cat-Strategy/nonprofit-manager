@@ -96,9 +96,10 @@ export const getCaseNotesQuery = async (
 export const createCaseNoteQuery = async (
   db: PgExecutor,
   data: CreateCaseNoteDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseNote> => {
-  await requireCaseOwnership(db, data.case_id);
+  await requireCaseOwnership(db, data.case_id, organizationId);
   const visibleToClient = resolveVisibleToClient({
     visible_to_client: data.visible_to_client,
     is_portal_visible: data.is_portal_visible,
@@ -147,7 +148,7 @@ export const createCaseNoteQuery = async (
     throw new Error('Failed to create case note');
   }
 
-  const note = await getCaseNoteByIdQuery(db, noteId);
+  const note = await getCaseNoteByIdQuery(db, noteId, organizationId);
   if (!note) {
     throw new Error('Case note not found');
   }
@@ -159,10 +160,11 @@ export const updateCaseNoteQuery = async (
   db: PgExecutor,
   noteId: string,
   data: UpdateCaseNoteDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseNote> => {
-  const caseId = await requireCaseIdForNote(db, noteId);
-  await requireCaseOwnership(db, caseId);
+  const caseId = await requireCaseIdForNote(db, noteId, organizationId);
+  await requireCaseOwnership(db, caseId, organizationId);
 
   const fields: string[] = [];
   const values: unknown[] = [];
@@ -239,7 +241,7 @@ export const updateCaseNoteQuery = async (
       throw new Error('No fields to update');
     }
 
-    const existing = await getCaseNoteByIdQuery(db, noteId);
+    const existing = await getCaseNoteByIdQuery(db, noteId, organizationId);
     if (!existing) {
       throw new Error('Case note not found');
     }
@@ -264,7 +266,7 @@ export const updateCaseNoteQuery = async (
     throw new Error('Case note not found');
   }
 
-  const note = await getCaseNoteByIdQuery(db, noteId);
+  const note = await getCaseNoteByIdQuery(db, noteId, organizationId);
   if (!note) {
     throw new Error('Case note not found');
   }
@@ -272,9 +274,13 @@ export const updateCaseNoteQuery = async (
   return note;
 };
 
-export const deleteCaseNoteQuery = async (db: PgExecutor, noteId: string): Promise<boolean> => {
-  const caseId = await requireCaseIdForNote(db, noteId);
-  await requireCaseOwnership(db, caseId);
+export const deleteCaseNoteQuery = async (
+  db: PgExecutor,
+  noteId: string,
+  organizationId?: string
+): Promise<boolean> => {
+  const caseId = await requireCaseIdForNote(db, noteId, organizationId);
+  await requireCaseOwnership(db, caseId, organizationId);
 
   const result = await db.query(
     `

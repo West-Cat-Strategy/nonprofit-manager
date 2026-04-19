@@ -115,10 +115,8 @@ help:
 # Installation
 #------------------------------------------------------------------------------
 install:
-	@echo "$(BLUE)Installing backend dependencies...$(RESET)"
-	cd backend && npm ci
-	@echo "$(BLUE)Installing frontend dependencies...$(RESET)"
-	cd frontend && npm ci
+	@echo "$(BLUE)Installing workspace dependencies from the repo root...$(RESET)"
+	npm ci
 	@echo "$(GREEN)All dependencies installed!$(RESET)"
 
 install-dev: install hooks
@@ -602,6 +600,8 @@ clean-local:
 
 clean-all: clean
 	@echo "$(BLUE)Cleaning node_modules...$(RESET)"
+	rm -rf node_modules
 	rm -rf backend/node_modules
 	rm -rf frontend/node_modules
+	rm -rf e2e/node_modules
 	@echo "$(GREEN)Full clean complete!$(RESET)"

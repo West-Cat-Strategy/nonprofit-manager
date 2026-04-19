@@ -20,7 +20,8 @@ import {
   toTrimmedString,
   type ImportRowError,
 } from '@modules/shared/import/importUtils';
-import { encrypt } from '@utils/encryption';
+import { logger } from '@config/logger';
+import { decrypt, encrypt } from '@utils/encryption';
 import { createContactSchema, updateContactSchema } from '@validations/contact';
 import { resolveContactRoleNames } from '../shared/contactRoleFilters';
 
@@ -62,6 +63,10 @@ type ExportableContactRow = {
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
+};
+
+type ExportableContactQueryRow = Omit<ExportableContactRow, 'phn'> & {
+  phn_encrypted: string | null;
 };
 
 type ContactExportRequest = ContactFilters & {
@@ -197,6 +202,13 @@ const CONTACT_TEMPLATE_COLUMNS = CONTACT_EXPORT_COLUMNS.filter(
   (column) => !['account_name', 'created_at', 'updated_at'].includes(column.key)
 );
 
+// Keep PHN out of default exports so export -> import round-trips never blank encrypted PHNs.
+const CONTACT_DEFAULT_EXPORT_COLUMN_KEYS = CONTACT_EXPORT_COLUMNS
+  .map((column) => column.key)
+  .filter((key) => key !== 'phn');
+
+const CONTACT_PHN_EXPORT_ROLES = new Set(['admin', 'manager', 'staff']);
+
 const CONTACT_SORT_COLUMNS: Record<string, string> = {
   created_at: 'c.created_at',
   updated_at: 'c.updated_at',
@@ -310,14 +322,16 @@ export class ContactImportExportUseCase {
   async exportContacts(
     request: ContactExportRequest,
     organizationId: string,
-    scope?: DataScopeFilter
+    scope?: DataScopeFilter,
+    viewerRole?: string
   ): Promise<GeneratedTabularFile> {
-    const columns = this.resolveColumns(request.columns);
+    const columns = this.resolveColumns(request.columns, viewerRole);
+    const includePhn = columns.some((column) => column.key === 'phn');
     const { clause, values } = buildContactWhereClause(organizationId, request, scope, request.ids);
     const sortColumn = CONTACT_SORT_COLUMNS[request.sort_by || ''] ?? CONTACT_SORT_COLUMNS.last_name;
     const sortOrder = request.sort_order === 'desc' ? 'DESC' : 'ASC';
 
-    const result = await this.pool.query<ExportableContactRow>(
+    const result = await this.pool.query<ExportableContactQueryRow>(
       `
         SELECT
           c.id AS contact_id,
@@ -333,7 +347,7 @@ export class ContactImportExportUseCase {
           c.birth_date::text AS birth_date,
           c.gender,
           c.pronouns,
-          NULL::text AS phn,
+          ${includePhn ? 'c.phn_encrypted' : 'NULL::text'} AS phn_encrypted,
           c.email,
           c.phone,
           c.mobile_phone,
@@ -374,6 +388,11 @@ export class ContactImportExportUseCase {
       values
     );
 
+    const rows = result.rows.map((row) => ({
+      ...row,
+      phn: includePhn ? this.decryptExportPhn(row.phn_encrypted, row.contact_id) : null,
+    }));
+
     return buildTabularExport({
       format: request.format,
       fallbackBaseName: `contacts-export-${new Date().toISOString().split('T')[0]}`,
@@ -381,7 +400,7 @@ export class ContactImportExportUseCase {
         {
           name: 'Contacts',
           columns,
-          rows: result.rows,
+          rows,
         },
       ],
     });
@@ -485,16 +504,50 @@ export class ContactImportExportUseCase {
     }
   }
 
-  private resolveColumns(requested?: string[]): Array<TabularExportColumn<ExportableContactRow>> {
+  private resolveColumns(
+    requested?: string[],
+    viewerRole?: string
+  ): Array<TabularExportColumn<ExportableContactRow>> {
     const defaults = ['contact_id', 'email'];
     const selected =
       requested && requested.length > 0
-        ? Array.from(new Set([...defaults, ...requested]))
-        : CONTACT_EXPORT_COLUMNS.map((column) => column.key);
+        ? Array.from(
+            new Set([
+              ...defaults,
+              ...requested.filter(
+                (key) => key !== 'phn' || this.canExportPhn(viewerRole)
+              ),
+            ])
+          )
+        : CONTACT_DEFAULT_EXPORT_COLUMN_KEYS;
 
     return selected
       .map((key) => CONTACT_EXPORT_COLUMNS.find((column) => column.key === key))
       .filter((column): column is TabularExportColumn<ExportableContactRow> => Boolean(column));
+  }
+
+  private canExportPhn(viewerRole?: string): boolean {
+    if (typeof viewerRole !== 'string') {
+      return false;
+    }
+
+    return CONTACT_PHN_EXPORT_ROLES.has(viewerRole.trim().toLowerCase());
+  }
+
+  private decryptExportPhn(phnEncrypted: string | null, contactId: string): string | null {
+    if (!phnEncrypted) {
+      return null;
+    }
+
+    try {
+      return decrypt(phnEncrypted);
+    } catch (error) {
+      logger.warn('Failed to decrypt contact PHN during export; returning null', {
+        contactId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
   }
 
   private async analyzeImport(

@@ -1,6 +1,6 @@
 # E2E Tests
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-18
 
 Playwright tests live here. For the overall testing strategy, see [../docs/testing/TESTING.md](../docs/testing/TESTING.md).
 
@@ -33,9 +33,10 @@ Those wrapper commands intentionally ignore mixed-mode overrides for `SKIP_WEBSE
 ## Setup
 
 ```bash
-cd e2e
+cp e2e/.env.test.example e2e/.env.test.local
+cd /path/to/nonprofit-manager
 npm ci
-cp .env.test.example .env.test.local
+cd e2e
 ```
 
 `ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` are optional overrides in `.env.test.local`. Leave them blank unless your local snapshot uses a different admin account than the repo defaults below.

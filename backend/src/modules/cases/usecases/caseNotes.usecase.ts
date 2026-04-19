@@ -24,11 +24,11 @@ const normalizeOutcomeImpacts = (
 export class CaseNotesUseCase {
   constructor(private readonly repository: CaseNotesPort) {}
 
-  list(caseId: string): Promise<unknown[]> {
-    return this.repository.getCaseNotes(caseId.trim());
+  list(caseId: string, organizationId?: string): Promise<unknown[]> {
+    return this.repository.getCaseNotes(caseId.trim(), organizationId);
   }
 
-  create(data: CreateCaseNoteDTO, userId?: string): Promise<unknown> {
+  create(data: CreateCaseNoteDTO, userId?: string, organizationId?: string): Promise<unknown> {
     const normalizedData: CreateCaseNoteDTO = {
       ...data,
       case_id: data.case_id.trim(),
@@ -37,10 +37,10 @@ export class CaseNotesUseCase {
       content: data.content.trim(),
       outcome_impacts: normalizeOutcomeImpacts(data.outcome_impacts),
     };
-    return this.repository.createCaseNote(normalizedData, userId);
+    return this.repository.createCaseNote(normalizedData, userId, organizationId);
   }
 
-  update(noteId: string, data: UpdateCaseNoteDTO, userId?: string): Promise<unknown> {
+  update(noteId: string, data: UpdateCaseNoteDTO, userId?: string, organizationId?: string): Promise<unknown> {
     const normalizedData: UpdateCaseNoteDTO = {
       ...data,
       subject: normalizeText(data.subject) ?? undefined,
@@ -48,10 +48,10 @@ export class CaseNotesUseCase {
       content: normalizeText(data.content) ?? undefined,
       outcome_impacts: normalizeOutcomeImpacts(data.outcome_impacts),
     };
-    return this.repository.updateCaseNote(noteId.trim(), normalizedData, userId);
+    return this.repository.updateCaseNote(noteId.trim(), normalizedData, userId, organizationId);
   }
 
-  delete(noteId: string): Promise<boolean> {
-    return this.repository.deleteCaseNote(noteId.trim());
+  delete(noteId: string, organizationId?: string): Promise<boolean> {
+    return this.repository.deleteCaseNote(noteId.trim(), organizationId);
   }
 }

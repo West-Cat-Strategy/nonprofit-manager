@@ -10,7 +10,10 @@ import type {
   UpdateCaseStatusDTO,
 } from '@app-types/case';
 import { createCaseWorkflowArtifacts } from '@services/caseWorkflowService';
-import { generateCaseNumber, normalizeCasePriority } from './shared';
+import { generateCaseNumber, normalizeCasePriority, requireCaseOwnership } from './shared';
+import { persistCaseOutcomeAssignments, persistCaseTypeAssignments } from './catalogQueries';
+ 
+type PgExecutor = Pool | PoolClient;
 
 const dedupeStrings = (values: Array<string | null | undefined>): string[] => {
   const result: string[] = [];
@@ -263,11 +266,13 @@ export const createCaseQuery = async (
 };
 
 export const updateCaseQuery = async (
-  db: Pool,
+  db: PgExecutor,
   caseId: string,
   data: UpdateCaseDTO,
-  userId?: string
-): Promise<Case> => {
+  userId?: string,
+  organizationId?: string
+): Promise<unknown> => {
+  await requireCaseOwnership(db, caseId, organizationId);
   const fields: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -377,11 +382,13 @@ export const updateCaseQuery = async (
 };
 
 export const updateCaseStatusQuery = async (
-  db: Pool,
+  db: PgExecutor,
   caseId: string,
   data: UpdateCaseStatusDTO,
-  userId?: string
-): Promise<Case> => {
+  userId?: string,
+  organizationId?: string
+): Promise<unknown> => {
+  await requireCaseOwnership(db, caseId, organizationId);
   const noteText = data.notes?.trim() || '';
   if (!noteText) {
     throw Object.assign(new Error('Status change notes are required'), {
@@ -390,9 +397,11 @@ export const updateCaseStatusQuery = async (
     });
   }
 
-  const client = await db.connect();
+  const client = 'connect' in db ? await (db as Pool).connect() : (db as PoolClient);
   try {
-    await client.query('BEGIN');
+    if ('connect' in db) {
+      await client.query('BEGIN');
+    }
 
     const currentCase = await client.query(`SELECT status_id FROM cases WHERE id = $1 FOR UPDATE`, [caseId]);
     const previousStatusId = currentCase.rows[0]?.status_id as string | undefined;
@@ -463,24 +472,32 @@ export const updateCaseStatusQuery = async (
         : undefined,
     });
 
-    await client.query('COMMIT');
-
     logger.info(`Case status updated`, { caseId, newStatus: data.new_status_id });
+    if ('connect' in db) {
+      await client.query('COMMIT');
+    }
+ 
     return result.rows[0];
   } catch (error) {
-    await client.query('ROLLBACK');
+    if ('connect' in db) {
+      await client.query('ROLLBACK');
+    }
     throw error;
   } finally {
-    client.release();
+    if ('connect' in db) {
+      (client as PoolClient).release();
+    }
   }
 };
 
 export const reassignCaseQuery = async (
-  db: Pool,
+  db: PgExecutor,
   caseId: string,
   data: ReassignCaseDTO,
-  userId?: string
-): Promise<Case> => {
+  userId?: string,
+  organizationId?: string
+): Promise<unknown> => {
+  await requireCaseOwnership(db, caseId, organizationId);
   const currentCase = await db.query(`SELECT assigned_to FROM cases WHERE id = $1`, [caseId]);
   const previousAssignee = currentCase.rows[0]?.assigned_to;
   const newAssigneeId = data.assigned_to;
@@ -521,10 +538,15 @@ export const reassignCaseQuery = async (
 };
 
 export const bulkUpdateStatusQuery = async (
-  db: Pool,
+  db: PgExecutor,
   data: BulkStatusUpdateDTO,
-  userId?: string
-): Promise<{ updated: number }> => {
+  userId?: string,
+  organizationId?: string
+): Promise<unknown> => {
+  for (const caseId of data.case_ids) {
+    await requireCaseOwnership(db, caseId, organizationId);
+  }
+
   const caseIds = data.case_ids;
   if (caseIds.length === 0) return { updated: 0 };
 
@@ -584,7 +606,12 @@ export const bulkUpdateStatusQuery = async (
   return { updated: updateResult.rowCount || 0 };
 };
 
-export const deleteCaseQuery = async (db: Pool, caseId: string): Promise<void> => {
-  await db.query(`DELETE FROM cases WHERE id = $1`, [caseId]);
+export const deleteCaseQuery = async (
+  db: PgExecutor,
+  caseId: string,
+  organizationId?: string
+): Promise<void> => {
+  await requireCaseOwnership(db, caseId, organizationId);
+  await db.query('UPDATE cases SET is_active = false, deleted_at = NOW() WHERE id = $1', [caseId]);
   logger.info(`Case deleted`, { caseId });
 };

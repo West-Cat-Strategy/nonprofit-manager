@@ -26,7 +26,7 @@ import {
   updateContactEmail,
   deleteContactEmail,
   getPrimaryEmail,
-} from '../../services/contactEmailService';
+} from '../../modules/contacts/repositories/contactEmailsRepository';
 import { syncContactMethodSummaries } from '@services/contactMethodSyncService';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────

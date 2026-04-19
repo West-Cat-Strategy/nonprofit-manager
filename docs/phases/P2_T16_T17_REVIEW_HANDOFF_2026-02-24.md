@@ -34,7 +34,7 @@ Error behavior remains canonical (`success: false`, `error`, optional `correlati
 | `backend/src/controllers/outcomeDefinitionController.ts` | Direct success responses in Phase 2 outcome admin paths | Migrated to `sendSuccess` helper usage | `cd backend && npm run test:integration` |
 | `backend/src/controllers/outcomeImpactController.ts` | Direct success responses in outcome tagging paths | Migrated to `sendSuccess` helper usage | `cd backend && npm run test:integration` |
 | `backend/src/controllers/outcomeReportController.ts` | Direct success response in outcomes reporting path | Migrated to `sendSuccess` helper usage | `cd backend && npm run test:integration` |
-| `scripts/policies/success-envelope-baseline.json` | Policy ratchet artifact for direct success calls | Ratcheted targeted controller counts downward; no baseline increases | `make lint` (policy checks pass) |
+| `scripts/check-success-envelope-policy.ts` | Live policy gate for direct success calls | Current repo keeps the ratchet inline (`baseline = 3`); no separate baseline artifact is retained | `make lint` (policy checks pass) |
 
 ### T16D — Frontend Client Envelope Alignment + Type Hardening
 

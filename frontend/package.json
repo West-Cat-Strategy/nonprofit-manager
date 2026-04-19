@@ -21,7 +21,6 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@heroicons/react": "^2.2.0",
-    "@nonprofit-manager/contracts": "file:../contracts",
     "@reduxjs/toolkit": "^2.11.2",
     "@simplewebauthn/browser": "^13.3.0",
     "@stripe/react-stripe-js": "^6.0.0",
@@ -50,6 +49,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@nonprofit-manager/contracts": "file:../contracts",
     "@tailwindcss/vite": "^4.2.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

@@ -27,7 +27,7 @@ import {
   updateContactPhone,
   deleteContactPhone,
   getPrimaryPhone,
-} from '../../services/contactPhoneService';
+} from '../../modules/contacts/repositories/contactPhonesRepository';
 import { syncContactMethodSummaries } from '@services/contactMethodSyncService';
 
 const makePhoneRow = (overrides: Record<string, unknown> = {}) => ({

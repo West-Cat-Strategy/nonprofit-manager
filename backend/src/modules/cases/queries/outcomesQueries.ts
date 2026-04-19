@@ -106,9 +106,10 @@ export const createCaseOutcomeQuery = async (
   db: PgExecutor,
   caseId: string,
   data: CreateCaseOutcomeDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseOutcomeEvent> => {
-  const ownership = await requireCaseOwnership(db, caseId);
+  const ownership = await requireCaseOwnership(db, caseId, organizationId);
   const visibleToClient = resolveVisibleToClient({
     visible_to_client: data.visible_to_client,
     is_portal_visible: data.is_portal_visible,
@@ -176,10 +177,11 @@ export const updateCaseOutcomeQuery = async (
   db: PgExecutor,
   outcomeId: string,
   data: UpdateCaseOutcomeDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseOutcomeEvent> => {
-  const caseId = await requireCaseIdForOutcome(db, outcomeId);
-  await requireCaseOwnership(db, caseId);
+  const caseId = await requireCaseIdForOutcome(db, outcomeId, organizationId);
+  await requireCaseOwnership(db, caseId, organizationId);
 
   const fields: string[] = [];
   const values: unknown[] = [];
@@ -262,9 +264,13 @@ export const updateCaseOutcomeQuery = async (
   return result.rows[0];
 };
 
-export const deleteCaseOutcomeQuery = async (db: PgExecutor, outcomeId: string): Promise<boolean> => {
-  const caseId = await requireCaseIdForOutcome(db, outcomeId);
-  await requireCaseOwnership(db, caseId);
+export const deleteCaseOutcomeQuery = async (
+  db: PgExecutor,
+  outcomeId: string,
+  organizationId?: string
+): Promise<boolean> => {
+  const caseId = await requireCaseIdForOutcome(db, outcomeId, organizationId);
+  await requireCaseOwnership(db, caseId, organizationId);
 
   const result = await db.query(
     `
@@ -305,9 +311,10 @@ export const createCaseTopicDefinitionQuery = async (
   db: PgExecutor,
   caseId: string,
   data: CreateCaseTopicDefinitionDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseTopicDefinition> => {
-  const ownership = await requireCaseOwnership(db, caseId);
+  const ownership = await requireCaseOwnership(db, caseId, organizationId);
   const normalized = data.name.trim().toLowerCase().replace(/\s+/g, ' ');
 
   const result = await db.query(
@@ -360,13 +367,14 @@ export const addCaseTopicEventQuery = async (
   db: PgExecutor,
   caseId: string,
   data: CreateCaseTopicEventDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseTopicEvent> => {
-  const ownership = await requireCaseOwnership(db, caseId);
+  const ownership = await requireCaseOwnership(db, caseId, organizationId);
 
   let topicDefinitionId = data.topic_definition_id;
   if (!topicDefinitionId && data.topic_name) {
-    const definition = await createCaseTopicDefinitionQuery(db, caseId, { name: data.topic_name }, userId);
+    const definition = await createCaseTopicDefinitionQuery(db, caseId, { name: data.topic_name }, userId, organizationId);
     topicDefinitionId = definition.id;
   }
 
@@ -403,9 +411,13 @@ export const addCaseTopicEventQuery = async (
   return result.rows[0];
 };
 
-export const deleteCaseTopicEventQuery = async (db: PgExecutor, topicEventId: string): Promise<boolean> => {
-  const caseId = await requireCaseIdForTopicEvent(db, topicEventId);
-  await requireCaseOwnership(db, caseId);
+export const deleteCaseTopicEventQuery = async (
+  db: PgExecutor,
+  topicEventId: string,
+  organizationId?: string
+): Promise<boolean> => {
+  const caseId = await requireCaseIdForTopicEvent(db, topicEventId, organizationId);
+  await requireCaseOwnership(db, caseId, organizationId);
 
   const result = await db.query(
     `

@@ -1,6 +1,6 @@
 # Backend Service
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-18
 
 This guide covers the backend service only. For the contributor workflow, start at [../CONTRIBUTING.md](../CONTRIBUTING.md). Use [../README.md](../README.md) for product context and contributor handoff.
 
@@ -28,9 +28,10 @@ Keep these modes separate when debugging or documenting local issues. The port a
 ## Direct Backend Setup
 
 ```bash
-cd backend
-cp .env.example .env
+cp backend/.env.example backend/.env
+cd /path/to/nonprofit-manager
 npm ci
+cd backend
 npm run dev
 ```
 

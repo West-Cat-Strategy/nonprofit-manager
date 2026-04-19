@@ -9,19 +9,29 @@ import {
 } from '../queries/servicesQueries';
 
 export class CaseServicesRepository implements CaseServiceAssignmentsPort {
-  async getCaseServices(caseId: string): Promise<unknown[]> {
-    return getCaseServicesQuery(pool, caseId);
+  async getCaseServices(caseId: string, organizationId?: string): Promise<unknown[]> {
+    return getCaseServicesQuery(pool, caseId, organizationId);
   }
 
-  async createCaseService(caseId: string, data: CreateCaseServiceDTO, userId?: string): Promise<unknown> {
-    return createCaseServiceQuery(pool, caseId, data, userId);
+  async createCaseService(
+    caseId: string,
+    data: CreateCaseServiceDTO,
+    userId?: string,
+    organizationId?: string
+  ): Promise<unknown> {
+    return createCaseServiceQuery(pool, caseId, data, userId, organizationId);
   }
 
-  async updateCaseService(serviceId: string, data: UpdateCaseServiceDTO, userId?: string): Promise<unknown> {
-    return updateCaseServiceQuery(pool, serviceId, data, userId);
+  async updateCaseService(
+    serviceId: string,
+    data: UpdateCaseServiceDTO,
+    userId?: string,
+    organizationId?: string
+  ): Promise<unknown> {
+    return updateCaseServiceQuery(pool, serviceId, data, userId, organizationId);
   }
 
-  async deleteCaseService(serviceId: string): Promise<void> {
-    return deleteCaseServiceQuery(pool, serviceId);
+  async deleteCaseService(serviceId: string, organizationId?: string): Promise<void> {
+    return deleteCaseServiceQuery(pool, serviceId, organizationId);
   }
 }

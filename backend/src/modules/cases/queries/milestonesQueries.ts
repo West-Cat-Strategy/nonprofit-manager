@@ -4,10 +4,14 @@ import type { CaseMilestone, CreateCaseMilestoneDTO, UpdateCaseMilestoneDTO } fr
 
 type PgExecutor = Pool | PoolClient;
 
+import { requireCaseOwnership, requireCaseIdForMilestone } from './shared';
+
 export const getCaseMilestonesQuery = async (
   db: PgExecutor,
-  caseId: string
+  caseId: string,
+  organizationId?: string
 ): Promise<CaseMilestone[]> => {
+  await requireCaseOwnership(db, caseId, organizationId);
   const result = await db.query(
     `SELECT * FROM case_milestones WHERE case_id = $1 ORDER BY sort_order, due_date`,
     [caseId]
@@ -19,8 +23,10 @@ export const createCaseMilestoneQuery = async (
   db: PgExecutor,
   caseId: string,
   data: CreateCaseMilestoneDTO,
-  userId?: string
+  userId?: string,
+  organizationId?: string
 ): Promise<CaseMilestone> => {
+  await requireCaseOwnership(db, caseId, organizationId);
   const result = await db.query(
     `INSERT INTO case_milestones (case_id, milestone_name, description, due_date, sort_order, created_by)
      VALUES ($1, $2, $3, $4, $5, $6)
@@ -41,8 +47,11 @@ export const createCaseMilestoneQuery = async (
 export const updateCaseMilestoneQuery = async (
   db: PgExecutor,
   milestoneId: string,
-  data: UpdateCaseMilestoneDTO
+  data: UpdateCaseMilestoneDTO,
+  organizationId?: string
 ): Promise<CaseMilestone> => {
+  const caseId = await requireCaseIdForMilestone(db, milestoneId, organizationId);
+  await requireCaseOwnership(db, caseId, organizationId);
   const fields: string[] = [];
   const values: unknown[] = [];
   let idx = 1;
@@ -95,8 +104,11 @@ export const updateCaseMilestoneQuery = async (
 
 export const deleteCaseMilestoneQuery = async (
   db: PgExecutor,
-  milestoneId: string
+  milestoneId: string,
+  organizationId?: string
 ): Promise<void> => {
+  const caseId = await requireCaseIdForMilestone(db, milestoneId, organizationId);
+  await requireCaseOwnership(db, caseId, organizationId);
   await db.query(`DELETE FROM case_milestones WHERE id = $1`, [milestoneId]);
   logger.info('Milestone deleted', { milestoneId });
 };

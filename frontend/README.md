@@ -1,6 +1,6 @@
 # Frontend Service
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-18
 
 This guide covers the frontend application only. For the contributor workflow, start at [../CONTRIBUTING.md](../CONTRIBUTING.md). Use [../README.md](../README.md) for product context and contributor handoff.
 
@@ -28,9 +28,10 @@ The frontend port changes between the direct runtime and the Playwright harness.
 ## Direct Frontend Setup
 
 ```bash
-cd frontend
-cp .env.example .env.local
+cp frontend/.env.example frontend/.env.local
+cd /path/to/nonprofit-manager
 npm ci
+cd frontend
 npm run dev
 ```
 

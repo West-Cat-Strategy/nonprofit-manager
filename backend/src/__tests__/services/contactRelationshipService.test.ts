@@ -4,7 +4,7 @@
  */
 
 import pool from '@config/database';
-import * as contactRelationshipService from '../../services/contactRelationshipService';
+import * as contactRelationshipService from '../../modules/contacts/repositories/contactRelationshipsRepository';
 import { logger } from '@config/logger';
 
 jest.mock('@config/database', () => ({

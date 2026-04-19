@@ -9,19 +9,28 @@ import {
 } from '../queries/milestonesQueries';
 
 export class CaseMilestonesRepository implements CaseMilestonesPort {
-  async getCaseMilestones(caseId: string): Promise<unknown[]> {
-    return getCaseMilestonesQuery(pool, caseId);
+  async getCaseMilestones(caseId: string, organizationId?: string): Promise<unknown[]> {
+    return getCaseMilestonesQuery(pool, caseId, organizationId);
   }
 
-  async createCaseMilestone(caseId: string, data: CreateCaseMilestoneDTO, userId?: string): Promise<unknown> {
-    return createCaseMilestoneQuery(pool, caseId, data, userId);
+  async createCaseMilestone(
+    caseId: string,
+    data: CreateCaseMilestoneDTO,
+    userId?: string,
+    organizationId?: string
+  ): Promise<unknown> {
+    return createCaseMilestoneQuery(pool, caseId, data, userId, organizationId);
   }
 
-  async updateCaseMilestone(milestoneId: string, data: UpdateCaseMilestoneDTO): Promise<unknown> {
-    return updateCaseMilestoneQuery(pool, milestoneId, data);
+  async updateCaseMilestone(
+    milestoneId: string,
+    data: UpdateCaseMilestoneDTO,
+    organizationId?: string
+  ): Promise<unknown> {
+    return updateCaseMilestoneQuery(pool, milestoneId, data, organizationId);
   }
 
-  async deleteCaseMilestone(milestoneId: string): Promise<void> {
-    return deleteCaseMilestoneQuery(pool, milestoneId);
+  async deleteCaseMilestone(milestoneId: string, organizationId?: string): Promise<void> {
+    return deleteCaseMilestoneQuery(pool, milestoneId, organizationId);
   }
 }

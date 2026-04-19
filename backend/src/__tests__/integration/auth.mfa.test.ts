@@ -1,21 +1,20 @@
 import request from 'supertest';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { authenticator } from '@otplib/preset-default';
 import app from '../../index';
 import pool from '../../config/database';
 import { encrypt } from '../../utils/encryption';
 import { getJwtSecret } from '../../config/jwt';
+import { enrollTotpSecret, generateTotpCodeForTest } from '../../modules/auth/lib/totp';
 
 describe('Auth MFA Integration Tests', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const mfaEmail = `auth-mfa-${unique()}@example.com`;
   const mfaPassword = 'StrongPassword123!';
-  const mfaSecret = authenticator.generateSecret();
+  const { secret: mfaSecret } = enrollTotpSecret(mfaEmail, 'Nonprofit Manager');
   let expectedOrganizationId: string;
 
   beforeAll(async () => {
-    authenticator.options = { step: 30, window: 1 };
     const passwordHash = await bcrypt.hash(mfaPassword, 10);
 
     const userResult = await pool.query<{ id: string }>(
@@ -110,7 +109,7 @@ describe('Auth MFA Integration Tests', () => {
       })
       .expect(200);
 
-    const code = authenticator.generate(mfaSecret);
+    const code = generateTotpCodeForTest(mfaSecret);
 
     const response = await agent
       .post('/api/v2/auth/login/2fa')
@@ -153,7 +152,7 @@ describe('Auth MFA Integration Tests', () => {
       })
       .expect(200);
 
-    const legacyCode = authenticator.generate(mfaSecret);
+    const legacyCode = generateTotpCodeForTest(mfaSecret);
 
     const response = await request(app)
       .post('/api/v2/auth/login/2fa')

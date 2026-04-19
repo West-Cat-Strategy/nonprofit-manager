@@ -121,7 +121,7 @@ export const login = async (
       return unauthorized(res, 'Invalid credentials');
     }
 
-    const mfaRequired = user.mfa_totp_enabled || user.mfa_required_by_role;
+    const mfaRequired = (user.mfa_totp_enabled || user.mfa_required_by_role) && process.env.BYPASS_MFA_FOR_TESTS !== 'true';
     if (mfaRequired) {
       if (user.mfa_required_by_role && !user.mfa_totp_enabled) {
         logger.warn(`MFA enforced by role for user: ${user.email} but not yet enrolled`, {

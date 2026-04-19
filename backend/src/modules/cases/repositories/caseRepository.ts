@@ -26,8 +26,8 @@ import {
 } from '../queries/lifecycleQueries';
 
 export class CaseRepository implements CaseCatalogPort, CaseLifecyclePort {
-  async getCases(filter: CaseFilter): Promise<{ cases: unknown[]; total: number }> {
-    return getCasesQuery(pool, filter);
+  async getCases(filter: CaseFilter, organizationId?: string): Promise<{ cases: unknown[]; total: number }> {
+    return getCasesQuery(pool, filter, organizationId);
   }
 
   async getCaseById(caseId: string, organizationId?: string): Promise<unknown | null> {
@@ -58,23 +58,23 @@ export class CaseRepository implements CaseCatalogPort, CaseLifecyclePort {
     return createCaseQuery(pool, data, userId, organizationId);
   }
 
-  async updateCase(caseId: string, data: UpdateCaseDTO, userId?: string): Promise<unknown> {
-    return updateCaseQuery(pool, caseId, data, userId);
+  async updateCase(caseId: string, data: UpdateCaseDTO, userId?: string, organizationId?: string): Promise<unknown> {
+    return updateCaseQuery(pool, caseId, data, userId, organizationId);
   }
 
-  async updateCaseStatus(caseId: string, data: UpdateCaseStatusDTO, userId?: string): Promise<unknown> {
-    return updateCaseStatusQuery(pool, caseId, data, userId);
+  async updateCaseStatus(caseId: string, data: UpdateCaseStatusDTO, userId?: string, organizationId?: string): Promise<unknown> {
+    return updateCaseStatusQuery(pool, caseId, data, userId, organizationId);
   }
 
-  async reassignCase(caseId: string, data: ReassignCaseDTO, userId?: string): Promise<unknown> {
-    return reassignCaseQuery(pool, caseId, data, userId);
+  async reassignCase(caseId: string, data: ReassignCaseDTO, userId?: string, organizationId?: string): Promise<unknown> {
+    return reassignCaseQuery(pool, caseId, data, userId, organizationId);
   }
 
-  async bulkUpdateCaseStatus(data: BulkStatusUpdateDTO, userId?: string): Promise<unknown> {
-    return bulkUpdateStatusQuery(pool, data, userId);
+  async bulkUpdateCaseStatus(data: BulkStatusUpdateDTO, userId?: string, organizationId?: string): Promise<unknown> {
+    return bulkUpdateStatusQuery(pool, data, userId, organizationId);
   }
 
-  async deleteCase(caseId: string): Promise<void> {
-    return deleteCaseQuery(pool, caseId);
+  async deleteCase(caseId: string, organizationId?: string): Promise<void> {
+    return deleteCaseQuery(pool, caseId, organizationId);
   }
 }

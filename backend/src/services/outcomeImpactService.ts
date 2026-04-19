@@ -1,6 +1,7 @@
 import { Pool, PoolClient } from 'pg';
 import pool from '@config/database';
 import { logger } from '@config/logger';
+import { getRequestContext } from '@config/requestContext';
 import type {
   InteractionOutcomeImpact,
   InteractionOutcomeImpactInput,
@@ -47,8 +48,14 @@ export class OutcomeImpactService {
   private async ensureInteractionBelongsToCase(
     executor: PgExecutor,
     caseId: string,
-    interactionId: string
+    interactionId: string,
+    organizationId?: string
   ): Promise<InteractionContext> {
+    const resolvedOrganizationId =
+      organizationId ||
+      getRequestContext()?.organizationId ||
+      getRequestContext()?.accountId ||
+      getRequestContext()?.tenantId;
     const interactionResult = await executor.query(
       `
       SELECT
@@ -61,11 +68,16 @@ export class OutcomeImpactService {
       FROM case_notes cn
       INNER JOIN cases c
         ON c.id = cn.case_id
+      LEFT JOIN contacts con ON con.id = c.contact_id
       WHERE cn.id = $1
         AND cn.case_id = $2
+        AND (
+          $3::uuid IS NULL
+          OR COALESCE(c.account_id, con.account_id) = $3::uuid
+        )
       LIMIT 1
     `,
-      [interactionId, caseId]
+      [interactionId, caseId, resolvedOrganizationId || null]
     );
 
     const row = interactionResult.rows[0] as
@@ -361,8 +373,12 @@ export class OutcomeImpactService {
     return this.fetchInteractionOutcomesByInteractionId(executor, context.interactionId);
   }
 
-  async getInteractionOutcomes(caseId: string, interactionId: string): Promise<InteractionOutcomeImpact[]> {
-    await this.ensureInteractionBelongsToCase(this.pool, caseId, interactionId);
+  async getInteractionOutcomes(
+    caseId: string,
+    interactionId: string,
+    organizationId?: string
+  ): Promise<InteractionOutcomeImpact[]> {
+    await this.ensureInteractionBelongsToCase(this.pool, caseId, interactionId, organizationId);
 
     return this.fetchInteractionOutcomesByInteractionId(this.pool, interactionId);
   }
@@ -371,14 +387,20 @@ export class OutcomeImpactService {
     caseId: string,
     interactionId: string,
     payload: UpdateInteractionOutcomeImpactsDTO,
-    userId?: string
+    userId?: string,
+    organizationId?: string
   ): Promise<InteractionOutcomeImpact[]> {
     const client = await this.pool.connect();
 
     try {
       await client.query('BEGIN');
 
-      const context = await this.ensureInteractionBelongsToCase(client, caseId, interactionId);
+      const context = await this.ensureInteractionBelongsToCase(
+        client,
+        caseId,
+        interactionId,
+        organizationId
+      );
       const savedImpacts = await this.persistInteractionOutcomes(client, context, payload, userId);
 
       await client.query('COMMIT');
@@ -407,9 +429,15 @@ export class OutcomeImpactService {
     caseId: string,
     interactionId: string,
     payload: UpdateInteractionOutcomeImpactsDTO,
-    userId?: string
+    userId?: string,
+    organizationId?: string
   ): Promise<InteractionOutcomeImpact[]> {
-    const context = await this.ensureInteractionBelongsToCase(executor, caseId, interactionId);
+    const context = await this.ensureInteractionBelongsToCase(
+      executor,
+      caseId,
+      interactionId,
+      organizationId
+    );
     return this.persistInteractionOutcomes(executor, context, payload, userId);
   }
 }

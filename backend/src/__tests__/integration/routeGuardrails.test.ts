@@ -988,8 +988,8 @@ describe('Route Guardrails Integration', () => {
     });
   });
 
-  it('keeps validation detail contract parity for express-validator and zod routes', async () => {
-    const expressValidatorResponse = await request(app)
+  it('keeps validation detail contract parity across legacy and zod validation routes', async () => {
+    const legacyValidationResponse = await request(app)
       .post('/api/v2/auth/register')
       .send({})
       .expect(400);
@@ -1000,7 +1000,7 @@ describe('Route Guardrails Integration', () => {
       .set('x-organization-id', activeOrgId)
       .expect(400);
 
-    expect(expressValidatorResponse.body.error.details).toMatchObject({
+    expect(legacyValidationResponse.body.error.details).toMatchObject({
       issues: expect.any(Array),
       validation: expect.any(Object),
     });

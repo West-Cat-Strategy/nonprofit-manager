@@ -257,7 +257,12 @@ export const createContactDirectoryController = (
       }
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-      const file = await importExportUseCase.exportContacts(req.body, organizationId, scope);
+      const file = await importExportUseCase.exportContacts(
+        req.body,
+        organizationId,
+        scope,
+        req.user?.role
+      );
       setTabularDownloadHeaders(res, file);
       res.send(file.buffer);
     } catch (error) {

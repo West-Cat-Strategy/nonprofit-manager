@@ -77,7 +77,7 @@ export class CaseLifecycleUseCase {
     return this.repository.createCase(normalizedData, userId, organizationId);
   }
 
-  update(caseId: string, data: UpdateCaseDTO, userId?: string): Promise<unknown> {
+  update(caseId: string, data: UpdateCaseDTO, userId?: string, organizationId?: string): Promise<unknown> {
     const caseTypeIds = resolvePreferredStrings(data.case_type_ids, data.case_type_id);
     const caseOutcomeValues = resolvePreferredStrings(
       data.case_outcome_values,
@@ -85,7 +85,7 @@ export class CaseLifecycleUseCase {
     ) as CaseOutcome[];
     const primaryCaseTypeId = caseTypeIds[0] ?? normalizeText(data.case_type_id);
     const primaryCaseOutcome = caseOutcomeValues[0] ?? (normalizeText(data.outcome) as CaseOutcome | undefined);
-
+ 
     const normalizedData: UpdateCaseDTO = {
       ...data,
       title: normalizeText(data.title),
@@ -100,10 +100,10 @@ export class CaseLifecycleUseCase {
       outcome: primaryCaseOutcome,
       case_outcome_values: caseOutcomeValues.length > 0 ? caseOutcomeValues : undefined,
     };
-    return this.repository.updateCase(caseId.trim(), normalizedData, userId);
+    return this.repository.updateCase(caseId.trim(), normalizedData, userId, organizationId);
   }
 
-  updateStatus(caseId: string, data: UpdateCaseStatusDTO, userId?: string): Promise<unknown> {
+  updateStatus(caseId: string, data: UpdateCaseStatusDTO, userId?: string, organizationId?: string): Promise<unknown> {
     const normalizedData: UpdateCaseStatusDTO = {
       ...data,
       new_status_id: data.new_status_id.trim(),
@@ -111,29 +111,29 @@ export class CaseLifecycleUseCase {
       notes: normalizeText(data.notes),
       outcome_definition_ids: data.outcome_definition_ids?.map((id) => id.trim()).filter(Boolean),
     };
-    return this.repository.updateCaseStatus(caseId.trim(), normalizedData, userId);
+    return this.repository.updateCaseStatus(caseId.trim(), normalizedData, userId, organizationId);
   }
 
-  reassign(caseId: string, data: ReassignCaseDTO, userId?: string): Promise<unknown> {
+  reassign(caseId: string, data: ReassignCaseDTO, userId?: string, organizationId?: string): Promise<unknown> {
     const normalizedData: ReassignCaseDTO = {
       ...data,
       assigned_to: data.assigned_to?.trim() ?? null,
       reason: normalizeText(data.reason),
     };
-    return this.repository.reassignCase(caseId.trim(), normalizedData, userId);
+    return this.repository.reassignCase(caseId.trim(), normalizedData, userId, organizationId);
   }
 
-  bulkUpdate(data: BulkStatusUpdateDTO, userId?: string): Promise<unknown> {
+  bulkUpdate(data: BulkStatusUpdateDTO, userId?: string, organizationId?: string): Promise<unknown> {
     const normalizedData: BulkStatusUpdateDTO = {
       ...data,
       case_ids: data.case_ids.map((caseId) => caseId.trim()).filter((caseId) => caseId.length > 0),
       new_status_id: data.new_status_id.trim(),
       notes: normalizeText(data.notes),
     };
-    return this.repository.bulkUpdateCaseStatus(normalizedData, userId);
+    return this.repository.bulkUpdateCaseStatus(normalizedData, userId, organizationId);
   }
 
-  delete(caseId: string): Promise<void> {
-    return this.repository.deleteCase(caseId.trim());
+  delete(caseId: string, organizationId?: string): Promise<void> {
+    return this.repository.deleteCase(caseId.trim(), organizationId);
   }
 }
