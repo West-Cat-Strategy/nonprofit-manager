@@ -1,6 +1,6 @@
 # User Interface Template Information
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 
 > Document Type: Canonical UI Constitution
@@ -9,6 +9,8 @@
 > Status: Active
 
 This document is the authoritative design reference for Nonprofit Manager. The old neo-brutalist-first guidance is retired. The application now follows an editorial operations system that prioritizes readability, workflow efficiency, and consistent staff/portal/public navigation.
+
+Start with [README.md](README.md) for the active UI-doc map and [archive/README.md](archive/README.md) for dated audit snapshots and review notes.
 
 ## Design Direction
 
@@ -96,9 +98,9 @@ This system is meant to feel credible and operational rather than playful or orn
 - `node scripts/check-route-integrity.ts` validates literal route targets against the catalog.
 - `node scripts/check-route-catalog-drift.ts` validates route registration drift.
 - `node scripts/ui-audit.ts` tracks semantic-token use and inline-style debt.
-- Published audit artifacts live in:
-  - `docs/ui/app-ux-audit.md`
-  - `docs/ui/app-ux-audit.json`
+- Published audit artifacts now live in:
+  - `docs/ui/archive/app-ux-audit.md`
+  - `docs/ui/archive/app-ux-audit.json`
 
 ## Theme and Rollout Rules
 

@@ -1,44 +1,72 @@
-# Telemetry and Monitoring
+# Telemetry And Monitoring
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
+Use this doc for the current observability surfaces that are visible in the repo today. It focuses on mounted metrics endpoints, structured telemetry already emitted by the backend, and the source files that own those contracts.
 
-The Nonprofit Manager includes a self-hosted monitoring system to track application health, performance, and user activity without sacrificing privacy.
+## Current Observability Surfaces
 
-## Prometheus Metrics
+- Prometheus-compatible runtime metrics are exposed by both the main backend runtime and the public-site runtime.
+- Structured request and security-oriented events flow through the shared backend logger.
+- Compatibility telemetry for auth alias usage is active and has its own operational workflow.
 
-The application exposes Prometheus-compatible metrics for real-time monitoring of various system aspects.
+## Runtime Metrics
 
-### Key Metrics Tracked
-- **HTTP Requests**: Total count, duration (percentiles: p50, p95, p99), and success/error rates.
-- **Process Info**: Memory usage (heap, RSS), uptime, and version information.
-- **Organization Traffic**: Requests per organization (correlation ID tracking).
-- **Database Health**: Connection pool status and query latency.
+### Exposed Endpoints
 
-### Endpoints
-- `/metrics`: Standard Prometheus exposition format.
-- `/metrics/json`: Developer-friendly JSON snapshot of current metrics.
+- `/metrics` - Prometheus exposition format.
+- `/metrics/json` - JSON snapshot of the registered metrics.
 
-### Security
-In production, the metrics endpoint is protected by an `X-Metrics-Key` header (configured via `METRICS_AUTH_KEY` environment variable).
+These routes are mounted by both:
 
-## Telemetry Events
+- `backend/src/index.ts`
+- `backend/src/public-site.ts`
 
-We use a lightweight telemetry system to track specific business-level events (e.g., "Report Generated", "Invoice Paid").
+### Current Metrics Captured
 
-- **Anonymization**: All telemetry events are anonymized by default. No PII is stored in the telemetry logs.
-- **Storage**: Events are initially buffered in-memory and periodically flushed to the data store (or exported to an external collector if configured).
-- **Audit Logs**: High-security events are also recorded in the **Audit Logs** table for compliance.
+- `app_info`
+- `http_requests_total`
+- `http_requests_in_progress`
+- `http_request_duration_ms`
+- `http_errors_total`
+- Default Node.js process/runtime metrics collected through `prom-client`
 
-## Dashboard Visualization
+Request metrics normalize dynamic IDs in route paths before they are recorded, so dashboard queries stay stable across individual records.
 
-Administrators can view a high-level summary of system performance and activity under **Admin Panel** > **System Status**.
+### Access Control
 
-- **Latency Overview**: Real-time chart of API response times.
-- **Error Rates**: Tracking of 4xx and 5xx errors by route.
-- **Active Users**: Pulse of concurrent sessions and active organization context.
+- Metrics are open in non-production environments.
+- In production, metrics access is gated by `X-Metrics-Key` when `METRICS_AUTH_KEY` is set.
+- The protection logic lives in `backend/src/middleware/metrics.ts`.
 
-## Technical Details
+## Structured Telemetry Already In Use
 
-- **Middleware**: `backend/src/middleware/metrics.ts`
-- **Configuration**: `PROMETHEUS_ENABLED`, `METRICS_AUTH_KEY` in environment variables.
+### Request And Error Signals
+
+- HTTP request totals, latency, and error counts are recorded through the metrics middleware.
+- Shared backend logging supplies the operational event stream used by the security and telemetry docs.
+
+### Auth Alias Usage Telemetry
+
+- The backend emits `auth.alias_input_used` when legacy snake_case auth fields are used before validation transforms run.
+- Source middleware: `backend/src/modules/auth/middleware/aliasUsageTelemetry.ts`
+- Current operations guide: [../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md)
+- Current deprecation checklist: [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md)
+- Current evidence note: [../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md)
+
+## Source Files
+
+- `backend/src/middleware/metrics.ts`
+- `backend/src/index.ts`
+- `backend/src/public-site.ts`
+- `backend/src/modules/auth/middleware/aliasUsageTelemetry.ts`
+
+## Related Docs
+
+- [../security/SECURITY_MONITORING_GUIDE.md](../security/SECURITY_MONITORING_GUIDE.md)
+- [../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md)
+- [../validation/README.md](../validation/README.md)
+
+## Scope Note
+
+This doc intentionally describes only the current telemetry and monitoring surfaces that are visible in the repo. It does not serve as a future analytics roadmap or a generic event-design specification.

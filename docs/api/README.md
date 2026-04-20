@@ -1,6 +1,6 @@
 # API Documentation Index
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 Use this file as the entry point for active Nonprofit Manager API documentation. When route summaries need confirmation, verify them against [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) and the mounted module route files under `backend/src/modules/**/routes/`.
 
@@ -17,7 +17,7 @@ For contributor navigation, follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md
 | Administration | Branding, organization settings, roles, permissions, groups, access, registration settings | [openapi.yaml](openapi.yaml) | `/api/v2/admin/*` |
 | Reporting & Exports | Report generation, small synchronous exports, async export jobs, templates, analytics exports | [API_REFERENCE_EXPORT.md](API_REFERENCE_EXPORT.md), [../features/REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md) | `/api/v2/reports/*`, `/api/v2/export/*` |
 | Analytics | Summary, account/contact metrics, trend analysis, anomalies | [openapi.yaml](openapi.yaml) | `/api/v2/analytics/*` |
-| Payments & Integrations | Payments, reconciliation, Mailchimp, webhooks | [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md) | `/api/v2/payments/*`, `/api/v2/mailchimp/*`, `/api/v2/webhooks/*` |
+| Payments & Integrations | Payments, reconciliation, Mailchimp, webhooks | [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md), [PAYMENT_PROVIDER_TESTING_GUIDE.md](PAYMENT_PROVIDER_TESTING_GUIDE.md) | `/api/v2/payments/*`, `/api/v2/mailchimp/*`, `/api/v2/webhooks/*` |
 | Backup | Admin-triggered backup export | [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md) | `/api/v2/backup/export` |
 | Tooling | Machine-readable schema and Postman workflow | [openapi.yaml](openapi.yaml), [postman/README.md](postman/README.md) | n/a |
 
@@ -95,6 +95,7 @@ Additional `details` or validation-specific fields may appear on some error resp
 - [API_REFERENCE_PORTAL_APPOINTMENTS.md](API_REFERENCE_PORTAL_APPOINTMENTS.md)
 - [API_REFERENCE_BACKUP.md](API_REFERENCE_BACKUP.md)
 - [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md)
+- [PAYMENT_PROVIDER_TESTING_GUIDE.md](PAYMENT_PROVIDER_TESTING_GUIDE.md)
 - [postman/README.md](postman/README.md)
 - [../README.md](../README.md)
 - [../../CONTRIBUTING.md](../../CONTRIBUTING.md)

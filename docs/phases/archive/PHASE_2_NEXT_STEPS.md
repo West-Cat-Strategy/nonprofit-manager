@@ -327,7 +327,7 @@ router.post('/create',
 ## Need Help?
 
 **Reference the Phase 1 docs** in repo:
-- `PHASE_1_QUICK_REFERENCE.md` - 10 code examples
+- [../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md](../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md) - 10 code examples
 - `PHASE_1_MIGRATION_GUIDE.md` - Step-by-step walkthrough
 - `PHASE_1_FINAL_SUMMARY.md` - Architecture overview
 

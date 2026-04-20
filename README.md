@@ -51,10 +51,13 @@ Technology snapshot: TypeScript, React 19, Express, PostgreSQL, Redis, Tailwind 
 
 ## Learn More
 
+- Product docs: [docs/product/README.md](docs/product/README.md)
+- Feature docs: [docs/features/README.md](docs/features/README.md)
 - Product specification: [docs/product/product-spec.md](docs/product/product-spec.md)
 - Feature inventory: [docs/features/FEATURE_MATRIX.md](docs/features/FEATURE_MATRIX.md)
 - Open-source benchmark: [docs/product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](docs/product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md)
 - Workflow personas: [docs/product/persona-workflows.md](docs/product/persona-workflows.md)
+- UI docs: [docs/ui/README.md](docs/ui/README.md)
 - API reference: [docs/api/README.md](docs/api/README.md)
 - Deployment guide: [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md)
 - Full documentation catalog: [docs/README.md](docs/README.md)

@@ -28,7 +28,7 @@ const docsAuditExcludedPrefixes = [
 const docsApiV1AllowedFiles = new Set([
   'docs/deployment/LOG_AGGREGATION_SETUP.md',
   'docs/deployment/PLAUSIBLE_SETUP.md',
-  'docs/product/PRODUCT_ANALYTICS_RESEARCH.md',
+  'docs/product/archive/PRODUCT_ANALYTICS_RESEARCH.md',
 ]);
 
 function normalizeRelativePath(filePath) {

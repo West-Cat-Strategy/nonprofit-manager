@@ -319,7 +319,7 @@ If picking up Phase 2.6+, start with:
 3. Look at `backend/src/routes/auth.ts` - See the complete migration pattern
 4. Run tests: `npm test -- schemas.test.ts` - Verify everything works
 5. Pick Phase 2.6 (Auth Controller) and follow the checklist
-6. Reference `PHASE_1_QUICK_REFERENCE.md` for auth guard patterns
+6. Reference [../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md](../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md) for auth guard patterns
 
 ---
 

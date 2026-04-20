@@ -4,7 +4,7 @@
 
 Compact command map for day-to-day work in the nonprofit-manager repo.
 
-Use [../../README.md](../../README.md) for the onboarding path and [../README.md](../README.md) for the documentation catalog.
+Use [README.md](README.md) for the quick-reference index, [archive/README.md](archive/README.md) for historical quick-reference notes, [../../README.md](../../README.md) for the onboarding path, and [../README.md](../README.md) for the broader documentation catalog.
 
 ## Project Structure
 

@@ -1,8 +1,8 @@
 # Theme System Documentation
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-20
 
-Use this doc when you are changing theme tokens, selector metadata, or shared shell presentation. For broader UI review history, use the docs under [ui/](ui/); for frontend runtime ownership, use [../frontend/README.md](../frontend/README.md).
+Use this doc when you are changing theme tokens, selector metadata, or shared shell presentation. Start with [ui/README.md](ui/README.md) for the active UI-doc map and [ui/archive/README.md](ui/archive/README.md) for dated audit evidence. For frontend runtime ownership, use [../frontend/README.md](../frontend/README.md).
 
 ## Overview
 
@@ -93,10 +93,10 @@ node scripts/check-route-integrity.ts
 node scripts/check-route-catalog-drift.ts
 ```
 
-Published UX audit artifacts:
+Archived UX audit artifacts:
 
-- `docs/ui/app-ux-audit.md`
-- `docs/ui/app-ux-audit.json`
+- `docs/ui/archive/app-ux-audit.md`
+- `docs/ui/archive/app-ux-audit.json`
 
 Treat those artifacts as evidence snapshots, not as the source of truth for current theme tokens.
 

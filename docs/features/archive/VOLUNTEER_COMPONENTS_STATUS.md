@@ -8,7 +8,7 @@
 **Status**: ✅ All Components Complete
 **Phase**: Week 1 - Core Module Completion
 
-This document is a historical completion snapshot for an earlier volunteer-components milestone. Use [FEATURE_MATRIX.md](FEATURE_MATRIX.md) for the current capability map and [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for active tracked changes before treating the status below as live.
+This document is a historical completion snapshot for an earlier volunteer-components milestone. Use [../FEATURE_MATRIX.md](../FEATURE_MATRIX.md) for the current capability map and [../../phases/planning-and-progress.md](../../phases/planning-and-progress.md) for active tracked changes before treating the status below as live.
 
 ---
 

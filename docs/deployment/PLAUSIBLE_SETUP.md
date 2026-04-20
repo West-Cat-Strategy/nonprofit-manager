@@ -231,4 +231,4 @@ Those patterns do not match the current implementation.
 - [Plausible Documentation](https://plausible.io/docs)
 - [Plausible Stats API](https://plausible.io/docs/stats-api)
 - [Self-Hosting Guide](https://plausible.io/docs/self-hosting)
-- [Product Analytics Research](../product/PRODUCT_ANALYTICS_RESEARCH.md)
+- [Product Archive](../product/archive/README.md)

@@ -1,9 +1,9 @@
 # Product Analytics Integration Research
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 
-This document is a technology-evaluation snapshot, not a declaration of the currently deployed analytics stack. Use [../features/TELEMETRY.md](../features/TELEMETRY.md) for the repo's telemetry feature context and the live workboard for any active analytics migration or rollout work.
+This archived document is a technology-evaluation snapshot, not a declaration of the currently deployed analytics stack. Use [../../features/TELEMETRY.md](../../features/TELEMETRY.md) for the repo's telemetry feature context, [../README.md](../README.md) for the current product-doc index, and the live workboard for any active analytics migration or rollout work.
 
 ## Overview
 
@@ -342,7 +342,8 @@ const SITE_ID = process.env.PLAUSIBLE_SITE_ID;
 
 export class PlausibleService {
   private client = axios.create({
-    baseURL: `${PLAUSIBLE_API_BASE}/api/v1`,
+    // Replace with the provider's current versioned API base path.
+    baseURL: `${PLAUSIBLE_API_BASE}/api/<provider-version>`,
     headers: {
       'Authorization': `Bearer ${PLAUSIBLE_API_KEY}`,
     },

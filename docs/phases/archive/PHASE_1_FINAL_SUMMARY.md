@@ -110,7 +110,7 @@ Comprehensive documentation for implementation and usage
 **Files Created:**
 - `PHASE_1_COMPLETION_SUMMARY.md` - Complete Phase 1 summary
 - `PHASE_1_MIGRATION_GUIDE.md` - Migration guide with 6 examples
-- `PHASE_1_QUICK_REFERENCE.md` - Quick reference for developers
+- [../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md](../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md) - Quick reference for developers
 
 ---
 
@@ -180,7 +180,7 @@ backend/src/
 Root:
 ├── PHASE_1_COMPLETION_SUMMARY.md   (NEW)
 ├── PHASE_1_MIGRATION_GUIDE.md      (NEW)
-├── PHASE_1_QUICK_REFERENCE.md      (NEW)
+├── ../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md      (NEW)
 └── ...
 ```
 
@@ -217,7 +217,7 @@ if (!guard.success) return forbidden(res, guard.error);
 // guard.user is now safe to use
 ```
 
-See `PHASE_1_QUICK_REFERENCE.md` for more examples.
+See [../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md](../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md) for more examples.
 
 ---
 
@@ -313,7 +313,7 @@ See full Phase Plan: [Three-Phase Implementation Plan](./PHASE_1_MIGRATION_GUIDE
 
 - 📖 **PHASE_1_COMPLETION_SUMMARY.md** - This document
 - 📖 **PHASE_1_MIGRATION_GUIDE.md** - Detailed examples and patterns
-- 📖 **PHASE_1_QUICK_REFERENCE.md** - Developer quick reference
+- 📖 [../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md](../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md) - Developer quick reference
 - 📖 **Original Plan** - Check planning-and-progress.md
 
 ---
@@ -327,7 +327,7 @@ All Phase 1 work is:
 - ✅ Backwards compatible
 
 Team members can now:
-1. Review examples in PHASE_1_QUICK_REFERENCE.md
+1. Review examples in [../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md](../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md)
 2. Read PHASE_1_MIGRATION_GUIDE.md for detailed patterns
 3. Create new validation schemas following examples
 4. Migrate existing routes incrementally
@@ -337,7 +337,7 @@ Team members can now:
 ## Contact & Questions
 
 For questions about Phase 1:
-1. **Quick answers:** PHASE_1_QUICK_REFERENCE.md
+1. **Quick answers:** [../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md](../../quick-reference/archive/PHASE_1_QUICK_REFERENCE.md)
 2. **Detailed guide:** PHASE_1_MIGRATION_GUIDE.md
 3. **Complete info:** PHASE_1_COMPLETION_SUMMARY.md
 4. **Schema docs:** See comments in validations/*.ts files

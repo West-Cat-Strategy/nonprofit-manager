@@ -3,7 +3,7 @@
 **Last Updated:** 2026-04-20
 
 
-This document is the live remediation companion to [executive-director-persona-findings-2026-04-20.md](executive-director-persona-findings-2026-04-20.md). The original findings file remains an immutable snapshot; this tracker records the current implementation state, owner rows, canonical route errata, verification commands, and backlog boundaries for the `P4-T54` remediation wave.
+This document is the archived remediation companion to [executive-director-persona-findings-2026-04-20.md](executive-director-persona-findings-2026-04-20.md). The original findings file remains an immutable snapshot; this tracker preserves the implementation state, owner rows, canonical route errata, verification commands, and backlog boundaries recorded for the `P4-T54` remediation wave.
 
 ## Status Key
 
@@ -22,6 +22,8 @@ This document is the live remediation companion to [executive-director-persona-f
 | 4. Fundraiser stewardship workflows are present but not surfaced as a first-class operating path | `closed` | `P4-T54` | Fundraising-oriented system template packs now exist, and both donations and opportunities surfaces include compact fundraiser workflow panels that deep-link into the existing reports home, fundraising template pack, scheduled reports, opportunities pipeline, and communications settings routes. | `cd frontend && npm test -- --run src/features/finance/pages/__tests__/DonationListPage.test.tsx src/features/engagement/opportunities/pages/__tests__/OpportunitiesPage.test.tsx src/features/reports/pages/__tests__/ReportTemplatesPage.test.tsx`; `cd frontend && npm run type-check` | 2026-04-19 |
 
 ## Backlog-Only Follow-through
+
+The remaining backlog-only governance and compliance items from this archived tracker are now also captured in [../../phases/PHASE_5_DEVELOPMENT_PLAN.md](../../phases/PHASE_5_DEVELOPMENT_PLAN.md) under the later-wave governance and compliance backlog so they stay visible outside this historical tracker.
 
 | Finding | Status | Owner row(s) | Current remediation state | Verification | Closeout date |
 |---|---|---|---|---|---|

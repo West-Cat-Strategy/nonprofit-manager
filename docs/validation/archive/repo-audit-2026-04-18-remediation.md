@@ -3,7 +3,7 @@
 **Last Updated:** 2026-04-20
 
 
-This document is the live remediation companion to [repo-audit-2026-04-18.md](repo-audit-2026-04-18.md). The original audit remains an immutable snapshot; this tracker records the current implementation state, owner rows, verification commands, and closeout dates for each finding.
+This document is the archived remediation companion to [repo-audit-2026-04-18.md](repo-audit-2026-04-18.md). The original audit remains an immutable snapshot; this tracker preserves the implementation state, owner rows, verification commands, and closeout dates that were recorded for each finding during the remediation wave.
 
 ## Status Key
 

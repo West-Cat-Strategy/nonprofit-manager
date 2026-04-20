@@ -1,140 +1,63 @@
-Product Specification — Nonprofit Manager
+# Product Specification
 
-This document is a product-vision snapshot for the platform rather than the live implementation contract. Use [../../README.md](../../README.md) for the current product overview, [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md) for capability-level status, and [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for active tracked scope.
+**Last Updated:** 2026-04-20
 
-Related product docs:
+Use this file as the current-state product reference for Nonprofit Manager. For mounted route inventory, use [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md). For active sequencing and tracked scope, use [../phases/PHASE_5_DEVELOPMENT_PLAN.md](../phases/PHASE_5_DEVELOPMENT_PLAN.md) and [../phases/planning-and-progress.md](../phases/planning-and-progress.md).
 
-- [Production User Personas](user-personas.md)
-- [Persona Workflow Planning Pack](persona-workflows.md)
-- [Product Analytics Research](PRODUCT_ANALYTICS_RESEARCH.md)
+## Companion Docs
 
-Overview
+- [README.md](README.md)
+- [user-personas.md](user-personas.md)
+- [persona-workflows.md](persona-workflows.md)
+- [OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md)
+- [../api/README.md](../api/README.md)
 
-Nonprofit Manager is an all-in-one platform for nonprofit organizations to manage volunteers, events, donors, supporters, tasks, and communications. The product prioritizes usability, security, and analytics, and aligns data and schemas with Microsoft Common Data Model (CDM).
+## Product Position
 
-Goals
+Nonprofit Manager is a unified nonprofit operations platform that combines the staff workspace, reporting layer, grants, website publishing, public-site delivery, client portal workflows, and third-party integrations in one self-hostable product surface.
 
-- Provide a unified system for program operations, fundraising, and supporter relationships.
-- Reduce administrative workload through streamlined workflows.
-- Offer actionable insights through dashboards and reports.
-- Enable interoperability via CDM-aligned data and APIs.
+The current product is route-first rather than roadmap-first. This spec describes the surfaces that are mounted now and the near-term product focus that Phase 5 is prioritizing.
 
-Non-Goals (MVP)
+## Current Product Surfaces
 
-- Advanced accounting and bookkeeping
-- Complex grant lifecycle management
-- Full marketing automation suite
+| Surface | Current scope | Companion docs |
+|---|---|---|
+| Staff app | Workbench, people/accounts/volunteers, intake and interaction workflows, events, tasks, cases, follow-ups, opportunities, meetings, external service providers, donations, recurring giving, reconciliation, and admin/settings surfaces | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [user-personas.md](user-personas.md) |
+| Reporting and analytics | Dashboard views, custom dashboards, alerts, report builder, saved reports, scheduled reports, outcomes reporting, workflow coverage, analytics exports, and executive/board-ready reporting surfaces | [../features/REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), [user-personas.md](user-personas.md) |
+| Grants | Routed grants workspace for funders, programs, recipients, funded programs, applications, awards, disbursements, reports, documents, calendar, and activities | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [persona-workflows.md](persona-workflows.md) |
+| Website builder | Template gallery, editor, and preview flows used to author publishing surfaces inside the staff workspace | [../features/TEMPLATE_SYSTEM.md](../features/TEMPLATE_SYSTEM.md), [OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md) |
+| Website console | Site-level overview, content, newsletters, forms, integrations, publishing, and builder entrypoints for managed sites | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [../api/README.md](../api/README.md) |
+| Public-site runtime | Dedicated public runtime for events, newsletters, forms, and event check-in, backed by public `/api/v2` contracts and distinct deployment/runtime expectations | [../features/FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [../deployment/DEPLOYMENT.md](../deployment/DEPLOYMENT.md) |
+| Portal | Public onboarding/auth flows plus the authenticated client portal for profile, people, calendar, events, messages, cases, appointments, documents, notes, forms, and reminders | [../features/CASE_CLIENT_VISIBILITY_AND_FILES.md](../features/CASE_CLIENT_VISIBILITY_AND_FILES.md), [persona-workflows.md](persona-workflows.md) |
+| Messaging | Staff team chat, portal messaging, scheduled report delivery, and provider-backed outbound communication surfaces where configured | [user-personas.md](user-personas.md), [../api/README.md](../api/README.md) |
+| Integrations | Payments, reconciliation, Mailchimp, webhooks, external service providers, public API contracts, and schema/tooling docs for system-to-system workflows | [../api/README.md](../api/README.md), [../api/API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md) |
 
-Target Users
+## Product Expectations
 
-- Small to mid-size nonprofit administrators
-- Volunteer coordinators
-- Development (fundraising) teams
-- Executive leadership and board members
+- Reporting is a first-class surface, not an admin afterthought. Leadership, fundraising, grants, and service-delivery workflows depend on reusable reports, exports, alerts, and scheduled delivery.
+- Publishing and public-facing experiences are part of the product, not a separate marketing sidecar. The website builder, website console, and public-site runtime are all active product surfaces.
+- The client portal is part of the core operating model. Portal authentication, appointments, documents, forms, messages, and case-facing workflows should be treated as primary user journeys.
+- Integrations are expected to coexist with self-hosted deployment. The product supports `/api/v2` contracts, webhook delivery, public routes, and provider-backed operations without assuming a single hosted SaaS deployment model.
 
-Key Use Cases
+## Phase 5 Focus Areas
 
-- Track volunteers, their skills, and assignments
-- Create and manage events with registration and check-in
-- Record donations, issue receipts, and track donor history
-- Maintain supporter (constituent) profiles and interactions
-- Assign tasks, track progress, and manage deadlines
-- Produce operational and fundraising reports
-- Connect data to third-party systems via APIs
+Phase 5 product execution centers on three explicit waves from the active plan:
 
-Core Modules (MVP)
+1. Blast email plus the email builder/formatter.
+2. Website builder plus the public website runtime.
+3. Client portal workflows.
 
-1) Constituent Management
-- Supporter profiles and relationships
-- Communication history and engagement tracking
+In current product terms, that means:
 
-2) Volunteer Management
-- Volunteer profiles, availability, skills
-- Assignment workflows and time tracking
+- Expanding outbound messaging beyond the existing Mailchimp and notification baseline into a stronger authoring, preview, formatting, and delivery surface.
+- Improving builder authoring UX, site-console publishing flows, and public-site reliability for public pages, newsletters, and forms.
+- Treating the portal as a first-class product area across messaging, documents, forms, appointments, and client-facing navigation.
 
-3) Event Scheduling
-- Calendar, event setup, registration
-- Check-in and attendance tracking
+## Follow-On Backlog
 
-4) Donation Tracking
-- Donation records, receipts, and campaigns
-- Donor segmentation and giving history
+These are the short-form follow-on gaps that remain after the primary Phase 5 waves and align with the benchmark plus the current Phase 5 plan:
 
-5) Task Management
-- Task lists, owners, deadlines, status
-- Simple project tracking and milestones
-
-6) Reporting & Analytics
-- Dashboard KPIs
-- Exportable reports and filters
-
-7) Website Builder (MVP-lite)
-- Template selection
-- Drag-and-drop page editing
-- Publish workflow with basic hosting
-
-Platform Requirements
-
-Security
-- Authentication and RBAC
-- Audit logs for sensitive changes
-- Encryption at rest and in transit
-- Backups and data retention policies
-- Optional MFA and SSO readiness
-
-Analytics
-- Product usage instrumentation
-- Event tracking for key workflows
-- Reporting on adoption and outcomes
-
-Integrations
-- Payment provider for donations
-- Email marketing platform
-- Social sharing
-- API connections to external applications (CRM, accounting, event platforms)
-
-Data & Schema
-
-- Align core entities with Microsoft Common Data Model (CDM).
-- Use CDM standard entities where possible (e.g., Account, Contact, Campaign).
-- Document schema extensions and mappings to CDM traits/attributes.
-
-Success Metrics (MVP)
-
-- Time-to-complete for key workflows reduced by 30% vs. baseline
-- 80%+ of active users complete core tasks without support
-- Data quality: >95% of records with required fields complete
-- Integration setup time under 1 day
-
-Technical Stack
-
-Frontend
-- React.js
-- Redux
-- Tailwind CSS
-
-Backend
-- Node.js
-- Express.js
-
-Database
-- PostgreSQL
-
-Hosting
-- Self-hosted (VPS, dedicated server, or home lab)
-- Future option: cloud hosting
-
-Out of Scope (Future)
-
-- Advanced BI/warehouse integration
-- Complex multi-tenant billing
-- In-depth grant compliance reporting
-
-Open Questions
-
-- Target nonprofit size and scale (small, mid-size, enterprise)?
-- Preferred payment provider (Stripe, PayPal, or both)?
-- Required compliance (PCI, SOC 2, HIPAA, GDPR)?
-- Data import needs (CSV, CRM migration)?
-- Minimum analytics requirements for MVP?
-- Which external applications need API connections first?
+- Metadata-driven forms, workflow builders, approvals, and configurable schema extensions.
+- Memberships, appeals, and richer fundraising or constituent-outreach depth.
+- Nonprofit finance operations beyond the current donation and reconciliation baseline, including stronger restricted-funds, disbursement, and budgeting workflows.
+- Program-service workflow depth such as richer case templates, grievance/escalation patterns, and more specialized service-outcome tooling.

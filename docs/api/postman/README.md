@@ -1,6 +1,6 @@
 # Postman Collection Guide
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-20
 
 ## Overview
 
@@ -102,7 +102,7 @@ This allows you to:
 The collection is organized into folders:
 
 - **Authentication** - Login and register endpoints
-- **Payments** - Stripe payment processing
+- **Payments** - Provider payment processing, refunds, and customer flows
 - **Mailchimp** - Email marketing integration
 - **Contacts** - Contact management CRUD
 - **Donations** - Donation management
@@ -269,5 +269,5 @@ To share with team:
 
 - [Postman Documentation](https://learning.postman.com/docs/)
 - [Newman CLI Documentation](https://github.com/postmanlabs/newman)
-- [Stripe Testing Guide](../../product/STRIPE_TESTING_GUIDE.md)
+- [Payment Provider Testing Guide](../PAYMENT_PROVIDER_TESTING_GUIDE.md)
 - [API Documentation](../../README.md)

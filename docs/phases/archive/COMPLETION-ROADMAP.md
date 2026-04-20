@@ -71,7 +71,7 @@
 **Payment Processing:** ✅
 - [x] Create payment reconciliation system (match Stripe payments to donations)
 - [x] Test Stripe integration in sandbox environment thoroughly
-- [x] Document payment flow and error handling procedures (STRIPE_TESTING_GUIDE.md)
+- [x] Document payment flow and error handling procedures ([PAYMENT_PROVIDER_TESTING_GUIDE.md](../../api/PAYMENT_PROVIDER_TESTING_GUIDE.md))
 - [x] Test webhook reliability and error recovery
 - [ ] Add PayPal integration (OPTIONAL - deferred to later phase)
 
@@ -84,7 +84,7 @@
 - [ ] Document webhook setup and configuration (included in testing guide)
 
 **API & Webhooks:** ✅
-- [x] Write comprehensive API integration guide (STRIPE_TESTING_GUIDE.md)
+- [x] Write comprehensive API integration guide ([PAYMENT_PROVIDER_TESTING_GUIDE.md](../../api/PAYMENT_PROVIDER_TESTING_GUIDE.md))
 - [x] Document webhook payload formats and examples (in testing guide)
 - [x] Create Postman collection for API testing (40+ endpoints)
 - [x] Test webhook security and signing verification (documented in guide)

@@ -509,7 +509,7 @@ When adding a new route:
 
 - **Phase 1 Completion**: [PHASE_1_COMPLETION_SUMMARY.md](../phases/archive/PHASE_1_COMPLETION_SUMMARY.md)
 - **Phase 1 Migration Guide**: [PHASE_1_MIGRATION_GUIDE.md](../phases/archive/PHASE_1_MIGRATION_GUIDE.md)
-- **Phase 1 Quick Reference**: [PHASE_1_QUICK_REFERENCE.md](../quick-reference/PHASE_1_QUICK_REFERENCE.md)
+- **Phase 1 Quick Reference (archived)**: [Quick Reference Archive](../quick-reference/archive/README.md)
 - **Phase 2 Completion**: [PHASE_2_COMPLETION_SUMMARY.md](../phases/archive/PHASE_2_COMPLETION_SUMMARY.md)
 - **Phase 2 Next Steps**: [PHASE_2_NEXT_STEPS.md](../phases/archive/PHASE_2_NEXT_STEPS.md)
 

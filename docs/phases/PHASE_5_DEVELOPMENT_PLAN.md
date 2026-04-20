@@ -93,6 +93,16 @@ Phase 5 still starts with docs, benchmark, and validation groundwork so later pr
 - Nonprofit finance operations such as stronger reconciliation and project-restricted donation handling
 - Program-service patterns such as registry/program/payment separation, richer case templates, and workflow scaffolding
 
+### Governance And Compliance Backlog
+
+The archived executive-director remediation tracker surfaced a governance/compliance slice that should stay visible as later-wave backlog instead of living in a closed validation tracker:
+
+- Dedicated governance-risk escalation workspace for executive and board follow-through
+- Board conflict-of-interest disclosure and recusal workflow
+- Delegation-authority matrix and committee charter traceability
+- Annual board and 990 compliance command center, while keeping legal review and filing workflows explicitly external where needed
+- Compliance-documentation vault and retention workflow for governance, audit, and records-management artifacts
+
 ## Tooling Evaluation
 
 ### High-Value Candidates

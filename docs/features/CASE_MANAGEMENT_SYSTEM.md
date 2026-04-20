@@ -1,703 +1,104 @@
 # Case Management System
 
-**Nonprofit Manager - Comprehensive CRM Case Management**
-**Version:** 2.0
-**Created:** February 2, 2026
-**Last Updated:** March 3, 2026
-
-This is a broad case-management capability reference that also preserves earlier design/spec context. For live implementation status and tracked scope, start with [FEATURE_MATRIX.md](FEATURE_MATRIX.md), [../phases/planning-and-progress.md](../phases/planning-and-progress.md), and [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md) for the newer client-visibility contract.
-
----
-
-## Overview
-
-The Case Management System provides comprehensive case tracking, intake management, workflow automation, and reporting capabilities. This system supports multiple cases per client, customizable workflows, and complete case lifecycle management.
-
----
-
-## Key Features
-
-### 1. **Multiple Cases Per Client**
-- Clients can have unlimited concurrent cases
-- Each case is independently tracked with its own workflow
-- Cases can be linked together (related, parent/child, duplicate)
-- Full case history per client visible in one view
-
-### 2. **Intake Management**
-- Configurable intake forms per case type
-- Custom fields storage (JSON-based)
-- Source tracking (phone, email, walk-in, referral, web)
-- Referral source documentation
-- Automated case number generation (CASE-YYMMDD-XXXXX)
-
-### 3. **Case Workflows & Phases**
-- 12 pre-configured statuses across 5 phases:
-  - **Intake**: Initial assessment
-  - **Active**: Working cases (4 states)
-  - **Review**: Cases under review (2 states)
-  - **Closed**: Completed cases (3 outcomes)
-  - **Cancelled**: Cancelled cases
-- Customizable status transitions
-- Status change tracking with reasons
-- Automated status change notifications
-
-### 4. **Case Types**
-8 pre-configured case types:
-- General Support
-- Crisis Intervention
-- Counseling
-- Legal Assistance
-- Housing
-- Employment
-- Healthcare
-- Financial Assistance
-
-Each type supports:
-- Custom color coding
-- Icon assignment
-- Required intake forms
-- Average duration tracking
-- Custom field definitions
-
-### 5. **Assignment & Routing**
-- Assign to individual staff or teams
-- Assignment history tracking
-- Unassigned case queue
-- Workload balancing
-- Auto-assignment rules (future)
-
-### 6. **Timeline & Activity Tracking**
-- Complete case activity timeline
-- Multiple note types:
-  - General notes
-  - Email logs
-  - Call logs
-  - Meetings
-  - Status updates
-- Internal vs client-facing notes
-- Important flag for priority items
-- File attachments support
-
-### 7. **Document Management**
-- Upload case documents
-- Document categorization (intake, assessment, consent, etc.)
-- Version control
-- Confidentiality levels (public, standard, restricted, confidential)
-- Access control by role
-
-### 8. **Outcome Tracking**
-- Admin-managed outcome definitions (active/inactive, reportable, reorderable)
-- Tag case note interactions with one or more outcomes
-- Staff can capture note text and outcome tags in one atomic save
-- Attribution tracking (`DIRECT`, `LIKELY`, `POSSIBLE`)
-- Optional intensity scoring (1-5) and evidence notes
-- Historical tags are preserved even if a definition is later disabled
-- Case outcome events remain timeline/report artifacts with definition linkage metadata
-- Interaction tags auto-sync to case outcome events (`entry_source=interaction_sync`)
-- Reporting supports totals, unique impacted clients, week/month time series, and source splits
-
-### 9. **Service Tracking**
-- Record services provided
-- Service categories (counseling, legal, financial, etc.)
-- Date/time tracking
-- Duration logging
-- Cost tracking
-- Outcome documentation
-- Completion status
-
-### 10. **Milestones & Goals**
-- Define case milestones
-- Track completion progress
-- Due date management
-- Sort order configuration
-- Progress visualization
-
-### 11. **Reporting & Analytics**
-- Case summary dashboard
-- Statistics by:
-  - Priority (low, medium, high, urgent)
-  - Status type (intake, active, review, closed)
-  - Case type
-  - Assigned staff
-- Overdue case tracking
-- Cases due this week
-- Unassigned cases count
-- Average case duration
-
----
-
-## Database Schema
-
-### Core Tables
-
-#### `cases`
-Main case records with:
-- Case number, title, description
-- Client/contact linkage
-- Case type and status
-- Priority and urgency flags
-- Assignment information
-- Dates (intake, opened, closed, due)
-- Outcome tracking
-- Custom data (JSON)
-- Tags for categorization
-
-#### `case_types`
-Configurable case categories with:
-- Name, description, color, icon
-- Custom field definitions
-- Intake requirements
-- Average duration tracking
-
-#### `case_statuses`
-Workflow statuses with:
-- Status type (intake, active, review, closed, cancelled)
-- Display properties (color, sort order)
-- Transition rules
-- Reason requirements
-
-#### `case_notes`
-Activity timeline with:
-- Note type and content
-- Internal/external flags
-- Status change tracking
-- Attachments
-- Optional outcome impact tags per note interaction
-
-#### `case_assignments`
-Assignment history with:
-- From/to user tracking
-- Assignment reasons
-- Date tracking
-- Unassignment logging
-
-#### `case_documents`
-Document storage with:
-- Document metadata
-- File information
-- Confidentiality settings
-- Version control
-
-#### `case_relationships`
-Case linking with:
-- Relationship types (duplicate, related, parent/child, etc.)
-- Descriptions
-
-#### `case_services`
-Service tracking with:
-- Service details
-- Date/time tracking
-- Status and outcome
-- Cost tracking
-
-#### `case_milestones`
-Goal tracking with:
-- Milestone names
-- Due and completion dates
-- Progress status
-
-#### `outcome_definitions`
-Configurable outcomes with:
-- Stable key, display name, description, and category
-- Active/inactive state (soft lifecycle; no hard delete)
-- Reportable toggle
-- Sort order for UI and reports
-
-#### `interaction_outcome_impacts`
-Interaction-level outcome tags with:
-- Foreign key to `case_notes` (interaction anchor)
-- Foreign key to `outcome_definitions`
-- Attribution enum (`DIRECT`, `LIKELY`, `POSSIBLE`)
-- Optional intensity and evidence note
-- Unique constraint per `(interaction_id, outcome_definition_id)`
-
-#### `case_outcomes`
-Case outcome event artifacts with:
-- Optional `outcome_definition_id` linkage to canonical definitions
-- Optional `source_interaction_id` linkage to originating note interaction
-- `entry_source` values (`manual`, `interaction_sync`, `legacy`)
-- Backfill-safe legacy rows preserved for manual curation when no deterministic match exists
-
----
-
-## API Endpoints
-
-### Case Management
-
-**GET** `/api/v2/cases`
-- List all cases with filtering
-- Query params: contact_id, case_type_id, status_id, priority, assigned_to, search, page, limit
-
-**POST** `/api/v2/cases`
-- Create new case
-- Auto-generates case number
-- Creates initial intake note
-
-**GET** `/api/v2/cases/:id`
-- Get case details with related data
-- Includes contact info, assignment, counts
-
-**PUT** `/api/v2/cases/:id`
-- Update case details
-- Tracks modification history
-
-**DELETE** `/api/v2/cases/:id`
-- Delete case (with cascade to related records)
-
-**PUT** `/api/v2/cases/:id/status`
-- Update case status
-- Creates status change note
-- Validates transitions
-
-### Case Notes
-
-**GET** `/api/v2/cases/:id/notes`
-- Get all notes for a case
-- Ordered by date (newest first)
-- Includes creator information
-
-**POST** `/api/v2/cases/notes`
-- Add note to case
-- Supports attachments
-- Internal/external flag
-- Optional inline `outcome_impacts[]` + `outcomes_mode` (`replace|merge`) for atomic note+outcome save
-
-### Outcomes (Definitions + Interaction Tagging)
-
-**GET** `/api/v2/admin/outcomes?includeInactive=true|false`
-- List outcome definitions for admin management
-
-**POST** `/api/v2/admin/outcomes`
-- Create a new outcome definition
-
-**PATCH** `/api/v2/admin/outcomes/:id`
-- Update outcome definition metadata
-
-**POST** `/api/v2/admin/outcomes/:id/enable`
-- Set `is_active=true`
-
-**POST** `/api/v2/admin/outcomes/:id/disable`
-- Set `is_active=false`
-
-**POST** `/api/v2/admin/outcomes/reorder`
-- Reorder by `orderedIds` transactionally
-
-**GET** `/api/v2/cases/outcomes/definitions`
-- List active outcome definitions for case interaction tagging
-
-**GET** `/api/v2/cases/:caseId/interactions/:interactionId/outcomes`
-- Load saved outcomes for a specific case note interaction
-
-**PUT** `/api/v2/cases/:caseId/interactions/:interactionId/outcomes`
-- Save outcomes for a specific interaction
-- Supports `mode=replace|merge`
-- Auto-syncs case outcome events with `entry_source=interaction_sync`
-
-**POST** `/api/v2/cases/:id/outcomes`
-- Create a manual case outcome event
-- Supports optional `outcome_definition_id` linkage with legacy `outcome_type` fallback
-
-**PUT** `/api/v2/cases/outcomes/:outcomeId`
-- Update manual case outcome events
-- Requires a non-empty payload
-
-### Outcomes Reporting
-
-**GET** `/api/v2/reports/outcomes?from=YYYY-MM-DD&to=YYYY-MM-DD&staffId=&interactionType=&bucket=week|month&source=all|interaction|event&includeNonReportable=true|false`
-- Returns:
-  - `totalsByOutcome` (count impacts, unique clients impacted, source breakdown)
-  - `timeseries` bucketed by week or month with `source` on each point
-- `includeNonReportable=true` is admin-only
-- `programId` is currently unsupported and returns a validation error
-
-### Metadata
-
-**GET** `/api/v2/cases/types`
-- Get all active case types
-- Used for dropdowns and filtering
-
-**GET** `/api/v2/cases/statuses`
-- Get all active statuses
-- Ordered by workflow position
-
-**GET** `/api/v2/cases/summary`
-- Get dashboard statistics
-- Returns counts by priority, status, type
-- Includes overdue and unassigned counts
-
----
-
-## 2026 Client Visibility + Case File Updates (v2)
-
-### New Data Controls
-- `cases.client_viewable` gates portal case access
-- `case_notes.visible_to_client` controls portal note visibility
-- `case_outcomes.visible_to_client` controls portal outcome visibility
-- `case_documents.visible_to_client` controls portal document visibility
-
-### New/Updated v2 Endpoints
-
-Staff case endpoints:
-- `GET /api/v2/cases/:id/timeline?limit=50&cursor=...`
-- `PUT /api/v2/cases/:id/client-viewable`
-- `PUT /api/v2/cases/notes/:noteId`
-- `DELETE /api/v2/cases/notes/:noteId`
-- `GET/POST /api/v2/cases/:id/outcomes`
-- `PUT/DELETE /api/v2/cases/outcomes/:outcomeId`
-- `GET/POST /api/v2/cases/:id/topics/definitions`
-- `GET/POST /api/v2/cases/:id/topics`
-- `DELETE /api/v2/cases/topics/:topicEventId`
-- `GET/POST /api/v2/cases/:id/documents`
-- `PUT/DELETE /api/v2/cases/:id/documents/:documentId`
-- `GET /api/v2/cases/:id/documents/:documentId/download`
-
-Portal case endpoints:
-- `GET /api/v2/portal/cases`
-- `GET /api/v2/portal/cases/:id`
-- `GET /api/v2/portal/cases/:id/timeline?limit=50&cursor=...`
-- `GET /api/v2/portal/cases/:id/documents`
-- `GET /api/v2/portal/cases/:id/documents/:documentId/download`
-
-### Timeline Behavior
-Staff timeline aggregates:
-- notes
-- outcomes
-- topics
-- documents
-
-Timeline endpoints are cursor-paginated:
-- `limit` defaults to `50` and is capped at `200`
-- `cursor` is an opaque token from the previous page
-- responses use:
-
-```json
-{
-  "items": [],
-  "page": {
-    "limit": 50,
-    "has_more": false,
-    "next_cursor": null
-  }
-}
-```
-
-Portal timeline is filtered to client-visible records only:
-- notes (`visible_to_client=true`)
-- outcomes (`visible_to_client=true`)
-- documents (`visible_to_client=true`)
-
-### File Handling
-Case document uploads reuse platform upload/security middleware:
-- MIME whitelist
-- 10MB max size
-- randomized storage keys
-- storage outside public web root
-- authenticated streaming downloads
-
-For full details and QA matrix, see:
-- `docs/features/CASE_CLIENT_VISIBILITY_AND_FILES.md`
-
----
-
-## Usage Examples
-
-### 1. Create a New Case
-
-```javascript
-POST /api/v2/cases
-{
-  "contact_id": "uuid",
-  "case_type_id": "uuid",
-  "title": "Housing Assistance Request",
-  "description": "Client needs temporary housing assistance",
-  "priority": "high",
-  "source": "phone",
-  "referral_source": "Community Outreach Center",
-  "assigned_to": "user-uuid",
-  "due_date": "2026-03-01",
-  "tags": ["housing", "urgent", "family"],
-  "intake_data": {
-    "household_size": 4,
-    "current_situation": "At risk of eviction",
-    "income_level": "below_poverty"
-  },
-  "is_urgent": true
-}
-```
-
-### 2. List Cases for a Client
-
-```javascript
-GET /api/v2/cases?contact_id=uuid&page=1&limit=20
-
-Response:
-{
-  "cases": [
-    {
-      "id": "uuid",
-      "case_number": "CASE-260202-00123",
-      "title": "Housing Assistance Request",
-      "status_name": "Active",
-      "status_color": "green",
-      "priority": "high",
-      "contact_first_name": "John",
-      "contact_last_name": "Doe",
-      "notes_count": 5,
-      "documents_count": 3,
-      "created_at": "2026-02-02T10:00:00Z"
-    }
-  ],
-  "total": 1,
-  "pagination": {
-    "page": 1,
-    "limit": 20
-  }
-}
-```
-
-### 3. Update Case Status
-
-```javascript
-PUT /api/v2/cases/:id/status
-{
-  "new_status_id": "uuid",
-  "reason": "Client provided required documentation",
-  "notes": "All intake paperwork received and verified"
-}
-```
-
-### 4. Add Case Note
-
-```javascript
-POST /api/v2/cases/notes
-{
-  "case_id": "uuid",
-  "note_type": "call",
-  "subject": "Follow-up call",
-  "content": "Spoke with client about housing options. Referred to Oak Street Housing Program.",
-  "is_internal": false,
-  "is_important": true
-}
-```
-
-### 5. Get Dashboard Summary
-
-```javascript
-GET /api/v2/cases/summary
-
-Response:
-{
-  "total_cases": 150,
-  "open_cases": 120,
-  "closed_cases": 30,
-  "by_priority": {
-    "low": 20,
-    "medium": 70,
-    "high": 45,
-    "urgent": 15
-  },
-  "by_status_type": {
-    "intake": 15,
-    "active": 85,
-    "review": 20,
-    "closed": 28,
-    "cancelled": 2
-  },
-  "cases_due_this_week": 12,
-  "overdue_cases": 5,
-  "unassigned_cases": 8
-}
-```
-
----
-
-## Workflow Examples
-
-### Standard Case Lifecycle
-
-1. **Intake** → Client contacts organization
-   - Case created with "Intake" status
-   - Intake form completed
-   - Initial assessment done
-
-2. **Under Review** → Staff reviews case
-   - Eligibility determined
-   - Services identified
-   - Assignment made
-
-3. **Active** → Services provided
-   - Milestones tracked
-   - Notes added
-   - Documents uploaded
-   - Services logged
-
-4. **Ready for Closure** → Case nearing completion
-   - Final documentation gathered
-   - Outcomes documented
-
-5. **Closed - Successful** → Case completed
-   - Outcome recorded
-   - Closure reason documented
-   - Final notes added
-
-### Multiple Cases Example
-
-**Client: Jane Doe**
-- **Case 1**: Housing Assistance (Active)
-  - Status: In Progress
-  - Priority: Urgent
-  - Assigned to: Housing Team
-
-- **Case 2**: Employment Services (Active)
-  - Status: Active
-  - Priority: Medium
-  - Assigned to: Career Coach
-
-- **Case 3**: Financial Counseling (Closed)
-  - Status: Closed - Successful
-  - Outcome: Budget plan created and implemented
-
----
-
-## Benefits
-
-### For Staff
-- **Centralized Information**: All case data in one place
-- **Clear Workflows**: Defined status progressions
-- **Reduced Duplication**: Easy to see existing cases
-- **Better Collaboration**: Assignment and notes visible to team
-- **Improved Accountability**: Full activity tracking
-
-### For Clients
-- **Better Service**: Coordinated care across multiple needs
-- **Faster Response**: Priority and urgency flags
-- **Continuity**: Complete history maintained
-- **Transparency**: Clear status and progress
-
-### For Management
-- **Performance Metrics**: Dashboard analytics
-- **Resource Planning**: Workload visibility
-- **Outcome Tracking**: Success measurement
-- **Compliance**: Complete documentation
-- **Reporting**: Easy data extraction
-
----
-
-## Integration Points
-
-### With Existing CRM
-- **Contacts**: Cases link to contact records
-- **Accounts**: Organization-level case tracking
-- **Tasks**: Case-related tasks (future)
-- **Events**: Case-related events (future)
-
-### With Other Systems
-- **Document Management**: File storage integration
-- **Email**: Email log capture (future)
-- **Calendar**: Appointment scheduling (future)
-- **Notifications**: Status change alerts (future)
-
----
-
-## Future Enhancements
-
-1. **Automated Workflows**
-   - Rule-based status transitions
-   - Auto-assignment based on criteria
-   - Email notifications on status changes
-
-2. **Advanced Reporting**
-   - Custom report builder
-   - Export to Excel/PDF
-   - Scheduled reports
-
-3. **Client Portal**
-   - Client-facing case view
-   - Document upload
-   - Message staff
-
-4. **Mobile App**
-   - Field case management
-   - Offline capability
-   - Photo documentation
-
-5. **AI/ML Features**
-   - Case outcome prediction
-   - Similar case recommendations
-   - Resource optimization
-
----
-
-## Technical Implementation
-
-### Backend
-- **Database**: PostgreSQL with 9 new tables
-- **API**: RESTful endpoints with Express.js
-- **Service Layer**: Comprehensive case management service
-- **Type Safety**: Full TypeScript typing
-- **Logging**: Activity logging with Winston
-- **Validation**: Input validation on all endpoints
-
-### Security
-- **Authentication**: JWT token required
-- **Authorization**: Role-based access control (future)
-- **Data Privacy**: Confidentiality levels on documents
-- **Audit Trail**: Full modification history
-
-### Performance
-- **Indexing**: Optimized database indexes
-- **Pagination**: All list endpoints paginated
-- **Caching**: Redis caching support (future)
-- **Query Optimization**: Efficient joins and filters
-
----
-
-## Getting Started
-
-### 1. Run Database Migration
-
-```bash
-## Apply the case management schema
-psql -U postgres -d nonprofit_manager -f database/migrations/009_case_management.sql
-```
-
-### 2. Start Backend
-
-```bash
-cd backend
-npm run dev
-```
-
-### 3. Test API
-
-```bash
-## Get case types
-curl localhost:3000/api/v2/cases/types \
-  -H "Authorization: Bearer YOUR_TOKEN"
-
-## Get case statuses
-curl localhost:3000/api/v2/cases/statuses \
-  -H "Authorization: Bearer YOUR_TOKEN"
-
-## Create a case
-curl -X POST localhost:3000/api/v2/cases \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"contact_id":"uuid","case_type_id":"uuid","title":"Test Case"}'
-```
-
----
-
-## Support & Documentation
-
-- **API Documentation**: [../api/API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md)
-- **Case Visibility Contract**: [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md)
-- **Database Schema**: `009_case_management.sql`
-- **Type Definitions**: `backend/src/types/case.ts`
-- **Workflow**: [../phases/planning-and-progress.md](../phases/planning-and-progress.md)
-
----
-
-**Document Version:** 2.0
-**Snapshot Summary Date:** February 23, 2026
-**Status Snapshot:** Backend + Frontend + Portal Visibility Implemented at the time of this summary; confirm current follow-on scope in the live workboard.
+**Last Updated:** 2026-04-20
+
+Use this doc for the current staff-side case-management surface mounted under `/api/v2/cases/*` and the linked route-level behavior in the app. For the route map, use [FEATURE_MATRIX.md](FEATURE_MATRIX.md). For client-visible sharing rules, use [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md).
+
+## Current Surface Summary
+
+- Staff routes cover case catalog, case detail, create/edit flows, timeline, notes, outcomes, documents, milestones, relationships, services, follow-ups, forms, and portal-conversation follow-through.
+- Public tokenized case-form submission is supported alongside staff-side case-form assignment, review, and response-packet workflows.
+- Portal visibility remains opt-in and is governed separately by [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md).
+
+## Core Current Capabilities
+
+### Case Catalog And Lifecycle
+
+- List, filter, and inspect cases through the routed staff case catalog.
+- Create, update, reassign, bulk-update status, and delete cases through the `/api/v2/cases` lifecycle routes.
+- Pull summary, case-type, and status metadata from the mounted catalog endpoints used by the staff UI.
+
+### Case Detail Resources
+
+- Timeline and notes for case activity history.
+- Outcome definitions, case outcomes, and interaction-level outcome tagging.
+- Documents with metadata updates and download flows.
+- Milestones, case relationships, and service records.
+- Case-scoped follow-up listing.
+
+### Case Forms
+
+- Case-type default forms and recommended defaults.
+- Case-form assignments, draft saving, staff submission, outbound send, and review decisions.
+- Assignment asset uploads plus response-packet and asset download URLs used by the staff UI.
+
+### Portal And Messaging Adjacencies
+
+- Case-specific portal conversation listing plus reply and resolve actions for staff.
+- Tokenized public case-form routes used for client submission and follow-through.
+
+## Permissions And Scope
+
+- Staff case routes require authentication and an active organization context before the case router is reached.
+- Mutating case routes typically require `Permission.CASE_EDIT`.
+- Case creation and deletion keep their narrower permission gates: `Permission.CASE_CREATE` and `Permission.CASE_DELETE`.
+- Client-visible notes, outcomes, documents, and case access stay off by default and must meet the sharing rules documented in [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md).
+
+## Key Mounted API Families
+
+### Catalog And Lifecycle
+
+- `GET /api/v2/cases/summary`
+- `GET /api/v2/cases/types`
+- `GET /api/v2/cases/statuses`
+- `GET /api/v2/cases`
+- `POST /api/v2/cases`
+- `GET /api/v2/cases/:id`
+- `PUT /api/v2/cases/:id`
+- `DELETE /api/v2/cases/:id`
+- `PUT /api/v2/cases/:id/status`
+- `PUT /api/v2/cases/:id/reassign`
+- `POST /api/v2/cases/bulk-status`
+
+### Case Detail Resources
+
+- `GET /api/v2/cases/:id/timeline`
+- `GET /api/v2/cases/:id/notes`
+- `POST /api/v2/cases/notes`
+- `GET /api/v2/cases/:id/outcomes`
+- `POST /api/v2/cases/:id/outcomes`
+- `GET /api/v2/cases/:id/documents`
+- `POST /api/v2/cases/:id/documents`
+- `GET /api/v2/cases/:id/milestones`
+- `POST /api/v2/cases/:id/milestones`
+- `GET /api/v2/cases/:id/relationships`
+- `POST /api/v2/cases/:id/relationships`
+- `GET /api/v2/cases/:id/services`
+- `POST /api/v2/cases/:id/services`
+
+### Forms And Portal Conversation Support
+
+- `GET /api/v2/cases/:id/forms`
+- `POST /api/v2/cases/:id/forms`
+- `POST /api/v2/cases/:id/forms/:assignmentId/draft`
+- `POST /api/v2/cases/:id/forms/:assignmentId/staff-submit`
+- `POST /api/v2/cases/:id/forms/:assignmentId/send`
+- `POST /api/v2/cases/:id/forms/:assignmentId/review`
+- `GET /api/v2/cases/:id/forms/:assignmentId/response-packet`
+- `GET /api/v2/cases/:id/portal/conversations`
+- `POST /api/v2/cases/:id/portal/conversations/:threadId/messages`
+- `POST /api/v2/cases/:id/portal/conversations/:threadId/resolve`
+
+## Current Source Files
+
+- Backend router: `backend/src/modules/cases/routes/index.ts`
+- Public case-form routes: `backend/src/modules/cases/routes/public.ts`
+- Staff UI: `frontend/src/features/cases/**`
+- Mounted route catalog: `frontend/src/routes/engagementRoutes.tsx`
+
+## Related Docs
+
+- [FEATURE_MATRIX.md](FEATURE_MATRIX.md)
+- [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md)
+- [FOLLOW_UP_LIFECYCLE.md](FOLLOW_UP_LIFECYCLE.md)
+- [../api/API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md)

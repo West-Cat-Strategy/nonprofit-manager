@@ -6,10 +6,10 @@
 ## Scope
 
 - Date: `2026-04-18`
-- Source personas: [Production User Personas](../product/user-personas.md) and [Persona Workflow Planning Pack](../product/persona-workflows.md)
+- Source personas: [Production User Personas](../../product/user-personas.md) and [Persona Workflow Planning Pack](../../product/persona-workflows.md)
 - Scope: Executive Director, Fundraiser, Nonprofit Administrator, Board Member, Case Manager, and Rehab Worker
 - Method: one lead synthesis pass plus six persona-specific subagent lanes using non-mutating workflow checks against docs, route catalogs, frontend tests, backend tests, and Playwright specs
-- Mutation policy: the audit evidence collection was non-mutating; implementing this validation artifact adds this report plus a catalog entry in [docs/README.md](../README.md)
+- Mutation policy: the audit evidence collection was non-mutating; implementing this validation artifact adds this report plus a catalog entry in [docs/README.md](../../README.md)
 
 ## Methodology
 
@@ -23,7 +23,7 @@
 
 ## New Workflow Evidence Matrix (v1 additions)
 
-The workflows below were added or elevated during this documentation pass. Status uses the shared `workflow_status` values from [persona-workflows.md](../product/persona-workflows.md): `supported`, `partial`, `external only`, or `missing`.
+The workflows below were added or elevated during this documentation pass. Status uses the shared `workflow_status` values from [persona-workflows.md](../../product/persona-workflows.md): `supported`, `partial`, `external only`, or `missing`.
 
 | workflow_id | role | workflow_status | support_rationale | gap_owner |
 |---|---|---|---|---|
@@ -68,13 +68,13 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **Supported in docs**
 
-- The persona-to-role mapping is implemented in the repo: `Executive Director` maps to `admin` in [contactDirectory.usecase.ts](../../backend/src/modules/contacts/usecases/contactDirectory.usecase.ts).
-- The expected dashboard, analytics, reporting, and admin surfaces are present in the route catalogs and module routers: [staffHomeRoutes.ts](../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts), [staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts), [createReportRoutes.tsx](../../frontend/src/features/reports/routes/createReportRoutes.tsx), [adminRouteManifest.ts](../../frontend/src/features/adminOps/adminRouteManifest.ts), and [backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts).
-- The supporting docs are aligned at a surface level: [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), [FEATURE_MATRIX.md](../features/FEATURE_MATRIX.md), [staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts), [WorkbenchDashboardPage.tsx](../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx), and [createReportRoutes.tsx](../../frontend/src/features/reports/routes/createReportRoutes.tsx).
+- The persona-to-role mapping is implemented in the repo: `Executive Director` maps to `admin` in [contactDirectory.usecase.ts](../../../backend/src/modules/contacts/usecases/contactDirectory.usecase.ts).
+- The expected dashboard, analytics, reporting, and admin surfaces are present in the route catalogs and module routers: [staffHomeRoutes.ts](../../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts), [staffInsightsRoutes.ts](../../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts), [createReportRoutes.tsx](../../../frontend/src/features/reports/routes/createReportRoutes.tsx), [adminRouteManifest.ts](../../../frontend/src/features/adminOps/adminRouteManifest.ts), and [backend/src/routes/v2/index.ts](../../../backend/src/routes/v2/index.ts).
+- The supporting docs are aligned at a surface level: [REPORTING_GUIDE.md](../../features/REPORTING_GUIDE.md), [FEATURE_MATRIX.md](../../features/FEATURE_MATRIX.md), [staffInsightsRoutes.ts](../../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts), [WorkbenchDashboardPage.tsx](../../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx), and [createReportRoutes.tsx](../../../frontend/src/features/reports/routes/createReportRoutes.tsx).
 
 **Runnable evidence observed**
 
-- Existing test coverage already touches the core executive surfaces: [analytics.spec.ts](../../e2e/tests/analytics.spec.ts), [reports.spec.ts](../../e2e/tests/reports.spec.ts), [admin.spec.ts](../../e2e/tests/admin.spec.ts), [WorkbenchDashboardPage.test.tsx](../../frontend/src/features/dashboard/pages/__tests__/WorkbenchDashboardPage.test.tsx), [SavedReportsPage.test.tsx](../../frontend/src/features/savedReports/pages/__tests__/SavedReportsPage.test.tsx), [ScheduledReportsPage.test.tsx](../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx), and [WorkflowCoverageReportPage.test.tsx](../../frontend/src/features/reports/pages/__tests__/WorkflowCoverageReportPage.test.tsx).
+- Existing test coverage already touches the core executive surfaces: [analytics.spec.ts](../../../e2e/tests/analytics.spec.ts), [reports.spec.ts](../../../e2e/tests/reports.spec.ts), [admin.spec.ts](../../../e2e/tests/admin.spec.ts), [WorkbenchDashboardPage.test.tsx](../../../frontend/src/features/dashboard/pages/__tests__/WorkbenchDashboardPage.test.tsx), [SavedReportsPage.test.tsx](../../../frontend/src/features/savedReports/pages/__tests__/SavedReportsPage.test.tsx), [ScheduledReportsPage.test.tsx](../../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx), and [WorkflowCoverageReportPage.test.tsx](../../../frontend/src/features/reports/pages/__tests__/WorkflowCoverageReportPage.test.tsx).
 - A focused Playwright slice cleared host preflight and had already passed nine Chromium admin tests before the audit intentionally interrupted it.
 
 **Current gaps or drift**
@@ -91,12 +91,12 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **High-signal evidence paths**
 
-- [../product/persona-workflows.md](../product/persona-workflows.md)
-- [../features/REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md)
-- [../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx](../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx)
-- [../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts)
-- [../../frontend/src/features/adminOps/adminRouteManifest.ts](../../frontend/src/features/adminOps/adminRouteManifest.ts)
-- [../../e2e/tests/reports.spec.ts](../../e2e/tests/reports.spec.ts)
+- [../product/persona-workflows.md](../../product/persona-workflows.md)
+- [../features/REPORTING_GUIDE.md](../../features/REPORTING_GUIDE.md)
+- [../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx](../../../frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx)
+- [../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts](../../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts)
+- [../../frontend/src/features/adminOps/adminRouteManifest.ts](../../../frontend/src/features/adminOps/adminRouteManifest.ts)
+- [../../e2e/tests/reports.spec.ts](../../../e2e/tests/reports.spec.ts)
 
 ### Fundraiser
 
@@ -109,14 +109,14 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **Supported in docs**
 
-- The role maps cleanly onto four real product lanes: People and Accounts, Donations, Reports and Scheduled Reports, and Opportunities. Supporting docs include [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), [OPPORTUNITIES_PIPELINE.md](../features/OPPORTUNITIES_PIPELINE.md), [staffPeopleRoutes.ts](../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts), [staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts), and [staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts).
-- The route catalogs and backend mounts line up with that workflow framing: [staffPeopleRoutes.ts](../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts), [staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts), [staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts), [staffEngagementRoutes.ts](../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts), [backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts), and [backend/src/modules/donations/routes/index.ts](../../backend/src/modules/donations/routes/index.ts).
+- The role maps cleanly onto four real product lanes: People and Accounts, Donations, Reports and Scheduled Reports, and Opportunities. Supporting docs include [REPORTING_GUIDE.md](../../features/REPORTING_GUIDE.md), [OPPORTUNITIES_PIPELINE.md](../../features/OPPORTUNITIES_PIPELINE.md), [staffPeopleRoutes.ts](../../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts), [staffFinanceRoutes.ts](../../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts), and [staffInsightsRoutes.ts](../../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts).
+- The route catalogs and backend mounts line up with that workflow framing: [staffPeopleRoutes.ts](../../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts), [staffFinanceRoutes.ts](../../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts), [staffInsightsRoutes.ts](../../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts), [staffEngagementRoutes.ts](../../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts), [backend/src/routes/v2/index.ts](../../../backend/src/routes/v2/index.ts), and [backend/src/modules/donations/routes/index.ts](../../../backend/src/modules/donations/routes/index.ts).
 
 **Runnable evidence observed**
 
-- The strongest confirmed proof in this lane is frontend coverage for people triage, donation list/detail behavior, report builder, and scheduled reports: [ContactListPage.test.tsx](../../frontend/src/features/contacts/pages/__tests__/ContactListPage.test.tsx), [AccountListPage.test.tsx](../../frontend/src/features/accounts/pages/__tests__/AccountListPage.test.tsx), [DonationListPage.test.tsx](../../frontend/src/features/finance/pages/__tests__/DonationListPage.test.tsx), [ReportBuilderPage.test.tsx](../../frontend/src/features/reports/pages/__tests__/ReportBuilderPage.test.tsx), and [ScheduledReportsPage.test.tsx](../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx).
-- Manual gift entry now has direct proof across the form and browser flow: [DonationForm.test.tsx](../../frontend/src/components/__tests__/DonationForm.test.tsx) verifies donor linkage plus `transaction_id` submission, and [donations.spec.ts](../../e2e/tests/donations.spec.ts) now passes both the UI create path and a negative API boundary check for missing donor linkage.
-- The repo also has targeted opportunity and fundraising-adjacent tests available even though this audit did not get clean runtime completion for them: [opportunities.spec.ts](../../e2e/tests/opportunities.spec.ts), [people-directory.spec.ts](../../e2e/tests/people-directory.spec.ts), and [reports.spec.ts](../../e2e/tests/reports.spec.ts).
+- The strongest confirmed proof in this lane is frontend coverage for people triage, donation list/detail behavior, report builder, and scheduled reports: [ContactListPage.test.tsx](../../../frontend/src/features/contacts/pages/__tests__/ContactListPage.test.tsx), [AccountListPage.test.tsx](../../../frontend/src/features/accounts/pages/__tests__/AccountListPage.test.tsx), [DonationListPage.test.tsx](../../../frontend/src/features/finance/pages/__tests__/DonationListPage.test.tsx), [ReportBuilderPage.test.tsx](../../../frontend/src/features/reports/pages/__tests__/ReportBuilderPage.test.tsx), and [ScheduledReportsPage.test.tsx](../../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx).
+- Manual gift entry now has direct proof across the form and browser flow: [DonationForm.test.tsx](../../../frontend/src/components/__tests__/DonationForm.test.tsx) verifies donor linkage plus `transaction_id` submission, and [donations.spec.ts](../../../e2e/tests/donations.spec.ts) now passes both the UI create path and a negative API boundary check for missing donor linkage.
+- The repo also has targeted opportunity and fundraising-adjacent tests available even though this audit did not get clean runtime completion for them: [opportunities.spec.ts](../../../e2e/tests/opportunities.spec.ts), [people-directory.spec.ts](../../../e2e/tests/people-directory.spec.ts), and [reports.spec.ts](../../../e2e/tests/reports.spec.ts).
 
 **Current gaps or drift**
 
@@ -139,12 +139,12 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **High-signal evidence paths**
 
-- [../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts](../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts)
-- [../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts)
-- [../features/OPPORTUNITIES_PIPELINE.md](../features/OPPORTUNITIES_PIPELINE.md)
-- [../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts)
-- [../../e2e/tests/donations.spec.ts](../../e2e/tests/donations.spec.ts)
-- [../../e2e/tests/opportunities.spec.ts](../../e2e/tests/opportunities.spec.ts)
+- [../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts](../../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts)
+- [../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts)
+- [../features/OPPORTUNITIES_PIPELINE.md](../../features/OPPORTUNITIES_PIPELINE.md)
+- [../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts)
+- [../../e2e/tests/donations.spec.ts](../../../e2e/tests/donations.spec.ts)
+- [../../e2e/tests/opportunities.spec.ts](../../../e2e/tests/opportunities.spec.ts)
 
 ### Nonprofit Administrator
 
@@ -157,17 +157,17 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **Supported in docs**
 
-- The admin settings and portal-admin structure are strongly codified in [adminNavigationCatalog.ts](../../frontend/src/features/adminOps/adminNavigationCatalog.ts), [adminRouteManifest.ts](../../frontend/src/features/adminOps/adminRouteManifest.ts), [adminRoutes.tsx](../../frontend/src/routes/adminRoutes.tsx), and [backend/src/modules/admin/routes/index.ts](../../backend/src/modules/admin/routes/index.ts).
-- Permissions, roles, groups, branding, organization settings, communications providers, and scheduled reporting are all represented in current code and docs: [permissions.ts](../../backend/src/utils/permissions.ts), [roleCatalogUseCase.ts](../../backend/src/modules/admin/usecases/roleCatalogUseCase.ts), [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md), [adminNavigationCatalog.ts](../../frontend/src/features/adminOps/adminNavigationCatalog.ts), [adminRouteManifest.ts](../../frontend/src/features/adminOps/adminRouteManifest.ts), and [ScheduledReportsPage.test.tsx](../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx).
+- The admin settings and portal-admin structure are strongly codified in [adminNavigationCatalog.ts](../../../frontend/src/features/adminOps/adminNavigationCatalog.ts), [adminRouteManifest.ts](../../../frontend/src/features/adminOps/adminRouteManifest.ts), [adminRoutes.tsx](../../../frontend/src/routes/adminRoutes.tsx), and [backend/src/modules/admin/routes/index.ts](../../../backend/src/modules/admin/routes/index.ts).
+- Permissions, roles, groups, branding, organization settings, communications providers, and scheduled reporting are all represented in current code and docs: [permissions.ts](../../../backend/src/utils/permissions.ts), [roleCatalogUseCase.ts](../../../backend/src/modules/admin/usecases/roleCatalogUseCase.ts), [REPORTING_GUIDE.md](../../features/REPORTING_GUIDE.md), [adminNavigationCatalog.ts](../../../frontend/src/features/adminOps/adminNavigationCatalog.ts), [adminRouteManifest.ts](../../../frontend/src/features/adminOps/adminRouteManifest.ts), and [ScheduledReportsPage.test.tsx](../../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx).
 
 **Runnable evidence observed**
 
-- Focused frontend admin and route-catalog coverage passed cleanly: [adminRedirects.test.tsx](../../frontend/src/routes/__tests__/adminRedirects.test.tsx), [routeCatalog.test.ts](../../frontend/src/routes/__tests__/routeCatalog.test.ts), [AdminSettings.organization.test.tsx](../../frontend/src/features/adminOps/pages/__tests__/AdminSettings.organization.test.tsx), and [ScheduledReportsPage.test.tsx](../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx).
-- Focused backend coverage also passed for permissions, role catalog, admin surfaces, and scheduled reporting: [permissions.test.ts](../../backend/src/__tests__/utils/permissions.test.ts), [roleCatalogUseCase.test.ts](../../backend/src/modules/admin/__tests__/usecases/roleCatalogUseCase.test.ts), [adminSurfaceControllers.test.ts](../../backend/src/modules/admin/controllers/__tests__/adminSurfaceControllers.test.ts), and [scheduledReportService.test.ts](../../backend/src/__tests__/services/scheduledReportService.test.ts).
+- Focused frontend admin and route-catalog coverage passed cleanly: [adminRedirects.test.tsx](../../../frontend/src/routes/__tests__/adminRedirects.test.tsx), [routeCatalog.test.ts](../../../frontend/src/routes/__tests__/routeCatalog.test.ts), [AdminSettings.organization.test.tsx](../../../frontend/src/features/adminOps/pages/__tests__/AdminSettings.organization.test.tsx), and [ScheduledReportsPage.test.tsx](../../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx).
+- Focused backend coverage also passed for permissions, role catalog, admin surfaces, and scheduled reporting: [permissions.test.ts](../../../backend/src/__tests__/utils/permissions.test.ts), [roleCatalogUseCase.test.ts](../../../backend/src/modules/admin/__tests__/usecases/roleCatalogUseCase.test.ts), [adminSurfaceControllers.test.ts](../../../backend/src/modules/admin/controllers/__tests__/adminSurfaceControllers.test.ts), and [scheduledReportService.test.ts](../../../backend/src/__tests__/services/scheduledReportService.test.ts).
 
 **Current gaps or drift**
 
-- The original route-catalog integrity concern was a validator truthfulness issue, not a current product mismatch: the checker now traverses transitive catalog sources, including descriptor-driven people routes, and [check-route-catalog-drift.ts](../../scripts/check-route-catalog-drift.ts) passes cleanly.
+- The original route-catalog integrity concern was a validator truthfulness issue, not a current product mismatch: the checker now traverses transitive catalog sources, including descriptor-driven people routes, and [check-route-catalog-drift.ts](../../../scripts/check-route-catalog-drift.ts) passes cleanly.
 - The current docs already treat admin settings and provider configuration as moving targets, and the runnable proof is still much stronger at the unit/component level than at the full operator workflow level.
 - Access provisioning is documented as `Supported`, but this audit only validated the role/permission/controller seams, not a full invitation, offboarding, or access-update run.
 
@@ -184,12 +184,12 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **High-signal evidence paths**
 
-- [../../frontend/src/features/adminOps/adminNavigationCatalog.ts](../../frontend/src/features/adminOps/adminNavigationCatalog.ts)
-- [../../frontend/src/features/adminOps/adminRouteManifest.ts](../../frontend/src/features/adminOps/adminRouteManifest.ts)
-- [../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx](../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx)
-- [../../frontend/src/features/adminOps/adminNavigationCatalog.ts](../../frontend/src/features/adminOps/adminNavigationCatalog.ts)
-- [../../backend/src/modules/admin/routes/index.ts](../../backend/src/modules/admin/routes/index.ts)
-- [../../backend/src/__tests__/services/scheduledReportService.test.ts](../../backend/src/__tests__/services/scheduledReportService.test.ts)
+- [../../frontend/src/features/adminOps/adminNavigationCatalog.ts](../../../frontend/src/features/adminOps/adminNavigationCatalog.ts)
+- [../../frontend/src/features/adminOps/adminRouteManifest.ts](../../../frontend/src/features/adminOps/adminRouteManifest.ts)
+- [../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx](../../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx)
+- [../../frontend/src/features/adminOps/adminNavigationCatalog.ts](../../../frontend/src/features/adminOps/adminNavigationCatalog.ts)
+- [../../backend/src/modules/admin/routes/index.ts](../../../backend/src/modules/admin/routes/index.ts)
+- [../../backend/src/__tests__/services/scheduledReportService.test.ts](../../../backend/src/__tests__/services/scheduledReportService.test.ts)
 
 ### Board Member
 
@@ -202,14 +202,14 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **Supported in docs**
 
-- The documented mapping is real: `member` and `readonly` normalize to `viewer` in [roleSlug.ts](../../backend/src/utils/roleSlug.ts), and `viewer` includes dashboard, report, and scheduled-report visibility in [permissions.ts](../../backend/src/utils/permissions.ts).
-- The persona docs correctly position this role around dashboards, saved reports, scheduled reports, and low-friction summary access rather than admin CRUD: [user-personas.md](../product/user-personas.md) and [persona-workflows.md](../product/persona-workflows.md).
+- The documented mapping is real: `member` and `readonly` normalize to `viewer` in [roleSlug.ts](../../../backend/src/utils/roleSlug.ts), and `viewer` includes dashboard, report, and scheduled-report visibility in [permissions.ts](../../../backend/src/utils/permissions.ts).
+- The persona docs correctly position this role around dashboards, saved reports, scheduled reports, and low-friction summary access rather than admin CRUD: [user-personas.md](../../product/user-personas.md) and [persona-workflows.md](../../product/persona-workflows.md).
 
 **Runnable evidence observed**
 
-- Read-only and public-report consumption has direct runnable evidence: [PublicReportSnapshot.test.tsx](../../frontend/src/features/savedReports/pages/__tests__/PublicReportSnapshot.test.tsx), [WorkbenchDashboardPage.test.tsx](../../frontend/src/features/dashboard/pages/__tests__/WorkbenchDashboardPage.test.tsx), [SavedReportsPage.test.tsx](../../frontend/src/features/savedReports/pages/__tests__/SavedReportsPage.test.tsx), [ScheduledReportsPage.test.tsx](../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx), and [report.handlers.test.ts](../../backend/src/modules/reports/controllers/__tests__/report.handlers.test.ts).
+- Read-only and public-report consumption has direct runnable evidence: [PublicReportSnapshot.test.tsx](../../../frontend/src/features/savedReports/pages/__tests__/PublicReportSnapshot.test.tsx), [WorkbenchDashboardPage.test.tsx](../../../frontend/src/features/dashboard/pages/__tests__/WorkbenchDashboardPage.test.tsx), [SavedReportsPage.test.tsx](../../../frontend/src/features/savedReports/pages/__tests__/SavedReportsPage.test.tsx), [ScheduledReportsPage.test.tsx](../../../frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx), and [report.handlers.test.ts](../../../backend/src/modules/reports/controllers/__tests__/report.handlers.test.ts).
 - The focused board-member lane also confirmed passing backend tests around report permissions, saved-report handlers, and report sharing.
-- The main reports landing path is now capability-aware instead of builder-first: [createReportRoutes.test.tsx](../../frontend/src/features/reports/routes/__tests__/createReportRoutes.test.tsx) proves report managers land on the builder while read-only viewers fall back to saved or scheduled reports, and the saved/scheduled page tests now verify that management actions stay hidden for read-only users.
+- The main reports landing path is now capability-aware instead of builder-first: [createReportRoutes.test.tsx](../../../frontend/src/features/reports/routes/__tests__/createReportRoutes.test.tsx) proves report managers land on the builder while read-only viewers fall back to saved or scheduled reports, and the saved/scheduled page tests now verify that management actions stay hidden for read-only users.
 
 **Current gaps or drift**
 
@@ -227,12 +227,12 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **High-signal evidence paths**
 
-- [../product/user-personas.md](../product/user-personas.md)
-- [../../backend/src/utils/roleSlug.ts](../../backend/src/utils/roleSlug.ts)
-- [../../backend/src/utils/permissions.ts](../../backend/src/utils/permissions.ts)
-- [../../frontend/src/features/reports/routes/createReportRoutes.tsx](../../frontend/src/features/reports/routes/createReportRoutes.tsx)
-- [../../frontend/src/features/savedReports/pages/SavedReportsPage.tsx](../../frontend/src/features/savedReports/pages/SavedReportsPage.tsx)
-- [../../frontend/src/features/scheduledReports/pages/ScheduledReportsPage.tsx](../../frontend/src/features/scheduledReports/pages/ScheduledReportsPage.tsx)
+- [../product/user-personas.md](../../product/user-personas.md)
+- [../../backend/src/utils/roleSlug.ts](../../../backend/src/utils/roleSlug.ts)
+- [../../backend/src/utils/permissions.ts](../../../backend/src/utils/permissions.ts)
+- [../../frontend/src/features/reports/routes/createReportRoutes.tsx](../../../frontend/src/features/reports/routes/createReportRoutes.tsx)
+- [../../frontend/src/features/savedReports/pages/SavedReportsPage.tsx](../../../frontend/src/features/savedReports/pages/SavedReportsPage.tsx)
+- [../../frontend/src/features/scheduledReports/pages/ScheduledReportsPage.tsx](../../../frontend/src/features/scheduledReports/pages/ScheduledReportsPage.tsx)
 
 ### Case Manager
 
@@ -245,16 +245,16 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **Supported in docs**
 
-- Case intake, detail, queue, portal, and reporting workflows are clearly documented in [CASE_MANAGEMENT_SYSTEM.md](../features/CASE_MANAGEMENT_SYSTEM.md), [FOLLOW_UP_LIFECYCLE.md](../features/FOLLOW_UP_LIFECYCLE.md), [CASE_CLIENT_VISIBILITY_AND_FILES.md](../features/CASE_CLIENT_VISIBILITY_AND_FILES.md), [API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md), and [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md).
-- Staff routes and backend modules exist for case list/create/detail, follow-ups, portal visibility, and reporting: [engagementRoutes.tsx](../../frontend/src/routes/engagementRoutes.tsx), [peopleRoutes.tsx](../../frontend/src/routes/peopleRoutes.tsx), [portalRoutes.tsx](../../frontend/src/routes/portalRoutes.tsx), [backend/src/modules/cases/routes/index.ts](../../backend/src/modules/cases/routes/index.ts), [backend/src/modules/followUps/routes/index.ts](../../backend/src/modules/followUps/routes/index.ts), [backend/src/modules/portal/routes/index.ts](../../backend/src/modules/portal/routes/index.ts), and [backend/src/modules/reports/routes/index.ts](../../backend/src/modules/reports/routes/index.ts).
+- Case intake, detail, queue, portal, and reporting workflows are clearly documented in [CASE_MANAGEMENT_SYSTEM.md](../../features/CASE_MANAGEMENT_SYSTEM.md), [FOLLOW_UP_LIFECYCLE.md](../../features/FOLLOW_UP_LIFECYCLE.md), [CASE_CLIENT_VISIBILITY_AND_FILES.md](../../features/CASE_CLIENT_VISIBILITY_AND_FILES.md), [API_REFERENCE_PORTAL_APPOINTMENTS.md](../../api/API_REFERENCE_PORTAL_APPOINTMENTS.md), and [REPORTING_GUIDE.md](../../features/REPORTING_GUIDE.md).
+- Staff routes and backend modules exist for case list/create/detail, follow-ups, portal visibility, and reporting: [engagementRoutes.tsx](../../../frontend/src/routes/engagementRoutes.tsx), [peopleRoutes.tsx](../../../frontend/src/routes/peopleRoutes.tsx), [portalRoutes.tsx](../../../frontend/src/routes/portalRoutes.tsx), [backend/src/modules/cases/routes/index.ts](../../../backend/src/modules/cases/routes/index.ts), [backend/src/modules/followUps/routes/index.ts](../../../backend/src/modules/followUps/routes/index.ts), [backend/src/modules/portal/routes/index.ts](../../../backend/src/modules/portal/routes/index.ts), and [backend/src/modules/reports/routes/index.ts](../../../backend/src/modules/reports/routes/index.ts).
 
 **Runnable evidence observed**
 
-- Intake and queue entry have strong Playwright evidence through [cases.spec.ts](../../e2e/tests/cases.spec.ts).
-- Follow-ups are one of the strongest case-manager lanes today: [followUps.test.ts](../../backend/src/__tests__/integration/followUps.test.ts), [follow-ups.spec.ts](../../e2e/tests/follow-ups.spec.ts), and [FollowUpsPage.tsx](../../frontend/src/features/followUps/pages/FollowUpsPage.tsx) all line up.
-- Portal-safe sharing is also strongly evidenced: [caseManagementVisibility.test.ts](../../backend/src/__tests__/integration/caseManagementVisibility.test.ts), [portal-cases-visibility.spec.ts](../../e2e/tests/portal-cases-visibility.spec.ts), and [PortalCasesPage.test.tsx](../../frontend/src/features/portal/pages/__tests__/PortalCasesPage.test.tsx).
-- The active case workspace is broad and feature-owned in [CaseDetailPage.tsx](../../frontend/src/features/cases/pages/CaseDetailPage.tsx) and [useCaseDetailPage.tsx](../../frontend/src/features/cases/hooks/useCaseDetailPage.tsx).
-- Focused staff-case proof now covers the previously thin seams: [CaseStatusChangeModal.test.tsx](../../frontend/src/features/cases/components/__tests__/CaseStatusChangeModal.test.tsx) exercises status-change notes and outcomes, [CaseListPage.test.tsx](../../frontend/src/features/cases/pages/__tests__/CaseListPage.test.tsx) covers saved-view lifecycle, and [CaseDetailTabs.test.tsx](../../frontend/src/features/cases/pages/__tests__/CaseDetailTabs.test.tsx) verifies the staff appointments tab stays routable inside case detail.
+- Intake and queue entry have strong Playwright evidence through [cases.spec.ts](../../../e2e/tests/cases.spec.ts).
+- Follow-ups are one of the strongest case-manager lanes today: [followUps.test.ts](../../../backend/src/__tests__/integration/followUps.test.ts), [follow-ups.spec.ts](../../../e2e/tests/follow-ups.spec.ts), and [FollowUpsPage.tsx](../../../frontend/src/features/followUps/pages/FollowUpsPage.tsx) all line up.
+- Portal-safe sharing is also strongly evidenced: [caseManagementVisibility.test.ts](../../../backend/src/__tests__/integration/caseManagementVisibility.test.ts), [portal-cases-visibility.spec.ts](../../../e2e/tests/portal-cases-visibility.spec.ts), and [PortalCasesPage.test.tsx](../../../frontend/src/features/portal/pages/__tests__/PortalCasesPage.test.tsx).
+- The active case workspace is broad and feature-owned in [CaseDetailPage.tsx](../../../frontend/src/features/cases/pages/CaseDetailPage.tsx) and [useCaseDetailPage.tsx](../../../frontend/src/features/cases/hooks/useCaseDetailPage.tsx).
+- Focused staff-case proof now covers the previously thin seams: [CaseStatusChangeModal.test.tsx](../../../frontend/src/features/cases/components/__tests__/CaseStatusChangeModal.test.tsx) exercises status-change notes and outcomes, [CaseListPage.test.tsx](../../../frontend/src/features/cases/pages/__tests__/CaseListPage.test.tsx) covers saved-view lifecycle, and [CaseDetailTabs.test.tsx](../../../frontend/src/features/cases/pages/__tests__/CaseDetailTabs.test.tsx) verifies the staff appointments tab stays routable inside case detail.
 
 **Current gaps or drift**
 
@@ -273,12 +273,12 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **High-signal evidence paths**
 
-- [../features/CASE_MANAGEMENT_SYSTEM.md](../features/CASE_MANAGEMENT_SYSTEM.md)
-- [../features/FOLLOW_UP_LIFECYCLE.md](../features/FOLLOW_UP_LIFECYCLE.md)
-- [../features/CASE_CLIENT_VISIBILITY_AND_FILES.md](../features/CASE_CLIENT_VISIBILITY_AND_FILES.md)
-- [../../frontend/src/features/cases/pages/CaseDetailPage.tsx](../../frontend/src/features/cases/pages/CaseDetailPage.tsx)
-- [../../e2e/tests/cases.spec.ts](../../e2e/tests/cases.spec.ts)
-- [../../e2e/tests/follow-ups.spec.ts](../../e2e/tests/follow-ups.spec.ts)
+- [../features/CASE_MANAGEMENT_SYSTEM.md](../../features/CASE_MANAGEMENT_SYSTEM.md)
+- [../features/FOLLOW_UP_LIFECYCLE.md](../../features/FOLLOW_UP_LIFECYCLE.md)
+- [../features/CASE_CLIENT_VISIBILITY_AND_FILES.md](../../features/CASE_CLIENT_VISIBILITY_AND_FILES.md)
+- [../../frontend/src/features/cases/pages/CaseDetailPage.tsx](../../../frontend/src/features/cases/pages/CaseDetailPage.tsx)
+- [../../e2e/tests/cases.spec.ts](../../../e2e/tests/cases.spec.ts)
+- [../../e2e/tests/follow-ups.spec.ts](../../../e2e/tests/follow-ups.spec.ts)
 
 ### Rehab Worker
 
@@ -291,15 +291,15 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **Supported in docs**
 
-- The repo intentionally models this lane as inferred `staff` rather than a rehab-specific role in [user-personas.md](../product/user-personas.md).
-- The supporting surfaces are the same case, portal, follow-up, appointment, and reporting surfaces documented in [CASE_MANAGEMENT_SYSTEM.md](../features/CASE_MANAGEMENT_SYSTEM.md), [CASE_CLIENT_VISIBILITY_AND_FILES.md](../features/CASE_CLIENT_VISIBILITY_AND_FILES.md), [API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md), [FOLLOW_UP_LIFECYCLE.md](../features/FOLLOW_UP_LIFECYCLE.md), and [REPORTING_GUIDE.md](../features/REPORTING_GUIDE.md).
+- The repo intentionally models this lane as inferred `staff` rather than a rehab-specific role in [user-personas.md](../../product/user-personas.md).
+- The supporting surfaces are the same case, portal, follow-up, appointment, and reporting surfaces documented in [CASE_MANAGEMENT_SYSTEM.md](../../features/CASE_MANAGEMENT_SYSTEM.md), [CASE_CLIENT_VISIBILITY_AND_FILES.md](../../features/CASE_CLIENT_VISIBILITY_AND_FILES.md), [API_REFERENCE_PORTAL_APPOINTMENTS.md](../../api/API_REFERENCE_PORTAL_APPOINTMENTS.md), [FOLLOW_UP_LIFECYCLE.md](../../features/FOLLOW_UP_LIFECYCLE.md), and [REPORTING_GUIDE.md](../../features/REPORTING_GUIDE.md).
 
 **Runnable evidence observed**
 
-- Session prep and shared context are strongly supported by case detail and portal case coverage: [CaseDetailTabs.test.tsx](../../frontend/src/features/cases/pages/__tests__/CaseDetailTabs.test.tsx), [PortalCaseDetailPage.test.tsx](../../frontend/src/features/portal/pages/__tests__/PortalCaseDetailPage.test.tsx), and [portal-cases-visibility.spec.ts](../../e2e/tests/portal-cases-visibility.spec.ts).
-- Client-visible collaboration boundaries are a major proven strength: [CaseFormsPanel.test.tsx](../../frontend/src/features/cases/components/__tests__/CaseFormsPanel.test.tsx), [portal-cases-visibility.spec.ts](../../e2e/tests/portal-cases-visibility.spec.ts), and [PortalWorkflowPages.test.tsx](../../frontend/src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx).
-- Appointment and follow-up resolution are well evidenced: [FollowUpsPage.test.tsx](../../frontend/src/features/followUps/pages/__tests__/FollowUpsPage.test.tsx), [follow-ups.spec.ts](../../e2e/tests/follow-ups.spec.ts), [portalAppointments.test.ts](../../backend/src/__tests__/integration/portalAppointments.test.ts), and [portal-messaging-appointments.spec.ts](../../e2e/tests/portal-messaging-appointments.spec.ts).
-- Generic progress review exists through outcomes and workflow coverage reporting: [OutcomesReportPage.test.tsx](../../frontend/src/features/reports/pages/__tests__/OutcomesReportPage.test.tsx) and [WorkflowCoverageReportPage.test.tsx](../../frontend/src/features/reports/pages/__tests__/WorkflowCoverageReportPage.test.tsx).
+- Session prep and shared context are strongly supported by case detail and portal case coverage: [CaseDetailTabs.test.tsx](../../../frontend/src/features/cases/pages/__tests__/CaseDetailTabs.test.tsx), [PortalCaseDetailPage.test.tsx](../../../frontend/src/features/portal/pages/__tests__/PortalCaseDetailPage.test.tsx), and [portal-cases-visibility.spec.ts](../../../e2e/tests/portal-cases-visibility.spec.ts).
+- Client-visible collaboration boundaries are a major proven strength: [CaseFormsPanel.test.tsx](../../../frontend/src/features/cases/components/__tests__/CaseFormsPanel.test.tsx), [portal-cases-visibility.spec.ts](../../../e2e/tests/portal-cases-visibility.spec.ts), and [PortalWorkflowPages.test.tsx](../../../frontend/src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx).
+- Appointment and follow-up resolution are well evidenced: [FollowUpsPage.test.tsx](../../../frontend/src/features/followUps/pages/__tests__/FollowUpsPage.test.tsx), [follow-ups.spec.ts](../../../e2e/tests/follow-ups.spec.ts), [portalAppointments.test.ts](../../../backend/src/__tests__/integration/portalAppointments.test.ts), and [portal-messaging-appointments.spec.ts](../../../e2e/tests/portal-messaging-appointments.spec.ts).
+- Generic progress review exists through outcomes and workflow coverage reporting: [OutcomesReportPage.test.tsx](../../../frontend/src/features/reports/pages/__tests__/OutcomesReportPage.test.tsx) and [WorkflowCoverageReportPage.test.tsx](../../../frontend/src/features/reports/pages/__tests__/WorkflowCoverageReportPage.test.tsx).
 
 **Current gaps or drift**
 
@@ -319,12 +319,12 @@ The workflows below were added or elevated during this documentation pass. Statu
 
 **High-signal evidence paths**
 
-- [../features/CASE_MANAGEMENT_SYSTEM.md](../features/CASE_MANAGEMENT_SYSTEM.md)
-- [../api/API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md)
-- [../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts](../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts)
-- [../../frontend/src/routes/routeCatalog/portal.ts](../../frontend/src/routes/routeCatalog/portal.ts)
-- [../../backend/src/__tests__/integration/portalAppointments.test.ts](../../backend/src/__tests__/integration/portalAppointments.test.ts)
-- [../../backend/src/__tests__/integration/followUps.test.ts](../../backend/src/__tests__/integration/followUps.test.ts)
+- [../features/CASE_MANAGEMENT_SYSTEM.md](../../features/CASE_MANAGEMENT_SYSTEM.md)
+- [../api/API_REFERENCE_PORTAL_APPOINTMENTS.md](../../api/API_REFERENCE_PORTAL_APPOINTMENTS.md)
+- [../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts](../../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts)
+- [../../frontend/src/routes/routeCatalog/portal.ts](../../../frontend/src/routes/routeCatalog/portal.ts)
+- [../../backend/src/__tests__/integration/portalAppointments.test.ts](../../../backend/src/__tests__/integration/portalAppointments.test.ts)
+- [../../backend/src/__tests__/integration/followUps.test.ts](../../../backend/src/__tests__/integration/followUps.test.ts)
 
 ## Cross-Cutting Findings
 
@@ -372,4 +372,4 @@ The workflows below were added or elevated during this documentation pass. Statu
 - This document synthesizes one lead pass plus six persona-specific subagent findings gathered in the current repo state on `2026-04-18`.
 - The original audit evidence collection was intentionally non-mutating; this artifact has since been updated to reflect the remediation work and post-change validation state landed on `2026-04-18`.
 - A blocked or interrupted command is recorded as evidence about the validation surface, not as proof that the underlying persona workflow fails.
-- This is a validation artifact, not a rewrite of the persona pack. The canonical role and workflow definitions remain in [user-personas.md](../product/user-personas.md) and [persona-workflows.md](../product/persona-workflows.md).
+- This is a validation artifact, not a rewrite of the persona pack. The canonical role and workflow definitions remain in [user-personas.md](../../product/user-personas.md) and [persona-workflows.md](../../product/persona-workflows.md).

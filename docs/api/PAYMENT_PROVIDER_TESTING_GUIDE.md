@@ -1,11 +1,19 @@
 # Payment Provider Testing Guide
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
+
+Use this guide for sandbox and test-mode validation of the payment-provider endpoints and webhook flows under `/api/v2/payments/*`. This is an API and integrations reference, not a product-planning document.
+
+Companion docs:
+
+- [API_INTEGRATION_GUIDE.md](API_INTEGRATION_GUIDE.md)
+- [README.md](README.md)
+- [postman/README.md](postman/README.md)
 
 ## Overview
 
-This guide covers testing the payment integration in sandbox mode, including Stripe, PayPal, Square, payment processing, webhooks, and error handling.
+This guide covers payment-provider endpoint testing in sandbox mode, including Stripe, PayPal, Square, payment processing, webhook delivery, and error handling.
 
 ## Prerequisites
 

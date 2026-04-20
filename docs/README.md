@@ -45,8 +45,10 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [Frontend Guide](../frontend/README.md) - staff app route ownership, direct frontend runtime, and deleted-path guardrails
 - [Playwright E2E Guide](../e2e/README.md) - host vs Docker wrapper contracts and browser-lane details
 - [API Docs](api/README.md) - API summaries, OpenAPI spec, and Postman setup
-- [Feature Matrix](features/FEATURE_MATRIX.md) - current routed product surfaces
-- [Open-Source CRM Benchmark](product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md) - external comparison set and borrowable patterns
+- [Feature Docs](features/README.md) - active feature references, supporting docs, and feature archive entrypoint
+- [Product Docs](product/README.md) - current product reference, personas, benchmark, and product archive entrypoint
+- [UI Docs](ui/README.md) - current UI references and archived UX snapshots
+- [Quick Reference Docs](quick-reference/README.md) - active quick commands plus archived earlier quick references
 
 ## Full Documentation Catalog
 
@@ -62,11 +64,15 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [Quick Command Reference](quick-reference/QUICK_REFERENCE.md)
 
 ### Product And Features
+- [Feature Docs Section](features/README.md)
 - [Feature Matrix](features/FEATURE_MATRIX.md)
+- [Product Docs Section](product/README.md)
 - [Product Specification](product/product-spec.md)
 - [User Personas](product/user-personas.md)
 - [Persona Workflows](product/persona-workflows.md)
 - [Open-Source CRM Benchmark](product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md)
+- [UI Docs Section](ui/README.md)
+- [Quick Reference Section](quick-reference/README.md)
 
 ### Backend, Frontend, And API
 - [Backend Guide](../backend/README.md)

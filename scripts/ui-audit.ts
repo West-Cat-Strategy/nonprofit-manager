@@ -14,7 +14,7 @@ const {
 } = require('./lib/route-audit.ts');
 
 const enforceBaseline = process.argv.includes('--enforce-baseline');
-const baseline = readBaselineJson('docs/ui/app-ux-audit.json');
+const baseline = readBaselineJson('docs/ui/archive/app-ux-audit.json');
 
 const COLOR_UTILITY_PREFIXES = [
   'bg',
@@ -218,7 +218,7 @@ if (
   expectedRouteIntegrityPassed !== true ||
   expectedRouteCatalogDriftPassed !== true
 ) {
-  console.error('UI audit failed:\n- docs/ui/app-ux-audit.json does not describe a passing static audit baseline.');
+  console.error('UI audit failed:\n- docs/ui/archive/app-ux-audit.json does not describe a passing static audit baseline.');
   process.exit(1);
 }
 

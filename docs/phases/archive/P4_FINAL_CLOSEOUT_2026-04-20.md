@@ -28,7 +28,7 @@ This artifact preserves the proof chain for the final Phase 4 tasks removed from
 
 ### UI/UX and Accessibility
 
-- `P4-T7` and `P4-T7E-DARK`: whole-app dark mode and UI audit remediation is complete. The style baseline is updated in `app-ux-audit.json`.
+- `P4-T7` and `P4-T7E-DARK`: whole-app dark mode and UI audit remediation is complete. The style baseline is updated in [../../ui/archive/app-ux-audit.json](../../ui/archive/app-ux-audit.json).
 - `P4-T35` (Compact Shell): navigation and responsive overflow for mobile/tablet is verified.
 - `P4-T6` (Workflow Polish): cases/intake and portal surfaces are hardened.
 
