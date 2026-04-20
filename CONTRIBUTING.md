@@ -57,6 +57,7 @@ If your task is tracked, update [docs/phases/planning-and-progress.md](docs/phas
 - Preserve unrelated user edits already present in the worktree.
 - Prefer repo-root `make` targets over ad hoc command combinations.
 - Use [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup, ports, and runtime expectations instead of duplicating them here.
+- Treat tracked `*.example` env files as templates only. Copied live `.env*`, `.deploy.conf*`, and other local runtime overrides stay ignored and local-only.
 - Keep docs synchronized when commands, ports, workflows, contracts, or navigation change.
 - Use the current repo patterns instead of reintroducing retired ones.
 - Treat [docs/phases/archive/README.md](docs/phases/archive/README.md) as historical context only; do not update archived closeouts to represent current status unless you are fixing a broken link or provenance note.
@@ -86,6 +87,7 @@ Prefer root commands first. Use package-level scripts only when the change is na
 - Use [docs/validation/README.md](docs/validation/README.md) when contributor navigation changes touch audit artifacts, remediation trackers, or validation reference docs.
 - Treat [scripts/README.md](scripts/README.md) as the helper-script index.
 - Use [contracts/README.md](contracts/README.md) and [database/README.md](database/README.md) when shared-package or database-contract navigation changes.
+- Only the three canonical `references/**` trees under `.codex/skills/nonprofit-manager-{persona-analysis,persona-validation,benchmark-analysis}/` are versioned repo content; other `.codex` files remain local helper state.
 - Use `/api/v2/*` in active API docs unless you are documenting a health alias or another documented compatibility exception.
 - Keep the root [README.md](README.md) user-facing; contributor onboarding belongs here and in `docs/development/*`.
 

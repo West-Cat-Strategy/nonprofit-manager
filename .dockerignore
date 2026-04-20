@@ -5,7 +5,20 @@ e2e/node_modules
 
 # Local workspace files and generated artifacts
 .codex/
+.claude/
+.cursor/
+.windsurf/
+.continue/
+.roo/
+.direnv/
+.envrc
+.cache/
+reference-repos/local/
+reference-repos/external/
+output/playwright/
 output/pdf/
+.docker/backups/
+.docker/postgres/
 
 # Secrets and deploy config
 .env
@@ -28,11 +41,18 @@ id_ed25519
 logs
 backend/logs
 backend/exports
+backend/uploads
 backend/dist
 backend/dist.bak
 backend/coverage
 frontend/dist
 frontend/coverage
+coverage
+security-reports
 .playwright-cli
+playwright-report
+test-results
+test-results.json
 tmp
+e2e/test-results
 e2e/playwright-report

@@ -2,21 +2,29 @@
 
 **Last Updated:** 2026-04-20
 
-Use this section for current product reference material, product-planning support docs, and archived product research. For active sequencing and tracked status, use [../phases/PHASE_5_DEVELOPMENT_PLAN.md](../phases/PHASE_5_DEVELOPMENT_PLAN.md) and [../phases/planning-and-progress.md](../phases/planning-and-progress.md).
+Use this section for current product reference material, summary docs, and archived product research. For active sequencing and tracked status, use [../phases/PHASE_5_DEVELOPMENT_PLAN.md](../phases/PHASE_5_DEVELOPMENT_PLAN.md) and [../phases/planning-and-progress.md](../phases/planning-and-progress.md). The detailed persona and benchmark canon now lives in tracked repo-local skill references.
+
+## Tracked Persona And Benchmark Canon
+
+| Canonical reference | Use |
+|---|---|
+| [Persona Analysis Canon](../../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md) | Detailed persona cards, schema, and workflow models |
+| [Persona Validation Canon](../../.codex/skills/nonprofit-manager-persona-validation/references/validation-rubric.md) | Persona workflow audit rules, source map, and findings template |
+| [Benchmark Canon](../../.codex/skills/nonprofit-manager-benchmark-analysis/references/cohort-and-sources.md) | Official-source cohort, persona pattern matrix, and roadmap linkage |
 
 ## Current Reference Docs
 
 | Doc | Use |
 |---|---|
 | [product-spec.md](product-spec.md) | Current-state product reference across staff, reporting, grants, publishing, portal, messaging, and integrations |
-| [user-personas.md](user-personas.md) | Role-based product and UX reference grounded in the current routed surfaces |
+| [user-personas.md](user-personas.md) | Persona summary and navigation surface for the tracked persona canon |
 
 ## Current Planning And Supporting Docs
 
 | Doc | Use |
 |---|---|
-| [persona-workflows.md](persona-workflows.md) | Workflow-level planning pack for leadership, fundraising, admin, and service-delivery journeys |
-| [OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md) | Benchmark-driven roadmap input aligned with the Phase 5 plan and later-wave backlog |
+| [persona-workflows.md](persona-workflows.md) | Workflow summary and navigation surface for the tracked workflow canon |
+| [OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md) | Benchmark summary and navigation surface for the tracked benchmark canon |
 | [../phases/PHASE_5_DEVELOPMENT_PLAN.md](../phases/PHASE_5_DEVELOPMENT_PLAN.md) | Current product-wave sequencing for email, website/public-site, and client portal work |
 | [../api/PAYMENT_PROVIDER_TESTING_GUIDE.md](../api/PAYMENT_PROVIDER_TESTING_GUIDE.md) | API-side payment provider endpoint and webhook testing guide |
 

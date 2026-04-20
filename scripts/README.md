@@ -25,6 +25,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [select-checks.sh](select-checks.sh) | Suggest a smaller validation set based on changed files, with distinct `fast` and `strict` modes. | `./scripts/select-checks.sh --mode fast` |
 | [e2e-playwright.sh](e2e-playwright.sh) | Apply the repo's standard host or Docker Playwright defaults before delegating to the shared runner, while still honoring explicit runtime overrides such as `BASE_URL`, `API_URL`, and `E2E_*_PORT`. | `e2e` package scripts |
 | [e2e-run-with-lock.sh](e2e-run-with-lock.sh) | Run Playwright with the shared lock plus built-in port safeguards and externally managed HTTP-readiness preflight/retry checks. | `e2e` package scripts |
+| [e2e-host-ci-report.sh](e2e-host-ci-report.sh) | Run the host Playwright CI lane with timestamped archived report artifacts under `tmp/e2e-reports/`, then open the matching preserved report in the background. | `cd e2e && npm run test:ci:report` |
 | [wait-for-http-ready.sh](wait-for-http-ready.sh) | Poll one or more local HTTP endpoints until they answer successfully. | `make docker-up-dev` / `make test-e2e-docker-smoke` |
 
 ## Policy Checks
@@ -69,6 +70,7 @@ make test
 `make test-coverage` is the coverage-focused companion to `make test`: it runs backend and frontend coverage, host Playwright smoke, and the same isolated Docker-backed smoke gate.
 `make test-coverage-full` is the higher-confidence coverage lane: it runs backend and frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate.
 `make test-tooling` runs the targeted tooling-contract regression suite for selector, route-audit, helper-script, and wrapper changes.
+For a durable archived host Playwright CI report, use `cd e2e && npm run test:ci:report`; it preserves the run under `tmp/e2e-reports/` instead of reusing `e2e/playwright-report`.
 The full Playwright CI matrix stays gated to the default browser projects; `Mobile Safari` and `Tablet` remain manual/ad hoc projects that you can run explicitly when needed.
 
 If your change is docs-only, use:

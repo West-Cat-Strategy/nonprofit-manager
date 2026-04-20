@@ -1,6 +1,6 @@
 # Plausible Analytics Setup Guide
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-20
 
 This guide documents the current Plausible integration that ships in the repo today:
 
@@ -52,6 +52,8 @@ Use the optional compose stack only when you want to run your own Plausible inst
 ```bash
 cp .env.plausible.example .env.plausible
 ```
+
+The copied `.env.plausible` file stays local-only and ignored; `.env.plausible.example` remains the tracked template.
 
 Populate at least:
 

@@ -23,6 +23,8 @@ git --version
 
 Run `npm ci` from the repo root before using package-level scripts. Dependency installs are workspace-rooted.
 
+Tracked `*.example` env files in this repo are templates. The copied live files you create from them, such as `.env.development`, `backend/.env`, `frontend/.env.local`, `e2e/.env.test.local`, `.env.production`, `.env.elk`, and `.env.plausible`, stay local-only and ignored.
+
 ## Choose A Runtime
 
 Pick one runtime path and stay with it while debugging. The Docker dev stack, direct runtime, and Playwright harness all use different ports and env assumptions.

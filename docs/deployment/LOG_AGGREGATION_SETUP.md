@@ -1,6 +1,6 @@
 # Log Aggregation Setup Guide
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 
 ## Overview
@@ -97,7 +97,7 @@ output {
 
 3. **Environment Variables** (`.env.elk` and `.env.production`):
 
-Create `.env.elk` from `.env.elk.example` before starting the overlay:
+Create `.env.elk` from `.env.elk.example` before starting the overlay. The copied `.env.elk` file stays local-only and ignored; `.env.elk.example` remains the tracked template:
 
 ```bash
 cp .env.elk.example .env.elk
@@ -358,8 +358,8 @@ Business-critical operations are logged:
   "resourceId": "contact-123",
   "changes": {
     "email": {
-      "old": "old@westcat.ca",
-      "new": "new@westcat.ca"
+      "old": "old@example.org",
+      "new": "new@example.org"
     }
   },
   "userId": "user-id",

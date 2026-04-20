@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-04-20
 
-Use this index for active validation references first, and the validation archive second. For live task ownership, blockers, and next steps, use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) instead of treating these files as a workboard.
+Use this index for active validation references first, and the validation archive second. For live task ownership, blockers, and next steps, use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) instead of treating these files as a workboard. Detailed persona-validation methodology now lives in tracked skill references.
 
 ## Start Here
 
@@ -17,6 +17,8 @@ Use this index for active validation references first, and the validation archiv
 |---|---|---|
 | [AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](AUTH_ALIAS_USAGE_REPORT_2026-04-14.md) | Operational evidence note | Current deprecation-readiness snapshot for legacy auth alias telemetry and the linked dashboard/query workflow |
 | [VALIDATION_SCHEMAS_REFERENCE.md](VALIDATION_SCHEMAS_REFERENCE.md) | Reference doc | Validation-schema patterns, examples, and supporting code references |
+| [Persona Validation Rubric](../../.codex/skills/nonprofit-manager-persona-validation/references/validation-rubric.md) | Tracked skill reference | Canonical methodology for persona workflow audits and support-status classification |
+| [Persona Findings Template](../../.codex/skills/nonprofit-manager-persona-validation/references/findings-template.md) | Tracked skill reference | Default structure for new persona validation artifacts |
 
 ## Archive
 

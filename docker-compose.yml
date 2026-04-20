@@ -5,8 +5,8 @@ x-runtime-env: &runtime-env
   DB_PORT: ${DB_PORT:-5432}
   DB_NAME: ${DB_NAME:-nonprofit_manager}
   DB_USER: ${DB_USER:-postgres}
-  DB_PASSWORD: ${DB_PASSWORD:-postgres}
-  REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+  DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the runtime env file}
+  REDIS_URL: ${REDIS_URL:?Set REDIS_URL in the runtime env file}
   REDIS_ENABLED: ${REDIS_ENABLED:-true}
   RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
   RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-1500}
@@ -58,7 +58,7 @@ services:
       PORT: ${BACKEND_PORT:-8000}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8001,http://127.0.0.1:8001}
       API_ORIGIN: ${API_ORIGIN:-http://localhost:8000}
-      SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.westcat.ca}
+      SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.example.org}
     command: ["node", "dist/index.js"]
     depends_on:
       redis:
@@ -101,9 +101,9 @@ services:
     environment:
       <<: *runtime-env
       PORT: ${PUBLIC_SITE_PORT:-8006}
-      CORS_ORIGIN: ${PUBLIC_SITE_CORS_ORIGIN:-https://sites.westcat.ca}
-      API_ORIGIN: ${PUBLIC_SITE_API_ORIGIN:-https://sites.westcat.ca}
-      SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.westcat.ca}
+      CORS_ORIGIN: ${PUBLIC_SITE_CORS_ORIGIN:-https://sites.example.org}
+      API_ORIGIN: ${PUBLIC_SITE_API_ORIGIN:-https://sites.example.org}
+      SITE_BASE_URL: ${SITE_BASE_URL:-https://sites.example.org}
     command: ["node", "dist/public-site.js"]
     depends_on:
       redis:

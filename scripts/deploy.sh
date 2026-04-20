@@ -63,8 +63,8 @@ deploy_production_like() {
   esac
 
   if [[ "$MODE" == "production" ]]; then
-    caddy_domain="${CADDY_DOMAIN:-westcat.ca}"
-    caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-sites.westcat.ca}"
+    caddy_domain="${CADDY_DOMAIN:-app.example.org}"
+    caddy_public_site_domain="${CADDY_PUBLIC_SITE_DOMAIN:-sites.example.org}"
 
     if [[ "$caddy_domain" == "$caddy_public_site_domain" ]]; then
       caddy_public_site_domain="sites.${caddy_domain}"

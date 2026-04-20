@@ -1,6 +1,6 @@
 # Deployment Guide
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 
 This guide covers deploying the Nonprofit Manager platform to production.
@@ -33,9 +33,9 @@ Workspace note: this checkout includes the Dockerfiles plus the compose manifest
 - SSL certificate (Let's Encrypt recommended)
 
 ### Environment Variables
-Create production `.env` files for backend and frontend:
+Create a local-only `.env.production` from `.env.production.example` for compose-based production deployments. The copied `.env.production` file stays ignored; the tracked `.env.production.example` file is the template.
 
-**Backend `.env`:**
+**Production `.env.production`:**
 ```bash
 NODE_ENV=production
 PORT=3000
@@ -62,7 +62,7 @@ JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
 ## CORS
-CORS_ORIGIN=https://westcat.ca
+CORS_ORIGIN=https://app.example.org
 
 ## Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
@@ -85,7 +85,7 @@ SENTRY_DSN=your_sentry_dsn
 ENABLE_MONITORING=true
 ```
 
-**Frontend `.env`:**
+**Optional frontend build settings in `.env.production`:**
 ```bash
 ## Frontend proxy base; the mounted application API remains /api/v2/*
 VITE_API_URL=/api
@@ -94,11 +94,11 @@ VITE_ANALYTICS_ID=your_analytics_id
 ```
 
 Public production endpoints:
-- App origin: `https://westcat.ca`
-- Frontend proxy base: `https://westcat.ca/api`
-- Public application API surface: `https://westcat.ca/api/v2/*`
-- Canonical public health check: `https://westcat.ca/health`
-- Compatibility health aliases: `https://westcat.ca/api/health`, `https://westcat.ca/api/v2/health`
+- App origin: `https://app.example.org`
+- Frontend proxy base: `https://app.example.org/api`
+- Public application API surface: `https://app.example.org/api/v2/*`
+- Canonical public health check: `https://app.example.org/health`
+- Compatibility health aliases: `https://app.example.org/api/health`, `https://app.example.org/api/v2/health`
 
 ## Security: TLS/HTTPS & Encryption
 
@@ -110,7 +110,7 @@ The Nonprofit Manager application **must be served over HTTPS** in production. W
 
 #### Option 1: Docker with Caddy Reverse Proxy (Recommended)
 
-Serve the frontend and backend from the same public origin (`westcat.ca`) and let the reverse proxy route `/api` (including `/api/v2/*`) and `/health` to the backend while all other paths go to the frontend:
+Serve the frontend and backend from the same public origin (`app.example.org`) and let the reverse proxy route `/api` (including `/api/v2/*`) and `/health` to the backend while all other paths go to the frontend:
 
 1. **Get SSL Certificate** (using Let's Encrypt):
 ```bash
@@ -118,7 +118,7 @@ Serve the frontend and backend from the same public origin (`westcat.ca`) and le
 sudo apt-get install certbot
 
 ## Get certificate
-sudo certbot certonly --standalone -d westcat.ca
+sudo certbot certonly --standalone -d app.example.org
 ```
 
 2. **Run the VPS overlay** so Caddy is the only public ingress.
@@ -151,7 +151,7 @@ If using a managed load balancer:
 3. **Update Environment:**
    ```bash
    # Use the public site origin in CORS and keep the frontend same-origin
-   CORS_ORIGIN=https://westcat.ca
+   CORS_ORIGIN=https://app.example.org
    # Frontend proxy base; public app endpoints remain /api/v2/*
    VITE_API_URL=/api
    # Don't expose HTTP ports directly
@@ -355,7 +355,7 @@ JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
 ## CORS (must be HTTPS in production)
-CORS_ORIGIN=https://westcat.ca
+CORS_ORIGIN=https://app.example.org
 
 ## Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
@@ -401,13 +401,11 @@ cd nonprofit-manager
 ### 2. Configure Environment
 
 ```bash
-## Copy and edit environment files
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+## Copy and edit the tracked production template
+cp .env.production.example .env.production
 
 ## Edit with your production values
-nano backend/.env
-nano frontend/.env
+nano .env.production
 ```
 
 ### 3. Build Images
@@ -644,11 +642,11 @@ Before release, review the checklist in `../development/RELEASE_CHECKLIST.md`.
 
 ```bash
 ## Backend health endpoint
-curl https://westcat.ca/health
+curl https://app.example.org/health
 
 ## Compatibility aliases remain available
-curl https://westcat.ca/api/health
-curl https://westcat.ca/api/v2/health
+curl https://app.example.org/api/health
+curl https://app.example.org/api/v2/health
 
 ## Expected response
 {"status":"ok","timestamp":"2026-02-01T..."}
@@ -807,6 +805,6 @@ docker logs nonprofit-manager-postgres
 ## Support
 
 For deployment issues:
-- Email: maintainer@westcat.ca
+- Email: maintainer@example.org
 - Organization: Example Organization
 - Contributor workflow: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)

@@ -64,6 +64,7 @@ npm run test:debug
 npm run test:ui
 npm run test:ci
 npm run test:ci:mobile
+npm run test:ci:report
 npm run test:docker
 npm run test:docker:smoke
 npm run test:docker:ci
@@ -78,6 +79,7 @@ npm run test:report
 - `npm run test:smoke`: Chromium smoke slice
 - `npm run test:ci`: Chromium, Firefox, and WebKit functional matrix, then `npm run test:ci:mobile`
 - `npm run test:ci:mobile`: Mobile Chrome regression slice against the Playwright-managed host runtime
+- `npm run test:ci:report`: same host CI lane as `npm run test:ci`, but archives the desktop and mobile slice reports under `tmp/e2e-reports/host-ci-*`, exposes a top-level `playwright-report` and `test-results.json` pointer for the report that matches the final lane outcome, and opens that report in the background
 - `npm run test:docker`: run against an already running Docker app stack, defaulting to `8005/8004/8006`
 - `npm run test:docker:smoke`: Chromium smoke slice against Docker-hosted services, defaulting to `8005/8004/8006`
 - `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services, defaulting to `8005/8004/8006`, then `npm run test:docker:ci:mobile`
@@ -86,6 +88,28 @@ npm run test:report
 - `npm run test:report`: open the HTML report
 
 `Mobile Safari` and `Tablet` are defined in `playwright.config.ts` for manual/ad hoc `--project` runs. They are intentionally excluded from the CI wrappers above.
+`npm run test:report` still opens the default last-run report in `e2e/playwright-report`; use `npm run test:ci:report` when you need a preserved archived report for the full host CI lane.
+
+## Preserved Host CI Reports
+
+Use the preserved-report wrapper when you want the host CI lane to leave a durable local artifact instead of reusing the default last-run report folder:
+
+```bash
+cd e2e
+npm run test:ci:report
+```
+
+This wrapper:
+
+- archives each run under `tmp/e2e-reports/host-ci-*`
+- preserves separate `desktop/` and `mobile/` slice artifacts inside the run directory
+- creates top-level `playwright-report` and `test-results.json` pointers to the report that matches the final lane outcome
+- launches `playwright show-report` for that preserved report in the background and writes its server log to `show-report.log`
+
+Optional overrides:
+
+- `E2E_REPORT_ROOT=/absolute/or/relative/path` to change the archive root
+- `E2E_REPORT_RUN_ID=host-ci-custom-id` to force a deterministic run directory name
 
 ## Root CI-Gated Matrix
 

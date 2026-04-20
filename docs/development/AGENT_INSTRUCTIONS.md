@@ -1,6 +1,6 @@
 # Agent Instructions For Nonprofit Manager
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 Use this file for repo-specific coding-agent guardrails. It is not the setup guide or the full docs catalog.
 
@@ -50,7 +50,8 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 - [../README.md](../README.md) is the documentation catalog.
 - [../testing/TESTING.md](../testing/TESTING.md) is the validation command map.
 - [../validation/README.md](../validation/README.md) owns navigation for validation references, audit snapshots, and remediation trackers.
-- Keep durable contributor-workflow guidance in tracked repo docs; local AI or editor workspace directories stay ignored and should not be treated as versioned repo contract.
+- Tracked references under [../../.codex/skills/nonprofit-manager-persona-analysis/references/](../../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md), [../../.codex/skills/nonprofit-manager-persona-validation/references/](../../.codex/skills/nonprofit-manager-persona-validation/references/validation-rubric.md), and [../../.codex/skills/nonprofit-manager-benchmark-analysis/references/](../../.codex/skills/nonprofit-manager-benchmark-analysis/references/cohort-and-sources.md) are the canonical detailed layer for persona analysis, persona validation, and benchmark synthesis. Only those three `references/**` trees are intentionally versioned inside `.codex`; `docs/product/*.md` remains the summary and navigation surface.
+- Keep durable contributor-workflow guidance in tracked repo docs; copied live env files, deploy overrides, and local AI or editor workspace directories stay local-only and ignored unless a tracked doc explicitly says otherwise.
 
 ## Docs Work
 
@@ -58,6 +59,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 - Verify commands, ports, and environment guidance from the repo before documenting them as fact.
 - Update adjacent entry docs when contributor navigation changes.
 - Re-open [../phases/planning-and-progress.md](../phases/planning-and-progress.md) and [../validation/README.md](../validation/README.md) when a resumed task depends on recent audit or remediation context.
+- When persona or benchmark details change, update the tracked persona-suite references first and keep `docs/product/*.md` concise.
 - Run `make check-links` for docs changes and add `make lint-doc-api-versioning` when API wording or examples changed.
 
 ## Default Validation Commands

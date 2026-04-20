@@ -5,6 +5,10 @@ export interface ProductionSecurityValidationResult {
 }
 
 const MANAGED_DB_PROVIDERS = new Set(['rds', 'cloudsql', 'azure', 'other']);
+const INSECURE_EXAMPLE_ENCRYPTION_KEYS = new Set([
+  '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+  '1111111111111111111111111111111122222222222222222222222222222222',
+]);
 
 const isAbsolutePath = (value: string): boolean => value.startsWith('/');
 
@@ -69,9 +73,11 @@ export function validateProductionSecurityConfig(
   }
 
   const encryptionKey = env.ENCRYPTION_KEY || '';
-  if (encryptionKey.length < 64) {
-    warnings.push(
-      'ENCRYPTION_KEY should be 64 hex characters (256-bit). Current length: ' + encryptionKey.length
+  if (!/^[0-9a-f]{64}$/i.test(encryptionKey)) {
+    errors.push('ENCRYPTION_KEY must be exactly 64 hexadecimal characters in production');
+  } else if (INSECURE_EXAMPLE_ENCRYPTION_KEYS.has(encryptionKey.toLowerCase())) {
+    errors.push(
+      'ENCRYPTION_KEY is set to the tracked example key; generate a unique 64-character hex key for production'
     );
   }
 

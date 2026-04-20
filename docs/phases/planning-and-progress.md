@@ -11,9 +11,9 @@
 | Snapshot | Value |
 |---|---|
 | Active rows | 9 |
-| In Progress | 0 |
+| In Progress | 1 |
 | Blocked | 0 |
-| Review | 2 |
+| Review | 1 |
 | Ready | 7 |
 | Phase 4 carry-over rows | 3 |
 | Recent thread follow-through rows | 0 |
@@ -42,7 +42,7 @@ Maintenance rules:
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
 | Review | P4-T51 | Backend duplication remediation (report-sharing dedupe + contacts compatibility cleanup) | Review the final backend proof slice and close or fold the row into a narrower Phase 5 follow-up if new duplication remains. |
-| Review | P5-T1 | Phase 5 docs, archive, and benchmark refresh | Land the workboard/Phase 5 plan refresh, archive cleanup, benchmark doc, and contributor-doc sync without breaking docs or skill validation. |
+| In Progress | P5-T1 | Phase 5 docs, archive, benchmark, and persona-skill refresh | Land the tracked persona-analysis skill suite, route existing repo-local skills into it, and realign product/docs indexes without breaking docs or skill validation. |
 
 ### Ready Next
 
@@ -92,7 +92,7 @@ Maintenance rules:
 
 | ID | Task | Status | Owner | Next Step / Blocker | Evidence |
 |---|---|---|---|---|---|
-| P5-T1 | Phase 5 docs, archive, and benchmark refresh | Review | Codex | Land the workboard/Phase 5 plan refresh, archive cleanup, benchmark doc, and contributor-doc sync without breaking docs or skill validation. | 2026-04-20 docs refresh, archive restructure, benchmark draft, and touched skill validation |
+| P5-T1 | Phase 5 docs, archive, benchmark, and persona-skill refresh | In Progress | Codex | Land the tracked persona-analysis skill suite, route existing repo-local skills into it, and realign product/docs indexes and instructions without breaking docs or skill validation. | 2026-04-20 docs refresh, archive restructure, benchmark draft, and persona-skill implementation in progress |
 | P5-T2 | Full Playwright/E2E pass plus test coverage and testing-strategy review | Ready | Codex | Run the full host and Docker Playwright lanes early in Phase 5, audit coverage gaps, and publish a testing strategy note with recommended CI/runtime changes. | TBD |
 | P5-T3 | Email platform wave: blast email plus email builder/formatter | Ready | Codex | Scope outbound campaign flow, email authoring/formatting needs, delivery reliability, preview/testing, and reuse of existing template/mailchimp surfaces. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
 | P5-T4 | Website surfaces wave: website builder plus public website | Ready | Codex | Prioritize builder editing UX, publish/runtime reliability, public-site forms, and contributor/runtime docs for the website surface. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |

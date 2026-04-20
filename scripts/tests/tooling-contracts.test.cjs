@@ -247,6 +247,53 @@ test('e2e playwright docker wrapper carries ports and readiness URLs through the
   assert.equal(env.SKIP_WEBSERVER, '1');
 });
 
+test('e2e host ci report wrapper resolves default archived report paths in dry-run mode', () => {
+  const result = run('bash', ['scripts/e2e-host-ci-report.sh', '--dry-run']);
+
+  assert.equal(result.status, 0, result.stderr);
+
+  const env = parseEnvironment(result.stdout);
+  assert.match(
+    env.REPORT_ROOT,
+    new RegExp(`^${repoRoot.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}/tmp/e2e-reports$`)
+  );
+  assert.match(env.RUN_ID, /^host-ci-\d{8}T\d{6}Z-\d+$/);
+  assert.equal(env.RUN_DIR, `${env.REPORT_ROOT}/${env.RUN_ID}`);
+  assert.equal(env.PLAYWRIGHT_HTML_OUTPUT_DIR, `${env.RUN_DIR}/playwright-report`);
+  assert.equal(env.PLAYWRIGHT_JSON_OUTPUT_FILE, `${env.RUN_DIR}/test-results.json`);
+  assert.equal(env.SLICE_DESKTOP_HTML, `${env.RUN_DIR}/desktop/playwright-report`);
+  assert.equal(env.SLICE_DESKTOP_JSON, `${env.RUN_DIR}/desktop/test-results.json`);
+  assert.equal(env.SLICE_MOBILE_HTML, `${env.RUN_DIR}/mobile/playwright-report`);
+  assert.equal(env.SLICE_MOBILE_JSON, `${env.RUN_DIR}/mobile/test-results.json`);
+});
+
+test('e2e host ci report wrapper honors report root and run id overrides in dry-run mode', () => {
+  const tempDir = createTempDir();
+  const reportRoot = path.join(tempDir, 'archived-reports');
+  const runId = 'host-ci-custom-run';
+
+  const result = run(
+    'bash',
+    ['scripts/e2e-host-ci-report.sh', '--dry-run'],
+    {
+      E2E_REPORT_ROOT: reportRoot,
+      E2E_REPORT_RUN_ID: runId,
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+
+  const env = parseEnvironment(result.stdout);
+  assert.equal(env.REPORT_ROOT, reportRoot);
+  assert.equal(env.RUN_ID, runId);
+  assert.equal(env.RUN_DIR, `${reportRoot}/${runId}`);
+  assert.equal(env.SHOW_REPORT_LOG, `${reportRoot}/${runId}/show-report.log`);
+  assert.equal(
+    env.OPEN_REPORT_COMMAND,
+    `./node_modules/.bin/playwright show-report ${reportRoot}/${runId}/playwright-report`
+  );
+});
+
 test('e2e port preflight fails clearly when lsof is unavailable', () => {
   const result = run(
     'bash',
@@ -305,6 +352,32 @@ test('select-checks recommends tooling regression coverage for orchestration cha
     'make test-e2e-docker-smoke',
     'make db-verify',
   ]);
+});
+
+test('gitignore keeps live envs local-only while allowing tracked templates and canonical refs', () => {
+  const result = run('bash', [
+    '-lc',
+    `git check-ignore -v --no-index --non-matching --stdin <<'EOF'
+.env.development
+.env.example
+output/playwright/session/trace.zip
+.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md
+.codex/skills/nonprofit-manager-security-ops/SKILL.md
+EOF`,
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /\.gitignore:\d+:\.env\.\*\t\.env\.development/);
+  assert.match(result.stdout, /\.gitignore:\d+:!\.env\.example\t\.env\.example/);
+  assert.match(result.stdout, /\.gitignore:\d+:output\/playwright\/\toutput\/playwright\/session\/trace\.zip/);
+  assert.match(
+    result.stdout,
+    /\.gitignore:\d+:!\.codex\/skills\/nonprofit-manager-persona-analysis\/references\/\*\*\t\.codex\/skills\/nonprofit-manager-persona-analysis\/references\/source-map\.md/
+  );
+  assert.match(
+    result.stdout,
+    /\.gitignore:\d+:\/?\.codex\/skills\/\*\t\.codex\/skills\/nonprofit-manager-security-ops\/SKILL\.md/
+  );
 });
 
 test('docker build helper keeps workspace dependency validation explicit', () => {

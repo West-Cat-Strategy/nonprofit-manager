@@ -1,12 +1,20 @@
 import { validateProductionSecurityConfig } from '@config/productionSecurityConfig';
 
 describe('validateProductionSecurityConfig', () => {
+  const validProductionEncryptionKey = [
+    'abcdef0123456789',
+    '0123456789abcdef',
+    'fedcba9876543210',
+    '0011223344556677',
+  ].join('');
+  const trackedExampleEncryptionKey = `${'1'.repeat(32)}${'2'.repeat(32)}`;
+
   const baseEnv = {
     NODE_ENV: 'production',
     JWT_SECRET: 'super-secure-production-ready-jwt-secret-at-least-32-chars',
     CSRF_SECRET: 'super-secure-production-ready-csrf-secret-at-least-32-chars',
     STRIPE_WEBHOOK_SECRET: 'whsec_live_webhook_secret',
-    ENCRYPTION_KEY: 'placeholder-encryption-key-for-testing-only-placeholder-encryption-key-for-testing-only',
+    ENCRYPTION_KEY: validProductionEncryptionKey,
     DB_PASSWORD: 'super-secret-db-password',
     PAYPAL_CLIENT_ID: 'paypal-client-id',
     PAYPAL_CLIENT_SECRET: 'paypal-client-secret',
@@ -30,6 +38,21 @@ describe('validateProductionSecurityConfig', () => {
       errors: [],
       fatalErrors: [],
     });
+  });
+
+  it('fails when production still uses the tracked example encryption key', () => {
+    const result = validateProductionSecurityConfig({
+      ...baseEnv,
+      ENCRYPTION_KEY: trackedExampleEncryptionKey,
+      DB_HOST: 'prod-db.example.com',
+      DB_AT_REST_ENCRYPTION_MODE: 'managed',
+      DB_AT_REST_PROVIDER: 'rds',
+      DB_AT_REST_VERIFIED: 'true',
+    });
+
+    expect(result.errors).toContain(
+      'ENCRYPTION_KEY is set to the tracked example key; generate a unique 64-character hex key for production'
+    );
   });
 
   it('fails when managed configuration is missing provider and verification attestation', () => {

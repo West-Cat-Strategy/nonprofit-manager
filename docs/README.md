@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-04-20
 
-Welcome to the Nonprofit Manager documentation hub. Use this file to find the live contributor workflow, runtime docs, feature inventory, and historical archives without mixing current planning with older closeout material.
+Welcome to the Nonprofit Manager documentation hub. Use this file to find the live contributor workflow, runtime docs, feature inventory, tracked persona canon, and historical archives without mixing current planning with older closeout material. Tracked `*.example` env files are templates; copied live `.env*` and deploy override files stay local-only and ignored. Inside `.codex`, only the three canonical persona and benchmark `references/**` trees are versioned.
 
 ## Start Here
 
@@ -35,6 +35,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 | Runtime setup and ports | [development/GETTING_STARTED.md](development/GETTING_STARTED.md) | Docker, direct app, public-site, worker, and Playwright runtime contracts |
 | Validation and testing | [testing/TESTING.md](testing/TESTING.md) | Active test-command selection map |
 | Validation and audit artifacts | [validation/README.md](validation/README.md) | Audit snapshots, remediation trackers, and validation references |
+| Persona and benchmark detail | [../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md](../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md) | Canonical detailed layer for persona analysis, persona validation, and benchmark synthesis |
 | Helper scripts | [../scripts/README.md](../scripts/README.md) | Repo-local command and policy-script index |
 | Database contract | [../database/README.md](../database/README.md) | Schema, seeds, manifest, and migration-contract orientation |
 | Shared contracts | [../contracts/README.md](../contracts/README.md) | Shared type-only package used across app surfaces |
@@ -46,7 +47,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [Playwright E2E Guide](../e2e/README.md) - host vs Docker wrapper contracts and browser-lane details
 - [API Docs](api/README.md) - API summaries, OpenAPI spec, and Postman setup
 - [Feature Docs](features/README.md) - active feature references, supporting docs, and feature archive entrypoint
-- [Product Docs](product/README.md) - current product reference, personas, benchmark, and product archive entrypoint
+- [Product Docs](product/README.md) - current product reference, summary persona docs, tracked persona canon links, benchmark summary, and product archive entrypoint
 - [UI Docs](ui/README.md) - current UI references and archived UX snapshots
 - [Quick Reference Docs](quick-reference/README.md) - active quick commands plus archived earlier quick references
 
@@ -71,6 +72,9 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [User Personas](product/user-personas.md)
 - [Persona Workflows](product/persona-workflows.md)
 - [Open-Source CRM Benchmark](product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md)
+- [Persona Analysis Skill Canon](../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md)
+- [Persona Validation Skill Canon](../.codex/skills/nonprofit-manager-persona-validation/references/validation-rubric.md)
+- [Benchmark Analysis Skill Canon](../.codex/skills/nonprofit-manager-benchmark-analysis/references/cohort-and-sources.md)
 - [UI Docs Section](ui/README.md)
 - [Quick Reference Section](quick-reference/README.md)
 

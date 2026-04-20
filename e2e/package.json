@@ -8,6 +8,7 @@
     "test:debug": "bash ../scripts/e2e-playwright.sh host --direct ./node_modules/.bin/playwright test --debug",
     "test:ui": "bash ../scripts/e2e-playwright.sh host --direct ./node_modules/.bin/playwright test --ui",
     "test:report": "./node_modules/.bin/playwright show-report",
+    "test:ci:report": "bash ../scripts/e2e-host-ci-report.sh",
     "test:codegen": "./node_modules/.bin/playwright codegen",
     "test:smoke": "E2E_RUNNER_ACTION=${E2E_RUNNER_ACTION:-kill} PW_REUSE_EXISTING_SERVER=0 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium tests/smoke-public.spec.ts tests/public-website.spec.ts",
     "test:docker": "bash ../scripts/e2e-playwright.sh docker ./node_modules/.bin/playwright test",

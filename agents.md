@@ -24,7 +24,7 @@ There are no autonomous AI agents running independently in the application. The 
 | Historical phase proof and earlier workboards | [docs/phases/archive/README.md](docs/phases/archive/README.md) |
 | Parallel contributor coordination | [docs/development/SUBAGENT_MODULARIZATION_GUIDE.md](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md) plus the Coordination section in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) |
 | Validation and audit artifacts | [docs/validation/README.md](docs/validation/README.md) |
-| Repo-local helper prompts | `.codex/skills/**` is local helper guidance only; tracked repo docs remain the canonical contract |
+| Repo-local helper prompts | Tracked detailed persona and benchmark canon lives under [`.codex/skills/nonprofit-manager-persona-analysis/references/`](.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md), [`.codex/skills/nonprofit-manager-persona-validation/references/`](.codex/skills/nonprofit-manager-persona-validation/references/validation-rubric.md), and [`.codex/skills/nonprofit-manager-benchmark-analysis/references/`](.codex/skills/nonprofit-manager-benchmark-analysis/references/cohort-and-sources.md); only those three `references/**` trees are versioned under `.codex`, and other repo-local skill prompts remain helper guidance |
 
 ## Developer Agents
 
@@ -35,7 +35,7 @@ For the full set of technical guardrails, architecture boundaries, and validatio
 - [**docs/development/AGENT_INSTRUCTIONS.md**](docs/development/AGENT_INSTRUCTIONS.md)
 - [**CONTRIBUTING.md**](CONTRIBUTING.md)
 
-Local prompts under `.codex/skills/**` may mirror this workflow for Codex, but they are helper guidance rather than tracked repo policy.
+Local prompts under `.codex/skills/**` may mirror this workflow for Codex. The tracked persona-suite references named above are the explicit exception: they are the canonical detailed layer for persona analysis, persona validation, and benchmark synthesis, and only those `references/**` trees are versioned. Other repo-local skill prompts remain helper guidance rather than tracked repo policy.
 
 ## Multi-Agent Coordination
 
