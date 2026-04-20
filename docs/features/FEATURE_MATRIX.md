@@ -1,6 +1,6 @@
 # Feature Matrix
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-19
 
 Master status of all features in nonprofit-manager.
 
@@ -179,27 +179,22 @@ Use the workboard for the current dashboard and admin workspace refactor status.
 
 | Feature | Status | Owner | Documentation | Code | Notes |
 |---------|--------|-------|---|---|---|
-| **User Roles** | ✅ | Backend | [agents.md](../../agents.md) | `backend/src/services/authGuardService.ts` | Admin, Manager, Coordinator, Volunteer, Donor; live enforcement is code-owned |
-| **Permissions** | ✅ | Backend | [agents.md](../../agents.md) | Same | 45+ granular permissions; live checks also depend on `backend/src/utils/permissions.ts` |
-| **Organization Access** | ✅ | Backend | Same | - | Multi-tenancy support; current access rules are code-owned |
+| **User Roles** | ✅ | Backend | [../product/user-personas.md](../product/user-personas.md) | `backend/src/modules/admin/usecases/roleCatalogUseCase.ts` | Canonical role slugs are `admin`, `manager`, `staff`, `volunteer`, and `viewer` |
+| **Permissions** | ✅ | Backend | [../product/user-personas.md](../product/user-personas.md) | `backend/src/utils/permissions.ts` | Granular permission matrix; role aliases also normalize through `backend/src/utils/roleSlug.ts` |
+| **Organization Access** | ✅ | Backend | [../product/user-personas.md](../product/user-personas.md) | `backend/src/utils/permissions.ts` | Multi-tenancy support is code-owned; `member` and `readonly` aliases normalize to `viewer` in `backend/src/utils/roleSlug.ts` |
 | Password Reset | ✅ | Backend | - | - | Secure password recovery |
 | Session Management | ✅ | Backend | - | - | JWT token management |
-| Rate Limiting | ✅ | Backend | [AGENT_INSTRUCTIONS.md](../development/AGENT_INSTRUCTIONS.md) | - | DDoS protection |
-| API Key Management | ✅ | Backend | Same | - | Third-party access tokens |
+| Rate Limiting | ✅ | Backend | [../security/SECURITY_MONITORING_GUIDE.md](../security/SECURITY_MONITORING_GUIDE.md) | `backend/src/middleware/rateLimitAdvanced.ts` | DDoS protection and operational monitoring guidance |
+| API Key Management | ✅ | Backend | [../api/API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md) | `backend/src/modules/webhooks/services/apiKeyService.ts` | Third-party access tokens and usage tracking |
 | Backup & Recovery | ✅ | Backend/DevOps | [../deployment/DB_SETUP.md](../deployment/DB_SETUP.md) | - | Database backup procedures |
 
 ---
 
-## Workboard Snapshot
+## Live Work Tracking
 
-As of 2026-04-16, the active Phase 4 workboard was centered on:
+Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for the authoritative owner, blocker, and next-step details for active feature work.
 
-- Security hardening follow-through around approval-gated registration, session/auth behavior, and API-key or webhook controls
-- Dashboard and admin workspace refactors across `/dashboard`, `/dashboard/custom`, and `/settings/admin/*`
-- Dark-mode accessibility remediation and route-audit closure
-- Setup, launch, and E2E stabilization for runtime-aware local and Playwright flows
-
-Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for the authoritative owner, blocker, and next-step details after this snapshot.
+If you are resuming recent interrupted work, check `Recent Thread Follow-through` before scanning the larger active table.
 
 ---
 

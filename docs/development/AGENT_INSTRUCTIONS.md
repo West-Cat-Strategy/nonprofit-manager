@@ -12,16 +12,18 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 4. [../testing/TESTING.md](../testing/TESTING.md) for the validation command map
 5. [../../README.md](../../README.md) for product context
 6. [../README.md](../README.md) if you need the documentation catalog
-7. [../phases/planning-and-progress.md](../phases/planning-and-progress.md) before tracked work
+7. [../phases/planning-and-progress.md](../phases/planning-and-progress.md) before tracked or resumed work
+8. [../validation/README.md](../validation/README.md) when you are following up on audit or validation artifacts
 
 ## Core Rules
 
 1. Update [../phases/planning-and-progress.md](../phases/planning-and-progress.md) before starting tracked work.
-2. Keep one active task per agent by default unless the workboard documents a coordinated exception.
-3. Preserve unrelated user changes already present in the worktree.
-4. Prefer repo-native validation commands and policies over ad hoc checks.
-5. Update active docs when commands, ports, workflows, or contracts change.
-6. Use [SUBAGENT_MODULARIZATION_GUIDE.md](SUBAGENT_MODULARIZATION_GUIDE.md) when tracked modularization work needs coordinated parallel lanes.
+2. Review `Recent Thread Follow-through` before resuming tracked work or following up on a recent disposed thread.
+3. Keep one active task per agent by default unless the workboard documents a coordinated exception.
+4. Preserve unrelated user changes already present in the worktree.
+5. Prefer repo-native validation commands and policies over ad hoc checks.
+6. Update active docs when commands, ports, workflows, or contracts change.
+7. Use [SUBAGENT_MODULARIZATION_GUIDE.md](SUBAGENT_MODULARIZATION_GUIDE.md) when tracked modularization work needs coordinated parallel lanes.
 
 ## Architecture Checkpoints
 
@@ -47,6 +49,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 - [../../README.md](../../README.md) owns the product overview and contributor handoff.
 - [../README.md](../README.md) is the documentation catalog.
 - [../testing/TESTING.md](../testing/TESTING.md) is the validation command map.
+- [../validation/README.md](../validation/README.md) owns navigation for validation references, audit snapshots, and remediation trackers.
 - Keep durable contributor-workflow guidance in tracked repo docs; local AI or editor workspace directories stay ignored and should not be treated as versioned repo contract.
 
 ## Docs Work
@@ -54,6 +57,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 - Use relative links in repo docs.
 - Verify commands, ports, and environment guidance from the repo before documenting them as fact.
 - Update adjacent entry docs when contributor navigation changes.
+- Re-open [../phases/planning-and-progress.md](../phases/planning-and-progress.md) and [../validation/README.md](../validation/README.md) when a resumed task depends on recent audit or remediation context.
 - Run `make check-links` for docs changes and add `make lint-doc-api-versioning` when API wording or examples changed.
 
 ## Default Validation Commands

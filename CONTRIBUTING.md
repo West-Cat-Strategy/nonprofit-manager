@@ -20,6 +20,7 @@ Use the narrower guides only when your change needs them:
 |---|---|
 | Product context and contributor handoff | [README.md](README.md) |
 | Agent terminology and coordination overview | [agents.md](agents.md) |
+| Validation and audit artifacts | [docs/validation/README.md](docs/validation/README.md) |
 | Backend module work | [backend/README.md](backend/README.md) |
 | API reference and route summaries | [docs/api/README.md](docs/api/README.md) |
 | Frontend feature and route work | [frontend/README.md](frontend/README.md) |
@@ -39,6 +40,7 @@ Use the narrower guides only when your change needs them:
 
 If your task is tracked, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before you start editing. The workboard is the source of truth for ownership, status, blockers, and handoff state.
 
+- If you are resuming recent interrupted or disposed work, check `Recent Thread Follow-through` before scanning the larger active table.
 - Keep one active task per agent by default unless the workboard documents a coordinated exception.
 - For tracked modularization work that needs parallel lanes, follow [docs/development/SUBAGENT_MODULARIZATION_GUIDE.md](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md) and document the coordinated exception before code edits start.
 - Use task IDs in commits and pull request titles when the work is tracked.
@@ -75,6 +77,7 @@ Prefer root commands first. Use package-level scripts only when the change is na
 - Keep Markdown links relative.
 - Keep the docs entry flow aligned: [README.md](README.md), this file, [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md), [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md), [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md), [docs/testing/TESTING.md](docs/testing/TESTING.md), then [docs/README.md](docs/README.md).
 - Treat [docs/README.md](docs/README.md) as the primary documentation entry point.
+- Use [docs/validation/README.md](docs/validation/README.md) when contributor navigation changes touch audit artifacts, remediation trackers, or validation reference docs.
 - Treat [scripts/README.md](scripts/README.md) as the helper-script index.
 - Use `/api/v2/*` in active API docs unless you are documenting a health alias or another documented compatibility exception.
 - Keep the root [README.md](README.md) user-facing; contributor onboarding belongs here and in `docs/development/*`.
