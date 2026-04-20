@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
+# Keep the deleted-path absence guards in the main policy lane so resurrected
+# legacy trees fail fast alongside the other repo policy checks.
 POLICY_COMMANDS=(
   "node scripts/check-rate-limit-key-policy.ts"
   "node scripts/check-success-envelope-policy.ts"

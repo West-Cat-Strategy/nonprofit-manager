@@ -1,12 +1,7 @@
 import ErrorBanner from '../../../components/ErrorBanner';
 import type { RoleSelectorItem } from '../../adminOps/contracts';
-import { getRoleDisplayLabel } from '../../adminOps/pages/adminSettings/utils';
-
-type InviteEmailDelivery = {
-  requested: boolean;
-  sent: boolean;
-  reason?: string;
-} | null;
+import type { InvitationEmailDelivery } from '../types';
+import { getInvitationRoleDisplayLabel } from '../utils';
 
 interface InviteUserModalProps {
   open: boolean;
@@ -18,7 +13,7 @@ interface InviteUserModalProps {
   onMessageChange: (value: string) => void;
   roleOptions: RoleSelectorItem[];
   inviteUrl: string | null;
-  inviteEmailDelivery: InviteEmailDelivery;
+  inviteEmailDelivery: InvitationEmailDelivery | null;
   inviteEmailConfigured: boolean;
   inviteCapabilitiesLoading: boolean;
   isCreatingInvite: boolean;
@@ -161,7 +156,7 @@ export default function InviteUserModal({
                   className="w-full rounded-lg border border-app-input-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-app-accent"
                 >
                   {roleOptions.length === 0 ? (
-                    <option value={role}>{getRoleDisplayLabel(role, {})}</option>
+                    <option value={role}>{getInvitationRoleDisplayLabel(role, {})}</option>
                   ) : (
                     roleOptions.map((option) => (
                       <option key={option.value} value={option.value}>

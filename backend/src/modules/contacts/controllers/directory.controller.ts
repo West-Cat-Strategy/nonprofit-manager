@@ -252,7 +252,7 @@ export const createContactDirectoryController = (
     try {
       const organizationId = req.organizationId;
       if (!organizationId) {
-        sendFailure(res, 'BAD_REQUEST', 'Organization context required', 400);
+        sendFailure(res, 'bad_request', 'No organization context', 400);
         return;
       }
 
@@ -285,7 +285,7 @@ export const createContactDirectoryController = (
     try {
       const organizationId = req.organizationId;
       if (!organizationId) {
-        sendFailure(res, 'BAD_REQUEST', 'Organization context required', 400);
+        sendFailure(res, 'bad_request', 'No organization context', 400);
         return;
       }
 
@@ -309,7 +309,7 @@ export const createContactDirectoryController = (
       const userId = req.user?.id;
 
       if (!organizationId) {
-        sendFailure(res, 'BAD_REQUEST', 'Organization context required', 400);
+        sendFailure(res, 'bad_request', 'No organization context', 400);
         return;
       }
 

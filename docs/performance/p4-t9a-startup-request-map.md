@@ -27,7 +27,7 @@ Task: `P4-T9D` (load-time acceleration refactor)
 
 - Persistent auth shell: `frontend/src/components/auth/AuthenticatedShellRoute.tsx`, `frontend/src/routes/index.tsx`
 - Preference fetch dedupe/cache: `frontend/src/hooks/useNavigationPreferences.ts`
-- Contact scoped case fetch: `frontend/src/features/cases/state/casesCore.ts`, `frontend/src/pages/people/contacts/ContactDetail.tsx`
+- Contact scoped case fetch: `frontend/src/features/cases/state/casesCore.ts`, `frontend/src/features/contacts/pages/ContactDetailPage.tsx`
 - Quick lookup endpoint usage: `frontend/src/components/dashboard/useQuickLookup.tsx`, `frontend/src/features/contacts/api/contactsApiClient.ts`
 - Assertions:
 - `e2e/tests/auth.spec.ts` (`authenticated route transitions do not repeatedly refetch preferences/branding`, `quick lookup uses lookup endpoint instead of full contacts list search`)

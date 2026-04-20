@@ -7,6 +7,7 @@ import fs from 'fs';
 import { createRequire } from 'module';
 import path from 'path';
 import { Page, expect } from '@playwright/test';
+import { enrollTotpSecret, generateTotpCodeForTest } from '../../backend/src/modules/auth/lib/totp';
 import { getSharedTestUser, setSharedTestUser } from './testUser';
 
 const RETRYABLE_NETWORK_ERROR = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|socket hang up/i;
@@ -35,6 +36,7 @@ const { Client: PgClient } = backendRequire('pg') as {
 const bcrypt = backendRequire('bcryptjs') as {
   hashSync(value: string, salt: number): string;
 };
+type AuthDbClient = InstanceType<typeof PgClient>;
 
 const isRetryableNetworkError = (error: unknown): boolean => {
   if (!(error instanceof Error)) {
@@ -137,6 +139,12 @@ type DecodedJwtPayload = {
 type AdminRuntimeProfile = 'docker-seeded' | 'docker-setup' | 'playwright-managed';
 type SetupRequiredState = boolean | null;
 
+type TotpMfaChallengeResult = {
+  mfaToken: string;
+  user?: AuthUser;
+  organizationId?: string;
+};
+
 type ResolvedAdminCredentials = {
   email: string;
   password: string;
@@ -228,6 +236,24 @@ const shouldAllowExternallyManagedAuthFallbacks = (): boolean =>
 
 const shouldUseManagedTestUserCreation = (): boolean =>
   !shouldAllowExternallyManagedAuthFallbacks();
+
+const isMfaBypassEnabledForTests = (): boolean =>
+  process.env.BYPASS_MFA_FOR_TESTS?.trim().toLowerCase() === 'true';
+
+const buildMfaRuntimeGuardMessage = (proofName: string): string => {
+  const skipWebserver = process.env.SKIP_WEBSERVER ?? '(unset)';
+  const bypassMfa = process.env.BYPASS_MFA_FOR_TESTS ?? '(unset)';
+
+  return `${proofName} requires an externally managed E2E runtime with MFA bypass disabled. Current env: SKIP_WEBSERVER=${skipWebserver}, BYPASS_MFA_FOR_TESTS=${bypassMfa}. The Playwright-managed host harness pins BYPASS_MFA_FOR_TESTS=true, so it cannot prove admin/manager MFA behavior. Re-run with SKIP_WEBSERVER=1 and BYPASS_MFA_FOR_TESTS=false, for example: make docker-up-dev && cd e2e && npm run test:docker -- tests/fresh-workspace-multi-user.spec.ts --project=chromium`;
+};
+
+export const assertMfaEnforcedExternalRuntime = (
+  proofName: string = 'This MFA proof'
+): void => {
+  if (process.env.SKIP_WEBSERVER !== '1' || isMfaBypassEnabledForTests()) {
+    throw new Error(buildMfaRuntimeGuardMessage(proofName));
+  }
+};
 
 const getPlaywrightManagedAdminCredentialProfile = (): DefaultAdminCredentialProfile => ({
   password: PLAYWRIGHT_MANAGED_ADMIN_PASSWORD,
@@ -543,6 +569,49 @@ const getAuthDatabaseConfig = (): {
   user: process.env.E2E_DB_ADMIN_USER || process.env.TEST_DB_ADMIN_USER || 'postgres',
   password: process.env.E2E_DB_ADMIN_PASSWORD || process.env.TEST_DB_ADMIN_PASSWORD || 'postgres',
 });
+
+const withAuthDatabaseClient = async <T>(
+  callback: (client: AuthDbClient) => Promise<T>
+): Promise<T> => {
+  const client = new PgClient(getAuthDatabaseConfig());
+  await client.connect();
+  try {
+    return await callback(client);
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+};
+
+const resolveAuthHelperEncryptionKey = (): Buffer => {
+  const envKey = process.env.ENCRYPTION_KEY?.trim();
+  if (envKey) {
+    if (envKey.length === 64) {
+      return Buffer.from(envKey, 'hex');
+    }
+
+    if (envKey.length === 44) {
+      return Buffer.from(envKey, 'base64');
+    }
+
+    return crypto.scryptSync(envKey, 'nonprofit-manager-salt', 32);
+  }
+
+  return crypto.scryptSync('dev-encryption-key', 'dev-salt', 32);
+};
+
+const encryptWithAuthHelperKey = (plaintext: string): string => {
+  if (!plaintext) {
+    return plaintext;
+  }
+
+  const key = resolveAuthHelperEncryptionKey();
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return Buffer.concat([iv, authTag, encrypted]).toString('base64');
+};
 
 const ensureDatabaseBackedTestUser = async (
   user: Pick<TestUser, 'email' | 'password' | 'firstName' | 'lastName'>
@@ -1424,6 +1493,333 @@ export async function ensureSetupComplete(
   }
 
   throw new Error(`setup failed to complete admin bootstrap for ${email}`);
+}
+
+export async function setupFreshAdminSessionViaAPI(
+  page: Page,
+  profile: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    organizationName?: string;
+  }
+): Promise<AuthSession> {
+  const setupStatus = await getSetupStatusOrNull(page, { attempts: 3, delayMs: 200 });
+  if (setupStatus && !setupStatus.setupRequired) {
+    throw new Error(
+      `Fresh admin setup session requires a starter-only workspace, but setup is already complete (userCount=${setupStatus.userCount}). Reset the external runtime or start with a fresh Docker volume before rerunning.`
+    );
+  }
+
+  await clearAuth(page);
+
+  const response = await withNetworkRetry(() =>
+    page.request.post(`${getApiBaseUrl()}/api/v2/auth/setup`, {
+      data: {
+        email: profile.email,
+        password: profile.password,
+        password_confirm: profile.password,
+        first_name: profile.firstName || 'Admin',
+        last_name: profile.lastName || 'User',
+        organization_name: profile.organizationName || 'E2E Organization',
+      },
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+
+  if (!response.ok()) {
+    const errorBody = await response.json().catch(() => null);
+    const responseText = await response.text().catch(() => '');
+    const message = errorBody
+      ? extractApiErrorMessage(
+          errorBody,
+          responseText || `Fresh admin setup failed with status ${response.status()}`
+        )
+      : responseText || `Fresh admin setup failed with status ${response.status()}`;
+    throw new Error(`Fresh admin setup failed for ${profile.email} (${response.status()}): ${message}`);
+  }
+
+  const payload = unwrapApiData<{
+    token?: string;
+    user?: AuthUser;
+    organizationId?: string;
+    organization_id?: string;
+  }>(await response.json());
+  const token =
+    normalizeString(payload.token) || extractAuthTokenFromSetCookie(response.headers()['set-cookie']);
+  if (!token) {
+    throw new Error(`Fresh admin setup response missing token for ${profile.email}: ${JSON.stringify(payload)}`);
+  }
+
+  const authUser = normalizeAuthUser(payload.user);
+  if (!authUser) {
+    throw new Error(`Fresh admin setup response missing user for ${profile.email}: ${JSON.stringify(payload)}`);
+  }
+
+  const setupBootstrap = await applyAuthTokenState(
+    page,
+    token,
+    resolveOrganizationIdFromPayload(payload),
+    authUser
+  );
+  const organizationId =
+    resolveValidatedSessionOrganizationId(
+      'Fresh admin setup session',
+      {
+        organizationId: resolveOrganizationIdFromPayload(payload),
+        user: authUser,
+        token,
+        bootstrapOrganizationId: setupBootstrap?.organizationId,
+        bootstrapUser: setupBootstrap?.user,
+      },
+      { required: true }
+    ) ?? '';
+  const user =
+    withResolvedOrganizationIds(normalizeAuthUser(setupBootstrap?.user) || authUser, organizationId) ||
+    authUser;
+
+  if (!isAdminRole(user.role)) {
+    throw new Error(
+      `Fresh admin setup returned a non-admin session for ${profile.email} (role=${String(user.role ?? 'unknown')})`
+    );
+  }
+
+  const settledSetupStatus = await waitForSetupStatus(page, { attempts: 10, delayMs: 300 });
+  if (settledSetupStatus.setupRequired) {
+    throw new Error(
+      `Fresh admin setup completed for ${profile.email}, but setup-status still reports setupRequired=true`
+    );
+  }
+
+  return {
+    token,
+    user,
+    email: profile.email,
+    password: profile.password,
+    isAdmin: true,
+    organizationId,
+  };
+}
+
+export async function clearTotpEnrollmentForUser(userId: string): Promise<void> {
+  await withAuthDatabaseClient(async (client) => {
+    await client.query(
+      `UPDATE users
+       SET mfa_totp_enabled = FALSE,
+           mfa_totp_secret_enc = NULL,
+           mfa_totp_pending_secret_enc = NULL,
+           mfa_totp_enabled_at = NULL,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [userId]
+    );
+  });
+}
+
+export async function seedTotpEnrollmentForUser(
+  userId: string,
+  email: string,
+  options: { issuer?: string } = {}
+): Promise<{ secret: string; issuer: string }> {
+  const issuer = options.issuer || 'Nonprofit Manager';
+  await clearTotpEnrollmentForUser(userId);
+
+  const { secret } = enrollTotpSecret(email, issuer);
+  await withAuthDatabaseClient(async (client) => {
+    await client.query(
+      `UPDATE users
+       SET mfa_totp_enabled = TRUE,
+           mfa_totp_secret_enc = $1,
+           mfa_totp_pending_secret_enc = NULL,
+           mfa_totp_enabled_at = NOW(),
+           updated_at = NOW()
+       WHERE id = $2`,
+      [encryptWithAuthHelperKey(secret), userId]
+    );
+  });
+
+  return { secret, issuer };
+}
+
+export async function expectPasswordLoginToRequireMfaEnrollmentViaAPI(
+  page: Page,
+  email: string,
+  password: string
+): Promise<void> {
+  await clearAuth(page);
+
+  const response = await withNetworkRetry(() =>
+    page.request.post(`${getApiBaseUrl()}/api/v2/auth/login`, {
+      data: { email, password },
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+
+  const payload = await response.json().catch(() => null);
+  const message = payload
+    ? extractApiErrorMessage(payload, `Login failed with status ${response.status()}`)
+    : await response.text().catch(() => `Login failed with status ${response.status()}`);
+
+  if (response.status() !== 403 || !/multi-factor authentication is required/i.test(message)) {
+    throw new Error(
+      `Expected password login for ${email} to require MFA enrollment, but received ${response.status()}: ${message}`
+    );
+  }
+}
+
+export async function loginViaAPIExpectingTotpChallenge(
+  page: Page,
+  email: string,
+  password: string,
+  options: { proofName?: string } = {}
+): Promise<TotpMfaChallengeResult> {
+  await clearAuth(page);
+
+  const response = await withNetworkRetry(() =>
+    page.request.post(`${getApiBaseUrl()}/api/v2/auth/login`, {
+      data: { email, password },
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+
+  if (!response.ok()) {
+    const errorBody = await response.json().catch(() => null);
+    const responseText = await response.text().catch(() => '');
+    const message = errorBody
+      ? extractApiErrorMessage(
+          errorBody,
+          responseText || `MFA login failed with status ${response.status()}`
+        )
+      : responseText || `MFA login failed with status ${response.status()}`;
+    throw new Error(`Failed to initiate MFA login for ${email} (${response.status()}): ${message}`);
+  }
+
+  const payload = unwrapApiData<{
+    mfaRequired?: boolean;
+    mfaToken?: string;
+    token?: string;
+    user?: AuthUser;
+    organizationId?: string;
+    organization_id?: string;
+  }>(await response.json());
+
+  if (!payload.mfaRequired || !payload.mfaToken) {
+    const runtimeHint = isMfaBypassEnabledForTests()
+      ? ` ${buildMfaRuntimeGuardMessage(options.proofName || `Seeded MFA login for ${email}`)}`
+      : '';
+    throw new Error(
+      `Expected MFA challenge for ${email}, got: ${JSON.stringify(payload)}.${runtimeHint}`.trim()
+    );
+  }
+
+  return {
+    mfaToken: payload.mfaToken,
+    user: normalizeAuthUser(payload.user),
+    organizationId: resolveOrganizationIdFromPayload(payload),
+  };
+}
+
+export async function completeTotpLoginViaAPI(
+  page: Page,
+  input: {
+    email: string;
+    mfaToken: string;
+    code: string;
+  }
+): Promise<ApiLoginResult> {
+  const response = await withNetworkRetry(() =>
+    page.request.post(`${getApiBaseUrl()}/api/v2/auth/login/2fa`, {
+      data: {
+        email: input.email,
+        mfaToken: input.mfaToken,
+        code: input.code,
+      },
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+
+  if (!response.ok()) {
+    const errorBody = await response.json().catch(() => null);
+    const responseText = await response.text().catch(() => '');
+    const message = errorBody
+      ? extractApiErrorMessage(
+          errorBody,
+          responseText || `MFA completion failed with status ${response.status()}`
+        )
+      : responseText || `MFA completion failed with status ${response.status()}`;
+    throw new Error(`Failed to complete MFA login for ${input.email} (${response.status()}): ${message}`);
+  }
+
+  const payload = unwrapApiData<{
+    token?: string;
+    user?: AuthUser;
+    organizationId?: string;
+    organization_id?: string;
+  }>(await response.json());
+  const token =
+    normalizeString(payload.token) || extractAuthTokenFromSetCookie(response.headers()['set-cookie']);
+  if (!token) {
+    throw new Error(`MFA login response missing token for ${input.email}: ${JSON.stringify(payload)}`);
+  }
+
+  const authUser = normalizeAuthUser(payload.user);
+  if (!authUser) {
+    throw new Error(`MFA login response missing user for ${input.email}: ${JSON.stringify(payload)}`);
+  }
+
+  const bootstrapSession = await applyAuthTokenState(
+    page,
+    token,
+    resolveOrganizationIdFromPayload(payload),
+    authUser
+  );
+
+  if (!bootstrapSession) {
+    return {
+      token,
+      user: authUser,
+      organizationId: resolveOrganizationIdFromPayload(payload),
+    };
+  }
+
+  return {
+    token,
+    user: bootstrapSession.user,
+    organizationId: bootstrapSession.organizationId,
+  };
+}
+
+export async function loginWithSeededTotpViaAPI(
+  page: Page,
+  credentials: {
+    email: string;
+    password: string;
+    userId: string;
+  },
+  options: { issuer?: string; proofName?: string } = {}
+): Promise<AuthSession> {
+  const { secret } = await seedTotpEnrollmentForUser(credentials.userId, credentials.email, {
+    issuer: options.issuer,
+  });
+  const challenge = await loginViaAPIExpectingTotpChallenge(
+    page,
+    credentials.email,
+    credentials.password,
+    { proofName: options.proofName }
+  );
+  const loginResult = await completeTotpLoginViaAPI(page, {
+    email: credentials.email,
+    mfaToken: challenge.mfaToken,
+    code: generateTotpCodeForTest(secret),
+  });
+
+  return {
+    ...loginResult,
+    email: credentials.email,
+    password: credentials.password,
+    isAdmin: isAdminRole(loginResult.user?.role),
+  };
 }
 
 /**

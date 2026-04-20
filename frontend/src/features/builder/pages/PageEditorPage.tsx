@@ -26,7 +26,10 @@ import {
   getBuilderStatusLabel,
 } from '../lib/siteAwareEditor';
 import { getTemplateGalleryPath } from '../lib/builderRouteTargets';
-import { getWebsiteOverviewPath } from '../../websites/lib/websiteRouteTargets';
+import {
+  getWebsiteOverviewPath,
+  getWebsitePublishingPath,
+} from '../../websites/lib/websiteRouteTargets';
 import { usePageEditorController } from './usePageEditorController';
 
 const PageEditor: React.FC = () => {
@@ -149,7 +152,7 @@ const PageEditor: React.FC = () => {
           contextLabel={getBuilderContextLabel(siteContext)}
           statusLabel={getBuilderStatusLabel(siteContext)}
           previewHref={siteContext?.previewUrl || siteContext?.primaryUrl}
-          publishingHref={siteContext ? `/websites/${siteContext.siteId}/publishing` : undefined}
+          publishingHref={siteContext ? getWebsitePublishingPath(siteContext.siteId) : undefined}
         />
 
         {publishNotice ? (

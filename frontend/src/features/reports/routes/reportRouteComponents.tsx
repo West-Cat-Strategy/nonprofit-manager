@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import { SavedReportsRoutePage } from '../../savedReports/routeComponents';
 
+export const ReportsHomeRoutePage = lazy(() => import('../pages/ReportsHomePage'));
 export const ReportBuilderRoutePage = lazy(() => import('../pages/ReportBuilderPage'));
 export const ReportTemplatesRoutePage = lazy(() => import('../pages/ReportTemplatesPage'));
 export { SavedReportsRoutePage };

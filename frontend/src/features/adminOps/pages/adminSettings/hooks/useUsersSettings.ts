@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import type { ConfirmOptions } from '../../../../../hooks/useConfirmDialog';
+import { useStaffInvitations } from '../../../../invitations/hooks/useStaffInvitations';
 import { useUserGroupsAndAccess } from './useUserGroupsAndAccess';
-import { useUserInvitations } from './useUserInvitations';
 import { useUserLookupSecurity } from './useUserLookupSecurity';
 
 type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
@@ -38,7 +38,7 @@ export const useUsersSettings = ({
     showError,
   });
 
-  const invitations = useUserInvitations({
+  const invitations = useStaffInvitations({
     confirm,
     setFormErrorFromError,
     clearFormError,

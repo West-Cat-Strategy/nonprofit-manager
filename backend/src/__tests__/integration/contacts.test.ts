@@ -1074,6 +1074,250 @@ describe('Contact API Integration Tests', () => {
       expect(payload.items[2].id).toBe(contactNoteId);
     });
 
+    it('falls back to the contact organization when linked case account ownership is null', async () => {
+      const suffix = unique();
+      const contactCreateResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Legacy',
+          last_name: 'Timeline',
+          email: `timeline-legacy-${suffix}@example.com`,
+        }))
+        .expect(201);
+
+      const contactId = payloadFromResponse<{ contact_id: string }>(contactCreateResponse.body).contact_id;
+
+      const caseTypeResult = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM case_types
+         WHERE is_active = true
+         ORDER BY name ASC, created_at ASC
+         LIMIT 1`
+      );
+      const caseStatusResult = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM case_statuses
+         WHERE is_active = true
+         ORDER BY sort_order ASC NULLS LAST, created_at ASC
+         LIMIT 1`
+      );
+
+      let caseId = '';
+      let caseNoteId = '';
+
+      try {
+        caseId = (
+          await pool.query<{ id: string }>(
+            `INSERT INTO cases (
+               case_number,
+               contact_id,
+               account_id,
+               case_type_id,
+               status_id,
+               title,
+               assigned_to,
+               created_by,
+               modified_by,
+               created_at,
+               updated_at
+             ) VALUES ($1, $2, NULL, $3, $4, $5, $6, $6, $6, NOW(), NOW())
+             RETURNING id`,
+            [
+              `CASE-TL-LEGACY-${suffix}`,
+              contactId,
+              caseTypeResult.rows[0].id,
+              caseStatusResult.rows[0].id,
+              'Legacy Timeline Case',
+              staffUserId,
+            ]
+          )
+        ).rows[0].id;
+
+        await pool.query(
+          `INSERT INTO contact_notes (
+             contact_id,
+             case_id,
+             note_type,
+             subject,
+             content,
+             is_internal,
+             is_important,
+             is_pinned,
+             is_alert,
+             is_portal_visible,
+             attachments,
+             created_by,
+             created_at,
+             updated_at
+           ) VALUES (
+             $1,
+             $2,
+             'note',
+             'Legacy contact timeline note',
+             'Contact note linked to a legacy case without account ownership',
+             false,
+             false,
+             false,
+             false,
+             false,
+             NULL,
+             $3,
+             $4,
+             $4
+           )`,
+          [contactId, caseId, staffUserId, '2026-04-15T10:00:00.000Z']
+        );
+
+        caseNoteId = (
+          await pool.query<{ id: string }>(
+            `INSERT INTO case_notes (
+               case_id,
+               note_type,
+               subject,
+               content,
+               is_internal,
+               visible_to_client,
+               is_important,
+               created_by,
+               updated_by,
+               created_at,
+               updated_at
+             ) VALUES (
+               $1,
+               'note',
+               'Legacy case timeline note',
+               'Case note linked to a legacy case without account ownership',
+               false,
+               true,
+               false,
+               $2,
+               $2,
+               $3,
+               $3
+             )
+             RETURNING id`,
+            [caseId, staffUserId, '2026-04-16T10:00:00.000Z']
+          )
+        ).rows[0].id;
+
+        const eventId = (
+          await pool.query<{ id: string }>(
+            `INSERT INTO events (
+               organization_id,
+               name,
+               event_type,
+               start_date,
+               end_date,
+               location_name,
+               created_by,
+               modified_by
+             ) VALUES (
+               $1,
+               $2,
+               'community',
+               NOW() + interval '6 days',
+               NOW() + interval '6 days 2 hours',
+               'Legacy Hall',
+               $3,
+               $3
+             )
+             RETURNING id`,
+            [testAccountId, `Legacy Timeline Event ${suffix}`, staffUserId]
+          )
+        ).rows[0].id;
+        createdEventIds.push(eventId);
+
+        await pool.query(
+          `INSERT INTO activity_events (
+             organization_id,
+             site_id,
+             activity_type,
+             title,
+             description,
+             actor_user_id,
+             actor_name,
+             entity_type,
+             entity_id,
+             related_entity_type,
+             related_entity_id,
+             metadata,
+             occurred_at
+           ) VALUES (
+             $1,
+             NULL,
+             'event_registration_updated',
+             'Legacy Timeline Event RSVP',
+             'Registration status changed from pending to confirmed',
+             $2,
+             NULL,
+             'event',
+             $3,
+             'contact',
+             $4,
+             $5::jsonb,
+             $6
+           )`,
+          [
+            testAccountId,
+            staffUserId,
+            eventId,
+            contactId,
+            JSON.stringify({
+              eventId,
+              eventName: `Legacy Timeline Event ${suffix}`,
+              caseId,
+              caseNumber: `CASE-TL-LEGACY-${suffix}`,
+              caseTitle: 'Legacy Timeline Case',
+              registrationStatus: 'confirmed',
+              previousStatus: 'pending',
+              nextStatus: 'confirmed',
+            }),
+            '2026-04-17T10:00:00.000Z',
+          ]
+        );
+
+        const response = await withStaffAuth(request(app)
+          .get(`/api/v2/contacts/${contactId}/notes/timeline`))
+          .expect(200);
+
+        const payload = payloadFromResponse<{
+          items: Array<{
+            id: string;
+            source_type: string;
+            case_id: string | null;
+          }>;
+          counts: {
+            all: number;
+            contact_notes: number;
+            case_notes: number;
+            event_activity: number;
+          };
+        }>(response.body);
+
+        expect(payload.counts).toEqual({
+          all: 3,
+          contact_notes: 1,
+          case_notes: 1,
+          event_activity: 1,
+        });
+        expect(payload.items.map((item) => item.source_type)).toEqual([
+          'event_activity',
+          'case_note',
+          'contact_note',
+        ]);
+        expect(payload.items.every((item) => item.case_id === caseId)).toBe(true);
+        expect(payload.items.map((item) => item.id)).toContain(caseNoteId);
+      } finally {
+        if (caseNoteId) {
+          await pool.query('DELETE FROM case_notes WHERE id = $1', [caseNoteId]);
+        }
+        if (caseId) {
+          await pool.query('DELETE FROM cases WHERE id = $1', [caseId]);
+        }
+      }
+    });
+
     it('excludes case notes whose case does not resolve to the active organization', async () => {
       const suffix = unique();
       const contactCreateResponse = await withStaffAuth(request(app)

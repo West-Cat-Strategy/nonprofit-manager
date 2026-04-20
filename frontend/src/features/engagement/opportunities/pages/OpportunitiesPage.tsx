@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import ConfirmDialog from '../../../../components/ConfirmDialog';
 import NeoBrutalistLayout from '../../../../components/neo-brutalist/NeoBrutalistLayout';
 import useConfirmDialog, { confirmPresets } from '../../../../hooks/useConfirmDialog';
@@ -65,9 +66,39 @@ const opportunitiesForStage = (opportunities: Opportunity[], stageId: string): O
     .filter((opportunity) => opportunity.stage_id === stageId)
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
+const fundraiserWorkflowLinks = [
+  {
+    title: 'Reports workspace',
+    description: 'Open the fundraiser reporting home for shared context.',
+    to: '/reports',
+  },
+  {
+    title: 'Fundraising cadence templates',
+    description: 'Start with the stewardship template pack for donor follow-through.',
+    to: '/reports/templates?category=fundraising&tag=fundraising-cadence',
+  },
+  {
+    title: 'Scheduled reports',
+    description: 'Keep pipeline and donor summaries sending on a regular rhythm.',
+    to: '/reports/scheduled',
+  },
+  {
+    title: 'Opportunity pipeline',
+    description: 'Return to the full fundraiser board at any time.',
+    to: '/opportunities',
+  },
+  {
+    title: 'Communications settings',
+    description: 'Adjust outreach defaults before the next ask or stewardship touch.',
+    to: '/settings/communications',
+  },
+] as const;
+
 export default function OpportunitiesPage() {
   const dispatch = useAppDispatch();
-  const { opportunities, stages, summary, loading, error } = useAppSelector((state) => state.opportunities);
+  const { opportunities, stages, summary, loading, error } = useAppSelector(
+    (state) => state.opportunities
+  );
   const { dialogState, confirm, handleCancel, handleConfirm } = useConfirmDialog();
 
   const [form, setForm] = useState<CreateOpportunityDTO>(defaultOpportunityForm);
@@ -198,13 +229,61 @@ export default function OpportunitiesPage() {
 
         {summary && (
           <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
-            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-blue)] p-3 text-app-brutal-ink"><p className="text-xs font-bold uppercase">Total</p><p className="text-2xl font-black">{summary.total}</p></div>
-            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-green)] p-3 text-app-brutal-ink"><p className="text-xs font-bold uppercase">Open</p><p className="text-2xl font-black">{summary.open}</p></div>
-            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-cyan)] p-3 text-app-brutal-ink"><p className="text-xs font-bold uppercase">Won</p><p className="text-2xl font-black">{summary.won}</p></div>
-            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-pink)] p-3 text-app-brutal-ink"><p className="text-xs font-bold uppercase">Lost</p><p className="text-2xl font-black">{summary.lost}</p></div>
-            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] p-3 text-app-brutal-ink"><p className="text-xs font-bold uppercase">Weighted</p><p className="text-xl font-black">{summary.weighted_amount.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })}</p></div>
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-blue)] p-3 text-app-brutal-ink">
+              <p className="text-xs font-bold uppercase">Total</p>
+              <p className="text-2xl font-black">{summary.total}</p>
+            </div>
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-green)] p-3 text-app-brutal-ink">
+              <p className="text-xs font-bold uppercase">Open</p>
+              <p className="text-2xl font-black">{summary.open}</p>
+            </div>
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-cyan)] p-3 text-app-brutal-ink">
+              <p className="text-xs font-bold uppercase">Won</p>
+              <p className="text-2xl font-black">{summary.won}</p>
+            </div>
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-pink)] p-3 text-app-brutal-ink">
+              <p className="text-xs font-bold uppercase">Lost</p>
+              <p className="text-2xl font-black">{summary.lost}</p>
+            </div>
+            <div className="border-2 border-[var(--app-border)] bg-[var(--loop-yellow)] p-3 text-app-brutal-ink">
+              <p className="text-xs font-bold uppercase">Weighted</p>
+              <p className="text-xl font-black">
+                {summary.weighted_amount.toLocaleString('en-CA', {
+                  style: 'currency',
+                  currency: 'CAD',
+                })}
+              </p>
+            </div>
           </div>
         )}
+
+        <section
+          aria-labelledby="fundraiser-workflow-heading"
+          className="mb-6 border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-[4px_4px_0px_0px_var(--shadow-color)]"
+        >
+          <div className="mb-4">
+            <h2 id="fundraiser-workflow-heading" className="text-lg font-black">
+              Fundraiser Workflow
+            </h2>
+            <p className="mt-1 text-sm text-[var(--app-text-muted)]">
+              Keep the pipeline connected to reporting, templates, and outreach controls.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {fundraiserWorkflowLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="block border-2 border-[var(--app-border)] bg-[var(--app-surface-muted)] p-3 text-app-brutal-ink transition hover:-translate-y-0.5 hover:bg-[var(--loop-yellow)] focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2"
+              >
+                <p className="text-sm font-black uppercase">{link.title}</p>
+                <p className="mt-2 text-xs font-medium normal-case text-[var(--app-text-muted)]">
+                  {link.description}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
 
         <div className="mb-6 flex flex-wrap items-center gap-2 border-2 border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-[4px_4px_0px_0px_var(--shadow-color)]">
           <input
@@ -243,12 +322,16 @@ export default function OpportunitiesPage() {
                 Stage
                 <select
                   value={form.stage_id || ''}
-                  onChange={(event) => setForm((prev) => ({ ...prev, stage_id: event.target.value || undefined }))}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, stage_id: event.target.value || undefined }))
+                  }
                   className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 >
                   <option value="">Default stage</option>
                   {stageOptions.map((stage) => (
-                    <option key={stage.id} value={stage.id}>{stage.name}</option>
+                    <option key={stage.id} value={stage.id}>
+                      {stage.name}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -258,7 +341,12 @@ export default function OpportunitiesPage() {
                   type="number"
                   min={0}
                   value={form.amount ?? ''}
-                  onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value ? Number(event.target.value) : undefined }))}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      amount: event.target.value ? Number(event.target.value) : undefined,
+                    }))
+                  }
                   className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 />
               </label>
@@ -266,7 +354,12 @@ export default function OpportunitiesPage() {
                 Status
                 <select
                   value={form.status}
-                  onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value as OpportunityStatus }))}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      status: event.target.value as OpportunityStatus,
+                    }))
+                  }
                   className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 >
                   <option value="open">Open</option>
@@ -278,7 +371,9 @@ export default function OpportunitiesPage() {
                 Description
                 <textarea
                   value={form.description || ''}
-                  onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, description: event.target.value }))
+                  }
                   rows={2}
                   className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 />
@@ -309,7 +404,13 @@ export default function OpportunitiesPage() {
           >
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-lg font-black">Edit Opportunity</h2>
-              <button type="button" onClick={() => setEditingOpportunity(null)} className="border-2 border-[var(--app-border)] px-3 py-1 text-xs font-bold">Close</button>
+              <button
+                type="button"
+                onClick={() => setEditingOpportunity(null)}
+                className="border-2 border-[var(--app-border)] px-3 py-1 text-xs font-bold"
+              >
+                Close
+              </button>
             </div>
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
               <label className="flex flex-col text-sm font-bold">
@@ -317,7 +418,11 @@ export default function OpportunitiesPage() {
                 <input
                   required
                   value={editingOpportunity.name}
-                  onChange={(event) => setEditingOpportunity((prev) => prev ? ({ ...prev, name: event.target.value }) : prev)}
+                  onChange={(event) =>
+                    setEditingOpportunity((prev) =>
+                      prev ? { ...prev, name: event.target.value } : prev
+                    )
+                  }
                   className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 />
               </label>
@@ -325,11 +430,17 @@ export default function OpportunitiesPage() {
                 Stage
                 <select
                   value={editingOpportunity.stage_id}
-                  onChange={(event) => setEditingOpportunity((prev) => prev ? ({ ...prev, stage_id: event.target.value }) : prev)}
+                  onChange={(event) =>
+                    setEditingOpportunity((prev) =>
+                      prev ? { ...prev, stage_id: event.target.value } : prev
+                    )
+                  }
                   className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 >
                   {stageOptions.map((stage) => (
-                    <option key={stage.id} value={stage.id}>{stage.name}</option>
+                    <option key={stage.id} value={stage.id}>
+                      {stage.name}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -339,7 +450,11 @@ export default function OpportunitiesPage() {
                   type="number"
                   min={0}
                   value={editingOpportunity.amount || ''}
-                  onChange={(event) => setEditingOpportunity((prev) => prev ? ({ ...prev, amount: event.target.value }) : prev)}
+                  onChange={(event) =>
+                    setEditingOpportunity((prev) =>
+                      prev ? { ...prev, amount: event.target.value } : prev
+                    )
+                  }
                   className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 />
               </label>
@@ -347,7 +462,11 @@ export default function OpportunitiesPage() {
                 Status
                 <select
                   value={editingOpportunity.status}
-                  onChange={(event) => setEditingOpportunity((prev) => prev ? ({ ...prev, status: event.target.value as OpportunityStatus }) : prev)}
+                  onChange={(event) =>
+                    setEditingOpportunity((prev) =>
+                      prev ? { ...prev, status: event.target.value as OpportunityStatus } : prev
+                    )
+                  }
                   className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 >
                   <option value="open">Open</option>
@@ -359,7 +478,11 @@ export default function OpportunitiesPage() {
                 Description
                 <textarea
                   value={editingOpportunity.description || ''}
-                  onChange={(event) => setEditingOpportunity((prev) => prev ? ({ ...prev, description: event.target.value }) : prev)}
+                  onChange={(event) =>
+                    setEditingOpportunity((prev) =>
+                      prev ? { ...prev, description: event.target.value } : prev
+                    )
+                  }
                   rows={2}
                   className="mt-1 border-2 border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2"
                 />
@@ -401,7 +524,9 @@ export default function OpportunitiesPage() {
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <h3 className="font-black uppercase text-app-brutal-ink">{stage.name}</h3>
-                      <p className="text-xs font-bold text-app-brutal-ink">{stageItems.length} opportunities</p>
+                      <p className="text-xs font-bold text-app-brutal-ink">
+                        {stageItems.length} opportunities
+                      </p>
                     </div>
                     <div className="flex gap-1">
                       <button
@@ -430,9 +555,14 @@ export default function OpportunitiesPage() {
                     <p className="text-sm text-[var(--app-text-muted)]">No opportunities.</p>
                   ) : (
                     stageItems.map((opportunity) => (
-                      <div key={opportunity.id} className="border-2 border-[var(--app-border)] bg-[var(--app-surface-muted)] p-2">
+                      <div
+                        key={opportunity.id}
+                        className="border-2 border-[var(--app-border)] bg-[var(--app-surface-muted)] p-2"
+                      >
                         <p className="font-bold">{opportunity.name}</p>
-                        <p className="text-xs text-[var(--app-text-muted)]">{formatMoney(opportunity.amount)}</p>
+                        <p className="text-xs text-[var(--app-text-muted)]">
+                          {formatMoney(opportunity.amount)}
+                        </p>
                         <p className="text-xs uppercase font-bold">{opportunity.status}</p>
                         <div className="mt-2 flex flex-wrap gap-1">
                           <select
@@ -441,11 +571,25 @@ export default function OpportunitiesPage() {
                             className="border-2 border-[var(--app-border)] bg-app-surface px-2 py-1 text-xs text-[var(--app-text)]"
                           >
                             {stageOptions.map((option) => (
-                              <option key={option.id} value={option.id}>{option.name}</option>
+                              <option key={option.id} value={option.id}>
+                                {option.name}
+                              </option>
                             ))}
                           </select>
-                          <button type="button" onClick={() => setEditingOpportunity(opportunity)} className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold">Edit</button>
-                          <button type="button" onClick={() => void removeOpportunity(opportunity.id)} className="border-2 border-app-accent bg-app-accent-soft px-2 py-1 text-xs font-bold text-app-accent-text">Delete</button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingOpportunity(opportunity)}
+                            className="border-2 border-[var(--app-border)] px-2 py-1 text-xs font-bold"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void removeOpportunity(opportunity.id)}
+                            className="border-2 border-app-accent bg-app-accent-soft px-2 py-1 text-xs font-bold text-app-accent-text"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
                     ))

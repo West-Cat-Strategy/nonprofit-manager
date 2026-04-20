@@ -40,6 +40,7 @@ const expectCanonicalError = (
 
 describe('People import/export integration', () => {
   let authToken = '';
+  let authTokenWithOrganizationContext = '';
   let userId = '';
   let userEmail = '';
   let organizationId = '';
@@ -103,6 +104,16 @@ describe('People import/export integration', () => {
     const organization = await createOrganization();
     organizationId = organization.accountId;
     organizationAccountNumber = organization.accountNumber;
+    authTokenWithOrganizationContext = jwt.sign(
+      {
+        id: userId,
+        email: userEmail.toLowerCase(),
+        role: 'admin',
+        organizationId,
+      },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
   });
 
   afterAll(async () => {
@@ -260,7 +271,7 @@ describe('People import/export integration', () => {
     );
   });
 
-  it('requires organization context for organization-scoped import routes', async () => {
+  it('requires explicit organization context for organization-scoped import routes', async () => {
     const csv = ['first_name,last_name,email', 'Missing,Org,missing-org@example.com'].join('\n');
 
     const contactsPreviewResponse = await withAuth(
@@ -286,6 +297,18 @@ describe('People import/export integration', () => {
 
     expectCanonicalError(
       volunteersTemplateResponse,
+      'bad_request',
+      'No organization context'
+    );
+
+    const contactsTemplateWithTokenContextResponse = await request(app)
+      .get('/api/v2/contacts/import/template')
+      .query({ format: 'csv' })
+      .set('Authorization', `Bearer ${authTokenWithOrganizationContext}`)
+      .expect(400);
+
+    expectCanonicalError(
+      contactsTemplateWithTokenContextResponse,
       'bad_request',
       'No organization context'
     );

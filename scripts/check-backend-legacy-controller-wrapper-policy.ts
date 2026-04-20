@@ -1,37 +1,37 @@
 #!/usr/bin/env node
 
+const fs = require('fs');
 const path = require('path');
 const {
-  repoRoot,
+  failIfIssues,
   relativeToRepo,
-  readText,
-  walkFiles,
+  repoRoot,
 } = require('./lib/policy-utils.ts');
 
-const allowedWrapper = path.join(repoRoot, 'backend/src/controllers/authController.ts');
-const controllerFiles = walkFiles(path.join(repoRoot, 'backend/src/controllers'), {
-  extensions: ['.ts'],
-  includeTests: false,
-});
-
+const legacyControllerPath = path.join(repoRoot, 'backend/src/controllers');
 const issues = [];
 
-for (const filePath of controllerFiles) {
-  const text = readText(filePath);
-  const wrapperStyle = /export\s+\{[\s\S]*?\}\s+from\s+['"][^'"]+['"];?|export\s+\*\s+from\s+['"][^'"]+['"];?/.test(text);
-  if (!wrapperStyle || filePath === allowedWrapper) {
-    continue;
-  }
+if (fs.existsSync(legacyControllerPath)) {
+  const relativePath = relativeToRepo(legacyControllerPath);
+  issues.push(`${relativePath} exists but must stay deleted.`);
 
-  issues.push(`${relativeToRepo(filePath)} is a legacy controller wrapper but is not on the allowlist.`);
+  const stat = fs.statSync(legacyControllerPath);
+  if (stat.isDirectory()) {
+    const entries = fs.readdirSync(legacyControllerPath).sort();
+    if (entries.length === 0) {
+      issues.push(`${relativePath} is an empty legacy directory; remove it instead of restoring the path.`);
+    } else {
+      for (const entry of entries) {
+        issues.push(`${relativePath}/${entry} keeps the deleted legacy controller path alive.`);
+      }
+    }
+  } else {
+    issues.push(`${relativePath} was recreated as a file; keep the deleted legacy controller path absent.`);
+  }
 }
 
-if (issues.length > 0) {
-  console.error('Backend legacy controller wrapper policy check failed:\n');
-  for (const issue of issues) {
-    console.error(`- ${issue}`);
-  }
-  process.exit(1);
-}
-
-console.log('Backend legacy controller wrapper check complete.');
+failIfIssues(
+  'Backend legacy controller path absence check failed:',
+  issues,
+  'Backend legacy controller path absence check complete.'
+);

@@ -1,6 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import type { NavLinkRenderProps } from 'react-router-dom';
+import {
+  getWebsiteBuilderPath,
+  getWebsiteContentPath,
+  getWebsiteFormsPath,
+  getWebsiteIntegrationsPath,
+  getWebsiteNewslettersPath,
+  getWebsiteOverviewPath,
+  getWebsitePublishingPath,
+} from '../lib/websiteRouteTargets';
 import type { WebsiteOverviewSummary } from '../types';
 import WebsiteStatusBadge from './WebsiteStatusBadge';
 
@@ -13,14 +22,14 @@ interface WebsiteConsoleLayoutProps {
   children: React.ReactNode;
 }
 
-const tabs = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'content', label: 'Content' },
-  { key: 'newsletters', label: 'Newsletters' },
-  { key: 'forms', label: 'Forms' },
-  { key: 'integrations', label: 'Integrations' },
-  { key: 'publishing', label: 'Publishing' },
-  { key: 'builder', label: 'Builder' },
+const buildTabs = (siteId: string) => [
+  { key: 'overview', label: 'Overview', href: getWebsiteOverviewPath(siteId) },
+  { key: 'content', label: 'Content', href: getWebsiteContentPath(siteId) },
+  { key: 'newsletters', label: 'Newsletters', href: getWebsiteNewslettersPath(siteId) },
+  { key: 'forms', label: 'Forms', href: getWebsiteFormsPath(siteId) },
+  { key: 'integrations', label: 'Integrations', href: getWebsiteIntegrationsPath(siteId) },
+  { key: 'publishing', label: 'Publishing', href: getWebsitePublishingPath(siteId) },
+  { key: 'builder', label: 'Builder', href: getWebsiteBuilderPath(siteId) },
 ];
 
 const formatConsoleDate = (value?: string | null): string => {
@@ -122,10 +131,10 @@ const WebsiteConsoleLayout: React.FC<WebsiteConsoleLayoutProps> = ({
           className="mt-5 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap"
           aria-label="Website console"
         >
-          {tabs.map((tab) => (
+          {buildTabs(siteId).map((tab) => (
             <NavLink
               key={tab.key}
-              to={`/websites/${siteId}/${tab.key}`}
+              to={tab.href}
               className={({ isActive }: NavLinkRenderProps) =>
                 `shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isActive

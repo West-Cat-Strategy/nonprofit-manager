@@ -1,29 +1,37 @@
 #!/usr/bin/env node
 
+const fs = require('fs');
 const path = require('path');
 const {
+  failIfIssues,
   repoRoot,
+  relativeToRepo,
 } = require('./lib/policy-utils.ts');
-const {
-  collectImportBoundaryIssues,
-  frontendLegacyPaths,
-} = require('./lib/import-boundary-policy.ts');
 
-const legacyPaths = frontendLegacyPaths();
-const issues = collectImportBoundaryIssues({
-  sourceRoots: path.join(repoRoot, 'frontend/src'),
-  excludedSourceRoots: [legacyPaths.pages],
-  disallowedTargets: [legacyPaths.pages],
-  messageForViolation: (importEntry) =>
-    `imports legacy page code via ${importEntry.specifier}`,
-});
+const legacyPagePath = path.join(repoRoot, 'frontend/src/pages');
+const issues = [];
 
-if (issues.length > 0) {
-  console.error('Frontend legacy page path policy check failed:\n');
-  for (const issue of issues) {
-    console.error(`- ${issue}`);
+if (fs.existsSync(legacyPagePath)) {
+  const relativePath = relativeToRepo(legacyPagePath);
+  issues.push(`${relativePath} exists but must stay deleted.`);
+
+  const stat = fs.statSync(legacyPagePath);
+  if (stat.isDirectory()) {
+    const entries = fs.readdirSync(legacyPagePath).sort();
+    if (entries.length === 0) {
+      issues.push(`${relativePath} is an empty legacy directory; remove it instead of restoring the path.`);
+    } else {
+      for (const entry of entries) {
+        issues.push(`${relativePath}/${entry} keeps the deleted legacy page path alive.`);
+      }
+    }
+  } else {
+    issues.push(`${relativePath} was recreated as a file; keep the deleted legacy page path absent.`);
   }
-  process.exit(1);
 }
 
-console.log('Frontend legacy page path check complete.');
+failIfIssues(
+  'Frontend legacy page path absence check failed:',
+  issues,
+  'Frontend legacy page path absence check complete.'
+);

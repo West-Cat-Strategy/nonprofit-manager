@@ -1,27 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../../services/api';
+import { useEntityActivities } from '../../activities/hooks';
+import type { ActivityRecord } from '../../activities/types';
 import { formatDateTime } from '../../../utils/format';
 
 interface ContactActivityPanelProps {
   contactId: string;
-}
-
-interface ContactActivityItem {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  user_name: string | null;
-  entity_type: string;
-  entity_id: string;
-  metadata?: Record<string, unknown>;
-}
-
-interface ContactActivityResponse {
-  activities: ContactActivityItem[];
-  total: number;
 }
 
 const activityIcons: Record<string, string> = {
@@ -46,7 +29,7 @@ const getMetadataValue = (metadata: Record<string, unknown> | undefined, key: st
   return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
 };
 
-const resolveActivityLink = (activity: ContactActivityItem): string | null => {
+const resolveActivityLink = (activity: ActivityRecord): string | null => {
   if (activity.entity_type === 'case') {
     return `/cases/${activity.entity_id}`;
   }
@@ -100,27 +83,11 @@ const resolveActivityLink = (activity: ContactActivityItem): string | null => {
 };
 
 export default function ContactActivityPanel({ contactId }: ContactActivityPanelProps) {
-  const [activities, setActivities] = useState<ContactActivityItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadActivities = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get<ContactActivityResponse>(`/activities/contact/${contactId}`);
-      setActivities(response.data.activities || []);
-    } catch (loadError) {
-      console.error('Failed to load contact activity', loadError);
-      setError('Failed to load the activity timeline.');
-    } finally {
-      setLoading(false);
-    }
-  }, [contactId]);
-
-  useEffect(() => {
-    void loadActivities();
-  }, [loadActivities]);
+  const { activities, loading, error, refresh } = useEntityActivities({
+    entityType: 'contact',
+    entityId: contactId,
+  });
+  const errorMessage = error ? 'Failed to load the activity timeline.' : null;
 
   if (loading) {
     return (
@@ -135,13 +102,13 @@ export default function ContactActivityPanel({ contactId }: ContactActivityPanel
     );
   }
 
-  if (error) {
+  if (errorMessage) {
     return (
       <div className="flex flex-col gap-3 border-2 border-black bg-app-accent-soft p-4 md:flex-row md:items-center md:justify-between">
-        <p className="text-sm font-bold text-app-accent-text">{error}</p>
+        <p className="text-sm font-bold text-app-accent-text">{errorMessage}</p>
         <button
           type="button"
-          onClick={() => void loadActivities()}
+          onClick={() => void refresh()}
           className="px-3 py-2 text-xs font-black uppercase border-2 border-black bg-white"
         >
           Retry

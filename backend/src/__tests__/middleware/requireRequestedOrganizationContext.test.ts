@@ -48,7 +48,29 @@ describe('requireRequestedOrganizationContext middleware', () => {
     expect(mockSendError).toHaveBeenCalledWith(
       res,
       'bad_request',
-      'Organization context required',
+      'No organization context',
+      400,
+      undefined,
+      'corr-1'
+    );
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('rejects ambient organization context when no explicit org target was requested', () => {
+    const req = createRequest({
+      organizationId: 'org-123',
+      accountId: 'org-123',
+      tenantId: 'org-123',
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    requireRequestedOrganizationContext(req, res, next);
+
+    expect(mockSendError).toHaveBeenCalledWith(
+      res,
+      'bad_request',
+      'No organization context',
       400,
       undefined,
       'corr-1'

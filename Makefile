@@ -87,9 +87,9 @@ help:
 	@echo "  make lint-implementation-size Enforce implementation file size ratchet against baseline"
 	@echo "  make lint-migration-manifest Enforce migration manifest policy"
 	@echo "  make lint-frontend-feature-boundary Enforce feature-page boundary ratchet"
-	@echo "  make lint-frontend-legacy-slice-imports Enforce migrated features do not import store/slices"
-	@echo "  make lint-frontend-legacy-page-paths Enforce deleted legacy page implementations stay removed"
-	@echo "  make lint-backend-legacy-controller-wrappers Enforce deleted legacy controller wrappers stay removed"
+	@echo "  make lint-frontend-legacy-slice-imports Enforce deleted legacy store slice path stays removed"
+	@echo "  make lint-frontend-legacy-page-paths Enforce deleted legacy page path stays removed"
+	@echo "  make lint-backend-legacy-controller-wrappers Enforce deleted legacy controller path stays removed"
 	@echo "  make lint-route-integrity Enforce literal route targets resolve via routeCatalog"
 	@echo "  make lint-route-catalog-drift Enforce routeCatalog stays aligned with registered routes"
 	@echo "  make lint-fix       Run linters and auto-fix issues"
@@ -349,19 +349,19 @@ lint-frontend-feature-boundary:
 	@echo "$(GREEN)Frontend feature boundary check complete!$(RESET)"
 
 lint-frontend-legacy-slice-imports:
-	@echo "$(BLUE)Checking frontend legacy slice import policy...$(RESET)"
+	@echo "$(BLUE)Checking frontend legacy slice path absence...$(RESET)"
 	node scripts/check-frontend-legacy-slice-import-policy.ts
-	@echo "$(GREEN)Frontend legacy slice import check complete!$(RESET)"
+	@echo "$(GREEN)Frontend legacy slice path absence check complete!$(RESET)"
 
 lint-frontend-legacy-page-paths:
-	@echo "$(BLUE)Checking frontend legacy page path policy...$(RESET)"
+	@echo "$(BLUE)Checking frontend legacy page path absence...$(RESET)"
 	node scripts/check-frontend-legacy-page-path-policy.ts
-	@echo "$(GREEN)Frontend legacy page path check complete!$(RESET)"
+	@echo "$(GREEN)Frontend legacy page path absence check complete!$(RESET)"
 
 lint-backend-legacy-controller-wrappers:
-	@echo "$(BLUE)Checking backend legacy controller wrapper policy...$(RESET)"
+	@echo "$(BLUE)Checking backend legacy controller path absence...$(RESET)"
 	node scripts/check-backend-legacy-controller-wrapper-policy.ts
-	@echo "$(GREEN)Backend legacy controller wrapper check complete!$(RESET)"
+	@echo "$(GREEN)Backend legacy controller path absence check complete!$(RESET)"
 
 lint-fix:
 	@echo "$(BLUE)Fixing lint issues in backend...$(RESET)"

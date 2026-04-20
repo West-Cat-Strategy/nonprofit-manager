@@ -17,6 +17,7 @@ import {
   updateWebsiteNewsletterIntegration,
   updateWebsiteStripeIntegration,
 } from '../state';
+import { getWebsiteFormsPath } from '../lib/websiteRouteTargets';
 
 const WebsiteIntegrationsPage: React.FC = () => {
   const { siteId } = useParams<{ siteId: string }>();
@@ -187,7 +188,7 @@ const WebsiteIntegrationsPage: React.FC = () => {
             Open communications hub
           </a>
           <a
-            href={`/websites/${siteId}/forms`}
+            href={getWebsiteFormsPath(siteId)}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
           >
             Review forms

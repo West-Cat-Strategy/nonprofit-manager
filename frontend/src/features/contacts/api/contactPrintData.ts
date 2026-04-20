@@ -1,6 +1,8 @@
 import api from '../../../services/api';
 import type { Donation, PaginatedDonations } from '../../../types/donation';
 import type { CaseWithDetails } from '../../../types/case';
+import { activitiesApiClient } from '../../activities/api';
+import type { ActivityRecord } from '../../activities/types';
 import type {
   Contact,
   ContactCommunication,
@@ -15,23 +17,6 @@ import { contactsApiClient } from './contactsApiClient';
 import { followUpsApiClient } from '../../followUps/api/followUpsApiClient';
 import { listContactCasesForContact } from './contactCasesApi';
 import type { FollowUp } from '../../../types/followup';
-
-export interface ContactPrintActivityItem {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  user_name: string | null;
-  entity_type: string;
-  entity_id: string;
-  metadata?: Record<string, unknown>;
-}
-
-interface ContactActivityResponse {
-  activities: ContactPrintActivityItem[];
-  total: number;
-}
 
 export type ContactPrintSectionKey =
   | 'phones'
@@ -55,7 +40,7 @@ export interface ContactPrintData {
   communications: ContactCommunication[];
   followUps: FollowUp[];
   cases: CaseWithDetails[];
-  activity: ContactPrintActivityItem[];
+  activity: ActivityRecord[];
   payments: Donation[];
 }
 
@@ -79,9 +64,12 @@ const toErrorMessage = (reason: unknown, fallback: string): string => {
 const getSettledValue = <T>(result: PromiseSettledResult<T>, fallback: T): T =>
   result.status === 'fulfilled' ? result.value : fallback;
 
-const fetchContactActivity = async (contactId: string): Promise<ContactPrintActivityItem[]> => {
-  const response = await api.get<ContactActivityResponse>(`/activities/contact/${contactId}`);
-  return response.data.activities || [];
+const fetchContactActivity = async (contactId: string): Promise<ActivityRecord[]> => {
+  const response = await activitiesApiClient.getEntityActivities({
+    entityType: 'contact',
+    entityId: contactId,
+  });
+  return response.activities;
 };
 
 const fetchContactPayments = async (contactId: string): Promise<Donation[]> => {

@@ -14,6 +14,8 @@ import type {
 import { AVAILABLE_FIELDS, REPORT_ENTITIES, type ReportDefinition } from '@app-types/report';
 
 export class ReportTemplateService {
+    private ensureSystemTemplatesSeededPromise: Promise<void> | null = null;
+
     constructor(private pool: Pool) { }
 
     private validateTemplateDefinition(definition: ReportDefinition): void {
@@ -92,11 +94,24 @@ export class ReportTemplateService {
         }
     }
 
+    private async ensureSystemTemplatesSeeded(): Promise<void> {
+        if (!this.ensureSystemTemplatesSeededPromise) {
+            this.ensureSystemTemplatesSeededPromise = this.seedSystemTemplates().catch((error) => {
+                this.ensureSystemTemplatesSeededPromise = null;
+                throw error;
+            });
+        }
+
+        await this.ensureSystemTemplatesSeededPromise;
+    }
+
     /**
      * Get all templates
      */
     async getTemplates(category?: TemplateCategory): Promise<ReportTemplate[]> {
         try {
+            await this.ensureSystemTemplatesSeeded();
+
             const query = category
                 ? `SELECT * FROM report_templates WHERE category = $1 ORDER BY is_system DESC, name ASC`
                 : `SELECT * FROM report_templates ORDER BY is_system DESC, name ASC`;
@@ -121,6 +136,8 @@ export class ReportTemplateService {
      */
     async getTemplateById(id: string): Promise<ReportTemplate | null> {
         try {
+            await this.ensureSystemTemplatesSeeded();
+
             const result = await this.pool.query(
                 'SELECT * FROM report_templates WHERE id = $1',
                 [id]
@@ -257,6 +274,177 @@ export class ReportTemplateService {
      */
     private getSystemTemplates(): Omit<ReportTemplate, 'id' | 'created_at' | 'updated_at' | 'is_system'>[] {
         return [
+            {
+                name: 'Executive Board Pack Fundraising Snapshot',
+                description: 'Board-ready fundraising totals with campaign, designation, and recurring-giving context',
+                category: 'fundraising',
+                tags: ['board-pack', 'executive', 'board', 'fundraising', 'summary'],
+                entity: 'donations',
+                template_definition: {
+                    name: 'Executive Board Pack Fundraising Snapshot',
+                    entity: 'donations',
+                    fields: ['campaign_name', 'designation', 'payment_status', 'is_recurring'],
+                    groupBy: ['campaign_name', 'designation', 'payment_status', 'is_recurring'],
+                    aggregations: [
+                        { field: 'amount', function: 'sum', alias: 'total_raised' },
+                        { field: 'amount', function: 'count', alias: 'gift_count' },
+                    ],
+                    filters: [
+                        {
+                            field: 'donation_date',
+                            operator: 'gte',
+                            value: '{{start_date}}',
+                        },
+                        {
+                            field: 'donation_date',
+                            operator: 'lte',
+                            value: '{{end_date}}',
+                        },
+                    ],
+                    sort: [{ field: 'total_raised', direction: 'desc' }],
+                },
+                parameters: [
+                    {
+                        name: 'start_date',
+                        label: 'Start Date',
+                        type: 'date',
+                        required: true,
+                        description: 'Opening date for the board-pack window',
+                    },
+                    {
+                        name: 'end_date',
+                        label: 'End Date',
+                        type: 'date',
+                        required: true,
+                        description: 'Closing date for the board-pack window',
+                    },
+                ],
+            },
+            {
+                name: 'Board Reporting Calendar',
+                description: 'Upcoming grant reporting and closeout deadlines for board and leadership review',
+                category: 'compliance',
+                tags: ['board-pack', 'executive', 'board', 'reporting', 'deadline'],
+                entity: 'grants',
+                template_definition: {
+                    name: 'Board Reporting Calendar',
+                    entity: 'grants',
+                    fields: [
+                        'title',
+                        'funder_name',
+                        'status',
+                        'fiscal_year',
+                        'next_report_due_at',
+                        'closeout_due_at',
+                        'outstanding_amount',
+                    ],
+                    sort: [{ field: 'next_report_due_at', direction: 'asc' }],
+                },
+            },
+            {
+                name: 'Fundraiser Stewardship Cadence Queue',
+                description: 'Scheduled donor stewardship follow-ups for weekly and monthly cadence review',
+                category: 'fundraising',
+                tags: ['fundraising-cadence', 'stewardship', 'follow-up'],
+                entity: 'follow_ups',
+                template_definition: {
+                    name: 'Fundraiser Stewardship Cadence Queue',
+                    entity: 'follow_ups',
+                    fields: [
+                        'contact_name',
+                        'assigned_to_name',
+                        'method',
+                        'frequency',
+                        'scheduled_date',
+                        'completed_date',
+                        'status',
+                        'has_reminder',
+                    ],
+                    filters: [
+                        {
+                            field: 'entity_type',
+                            operator: 'eq',
+                            value: 'contact',
+                        },
+                        {
+                            field: 'scheduled_date',
+                            operator: 'gte',
+                            value: '{{start_date}}',
+                        },
+                        {
+                            field: 'scheduled_date',
+                            operator: 'lte',
+                            value: '{{end_date}}',
+                        },
+                    ],
+                    sort: [{ field: 'scheduled_date', direction: 'asc' }],
+                },
+                parameters: [
+                    {
+                        name: 'start_date',
+                        label: 'Start Date',
+                        type: 'date',
+                        required: true,
+                        description: 'First stewardship date to include',
+                    },
+                    {
+                        name: 'end_date',
+                        label: 'End Date',
+                        type: 'date',
+                        required: true,
+                        description: 'Last stewardship date to include',
+                    },
+                ],
+            },
+            {
+                name: 'Fundraiser Impact Update Gifts',
+                description: 'Recent donor gifts that should feed impact communications and stewardship updates',
+                category: 'fundraising',
+                tags: ['fundraising-cadence', 'stewardship', 'impact', 'donor-updates'],
+                entity: 'donations',
+                template_definition: {
+                    name: 'Fundraiser Impact Update Gifts',
+                    entity: 'donations',
+                    fields: [
+                        'donor_name',
+                        'campaign_name',
+                        'designation',
+                        'amount',
+                        'payment_status',
+                        'is_recurring',
+                        'donation_date',
+                    ],
+                    filters: [
+                        {
+                            field: 'donation_date',
+                            operator: 'gte',
+                            value: '{{start_date}}',
+                        },
+                        {
+                            field: 'donation_date',
+                            operator: 'lte',
+                            value: '{{end_date}}',
+                        },
+                    ],
+                    sort: [{ field: 'donation_date', direction: 'desc' }],
+                },
+                parameters: [
+                    {
+                        name: 'start_date',
+                        label: 'Start Date',
+                        type: 'date',
+                        required: true,
+                        description: 'First gift date to include',
+                    },
+                    {
+                        name: 'end_date',
+                        label: 'End Date',
+                        type: 'date',
+                        required: true,
+                        description: 'Last gift date to include',
+                    },
+                ],
+            },
             {
                 name: 'Monthly Donor Summary',
                 description: 'Summary of all donations received in a specific month',

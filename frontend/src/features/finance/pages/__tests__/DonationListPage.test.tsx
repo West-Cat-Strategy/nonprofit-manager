@@ -6,6 +6,16 @@ import DonationList from '../DonationListPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const dispatchMock = vi.fn();
+const fundraiserWorkflowLinks = [
+  ['/reports', /reports workspace/i],
+  [
+    '/reports/templates?category=fundraising&tag=fundraising-cadence',
+    /fundraising cadence templates/i,
+  ],
+  ['/reports/scheduled', /scheduled reports/i],
+  ['/opportunities', /opportunity pipeline/i],
+  ['/settings/communications', /communications settings/i],
+] as const;
 const state = {
   finance: {
     donations: {
@@ -16,7 +26,7 @@ const state = {
       loading: false,
       error: null,
     },
-  }
+  },
 };
 
 vi.mock('../../../../store/hooks', () => ({
@@ -42,6 +52,10 @@ describe('DonationList page', () => {
     const user = userEvent.setup();
     renderWithProviders(<DonationList />);
     expect(screen.getByRole('heading', { name: 'Donations' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /fundraiser workflow/i })).toBeInTheDocument();
+    fundraiserWorkflowLinks.forEach(([href, name]) => {
+      expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
+    });
     await user.click(screen.getByRole('button', { name: 'Completed' }));
     expect(dispatchMock).toHaveBeenCalled();
   });

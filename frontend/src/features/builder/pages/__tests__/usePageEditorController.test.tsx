@@ -14,6 +14,12 @@ vi.mock('../../../../services/api', () => ({
   },
 }));
 
+vi.mock('../../../websites/api/websitesApiClient', () => ({
+  websitesApiClient: {
+    getOverview: vi.fn(),
+  },
+}));
+
 vi.mock('../../../websites/state', () => ({
   fetchWebsiteDeployment: vi.fn(() => ({ type: 'websites/fetchDeployment' })),
   fetchWebsiteOverview: vi.fn((payload: unknown) => ({
@@ -34,6 +40,7 @@ vi.mock('../../../websites/state', () => ({
 import api from '../../../../services/api';
 import type { PageSection, Template, TemplatePage } from '../../../../types/websiteBuilder';
 import templateReducer, { fetchTemplate } from '../../state/templateCore';
+import { websitesApiClient } from '../../../websites/api/websitesApiClient';
 import { usePageEditorController } from '../usePageEditorController';
 
 const createSection = (id: string, components: Array<Record<string, unknown>>): PageSection =>
@@ -169,13 +176,22 @@ const createStore = () => {
   });
 };
 
-const createWrapper = (store: ReturnType<typeof createStore>) =>
+const createWrapper = (
+  store: ReturnType<typeof createStore>,
+  options?: {
+    initialEntries?: string[];
+    routePath?: string;
+  }
+) =>
   function Wrapper({ children }: { children: ReactNode }) {
+    const initialEntries = options?.initialEntries ?? ['/website-builder/template-1'];
+    const routePath = options?.routePath ?? '/website-builder/:templateId';
+
     return (
       <Provider store={store}>
-        <MemoryRouter initialEntries={['/website-builder/template-1']}>
+        <MemoryRouter initialEntries={initialEntries}>
           <Routes>
-            <Route path="/website-builder/:templateId" element={<>{children}</>} />
+            <Route path={routePath} element={<>{children}</>} />
           </Routes>
         </MemoryRouter>
       </Provider>
@@ -188,6 +204,22 @@ describe('usePageEditorController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.get).mockResolvedValue({ data: template });
+    vi.mocked(websitesApiClient.getOverview).mockResolvedValue({
+      site: {
+        id: 'site-1',
+        name: 'Neighborhood Mutual Aid',
+        status: 'published',
+        blocked: false,
+        templateId: 'template-1',
+      },
+      template: {
+        id: 'template-1',
+      },
+      deployment: {
+        primaryUrl: 'https://example.org',
+        previewUrl: 'https://preview.example.org',
+      },
+    } as never);
     vi.mocked(api.put).mockImplementation((url: unknown, payload: unknown) => {
       if (url === '/templates/template-1/pages/page-home') {
         const body = payload as { sections?: PageSection[] };
@@ -287,5 +319,45 @@ describe('usePageEditorController', () => {
       )
     ).toBe(true);
     expect(result.current.selectedComponent?.type).toBe('heading');
+  });
+
+  it('loads site context from a website builder route and resolves the linked template', async () => {
+    const store = createStore();
+    vi.mocked(websitesApiClient.getOverview).mockResolvedValueOnce({
+      site: {
+        id: 'site-9',
+        name: 'Neighborhood Mutual Aid',
+        status: 'published',
+        blocked: false,
+        templateId: 'template-1',
+      },
+      template: {
+        id: 'template-1',
+      },
+      deployment: {
+        primaryUrl: 'https://example.org',
+        previewUrl: 'https://preview.example.org',
+      },
+    } as never);
+    const { result } = renderHook(() => usePageEditorController(), {
+      wrapper: createWrapper(store, {
+        initialEntries: ['/websites/site-9/builder'],
+        routePath: '/websites/:siteId/builder',
+      }),
+    });
+
+    await waitFor(() => expect(websitesApiClient.getOverview).toHaveBeenCalledWith('site-9', 30));
+    await waitFor(() =>
+      expect(result.current.siteContext).toMatchObject({
+        siteId: 'site-9',
+        siteName: 'Neighborhood Mutual Aid',
+        siteStatus: 'published',
+        blocked: false,
+        primaryUrl: 'https://example.org',
+        previewUrl: 'https://preview.example.org',
+        templateId: 'template-1',
+      })
+    );
+    expect(result.current.resolvedTemplateId).toBe('template-1');
   });
 });

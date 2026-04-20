@@ -7,6 +7,7 @@ import { getReportAccess } from '../../auth/state/reportAccess';
 import {
   OutcomesReportRoutePage,
   ReportBuilderRoutePage,
+  ReportsHomeRoutePage,
   ReportTemplatesRoutePage,
   SavedReportsRoutePage,
   ScheduledReportsRoutePage,
@@ -31,15 +32,20 @@ const getReadOnlyReportsPath = (
   return '/dashboard';
 };
 
-function ReportsLandingRedirect() {
+function ReportsLandingPageRoute() {
   const user = useAppSelector((state) => state.auth.user);
   const access = getReportAccess(user);
 
-  if (access.canManageReports) {
-    return <Navigate to="/reports/builder" replace />;
+  if (
+    access.canManageReports ||
+    access.canViewReports ||
+    access.canManageScheduledReports ||
+    access.canViewScheduledReports
+  ) {
+    return <ReportsHomeRoutePage />;
   }
 
-  return <Navigate to={getReadOnlyReportsPath(access)} replace />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 function ReportManagementRoute({ children }: RouteWrapperProps) {
@@ -142,7 +148,7 @@ export function createReportRoutes(ProtectedRoute: React.ComponentType<RouteWrap
         path="/reports"
         element={
           <ProtectedRoute>
-            <ReportsLandingRedirect />
+            <ReportsLandingPageRoute />
           </ProtectedRoute>
         }
       />

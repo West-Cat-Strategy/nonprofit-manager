@@ -13,6 +13,7 @@ import {
   formatWebsiteConsoleDate,
   getWebsiteConsoleUrlTarget,
 } from '../lib/websiteConsole';
+import { getWebsiteContentPath } from '../lib/websiteRouteTargets';
 import {
   clearWebsitesError,
   fetchWebsiteDeployment,
@@ -180,7 +181,7 @@ const WebsitePublishingPage: React.FC = () => {
             Open live site
           </WebsiteConsoleUrlAction>
           <a
-            href={`/websites/${siteId}/content`}
+            href={getWebsiteContentPath(siteId)}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
           >
             Review content

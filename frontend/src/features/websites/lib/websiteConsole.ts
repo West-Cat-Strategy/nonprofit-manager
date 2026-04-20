@@ -7,6 +7,15 @@ import type {
   WebsiteSiteManagementSummary,
   WebsiteSiteSummary,
 } from '../types';
+import {
+  getWebsiteBuilderPath,
+  getWebsiteContentPath,
+  getWebsiteFormsPath,
+  getWebsiteIntegrationsPath,
+  getWebsiteNewslettersPath,
+  getWebsiteOverviewPath,
+  getWebsitePublishingPath,
+} from './websiteRouteTargets';
 
 type FormDependencyKey = 'crm' | 'newsletter' | 'stripe' | 'events';
 
@@ -127,11 +136,14 @@ const buildSiteManagementNextAction = (
   site: WebsiteSiteSummary,
   readiness: WebsiteSiteManagementSummary['readiness']
 ): WebsiteSiteManagementSummary['nextAction'] => {
+  const publishingHref = getWebsitePublishingPath(site.id);
+  const overviewHref = getWebsiteOverviewPath(site.id);
+
   if (site.blocked) {
     return {
       title: 'Resolve the blocked assignment',
       detail: 'Publishing, domains, and live changes stay paused until the site is assigned.',
-      href: `/websites/${site.id}/publishing`,
+      href: publishingHref,
       tone: 'warning',
     };
   }
@@ -140,7 +152,7 @@ const buildSiteManagementNextAction = (
     return {
       title: 'Publish the site',
       detail: 'Draft pages exist, but the public site still needs a publish step.',
-      href: `/websites/${site.id}/publishing`,
+      href: publishingHref,
       tone: 'primary',
     };
   }
@@ -149,7 +161,7 @@ const buildSiteManagementNextAction = (
     return {
       title: 'Set the public domain',
       detail: 'Add a subdomain or custom domain before sharing the site more broadly.',
-      href: `/websites/${site.id}/publishing`,
+      href: publishingHref,
       tone: 'warning',
     };
   }
@@ -158,7 +170,7 @@ const buildSiteManagementNextAction = (
     return {
       title: 'Review SSL settings',
       detail: 'Secure traffic for the live domain before the certificate expires.',
-      href: `/websites/${site.id}/publishing`,
+      href: publishingHref,
       tone: 'warning',
     };
   }
@@ -167,7 +179,7 @@ const buildSiteManagementNextAction = (
     return {
       title: 'Enable analytics',
       detail: 'Turn on analytics to track visits and conversions from the site hub.',
-      href: `/websites/${site.id}/overview`,
+      href: overviewHref,
       tone: 'warning',
     };
   }
@@ -175,7 +187,7 @@ const buildSiteManagementNextAction = (
   return {
     title: 'Open the site overview',
     detail: 'Review content, forms, integrations, and publishing details from the console.',
-    href: `/websites/${site.id}/overview`,
+    href: overviewHref,
     tone: 'neutral',
   };
 };
@@ -211,6 +223,11 @@ const buildNextAction = (
   overview: WebsiteOverviewSummary,
   snapshot: Omit<WebsiteManagementSnapshot, 'nextAction'>
 ): WebsiteManagementSnapshot['nextAction'] => {
+  const siteId = overview.site.id;
+  const publishingHref = getWebsitePublishingPath(siteId);
+  const formsHref = getWebsiteFormsPath(siteId);
+  const integrationsHref = getWebsiteIntegrationsPath(siteId);
+  const newslettersHref = getWebsiteNewslettersPath(siteId);
   const deployment = overview.deployment || {
     primaryUrl: overview.site.primaryUrl,
     previewUrl: null,
@@ -222,7 +239,7 @@ const buildNextAction = (
     return {
       title: 'Resolve the blocking site assignment',
       detail: 'Publishing, domains, and integration edits are paused until the site is assigned.',
-      href: `/websites/${overview.site.id}/publishing`,
+      href: publishingHref,
       tone: 'warning',
     };
   }
@@ -231,7 +248,7 @@ const buildNextAction = (
     return {
       title: 'Publish the site',
       detail: 'Draft pages are ready. Publish to make the public nonprofit site live.',
-      href: `/websites/${overview.site.id}/publishing`,
+      href: publishingHref,
       tone: 'primary',
     };
   }
@@ -240,7 +257,7 @@ const buildNextAction = (
     return {
       title: 'Configure the public domain',
       detail: 'Add a subdomain or custom domain so staff can share the live site confidently.',
-      href: `/websites/${overview.site.id}/publishing`,
+      href: publishingHref,
       tone: 'warning',
     };
   }
@@ -249,7 +266,7 @@ const buildNextAction = (
     return {
       title: 'Open the forms workspace',
       detail: 'Connect at least one contact, newsletter, referral, or donation form before launch.',
-      href: `/websites/${overview.site.id}/forms`,
+      href: formsHref,
       tone: 'warning',
     };
   }
@@ -263,9 +280,7 @@ const buildNextAction = (
       detail: newsletterMissing
         ? 'Open the Newsletters workspace to pick the audience or list that should receive signup traffic.'
         : 'One or more public CTAs still need their connected service before launch.',
-      href: newsletterMissing
-        ? `/websites/${overview.site.id}/newsletters`
-        : `/websites/${overview.site.id}/integrations`,
+      href: newsletterMissing ? newslettersHref : integrationsHref,
       tone: 'warning',
     };
   }
@@ -274,7 +289,7 @@ const buildNextAction = (
     return {
       title: 'Review SSL renewal timing',
       detail: 'The certificate is close to expiry, so renew it before the public site is affected.',
-      href: `/websites/${overview.site.id}/publishing`,
+      href: publishingHref,
       tone: 'warning',
     };
   }
@@ -329,6 +344,13 @@ export const deriveWebsiteManagementSnapshot = (
 ): WebsiteManagementSnapshot | null => {
   if (!overview) return null;
 
+  const siteId = overview.site.id;
+  const builderHref = getWebsiteBuilderPath(siteId);
+  const contentHref = getWebsiteContentPath(siteId);
+  const formsHref = getWebsiteFormsPath(siteId);
+  const integrationsHref = getWebsiteIntegrationsPath(siteId);
+  const newslettersHref = getWebsiteNewslettersPath(siteId);
+  const publishingHref = getWebsitePublishingPath(siteId);
   const forms = overview.forms || [];
   const liveRoutes = overview.liveRoutes || [];
   const draftRoutes = overview.draftRoutes || [];
@@ -371,7 +393,7 @@ export const deriveWebsiteManagementSnapshot = (
       title: 'Site assignment needs attention',
       detail: 'This site can be edited, but publishing and live integration changes are blocked.',
       severity: 'critical',
-      href: `/websites/${overview.site.id}/publishing`,
+      href: publishingHref,
       actionLabel: 'Review publishing',
     });
   }
@@ -382,7 +404,7 @@ export const deriveWebsiteManagementSnapshot = (
       title: 'No editable pages were found',
       detail: 'The template has no route entries yet, so there is nothing ready to publish.',
       severity: 'critical',
-      href: `/websites/${overview.site.id}/builder`,
+      href: builderHref,
       actionLabel: 'Open builder',
     });
   } else if (!liveRoutes.length) {
@@ -391,7 +413,7 @@ export const deriveWebsiteManagementSnapshot = (
       title: 'The public site has not been published yet',
       detail: 'Draft pages exist, but the live site still needs a publish step.',
       severity: 'warning',
-      href: `/websites/${overview.site.id}/publishing`,
+      href: publishingHref,
       actionLabel: 'Publish site',
     });
   }
@@ -402,7 +424,7 @@ export const deriveWebsiteManagementSnapshot = (
       title: 'No public domain is configured',
       detail: 'Set a subdomain or custom domain so supporters can find the site easily.',
       severity: 'warning',
-      href: `/websites/${overview.site.id}/publishing`,
+      href: publishingHref,
       actionLabel: 'Set domain',
     });
   }
@@ -413,7 +435,7 @@ export const deriveWebsiteManagementSnapshot = (
       title: 'SSL certificate is expiring soon',
       detail: 'Renew or reissue the certificate before the public site loses a secure connection.',
       severity: 'warning',
-      href: `/websites/${overview.site.id}/publishing`,
+      href: publishingHref,
       actionLabel: 'Review SSL',
     });
   }
@@ -424,7 +446,7 @@ export const deriveWebsiteManagementSnapshot = (
       title: 'No public CTA forms are connected',
       detail: 'Connect at least one contact, newsletter, referral, or donation form before launch.',
       severity: 'warning',
-      href: `/websites/${overview.site.id}/forms`,
+      href: formsHref,
       actionLabel: 'Open forms',
     });
   }
@@ -435,7 +457,7 @@ export const deriveWebsiteManagementSnapshot = (
       title: 'Newsletter audience needs attention',
       detail: 'Newsletter capture will stay local until an active audience is selected in Newsletters.',
       severity: 'critical',
-      href: `/websites/${overview.site.id}/newsletters`,
+      href: newslettersHref,
       actionLabel: 'Open newsletters',
     });
   }
@@ -446,7 +468,7 @@ export const deriveWebsiteManagementSnapshot = (
       title: 'Donation forms need a payment provider',
       detail: 'Donation and recurring support actions are waiting on the selected provider.',
       severity: 'critical',
-      href: `/websites/${overview.site.id}/integrations`,
+      href: integrationsHref,
       actionLabel: 'Open integrations',
     });
   }
@@ -457,7 +479,7 @@ export const deriveWebsiteManagementSnapshot = (
       title: 'Conversion tracking is disabled',
       detail: 'Enable analytics to keep a reliable record of clicks, submits, and donations.',
       severity: 'info',
-      href: `/websites/${overview.site.id}/publishing`,
+      href: publishingHref,
       actionLabel: 'Review analytics',
     });
   }
@@ -468,7 +490,7 @@ export const deriveWebsiteManagementSnapshot = (
       title: 'No newsletter content is published yet',
       detail: 'Add a newsletter post or import the archive so the public site has a content stream.',
       severity: 'info',
-      href: `/websites/${overview.site.id}/content`,
+      href: contentHref,
       actionLabel: 'Open content',
     });
   }

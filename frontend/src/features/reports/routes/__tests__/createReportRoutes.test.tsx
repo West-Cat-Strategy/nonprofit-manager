@@ -22,6 +22,7 @@ const buildAuthState = (permissions: string[]) => ({
 });
 
 vi.mock('../reportRouteComponents', () => ({
+  ReportsHomeRoutePage: () => <div>reports-home-route</div>,
   ReportBuilderRoutePage: () => <div>builder-route</div>,
   ReportTemplatesRoutePage: () => <div>templates-route</div>,
   SavedReportsRoutePage: () => <div>saved-route</div>,
@@ -33,7 +34,7 @@ vi.mock('../reportRouteComponents', () => ({
 const ProtectedRoute = ({ children }: { children: ReactNode }) => <>{children}</>;
 
 describe('createReportRoutes', () => {
-  it('sends report managers to the builder from /reports', () => {
+  it('renders the reports home page for report managers from /reports', () => {
     renderWithProviders(
       <Routes>
         {createReportRoutes(ProtectedRoute)}
@@ -45,10 +46,10 @@ describe('createReportRoutes', () => {
       }
     );
 
-    expect(screen.getByText('builder-route')).toBeInTheDocument();
+    expect(screen.getByText('reports-home-route')).toBeInTheDocument();
   });
 
-  it('sends read-only report viewers to saved reports from /reports', () => {
+  it('renders the reports home page for read-only report viewers from /reports', () => {
     renderWithProviders(
       <Routes>
         {createReportRoutes(ProtectedRoute)}
@@ -60,7 +61,7 @@ describe('createReportRoutes', () => {
       }
     );
 
-    expect(screen.getByText('saved-route')).toBeInTheDocument();
+    expect(screen.getByText('reports-home-route')).toBeInTheDocument();
   });
 
   it('redirects non-managers away from the builder route', () => {
@@ -93,7 +94,7 @@ describe('createReportRoutes', () => {
     expect(screen.getByText('saved-route')).toBeInTheDocument();
   });
 
-  it('falls back to scheduled reports when a user only has scheduled-report view access', () => {
+  it('renders the reports home page when a user only has scheduled-report view access', () => {
     renderWithProviders(
       <Routes>
         {createReportRoutes(ProtectedRoute)}
@@ -105,6 +106,21 @@ describe('createReportRoutes', () => {
       }
     );
 
-    expect(screen.getByText('scheduled-route')).toBeInTheDocument();
+    expect(screen.getByText('reports-home-route')).toBeInTheDocument();
+  });
+
+  it('redirects users without report access back to the dashboard from /reports', () => {
+    renderWithProviders(
+      <Routes>
+        {createReportRoutes(ProtectedRoute)}
+        <Route path="/dashboard" element={<div>dashboard-route</div>} />
+      </Routes>,
+      {
+        route: '/reports',
+        preloadedState: buildAuthState([]),
+      }
+    );
+
+    expect(screen.getByText('dashboard-route')).toBeInTheDocument();
   });
 });

@@ -2,8 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import { reportsApiClient } from '../api/reportsApiClient';
 import type { ReportTemplate, TemplateCategory } from '../../../types/reportTemplate';
+import {
+  collectReportTemplateTags,
+  templateMatchesTag,
+} from '../reportTemplateFilters';
 
-export function useReportTemplatesController(selectedCategory: TemplateCategory | '') {
+interface ReportTemplateFilters {
+  category: TemplateCategory | '';
+  tag: string;
+}
+
+export function useReportTemplatesController({
+  category,
+  tag,
+}: ReportTemplateFilters) {
   const [templates, setTemplates] = useState<ReportTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +29,7 @@ export function useReportTemplatesController(selectedCategory: TemplateCategory 
     try {
       setLoading(true);
       setError(null);
-      const params = selectedCategory ? { category: selectedCategory } : {};
+      const params = category ? { category } : undefined;
       const data = await reportsApiClient.listTemplates(params);
       setTemplates(data as ReportTemplate[]);
     } catch (loadError) {
@@ -26,21 +38,20 @@ export function useReportTemplatesController(selectedCategory: TemplateCategory 
     } finally {
       setLoading(false);
     }
-  }, [formatTemplatesError, selectedCategory]);
+  }, [category, formatTemplatesError]);
 
   useEffect(() => {
     void fetchTemplates();
   }, [fetchTemplates]);
 
-  const filteredTemplates = selectedCategory
-    ? templates.filter((template) => template.category === selectedCategory)
-    : templates;
+  const filteredTemplates = templates.filter((template) => templateMatchesTag(template, tag));
+  const availableTags = collectReportTemplateTags(templates);
 
   return {
+    availableTags,
     error,
     filteredTemplates,
     loading,
-    selectedCategory,
     templates,
     fetchTemplates,
   };

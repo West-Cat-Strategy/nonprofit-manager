@@ -2,11 +2,13 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import type * as ReactRouterDom from 'react-router-dom';
+import { waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import ReportTemplatesPage from '../ReportTemplatesPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
-const { controllerStateRef, fetchTemplatesMock, navigateMock } = vi.hoisted(() => ({
+const { controllerCallsRef, controllerStateRef, fetchTemplatesMock, navigateMock } = vi.hoisted(() => ({
+  controllerCallsRef: { current: [] } as ReportTemplatesControllerCallsRef,
   controllerStateRef: { current: null } as ReportTemplatesControllerStateRef,
   fetchTemplatesMock: vi.fn(),
   navigateMock: vi.fn(),
@@ -30,6 +32,7 @@ const template = {
 };
 
 type ReportTemplatesControllerState = {
+  availableTags: string[];
   error: string | null;
   fetchTemplates: () => void;
   filteredTemplates: typeof template[];
@@ -38,6 +41,10 @@ type ReportTemplatesControllerState = {
 
 type ReportTemplatesControllerStateRef = {
   current: ReportTemplatesControllerState | null;
+};
+
+type ReportTemplatesControllerCallsRef = {
+  current: Array<{ category: string; tag: string }>;
 };
 
 vi.mock('react-router-dom', async () => {
@@ -49,7 +56,10 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../../hooks/useReportTemplatesController', () => ({
-  default: () => controllerStateRef.current,
+  default: (filters: { category: string; tag: string }) => {
+    controllerCallsRef.current.push(filters);
+    return controllerStateRef.current;
+  },
 }));
 
 vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
@@ -59,7 +69,9 @@ vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
 describe('ReportTemplatesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    controllerCallsRef.current = [];
     controllerStateRef.current = {
+      availableTags: ['board-pack', 'fundraising-cadence'],
       error: null,
       fetchTemplates: fetchTemplatesMock,
       filteredTemplates: [template],
@@ -73,9 +85,41 @@ describe('ReportTemplatesPage', () => {
 
     expect(screen.getByRole('heading', { name: /report templates/i })).toBeInTheDocument();
     expect(screen.getByText(/pipeline kpi template/i)).toBeInTheDocument();
+    expect(controllerCallsRef.current.at(-1)).toEqual({ category: '', tag: '' });
 
     await user.click(screen.getByRole('button', { name: /use template/i }));
     expect(navigateMock).toHaveBeenCalledWith('/reports/builder?template=tpl-1');
+  });
+
+  it('reads category and tag filters from the query string', () => {
+    renderWithProviders(<ReportTemplatesPage />, {
+      route: '/reports/templates?category=fundraising&tag=fundraising-cadence',
+    });
+
+    expect(controllerCallsRef.current.at(-1)).toEqual({
+      category: 'fundraising',
+      tag: 'fundraising-cadence',
+    });
+    expect(
+      screen.getByText(/showing fundraising templates tagged #fundraising-cadence/i)
+    ).toBeInTheDocument();
+  });
+
+  it('clears the active tag filter through the query-param controls', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<ReportTemplatesPage />, {
+      route: '/reports/templates?tag=board-pack',
+    });
+
+    await user.click(screen.getByRole('button', { name: /clear tag filter/i }));
+
+    await waitFor(() => {
+      expect(controllerCallsRef.current.at(-1)).toEqual({
+        category: '',
+        tag: '',
+      });
+    });
   });
 
   it('delegates retry when the controller exposes an error', async () => {

@@ -31,10 +31,12 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 
 The `check-*.ts` scripts are the repo policy gates that back `make lint`, `make quality-baseline`, and the static UI/security reports:
 
-- Backend policy gates: `check-rate-limit-key-policy.ts`, `check-success-envelope-policy.ts`, `check-route-validation-policy.ts`, `check-query-contract-policy.ts`, `check-express-validator-policy.ts`, `check-controller-sql-policy.ts`, `check-auth-guard-policy.ts`, `check-migration-manifest-policy.ts`, `check-duplicate-test-tree.ts`, `check-v2-module-ownership-policy.ts`, `check-module-boundary-policy.ts`, `check-module-route-proxy-policy.ts`, `check-canonical-module-import-policy.ts`, `check-implementation-size-policy.ts`, and `check-backend-legacy-controller-wrapper-policy.ts`.
-- Frontend policy gates: `check-frontend-feature-boundary-policy.ts`, `check-frontend-legacy-slice-import-policy.ts`, and `check-frontend-legacy-page-path-policy.ts`.
+- Backend policy gates: `check-rate-limit-key-policy.ts`, `check-success-envelope-policy.ts`, `check-route-validation-policy.ts`, `check-query-contract-policy.ts`, `check-express-validator-policy.ts`, `check-controller-sql-policy.ts`, `check-auth-guard-policy.ts`, `check-migration-manifest-policy.ts`, `check-duplicate-test-tree.ts`, `check-v2-module-ownership-policy.ts`, `check-module-boundary-policy.ts`, `check-module-route-proxy-policy.ts`, `check-canonical-module-import-policy.ts`, `check-implementation-size-policy.ts`, and the deleted-path guard `check-backend-legacy-controller-wrapper-policy.ts`.
+- Frontend policy gates: `check-frontend-feature-boundary-policy.ts` plus the deleted-path guards `check-frontend-legacy-slice-import-policy.ts` and `check-frontend-legacy-page-path-policy.ts`.
 - Route and UI policy gates: `check-route-integrity.ts`, `check-route-catalog-drift.ts`, and `ui-audit.ts`.
 - Implementation-size ratchet data lives in `baselines/implementation-size.json`.
+
+The three legacy deleted-path guards fail if `frontend/src/pages`, `frontend/src/store/slices`, or `backend/src/controllers` reappear at all, even as empty directories.
 
 ## Support Helpers
 

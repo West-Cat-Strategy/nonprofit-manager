@@ -19,6 +19,7 @@ import {
   updateWebsiteNewsletterListPreset,
   deleteWebsiteNewsletterListPreset,
 } from '../state';
+import { getWebsiteIntegrationsPath } from '../lib/websiteRouteTargets';
 import type { WebsiteNewsletterListPreset } from '../types';
 
 const emptyPresetDraft = {
@@ -289,7 +290,7 @@ const WebsiteNewslettersPage: React.FC = () => {
             Open communications hub
           </a>
           <a
-            href={`/websites/${siteId}/integrations`}
+            href={getWebsiteIntegrationsPath(siteId)}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
           >
             Provider settings

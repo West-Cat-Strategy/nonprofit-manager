@@ -119,6 +119,10 @@ const CONTACT_TIMELINE_EVENT_ACTIVITY_TYPES = [
   'event_check_in',
 ] as const;
 
+const CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL = 'COALESCE(c.account_id, con.account_id)';
+const CONTACT_TIMELINE_LINKED_CASE_ACCOUNT_SCOPE_SQL =
+  'COALESCE(linked_case.account_id, con.account_id)';
+
 const getContactNoteByIdQuery = async (
   db: PgExecutor,
   noteId: string
@@ -326,8 +330,7 @@ export async function getContactNotesTimeline(
           WHERE cn.contact_id = $1
             AND (
               $3::uuid IS NULL
-              OR (cn.case_id IS NULL AND con.account_id = $3::uuid)
-              OR (cn.case_id IS NOT NULL AND c.account_id = $3::uuid)
+              OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
             )
         ) AS contact_notes,
         (
@@ -338,7 +341,7 @@ export async function getContactNotesTimeline(
           WHERE c.contact_id = $1
             AND (
               $3::uuid IS NULL
-              OR COALESCE(c.account_id, con.account_id) = $3::uuid
+              OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
             )
         ) AS case_notes,
         (
@@ -352,8 +355,7 @@ export async function getContactNotesTimeline(
             AND ae.activity_type = ANY($2::text[])
             AND (
               $3::uuid IS NULL
-              OR (COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NULL AND con.account_id = $3::uuid)
-              OR (COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NOT NULL AND c.account_id = $3::uuid)
+              OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
             )
         ) AS event_activity
       `,
@@ -401,8 +403,7 @@ export async function getContactNotesTimeline(
         WHERE cn.contact_id = $1
           AND (
             $3::uuid IS NULL
-            OR (cn.case_id IS NULL AND con.account_id = $3::uuid)
-            OR (cn.case_id IS NOT NULL AND c.account_id = $3::uuid)
+            OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
           )
 
         UNION ALL
@@ -444,7 +445,7 @@ export async function getContactNotesTimeline(
         WHERE c.contact_id = $1
           AND (
             $3::uuid IS NULL
-            OR COALESCE(c.account_id, con.account_id) = $3::uuid
+            OR ${CONTACT_TIMELINE_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
           )
 
         UNION ALL
@@ -520,11 +521,7 @@ export async function getContactNotesTimeline(
           AND ae.activity_type = ANY($2::text[])
           AND (
             $3::uuid IS NULL
-            OR (COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NULL AND con.account_id = $3::uuid)
-            OR (
-              COALESCE(NULLIF(ae.metadata->>'caseId', '')::uuid, er.case_id) IS NOT NULL
-              AND linked_case.account_id = $3::uuid
-            )
+            OR ${CONTACT_TIMELINE_LINKED_CASE_ACCOUNT_SCOPE_SQL} = $3::uuid
           )
       ) timeline
       ORDER BY timeline.created_at DESC, timeline.id DESC

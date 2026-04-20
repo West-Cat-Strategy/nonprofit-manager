@@ -3,11 +3,11 @@
  * Recent activity across the organization
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import api from '../../services/api';
+import { useEffect } from 'react';
+import { useRecentActivities } from '../../features/activities/hooks';
 import WidgetContainer from './WidgetContainer';
 import type { DashboardWidget } from '../../types/dashboard';
-import { useApiError } from '../../hooks/useApiError';
+import type { ActivityType } from '../../features/activities/types';
 
 interface ActivityFeedWidgetProps {
   widget: DashboardWidget;
@@ -15,45 +15,19 @@ interface ActivityFeedWidgetProps {
   onRemove: () => void;
 }
 
-interface Activity {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  user_name: string | null;
-  entity_type: 'case' | 'donation' | 'volunteer' | 'event' | 'contact' | 'task';
-}
-
 const ActivityFeedWidget = ({ widget, editMode, onRemove }: ActivityFeedWidgetProps) => {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { error, setFromError, clear } = useApiError();
-
-  const fetchActivities = useCallback(async () => {
-    try {
-      setLoading(true);
-      clear();
-      const response = await api.get('/activities/recent?limit=10');
-      setActivities(response.data.activities || []);
-    } catch (err) {
-      console.error('Error fetching activities:', err);
-      setFromError(err, 'Failed to load activities');
-    } finally {
-      setLoading(false);
-    }
-  }, [clear, setFromError]);
+  const { activities, loading, error, refresh } = useRecentActivities({ limit: 10 });
 
   useEffect(() => {
-    fetchActivities();
-
     // Auto-refresh every 60 seconds
-    const interval = setInterval(fetchActivities, 60000);
+    const interval = window.setInterval(() => {
+      void refresh();
+    }, 60000);
 
-    return () => clearInterval(interval);
-  }, [fetchActivities]);
+    return () => window.clearInterval(interval);
+  }, [refresh]);
 
-  const getActivityIcon = (type: string) => {
+  const getActivityIcon = (type: ActivityType) => {
     if (type.startsWith('case')) return '📋';
     if (type.startsWith('donation')) return '💰';
     if (type.startsWith('volunteer')) return '👥';
@@ -84,7 +58,7 @@ const ActivityFeedWidget = ({ widget, editMode, onRemove }: ActivityFeedWidgetPr
       editMode={editMode}
       onRemove={onRemove}
       loading={loading}
-      error={error || undefined}
+      error={error}
     >
       <div className="space-y-3">
         {activities.length === 0 && !loading ? (

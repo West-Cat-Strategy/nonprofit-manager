@@ -1,0 +1,39 @@
+# Executive Director Persona Findings Remediation Tracker (2026-04-20)
+
+**Last Updated:** 2026-04-19
+
+
+This document is the live remediation companion to [executive-director-persona-findings-2026-04-20.md](executive-director-persona-findings-2026-04-20.md). The original findings file remains an immutable snapshot; this tracker records the current implementation state, owner rows, canonical route errata, verification commands, and backlog boundaries for the `P4-T54` remediation wave.
+
+## Status Key
+
+- `open`: not yet remediated in the current worktree
+- `partial`: code and/or targeted validation landed, but the full proof slice is still incomplete
+- `closed`: implementation and the targeted verification slice for this finding are complete
+- `backlog-only`: explicitly outside the current implementation wave; captured here so the snapshot findings stay actionable without pretending the feature work is in scope now
+
+## Active Wave Findings
+
+| Finding | Status | Owner row(s) | Current remediation state | Verification | Closeout date |
+|---|---|---|---|---|---|
+| 1. MFA-aware persona onboarding proof for admin and manager roles is missing | `partial` | `P4-T54`, `P4-T9` | Reusable MFA/runtime helpers now exist for fresh-admin setup login, admin password-login MFA-enrollment assertion, seeded manager TOTP login, and the Docker-backed fresh-workspace persona proof. The remaining gap is environment-only: the current shared Docker runtime is already initialized, so the full proof still needs a fresh starter-only external stack with MFA bypass disabled. | `cd backend && DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres npx jest --runInBand src/__tests__/integration/auth.mfa.test.ts`; `cd e2e && npm run test:docker -- --list tests/fresh-workspace-multi-user.spec.ts --project=chromium`; `cd e2e && npm run test:docker -- tests/fresh-workspace-multi-user.spec.ts --project=chromium` | — |
+| 2. Persona smoke route probes drift from the canonical mounted contracts | `partial` | `P4-T54`, `P4-T9` | Treat `/api/v2/reports/templates` and `/api/v2/users` as the canonical persona-smoke targets. The snapshot probes `/api/v2/reports?limit=10` and `/api/v2/admin/users` are drifted legacy assumptions and should remain documented here as errata rather than reintroduced into the runtime contract. `/api/v2/saved-reports` remains a supporting permission-behavior probe in the new E2E slice, not the route-contract errata baseline. | `cd backend && DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres npx jest --runInBand src/__tests__/integration/routeGuardrails.test.ts src/modules/users/controllers/__tests__/userController.test.ts src/modules/admin/controllers/__tests__/adminSurfaceControllers.test.ts`; `cd e2e && npm run test:docker -- tests/fresh-workspace-multi-user.spec.ts --project=chromium` | — |
+| 3. Executive, board, and nonprofit-admin reporting workflows are still assembled from primitives instead of a persona-aware entry point | `closed` | `P4-T54`, `P4-T1R4` | `/reports` now renders a persona-aware landing workspace instead of a pure redirect, with cards for `Executive + Board Pack`, `Admin Reporting Reliability`, and `Fundraising Cadence`. Existing downstream routes stay intact, and `/reports/templates` now supports direct-link prefiltering via `category` and `tag` query params. | `cd frontend && npm test -- --run src/features/reports/pages/__tests__/ReportTemplatesPage.test.tsx src/features/reports/pages/__tests__/ReportBuilderPage.test.tsx src/features/reports/pages/__tests__/ReportsHomePage.test.tsx src/features/reports/routes/__tests__/createReportRoutes.test.tsx src/features/reports/hooks/__tests__/useReportTemplatesController.test.tsx src/features/dashboard/pages/__tests__/WorkbenchDashboardPage.test.tsx`; `cd frontend && npm run type-check` | 2026-04-19 |
+| 4. Fundraiser stewardship workflows are present but not surfaced as a first-class operating path | `closed` | `P4-T54` | Fundraising-oriented system template packs now exist, and both donations and opportunities surfaces include compact fundraiser workflow panels that deep-link into the existing reports home, fundraising template pack, scheduled reports, opportunities pipeline, and communications settings routes. | `cd frontend && npm test -- --run src/features/finance/pages/__tests__/DonationListPage.test.tsx src/features/engagement/opportunities/pages/__tests__/OpportunitiesPage.test.tsx src/features/reports/pages/__tests__/ReportTemplatesPage.test.tsx`; `cd frontend && npm run type-check` | 2026-04-19 |
+
+## Backlog-Only Follow-through
+
+| Finding | Status | Owner row(s) | Current remediation state | Verification | Closeout date |
+|---|---|---|---|---|---|
+| 5. Dedicated governance-risk escalation workspace | `backlog-only` | — | The snapshot correctly calls out the lack of a first-class governance escalation workspace. `P4-T54` does not introduce a new governance data model or workflow engine; it only adds persona-aware reporting entry points that can support later governance work. | Product backlog only | — |
+| 6. Board conflict-of-interest disclosure and recusal workflow | `backlog-only` | — | Still outside current scope because the app has no conflict or recusal model. Keep this visible here so the reporting kickoff is not mistaken for a governance-record system. | Product backlog only | — |
+| 7. Delegation-authority matrix and committee charter traceability | `backlog-only` | — | Still outside current scope because the app has no committee charter or delegation matrix model. Do not fold this into reports/dashboard follow-through. | Product backlog only | — |
+| 8. Annual board/990 compliance command center | `backlog-only` | — | Remains external-only for the current product boundary. The reporting kickoff can improve inputs, but not replace accounting, legal review, or filing workflows. | Product backlog only | — |
+| 9. Compliance-documentation vault and retention workflow | `backlog-only` | — | Still outside current scope because the app lacks a dedicated records-retention and audit-artifact storage model. Keep it separate from the current persona-entry-point wave. | Product backlog only | — |
+
+## Notes
+
+- `P4-T54` is the single active tracked task for this wave. `P4-T1R4` and `P4-T9` remain related rows with explicit cross-references rather than separate parent tasks.
+- The current wave intentionally keeps `/api/v2` response envelopes and backend route shapes stable. The main contract changes are frontend-only: `/reports` becomes a real page instead of a pure redirect, and `/reports/templates` gains query-param-aware prefiltering.
+- Targeted local verification passed for docs, frontend, and backend once the explicit local test DB settings were provided. The remaining E2E blocker is runtime state, not code shape: the current Docker stack reports `setupRequired=false` with existing users, so the fresh-workspace persona proof still needs a new starter-only runtime.
+- The snapshot findings file is intentionally left untouched. Any future errata or closeout should be recorded here unless a new dated snapshot is produced.

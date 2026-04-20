@@ -29,6 +29,7 @@ import {
   LoadingState,
   PageHeader,
   SecondaryButton,
+  SectionCard,
   StatCard,
 } from '../../../components/ui';
 import {
@@ -43,13 +44,7 @@ import {
 } from '../utils/taxReceipts';
 
 const DONATION_FILTERS_STORAGE_KEY = 'donations_list_filters_v1';
-const PAYMENT_STATUS_VALUES = [
-  'pending',
-  'completed',
-  'failed',
-  'refunded',
-  'cancelled',
-] as const;
+const PAYMENT_STATUS_VALUES = ['pending', 'completed', 'failed', 'refunded', 'cancelled'] as const;
 const PAYMENT_METHOD_VALUES = [
   'cash',
   'check',
@@ -63,6 +58,33 @@ const PAYMENT_METHOD_VALUES = [
 ] as const;
 const donationActionLinkClass =
   'inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] bg-[var(--app-accent)] px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] shadow-sm transition hover:bg-[var(--app-accent-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
+const fundraiserWorkflowLinks = [
+  {
+    title: 'Reports workspace',
+    description: 'Start from the fundraiser reporting home.',
+    to: '/reports',
+  },
+  {
+    title: 'Fundraising cadence templates',
+    description: 'Open prefiltered stewardship report templates.',
+    to: '/reports/templates?category=fundraising&tag=fundraising-cadence',
+  },
+  {
+    title: 'Scheduled reports',
+    description: 'Review recurring fundraiser exports and delivery windows.',
+    to: '/reports/scheduled',
+  },
+  {
+    title: 'Opportunity pipeline',
+    description: 'Hand off promising donors into the major gifts pipeline.',
+    to: '/opportunities',
+  },
+  {
+    title: 'Communications settings',
+    description: 'Tune outreach channels before the next donor touchpoint.',
+    to: '/settings/communications',
+  },
+] as const;
 
 const DonationList: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -261,9 +283,7 @@ const DonationList: React.FC = () => {
       showSuccess('Receipt download started.');
     } catch (downloadError) {
       showError(
-        downloadError instanceof Error
-          ? downloadError.message
-          : 'Failed to download tax receipt'
+        downloadError instanceof Error ? downloadError.message : 'Failed to download tax receipt'
       );
     }
   };
@@ -305,6 +325,24 @@ const DonationList: React.FC = () => {
           <StatCard label="Average Donation" value={formatCurrency(averageAmount)} />
           <StatCard label="Total Count" value={pagination.total} />
         </div>
+
+        <SectionCard
+          title="Fundraiser Workflow"
+          subtitle="Jump from gift intake to stewardship reporting, outreach setup, and pipeline follow-through."
+        >
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {fundraiserWorkflowLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="block rounded-[var(--ui-radius-sm)] border border-app-border-muted bg-app-bg px-3 py-3 transition hover:border-app-accent hover:bg-app-accent-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2"
+              >
+                <p className="text-sm font-semibold text-app-text">{link.title}</p>
+                <p className="mt-1 text-xs text-app-text-muted">{link.description}</p>
+              </Link>
+            ))}
+          </div>
+        </SectionCard>
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold uppercase text-app-text-muted">
@@ -469,7 +507,8 @@ const DonationList: React.FC = () => {
                             {donation.account_name || donation.contact_name || 'Anonymous'}
                           </p>
                           <p className="mt-1 text-sm text-app-text-muted">
-                            {formatCurrency(donation.amount, donation.currency)} · {formatDate(donation.donation_date)}
+                            {formatCurrency(donation.amount, donation.currency)} ·{' '}
+                            {formatDate(donation.donation_date)}
                           </p>
                         </div>
                         <span
@@ -485,7 +524,8 @@ const DonationList: React.FC = () => {
                         <p>Payment: {getPaymentMethodLabel(donation.payment_method)}</p>
                         <p>
                           Receipt:{' '}
-                          {donation.official_tax_receipt_number || (donation.receipt_sent ? 'Legacy sent' : 'Not issued')}
+                          {donation.official_tax_receipt_number ||
+                            (donation.receipt_sent ? 'Legacy sent' : 'Not issued')}
                         </p>
                       </div>
 
@@ -526,7 +566,10 @@ const DonationList: React.FC = () => {
                           <button
                             onClick={() => openReceiptModal(donation, 'annual', 'download')}
                             disabled={Boolean(annualReceiptDisabledReason)}
-                            title={annualReceiptDisabledReason || 'Generate annual receipt for this donor'}
+                            title={
+                              annualReceiptDisabledReason ||
+                              'Generate annual receipt for this donor'
+                            }
                             className="rounded border border-app-border px-3 py-2 text-sm font-medium text-app-text disabled:cursor-not-allowed disabled:text-app-text-muted"
                           >
                             Annual Receipt
@@ -577,16 +620,11 @@ const DonationList: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-app-border bg-app-surface">
                     {donations.map((donation) => {
-                      const singleReceiptDisabledReason =
-                        getSingleReceiptDisabledReason(donation);
-                      const annualReceiptDisabledReason =
-                        getAnnualReceiptDisabledReason(donation);
+                      const singleReceiptDisabledReason = getSingleReceiptDisabledReason(donation);
+                      const annualReceiptDisabledReason = getAnnualReceiptDisabledReason(donation);
 
                       return (
-                        <tr
-                          key={donation.donation_id}
-                          className="hover:bg-app-surface-muted"
-                        >
+                        <tr key={donation.donation_id} className="hover:bg-app-surface-muted">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-app-text">
                             {donation.donation_number}
                           </td>
@@ -672,13 +710,10 @@ const DonationList: React.FC = () => {
                                 </button>
                               ) : (
                                 <button
-                                  onClick={() =>
-                                    openReceiptModal(donation, 'single', 'download')
-                                  }
+                                  onClick={() => openReceiptModal(donation, 'single', 'download')}
                                   disabled={Boolean(singleReceiptDisabledReason)}
                                   title={
-                                    singleReceiptDisabledReason ||
-                                    'Issue official tax receipt'
+                                    singleReceiptDisabledReason || 'Issue official tax receipt'
                                   }
                                   className="text-app-accent hover:text-app-accent-text disabled:cursor-not-allowed disabled:text-app-text-muted"
                                 >
@@ -718,7 +753,8 @@ const DonationList: React.FC = () => {
               <>
                 <div className="mt-6 flex flex-col gap-3 md:hidden">
                   <div className="text-sm text-app-text-muted">
-                    Page {pagination.page} of {pagination.total_pages} ({pagination.total} total donations)
+                    Page {pagination.page} of {pagination.total_pages} ({pagination.total} total
+                    donations)
                   </div>
                   <div className="flex gap-2">
                     <button
