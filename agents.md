@@ -1,12 +1,12 @@
 # Agents in Nonprofit Manager
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 This page explains the three meanings of "agents" in this repo. It is an orientation page, not the canonical source for coding rules, task status, or implementation details.
 
 **Document Role:** Orientation and terminology only.
 **Use This Page For:** Understanding what "agents" means in this repo and finding the correct canonical doc.
-**Go Elsewhere For:** Contributor workflow in [CONTRIBUTING.md](CONTRIBUTING.md), runtime setup and ports in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md), docs navigation in [docs/README.md](docs/README.md), live tracked work in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md), and audit or validation artifacts in [docs/validation/README.md](docs/validation/README.md).
+**Go Elsewhere For:** Contributor workflow in [CONTRIBUTING.md](CONTRIBUTING.md), runtime setup and ports in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md), docs navigation in [docs/README.md](docs/README.md), live tracked work in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md), current phase sequencing in [docs/phases/PHASE_5_DEVELOPMENT_PLAN.md](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md), archived closeouts in [docs/phases/archive/README.md](docs/phases/archive/README.md), and audit or validation artifacts in [docs/validation/README.md](docs/validation/README.md).
 
 1. Developer agents: AI assistants contributing code and docs under repo rules.
 2. Multi-agent coordination: the task workflow for parallel contributors.
@@ -20,6 +20,8 @@ There are no autonomous AI agents running independently in the application. The 
 |---|---|
 | Contributor workflow and handoff | [CONTRIBUTING.md](CONTRIBUTING.md), then [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md), [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md), [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md), and [docs/testing/TESTING.md](docs/testing/TESTING.md) |
 | Tracked or resumed work | [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md); check `Recent Thread Follow-through` first when resuming recent interrupted work |
+| Current phase roadmap | [docs/phases/PHASE_5_DEVELOPMENT_PLAN.md](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md) |
+| Historical phase proof and earlier workboards | [docs/phases/archive/README.md](docs/phases/archive/README.md) |
 | Parallel contributor coordination | [docs/development/SUBAGENT_MODULARIZATION_GUIDE.md](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md) plus the Coordination section in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) |
 | Validation and audit artifacts | [docs/validation/README.md](docs/validation/README.md) |
 | Repo-local helper prompts | `.codex/skills/**` is local helper guidance only; tracked repo docs remain the canonical contract |
@@ -42,10 +44,15 @@ Multi-agent coordination refers to the workflow used when multiple contributors 
 For the live workboard and coordination status, see:
 
 - [**docs/phases/planning-and-progress.md**](docs/phases/planning-and-progress.md)
+- [**docs/phases/PHASE_5_DEVELOPMENT_PLAN.md**](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md)
 
 For guidance on splitting large tasks into parallel lanes, see:
 
 - [**docs/development/SUBAGENT_MODULARIZATION_GUIDE.md**](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md)
+
+For earlier closeouts and prior workboard history, use:
+
+- [**docs/phases/archive/README.md**](docs/phases/archive/README.md)
 
 ## User-Agent Tracking
 

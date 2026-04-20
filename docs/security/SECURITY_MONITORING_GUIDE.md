@@ -171,7 +171,7 @@ Legacy snake_case auth input aliases are still accepted on:
 - `/api/v2/auth/setup`
 - `/api/v2/auth/password`
 
-The production query/dashboard workflow for this deprecation gate lives in [../phases/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](../phases/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md).
+The production query/dashboard workflow for this deprecation gate lives in [AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md).
 
 Use the existing structured alias event as the numerator:
 

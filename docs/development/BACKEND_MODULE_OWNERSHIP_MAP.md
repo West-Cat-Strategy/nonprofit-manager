@@ -1,9 +1,8 @@
-# Backend Module Ownership Map (Compatibility-Aware)
+# Backend Module Ownership Map
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
-
-**Updated:** April 13, 2026
+Use this file as the current backend ownership reference for `backend/src/modules/**`. It replaces the older Phase 4 modularization tracking context that previously lived under `docs/phases/`.
 
 ## Module-owned contract boundaries (canonical)
 
@@ -55,15 +54,14 @@ Financial feature ownership is split across module domains below; the `finance` 
 - `backend/src/modules/reconciliation` (reconciliation surfaces)
 - `backend/src/modules/payments` (payment intent/checkout surfaces)
 
-## Compatibility shims expected in this phase
+## Compatibility Notes
 
 - `backend/src/modules/payments/routes/index.ts` is the canonical payment route implementation.
 - The legacy `/api/payments/*` surface is tombstoned; no root `backend/src/routes/payments.ts` shim file remains in the current tree.
-- The other top-level legacy route shims under `backend/src/routes/*.ts` were retired during `P4-T1R7D` after importer and runtime-mount sweeps confirmed no remaining callers.
-- Backend payment controller/domain export shims were retired during `P4-T1R7` once all in-repo callers moved to module entrypoints.
-- `P4-T1R8E` retired dead controller-domain indexes, unused root controllers, and removable leaf service facades; new backend shim categories should not be added.
+- The other top-level legacy route shims under `backend/src/routes/*.ts` are already retired from the current tree.
+- New backend shim categories should not be added unless there is a documented compatibility need with an explicit sunset plan.
 
-## Active task ownership context
+## Usage Notes
 
-- Current cleanup streams for this map are tracked as `P4-T1R7` and `P4-T1R8E` in `docs/phases/planning-and-progress.md`.
-- Removals are allowed only when route/controller consumers fully migrate to module entrypoints and policy baselines are green.
+- Prefer this file plus [ARCHITECTURE.md](ARCHITECTURE.md) when you need current module ownership.
+- Use the live workboard only for tracked implementation status, not for stable ownership rules.

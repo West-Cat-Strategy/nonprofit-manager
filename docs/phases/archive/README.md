@@ -1,140 +1,56 @@
 # Phase Documentation Archive
 
-**Last Updated**: 2026-04-19
+**Last Updated:** 2026-04-20
 
-This directory contains historical phase completion reports, session summaries, and workboard history snapshots.
+Use this directory for historical phase notes, closeout artifacts, and earlier workboard material.
 
-## 2026-04-19 Prune Summary
+## Current Live Planning
 
-- Moved dated handoff and release artifacts out of the active `docs/phases/` top level:
-  - [P2_T16_T17_PR_DRAFT_2026-02-24.md](P2_T16_T17_PR_DRAFT_2026-02-24.md)
-  - [P2_T16_T17_REVIEW_HANDOFF_2026-02-24.md](P2_T16_T17_REVIEW_HANDOFF_2026-02-24.md)
-  - [PHASE_3_EXECUTION_REPORT.md](PHASE_3_EXECUTION_REPORT.md)
-  - [RELEASE_v0.1.1_2026-04-07.md](RELEASE_v0.1.1_2026-04-07.md)
-- Kept [../planning-and-progress.md](../planning-and-progress.md) as the single live workboard.
+Top-level `docs/phases/` is now reserved for live planning only:
 
----
+- [../planning-and-progress.md](../planning-and-progress.md) — current tracked workboard
+- [../PHASE_5_DEVELOPMENT_PLAN.md](../PHASE_5_DEVELOPMENT_PLAN.md) — current Phase 5 roadmap
 
-## Purpose
+Do not use the files in this archive as the source of truth for current status.
 
-These documents track work completed during specific project phases and sessions. They serve as:
+## Archive Groups
 
-- **Historical Record** — What was accomplished in each phase
-- **Progress Documentation** — Major milestones and deliverables
-- **Reference** — Implementation details for completed features
+### Phase 4 Transition And Closeout
 
----
+- Batch closeout and transition artifacts:
+  - [P4_CLOSEOUT_BATCH_2026-04-14.md](P4_CLOSEOUT_BATCH_2026-04-14.md)
+  - [P4_CLOSEOUT_BATCH_2026-04-20.md](P4_CLOSEOUT_BATCH_2026-04-20.md)
+  - [P4_FINAL_CLOSEOUT_2026-04-20.md](P4_FINAL_CLOSEOUT_2026-04-20.md)
+- Row-local closeout notes:
+  - [P4-T1_CLOSEOUT_2026-04-13.md](P4-T1_CLOSEOUT_2026-04-13.md)
+  - [P4-T1R4_CLUSTER_CLOSEOUT_2026-04-14.md](P4-T1R4_CLUSTER_CLOSEOUT_2026-04-14.md)
+  - [P4-T6_CLUSTER_CLOSEOUT_2026-04-14.md](P4-T6_CLUSTER_CLOSEOUT_2026-04-14.md)
+  - [P4-T7E_CLOSEOUT_2026-04-18.md](P4-T7E_CLOSEOUT_2026-04-18.md)
+  - [P4-T37_T38_CLOSEOUT_2026-04-14.md](P4-T37_T38_CLOSEOUT_2026-04-14.md)
+  - [P4-T47_GITHUB_SUPPORT_PURGE_2026-04-19.md](P4-T47_GITHUB_SUPPORT_PURGE_2026-04-19.md)
 
-## For Current Work
+### Workboard And Session History
 
-**Do NOT refer to archived phase files for current status.**
+- [WORKBOARD_HISTORY_2026.md](WORKBOARD_HISTORY_2026.md) — historical planning sections trimmed from the live board
+- [SESSION_LOG_FEB_2026.md](SESSION_LOG_FEB_2026.md) — earlier session-log snapshot
+- [SESSION_SUMMARY.md](SESSION_SUMMARY.md) and [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) — older project-session summaries
 
-For **current project status and active work**, see:
+### Earlier Phase Completion
 
-→ [../planning-and-progress.md](../planning-and-progress.md) — **ACTIVE WORKBOARD**
+- Phase 1: `PHASE_1_*`
+- Phase 2: `PHASE_2_*`, `PHASE_2B_*`, `PHASE_2_NEXT_STEPS.md`
+- Phase 3: [PHASE_3_EXECUTION_REPORT.md](PHASE_3_EXECUTION_REPORT.md)
 
-This is the single source of truth for:
-- What's currently being worked on
-- Task assignment and ownership
-- Blockers and status updates
-- Next sprint planning
+### Earlier Release And Roadmap Material
 
----
+- [RELEASE_v0.1.1_2026-04-07.md](RELEASE_v0.1.1_2026-04-07.md)
+- [COMPLETION-ROADMAP.md](COMPLETION-ROADMAP.md)
+- [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md)
+- [SECURITY_DECISIONS.md](SECURITY_DECISIONS.md)
+- [PERFORMANCE_DECISIONS.md](PERFORMANCE_DECISIONS.md)
 
-## Archived Files
+## How To Use This Archive
 
-### Phase 1 Completion (Archive)
-
-- `PHASE_1_COMPLETION_SUMMARY.md` — Major milestones and deliverables
-- `PHASE_1_DELIVERABLES.md` — Detailed list of completed work
-- `PHASE_1_FINAL_SUMMARY.md` — Final assessment
-- `PHASE_1_MIGRATION_GUIDE.md` — Migration procedures
-
-**Status**: ✅ Complete (completed early 2026)
-
-### Phase 2 Completion (Archive)
-
-- `PHASE_2_COMPLETION_SUMMARY.md` — Summary of Phase 2 work
-- `PHASE_2B_COMPLETION_SUMMARY.md` — Phase 2B split work
-- `PHASE_2B_IMPLEMENTATION_SUMMARY.md` — Implementation details
-- `PHASE_2_6_COMPLETION.md` — Week 6 completion
-- `PHASE_2_7_COMPLETION.md` — Week 7 completion
-- `PHASE_2_8_COMPLETION.md` — Week 8 completion
-- `PHASE_2_9_COMPLETION.md` — Week 9 completion
-- `PHASE_2_NEXT_STEPS.md` — Transition to Phase 3
-
-**Status**: ✅ Complete (completed mid 2026)
-
-### Session & Week Reports (Archive)
-
-- `SESSION_SUMMARY.md` — Overall session summary
-- `IMPLEMENTATION_SUMMARY.md` — Implementation progress
-- `COMPLETION-ROADMAP.md` — Roadmap and future work
-- `WEEK1_COMPLETION_SUMMARY.md` — Week 1 recap
-- `WEEK1_COMPONENT_TESTING_COMPLETE.md` — Component test completion
-- `WEEK1_INTEGRATION_TESTING_COMPLETE.md` — Integration test completion
-- `EVENT_MODULE_COMPLETION.md` — Event module work
-- `SESSION_LOG_FEB_2026.md` — Archived session logs & recently completed dump (from planning-and-progress.md)
-- `WORKBOARD_HISTORY_2026.md` — Historical workboard sections trimmed from the live planner (roadmap, logs, trackers, and legacy reference material)
-
-**Status**: ✅ Complete (completed early 2026)
-
----
-
-## How to Use This Archive
-
-### Looking for Implementation Details
-
-If you need to understand how something was built:
-
-1. Check the feature documentation in [../../../docs/features/](../../../docs/features/)
-2. If unavailable, search archived phase files for implementation notes
-3. Read the actual code in the repository (most authoritative source)
-
-### Looking for Historical Context
-
-If you need to understand project decisions made in earlier phases:
-
-1. Try archived files matching the phase you're interested in
-2. Check git history: `git log --grep="phase" --oneline`
-3. Ask a team member who was involved
-
-### Need Migration or Setup Info from Old Phase
-
-Phase 1 had detailed migration guides if you need them:
-
-- See `PHASE_1_MIGRATION_GUIDE.md` for database migration procedures
-- See `PHASE_1_FINAL_SUMMARY.md` for setup validation
-
----
-
-## File Organization
-
-Files are named by phase and type:
-
-```
-PHASE_1_COMPLETION_SUMMARY.md    ← Phase 1 completion report
-PHASE_2_8_COMPLETION.md          ← Phase 2, week 8 milestone
-WEEK1_COMPONENT_TESTING_COMPLETE.md  ← Week 1, component testing
-```
-
-If you need a specific file, search by phase number or activity type.
-
----
-
-## Maintaining This Archive
-
-New phase files should:
-
-1. Be added here once the phase is complete
-2. Maintain naming consistency: `PHASE_X_*.md` or similar
-3. Have a "Last Updated" date at the top
-4. Link back to [../planning-and-progress.md](../planning-and-progress.md) for current work
-
----
-
-## See Also
-
-- [../planning-and-progress.md](../planning-and-progress.md) — Active workboard (current work)
-- [../../development/GETTING_STARTED.md](../../development/GETTING_STARTED.md) — Setup guide
-- [../../README.md](../../README.md) — Documentation catalog
+- Reach for feature docs and current code first when you need implementation truth.
+- Use this archive for provenance, earlier scope framing, and proof that has already left the live board.
+- If a historical file and the current tree disagree, trust the current tree and current live docs.

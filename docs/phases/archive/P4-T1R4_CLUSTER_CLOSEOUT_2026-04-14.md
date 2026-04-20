@@ -66,5 +66,5 @@
 - `P4-T1R4W3E`
   - Updated current-tree proof: public accept-invitation pages already live under `frontend/src/features/invitations/**`, with auth and portal route seams pointing at those feature-owned pages.
   - Updated mismatch: the remaining frontend gap is the staff invitation-management slice, which still lives in admin-settings state and UI instead of a feature-owned invitations boundary.
-- Post-wave status: the 2026-04-19 implementation pass landed the activities contract-alignment and invitations staff-management extraction follow-through in the current tree. For live status and verification, prefer the `P4-T1R4W3B` and `P4-T1R4W3E` rows in [planning-and-progress.md](planning-and-progress.md) over the historical 2026-04-14 mismatch notes above.
+- Post-wave status: the 2026-04-19 implementation pass landed the activities contract-alignment and invitations staff-management extraction follow-through in the current tree. For live status and verification, prefer the current carry-over or Phase 5 rows in [../planning-and-progress.md](../planning-and-progress.md) over the historical 2026-04-14 mismatch notes above.
 - The other 2026-04-14 keep-in-review conclusions remain valid until their row-local implementation gaps are closed and re-verified.

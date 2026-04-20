@@ -1,6 +1,6 @@
 # Nonprofit Manager - Quick Reference
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 Compact command map for day-to-day work in the nonprofit-manager repo.
 
@@ -57,6 +57,28 @@ npm run dev
 ```
 
 - Backend API: `http://localhost:3000`
+
+### Direct Public-Site Runtime
+
+```bash
+cd /path/to/nonprofit-manager
+npm ci
+cd backend
+npm run dev:public
+```
+
+- Public site: `http://localhost:8006`
+
+### Direct Worker Runtime
+
+```bash
+cd /path/to/nonprofit-manager
+npm ci
+cd backend
+npm run worker:dev
+```
+
+- No HTTP port; uses the backend env contract
 
 ### Direct Frontend Runtime
 

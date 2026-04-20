@@ -1,6 +1,6 @@
 # Auth Alias Telemetry Operations Guide
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 
 Date: 2026-04-14
@@ -189,7 +189,7 @@ Use this table to inspect which aliases are still active and whether usage is co
 
 ## Operational Review Rules
 
-Interpret the telemetry gate from [auth-alias-deprecation-checklist.md](auth-alias-deprecation-checklist.md) this way:
+Interpret the telemetry gate from [AUTH_ALIAS_DEPRECATION_CHECKLIST.md](AUTH_ALIAS_DEPRECATION_CHECKLIST.md) this way:
 
 - A day counts as clean only when all three route ratios are exactly `0`.
 - The retirement gate requires 30 consecutive clean days in production-like traffic.
@@ -207,6 +207,6 @@ Use manual review at first, then add alerting if the dashboard becomes operation
 
 ## Related Artifacts
 
-- [AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](AUTH_ALIAS_USAGE_REPORT_2026-04-14.md)
-- [auth-alias-deprecation-checklist.md](auth-alias-deprecation-checklist.md)
-- [../security/SECURITY_MONITORING_GUIDE.md](../security/SECURITY_MONITORING_GUIDE.md)
+- [../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md)
+- [AUTH_ALIAS_DEPRECATION_CHECKLIST.md](AUTH_ALIAS_DEPRECATION_CHECKLIST.md)
+- [SECURITY_MONITORING_GUIDE.md](SECURITY_MONITORING_GUIDE.md)

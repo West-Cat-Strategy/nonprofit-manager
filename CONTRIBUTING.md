@@ -1,6 +1,6 @@
 # Contributing to Nonprofit Manager
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 Use this guide when you are contributing code, documentation, validation, or release support to Nonprofit Manager. Treat it as the contributor workflow, validation, and handoff entry point. The root [README.md](README.md) stays product-facing; setup and runtime details stay in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md).
 
@@ -20,11 +20,15 @@ Use the narrower guides only when your change needs them:
 |---|---|
 | Product context and contributor handoff | [README.md](README.md) |
 | Agent terminology and coordination overview | [agents.md](agents.md) |
+| Live tracked work and current phase roadmap | [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md), [docs/phases/PHASE_5_DEVELOPMENT_PLAN.md](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md) |
+| Historical closeouts and archive notes | [docs/phases/archive/README.md](docs/phases/archive/README.md) |
 | Validation and audit artifacts | [docs/validation/README.md](docs/validation/README.md) |
-| Backend module work | [backend/README.md](backend/README.md) |
+| Backend API, public-site, or worker runtime work | [backend/README.md](backend/README.md) |
 | API reference and route summaries | [docs/api/README.md](docs/api/README.md) |
 | Frontend feature and route work | [frontend/README.md](frontend/README.md) |
 | Playwright and browser validation | [e2e/README.md](e2e/README.md) |
+| Shared type contracts | [contracts/README.md](contracts/README.md) |
+| Database contract and migration orientation | [database/README.md](database/README.md) |
 | Helper scripts | [scripts/README.md](scripts/README.md) |
 | Documentation catalog | [docs/README.md](docs/README.md) |
 
@@ -41,6 +45,7 @@ Use the narrower guides only when your change needs them:
 If your task is tracked, update [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before you start editing. The workboard is the source of truth for ownership, status, blockers, and handoff state.
 
 - If you are resuming recent interrupted or disposed work, check `Recent Thread Follow-through` before scanning the larger active table.
+- Use [docs/phases/PHASE_5_DEVELOPMENT_PLAN.md](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md) for current phase goals and sequencing, not the phase archive.
 - Keep one active task per agent by default unless the workboard documents a coordinated exception.
 - For tracked modularization work that needs parallel lanes, follow [docs/development/SUBAGENT_MODULARIZATION_GUIDE.md](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md) and document the coordinated exception before code edits start.
 - Use task IDs in commits and pull request titles when the work is tracked.
@@ -54,6 +59,7 @@ If your task is tracked, update [docs/phases/planning-and-progress.md](docs/phas
 - Use [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md) for setup, ports, and runtime expectations instead of duplicating them here.
 - Keep docs synchronized when commands, ports, workflows, contracts, or navigation change.
 - Use the current repo patterns instead of reintroducing retired ones.
+- Treat [docs/phases/archive/README.md](docs/phases/archive/README.md) as historical context only; do not update archived closeouts to represent current status unless you are fixing a broken link or provenance note.
 - In coordinated modularization work, keep one lead owner for shared seams such as the workboard, backend v2 registrar, frontend route catalogs, and final integration validation.
 
 For implementation-specific rules, defer to [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md) and [docs/development/ARCHITECTURE.md](docs/development/ARCHITECTURE.md).
@@ -79,6 +85,7 @@ Prefer root commands first. Use package-level scripts only when the change is na
 - Treat [docs/README.md](docs/README.md) as the primary documentation entry point.
 - Use [docs/validation/README.md](docs/validation/README.md) when contributor navigation changes touch audit artifacts, remediation trackers, or validation reference docs.
 - Treat [scripts/README.md](scripts/README.md) as the helper-script index.
+- Use [contracts/README.md](contracts/README.md) and [database/README.md](database/README.md) when shared-package or database-contract navigation changes.
 - Use `/api/v2/*` in active API docs unless you are documenting a health alias or another documented compatibility exception.
 - Keep the root [README.md](README.md) user-facing; contributor onboarding belongs here and in `docs/development/*`.
 

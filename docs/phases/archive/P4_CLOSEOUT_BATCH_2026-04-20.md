@@ -9,7 +9,7 @@ This artifact preserves the proof chain for rows removed from the live workboard
 
 ## Summary
 
-- Removed resolved review rows from the live board so [planning-and-progress.md](planning-and-progress.md) returns to actionable tracked work only.
+- Removed resolved review rows from the live board so [../planning-and-progress.md](../planning-and-progress.md) returns to actionable tracked work only.
 - Preserved standalone proof artifacts where they already existed and summarized row-local proof here where a separate closeout note was unnecessary.
 - Removed umbrella rows `P4-T6`, `P4-T1R4`, and `P4-T9` because they no longer own a concrete next step; later work should reopen as narrower rows.
 - Folded `P4-T53` into the still-blocked `P4-T51` row rather than leaving two blocked backend import/export rows live.

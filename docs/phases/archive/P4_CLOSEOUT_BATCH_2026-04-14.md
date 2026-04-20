@@ -9,15 +9,15 @@ This artifact preserves the proof chain for the completed Phase 4 review rows re
 
 ## Summary
 
-- Closed the completed review-row batch so [planning-and-progress.md](planning-and-progress.md) returns to active work only.
+- Closed the completed review-row batch so [../planning-and-progress.md](../planning-and-progress.md) returns to active work only.
 - Preserved shared modularity proof in [P4-T1_CLOSEOUT_2026-04-13.md](P4-T1_CLOSEOUT_2026-04-13.md) and [P4-T1R4C_CLOSEOUT_2026-04-13.md](P4-T1R4C_CLOSEOUT_2026-04-13.md), with explicit 2026-04-14 addenda for the newly removed rows.
-- Left the deferred auth-alias operational follow-up visible as `P4-T9I`; [AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](AUTH_ALIAS_USAGE_REPORT_2026-04-14.md) remains the source artifact for that work.
+- Left the deferred auth-alias operational follow-up visible as `P4-T9I`; [../../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](../../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md) remains the source artifact for that work.
 
 ## Closed Rows By Evidence Cluster
 
 ### Efficiency, Reliability, And Maintenance
 
-- `P4-T9A`: closed with [AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](AUTH_ALIAS_USAGE_REPORT_2026-04-14.md), plus live alias telemetry middleware at `backend/src/modules/auth/middleware/aliasUsageTelemetry.ts` and coverage at `backend/src/__tests__/modules/auth/aliasUsageTelemetry.test.ts`; deferred dashboard/query work now lives under `P4-T9I`.
+- `P4-T9A`: closed with [../../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](../../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md), plus live alias telemetry middleware at `backend/src/modules/auth/middleware/aliasUsageTelemetry.ts` and coverage at `backend/src/__tests__/modules/auth/aliasUsageTelemetry.test.ts`; deferred dashboard/query work now lives under `P4-T9I`.
 - `P4-T9E`: startup guard closure stands on the 2026-04-14 Docker-backed Chromium rerun after tightening the request counter to backend API traffic only.
 - `P4-T18`: provider-aware donation settings, public website form handling, integrations/forms UI, builder defaults, and the 2026-04-14 publishing/public endpoint validation remain the closure evidence on `main`.
 - `P4-T29`: frontend grants coverage, the passing backend integration slice under the isolated test database contract, and the green Docker-backed grants smoke rerun remain sufficient closure proof.

@@ -17,7 +17,7 @@
 
 - `e2e/tests/visibility-link-audit.spec.ts`
 - `docs/phases/planning-and-progress.md`
-- `docs/phases/P4-T7E_CLOSEOUT_2026-04-18.md`
+- `docs/phases/archive/P4-T7E_CLOSEOUT_2026-04-18.md`
 
 ## Validation
 

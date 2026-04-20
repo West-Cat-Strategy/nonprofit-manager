@@ -1,37 +1,23 @@
 # Workboard History Archive - 2026
 
-**Last Updated:** 2026-04-13
+**Last Updated:** 2026-04-20
 
-This archive keeps the historical planning sections that were trimmed from [../planning-and-progress.md](../planning-and-progress.md) so the live workboard can stay focused on current tasks.
+This file summarizes the historical planning sections that were trimmed from the live workboard so [../planning-and-progress.md](../planning-and-progress.md) can stay focused on active Phase 5 work.
 
 ## Quick Links
 
-- [../planning-and-progress.md](../planning-and-progress.md) - current active workboard
-- [README.md](README.md) - archive index
-- [SESSION_LOG_FEB_2026.md](SESSION_LOG_FEB_2026.md) - earlier session log snapshot
-- [COMPLETION-ROADMAP.md](COMPLETION-ROADMAP.md) - archived roadmap detail
+- [../planning-and-progress.md](../planning-and-progress.md) — live Phase 5 workboard
+- [../PHASE_5_DEVELOPMENT_PLAN.md](../PHASE_5_DEVELOPMENT_PLAN.md) — current roadmap
+- [README.md](README.md) — archive index
+- [SESSION_LOG_FEB_2026.md](SESSION_LOG_FEB_2026.md) — earlier session-log snapshot
 
-## Archived Sections
+## Historical Sections Preserved Here
 
-### Contract And Validation Trackers
-
-- `P4-T7D Redesign + Contract Changelog` - portal pagination envelope changes, strict query validation, changed-route checklist, and verification evidence.
-- `Zod Migration Tracker` - bounded validation/ICS snapshot plus the P2-T19 query-contract audit summary.
-- `Compatibility Deprecation Tracker` - auth alias retirement policy, shim ledger, and backend module ownership references.
-
-### Historical Progress Narrative
-
-- `Recently Completed` and `Authentication Routes - 100% Migrated to Zod` - early phase delivery, testing infrastructure, security automation, and foundation completion notes.
-- `Development Roadmap` - the old phase-by-phase roadmap and milestone plan.
-- `Status Update Log` - dated session history that was previously embedded in the live board.
-
-### Governance And Reference Material
-
-- `Task Ownership Log` - row-by-row status transitions and handoff evidence.
-- `Development Workflow`, `Risk Management`, `Success Metrics`, `Product Scope Reference`, `Common Data Model (CDM) Standard`, and `Resources & References` - reference material retained here rather than in the live board.
+- Earlier workboard roadmap sections and milestone planning
+- Dated status-update logs and recently completed dumps that no longer belong in the live board
+- Earlier contract, validation, and governance reference sections that were replaced by dedicated current docs
 
 ## Notes
 
-- The live workboard now carries only active Phase 4 work.
-- Historical details remain discoverable without bloating the current tracker.
-- For deeper phase completion history, use the existing archive files in this directory as the next stop.
+- The live board now keeps current tracked work only, including explicit Phase 4 carry-over rows that still own a next step.
+- Historical detail stays archived here instead of expanding the live Phase 5 workboard.

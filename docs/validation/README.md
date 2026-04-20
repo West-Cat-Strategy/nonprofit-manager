@@ -17,6 +17,7 @@ Use this index for validation reference docs, audit snapshots, remediation track
 |---|---|---|
 | [repo-audit-2026-04-18.md](repo-audit-2026-04-18.md) | Immutable snapshot | Point-in-time repo audit findings and evidence from the 2026-04-18 audit pass |
 | [repo-audit-2026-04-18-remediation.md](repo-audit-2026-04-18-remediation.md) | Live companion tracker | Current remediation state, owner rows, closeout notes, and targeted verification for the repo audit |
+| [AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](AUTH_ALIAS_USAGE_REPORT_2026-04-14.md) | Operational evidence note | Current deprecation-readiness snapshot for legacy auth alias telemetry and the linked dashboard/query workflow |
 | [persona-workflow-audit-2026-04-18.md](persona-workflow-audit-2026-04-18.md) | Immutable snapshot | Persona-by-persona workflow support review and evidence collected on 2026-04-18 |
 | [executive-director-persona-findings-2026-04-20.md](executive-director-persona-findings-2026-04-20.md) | Immutable snapshot | Fresh-workspace executive-director onboarding and persona smoke findings collected on 2026-04-20 |
 | [executive-director-persona-findings-2026-04-20-remediation.md](executive-director-persona-findings-2026-04-20-remediation.md) | Live companion tracker | Current remediation state, owner rows, canonical route errata, backlog boundaries, and targeted verification for the 2026-04-20 persona findings |

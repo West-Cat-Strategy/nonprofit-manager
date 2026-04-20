@@ -1,6 +1,6 @@
 # Nonprofit Manager
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 Nonprofit Manager is a platform for nonprofit teams that need their daily operations, fundraising, reporting, and web workflows to live in one place instead of across disconnected tools.
 
@@ -53,6 +53,7 @@ Technology snapshot: TypeScript, React 19, Express, PostgreSQL, Redis, Tailwind 
 
 - Product specification: [docs/product/product-spec.md](docs/product/product-spec.md)
 - Feature inventory: [docs/features/FEATURE_MATRIX.md](docs/features/FEATURE_MATRIX.md)
+- Open-source benchmark: [docs/product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](docs/product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md)
 - Workflow personas: [docs/product/persona-workflows.md](docs/product/persona-workflows.md)
 - API reference: [docs/api/README.md](docs/api/README.md)
 - Deployment guide: [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md)
@@ -69,9 +70,9 @@ If you want to contribute code or docs, use this handoff path:
 5. [docs/testing/TESTING.md](docs/testing/TESTING.md) for the validation command map
 6. [docs/README.md](docs/README.md) for the rest of the documentation map
 
-If the task is tracked, open [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before editing.
+If the task is tracked, open [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) before editing. Use [docs/phases/PHASE_5_DEVELOPMENT_PLAN.md](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md) for current phase sequencing and [docs/phases/archive/README.md](docs/phases/archive/README.md) for historical closeouts.
 
-If you are already working in a specific surface after that, continue with [agents.md](agents.md) for terminology and coordination context, [backend/README.md](backend/README.md), [frontend/README.md](frontend/README.md), [docs/api/README.md](docs/api/README.md), or [docs/testing/TESTING.md](docs/testing/TESTING.md) as needed.
+If you are already working in a specific surface after that, continue with [agents.md](agents.md) for terminology and coordination context, [backend/README.md](backend/README.md), [frontend/README.md](frontend/README.md), [docs/api/README.md](docs/api/README.md), [docs/testing/TESTING.md](docs/testing/TESTING.md), [contracts/README.md](contracts/README.md), [database/README.md](database/README.md), or [scripts/README.md](scripts/README.md) as needed.
 
 ## License
 

@@ -1,6 +1,6 @@
 # E2E Tests
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 Playwright tests live here. For the overall testing strategy, see [../docs/testing/TESTING.md](../docs/testing/TESTING.md).
 
@@ -96,9 +96,27 @@ Repo-root CI flows call these E2E commands today:
 - `make test-coverage`: backend/frontend coverage, `npm run test:smoke`, then `make test-e2e-docker-smoke`
 - `make test-coverage-full`: backend/frontend coverage, `npm run test:ci`, then `make test-e2e-docker-smoke`
 - `make ci`: `./scripts/ci.sh --build`, which runs `make lint`, `make typecheck`, `make test`, and `make build`
-- `make ci-full`: `./scripts/ci.sh --build --audit --coverage`, which runs `make lint`, `make typecheck`, `make test-coverage`, `make build`, and `make security-audit`
+- `make ci-full`: `./scripts/ci.sh --build --audit --coverage`, which runs `make lint`, `make typecheck`, `make test-coverage-full`, `make build`, and `make security-audit`
 
 `make ci-unit` is the unit-only coverage lane and intentionally skips Playwright.
+
+## Full Playwright Review Lane
+
+Use this when you need the broader Phase 5-style browser and runtime review rather than the normal repo gate:
+
+```bash
+make ci-full
+cd e2e
+npm run test:docker:ci
+npm run test:docker:audit
+```
+
+That sequence gives you:
+
+- the host Playwright CI matrix through `make ci-full`
+- the isolated Docker-backed smoke gate through `make ci-full`
+- the full Docker cross-browser slice through `npm run test:docker:ci`
+- the Docker dark-mode and route-audit slice through `npm run test:docker:audit`
 
 ## Docker App Stack Runtime
 

@@ -15,7 +15,7 @@ export const loginSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 
 // TODO(P4-T9A): Remove snake_case aliases after July 1, 2026 once
-// docs/phases/auth-alias-deprecation-checklist.md telemetry gates are met.
+// docs/security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md telemetry gates are met.
 const registrationNamesSchema = z
   .object({
     firstName: nameSchema.optional(),
@@ -132,7 +132,7 @@ export type AdminRegistrationReviewTokenParamsInput = z.infer<
 
 // Change password
 // TODO(P4-T9A): Remove snake_case aliases after July 1, 2026 once
-// docs/phases/auth-alias-deprecation-checklist.md telemetry gates are met.
+// docs/security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md telemetry gates are met.
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required').optional(),
@@ -298,7 +298,7 @@ export type PreferenceKeyParamsInput = z.infer<typeof preferenceKeyParamsSchema>
 
 // First User Setup (during initial system setup)
 // TODO(P4-T9A): Remove snake_case aliases after July 1, 2026 once
-// docs/phases/auth-alias-deprecation-checklist.md telemetry gates are met.
+// docs/security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md telemetry gates are met.
 export const setupFirstUserSchema = z
   .object({
     email: emailSchema,

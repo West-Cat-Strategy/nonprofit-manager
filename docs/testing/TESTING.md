@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 This file is the active test command map for nonprofit-manager. Use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports; use this file when you need to choose the right validation command.
 
@@ -67,6 +67,18 @@ make test-tooling
 
 `make ci-unit` remains a relaxed, non-gating developer signal for backend/frontend unit coverage only. It is useful for quick local feedback, but it is not the repo's full coverage acceptance path.
 `make test-tooling` is the targeted regression suite for selector, route-catalog audit, wrapper, and shell-helper contract changes.
+
+## Full Playwright Review Lane
+
+Use this lane when the workboard calls for a full browser and runtime review rather than ordinary PR validation:
+
+```bash
+make ci-full
+cd e2e && npm run test:docker:ci
+cd e2e && npm run test:docker:audit
+```
+
+`make ci-full` already covers lint, typecheck, backend/frontend coverage, the host Playwright CI matrix, build, and the isolated Docker smoke gate. Add the Docker cross-browser and audit slices above when you need the broader Phase 5-style E2E review across both host and externally managed runtime contracts.
 
 ## Package-Level Commands
 

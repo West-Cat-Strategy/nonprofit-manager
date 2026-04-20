@@ -1,6 +1,6 @@
 # Backend Service
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-20
 
 This guide covers the backend service only. For the contributor workflow, start at [../CONTRIBUTING.md](../CONTRIBUTING.md). Use [../README.md](../README.md) for product context and contributor handoff.
 
@@ -11,7 +11,8 @@ The backend provides:
 - `/api/v2/*` application endpoints
 - health endpoints at `/health`, `/api/health`, and `/api/v2/health`
 - authentication, authorization, validation, and business logic
-- background scheduler and integration surfaces
+- the direct public-site runtime in `src/public-site.ts`
+- the background worker runtime in `src/worker.ts`
 
 Active domain-owned backend code lives under `src/modules/`.
 
@@ -19,11 +20,13 @@ Active domain-owned backend code lives under `src/modules/`.
 
 | Mode | Start Command | Address | Notes |
 |------|---------------|---------|-------|
-| Docker development | `make dev` from repo root | `http://localhost:8004` | Backend runs in `backend-dev` with Docker-managed Postgres and Redis |
-| Direct backend runtime | `cd backend && npm run dev` | `http://localhost:3000` | Uses your `backend/.env` settings |
-| E2E harness backend | started by Playwright | `http://127.0.0.1:3001` | Used by `cd e2e && npm test` |
+| Docker development | `make dev` from repo root | API `http://localhost:8004`, public site `http://localhost:8006` | Docker-managed Postgres and Redis with the repo dev-stack contract |
+| Direct API runtime | `cd backend && npm run dev` | `http://localhost:3000` | Uses `backend/.env`; defaults frontend-facing URLs and origins to the host Playwright contract unless you override them |
+| Direct public-site runtime | `cd backend && npm run dev:public` | `http://localhost:8006` | Uses the same `backend/.env`; serves the public-site runtime outside Docker |
+| Direct worker runtime | `cd backend && npm run worker:dev` | no HTTP port | Runs schedulers, jobs, and worker-side integrations only |
+| E2E harness backend | started by Playwright | `http://127.0.0.1:3001` | Used by `cd e2e && npm test`; host Playwright also serves public routes through this runtime |
 
-Keep these modes separate when debugging or documenting local issues. The port and env expectations are different across the three runtimes.
+Keep these modes separate when debugging or documenting local issues. The port and env expectations differ across Docker, direct app runtimes, and the Playwright harness.
 
 ## Direct Backend Setup
 
@@ -40,7 +43,11 @@ If you are using the Docker dev Postgres and Redis services instead of local inf
 - `DB_HOST=localhost`
 - `DB_PORT=8002`
 - `REDIS_URL=redis://localhost:8003`
+- `FRONTEND_URL=http://localhost:8005`
 - `CORS_ORIGIN=http://127.0.0.1:8005,http://localhost:8005`
+- `WEBAUTHN_ORIGIN=http://127.0.0.1:8005,http://localhost:8005`
+
+The backend code defaults `FRONTEND_URL`, `CORS_ORIGIN`, and `WEBAUTHN_ORIGIN` to the Playwright host contract around `5173`. If you are pairing the direct backend with the direct frontend runtime on `8005`, or any other frontend port, update all three values to match the frontend contract you are actually using.
 
 Quick verification:
 
@@ -52,6 +59,8 @@ curl http://localhost:3000/health/live
 
 ```bash
 npm run dev
+npm run dev:public
+npm run worker:dev
 npm run build
 npm run lint
 npm run type-check
@@ -117,4 +126,5 @@ Repo-root equivalents:
 - [../docs/development/AGENT_INSTRUCTIONS.md](../docs/development/AGENT_INSTRUCTIONS.md)
 - [../docs/api/README.md](../docs/api/README.md)
 - [../docs/testing/TESTING.md](../docs/testing/TESTING.md)
+- [../e2e/README.md](../e2e/README.md)
 - [../docs/deployment/DB_SETUP.md](../docs/deployment/DB_SETUP.md)

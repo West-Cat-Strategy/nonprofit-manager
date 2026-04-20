@@ -1,250 +1,48 @@
 # Feature Matrix
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
-Master status of all features in nonprofit-manager.
+Capability map for the current routed product surfaces in Nonprofit Manager.
 
-This matrix is a capability-oriented navigation aid, not the live workboard. Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for active ownership, blockers, and exact in-flight scope, and treat linked feature plans or summaries as historical snapshots when their intros say so.
+This matrix is route-first rather than backlog-first. It documents what is mounted now across the staff app, publishing surfaces, public site, and client portal. Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for active ownership, blockers, and in-flight scope.
 
----
+## How To Use This Matrix
 
-## Overview
+- Treat this file as a navigation aid for current surfaces, not as a historical implementation ledger.
+- Use the route families and code anchors below when you need the mounted paths or the contract-owning files.
+- Use linked feature docs for deeper context where a maintained feature doc already exists.
 
-This document provides a single view into:
-- What features are available
-- What's currently in development
-- What's planned for future releases
-- Feature documentation and implementation status
+## Staff Application Surfaces
 
-Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for the exact row-level status of active Phase 4 work. This matrix stays capability-oriented and intentionally less granular than the live workboard.
+| Surface | Current routes | Availability notes | Primary docs | Code anchors |
+|---|---|---|---|---|
+| Workbench | `/dashboard` | Current default staff landing surface | [../product/user-personas.md](../product/user-personas.md) | [../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts](../../frontend/src/routes/routeCatalog/staffHomeRoutes.ts) |
+| People, accounts, and volunteers | `/contacts`, `/accounts`, `/volunteers` plus create, detail, edit, and volunteer-assignment flows | Current; people, accounts, and volunteers are workspace-module backed in `/api/v2` | [PEOPLE_MODULE_ENHANCEMENTS.md](PEOPLE_MODULE_ENHANCEMENTS.md), [VOLUNTEER_COMPONENTS_STATUS.md](VOLUNTEER_COMPONENTS_STATUS.md) | [../../frontend/src/routes/peopleRouteDescriptors.tsx](../../frontend/src/routes/peopleRouteDescriptors.tsx), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
+| Staff workflows | `/intake/new`, `/interactions/new` | Current quick-create workflows wired into the staff shell and route catalog | [../product/user-personas.md](../product/user-personas.md) | [../../frontend/src/routes/workflowRoutes.tsx](../../frontend/src/routes/workflowRoutes.tsx), [../../frontend/src/routes/routeCatalog/staffAdminRoutes.ts](../../frontend/src/routes/routeCatalog/staffAdminRoutes.ts) |
+| Service and engagement operations | `/events`, `/tasks`, `/cases`, `/follow-ups`, `/opportunities`, `/external-service-providers`, `/meetings` plus their detail and edit flows | Current; mounted staff surfaces with matching `/api/v2` workspace-module routes where applicable | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md), [FOLLOW_UP_LIFECYCLE.md](FOLLOW_UP_LIFECYCLE.md), [OPPORTUNITIES_PIPELINE.md](OPPORTUNITIES_PIPELINE.md), [../api/API_REFERENCE_EVENTS.md](../api/API_REFERENCE_EVENTS.md) | [../../frontend/src/routes/engagementRoutes.tsx](../../frontend/src/routes/engagementRoutes.tsx), [../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts](../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
+| Team Messenger | `/team-chat` plus case-linked chat panels inside case detail | Current when `VITE_TEAM_CHAT_ENABLED` is not `false`; also gated by the `teamChat` workspace module | [../product/user-personas.md](../product/user-personas.md) | [../../frontend/src/routes/engagementRoutes.tsx](../../frontend/src/routes/engagementRoutes.tsx), [../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts](../../frontend/src/routes/routeCatalog/staffEngagementRoutes.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
+| Donations, recurring giving, and reconciliation | `/donations`, `/recurring-donations`, `/reconciliation` plus create, detail, edit, payment, and checkout-result flows | Current finance surfaces backed by `/api/v2/donations`, `/api/v2/recurring-donations`, and `/api/v2/reconciliation` | [REPORTING_GUIDE.md](REPORTING_GUIDE.md), [../api/API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md) | [../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
+| Grants | `/grants/funders`, `/grants/programs`, `/grants/recipients`, `/grants/funded-programs`, `/grants/applications`, `/grants/awards`, `/grants/disbursements`, `/grants/reports`, `/grants/documents`, `/grants/calendar`, `/grants/activities` | Current routed finance surface; `/grants` redirects to `/grants/funders` | [../product/user-personas.md](../product/user-personas.md) | [../../frontend/src/routes/grantsRoutes.tsx](../../frontend/src/routes/grantsRoutes.tsx), [../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
+| Analytics, reports, scheduled reports, and alerts | `/analytics`, `/dashboard/custom`, `/reports`, `/reports/builder`, `/reports/templates`, `/reports/saved`, `/reports/scheduled`, `/reports/outcomes`, `/reports/workflow-coverage`, `/alerts`, `/alerts/instances`, `/alerts/history` | Current routed insights surface; reports, scheduled reports, analytics, and alerts follow workspace-module or route-specific backend gates | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md), [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | [../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts](../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
+| Admin and workspace settings | `/settings/admin/*` and the related portal-admin settings surfaces | Current; separate admin and portal-admin contracts remain mounted under `/api/v2/admin` and `/api/v2/portal/admin` | [../product/user-personas.md](../product/user-personas.md), [../security/SECURITY_MONITORING_GUIDE.md](../security/SECURITY_MONITORING_GUIDE.md) | [../../frontend/src/routes/routeCatalog/staffAdminRoutes.ts](../../frontend/src/routes/routeCatalog/staffAdminRoutes.ts), [../../backend/src/modules/admin/routes/index.ts](../../backend/src/modules/admin/routes/index.ts), [../../backend/src/modules/portalAdmin/routes/index.ts](../../backend/src/modules/portalAdmin/routes/index.ts) |
 
-For **quick status lookup**, see the status tables below.
+## Publishing And Public-Site Surfaces
 
-For **detailed feature specifications**, see linked documentation files.
+| Surface | Current routes | Availability notes | Primary docs | Code anchors |
+|---|---|---|---|---|
+| Builder | `/website-builder`, `/website-builder/:templateId`, `/website-builder/:templateId/preview` | Current template-gallery and editor surface under the Publishing area | [TEMPLATE_SYSTEM.md](TEMPLATE_SYSTEM.md) | [../../frontend/src/routes/builderRoutes.tsx](../../frontend/src/routes/builderRoutes.tsx), [../../frontend/src/routes/routeCatalog/staffPublishingRoutes.ts](../../frontend/src/routes/routeCatalog/staffPublishingRoutes.ts) |
+| Website console | `/websites`, `/websites/:siteId/overview`, `/websites/:siteId/content`, `/websites/:siteId/newsletters`, `/websites/:siteId/forms`, `/websites/:siteId/integrations`, `/websites/:siteId/publishing`, `/websites/:siteId/builder` | Current routed console for site management, content, integrations, and publishing | [TEMPLATE_SYSTEM.md](TEMPLATE_SYSTEM.md) | [../../frontend/src/routes/websiteRoutes.tsx](../../frontend/src/routes/websiteRoutes.tsx), [../../frontend/src/routes/routeCatalog/staffPublishingRoutes.ts](../../frontend/src/routes/routeCatalog/staffPublishingRoutes.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
+| Public site runtime | `/public/events/:site`, `/event-check-in/:id`, plus `/api/v2/public/events`, `/api/v2/public/newsletters`, and `/api/v2/public/forms` contracts | Current public-facing publishing surface served by the dedicated public-site runtime and public `/api/v2` mounts | [TEMPLATE_SYSTEM.md](TEMPLATE_SYSTEM.md), [../deployment/DEPLOYMENT.md](../deployment/DEPLOYMENT.md) | [../../frontend/src/routes/routeCatalog/public.ts](../../frontend/src/routes/routeCatalog/public.ts), [../../backend/src/public-site.ts](../../backend/src/public-site.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
 
----
+## Portal And Shared Client Surfaces
 
-## Feature Status Legend
+| Surface | Current routes | Availability notes | Primary docs | Code anchors |
+|---|---|---|---|---|
+| Portal access and onboarding | `/portal/login`, `/portal/signup`, `/portal/forgot-password`, `/portal/reset-password/:token`, `/portal/accept-invitation/:token`, `/public/case-forms/:token` | Current public access surface for portal authentication, invitation acceptance, and tokenized case forms | [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md) | [../../frontend/src/routes/portalRoutes.tsx](../../frontend/src/routes/portalRoutes.tsx), [../../frontend/src/routes/routeCatalog/public.ts](../../frontend/src/routes/routeCatalog/public.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
+| Portal workspace | `/portal`, `/portal/profile`, `/portal/people`, `/portal/calendar`, `/portal/events`, `/portal/messages`, `/portal/cases`, `/portal/cases/:id`, `/portal/appointments`, `/portal/documents`, `/portal/notes`, `/portal/forms`, `/portal/reminders` | Current authenticated client portal surface mounted separately from the staff shell | [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md), [FOLLOW_UP_LIFECYCLE.md](FOLLOW_UP_LIFECYCLE.md), [../api/API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md) | [../../frontend/src/routes/portalRoutes.tsx](../../frontend/src/routes/portalRoutes.tsx), [../../frontend/src/routes/routeCatalog/portal.ts](../../frontend/src/routes/routeCatalog/portal.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
 
-| Status | Icon | Meaning |
-|--------|------|---------|
-| **Complete** | ✅ | Feature is built, tested, and available in production |
-| **In Development** | 🟡 | Feature is actively being worked on |
-| **Planned** | 📋 | Feature is planned but not started |
-| **Blocked** | 🔴 | Feature is blocked waiting for something |
-| **On Hold** | ⏸️ | Feature is paused (will resume later) |
-| **Deprecated** | ❌ | Feature is no longer supported |
+## Notes
 
----
-
-## Core Features
-
-### People & CRM Management
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **People Database** | ✅ | Backend | [PEOPLE_MODULE_ENHANCEMENTS.md](PEOPLE_MODULE_ENHANCEMENTS.md) | `backend/src/modules/contacts/routes/index.ts` | Core CRM functionality |
-| Contact Information | ✅ | Backend | Same | - | Stores names, emails, phone |
-| Custom Fields | ✅ | Backend | Same | - | User-defined attributes |
-| Relationship Tracking | ✅ | Backend | Same | - | Links between contacts |
-| Notes & History | ✅ | Backend | Same | - | Activity log per contact |
-| Search & Filter | ✅ | Frontend | Same | `frontend/src/features/people/components/PeopleListContainer.tsx` | Find contacts quickly |
-| Import/Export | 🟡 | Backend | [API_REFERENCE_EXPORT.md](../api/API_REFERENCE_EXPORT.md) | - | CSV import/export in progress |
-| Bulk Actions | 📋 | Frontend | Same | - | Batch update planned |
-
-### Volunteer Management
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **Volunteer Management UI** | ✅ | Frontend | [VOLUNTEER_COMPONENTS_STATUS.md](VOLUNTEER_COMPONENTS_STATUS.md) | `frontend/src/features/volunteers/pages/VolunteerListPage.tsx` | Volunteer list/detail/assignment workflows |
-| Sign-Up Form | ✅ | Frontend | Same | - | Public volunteer registration |
-| Availability Calendar | ✅ | Frontend | Same | - | Schedule management |
-| Volunteer Opportunity Management | ✅ | Backend | [PEOPLE_MODULE_ENHANCEMENTS.md](PEOPLE_MODULE_ENHANCEMENTS.md) | `backend/src/modules/volunteers/routes/index.ts` | Track volunteer opportunities |
-| Hour Tracking | ✅ | Frontend | [VOLUNTEER_COMPONENTS_STATUS.md](VOLUNTEER_COMPONENTS_STATUS.md) | - | Log volunteer hours |
-| Matching Algorithm | 🟡 | Backend | Same | - | Match volunteers to opportunities |
-| Recognition/Badges | 📋 | Frontend | Same | - | Gamification features planned |
-
-### Event Management
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **Event CRUD** | ✅ | Backend | [API_REFERENCE_EVENTS.md](../api/API_REFERENCE_EVENTS.md) | `backend/src/modules/events/routes/index.ts` | Create, update, delete events |
-| Event Details | ✅ | Frontend | Same | `frontend/src/features/events/pages/EventDetailPage.tsx` | View event information |
-| Capacity Management | ✅ | Backend | Same | - | Control registration limits |
-| Event Registrations | ✅ | Frontend | Same | `frontend/src/features/events/components/EventRegistrationsPanel.tsx` | Attendee registration and check-in |
-| Attendee List | ✅ | Backend | Same | - | View registrations |
-| Check-In/QR Codes | ✅ | Backend/Frontend | Same | `backend/src/modules/events/routes/index.ts` | Manual + QR token scan check-in with metadata |
-| Reminders | ✅ | Backend | Same | `backend/src/services/eventReminderAutomationService.ts` | Manual + automated reminder lifecycle complete |
-| Portal Appointment Ops/Reminders | ✅ | Backend/Frontend | [API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md) | `backend/src/modules/portalAdmin/controllers/portalAdminController.ts` | Admin inbox, reminder history/manual send, and appointment check-in |
-
-### Financial Management
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **Donation Tracking** | ✅ | Backend | [API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md#stripe-integration) | `backend/src/modules/donations/routes/index.ts` | Record and manage donations |
-| Stripe Integration | ✅ | Backend | Same | - | Process credit card payments |
-| Recurring Donations | ✅ | Backend | Same | - | Subscription management |
-| Receipt Generation | ✅ | Backend | - | - | Email donation receipts |
-| Tax Documents | 📋 | Backend | - | - | Generate tax statements |
-| Fundraising Goals | ✅ | Frontend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | - | Track progress toward goals |
-| Campaign Tracking | ✅ | Backend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | `backend/src/modules/donations/routes/index.ts` | Organize donations by campaign |
-
-### Reporting & Analytics
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **Report Generation** | ✅ | Backend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | `backend/src/modules/reports/routes/index.ts` | Create custom reports |
-| Export to CSV | ✅ | Backend | [API_REFERENCE_EXPORT.md](../api/API_REFERENCE_EXPORT.md) | - | Download data as CSV |
-| Export to Excel | ✅ | Backend | Same | - | Excel .xlsx format |
-| PDF Generation | 🟡 | Backend | Same | - | PDF export in progress |
-| Templates | ✅ | Backend | [TEMPLATE_SYSTEM.md](TEMPLATE_SYSTEM.md) | - | Pre-built report templates |
-| Scheduled Reports | ✅ | Backend/Frontend | [REPORTING_GUIDE.md](REPORTING_GUIDE.md) | `backend/src/modules/scheduledReports/routes/index.ts` | Recurring delivery with run logs and run-now controls |
-| Analytics Dashboard | ✅ | Frontend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `frontend/src/features/neoBrutalist/pages/NeoBrutalistDashboardPage.tsx` | Real-time metrics and graphs; route and layout follow-through remain active on the workboard |
-| Trend Analysis | 🟡 | Backend | [API_REFERENCE_EXPORT.md](../api/API_REFERENCE_EXPORT.md) | - | Historical trends in progress |
-| Outcomes Report | 🟡 | Backend/Frontend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/modules/reports/services/outcomesReportService.ts` | Outcome totals, unique clients, and time-series reporting |
-
-### Opportunities Pipeline
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **Stage-Based Pipeline** | ✅ | Backend/Frontend | [OPPORTUNITIES_PIPELINE.md](OPPORTUNITIES_PIPELINE.md) | `backend/src/modules/opportunities` | Stage model with reorder and transition history |
-| Opportunity CRUD | ✅ | Backend/Frontend | Same | `frontend/src/features/engagement/opportunities/pages/OpportunitiesPage.tsx` | Create/edit/delete opportunities with optional donation linkage |
-| Stage Reordering | ✅ | Backend/Frontend | Same | `backend/src/modules/opportunities/services/opportunity.service.ts` | Reorder pipeline stages with validation |
-| Stage Movement History | ✅ | Backend | Same | `database/migrations/055_opportunities_pipeline.sql` | Audit trail of stage transitions |
-
-### Dashboard & Customization
-
-Use the workboard for the current dashboard and admin workspace refactor status. The matrix below describes the currently documented capability surface rather than every in-flight route or file move.
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **Customizable Dashboard** | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | `frontend/src/features/dashboard/pages/CustomDashboardPage.tsx` | User-configurable dashboard with live summary and donation-trend widgets; current workbench/dashboard refactor is tracked separately on the Phase 4 workboard |
-| Widget System | ✅ | Frontend | Same | - | Add/remove/configure widgets |
-| Multiple Dashboards | ✅ | Backend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `backend/src/modules/dashboard/routes/index.ts` | Save different dashboard configs |
-| Widget Types | ✅ | Frontend | [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) | - | Key metrics, live analytics charts, work queues, and activity widgets |
-| Performance Metrics | ✅ | Backend | - | - | System health indicators |
-| Alerts & Monitoring | ✅ | Backend | [API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) | `backend/src/modules/alerts/routes/index.ts` | Configurable alert rules |
-
-### Integration & Automation
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **Webhooks** | ✅ | Backend | [API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md#webhook-system) | `backend/src/services/webhookService.ts` | External service integration |
-| Mailchimp Sync | ✅ | Backend | [API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md#mailchimp-integration) | - | Sync mailing lists |
-| External CRM Sync | 🟡 | Backend | Same | - | Sync with external CRMs |
-| SMS Integration | 📋 | Backend | - | - | Send SMS messages (planned) |
-| Email Template System | ✅ | Backend | [TEMPLATE_SYSTEM.md](TEMPLATE_SYSTEM.md) | - | Customizable email templates |
-| Automated Workflows | 🟡 | Backend | - | - | Trigger-based automation in progress |
-
----
-
-## Advanced Features
-
-### Case Management
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **Case Management** | 🟡 | Backend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/modules/cases/routes/index.ts` | Client case tracking |
-| Case Files | 🟡 | Backend | Same | - | Document storage (in progress) |
-| Case Status Workflow | 🟡 | Backend | Same | - | Workflow engine (in progress) |
-| Task Assignment | 🟡 | Backend | [TASK_MANAGEMENT.md](TASK_MANAGEMENT.md) | `backend/src/modules/tasks/routes/index.ts` | Assign work to staff |
-| Follow-up Lifecycle | ✅ | Backend/Frontend | [FOLLOW_UP_LIFECYCLE.md](FOLLOW_UP_LIFECYCLE.md) | `backend/src/services/followUpService.ts` | Global and nested follow-up management with recurrence support |
-| Notes & Timeline | 🟡 | Backend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | - | Activity tracking |
-| Outcomes Tracking | 🟡 | Backend/Frontend | [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) | `backend/src/services/outcomeImpactService.ts` | Tag case note interactions with configurable outcomes |
-
-### Task Management
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **Task System** | 🟡 | Backend | [TASK_MANAGEMENT.md](TASK_MANAGEMENT.md) | - | Internal task management |
-| Task Creation | 🟡 | Backend | Same | - | Create and assign tasks |
-| Due Dates & Priorities | 🟡 | Backend | Same | - | Task scheduling |
-| Status Tracking | 🟡 | Backend | Same | - | Track task progress |
-| Comments & Collaboration | 📋 | Backend | Same | - | Team discussion on tasks |
-
-### Telemetry & Privacy
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **Activity Logging** | ✅ | Backend | [TELEMETRY.md](TELEMETRY.md) | `backend/src/services/portalActivityService.ts` | User action tracking |
-| User-Agent Tracking | ✅ | Backend | Same | - | Browser/client identification |
-| Access Logs | ✅ | Backend | Same | - | Login/access audit trail |
-| GDPR Compliance | ✅ | Backend | [SECURITY_MONITORING_GUIDE.md](../security/SECURITY_MONITORING_GUIDE.md) | - | Data privacy controls |
-| Data Subject Rights | ✅ | Backend | Same | - | Export/delete user data |
-| Consent Management | 📋 | Backend | - | - | Cookie/tracking consent |
-
----
-
-## Security & Administration
-
-| Feature | Status | Owner | Documentation | Code | Notes |
-|---------|--------|-------|---|---|---|
-| **User Roles** | ✅ | Backend | [../product/user-personas.md](../product/user-personas.md) | `backend/src/modules/admin/usecases/roleCatalogUseCase.ts` | Canonical role slugs are `admin`, `manager`, `staff`, `volunteer`, and `viewer` |
-| **Permissions** | ✅ | Backend | [../product/user-personas.md](../product/user-personas.md) | `backend/src/utils/permissions.ts` | Granular permission matrix; role aliases also normalize through `backend/src/utils/roleSlug.ts` |
-| **Organization Access** | ✅ | Backend | [../product/user-personas.md](../product/user-personas.md) | `backend/src/utils/permissions.ts` | Multi-tenancy support is code-owned; `member` and `readonly` aliases normalize to `viewer` in `backend/src/utils/roleSlug.ts` |
-| Password Reset | ✅ | Backend | - | - | Secure password recovery |
-| Session Management | ✅ | Backend | - | - | JWT token management |
-| Rate Limiting | ✅ | Backend | [../security/SECURITY_MONITORING_GUIDE.md](../security/SECURITY_MONITORING_GUIDE.md) | `backend/src/middleware/rateLimitAdvanced.ts` | DDoS protection and operational monitoring guidance |
-| API Key Management | ✅ | Backend | [../api/API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md) | `backend/src/modules/webhooks/services/apiKeyService.ts` | Third-party access tokens and usage tracking |
-| Backup & Recovery | ✅ | Backend/DevOps | [../deployment/DB_SETUP.md](../deployment/DB_SETUP.md) | - | Database backup procedures |
-
----
-
-## Live Work Tracking
-
-Use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) for the authoritative owner, blocker, and next-step details for active feature work.
-
-If you are resuming recent interrupted work, check `Recent Thread Follow-through` before scanning the larger active table.
-
----
-
-## Feature Documentation
-
-For detailed specifications, use this navigation:
-
-**By Category**:
-- [PEOPLE_MODULE_ENHANCEMENTS.md](PEOPLE_MODULE_ENHANCEMENTS.md) — Historical planning document for people-module expansion
-- [VOLUNTEER_COMPONENTS_STATUS.md](VOLUNTEER_COMPONENTS_STATUS.md) — Historical volunteer-component completion snapshot
-- [TASK_MANAGEMENT.md](TASK_MANAGEMENT.md) — Task system (planned)
-- [FOLLOW_UP_LIFECYCLE.md](FOLLOW_UP_LIFECYCLE.md) — Follow-up lifecycle and reminders
-- [REPORTING_GUIDE.md](REPORTING_GUIDE.md) — Reports and analytics
-- [OPPORTUNITIES_PIPELINE.md](OPPORTUNITIES_PIPELINE.md) — Stage-based opportunities pipeline
-- [TEMPLATE_SYSTEM.md](TEMPLATE_SYSTEM.md) — Templates and website-builder customization
-- [DASHBOARD_CUSTOMIZATION.md](DASHBOARD_CUSTOMIZATION.md) — Current dashboard capability reference; use the workboard for ongoing refactors
-- [CASE_MANAGEMENT_SYSTEM.md](CASE_MANAGEMENT_SYSTEM.md) — Broad case-management reference with historical design/spec context
-- [CRM_ENHANCEMENTS.md](CRM_ENHANCEMENTS.md) — CRM improvement concepts and supporting context
-- [TELEMETRY.md](TELEMETRY.md) — Analytics and activity tracking
-
-**By Type**:
-- [../api/API_REFERENCE_EVENTS.md](../api/API_REFERENCE_EVENTS.md) — Event endpoints
-- [../api/API_REFERENCE_DASHBOARD_ALERTS.md](../api/API_REFERENCE_DASHBOARD_ALERTS.md) — Dashboard & alerts API
-- [../api/API_REFERENCE_EXPORT.md](../api/API_REFERENCE_EXPORT.md) — Report & export API
-- [../api/API_INTEGRATION_GUIDE.md](../api/API_INTEGRATION_GUIDE.md) — Stripe, Mailchimp, webhooks
-- [../api/API_REFERENCE_BACKUP.md](../api/API_REFERENCE_BACKUP.md) — Backup/restore
-
----
-
-## Requesting a Feature
-
-### Have an idea for a new feature?
-
-1. Check if it's already listed as Planned (📋) or In Development (🟡)
-2. Open or update a task in [../phases/planning-and-progress.md](../phases/planning-and-progress.md) with a feature-request note
-3. Describe what problem it solves and who would benefit
-4. Please provide use cases or examples
-
-### Want to contribute to a feature?
-
-1. Find the feature above and note its status
-2. If In Development 🟡, check the documentation file for current progress
-3. See [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) to set up the dev environment
-4. Check the workboard for related tasks or assign yourself
-5. Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md) workflow
-
----
-
-## See Also
-
-- [../../CONTRIBUTING.md](../../CONTRIBUTING.md) — How to start contributing
-- [../product/product-spec.md](../product/product-spec.md) — Product requirements and vision
-- [../phases/planning-and-progress.md](../phases/planning-and-progress.md) — Live tracked work
+- Workspace-module availability is centrally described in [../../frontend/src/features/workspaceModules/catalog.ts](../../frontend/src/features/workspaceModules/catalog.ts) and enforced in the backend through `requireWorkspaceModuleEnabled`.
+- Historical feature plans and archival implementation notes can still be useful context, but this matrix only claims routed and mounted surfaces that exist in the current repo.
+- For active tracked work, blockers, and ownership, use [../phases/planning-and-progress.md](../phases/planning-and-progress.md).

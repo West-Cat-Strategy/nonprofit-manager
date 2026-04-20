@@ -44,7 +44,7 @@ Package-level type checking uses `npm run type-check`, not `npm run typecheck`.
 ## Frontend Conventions
 
 - Prefer feature-owned code under `frontend/src/features/<domain>/`.
-- Treat `frontend/src/pages/**` as a legacy compatibility path; new runtime pages belong in `frontend/src/features/**`.
+- Do not recreate `frontend/src/pages/**`; the deleted-path guards treat it as retired and active runtime pages belong in `frontend/src/features/**`.
 - Keep migrated feature state out of `frontend/src/store/slices/*`.
 - Keep the root store keyed by canonical slice names only; do not add mirrored `*V2` aliases back into `frontend/src/store/index.ts`.
 - Prefer existing API envelope helpers and shared clients over ad hoc response parsing.

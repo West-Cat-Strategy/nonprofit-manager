@@ -15,7 +15,7 @@ Canonical camelCase fields remain the active contract for:
 - `/api/v2/auth/setup`
 - `/api/v2/auth/password`
 
-Alias removal is still deferred until the telemetry gate in [auth-alias-deprecation-checklist.md](auth-alias-deprecation-checklist.md) is satisfied.
+Alias removal is still deferred until the telemetry gate in [../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md](../security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md) is satisfied.
 
 ## Instrumentation In Place
 
@@ -39,6 +39,6 @@ Captured fields:
 
 ## Next Step
 
-Carry the production-facing dashboard/query work under `P4-T9I` in [planning-and-progress.md](planning-and-progress.md) so `auth.alias_input_used` rolls into a daily usage ratio for the three tracked auth endpoints without reopening `P4-T9A`.
+Carry the production-facing dashboard/query work under `P4-T9I` in [../phases/planning-and-progress.md](../phases/planning-and-progress.md) so `auth.alias_input_used` rolls into a daily usage ratio for the three tracked auth endpoints without reopening `P4-T9A`.
 
-Operational query and dashboard instructions now live in [AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md).
+Operational query and dashboard instructions now live in [../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](../security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md).

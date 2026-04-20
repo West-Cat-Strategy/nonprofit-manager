@@ -11,7 +11,7 @@ The active repository shape as of 2026-04-13:
 - Backend runtime work is centered on `backend/src/modules/**` and `/api/v2/*`.
 - `backend/src/routes/v2/index.ts` is the active v2 registrar and imports module-owned route surfaces.
 - Frontend feature ownership is centered on `frontend/src/features/**`.
-- `frontend/src/pages/**` is a legacy compatibility path; active runtime pages live in `frontend/src/features/**`.
+- `frontend/src/pages/**` is a retired deleted-path-guard surface; active runtime pages live in `frontend/src/features/**`.
 - Root frontend store slices now use canonical keys only; compatibility aliases belong in tests or migration helpers, not in `frontend/src/store/index.ts`.
 - The frontend stack is React 19 + React Router 7 + Vite.
 - Repo-root development and validation flows are documented through the root `Makefile` and the active docs under `README.md`, `docs/development/*`, and `docs/testing/*`.

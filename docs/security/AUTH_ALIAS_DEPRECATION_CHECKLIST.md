@@ -47,7 +47,7 @@ Legacy compatibility aliases currently accepted:
 
 ## Deprecation Execution Checklist
 - [x] Add report artifact for alias usage trend.
-  Current report: [AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](AUTH_ALIAS_USAGE_REPORT_2026-04-14.md)
+  Current report: [../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md](../validation/AUTH_ALIAS_USAGE_REPORT_2026-04-14.md)
 - [x] Document the Kibana query/dashboard workflow for daily alias ratios.
   Current guide: [AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md](AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md)
 - [ ] Publish deprecation notice in release notes/docs with cutoff date.

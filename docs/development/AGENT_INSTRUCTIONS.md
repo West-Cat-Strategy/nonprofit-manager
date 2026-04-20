@@ -32,7 +32,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 - Active backend code belongs under `backend/src/modules/<domain>/`.
 - `backend/src/routes/v2/index.ts` should import from `@modules/*` only.
 - Active frontend code belongs under `frontend/src/features/<domain>/`.
-- `frontend/src/pages/**` is a legacy compatibility path; new runtime pages belong in `frontend/src/features/**`.
+- `frontend/src/pages/**` is a retired deleted-path-guard surface; do not recreate it, and keep runtime pages in `frontend/src/features/**`.
 - Preserve the route -> controller -> service or use case -> data access separation.
 
 ## Validation, Auth, Permissions, And Responses
