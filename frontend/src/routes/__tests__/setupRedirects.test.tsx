@@ -273,6 +273,35 @@ describe('AppRoutes setup startup redirects', () => {
     }
   );
 
+  it('redirects unknown paths to /login for anonymous users', async () => {
+    renderAppRoutes('/this-route-does-not-exist', {
+      authLoading: false,
+      isAuthenticated: false,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent('/login');
+    });
+  });
+
+  it('redirects unknown paths to /dashboard for authenticated users', async () => {
+    renderAppRoutes('/this-route-does-not-exist', {
+      user: {
+        id: 'user-1',
+        email: 'admin@example.com',
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'admin',
+      },
+      isAuthenticated: true,
+      authLoading: false,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('location')).toHaveTextContent('/dashboard');
+    });
+  });
+
   it('redirects authenticated staff routes to /login when the app unauthorized event fires', async () => {
     renderAppRoutes('/settings/communications', {
       user: {

@@ -56,6 +56,11 @@ describe('routeCatalog matching', () => {
     expect(matchRouteCatalogEntry('/reports/scheduled')?.id).toBe('reports-scheduled');
   });
 
+  it('returns null for unknown paths so the router fallback owns that redirect contract', () => {
+    expect(matchRouteCatalogEntry('/this-route-does-not-exist')).toBeNull();
+    expect(matchRouteCatalogEntry('/this-route-does-not-exist?ref=wildcard')).toBeNull();
+  });
+
   it('matches cataloged analytics, engagement, and publishing routes that the drift checker audits', () => {
     expect(matchRouteCatalogEntry('/analytics')?.id).toBe('analytics');
     expect(matchRouteCatalogEntry('/dashboard/custom')?.id).toBe('dashboard-custom');

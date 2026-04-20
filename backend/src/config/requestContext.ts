@@ -3,6 +3,8 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 export interface RequestContext {
   correlationId?: string;
   userId?: string;
+  portalUserId?: string;
+  portalContactId?: string | null;
   organizationId?: string;
   accountId?: string;
   tenantId?: string;
@@ -23,4 +25,3 @@ export const setRequestContext = (updates: Partial<RequestContext>): void => {
   if (!current) return;
   Object.assign(current, updates);
 };
-

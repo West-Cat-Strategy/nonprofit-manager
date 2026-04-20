@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import portalApi from '../../../services/portalApi';
 import { unwrapApiData } from '../../../services/apiEnvelope';
+import type { ApiEnvelope } from '../../../services/apiEnvelope';
 import { useToast } from '../../../contexts/useToast';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalPageState from '../../../components/portal/PortalPageState';
@@ -9,7 +10,9 @@ import {
   PrimaryButton,
   SecondaryButton,
 } from '../../../components/ui';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { validatePassword } from '../../../utils/validation';
+import { portalSessionSynced } from '../../portalAuth/state';
 import { focusElement } from '../utils/formFocus';
 
 interface PortalProfileData {
@@ -45,6 +48,8 @@ const toNullableString = (value: string | null): string | null => {
 };
 
 export default function PortalProfile() {
+  const dispatch = useAppDispatch();
+  const portalUser = useAppSelector((state) => state.portalAuth.user);
   const [formData, setFormData] = useState<PortalProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,8 +151,18 @@ export default function PortalProfile() {
 
     try {
       setSaving(true);
-      const response = await portalApi.patch('/v2/portal/profile', payload);
-      setFormData(unwrapApiData(response.data));
+      const response = await portalApi.patch<ApiEnvelope<PortalProfileData>>('/v2/portal/profile', payload);
+      const updatedProfile = unwrapApiData(response.data);
+      setFormData(updatedProfile);
+      if (portalUser) {
+        dispatch(
+          portalSessionSynced({
+            ...portalUser,
+            email: updatedProfile.email?.trim() || portalUser.email,
+            contactId: updatedProfile.contact_id || portalUser.contactId,
+          })
+        );
+      }
       setPhnError(null);
       const message = 'Profile updated successfully.';
       setProfileStatusMessage(message);

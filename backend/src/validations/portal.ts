@@ -289,6 +289,12 @@ export const portalAdminRejectRequestSchema = z.object({
   notes: z.string().max(1000).optional(),
 });
 
+export const portalAdminApproveRequestSchema = z
+  .object({
+    contact_id: uuidSchema.optional(),
+  })
+  .strict();
+
 export const portalAdminCreateInvitationSchema = z.object({
   email: emailSchema,
   contact_id: uuidSchema.optional(),

@@ -21,6 +21,86 @@ describe('Portal Auth API Integration', () => {
       .expect(400);
   });
 
+  it('stores duplicate-email signup requests without binding the wrong contact', async () => {
+    const suffix = unique();
+    const email = `portal-duplicate-${suffix}@example.com`;
+    const createdContactIds: string[] = [];
+    let signupRequestId: string | null = null;
+
+    try {
+      const firstContact = await pool.query<{ id: string }>(
+        `INSERT INTO contacts (first_name, last_name, email, phone, created_by, modified_by)
+         VALUES ($1, $2, $3, $4, $5, $5)
+         RETURNING id`,
+        ['Existing', 'One', email, '555-0001', null]
+      );
+      createdContactIds.push(firstContact.rows[0].id);
+
+      const secondContact = await pool.query<{ id: string }>(
+        `INSERT INTO contacts (first_name, last_name, email, phone, created_by, modified_by)
+         VALUES ($1, $2, $3, $4, $5, $5)
+         RETURNING id`,
+        ['Existing', 'Two', email, '555-0002', null]
+      );
+      createdContactIds.push(secondContact.rows[0].id);
+
+      const response = await request(app)
+        .post('/api/v2/portal/auth/signup')
+        .send({
+          email: email.toUpperCase(),
+          password: 'Portal1Password',
+          firstName: 'Signup',
+          lastName: 'Person',
+          phone: '555-555-1212',
+        })
+        .expect(201);
+
+      expect(response.body).toMatchObject({
+        success: true,
+        data: {
+          status: 'pending',
+          requestId: expect.any(String),
+          message: 'Signup request submitted. A staff member must approve your access.',
+        },
+      });
+      signupRequestId = response.body.data.requestId as string;
+
+      const signupRequest = await pool.query<{
+        id: string;
+        contact_id: string | null;
+        resolution_status: string;
+        first_name: string | null;
+        last_name: string | null;
+        phone: string | null;
+      }>(
+        `SELECT id, contact_id, resolution_status, first_name, last_name, phone
+         FROM portal_signup_requests
+         WHERE id = $1`,
+        [signupRequestId]
+      );
+
+      expect(signupRequest.rows[0]).toMatchObject({
+        id: signupRequestId,
+        contact_id: null,
+        resolution_status: 'needs_contact_resolution',
+        first_name: 'Signup',
+        last_name: 'Person',
+        phone: '555-555-1212',
+      });
+    } finally {
+      if (signupRequestId) {
+        await pool.query('DELETE FROM portal_signup_requests WHERE id = $1', [signupRequestId]);
+      }
+      for (const contactId of createdContactIds) {
+        try {
+          await pool.query('DELETE FROM contacts WHERE id = $1', [contactId]);
+        } catch {
+          // Ignore cleanup errors in integration tests.
+        }
+      }
+    }
+  });
+
   it('requires portal auth for /me', async () => {
     await request(app).get('/api/v2/portal/auth/me').expect(401);
   });

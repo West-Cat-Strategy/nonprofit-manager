@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
-import { PROFILE_COLUMNS, PortalRepositorySupport } from './shared';
+import { getRequestContext } from '@config/requestContext';
+import { PortalRepositorySupport } from './shared';
 
 export class PortalProfileRepository {
   constructor(
@@ -7,12 +8,37 @@ export class PortalProfileRepository {
     private readonly support: PortalRepositorySupport
   ) {}
 
+  private getAuthorizedPortalActor(requestedContactId: string): {
+    portalUserId: string;
+    portalContactId: string;
+  } | null {
+    const context = getRequestContext();
+    const portalUserId = context?.portalUserId;
+    const portalContactId = context?.portalContactId;
+
+    if (!portalUserId || !portalContactId) {
+      return null;
+    }
+
+    if (portalContactId !== requestedContactId) {
+      return null;
+    }
+
+    return {
+      portalUserId,
+      portalContactId,
+    };
+  }
+
   async getProfile(contactId: string): Promise<Record<string, unknown> | null> {
+    const actor = this.getAuthorizedPortalActor(contactId);
+    if (!actor) {
+      return null;
+    }
+
     const result = await this.pool.query(
-      `SELECT ${PROFILE_COLUMNS}
-       FROM contacts c
-       WHERE c.id = $1`,
-      [contactId]
+      'SELECT * FROM public.portal_get_profile($1)',
+      [actor.portalUserId]
     );
 
     return this.support.mapProfileRow(result.rows[0] ?? null);
@@ -22,6 +48,11 @@ export class PortalProfileRepository {
     contactId: string,
     updates: Record<string, string | null>
   ): Promise<Record<string, unknown> | null> {
+    const actor = this.getAuthorizedPortalActor(contactId);
+    if (!actor) {
+      return null;
+    }
+
     const normalizedUpdates: Record<string, string | null> = { ...updates };
     if (Object.prototype.hasOwnProperty.call(normalizedUpdates, 'phn')) {
       const normalizedPhn = this.support.normalizePhn(normalizedUpdates.phn);
@@ -34,22 +65,9 @@ export class PortalProfileRepository {
       return null;
     }
 
-    const assignments: string[] = [];
-    const values: Array<string | null> = [];
-
-    fields.forEach((field, idx) => {
-      assignments.push(`${field} = $${idx + 1}`);
-      values.push(normalizedUpdates[field]);
-    });
-
-    values.push(contactId);
-
     const result = await this.pool.query(
-      `UPDATE contacts
-       SET ${assignments.join(', ')}, updated_at = NOW(), modified_by = NULL
-       WHERE id = $${values.length}
-       RETURNING ${PROFILE_COLUMNS}`,
-      values
+      'SELECT * FROM public.portal_update_profile($1, $2::jsonb)',
+      [actor.portalUserId, JSON.stringify(normalizedUpdates)]
     );
 
     return this.support.mapProfileRow(result.rows[0] ?? null);

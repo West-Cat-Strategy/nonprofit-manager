@@ -29,6 +29,7 @@ import {
 import {
   portalAdminAppointmentsQuerySchema,
   portalAdminAppointmentStatusSchema,
+  portalAdminApproveRequestSchema,
   portalAdminConversationQuerySchema,
   portalAdminCreateInvitationSchema,
   portalAdminReminderSendSchema,
@@ -56,7 +57,12 @@ router.use(authenticate);
 router.get('/stream', validateQuery(portalAdminRealtimeStreamQuerySchema), streamPortalAdminRealtime);
 
 router.get('/requests', listPortalSignupRequests);
-router.post('/requests/:id/approve', validateParams(portalUuidParamsSchema), approvePortalSignupRequest);
+router.post(
+  '/requests/:id/approve',
+  validateParams(portalUuidParamsSchema),
+  validateBody(portalAdminApproveRequestSchema),
+  approvePortalSignupRequest
+);
 router.post(
   '/requests/:id/reject',
   validateParams(portalUuidParamsSchema),

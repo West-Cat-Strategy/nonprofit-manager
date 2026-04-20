@@ -36,7 +36,7 @@ jest.mock('@utils/cookieHelper', () => ({
 jest.mock('@services/portalAuthService', () => ({
   findPortalUserIdByEmail: jest.fn(),
   findPendingSignupRequestIdByEmail: jest.fn(),
-  getOrCreateContactForSignup: jest.fn(),
+  resolvePortalSignupContact: jest.fn(),
   createPortalSignupRequest: jest.fn(),
   getPortalLoginUserByEmail: jest.fn(),
   updatePortalUserLastLogin: jest.fn(),
@@ -124,7 +124,7 @@ describe('portalAuthController', () => {
       expect(mockPortalAuthService.findPortalUserIdByEmail).toHaveBeenCalledWith(
         'member@example.com'
       );
-      expect(mockPortalAuthService.getOrCreateContactForSignup).not.toHaveBeenCalled();
+      expect(mockPortalAuthService.resolvePortalSignupContact).not.toHaveBeenCalled();
       expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(409);
       expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -154,7 +154,7 @@ describe('portalAuthController', () => {
       expect(mockPortalAuthService.findPendingSignupRequestIdByEmail).toHaveBeenCalledWith(
         'pending@example.com'
       );
-      expect(mockPortalAuthService.getOrCreateContactForSignup).not.toHaveBeenCalled();
+      expect(mockPortalAuthService.resolvePortalSignupContact).not.toHaveBeenCalled();
       expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(409);
       expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -167,7 +167,7 @@ describe('portalAuthController', () => {
       );
     });
 
-    it('creates a pending signup request with a normalized email and hashed password', async () => {
+    it('creates a resolved pending signup request when no existing contact matches the email', async () => {
       const req = createBaseRequest({
         body: {
           email: 'NewUser@Example.com',
@@ -179,12 +179,15 @@ describe('portalAuthController', () => {
       });
       mockPortalAuthService.findPortalUserIdByEmail.mockResolvedValueOnce(null);
       mockPortalAuthService.findPendingSignupRequestIdByEmail.mockResolvedValueOnce(null);
-      mockPortalAuthService.getOrCreateContactForSignup.mockResolvedValueOnce('contact-1');
+      mockPortalAuthService.resolvePortalSignupContact.mockResolvedValueOnce({
+        contactId: 'contact-created',
+        resolutionStatus: 'resolved',
+      });
       mockPortalAuthService.createPortalSignupRequest.mockResolvedValueOnce('signup-1');
 
       await portalAuthController.portalSignup(req as Request, mockResponse, mockNext);
 
-      expect(mockPortalAuthService.getOrCreateContactForSignup).toHaveBeenCalledWith({
+      expect(mockPortalAuthService.resolvePortalSignupContact).toHaveBeenCalledWith({
         email: 'newuser@example.com',
         firstName: 'New',
         lastName: 'User',
@@ -192,9 +195,13 @@ describe('portalAuthController', () => {
       });
       expect(mockBcryptHash).toHaveBeenCalledWith('Secret123!', expect.any(Number));
       expect(mockPortalAuthService.createPortalSignupRequest).toHaveBeenCalledWith({
-        contactId: 'contact-1',
+        contactId: 'contact-created',
         email: 'newuser@example.com',
         passwordHash: 'hashed-password',
+        firstName: 'New',
+        lastName: 'User',
+        phone: '555-0100',
+        resolutionStatus: 'resolved',
       });
       expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(201);
       expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
@@ -203,6 +210,81 @@ describe('portalAuthController', () => {
           data: {
             status: 'pending',
             requestId: 'signup-1',
+            message: 'Signup request submitted. A staff member must approve your access.',
+          },
+        })
+      );
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('creates a resolved pending signup request when exactly one contact matches the email', async () => {
+      const req = createBaseRequest({
+        body: {
+          email: 'Existing@Example.com',
+          password: 'Secret123!',
+          firstName: 'Existing',
+          lastName: 'Match',
+        },
+      });
+      mockPortalAuthService.findPortalUserIdByEmail.mockResolvedValueOnce(null);
+      mockPortalAuthService.findPendingSignupRequestIdByEmail.mockResolvedValueOnce(null);
+      mockPortalAuthService.resolvePortalSignupContact.mockResolvedValueOnce({
+        contactId: 'contact-existing',
+        resolutionStatus: 'resolved',
+      });
+      mockPortalAuthService.createPortalSignupRequest.mockResolvedValueOnce('signup-2');
+
+      await portalAuthController.portalSignup(req as Request, mockResponse, mockNext);
+
+      expect(mockPortalAuthService.createPortalSignupRequest).toHaveBeenCalledWith({
+        contactId: 'contact-existing',
+        email: 'existing@example.com',
+        passwordHash: 'hashed-password',
+        firstName: 'Existing',
+        lastName: 'Match',
+        phone: undefined,
+        resolutionStatus: 'resolved',
+      });
+      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(201);
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('creates a pending signup request that requires manual contact resolution when multiple contacts match', async () => {
+      const req = createBaseRequest({
+        body: {
+          email: 'Duplicate@Example.com',
+          password: 'Secret123!',
+          firstName: 'Duplicate',
+          lastName: 'Person',
+          phone: '555-2121',
+        },
+      });
+      mockPortalAuthService.findPortalUserIdByEmail.mockResolvedValueOnce(null);
+      mockPortalAuthService.findPendingSignupRequestIdByEmail.mockResolvedValueOnce(null);
+      mockPortalAuthService.resolvePortalSignupContact.mockResolvedValueOnce({
+        contactId: null,
+        resolutionStatus: 'needs_contact_resolution',
+      });
+      mockPortalAuthService.createPortalSignupRequest.mockResolvedValueOnce('signup-3');
+
+      await portalAuthController.portalSignup(req as Request, mockResponse, mockNext);
+
+      expect(mockPortalAuthService.createPortalSignupRequest).toHaveBeenCalledWith({
+        contactId: null,
+        email: 'duplicate@example.com',
+        passwordHash: 'hashed-password',
+        firstName: 'Duplicate',
+        lastName: 'Person',
+        phone: '555-2121',
+        resolutionStatus: 'needs_contact_resolution',
+      });
+      expect((mockResponse.status as jest.Mock)).toHaveBeenCalledWith(201);
+      expect((mockResponse.json as jest.Mock)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: {
+            status: 'pending',
+            requestId: 'signup-3',
             message: 'Signup request submitted. A staff member must approve your access.',
           },
         })

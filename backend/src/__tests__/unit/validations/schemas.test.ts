@@ -23,7 +23,11 @@ import {
   paginationSchema,
   passwordSchema,
 } from '../../../validations/shared';
-import { portalChangePasswordSchema, portalSignupSchema } from '../../../validations/portal';
+import {
+  portalAdminApproveRequestSchema,
+  portalChangePasswordSchema,
+  portalSignupSchema,
+} from '../../../validations/portal';
 
 describe('Shared Validation Schemas', () => {
   it('trims and normalizes email input before validation', () => {
@@ -570,5 +574,23 @@ describe('Portal Schemas', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it('accepts an empty portal admin approve-request body and optional contact_id', () => {
+    expect(portalAdminApproveRequestSchema.safeParse({}).success).toBe(true);
+    expect(
+      portalAdminApproveRequestSchema.safeParse({
+        contact_id: '00000000-0000-4000-8000-000000000123',
+      }).success
+    ).toBe(true);
+  });
+
+  it('rejects extra fields on the portal admin approve-request body', () => {
+    expect(
+      portalAdminApproveRequestSchema.safeParse({
+        contact_id: '00000000-0000-4000-8000-000000000123',
+        unexpected: true,
+      }).success
+    ).toBe(false);
   });
 });

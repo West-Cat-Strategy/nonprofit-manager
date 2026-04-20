@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { unauthorized } from '@utils/responseHelpers';
 import { extractToken, PORTAL_AUTH_COOKIE_NAME } from '@utils/cookieHelper';
 import * as portalAuthService from '@services/portalAuthService';
+import { setRequestContext } from '@config/requestContext';
 import {
   PORTAL_SESSION_TOKEN_ISSUER,
   verifyTokenWithOptionalIssuer,
@@ -47,9 +48,14 @@ export const authenticatePortal = async (
 
     req.portalUser = {
       ...decoded,
+      id: profile.id,
       email: profile.email,
       contactId: profile.contact_id,
     };
+    setRequestContext({
+      portalUserId: profile.id,
+      portalContactId: profile.contact_id,
+    });
     next();
   } catch {
     return unauthorized(res, 'Invalid or expired token');

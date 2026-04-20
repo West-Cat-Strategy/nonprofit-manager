@@ -2,9 +2,9 @@ import pool from '@config/database';
 import {
   createPortalSignupRequest,
   createPortalUserFromInvitation,
-  getOrCreateContactForSignup,
   getPortalInvitationByToken,
   getPortalLoginUserByEmail,
+  resolvePortalSignupContact,
   updatePortalUserLastLogin,
 } from '@services/portalAuthService';
 
@@ -20,37 +20,66 @@ describe('portalAuthService', () => {
     mockQuery.mockReset();
   });
 
-  it('resolves an existing contact for portal signup via the signup bridge function', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 'contact-1' }] });
+  it('returns a resolved contact when the signup bridge finds a single normalized-email match', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ contact_id: 'contact-1', resolution_status: 'resolved' }],
+    });
 
-    const result = await getOrCreateContactForSignup({
+    const result = await resolvePortalSignupContact({
       email: 'client@example.com',
       firstName: 'Client',
       lastName: 'One',
     });
 
-    expect(result).toBe('contact-1');
+    expect(result).toEqual({
+      contactId: 'contact-1',
+      resolutionStatus: 'resolved',
+    });
     expect(mockQuery).toHaveBeenCalledWith(
-      'SELECT public.portal_resolve_signup_contact_id($1, $2, $3, $4) AS id',
+      `SELECT contact_id, resolution_status
+     FROM public.portal_resolve_signup_request($1, $2, $3, $4)`,
       ['Client', 'One', 'client@example.com', null]
     );
   });
 
-  it('creates a new contact for portal signup via the signup bridge function', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 'contact-2' }] });
+  it('returns a resolved contact when the signup bridge creates a new contact for a no-match email', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ contact_id: 'contact-2', resolution_status: 'resolved' }],
+    });
 
-    const result = await getOrCreateContactForSignup({
+    const result = await resolvePortalSignupContact({
       email: 'newclient@example.com',
       firstName: 'New',
       lastName: 'Client',
       phone: '5551234567',
     });
 
-    expect(result).toBe('contact-2');
+    expect(result).toEqual({
+      contactId: 'contact-2',
+      resolutionStatus: 'resolved',
+    });
     expect(mockQuery).toHaveBeenCalledWith(
-      'SELECT public.portal_resolve_signup_contact_id($1, $2, $3, $4) AS id',
+      `SELECT contact_id, resolution_status
+     FROM public.portal_resolve_signup_request($1, $2, $3, $4)`,
       ['New', 'Client', 'newclient@example.com', '5551234567']
     );
+  });
+
+  it('returns an unresolved signup result when multiple contacts share the email', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ contact_id: null, resolution_status: 'needs_contact_resolution' }],
+    });
+
+    await expect(
+      resolvePortalSignupContact({
+        email: 'duplicate@example.com',
+        firstName: 'Duplicate',
+        lastName: 'Case',
+      })
+    ).resolves.toEqual({
+      contactId: null,
+      resolutionStatus: 'needs_contact_resolution',
+    });
   });
 
   it('creates pending signup request and returns id', async () => {
@@ -60,9 +89,28 @@ describe('portalAuthService', () => {
       contactId: 'contact-1',
       email: 'client@example.com',
       passwordHash: 'hash',
+      firstName: 'Client',
+      lastName: 'One',
+      phone: '5551234567',
+      resolutionStatus: 'resolved',
     });
 
     expect(requestId).toBe('request-1');
+    expect(mockQuery).toHaveBeenCalledWith(
+      `INSERT INTO portal_signup_requests (
+       contact_id,
+       email,
+       password_hash,
+       first_name,
+       last_name,
+       phone,
+       status,
+       resolution_status
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING id`,
+      ['contact-1', 'client@example.com', 'hash', 'Client', 'One', '5551234567', 'pending', 'resolved']
+    );
   });
 
   it('returns null when invitation token does not exist', async () => {

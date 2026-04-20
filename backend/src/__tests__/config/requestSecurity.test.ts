@@ -77,14 +77,14 @@ describe('requestSecurity helpers', () => {
     expect(allowed).toEqual({ allowed: true, error: null });
   });
 
-  it('allows same-host public-site origins even when they are not prelisted', async () => {
+  it('denies production origins that only match the request host', async () => {
     const delegate = createCorsOptionsDelegate({
       nodeEnv: 'production',
       corsOrigin: 'https://admin.westcat.ca',
       fallbackOrigins: ['http://localhost:5173'],
     });
 
-    const allowed = await invokeDelegateOriginCheck(
+    const denied = await invokeDelegateOriginCheck(
       delegate,
       {
         protocol: 'https',
@@ -94,18 +94,31 @@ describe('requestSecurity helpers', () => {
       },
       'https://community.westcat.ca'
     );
+
+    expect(denied.allowed).toBe(false);
+    expect(denied.error?.message).toBe('Not allowed by CORS');
+  });
+
+  it('denies spoofed forwarded-host origins when they are not explicitly allowed', async () => {
+    const delegate = createCorsOptionsDelegate({
+      nodeEnv: 'production',
+      corsOrigin: 'https://admin.westcat.ca',
+      fallbackOrigins: ['http://localhost:5173'],
+    });
+
     const denied = await invokeDelegateOriginCheck(
       delegate,
       {
         protocol: 'https',
         headers: {
-          host: 'community.westcat.ca',
+          host: 'api.westcat.ca',
+          'x-forwarded-host': 'community.westcat.ca',
+          'x-forwarded-proto': 'https',
         },
       },
-      'https://evil.example'
+      'https://community.westcat.ca'
     );
 
-    expect(allowed).toEqual({ allowed: true, error: null });
     expect(denied.allowed).toBe(false);
     expect(denied.error?.message).toBe('Not allowed by CORS');
   });

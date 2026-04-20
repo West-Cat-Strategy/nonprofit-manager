@@ -61,6 +61,17 @@ const notifyPortalUser = async (args: {
   }
 };
 
+type PortalSignupResolutionStatus = 'resolved' | 'needs_contact_resolution';
+
+interface PortalSignupApprovalRow {
+  id: string;
+  email: string;
+  password_hash: string;
+  contact_id: string | null;
+  status: string;
+  resolution_status: PortalSignupResolutionStatus;
+}
+
 export const listPortalSignupRequests = async (
   req: AuthRequest,
   res: Response,
@@ -70,8 +81,17 @@ export const listPortalSignupRequests = async (
     if (!ensureAdmin(req, res)) return;
 
     const result = await pool.query(
-      `SELECT psr.id, psr.email, psr.status, psr.requested_at, psr.reviewed_at,
-              c.id as contact_id, c.first_name, c.last_name
+      `SELECT
+              psr.id,
+              psr.email,
+              psr.status,
+              psr.resolution_status,
+              psr.requested_at,
+              psr.reviewed_at,
+              c.id AS contact_id,
+              COALESCE(psr.first_name, c.first_name) AS first_name,
+              COALESCE(psr.last_name, c.last_name) AS last_name,
+              COALESCE(psr.phone, c.phone) AS phone
        FROM portal_signup_requests psr
        LEFT JOIN contacts c ON c.id = psr.contact_id
        WHERE psr.status = 'pending'
@@ -93,9 +113,10 @@ export const approvePortalSignupRequest = async (
     if (!ensureAdmin(req, res)) return;
 
     const { id } = req.params;
+    const { contact_id: requestedContactId } = req.body as { contact_id?: string };
 
-    const requestResult = await pool.query(
-      `SELECT id, email, password_hash, contact_id, status
+    const requestResult = await pool.query<PortalSignupApprovalRow>(
+      `SELECT id, email, password_hash, contact_id, status, resolution_status
        FROM portal_signup_requests
        WHERE id = $1`,
       [id]
@@ -112,6 +133,37 @@ export const approvePortalSignupRequest = async (
       return;
     }
 
+    let approvedContactId = requestRow.contact_id;
+    if (requestRow.resolution_status === 'needs_contact_resolution') {
+      if (!requestedContactId) {
+        badRequest(
+          res,
+          'contact_id is required when the signup request needs manual contact resolution'
+        );
+        return;
+      }
+
+      const matchingContact = await pool.query<{ id: string }>(
+        `SELECT id
+         FROM contacts
+         WHERE id = $1
+           AND lower(email) = lower($2)`,
+        [requestedContactId, requestRow.email]
+      );
+
+      if (matchingContact.rows.length === 0) {
+        badRequest(res, 'Selected contact must match the signup request email');
+        return;
+      }
+
+      approvedContactId = requestedContactId;
+    }
+
+    if (!approvedContactId) {
+      badRequest(res, 'Signup request is missing a resolved contact');
+      return;
+    }
+
     const existingUser = await pool.query('SELECT id FROM portal_users WHERE email = $1', [
       requestRow.email.toLowerCase(),
     ]);
@@ -125,14 +177,25 @@ export const approvePortalSignupRequest = async (
         contact_id, email, password_hash, status, is_verified, verified_at, verified_by
       ) VALUES ($1, $2, $3, $4, $5, NOW(), $6)
       RETURNING id, email, contact_id`,
-      [requestRow.contact_id, requestRow.email.toLowerCase(), requestRow.password_hash, 'active', true, req.user!.id]
+      [
+        approvedContactId,
+        requestRow.email.toLowerCase(),
+        requestRow.password_hash,
+        'active',
+        true,
+        req.user!.id,
+      ]
     );
 
     await pool.query(
       `UPDATE portal_signup_requests
-       SET status = 'approved', reviewed_at = NOW(), reviewed_by = $2
+       SET status = 'approved',
+           reviewed_at = NOW(),
+           reviewed_by = $2,
+           contact_id = $3,
+           resolution_status = 'resolved'
        WHERE id = $1`,
-      [id, req.user!.id]
+      [id, req.user!.id, approvedContactId]
     );
 
     sendSuccess(res, {

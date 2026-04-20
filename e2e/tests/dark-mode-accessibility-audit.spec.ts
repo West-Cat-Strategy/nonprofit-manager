@@ -37,7 +37,9 @@ import { unwrapSuccess } from '../helpers/apiEnvelope';
 import {
   assertDarkModeApplied,
   blockedFinding,
+  buildRuntimeFindingsFromSnapshot,
   buildFindingsFromProbe,
+  captureRouteRuntime,
   captureRouteScreenshot,
   collectFocusIssues,
   collectPageProbe,
@@ -46,7 +48,6 @@ import {
   getAuditScreenshotDir,
   requiresManualReview,
   runtimeFinding,
-  waitForSettledPage,
   writeAuditReport,
   type AuditFinding,
   type RouteAuditRecord,
@@ -815,8 +816,44 @@ async function auditRoute(input: {
     return await Promise.race([
       (async () => {
         await ensureDarkMode(page);
-        await page.goto(resolvedPath, { waitUntil: 'domcontentloaded' });
-        await waitForSettledPage(page);
+        const runtimeSnapshot = await captureRouteRuntime(page, resolvedPath, {
+          allowAuthBootstrapNoise: entry.surface !== 'staff',
+          expectedLocation: resolvedPath,
+        });
+
+        const runtimeFindings = buildRuntimeFindingsFromSnapshot({
+          routeId: entry.id,
+          routePath: resolvedPath,
+          routeTitle: entry.title,
+          surface: entry.surface,
+          fixtureState,
+          snapshot: runtimeSnapshot,
+          recommendation:
+            'Stabilize the route render, redirect contract, or fixture setup before treating this route as visually audited.',
+        });
+
+        if (runtimeFindings.length > 0) {
+          screenshot = await captureRouteScreenshot(page, entry.id, resolvedPath).catch(() => undefined);
+          return {
+            routeId: entry.id,
+            routePath: resolvedPath,
+            routeTitle: entry.title,
+            surface: entry.surface,
+            fixtureState,
+            screenshot,
+            findings: buildRuntimeFindingsFromSnapshot({
+              routeId: entry.id,
+              routePath: resolvedPath,
+              routeTitle: entry.title,
+              surface: entry.surface,
+              fixtureState,
+              screenshot,
+              snapshot: runtimeSnapshot,
+              recommendation:
+                'Stabilize the route render, redirect contract, or fixture setup before treating this route as visually audited.',
+            }),
+          };
+        }
 
         const darkModeApplied = await assertDarkModeApplied(page);
         const pageProbe = await collectPageProbe(page);
@@ -1073,8 +1110,9 @@ test.describe('Dark Mode Accessibility Audit', () => {
     const findings = records.flatMap((record) => record.findings);
     const blockingFindings = findings.filter(
       (finding) =>
-        !requiresManualReview(finding.routeId) &&
-        ['critical', 'serious', 'blocked'].includes(finding.severity)
+        finding.type === 'runtime' ||
+        finding.type === 'blocked' ||
+        (!requiresManualReview(finding.routeId) && ['critical', 'serious'].includes(finding.severity))
     );
 
     expect(

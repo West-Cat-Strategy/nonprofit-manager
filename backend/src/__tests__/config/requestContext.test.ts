@@ -12,7 +12,12 @@ describe('requestContext', () => {
     const context = await runWithRequestContext(
       { correlationId: 'corr-1' },
       async () => {
-        setRequestContext({ userId: 'user-1', organizationId: 'org-1' });
+        setRequestContext({
+          userId: 'user-1',
+          portalUserId: 'portal-user-1',
+          portalContactId: 'contact-1',
+          organizationId: 'org-1',
+        });
         await sleep(1);
         return getRequestContext();
       }
@@ -21,6 +26,8 @@ describe('requestContext', () => {
     expect(context).toMatchObject({
       correlationId: 'corr-1',
       userId: 'user-1',
+      portalUserId: 'portal-user-1',
+      portalContactId: 'contact-1',
       organizationId: 'org-1',
     });
     expect(getRequestContext()).toBeUndefined();
@@ -29,12 +36,22 @@ describe('requestContext', () => {
   it('isolates context between concurrent requests', async () => {
     const [first, second] = await Promise.all([
       runWithRequestContext({ correlationId: 'corr-a' }, async () => {
-        setRequestContext({ userId: 'user-a', organizationId: 'org-a' });
+        setRequestContext({
+          userId: 'user-a',
+          portalUserId: 'portal-user-a',
+          portalContactId: 'contact-a',
+          organizationId: 'org-a',
+        });
         await sleep(20);
         return getRequestContext();
       }),
       runWithRequestContext({ correlationId: 'corr-b' }, async () => {
-        setRequestContext({ userId: 'user-b', organizationId: 'org-b' });
+        setRequestContext({
+          userId: 'user-b',
+          portalUserId: 'portal-user-b',
+          portalContactId: 'contact-b',
+          organizationId: 'org-b',
+        });
         await sleep(5);
         return getRequestContext();
       }),
@@ -43,11 +60,15 @@ describe('requestContext', () => {
     expect(first).toMatchObject({
       correlationId: 'corr-a',
       userId: 'user-a',
+      portalUserId: 'portal-user-a',
+      portalContactId: 'contact-a',
       organizationId: 'org-a',
     });
     expect(second).toMatchObject({
       correlationId: 'corr-b',
       userId: 'user-b',
+      portalUserId: 'portal-user-b',
+      portalContactId: 'contact-b',
       organizationId: 'org-b',
     });
   });

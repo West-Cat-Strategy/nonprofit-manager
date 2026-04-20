@@ -70,7 +70,7 @@ export const portalSignup = async (
       return conflict(res, 'Signup request already pending approval');
     }
 
-    const contactId = await portalAuthService.getOrCreateContactForSignup({
+    const signupResolution = await portalAuthService.resolvePortalSignupContact({
       email,
       firstName: payload.firstName,
       lastName: payload.lastName,
@@ -79,9 +79,13 @@ export const portalSignup = async (
     const hashedPassword = await bcrypt.hash(payload.password, PASSWORD.BCRYPT_SALT_ROUNDS);
 
     const requestId = await portalAuthService.createPortalSignupRequest({
-      contactId,
+      contactId: signupResolution.contactId,
       email,
       passwordHash: hashedPassword,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      phone: payload.phone,
+      resolutionStatus: signupResolution.resolutionStatus,
     });
 
     return sendSuccess(

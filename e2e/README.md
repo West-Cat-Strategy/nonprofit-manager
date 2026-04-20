@@ -180,6 +180,8 @@ export E2E_REQUIRE_STRICT_ADMIN_AUTH=true
 npx playwright test tests/link-health.spec.ts --project=chromium
 ```
 
+`tests/link-health.spec.ts` now treats a route as healthy only when the browser finishes on the expected client-side location. Canonical routes must stay on the requested path, documented redirects must land on their declared target, and an accidental wildcard fallthrough through `* -> /` never counts as success.
+
 If your local snapshot does not use the repo defaults, add explicit overrides before running the command:
 
 ```bash
@@ -213,6 +215,8 @@ Artifacts:
 
 - `test-results/dark-mode-accessibility-report.md`
 - `test-results/dark-mode-audit/`
+
+The dark-mode audit now reuses the same route-runtime capture as `tests/link-health.spec.ts` before it inspects visuals. A route only reaches contrast/readability/focus analysis after its document response, final client location, and same-origin runtime surface are clean. Manual-review routes stay advisory for visual findings only; `runtime` and `blocked` findings still fail the spec on every route.
 
 ## Debugging
 

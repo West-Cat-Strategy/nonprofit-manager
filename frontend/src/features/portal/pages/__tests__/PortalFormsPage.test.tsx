@@ -5,6 +5,9 @@ import PortalFormsPage from '../PortalFormsPage';
 
 const listFormsMock = vi.fn();
 const getFormMock = vi.fn();
+const getResponsePacketDownloadUrlMock = vi.fn(
+  (assignmentId: string) => `/api/v2/portal/forms/assignments/${assignmentId}/response-packet`
+);
 
 vi.mock('../../api/portalCaseFormsApiClient', () => ({
   portalCaseFormsApiClient: {
@@ -13,7 +16,7 @@ vi.mock('../../api/portalCaseFormsApiClient', () => ({
     uploadAsset: vi.fn(),
     saveDraft: vi.fn(),
     submit: vi.fn(),
-    getResponsePacketDownloadUrl: vi.fn(() => '/api/v2/portal/forms/assignment-portal/response-packet'),
+    getResponsePacketDownloadUrl: (...args: unknown[]) => getResponsePacketDownloadUrlMock(...args),
   },
 }));
 
@@ -77,21 +80,60 @@ describe('PortalFormsPage', () => {
         },
         current_draft_answers: {},
         draft_assets: [],
-        latest_submission: null,
+        latest_submission: {
+          id: 'submission-1',
+          assignment_id: 'assignment-portal',
+          case_id: 'case-1',
+          contact_id: 'contact-1',
+          submission_number: 1,
+          answers: {},
+          mapping_audit: [],
+          asset_refs: [],
+          signature_refs: [],
+          submitted_by_actor_type: 'portal',
+          created_at: '2026-04-16T12:30:00.000Z',
+          response_packet_download_url:
+            '/api/v2/portal/forms/assignments/assignment-portal/response-packet',
+        },
         delivery_target: 'portal',
         sent_at: '2026-04-16T12:00:00.000Z',
+        submitted_at: '2026-04-16T12:30:00.000Z',
         created_at: '2026-04-16T12:00:00.000Z',
-        updated_at: '2026-04-16T12:00:00.000Z',
+        updated_at: '2026-04-16T12:30:00.000Z',
       },
-      submissions: [],
+      submissions: [
+        {
+          id: 'submission-1',
+          assignment_id: 'assignment-portal',
+          case_id: 'case-1',
+          contact_id: 'contact-1',
+          submission_number: 1,
+          answers: {},
+          mapping_audit: [],
+          asset_refs: [],
+          signature_refs: [],
+          submitted_by_actor_type: 'portal',
+          created_at: '2026-04-16T12:30:00.000Z',
+          response_packet_download_url:
+            '/api/v2/portal/forms/assignments/assignment-portal/response-packet',
+        },
+      ],
     });
   });
 
-  it('renders only the portal-delivered assignments returned by the portal API', async () => {
+  it('renders assignment results and uses the assignment packet download routes', async () => {
     renderWithProviders(<PortalFormsPage />);
 
     expect(await screen.findByText('Portal Delivery Form')).toBeInTheDocument();
     expect(screen.getAllByText('Available in the portal').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Email Only Form')).not.toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /download response packet/i })).toHaveAttribute(
+      'href',
+      '/api/v2/portal/forms/assignments/assignment-portal/response-packet'
+    );
+    expect(await screen.findByRole('link', { name: /^packet$/i })).toHaveAttribute(
+      'href',
+      '/api/v2/portal/forms/assignments/assignment-portal/response-packet'
+    );
+    expect(getResponsePacketDownloadUrlMock).toHaveBeenCalledWith('assignment-portal');
   });
 });

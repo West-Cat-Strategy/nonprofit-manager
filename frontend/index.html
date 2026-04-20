@@ -26,25 +26,19 @@
     <meta name="language" content="English" />
     <script>
       (function () {
-        var removedLegacyPaths = {
-          '/email-marketing': true,
-          '/admin/audit-logs': true,
-          '/settings/organization': true,
+        var legacyPathRedirects = {
+          '/email-marketing': '/settings/communications',
+          '/settings/admin': '/settings/admin/dashboard',
+          '/settings/admin/email': '/settings/communications',
+          '/settings/admin/portal': '/settings/admin/portal/access',
+          '/settings/organization': '/settings/admin/organization',
+          '/admin/audit-logs': '/settings/admin/audit_logs',
         };
         var pathname = window.location.pathname;
+        var nextPath = legacyPathRedirects[pathname];
 
-        if (!removedLegacyPaths[pathname]) {
+        if (!nextPath) {
           return;
-        }
-
-        var nextPath = '/login';
-
-        try {
-          if (window.localStorage.getItem('user')) {
-            nextPath = '/dashboard';
-          }
-        } catch (error) {
-          console.warn('Unable to read cached auth state for legacy path redirect', error);
         }
 
         window.history.replaceState(

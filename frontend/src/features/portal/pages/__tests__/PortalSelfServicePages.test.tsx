@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import { renderWithProviders } from '../../../../test/testUtils';
+import { createTestStore, renderWithProviders } from '../../../../test/testUtils';
 import PortalProfilePage from '../PortalProfilePage';
 import PortalPeoplePage from '../PortalPeoplePage';
 
@@ -29,8 +29,26 @@ vi.mock('../../../../contexts/useToast', () => ({
 }));
 
 describe('Portal self-service pages', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.sessionStorage.clear();
+  });
+
   it('loads and saves the portal profile form', async () => {
     const user = userEvent.setup();
+    const store = createTestStore({
+      portalAuth: {
+        token: null,
+        user: {
+          id: 'portal-user-1',
+          email: 'portal@example.com',
+          contactId: 'contact-1',
+        },
+        loading: false,
+        error: null,
+        signupStatus: 'idle',
+      },
+    });
     portalGetMock.mockResolvedValueOnce({
       data: {
         success: true,
@@ -62,7 +80,7 @@ describe('Portal self-service pages', () => {
           contact_id: 'contact-1',
           first_name: 'Updated',
           last_name: 'Client',
-          email: 'portal@example.com',
+          email: 'updated.portal@example.com',
           phone: '555-111-2222',
           mobile_phone: null,
           phn: null,
@@ -80,18 +98,22 @@ describe('Portal self-service pages', () => {
       },
     });
 
-    renderWithProviders(<PortalProfilePage />);
+    renderWithProviders(<PortalProfilePage />, { store });
 
     const firstNameInput = await screen.findByDisplayValue('Portal');
     const lastNameInput = screen.getByDisplayValue('Client');
+    const emailInput = screen.getByDisplayValue('portal@example.com');
 
     await user.clear(firstNameInput);
     await user.type(firstNameInput, 'Updated');
     await user.clear(lastNameInput);
     await user.type(lastNameInput, 'Person');
+    await user.clear(emailInput);
+    await user.type(emailInput, 'updated.portal@example.com');
 
     expect((firstNameInput as HTMLInputElement).value).toBe('Updated');
     expect((lastNameInput as HTMLInputElement).value).toBe('Person');
+    expect((emailInput as HTMLInputElement).value).toBe('updated.portal@example.com');
 
     fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
@@ -102,10 +124,32 @@ describe('Portal self-service pages', () => {
         expect.objectContaining({
           first_name: 'Updated',
           last_name: 'Person',
+          email: 'updated.portal@example.com',
         })
       );
       expect(showSuccessMock).toHaveBeenCalledWith('Profile updated successfully.');
     });
+
+    await waitFor(() => {
+      expect(store.getState().portalAuth.user).toEqual({
+        id: 'portal-user-1',
+        email: 'updated.portal@example.com',
+        contactId: 'contact-1',
+      });
+    });
+
+    const storedSnapshot = window.sessionStorage.getItem('portal_bootstrap_snapshot');
+    expect(storedSnapshot).not.toBeNull();
+    const parsedSnapshot = JSON.parse(storedSnapshot as string);
+    expect(parsedSnapshot).toMatchObject({
+      status: 'authenticated',
+      user: {
+        id: 'portal-user-1',
+        email: 'updated.portal@example.com',
+        contactId: 'contact-1',
+      },
+    });
+    expect(typeof parsedSnapshot.fetchedAt).toBe('number');
   });
 
   it('loads related people and creates a new one', async () => {

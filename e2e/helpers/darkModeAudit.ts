@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { Page } from '@playwright/test';
+import { normalizeRouteLocation } from '../../frontend/src/routes/routeCatalog';
 
 export type AuditSeverity = 'critical' | 'serious' | 'moderate' | 'blocked';
 
@@ -71,8 +72,40 @@ type ReportInput = {
   records: RouteAuditRecord[];
 };
 
+export type RouteRuntimeOptions = {
+  allowAuthBootstrapNoise?: boolean;
+  expectedLocation?: string | string[];
+  allowWildcardFallback?: boolean;
+};
+
+export type RouteRuntimeSnapshot = {
+  requestedLocation: string;
+  expectedLocations: string[];
+  expectedLocation: string;
+  finalLocation: string;
+  routeTransitions: string[];
+  navigationErrors: string[];
+  pageErrors: string[];
+  consoleErrors: string[];
+  requestFailures: string[];
+  failedResponses: string[];
+};
+
 const SCREENSHOT_DIR = path.resolve(process.cwd(), 'test-results', 'dark-mode-audit');
 const REPORT_PATH = path.resolve(process.cwd(), 'test-results', 'dark-mode-accessibility-report.md');
+const baseURL = process.env.BASE_URL || 'http://127.0.0.1:5173';
+const apiURL = process.env.API_URL || 'http://127.0.0.1:3001';
+const runtimeOrigins = new Set([new URL(baseURL).origin, new URL(apiURL).origin]);
+const authBootstrapRequestPatterns = [
+  /\/api\/(?:v2\/)?auth\/csrf-token(?:\?|$)/,
+  /\/api\/(?:v2\/)?auth\/me(?:\?|$)/,
+  /\/api\/(?:v2\/)?auth\/bootstrap(?:\?|$)/,
+  /\/api\/(?:v2\/)?auth\/registration-status(?:\?|$)/,
+  /\/api\/(?:v2\/)?auth\/setup-status(?:\?|$)/,
+];
+const routeErrorResourceTypes = new Set(['fetch', 'xhr', 'script', 'stylesheet']);
+const abortErrorPatterns = [/net::ERR_ABORTED/i, /net::ERR_BLOCKED_BY_CLIENT/i, /NS_BINDING_ABORTED/i];
+const instrumentedPages = new WeakSet<Page>();
 
 const MANUAL_REVIEW_ROUTE_IDS = new Set([
   'contact-detail',
@@ -145,6 +178,294 @@ export async function waitForSettledPage(page: Page): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
   await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
   await page.getByText('Loading...').waitFor({ state: 'hidden', timeout: 8000 }).catch(() => undefined);
+}
+
+const isRuntimeBootstrapAllowed = (url: string, allowAuthBootstrapNoise: boolean): boolean =>
+  allowAuthBootstrapNoise && authBootstrapRequestPatterns.some((pattern) => pattern.test(url));
+
+const ensureRouteTransitionCapture = async (page: Page): Promise<void> => {
+  if (instrumentedPages.has(page)) {
+    return;
+  }
+
+  await page.addInitScript(() => {
+    type RouteTrackingWindow = Window & {
+      __nmRouteTransitions?: string[];
+      __nmRouteTransitionCaptureInstalled?: boolean;
+    };
+
+    const routeTrackingWindow = window as RouteTrackingWindow;
+
+    const normalizeTrailingSlash = (value: string): string => {
+      if (!value || value === '/') {
+        return '/';
+      }
+
+      return value.endsWith('/') ? value.slice(0, -1) : value;
+    };
+
+    const captureCurrentLocation = () => {
+      const nextLocation = `${normalizeTrailingSlash(window.location.pathname)}${window.location.search}`;
+      const transitions = Array.isArray(routeTrackingWindow.__nmRouteTransitions)
+        ? routeTrackingWindow.__nmRouteTransitions
+        : [];
+
+      if (transitions[transitions.length - 1] !== nextLocation) {
+        transitions.push(nextLocation);
+      }
+
+      routeTrackingWindow.__nmRouteTransitions = transitions;
+    };
+
+    if (!routeTrackingWindow.__nmRouteTransitionCaptureInstalled) {
+      const historyObject = window.history as History & Record<string, (...args: unknown[]) => unknown>;
+
+      for (const method of ['pushState', 'replaceState'] as const) {
+        const original = historyObject[method];
+        historyObject[method] = (...args: unknown[]) => {
+          const result = original.apply(historyObject, args);
+          captureCurrentLocation();
+          return result;
+        };
+      }
+
+      window.addEventListener('popstate', captureCurrentLocation);
+      window.addEventListener('hashchange', captureCurrentLocation);
+      routeTrackingWindow.__nmRouteTransitionCaptureInstalled = true;
+    }
+
+    routeTrackingWindow.__nmRouteTransitions = [];
+    captureCurrentLocation();
+  });
+
+  instrumentedPages.add(page);
+};
+
+const readRouteTransitions = async (page: Page): Promise<string[]> =>
+  page
+    .evaluate(() => {
+      type RouteTrackingWindow = Window & {
+        __nmRouteTransitions?: string[];
+      };
+
+      const routeTrackingWindow = window as RouteTrackingWindow;
+      const fallback = `${window.location.pathname}${window.location.search}`;
+      const transitions = Array.isArray(routeTrackingWindow.__nmRouteTransitions)
+        ? routeTrackingWindow.__nmRouteTransitions
+        : [fallback];
+
+      return transitions.filter((value, index) => value.length > 0 && transitions.indexOf(value) === index);
+    })
+    .catch(() => []);
+
+const formatRouteTransitions = (routeTransitions: string[]): string =>
+  routeTransitions.length > 0 ? routeTransitions.join(' -> ') : 'no transitions captured';
+
+export async function captureRouteRuntime(
+  page: Page,
+  route: string,
+  options: RouteRuntimeOptions = {}
+): Promise<RouteRuntimeSnapshot> {
+  await ensureRouteTransitionCapture(page);
+
+  const { allowAuthBootstrapNoise = false, allowWildcardFallback = false } = options;
+  const requestedLocation = normalizeRouteLocation(route);
+  const expectedLocations = (Array.isArray(options.expectedLocation) ? options.expectedLocation : [options.expectedLocation ?? route]).map(
+    (value) => normalizeRouteLocation(value)
+  );
+  const expectedLocation = expectedLocations[0];
+  const navigationErrors: string[] = [];
+  const pageErrors: string[] = [];
+  const consoleErrors: string[] = [];
+  const requestFailures: string[] = [];
+  const failedResponses: string[] = [];
+  let suppressedAuthBootstrapResponseCount = 0;
+
+  const onPageError = (error: Error) => {
+    pageErrors.push(error.message);
+  };
+
+  const onConsole = (message: { type(): string; text(): string }) => {
+    if (message.type() !== 'error') {
+      return;
+    }
+
+    const text = message.text();
+    if (/favicon\.ico/i.test(text) || /ResizeObserver loop limit exceeded/i.test(text)) {
+      return;
+    }
+
+    if (
+      allowAuthBootstrapNoise &&
+      authBootstrapRequestPatterns.some((pattern) => pattern.test(text)) &&
+      /status of (?:401|403)/i.test(text)
+    ) {
+      return;
+    }
+
+    consoleErrors.push(text);
+  };
+
+  const onRequestFailed = (request: {
+    resourceType(): string;
+    url(): string;
+    failure(): { errorText?: string } | null;
+  }) => {
+    const resourceType = request.resourceType();
+    if (!routeErrorResourceTypes.has(resourceType)) {
+      return;
+    }
+
+    if (!runtimeOrigins.has(new URL(request.url()).origin)) {
+      return;
+    }
+
+    const failure = request.failure()?.errorText || 'unknown failure';
+    if (abortErrorPatterns.some((pattern) => pattern.test(failure))) {
+      return;
+    }
+
+    requestFailures.push(`${resourceType} ${request.url()} (${failure})`);
+  };
+
+  const onResponse = (response: {
+    url(): string;
+    status(): number;
+    request(): {
+      resourceType(): string;
+      method(): string;
+    };
+  }) => {
+    const request = response.request();
+    const resourceType = request.resourceType();
+    if (!routeErrorResourceTypes.has(resourceType)) {
+      return;
+    }
+
+    if (!runtimeOrigins.has(new URL(response.url()).origin)) {
+      return;
+    }
+
+    const status = response.status();
+    if (status < 400) {
+      return;
+    }
+
+    const url = response.url();
+    if (isRuntimeBootstrapAllowed(url, allowAuthBootstrapNoise) && (status === 401 || status === 403)) {
+      suppressedAuthBootstrapResponseCount += 1;
+      return;
+    }
+
+    failedResponses.push(`${resourceType} ${request.method()} ${url} (${status})`);
+  };
+
+  page.on('pageerror', onPageError);
+  page.on('console', onConsole);
+  page.on('requestfailed', onRequestFailed);
+  page.on('response', onResponse);
+
+  try {
+    try {
+      const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
+
+      if (!response) {
+        navigationErrors.push(`No document response was captured for ${requestedLocation}.`);
+      } else if (response.status() >= 400) {
+        navigationErrors.push(
+          `Document request for ${requestedLocation} returned ${response.status()} from ${response.url()}.`
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      navigationErrors.push(`Navigation to ${requestedLocation} failed: ${message}`);
+    }
+
+    await waitForSettledPage(page);
+
+    if (allowAuthBootstrapNoise && suppressedAuthBootstrapResponseCount > 0) {
+      const genericAuthBootstrapConsoleErrorPattern =
+        /Failed to load resource: the server responded with a status of (?:401|403) \((?:Unauthorized|Forbidden)\)/i;
+
+      for (let index = consoleErrors.length - 1; index >= 0; index -= 1) {
+        if (genericAuthBootstrapConsoleErrorPattern.test(consoleErrors[index])) {
+          consoleErrors.splice(index, 1);
+        }
+      }
+    }
+
+    const finalLocation = normalizeRouteLocation(page.url());
+    const routeTransitions = await readRouteTransitions(page);
+
+    if (!expectedLocations.includes(finalLocation)) {
+      navigationErrors.push(
+        `Final client location ${finalLocation} did not match expected ${expectedLocations.join(' or ')} for ${requestedLocation}.`
+      );
+    }
+
+    const sawWildcardFallback =
+      !allowWildcardFallback &&
+      requestedLocation !== '/' &&
+      routeTransitions.slice(1).some((location) => normalizeRouteLocation(location) === '/');
+
+    if (sawWildcardFallback) {
+      navigationErrors.push(
+        `Wildcard fallback redirect chain detected while loading ${requestedLocation}: ${formatRouteTransitions(routeTransitions)}.`
+      );
+    }
+
+    return {
+      requestedLocation,
+      expectedLocations,
+      expectedLocation,
+      finalLocation,
+      routeTransitions,
+      navigationErrors,
+      pageErrors,
+      consoleErrors,
+      requestFailures,
+      failedResponses,
+    };
+  } finally {
+    page.off('pageerror', onPageError);
+    page.off('console', onConsole);
+    page.off('requestfailed', onRequestFailed);
+    page.off('response', onResponse);
+  }
+}
+
+export function collectRouteRuntimeIssueMessages(snapshot: RouteRuntimeSnapshot): string[] {
+  return [
+    ...snapshot.navigationErrors,
+    ...snapshot.pageErrors.map((message) => `Page error: ${message}`),
+    ...snapshot.consoleErrors.map((message) => `Console error: ${message}`),
+    ...snapshot.requestFailures.map((message) => `Request failure: ${message}`),
+    ...snapshot.failedResponses.map((message) => `Failed response: ${message}`),
+  ];
+}
+
+export function buildRuntimeFindingsFromSnapshot(input: {
+  routeId: string;
+  routePath: string;
+  routeTitle: string;
+  surface: string;
+  snapshot: RouteRuntimeSnapshot;
+  recommendation: string;
+  screenshot?: string;
+  fixtureState?: string;
+}): AuditFinding[] {
+  return collectRouteRuntimeIssueMessages(input.snapshot).map((message) =>
+    runtimeFinding({
+      routeId: input.routeId,
+      routePath: input.routePath,
+      routeTitle: input.routeTitle,
+      surface: input.surface,
+      screenshot: input.screenshot,
+      fixtureState: input.fixtureState,
+      message,
+      recommendation: input.recommendation,
+    })
+  );
 }
 
 export async function assertDarkModeApplied(page: Page): Promise<boolean> {

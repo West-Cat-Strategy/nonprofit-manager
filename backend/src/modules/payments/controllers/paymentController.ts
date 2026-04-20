@@ -19,7 +19,6 @@ import type {
   CreateCustomerRequest,
   WebhookEvent,
 } from '@app-types/payment';
-import { badRequest, notFoundMessage, serverError } from '@utils/responseHelpers';
 
 // Database pool
 let pool: Pool;

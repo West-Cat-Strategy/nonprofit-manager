@@ -12,6 +12,11 @@ interface SignupRequestIdRow {
   id: string;
 }
 
+interface PortalSignupResolutionRow {
+  contact_id: string | null;
+  resolution_status: PortalSignupResolutionStatus;
+}
+
 export interface PortalLoginUserRow {
   id: string;
   email: string;
@@ -50,6 +55,13 @@ export interface PortalUserAuthRow {
   contact_id: string | null;
 }
 
+export type PortalSignupResolutionStatus = 'resolved' | 'needs_contact_resolution';
+
+export interface PortalSignupContactResolution {
+  contactId: string | null;
+  resolutionStatus: PortalSignupResolutionStatus;
+}
+
 export const findContactIdByEmail = async (email: string): Promise<string | null> => {
   const result = await pool.query<ContactIdRow>('SELECT id FROM contacts WHERE email = $1', [email]);
   return result.rows[0]?.id ?? null;
@@ -72,17 +84,27 @@ export const createContactForSignup = async (input: {
   return result.rows[0].id;
 };
 
-export const getOrCreateContactForSignup = async (input: {
+export const resolvePortalSignupContact = async (input: {
   firstName: string;
   lastName: string;
   email: string;
   phone?: string;
-}): Promise<string> => {
-  const result = await pool.query<ContactIdRow>(
-    'SELECT public.portal_resolve_signup_contact_id($1, $2, $3, $4) AS id',
+}): Promise<PortalSignupContactResolution> => {
+  const result = await pool.query<PortalSignupResolutionRow>(
+    `SELECT contact_id, resolution_status
+     FROM public.portal_resolve_signup_request($1, $2, $3, $4)`,
     [input.firstName, input.lastName, input.email, input.phone || null]
   );
-  return result.rows[0].id;
+
+  const row = result.rows[0];
+  if (!row) {
+    throw new Error('Portal signup resolution bridge returned no row');
+  }
+
+  return {
+    contactId: row.contact_id,
+    resolutionStatus: row.resolution_status,
+  };
 };
 
 export const findPortalUserIdByEmail = async (email: string): Promise<string | null> => {
@@ -99,15 +121,37 @@ export const findPendingSignupRequestIdByEmail = async (email: string): Promise<
 };
 
 export const createPortalSignupRequest = async (input: {
-  contactId: string;
+  contactId: string | null;
   email: string;
   passwordHash: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  resolutionStatus: PortalSignupResolutionStatus;
 }): Promise<string> => {
   const result = await pool.query<SignupRequestIdRow>(
-    `INSERT INTO portal_signup_requests (contact_id, email, password_hash, status)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO portal_signup_requests (
+       contact_id,
+       email,
+       password_hash,
+       first_name,
+       last_name,
+       phone,
+       status,
+       resolution_status
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING id`,
-    [input.contactId, input.email, input.passwordHash, 'pending']
+    [
+      input.contactId,
+      input.email,
+      input.passwordHash,
+      input.firstName,
+      input.lastName,
+      input.phone || null,
+      'pending',
+      input.resolutionStatus,
+    ]
   );
 
   return result.rows[0].id;

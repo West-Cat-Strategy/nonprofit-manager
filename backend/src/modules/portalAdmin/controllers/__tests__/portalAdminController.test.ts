@@ -5,6 +5,7 @@ import type { AuthRequest } from '@middleware/auth';
 import {
   approvePortalSignupRequest,
   createPortalInvitation,
+  listPortalSignupRequests,
   listPortalUsers,
   resetPortalUserPassword,
   updatePortalUserStatus,
@@ -114,6 +115,36 @@ describe('portalAdminController account-management flows', () => {
     mockGuardWithPermission.mockReturnValue(true);
   });
 
+  it('lists pending portal signup requests with stored signup identity and resolution status', async () => {
+    const rows = [
+      {
+        id: 'signup-1',
+        email: 'portal@example.com',
+        status: 'pending',
+        resolution_status: 'needs_contact_resolution',
+        requested_at: '2026-04-19T10:00:00.000Z',
+        reviewed_at: null,
+        contact_id: null,
+        first_name: 'Portal',
+        last_name: 'Member',
+        phone: '555-0101',
+      },
+    ];
+    const req = createRequest();
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery.mockResolvedValueOnce({ rows });
+
+    await listPortalSignupRequests(req, res, next);
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('psr.resolution_status')
+    );
+    expect(mockSendSuccess).toHaveBeenCalledWith(res, { requests: rows });
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it('blocks approval when the portal account already exists for the signup email', async () => {
     const req = createRequest({
       params: { id: 'signup-1' },
@@ -130,6 +161,7 @@ describe('portalAdminController account-management flows', () => {
             password_hash: 'hash',
             contact_id: 'contact-1',
             status: 'pending',
+            resolution_status: 'resolved',
           },
         ],
       })
@@ -141,6 +173,122 @@ describe('portalAdminController account-management flows', () => {
 
     expect(mockConflict).toHaveBeenCalledWith(res, 'Portal account already exists');
     expect(mockSendSuccess).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('requires contact_id to approve signup requests that need manual contact resolution', async () => {
+    const req = createRequest({
+      params: { id: 'signup-need-contact' },
+      body: {},
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'signup-need-contact',
+          email: 'portal@example.com',
+          password_hash: 'hash',
+          contact_id: null,
+          status: 'pending',
+          resolution_status: 'needs_contact_resolution',
+        },
+      ],
+    });
+
+    await approvePortalSignupRequest(req, res, next);
+
+    expect(mockBadRequest).toHaveBeenCalledWith(
+      res,
+      'contact_id is required when the signup request needs manual contact resolution'
+    );
+    expect(mockSendSuccess).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('rejects contact resolution choices that do not match the signup email', async () => {
+    const req = createRequest({
+      params: { id: 'signup-mismatch' },
+      body: { contact_id: 'contact-wrong' },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'signup-mismatch',
+            email: 'portal@example.com',
+            password_hash: 'hash',
+            contact_id: null,
+            status: 'pending',
+            resolution_status: 'needs_contact_resolution',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await approvePortalSignupRequest(req, res, next);
+
+    expect(mockBadRequest).toHaveBeenCalledWith(
+      res,
+      'Selected contact must match the signup request email'
+    );
+    expect(mockSendSuccess).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('approves manual contact resolution with the selected matching contact', async () => {
+    const req = createRequest({
+      params: { id: 'signup-approve' },
+      body: { contact_id: 'contact-2' },
+    });
+    const res = createResponse();
+    const next = createNext();
+
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'signup-approve',
+            email: 'portal@example.com',
+            password_hash: 'hash',
+            contact_id: null,
+            status: 'pending',
+            resolution_status: 'needs_contact_resolution',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ id: 'contact-2' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [{ id: 'portal-user-2', email: 'portal@example.com', contact_id: 'contact-2' }],
+      })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await approvePortalSignupRequest(req, res, next);
+
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('AND lower(email) = lower($2)'),
+      ['contact-2', 'portal@example.com']
+    );
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      4,
+      expect.stringContaining('INSERT INTO portal_users'),
+      ['contact-2', 'portal@example.com', 'hash', 'active', true, 'admin-1']
+    );
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      5,
+      expect.stringContaining("resolution_status = 'resolved'"),
+      ['signup-approve', 'admin-1', 'contact-2']
+    );
+    expect(mockSendSuccess).toHaveBeenCalledWith(res, {
+      message: 'Portal request approved',
+      portalUser: { id: 'portal-user-2', email: 'portal@example.com', contact_id: 'contact-2' },
+    });
     expect(next).not.toHaveBeenCalled();
   });
 

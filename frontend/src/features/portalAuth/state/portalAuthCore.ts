@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import portalApi from '../../../services/portalApi';
 import {
   clearPortalBootstrapSnapshot,
@@ -44,6 +44,13 @@ const normalizePortalUser = (payload: {
         ? payload.contact_id
         : null,
 });
+
+const applyPortalSessionUser = (state: PortalAuthState, user: PortalUser): void => {
+  state.token = null;
+  state.user = user;
+  state.error = null;
+  setPortalBootstrapSnapshot(user);
+};
 
 export const portalLogin = createAsyncThunk(
   'portalAuth/login',
@@ -92,6 +99,9 @@ const portalAuthSlice = createSlice({
       clearPortalBootstrapSnapshot();
       // Token is now in HTTP-only cookie; no need to remove from localStorage
     },
+    portalSessionSynced: (state, action: PayloadAction<PortalUser>) => {
+      applyPortalSessionUser(state, action.payload);
+    },
     clearPortalError: (state) => {
       state.error = null;
     },
@@ -104,11 +114,7 @@ const portalAuthSlice = createSlice({
       })
       .addCase(portalLogin.fulfilled, (state, action) => {
         state.loading = false;
-        // Token is now stored in HTTP-only cookie; don't store in Redux state
-        state.token = null;
-        state.user = action.payload;
-        setPortalBootstrapSnapshot(action.payload);
-        // Don't store token in localStorage anymore
+        applyPortalSessionUser(state, action.payload);
       })
       .addCase(portalLogin.rejected, (state, action) => {
         state.loading = false;
@@ -133,9 +139,7 @@ const portalAuthSlice = createSlice({
       })
       .addCase(portalFetchMe.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload;
-        setPortalBootstrapSnapshot(state.user);
-        state.error = null;
+        applyPortalSessionUser(state, action.payload);
       })
       .addCase(portalFetchMe.rejected, (state) => {
         state.loading = false;
@@ -151,5 +155,5 @@ const portalAuthSlice = createSlice({
   },
 });
 
-export const { portalLogout, clearPortalError } = portalAuthSlice.actions;
+export const { portalLogout, portalSessionSynced, clearPortalError } = portalAuthSlice.actions;
 export default portalAuthSlice.reducer;
