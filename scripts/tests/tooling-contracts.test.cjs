@@ -349,6 +349,23 @@ test('archive restore requires explicit confirmation before destructive work', (
   assert.match(`${result.stdout}\n${result.stderr}`, /Set DB_RESTORE_CONFIRM=1/);
 });
 
+test('archive export requires explicit risk confirmation for remote targets', () => {
+  const tempDir = createTempDir();
+  const archiveFile = path.join(tempDir, 'example.dump');
+
+  const result = run('bash', ['scripts/db-export-archive.sh', archiveFile], {
+    DB_HOST: 'db.example.test',
+    DB_PORT: '5432',
+    DB_NAME: 'nonprofit_manager',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(
+    `${result.stdout}\n${result.stderr}`,
+    /Set DB_EXPORT_RISK_CONFIRM=export:db\.example\.test:5432\/nonprofit_manager/
+  );
+});
+
 test('db-at-rest validation can load required production values from an env file', () => {
   const tempDir = createTempDir();
   const envFile = path.join(tempDir, 'db-at-rest.env');

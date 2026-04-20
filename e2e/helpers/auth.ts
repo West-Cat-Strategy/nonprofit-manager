@@ -1848,7 +1848,24 @@ export async function login(page: Page, email: string, password: string): Promis
     firstName: 'Test',
     lastName: 'User',
   });
-  await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+
+  const dashboardLink = page.locator('a[href="/dashboard"]').first();
+  const canReuseMountedShell = await dashboardLink.isVisible().catch(() => false);
+
+  if (canReuseMountedShell) {
+    try {
+      await dashboardLink.click({ timeout: 5000 });
+    } catch {
+      await dashboardLink.evaluate((node) => {
+        if (node instanceof HTMLElement) {
+          node.click();
+        }
+      });
+    }
+  } else {
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  }
+
   await expect(page).toHaveURL(/\/dashboard(?:[/?#]|$)/);
 }
 

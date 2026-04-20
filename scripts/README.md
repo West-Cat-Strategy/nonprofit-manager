@@ -1,6 +1,6 @@
 # Script Index
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 This directory contains the repo-local helpers used by the Makefile, deployment scripts, and docs workflow.
 Prefer the `make` targets when they exist. Call the scripts directly when you need the narrower entrypoint.
@@ -51,7 +51,8 @@ The three legacy deleted-path guards fail if `frontend/src/pages`, `frontend/src
 - `db-backup.sh` remains the recurring SQL and gzip backup path for the documented local-Postgres production modes.
 - Use the deployment guide's documented `gunzip -c ... | psql ...` flow for SQL-and-gzip restore drills.
 - `db-export-archive.sh` and `db-restore-archive.sh` are the one-off migration and disaster-recovery path when you need `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create`.
-- The archive restore helper requires `DB_RESTORE_CONFIRM=1` and defaults `DB_RESTORE_TARGET_DB=postgres` so the archive can recreate `nonprofit_manager`.
+- The archive export helper now requires `DB_EXPORT_RISK_CONFIRM=export:<host>:<port>/<db>` for risky targets such as production or direct remote-host exports.
+- The archive restore helper requires `DB_RESTORE_CONFIRM=1`, uses `DB_RESTORE_RISK_CONFIRM=restore:<host>:<port>/<db>` for risky restore targets, and defaults `DB_RESTORE_TARGET_DB=postgres` so the archive can recreate `nonprofit_manager`.
 - Compose-backed helpers reuse the existing `DB_COMPOSE_PROJECT`, `DB_COMPOSE_FILE`, and `DB_SERVICE` contract, and also accept `DB_COMPOSE_FILES="..."` when the target stack needs multiple compose manifests plus `DB_COMPOSE_ENV_FILE=.env.production` when the stack depends on a non-default env file.
 
 ## Common Validation Flow

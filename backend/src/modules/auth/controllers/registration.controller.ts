@@ -208,6 +208,7 @@ export const setupFirstUser = async (
       firstName,
       lastName,
     });
+    await syncUserRole(user.id, user.role);
 
     const trimmedOrgName = organizationName?.trim();
     const defaultOrgName = process.env.ORG_DEFAULT_NAME || 'Default Organization';

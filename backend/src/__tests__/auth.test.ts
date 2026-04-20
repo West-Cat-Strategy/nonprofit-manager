@@ -8,6 +8,7 @@ import { getRegistrationMode } from '@modules/admin/usecases/registrationSetting
 import { createPendingRegistration } from '@modules/admin/usecases/createPendingRegistrationUseCase';
 import { getPendingRegistrationByEmail } from '@modules/admin/repositories/pendingRegistrationRepository';
 import { setAccountLockState } from '@middleware/accountLockout';
+import { syncUserRole } from '@services/domains/integration';
 
 jest.mock('@utils/sessionTokens', () => ({
   issueAppSessionToken: jest.fn().mockReturnValue('mock-auth-token'),
@@ -581,6 +582,7 @@ describe('Auth API', () => {
           }),
         })
       );
+      expect(syncUserRole).toHaveBeenCalledWith('user-setup-1', 'admin');
       expect(next).not.toHaveBeenCalled();
     });
 

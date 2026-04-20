@@ -580,7 +580,7 @@ make db-verify
 - `self_hosted`
   - Set `BACKUP_DIR` to an absolute host path on the runtime host and document the operational risk acceptance alongside your backup schedule.
 
-For one-off migrations or disaster recovery that need a database-creating archive instead of the recurring SQL and gzip flow, use [db-export-archive.sh](../../scripts/db-export-archive.sh) and [db-restore-archive.sh](../../scripts/db-restore-archive.sh). Those helpers wrap `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create -d postgres`, honor `DB_COMPOSE_ENV_FILE` for production-like stacks, block managed-production usage, and require explicit restore confirmation variables before destructive restores.
+For one-off migrations or disaster recovery that need a database-creating archive instead of the recurring SQL and gzip flow, use [db-export-archive.sh](../../scripts/db-export-archive.sh) and [db-restore-archive.sh](../../scripts/db-restore-archive.sh). Those helpers wrap `pg_dump -Fc -C --no-owner --no-acl` and `pg_restore --clean --if-exists --create -d postgres`, honor `DB_COMPOSE_ENV_FILE` for production-like stacks, block managed-production usage, require `DB_EXPORT_RISK_CONFIRM=export:<host>:<port>/<db>` for risky archive exports, and require the explicit restore confirmation variables before destructive restores.
 
 ```bash
 ## Daily automated backup for local Postgres production modes

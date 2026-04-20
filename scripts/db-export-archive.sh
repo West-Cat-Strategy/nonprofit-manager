@@ -45,6 +45,14 @@ if [[ "${NODE_ENV:-}" == "production" ]]; then
   fi
 fi
 
+if [[ "${NODE_ENV:-}" == "production" || "$DB_HOST" != "postgres" ]]; then
+  expected_risk_confirmation="export:${DB_HOST}:${DB_PORT}/${DB_NAME}"
+  if [[ "${DB_EXPORT_RISK_CONFIRM:-}" != "$expected_risk_confirmation" ]]; then
+    echo "Risky export target detected. Set DB_EXPORT_RISK_CONFIRM=$expected_risk_confirmation to continue." >&2
+    exit 1
+  fi
+fi
+
 compose_db() {
   local -a compose_args=(-p "$DB_COMPOSE_PROJECT")
   local compose_file

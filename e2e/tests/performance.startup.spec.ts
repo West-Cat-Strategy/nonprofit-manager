@@ -189,7 +189,7 @@ test.describe('Startup Performance Guards', () => {
       await login(page, email, password);
       await expect(page).toHaveURL(dashboardUrl);
       await expect(
-        page.getByRole('heading', { name: /workbench overview|dashboard/i }).first()
+        page.getByRole('heading', { name: /^workbench$/i }).first()
       ).toBeVisible({ timeout: 10000 });
       await page.waitForTimeout(800);
       loadTimesMs.push(Date.now() - startedAt);
