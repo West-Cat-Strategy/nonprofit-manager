@@ -4,7 +4,7 @@
 
 
 **Current Phase:** Phase 5 - Hardening & Efficiency  
-**Live Snapshot:** 4 active rows: 0 In Progress, 0 Blocked, 1 Review, 3 Ready.
+**Live Snapshot:** 6 active rows: 0 In Progress, 0 Blocked, 1 Review, 5 Ready.
 **History:** Historical roadmap, logs, trackers, and legacy reference sections moved to [archive/WORKBOARD_HISTORY_2026.md](archive/WORKBOARD_HISTORY_2026.md). The 2026-04-20 lean-board removals and reroutes are recorded in [P4_CLOSEOUT_BATCH_2026-04-20.md](P4_CLOSEOUT_BATCH_2026-04-20.md).
 **Recent thread follow-through:** 0 rows.
 
