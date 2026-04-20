@@ -36,7 +36,7 @@ jest.mock('@config/database', () => {
     __esModule: true,
     default: db,
     withUserContextTransaction: jest.fn(async (userId, fn) => fn({ query })),
-    withDatabaseTransaction: jest.fn(async (fn, options) => fn({ query })),
+    withDatabaseTransaction: jest.fn(async (fn, _options) => fn({ query })),
   };
 });
 

@@ -354,6 +354,10 @@ export const authenticate = (
       await hydrateAuthorizationContext(req, sessionUser, normalizedRole, organizationId);
       next();
     } catch (error) {
+      logger.error('Authentication middleware failed', {
+        error: error instanceof Error ? error.message : String(error),
+        path: req.path,
+      });
       return unauthorized(res, 'Invalid or expired token');
     }
   })();

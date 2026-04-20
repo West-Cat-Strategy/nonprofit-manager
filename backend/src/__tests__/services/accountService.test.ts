@@ -26,7 +26,7 @@ jest.mock('../../config/database', () => ({
       throw e;
     }
   }),
-  withDatabaseTransaction: jest.fn().mockImplementation(async (fn, options) => {
+  withDatabaseTransaction: jest.fn().mockImplementation(async (fn, _options) => {
     await currentMockClient.query('BEGIN');
     try {
       const result = await fn(currentMockClient);

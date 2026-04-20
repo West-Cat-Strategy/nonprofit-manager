@@ -57,7 +57,7 @@ export function piiFieldAccessControl(piiService: PIIService, tableName?: string
       // Pre-fetch field access rules for the current user's role
       // This is the only async part and happens BEFORE the controller
       const userRole = normalizeRole(req.user?.role);
-      const rules = await (piiService as any).getFieldAccessRules(effectiveTableName, userRole);
+      const rules = await piiService.getFieldAccessRules(effectiveTableName, userRole);
       
       res.json = function (data: any) {
         // Apply field-level access control to response data synchronously

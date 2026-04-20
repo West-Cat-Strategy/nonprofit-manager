@@ -1,4 +1,5 @@
 import { FollowUpService } from '@services/followUpService';
+import * as helpers from '../services/followUpService.helpers';
 
 type MockDb = {
   query: jest.Mock;
@@ -250,7 +251,6 @@ describe('FollowUpService', () => {
     };
     db.connect.mockResolvedValueOnce(client);
 
-    const helpers = require('../services/followUpService.helpers');
     const upsertSpy = jest
       .spyOn(helpers, 'upsertNotificationForFollowUp')
       .mockResolvedValue(undefined);
@@ -284,7 +284,6 @@ describe('FollowUpService', () => {
     };
     db.connect.mockResolvedValueOnce(client);
 
-    const helpers = require('../services/followUpService.helpers');
     const upsertSpy = jest
       .spyOn(helpers, 'upsertNotificationForFollowUp')
       .mockResolvedValue(undefined);
@@ -320,7 +319,6 @@ describe('FollowUpService', () => {
     };
     db.connect.mockResolvedValueOnce(client);
 
-    const helpers = require('../services/followUpService.helpers');
     const upsertSpy = jest
       .spyOn(helpers, 'upsertNotificationForFollowUp')
       .mockResolvedValue(undefined);

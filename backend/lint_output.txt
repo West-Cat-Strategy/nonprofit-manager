@@ -1,0 +1,20 @@
+
+/Users/bryan/projects/nonprofit-manager/backend/src/__tests__/auth.test.ts
+  39:49  error  'options' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/bryan/projects/nonprofit-manager/backend/src/__tests__/integration/portalWorkspace.test.ts
+  22:7  error  'eventRegistrationId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/bryan/projects/nonprofit-manager/backend/src/__tests__/services/accountService.test.ts
+  29:68  error  'options' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/Users/bryan/projects/nonprofit-manager/backend/src/middleware/auth.ts
+  356:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/bryan/projects/nonprofit-manager/backend/src/modules/followUps/__tests__/followUpService.test.ts
+  253:21  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  287:21  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  323:21  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 7 problems (7 errors, 0 warnings)
+

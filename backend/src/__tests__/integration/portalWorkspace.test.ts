@@ -19,7 +19,6 @@ describe('Portal Workspace Integration', () => {
   let contactDocumentId: string;
   let appointmentId: string;
   let eventId: string;
-  let eventRegistrationId: string;
   let threadId: string;
   let organizationId: string;
   const createdCaseDocumentIds: string[] = [];
@@ -202,7 +201,7 @@ describe('Portal Workspace Integration', () => {
     );
     const occurrenceId = occurrenceResult.rows[0].id as string;
 
-    const eventRegistrationResult = await pool.query(
+    await pool.query(
       `INSERT INTO event_registrations (
          event_id,
          occurrence_id,
@@ -214,7 +213,6 @@ describe('Portal Workspace Integration', () => {
        RETURNING id`,
       [eventId, occurrenceId, contactId]
     );
-    eventRegistrationId = eventRegistrationResult.rows[0].id as string;
 
     const threadResult = await pool.query(
       `INSERT INTO portal_threads (

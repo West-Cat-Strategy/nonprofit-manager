@@ -236,6 +236,13 @@ beforeAll(async () => {
     await assertTestSchemaReady(dbClient);
     process.env[DB_COMPAT_SETUP_FLAG] = 'true';
   } catch (error) {
+    if (error instanceof AggregateError || (error && typeof error === 'object' && (error as any).name === 'AggregateError')) {
+      const aggError = error as AggregateError;
+      const messages = (aggError.errors || []).map((e: any) => formatErrorMessage(e)).join('; ');
+      throw new Error(
+        `Unable to prepare the test database for Jest (AggregateError): ${messages || 'No nested errors found'}`
+      );
+    }
     throw new Error(
       `Unable to prepare the test database for Jest: ${formatErrorMessage(error)}`
     );

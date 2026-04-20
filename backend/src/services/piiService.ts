@@ -132,7 +132,7 @@ export class PIIService {
   /**
    * Load field-level access rules for a table + role, with short-lived caching
    */
-  private async getFieldAccessRules(
+  public async getFieldAccessRules(
     tableName: string,
     userRole?: string
   ): Promise<Map<string, FieldAccessRule>> {
