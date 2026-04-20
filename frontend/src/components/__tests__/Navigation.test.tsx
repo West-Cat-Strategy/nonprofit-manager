@@ -23,9 +23,9 @@ const {
 const primaryItems = [
   {
     id: 'dashboard',
-    name: 'Dashboard',
+    name: 'Workbench',
     path: '/dashboard',
-    shortLabel: 'Home',
+    shortLabel: 'Workbench',
   },
   {
     id: 'contacts',
@@ -121,7 +121,7 @@ const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
   },
   canOpenAdminSettings: true,
   currentLocation: (overrides.currentLocation as string) || '/dashboard',
-  currentRouteTitle: 'Dashboard',
+  currentRouteTitle: 'Workbench',
   handleLogout: handleLogoutMock,
   isNavItemActive: (id: string, path: string) => {
     const activeLocation = (overrides.currentLocation as string) || '/dashboard';
@@ -185,7 +185,7 @@ describe('Navigation', () => {
     expect(screen.getByRole('navigation', { name: /global navigation/i })).toHaveClass(
       'app-shell-surface-opaque'
     );
-    expect(screen.getByRole('link', { name: /^home$/i })).toHaveAttribute('href', '/dashboard');
+    expect(screen.getByRole('link', { name: /^workbench$/i })).toHaveAttribute('href', '/dashboard');
     expect(screen.getByRole('link', { name: /^people$/i })).toHaveAttribute('href', '/contacts');
     expect(screen.getByRole('link', { name: /^events$/i })).toHaveAttribute('href', '/events');
 

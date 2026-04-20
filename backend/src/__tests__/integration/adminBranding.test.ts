@@ -92,7 +92,12 @@ describe('Admin Branding API', () => {
       .set('Authorization', `Bearer ${userToken}`);
 
     expect(response.status).toBe(200);
-    expect(typeof response.body).toBe('object');
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        success: true,
+        data: expect.any(Object),
+      })
+    );
   });
 
   it('rejects non-admin updates', async () => {
@@ -108,6 +113,14 @@ describe('Admin Branding API', () => {
       });
 
     expect(response.status).toBe(403);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        success: false,
+        error: expect.objectContaining({
+          code: 'forbidden',
+        }),
+      })
+    );
   });
 
   it('allows admin to update branding and returns persisted config', async () => {
@@ -125,6 +138,8 @@ describe('Admin Branding API', () => {
       .send(payload);
 
     expect(putResponse.status).toBe(200);
+    expect(putResponse.body.success).toBe(true);
+    expect(putResponse.body.data).toEqual(expect.objectContaining(payload));
     expect(putResponse.body.appName).toBe(payload.appName);
     expect(putResponse.body.primaryColour).toBe(payload.primaryColour);
 
@@ -133,6 +148,8 @@ describe('Admin Branding API', () => {
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(getResponse.status).toBe(200);
+    expect(getResponse.body.success).toBe(true);
+    expect(getResponse.body.data).toEqual(expect.objectContaining(payload));
     expect(getResponse.body.appName).toBe(payload.appName);
     expect(getResponse.body.secondaryColour).toBe(payload.secondaryColour);
   });

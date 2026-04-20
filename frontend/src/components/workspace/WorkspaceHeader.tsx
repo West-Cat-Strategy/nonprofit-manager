@@ -7,7 +7,7 @@ export default function WorkspaceHeader() {
 
   return (
     <SurfaceContextBar
-      showLocalNavigation={false}
+      showLocalNavigation
       shortcuts={shortcuts.map((item) => ({
         id: item.id,
         label: item.shortLabel ?? item.name,

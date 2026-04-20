@@ -491,16 +491,16 @@ function WorkbenchDashboardContent() {
   };
 
   return (
-    <NeoBrutalistLayout pageTitle="WORKBENCH OVERVIEW">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <header className="rounded-3xl border border-app-border/70 bg-app-surface/90 p-6 shadow-sm">
+    <NeoBrutalistLayout pageTitle="WORKBENCH">
+      <div className="mx-auto max-w-7xl px-4 pb-6 pt-4 sm:px-6 sm:py-8 lg:px-8">
+        <header className="rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-text-subtle">
                 Staff workspace
               </p>
               <h1 className="mt-2 text-3xl font-black uppercase tracking-[0.03em] text-app-text-heading sm:text-4xl">
-                Workbench Overview
+                Workbench
               </h1>
               <p className="mt-3 text-sm leading-6 text-app-text-muted sm:text-base">
                 Start from the work that needs attention, then jump into the modules and shortcuts you use every day.

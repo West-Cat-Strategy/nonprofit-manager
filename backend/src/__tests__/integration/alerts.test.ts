@@ -36,14 +36,32 @@ describe('Alerts API Integration', () => {
     await pool.query('DELETE FROM users WHERE id = $1', [TEST_USER_ID]);
   });
   it('rejects unauthenticated access', async () => {
-    await request(app).get('/api/v2/alerts/configs').expect(401);
+    const response = await request(app).get('/api/v2/alerts/configs').expect(401);
+
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        success: false,
+        error: expect.objectContaining({
+          code: 'unauthorized',
+        }),
+      })
+    );
   });
 
   it('rejects unauthenticated alert creation', async () => {
-    await request(app)
+    const response = await request(app)
       .post('/api/v2/alerts/configs')
       .send({ name: 'A', metric_type: 'donations', condition: 'exceeds', frequency: 'daily', channels: ['email'], severity: 'low' })
       .expect(401);
+
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        success: false,
+        error: expect.objectContaining({
+          code: 'unauthorized',
+        }),
+      })
+    );
   });
 
   it('validates alert config payload for authenticated requests', async () => {
@@ -61,6 +79,11 @@ describe('Alerts API Integration', () => {
 
     expect(response.body).toHaveProperty('success', false);
     expect(response.body).toHaveProperty('error.code', 'validation_error');
+    expect(response.body.error.details.validation.body).toEqual(
+      expect.objectContaining({
+        name: expect.any(Array),
+      })
+    );
   });
 
   it('validates alert instance query bounds for authenticated requests', async () => {
@@ -71,5 +94,10 @@ describe('Alerts API Integration', () => {
 
     expect(response.body).toHaveProperty('success', false);
     expect(response.body).toHaveProperty('error.code', 'validation_error');
+    expect(response.body.error.details.validation.query).toEqual(
+      expect.objectContaining({
+        limit: expect.any(Array),
+      })
+    );
   });
 });

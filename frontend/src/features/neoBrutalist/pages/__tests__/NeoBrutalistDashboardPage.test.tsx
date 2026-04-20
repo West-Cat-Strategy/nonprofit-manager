@@ -178,14 +178,14 @@ vi.mock('../../../../hooks/useNavigationPreferences', () => ({
     enabledItems: [
       {
         id: 'dashboard',
-        name: 'Dashboard',
+        name: 'Workbench',
         path: '/dashboard',
         icon: '📊',
         enabled: true,
         pinned: false,
         isCore: true,
-        shortLabel: 'Home',
-        ariaLabel: 'Dashboard',
+        shortLabel: 'Workbench',
+        ariaLabel: 'Workbench',
       },
       {
         id: 'cases',
@@ -251,7 +251,7 @@ describe('NeoBrutalistDashboard', () => {
 
     renderWithProviders(<NeoBrutalistDashboard />, { store, route: '/dashboard' });
 
-    expect(screen.getByRole('heading', { name: /workbench overview/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /workbench/i })).toBeInTheDocument();
     expect(screen.getByText('Workspace Summary')).toBeInTheDocument();
     expect(screen.getByText('Focus Queue')).toBeInTheDocument();
     expect(screen.getByText('Pinned Shortcuts')).toBeInTheDocument();

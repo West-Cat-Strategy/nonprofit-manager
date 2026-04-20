@@ -92,6 +92,7 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
     [searchParams]
   );
   const appliedSearch = searchParams.get('search') ?? '';
+  const selectedDateParam = searchParams.get('date');
   const selectedEventType = searchParams.get('type') ?? '';
   const selectedStatus = normalizeEventStatus(searchParams.get('status'));
   const selectedScope = normalizeScope(searchParams.get('scope'), isAdmin);
@@ -226,6 +227,28 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
     () => getSelectedDateEntries(entries, selectedDate),
     [entries, selectedDate]
   );
+
+  useEffect(() => {
+    if (selectedDateParam || entries.length === 0 || selectedDateEntries.length > 0) {
+      return;
+    }
+
+    const nextEntry =
+      entries.find((entry) => {
+        const entryDate = parseValidIsoDate(entry.start);
+        return entryDate ? formatMonthParam(entryDate) === formatMonthParam(visibleMonth) : false;
+      }) ?? entries[0];
+
+    const nextDate = parseValidIsoDate(nextEntry?.start);
+    if (!nextDate) {
+      return;
+    }
+
+    writeSearchParams({
+      month: formatMonthParam(nextDate),
+      date: formatDateParam(nextDate),
+    });
+  }, [entries, selectedDateEntries, selectedDateParam, visibleMonth, writeSearchParams]);
 
   useEffect(() => {
     setSelectedEntryId((current) =>

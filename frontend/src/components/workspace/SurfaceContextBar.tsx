@@ -28,12 +28,15 @@ export default function SurfaceContextBar({
   const location = useLocation();
   const routeMeta = getRouteMeta(`${location.pathname}${location.search}`);
   const browseLabel = routeMeta.surface === 'portal' ? 'Browse portal' : 'Browse workspace';
+  const suppressMobilePrimaryAction = routeMeta.surface === 'staff' && routeMeta.area === 'Home';
   const mobilePrimaryAction = routeMeta.primaryAction
-    ? {
-        label: routeMeta.primaryAction.label,
-        to: routeMeta.primaryAction.path,
-        emphasis: 'primary' as const,
-      }
+    ? suppressMobilePrimaryAction
+      ? null
+      : {
+          label: routeMeta.primaryAction.label,
+          to: routeMeta.primaryAction.path,
+          emphasis: 'primary' as const,
+        }
     : secondaryAction
       ? {
           label: secondaryAction.label,
@@ -48,8 +51,8 @@ export default function SurfaceContextBar({
 
   return (
     <section className="border-b border-app-border bg-app-surface shadow-sm">
-      <div className="mx-auto max-w-[1920px] px-3 py-2 sm:px-4 sm:py-3 lg:px-6">
-        <div className="space-y-2 md:hidden">
+      <div className="mx-auto max-w-[1920px] px-3 py-1.5 sm:px-4 sm:py-3 lg:px-6">
+        <div className="space-y-1.5 md:hidden">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-2">
               <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-subtle">
@@ -121,18 +124,41 @@ export default function SurfaceContextBar({
             </Link>
           ) : null}
 
-          {showLocalNavigation && routeMeta.surface === 'portal' && routeMeta.localNavigation.length > 0 ? (
-            <details className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated shadow-sm">
-              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-app-text-heading">
-                {browseLabel}
-              </summary>
-              <nav aria-label={browseLabel} className="space-y-2 border-t border-app-border px-3 py-3">
+          {showLocalNavigation && routeMeta.localNavigation.length > 0 ? (
+            routeMeta.surface === 'portal' ? (
+              <details className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated shadow-sm">
+                <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-app-text-heading">
+                  {browseLabel}
+                </summary>
+                <nav aria-label={browseLabel} className="space-y-2 border-t border-app-border px-3 py-3">
+                  {routeMeta.localNavigation.map((item) => (
+                    <Link
+                      key={item.id}
+                      to={item.href}
+                      aria-current={item.isActive ? 'page' : undefined}
+                      className={`flex items-center gap-2 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm font-medium transition ${
+                        item.isActive
+                          ? 'app-accent-contrast-ink border border-app-accent bg-app-accent shadow-sm'
+                          : 'border border-app-border bg-app-surface text-app-text hover:bg-app-surface-muted hover:text-app-text-heading'
+                      }`}
+                    >
+                      {item.icon ? <span aria-hidden="true">{item.icon}</span> : null}
+                      <span>{item.shortLabel}</span>
+                    </Link>
+                  ))}
+                </nav>
+              </details>
+            ) : (
+              <nav
+                aria-label={browseLabel}
+                className="flex gap-2 overflow-x-auto rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-elevated px-3 py-2 shadow-sm [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              >
                 {routeMeta.localNavigation.map((item) => (
                   <Link
                     key={item.id}
                     to={item.href}
                     aria-current={item.isActive ? 'page' : undefined}
-                    className={`flex items-center gap-2 rounded-[var(--ui-radius-sm)] px-3 py-2 text-sm font-medium transition ${
+                    className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition ${
                       item.isActive
                         ? 'app-accent-contrast-ink border border-app-accent bg-app-accent shadow-sm'
                         : 'border border-app-border bg-app-surface text-app-text hover:bg-app-surface-muted hover:text-app-text-heading'
@@ -143,7 +169,7 @@ export default function SurfaceContextBar({
                   </Link>
                 ))}
               </nav>
-            </details>
+            )
           ) : null}
         </div>
 

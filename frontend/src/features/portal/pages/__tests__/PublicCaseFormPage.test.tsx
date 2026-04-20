@@ -135,7 +135,11 @@ describe('PublicCaseFormPage', () => {
       'href',
       '/api/v2/public/case-forms/token-1/response-packet'
     );
-    expect(screen.queryByRole('button', { name: /submit form/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/you can still update this secure form and resubmit it until staff finish reviewing the submission/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /resubmit form/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save draft/i })).toBeInTheDocument();
   });
 
   it('offers retry recovery when the secure form fails to load', async () => {

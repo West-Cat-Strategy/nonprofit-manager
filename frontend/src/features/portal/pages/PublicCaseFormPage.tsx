@@ -19,6 +19,7 @@ import { publicCaseFormsApiClient } from '../api/publicCaseFormsApiClient';
 import { formatPortalDateTime } from '../utils/dateDisplay';
 
 const SUBMISSION_RECEIPT_STATUSES = new Set(['submitted', 'reviewed']);
+const LOCKED_RECEIPT_STATUSES = new Set(['reviewed']);
 const INACTIVE_STATUSES = new Set(['expired', 'cancelled', 'closed']);
 
 const getUnavailableCopy = (status: string | null | undefined) => {
@@ -173,7 +174,9 @@ export default function PublicCaseFormPage() {
   const assignment = detail?.assignment ?? null;
   const assignmentStatus = assignment?.status ?? null;
   const isReceiptState = assignmentStatus ? SUBMISSION_RECEIPT_STATUSES.has(assignmentStatus) : false;
+  const isLockedReceiptState = assignmentStatus ? LOCKED_RECEIPT_STATUSES.has(assignmentStatus) : false;
   const isUnavailableState = assignmentStatus ? INACTIVE_STATUSES.has(assignmentStatus) : false;
+  const isSubmittedAwaitingReview = assignmentStatus === 'submitted';
   const statusLabel = assignmentStatus ? assignmentStatus.replaceAll('_', ' ') : null;
   const submittedAtLabel = assignment?.submitted_at
     ? formatPortalDateTime(assignment.submitted_at)
@@ -252,10 +255,13 @@ export default function PublicCaseFormPage() {
 
               {isReceiptState ? (
                 <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-app-accent-soft px-4 py-4 text-sm text-app-accent-text">
-                  <p className="font-medium">Submission received.</p>
+                  <p className="font-medium">
+                    {isSubmittedAwaitingReview ? 'Submission received.' : 'Submission reviewed.'}
+                  </p>
                   <p className="mt-1 text-app-text-muted">
-                    This secure form has already been submitted. Review your responses below or
-                    download the submission packet for your records.
+                    {isSubmittedAwaitingReview
+                      ? 'You can still update this secure form and resubmit it until staff finish reviewing the submission.'
+                      : 'This secure form is now read-only. Review your responses below or download the submission packet for your records.'}
                   </p>
                 </div>
               ) : null}
@@ -273,7 +279,7 @@ export default function PublicCaseFormPage() {
               answers={draftAnswers}
               assets={assets}
               variant="public"
-              disabled={Boolean(isReceiptState || isUnavailableState) || saving}
+              disabled={Boolean(isLockedReceiptState || isUnavailableState) || saving}
               onAnswerChange={(questionKey, value) =>
                 setDraftAnswers((current) => ({
                   ...current,
@@ -283,7 +289,7 @@ export default function PublicCaseFormPage() {
               onUploadAsset={handleUploadAsset}
             />
 
-            {!isReceiptState && !isUnavailableState ? (
+            {!isLockedReceiptState && !isUnavailableState ? (
               <div className="flex flex-wrap gap-3">
                 <SecondaryButton
                   type="button"
@@ -297,7 +303,7 @@ export default function PublicCaseFormPage() {
                   onClick={() => void handleSubmit()}
                   disabled={saving}
                 >
-                  {saving ? 'Submitting...' : 'Submit Form'}
+                  {saving ? 'Submitting...' : isSubmittedAwaitingReview ? 'Resubmit Form' : 'Submit Form'}
                 </PrimaryButton>
               </div>
             ) : null}

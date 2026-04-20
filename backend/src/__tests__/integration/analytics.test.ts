@@ -21,7 +21,7 @@ describe('Analytics API Integration Tests', () => {
   const createdOccurrenceIds: string[] = [];
   const createdRegistrationIds: string[] = [];
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const unwrap = <T>(body: unknown): T => {
+  const unwrapEnvelopeData = <T>(body: unknown): T => {
     if (body && typeof body === 'object' && 'data' in (body as Record<string, unknown>)) {
       return (body as { data: T }).data;
     }
@@ -39,7 +39,7 @@ describe('Analytics API Integration Tests', () => {
       last_name: 'Test',
     });
 
-    const registerPayload = unwrap<{
+    const registerPayload = unwrapEnvelopeData<{
       token?: string;
       user?: { id: string; email: string; role: string };
       organizationId?: string;
@@ -151,19 +151,43 @@ describe('Analytics API Integration Tests', () => {
     it('should reject invalid UUID in account analytics', async () => {
       const response = await request(app)
         .get('/api/v2/analytics/accounts/not-a-uuid')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
 
-      // Either 400 (proper validation) or 500 (unhandled database error)
-      expect([400, 500]).toContain(response.status);
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'validation_error',
+          }),
+        })
+      );
+      expect(response.body.error.details.validation.params).toEqual(
+        expect.objectContaining({
+          id: expect.any(Array),
+        })
+      );
     });
 
     it('should reject invalid UUID in contact analytics', async () => {
       const response = await request(app)
         .get('/api/v2/analytics/contacts/not-a-uuid')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
 
-      // Either 400 (proper validation) or 500 (unhandled database error)
-      expect([400, 500]).toContain(response.status);
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'validation_error',
+          }),
+        })
+      );
+      expect(response.body.error.details.validation.params).toEqual(
+        expect.objectContaining({
+          id: expect.any(Array),
+        })
+      );
     });
   });
 
@@ -174,7 +198,15 @@ describe('Analytics API Integration Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'not_found',
+            message: 'Account not found',
+          }),
+        })
+      );
     });
 
     it('should return 404 for non-existent contact', async () => {
@@ -183,7 +215,15 @@ describe('Analytics API Integration Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
-      expect(response.body).toHaveProperty('error');
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          success: false,
+          error: expect.objectContaining({
+            code: 'not_found',
+            message: 'Contact not found',
+          }),
+        })
+      );
     });
   });
 
@@ -199,7 +239,13 @@ describe('Analytics API Integration Tests', () => {
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
-        const trends = unwrap<unknown[]>(response.body);
+        expect(response.body).toEqual(
+          expect.objectContaining({
+            success: true,
+            data: expect.any(Array),
+          })
+        );
+        const trends = unwrapEnvelopeData<unknown[]>(response.body);
         expect(Array.isArray(trends)).toBe(true);
         // Should return array of monthly data (empty or with data)
         if (trends.length > 0) {
@@ -215,7 +261,13 @@ describe('Analytics API Integration Tests', () => {
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
-        const trends = unwrap<unknown[]>(response.body);
+        expect(response.body).toEqual(
+          expect.objectContaining({
+            success: true,
+            data: expect.any(Array),
+          })
+        );
+        const trends = unwrapEnvelopeData<unknown[]>(response.body);
         expect(Array.isArray(trends)).toBe(true);
         // Should return at most 6 months of data
         expect(trends.length).toBeLessThanOrEqual(6);
@@ -227,7 +279,13 @@ describe('Analytics API Integration Tests', () => {
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
-        const trends = unwrap<unknown[]>(response.body);
+        expect(response.body).toEqual(
+          expect.objectContaining({
+            success: true,
+            data: expect.any(Array),
+          })
+        );
+        const trends = unwrapEnvelopeData<unknown[]>(response.body);
         expect(Array.isArray(trends)).toBe(true);
         // Should return at most 24 months of data
         expect(trends.length).toBeLessThanOrEqual(24);
@@ -250,7 +308,13 @@ describe('Analytics API Integration Tests', () => {
         expect([200, 500]).toContain(response.status);
 
         if (response.status === 200) {
-          const trends = unwrap<unknown[]>(response.body);
+          expect(response.body).toEqual(
+            expect.objectContaining({
+              success: true,
+              data: expect.any(Array),
+            })
+          );
+          const trends = unwrapEnvelopeData<unknown[]>(response.body);
           expect(Array.isArray(trends)).toBe(true);
           if (trends.length > 0) {
             expect(trends[0]).toHaveProperty('month');
@@ -335,7 +399,13 @@ describe('Analytics API Integration Tests', () => {
           .set('Authorization', `Bearer ${authToken}`)
           .expect(200);
 
-        const trends = unwrap<
+        expect(response.body).toEqual(
+          expect.objectContaining({
+            success: true,
+            data: expect.any(Array),
+          })
+        );
+        const trends = unwrapEnvelopeData<
           Array<{
             month: string;
             total_events: number;

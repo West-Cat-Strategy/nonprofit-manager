@@ -12,6 +12,15 @@ import type {
 import CaseFormRenderer from '../../cases/components/CaseFormRenderer';
 import { portalCaseFormsApiClient } from '../api/portalCaseFormsApiClient';
 
+const COMPLETED_FORM_STATUSES = new Set<CaseFormAssignment['status']>([
+  'reviewed',
+  'closed',
+  'expired',
+  'cancelled',
+]);
+
+const RECEIPT_FORM_STATUSES = new Set<CaseFormAssignment['status']>(['submitted', 'reviewed']);
+
 export default function PortalForms() {
   const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(true);
@@ -42,8 +51,10 @@ export default function PortalForms() {
   }, [showError]);
 
   const loadDetail = useCallback(async (assignmentId: string): Promise<void> => {
+    setError(null);
     try {
       const nextDetail = await portalCaseFormsApiClient.getForm(assignmentId);
+      setError(null);
       setDetail(nextDetail);
       setDraftAnswers(nextDetail.assignment.current_draft_answers || {});
     } catch (error) {
@@ -57,21 +68,37 @@ export default function PortalForms() {
     void loadForms();
   }, [loadForms]);
 
-  useEffect(() => {
-    if (selectedAssignmentId) {
-      void loadDetail(selectedAssignmentId);
-    } else {
-      setDetail(null);
-    }
-  }, [loadDetail, selectedAssignmentId]);
-
   const isCompletedStatus = (status: string): boolean =>
-    ['submitted', 'reviewed', 'closed', 'expired', 'cancelled'].includes(status);
+    COMPLETED_FORM_STATUSES.has(status as CaseFormAssignment['status']);
 
   const visibleForms = useMemo(
     () => forms.filter((form) => (filter === 'active' ? !isCompletedStatus(form.status) : isCompletedStatus(form.status))),
     [filter, forms]
   );
+
+  const visibleSelectionId = useMemo(() => {
+    if (selectedAssignmentId && visibleForms.some((form) => form.id === selectedAssignmentId)) {
+      return selectedAssignmentId;
+    }
+
+    return visibleForms[0]?.id ?? null;
+  }, [selectedAssignmentId, visibleForms]);
+
+  useEffect(() => {
+    if (selectedAssignmentId !== visibleSelectionId) {
+      setSelectedAssignmentId(visibleSelectionId);
+    }
+  }, [selectedAssignmentId, visibleSelectionId]);
+
+  useEffect(() => {
+    if (visibleSelectionId) {
+      void loadDetail(visibleSelectionId);
+      return;
+    }
+
+    setDetail(null);
+    setDraftAnswers({});
+  }, [loadDetail, visibleSelectionId]);
 
   const assets = useMemo(() => {
     if (!detail) return [];
@@ -83,7 +110,11 @@ export default function PortalForms() {
 
   const isLocked =
     detail?.assignment.status &&
-    ['submitted', 'reviewed', 'closed', 'expired', 'cancelled'].includes(detail.assignment.status);
+    COMPLETED_FORM_STATUSES.has(detail.assignment.status as CaseFormAssignment['status']);
+  const isReceiptState =
+    detail?.assignment.status &&
+    RECEIPT_FORM_STATUSES.has(detail.assignment.status as CaseFormAssignment['status']);
+  const isSubmittedAwaitingReview = detail?.assignment.status === 'submitted';
 
   const handleUploadAsset = async (
     question: CaseFormQuestion,
@@ -183,6 +214,7 @@ export default function PortalForms() {
               <button
                 type="button"
                 onClick={() => setFilter('active')}
+                aria-pressed={filter === 'active'}
                 className={`rounded border px-3 py-2 text-xs font-semibold uppercase ${
                   filter === 'active' ? 'border-app-text bg-app-text text-white' : 'border-app-border'
                 }`}
@@ -192,6 +224,7 @@ export default function PortalForms() {
               <button
                 type="button"
                 onClick={() => setFilter('completed')}
+                aria-pressed={filter === 'completed'}
                 className={`rounded border px-3 py-2 text-xs font-semibold uppercase ${
                   filter === 'completed' ? 'border-app-text bg-app-text text-white' : 'border-app-border'
                 }`}
@@ -199,35 +232,47 @@ export default function PortalForms() {
                 Completed
               </button>
             </div>
-
-            <ul className="space-y-3">
-              {visibleForms.map((form) => (
-                <li key={form.id}>
-                  <PortalListCard
-                    title={form.title}
-                    subtitle={form.status.replace('_', ' ')}
-                    meta={
-                      form.submitted_at
-                        ? `Submitted ${new Date(form.submitted_at).toLocaleString()}`
-                        : form.sent_at
-                          ? `Sent ${new Date(form.sent_at).toLocaleString()}`
-                          : `Updated ${new Date(form.updated_at).toLocaleString()}`
-                    }
-                    actions={
-                      <button
-                        type="button"
-                        onClick={() => setSelectedAssignmentId(form.id)}
-                        className="rounded border border-app-input-border px-2 py-1 text-xs"
-                      >
-                        Open
-                      </button>
-                    }
-                  >
-                    {form.description && <p className="text-sm text-app-text-muted">{form.description}</p>}
-                  </PortalListCard>
-                </li>
-              ))}
-            </ul>
+            {visibleForms.length > 0 ? (
+              <ul className="space-y-3">
+                {visibleForms.map((form) => (
+                  <li key={form.id}>
+                    <PortalListCard
+                      title={form.title}
+                      subtitle={form.status.replace('_', ' ')}
+                      meta={
+                        form.submitted_at
+                          ? `Submitted ${new Date(form.submitted_at).toLocaleString()}`
+                          : form.sent_at
+                            ? `Sent ${new Date(form.sent_at).toLocaleString()}`
+                            : `Updated ${new Date(form.updated_at).toLocaleString()}`
+                      }
+                      actions={
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAssignmentId(form.id)}
+                          className="rounded border border-app-input-border px-2 py-1 text-xs"
+                        >
+                          Open
+                        </button>
+                      }
+                    >
+                      {form.description && <p className="text-sm text-app-text-muted">{form.description}</p>}
+                    </PortalListCard>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <PortalPageState
+                empty
+                compact
+                emptyTitle={filter === 'active' ? 'No active forms.' : 'No completed forms.'}
+                emptyDescription={
+                  filter === 'active'
+                    ? 'New forms stay active here until staff review is complete or the assignment closes.'
+                    : 'Reviewed, closed, expired, or cancelled forms will appear here with their receipts.'
+                }
+              />
+            )}
           </div>
 
           <div className="space-y-4 rounded-xl border border-app-border bg-app-panel p-4">
@@ -249,6 +294,19 @@ export default function PortalForms() {
                   <p className="text-sm text-app-text-muted">
                     Due {new Date(detail.assignment.due_at).toLocaleString()}
                   </p>
+                )}
+
+                {isReceiptState && (
+                  <div className="rounded border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
+                    <p className="font-semibold">
+                      {isSubmittedAwaitingReview ? 'Submission received.' : 'Submission reviewed.'}
+                    </p>
+                    <p className="mt-1 text-app-text-muted">
+                      {isSubmittedAwaitingReview
+                        ? 'You can still update this form and resubmit it until staff finish reviewing the submission.'
+                        : 'This form is now read-only. Review your responses below or download the response packet for your records.'}
+                    </p>
+                  </div>
                 )}
 
                 <CaseFormRenderer
@@ -282,7 +340,7 @@ export default function PortalForms() {
                       disabled={saving}
                       className="rounded border border-app-text bg-app-text px-4 py-2 text-sm font-semibold text-white"
                     >
-                      Submit Form
+                      {isSubmittedAwaitingReview ? 'Resubmit Form' : 'Submit Form'}
                     </button>
                   </div>
                 )}
@@ -332,7 +390,18 @@ export default function PortalForms() {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-app-text-muted">Choose a form to start or review.</p>
+              <PortalPageState
+                empty
+                compact
+                emptyTitle={filter === 'active' ? 'Select an active form.' : 'No completed form selected.'}
+                emptyDescription={
+                  visibleForms.length > 0
+                    ? 'Choose a form on the left to review its details here.'
+                    : filter === 'active'
+                      ? 'There are no active forms to display right now.'
+                      : 'There are no completed forms to display right now.'
+                }
+              />
             )}
           </div>
         </div>

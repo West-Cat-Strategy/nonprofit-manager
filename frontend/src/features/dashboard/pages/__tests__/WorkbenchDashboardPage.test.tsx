@@ -67,7 +67,7 @@ vi.mock('../../../../hooks/useNavigationPreferences', () => ({
       { id: 'contacts', path: '/contacts', name: 'Contacts', shortLabel: 'People', icon: 'C', pinned: true },
     ],
     enabledItems: [
-      { id: 'dashboard', path: '/dashboard', name: 'Dashboard', shortLabel: 'Home', icon: 'D', pinned: true },
+      { id: 'dashboard', path: '/dashboard', name: 'Workbench', shortLabel: 'Workbench', icon: 'D', pinned: true },
       { id: 'tasks', path: '/tasks', name: 'Tasks', shortLabel: 'Tasks', icon: 'T', pinned: false },
     ],
   }),

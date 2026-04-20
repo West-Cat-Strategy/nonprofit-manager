@@ -142,7 +142,7 @@ describe('useNavigationPreferences', () => {
     expect(dashboard).toMatchObject({
       area: 'Home',
       navKind: 'hub',
-      breadcrumbLabel: 'Dashboard',
+      breadcrumbLabel: 'Workbench',
     });
 
     const contacts = result.current.allItems.find((item) => item.id === 'contacts');

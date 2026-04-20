@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import EventList from '../EventsHubPage';
 import { renderWithProviders } from '../../../../test/testUtils';
@@ -89,6 +89,16 @@ describe('EventList page', () => {
         })
       );
     });
+  });
+
+  it('defaults the agenda to the first visible occurrence when the month is set without a date', async () => {
+    renderWithProviders(<EventList />, {
+      route: '/events?month=2026-05',
+    });
+
+    const agendaCard = await screen.findByTestId('mobile-event-card');
+    expect(agendaCard).toBeInTheDocument();
+    expect(within(agendaCard).getByText('Spring Gala')).toBeInTheDocument();
   });
 
   it('reloads the workspace when the visible month changes', async () => {

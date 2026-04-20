@@ -4,7 +4,7 @@ import { staffRoute } from './shared';
 export const staffHomeRouteCatalogEntries: readonly RouteCatalogEntry[] = [
   staffRoute({
     id: 'dashboard',
-    title: 'Dashboard',
+    title: 'Workbench',
     section: 'Core',
     path: '/dashboard',
     primaryAction: { label: 'Create intake', href: '/intake/new' },
@@ -12,9 +12,9 @@ export const staffHomeRouteCatalogEntries: readonly RouteCatalogEntry[] = [
     staffNav: {
       group: 'primary',
       order: 10,
-      label: 'Dashboard',
-      shortLabel: 'Home',
-      ariaLabel: 'Go to dashboard',
+      label: 'Workbench',
+      shortLabel: 'Workbench',
+      ariaLabel: 'Go to workbench',
       icon: '📊',
     },
   }),
