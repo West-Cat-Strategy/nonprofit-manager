@@ -10,12 +10,6 @@ import {
   CaseDetail,
   CaseEdit,
   CaseList,
-  EventCalendarPage,
-  EventCheckInDesk,
-  EventCreate,
-  EventDetail,
-  EventEdit,
-  EventList,
   ExternalServiceProviders,
   FollowUpsPage,
   OpportunitiesPage,
@@ -25,6 +19,14 @@ import {
   TaskList,
   TeamChatInboxPage,
 } from '../features/engagement/routeComponents';
+import {
+  EventCalendarPage,
+  EventCheckInDesk,
+  EventCreate,
+  EventDetail,
+  EventEdit,
+  EventList,
+} from '../features/events/routeComponents';
 import {
   MeetingCreate,
   MeetingDetail,

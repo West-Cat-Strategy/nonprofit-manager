@@ -4,6 +4,7 @@ import { useAppDispatch } from '../../../../store/hooks';
 import type { TemplateListItem } from '../../../../types/websiteBuilder';
 import { duplicateTemplate } from '../../state';
 import { createWebsiteSite, publishWebsiteSite } from '../../../websites/state';
+import { getWebsiteBuilderPath } from '../../../websites/lib/websiteRouteTargets';
 import { getSiteCreationErrorMessage, getSiteTemplateCopyName } from './helpers';
 import type { SiteCreationStage, TemplateGalleryTab } from './options';
 
@@ -89,7 +90,7 @@ export function useSiteCreation(activeTab: TemplateGalleryTab) {
       ).unwrap();
 
       closeCreateSiteModal();
-      navigate(`/websites/${publishResult.siteId}/builder`);
+      navigate(getWebsiteBuilderPath(publishResult.siteId));
     } catch (caughtError) {
       setCreateSiteError(getSiteCreationErrorMessage(stage, caughtError));
     } finally {

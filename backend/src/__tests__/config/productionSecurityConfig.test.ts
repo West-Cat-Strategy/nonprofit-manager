@@ -3,10 +3,10 @@ import { validateProductionSecurityConfig } from '@config/productionSecurityConf
 describe('validateProductionSecurityConfig', () => {
   const baseEnv = {
     NODE_ENV: 'production',
-    JWT_SECRET: '0123456789abcdef0123456789abcdef',
-    CSRF_SECRET: 'fedcba9876543210fedcba9876543210',
+    JWT_SECRET: 'placeholder-jwt-secret-for-testing-only',
+    CSRF_SECRET: 'placeholder-csrf-secret-for-testing-only',
     STRIPE_WEBHOOK_SECRET: 'whsec_live_webhook_secret',
-    ENCRYPTION_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    ENCRYPTION_KEY: 'placeholder-encryption-key-for-testing-only-placeholder-encryption-key-for-testing-only',
     DB_PASSWORD: 'super-secret-db-password',
     PAYPAL_CLIENT_ID: 'paypal-client-id',
     PAYPAL_CLIENT_SECRET: 'paypal-client-secret',

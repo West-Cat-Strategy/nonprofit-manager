@@ -8,6 +8,7 @@ import {
   duplicateTemplate,
   searchTemplates,
 } from '../../state';
+import { getTemplateEditorPath } from '../../lib/builderRouteTargets';
 import { getTemplateCopyName } from './helpers';
 
 export function useTemplateManagement() {
@@ -36,7 +37,7 @@ export function useTemplateManagement() {
         })
       ).unwrap();
       setShowNewModal(false);
-      navigate(`/website-builder/${createdTemplate.id}`);
+      navigate(getTemplateEditorPath(createdTemplate.id));
     } catch {
       return;
     }
@@ -85,8 +86,8 @@ export function useTemplateManagement() {
               id: template.id,
               name: getTemplateCopyName(template),
             })
-          ).unwrap();
-          navigate(`/website-builder/${duplicatedTemplate.id}`);
+        ).unwrap();
+          navigate(getTemplateEditorPath(duplicatedTemplate.id));
         } catch {
           return;
         }
@@ -94,7 +95,7 @@ export function useTemplateManagement() {
         return;
       }
 
-      navigate(`/website-builder/${template.id}`);
+      navigate(getTemplateEditorPath(template.id));
     },
     [dispatch, navigate]
   );

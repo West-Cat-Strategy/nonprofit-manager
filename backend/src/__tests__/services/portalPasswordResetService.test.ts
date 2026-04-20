@@ -40,7 +40,7 @@ describe('portalPasswordResetService', () => {
   });
 
   it('sends composite <tokenId>.<secret> reset token for known portal users', async () => {
-    const tokenId = '123e4567-e89b-12d3-a456-426614174000';
+    const tokenId = '00000000-0000-0000-0000-000000000001';
 
     mockQuery
       .mockResolvedValueOnce({ rows: [{ id: 'portal-user-1', email: 'user@example.com', first_name: 'Avery' }] })
@@ -56,7 +56,7 @@ describe('portalPasswordResetService', () => {
   });
 
   it('validates new-format portal token with direct id lookup', async () => {
-    const tokenId = '123e4567-e89b-12d3-a456-426614174000';
+    const tokenId = '00000000-0000-0000-0000-000000000001';
     const secret = 'a'.repeat(64);
     const tokenHash = await bcrypt.hash(secret, 4);
 

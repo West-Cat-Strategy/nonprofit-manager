@@ -132,7 +132,7 @@ describe('userController', () => {
     const req = createRequest({
       body: {
         email: 'admin@example.com',
-        password: 'StrongPass123',
+        password: 'CorrectHorseStaple123!',
         firstName: 'Admin',
         lastName: 'User',
       },
@@ -164,7 +164,7 @@ describe('userController', () => {
     const req = createRequest({
       body: {
         email: 'staff@example.com',
-        password: 'StrongPass123',
+        password: 'CorrectHorseStaple123!',
         firstName: 'Staff',
         lastName: 'Member',
         role: 'staff',
@@ -305,7 +305,7 @@ describe('userController', () => {
     const req = createRequest({
       params: { id: 'user-4' },
       body: {
-        password: 'StrongPass123',
+        password: 'CorrectHorseStaple123!',
       },
     });
     const res = createResponse();
@@ -319,7 +319,7 @@ describe('userController', () => {
 
     await resetUserPassword(req, res, next);
 
-    expect(mockBcrypt.hash).toHaveBeenCalledWith('StrongPass123', expect.any(Number));
+    expect(mockBcrypt.hash).toHaveBeenCalledWith('CorrectHorseStaple123!', expect.any(Number));
     expect(userManagementService.updateUserPassword).toHaveBeenCalledWith(
       'user-4',
       'new-password-hash',

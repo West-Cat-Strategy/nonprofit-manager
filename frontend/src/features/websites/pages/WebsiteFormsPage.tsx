@@ -15,6 +15,7 @@ import {
   getFormSurfaceMeta,
   getWebsiteConsoleUrlTarget,
 } from '../lib/websiteConsole';
+import { getWebsiteBuilderPath } from '../lib/websiteRouteTargets';
 import {
   clearWebsitesError,
   fetchWebsiteForms,
@@ -163,7 +164,7 @@ const WebsiteFormsPage: React.FC = () => {
             Open preview
           </WebsiteConsoleUrlAction>
           <a
-            href={`/websites/${siteId}/builder`}
+            href={getWebsiteBuilderPath(siteId)}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
           >
             Open builder

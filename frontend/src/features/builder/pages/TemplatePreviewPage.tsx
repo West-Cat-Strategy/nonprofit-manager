@@ -8,6 +8,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../store';
+import { getTemplateGalleryPath } from '../lib/builderRouteTargets';
 
 const TemplatePreview: React.FC = () => {
   const { templateId } = useParams<{ templateId: string }>();
@@ -63,7 +64,7 @@ const TemplatePreview: React.FC = () => {
   }, [templateId, isAuthenticated, previewUrl]);
 
   const handleClose = () => {
-    navigate('/website-builder');
+    navigate(getTemplateGalleryPath());
   };
 
   if (error) {

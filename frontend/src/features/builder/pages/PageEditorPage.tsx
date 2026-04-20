@@ -25,6 +25,8 @@ import {
   getBuilderContextLabel,
   getBuilderStatusLabel,
 } from '../lib/siteAwareEditor';
+import { getTemplateGalleryPath } from '../lib/builderRouteTargets';
+import { getWebsiteOverviewPath } from '../../websites/lib/websiteRouteTargets';
 import { usePageEditorController } from './usePageEditorController';
 
 const PageEditor: React.FC = () => {
@@ -99,7 +101,7 @@ const PageEditor: React.FC = () => {
           <p className="mt-2 text-sm text-app-text-muted">{siteContextError}</p>
           <button
             type="button"
-            onClick={() => navigate(siteId ? `/websites/${siteId}/overview` : '/website-builder')}
+            onClick={() => navigate(siteId ? getWebsiteOverviewPath(siteId) : getTemplateGalleryPath())}
             className="mt-4 rounded-full bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)]"
           >
             Return

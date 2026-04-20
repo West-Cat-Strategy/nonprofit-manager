@@ -117,44 +117,36 @@ export const createContactsRoutes = (): Router => {
 
   router.use(authenticate);
 
-  router.post(
+  scopedRouter.use(requireActiveOrganizationContext);
+  scopedRouter.use(requireContactsDataScope);
+
+  scopedRouter.post(
     '/export',
     requireRequestedOrganizationContext,
-    requireActiveOrganizationContext,
-    requireContactsDataScope,
     validateBody(contactExportSchema),
     directoryController.exportContacts
   );
-  router.get(
+  scopedRouter.get(
     '/import/template',
     requireRequestedOrganizationContext,
-    requireActiveOrganizationContext,
-    requireContactsDataScope,
     validateQuery(importTemplateQuerySchema),
     directoryController.downloadImportTemplate
   );
-  router.post(
+  scopedRouter.post(
     '/import/preview',
     requireRequestedOrganizationContext,
-    requireActiveOrganizationContext,
-    requireContactsDataScope,
     documentUpload.single('file'),
     handleMulterError,
     directoryController.previewImport
   );
-  router.post(
+  scopedRouter.post(
     '/import/commit',
     requireRequestedOrganizationContext,
-    requireActiveOrganizationContext,
-    requireContactsDataScope,
     documentUpload.single('file'),
     handleMulterError,
     requirePermission(Permission.CONTACT_CREATE),
     directoryController.commitImport
   );
-
-  scopedRouter.use(requireActiveOrganizationContext);
-  scopedRouter.use(requireContactsDataScope);
 
   scopedRouter.get(
     '/',

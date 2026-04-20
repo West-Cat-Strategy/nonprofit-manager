@@ -10,6 +10,7 @@ import {
   searchTemplates,
   setSearchParams,
 } from '../../state';
+import { getTemplatePreviewPath } from '../../lib/builderRouteTargets';
 import { useSiteCreation } from './useSiteCreation';
 import { useTemplateManagement } from './useTemplateManagement';
 import type { TemplateGalleryTab } from './options';
@@ -92,7 +93,7 @@ export function useTemplateGalleryController() {
   );
 
   const handlePreviewTemplate = useCallback((template: any) => {
-    window.open(`/website-builder/${template.id}/preview`, '_blank', 'noopener,noreferrer');
+    window.open(getTemplatePreviewPath(template.id), '_blank', 'noopener,noreferrer');
   }, []);
 
   const dismissError = useCallback(() => {
@@ -146,4 +147,3 @@ export function useTemplateGalleryController() {
     systemTemplates,
   };
 }
-

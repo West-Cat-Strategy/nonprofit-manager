@@ -7,6 +7,12 @@ import {
   formatWebsiteConsoleDate,
   getWebsiteConsoleUrlTarget,
 } from '../lib/websiteConsole';
+import {
+  getWebsiteBuilderPath,
+  getWebsiteContentPath,
+  getWebsiteFormsPath,
+  getWebsitePublishingPath,
+} from '../lib/websiteRouteTargets';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
 import { fetchWebsiteConversionFunnel, fetchWebsiteOverview } from '../state';
 
@@ -64,25 +70,25 @@ const WebsiteOverviewPage: React.FC = () => {
         Open preview
       </WebsiteConsoleUrlAction>
         <Link
-          to={`/websites/${siteId}/content`}
+          to={getWebsiteContentPath(siteId)}
           className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
         >
         Content
       </Link>
         <Link
-          to={`/websites/${siteId}/forms`}
+          to={getWebsiteFormsPath(siteId)}
           className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
         >
         Forms
       </Link>
         <Link
-          to={`/websites/${siteId}/publishing`}
+          to={getWebsitePublishingPath(siteId)}
           className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
         >
         Publishing
       </Link>
         <Link
-          to={`/websites/${siteId}/builder`}
+          to={getWebsiteBuilderPath(siteId)}
           className="app-pill-action app-pill-action-accent app-accent-contrast-ink rounded-full px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-app-accent-hover"
         >
         Open builder
@@ -150,7 +156,7 @@ const WebsiteOverviewPage: React.FC = () => {
                     </a>
                   ) : (
                     <Link
-                      to={managementSnapshot?.nextAction.href || `/websites/${siteId}/publishing`}
+                      to={managementSnapshot?.nextAction.href || getWebsitePublishingPath(siteId)}
                       className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${getWebsiteActionToneClasses(
                         managementSnapshot?.nextAction.tone
                       )}`}
@@ -159,13 +165,13 @@ const WebsiteOverviewPage: React.FC = () => {
                     </Link>
                   )}
                   <Link
-                    to={`/websites/${siteId}/publishing`}
+                    to={getWebsitePublishingPath(siteId)}
                     className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
                   >
                     Publishing
                   </Link>
                   <Link
-                    to={`/websites/${siteId}/builder`}
+                    to={getWebsiteBuilderPath(siteId)}
                     className="app-pill-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
                   >
                     Builder
@@ -321,7 +327,7 @@ const WebsiteOverviewPage: React.FC = () => {
                   </p>
                 </div>
                 <Link
-                  to={`/websites/${siteId}/publishing`}
+                  to={getWebsitePublishingPath(siteId)}
                   className="text-sm font-medium text-app-accent"
                 >
                   Manage publishing

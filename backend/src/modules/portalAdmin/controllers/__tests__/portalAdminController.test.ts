@@ -228,7 +228,7 @@ describe('portalAdminController account-management flows', () => {
     const req = createRequest({
       body: {
         portalUserId: 'portal-user-5',
-        password: 'StrongPass123',
+        password: 'CorrectHorseStaple123!',
       },
     });
     const res = createResponse();
@@ -239,7 +239,7 @@ describe('portalAdminController account-management flows', () => {
 
     await resetPortalUserPassword(req, res, next);
 
-    expect(mockBcrypt.hash).toHaveBeenCalledWith('StrongPass123', expect.any(Number));
+    expect(mockBcrypt.hash).toHaveBeenCalledWith('CorrectHorseStaple123!', expect.any(Number));
     expect(mockQuery).toHaveBeenCalledWith(
       'UPDATE portal_users SET password_hash = $1 WHERE id = $2',
       ['portal-password-hash', 'portal-user-5']

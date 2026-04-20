@@ -13,3 +13,4 @@ export const WebsiteNewslettersPage = lazy(() => import('./pages/WebsiteNewslett
 export const WebsiteFormsPage = lazy(() => import('./pages/WebsiteFormsPage'));
 export const WebsiteIntegrationsPage = lazy(() => import('./pages/WebsiteIntegrationsPage'));
 export const WebsitePublishingPage = lazy(() => import('./pages/WebsitePublishingPage'));
+export const WebsiteBuilderPage = lazy(() => import('./pages/WebsiteBuilderPage'));

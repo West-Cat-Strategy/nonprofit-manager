@@ -127,8 +127,8 @@ describe('Authentication Schemas', () => {
     it('accepts canonical camelCase registration fields', () => {
       const result = registerSchema.safeParse({
         email: 'camel@example.com',
-        password: 'StrongPass123',
-        passwordConfirm: 'StrongPass123',
+        password: 'CorrectHorseStaple123!',
+        passwordConfirm: 'CorrectHorseStaple123!',
         firstName: 'Camel',
         lastName: 'Case',
       });
@@ -138,7 +138,7 @@ describe('Authentication Schemas', () => {
         expect(result.data).toMatchObject({
           firstName: 'Camel',
           lastName: 'Case',
-          passwordConfirm: 'StrongPass123',
+          passwordConfirm: 'CorrectHorseStaple123!',
         });
       }
     });

@@ -12,6 +12,14 @@ import {
   deriveWebsiteSiteManagementSummary,
   formatWebsiteConsoleDate,
 } from '../lib/websiteConsole';
+import {
+  getWebsiteBuilderPath,
+  getWebsiteContentPath,
+  getWebsiteFormsPath,
+  getWebsiteIntegrationsPath,
+  getWebsiteOverviewPath,
+  getWebsitePublishingPath,
+} from '../lib/websiteRouteTargets';
 import { parseAllowedValue, parsePositiveInteger } from '../../../utils/persistedFilters';
 
 const WEBSITE_STATUS_VALUES = ['draft', 'published', 'maintenance', 'suspended'] as const;
@@ -404,13 +412,13 @@ const WebsitesListPage: React.FC = () => {
                     </Link>
                   )}
                   <Link
-                    to={`/websites/${spotlightSite.id}/overview`}
+                    to={getWebsiteOverviewPath(spotlightSite.id)}
                     className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                   >
                     Open Console
                   </Link>
                   <Link
-                    to={`/websites/${spotlightSite.id}/builder`}
+                    to={getWebsiteBuilderPath(spotlightSite.id)}
                     className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                   >
                     Open Builder
@@ -582,7 +590,7 @@ const WebsitesListPage: React.FC = () => {
                             </Link>
                           )}
                           <Link
-                            to={`/websites/${site.id}/overview`}
+                            to={getWebsiteOverviewPath(site.id)}
                             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                           >
                             Open Console
@@ -592,31 +600,31 @@ const WebsitesListPage: React.FC = () => {
 
                       <div className="flex flex-wrap gap-2">
                         <Link
-                          to={`/websites/${site.id}/content`}
+                          to={getWebsiteContentPath(site.id)}
                           className="rounded-full border border-app-border bg-app-surface px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                         >
                           Content
                         </Link>
                         <Link
-                          to={`/websites/${site.id}/forms`}
+                          to={getWebsiteFormsPath(site.id)}
                           className="rounded-full border border-app-border bg-app-surface px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                         >
                           Forms
                         </Link>
                         <Link
-                          to={`/websites/${site.id}/integrations`}
+                          to={getWebsiteIntegrationsPath(site.id)}
                           className="rounded-full border border-app-border bg-app-surface px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                         >
                           Integrations
                         </Link>
                         <Link
-                          to={`/websites/${site.id}/publishing`}
+                          to={getWebsitePublishingPath(site.id)}
                           className="rounded-full border border-app-border bg-app-surface px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                         >
                           Publishing
                         </Link>
                         <Link
-                          to={`/websites/${site.id}/builder`}
+                          to={getWebsiteBuilderPath(site.id)}
                           className="rounded-full border border-app-border bg-app-surface px-3 py-2 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
                         >
                           Builder

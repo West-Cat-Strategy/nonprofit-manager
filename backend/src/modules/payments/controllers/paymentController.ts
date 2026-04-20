@@ -11,6 +11,7 @@ import { sendError, sendProviderAck, sendSuccess } from '@modules/shared/http/en
 import { appendAuditLog } from '@services/auditService';
 import { requireActiveOrganizationSafe } from '@services/authGuardService';
 import paymentProviderService from '@services/paymentProviderService';
+import { badRequest, forbidden, notFoundMessage, serverError } from '@utils/responseHelpers';
 import type { AuthRequest } from '@middleware/auth';
 import type {
   CreatePaymentIntentRequest,
@@ -79,6 +80,30 @@ const hasPaymentIntentOwnership = async (
     [organizationId, provider, paymentIntentId]
   );
 
+  return (result.rowCount ?? 0) > 0;
+};
+
+const hasDonationOwnership = async (
+  organizationId: string,
+  donationId: string
+): Promise<boolean> => {
+  if (!pool) return false;
+  const result = await pool.query(
+    `SELECT 1 FROM donations WHERE id = $1 AND account_id = $2 LIMIT 1`,
+    [donationId, organizationId]
+  );
+  return (result.rowCount ?? 0) > 0;
+};
+
+const hasContactDonationOwnership = async (
+  contactId: string,
+  donationId: string
+): Promise<boolean> => {
+  if (!pool) return false;
+  const result = await pool.query(
+    `SELECT 1 FROM donations WHERE id = $1 AND contact_id = $2 LIMIT 1`,
+    [donationId, contactId]
+  );
   return (result.rowCount ?? 0) > 0;
 };
 
@@ -216,6 +241,23 @@ export const createPaymentIntent = async (req: AuthRequest, res: Response): Prom
     if (amount < 50) {
       badRequest(res, 'Minimum amount is $0.50 (50 cents)');
       return;
+    }
+
+    if (donationId) {
+      const organizationId = req.organizationId || req.accountId || req.tenantId;
+      const contactId = (req as any).portalUser?.contactId;
+
+      let hasAccess = false;
+      if (organizationId) {
+        hasAccess = await hasDonationOwnership(organizationId, donationId);
+      } else if (contactId) {
+        hasAccess = await hasContactDonationOwnership(contactId, donationId);
+      }
+
+      if (!hasAccess) {
+        forbidden(res, 'You do not have access to this donation');
+        return;
+      }
     }
 
     const paymentIntent = await paymentProviderService.createPaymentIntent({

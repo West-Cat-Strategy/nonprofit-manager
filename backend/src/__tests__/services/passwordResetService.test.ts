@@ -40,7 +40,7 @@ describe('passwordResetService', () => {
   });
 
   it('sends composite <tokenId>.<secret> reset token for known users', async () => {
-    const tokenId = '123e4567-e89b-12d3-a456-426614174000';
+    const tokenId = '00000000-0000-0000-0000-000000000001';
 
     mockQuery
       .mockResolvedValueOnce({ rows: [{ id: 'user-1', first_name: 'Avery', email: 'user@example.com' }] })
@@ -56,7 +56,7 @@ describe('passwordResetService', () => {
   });
 
   it('validates new-format token with direct id lookup', async () => {
-    const tokenId = '123e4567-e89b-12d3-a456-426614174000';
+    const tokenId = '00000000-0000-0000-0000-000000000001';
     const secret = 'a'.repeat(64);
     const tokenHash = await bcrypt.hash(secret, 4);
 

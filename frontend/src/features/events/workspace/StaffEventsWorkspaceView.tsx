@@ -11,10 +11,10 @@ import {
   createEventCreateTarget,
 } from '../navigation/eventRouteTargets';
 import useStaffEventsWorkspaceController from './useStaffEventsWorkspaceController';
-import StaffEventsWorkspaceFiltersPanel from './StaffEventsWorkspaceFiltersPanel';
-import StaffEventsWorkspaceCalendarPanel from './StaffEventsWorkspaceCalendarPanel';
-import StaffEventsWorkspaceAgendaPanel from './StaffEventsWorkspaceAgendaPanel';
-import StaffEventsWorkspaceDetailsPanel from './StaffEventsWorkspaceDetailsPanel';
+import StaffEventsWorkspaceFiltersPanel from '../calendar/StaffEventsWorkspaceFiltersPanel';
+import StaffEventsWorkspaceCalendarPanel from '../calendar/StaffEventsWorkspaceCalendarPanel';
+import StaffEventsWorkspaceAgendaPanel from '../calendar/StaffEventsWorkspaceAgendaPanel';
+import StaffEventsWorkspaceDetailsPanel from '../calendar/StaffEventsWorkspaceDetailsPanel';
 
 export default function StaffEventsWorkspaceView() {
   const location = useLocation();

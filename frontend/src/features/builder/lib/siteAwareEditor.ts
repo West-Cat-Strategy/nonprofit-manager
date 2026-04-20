@@ -1,4 +1,6 @@
+import { getWebsiteOverviewPath } from '../../websites/lib/websiteRouteTargets';
 import type { WebsiteOverviewSummary } from '../../websites/types';
+import { getTemplateGalleryPath } from './builderRouteTargets';
 
 export type BuilderSiteContext = {
   siteId: string;
@@ -16,7 +18,7 @@ export const resolveBuilderSiteId = (
 ): string | undefined => routeSiteId || querySiteId || undefined;
 
 export const getBuilderBackTarget = (siteContext: BuilderSiteContext | null): string =>
-  siteContext ? `/websites/${siteContext.siteId}/overview` : '/website-builder';
+  siteContext ? getWebsiteOverviewPath(siteContext.siteId) : getTemplateGalleryPath();
 
 export const getBuilderBackLabel = (siteContext: BuilderSiteContext | null): string =>
   siteContext ? 'Back to website console' : 'Back to templates';

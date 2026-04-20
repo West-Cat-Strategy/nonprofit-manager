@@ -1,4 +1,4 @@
-import StaffEventsWorkspaceView from '../calendar/StaffEventsWorkspaceView';
+import StaffEventsWorkspaceView from '../workspace/StaffEventsWorkspaceView';
 
 export default function StaffEventsWorkspacePage() {
   return <StaffEventsWorkspaceView />;
