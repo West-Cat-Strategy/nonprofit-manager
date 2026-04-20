@@ -63,7 +63,7 @@ import { Permission } from '@utils/permissions';
 
 const router = express.Router();
 
-router.get('/branding', authenticate, requirePermission(Permission.ADMIN_BRANDING), getBranding);
+router.get('/branding', authenticate, getBranding);
 router.put('/branding', authenticate, requirePermission(Permission.ADMIN_BRANDING), putBranding);
 
 router.get(

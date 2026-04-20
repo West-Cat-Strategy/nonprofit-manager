@@ -14,6 +14,7 @@ describe('Contact API Integration Tests', () => {
   let viewerUserId: string;
   const contactService = new ContactService(pool);
   const createdEventIds: string[] = [];
+  const createdOccurrenceIds: string[] = [];
   const createdAppointmentIds: string[] = [];
   const sharedPassword = 'Test123!Strong';
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -180,6 +181,9 @@ describe('Contact API Integration Tests', () => {
       ]);
       await pool.query('DELETE FROM cases WHERE account_id = $1', [testAccountId]);
     }
+    if (createdOccurrenceIds.length > 0) {
+      await pool.query('DELETE FROM event_occurrences WHERE id = ANY($1::uuid[])', [createdOccurrenceIds]);
+    }
     if (createdEventIds.length > 0) {
       await pool.query('DELETE FROM events WHERE id = ANY($1::uuid[])', [createdEventIds]);
     }
@@ -238,7 +242,7 @@ describe('Contact API Integration Tests', () => {
     });
 
     it('should create contact with email', async () => {
-      const response = await withAuth(request(app)
+      const response = await withStaffAuth(request(app)
         .post('/api/v2/contacts')
         .send({
           account_id: testAccountId,
@@ -663,11 +667,29 @@ describe('Contact API Integration Tests', () => {
       const eventId = eventResult.rows[0].id;
       createdEventIds.push(eventId);
 
-      const registrationResult = await pool.query<{ id: string }>(
-        `INSERT INTO event_registrations (event_id, contact_id, registration_status)
-         VALUES ($1, $2, 'registered')
+      const occurrenceResult = await pool.query<{ id: string }>(
+        `INSERT INTO event_occurrences (
+           organization_id, 
+           event_id, 
+           start_date, 
+           end_date, 
+           scheduled_start_date, 
+           scheduled_end_date, 
+           event_name,
+           status
+         )
+         VALUES ($1, $2, NOW() + interval '4 days', NOW() + interval '4 days 2 hours', NOW() + interval '4 days', NOW() + interval '4 days 2 hours', 'Reminder Event', 'planned')
          RETURNING id`,
-        [eventId, contactId]
+        [testAccountId, eventId]
+      );
+      const occurrenceId = occurrenceResult.rows[0].id;
+      createdOccurrenceIds.push(occurrenceId);
+
+      const registrationResult = await pool.query<{ id: string }>(
+        `INSERT INTO event_registrations (event_id, occurrence_id, contact_id, registration_status)
+         VALUES ($1, $2, $3, 'registered')
+         RETURNING id`,
+        [eventId, occurrenceId, contactId]
       );
       const registrationId = registrationResult.rows[0].id;
 
@@ -1286,7 +1308,7 @@ describe('Contact API Integration Tests', () => {
 
       const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
 
-      const response = await withAuth(request(app)
+      const response = await withStaffAuth(request(app)
         .put(`/api/v2/contacts/${contactId}`)
         .send({
           first_name: 'Updated',

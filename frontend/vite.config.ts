@@ -173,6 +173,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
     coverage: {
+      // Vitest 4 uses the include glob to discover uncovered source files.
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'src/**/*.d.ts',

@@ -72,6 +72,7 @@ setPaymentPool(pool);
 initializeSentry();
 
 const app: Application = express();
+
 const PORT = Number(process.env.PORT) || 3000;
 const requestLoggingEnabled =
   process.env.REQUEST_LOGGING_ENABLED === 'true' ||

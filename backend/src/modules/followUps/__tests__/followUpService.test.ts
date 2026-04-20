@@ -250,8 +250,9 @@ describe('FollowUpService', () => {
     };
     db.connect.mockResolvedValueOnce(client);
 
+    const helpers = require('../services/followUpService.helpers');
     const upsertSpy = jest
-      .spyOn(service as any, 'upsertNotificationForFollowUp')
+      .spyOn(helpers, 'upsertNotificationForFollowUp')
       .mockResolvedValue(undefined);
 
     const result = await service.completeFollowUp('org-1', 'fu-complete-1', 'user-1', {
@@ -263,7 +264,10 @@ describe('FollowUpService', () => {
       expect.stringContaining('INSERT INTO follow_ups'),
       expect.any(Array)
     );
-    expect(upsertSpy).toHaveBeenCalledWith('fu-next-1');
+    expect(upsertSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      'fu-next-1'
+    );
     expect(client.query).toHaveBeenCalledWith('COMMIT');
   });
 
@@ -280,8 +284,9 @@ describe('FollowUpService', () => {
     };
     db.connect.mockResolvedValueOnce(client);
 
+    const helpers = require('../services/followUpService.helpers');
     const upsertSpy = jest
-      .spyOn(service as any, 'upsertNotificationForFollowUp')
+      .spyOn(helpers, 'upsertNotificationForFollowUp')
       .mockResolvedValue(undefined);
 
     await service.completeFollowUp('org-1', 'fu-complete-2', 'user-1', {
@@ -315,8 +320,9 @@ describe('FollowUpService', () => {
     };
     db.connect.mockResolvedValueOnce(client);
 
+    const helpers = require('../services/followUpService.helpers');
     const upsertSpy = jest
-      .spyOn(service as any, 'upsertNotificationForFollowUp')
+      .spyOn(helpers, 'upsertNotificationForFollowUp')
       .mockResolvedValue(undefined);
 
     await service.completeFollowUp('org-1', 'fu-complete-3', 'user-1', {

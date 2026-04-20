@@ -182,10 +182,11 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
 
   portalV2Routes.get('/documents', validateQuery(portalDocumentsQuerySchema), resourcesController.getDocuments);
   portalV2Routes.get('/documents/:id/download', validateParams(portalUuidParamsSchema), resourcesController.downloadDocument);
-  portalV2Routes.get('/forms', validateQuery(caseFormListQuerySchema), formsController.listForms);
-  portalV2Routes.get('/forms/:assignmentId', validateParams(caseFormPortalParamsSchema), formsController.getForm);
+  portalV2Routes.get('/forms', validateQuery(portalDocumentsQuerySchema), resourcesController.getForms);
+  portalV2Routes.get('/forms/assignments', validateQuery(caseFormListQuerySchema), formsController.listForms);
+  portalV2Routes.get('/forms/assignments/:assignmentId', validateParams(caseFormPortalParamsSchema), formsController.getForm);
   portalV2Routes.post(
-    '/forms/:assignmentId/assets',
+    '/forms/assignments/:assignmentId/assets',
     validateParams(caseFormPortalParamsSchema),
     documentUpload.single('file'),
     handleMulterError,
@@ -193,19 +194,19 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
     formsController.uploadAsset
   );
   portalV2Routes.post(
-    '/forms/:assignmentId/draft',
+    '/forms/assignments/:assignmentId/draft',
     validateParams(caseFormPortalParamsSchema),
     validateBody(caseFormDraftSchema),
     formsController.saveDraft
   );
   portalV2Routes.post(
-    '/forms/:assignmentId/submit',
+    '/forms/assignments/:assignmentId/submit',
     validateParams(caseFormPortalParamsSchema),
     validateBody(caseFormSubmitSchema),
     formsController.submit
   );
   portalV2Routes.get(
-    '/forms/:assignmentId/response-packet',
+    '/forms/assignments/:assignmentId/response-packet',
     validateParams(caseFormPortalParamsSchema),
     formsController.downloadResponsePacket
   );

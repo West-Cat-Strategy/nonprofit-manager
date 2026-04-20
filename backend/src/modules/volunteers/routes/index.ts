@@ -5,6 +5,7 @@ import pool from '@config/database';
 import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
+import { requireRequestedOrganizationContext } from '@middleware/requireRequestedOrganizationContext';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
@@ -90,18 +91,21 @@ export const createVolunteersRoutes = (): Router => {
   router.get('/', validateQuery(volunteerListQuerySchema), controller.getVolunteers);
   router.post(
     '/export',
+    requireRequestedOrganizationContext,
     requireActiveOrganizationContext,
     validateBody(volunteerExportSchema),
     controller.exportVolunteers
   );
   router.get(
     '/import/template',
+    requireRequestedOrganizationContext,
     requireActiveOrganizationContext,
     validateQuery(importTemplateQuerySchema),
     controller.downloadImportTemplate
   );
   router.post(
     '/import/preview',
+    requireRequestedOrganizationContext,
     requireActiveOrganizationContext,
     documentUpload.single('file'),
     handleMulterError,
@@ -109,6 +113,7 @@ export const createVolunteersRoutes = (): Router => {
   );
   router.post(
     '/import/commit',
+    requireRequestedOrganizationContext,
     requireActiveOrganizationContext,
     documentUpload.single('file'),
     handleMulterError,

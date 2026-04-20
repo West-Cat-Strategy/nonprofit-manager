@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import request from 'supertest';
 import app from '../../index';
-import pool from '../../config/database';
+import pool, { rawPool } from '../../config/database';
 
 describe('User Role Sync Integration', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -68,15 +68,14 @@ describe('User Role Sync Integration', () => {
   it('fails closed when user_roles sync raises a database error', async () => {
     const email = `role-sync-fail-${unique()}@example.com`;
     await createAdminUser(email);
-    const originalQuery = pool.query.bind(pool);
-
-    const querySpy = jest.spyOn(pool as any, 'query').mockImplementation((...args: any[]) => {
+    const originalQuery = rawPool.query;
+    (rawPool as any).query = (...args: any[]) => {
       const queryText = args[0];
       if (typeof queryText === 'string' && queryText.includes('DELETE FROM user_roles')) {
         return Promise.reject(new Error('simulated user role sync failure'));
       }
-      return originalQuery(...args);
-    });
+      return (originalQuery as any).apply(rawPool, args);
+    };
 
     try {
       const response = await request(app).post('/api/v2/auth/login').send({
@@ -87,7 +86,7 @@ describe('User Role Sync Integration', () => {
       expect(response.status).toBe(500);
       expect(response.body?.error?.code).toBe('server_error');
     } finally {
-      querySpy.mockRestore();
+      (rawPool as any).query = originalQuery;
     }
   });
 });

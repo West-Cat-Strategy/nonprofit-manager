@@ -49,11 +49,12 @@ export class ActivityService {
             c.created_at,
             c.opened_date,
             c.assigned_to,
-            c.status_name,
+            cs.name as status_name,
             u.first_name || ' ' || u.last_name as user_name
           FROM cases c
           LEFT JOIN contacts con ON c.contact_id = con.id
           LEFT JOIN users u ON c.assigned_to = u.id
+          LEFT JOIN case_statuses cs ON c.status_id = cs.id
           WHERE c.created_at >= NOW() - INTERVAL '30 days'
             AND COALESCE(c.account_id, con.account_id) = $1
           ORDER BY c.created_at DESC
@@ -66,12 +67,12 @@ export class ActivityService {
             d.amount,
             d.donation_date,
             d.payment_method,
-            d.donor_name,
-            c.first_name || ' ' || c.last_name as contact_name
+            TRIM(CONCAT(c.first_name, ' ', c.last_name)) as contact_name,
+            c.account_id as organization_id
           FROM donations d
           LEFT JOIN contacts c ON d.contact_id = c.id
-          WHERE d.account_id = $1
-            AND d.donation_date >= NOW() - INTERVAL '30 days'
+          WHERE d.donation_date >= NOW() - INTERVAL '30 days'
+            AND COALESCE(d.account_id, c.account_id) = $1
           ORDER BY d.donation_date DESC
           LIMIT $2`,
           [organizationId, Math.ceil(limit / 3)]
@@ -95,15 +96,16 @@ export class ActivityService {
         pool.query(
           `SELECT
             er.id,
-            er.registered_at,
+            er.created_at as registered_at,
             e.name as event_name,
-            c.first_name || ' ' || c.last_name as attendee_name
+            c.first_name || ' ' || c.last_name as contact_name,
+            c.account_id as organization_id
           FROM event_registrations er
-          LEFT JOIN events e ON er.event_id = e.id
-          LEFT JOIN contacts c ON er.contact_id = c.id
-          WHERE er.registered_at >= NOW() - INTERVAL '30 days'
-            AND c.account_id = $1
-          ORDER BY er.registered_at DESC
+          JOIN events e ON er.event_id = e.id
+          JOIN contacts c ON er.contact_id = c.id
+          WHERE er.created_at >= NOW() - INTERVAL '30 days'
+            AND COALESCE(e.organization_id, c.account_id) = $1
+          ORDER BY er.created_at DESC
           LIMIT $2`,
           [organizationId, Math.ceil(limit / 4)]
         ),
@@ -128,11 +130,11 @@ export class ActivityService {
     });
 
     donationsResult.rows.forEach((row) => {
-      const donorName = row.donor_name || row.contact_name || 'Anonymous';
+      const donorName = row.contact_name || 'Anonymous';
       activities.push({
         id: `donation-${row.id}`,
         type: 'donation_received',
-        title: 'New donation received',
+        title: 'Donation received',
         description: `${donorName} donated $${parseFloat(row.amount).toFixed(2)}`,
         timestamp: row.donation_date,
         user_id: null,
@@ -168,11 +170,11 @@ export class ActivityService {
       activities.push({
         id: `event-reg-${row.id}`,
         type: 'event_registration',
-        title: 'Event registration',
-        description: `${row.attendee_name} registered for ${row.event_name}`,
+        title: 'New event registration',
+        description: `${row.contact_name} registered for ${row.event_name}`,
         timestamp: row.registered_at,
         user_id: null,
-        user_name: row.attendee_name,
+        user_name: row.contact_name,
         entity_type: 'event',
         entity_id: row.id,
         metadata: {

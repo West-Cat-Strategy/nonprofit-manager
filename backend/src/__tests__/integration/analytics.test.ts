@@ -15,8 +15,10 @@ import { getJwtSecret } from '../../config/jwt';
 describe('Analytics API Integration Tests', () => {
   let authToken: string;
   let testUserId: string;
+  let organizationId: string;
   const createdContactIds: string[] = [];
   const createdEventIds: string[] = [];
+  const createdOccurrenceIds: string[] = [];
   const createdRegistrationIds: string[] = [];
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const unwrap = <T>(body: unknown): T => {
@@ -49,12 +51,25 @@ describe('Analytics API Integration Tests', () => {
     }
 
     testUserId = registeredUser.id;
+    
+    // Ensure we have an organization account linked to the user
+    const accountResult = await pool.query<{ id: string }>(
+      "INSERT INTO accounts (account_name, account_type) VALUES ($1, 'organization') RETURNING id",
+      [`Analytics Org ${unique()}`]
+    );
+    organizationId = accountResult.rows[0].id;
+
+    await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', testUserId]);
+    await pool.query(
+      "INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active) VALUES ($1, $2, 'admin', $1, true)",
+      [testUserId, organizationId]
+    );
     authToken = jwt.sign(
       {
         id: registeredUser.id,
         email: registeredUser.email ?? email,
-        role: 'viewer',
-        organizationId: registerPayload.organizationId,
+        role: 'admin',
+        organizationId,
       },
       getJwtSecret(),
       { expiresIn: '1h' }
@@ -66,6 +81,9 @@ describe('Analytics API Integration Tests', () => {
       await pool.query('DELETE FROM event_registrations WHERE id = ANY($1::uuid[])', [
         createdRegistrationIds,
       ]);
+    }
+    if (createdOccurrenceIds.length > 0) {
+      await pool.query('DELETE FROM event_occurrences WHERE id = ANY($1::uuid[])', [createdOccurrenceIds]);
     }
     if (createdEventIds.length > 0) {
       await pool.query('DELETE FROM events WHERE id = ANY($1::uuid[])', [createdEventIds]);
@@ -255,24 +273,43 @@ describe('Analytics API Integration Tests', () => {
         createdContactIds.push(contactId);
 
         const eventResult = await pool.query<{ id: string }>(
-          `INSERT INTO events (name, event_type, start_date, end_date, capacity)
-           VALUES ($1, 'community', NOW() - interval '1 day', NOW() + interval '1 hour', 40)
+          `INSERT INTO events (organization_id, name, event_type, start_date, end_date, capacity)
+           VALUES ($1, $2, 'community', NOW() - interval '1 day', NOW() + interval '1 hour', 40)
            RETURNING id`,
-          [`Analytics Trend Event ${unique()}`]
+          [organizationId, `Analytics Trend Event ${unique()}`]
         );
         const eventId = eventResult.rows[0].id;
         createdEventIds.push(eventId);
 
+        const occurrenceResult = await pool.query<{ id: string }>(
+          `INSERT INTO event_occurrences (
+             organization_id, 
+             event_id, 
+             start_date, 
+             end_date, 
+             scheduled_start_date, 
+             scheduled_end_date, 
+             event_name,
+             status
+           )
+           VALUES ($1, $2, NOW() - interval '1 day', NOW() + interval '1 hour', NOW() - interval '1 day', NOW() + interval '1 hour', $3, 'planned')
+           RETURNING id`,
+          [organizationId, eventId, `Analytics Trend Event ${unique()}`]
+        );
+        const occurrenceId = occurrenceResult.rows[0].id;
+        createdOccurrenceIds.push(occurrenceId);
+
         const checkedInRegistrationResult = await pool.query<{ id: string }>(
           `INSERT INTO event_registrations (
              event_id,
+             occurrence_id,
              contact_id,
              registration_status,
              checked_in,
              check_in_time
-           ) VALUES ($1, $2, 'registered', true, NOW())
+           ) VALUES ($1, $2, $3, 'registered', true, NOW())
            RETURNING id`,
-          [eventId, contactId]
+          [eventId, occurrenceId, contactId]
         );
         createdRegistrationIds.push(checkedInRegistrationResult.rows[0].id);
 
@@ -286,10 +323,10 @@ describe('Analytics API Integration Tests', () => {
         createdContactIds.push(attendeeContactId);
 
         const registeredOnlyResult = await pool.query<{ id: string }>(
-          `INSERT INTO event_registrations (event_id, contact_id, registration_status, checked_in)
-           VALUES ($1, $2, 'registered', false)
+          `INSERT INTO event_registrations (event_id, occurrence_id, contact_id, registration_status, checked_in)
+           VALUES ($1, $2, $3, 'registered', false)
            RETURNING id`,
-          [eventId, attendeeContactId]
+          [eventId, occurrenceId, attendeeContactId]
         );
         createdRegistrationIds.push(registeredOnlyResult.rows[0].id);
 

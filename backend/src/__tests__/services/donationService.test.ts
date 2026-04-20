@@ -11,6 +11,13 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
+// Mock activityEventService
+jest.mock('../../services/activityEventService', () => ({
+  activityEventService: {
+    recordEvent: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 // Create mock pool
 const mockQuery = jest.fn();
 const mockPool = {

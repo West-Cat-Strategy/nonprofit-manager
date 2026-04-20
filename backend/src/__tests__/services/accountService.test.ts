@@ -12,6 +12,33 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
+let currentMockClient: any = null;
+jest.mock('../../config/database', () => ({
+  __esModule: true,
+  withUserContextTransaction: jest.fn().mockImplementation(async (userId, fn) => {
+    await currentMockClient.query('BEGIN');
+    try {
+      const result = await fn(currentMockClient);
+      await currentMockClient.query('COMMIT');
+      return result;
+    } catch (e) {
+      await currentMockClient.query('ROLLBACK');
+      throw e;
+    }
+  }),
+  withDatabaseTransaction: jest.fn().mockImplementation(async (fn, options) => {
+    await currentMockClient.query('BEGIN');
+    try {
+      const result = await fn(currentMockClient);
+      await currentMockClient.query('COMMIT');
+      return result;
+    } catch (e) {
+      await currentMockClient.query('ROLLBACK');
+      throw e;
+    }
+  }),
+}));
+
 describe('AccountService', () => {
   let accountService: AccountService;
   let mockPool: jest.Mocked<Pool>;
@@ -27,6 +54,7 @@ describe('AccountService', () => {
       query: mockQuery,
       connect: jest.fn().mockResolvedValue(mockClient),
     } as unknown as jest.Mocked<Pool>;
+    currentMockClient = mockClient;
     accountService = new AccountService(mockPool);
   });
 

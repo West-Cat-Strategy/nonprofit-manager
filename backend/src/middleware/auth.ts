@@ -353,7 +353,7 @@ export const authenticate = (
 
       await hydrateAuthorizationContext(req, sessionUser, normalizedRole, organizationId);
       next();
-    } catch {
+    } catch (error) {
       return unauthorized(res, 'Invalid or expired token');
     }
   })();

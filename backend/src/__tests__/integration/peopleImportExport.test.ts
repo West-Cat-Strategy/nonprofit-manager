@@ -26,6 +26,18 @@ const accountIdFromResponse = (body: unknown): string | undefined => {
   return value.account_id || value.data?.account_id;
 };
 
+const expectCanonicalError = (
+  response: { body: { success?: boolean; error?: { code?: string; message?: string } } },
+  code: string,
+  message?: string
+): void => {
+  expect(response.body.success).toBe(false);
+  expect(response.body.error?.code).toBe(code);
+  if (message) {
+    expect(response.body.error?.message).toBe(message);
+  }
+};
+
 describe('People import/export integration', () => {
   let authToken = '';
   let userId = '';
@@ -251,7 +263,7 @@ describe('People import/export integration', () => {
   it('requires organization context for organization-scoped import routes', async () => {
     const csv = ['first_name,last_name,email', 'Missing,Org,missing-org@example.com'].join('\n');
 
-    await withAuth(
+    const contactsPreviewResponse = await withAuth(
       request(app)
         .post('/api/v2/contacts/import/preview')
         .attach('file', Buffer.from(csv), {
@@ -260,11 +272,23 @@ describe('People import/export integration', () => {
         })
     ).expect(400);
 
-    await withAuth(
+    expectCanonicalError(
+      contactsPreviewResponse,
+      'bad_request',
+      'No organization context'
+    );
+
+    const volunteersTemplateResponse = await withAuth(
       request(app)
         .get('/api/v2/volunteers/import/template')
         .query({ format: 'csv' })
     ).expect(400);
+
+    expectCanonicalError(
+      volunteersTemplateResponse,
+      'bad_request',
+      'No organization context'
+    );
   });
 
   it('counts only committable account actions in preview totals', async () => {

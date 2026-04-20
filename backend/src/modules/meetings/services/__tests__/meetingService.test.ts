@@ -11,7 +11,7 @@ import {
   reorderAgendaItems,
   updateMeeting,
   updateMotion,
-} from '@services/meetingService';
+} from '../meetingService';
 
 jest.mock('@config/database', () => ({
   __esModule: true,
@@ -30,7 +30,7 @@ jest.mock('@config/logger', () => ({
   },
 }));
 
-describe('meetingService.reorderAgendaItems', () => {
+describe('meetingService', () => {
   const queryMock = pool.query as jest.MockedFunction<typeof pool.query>;
   const connectMock = pool.connect as jest.MockedFunction<typeof pool.connect>;
   const nowIso = '2026-03-03T00:00:00.000Z';

@@ -396,8 +396,10 @@ test-coverage:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
 	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
+	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
+	@sleep 5
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
-	cd backend && npm test -- --coverage --runInBand
+	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
 	cd frontend && npm test -- --run --coverage
 	@echo "$(BLUE)Running Playwright E2E host smoke tests...$(RESET)"
@@ -410,8 +412,10 @@ test-coverage-full:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
 	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
+	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
+	@sleep 5
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
-	cd backend && npm test -- --coverage --runInBand
+	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --coverage --runInBand
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
 	cd frontend && npm test -- --run --coverage
 	@echo "$(BLUE)Running Playwright E2E host CI matrix...$(RESET)"
@@ -425,7 +429,9 @@ test-tooling:
 test-backend:
 	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
-	cd backend && npm test -- --runInBand
+	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
+	@sleep 5
+	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand
 
 test-frontend:
 	cd frontend && npm test -- --run

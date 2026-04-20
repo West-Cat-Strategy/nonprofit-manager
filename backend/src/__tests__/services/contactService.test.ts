@@ -16,6 +16,13 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
+// Mock activityEventService
+jest.mock('../../services/activityEventService', () => ({
+  activityEventService: {
+    recordEvent: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 jest.mock('@utils/encryption', () => ({
   encrypt: jest.fn((value: string) => `enc:${value}`),
   decrypt: jest.fn((value: string) => {

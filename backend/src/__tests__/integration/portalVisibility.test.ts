@@ -30,12 +30,14 @@ describe('Portal Visibility Integration', () => {
   let portalEventId: string;
   let portalRegistrationId: string;
   let portalCheckInToken: string;
+  let organizationId: string;
 
   const createdDocIds: string[] = [];
   const createdNoteIds: string[] = [];
   const createdPortalUserIds: string[] = [];
   const createdContactIds: string[] = [];
   const createdEventIds: string[] = [];
+  const createdOccurrenceIds: string[] = [];
   const createdRegistrationIds: string[] = [];
 
   const buildPortalToken = () =>
@@ -50,12 +52,18 @@ describe('Portal Visibility Integration', () => {
   beforeAll(async () => {
     const suffix = unique();
 
+    const orgResult = await pool.query(
+      "INSERT INTO accounts (account_name, account_type, created_at, updated_at) VALUES ($1, 'organization', NOW(), NOW()) RETURNING id",
+      [`Portal Visibility Org ${suffix}`]
+    );
+    organizationId = orgResult.rows[0].id;
+
     portalEmail = `portal-visibility-${suffix}@example.com`;
     const contactResult = await pool.query(
-      `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
-       VALUES ('Portal', 'Visibility', $1, NULL, NULL)
+      `INSERT INTO contacts (account_id, first_name, last_name, email, created_by, modified_by)
+       VALUES ($1, 'Portal', 'Visibility', $2, NULL, NULL)
        RETURNING id`,
-      [portalEmail]
+      [organizationId, portalEmail]
     );
     contactId = contactResult.rows[0].id as string;
     createdContactIds.push(contactId);
@@ -195,6 +203,7 @@ describe('Portal Visibility Integration', () => {
 
     const portalEvent = await pool.query(
       `INSERT INTO events (
+         organization_id,
          name,
          description,
          event_type,
@@ -206,6 +215,7 @@ describe('Portal Visibility Integration', () => {
          created_by,
          modified_by
        ) VALUES (
+         $1,
          'Portal Registration Event',
          'Visible via registration',
          'community',
@@ -217,22 +227,42 @@ describe('Portal Visibility Integration', () => {
          NULL,
          NULL
        )
-       RETURNING id`
+       RETURNING id`,
+       [organizationId]
     );
     portalEventId = portalEvent.rows[0].id as string;
     createdEventIds.push(portalEventId);
 
+    const portalOccurrence = await pool.query(
+      `INSERT INTO event_occurrences (
+         organization_id, 
+         event_id, 
+         start_date, 
+         end_date, 
+         scheduled_start_date, 
+         scheduled_end_date, 
+         event_name,
+         status
+       )
+       VALUES ($1, $2, NOW() + interval '2 days', NOW() + interval '2 days 2 hours', NOW() + interval '2 days', NOW() + interval '2 days 2 hours', 'Portal Event', 'planned')
+       RETURNING id`,
+      [organizationId, portalEventId]
+    );
+    const portalOccurrenceId = portalOccurrence.rows[0].id as string;
+    createdOccurrenceIds.push(portalOccurrenceId);
+
     const portalRegistration = await pool.query<{ id: string; check_in_token: string }>(
       `INSERT INTO event_registrations (
          event_id,
+         occurrence_id,
          contact_id,
          registration_status,
          checked_in,
          check_in_time,
          check_in_method
-       ) VALUES ($1, $2, 'registered', true, NOW(), 'qr')
+       ) VALUES ($1, $2, $3, 'registered', true, NOW(), 'qr')
        RETURNING id, check_in_token`,
-      [portalEventId, contactId]
+      [portalEventId, portalOccurrenceId, contactId]
     );
     portalRegistrationId = portalRegistration.rows[0].id as string;
     portalCheckInToken = portalRegistration.rows[0].check_in_token;
@@ -242,6 +272,9 @@ describe('Portal Visibility Integration', () => {
   afterAll(async () => {
     if (createdRegistrationIds.length > 0) {
       await pool.query('DELETE FROM event_registrations WHERE id = ANY($1)', [createdRegistrationIds]);
+    }
+    if (createdOccurrenceIds.length > 0) {
+      await pool.query('DELETE FROM event_occurrences WHERE id = ANY($1)', [createdOccurrenceIds]);
     }
     if (createdEventIds.length > 0) {
       await pool.query('DELETE FROM events WHERE id = ANY($1)', [createdEventIds]);
@@ -257,6 +290,9 @@ describe('Portal Visibility Integration', () => {
     }
     if (createdContactIds.length > 0) {
       await pool.query('DELETE FROM contacts WHERE id = ANY($1)', [createdContactIds]);
+    }
+    if (organizationId) {
+      await pool.query('DELETE FROM accounts WHERE id = $1', [organizationId]);
     }
   });
 

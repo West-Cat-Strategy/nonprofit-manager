@@ -21,6 +21,7 @@ describe('Portal Workspace Integration', () => {
   let eventId: string;
   let eventRegistrationId: string;
   let threadId: string;
+  let organizationId: string;
   const createdCaseDocumentIds: string[] = [];
   const uploadedFilePaths: string[] = [];
 
@@ -62,12 +63,18 @@ describe('Portal Workspace Integration', () => {
     );
     activeStatusId = statusResult.rows[0].id as string;
 
+    const orgResult = await pool.query(
+      "INSERT INTO accounts (account_name, account_type, created_at, updated_at) VALUES ($1, 'organization', NOW(), NOW()) RETURNING id",
+      [`Portal Workspace Org ${suffix}`]
+    );
+    organizationId = orgResult.rows[0].id;
+
     portalEmail = `portal-workspace-client-${suffix}@example.com`;
     const contactResult = await pool.query(
-      `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
-       VALUES ('Portal', 'Client', $1, NULL, NULL)
+      `INSERT INTO contacts (account_id, first_name, last_name, email, created_by, modified_by)
+       VALUES ($1, 'Portal', 'Client', $2, NULL, NULL)
        RETURNING id`,
-      [portalEmail]
+      [organizationId, portalEmail]
     );
     contactId = contactResult.rows[0].id as string;
 
@@ -81,6 +88,7 @@ describe('Portal Workspace Integration', () => {
 
     const caseResult = await pool.query(
       `INSERT INTO cases (
+         account_id,
          case_number,
          contact_id,
          case_type_id,
@@ -93,9 +101,10 @@ describe('Portal Workspace Integration', () => {
          modified_by,
          created_at,
          updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, true, $7, $7, $7, NOW(), NOW())
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $8, $8, NOW(), NOW())
        RETURNING id`,
       [
+        organizationId,
         `PORTAL-WORKSPACE-${suffix}`,
         contactId,
         caseTypeId,
@@ -147,6 +156,7 @@ describe('Portal Workspace Integration', () => {
 
     const eventResult = await pool.query(
       `INSERT INTO events (
+         organization_id,
          name,
          description,
          event_type,
@@ -158,6 +168,7 @@ describe('Portal Workspace Integration', () => {
          created_by,
          modified_by
        ) VALUES (
+         $1,
          'Client Orientation',
          'Workspace dashboard event',
          'community',
@@ -166,24 +177,42 @@ describe('Portal Workspace Integration', () => {
          NOW() + interval '2 days',
          NOW() + interval '2 days 2 hours',
          'Community hall',
-         $1,
-         $1
+         $2,
+         $2
        )
        RETURNING id`,
-      [adminUserId]
+      [organizationId, adminUserId]
     );
     eventId = eventResult.rows[0].id as string;
+
+    const occurrenceResult = await pool.query(
+      `INSERT INTO event_occurrences (
+         organization_id, 
+         event_id, 
+         start_date, 
+         end_date, 
+         scheduled_start_date, 
+         scheduled_end_date, 
+         event_name,
+         status
+       )
+       VALUES ($1, $2, NOW() + interval '2 days', NOW() + interval '2 days 2 hours', NOW() + interval '2 days', NOW() + interval '2 days 2 hours', 'Client Orientation', 'planned')
+       RETURNING id`,
+      [organizationId, eventId]
+    );
+    const occurrenceId = occurrenceResult.rows[0].id as string;
 
     const eventRegistrationResult = await pool.query(
       `INSERT INTO event_registrations (
          event_id,
+         occurrence_id,
          contact_id,
          registration_status,
          checked_in,
          check_in_method
-       ) VALUES ($1, $2, 'registered', false, 'manual')
+       ) VALUES ($1, $2, $3, 'registered', false, 'manual')
        RETURNING id`,
-      [eventId, contactId]
+      [eventId, occurrenceId, contactId]
     );
     eventRegistrationId = eventRegistrationResult.rows[0].id as string;
 
@@ -229,17 +258,18 @@ describe('Portal Workspace Integration', () => {
       await pool.query('DELETE FROM portal_messages WHERE thread_id = $1', [threadId]);
       await pool.query('DELETE FROM portal_threads WHERE id = $1', [threadId]);
     }
-    if (eventRegistrationId) {
-      await pool.query('DELETE FROM event_registrations WHERE id = $1', [eventRegistrationId]);
-    }
-    if (eventId) {
-      await pool.query('DELETE FROM events WHERE id = $1', [eventId]);
-    }
     if (appointmentId) {
       await pool.query('DELETE FROM appointments WHERE id = $1', [appointmentId]);
     }
-    if (contactDocumentId) {
-      await pool.query('DELETE FROM contact_documents WHERE id = $1', [contactDocumentId]);
+    if (organizationId) {
+      await pool.query('DELETE FROM event_registrations WHERE event_id IN (SELECT id FROM events WHERE organization_id = $1)', [
+        organizationId,
+      ]);
+      await pool.query('DELETE FROM event_occurrences WHERE organization_id = $1', [organizationId]);
+      await pool.query('DELETE FROM events WHERE organization_id = $1', [organizationId]);
+      await pool.query('DELETE FROM contact_documents WHERE contact_id IN (SELECT id FROM contacts WHERE account_id = $1)', [
+        organizationId,
+      ]);
     }
     if (caseId) {
       await pool.query('DELETE FROM cases WHERE id = $1', [caseId]);
@@ -258,6 +288,9 @@ describe('Portal Workspace Integration', () => {
     }
     if (adminUserId) {
       await pool.query('DELETE FROM users WHERE id = $1', [adminUserId]);
+    }
+    if (organizationId) {
+      await pool.query('DELETE FROM accounts WHERE id = $1', [organizationId]);
     }
   });
 

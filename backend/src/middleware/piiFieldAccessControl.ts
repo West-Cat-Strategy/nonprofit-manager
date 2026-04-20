@@ -52,9 +52,11 @@ export function piiFieldAccessControl(piiService: PIIService, tableName?: string
       return next(); 
     }
 
+
     try {
       // Pre-fetch field access rules for the current user's role
       // This is the only async part and happens BEFORE the controller
+      const userRole = normalizeRole(req.user?.role);
       const rules = await (piiService as any).getFieldAccessRules(effectiveTableName, userRole);
       
       res.json = function (data: any) {
@@ -95,7 +97,8 @@ function applyFieldAccessControlSync(
 
   const controlled: Record<string, any> = {};
 
-  for (const [key, value] of Object.entries(data)) {
+  for (const key of Object.keys(data)) {
+    const value = data[key];
     if (isCountField(key)) {
       controlled[key] = value;
       continue;
@@ -103,7 +106,6 @@ function applyFieldAccessControlSync(
 
     const rule = rules?.get(key);
     const accessLevel = rule?.accessLevel || getDefaultAccessLevel(key, context);
-
     if (accessLevel === 'none') {
       continue; // Skip the field entirely
     }
@@ -114,7 +116,8 @@ function applyFieldAccessControlSync(
         continue;
       }
       const pattern = rule?.maskingPattern || 'partial';
-      controlled[key] = maskFieldByType(key, value, pattern);
+      const masked = maskFieldByType(key, value, pattern);
+      controlled[key] = masked;
     } else {
       // Recursively process nested objects
       if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -134,8 +137,6 @@ function applyFieldAccessControlSync(
   return controlled;
 }
 
-const PRIVILEGED_CONTACT_PII_ROLES = new Set(['admin']);
-const PRIVILEGED_CONTACT_PII_FIELDS = new Set(['email', 'phone', 'mobile_phone', 'birth_date']);
 
 function normalizeRole(role: string | undefined): string | undefined {
   if (typeof role !== 'string') {
@@ -147,20 +148,24 @@ function normalizeRole(role: string | undefined): string | undefined {
 }
 
 function getDefaultAccessLevel(fieldName: string, context: FieldAccessContext): 'full' | 'masked' {
-  if (!isSensitiveField(fieldName)) {
+  const sensitive = isSensitiveField(fieldName);
+  if (!sensitive) {
     return 'full';
   }
 
   const normalizedRole = normalizeRole(context.userRole);
   const normalizedFieldName = fieldName.toLowerCase();
 
-  if (
-    context.tableName === 'contacts' &&
-    normalizedRole &&
-    PRIVILEGED_CONTACT_PII_ROLES.has(normalizedRole) &&
-    PRIVILEGED_CONTACT_PII_FIELDS.has(normalizedFieldName)
-  ) {
-    return 'full';
+  // Contacts table specific rules
+  if (context.tableName === 'contacts') {
+    // Admins see everything
+    if (normalizedRole === 'admin') {
+      return 'full';
+    }
+    // Staff see full PHN but masked email/phone
+    if (normalizedRole === 'staff' && normalizedFieldName === 'phn') {
+      return 'full';
+    }
   }
 
   return 'masked';
@@ -188,6 +193,9 @@ function isSensitiveField(fieldName: string): boolean {
     'api_key',
     'secret_key',
     'token',
+    'phn',
+    'address',
+    'postal_code',
   ];
 
   return sensitiveFields.some((field) => fieldName.toLowerCase().includes(field.toLowerCase()));
@@ -209,6 +217,9 @@ function maskFieldByType(fieldName: string, value: any, pattern: string = 'parti
   }
   if (pattern === 'ssn' || (pattern === 'partial' && lowerFieldName.includes('ssn'))) {
     return '***-**-' + stringValue.slice(-4);
+  }
+  if (lowerFieldName.includes('phn')) {
+    return '*'.repeat(Math.max(0, stringValue.length - 4)) + stringValue.slice(-4);
   }
 
   // Fallback to general patterns

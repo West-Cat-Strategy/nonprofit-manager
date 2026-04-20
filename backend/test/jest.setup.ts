@@ -187,8 +187,8 @@ const assertTestSchemaReady = async (dbClient: PoolClient): Promise<void> => {
 beforeAll(async () => {
   const currentTestPath = expect.getState().testPath ?? '';
   const isIntegrationTestPath =
-    currentTestPath.includes('/src/__tests__/integration/') ||
-    currentTestPath.includes('\\src\\__tests__\\integration\\');
+    currentTestPath.includes('/__tests__/integration/') ||
+    currentTestPath.includes('\\__tests__\\integration\\');
   const shouldVerifyTestDb = isIntegrationTestPath || process.env.REQUIRE_TEST_DB === 'true';
 
   const shouldExposeAuthTokens =
@@ -245,9 +245,14 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // In --runInBand mode, the pool is a singleton across test files.
+  // Ending it here would break subsequent test files in the same process.
+  // Jest will close the process and the pool when finished.
+  /*
   try {
     await pool.end();
   } catch {
     // Allow unit suites without an active DB connection to complete cleanly.
   }
+  */
 });

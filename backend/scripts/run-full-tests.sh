@@ -88,6 +88,8 @@ fi
 resolve_test_db_contract
 assert_test_db_contract
 
+export __NONPROFIT_MANAGER_DB_COMPAT_SETUP_DONE__="true"
+
 if [[ "$#" -eq 0 ]]; then
   exec npx jest --forceExit --runInBand
 fi

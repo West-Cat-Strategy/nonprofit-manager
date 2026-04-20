@@ -66,8 +66,8 @@ const config: PoolConfig = {
   password:
     process.env.DB_PASSWORD ??
     (process.env.NODE_ENV === 'production' ? undefined : 'nonprofit_app_password'),
-  max: DATABASE.POOL_MAX_CONNECTIONS,
-  idleTimeoutMillis: DATABASE.IDLE_TIMEOUT_MS,
+  max: process.env.NODE_ENV === 'test' ? 10 : DATABASE.POOL_MAX_CONNECTIONS,
+  idleTimeoutMillis: process.env.NODE_ENV === 'test' ? 1000 : DATABASE.IDLE_TIMEOUT_MS,
   connectionTimeoutMillis: DATABASE.CONNECTION_TIMEOUT_MS,
   // Avoid Jest hanging on open TCP handles while still allowing real connections during tests.
   // https://node-postgres.com/api/pool
@@ -151,7 +151,7 @@ export async function withRequestContextTransaction<T>(
 export const requestContextQuery: DatabaseQuery = (async (...args: any[]) => {
   const context = getRequestContext();
   if (!context?.userId) {
-    return (originalQuery as any)(...args);
+    return (rawPool.query as any)(...args);
   }
 
   const client = await rawPool.connect();

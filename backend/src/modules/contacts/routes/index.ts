@@ -7,6 +7,7 @@ import { authenticate } from '@middleware/domains/auth';
 import { loadDataScope } from '@middleware/domains/data';
 import { requirePermission } from '@middleware/permissions';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
+import { requireRequestedOrganizationContext } from '@middleware/requireRequestedOrganizationContext';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import { documentUpload, handleMulterError } from '@middleware/domains/platform';
 import {
@@ -82,6 +83,7 @@ const importTemplateQuerySchema = z
 
 export const createContactsRoutes = (): Router => {
   const router = Router();
+  const scopedRouter = Router();
 
   const directoryRepository = new ContactRepository();
   const notesRepository = new ContactNotesRepository();
@@ -111,57 +113,76 @@ export const createContactsRoutes = (): Router => {
     new ContactCommunicationsUseCase(communicationsRepository),
     directoryUseCase
   );
+  const requireContactsDataScope = loadDataScope('contacts');
 
   router.use(authenticate);
-  router.use(requireActiveOrganizationContext);
-  router.use(loadDataScope('contacts'));
 
-  router.get(
-    '/',
-    validateQuery(contactFilterSchema),
-    piiFieldAccessControl(services.pii, 'contacts'),
-    directoryController.getContacts
-  );
-  router.get(
-    '/lookup',
-    validateQuery(contactLookupQuerySchema),
-    directoryController.lookupContacts
-  );
-  router.get('/tags', directoryController.getContactTags);
-  router.get('/roles', directoryController.getContactRoles);
   router.post(
-    '/bulk',
-    validateBody(bulkUpdateContactsSchema),
-    requirePermission(Permission.CONTACT_EDIT),
-    directoryController.bulkUpdateContacts
+    '/export',
+    requireRequestedOrganizationContext,
+    requireActiveOrganizationContext,
+    requireContactsDataScope,
+    validateBody(contactExportSchema),
+    directoryController.exportContacts
   );
-  router.post('/export', validateBody(contactExportSchema), directoryController.exportContacts);
   router.get(
     '/import/template',
+    requireRequestedOrganizationContext,
+    requireActiveOrganizationContext,
+    requireContactsDataScope,
     validateQuery(importTemplateQuerySchema),
     directoryController.downloadImportTemplate
   );
   router.post(
     '/import/preview',
+    requireRequestedOrganizationContext,
+    requireActiveOrganizationContext,
+    requireContactsDataScope,
     documentUpload.single('file'),
     handleMulterError,
     directoryController.previewImport
   );
   router.post(
     '/import/commit',
+    requireRequestedOrganizationContext,
+    requireActiveOrganizationContext,
+    requireContactsDataScope,
     documentUpload.single('file'),
     handleMulterError,
     requirePermission(Permission.CONTACT_CREATE),
     directoryController.commitImport
   );
 
-  router.get(
+  scopedRouter.use(requireActiveOrganizationContext);
+  scopedRouter.use(requireContactsDataScope);
+
+  scopedRouter.get(
+    '/',
+    validateQuery(contactFilterSchema),
+    piiFieldAccessControl(services.pii, 'contacts'),
+    directoryController.getContacts
+  );
+  scopedRouter.get(
+    '/lookup',
+    validateQuery(contactLookupQuerySchema),
+    directoryController.lookupContacts
+  );
+  scopedRouter.get('/tags', directoryController.getContactTags);
+  scopedRouter.get('/roles', directoryController.getContactRoles);
+  scopedRouter.post(
+    '/bulk',
+    validateBody(bulkUpdateContactsSchema),
+    requirePermission(Permission.CONTACT_EDIT),
+    directoryController.bulkUpdateContacts
+  );
+
+  scopedRouter.get(
     '/:id',
     validateParams(z.object({ id: uuidSchema })),
     piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.getContactById
   );
-  router.get(
+  scopedRouter.get(
     '/:id/merge-preview',
     validateParams(z.object({ id: uuidSchema })),
     validateQuery(contactMergePreviewQuerySchema),
@@ -169,7 +190,7 @@ export const createContactsRoutes = (): Router => {
     piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.getContactMergePreview
   );
-  router.post(
+  scopedRouter.post(
     '/:id/merge',
     validateParams(z.object({ id: uuidSchema })),
     validateBody(contactMergeSchema),
@@ -177,14 +198,14 @@ export const createContactsRoutes = (): Router => {
     piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.mergeContact
   );
-  router.post(
+  scopedRouter.post(
     '/',
     validateBody(createContactSchema),
     requirePermission(Permission.CONTACT_CREATE),
     piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.createContact
   );
-  router.put(
+  scopedRouter.put(
     '/:id',
     validateParams(z.object({ id: uuidSchema })),
     validateBody(updateContactSchema),
@@ -192,159 +213,159 @@ export const createContactsRoutes = (): Router => {
     piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.updateContact
   );
-  router.delete(
+  scopedRouter.delete(
     '/:id',
     validateParams(z.object({ id: uuidSchema })),
     requirePermission(Permission.CONTACT_DELETE),
     directoryController.deleteContact
   );
-  router.get(
+  scopedRouter.get(
     '/:id/follow-ups',
     validateParams(z.object({ id: uuidSchema })),
     followUpsController.getContactFollowUps
   );
-  router.get(
+  scopedRouter.get(
     '/:id/communications',
     validateParams(z.object({ id: uuidSchema })),
     validateQuery(contactCommunicationsQuerySchema),
     communicationsController.getContactCommunications
   );
 
-  router.get(
+  scopedRouter.get(
     '/:contactId/notes/timeline',
     validateParams(z.object({ contactId: uuidSchema })),
     notesController.getContactNotesTimeline
   );
-  router.get(
+  scopedRouter.get(
     '/:contactId/notes',
     validateParams(z.object({ contactId: uuidSchema })),
     notesController.getContactNotes
   );
-  router.post(
+  scopedRouter.post(
     '/:contactId/notes',
     validateParams(z.object({ contactId: uuidSchema })),
     validateBody(contactNoteSchema),
     requirePermission(Permission.CONTACT_EDIT),
     notesController.createContactNote
   );
-  router.get(
+  scopedRouter.get(
     '/notes/:noteId',
     validateParams(z.object({ noteId: uuidSchema })),
     notesController.getContactNoteById
   );
-  router.put(
+  scopedRouter.put(
     '/notes/:noteId',
     validateParams(z.object({ noteId: uuidSchema })),
     validateBody(updateContactNoteSchema),
     requirePermission(Permission.CONTACT_EDIT),
     notesController.updateContactNote
   );
-  router.delete(
+  scopedRouter.delete(
     '/notes/:noteId',
     validateParams(z.object({ noteId: uuidSchema })),
     requirePermission(Permission.CONTACT_EDIT),
     notesController.deleteContactNote
   );
 
-  router.get(
+  scopedRouter.get(
     '/:contactId/phones',
     validateParams(z.object({ contactId: uuidSchema })),
     phonesController.getContactPhones
   );
-  router.post(
+  scopedRouter.post(
     '/:contactId/phones',
     validateParams(z.object({ contactId: uuidSchema })),
     validateBody(contactPhoneSchema),
     requirePermission(Permission.CONTACT_EDIT),
     phonesController.createContactPhone
   );
-  router.get(
+  scopedRouter.get(
     '/phones/:phoneId',
     validateParams(z.object({ phoneId: uuidSchema })),
     phonesController.getContactPhoneById
   );
-  router.put(
+  scopedRouter.put(
     '/phones/:phoneId',
     validateParams(z.object({ phoneId: uuidSchema })),
     validateBody(updateContactPhoneSchema),
     requirePermission(Permission.CONTACT_EDIT),
     phonesController.updateContactPhone
   );
-  router.delete(
+  scopedRouter.delete(
     '/phones/:phoneId',
     validateParams(z.object({ phoneId: uuidSchema })),
     requirePermission(Permission.CONTACT_EDIT),
     phonesController.deleteContactPhone
   );
 
-  router.get(
+  scopedRouter.get(
     '/:contactId/emails',
     validateParams(z.object({ contactId: uuidSchema })),
     emailsController.getContactEmails
   );
-  router.post(
+  scopedRouter.post(
     '/:contactId/emails',
     validateParams(z.object({ contactId: uuidSchema })),
     validateBody(contactEmailSchema),
     requirePermission(Permission.CONTACT_EDIT),
     emailsController.createContactEmail
   );
-  router.get(
+  scopedRouter.get(
     '/emails/:emailId',
     validateParams(z.object({ emailId: uuidSchema })),
     emailsController.getContactEmailById
   );
-  router.put(
+  scopedRouter.put(
     '/emails/:emailId',
     validateParams(z.object({ emailId: uuidSchema })),
     validateBody(updateContactEmailSchema),
     requirePermission(Permission.CONTACT_EDIT),
     emailsController.updateContactEmail
   );
-  router.delete(
+  scopedRouter.delete(
     '/emails/:emailId',
     validateParams(z.object({ emailId: uuidSchema })),
     requirePermission(Permission.CONTACT_EDIT),
     emailsController.deleteContactEmail
   );
 
-  router.get(
+  scopedRouter.get(
     '/:contactId/relationships',
     validateParams(z.object({ contactId: uuidSchema })),
     relationshipsController.getContactRelationships
   );
-  router.post(
+  scopedRouter.post(
     '/:contactId/relationships',
     validateParams(z.object({ contactId: uuidSchema })),
     validateBody(contactRelationshipSchema),
     requirePermission(Permission.CONTACT_EDIT),
     relationshipsController.createContactRelationship
   );
-  router.get(
+  scopedRouter.get(
     '/relationships/:relationshipId',
     validateParams(z.object({ relationshipId: uuidSchema })),
     relationshipsController.getContactRelationshipById
   );
-  router.put(
+  scopedRouter.put(
     '/relationships/:relationshipId',
     validateParams(z.object({ relationshipId: uuidSchema })),
     validateBody(updateContactRelationshipSchema),
     requirePermission(Permission.CONTACT_EDIT),
     relationshipsController.updateContactRelationship
   );
-  router.delete(
+  scopedRouter.delete(
     '/relationships/:relationshipId',
     validateParams(z.object({ relationshipId: uuidSchema })),
     requirePermission(Permission.CONTACT_EDIT),
     relationshipsController.deleteContactRelationship
   );
 
-  router.get(
+  scopedRouter.get(
     '/:contactId/documents',
     validateParams(z.object({ contactId: uuidSchema })),
     documentsController.getContactDocuments
   );
-  router.post(
+  scopedRouter.post(
     '/:contactId/documents',
     validateParams(z.object({ contactId: uuidSchema })),
     documentUpload.single('file'),
@@ -352,29 +373,31 @@ export const createContactsRoutes = (): Router => {
     requirePermission(Permission.CONTACT_EDIT),
     documentsController.uploadDocument
   );
-  router.get(
+  scopedRouter.get(
     '/documents/:documentId',
     validateParams(z.object({ documentId: uuidSchema })),
     documentsController.getDocumentById
   );
-  router.get(
+  scopedRouter.get(
     '/documents/:documentId/download',
     validateParams(z.object({ documentId: uuidSchema })),
     documentsController.downloadDocument
   );
-  router.put(
+  scopedRouter.put(
     '/documents/:documentId',
     validateParams(z.object({ documentId: uuidSchema })),
     validateBody(updateContactDocumentSchema),
     requirePermission(Permission.CONTACT_EDIT),
     documentsController.updateDocument
   );
-  router.delete(
+  scopedRouter.delete(
     '/documents/:documentId',
     validateParams(z.object({ documentId: uuidSchema })),
     requirePermission(Permission.CONTACT_EDIT),
     documentsController.deleteDocument
   );
+
+  router.use(scopedRouter);
 
   return router;
 };

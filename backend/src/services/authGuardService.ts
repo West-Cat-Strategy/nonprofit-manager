@@ -4,6 +4,7 @@
  */
 
 import pool from '@config/database';
+import { logger } from '@config/logger';
 import type { AuthRequest } from '@middleware/auth';
 import type { Response } from 'express';
 import { unauthorized, forbidden } from '@utils/responseHelpers';
@@ -34,7 +35,15 @@ export type SafeGuardResult<T> =
 type AuthenticatedUser = NonNullable<AuthRequest['user']>;
 
 const getOrganizationId = (req: AuthRequest): string | undefined => {
-  return req.organizationId || req.accountId || req.tenantId;
+  const id = req.organizationId || req.accountId || req.tenantId;
+  if (!id) {
+    logger.info('No organization context found in request object', {
+      path: req.path,
+      hasUser: !!req.user,
+      correlationId: req.correlationId
+    });
+  }
+  return id;
 };
 
 const requireUserError = (): GuardFailure => ({
@@ -151,7 +160,7 @@ export async function requireActiveOrganizationSafe(
       ok: false,
       error: {
         code: 'bad_request',
-        message: 'Bad Request: No organization context',
+        message: 'No organization context',
         statusCode: 400,
       },
     };

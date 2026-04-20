@@ -28,12 +28,16 @@ jest.mock('@services/accountAccessService', () => ({
   upsertUserOrganizationAccess: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('@config/database', () => ({
-  __esModule: true,
-  default: {
-    query: jest.fn(),
-  },
-}));
+jest.mock('@config/database', () => {
+  const query = jest.fn();
+  const db = { query };
+  return {
+    __esModule: true,
+    default: db,
+    withUserContextTransaction: jest.fn(async (userId, fn) => fn({ query })),
+    withDatabaseTransaction: jest.fn(async (fn, options) => fn({ query })),
+  };
+});
 
 jest.mock('bcryptjs', () => ({
   genSalt: jest.fn(),

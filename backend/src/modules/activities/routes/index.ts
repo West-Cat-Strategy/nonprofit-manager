@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { getRecentActivities, getEntityActivities } from '../controllers';
 import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
+import { requireRequestedOrganizationContext } from '@middleware/requireRequestedOrganizationContext';
 import { validateParams, validateQuery } from '@middleware/zodValidation';
 import { uuidSchema } from '@validations/shared';
 
@@ -23,8 +24,9 @@ const activityEntityParamsSchema = z.object({
   entityId: uuidSchema,
 });
 
-// All routes require authentication
+// All routes require authentication and explicit organization context
 router.use(authenticate);
+router.use(requireRequestedOrganizationContext);
 router.use(requireActiveOrganizationContext);
 
 /**

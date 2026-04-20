@@ -1,6 +1,6 @@
 import request from 'supertest';
-import app from '../../index';
-import pool from '../../config/database';
+import app from '../../../../index';
+import pool from '../../../../config/database';
 
 describe('Meetings API Integration Tests', () => {
   let adminAuthToken: string;
@@ -85,8 +85,6 @@ describe('Meetings API Integration Tests', () => {
   afterAll(async () => {
     if (testAccountId) {
       await pool.query('DELETE FROM meetings WHERE committee_id IN (SELECT id FROM committees WHERE created_by IN (SELECT id FROM users WHERE email LIKE \'meeting-%\'))');
-      // Committees are system or created by users, we should be careful. 
-      // But for tests, we can just leave them or delete if we created them.
       await pool.query('DELETE FROM contacts WHERE account_id = $1', [testAccountId]);
       await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [testAccountId]);
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);

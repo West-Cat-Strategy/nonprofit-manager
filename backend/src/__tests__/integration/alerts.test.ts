@@ -1,19 +1,40 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../../index';
+import pool from '../../config/database';
 import { getJwtSecret } from '../../config/jwt';
 
-const authToken = jwt.sign(
-  {
-    id: 'alerts-integration-user',
-    email: 'alerts-integration@example.com',
-    role: 'user',
-  },
-  getJwtSecret(),
-  { expiresIn: '1h' }
-);
+import { randomUUID } from 'crypto';
+
+let authToken = '';
+const TEST_USER_ID = randomUUID();
 
 describe('Alerts API Integration', () => {
+  beforeAll(async () => {
+    const email = 'alerts-integration@example.com';
+    
+    // Create user in DB to satisfy session validation
+    await pool.query(
+      `INSERT INTO users (id, email, password_hash, first_name, last_name, role, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, true)
+       ON CONFLICT (id) DO UPDATE SET is_active = true`,
+      [TEST_USER_ID, email, 'hash', 'Alerts', 'Integration', 'user']
+    );
+
+    authToken = jwt.sign(
+      {
+        id: TEST_USER_ID,
+        email: email,
+        role: 'user',
+      },
+      getJwtSecret(),
+      { expiresIn: '1h' }
+    );
+  });
+
+  afterAll(async () => {
+    await pool.query('DELETE FROM users WHERE id = $1', [TEST_USER_ID]);
+  });
   it('rejects unauthenticated access', async () => {
     await request(app).get('/api/v2/alerts/configs').expect(401);
   });
