@@ -98,6 +98,7 @@ export interface AuthSession {
   email: string;
   password: string;
   isAdmin: boolean;
+  organizationId?: string;
 }
 
 type ApiSuccessEnvelope<T> = {
@@ -407,6 +408,42 @@ const withResolvedOrganizationIds = (
   };
 };
 
+const collectDistinctOrganizationIds = (...values: Array<string | undefined>): string[] =>
+  [...new Set(values.filter((value): value is string => Boolean(value)))];
+
+function resolveValidatedSessionOrganizationId(
+  context: string,
+  input: {
+    organizationId?: string;
+    user?: AuthUser;
+    token?: string;
+    bootstrapOrganizationId?: string;
+    bootstrapUser?: AuthUser;
+    sessionOrganizationId?: string;
+  },
+  options: { required?: boolean } = {}
+): string | undefined {
+  const organizationIds = collectDistinctOrganizationIds(
+    normalizeOrganizationId(input.organizationId),
+    normalizeOrganizationId(input.sessionOrganizationId),
+    resolveOrganizationIdFromUser(input.user),
+    input.token ? getOrganizationIdFromToken(input.token) : undefined,
+    normalizeOrganizationId(input.bootstrapOrganizationId),
+    resolveOrganizationIdFromUser(input.bootstrapUser)
+  );
+
+  if (organizationIds.length > 1) {
+    throw new Error(`${context} has conflicting organization ids: ${organizationIds.join(', ')}`);
+  }
+
+  const organizationId = organizationIds[0];
+  if (!organizationId && options.required) {
+    throw new Error(`${context} is missing organization id`);
+  }
+
+  return organizationId;
+}
+
 const toBase64Url = (value: string): string =>
   Buffer.from(value, 'utf8')
     .toString('base64')
@@ -637,9 +674,16 @@ const readEffectiveAdminSessionCache = (): CachedEffectiveAdminSession | null =>
     const email = normalizeString(payload.email);
     const password = normalizeString(payload.password);
     const token = normalizeString(payload.token);
-    const organizationId = normalizeOrganizationId(payload.organizationId);
     const user = normalizeAuthUser(payload.user);
     if (!email || !password || !token || !user) {
+      return null;
+    }
+    const organizationId = resolveValidatedSessionOrganizationId('Cached effective admin session', {
+      organizationId: normalizeOrganizationId(payload.organizationId),
+      user,
+      token,
+    });
+    if (!organizationId) {
       return null;
     }
     return {
@@ -659,12 +703,17 @@ const writeEffectiveAdminSessionCache = (session: AuthSession): void => {
   const password = normalizeString(session.password);
   const token = normalizeString(session.token);
   const user = normalizeAuthUser(session.user);
-  const organizationId =
-    normalizeOrganizationId(session.user?.organizationId) ||
-    normalizeOrganizationId(session.user?.organization_id) ||
-    getOrganizationIdFromToken(session.token);
 
   if (!email || !password || !token || !user) {
+    return;
+  }
+
+  const organizationId = resolveValidatedSessionOrganizationId('Effective admin session cache', {
+    organizationId: normalizeOrganizationId(session.organizationId),
+    user,
+    token,
+  });
+  if (!organizationId) {
     return;
   }
 
@@ -1009,10 +1058,21 @@ const getCurrentAdminSession = async (page: Page): Promise<AuthSession | null> =
     return null;
   }
 
-  const organizationId =
-    bootstrapSession.organizationId ||
-    resolveOrganizationIdFromUser(bootstrapSession.user) ||
-    getOrganizationIdFromToken(token);
+  let organizationId: string;
+  try {
+    organizationId =
+      resolveValidatedSessionOrganizationId(
+        'Current admin session',
+        {
+          organizationId: bootstrapSession.organizationId,
+          user: bootstrapSession.user,
+          token,
+        },
+        { required: true }
+      ) ?? '';
+  } catch {
+    return null;
+  }
   const user = withResolvedOrganizationIds(bootstrapSession.user, organizationId);
   if (!user) {
     return null;
@@ -1042,6 +1102,7 @@ const getCurrentAdminSession = async (page: Page): Promise<AuthSession | null> =
     email,
     password,
     isAdmin: true,
+    organizationId,
   };
 };
 
@@ -1058,8 +1119,11 @@ const primeValidatedBrowserAuthSession = async (
   } = {}
 ): Promise<BootstrapSessionResult | null> => {
   const authUser = normalizeAuthUser(input.user);
-  const organizationId =
-    input.organizationId || resolveOrganizationIdFromUser(authUser) || getOrganizationIdFromToken(input.token);
+  const organizationId = resolveValidatedSessionOrganizationId('Auth session seed state', {
+    organizationId: normalizeOrganizationId(input.organizationId),
+    user: authUser,
+    token: input.token,
+  });
 
   await setSessionStorageAuthState(page, input.token, organizationId, authUser, {
     replaceCookie: options.replaceCookie === true,
@@ -1073,11 +1137,30 @@ const primeValidatedBrowserAuthSession = async (
     return null;
   }
 
-  const bootstrapOrganizationId = bootstrapSession.organizationId || organizationId;
+  let bootstrapOrganizationId: string;
+  try {
+    bootstrapOrganizationId =
+      resolveValidatedSessionOrganizationId(
+        'Validated browser auth session',
+        {
+          organizationId,
+          user: authUser,
+          token: input.token,
+          bootstrapOrganizationId: bootstrapSession.organizationId,
+          bootstrapUser: bootstrapSession.user,
+        },
+        { required: true }
+      ) ?? '';
+  } catch {
+    if (options.clearStateOnFailure !== false) {
+      await clearAuth(page);
+    }
+    return null;
+  }
   await syncAuthLocalStorage(page, input.token, bootstrapOrganizationId, bootstrapSession.user);
 
   return {
-    user: bootstrapSession.user,
+    user: withResolvedOrganizationIds(bootstrapSession.user, bootstrapOrganizationId) ?? bootstrapSession.user,
     organizationId: bootstrapOrganizationId,
   };
 };
@@ -1591,13 +1674,18 @@ export async function ensureAdminLoginViaAPI(
     cachedEffectiveAdmin &&
     cachedEffectiveAdmin.email.toLowerCase() !== adminEmail.toLowerCase()
   ) {
-    try {
-      return await loginAndValidateAdminSession(
-        cachedEffectiveAdmin.email,
-        cachedEffectiveAdmin.password
-      );
-    } catch {
+    if (!allowExternallyManagedAuthFallbacks) {
       clearEffectiveAdminCache();
+      clearEffectiveAdminSessionCache();
+    } else {
+      try {
+        return await loginAndValidateAdminSession(
+          cachedEffectiveAdmin.email,
+          cachedEffectiveAdmin.password
+        );
+      } catch {
+        clearEffectiveAdminCache();
+      }
     }
   }
 
@@ -1671,22 +1759,33 @@ export async function ensureEffectiveAdminLoginViaAPI(
 
   const normalizeAdminSession = async (session: AuthSession): Promise<AuthSession> => {
     const organizationId =
-      resolveOrganizationIdFromUser(normalizeAuthUser(session.user)) ||
-      getOrganizationIdFromToken(session.token) ||
-      (await getSessionOrganizationId(page));
+      resolveValidatedSessionOrganizationId(
+        'Effective admin session',
+        {
+          organizationId: normalizeOrganizationId(session.organizationId),
+          user: normalizeAuthUser(session.user),
+          token: session.token,
+          sessionOrganizationId: await getSessionOrganizationId(page),
+        },
+        { required: true }
+      ) ?? '';
     const user = withResolvedOrganizationIds(normalizeAuthUser(session.user), organizationId);
 
     if (!user) {
-      return session;
+      throw new Error('Effective admin session is missing a normalized user payload');
     }
 
     return {
       ...session,
+      organizationId,
       user,
     };
   };
 
   const establishEffectiveAdminSession = async (): Promise<AuthSession> => {
+    const allowExternallyManagedAuthFallbacks = shouldAllowExternallyManagedAuthFallbacks();
+    const { primary: configuredAdminCredentials } = resolveAdminCredentialCandidates();
+
     const currentAdminSession = await getCurrentAdminSession(page);
     if (currentAdminSession) {
       const normalizedCurrentAdminSession = await normalizeAdminSession(currentAdminSession);
@@ -1700,38 +1799,48 @@ export async function ensureEffectiveAdminLoginViaAPI(
 
     const cachedEffectiveAdminSession = readEffectiveAdminSessionCache();
     if (cachedEffectiveAdminSession) {
-      const restoredSession = await primeValidatedBrowserAuthSession(
-        page,
-        {
-          token: cachedEffectiveAdminSession.token,
-          organizationId: cachedEffectiveAdminSession.organizationId,
-          user: cachedEffectiveAdminSession.user,
-        },
-        { replaceCookie: true }
-      ).catch(() => null);
+      const isUnexpectedHostAdminIdentity =
+        !allowExternallyManagedAuthFallbacks &&
+        cachedEffectiveAdminSession.email.toLowerCase() !==
+          configuredAdminCredentials.email.toLowerCase();
 
-      if (restoredSession && isAdminRole(restoredSession.user?.role)) {
-        const restoredAuthSession = await normalizeAdminSession({
-          token: cachedEffectiveAdminSession.token,
-          user: {
-            ...cachedEffectiveAdminSession.user,
-            ...restoredSession.user,
+      if (isUnexpectedHostAdminIdentity) {
+        clearEffectiveAdminSessionCache();
+        clearEffectiveAdminCache();
+      } else {
+        const restoredSession = await primeValidatedBrowserAuthSession(
+          page,
+          {
+            token: cachedEffectiveAdminSession.token,
+            organizationId: cachedEffectiveAdminSession.organizationId,
+            user: cachedEffectiveAdminSession.user,
           },
-          email: cachedEffectiveAdminSession.email,
-          password: cachedEffectiveAdminSession.password,
-          isAdmin: true,
-        });
-        writeEffectiveAdminCache(restoredAuthSession.email, restoredAuthSession.password);
-        writeEffectiveAdminSessionCache(restoredAuthSession);
-        return restoredAuthSession;
-      }
+          { replaceCookie: true }
+        ).catch(() => null);
 
-      clearEffectiveAdminSessionCache();
-      clearEffectiveAdminCache();
+        if (restoredSession && isAdminRole(restoredSession.user?.role)) {
+          const restoredAuthSession = await normalizeAdminSession({
+            token: cachedEffectiveAdminSession.token,
+            organizationId: restoredSession.organizationId,
+            user: {
+              ...cachedEffectiveAdminSession.user,
+              ...restoredSession.user,
+            },
+            email: cachedEffectiveAdminSession.email,
+            password: cachedEffectiveAdminSession.password,
+            isAdmin: true,
+          });
+          writeEffectiveAdminCache(restoredAuthSession.email, restoredAuthSession.password);
+          writeEffectiveAdminSessionCache(restoredAuthSession);
+          return restoredAuthSession;
+        }
+
+        clearEffectiveAdminSessionCache();
+        clearEffectiveAdminCache();
+      }
     }
 
     const strictAdminAuth = isStrictAdminAuthRequired();
-    const allowExternallyManagedAuthFallbacks = shouldAllowExternallyManagedAuthFallbacks();
     let session: AuthSession;
     let strictAdminError: unknown;
 
@@ -1854,6 +1963,7 @@ export async function ensureEffectiveAdminLoginViaAPI(
     const elevatedSession: AuthSession = {
       ...session,
       token: elevatedToken,
+      organizationId,
       user: {
         ...baseUser,
         ...refreshedUser,
@@ -1892,6 +2002,7 @@ export async function ensureEffectiveAdminLoginViaAPI(
       organizationId: validatedElevatedSession.organizationId || organizationId,
       organization_id: validatedElevatedSession.organizationId || organizationId,
     };
+    elevatedSession.organizationId = validatedElevatedSession.organizationId || organizationId;
 
     setSharedTestUser({
       email: session.email,

@@ -78,12 +78,11 @@ export const getOrCreateContactForSignup = async (input: {
   email: string;
   phone?: string;
 }): Promise<string> => {
-  const existingContactId = await findContactIdByEmail(input.email);
-  if (existingContactId) {
-    return existingContactId;
-  }
-
-  return createContactForSignup(input);
+  const result = await pool.query<ContactIdRow>(
+    'SELECT public.portal_resolve_signup_contact_id($1, $2, $3, $4) AS id',
+    [input.firstName, input.lastName, input.email, input.phone || null]
+  );
+  return result.rows[0].id;
 };
 
 export const findPortalUserIdByEmail = async (email: string): Promise<string | null> => {

@@ -1,6 +1,6 @@
 import { expect, Page } from '@playwright/test';
 import { clearAuth, ensureEffectiveAdminLoginViaAPI } from './auth';
-import { createTestContact, getAuthHeaders } from './database';
+import { createTestContact, getAuthHeaders, resolveAuthenticatedFixtureScope } from './database';
 
 const HTTP_SCHEME = ['http', '://'].join('');
 
@@ -59,6 +59,8 @@ export async function provisionApprovedPortalUser(
     lastName?: string;
     email?: string;
     password?: string;
+    adminToken?: string;
+    organizationId?: string;
   } = {}
 ): Promise<ProvisionedPortalUser> {
   const apiURL = getApiUrl();
@@ -67,24 +69,29 @@ export async function provisionApprovedPortalUser(
   const lastName = options.lastName || 'Client';
   const email = options.email || `portal-e2e-${uniqueSuffix}@example.com`;
   const password = options.password || 'Portal123!@#';
-  const adminSession = await ensureEffectiveAdminLoginViaAPI(page, {
-    firstName: 'Portal',
-    lastName: 'Admin',
-    organizationName: 'Portal Test Organization',
-  });
-  const adminOrganizationId =
-    typeof adminSession.user?.organizationId === 'string'
-      ? adminSession.user.organizationId
-      : typeof adminSession.user?.organization_id === 'string'
-        ? adminSession.user.organization_id
-        : undefined;
+  const adminSession = options.adminToken
+    ? null
+    : await ensureEffectiveAdminLoginViaAPI(page, {
+        firstName: 'Portal',
+        lastName: 'Admin',
+        organizationName: 'Portal Test Organization',
+      });
+  const adminToken = options.adminToken || adminSession?.token;
 
-  const contact = await createTestContact(page, adminSession.token, {
+  if (!adminToken) {
+    throw new Error('Portal provisioning requires an admin token.');
+  }
+
+  const fixtureScope = await resolveAuthenticatedFixtureScope(page, adminToken, {
+    organizationId: options.organizationId,
+  });
+
+  const contact = await createTestContact(page, adminToken, {
     firstName,
     lastName,
     email,
     contactType: 'client',
-    accountId: adminOrganizationId,
+    accountId: fixtureScope.accountId,
   });
 
   const signupResponse = await page.request.post(`${apiURL}/api/v2/portal/auth/signup`, {
@@ -109,7 +116,7 @@ export async function provisionApprovedPortalUser(
     );
   }
 
-  const headers = await getAuthHeaders(page, adminSession.token);
+  const headers = await getAuthHeaders(page, adminToken);
   const pendingRequestsResponse = await page.request.get(`${apiURL}/api/v2/portal/admin/requests`, {
     headers,
   });
@@ -178,8 +185,8 @@ export async function provisionApprovedPortalUser(
     lastName,
     contactId: contact.id,
     accountId: contact.accountId,
-    adminToken: adminSession.token,
-    organizationId: adminOrganizationId,
+    adminToken,
+    organizationId: fixtureScope.organizationId,
   };
 }
 

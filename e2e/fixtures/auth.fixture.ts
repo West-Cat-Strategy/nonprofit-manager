@@ -42,6 +42,22 @@ const normalizeAuthUser = (value: unknown): Record<string, unknown> | undefined 
   return value as Record<string, unknown>;
 };
 
+const resolveCachedAuthOrganizationId = (
+  context: string,
+  input: { organizationId?: unknown; user?: Record<string, unknown> }
+): string => {
+  const organizationId =
+    normalizeOrganizationId(input.organizationId) ||
+    normalizeOrganizationId(input.user?.organizationId) ||
+    normalizeOrganizationId(input.user?.organization_id);
+
+  if (!organizationId) {
+    throw new Error(`${context} is missing a validated organization id`);
+  }
+
+  return organizationId;
+};
+
 const resetCachedAuthState = async (
   page: Page,
   options: { clearAdminCaches?: boolean } = {}
@@ -62,10 +78,14 @@ const ensureSharedAuthState = async (page: Page): Promise<CachedAuthState> => {
       );
 
       if (restoredSession) {
+        const restoredOrganizationId = resolveCachedAuthOrganizationId('Shared auth restore', {
+          organizationId: restoredSession.organizationId,
+          user: normalizeAuthUser(restoredSession.user),
+        });
         cachedAuthState = {
           ...cachedAuthState,
-          organizationId: restoredSession.organizationId || cachedAuthState.organizationId,
-          user: restoredSession.user,
+          organizationId: restoredOrganizationId,
+          user: normalizeAuthUser(restoredSession.user),
         };
         return cachedAuthState;
       }
@@ -85,12 +105,13 @@ const ensureSharedAuthState = async (page: Page): Promise<CachedAuthState> => {
         organizationName: 'E2E Organization',
       });
       const sessionRecord = session as { organizationId?: unknown; user?: Record<string, unknown> };
+      const organizationId = resolveCachedAuthOrganizationId('Shared auth bootstrap', {
+        organizationId: sessionRecord.organizationId,
+        user: normalizeAuthUser(session.user),
+      });
       cachedAuthState = {
         token: session.token,
-        organizationId:
-          normalizeOrganizationId(sessionRecord.organizationId) ||
-          normalizeOrganizationId(sessionRecord.user?.organizationId) ||
-          normalizeOrganizationId(sessionRecord.user?.organization_id),
+        organizationId,
         user: normalizeAuthUser(session.user),
       };
       return cachedAuthState;

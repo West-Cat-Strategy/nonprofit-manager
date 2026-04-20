@@ -115,6 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/097_public_submission_referral_type.sql
 \i /migrations/098_accounts_insert_policy.sql
 \i /migrations/099_user_account_access_write_policies.sql
+\i /migrations/100_portal_public_signup_contact_bridge.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -235,7 +236,8 @@ VALUES
     ('096_database_hardening_and_event_tenancy.sql', '096', '096_database_hardening_and_event_tenancy.sql'),
     ('097_public_submission_referral_type.sql', '097', '097_public_submission_referral_type.sql'),
     ('098_accounts_insert_policy.sql', '098', '098_accounts_insert_policy.sql'),
-    ('099_user_account_access_write_policies.sql', '099', '099_user_account_access_write_policies.sql')
+    ('099_user_account_access_write_policies.sql', '099', '099_user_account_access_write_policies.sql'),
+    ('100_portal_public_signup_contact_bridge.sql', '100', '100_portal_public_signup_contact_bridge.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

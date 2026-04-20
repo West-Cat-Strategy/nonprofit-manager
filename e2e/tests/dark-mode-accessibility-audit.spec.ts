@@ -14,6 +14,7 @@ import {
   createTestVolunteer,
   createTestVolunteerAssignment,
   getAuthHeaders,
+  resolveAuthenticatedFixtureScope,
 } from '../helpers/database';
 import {
   createAdminRegistrationReviewLink,
@@ -99,6 +100,27 @@ const getAdminUserId = (session: AuthSession): string => {
     throw new Error('Dark-mode audit admin fixture provisioning requires an admin user id.');
   }
   return userId;
+};
+
+const getAdminFixtureScope = async (
+  page: Page,
+  token: string,
+  adminSession: AuthSession
+): Promise<{ organizationId: string; accountId: string }> => {
+  const scope = await resolveAuthenticatedFixtureScope(page, token, {
+    organizationId:
+      normalizeOrganizationId(adminSession.user?.organizationId) ||
+      normalizeOrganizationId(adminSession.user?.organization_id),
+  });
+
+  if (!scope.organizationId) {
+    throw new Error('Dark-mode audit fixture provisioning requires organizationId from the admin session.');
+  }
+
+  return {
+    organizationId: scope.organizationId,
+    accountId: scope.accountId || scope.organizationId,
+  };
 };
 
 type StaffFixtureState = {
@@ -308,6 +330,7 @@ async function provisionPortalCaseFixture(
     lastName: 'Portal',
     email: `dark-mode-portal-${Date.now()}@example.com`,
     password: 'Portal123!@#',
+    adminToken: token,
   }));
 
   const caseTypeId = await getCaseTypeId(adminPage, token);
@@ -317,6 +340,7 @@ async function provisionPortalCaseFixture(
     headers,
     data: {
       contact_id: portalUser.contactId,
+      account_id: portalUser.accountId,
       case_type_id: caseTypeId,
       title: caseTitle,
       description: 'Dark mode portal case fixture',
@@ -408,11 +432,14 @@ async function resolveRoute(
       };
     case 'portal-password-reset':
       if (!portalState.portalUser) {
+        const adminFixtureScope = await getAdminFixtureScope(adminPage, authToken, adminSession);
         portalState.portalUser = await provisionApprovedPortalUser(adminPage, {
           firstName: 'Dark',
           lastName: 'Portal Reset',
           email: `dark-mode-portal-reset-${Date.now()}@example.com`,
           password: 'Portal123!@#',
+          adminToken: authToken,
+          organizationId: adminFixtureScope.organizationId,
         });
       }
       if (!staffState.portalPasswordResetToken) {
@@ -428,10 +455,9 @@ async function resolveRoute(
       };
     case 'public-case-form':
       if (!staffState.publicCaseFormAssignmentId || !staffState.publicCaseFormToken) {
+        const adminFixtureScope = await getAdminFixtureScope(adminPage, authToken, adminSession);
         const form = await createPublicCaseFormLink(adminPage, authToken, {
-          organizationId:
-            normalizeOrganizationId(adminSession.user?.organizationId) ||
-            normalizeOrganizationId(adminSession.user?.organization_id),
+          organizationId: adminFixtureScope.organizationId,
         });
         staffState.publicCaseFormCaseId = form.caseId;
         staffState.publicCaseFormAssignmentId = form.assignmentId;
@@ -689,13 +715,7 @@ async function resolveRoute(
         ).id;
       }
       if (!staffState.recurringDonationPlanId) {
-        const organizationId = normalizeOrganizationId(adminSession.user?.organizationId) ||
-          normalizeOrganizationId(adminSession.user?.organization_id);
-        if (!organizationId) {
-          throw new Error(
-            `[${entry.id}] recurring donation plan fixture requires organizationId from the admin session`
-          );
-        }
+        const adminFixtureScope = await getAdminFixtureScope(adminPage, authToken, adminSession);
         const createdByUserId =
           typeof adminSession.user?.id === 'string' ? adminSession.user.id.trim() : '';
         if (!createdByUserId) {
@@ -704,7 +724,7 @@ async function resolveRoute(
           );
         }
         staffState.recurringDonationPlanId = await createRecurringDonationPlan(adminPage, authToken, {
-          organizationId,
+          organizationId: adminFixtureScope.organizationId,
           accountId: staffState.accountId,
           contactId: staffState.contactId,
           donorEmail: `dark-mode-recurring-plan-${Date.now()}@example.com`,

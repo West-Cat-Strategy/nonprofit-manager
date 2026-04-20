@@ -10,6 +10,7 @@ import {
   createTestDonation,
   createTestEvent,
   getAuthHeaders,
+  resolveAuthenticatedFixtureScope,
 } from "../helpers/database";
 import { unwrapSuccess } from "../helpers/apiEnvelope";
 import type { ConsoleMessage, Locator, Page } from "@playwright/test";
@@ -17,60 +18,6 @@ import type { ConsoleMessage, Locator, Page } from "@playwright/test";
 const apiURL = process.env.API_URL || "http://localhost:3001";
 
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-
-const normalizeOrganizationId = (value: unknown): string | undefined => {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-};
-
-const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
-  const segments = token.split(".");
-  if (segments.length < 2) {
-    return null;
-  }
-
-  try {
-    const payload = segments[1];
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-    return JSON.parse(Buffer.from(padded, "base64").toString("utf8")) as Record<
-      string,
-      unknown
-    >;
-  } catch {
-    return null;
-  }
-};
-
-const getTokenOrganizationId = (token: string): string | undefined => {
-  const payload = decodeJwtPayload(token);
-  if (!payload) {
-    return undefined;
-  }
-
-  return (
-    normalizeOrganizationId(payload.organizationId) ||
-    normalizeOrganizationId(payload.organization_id)
-  );
-};
-
-async function resolveOrganizationId(
-  page: Page,
-  token: string,
-): Promise<string | undefined> {
-  const localStorageOrganizationId = await page
-    .evaluate(() => localStorage.getItem("organizationId"))
-    .catch(() => null);
-
-  return (
-    normalizeOrganizationId(localStorageOrganizationId) ||
-    getTokenOrganizationId(token)
-  );
-}
 
 async function getFirstCaseTypeId(page: Page, token: string): Promise<string> {
   const headers = await getAuthHeaders(page, token);
@@ -137,8 +84,9 @@ async function createCaseRecord(
   title: string,
   contactId: string,
 ): Promise<void> {
-  const organizationId = await resolveOrganizationId(page, token);
-  if (!organizationId) {
+  const fixtureScope = await resolveAuthenticatedFixtureScope(page, token);
+  const caseAccountId = fixtureScope.accountId || fixtureScope.organizationId;
+  if (!caseAccountId) {
     throw new Error("Unable to resolve organization context for mobile case fixture");
   }
 
@@ -148,7 +96,7 @@ async function createCaseRecord(
     headers,
     data: {
       contact_id: contactId,
-      account_id: organizationId,
+      account_id: caseAccountId,
       case_type_id: caseTypeId,
       title,
       description: "Mobile UX regression fixture",
@@ -193,7 +141,7 @@ async function createCaseRecord(
 
 async function seedMobileCardFixtures(page: Page, token: string): Promise<void> {
   const suffix = uniqueSuffix();
-  const organizationId = await resolveOrganizationId(page, token);
+  const fixtureScope = await resolveAuthenticatedFixtureScope(page, token);
   const account = await createTestAccount(page, token, {
     name: `Mobile Account ${suffix}`,
     accountType: "organization",
@@ -203,7 +151,7 @@ async function seedMobileCardFixtures(page: Page, token: string): Promise<void> 
     firstName: "Mobile",
     lastName: `Contact ${suffix}`,
     email: `mobile.contact.${suffix}@example.com`,
-    accountId: organizationId || account.id,
+    accountId: fixtureScope.accountId || account.id,
   });
 
   await Promise.all([

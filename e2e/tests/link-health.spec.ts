@@ -2,7 +2,6 @@ import { test as base, expect, type ConsoleMessage, type Request, type Response 
 import '../helpers/testEnv';
 import { test as authTest } from '../fixtures/auth.fixture';
 import type { Page } from '@playwright/test';
-import { ensureEffectiveAdminLoginViaAPI } from '../helpers/auth';
 import { unwrapSuccess } from '../helpers/apiEnvelope';
 import { getAuthHeaders } from '../helpers/database';
 import { loginPortalUserUI, provisionApprovedPortalUser, type ProvisionedPortalUser } from '../helpers/portal';
@@ -277,12 +276,7 @@ const provisionPortalCaseFixture = async (page: Page): Promise<ProvisionedPortal
     email: `portal-link-health-${uniqueSuffix}@example.com`,
     password: 'Portal123!@#',
   });
-  const adminSession = await ensureEffectiveAdminLoginViaAPI(page, {
-    firstName: 'Route',
-    lastName: 'Health',
-    organizationName: 'Route Health Strict Admin Org',
-  });
-  const headers = await getAuthHeaders(page, adminSession.token);
+  const headers = await getAuthHeaders(page, portalUser.adminToken);
   const caseTypesResponse = await page.request.get(`${apiURL}/api/v2/cases/types`, {
     headers,
   });
@@ -299,6 +293,7 @@ const provisionPortalCaseFixture = async (page: Page): Promise<ProvisionedPortal
     headers,
     data: {
       contact_id: portalUser.contactId,
+      account_id: portalUser.accountId,
       case_type_id: caseTypeId,
       title: caseTitle,
       description: 'Route health portal case fixture',

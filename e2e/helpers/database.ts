@@ -65,6 +65,30 @@ const getTokenOrganizationId = (token: string): string | undefined => {
 const getLocalStorageOrganizationId = async (page: Page): Promise<string | null> =>
   page.evaluate(() => localStorage.getItem('organizationId')).catch(() => null);
 
+export type AuthenticatedFixtureScope = {
+  organizationId?: string;
+  accountId?: string;
+};
+
+export async function resolveAuthenticatedFixtureScope(
+  page: Page,
+  token: string,
+  options: {
+    organizationId?: string;
+    accountId?: string;
+  } = {}
+): Promise<AuthenticatedFixtureScope> {
+  const organizationId =
+    normalizeOrganizationId(options.organizationId) ||
+    normalizeOrganizationId(await getLocalStorageOrganizationId(page)) ||
+    getTokenOrganizationId(token);
+
+  return {
+    organizationId,
+    accountId: normalizeOrganizationId(options.accountId) || organizationId,
+  };
+}
+
 const getEntityId = (item: Record<string, unknown>): string | null => {
   const value =
     item.id ||
@@ -438,13 +462,18 @@ export async function createTestContact(
   }
 ): Promise<{ id: string; accountId: string }> {
   const apiURL = process.env.API_URL || `${HTTP_SCHEME}localhost:3001`;
-  const accountId = data.accountId || (
-    await createTestAccount(page, token, {
-      name: `Auto Contact Account ${Date.now()}`,
-      accountType: 'organization',
-      category: 'other',
-    })
-  ).id;
+  const fixtureScope = await resolveAuthenticatedFixtureScope(page, token, {
+    accountId: data.accountId,
+  });
+  const accountId =
+    fixtureScope.accountId ||
+    (
+      await createTestAccount(page, token, {
+        name: `Auto Contact Account ${Date.now()}`,
+        accountType: 'organization',
+        category: 'other',
+      })
+    ).id;
 
   const headers = await getAuthHeaders(page, token);
   const response = await page.request.post(`${apiURL}/api/v2/contacts`, {
@@ -464,7 +493,7 @@ export async function createTestContact(
     const tokenOrganizationId = getTokenOrganizationId(token) || 'none';
     const localStorageOrganizationId = (await getLocalStorageOrganizationId(page)) || 'none';
     throw new Error(
-      `Failed to create test contact (${response.status()}): ${await response.text()} (tokenOrganizationId=${tokenOrganizationId}, localStorageOrganizationId=${localStorageOrganizationId})`
+      `Failed to create test contact (${response.status()}): ${await response.text()} (tokenOrganizationId=${tokenOrganizationId}, localStorageOrganizationId=${localStorageOrganizationId}, fixtureOrganizationId=${fixtureScope.organizationId || 'none'}, fixtureAccountId=${fixtureScope.accountId || 'none'})`
     );
   }
 

@@ -20,7 +20,7 @@ describe('portalAuthService', () => {
     mockQuery.mockReset();
   });
 
-  it('returns existing contact when email already exists', async () => {
+  it('resolves an existing contact for portal signup via the signup bridge function', async () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ id: 'contact-1' }] });
 
     const result = await getOrCreateContactForSignup({
@@ -30,12 +30,14 @@ describe('portalAuthService', () => {
     });
 
     expect(result).toBe('contact-1');
+    expect(mockQuery).toHaveBeenCalledWith(
+      'SELECT public.portal_resolve_signup_contact_id($1, $2, $3, $4) AS id',
+      ['Client', 'One', 'client@example.com', null]
+    );
   });
 
-  it('creates contact when email is not found', async () => {
-    mockQuery
-      .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [{ id: 'contact-2' }] });
+  it('creates a new contact for portal signup via the signup bridge function', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 'contact-2' }] });
 
     const result = await getOrCreateContactForSignup({
       email: 'newclient@example.com',
@@ -45,6 +47,10 @@ describe('portalAuthService', () => {
     });
 
     expect(result).toBe('contact-2');
+    expect(mockQuery).toHaveBeenCalledWith(
+      'SELECT public.portal_resolve_signup_contact_id($1, $2, $3, $4) AS id',
+      ['New', 'Client', 'newclient@example.com', '5551234567']
+    );
   });
 
   it('creates pending signup request and returns id', async () => {

@@ -12,6 +12,7 @@ import type {
   UpdateContactDTO,
 } from '@app-types/contact';
 import type { DataScopeFilter } from '@app-types/dataScope';
+import { setCurrentUserId } from '@config/database';
 import { invitationService, syncUserRole } from '@services/domains/integration';
 import { services } from '@container/services';
 import type { PoolClient } from 'pg';
@@ -49,6 +50,10 @@ const normalizeVolunteerMergePreviewRow = (
 
 export class ContactDirectoryUseCase {
   constructor(private readonly repository: ContactDirectoryPort) {}
+
+  private async bindTransactionUserContext(client: PoolClient, userId: string): Promise<void> {
+    await setCurrentUserId(client, userId, { local: true });
+  }
 
   private async ensureStaffUserAccount(
     contactId: string,
@@ -171,6 +176,7 @@ export class ContactDirectoryUseCase {
     const client = await services.pool.connect();
     try {
       await client.query('BEGIN');
+      await this.bindTransactionUserContext(client, userId);
 
       const created = await this.repository.createContact(createPayload, userId, viewerRole, client);
       let assignedRoles: string[] = [];
@@ -217,6 +223,7 @@ export class ContactDirectoryUseCase {
     const client = await services.pool.connect();
     try {
       await client.query('BEGIN');
+      await this.bindTransactionUserContext(client, userId);
 
       if (scope) {
         const scopedContact = await this.repository.getContactByIdWithScope(
