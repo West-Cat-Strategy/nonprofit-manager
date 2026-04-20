@@ -101,7 +101,7 @@ describe('ActivityService', () => {
     );
     expect(mockQuery).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('d.account_id = $1'),
+      expect.stringContaining('COALESCE(d.account_id, c.account_id) = $1'),
       ['org-1', 4]
     );
     expect(mockQuery).toHaveBeenNthCalledWith(
@@ -111,7 +111,7 @@ describe('ActivityService', () => {
     );
     expect(mockQuery).toHaveBeenNthCalledWith(
       4,
-      expect.stringContaining('AND c.account_id = $1'),
+      expect.stringContaining('COALESCE(e.organization_id, c.account_id) = $1'),
       ['org-1', 3]
     );
     expect(result.map((activity) => activity.id)).toEqual([

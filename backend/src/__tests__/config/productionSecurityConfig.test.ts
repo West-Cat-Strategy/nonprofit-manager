@@ -3,8 +3,8 @@ import { validateProductionSecurityConfig } from '@config/productionSecurityConf
 describe('validateProductionSecurityConfig', () => {
   const baseEnv = {
     NODE_ENV: 'production',
-    JWT_SECRET: 'placeholder-jwt-secret-for-testing-only',
-    CSRF_SECRET: 'placeholder-csrf-secret-for-testing-only',
+    JWT_SECRET: 'super-secure-production-ready-jwt-secret-at-least-32-chars',
+    CSRF_SECRET: 'super-secure-production-ready-csrf-secret-at-least-32-chars',
     STRIPE_WEBHOOK_SECRET: 'whsec_live_webhook_secret',
     ENCRYPTION_KEY: 'placeholder-encryption-key-for-testing-only-placeholder-encryption-key-for-testing-only',
     DB_PASSWORD: 'super-secret-db-password',

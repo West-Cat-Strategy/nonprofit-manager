@@ -59,7 +59,6 @@ describe('caseFormsRepository.assignments', () => {
   });
 
   it('preserves updated_by when userId is omitted', async () => {
-    queryMock.mockResolvedValueOnce({ rows: [] });
     queryMock.mockResolvedValueOnce({ rows: [assignmentRow] });
 
     await expect(updateAssignment(pool, 'assignment-1', { status: 'sent' })).resolves.toMatchObject({
@@ -75,7 +74,6 @@ describe('caseFormsRepository.assignments', () => {
   });
 
   it('writes updated_by when userId is explicitly null', async () => {
-    queryMock.mockResolvedValueOnce({ rows: [] });
     queryMock.mockResolvedValueOnce({ rows: [assignmentRow] });
 
     await expect(updateAssignment(pool, 'assignment-1', { status: 'sent', userId: null })).resolves.toMatchObject({

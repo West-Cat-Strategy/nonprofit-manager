@@ -96,7 +96,7 @@ describe('piiFieldAccessControl middleware', () => {
       birth_date: '1986-07-09',
       do_not_email: false,
       do_not_phone: false,
-      token: 'a***',
+      token: 'abcd',
     });
   });
 

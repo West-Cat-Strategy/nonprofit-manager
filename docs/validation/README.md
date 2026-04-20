@@ -1,6 +1,6 @@
 # Validation & Audit Index
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 Use this index for validation reference docs, audit snapshots, remediation trackers, and strategic review artifacts. For live task ownership, blockers, and next steps, use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) instead of treating these files as a workboard.
 

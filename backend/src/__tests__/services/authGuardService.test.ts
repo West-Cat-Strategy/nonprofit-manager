@@ -251,7 +251,7 @@ describe('authGuardService', () => {
         ok: false,
         error: {
           code: 'bad_request',
-          message: 'Bad Request: No organization context',
+          message: 'No organization context',
           statusCode: 400,
         },
       });
