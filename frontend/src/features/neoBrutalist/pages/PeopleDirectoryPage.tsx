@@ -9,12 +9,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { AxiosError } from 'axios';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import PeopleCard from '../../../components/neo-brutalist/PeopleCard';
 import BrutalInput from '../../../components/neo-brutalist/BrutalInput';
 import api from '../../../services/api';
+import { getDemoPeople, isDemoPath } from '../../../services/loop/demo';
 import type { AdaptedPerson } from '../../../types/schema';
 
 type TabType = 'all' | 'staff' | 'volunteer' | 'board';
@@ -41,25 +42,61 @@ type ContactsResponse = {
 const DEFAULT_PAGE_SIZE = 100;
 const FALLBACK_NAME = 'Unknown';
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
+const EMPTY_COUNTS: Record<TabType, number> = {
+    all: 0,
+    staff: 0,
+    volunteer: 0,
+    board: 0,
+};
+const BRUTAL_FOCUS_RING =
+    'focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]';
+
+const normalizeQuery = (value: string): string | undefined => {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const roleForTab = (tab: TabType): AdaptedPerson['role'] | undefined =>
+    tab === 'all' ? undefined : tab;
+
+const getDemoCounts = (query: string): Record<TabType, number> => ({
+    all: getDemoPeople({ query: normalizeQuery(query) }).length,
+    staff: getDemoPeople({ role: 'staff', query: normalizeQuery(query) }).length,
+    volunteer: getDemoPeople({ role: 'volunteer', query: normalizeQuery(query) }).length,
+    board: getDemoPeople({ role: 'board', query: normalizeQuery(query) }).length,
+});
 
 export default function PeopleDirectory() {
+    const { pathname } = useLocation();
+    const isDemoRoute = isDemoPath(pathname);
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<TabType>('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [people, setPeople] = useState<AdaptedPerson[]>([]);
-    const [counts, setCounts] = useState<Record<TabType, number>>({
-        all: 0,
-        staff: 0,
-        volunteer: 0,
-        board: 0,
-    });
-    const [loading, setLoading] = useState(true);
+    const [people, setPeople] = useState<AdaptedPerson[]>(() =>
+        isDemoRoute ? getDemoPeople() : []
+    );
+    const [counts, setCounts] = useState<Record<TabType, number>>(() =>
+        isDemoRoute ? getDemoCounts('') : EMPTY_COUNTS
+    );
+    const [loading, setLoading] = useState(() => !isDemoRoute);
     const [error, setError] = useState(false);
     const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
     const searchDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const previousTabRef = useRef<TabType | null>(null);
 
     const fetchPeople = useCallback(async (tab: TabType, query: string) => {
+        if (isDemoRoute) {
+            setError(false);
+            setPeople(
+                getDemoPeople({
+                    role: roleForTab(tab),
+                    query: normalizeQuery(query),
+                })
+            );
+            setLoading(false);
+            return;
+        }
+
         if (rateLimitedUntil && Date.now() < rateLimitedUntil) {
             setLoading(false);
             setError(true);
@@ -73,8 +110,8 @@ export default function PeopleDirectory() {
                 params: {
                     page: 1,
                     limit: DEFAULT_PAGE_SIZE,
-                    search: query.trim() === '' ? undefined : query.trim(),
-                    role: tab === 'all' ? undefined : tab,
+                    search: normalizeQuery(query),
+                    role: roleForTab(tab),
                     is_active: true,
                 },
             });
@@ -112,15 +149,20 @@ export default function PeopleDirectory() {
         } finally {
             setLoading(false);
         }
-    }, [rateLimitedUntil]);
+    }, [isDemoRoute, rateLimitedUntil]);
 
     const fetchCounts = useCallback(async (query: string) => {
+        if (isDemoRoute) {
+            setCounts(getDemoCounts(query));
+            return;
+        }
+
         if (rateLimitedUntil && Date.now() < rateLimitedUntil) {
             return;
         }
 
         try {
-            const search = query.trim() === '' ? undefined : query.trim();
+            const search = normalizeQuery(query);
             const baseParams = { page: 1, limit: 1, search, is_active: true as const };
 
             const [allRes, staffRes, volunteerRes, boardRes] = await Promise.all([
@@ -139,7 +181,7 @@ export default function PeopleDirectory() {
         } catch (err) {
             console.error('[PeopleDirectory] Failed to fetch counts:', err);
         }
-    }, [rateLimitedUntil]);
+    }, [isDemoRoute, rateLimitedUntil]);
 
     const refresh = useCallback(
         async (tab: TabType, query: string) => {
@@ -194,11 +236,13 @@ export default function PeopleDirectory() {
 
     const TabButton = ({ tab, label, count }: { tab: TabType; label: string; count: number }) => (
         <button
+            type="button"
             onClick={() => handleTabChange(tab)}
             disabled={loading}
-            className={`px-6 py-3 font-bold uppercase border-2 border-black dark:border-white transition-all disabled:opacity-50 ${activeTab === tab
-                ? 'bg-[var(--loop-pink)] text-black shadow-[2px_2px_0px_0px_var(--shadow-color)]'
-                : 'bg-app-surface dark:bg-[#121212] text-black dark:text-white hover:bg-app-surface-muted dark:hover:bg-app-text'
+            aria-pressed={activeTab === tab}
+            className={`px-6 py-3 font-bold uppercase border-2 border-app-border transition-all disabled:opacity-50 ${BRUTAL_FOCUS_RING} ${activeTab === tab
+                ? 'bg-[var(--loop-pink)] text-app-brutal-ink shadow-[2px_2px_0px_0px_var(--shadow-color)]'
+                : 'bg-app-surface-elevated text-app-text-heading hover:bg-app-surface-muted hover:text-app-text-heading shadow-[2px_2px_0px_0px_var(--shadow-color)]'
                 }`}
         >
             {label} {!loading && `(${count})`}
@@ -255,14 +299,14 @@ export default function PeopleDirectory() {
                         <button
                             type="button"
                             onClick={() => navigate('/contacts')}
-                            className="border-2 border-black bg-white px-4 py-2 font-black uppercase text-black shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-transform hover:-translate-y-0.5"
+                            className={`border-2 border-app-border bg-[var(--loop-cyan)] px-4 py-2 font-black uppercase text-app-brutal-ink shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-transform hover:-translate-y-0.5 hover:bg-[var(--loop-green)] ${BRUTAL_FOCUS_RING}`}
                         >
                             Open People
                         </button>
                         <button
                             type="button"
                             onClick={() => navigate('/accounts')}
-                            className="border-2 border-black bg-[var(--loop-yellow)] px-4 py-2 font-black uppercase text-black shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-transform hover:-translate-y-0.5"
+                            className={`border-2 border-app-border bg-[var(--loop-yellow)] px-4 py-2 font-black uppercase text-app-brutal-ink shadow-[4px_4px_0px_0px_var(--shadow-color)] transition-transform hover:-translate-y-0.5 hover:bg-[var(--loop-cyan)] ${BRUTAL_FOCUS_RING}`}
                         >
                             Open Accounts
                         </button>
@@ -282,8 +326,9 @@ export default function PeopleDirectory() {
                         />
                     </div>
                     <button
+                        type="button"
                         onClick={handleNewPerson}
-                        className="px-6 py-2 bg-[var(--loop-cyan)] text-black border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-app-accent-soft font-bold uppercase"
+                        className={`px-6 py-2 bg-[var(--loop-cyan)] text-app-brutal-ink border-2 border-app-border shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-[var(--loop-green)] font-bold uppercase transition-colors ${BRUTAL_FOCUS_RING}`}
                     >
                         + NEW ITEM
                     </button>

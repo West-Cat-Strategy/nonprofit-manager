@@ -52,7 +52,7 @@ type LookupCache = {
 };
 
 const EMPTY_FILTER_VALUE = '';
-const LOOKUP_LIMIT = 250;
+const LOOKUP_LIMIT = 100;
 
 const createEmptyLookupCache = (): LookupCache => ({
   loaded: false,

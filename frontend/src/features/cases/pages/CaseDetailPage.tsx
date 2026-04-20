@@ -162,12 +162,7 @@ const CaseDetail = () => {
             <div>
               <button
                 onClick={handleNavigateBack}
-                className="mb-2 flex items-center gap-1 border-2 border-app-border px-3 py-2 text-sm font-black uppercase text-app-brutal-ink shadow-[2px_2px_0px_var(--shadow-color)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)]"
-                style={{
-                  backgroundColor: 'var(--app-accent-foreground)',
-                  color: 'var(--app-brutal-ink)',
-                  borderColor: 'var(--app-brutal-outline)',
-                }}
+                className="mb-2 flex items-center gap-1 border-2 border-black bg-black px-3 py-2 text-sm font-black uppercase tracking-[0.08em] text-white shadow-[2px_2px_0px_#facc15] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-zinc-900 hover:shadow-[1px_1px_0px_#facc15] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 aria-label="Back to cases"
               >
                 ← Back to Cases

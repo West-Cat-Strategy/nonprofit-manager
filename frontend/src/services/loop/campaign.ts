@@ -30,10 +30,16 @@ interface EventsListResponse {
 }
 
 export const getCampaignStats = async (): Promise<CampaignStats> => {
+  const now = new Date().toISOString();
   const [analyticsRes, eventsRes] = await Promise.all([
     api.get<AnalyticsSummary>('/analytics/summary').catch(() => ({ data: null })),
     api.get<EventsListResponse>('/v2/events', {
-      params: { status: 'upcoming', limit: '100' },
+      params: {
+        start_date: now,
+        limit: '100',
+        sort_by: 'start_date',
+        sort_order: 'asc',
+      },
     }).catch(() => ({ data: null })),
   ]);
 
@@ -52,8 +58,9 @@ export const getCampaignStats = async (): Promise<CampaignStats> => {
 };
 
 export const getCampaignEvents = async (): Promise<CampaignEvent[]> => {
+  const now = new Date().toISOString();
   const response = await api.get<EventsListResponse>('/v2/events', {
-    params: { limit: '20', sort_by: 'start_date', sort_order: 'asc' },
+    params: { start_date: now, limit: '20', sort_by: 'start_date', sort_order: 'asc' },
   });
 
   const events = response.data.data || [];

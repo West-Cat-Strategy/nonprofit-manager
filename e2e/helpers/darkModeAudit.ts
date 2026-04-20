@@ -91,8 +91,10 @@ export type RouteRuntimeSnapshot = {
   failedResponses: string[];
 };
 
-const SCREENSHOT_DIR = path.resolve(process.cwd(), 'test-results', 'dark-mode-audit');
-const REPORT_PATH = path.resolve(process.cwd(), 'test-results', 'dark-mode-accessibility-report.md');
+const E2E_ROOT = path.resolve(__dirname, '..');
+const TEST_RESULTS_DIR = path.resolve(E2E_ROOT, 'test-results');
+const SCREENSHOT_DIR = path.resolve(TEST_RESULTS_DIR, 'dark-mode-audit');
+const REPORT_PATH = path.resolve(TEST_RESULTS_DIR, 'dark-mode-accessibility-report.md');
 const baseURL = process.env.BASE_URL || 'http://127.0.0.1:5173';
 const apiURL = process.env.API_URL || 'http://127.0.0.1:3001';
 const runtimeOrigins = new Set([new URL(baseURL).origin, new URL(apiURL).origin]);
@@ -134,6 +136,10 @@ const severityRank: Record<AuditSeverity, number> = {
 
 function toPosix(value: string): string {
   return value.split(path.sep).join('/');
+}
+
+function toAuditRelativePath(value: string): string {
+  return toPosix(path.relative(E2E_ROOT, value));
 }
 
 function sanitizeFileSegment(value: string): string {
@@ -937,7 +943,7 @@ export async function captureRouteScreenshot(page: Page, routeId: string, routeP
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
   const filePath = path.join(SCREENSHOT_DIR, `${slugForRoute(routeId, routePath)}.png`);
   await page.screenshot({ path: filePath, fullPage: true });
-  return toPosix(path.relative(process.cwd(), filePath));
+  return toAuditRelativePath(filePath);
 }
 
 export function blockedFinding(input: {
@@ -1014,7 +1020,7 @@ export function writeAuditReport(input: ReportInput): void {
     `- Serious: ${allFindings.filter((finding) => finding.severity === 'serious').length}`,
     `- Moderate: ${allFindings.filter((finding) => finding.severity === 'moderate').length}`,
     `- Blocked: ${allFindings.filter((finding) => finding.severity === 'blocked').length}`,
-    `- Screenshot root: \`${toPosix(path.relative(process.cwd(), input.screenshotRoot))}\``,
+    `- Screenshot root: \`${toAuditRelativePath(input.screenshotRoot)}\``,
     '',
     '## Surface Coverage',
     '',

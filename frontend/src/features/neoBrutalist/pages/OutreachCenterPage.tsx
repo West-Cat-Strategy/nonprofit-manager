@@ -18,6 +18,7 @@ export default function OutreachCenter() {
     const isDemoRoute = isDemoPath(pathname);
     const [stats, setStats] = useState<CampaignStats | null>(() => (isDemoRoute ? getDemoCampaignStats() : null));
     const [events, setEvents] = useState<CampaignEvent[]>(() => (isDemoRoute ? getDemoCampaignEvents() : []));
+    const [notice, setNotice] = useState<string | null>(null);
     const [loading, setLoading] = useState(() => !isDemoRoute);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
@@ -26,24 +27,26 @@ export default function OutreachCenter() {
         if (isDemoRoute) {
             setStats(getDemoCampaignStats());
             setEvents(getDemoCampaignEvents());
+            setNotice(null);
             setLoading(false);
             return;
         }
 
         const fetchData = async () => {
             setLoading(true);
-            try {
-                const [statsData, eventsData] = await Promise.all([
-                    LoopApiService.getCampaignStats(),
-                    LoopApiService.getCampaignEvents()
-                ]);
-                setStats(statsData);
-                setEvents(eventsData);
-            } catch (error) {
-                console.error('Failed to fetch outreach data:', error);
-            } finally {
-                setLoading(false);
-            }
+            const [statsResult, eventsResult] = await Promise.allSettled([
+                LoopApiService.getCampaignStats(),
+                LoopApiService.getCampaignEvents()
+            ]);
+
+            setStats(statsResult.status === 'fulfilled' ? statsResult.value : null);
+            setEvents(eventsResult.status === 'fulfilled' ? eventsResult.value : []);
+            setNotice(
+                statsResult.status === 'rejected' || eventsResult.status === 'rejected'
+                    ? 'Some outreach data is temporarily unavailable. The workspace is still available while live metrics recover.'
+                    : null
+            );
+            setLoading(false);
         };
         fetchData();
     }, [isDemoRoute]);
@@ -110,6 +113,12 @@ export default function OutreachCenter() {
                         </div>
                     </div>
                 </div>
+
+                {notice ? (
+                    <div className="mb-6 border-2 border-app-border bg-app-surface-muted p-4 text-sm font-semibold text-app-text">
+                        {notice}
+                    </div>
+                ) : null}
 
                 {/* Campaign Types Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">

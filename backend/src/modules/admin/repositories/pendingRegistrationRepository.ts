@@ -78,7 +78,7 @@ const hasUserPasskeyTable = async (db: DbClient): Promise<boolean> => {
   return Boolean(result.rows[0]?.credentials_table);
 };
 
-export const PENDING_REGISTRATION_COLUMNS = [
+const PENDING_REGISTRATION_COLUMN_NAMES = [
   'id',
   'email',
   'first_name',
@@ -89,22 +89,26 @@ export const PENDING_REGISTRATION_COLUMNS = [
   'rejection_reason',
   'created_at',
   'updated_at',
-].join(', ');
+];
+
+export const PENDING_REGISTRATION_COLUMNS = PENDING_REGISTRATION_COLUMN_NAMES.join(', ');
 
 const pendingRegistrationSelectColumns = async (
   includePassword: boolean,
-  db: DbClient
+  db: DbClient,
+  tableName?: string
 ): Promise<string> => {
   const supportsPendingPasskeys = await hasPendingPasskeyTables(db);
+  const qualify = (column: string): string => (tableName ? `${tableName}.${column}` : column);
   const columns = [
-    PENDING_REGISTRATION_COLUMNS,
-    ...(includePassword ? ['password_hash'] : []),
+    PENDING_REGISTRATION_COLUMN_NAMES.map(qualify).join(', '),
+    ...(includePassword ? [qualify('password_hash')] : []),
     ...(supportsPendingPasskeys
       ? [
           `EXISTS (
              SELECT 1
              FROM pending_registration_webauthn_credentials prwc
-             WHERE prwc.pending_registration_id = pending_registrations.id
+             WHERE prwc.pending_registration_id = ${tableName || 'pending_registrations'}.id
            ) AS has_staged_passkeys`,
         ]
       : []),
@@ -188,7 +192,7 @@ export const getPendingRegistrationReviewById = async (
   id: string,
   db: DbClient = pool
 ): Promise<PendingRegistrationReviewRow | null> => {
-  const selectColumns = await pendingRegistrationSelectColumns(false, db);
+  const selectColumns = await pendingRegistrationSelectColumns(false, db, 'pending_registrations');
   const result = await db.query<PendingRegistrationReviewRow>(
     `SELECT ${selectColumns},
             reviewed_user.email AS reviewed_by_email,

@@ -30,6 +30,8 @@ import { getTasks } from './loop/tasks';
 import {
   getDemoCampaignEvents,
   getDemoCampaignStats,
+  getDemoOrganizations,
+  getDemoPeople,
   getDemoTasks,
   isDemoPath,
 } from './loop/demo';
@@ -47,6 +49,10 @@ class LoopApiService {
   // ==========================================================================
 
   async getPeople(filter?: PeopleFilter): Promise<AdaptedPerson[]> {
+    if (isDemoContext()) {
+      return getDemoPeople(filter);
+    }
+
     return getPeople(filter);
   }
 
@@ -97,6 +103,10 @@ class LoopApiService {
   // ==========================================================================
 
   async getOrganizations(): Promise<Organization[]> {
+    if (isDemoContext()) {
+      return getDemoOrganizations();
+    }
+
     return getOrganizations();
   }
 

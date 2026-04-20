@@ -11,6 +11,7 @@ import {
   createTestContact,
   createTestDonation,
   createTestEvent,
+  createTestMeeting,
   createTestVolunteer,
   createTestVolunteerAssignment,
   getAuthHeaders,
@@ -136,6 +137,7 @@ type StaffFixtureState = {
   eventId?: string;
   publicEventId?: string;
   taskId?: string;
+  meetingId?: string;
   caseId?: string;
   donationId?: string;
   templateId?: string;
@@ -528,7 +530,23 @@ async function resolveRoute(
       if (!staffState.eventId) {
         staffState.eventId = (await createTestEvent(adminPage, authToken, {
           name: `Dark Mode Public Check-In ${Date.now()}`,
+          isPublic: true,
         })).id;
+        const headers = await getAuthHeaders(adminPage, authToken);
+        const checkInSettingsResponse = await adminPage.request.patch(
+          `${apiURL}/api/v2/events/${staffState.eventId}/check-in/settings`,
+          {
+            headers,
+            data: {
+              public_checkin_enabled: true,
+            },
+          }
+        );
+        if (!checkInSettingsResponse.ok()) {
+          throw new Error(
+            `Failed to enable public check-in (${checkInSettingsResponse.status()}): ${await checkInSettingsResponse.text()}`
+          );
+        }
       }
       return {
         kind: 'ready',
@@ -646,6 +664,20 @@ async function resolveRoute(
         kind: 'ready',
         path: href.replace(/:id\b/g, staffState.taskId),
         fixtureState: `task ${staffState.taskId}`,
+      };
+    case 'meeting-detail':
+    case 'meeting-edit':
+      if (!staffState.meetingId) {
+        staffState.meetingId = (
+          await createTestMeeting(adminPage, authToken, {
+            title: `Dark Mode Meeting ${Date.now()}`,
+          })
+        ).id;
+      }
+      return {
+        kind: 'ready',
+        path: href.replace(/:id\b/g, staffState.meetingId),
+        fixtureState: `meeting ${staffState.meetingId}`,
       };
     case 'case-detail':
     case 'case-edit':
@@ -818,7 +850,7 @@ async function auditRoute(input: {
         await ensureDarkMode(page);
         const runtimeSnapshot = await captureRouteRuntime(page, resolvedPath, {
           allowAuthBootstrapNoise: entry.surface !== 'staff',
-          expectedLocation: resolvedPath,
+          expectedLocation: resolveExpectedLocation(entry, resolvedPath),
         });
 
         const runtimeFindings = buildRuntimeFindingsFromSnapshot({
@@ -926,6 +958,25 @@ async function auditRoute(input: {
   }
 }
 
+function resolveExpectedLocation(entry: RouteCatalogEntry, resolvedPath: string): string | string[] {
+  switch (entry.id) {
+    case 'root':
+      return ['/login', '/setup'];
+    case 'login':
+      return ['/login', '/setup'];
+    case 'setup':
+      return ['/setup', '/login'];
+    case 'accept-invitation':
+      return [resolvedPath, '/setup'];
+    case 'grants':
+      return '/grants/funders';
+    case 'website-console-redirect':
+      return `${resolvedPath}/overview`;
+    default:
+      return resolvedPath;
+  }
+}
+
 function pageForSurface(surface: RouteCatalogEntry['surface'], pages: {
   publicPage: Page;
   staffPage: Page;
@@ -961,6 +1012,7 @@ test.describe('Dark Mode Accessibility Audit', () => {
     const records: RouteAuditRecord[] = [];
     const staffFixtureState: StaffFixtureState = {};
     const portalFixtureState: PortalFixtureState = {};
+    const generatedAt = new Date().toISOString();
 
     try {
       publicContext = await browser.newContext();
@@ -1071,13 +1123,36 @@ test.describe('Dark Mode Accessibility Audit', () => {
         records.push(record);
       }
 
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      records.push({
+        routeId: 'audit-harness',
+        routePath: '/dark-mode-accessibility-audit',
+        routeTitle: 'Dark Mode Accessibility Audit',
+        surface: 'staff',
+        fixtureState: 'audit setup/runtime failure',
+        findings: [
+          runtimeFinding({
+            routeId: 'audit-harness',
+            routePath: '/dark-mode-accessibility-audit',
+            routeTitle: 'Dark Mode Accessibility Audit',
+            surface: 'staff',
+            fixtureState: 'audit setup/runtime failure',
+            message: `Audit harness failed before completion: ${message}`,
+            recommendation:
+              'Review the setup/runtime failure, then rerun the Chromium dark-mode audit once the blocking step is stable.',
+          }),
+        ],
+      });
+      throw error;
+    } finally {
       writeAuditReport({
-        generatedAt: new Date().toISOString(),
+        generatedAt,
         reportPath: getAuditReportPath(),
         screenshotRoot: getAuditScreenshotDir(),
         records,
       });
-    } finally {
+
       if (staffFixtureState.siteId && staffFixtureState.templateId && staffContext) {
         const cleanupPage = staffContext.pages()[0];
         if (cleanupPage) {

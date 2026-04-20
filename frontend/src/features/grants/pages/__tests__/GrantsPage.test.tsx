@@ -165,7 +165,7 @@ describe('GrantsPage', () => {
 
   it('reuses cached lookups when filters change', async () => {
     apiMocks.listFunders.mockImplementation((query?: { limit?: number }) => {
-      if (query?.limit === 250) {
+      if (query?.limit === 100) {
         return Promise.resolve(paginated([buildFunder()]));
       }
 
@@ -202,7 +202,7 @@ describe('GrantsPage', () => {
     let rowRequestCount = 0;
 
     apiMocks.listFunders.mockImplementation((query?: { limit?: number }) => {
-      if (query?.limit === 250) {
+      if (query?.limit === 100) {
         return Promise.resolve(paginated([buildFunder()]));
       }
 

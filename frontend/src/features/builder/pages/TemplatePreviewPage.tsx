@@ -10,6 +10,12 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../../store';
 import { getTemplateGalleryPath } from '../lib/builderRouteTargets';
 
+const STORAGE_DEPENDENT_SCRIPT_PATTERN =
+  /(?:<!--\s*Site Analytics\s*-->\s*)?<script\b[^>]*>[\s\S]*?(?:localStorage|sessionStorage|npm_visitor_id|npm_session_id)[\s\S]*?<\/script>/gi;
+
+const stripPreviewAnalyticsScript = (html: string): string =>
+  html.replace(STORAGE_DEPENDENT_SCRIPT_PATTERN, '');
+
 const TemplatePreview: React.FC = () => {
   const { templateId } = useParams<{ templateId: string }>();
   const navigate = useNavigate();
@@ -22,10 +28,23 @@ const TemplatePreview: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const previewUrl = useMemo(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-    const baseUrl = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
-    return `${baseUrl}/api/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
+    const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(
+      /\/+$/,
+      ''
+    );
+    if (apiUrl.endsWith('/api/v2')) {
+      return `${apiUrl}/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
+    }
+    if (apiUrl.endsWith('/api')) {
+      return `${apiUrl}/v2/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
+    }
+    return `${apiUrl}/api/v2/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
   }, [templateId, pageSlug]);
+
+  const iframeSrcDoc = useMemo(
+    () => stripPreviewAnalyticsScript(previewHtml),
+    [previewHtml]
+  );
 
   useEffect(() => {
     const fetchPreview = async () => {
@@ -133,9 +152,9 @@ const TemplatePreview: React.FC = () => {
           <iframe
             title="Template Preview"
             className="w-full h-full border-0"
-            srcDoc={previewHtml}
-            // Avoid `allow-same-origin` so preview scripts cannot read app storage/tokens.
-            // Removed `allow-popups` to prevent potential popup-based attacks.
+            srcDoc={iframeSrcDoc}
+            // Builder preview keeps the iframe sandboxed and strips the generated site analytics
+            // block because that runtime expects storage access that sandboxed srcDoc frames deny.
             sandbox="allow-scripts"
           />
         )}

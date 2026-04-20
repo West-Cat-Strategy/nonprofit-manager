@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
+import { useLocation } from 'react-router-dom';
 import EventCalendarPage from '../EventCalendarPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
@@ -35,6 +36,11 @@ vi.mock('../../../auth/state/adminAccess', () => ({
   canAccessAdminSettings: (...args: unknown[]) => canAccessAdminSettingsMock(...args),
 }));
 
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="current-location">{`${location.pathname}${location.search}`}</div>;
+}
+
 describe('EventCalendarPage', () => {
   beforeEach(() => {
     listEventOccurrencesMock.mockReset();
@@ -64,5 +70,42 @@ describe('EventCalendarPage', () => {
         })
       );
     });
+  });
+
+  it('keeps the legacy alias location stable when the month is set without a date', async () => {
+    listEventOccurrencesMock.mockResolvedValueOnce([
+      {
+        occurrence_id: 'occ-1',
+        event_id: 'event-1',
+        event_name: 'Spring Gala',
+        occurrence_name: 'Opening Night',
+        event_type: 'fundraiser',
+        status: 'planned',
+        is_public: true,
+        description: 'Annual fundraiser',
+        start_date: '2026-05-12T18:00:00.000Z',
+        end_date: '2026-05-12T20:00:00.000Z',
+        location_name: 'Main Hall',
+        capacity: 120,
+        registered_count: 42,
+        attended_count: 0,
+        waitlist_enabled: true,
+        public_checkin_enabled: true,
+        public_checkin_pin_configured: true,
+      },
+    ]);
+
+    renderWithProviders(
+      <>
+        <EventCalendarPage />
+        <LocationProbe />
+      </>,
+      {
+        route: '/events/calendar?month=2026-05',
+      }
+    );
+
+    await screen.findByTestId('mobile-event-card');
+    expect(screen.getByTestId('current-location')).toHaveTextContent('/events/calendar?month=2026-05');
   });
 });

@@ -220,8 +220,8 @@ export default function BrandingSection({
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-app-text-muted">Preview</label>
-            <div className="flex items-center gap-3 rounded-lg bg-app-text p-4">
-              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded bg-app-surface">
+            <div className="flex items-center gap-3 rounded-lg border border-app-border bg-app-surface p-4 shadow-sm">
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded bg-app-surface-muted">
                 {branding.appIcon ? (
                   <img src={branding.appIcon} alt="Preview" className="h-full w-full object-cover" />
                 ) : (
@@ -231,10 +231,10 @@ export default function BrandingSection({
                 )}
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-app-text">
                   {branding.appName || 'Nonprofit Manager'}
                 </p>
-                <p className="text-xs text-white/80">This preview mirrors the live header chrome.</p>
+                <p className="text-xs text-app-text-muted">This preview mirrors the live header chrome.</p>
               </div>
             </div>
           </div>

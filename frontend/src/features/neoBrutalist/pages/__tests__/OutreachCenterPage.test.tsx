@@ -80,4 +80,24 @@ describe('OutreachCenterPage', () => {
     expect(screen.getByText('Demo Spring Community Night')).toBeInTheDocument();
     expect(screen.getByText('Demo Volunteer Welcome')).toBeInTheDocument();
   });
+
+  it('shows a fallback notice when outreach APIs fail without logging console errors', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mockLocation.mockReturnValue({ pathname: '/outreach' });
+    mockGetCampaignStats.mockRejectedValueOnce(new Error('stats unavailable'));
+    mockGetCampaignEvents.mockRejectedValueOnce(new Error('events unavailable'));
+
+    renderWithProviders(<OutreachCenterPage />, {
+      route: '/outreach',
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/some outreach data is temporarily unavailable/i)
+      ).toBeInTheDocument();
+    });
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
 });

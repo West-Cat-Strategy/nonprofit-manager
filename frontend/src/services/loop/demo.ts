@@ -1,4 +1,11 @@
-import type { CampaignEvent, CampaignStats, Task } from '../../types/schema';
+import type {
+  AdaptedPerson,
+  CampaignEvent,
+  CampaignStats,
+  Organization,
+  PeopleFilter,
+  Task,
+} from '../../types/schema';
 
 const cloneTasks = (tasks: Task[]): Task[] =>
   tasks.map((task) => ({
@@ -8,6 +15,12 @@ const cloneTasks = (tasks: Task[]): Task[] =>
 
 const cloneCampaignEvents = (events: CampaignEvent[]): CampaignEvent[] =>
   events.map((event) => ({ ...event }));
+
+const cloneOrganizations = (organizations: Organization[]): Organization[] =>
+  organizations.map((organization) => ({ ...organization }));
+
+const clonePeople = (people: AdaptedPerson[]): AdaptedPerson[] =>
+  people.map((person) => ({ ...person }));
 
 export const isDemoPath = (pathname: string): boolean => pathname.startsWith('/demo/');
 
@@ -69,3 +82,110 @@ export const getDemoCampaignEvents = (): CampaignEvent[] =>
       rsvpCount: 11,
     },
   ]);
+
+const DEMO_ORGANIZATIONS: Organization[] = [
+  {
+    id: 'demo-org-1',
+    name: 'River City Mutual Aid',
+    type: 'partner',
+    status: 'active',
+    contact: 'hello@rivercitymutual.org',
+  },
+  {
+    id: 'demo-org-2',
+    name: 'North Shore Housing Office',
+    type: 'government',
+    status: 'review',
+    contact: 'liaison@northshore.gov',
+  },
+  {
+    id: 'demo-org-3',
+    name: 'Harbor Light Foundation',
+    type: 'grantor',
+    status: 'pending',
+    contact: 'programs@harborlight.ca',
+  },
+];
+
+const DEMO_PEOPLE: AdaptedPerson[] = [
+  {
+    id: 'demo-person-1',
+    firstName: 'Avery',
+    lastName: 'Stone',
+    email: 'avery.stone@example.org',
+    phone: '604-555-0101',
+    role: 'staff',
+    status: 'active',
+    title: 'Outreach Lead',
+    fullName: 'Avery Stone',
+    cardColor: 'pink',
+  },
+  {
+    id: 'demo-person-2',
+    firstName: 'Jordan',
+    lastName: 'Lee',
+    email: 'jordan.lee@example.org',
+    phone: '604-555-0102',
+    role: 'staff',
+    status: 'active',
+    title: 'Volunteer Coordinator',
+    fullName: 'Jordan Lee',
+    cardColor: 'cyan',
+  },
+  {
+    id: 'demo-person-3',
+    firstName: 'Sam',
+    lastName: 'Nguyen',
+    email: 'sam.nguyen@example.org',
+    phone: '604-555-0103',
+    role: 'volunteer',
+    status: 'active',
+    title: 'Community Volunteer',
+    fullName: 'Sam Nguyen',
+    cardColor: 'yellow',
+  },
+  {
+    id: 'demo-person-4',
+    firstName: 'Riley',
+    lastName: 'Chen',
+    email: 'riley.chen@example.org',
+    phone: '604-555-0104',
+    role: 'board',
+    status: 'active',
+    title: 'Board Chair',
+    fullName: 'Riley Chen',
+    cardColor: 'gray',
+  },
+];
+
+export const getDemoOrganizations = (): Organization[] => cloneOrganizations(DEMO_ORGANIZATIONS);
+
+export const getDemoPeople = (filter?: PeopleFilter): AdaptedPerson[] => {
+  const normalizedQuery = filter?.query?.trim().toLowerCase() ?? '';
+
+  return clonePeople(DEMO_PEOPLE).filter((person) => {
+    if (filter?.role && person.role !== filter.role) {
+      return false;
+    }
+
+    if (filter?.status && person.status !== filter.status) {
+      return false;
+    }
+
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    return [
+      person.fullName,
+      person.firstName,
+      person.lastName,
+      person.email,
+      person.phone,
+      person.title,
+      person.role,
+    ]
+      .filter(Boolean)
+      .some((value) => value?.toLowerCase().includes(normalizedQuery));
+  });
+};

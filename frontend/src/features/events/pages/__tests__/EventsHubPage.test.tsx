@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
+import { useLocation } from 'react-router-dom';
 import EventList from '../EventsHubPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
@@ -34,6 +35,11 @@ vi.mock('../../../adminOps/api/portalAdminAppointmentsApiClient', () => ({
 vi.mock('../../../auth/state/adminAccess', () => ({
   canAccessAdminSettings: (...args: unknown[]) => canAccessAdminSettingsMock(...args),
 }));
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="current-location">{`${location.pathname}${location.search}`}</div>;
+}
 
 describe('EventList page', () => {
   beforeEach(() => {
@@ -92,13 +98,20 @@ describe('EventList page', () => {
   });
 
   it('defaults the agenda to the first visible occurrence when the month is set without a date', async () => {
-    renderWithProviders(<EventList />, {
+    renderWithProviders(
+      <>
+        <EventList />
+        <LocationProbe />
+      </>,
+      {
       route: '/events?month=2026-05',
-    });
+      }
+    );
 
     const agendaCard = await screen.findByTestId('mobile-event-card');
     expect(agendaCard).toBeInTheDocument();
     expect(within(agendaCard).getByText('Spring Gala')).toBeInTheDocument();
+    expect(screen.getByTestId('current-location')).toHaveTextContent('/events?month=2026-05');
   });
 
   it('reloads the workspace when the visible month changes', async () => {

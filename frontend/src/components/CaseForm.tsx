@@ -364,8 +364,10 @@ const CaseForm = ({
             {selectedCaseTypeLabels.map((label, index) => (
               <span
                 key={`${label}-${index}`}
-                className={`px-3 py-1 text-xs font-black uppercase border-2 border-black ${
-                  index === 0 ? 'bg-[var(--loop-green)] text-black' : 'bg-app-surface-muted text-black'
+                className={`px-3 py-1 text-xs font-black uppercase border-2 border-app-border ${
+                  index === 0
+                    ? 'bg-[var(--loop-green)] text-app-brutal-ink'
+                    : 'bg-app-surface-muted text-app-text'
                 }`}
               >
                 {label}
@@ -630,8 +632,10 @@ const CaseForm = ({
                   {selectedCaseOutcomeValues.map((value, index) => (
                     <span
                       key={`${value}-${index}`}
-                      className={`px-3 py-1 text-xs font-black uppercase border-2 border-black ${
-                        index === 0 ? 'bg-[var(--loop-green)] text-black' : 'bg-app-surface-muted text-black'
+                      className={`px-3 py-1 text-xs font-black uppercase border-2 border-app-border ${
+                        index === 0
+                          ? 'bg-[var(--loop-green)] text-app-brutal-ink'
+                          : 'bg-app-surface-muted text-app-text'
                       }`}
                     >
                       {formatCaseOutcomeLabel(value)}

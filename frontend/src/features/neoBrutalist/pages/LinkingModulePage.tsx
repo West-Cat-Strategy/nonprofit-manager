@@ -4,20 +4,31 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import BrutalInput from '../../../components/neo-brutalist/BrutalInput';
 import LoopApiService from '../../../services/LoopApiService';
+import { getDemoOrganizations, isDemoPath } from '../../../services/loop/demo';
 import type { Organization } from '../../../types/schema';
 
 export default function LinkingModule() {
-    const [organizations, setOrganizations] = useState<Organization[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { pathname } = useLocation();
+    const isDemoRoute = isDemoPath(pathname);
+    const [organizations, setOrganizations] = useState<Organization[]>(() =>
+        isDemoRoute ? getDemoOrganizations() : []
+    );
+    const [loading, setLoading] = useState(() => !isDemoRoute);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
+        if (isDemoRoute) {
+            setOrganizations(getDemoOrganizations());
+            setLoading(false);
+            return;
+        }
+
         const fetchOrgs = async () => {
             try {
                 const data = await LoopApiService.getOrganizations();
@@ -29,7 +40,7 @@ export default function LinkingModule() {
             }
         };
         fetchOrgs();
-    }, []);
+    }, [isDemoRoute]);
 
     const handleNewItem = () => navigate('/accounts/new');
     const handleEdit = (id: string) => navigate(`/accounts/${id}/edit`);

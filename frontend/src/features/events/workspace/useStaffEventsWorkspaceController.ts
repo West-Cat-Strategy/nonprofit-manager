@@ -87,12 +87,8 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
     () => parseMonthParam(searchParams.get('month')) ?? startOfMonth(new Date()),
     [searchParams]
   );
-  const selectedDate = useMemo(
-    () => parseDateParam(searchParams.get('date')) ?? startOfDay(new Date()),
-    [searchParams]
-  );
+  const requestedSelectedDate = useMemo(() => parseDateParam(searchParams.get('date')), [searchParams]);
   const appliedSearch = searchParams.get('search') ?? '';
-  const selectedDateParam = searchParams.get('date');
   const selectedEventType = searchParams.get('type') ?? '';
   const selectedStatus = normalizeEventStatus(searchParams.get('status'));
   const selectedScope = normalizeScope(searchParams.get('scope'), isAdmin);
@@ -223,14 +219,9 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
     });
   }, [appliedSearch, loadCalendar, selectedEventType, selectedScope, selectedStatus, visibleRange]);
 
-  const selectedDateEntries = useMemo(
-    () => getSelectedDateEntries(entries, selectedDate),
-    [entries, selectedDate]
-  );
-
-  useEffect(() => {
-    if (selectedDateParam || entries.length === 0 || selectedDateEntries.length > 0) {
-      return;
+  const fallbackSelectedDate = useMemo(() => {
+    if (requestedSelectedDate || entries.length === 0) {
+      return null;
     }
 
     const nextEntry =
@@ -240,15 +231,18 @@ export default function useStaffEventsWorkspaceController(): StaffEventsWorkspac
       }) ?? entries[0];
 
     const nextDate = parseValidIsoDate(nextEntry?.start);
-    if (!nextDate) {
-      return;
-    }
+    return nextDate ? startOfDay(nextDate) : null;
+  }, [entries, requestedSelectedDate, visibleMonth]);
 
-    writeSearchParams({
-      month: formatMonthParam(nextDate),
-      date: formatDateParam(nextDate),
-    });
-  }, [entries, selectedDateEntries, selectedDateParam, visibleMonth, writeSearchParams]);
+  const selectedDate = useMemo(
+    () => requestedSelectedDate ?? fallbackSelectedDate ?? startOfDay(new Date()),
+    [fallbackSelectedDate, requestedSelectedDate]
+  );
+
+  const selectedDateEntries = useMemo(
+    () => getSelectedDateEntries(entries, selectedDate),
+    [entries, selectedDate]
+  );
 
   useEffect(() => {
     setSelectedEntryId((current) =>

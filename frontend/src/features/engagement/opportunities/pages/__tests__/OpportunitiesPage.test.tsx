@@ -48,4 +48,18 @@ describe('OpportunitiesPage', () => {
       expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
     });
   });
+
+  it('uses high-contrast workflow cards with visible focus styling', () => {
+    renderWithProviders(<OpportunitiesPage />, { route: '/opportunities' });
+
+    const reportsLink = screen.getByRole('link', { name: /reports workspace/i });
+    const reportsDescription = screen.getByText(
+      /open the fundraiser reporting home for shared context/i
+    );
+
+    expect(reportsLink.className).toContain('bg-[#0f172a]');
+    expect(reportsLink.className).toContain('focus-visible:ring-4');
+    expect(reportsLink.className).toContain('text-white');
+    expect(reportsDescription.className).toContain('text-slate-200');
+  });
 });
