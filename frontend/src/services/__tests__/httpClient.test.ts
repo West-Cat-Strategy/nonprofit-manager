@@ -153,6 +153,33 @@ describe('createApiClient', () => {
     vi.resetModules();
   });
 
+  it('creates publicApi with organization headers disabled by default', async () => {
+    vi.resetModules();
+
+    const client = {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    const createApiClientMock = vi.fn(() => client);
+
+    vi.doMock('../httpClient', () => ({
+      createApiClient: createApiClientMock,
+    }));
+
+    await import('../publicApi');
+
+    expect(createApiClientMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        includeOrganizationHeader: false,
+      })
+    );
+
+    vi.doUnmock('../httpClient');
+    vi.resetModules();
+  });
+
   it('fetches CSRF from /api/v2 when baseURL is /api', async () => {
     let capturedRequestInterceptor: ((config: object) => Promise<object>) | null = null;
 

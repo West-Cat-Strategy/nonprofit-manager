@@ -12,6 +12,7 @@ import { getTemplateGalleryPath } from '../lib/builderRouteTargets';
 
 const SCRIPT_TAG_PATTERN = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
 const ANALYTICS_COMMENT_PATTERN = /^(?:Site|Google)\s+Analytics$/i;
+const INLINE_EVENT_HANDLER_PATTERN = /^on/i;
 
 const getAdjacentMeaningfulSibling = (
   node: ChildNode,
@@ -51,6 +52,14 @@ const stripPreviewScripts = (html: string): string => {
   parsedDocument.querySelectorAll('script').forEach((scriptNode) => {
     removeLeadingAnalyticsComment(scriptNode);
     scriptNode.remove();
+  });
+
+  parsedDocument.querySelectorAll('*').forEach((element) => {
+    for (const attributeName of element.getAttributeNames()) {
+      if (INLINE_EVENT_HANDLER_PATTERN.test(attributeName)) {
+        element.removeAttribute(attributeName);
+      }
+    }
   });
 
   const doctype = html.match(/<!doctype[^>]*>/i)?.[0];
@@ -196,10 +205,9 @@ const TemplatePreview: React.FC = () => {
             title="Template Preview"
             className="w-full h-full border-0"
             srcDoc={iframeSrcDoc}
-            // Builder preview is a static visual render inside a strict sandboxed srcDoc iframe.
-            // Strip runtime scripts entirely so generated site analytics or future browser-side
-            // behaviors cannot assume same-origin storage inside the preview sandbox.
-            sandbox="allow-scripts"
+            // Builder preview is a static visual render. Keep the iframe fully sandboxed so any
+            // generated runtime hooks that slip through sanitization cannot execute against storage.
+            sandbox=""
           />
         )}
       </div>

@@ -1,4 +1,4 @@
-import api from '../../../services/api';
+import publicApi from '../../../services/publicApi';
 import { unwrapApiData } from '../../../services/apiEnvelope';
 import type { ApiEnvelope } from '../../../services/apiEnvelope';
 import type {
@@ -11,7 +11,9 @@ import type {
 
 class PublicCaseFormsApiClient {
   async getForm(token: string): Promise<CaseFormAssignmentDetail> {
-    const response = await api.get<ApiEnvelope<CaseFormAssignmentDetail>>(`/v2/public/case-forms/${token}`);
+    const response = await publicApi.get<ApiEnvelope<CaseFormAssignmentDetail>>(
+      `/v2/public/case-forms/${token}`
+    );
     return unwrapApiData(response.data);
   }
 
@@ -24,7 +26,7 @@ class PublicCaseFormsApiClient {
     formData.set('asset_kind', input.asset_kind);
     formData.set('file', input.file);
 
-    const response = await api.post<ApiEnvelope<CaseFormAsset>>(
+    const response = await publicApi.post<ApiEnvelope<CaseFormAsset>>(
       `/v2/public/case-forms/${token}/assets`,
       formData,
       {
@@ -35,7 +37,7 @@ class PublicCaseFormsApiClient {
   }
 
   async saveDraft(token: string, payload: SaveCaseFormDraftDTO): Promise<CaseFormAssignment> {
-    const response = await api.post<ApiEnvelope<CaseFormAssignment>>(
+    const response = await publicApi.post<ApiEnvelope<CaseFormAssignment>>(
       `/v2/public/case-forms/${token}/draft`,
       payload
     );
@@ -43,7 +45,7 @@ class PublicCaseFormsApiClient {
   }
 
   async submit(token: string, payload: SubmitCaseFormDTO): Promise<CaseFormAssignmentDetail> {
-    const response = await api.post<ApiEnvelope<CaseFormAssignmentDetail>>(
+    const response = await publicApi.post<ApiEnvelope<CaseFormAssignmentDetail>>(
       `/v2/public/case-forms/${token}/submit`,
       payload
     );

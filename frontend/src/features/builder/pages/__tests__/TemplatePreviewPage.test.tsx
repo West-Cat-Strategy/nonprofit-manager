@@ -115,6 +115,28 @@ const buildBackendGeneratedPreviewHtml = (): string => `
   </html>
 `;
 
+const buildInlineRuntimePreviewHtml = (): string => `
+  <!doctype html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <title>Template Preview</title>
+    </head>
+    <body onload="window.localStorage.getItem('npm_visitor_id')">
+      <main>Preview body</main>
+      <a
+        href="#contact"
+        onclick="window.localStorage.getItem('npm_visitor_id')"
+      >
+        Contact us
+      </a>
+      <button type="button" onmouseover="window.sessionStorage.getItem('npm_session_id')">
+        Hover preview CTA
+      </button>
+    </body>
+  </html>
+`;
+
 describe('TemplatePreviewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -173,7 +195,7 @@ describe('TemplatePreviewPage', () => {
     expect(srcDoc).not.toContain('npm_session_id');
     expect(srcDoc).not.toContain('__previewFormRuntime');
     expect(srcDoc).not.toContain('<script');
-    expect(iframe).toHaveAttribute('sandbox', 'allow-scripts');
+    expect(iframe).toHaveAttribute('sandbox', '');
   });
 
   it('strips the real generated preview runtime and analytics loader pair so sandboxed pages stay quiet', async () => {
@@ -202,5 +224,33 @@ describe('TemplatePreviewPage', () => {
     expect(srcDoc).not.toContain("document.documentElement.dataset.previewNavigationReady = 'true';");
     expect(srcDoc).not.toContain('<script');
     expect(srcDoc).toContain('Preview body');
+  });
+
+  it('removes inline event-handler runtime hooks and keeps the preview iframe fully sandboxed', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: vi.fn().mockResolvedValue(buildInlineRuntimePreviewHtml()),
+    });
+
+    renderWithProviders(<TemplatePreviewPage />, {
+      route: '/builder/templates/template-123/preview?page=impact',
+    });
+
+    const iframe = await screen.findByTitle('Template Preview');
+
+    await waitFor(() => {
+      expect(iframe.getAttribute('srcdoc')).toContain('Contact us');
+    });
+
+    const srcDoc = iframe.getAttribute('srcdoc') || '';
+
+    expect(srcDoc).not.toContain('onload=');
+    expect(srcDoc).not.toContain('onclick=');
+    expect(srcDoc).not.toContain('onmouseover=');
+    expect(srcDoc).not.toContain('npm_visitor_id');
+    expect(srcDoc).not.toContain('npm_session_id');
+    expect(srcDoc).toContain('Contact us');
+    expect(srcDoc).toContain('Hover preview CTA');
+    expect(iframe).toHaveAttribute('sandbox', '');
   });
 });

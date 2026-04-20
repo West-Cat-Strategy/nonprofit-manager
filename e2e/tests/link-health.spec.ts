@@ -78,6 +78,7 @@ const staffAuthenticatedRoutes = [
   '/settings/user',
   '/settings/admin/dashboard',
   '/settings/admin/organization',
+  '/settings/admin/communications',
   '/settings/admin/audit_logs',
   '/settings/admin/portal/access',
   '/settings/admin/portal/users',

@@ -59,11 +59,17 @@ describe('OpportunitiesPage', () => {
     );
 
     expect(reportsLink.className).toContain('bg-app-surface-elevated');
-    expect(reportsLink.className).toContain('hover:bg-app-accent-soft');
+    expect(reportsLink.className).toContain('hover:bg-app-accent-soft-hover');
+    expect(reportsLink.className).toContain('dark:border-app-accent');
+    expect(reportsLink.className).toContain('dark:bg-app-accent-hover/20');
+    expect(reportsLink.className).toContain('dark:hover:bg-app-accent-hover/50');
     expect(reportsLink.className).toContain('focus-visible:ring-4');
+    expect(reportsLink.className).toContain('focus-visible:ring-offset-[var(--app-surface)]');
     expect(reportsLink.className).toContain('text-app-text-heading');
     expect(reportsTitle.className).toContain('text-app-text-heading');
+    expect(reportsTitle.className).toContain('dark:text-app-text');
     expect(reportsDescription.className).toContain('text-app-text-muted');
+    expect(reportsDescription.className).toContain('dark:text-app-text-subtle');
     expect(reportsTitle.className).not.toContain('text-white');
     expect(reportsDescription.className).not.toContain('text-slate-200');
   });

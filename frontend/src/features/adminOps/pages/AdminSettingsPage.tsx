@@ -33,6 +33,7 @@ import {
 import { useUsersSettings } from './adminSettings/hooks/useUsersSettings';
 import { useRolesSettings } from './adminSettings/hooks/useRolesSettings';
 import { buildRoleLabelMap, getRoleDisplayLabel } from './adminSettings/utils';
+import CommunicationsSection from './adminSettings/sections/CommunicationsSection';
 
 const OrganizationSection = lazy(() => import('./adminSettings/sections/OrganizationSection'));
 const WorkspaceModulesSection = lazy(
@@ -46,9 +47,6 @@ const RolesSection = lazy(() => import('./adminSettings/sections/RolesSection'))
 const OtherSettingsSection = lazy(() => import('./adminSettings/sections/OtherSettingsSection'));
 const DashboardSection = lazy(() => import('./adminSettings/sections/DashboardSection'));
 const AuditLogsSection = lazy(() => import('./adminSettings/sections/AuditLogsSection'));
-const CommunicationsSection = lazy(
-  () => import('./adminSettings/sections/CommunicationsSection')
-);
 const TwilioSettingsSection = lazy(() => import('./adminSettings/sections/TwilioSettingsSection'));
 const OutcomeDefinitionsSection = lazy(
   () => import('./adminSettings/sections/OutcomeDefinitionsSection')

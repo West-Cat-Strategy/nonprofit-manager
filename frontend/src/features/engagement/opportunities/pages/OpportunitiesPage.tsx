@@ -97,7 +97,7 @@ const fundraiserWorkflowLinks = [
 ] as const;
 
 const workflowCardClass =
-  'group block border-2 border-[var(--app-border)] bg-app-surface-elevated p-3 text-app-text-heading shadow-[3px_3px_0px_0px_var(--shadow-color)] transition hover:-translate-y-0.5 hover:border-app-accent hover:bg-app-accent-soft focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]';
+  'group block border-2 border-[var(--app-border)] bg-app-surface-elevated p-3 text-app-text-heading shadow-[3px_3px_0px_0px_var(--shadow-color)] transition hover:-translate-y-0.5 hover:border-app-accent hover:bg-app-accent-soft-hover focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-surface)] dark:border-app-accent dark:bg-app-accent-hover/20 dark:hover:bg-app-accent-hover/50';
 
 export default function OpportunitiesPage() {
   const dispatch = useAppDispatch();
@@ -281,10 +281,10 @@ export default function OpportunitiesPage() {
                 to={link.to}
                 className={workflowCardClass}
               >
-                <p className="text-sm font-black uppercase text-app-text-heading">
+                <p className="text-sm font-black uppercase text-app-text-heading dark:text-app-text">
                   {link.title}
                 </p>
-                <p className="mt-2 text-xs font-semibold normal-case text-app-text-muted">
+                <p className="mt-2 text-xs font-semibold normal-case text-app-text-muted dark:text-app-text-subtle">
                   {link.description}
                 </p>
               </Link>
