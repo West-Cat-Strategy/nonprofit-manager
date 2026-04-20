@@ -1,6 +1,6 @@
 # Staff App UI/UX Strategic Audit
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-19
 
 ## Scope
 
@@ -68,6 +68,19 @@
 
 12. `High-value improvement`: the current theme system changes too much of the product’s personality for an operational staff workspace.
     Evidence: [../../frontend/src/theme/themeRegistry.ts](../../frontend/src/theme/themeRegistry.ts) and the theme styles in [../../frontend/public/themes/](../../frontend/public/themes/) vary fonts, radius, shadows, and component tone in addition to color, which makes the app feel visually inconsistent across staff surfaces and complicates onboarding expectations.
+
+## Follow-through Update (2026-04-19)
+
+- `Landed in this pass`
+  - Default staff destinations now align more closely across desktop and mobile around Workbench, People, Events, Donations, and Reports, reducing reliance on `More` for daily navigation.
+  - Workbench now emphasizes queues, resume-work links, and first-touch operational context ahead of customization controls.
+  - People, Cases, Donations, and Reports now demote advanced filters or secondary actions so the first viewport is more task-first.
+  - Targeted frontend verification passed for the shared navigation/header suites, the affected queue pages, and the Mobile Safari plus Tablet compact-route walkthroughs.
+- `What remains real after the rerun`
+  - Original findings `1`, `2`, `5`, `6`, `7`, `8`, and `10` are now narrowed or partially addressed in the current tree rather than standing untouched.
+  - The full Chromium dark-mode audit still found real route/runtime failures, including final-location drift on `/`, `/setup`, `/events`, `/events/calendar`, `/grants`, and `/websites/:siteId`.
+  - The same audit recorded runtime/API failures on admin-registration review, public event check-in, opportunities, meetings, outreach, and multiple grants routes, so the authenticated walkthrough is no longer blocked by missing runtime evidence but by active defects.
+  - Dark-mode contrast issues remain on `/cases/:id/edit`, `/people`, and `/settings/admin/branding`.
 
 ## Backlog
 

@@ -366,104 +366,114 @@ const DonationList: React.FC = () => {
             type="button"
             onClick={() => applyPreset('card')}
             className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-accent-soft text-app-accent-text"
-          >
-            Credit Card
-          </button>
-        </div>
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <input
-            type="text"
-            placeholder="Search donations..."
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 border rounded-md"
-            aria-label="Search donations"
-          />
-
-          <select
-            value={paymentStatus}
-            onChange={(event) => {
-              setPaymentStatus(event.target.value as PaymentStatus | '');
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 border rounded-md"
-            aria-label="Filter by payment status"
-          >
-            <option value="">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="completed">Completed</option>
-            <option value="failed">Failed</option>
-            <option value="refunded">Refunded</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-
-          <select
-            value={paymentMethod}
-            onChange={(event) => {
-              setPaymentMethod(event.target.value as PaymentMethod | '');
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 border rounded-md"
-            aria-label="Filter by payment method"
-          >
-            <option value="">All Payment Methods</option>
-            <option value="cash">Cash</option>
-            <option value="check">Check</option>
-            <option value="credit_card">Credit Card</option>
-            <option value="debit_card">Debit Card</option>
-            <option value="bank_transfer">Bank Transfer</option>
-            <option value="paypal">PayPal</option>
-            <option value="stock">Stock</option>
-            <option value="in_kind">In-Kind</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        {hasActiveFilters && (
-          <div className="mb-6 flex flex-wrap gap-2">
-            {search && (
-              <button
-                onClick={() => {
-                  setSearch('');
-                  setCurrentPage(1);
-                }}
-                className="px-2 py-1 text-xs border rounded-md"
-              >
-                Search: {search} ×
-              </button>
-            )}
-            {paymentStatus && (
-              <button
-                onClick={() => {
-                  setPaymentStatus('');
-                  setCurrentPage(1);
-                }}
-                className="px-2 py-1 text-xs border rounded-md"
-              >
-                Status: {paymentStatus} ×
-              </button>
-            )}
-            {paymentMethod && (
-              <button
-                onClick={() => {
-                  setPaymentMethod('');
-                  setCurrentPage(1);
-                }}
-                className="px-2 py-1 text-xs border rounded-md"
-              >
-                Type: {paymentMethod} ×
-              </button>
-            )}
-            <button
-              onClick={clearFilters}
-              className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-surface-muted"
             >
-              Clear all
+              Credit Card
             </button>
           </div>
-        )}
+        <details
+          open={hasActiveFilters}
+          className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-muted px-4 py-3"
+        >
+          <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+            Filter donations
+          </summary>
+          <div className="mt-4 space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <input
+                type="text"
+                placeholder="Search donations..."
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border rounded-md"
+                aria-label="Search donations"
+              />
+
+              <select
+                value={paymentStatus}
+                onChange={(event) => {
+                  setPaymentStatus(event.target.value as PaymentStatus | '');
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border rounded-md"
+                aria-label="Filter by payment status"
+              >
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+
+              <select
+                value={paymentMethod}
+                onChange={(event) => {
+                  setPaymentMethod(event.target.value as PaymentMethod | '');
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border rounded-md"
+                aria-label="Filter by payment method"
+              >
+                <option value="">All Payment Methods</option>
+                <option value="cash">Cash</option>
+                <option value="check">Check</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="debit_card">Debit Card</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="paypal">PayPal</option>
+                <option value="stock">Stock</option>
+                <option value="in_kind">In-Kind</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2">
+                {search && (
+                  <button
+                    onClick={() => {
+                      setSearch('');
+                      setCurrentPage(1);
+                    }}
+                    className="px-2 py-1 text-xs border rounded-md"
+                  >
+                    Search: {search} ×
+                  </button>
+                )}
+                {paymentStatus && (
+                  <button
+                    onClick={() => {
+                      setPaymentStatus('');
+                      setCurrentPage(1);
+                    }}
+                    className="px-2 py-1 text-xs border rounded-md"
+                  >
+                    Status: {paymentStatus} ×
+                  </button>
+                )}
+                {paymentMethod && (
+                  <button
+                    onClick={() => {
+                      setPaymentMethod('');
+                      setCurrentPage(1);
+                    }}
+                    className="px-2 py-1 text-xs border rounded-md"
+                  >
+                    Type: {paymentMethod} ×
+                  </button>
+                )}
+                <button
+                  onClick={clearFilters}
+                  className="px-2 py-1 text-xs font-semibold border rounded-md bg-app-surface-muted"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+        </details>
 
         {error && <ErrorState message={error} />}
 

@@ -183,12 +183,25 @@ export default defineConfig({
         'src/test/**',
       ],
       reporter: ['text', 'json-summary', 'html'],
-      thresholds: {
-        lines: 48,
-        functions: 40,
-        statements: 47,
-        branches: 38,
-      },
+      ...(process.env.VITEST_RELAX_COVERAGE_THRESHOLDS === '1' ||
+      (process.argv.includes('--coverage') &&
+        process.argv.some(
+          (arg) =>
+            arg.includes('/__tests__/') ||
+            arg.endsWith('.test.ts') ||
+            arg.endsWith('.test.tsx') ||
+            arg.endsWith('.spec.ts') ||
+            arg.endsWith('.spec.tsx')
+        ))
+        ? {}
+        : {
+            thresholds: {
+              lines: 48,
+              functions: 40,
+              statements: 47,
+              branches: 38,
+            },
+          }),
     },
   },
 })

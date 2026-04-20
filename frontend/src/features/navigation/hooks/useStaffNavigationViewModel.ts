@@ -24,6 +24,24 @@ const routeFlags = {
   VITE_TEAM_CHAT_ENABLED: import.meta.env.VITE_TEAM_CHAT_ENABLED,
 };
 
+const dailyNavigationPriority = new Map(
+  [
+    'dashboard',
+    'contacts',
+    'cases',
+    'donations',
+    'tasks',
+    'events',
+    'follow-ups',
+    'opportunities',
+    'websites',
+    'reports',
+  ].map((id, index) => [id, index] as const)
+);
+
+const getNavigationPriority = (itemId: string, fallback: number) =>
+  dailyNavigationPriority.get(itemId) ?? fallback;
+
 export function useStaffNavigationViewModel() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -59,43 +77,36 @@ export function useStaffNavigationViewModel() {
       })),
     [workspaceModules]
   );
-  const desktopNavItems = useMemo(
-    () =>
-      (navigationPreferences.enabledItems ?? []).filter(
-        (item) => item.id === 'dashboard' || item.group === 'primary'
-      ),
-    [navigationPreferences.enabledItems]
-  );
-  const desktopPrimaryItems = useMemo(() => desktopNavItems.slice(0, 3), [desktopNavItems]);
-  const desktopOverflowItems = useMemo(
-    () => [
-      ...desktopNavItems.slice(3),
-      ...(navigationPreferences.enabledItems ?? []).filter((item) => item.group === 'secondary'),
-    ],
-    [desktopNavItems, navigationPreferences.enabledItems]
-  );
-  const mobileNavigationPreferences = useMemo(() => {
-    const orderedItems = navigationPreferences.enabledItems
+  const dailyOrderedNavItems = useMemo(() => {
+    return (navigationPreferences.enabledItems ?? [])
       .filter((item) => item.group !== 'utility')
-      .map((item, index) => ({
-        item,
-        index,
-        mobilePriority: getRouteCatalogEntryById(item.id)?.mobilePriority ?? Number.MAX_SAFE_INTEGER,
-      }))
+      .map((item, index) => ({ item, index }))
       .sort((left, right) => {
-        if (left.mobilePriority !== right.mobilePriority) {
-          return left.mobilePriority - right.mobilePriority;
+        const leftPriority = getNavigationPriority(
+          left.item.id,
+          getRouteCatalogEntryById(left.item.id)?.mobilePriority ?? Number.MAX_SAFE_INTEGER
+        );
+        const rightPriority = getNavigationPriority(
+          right.item.id,
+          getRouteCatalogEntryById(right.item.id)?.mobilePriority ?? Number.MAX_SAFE_INTEGER
+        );
+
+        if (leftPriority !== rightPriority) {
+          return leftPriority - rightPriority;
         }
 
         return left.index - right.index;
       })
       .map(({ item }) => item);
-
-    return {
-      primaryItems: orderedItems.slice(0, 4),
-      secondaryItems: orderedItems.slice(4),
-    };
   }, [navigationPreferences.enabledItems]);
+  const desktopPrimaryItems = useMemo(() => dailyOrderedNavItems.slice(0, 4), [dailyOrderedNavItems]);
+  const desktopOverflowItems = useMemo(() => dailyOrderedNavItems.slice(4), [dailyOrderedNavItems]);
+  const mobileNavigationPreferences = useMemo(() => {
+    return {
+      primaryItems: dailyOrderedNavItems.slice(0, 4),
+      secondaryItems: dailyOrderedNavItems.slice(4),
+    };
+  }, [dailyOrderedNavItems]);
   const mobileHeaderLinks = useMemo(
     () =>
       utilityEntries.filter((entry) => getRouteCatalogEntryById(entry.id)?.showInMobileHeader),

@@ -34,15 +34,20 @@ export default function BrandingSection({
 }: BrandingSectionProps) {
   return (
     <div className="space-y-6">
-      <div className="bg-app-surface rounded-lg shadow-sm border border-app-border overflow-hidden">
-        <div className="px-6 py-4 border-b border-app-border bg-app-surface-muted">
+      <section className="overflow-hidden rounded-lg border border-app-border bg-app-surface shadow-sm">
+        <div className="border-b border-app-border bg-app-surface-muted px-6 py-4">
           <h2 className="text-lg font-semibold text-app-text">Application Branding</h2>
-          <p className="text-sm text-app-text-muted mt-1">Customise the look and feel of your application</p>
+          <p className="mt-1 text-sm text-app-text-muted">
+            Keep the name, browser tab, favicon, and primary colors aligned with the live app shell.
+          </p>
         </div>
 
-        <div className="p-6 space-y-6">
-          <div>
-            <label htmlFor="branding-app-name" className="block text-sm font-medium text-app-text-muted mb-1">
+        <div className="space-y-8 p-6">
+          <div className="space-y-2">
+            <label
+              htmlFor="branding-app-name"
+              className="block text-sm font-medium text-app-text-muted"
+            >
               Application Name
             </label>
             <input
@@ -51,157 +56,186 @@ export default function BrandingSection({
               value={branding.appName}
               onChange={(e) => onBrandingChange('appName', e.target.value)}
               placeholder="Nonprofit Manager"
-              className="w-full max-w-md px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent focus:border-transparent"
+              className="w-full max-w-md rounded-lg border border-app-input-border px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-app-accent"
             />
-            <p className="mt-1 text-sm text-app-text-muted">This appears in the navigation bar and browser tab</p>
+            <p className="text-sm text-app-text-muted">
+              This appears in the navigation bar and browser tab.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-app-text-muted mb-1">
-              Application Icon
-            </label>
-            <div className="flex items-start space-x-4">
-              <div className="w-16 h-16 bg-app-surface-muted rounded-lg flex items-center justify-center border-2 border-dashed border-app-input-border overflow-hidden">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-app-text-muted">
+                  Application Icon
+                </label>
+                <div className="flex flex-wrap items-start gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-app-input-border bg-app-surface-muted">
+                    {branding.appIcon ? (
+                      <img
+                        src={branding.appIcon}
+                        alt="App icon"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-bold text-app-text-subtle">N</span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      ref={iconInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      title="Upload application icon"
+                      onChange={(e) =>
+                        e.target.files?.[0] && onImageUpload(e.target.files[0], 'icon')
+                      }
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => iconInputRef.current?.click()}
+                        className="rounded-lg border border-app-input-border bg-app-surface px-3 py-2 text-sm font-medium text-app-text-muted hover:bg-app-surface-muted"
+                      >
+                        Upload Icon
+                      </button>
+                      {branding.appIcon && (
+                        <button
+                          type="button"
+                          onClick={onRemoveIcon}
+                          className="rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm font-medium text-app-accent hover:bg-app-hover"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-sm text-app-text-muted">Recommended: 64x64px, PNG or SVG</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-app-text-muted">Favicon</label>
+                <div className="flex flex-wrap items-start gap-4">
+                  <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded border border-app-input-border bg-app-surface-muted">
+                    {branding.favicon ? (
+                      <img
+                        src={branding.favicon}
+                        alt="Favicon"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-bold text-app-text-subtle">N</span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      ref={faviconInputRef}
+                      accept="image/x-icon,image/png,image/svg+xml"
+                      className="hidden"
+                      title="Upload favicon"
+                      onChange={(e) =>
+                        e.target.files?.[0] && onImageUpload(e.target.files[0], 'favicon')
+                      }
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => faviconInputRef.current?.click()}
+                        className="rounded-lg border border-app-input-border bg-app-surface px-3 py-2 text-sm font-medium text-app-text-muted hover:bg-app-surface-muted"
+                      >
+                        Upload Favicon
+                      </button>
+                      {branding.favicon && (
+                        <button
+                          type="button"
+                          onClick={onRemoveFavicon}
+                          className="rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm font-medium text-app-accent hover:bg-app-hover"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-sm text-app-text-muted">Recommended: 32x32px, ICO or PNG</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <fieldset className="space-y-4 rounded-lg border border-app-border bg-app-surface-muted p-4">
+              <legend className="px-1 text-sm font-semibold uppercase tracking-wide text-app-text-muted">
+                Colors
+              </legend>
+              <div className="grid gap-4">
+                <label className="space-y-2">
+                  <span className="block text-sm font-medium text-app-text-muted">
+                    Primary Colour
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={branding.primaryColour}
+                      onChange={(e) => onBrandingChange('primaryColour', e.target.value)}
+                      title="Select primary colour"
+                      className="h-10 w-10 cursor-pointer rounded border border-app-input-border"
+                    />
+                    <input
+                      type="text"
+                      aria-label="Primary colour value"
+                      value={branding.primaryColour}
+                      onChange={(e) => onBrandingChange('primaryColour', e.target.value)}
+                      placeholder="#2563eb"
+                      className="w-28 rounded-lg border border-app-input-border px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-app-accent"
+                    />
+                  </div>
+                </label>
+
+                <label className="space-y-2">
+                  <span className="block text-sm font-medium text-app-text-muted">
+                    Secondary Colour
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={branding.secondaryColour}
+                      onChange={(e) => onBrandingChange('secondaryColour', e.target.value)}
+                      title="Select secondary colour"
+                      className="h-10 w-10 cursor-pointer rounded border border-app-input-border"
+                    />
+                    <input
+                      type="text"
+                      aria-label="Secondary colour value"
+                      value={branding.secondaryColour}
+                      onChange={(e) => onBrandingChange('secondaryColour', e.target.value)}
+                      placeholder="#7c3aed"
+                      className="w-28 rounded-lg border border-app-input-border px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-app-accent"
+                    />
+                  </div>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-app-text-muted">Preview</label>
+            <div className="flex items-center gap-3 rounded-lg bg-app-text p-4">
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded bg-app-surface">
                 {branding.appIcon ? (
-                  <img src={branding.appIcon} alt="App icon" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-2xl font-bold text-app-text-subtle">N</span>
-                )}
-              </div>
-              <div>
-                <input
-                  type="file"
-                  ref={iconInputRef}
-                  accept="image/*"
-                  className="hidden"
-                  title="Upload application icon"
-                  onChange={(e) => e.target.files?.[0] && onImageUpload(e.target.files[0], 'icon')}
-                />
-                <button
-                  type="button"
-                  onClick={() => iconInputRef.current?.click()}
-                  className="px-3 py-2 text-sm font-medium text-app-text-muted bg-app-surface border border-app-input-border rounded-lg hover:bg-app-surface-muted"
-                >
-                  Upload Icon
-                </button>
-                {branding.appIcon && (
-                  <button
-                    type="button"
-                    onClick={onRemoveIcon}
-                    className="ml-2 px-3 py-2 text-sm font-medium text-app-accent hover:text-app-accent-text"
-                  >
-                    Remove
-                  </button>
-                )}
-                <p className="mt-1 text-sm text-app-text-muted">Recommended: 64x64px, PNG or SVG</p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-app-text-muted mb-1">
-              Favicon
-            </label>
-            <div className="flex items-start space-x-4">
-              <div className="w-8 h-8 bg-app-surface-muted rounded flex items-center justify-center border border-app-input-border overflow-hidden">
-                {branding.favicon ? (
-                  <img src={branding.favicon} alt="Favicon" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-xs font-bold text-app-text-subtle">N</span>
-                )}
-              </div>
-              <div>
-                <input
-                  type="file"
-                  ref={faviconInputRef}
-                  accept="image/x-icon,image/png,image/svg+xml"
-                  className="hidden"
-                  title="Upload favicon"
-                  onChange={(e) => e.target.files?.[0] && onImageUpload(e.target.files[0], 'favicon')}
-                />
-                <button
-                  type="button"
-                  onClick={() => faviconInputRef.current?.click()}
-                  className="px-3 py-2 text-sm font-medium text-app-text-muted bg-app-surface border border-app-input-border rounded-lg hover:bg-app-surface-muted"
-                >
-                  Upload Favicon
-                </button>
-                {branding.favicon && (
-                  <button
-                    type="button"
-                    onClick={onRemoveFavicon}
-                    className="ml-2 px-3 py-2 text-sm font-medium text-app-accent hover:text-app-accent-text"
-                  >
-                    Remove
-                  </button>
-                )}
-                <p className="mt-1 text-sm text-app-text-muted">Recommended: 32x32px, ICO or PNG</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-app-text-muted mb-1">
-                Primary Colour
-              </label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="color"
-                  value={branding.primaryColour}
-                  onChange={(e) => onBrandingChange('primaryColour', e.target.value)}
-                  title="Select primary colour"
-                  className="w-10 h-10 rounded border border-app-input-border cursor-pointer"
-                />
-                <input
-                  type="text"
-                  aria-label="Primary colour value"
-                  value={branding.primaryColour}
-                  onChange={(e) => onBrandingChange('primaryColour', e.target.value)}
-                  placeholder="#2563eb"
-                  className="w-28 px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-app-text-muted mb-1">
-                Secondary Colour
-              </label>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="color"
-                  value={branding.secondaryColour}
-                  onChange={(e) => onBrandingChange('secondaryColour', e.target.value)}
-                  title="Select secondary colour"
-                  className="w-10 h-10 rounded border border-app-input-border cursor-pointer"
-                />
-                <input
-                  type="text"
-                  aria-label="Secondary colour value"
-                  value={branding.secondaryColour}
-                  onChange={(e) => onBrandingChange('secondaryColour', e.target.value)}
-                  placeholder="#7c3aed"
-                  className="w-28 px-3 py-2 border border-app-input-border rounded-lg focus:outline-none focus:ring-2 focus:ring-app-accent"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-app-text-muted mb-2">
-              Preview
-            </label>
-            <div className="bg-app-text rounded-lg p-4 flex items-center space-x-3">
-              <div className="w-8 h-8 bg-app-surface rounded flex items-center justify-center overflow-hidden">
-                {branding.appIcon ? (
-                  <img src={branding.appIcon} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={branding.appIcon} alt="Preview" className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-lg font-bold text-app-accent">
                     {branding.appName[0] || 'N'}
                   </span>
                 )}
               </div>
-              <span className="text-white font-semibold">{branding.appName || 'Nonprofit Manager'}</span>
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  {branding.appName || 'Nonprofit Manager'}
+                </p>
+                <p className="text-xs text-white/80">This preview mirrors the live header chrome.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -213,7 +247,7 @@ export default function BrandingSection({
           lastSavedAt={lastSavedAt}
           onSave={onSave}
         />
-      </div>
+      </section>
     </div>
   );
 }

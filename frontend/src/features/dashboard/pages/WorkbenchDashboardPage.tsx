@@ -229,6 +229,57 @@ function FocusQueuePanel() {
   );
 }
 
+const dailyPathLinks = [
+  {
+    label: 'People',
+    detail: 'Open the contact directory and relationship records.',
+    href: '/contacts',
+  },
+  {
+    label: 'Cases',
+    detail: 'Jump into the active service queue and case detail views.',
+    href: '/cases',
+  },
+  {
+    label: 'Donations',
+    detail: 'Review gifts, receipts, and fundraiser follow-through.',
+    href: '/donations',
+  },
+  {
+    label: 'Reports',
+    detail: 'Open reporting templates and recurring delivery workflows.',
+    href: '/reports',
+  },
+] as const;
+
+function DailyPathsPanel() {
+  return (
+    <section className="rounded-3xl border border-app-border/70 bg-app-surface/90 p-5 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-app-text-heading">Daily Paths</h2>
+          <p className="mt-1 text-sm text-app-text-muted">
+            Fast links for the staff surfaces people use most often between queue checks.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {dailyPathLinks.map((link) => (
+          <Link
+            key={link.href}
+            to={link.href}
+            className="rounded-2xl border border-app-border bg-app-surface px-4 py-4 transition hover:-translate-y-0.5 hover:bg-app-hover focus:outline-none focus:ring-2 focus:ring-app-accent focus:ring-offset-2"
+          >
+            <p className="text-sm font-semibold text-app-text-heading">{link.label}</p>
+            <p className="mt-2 text-sm leading-5 text-app-text-muted">{link.detail}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function MyWorkPanel() {
   const assignedCasesLane = useDashboardAssignedCases();
   const upcomingFollowUpsLane = useDashboardUpcomingFollowUps();
@@ -551,6 +602,21 @@ function WorkbenchDashboardContent() {
           </div>
         ) : null}
 
+        {settings.showFocusQueue ? (
+          <div className="mt-6">
+            <FocusQueuePanel />
+          </div>
+        ) : null}
+
+        <div className="mt-6">
+          <DailyPathsPanel />
+        </div>
+
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          {settings.showQuickLookup ? <QuickLookupWidget className="h-full" /> : null}
+          <MyWorkPanel />
+        </div>
+
         {settings.showQuickActions ? (
           <div className="mt-6">
             <QuickActionsWidget />
@@ -563,16 +629,6 @@ function WorkbenchDashboardContent() {
             activeSectionCount={activeSectionCount}
           />
         ) : null}
-
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          {settings.showQuickLookup ? <QuickLookupWidget className="h-full" /> : null}
-          {settings.showFocusQueue ? (
-            <div className="flex flex-col gap-6">
-              <FocusQueuePanel />
-              <MyWorkPanel />
-            </div>
-          ) : null}
-        </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           {settings.showPinnedWorkstreams ? (

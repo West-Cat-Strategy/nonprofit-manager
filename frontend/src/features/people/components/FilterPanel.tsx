@@ -43,6 +43,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
     onApply?.();
   };
 
+  const searchField = fields.find((field) => field.id === 'search');
+  const advancedFields = fields.filter((field) => field.id !== 'search');
+
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
       <div className="flex items-center justify-between">
@@ -70,10 +73,28 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         )}
       </div>
 
-      {!isCollapsed && (
+      {searchField ? (
         <BrutalCard className="p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fields.map((field) => (
+          <div className="space-y-2">
+            <label className="block text-sm font-bold text-app-text">
+              {searchField.label}
+            </label>
+            <input
+              type="text"
+              placeholder={searchField.placeholder}
+              value={(searchField.value as string) || ''}
+              aria-label={searchField.ariaLabel || searchField.label}
+              onChange={(e) => onFilterChange(searchField.id, e.target.value)}
+              className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text font-mono placeholder:text-app-text-subtle focus:outline-none focus:border-app-accent"
+            />
+          </div>
+        </BrutalCard>
+      ) : null}
+
+      {!isCollapsed && advancedFields.length > 0 ? (
+        <BrutalCard className="p-4 space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {advancedFields.map((field) => (
               <div key={field.id} className="space-y-2">
                 <label className="block text-sm font-bold text-app-text">
                   {field.label}
@@ -85,11 +106,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     placeholder={field.placeholder}
                     value={(field.value as string) || ''}
                     aria-label={field.ariaLabel || field.label}
-                    onChange={(e) =>
-                      onFilterChange(field.id, e.target.value)
-                    }
-                    className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text
-                      font-mono placeholder:text-app-text-subtle focus:outline-none focus:border-app-accent"
+                    onChange={(e) => onFilterChange(field.id, e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text font-mono placeholder:text-app-text-subtle focus:outline-none focus:border-app-accent"
                   />
                 )}
 
@@ -97,11 +115,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   <select
                     value={(field.value as string) || ''}
                     aria-label={field.ariaLabel || field.label}
-                    onChange={(e) =>
-                      onFilterChange(field.id, e.target.value)
-                    }
-                    className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text
-                      font-mono focus:outline-none focus:border-app-accent cursor-pointer"
+                    onChange={(e) => onFilterChange(field.id, e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text font-mono focus:outline-none focus:border-app-accent cursor-pointer"
                   >
                     <option value="">All</option>
                     {field.options?.map((opt) => (
@@ -116,11 +131,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   <input
                     type="date"
                     value={(field.value as string) || ''}
-                    onChange={(e) =>
-                      onFilterChange(field.id, e.target.value)
-                    }
-                    className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text
-                      font-mono focus:outline-none focus:border-app-accent"
+                    onChange={(e) => onFilterChange(field.id, e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-app-text bg-app-surface text-app-text font-mono focus:outline-none focus:border-app-accent"
                   />
                 )}
 
@@ -178,7 +190,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             )}
           </div>
         </BrutalCard>
-      )}
+      ) : null}
     </form>
   );
 };

@@ -7,7 +7,7 @@ import PortalLoginPage from '../PortalLoginPage';
 import PortalSignupPage from '../PortalSignupPage';
 import PortalForgotPasswordPage from '../PortalForgotPasswordPage';
 import PortalResetPasswordPage from '../PortalResetPasswordPage';
-import PortalAcceptInvitationPage from '../PortalAcceptInvitationPage';
+import PortalAcceptInvitationPage from '../../../invitations/pages/PortalAcceptInvitationPage';
 
 const portalGetMock = vi.fn();
 const portalPostMock = vi.fn();

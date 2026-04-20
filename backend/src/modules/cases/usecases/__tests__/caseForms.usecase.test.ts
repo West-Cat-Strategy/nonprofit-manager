@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import type { CaseFormSubmission, CaseFormSchema } from '@app-types/caseForms';
+import type { CaseFormDefault, CaseFormSubmission, CaseFormSchema } from '@app-types/caseForms';
 import type { CaseFormAssignmentRecord, CaseFormsRepository } from '../../repositories/caseFormsRepository';
 import { CaseFormsUseCase } from '../caseForms.usecase';
 
@@ -128,6 +128,22 @@ const makeSubmission = (overrides: Partial<CaseFormSubmission> = {}): CaseFormSu
   access_token_id: null,
   created_at: '2026-04-16T12:30:00.000Z',
   response_packet_download_url: null,
+  ...overrides,
+});
+
+const makeDefault = (overrides: Partial<CaseFormDefault> = {}): CaseFormDefault => ({
+  id: 'default-1',
+  case_type_id: 'case-type-1',
+  account_id: 'org-1',
+  title: 'Housing Intake',
+  description: 'Collect current housing details.',
+  schema,
+  version: 4,
+  is_active: true,
+  created_at: '2026-04-15T12:00:00.000Z',
+  updated_at: '2026-04-15T12:00:00.000Z',
+  created_by: 'staff-creator',
+  updated_by: 'staff-creator',
   ...overrides,
 });
 
@@ -377,16 +393,54 @@ describe('CaseFormsUseCase', () => {
     });
   });
 
+  it('captures the source default version when creating an assignment from a saved default', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const sourceDefault = makeDefault();
+    const created = makeAssignment({
+      source_default_id: sourceDefault.id,
+      source_default_version: sourceDefault.version,
+    });
+
+    mocks.getDefaultById.mockResolvedValue(sourceDefault);
+    mocks.createAssignment.mockResolvedValue(created);
+
+    const result = await useCase.createAssignment(
+      'case-1',
+      {
+        title: 'Housing Intake',
+        schema,
+        source_default_id: sourceDefault.id,
+      },
+      'staff-1',
+      'org-1'
+    );
+
+    expect(mocks.getDefaultById).toHaveBeenCalledWith(sourceDefault.id, 'org-1');
+    expect(mocks.createAssignment).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        sourceDefaultId: sourceDefault.id,
+        sourceDefaultVersion: sourceDefault.version,
+      })
+    );
+    expect(result.source_default_version).toBe(sourceDefault.version);
+  });
+
   it('records client submissions, mapped writeback, documents, note, and linked follow-up', async () => {
     const { repository, mocks } = createRepositoryMock();
     const useCase = new CaseFormsUseCase(repository);
     const assignment = makeAssignment({
       status: 'sent',
       delivery_target: 'portal',
+      source_default_id: 'default-1',
+      source_default_version: 4,
     });
     const refreshed = makeAssignment({
       status: 'submitted',
       delivery_target: 'portal',
+      source_default_id: 'default-1',
+      source_default_version: 4,
       submitted_at: '2026-04-16T12:30:00.000Z',
       review_follow_up_id: 'follow-up-1',
     });
@@ -448,6 +502,7 @@ describe('CaseFormsUseCase', () => {
       })
     );
     expect(result.assignment.status).toBe('submitted');
+    expect(result.assignment.source_default_version).toBe(4);
   });
 
   it('updates the existing scheduled review follow-up on resubmission instead of duplicating it', async () => {

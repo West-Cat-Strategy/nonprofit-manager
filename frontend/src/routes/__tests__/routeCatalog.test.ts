@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   collectRouteAncestors,
+  getAdminNavigationEntries,
+  getRouteCatalogEntryById,
   getRouteBreadcrumbs,
   getRouteLocalNavigation,
+  getRouteHref,
   getSurfaceAreaNavigation,
+  isRouteCatalogEntryEnabled,
   matchRouteCatalogEntry,
   getStaffNavigationEntries,
   walkRouteParentChain,
@@ -47,6 +51,29 @@ describe('routeCatalog matching', () => {
       { label: 'Newsletter Campaigns', current: false },
       { label: 'Newsletter Campaigns', current: true },
     ]);
+  });
+
+  it('looks up catalog entries by id and honors feature and workspace gating', () => {
+    const teamChat = getRouteCatalogEntryById('team-chat');
+    const cases = getRouteCatalogEntryById('cases');
+
+    expect(teamChat).toMatchObject({
+      id: 'team-chat',
+      path: '/team-chat',
+    });
+    expect(getRouteHref(teamChat!)).toBe('/team-chat');
+    expect(isRouteCatalogEntryEnabled(teamChat!, { VITE_TEAM_CHAT_ENABLED: 'true' })).toBe(true);
+    expect(isRouteCatalogEntryEnabled(teamChat!, { VITE_TEAM_CHAT_ENABLED: 'false' })).toBe(false);
+    expect(
+      isRouteCatalogEntryEnabled(cases!, {}, { ...createDefaultWorkspaceModuleSettings(), cases: false })
+    ).toBe(false);
+  });
+
+  it('returns admin navigation entries in their configured order', () => {
+    const portalAdminEntries = getAdminNavigationEntries('portal');
+
+    expect(portalAdminEntries.length).toBeGreaterThan(0);
+    expect(portalAdminEntries.every((entry, index, entries) => index === 0 || entries[index - 1].adminNav.order <= entry.adminNav.order)).toBe(true);
   });
 
   it('matches canonical and dynamic routes', () => {

@@ -11,6 +11,7 @@ import {
   PageHeader,
   SectionCard,
 } from '../../../components/ui';
+import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -62,6 +63,24 @@ const AlertsConfigPage = () => {
     await dispatch(toggleAlertConfig(id));
   };
 
+  const relatedWorkspaceLinks = [
+    {
+      to: '/analytics',
+      label: 'Analytics',
+      description: 'Check the signal behind alert thresholds before changing the rules.',
+    },
+    {
+      to: '/reports/builder',
+      label: 'Report Builder',
+      description: 'Move from alert tuning into the reporting definition that drives the data.',
+    },
+    {
+      to: '/settings/admin/branding',
+      label: 'Branding',
+      description: 'Confirm the app chrome matches the admin surfaces you are reviewing.',
+    },
+  ];
+
   const actions = (
     <div className="flex flex-wrap gap-2">
       <Link
@@ -87,54 +106,76 @@ const AlertsConfigPage = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Alerts"
-        description="Configure alert rules, review live incidents, and keep high-signal thresholds tuned for staff workflows."
-        actions={actions}
-      />
-
-      <AlertsSectionTabs />
-
-      <AlertSummaryCards stats={stats} />
-
-      {error ? (
-        <ErrorState
-          message={error}
-          onRetry={() => {
-            void dispatch(fetchAlertConfigs());
-            void dispatch(fetchAlertStats());
-          }}
+    <NeoBrutalistLayout pageTitle="ALERTS">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+        <PageHeader
+          title="Alerts"
+          description="Configure alert rules, review live incidents, and keep high-signal thresholds tuned for staff workflows."
+          actions={actions}
         />
-      ) : null}
 
-      <SectionCard
-        title="Alert configurations"
-        subtitle="Create threshold rules for donations, volunteer capacity, event attendance, and case trends."
-      >
-        <AlertConfigList
-          configs={configs}
-          loading={loading}
-          onCreate={handleCreate}
-          onDelete={handleDelete}
-          onEdit={handleEdit}
-          onToggle={handleToggle}
-        />
-      </SectionCard>
+        <SectionCard
+          title="Related workspaces"
+          subtitle="Jump between the alert rules, analytics, reporting, and branding seams while the browser flow is still open."
+        >
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {relatedWorkspaceLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface px-4 py-4 shadow-sm transition hover:bg-app-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2"
+              >
+                <span className="block text-sm font-semibold text-app-text-heading">{link.label}</span>
+                <span className="mt-2 block text-sm leading-6 text-app-text-muted">
+                  {link.description}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </SectionCard>
 
-      {showModal ? (
-        <AlertConfigModal
-          config={editingConfig}
-          onClose={() => setShowModal(false)}
-          onSuccess={() => {
-            setShowModal(false);
-            dispatch(fetchAlertConfigs());
-            dispatch(fetchAlertStats());
-          }}
-        />
-      ) : null}
-      <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
-    </div>
+        <AlertsSectionTabs />
+
+        <AlertSummaryCards stats={stats} />
+
+        {error ? (
+          <ErrorState
+            message={error}
+            onRetry={() => {
+              void dispatch(fetchAlertConfigs());
+              void dispatch(fetchAlertStats());
+            }}
+          />
+        ) : null}
+
+        <SectionCard
+          title="Alert configurations"
+          subtitle="Create threshold rules for donations, volunteer capacity, event attendance, and case trends."
+        >
+          <AlertConfigList
+            configs={configs}
+            loading={loading}
+            onCreate={handleCreate}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            onToggle={handleToggle}
+          />
+        </SectionCard>
+
+        {showModal ? (
+          <AlertConfigModal
+            config={editingConfig}
+            onClose={() => setShowModal(false)}
+            onSuccess={() => {
+              setShowModal(false);
+              dispatch(fetchAlertConfigs());
+              dispatch(fetchAlertStats());
+            }}
+          />
+        ) : null}
+        <ConfirmDialog {...dialogState} onConfirm={handleConfirm} onCancel={handleCancel} />
+      </div>
+    </NeoBrutalistLayout>
   );
 };
 

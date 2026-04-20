@@ -291,8 +291,12 @@ describe('PortalFormsPage', () => {
 
     expect(await screen.findByText('Submitted Intake Form')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Active' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText(/you can still update this form and resubmit it until staff finish reviewing the submission/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /resubmit form/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /save draft/i })).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        /you can still update this form and resubmit it until staff finish reviewing the submission/i
+      )
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /resubmit form/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /save draft/i })).toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import type * as AxiosModule from 'axios';
-import { createApiClient } from '../httpClient';
+import { createApiClient, createCancellableRequest, createRequestController } from '../httpClient';
 
 // Stub axios.create to intercept config
 vi.mock('axios', async (importOriginal) => {
@@ -297,5 +297,179 @@ describe('createApiClient', () => {
     await expect(capturedResponseErrorInterceptor(error)).rejects.toMatchObject({
       message: 'status: Invalid option (Ref: req-123)',
     });
+  });
+
+  it('notifies the unauthorized handler for 401 responses', async () => {
+    let capturedResponseErrorInterceptor: ((error: object) => Promise<never>) | null = null;
+    const onUnauthorized = vi.fn();
+
+    vi.mocked(axios.create).mockReturnValueOnce({
+      interceptors: {
+        request: { use: vi.fn() },
+        response: {
+          use: vi.fn((_, rejected) => {
+            capturedResponseErrorInterceptor = rejected as (error: object) => Promise<never>;
+          }),
+        },
+      },
+      defaults: { headers: {} },
+      request: vi.fn(),
+    } as ReturnType<typeof axios.create>);
+
+    createApiClient({ onUnauthorized });
+
+    if (!capturedResponseErrorInterceptor) {
+      throw new Error('Response interceptor was not captured');
+    }
+
+    const error = {
+      message: 'Request failed with status code 401',
+      response: {
+        status: 401,
+        data: {
+          error: 'Session expired',
+        },
+      },
+    };
+
+    await expect(capturedResponseErrorInterceptor(error)).rejects.toMatchObject({
+      message: 'Session expired',
+    });
+    expect(onUnauthorized).toHaveBeenCalledWith(expect.objectContaining({ message: 'Session expired' }));
+  });
+
+  it('refreshes CSRF tokens and retries once on a CSRF 403', async () => {
+    let capturedResponseErrorInterceptor: ((error: object) => Promise<unknown>) | null = null;
+    const request = vi.fn().mockResolvedValue({ data: { ok: true } });
+
+    vi.mocked(axios.create).mockReturnValueOnce({
+      interceptors: {
+        request: { use: vi.fn() },
+        response: {
+          use: vi.fn((_, rejected) => {
+            capturedResponseErrorInterceptor = rejected as (error: object) => Promise<unknown>;
+          }),
+        },
+      },
+      defaults: { headers: {} },
+      request,
+    } as ReturnType<typeof axios.create>);
+    vi.mocked(axios.get).mockResolvedValueOnce({
+      data: { csrfToken: 'refreshed-csrf' },
+    });
+
+    createApiClient({ onUnauthorized: vi.fn(), baseURL: '/api' });
+
+    if (!capturedResponseErrorInterceptor) {
+      throw new Error('Response interceptor was not captured');
+    }
+
+    const error = {
+      message: 'Request failed with status code 403',
+      response: {
+        status: 403,
+        data: {
+          error: {
+            message: 'CSRF token expired',
+          },
+        },
+      },
+      config: {
+        method: 'post',
+        headers: {},
+      },
+    };
+
+    await expect(capturedResponseErrorInterceptor(error)).resolves.toEqual({
+      data: { ok: true },
+    });
+    expect(axios.get).toHaveBeenCalledWith('/api/v2/auth/csrf-token', { withCredentials: true });
+    expect(request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _retryCount: 1,
+        headers: expect.objectContaining({
+          'X-CSRF-Token': 'refreshed-csrf',
+        }),
+      })
+    );
+  });
+
+  it('retries retryable network failures before returning the retried response', async () => {
+    vi.useFakeTimers();
+    let capturedResponseErrorInterceptor: ((error: object) => Promise<unknown>) | null = null;
+    const request = vi.fn().mockResolvedValue({ data: { retried: true } });
+
+    vi.mocked(axios.create).mockReturnValueOnce({
+      interceptors: {
+        request: { use: vi.fn() },
+        response: {
+          use: vi.fn((_, rejected) => {
+            capturedResponseErrorInterceptor = rejected as (error: object) => Promise<unknown>;
+          }),
+        },
+      },
+      defaults: { headers: {} },
+      request,
+    } as ReturnType<typeof axios.create>);
+
+    createApiClient({
+      onUnauthorized: vi.fn(),
+      retryConfig: {
+        maxRetries: 1,
+        baseDelayMs: 0,
+        maxDelayMs: 0,
+        retryableStatuses: [500],
+      },
+    });
+
+    if (!capturedResponseErrorInterceptor) {
+      throw new Error('Response interceptor was not captured');
+    }
+
+    const error = {
+      message: 'Network failure',
+      code: 'ERR_NETWORK',
+      config: {
+        method: 'get',
+        headers: {},
+      },
+    };
+
+    const retryPromise = capturedResponseErrorInterceptor(error);
+    await vi.runAllTimersAsync();
+
+    await expect(retryPromise).resolves.toEqual({ data: { retried: true } });
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _retryCount: 1,
+      })
+    );
+  });
+
+  it('creates abortable request controllers for cancellable flows', () => {
+    const controller = createRequestController();
+    expect(controller.signal.aborted).toBe(false);
+
+    controller.cancel();
+    expect(controller.signal.aborted).toBe(true);
+
+    const requestFn = vi.fn().mockResolvedValue('ok');
+    const { request, cancel } = createCancellableRequest(requestFn, '/endpoint', {
+      method: 'get',
+    });
+
+    expect(requestFn).toHaveBeenCalledWith(
+      '/endpoint',
+      expect.objectContaining({
+        method: 'get',
+        signal: expect.any(AbortSignal),
+      })
+    );
+
+    cancel();
+    expect((requestFn.mock.calls[0]?.[1] as { signal?: AbortSignal } | undefined)?.signal?.aborted).toBe(true);
+
+    void request;
   });
 });

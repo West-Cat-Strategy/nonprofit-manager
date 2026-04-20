@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { screen, waitFor } from '@testing-library/react';
+import { within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Analytics from '../AnalyticsPage';
 import { renderWithProviders, createTestStore } from '../../../../test/testUtils';
@@ -36,6 +37,10 @@ vi.mock('recharts', () => {
     Legend: () => null,
   };
 });
+
+vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
 
 const mockSummary: AnalyticsSummary = {
   total_accounts: 50,
@@ -147,6 +152,41 @@ describe('Analytics page', () => {
       expect(screen.getByText('Analytics & Reports')).toBeInTheDocument();
       expect(screen.getByText('← Back')).toBeInTheDocument();
     });
+  });
+
+  it('links to the adjacent reports, alerts, and branding workspaces', async () => {
+    setupMocks();
+    renderAnalytics();
+
+    const relatedWorkspacesSection = screen.getByRole('heading', {
+      name: /related workspaces/i,
+    }).closest('section');
+
+    expect(relatedWorkspacesSection).not.toBeNull();
+
+    await waitFor(() => {
+      expect(
+        within(relatedWorkspacesSection as HTMLElement).getByRole('link', {
+          name: /reports home/i,
+        })
+      ).toHaveAttribute('href', '/reports');
+    });
+
+    expect(
+      within(relatedWorkspacesSection as HTMLElement).getByRole('link', {
+        name: /report builder/i,
+      })
+    ).toHaveAttribute('href', '/reports/builder');
+    expect(
+      within(relatedWorkspacesSection as HTMLElement).getByRole('link', {
+        name: /alertsreview threshold rules/i,
+      })
+    ).toHaveAttribute('href', '/alerts');
+    expect(
+      within(relatedWorkspacesSection as HTMLElement).getByRole('link', {
+        name: /branding/i,
+      })
+    ).toHaveAttribute('href', '/settings/admin/branding');
   });
 
   it('displays loading state initially', async () => {

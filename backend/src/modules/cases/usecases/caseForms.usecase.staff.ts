@@ -150,13 +150,28 @@ export const createCaseFormAssignment = async (
   organizationId?: string
 ): Promise<CaseFormAssignment> => {
   const ownership = await requireCaseOwnership(db, caseId, organizationId);
+  const sourceDefaultId = payload.source_default_id || null;
+  let sourceDefaultVersion: number | null = null;
+
+  if (sourceDefaultId) {
+    const formDefault = await repository.getDefaultById(sourceDefaultId, organizationId);
+    if (!formDefault) {
+      throw Object.assign(new Error('Form default not found'), {
+        statusCode: 404,
+        code: 'not_found',
+      });
+    }
+    sourceDefaultVersion = formDefault.version;
+  }
+
   return repository.withTransaction((client) =>
     repository.createAssignment(client, {
       caseId,
       contactId: ownership.contact_id,
       accountId: ownership.account_id,
       caseTypeId: payload.case_type_id || null,
-      sourceDefaultId: payload.source_default_id || null,
+      sourceDefaultId,
+      sourceDefaultVersion,
       title: payload.title,
       description: payload.description || null,
       schema: payload.schema,

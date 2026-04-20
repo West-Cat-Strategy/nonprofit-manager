@@ -65,6 +65,25 @@ describe('api unauthorized handling', () => {
     expect(dispatchUnauthorizedEvent).not.toHaveBeenCalled();
   });
 
+  it('ignores setup, login, and portal locations before validating the session', async () => {
+    for (const pathname of ['/setup', '/login', '/portal/profile']) {
+      const fetchFn = vi.fn();
+      const dispatchUnauthorizedEvent = vi.fn();
+
+      const onUnauthorized = createUnauthorizedHandler({
+        fetchFn,
+        getPathname: () => pathname,
+        dispatchUnauthorizedEvent,
+        scheduleReset: vi.fn(),
+      });
+
+      await onUnauthorized({ config: { url: '/admin/email-settings' } });
+
+      expect(fetchFn).not.toHaveBeenCalled();
+      expect(dispatchUnauthorizedEvent).not.toHaveBeenCalled();
+    }
+  });
+
   it('coalesces concurrent 401s into one session validation and one dispatch', async () => {
     let resolveFetch: ((value: Response) => void) | null = null;
     const fetchFn = vi.fn().mockImplementation(
@@ -93,5 +112,44 @@ describe('api unauthorized handling', () => {
     await Promise.all([p1, p2]);
 
     expect(dispatchUnauthorizedEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('suppresses repeat dispatches until the reset window clears', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({ status: 401 } as Response);
+    const dispatchUnauthorizedEvent = vi.fn();
+    const scheduleReset = vi.fn();
+
+    const onUnauthorized = createUnauthorizedHandler({
+      fetchFn,
+      getPathname: () => '/settings/admin',
+      dispatchUnauthorizedEvent,
+      scheduleReset,
+    });
+
+    await onUnauthorized({ config: { url: '/admin/email-settings' } });
+    await onUnauthorized({ config: { url: '/admin/branding' } });
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(dispatchUnauthorizedEvent).toHaveBeenCalledTimes(1);
+    expect(scheduleReset).toHaveBeenCalledTimes(1);
+  });
+
+  it('dispatches when session validation cannot be completed', async () => {
+    const fetchFn = vi.fn().mockRejectedValue(new Error('offline'));
+    const dispatchUnauthorizedEvent = vi.fn();
+    const scheduleReset = vi.fn();
+
+    const onUnauthorized = createUnauthorizedHandler({
+      fetchFn,
+      getPathname: () => '/settings/admin',
+      dispatchUnauthorizedEvent,
+      scheduleReset,
+    });
+
+    await onUnauthorized({ config: { url: '/admin/email-settings' } });
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(dispatchUnauthorizedEvent).toHaveBeenCalledTimes(1);
+    expect(scheduleReset).toHaveBeenCalledTimes(1);
   });
 });

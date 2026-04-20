@@ -83,95 +83,100 @@ function ReportTemplates() {
           }
         />
 
-        <SectionCard
-          title="Filter templates"
-          subtitle="The category and tag query params support direct links into curated report packs."
+        <details
+          open={hasActiveFilters}
+          className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface shadow-sm"
         >
-          <div className="space-y-4">
-            <div>
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-app-text-muted">
-                Category
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <SecondaryButton
-                  className={selectedCategory === '' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
-                  onClick={() => updateTemplateFilters({ category: '' })}
-                >
-                  All
-                </SecondaryButton>
-                {REPORT_TEMPLATE_CATEGORY_OPTIONS.map((category) => (
-                  <SecondaryButton
-                    key={category.value}
-                    className={selectedCategory === category.value ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
-                    onClick={() => updateTemplateFilters({ category: category.value })}
-                  >
-                    {category.label}
-                  </SecondaryButton>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <div className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">
-                  Tag
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-app-text-heading">
+            Filter templates
+          </summary>
+          <div className="border-t border-app-border px-4 py-4">
+            <div className="space-y-4">
+              <div>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                  Category
                 </div>
-                {selectedTag && (
+                <div className="flex flex-wrap gap-2">
                   <SecondaryButton
-                    className="px-3 py-1 text-xs"
-                    onClick={() => updateTemplateFilters({ tag: '' })}
+                    className={selectedCategory === '' ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
+                    onClick={() => updateTemplateFilters({ category: '' })}
                   >
-                    Clear tag filter
+                    All
                   </SecondaryButton>
+                  {REPORT_TEMPLATE_CATEGORY_OPTIONS.map((category) => (
+                    <SecondaryButton
+                      key={category.value}
+                      className={selectedCategory === category.value ? 'border-app-accent bg-app-accent-soft text-app-accent-text' : ''}
+                      onClick={() => updateTemplateFilters({ category: category.value })}
+                    >
+                      {category.label}
+                    </SecondaryButton>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-app-text-muted">
+                    Tag
+                  </div>
+                  {selectedTag && (
+                    <SecondaryButton
+                      className="px-3 py-1 text-xs"
+                      onClick={() => updateTemplateFilters({ tag: '' })}
+                    >
+                      Clear tag filter
+                    </SecondaryButton>
+                  )}
+                </div>
+                {displayedTags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {displayedTags.map((tag) => {
+                      const isActive = normalizeTemplateTag(tag) === selectedTag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`rounded-[var(--ui-radius-sm)] border px-3 py-1 text-xs font-semibold ${
+                            isActive
+                              ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                              : 'border-app-border bg-app-surface text-app-text hover:bg-app-hover'
+                          }`}
+                          onClick={() =>
+                            updateTemplateFilters({
+                              tag: isActive ? '' : tag,
+                            })
+                          }
+                        >
+                          #{tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-app-text-muted">
+                    No template tags are available yet for this category.
+                  </p>
                 )}
               </div>
-              {displayedTags.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {displayedTags.map((tag) => {
-                    const isActive = normalizeTemplateTag(tag) === selectedTag;
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        className={`rounded-[var(--ui-radius-sm)] border px-3 py-1 text-xs font-semibold ${
-                          isActive
-                            ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
-                            : 'border-app-border bg-app-surface text-app-text hover:bg-app-hover'
-                        }`}
-                        onClick={() =>
-                          updateTemplateFilters({
-                            tag: isActive ? '' : tag,
-                          })
-                        }
-                      >
-                        #{tag}
-                      </button>
-                    );
-                  })}
+
+              {hasActiveFilters && (
+                <div className="flex flex-wrap items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-muted px-3 py-2 text-sm text-app-text-muted">
+                  <span>
+                    Showing {selectedCategoryOption?.label || 'all'} templates
+                    {selectedTag ? ` tagged #${selectedTag}` : ''}.
+                  </span>
+                  <SecondaryButton
+                    className="px-3 py-1 text-xs"
+                    onClick={() => updateTemplateFilters({ category: '', tag: '' })}
+                  >
+                    Clear all filters
+                  </SecondaryButton>
                 </div>
-              ) : (
-                <p className="text-sm text-app-text-muted">
-                  No template tags are available yet for this category.
-                </p>
               )}
             </div>
-
-            {hasActiveFilters && (
-              <div className="flex flex-wrap items-center gap-2 rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-muted px-3 py-2 text-sm text-app-text-muted">
-                <span>
-                  Showing {selectedCategoryOption?.label || 'all'} templates
-                  {selectedTag ? ` tagged #${selectedTag}` : ''}.
-                </span>
-                <SecondaryButton
-                  className="px-3 py-1 text-xs"
-                  onClick={() => updateTemplateFilters({ category: '', tag: '' })}
-                >
-                  Clear all filters
-                </SecondaryButton>
-              </div>
-            )}
           </div>
-        </SectionCard>
+        </details>
 
         {loading && <LoadingState label="Loading report templates..." />}
         {error && (

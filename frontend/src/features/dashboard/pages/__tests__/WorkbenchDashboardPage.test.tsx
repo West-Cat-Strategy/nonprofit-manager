@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { screen } from '@testing-library/react';
+import { within } from '@testing-library/react';
 import type * as ReactRouterDomModule from 'react-router-dom';
 import { vi } from 'vitest';
 import WorkbenchDashboardPage from '../WorkbenchDashboardPage';
@@ -176,6 +177,25 @@ describe('WorkbenchDashboardPage', () => {
     renderWithProviders(<WorkbenchDashboardPage />, { route: '/dashboard' });
 
     expect(screen.getByRole('link', { name: 'New Case' })).toHaveAttribute('href', '/cases/new');
+    const dailyPathsSection = screen.getByRole('heading', { name: /daily paths/i }).closest('section');
+    expect(dailyPathsSection).not.toBeNull();
+    const pinnedShortcutsSection = screen.getByRole('heading', { name: /pinned shortcuts/i })
+      .closest('section');
+    expect(pinnedShortcutsSection).not.toBeNull();
+    expect(
+      within(pinnedShortcutsSection as HTMLElement).getByRole('link', { name: /people/i })
+    ).toHaveAttribute('href', '/contacts');
+    expect(
+      within(dailyPathsSection as HTMLElement).getByRole('link', {
+        name: /cases jump into the active service queue and case detail views/i,
+      })
+    ).toHaveAttribute('href', '/cases');
+    expect(
+      within(dailyPathsSection as HTMLElement).getByRole('link', { name: /donations/i })
+    ).toHaveAttribute('href', '/donations');
+    expect(
+      within(dailyPathsSection as HTMLElement).getByRole('link', { name: /reports/i })
+    ).toHaveAttribute('href', '/reports');
     expect(screen.getByRole('link', { name: /Call client/ })).toBeInTheDocument();
     expect(numberFormatSpy).toHaveBeenCalledWith(
       undefined,

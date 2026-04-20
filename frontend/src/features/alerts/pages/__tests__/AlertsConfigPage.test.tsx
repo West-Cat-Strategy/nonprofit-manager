@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import type * as AlertsStateModule from '../../state';
+import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 import AlertsConfigPage from '../AlertsConfigPage';
 import { renderWithProviders } from '../../../../test/testUtils';
@@ -79,6 +80,10 @@ vi.mock('../../../../components/ConfirmDialog', () => ({
   default: () => null,
 }));
 
+vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+
 describe('AlertsConfigPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -105,6 +110,26 @@ describe('AlertsConfigPage', () => {
     expect(screen.getByRole('link', { name: /view triggered alerts/i })).toHaveAttribute(
       'href',
       '/alerts/instances'
+    );
+  });
+
+  it('links to adjacent analytics, reporting, and branding workspaces', async () => {
+    renderWithProviders(<AlertsConfigPage />, { route: '/alerts' });
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /analytics/i })).toHaveAttribute(
+        'href',
+        '/analytics'
+      );
+    });
+
+    expect(screen.getByRole('link', { name: /report builder/i })).toHaveAttribute(
+      'href',
+      '/reports/builder'
+    );
+    expect(screen.getByRole('link', { name: /branding/i })).toHaveAttribute(
+      'href',
+      '/settings/admin/branding'
     );
   });
 });

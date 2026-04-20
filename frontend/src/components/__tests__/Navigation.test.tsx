@@ -34,33 +34,40 @@ const primaryItems = [
     shortLabel: 'People',
   },
   {
-    id: 'events',
-    name: 'Events',
-    path: '/events',
-    shortLabel: 'Events',
+    id: 'cases',
+    name: 'Cases',
+    path: '/cases',
+    shortLabel: 'Cases',
   },
   {
-    id: 'tasks',
-    name: 'Tasks',
-    path: '/tasks',
-    shortLabel: 'Tasks',
+    id: 'donations',
+    name: 'Donations',
+    path: '/donations',
+    shortLabel: 'Donations',
   },
 ];
 
 const secondaryItems = [
+  {
+    id: 'tasks',
+    name: 'Tasks',
+    path: '/tasks',
+    icon: '✓',
+    shortLabel: 'Tasks',
+  },
+  {
+    id: 'events',
+    name: 'Events',
+    path: '/events',
+    icon: '📅',
+    shortLabel: 'Events',
+  },
   {
     id: 'websites',
     name: 'Websites',
     path: '/websites',
     icon: '🌐',
     shortLabel: 'Websites',
-  },
-  {
-    id: 'donations',
-    name: 'Donations',
-    path: '/donations',
-    icon: '💰',
-    shortLabel: 'Donations',
   },
 ];
 
@@ -131,8 +138,8 @@ const buildViewModel = (overrides: Record<string, unknown> = {}) => ({
       (activeLocation === '/dashboard' && id === 'dashboard')
     );
   },
-  desktopPrimaryItems: primaryItems.slice(0, 3),
-  desktopOverflowItems: [primaryItems[3], ...secondaryItems],
+  desktopPrimaryItems: primaryItems.slice(0, 4),
+  desktopOverflowItems: secondaryItems,
   navigationPreferences: {
     favoriteItems: [],
     primaryItems,
@@ -187,10 +194,11 @@ describe('Navigation', () => {
     );
     expect(screen.getByRole('link', { name: /^workbench$/i })).toHaveAttribute('href', '/dashboard');
     expect(screen.getByRole('link', { name: /^people$/i })).toHaveAttribute('href', '/contacts');
-    expect(screen.getByRole('link', { name: /^events$/i })).toHaveAttribute('href', '/events');
+    expect(screen.getByRole('link', { name: /^cases$/i })).toHaveAttribute('href', '/cases');
+    expect(screen.getByRole('link', { name: /^donations$/i })).toHaveAttribute('href', '/donations');
 
     const primaryNav = screen.getByRole('navigation', { name: /primary navigation/i });
-    expect(within(primaryNav).getAllByRole('link')).toHaveLength(3);
+    expect(within(primaryNav).getAllByRole('link')).toHaveLength(4);
 
     expect(screen.queryByRole('button', { name: /^utilities$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /theme settings/i })).not.toBeInTheDocument();
@@ -198,15 +206,8 @@ describe('Navigation', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /more navigation/i }));
     expect(screen.getByRole('link', { name: /^tasks$/i })).toHaveAttribute('href', '/tasks');
+    expect(screen.getByRole('link', { name: /^events$/i })).toHaveAttribute('href', '/events');
     expect(screen.getByRole('link', { name: /^websites$/i })).toHaveAttribute('href', '/websites');
-    expect(screen.getByRole('link', { name: /^analytics$/i })).toHaveAttribute(
-      'href',
-      '/analytics'
-    );
-    expect(screen.getByRole('link', { name: /^reports$/i })).toHaveAttribute(
-      'href',
-      '/reports'
-    );
 
     expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveAttribute('href', '/alerts');
     expect(screen.getByRole('link', { name: /^alerts$/i })).toHaveClass(

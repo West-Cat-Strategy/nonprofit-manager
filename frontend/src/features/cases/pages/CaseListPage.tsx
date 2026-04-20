@@ -192,60 +192,6 @@ const CaseList = () => {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-black uppercase text-app-text-subtle">Sort by</span>
-              <select
-                value={selectedSort}
-                onChange={(e) => setSelectedSort(e.target.value)}
-                className="w-full border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
-                aria-label="Sort cases by field"
-              >
-                <option value="created_at">Created date</option>
-                <option value="due_date">Due date</option>
-                <option value="priority">Priority</option>
-                <option value="case_number">Case number</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-black uppercase text-app-text-subtle">Order</span>
-              <select
-                value={selectedOrder}
-                onChange={(e) => setSelectedOrder(e.target.value as 'asc' | 'desc')}
-                className="w-full border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
-                aria-label="Sort cases by order"
-              >
-                <option value="desc">Newest first</option>
-                <option value="asc">Oldest first</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-black uppercase text-app-text-subtle">Saved views</span>
-              <div className="flex gap-2">
-                <select
-                  value={selectedViewId}
-                  onChange={(e) => applySavedView(e.target.value)}
-                  className="flex-1 border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
-                  aria-label="Saved case views"
-                >
-                  <option value="">Select view</option>
-                  {savedViews.map((view) => (
-                    <option key={view.id} value={view.id}>
-                      {view.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleDeleteView}
-                  className="border-2 border-app-border bg-app-surface-elevated px-3 py-2 text-xs font-black uppercase text-app-text-heading shadow-[2px_2px_0px_var(--shadow-color)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] hover:bg-app-surface-muted"
-                  disabled={!selectedViewId}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="text-xs font-black uppercase text-app-text-subtle">Quick filters</span>
             {(
@@ -327,8 +273,7 @@ const CaseList = () => {
                 Imported only
               </span>
             </label>
-            <div className="flex-1" />
-            <div className="flex items-center gap-2">
+            <div className="flex flex-1 flex-wrap items-center gap-2">
               <BrutalInput
                 type="text"
                 placeholder="Save current view"
@@ -340,37 +285,105 @@ const CaseList = () => {
                 Save View
               </BrutalButton>
             </div>
-            <BrutalButton
-              onClick={async () => {
-                try {
-                  if (navigator.clipboard?.writeText) {
-                    await navigator.clipboard.writeText(window.location.href);
-                    showSuccess('Link copied to clipboard');
-                    return;
-                  }
-                  const fallbackInput = document.createElement('textarea');
-                  fallbackInput.value = window.location.href;
-                  fallbackInput.style.position = 'fixed';
-                  fallbackInput.style.opacity = '0';
-                  document.body.appendChild(fallbackInput);
-                  fallbackInput.focus();
-                  fallbackInput.select();
-                  const success = document.execCommand('copy');
-                  document.body.removeChild(fallbackInput);
-                  if (success) {
-                    showSuccess('Link copied to clipboard');
-                  } else {
-                    showError('Failed to copy link');
-                  }
-                } catch {
-                  showError('Failed to copy link');
-                }
-              }}
-              variant="secondary"
-              size="sm"
-            >
-              Copy Link
-            </BrutalButton>
+          </div>
+
+          <details
+            open={hasActiveFilters}
+            className="mt-4 rounded-2xl border-2 border-app-border bg-app-surface-elevated px-4 py-3"
+          >
+            <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-[0.18em] text-app-text-subtle">
+              More filters and saved views
+            </summary>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-black uppercase text-app-text-subtle">Sort by</span>
+                <select
+                  value={selectedSort}
+                  onChange={(e) => setSelectedSort(e.target.value)}
+                  className="w-full border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
+                  aria-label="Sort cases by field"
+                >
+                  <option value="created_at">Created date</option>
+                  <option value="due_date">Due date</option>
+                  <option value="priority">Priority</option>
+                  <option value="case_number">Case number</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-black uppercase text-app-text-subtle">Order</span>
+                <select
+                  value={selectedOrder}
+                  onChange={(e) => setSelectedOrder(e.target.value as 'asc' | 'desc')}
+                  className="w-full border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
+                  aria-label="Sort cases by order"
+                >
+                  <option value="desc">Newest first</option>
+                  <option value="asc">Oldest first</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-black uppercase text-app-text-subtle">Saved views</span>
+                <div className="flex gap-2">
+                  <select
+                    value={selectedViewId}
+                    onChange={(e) => applySavedView(e.target.value)}
+                    className="flex-1 border-2 border-app-border bg-app-surface-elevated px-4 py-2 text-app-text-heading transition-all focus:outline-none focus:ring-2 focus:ring-app-accent"
+                    aria-label="Saved case views"
+                  >
+                    <option value="">Select view</option>
+                    {savedViews.map((view) => (
+                      <option key={view.id} value={view.id}>
+                        {view.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleDeleteView}
+                    className="border-2 border-app-border bg-app-surface-elevated px-3 py-2 text-xs font-black uppercase text-app-text-heading shadow-[2px_2px_0px_var(--shadow-color)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_var(--shadow-color)] hover:bg-app-surface-muted"
+                    disabled={!selectedViewId}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-black uppercase text-app-text-subtle">Share</span>
+                <BrutalButton
+                  onClick={async () => {
+                    try {
+                      if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(window.location.href);
+                        showSuccess('Link copied to clipboard');
+                        return;
+                      }
+                      const fallbackInput = document.createElement('textarea');
+                      fallbackInput.value = window.location.href;
+                      fallbackInput.style.position = 'fixed';
+                      fallbackInput.style.opacity = '0';
+                      document.body.appendChild(fallbackInput);
+                      fallbackInput.focus();
+                      fallbackInput.select();
+                      const success = document.execCommand('copy');
+                      document.body.removeChild(fallbackInput);
+                      if (success) {
+                        showSuccess('Link copied to clipboard');
+                      } else {
+                        showError('Failed to copy link');
+                      }
+                    } catch {
+                      showError('Failed to copy link');
+                    }
+                  }}
+                  variant="secondary"
+                  size="sm"
+                >
+                  Copy Link
+                </BrutalButton>
+              </div>
+            </div>
+          </details>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             {hasActiveFilters && (
               <span className="text-xs font-black uppercase text-app-text-subtle">
                 {activeFiltersCount} filter{activeFiltersCount === 1 ? '' : 's'} applied

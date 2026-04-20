@@ -124,7 +124,9 @@ export const useContactListPage = () => {
     parseAllowedValue(searchParams.get('sort_order'), SORT_ORDER_VALUES) || 'desc'
   );
   const [showImportExport, setShowImportExport] = useState(false);
-  const [filterCollapsed, setFilterCollapsed] = useState(false);
+  const [filterCollapsed, setFilterCollapsed] = useState(
+    !(searchParams.get('search') || searchParams.get('type') || searchParams.get('status'))
+  );
   const [hiddenDeletedContactIds, setHiddenDeletedContactIds] = useState<string[]>([]);
 
   const resolvedIsActive =

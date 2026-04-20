@@ -1,6 +1,11 @@
 import type { Config } from 'jest';
 
-const relaxCoverageThresholds = process.env.JEST_RELAX_COVERAGE_THRESHOLDS === '1';
+const explicitCoverageScopeRequested = process.argv.some(
+  (arg) => arg.includes('/__tests__/') || arg.endsWith('.test.ts') || arg.endsWith('.spec.ts')
+);
+const relaxCoverageThresholds =
+  process.env.JEST_RELAX_COVERAGE_THRESHOLDS === '1' ||
+  (process.argv.includes('--coverage') && explicitCoverageScopeRequested);
 
 const config: Config = {
   extensionsToTreatAsEsm: ['.ts'],

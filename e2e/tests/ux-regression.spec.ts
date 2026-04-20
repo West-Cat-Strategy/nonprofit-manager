@@ -587,7 +587,10 @@ test.describe("UI/UX regression flows", () => {
   test("mobile navigation drawer keeps the compact section layout", async ({
     authenticatedPage,
   }, testInfo) => {
-    test.skip(!/^Mobile /.test(testInfo.project.name), "Mobile-only coverage");
+    test.skip(
+      !(/^Mobile /.test(testInfo.project.name) || testInfo.project.name === "Tablet"),
+      "Mobile and tablet coverage",
+    );
 
     const runtimeIssues = trackRuntimeIssues(authenticatedPage);
 
@@ -645,7 +648,10 @@ test.describe("UI/UX regression flows", () => {
   test("mobile auth entry routes keep forms above the fold", async ({
     page,
   }, testInfo) => {
-    test.skip(!/^Mobile /.test(testInfo.project.name), "Mobile-only coverage");
+    test.skip(
+      !(/^Mobile /.test(testInfo.project.name) || testInfo.project.name === "Tablet"),
+      "Mobile and tablet coverage",
+    );
 
     const runtimeIssues = trackRuntimeIssues(page);
     await page.setViewportSize({ width: 390, height: 844 });
@@ -705,7 +711,10 @@ test.describe("UI/UX regression flows", () => {
     authenticatedPage,
     authToken,
   }, testInfo) => {
-    test.skip(!/^Mobile /.test(testInfo.project.name), "Mobile-only coverage");
+    test.skip(
+      !(/^Mobile /.test(testInfo.project.name) || testInfo.project.name === "Tablet"),
+      "Mobile and tablet coverage",
+    );
 
     const runtimeIssues = trackRuntimeIssues(authenticatedPage);
     await authenticatedPage.setViewportSize({ width: 390, height: 844 });
