@@ -41,7 +41,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const buildPreviewHtml = (): string => `
+const buildStorageDependentPreviewHtml = (): string => `
   <!doctype html>
   <html lang="en">
     <head>
@@ -59,7 +59,57 @@ const buildPreviewHtml = (): string => `
         })();
       </script>
       <script>
+        (function() {
+          var visitorId = window.localStorage.getItem('npm_visitor_id');
+          var sessionId = window.sessionStorage.getItem('npm_session_id');
+          window.__previewFormRuntime = { visitorId: visitorId, sessionId: sessionId };
+        })();
+      </script>
+      <script>
         window.__previewNavigationReady = true;
+      </script>
+    </body>
+  </html>
+`;
+
+const buildBackendGeneratedPreviewHtml = (): string => `
+  <!doctype html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <title>Template Preview</title>
+      <script>
+        (function() {
+          var siteId = 'preview-site';
+          var visitorId = localStorage.getItem('npm_visitor_id') || 'visitor-1';
+          var sessionId = sessionStorage.getItem('npm_session_id') || 'session-1';
+
+          fetch('/api/v2/sites/' + siteId + '/track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventType: 'pageview',
+              visitorId: visitorId,
+              sessionId: sessionId
+            })
+          }).catch(function() {});
+        })();
+      </script>
+      <script>
+        (function() {
+          document.documentElement.dataset.previewNavigationReady = 'true';
+        })();
+      </script>
+    </head>
+    <body>
+      <main>Preview body</main>
+      <!-- Google Analytics -->
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-TEST"></script>
+      <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-TEST');
       </script>
     </body>
   </html>
@@ -79,7 +129,7 @@ describe('TemplatePreviewPage', () => {
 
     fetchMock.mockResolvedValue({
       ok: true,
-      text: vi.fn().mockResolvedValue(buildPreviewHtml()),
+      text: vi.fn().mockResolvedValue(buildStorageDependentPreviewHtml()),
     });
   });
 
@@ -105,7 +155,7 @@ describe('TemplatePreviewPage', () => {
     });
   });
 
-  it('strips the storage-dependent analytics block before writing the sandboxed iframe document', async () => {
+  it('strips all script tags before writing the sandboxed iframe document', async () => {
     renderWithProviders(<TemplatePreviewPage />, {
       route: '/builder/templates/template-123/preview?page=impact',
     });
@@ -121,7 +171,36 @@ describe('TemplatePreviewPage', () => {
     expect(srcDoc).not.toContain('Site Analytics');
     expect(srcDoc).not.toContain('npm_visitor_id');
     expect(srcDoc).not.toContain('npm_session_id');
-    expect(srcDoc).toContain('window.__previewNavigationReady = true;');
+    expect(srcDoc).not.toContain('__previewFormRuntime');
+    expect(srcDoc).not.toContain('<script');
     expect(iframe).toHaveAttribute('sandbox', 'allow-scripts');
+  });
+
+  it('strips the real generated preview runtime and analytics loader pair so sandboxed pages stay quiet', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: vi.fn().mockResolvedValue(buildBackendGeneratedPreviewHtml()),
+    });
+
+    renderWithProviders(<TemplatePreviewPage />, {
+      route: '/builder/templates/template-123/preview?page=impact',
+    });
+
+    const iframe = await screen.findByTitle('Template Preview');
+
+    await waitFor(() => {
+      expect(iframe.getAttribute('srcdoc')).toContain('Preview body');
+    });
+
+    const srcDoc = iframe.getAttribute('srcdoc') || '';
+
+    expect(srcDoc).not.toContain('Google Analytics');
+    expect(srcDoc).not.toContain('googletagmanager.com/gtag/js?id=G-TEST');
+    expect(srcDoc).not.toContain("gtag('config', 'G-TEST');");
+    expect(srcDoc).not.toContain('localStorage.getItem');
+    expect(srcDoc).not.toContain('sessionStorage.getItem');
+    expect(srcDoc).not.toContain("document.documentElement.dataset.previewNavigationReady = 'true';");
+    expect(srcDoc).not.toContain('<script');
+    expect(srcDoc).toContain('Preview body');
   });
 });

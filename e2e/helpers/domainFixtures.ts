@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import type { Page } from '@playwright/test';
+import type { APIResponse, Page } from '@playwright/test';
 import { createTestContact, getAuthHeaders } from './database';
 
 const apiURL = () => {
@@ -102,19 +102,23 @@ const getTokenUserId = (token: string): string | undefined => {
   return normalizeId(payload.id) || normalizeId(payload.userId) || normalizeId(payload.user_id);
 };
 
-const getTestDatabaseConfig = (): {
+export const resolveTestDatabaseConfig = (): {
   host: string;
   port: number;
   database: string;
   user: string;
   password: string;
 } => ({
-  host: process.env.DB_HOST || process.env.E2E_DB_HOST || '127.0.0.1',
-  port: Number(process.env.DB_PORT || process.env.E2E_DB_PORT || '8012'),
-  database: process.env.DB_NAME || process.env.E2E_DB_NAME || 'nonprofit_manager_test',
+  // Prefer the harness-resolved E2E DB contract so direct fixture writes match the
+  // backend runtime Playwright started for this run.
+  host: process.env.E2E_DB_HOST || process.env.DB_HOST || '127.0.0.1',
+  port: Number(process.env.E2E_DB_PORT || process.env.DB_PORT || '8012'),
+  database: process.env.E2E_DB_NAME || process.env.DB_NAME || 'nonprofit_manager_test',
   user: process.env.E2E_DB_ADMIN_USER || process.env.TEST_DB_ADMIN_USER || 'postgres',
   password: process.env.E2E_DB_ADMIN_PASSWORD || process.env.TEST_DB_ADMIN_PASSWORD || 'postgres',
 });
+
+const getTestDatabaseConfig = resolveTestDatabaseConfig;
 
 const extractTrailingUrlSegment = (url: string, context: string): string => {
   const pathname = new URL(url).pathname;
@@ -143,6 +147,119 @@ async function deleteWithAuth(page: Page, token: string, path: string) {
 async function putJSON(page: Page, token: string, path: string, data: unknown) {
   const headers = await getAuthHeaders(page, token);
   return page.request.put(`${apiURL()}${path}`, { headers, data });
+}
+
+const delay = async (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+export async function ensurePublicCaseFormTokenReady(page: Page, rawToken: string): Promise<void> {
+  const requestUrl = `${apiURL()}/api/v2/public/case-forms/${rawToken}`;
+  let lastStatus: number | null = null;
+  let lastBody = '';
+
+  for (let attempt = 1; attempt <= 20; attempt += 1) {
+    const response = await page.request.get(requestUrl);
+    if (response.ok()) {
+      return;
+    }
+
+    lastStatus = response.status();
+    lastBody = await response.text();
+    await delay(Math.min(attempt * 200, 1000));
+  }
+
+  throw new Error(
+    `Public case-form token did not resolve via API after fixture setup (${lastStatus ?? 'no-status'}): ${lastBody}`
+  );
+}
+
+export async function ensureCaseFormAssignmentReady(
+  page: Page,
+  token: string,
+  caseId: string,
+  assignmentId: string
+): Promise<void> {
+  await retryFixtureApiRequest(
+    'Public case-form assignment did not resolve via detail API',
+    () => getJSON(page, token, `/api/v2/cases/${caseId}/forms/${assignmentId}`)
+  );
+}
+
+const isRetryableFixtureStatus = (status: number): boolean =>
+  status === 404 || status >= 500;
+
+export async function retryFixtureApiRequest(
+  actionLabel: string,
+  execute: (attempt: number) => Promise<APIResponse>,
+  options: {
+    attempts?: number;
+  } = {}
+): Promise<APIResponse> {
+  const attempts = options.attempts ?? 20;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const response = await execute(attempt);
+    if (response.ok()) {
+      return response;
+    }
+
+    const status = response.status();
+    const body = await response.text();
+    if (!isRetryableFixtureStatus(status) || attempt === attempts) {
+      throw new Error(`${actionLabel} (${status}): ${body}`);
+    }
+
+    await delay(Math.min(attempt * 200, 1000));
+  }
+
+  throw new Error(`${actionLabel}: request attempts exhausted`);
+}
+
+export async function createRecoverableCaseFormAssignment(input: {
+  actionLabel?: string;
+  executeCreateAssignment: (attempt: number) => Promise<APIResponse>;
+  resolveAssignmentId: (input?: { fallbackId?: string; attempts?: number }) => Promise<string | null>;
+  attempts?: number;
+}): Promise<string> {
+  const actionLabel = input.actionLabel || 'Failed to create public case-form assignment';
+  const attempts = input.attempts ?? 20;
+  let lastFailure: string | null = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const response = await input.executeCreateAssignment(attempt);
+    if (response.ok()) {
+      const body = unwrapBody<{ id?: string; assignment_id?: string }>(await response.json());
+      const responseId = body.id || body.assignment_id;
+      if (typeof responseId === 'string' && responseId.length > 0) {
+        return responseId;
+      }
+
+      const recoveredId = await input.resolveAssignmentId({ attempts: 4 });
+      if (recoveredId) {
+        return recoveredId;
+      }
+
+      throw new Error(`Public case-form assignment id missing in response: ${JSON.stringify(body)}`);
+    }
+
+    const status = response.status();
+    const body = await response.text();
+    const recoveredId = await input.resolveAssignmentId({ attempts: 4 });
+    if (recoveredId) {
+      return recoveredId;
+    }
+
+    lastFailure = `${actionLabel} (${status}): ${body}`;
+    if (!isRetryableFixtureStatus(status) || attempt === attempts) {
+      throw new Error(lastFailure);
+    }
+
+    await delay(Math.min(attempt * 200, 1000));
+  }
+
+  throw new Error(lastFailure || `${actionLabel}: request attempts exhausted`);
 }
 
 const buildCaseFormSchema = () => ({
@@ -271,6 +388,29 @@ async function resolveCaseFormAssignmentId(input: {
     : input.fallbackId || null;
 }
 
+async function resolveCaseFormAssignmentIdWithRetry(input: {
+  page: Page;
+  token: string;
+  caseId: string;
+  title: string;
+  recipientEmail: string;
+  fallbackId?: string;
+  attempts?: number;
+}): Promise<string | null> {
+  const attempts = input.attempts ?? 20;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const assignmentId = await resolveCaseFormAssignmentId(input);
+    if (assignmentId) {
+      return assignmentId;
+    }
+
+    await delay(Math.min(attempt * 200, 1000));
+  }
+
+  return input.fallbackId || null;
+}
+
 async function provisionPublicCaseFormFallback(input: {
   token: string;
   caseId: string;
@@ -280,22 +420,16 @@ async function provisionPublicCaseFormFallback(input: {
   recipientEmail: string;
 }): Promise<{
   assignmentId: string;
-  accessLinkUrl: string;
 }> {
   const userId = getTokenUserId(input.token);
   if (!userId) {
     throw new Error('Unable to derive a user id for the public case-form fixture fallback.');
   }
 
-  const rawToken = crypto.randomBytes(24).toString('base64url');
-  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const client = new PgClient(getTestDatabaseConfig());
 
   try {
     await client.connect();
-    await client.query('BEGIN');
-
     const assignmentResult = await client.query<{ id: string }>(
       `INSERT INTO case_form_assignments (
          case_id,
@@ -307,12 +441,10 @@ async function provisionPublicCaseFormFallback(input: {
          schema,
          current_draft_answers,
          recipient_email,
-         delivery_target,
-         sent_at,
          created_by,
          updated_by
        )
-       VALUES ($1, $2, $3, $4, $5, 'sent', $6::jsonb, '{}'::jsonb, $7, 'email', NOW(), $8, $8)
+       VALUES ($1, $2, $3, $4, $5, 'draft', $6::jsonb, '{}'::jsonb, $7, $8, $8)
        RETURNING id`,
       [
         input.caseId,
@@ -331,36 +463,8 @@ async function provisionPublicCaseFormFallback(input: {
       throw new Error('Public case-form fallback insert did not return an assignment id.');
     }
 
-    await client.query(
-      `INSERT INTO case_form_access_tokens (
-         assignment_id,
-         case_id,
-         contact_id,
-         recipient_email,
-         token_hash,
-         expires_at,
-         created_by
-       )
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        assignmentId,
-        input.caseId,
-        input.contactId,
-        input.recipientEmail,
-        tokenHash,
-        expiresAt,
-        userId,
-      ]
-    );
-
-    await client.query('COMMIT');
-
-    return {
-      assignmentId,
-      accessLinkUrl: `${frontendURL()}/public/case-forms/${rawToken}`,
-    };
+    return { assignmentId };
   } catch (error) {
-    await client.query('ROLLBACK').catch(() => undefined);
     throw error;
   } finally {
     await client.end().catch(() => undefined);
@@ -554,131 +658,122 @@ export async function createPublicCaseFormLink(
   const { caseId, contactId } = await createCaseForPublicForm(page, token, options.organizationId);
   const recipientEmail = `dark-mode-public-form-${Date.now()}@example.com`;
   const assignmentTitle = `Dark Mode Public Form ${Date.now()}`;
-  const createAssignmentResponse = await postJSON(page, token, `/api/v2/cases/${caseId}/forms`, {
-    title: assignmentTitle,
-    description: 'Secure public form fixture for the dark-mode audit',
-    schema: buildCaseFormSchema(),
-    recipient_email: recipientEmail,
-  });
-
-  if (!createAssignmentResponse.ok()) {
-    if (createAssignmentResponse.status() === 404 || createAssignmentResponse.status() >= 500) {
-      const fallback = await provisionPublicCaseFormFallback({
-        token,
-        caseId,
-        contactId,
-        organizationId: options.organizationId,
-        title: assignmentTitle,
-        recipientEmail,
-      });
-
-      return {
-        caseId,
-        assignmentId: fallback.assignmentId,
-        accessToken: extractTrailingUrlSegment(
-          fallback.accessLinkUrl,
-          'Public case-form access link'
-        ),
-        accessLinkUrl: fallback.accessLinkUrl,
-      };
-    }
-
-    throw new Error(
-      `Failed to create public case-form assignment (${createAssignmentResponse.status()}): ${await createAssignmentResponse.text()}`
-    );
-  }
-
-  const assignmentBody = unwrapBody<{ id?: string; assignment_id?: string }>(
-    await createAssignmentResponse.json()
-  );
-  let assignmentId =
-    (await resolveCaseFormAssignmentId({
-      page,
-      token,
-      caseId,
-      title: assignmentTitle,
-      recipientEmail,
-      fallbackId: assignmentBody.id || assignmentBody.assignment_id,
-    })) || undefined;
-  if (!assignmentId) {
-    throw new Error(`Public case-form assignment id missing in response: ${JSON.stringify(assignmentBody)}`);
-  }
-
-  let sendAssignmentResponse = await postJSON(
-    page,
-    token,
-    `/api/v2/cases/${caseId}/forms/${assignmentId}/send`,
-    {
-      delivery_target: 'email',
-      recipient_email: recipientEmail,
-      expires_in_days: 7,
-    }
-  );
-
-  if (!sendAssignmentResponse.ok() && sendAssignmentResponse.status() === 404) {
-    const resolvedAssignmentId = await resolveCaseFormAssignmentId({
-      page,
-      token,
-      caseId,
-      title: assignmentTitle,
-      recipientEmail,
-      fallbackId: assignmentId,
+  try {
+    let assignmentId = await createRecoverableCaseFormAssignment({
+      actionLabel: 'Failed to create public case-form assignment',
+      executeCreateAssignment: () =>
+        postJSON(page, token, `/api/v2/cases/${caseId}/forms`, {
+          title: assignmentTitle,
+          description: 'Secure public form fixture for the dark-mode audit',
+          schema: buildCaseFormSchema(),
+          recipient_email: recipientEmail,
+        }),
+      resolveAssignmentId: ({ fallbackId, attempts } = {}) =>
+        resolveCaseFormAssignmentIdWithRetry({
+          page,
+          token,
+          caseId,
+          title: assignmentTitle,
+          recipientEmail,
+          fallbackId,
+          attempts,
+        }),
     });
 
-    if (resolvedAssignmentId && resolvedAssignmentId !== assignmentId) {
-      assignmentId = resolvedAssignmentId;
-      sendAssignmentResponse = await postJSON(
-        page,
-        token,
-        `/api/v2/cases/${caseId}/forms/${assignmentId}/send`,
-        {
-          delivery_target: 'email',
-          recipient_email: recipientEmail,
-          expires_in_days: 7,
+    await ensureCaseFormAssignmentReady(page, token, caseId, assignmentId);
+
+    const sendAssignmentResponse = await retryFixtureApiRequest(
+      'Failed to send public case-form assignment',
+      async (attempt) => {
+        if (attempt > 1) {
+          const resolvedAssignmentId = await resolveCaseFormAssignmentIdWithRetry({
+            page,
+            token,
+            caseId,
+            title: assignmentTitle,
+            recipientEmail,
+            fallbackId: assignmentId,
+            attempts: 2,
+          });
+
+          if (resolvedAssignmentId) {
+            assignmentId = resolvedAssignmentId;
+          }
         }
-      );
-    }
-  }
 
-  if (!sendAssignmentResponse.ok()) {
-    if (sendAssignmentResponse.status() === 404 || sendAssignmentResponse.status() >= 500) {
-      const fallback = await provisionPublicCaseFormFallback({
-        token,
-        caseId,
-        contactId,
-        organizationId: options.organizationId,
-        title: assignmentTitle,
-        recipientEmail,
-      });
+        await ensureCaseFormAssignmentReady(page, token, caseId, assignmentId);
 
-      return {
-        caseId,
-        assignmentId: fallback.assignmentId,
-        accessToken: extractTrailingUrlSegment(
-          fallback.accessLinkUrl,
-          'Public case-form access link'
-        ),
-        accessLinkUrl: fallback.accessLinkUrl,
-      };
-    }
-
-    throw new Error(
-      `Failed to send public case-form assignment (${sendAssignmentResponse.status()}): ${await sendAssignmentResponse.text()}`
+        return postJSON(
+          page,
+          token,
+          `/api/v2/cases/${caseId}/forms/${assignmentId}/send`,
+          {
+            delivery_target: 'email',
+            recipient_email: recipientEmail,
+            expires_in_days: 7,
+          }
+        );
+      }
     );
-  }
 
-  const sendBody = unwrapBody<{ access_link_url?: string | null }>(await sendAssignmentResponse.json());
-  const accessLinkUrl = sendBody.access_link_url;
-  if (typeof accessLinkUrl !== 'string' || accessLinkUrl.length === 0) {
-    throw new Error(`Public case-form send response missing access link: ${JSON.stringify(sendBody)}`);
-  }
+    const sendBody = unwrapBody<{ access_link_url?: string | null }>(await sendAssignmentResponse.json());
+    const accessLinkUrl = sendBody.access_link_url;
+    if (typeof accessLinkUrl !== 'string' || accessLinkUrl.length === 0) {
+      throw new Error(`Public case-form send response missing access link: ${JSON.stringify(sendBody)}`);
+    }
 
-  return {
-    caseId,
-    assignmentId,
-    accessToken: extractTrailingUrlSegment(accessLinkUrl, 'Public case-form access link'),
-    accessLinkUrl,
-  };
+    await ensurePublicCaseFormTokenReady(
+      page,
+      extractTrailingUrlSegment(accessLinkUrl, 'Public case-form access link')
+    );
+
+    return {
+      caseId,
+      assignmentId,
+      accessToken: extractTrailingUrlSegment(accessLinkUrl, 'Public case-form access link'),
+      accessLinkUrl,
+    };
+  } catch {
+    const fallback = await provisionPublicCaseFormFallback({
+      token,
+      caseId,
+      contactId,
+      organizationId: options.organizationId,
+      title: assignmentTitle,
+      recipientEmail,
+    });
+    await ensureCaseFormAssignmentReady(page, token, caseId, fallback.assignmentId);
+
+    const sendAssignmentResponse = await retryFixtureApiRequest(
+      'Failed to send public case-form assignment',
+      () =>
+        postJSON(
+          page,
+          token,
+          `/api/v2/cases/${caseId}/forms/${fallback.assignmentId}/send`,
+          {
+            delivery_target: 'email',
+            recipient_email: recipientEmail,
+            expires_in_days: 7,
+          }
+        )
+    );
+    const sendBody = unwrapBody<{ access_link_url?: string | null }>(await sendAssignmentResponse.json());
+    const accessLinkUrl = sendBody.access_link_url;
+    if (typeof accessLinkUrl !== 'string' || accessLinkUrl.length === 0) {
+      throw new Error(`Public case-form send response missing access link: ${JSON.stringify(sendBody)}`);
+    }
+
+    const accessToken = extractTrailingUrlSegment(accessLinkUrl, 'Public case-form access link');
+    await ensurePublicCaseFormTokenReady(page, accessToken);
+
+    return {
+      caseId,
+      assignmentId: fallback.assignmentId,
+      accessToken,
+      accessLinkUrl,
+    };
+  }
 }
 
 export async function createAlertConfig(page: Page, token: string): Promise<string> {

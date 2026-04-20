@@ -25,11 +25,10 @@ export const getCaseFormAssignmentDetailByToken = async (
     await repository.markAssignmentViewed(client, access.token.assignment.id);
     await repository.markAccessTokenViewed(client, access.token.id);
   });
-  const assignment = await repository.getAssignmentById(access.token.assignment.id);
-  if (!assignment) {
-    throw Object.assign(new Error('Form assignment not found'), { statusCode: 404, code: 'not_found' });
-  }
-  return buildAssignmentDetail(repository, assignment, {
+  return buildAssignmentDetail(repository, {
+    ...access.token.assignment,
+    viewed_at: access.token.assignment.viewed_at || new Date(),
+  }, {
     responsePacketDownloadUrl: `/api/v2/public/case-forms/${rawToken}/response-packet`,
     buildAssetDownloadUrl: null,
   });

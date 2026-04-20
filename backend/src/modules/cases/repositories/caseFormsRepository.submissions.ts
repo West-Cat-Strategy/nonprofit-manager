@@ -9,10 +9,10 @@ import type {
 import {
   assetSelect,
   mapAsset,
+  mapAssignment,
   mapSubmission,
   submissionSelect,
 } from './caseFormsRepository.shared';
-import { getAssignmentById } from './caseFormsRepository.assignments';
 
 export async function getSubmissionByClientSubmissionId(
   db: DbExecutor,
@@ -270,41 +270,82 @@ export async function getAccessTokenByHash(
   db: DbExecutor,
   tokenHash: string
 ): Promise<CaseFormAccessTokenRecord | null> {
-  const result = await db.query(
-    `SELECT
-       cfat.*,
-       cfa.case_id AS assignment_case_id
-     FROM case_form_access_tokens cfat
-     INNER JOIN case_form_assignments cfa ON cfa.id = cfat.assignment_id
-     WHERE cfat.token_hash = $1
+  const tokenResult = await db.query(
+    `SELECT *
+     FROM case_form_access_tokens
+     WHERE token_hash = $1
      LIMIT 1`,
     [tokenHash]
   );
 
-  const row = result.rows[0];
-  if (!row) {
+  const tokenRow = tokenResult.rows[0];
+  if (!tokenRow) {
     return null;
   }
 
-  const assignment = await getAssignmentById(db, String(row.assignment_id));
-  if (!assignment) {
+  const assignmentResult = await db.query(
+    `SELECT *
+     FROM case_form_assignments
+     WHERE id = $1
+     LIMIT 1`,
+    [tokenRow.assignment_id]
+  );
+  const assignmentRow = assignmentResult.rows[0];
+  if (!assignmentRow) {
     return null;
   }
+
+  const caseResult = await db.query(
+    `SELECT
+       case_number,
+       title AS case_title,
+       client_viewable,
+       assigned_to AS case_assigned_to,
+       account_id AS case_account_id
+     FROM cases
+     WHERE id = $1
+     LIMIT 1`,
+    [assignmentRow.case_id]
+  );
+  const caseRow = caseResult.rows[0];
+
+  const contactResult = await db.query(
+    `SELECT
+       first_name AS contact_first_name,
+       last_name AS contact_last_name,
+       account_id AS contact_account_id
+     FROM contacts
+     WHERE id = $1
+     LIMIT 1`,
+    [assignmentRow.contact_id]
+  );
+  const contactRow = contactResult.rows[0];
+
+  const assignment = mapAssignment({
+    ...assignmentRow,
+    scoped_account_id: assignmentRow.account_id ?? caseRow?.case_account_id ?? contactRow?.contact_account_id ?? null,
+    case_number: caseRow?.case_number ?? null,
+    case_title: caseRow?.case_title ?? null,
+    client_viewable: caseRow?.client_viewable ?? null,
+    case_assigned_to: caseRow?.case_assigned_to ?? null,
+    contact_first_name: contactRow?.contact_first_name ?? null,
+    contact_last_name: contactRow?.contact_last_name ?? null,
+  });
 
   return {
-    id: String(row.id),
-    assignment_id: String(row.assignment_id),
-    case_id: String(row.case_id),
-    contact_id: String(row.contact_id),
-    recipient_email: (row.recipient_email as string | null | undefined) ?? null,
-    token_hash: String(row.token_hash),
-    expires_at: row.expires_at as Date | string,
-    revoked_at: (row.revoked_at as Date | string | null | undefined) ?? null,
-    last_viewed_at: (row.last_viewed_at as Date | string | null | undefined) ?? null,
-    last_used_at: (row.last_used_at as Date | string | null | undefined) ?? null,
-    latest_submission_id: (row.latest_submission_id as string | null | undefined) ?? null,
-    created_by: (row.created_by as string | null | undefined) ?? null,
-    created_at: row.created_at as Date | string,
+    id: String(tokenRow.id),
+    assignment_id: String(tokenRow.assignment_id),
+    case_id: String(tokenRow.case_id),
+    contact_id: String(tokenRow.contact_id),
+    recipient_email: (tokenRow.recipient_email as string | null | undefined) ?? null,
+    token_hash: String(tokenRow.token_hash),
+    expires_at: tokenRow.expires_at as Date | string,
+    revoked_at: (tokenRow.revoked_at as Date | string | null | undefined) ?? null,
+    last_viewed_at: (tokenRow.last_viewed_at as Date | string | null | undefined) ?? null,
+    last_used_at: (tokenRow.last_used_at as Date | string | null | undefined) ?? null,
+    latest_submission_id: (tokenRow.latest_submission_id as string | null | undefined) ?? null,
+    created_by: (tokenRow.created_by as string | null | undefined) ?? null,
+    created_at: tokenRow.created_at as Date | string,
     assignment,
   };
 }

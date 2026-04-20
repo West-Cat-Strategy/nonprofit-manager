@@ -108,6 +108,7 @@ const authBootstrapRequestPatterns = [
 const routeErrorResourceTypes = new Set(['fetch', 'xhr', 'script', 'stylesheet']);
 const abortErrorPatterns = [/net::ERR_ABORTED/i, /net::ERR_BLOCKED_BY_CLIENT/i, /NS_BINDING_ABORTED/i];
 const instrumentedPages = new WeakSet<Page>();
+const darkModeInitializedPages = new WeakSet<Page>();
 
 const MANUAL_REVIEW_ROUTE_IDS = new Set([
   'contact-detail',
@@ -163,18 +164,30 @@ export function requiresManualReview(routeId: string): boolean {
 }
 
 export async function ensureDarkMode(page: Page, theme: string = 'glass'): Promise<void> {
-  await page.addInitScript(
-    ({ nextTheme }) => {
-      window.localStorage.setItem('app-theme', nextTheme);
-      window.localStorage.setItem('app-color-scheme', 'dark');
-    },
-    { nextTheme: theme }
-  );
+  if (!darkModeInitializedPages.has(page)) {
+    await page.addInitScript(
+      ({ nextTheme }) => {
+        try {
+          window.localStorage.setItem('app-theme', nextTheme);
+          window.localStorage.setItem('app-color-scheme', 'dark');
+        } catch {
+          // Some audited routes render sandboxed iframes whose unique origins deny storage access.
+          // Keep the parent page dark-mode setup intact without turning those frames into runtime noise.
+        }
+      },
+      { nextTheme: theme }
+    );
+    darkModeInitializedPages.add(page);
+  }
 
   await page.evaluate(
     ({ nextTheme }) => {
-      window.localStorage.setItem('app-theme', nextTheme);
-      window.localStorage.setItem('app-color-scheme', 'dark');
+      try {
+        window.localStorage.setItem('app-theme', nextTheme);
+        window.localStorage.setItem('app-color-scheme', 'dark');
+      } catch {
+        // Ignore sandboxed-frame storage failures; the top-level route shell still receives dark-mode state.
+      }
     },
     { nextTheme: theme }
   ).catch(() => undefined);

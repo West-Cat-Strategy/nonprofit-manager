@@ -2,6 +2,18 @@ import type { CaseFormAssignmentRecord, DbExecutor } from './caseFormsRepository
 import { assignmentSelect, mapAssignment } from './caseFormsRepository.shared';
 import type { CaseFormDeliveryTarget, CaseFormSchema } from '@app-types/caseForms';
 
+const mapMutationAssignmentRow = (row: Record<string, unknown>): CaseFormAssignmentRecord =>
+  mapAssignment({
+    ...row,
+    scoped_account_id: row.account_id ?? null,
+    case_number: row.case_number ?? null,
+    case_title: row.case_title ?? null,
+    client_viewable: row.client_viewable ?? null,
+    case_assigned_to: row.case_assigned_to ?? null,
+    contact_first_name: row.contact_first_name ?? null,
+    contact_last_name: row.contact_last_name ?? null,
+  });
+
 export async function listAssignmentsForCase(
   db: DbExecutor,
   caseId: string,
@@ -84,7 +96,7 @@ export async function createAssignment(
        updated_by
      )
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9::jsonb, '{}'::jsonb, $10, $11, $12, $12)
-     RETURNING id`,
+     RETURNING *`,
     [
       input.caseId,
       input.contactId,
@@ -101,11 +113,14 @@ export async function createAssignment(
     ]
   );
 
-  const assignment = await getAssignmentById(executor, String(result.rows[0]?.id));
-  if (!assignment) {
-    throw Object.assign(new Error('Form assignment not found'), { statusCode: 404, code: 'not_found' });
+  const row = result.rows[0];
+  if (!row) {
+    throw Object.assign(new Error('Form assignment insert did not return a row'), {
+      statusCode: 500,
+      code: 'internal_error',
+    });
   }
-  return assignment;
+  return mapMutationAssignmentRow(row);
 }
 
 export async function updateAssignment(
@@ -167,18 +182,19 @@ export async function updateAssignment(
   }
   values.push(assignmentId);
 
-  await executor.query(
+  const result = await executor.query(
     `UPDATE case_form_assignments
      SET ${fields.join(', ')}
-     WHERE id = $${index}`,
+     WHERE id = $${index}
+     RETURNING *`,
     values
   );
 
-  const assignment = await getAssignmentById(executor, assignmentId);
-  if (!assignment) {
+  const row = result.rows[0];
+  if (!row) {
     throw Object.assign(new Error('Form assignment not found'), { statusCode: 404, code: 'not_found' });
   }
-  return assignment;
+  return mapMutationAssignmentRow(row);
 }
 
 export async function markAssignmentSent(executor: DbExecutor, assignmentId: string): Promise<void> {

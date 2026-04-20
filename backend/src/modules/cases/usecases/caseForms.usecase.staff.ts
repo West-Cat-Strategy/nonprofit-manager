@@ -369,8 +369,9 @@ export const sendCaseFormAssignment = async (
   const rawToken = emailDeliveryEnabled ? crypto.randomBytes(24).toString('base64url') : null;
   const tokenHash = rawToken ? hashData(rawToken) : null;
   const expiresAt = emailDeliveryEnabled ? resolveExpiryDate(assignment, payload.expires_in_days) : null;
+  const sentAt = new Date();
 
-  await repository.withTransaction(async (client) => {
+  const refreshed = await repository.withTransaction(async (client) => {
     await repository.revokeAccessTokens(client, assignment.id);
 
     if (emailDeliveryEnabled && recipientEmail && tokenHash && expiresAt) {
@@ -385,7 +386,7 @@ export const sendCaseFormAssignment = async (
       });
     }
 
-    await repository.updateAssignment(client, assignment.id, {
+    const updatedAssignment = await repository.updateAssignment(client, assignment.id, {
       recipientEmail,
       status: 'sent',
       deliveryTarget: payload.delivery_target,
@@ -407,6 +408,15 @@ export const sendCaseFormAssignment = async (
       ),
       userId || null
     );
+
+    return {
+      ...updatedAssignment,
+      recipient_email: recipientEmail,
+      status: 'sent' as const,
+      delivery_target: payload.delivery_target,
+      sent_at: sentAt,
+      updated_at: sentAt,
+    };
   });
 
   if (emailDeliveryEnabled && recipientEmail && rawToken && expiresAt) {
@@ -436,11 +446,6 @@ export const sendCaseFormAssignment = async (
         .filter(Boolean)
         .join(''),
     });
-  }
-
-  const refreshed = await repository.getAssignmentById(assignment.id);
-  if (!refreshed) {
-    throw Object.assign(new Error('Form assignment not found after send'), { statusCode: 404, code: 'not_found' });
   }
 
   return {

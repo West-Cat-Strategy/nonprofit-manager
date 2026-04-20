@@ -10,11 +10,54 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../../store';
 import { getTemplateGalleryPath } from '../lib/builderRouteTargets';
 
-const STORAGE_DEPENDENT_SCRIPT_PATTERN =
-  /(?:<!--\s*Site Analytics\s*-->\s*)?<script\b[^>]*>[\s\S]*?(?:localStorage|sessionStorage|npm_visitor_id|npm_session_id)[\s\S]*?<\/script>/gi;
+const SCRIPT_TAG_PATTERN = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
+const ANALYTICS_COMMENT_PATTERN = /^(?:Site|Google)\s+Analytics$/i;
 
-const stripPreviewAnalyticsScript = (html: string): string =>
-  html.replace(STORAGE_DEPENDENT_SCRIPT_PATTERN, '');
+const getAdjacentMeaningfulSibling = (
+  node: ChildNode,
+  direction: 'previousSibling' | 'nextSibling'
+): ChildNode | null => {
+  let sibling = node[direction];
+
+  while (sibling?.nodeType === Node.TEXT_NODE && !sibling.textContent?.trim()) {
+    sibling = sibling[direction];
+  }
+
+  return sibling;
+};
+
+const removeLeadingAnalyticsComment = (scriptNode: HTMLScriptElement): void => {
+  const previousSibling = getAdjacentMeaningfulSibling(scriptNode, 'previousSibling');
+
+  if (
+    previousSibling?.nodeType === Node.COMMENT_NODE &&
+    ANALYTICS_COMMENT_PATTERN.test(previousSibling.textContent?.trim() ?? '')
+  ) {
+    previousSibling.remove();
+  }
+};
+
+const stripPreviewScripts = (html: string): string => {
+  if (!html) {
+    return html;
+  }
+
+  if (typeof DOMParser === 'undefined') {
+    return html.replace(SCRIPT_TAG_PATTERN, '');
+  }
+
+  const parsedDocument = new DOMParser().parseFromString(html, 'text/html');
+
+  parsedDocument.querySelectorAll('script').forEach((scriptNode) => {
+    removeLeadingAnalyticsComment(scriptNode);
+    scriptNode.remove();
+  });
+
+  const doctype = html.match(/<!doctype[^>]*>/i)?.[0];
+  const serializedDocument = parsedDocument.documentElement.outerHTML;
+
+  return doctype ? `${doctype}\n${serializedDocument}` : serializedDocument;
+};
 
 const TemplatePreview: React.FC = () => {
   const { templateId } = useParams<{ templateId: string }>();
@@ -42,7 +85,7 @@ const TemplatePreview: React.FC = () => {
   }, [templateId, pageSlug]);
 
   const iframeSrcDoc = useMemo(
-    () => stripPreviewAnalyticsScript(previewHtml),
+    () => stripPreviewScripts(previewHtml),
     [previewHtml]
   );
 
@@ -153,8 +196,9 @@ const TemplatePreview: React.FC = () => {
             title="Template Preview"
             className="w-full h-full border-0"
             srcDoc={iframeSrcDoc}
-            // Builder preview keeps the iframe sandboxed and strips the generated site analytics
-            // block because that runtime expects storage access that sandboxed srcDoc frames deny.
+            // Builder preview is a static visual render inside a strict sandboxed srcDoc iframe.
+            // Strip runtime scripts entirely so generated site analytics or future browser-side
+            // behaviors cannot assume same-origin storage inside the preview sandbox.
             sandbox="allow-scripts"
           />
         )}

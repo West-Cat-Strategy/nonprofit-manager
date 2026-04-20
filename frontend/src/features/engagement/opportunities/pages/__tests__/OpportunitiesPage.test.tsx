@@ -53,13 +53,18 @@ describe('OpportunitiesPage', () => {
     renderWithProviders(<OpportunitiesPage />, { route: '/opportunities' });
 
     const reportsLink = screen.getByRole('link', { name: /reports workspace/i });
+    const reportsTitle = screen.getByText(/reports workspace/i);
     const reportsDescription = screen.getByText(
       /open the fundraiser reporting home for shared context/i
     );
 
-    expect(reportsLink.className).toContain('bg-[#0f172a]');
+    expect(reportsLink.className).toContain('bg-app-surface-elevated');
+    expect(reportsLink.className).toContain('hover:bg-app-accent-soft');
     expect(reportsLink.className).toContain('focus-visible:ring-4');
-    expect(reportsLink.className).toContain('text-white');
-    expect(reportsDescription.className).toContain('text-slate-200');
+    expect(reportsLink.className).toContain('text-app-text-heading');
+    expect(reportsTitle.className).toContain('text-app-text-heading');
+    expect(reportsDescription.className).toContain('text-app-text-muted');
+    expect(reportsTitle.className).not.toContain('text-white');
+    expect(reportsDescription.className).not.toContain('text-slate-200');
   });
 });

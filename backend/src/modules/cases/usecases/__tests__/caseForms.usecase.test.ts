@@ -350,6 +350,46 @@ describe('CaseFormsUseCase', () => {
     });
   });
 
+  it('returns public assignment detail for a valid email-delivery token', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const accessedAssignment = makeAssignment({
+      status: 'viewed',
+      delivery_target: 'email',
+      client_viewable: true,
+      viewed_at: '2026-04-16T12:20:00.000Z',
+    });
+
+    mocks.getAccessTokenByHash.mockResolvedValue({
+      id: 'token-1',
+      assignment_id: accessedAssignment.id,
+      case_id: accessedAssignment.case_id,
+      contact_id: accessedAssignment.contact_id,
+      recipient_email: accessedAssignment.recipient_email,
+      token_hash: 'token-hash',
+      expires_at: new Date(Date.now() + 60_000),
+      revoked_at: null,
+      last_viewed_at: null,
+      last_used_at: null,
+      latest_submission_id: null,
+      created_by: 'staff-1',
+      created_at: new Date('2026-04-16T12:00:00.000Z'),
+      assignment: accessedAssignment,
+    } as never);
+    mocks.listSubmissionsForAssignment.mockResolvedValue([]);
+    mocks.listAssetsForAssignment.mockResolvedValue([]);
+
+    const result = await useCase.getAssignmentDetailByToken('valid-token');
+
+    expect(mocks.markAssignmentViewed).toHaveBeenCalledWith(expect.anything(), accessedAssignment.id);
+    expect(mocks.markAccessTokenViewed).toHaveBeenCalledWith(expect.anything(), 'token-1');
+    expect(mocks.getAssignmentById).not.toHaveBeenCalled();
+    expect(result.assignment.id).toBe(accessedAssignment.id);
+    expect(result.assignment.delivery_target).toBe('email');
+    expect(result.assignment.viewed_at).toBe('2026-04-16T12:20:00.000Z');
+    expect(result.submissions).toEqual([]);
+  });
+
   it('rejects delivery when the case is not client-viewable', async () => {
     const { repository, mocks } = createRepositoryMock();
     const useCase = new CaseFormsUseCase(repository);
