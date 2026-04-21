@@ -48,6 +48,13 @@ const buildManagedForm = (overrides: Partial<WebsiteFormDefinition> = {}): Websi
   operationalSettings: {
     successMessage: 'Original message',
   },
+  publicRuntime: {
+    siteKey: 'site-1',
+    publicPath: '/',
+    publicUrl: 'https://site-one.example.com',
+    previewUrl: 'https://site-one.example.com?preview=true&version=v1',
+    submissionPath: '/api/v2/public/forms/site-1/contact-form-1/submit',
+  },
   ...overrides,
 });
 
@@ -163,6 +170,48 @@ describe('SiteOperationsService', () => {
         defaultTags: ['console-updated'],
       },
     });
+  });
+
+  it('passes live and preview runtime URLs into the form registry', async () => {
+    mockSiteManagement.getSite.mockResolvedValue(
+      buildSite({
+        status: 'published',
+        publishedVersion: 'v-live-1',
+        publishedContent: {
+          pages: [
+            {
+              id: 'page-home',
+              name: 'Home',
+              slug: 'home',
+              isHomepage: true,
+              pageType: 'static',
+              routePattern: '/',
+              sections: [],
+              seo: {},
+            },
+          ],
+        } as PublishedSite['publishedContent'],
+      })
+    );
+    mockFormRegistry.extract.mockReturnValue([buildManagedForm()]);
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ version: 'preview-v-2' }] });
+
+    await service.getForms('site-1', 'user-1', 'org-1');
+
+    expect(mockFormRegistry.extract).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.any(Object),
+      expect.any(Array),
+      false,
+      {
+        siteKey: 'site-1',
+        liveBaseUrl: 'https://site-one.example.com',
+        livePreviewBaseUrl: 'https://site-one.example.com?preview=true&version=v-live-1',
+        previewBaseUrl: 'https://site-one.example.com?preview=true&version=preview-v-2',
+      }
+    );
   });
 
   it('returns a management snapshot with readiness and the next operator action', async () => {

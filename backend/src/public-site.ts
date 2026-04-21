@@ -119,6 +119,7 @@ const corsOptions = createCorsOptionsDelegate({
   nodeEnv: process.env.NODE_ENV,
   corsOrigin: process.env.CORS_ORIGIN,
   fallbackOrigins: ['http://localhost:8006', 'http://127.0.0.1:8006'],
+  allowRequestHostOrigin: true,
   onDeniedOrigin: (origin) => {
     logger.warn(`CORS request from unauthorized origin: ${origin}`);
   },

@@ -30,10 +30,11 @@ import { toTemplateSettingsDraft } from '../components/templateSettingsDraft';
 import { useEditorHistory } from '../../../hooks/useEditorHistory';
 import { useAutoSave } from '../../../hooks/useAutoSave';
 import { websitesApiClient } from '../../websites/api/websitesApiClient';
-import type { WebsiteOverviewSummary } from '../../websites/types';
 import {
+  buildBuilderSiteContext,
   resolveBuilderSiteId,
 } from '../lib/siteAwareEditor';
+import type { BuilderSiteContext } from '../lib/siteAwareEditor';
 import type {
   ComponentType,
   PageComponent,
@@ -51,16 +52,6 @@ import {
 
 export type ViewMode = 'desktop' | 'tablet' | 'mobile';
 
-type SiteContext = {
-  siteId: string;
-  siteName: string;
-  siteStatus: WebsiteOverviewSummary['site']['status'];
-  blocked: boolean;
-  primaryUrl: string;
-  previewUrl: string | null;
-  templateId: string;
-};
-
 export function usePageEditorController() {
   const { templateId: templateIdParam, siteId: routeSiteId } = useParams<{
     templateId?: string;
@@ -75,7 +66,7 @@ export function usePageEditorController() {
     (state: RootState) => state.templates
   );
 
-  const [siteContext, setSiteContext] = useState<SiteContext | null>(null);
+  const [siteContext, setSiteContext] = useState<BuilderSiteContext | null>(null);
   const [siteContextLoading, setSiteContextLoading] = useState(false);
   const [siteContextError, setSiteContextError] = useState<string | null>(null);
   const resolvedTemplateId = templateIdParam || siteContext?.templateId || null;
@@ -304,15 +295,7 @@ export function usePageEditorController() {
           return;
         }
 
-        setSiteContext({
-          siteId,
-          siteName: overview.site.name,
-          siteStatus: overview.site.status,
-          blocked: overview.site.blocked,
-          primaryUrl: overview.deployment.primaryUrl,
-          previewUrl: overview.deployment.previewUrl,
-          templateId: nextTemplateId,
-        });
+        setSiteContext(buildBuilderSiteContext(overview, nextTemplateId));
       })
       .catch((err) => {
         if (cancelled) return;

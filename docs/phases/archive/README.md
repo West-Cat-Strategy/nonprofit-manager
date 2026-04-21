@@ -15,6 +15,10 @@ Do not use the files in this archive as the source of truth for current status.
 
 ## Archive Groups
 
+### Phase 5 Closeout
+
+- [P5-T1_CLOSEOUT_2026-04-20.md](P5-T1_CLOSEOUT_2026-04-20.md)
+
 ### Phase 4 Transition And Closeout
 
 - Batch closeout and transition artifacts:

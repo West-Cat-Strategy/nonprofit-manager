@@ -50,6 +50,7 @@ export type {
   WebsiteConversionFunnel,
   WebsiteConversionFunnelStep,
   WebsiteConversionEventRecord,
+  WebsiteFormPublicRuntime,
   CustomDomainConfig,
   DomainVerificationResult,
   DnsRecord,

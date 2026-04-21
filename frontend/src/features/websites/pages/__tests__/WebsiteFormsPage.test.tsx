@@ -165,9 +165,11 @@ describe('WebsiteFormsPage', () => {
     });
 
     expect(screen.getByText('Connected CTAs')).toBeInTheDocument();
-    expect(screen.getByText('Contact form')).toBeInTheDocument();
+    expect(screen.getByText('Managed form launch verification')).toBeInTheDocument();
     expect(screen.getByText(/Public CTA: Contact \/ referral/i)).toBeInTheDocument();
-    const contactCard = screen.getByText('Contact form').closest('article');
+    const homeSection = screen.getByRole('heading', { name: 'Home' }).closest('section');
+    expect(homeSection).not.toBeNull();
+    const contactCard = within(homeSection as HTMLElement).getByText('Contact form').closest('article');
     expect(contactCard).not.toBeNull();
     fireEvent.change(within(contactCard as HTMLElement).getByPlaceholderText('Success message'), {
       target: { value: 'Thanks for reaching out.' },

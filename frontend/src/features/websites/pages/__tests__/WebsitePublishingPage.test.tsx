@@ -43,18 +43,87 @@ const overview = {
     blocked: false,
     subdomain: 'mutual-aid',
     customDomain: 'mutualaid.org',
+    primaryUrl: 'https://mutualaid.org',
+    previewUrl: 'https://preview.mutualaid.org?preview=true&version=v-preview-1',
+    publishedVersion: 'v-live-1',
+    updatedAt: '2026-03-06T12:00:00.000Z',
   },
   template: {
     id: 'template-1',
   },
   deployment: {
     primaryUrl: 'https://mutualaid.org',
+    previewUrl: 'https://preview.mutualaid.org?preview=true&version=v-preview-1',
+    domainStatus: 'configured',
     sslStatus: 'active',
   },
   liveRoutes: [
     { pageId: 'page-1', pageName: 'Home', path: '/' },
     { pageId: 'page-2', pageName: 'Events', path: '/events' },
   ],
+  forms: [
+    {
+      formKey: 'contact-form-1',
+      componentId: 'contact-form-1',
+      formType: 'contact-form',
+      title: 'Contact form',
+      pageId: 'page-1',
+      pageName: 'Home',
+      pageSlug: 'home',
+      pageType: 'static',
+      routePattern: '/',
+      path: '/',
+      live: true,
+      blocked: false,
+      sourceConfig: {},
+      operationalSettings: {
+        submitText: 'Get support',
+      },
+      publicRuntime: {
+        siteKey: 'site-1',
+        publicPath: '/',
+        publicUrl: 'https://mutualaid.org',
+        previewUrl: 'https://preview.mutualaid.org?preview=true&version=v-preview-1',
+        submissionPath: '/api/v2/public/forms/site-1/contact-form-1/submit',
+      },
+    },
+  ],
+  integrations: {
+    blocked: false,
+    publishStatus: 'published',
+    newsletter: {
+      provider: 'mautic',
+      configured: true,
+      selectedAudienceId: null,
+      selectedAudienceName: null,
+      selectedPresetId: null,
+      listPresets: [],
+      availableAudiences: [],
+      audienceCount: 0,
+      lastRefreshedAt: null,
+      lastSyncAt: null,
+    },
+    mailchimp: {
+      configured: false,
+      availableAudiences: [],
+      lastSyncAt: null,
+    },
+    mautic: {
+      configured: false,
+      availableAudiences: [],
+      lastSyncAt: null,
+    },
+    stripe: {
+      configured: false,
+      publishableKeyConfigured: false,
+    },
+    social: {
+      facebook: {
+        lastSyncAt: null,
+        lastSyncError: null,
+      },
+    },
+  },
 };
 
 type MockOverview = typeof overview;
@@ -120,6 +189,12 @@ describe('WebsitePublishingPage', () => {
       );
     });
 
+    expect(screen.getByText('Managed form publish verification')).toBeInTheDocument();
+    expect(screen.getByText('/api/v2/public/forms/site-1/contact-form-1/submit')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open live page' })).toHaveAttribute(
+      'href',
+      'https://mutualaid.org'
+    );
     expect(screen.getByText('Home')).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText('Site name'), {
       target: { value: 'Updated Site Name' },

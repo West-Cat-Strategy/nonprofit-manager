@@ -113,17 +113,21 @@ describe('EditorHeader', () => {
         backLabel="Back to builder"
         contextLabel="Website builder"
         statusLabel="Draft"
+        formsLabel="Managed forms: 1/2 live"
         previewHref="/preview/site-1"
         publishingHref="/websites/site-1/publishing"
+        followUpHref="/websites/site-1/forms"
+        followUpLabel="Open forms workspace"
       />
     );
 
     expect(screen.getByRole('button', { name: 'Back to builder' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Preview' })).toHaveAttribute('href', '/preview/site-1');
-    expect(screen.getByRole('link', { name: 'Publishing' })).toHaveAttribute(
+    expect(screen.getByText('Managed forms: 1/2 live')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open forms workspace' })).toHaveAttribute(
       'href',
-      '/websites/site-1/publishing'
+      '/websites/site-1/forms'
     );
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
@@ -145,8 +149,11 @@ describe('EditorHeader', () => {
         backLabel="Back to builder"
         contextLabel="Website builder"
         statusLabel="Draft"
+        formsLabel="Managed forms: 1/2 live"
         previewHref="/preview/site-1"
         publishingHref="/websites/site-1/publishing"
+        followUpHref="/websites/site-1/forms"
+        followUpLabel="Open forms workspace"
       />
     );
 

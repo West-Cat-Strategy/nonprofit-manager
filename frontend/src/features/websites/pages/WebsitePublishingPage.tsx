@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   WebsiteConsoleLayout,
+  WebsiteManagedFormVerificationPanel,
   WebsiteConsoleNotice,
   WebsiteConsoleStatePanel,
   WebsiteConsoleUrlAction,
 } from '../components';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
 import {
+  deriveWebsiteManagedFormVerification,
   deriveWebsiteManagementSnapshot,
   formatWebsiteConsoleDate,
   getWebsiteConsoleUrlTarget,
@@ -60,6 +62,7 @@ const WebsitePublishingPage: React.FC = () => {
   }
 
   const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
+  const managedFormVerification = deriveWebsiteManagedFormVerification(overview);
   const deploymentInfo = overview?.deployment || {
     primaryUrl: overview?.site.primaryUrl || '',
     previewUrl: null,
@@ -170,7 +173,8 @@ const WebsitePublishingPage: React.FC = () => {
     <WebsiteConsoleLayout
       siteId={siteId}
       overview={overview}
-      title="Manage publish/unpublish, routing targets, domains, and live-cache refresh."
+      title="Manage publish/unpublish, the one-form verification loop, domains, and live-cache refresh."
+      subtitle="Use the same publishing workspace to confirm preview/live URLs and the public submission contract before you share the site."
       actions={
         <div className="flex flex-wrap gap-3">
           <WebsiteConsoleUrlAction
@@ -180,12 +184,12 @@ const WebsitePublishingPage: React.FC = () => {
           >
             Open live site
           </WebsiteConsoleUrlAction>
-          <a
-            href={getWebsiteContentPath(siteId)}
+          <Link
+            to={getWebsiteContentPath(siteId)}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
           >
             Review content
-          </a>
+          </Link>
         </div>
       }
     >
@@ -224,6 +228,13 @@ const WebsitePublishingPage: React.FC = () => {
 
         {overview ? (
           <>
+            <WebsiteManagedFormVerificationPanel
+              siteId={siteId}
+              summary={managedFormVerification}
+              title="Managed form publish verification"
+              description="Use one managed public form as the concrete publish proof: confirm preview/live reachability, inspect the submission endpoint, and verify the public runtime before or after a release."
+            />
+
             <section className="rounded-3xl border border-app-border bg-app-surface p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="max-w-2xl">

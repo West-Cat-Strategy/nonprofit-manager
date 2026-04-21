@@ -160,6 +160,164 @@ const createTemplate = (): Template =>
     updatedAt: '2026-04-18T00:00:00.000Z',
   }) as Template;
 
+const createOverview = (overrides: Record<string, unknown> = {}) =>
+  ({
+    site: {
+      id: 'site-1',
+      templateId: 'template-1',
+      templateName: 'Advocacy',
+      templateStatus: 'published',
+      organizationId: 'org-1',
+      organizationName: 'Neighborhood Mutual Aid',
+      siteKind: 'organization',
+      migrationStatus: 'complete',
+      name: 'Neighborhood Mutual Aid',
+      status: 'published',
+      subdomain: 'mutual-aid',
+      customDomain: null,
+      sslEnabled: true,
+      sslCertificateExpiresAt: null,
+      publishedVersion: 'v1',
+      publishedAt: '2026-04-18T00:00:00.000Z',
+      primaryUrl: 'https://example.org',
+      previewUrl: 'https://preview.example.org',
+      analyticsEnabled: true,
+      blocked: false,
+      createdAt: '2026-04-18T00:00:00.000Z',
+      updatedAt: '2026-04-18T00:00:00.000Z',
+    },
+    template: {
+      id: 'template-1',
+      name: 'Advocacy',
+      status: 'published',
+      updatedAt: '2026-04-18T00:00:00.000Z',
+    },
+    deployment: {
+      primaryUrl: 'https://example.org',
+      previewUrl: 'https://preview.example.org',
+      domainStatus: 'configured',
+      sslStatus: 'active',
+    },
+    liveRoutes: [
+      {
+        pageId: 'page-home',
+        pageName: 'Home',
+        pageSlug: 'home',
+        pageType: 'static',
+        routePattern: '/',
+        path: '/',
+        live: true,
+      },
+    ],
+    draftRoutes: [
+      {
+        pageId: 'page-home',
+        pageName: 'Home',
+        pageSlug: 'home',
+        pageType: 'static',
+        routePattern: '/',
+        path: '/',
+        live: false,
+      },
+    ],
+    contentSummary: {
+      nativeNewsletters: 0,
+      syncedNewsletters: 0,
+      publishedNewsletters: 0,
+    },
+    forms: [
+      {
+        formKey: 'newsletter-1',
+        componentId: 'component-newsletter',
+        formType: 'newsletter-signup',
+        title: 'Newsletter signup',
+        pageId: 'page-home',
+        pageName: 'Home',
+        pageSlug: 'home',
+        pageType: 'static',
+        routePattern: '/',
+        path: '/',
+        live: false,
+        blocked: false,
+        sourceConfig: {},
+        operationalSettings: {},
+      },
+    ],
+    conversionMetrics: {
+      totalPageviews: 240,
+      uniqueVisitors: 120,
+      formSubmissions: 12,
+      eventRegistrations: 0,
+      donations: 0,
+      totalConversions: 12,
+      periodStart: '2026-04-01T00:00:00.000Z',
+      periodEnd: '2026-04-18T00:00:00.000Z',
+      recentConversions: [],
+    },
+    integrations: {
+      blocked: false,
+      publishStatus: 'published',
+      newsletter: {
+        provider: 'mautic',
+        configured: true,
+        selectedAudienceId: 'aud-1',
+        selectedAudienceName: 'Main supporters',
+        selectedPresetId: null,
+        listPresets: [],
+        availableAudiences: [],
+        audienceCount: 1,
+        lastRefreshedAt: null,
+        lastSyncAt: null,
+      },
+      mailchimp: {
+        configured: false,
+        availableAudiences: [],
+        lastSyncAt: null,
+      },
+      mautic: {
+        configured: false,
+        availableAudiences: [],
+        lastSyncAt: null,
+      },
+      stripe: {
+        configured: true,
+        publishableKeyConfigured: true,
+      },
+      social: {
+        facebook: {
+          lastSyncAt: null,
+          lastSyncError: null,
+        },
+      },
+    },
+    settings: {
+      siteId: 'site-1',
+      organizationId: 'org-1',
+      newsletter: {
+        provider: 'mautic',
+      },
+      mailchimp: {},
+      mautic: {},
+      stripe: {},
+      social: {
+        facebook: {},
+      },
+      formDefaults: {},
+      formOverrides: {},
+      conversionTracking: {
+        enabled: true,
+        events: {
+          formSubmit: true,
+          donation: true,
+          eventRegister: true,
+        },
+      },
+      createdAt: null,
+      updatedAt: null,
+    },
+    ...overrides,
+  }) as never;
+
 const createStore = () => {
   const templatesState = templateReducer(
     undefined,
@@ -204,22 +362,7 @@ describe('usePageEditorController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.get).mockResolvedValue({ data: template });
-    vi.mocked(websitesApiClient.getOverview).mockResolvedValue({
-      site: {
-        id: 'site-1',
-        name: 'Neighborhood Mutual Aid',
-        status: 'published',
-        blocked: false,
-        templateId: 'template-1',
-      },
-      template: {
-        id: 'template-1',
-      },
-      deployment: {
-        primaryUrl: 'https://example.org',
-        previewUrl: 'https://preview.example.org',
-      },
-    } as never);
+    vi.mocked(websitesApiClient.getOverview).mockResolvedValue(createOverview());
     vi.mocked(api.put).mockImplementation((url: unknown, payload: unknown) => {
       if (url === '/templates/template-1/pages/page-home') {
         const body = payload as { sections?: PageSection[] };
@@ -323,22 +466,40 @@ describe('usePageEditorController', () => {
 
   it('loads site context from a website builder route and resolves the linked template', async () => {
     const store = createStore();
-    vi.mocked(websitesApiClient.getOverview).mockResolvedValueOnce({
-      site: {
-        id: 'site-9',
-        name: 'Neighborhood Mutual Aid',
-        status: 'published',
-        blocked: false,
-        templateId: 'template-1',
-      },
-      template: {
-        id: 'template-1',
-      },
-      deployment: {
-        primaryUrl: 'https://example.org',
-        previewUrl: 'https://preview.example.org',
-      },
-    } as never);
+    vi.mocked(websitesApiClient.getOverview).mockResolvedValueOnce(
+      createOverview({
+        site: {
+          id: 'site-9',
+          templateId: 'template-1',
+          templateName: 'Advocacy',
+          templateStatus: 'published',
+          organizationId: 'org-1',
+          organizationName: 'Neighborhood Mutual Aid',
+          siteKind: 'organization',
+          migrationStatus: 'complete',
+          name: 'Neighborhood Mutual Aid',
+          status: 'published',
+          subdomain: 'mutual-aid',
+          customDomain: null,
+          sslEnabled: true,
+          sslCertificateExpiresAt: null,
+          publishedVersion: 'v1',
+          publishedAt: '2026-04-18T00:00:00.000Z',
+          primaryUrl: 'https://example.org',
+          previewUrl: 'https://preview.example.org',
+          analyticsEnabled: true,
+          blocked: false,
+          createdAt: '2026-04-18T00:00:00.000Z',
+          updatedAt: '2026-04-18T00:00:00.000Z',
+        },
+        deployment: {
+          primaryUrl: 'https://example.org',
+          previewUrl: 'https://preview.example.org',
+          domainStatus: 'configured',
+          sslStatus: 'active',
+        },
+      })
+    );
     const { result } = renderHook(() => usePageEditorController(), {
       wrapper: createWrapper(store, {
         initialEntries: ['/websites/site-9/builder'],
@@ -356,6 +517,15 @@ describe('usePageEditorController', () => {
         primaryUrl: 'https://example.org',
         previewUrl: 'https://preview.example.org',
         templateId: 'template-1',
+        managedForms: {
+          total: 1,
+          live: 0,
+        },
+        followUp: {
+          workspace: 'publishing',
+          href: '/websites/site-9/publishing',
+          label: 'Review publishing',
+        },
       })
     );
     expect(result.current.resolvedTemplateId).toBe('template-1');

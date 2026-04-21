@@ -120,6 +120,13 @@ const overview = {
       blocked: true,
       sourceConfig: {},
       operationalSettings: {},
+      publicRuntime: {
+        siteKey: 'site-1',
+        publicPath: '/',
+        publicUrl: 'https://mutualaid.org',
+        previewUrl: 'https://preview.mutualaid.org',
+        submissionPath: '/api/v2/public/forms/site-1/newsletter-1/submit',
+      },
     },
   ],
   conversionMetrics: {
@@ -218,6 +225,13 @@ describe('WebsiteOverviewPage', () => {
         type: 'websites/fetchConversionFunnel',
         payload: { siteId: 'site-1', windowDays: 30 },
       })
+    );
+    expect(screen.getByText('Managed form spotlight')).toBeInTheDocument();
+    expect(screen.getByText('Submission endpoint')).toBeInTheDocument();
+    expect(screen.getByText('/api/v2/public/forms/site-1/newsletter-1/submit')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open live page' })).toHaveAttribute(
+      'href',
+      'https://mutualaid.org'
     );
     expect(screen.getByText('Neighborhood Mutual Aid')).toBeInTheDocument();
     expect(screen.getByText('Recommended next step')).toBeInTheDocument();

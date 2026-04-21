@@ -34,6 +34,7 @@ type CorsOptionsInput = {
   corsOrigin?: string;
   fallbackOrigins: string[];
   onDeniedOrigin?: (origin: string) => void;
+  allowRequestHostOrigin?: boolean;
 };
 
 const resolveAllowedOrigins = (input: CorsOptionsInput): string[] => {
@@ -42,7 +43,24 @@ const resolveAllowedOrigins = (input: CorsOptionsInput): string[] => {
   return allowedOrigins;
 };
 
-const buildCorsOptions = (input: CorsOptionsInput, allowedOrigins: string[]): CorsOptions => ({
+const resolveRequestOrigin = (request: Pick<Request, 'protocol' | 'get'>): string | null => {
+  const forwardedProto = request.get('x-forwarded-proto')?.split(',')[0]?.trim();
+  const protocol = forwardedProto || request.protocol;
+  const forwardedHost = request.get('x-forwarded-host')?.split(',')[0]?.trim();
+  const host = forwardedHost || request.get('host')?.split(',')[0]?.trim();
+
+  if (!protocol || !host) {
+    return null;
+  }
+
+  return normalizeOrigin(`${protocol}://${host}`);
+};
+
+const buildCorsOptions = (
+  input: CorsOptionsInput,
+  allowedOrigins: string[],
+  requestOrigin?: string | null
+): CorsOptions => ({
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     if (!origin) {
       callback(null, true);
@@ -53,6 +71,7 @@ const buildCorsOptions = (input: CorsOptionsInput, allowedOrigins: string[]): Co
 
     if (
       input.nodeEnv === 'development' ||
+      (input.allowRequestHostOrigin && requestOrigin === normalizedOrigin) ||
       allowedOrigins.includes(normalizedOrigin) ||
       allowedOrigins.includes('*')
     ) {
@@ -96,8 +115,8 @@ export const createCorsOptionsDelegate = (
 ): CorsOptionsDelegate<Request> => {
   const allowedOrigins = resolveAllowedOrigins(input);
 
-  return (_req, callback) => {
-    callback(null, buildCorsOptions(input, allowedOrigins));
+  return (req, callback) => {
+    callback(null, buildCorsOptions(input, allowedOrigins, resolveRequestOrigin(req)));
   };
 };
 

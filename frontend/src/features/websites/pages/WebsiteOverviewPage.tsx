@@ -1,8 +1,14 @@
 import React, { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { WebsiteConsoleLayout, WebsiteConsoleStatePanel, WebsiteConsoleUrlAction } from '../components';
 import {
+  WebsiteConsoleLayout,
+  WebsiteConsoleStatePanel,
+  WebsiteConsoleUrlAction,
+  WebsiteManagedFormVerificationPanel,
+} from '../components';
+import {
+  deriveWebsiteManagedFormVerification,
   deriveWebsiteManagementSnapshot,
   formatWebsiteConsoleDate,
   getWebsiteConsoleUrlTarget,
@@ -58,6 +64,7 @@ const WebsiteOverviewPage: React.FC = () => {
   }
 
   const managementSnapshot = overview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(overview);
+  const managedFormVerification = deriveWebsiteManagedFormVerification(overview);
   const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
 
   const actions = overview ? (
@@ -100,8 +107,8 @@ const WebsiteOverviewPage: React.FC = () => {
     <WebsiteConsoleLayout
       siteId={siteId}
       overview={overview}
-      title="Monitor site health, conversions, routes, and linked nonprofit-manager behavior."
-      subtitle="Live events and newsletters continue to render at request time without a republish."
+      title="Monitor site health, the managed public form loop, conversions, and linked nonprofit-manager behavior."
+      subtitle="Use one shared publish/preview/runtime checklist before you share the public surface."
       actions={actions}
     >
       {isLoading && !overview ? (
@@ -129,6 +136,13 @@ const WebsiteOverviewPage: React.FC = () => {
         />
       ) : overview ? (
         <div className="space-y-6">
+          <WebsiteManagedFormVerificationPanel
+            siteId={siteId}
+            summary={managedFormVerification}
+            title="Managed form spotlight"
+            description="Keep one managed public form easy to verify from the console: open the preview or live page, confirm the publish state, and follow the submission endpoint through the public runtime."
+          />
+
           <section className="rounded-3xl border border-app-border bg-gradient-to-br from-app-surface to-app-surface-muted p-6 shadow-sm">
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)] xl:items-start">
               <div className="max-w-2xl">

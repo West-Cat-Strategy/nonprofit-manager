@@ -440,7 +440,7 @@ const smokeCases: SmokeCase[] = [
     name: 'dashboard',
     route: '/dashboard',
     page: <NeoBrutalistDashboard />,
-    heading: /workbench overview/i,
+    heading: /^workbench$/i,
     primaryActionPattern: /create intake/i,
     primaryActionRole: 'link',
     contractAssertion: async () => {

@@ -80,6 +80,22 @@ cd e2e && npm run test:docker:audit
 
 `make ci-full` already covers lint, typecheck, backend/frontend coverage, the host Playwright CI matrix, build, and the isolated Docker smoke gate. Add the Docker cross-browser and audit slices above when you need the broader Phase 5-style E2E review across both host and externally managed runtime contracts.
 
+## Targeted Website Publish-Loop Proof
+
+Use this narrower host run when the change is limited to the site-aware builder, website console, and one managed public form publish loop:
+
+```bash
+cd e2e
+bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium tests/publishing.spec.ts tests/public-website.spec.ts
+```
+
+This slice proves the current website/public-runtime contract without widening into the full browser matrix:
+
+- `tests/publishing.spec.ts`: site-aware builder context, website-console form discovery and overrides, publish controls, and the live public snapshot
+- `tests/public-website.spec.ts`: public runtime rendering and submission behavior for the published managed form plus the existing public website slices
+
+Pair that command with `make check-links` when the same task updates website or testing docs.
+
 ## Package-Level Commands
 
 ### Backend

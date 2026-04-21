@@ -1,6 +1,6 @@
 # Website Builder - Template System Documentation
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-20
 
 
 ## Overview
@@ -282,6 +282,12 @@ The drag-and-drop page editor allows visual customization of templates.
 ### Component Categories
 
 1. **Layout**: Columns, divider, spacer
+2. **Content**: Text, heading, image, video
+3. **Interactive**: Button, form, contact form
+4. **Media**: Gallery, map, video embed
+5. **Data**: Stats, testimonial, pricing, FAQ
+6. **Nonprofit**: Donation form, event list, team, newsletter signup
+7. **Special**: Hero, card, countdown, logo grid, social links
 
 ---
 
@@ -304,12 +310,15 @@ Published sites now have a staff-facing workspace separate from the template gal
 - `/website-builder` remains the template design entrypoint for browsing templates and editing standalone templates.
 - `/websites/:siteId/builder` opens the same editor against the site's linked template, adds a back-link to the site console, and shows the current site publish status.
 - Live events and newsletter collection routes still render from backend runtime data and do not require republish when the underlying nonprofit-manager records change.
-2. **Content**: Text, heading, image, video
-3. **Interactive**: Button, form, contact form
-4. **Media**: Gallery, map, video embed
-5. **Data**: Stats, testimonial, pricing, FAQ
-6. **Nonprofit**: Donation form, event list, team, newsletter signup
-7. **Special**: Hero, card, countdown, logo grid, social links
+
+### One-Form Verification Loop
+
+Use one managed public form as the quickest end-to-end proof that the site-aware builder, website console, publish step, and public runtime still agree.
+
+1. Open `/websites/:siteId/builder` to confirm you are editing the linked template in site context and that the builder shows the current site status.
+2. Open `/websites/:siteId/forms` to review the discovered CTA blocks from the template and save operational overrides such as button text, success copy, routing/account defaults, or tags.
+3. Open `/websites/:siteId/publishing` to verify the public URL, publish readiness, and live-route summary, then run a preview or live publish.
+4. Visit the preview or live public URL and submit the managed form through `/api/v2/public/forms/:siteKey/:formKey/submit` to confirm the published runtime reflects the saved override.
 
 ### Editing Workflow
 
@@ -344,14 +353,12 @@ Published sites now have a staff-facing workspace separate from the template gal
 
 ### Publishing Process
 
-1. **Prepare Template**:
-   - Complete all pages
-   - Test in preview mode
-   - Verify links and images
+1. **Create or update the site entry**:
+   - Create the site once from the template gallery or website list.
+   - Set the subdomain or custom domain in the publishing workspace when you know the public target.
 
-2. **Publish Site**:
    ```
-   POST /api/v2/sites/publish
+   POST /api/v2/sites
    {
      "templateId": "uuid",
      "name": "My Nonprofit Site",
@@ -359,9 +366,42 @@ Published sites now have a staff-facing workspace separate from the template gal
    }
    ```
 
-3. **Access Site**:
-   - Subdomain: `mynonprofit.npmsite.org`
-   - Custom domain: Configure DNS and SSL
+2. **Verify the managed public form from the website console**:
+   - Confirm the site-aware builder opens from `/websites/:siteId/builder`.
+   - Review discovered CTA blocks in `/websites/:siteId/forms`.
+   - Save any operational overrides before publish.
+
+   ```
+   GET /api/v2/sites/:siteId/forms
+
+   PUT /api/v2/sites/:siteId/forms/:formKey
+   {
+     "submitText": "Get Support",
+     "successMessage": "Thanks for reaching out.",
+     "defaultTags": ["website-intake"]
+   }
+   ```
+
+3. **Publish the site snapshot**:
+   ```
+   POST /api/v2/sites/publish
+   {
+     "siteId": "uuid",
+     "templateId": "uuid",
+     "target": "live"
+   }
+   ```
+
+4. **Verify the public runtime**:
+   - Open the live or preview URL from the publishing workspace.
+   - Confirm the published page snapshot renders the managed form with the latest button text and helper copy.
+   - Submit through `/api/v2/public/forms/:siteKey/:formKey/submit` and verify the public success state plus any downstream CRM/payment/newsletter effect you changed.
+
+### Publish Targets
+
+- `live`: updates the public site, version history, and live route summary for supporter traffic.
+- `preview`: creates or refreshes the shareable preview URL without replacing the existing live site.
+- Live event and newsletter collection blocks still fetch nonprofit-manager runtime data at request time, so those data-backed surfaces do not require republish for every underlying record change.
 
 ### Custom Domains
 
@@ -371,7 +411,8 @@ Add your own domain:
    ```
    POST /api/v2/sites/:siteId/domain
    {
-     "customDomain": "www.mynonprofit.org"
+     "domain": "www.mynonprofit.org",
+     "verificationMethod": "cname"
    }
    ```
 
@@ -393,7 +434,10 @@ Add your own domain:
 Roll back to previous versions:
 
 ```
-POST /api/v2/sites/:siteId/versions/:versionId/rollback
+POST /api/v2/sites/:siteId/rollback
+{
+  "version": "v1706123400000"
+}
 ```
 
 View version history:

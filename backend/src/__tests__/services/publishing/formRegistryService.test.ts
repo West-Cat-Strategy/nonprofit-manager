@@ -111,6 +111,34 @@ describe('FormRegistryService', () => {
       createdAt: '2026-03-06T00:00:00.000Z',
       updatedAt: '2026-03-06T00:00:00.000Z',
     },
+    {
+      id: 'page-3',
+      name: 'Volunteer',
+      slug: 'volunteer',
+      isHomepage: false,
+      pageType: 'static',
+      routePattern: '/volunteer',
+      seo: {
+        title: 'Volunteer',
+        description: 'Join the mission',
+      },
+      sections: [
+        {
+          id: 'section-3',
+          name: 'Volunteer CTA',
+          components: [
+            {
+              id: 'volunteer-1',
+              type: 'volunteer-interest-form',
+              heading: 'Volunteer with us',
+              submitText: 'Share your interest',
+            } as never,
+          ],
+        },
+      ],
+      createdAt: '2026-03-06T00:00:00.000Z',
+      updatedAt: '2026-03-06T00:00:00.000Z',
+    },
   ];
 
   it('extracts connected forms from nested component trees and applies override precedence', () => {
@@ -128,16 +156,30 @@ describe('FormRegistryService', () => {
           sections: [],
           seo: {},
         },
-      ]
+      ],
+      false,
+      {
+        siteKey: 'site-1',
+        liveBaseUrl: 'https://public.example.org',
+        livePreviewBaseUrl: 'https://public.example.org?preview=true&version=v-live-1',
+        previewBaseUrl: 'https://public.example.org?preview=true&version=preview-v-1',
+      }
     );
 
-    expect(definitions).toHaveLength(3);
+    expect(definitions).toHaveLength(4);
     expect(definitions[0]).toMatchObject({
       formKey: 'newsletter-1',
       formType: 'newsletter-signup',
       path: '/',
       live: true,
       title: 'Stay close',
+      publicRuntime: {
+        siteKey: 'site-1',
+        publicPath: '/',
+        publicUrl: 'https://public.example.org',
+        previewUrl: 'https://public.example.org?preview=true&version=preview-v-1',
+        submissionPath: '/api/v2/public/forms/site-1/newsletter-1/submit',
+      },
     });
     expect(definitions[0]?.operationalSettings).toMatchObject({
       successMessage: 'Default success',
@@ -157,6 +199,26 @@ describe('FormRegistryService', () => {
       formType: 'event-registration',
       path: '/events/:slug',
       live: false,
+      publicRuntime: {
+        siteKey: 'site-1',
+        publicPath: '/events/:slug',
+        publicUrl: null,
+        previewUrl: null,
+        submissionPath: '/api/v2/public/forms/site-1/registration-1/submit',
+      },
+    });
+    expect(definitions[3]).toMatchObject({
+      formKey: 'volunteer-1',
+      formType: 'volunteer-interest-form',
+      path: '/volunteer',
+      live: false,
+      publicRuntime: {
+        siteKey: 'site-1',
+        publicPath: '/volunteer',
+        publicUrl: null,
+        previewUrl: 'https://public.example.org/volunteer?preview=true&version=preview-v-1',
+        submissionPath: '/api/v2/public/forms/site-1/volunteer-1/submit',
+      },
     });
   });
 });

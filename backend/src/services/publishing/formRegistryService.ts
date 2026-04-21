@@ -5,6 +5,7 @@ import type {
   WebsiteSiteSettings,
 } from '@app-types/publishing';
 import type { PageComponent, TemplatePage } from '@app-types/websiteBuilder';
+import { buildPublicWebsiteFormSubmissionPath } from './publicWebsiteFormServiceHelpers';
 import { mergeWebsiteFormOperationalConfig } from './siteSettingsService';
 
 const MANAGED_FORM_TYPES = new Set<WebsiteManagedFormType>([
@@ -30,6 +31,35 @@ type RoutablePage = {
 
 const getPagePath = (page: RoutablePage): string =>
   normalizePath(page.routePattern, page.isHomepage ? '/' : `/${page.slug}`);
+
+const PATH_PARAMETER_PATTERN = /(^|\/):[^/]+/;
+
+const buildPageUrl = (baseUrl: string | null | undefined, path: string): string | null => {
+  if (!baseUrl || PATH_PARAMETER_PATTERN.test(path)) {
+    return null;
+  }
+
+  try {
+    const url = new URL(baseUrl);
+    url.pathname = path;
+    const rendered = url.toString();
+
+    if (path === '/') {
+      return rendered.replace(/\/(?=\?|$)/, '');
+    }
+
+    return rendered.replace(/\/$/, '');
+  } catch {
+    return null;
+  }
+};
+
+type WebsiteFormRuntimeContext = {
+  siteKey: string;
+  liveBaseUrl: string | null;
+  livePreviewBaseUrl: string | null;
+  previewBaseUrl: string | null;
+};
 
 const humanizeFormType = (formType: WebsiteManagedFormType): string => {
   switch (formType) {
@@ -113,10 +143,12 @@ export class FormRegistryService {
     pages: TemplatePage[],
     settings: WebsiteSiteSettings,
     livePages: PublishedPage[] = [],
-    blocked: boolean = false
+    blocked: boolean = false,
+    runtimeContext?: WebsiteFormRuntimeContext
   ): WebsiteFormDefinition[] {
     const livePathSet = new Set(livePages.map((page) => getPagePath(page)));
     const definitions: WebsiteFormDefinition[] = [];
+    const siteKey = runtimeContext?.siteKey || settings.siteId;
 
     for (const page of pages) {
       const routePath = getPagePath(page);
@@ -125,6 +157,12 @@ export class FormRegistryService {
           if (!isManagedForm(component)) {
             return;
           }
+
+          const live = livePathSet.has(routePath);
+          const publicUrl = live ? buildPageUrl(runtimeContext?.liveBaseUrl, routePath) : null;
+          const previewBaseUrl =
+            runtimeContext?.previewBaseUrl ||
+            (live ? runtimeContext?.livePreviewBaseUrl : null);
 
           definitions.push({
             formKey: component.id,
@@ -139,7 +177,7 @@ export class FormRegistryService {
             collection: page.collection,
             routePattern: routePath,
             path: routePath,
-            live: livePathSet.has(routePath),
+            live,
             blocked,
             sourceConfig: { ...(component as unknown as Record<string, unknown>) },
             operationalSettings: mergeWebsiteFormOperationalConfig(
@@ -147,6 +185,13 @@ export class FormRegistryService {
               settings,
               component.id
             ),
+            publicRuntime: {
+              siteKey,
+              publicPath: routePath,
+              publicUrl,
+              previewUrl: buildPageUrl(previewBaseUrl, routePath),
+              submissionPath: buildPublicWebsiteFormSubmissionPath(siteKey, component.id),
+            },
           });
         });
       }

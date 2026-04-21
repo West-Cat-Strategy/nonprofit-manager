@@ -19,7 +19,7 @@ import {
 
 type FormDependencyKey = 'crm' | 'newsletter' | 'stripe' | 'events';
 
-interface FormSurfaceMeta {
+export interface FormSurfaceMeta {
   label: string;
   description: string;
   dependencyLabel: string;
@@ -63,6 +63,170 @@ const FORM_SURFACE_META: Record<WebsiteManagedFormType, FormSurfaceMeta> = {
     dependencyLabel: 'Events',
     dependencyKey: 'events',
   },
+};
+
+const PRIMARY_MANAGED_FORM_PRIORITY: WebsiteManagedFormType[] = [
+  'contact-form',
+  'newsletter-signup',
+  'donation-form',
+  'volunteer-interest-form',
+  'referral-form',
+  'event-registration',
+];
+
+const PUBLIC_SUBMISSION_FORM_TYPES = new Set<WebsiteManagedFormType>([
+  'contact-form',
+  'newsletter-signup',
+  'donation-form',
+  'volunteer-interest-form',
+  'referral-form',
+]);
+
+type FormMetadataRecord = Record<string, unknown>;
+
+export interface WebsiteManagedFormVerificationSummary {
+  form: WebsiteFormDefinition;
+  surfaceMeta: FormSurfaceMeta;
+  dependency: {
+    label: string;
+    ready: boolean;
+    detail: string;
+  };
+  readiness: {
+    launchReady: boolean;
+    preview: boolean;
+    live: boolean;
+    submission: boolean;
+    dependency: boolean;
+  };
+  publishState: 'draft' | 'preview' | 'live' | 'live-preview';
+  publishStateLabel: string;
+  publishStateDetail: string;
+  launchStateLabel: string;
+  launchStateDetail: string;
+  previewPageUrl: string | null;
+  livePageUrl: string | null;
+  submissionEndpoint: string | null;
+  submissionMethod: string;
+}
+
+const isRecord = (value: unknown): value is FormMetadataRecord =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const getNestedRecord = (
+  value: FormMetadataRecord | null,
+  key: string
+): FormMetadataRecord | null => {
+  if (!value) return null;
+  const nested = value[key];
+  return isRecord(nested) ? nested : null;
+};
+
+const getMetadataRecords = (form: WebsiteFormDefinition): FormMetadataRecord[] => {
+  const formRecord = form as unknown as FormMetadataRecord;
+  const sourceConfig = isRecord(form.sourceConfig) ? form.sourceConfig : null;
+  const candidates = [
+    getNestedRecord(formRecord, 'runtimeMetadata'),
+    getNestedRecord(formRecord, 'runtime'),
+    getNestedRecord(formRecord, 'publicSurface'),
+    getNestedRecord(formRecord, 'verification'),
+    getNestedRecord(formRecord, 'publicRuntime'),
+    getNestedRecord(formRecord, 'managedRuntime'),
+    sourceConfig,
+    getNestedRecord(sourceConfig, 'runtimeMetadata'),
+    getNestedRecord(sourceConfig, 'runtime'),
+    getNestedRecord(sourceConfig, 'publicSurface'),
+    getNestedRecord(sourceConfig, 'verification'),
+  ];
+
+  return [formRecord, ...candidates.filter((candidate): candidate is FormMetadataRecord => Boolean(candidate))];
+};
+
+const pickStringCandidate = (
+  records: FormMetadataRecord[],
+  keys: string[]
+): string | null => {
+  for (const record of records) {
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
+  }
+  return null;
+};
+
+const pickBooleanCandidate = (
+  records: FormMetadataRecord[],
+  keys: string[]
+): boolean | null => {
+  for (const record of records) {
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === 'boolean') {
+        return value;
+      }
+    }
+  }
+  return null;
+};
+
+const normalizePublicPath = (value?: string | null): string => {
+  if (!value) return '/';
+  const [pathname] = value.split('?');
+  const trimmed = pathname.trim();
+  if (!trimmed) return '/';
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+};
+
+const buildPublicSurfaceUrl = (
+  baseUrl: string | null | undefined,
+  path: string | null | undefined
+): string | null => {
+  if (!baseUrl) return null;
+
+  try {
+    const url = new URL(baseUrl);
+
+    if (path && path.startsWith('?')) {
+      url.search = path;
+      return url.toString();
+    }
+
+    if (path) {
+      const [pathname, search] = path.split('?');
+      url.pathname = normalizePublicPath(pathname);
+      if (search) {
+        url.search = `?${search}`;
+      }
+      return url.toString();
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
+
+const resolveRuntimeUrl = (
+  candidate: string | null,
+  baseUrl: string | null | undefined,
+  fallbackPath: string
+): string | null => {
+  if (!candidate) {
+    return buildPublicSurfaceUrl(baseUrl, fallbackPath);
+  }
+
+  if (/^https?:\/\//i.test(candidate)) {
+    return candidate;
+  }
+
+  if (candidate.startsWith('/') || candidate.startsWith('?')) {
+    return buildPublicSurfaceUrl(baseUrl, candidate);
+  }
+
+  return buildPublicSurfaceUrl(baseUrl, fallbackPath);
 };
 
 const toDateValue = (value: Date | string | null | undefined): Date | null => {
@@ -324,6 +488,179 @@ export const getFormDependencyState = (
     label: meta.dependencyLabel,
     ready,
     detail,
+  };
+};
+
+export const pickManagedWebsiteForm = (
+  forms: WebsiteFormDefinition[]
+): WebsiteFormDefinition | null => {
+  if (forms.length === 0) return null;
+
+  const flaggedPrimary = forms.find((form) => {
+    const metadataRecords = getMetadataRecords(form);
+    return pickBooleanCandidate(metadataRecords, [
+      'primary',
+      'isPrimary',
+      'primaryForm',
+      'isPrimaryManagedForm',
+      'verificationFocus',
+      'focus',
+    ]);
+  });
+
+  if (flaggedPrimary) {
+    return flaggedPrimary;
+  }
+
+  return [...forms].sort((left, right) => {
+    if (left.live !== right.live) {
+      return Number(right.live) - Number(left.live);
+    }
+
+    const leftPriority = PRIMARY_MANAGED_FORM_PRIORITY.indexOf(left.formType);
+    const rightPriority = PRIMARY_MANAGED_FORM_PRIORITY.indexOf(right.formType);
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
+    return left.title.localeCompare(right.title);
+  })[0]!;
+};
+
+export const deriveWebsiteManagedFormVerification = (
+  overview: WebsiteOverviewSummary | null,
+  formOverride?: WebsiteFormDefinition | null
+): WebsiteManagedFormVerificationSummary | null => {
+  if (!overview) return null;
+
+  const form = formOverride ?? pickManagedWebsiteForm(overview.forms || []);
+  if (!form) return null;
+
+  const metadataRecords = getMetadataRecords(form);
+  const surfaceMeta = getFormSurfaceMeta(form.formType);
+  const dependency = getFormDependencyState(form, overview.integrations || EMPTY_INTEGRATIONS);
+  const previewBaseUrl = overview.deployment?.previewUrl || overview.site.previewUrl;
+  const liveBaseUrl = overview.deployment?.primaryUrl || overview.site.primaryUrl;
+
+  const previewPageUrl = resolveRuntimeUrl(
+    pickStringCandidate(metadataRecords, [
+      'previewPageUrl',
+      'previewUrl',
+      'previewHref',
+      'previewLink',
+      'verificationPreviewUrl',
+    ]),
+    previewBaseUrl,
+    form.path
+  );
+  const livePageUrl = resolveRuntimeUrl(
+    pickStringCandidate(metadataRecords, [
+      'livePageUrl',
+      'publicUrl',
+      'liveUrl',
+      'liveHref',
+      'publishedUrl',
+      'verificationLiveUrl',
+    ]),
+    form.live ? liveBaseUrl : null,
+    form.path
+  );
+
+  const supportsPublicSubmission = PUBLIC_SUBMISSION_FORM_TYPES.has(form.formType);
+  const submissionEndpoint =
+    pickStringCandidate(metadataRecords, [
+      'submissionEndpoint',
+      'submitEndpoint',
+      'submissionUrl',
+      'submitUrl',
+      'formAction',
+      'action',
+    ]) ||
+    (supportsPublicSubmission
+      ? `/api/v2/public/forms/${encodeURIComponent(overview.site.id)}/${encodeURIComponent(
+          form.componentId
+        )}/submit`
+      : null);
+  const submissionMethod =
+    (pickStringCandidate(metadataRecords, ['submissionMethod', 'submitMethod', 'method']) || 'POST')
+      .toUpperCase();
+
+  const hasPreview = Boolean(previewPageUrl);
+  const hasLive = Boolean(livePageUrl);
+  const hasSubmission = Boolean(submissionEndpoint);
+  const launchReady = dependency.ready && hasSubmission && (hasPreview || hasLive);
+
+  let publishState: WebsiteManagedFormVerificationSummary['publishState'] = 'draft';
+  if (hasLive && hasPreview) {
+    publishState = 'live-preview';
+  } else if (hasLive) {
+    publishState = 'live';
+  } else if (hasPreview) {
+    publishState = 'preview';
+  }
+
+  const publishStateLabel =
+    publishState === 'live-preview'
+      ? 'Live + preview'
+      : publishState === 'live'
+        ? 'Live'
+        : publishState === 'preview'
+          ? 'Preview only'
+          : 'Draft only';
+
+  const publishStateDetail =
+    publishState === 'live-preview'
+      ? 'This managed CTA is available on the live site and can still be verified through preview.'
+      : publishState === 'live'
+        ? 'This managed CTA is currently exposed on the live public site.'
+        : publishState === 'preview'
+          ? 'This managed CTA is available in preview before the next live publish.'
+          : 'Publish a preview or live version to expose this CTA on the public surface.';
+
+  const launchStateLabel = launchReady
+    ? hasLive
+      ? 'Ready to verify'
+      : 'Preview ready'
+    : !dependency.ready
+      ? `${dependency.label} needed`
+      : !hasPreview && !hasLive
+        ? 'Publish needed'
+        : !hasSubmission
+          ? 'Submission route unavailable'
+          : 'Needs attention';
+
+  const launchStateDetail = launchReady
+    ? hasLive
+      ? 'Open the live page or preview page, submit the form, and confirm the public workflow end to end.'
+      : 'Use the preview page to test the managed form before the next live publish.'
+    : !dependency.ready
+      ? dependency.detail
+      : !hasPreview && !hasLive
+        ? 'Publish a preview or live version so the focus CTA can be opened from the public surface.'
+        : !hasSubmission
+          ? 'The managed public submission endpoint is not available yet for this CTA.'
+          : 'Review the preview/live page and submission path before continuing.';
+
+  return {
+    form,
+    surfaceMeta,
+    dependency,
+    readiness: {
+      launchReady,
+      preview: hasPreview,
+      live: hasLive,
+      submission: hasSubmission,
+      dependency: dependency.ready,
+    },
+    publishState,
+    publishStateLabel,
+    publishStateDetail,
+    launchStateLabel,
+    launchStateDetail,
+    previewPageUrl,
+    livePageUrl,
+    submissionEndpoint,
+    submissionMethod,
   };
 };
 

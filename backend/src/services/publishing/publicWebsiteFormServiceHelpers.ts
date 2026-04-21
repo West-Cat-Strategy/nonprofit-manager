@@ -21,6 +21,12 @@ export type SupportedPublicWebsiteFormType =
 export const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+export const buildPublicWebsiteFormSubmissionPath = (
+  siteKey: string,
+  formKey: string
+): string =>
+  `/api/v2/public/forms/${encodeURIComponent(siteKey)}/${encodeURIComponent(formKey)}/submit`;
+
 export const normalizePhone = (value: string | undefined): string | null => {
   if (!value) return null;
   const digits = value.replace(/\D/g, '');

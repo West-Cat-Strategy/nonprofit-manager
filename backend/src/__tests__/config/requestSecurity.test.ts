@@ -123,6 +123,28 @@ describe('requestSecurity helpers', () => {
     expect(denied.error?.message).toBe('Not allowed by CORS');
   });
 
+  it('allows request-host origins when explicitly enabled for the public runtime', async () => {
+    const delegate = createCorsOptionsDelegate({
+      nodeEnv: 'production',
+      corsOrigin: 'https://admin.westcat.ca',
+      fallbackOrigins: ['http://localhost:5173'],
+      allowRequestHostOrigin: true,
+    });
+
+    const allowed = await invokeDelegateOriginCheck(
+      delegate,
+      {
+        protocol: 'https',
+        headers: {
+          host: 'community.westcat.ca',
+        },
+      },
+      'https://community.westcat.ca'
+    );
+
+    expect(allowed).toEqual({ allowed: true, error: null });
+  });
+
   it('parses trust proxy values safely', () => {
     expect(resolveTrustProxy(undefined)).toBe(false);
     expect(resolveTrustProxy('true')).toBe(true);

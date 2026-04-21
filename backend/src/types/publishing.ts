@@ -408,6 +408,14 @@ export interface WebsiteFormOperationalConfig {
   trackingEnabled?: boolean;
 }
 
+export interface WebsiteFormPublicRuntime {
+  siteKey: string;
+  publicPath: string;
+  publicUrl: string | null;
+  previewUrl: string | null;
+  submissionPath: string;
+}
+
 export interface WebsiteFormDefinition {
   formKey: string;
   componentId: string;
@@ -425,6 +433,7 @@ export interface WebsiteFormDefinition {
   blocked: boolean;
   sourceConfig: Record<string, unknown>;
   operationalSettings: WebsiteFormOperationalConfig;
+  publicRuntime: WebsiteFormPublicRuntime;
 }
 
 export interface WebsiteMailchimpSettings {

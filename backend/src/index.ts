@@ -160,7 +160,28 @@ const corsOptions = createCorsOptionsDelegate({
     logger.warn(`CORS request from unauthorized origin: ${origin}`);
   },
 });
-app.use(cors(corsOptions));
+const publicSiteCorsOptions = createCorsOptionsDelegate({
+  nodeEnv: process.env.NODE_ENV,
+  corsOrigin: process.env.CORS_ORIGIN,
+  fallbackOrigins: ['http://localhost:5173'],
+  allowRequestHostOrigin: true,
+  onDeniedOrigin: (origin) => {
+    logger.warn(`CORS request from unauthorized public-site origin: ${origin}`);
+  },
+});
+const apiCorsMiddleware = cors(corsOptions);
+const publicSiteCorsMiddleware = cors(publicSiteCorsOptions);
+const isPublicSiteCorsPath = (path: string): boolean =>
+  path.startsWith('/api/v2/public/') || /^\/api\/v2\/sites\/[^/]+\/track$/.test(path);
+
+app.use((req, res, next) => {
+  if (isPublicSiteCorsPath(req.path)) {
+    publicSiteCorsMiddleware(req, res, next);
+    return;
+  }
+
+  apiCorsMiddleware(req, res, next);
+});
 
 // Stripe webhook needs raw body - must be before json parsing
 app.use('/api/v2/payments/webhook', express.raw({ type: 'application/json' }));

@@ -1,15 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import type { PaymentProvider } from '../../../types/payment';
 import {
   WebsiteConsoleLayout,
+  WebsiteManagedFormVerificationPanel,
   WebsiteConsoleNotice,
   WebsiteConsoleStatePanel,
   WebsiteConsoleUrlAction,
 } from '../components';
 import useWebsiteOverviewLoader from '../hooks/useWebsiteOverviewLoader';
 import {
+  deriveWebsiteManagedFormVerification,
   deriveWebsiteManagementSnapshot,
   getFormDependencyState,
   getFormSurfaceMeta,
@@ -73,16 +75,9 @@ const WebsiteFormsPage: React.FC = () => {
   const overview = useWebsiteOverviewLoader(siteId, 30);
   const forms = useAppSelector(selectWebsiteForms);
   const integrations = useAppSelector(selectWebsiteIntegrations);
-  const { isSaving, isLoading, error } = useAppSelector((state) => ({
-    isSaving: state.websites.isSaving,
-    isLoading: state.websites.isLoading,
-    error: state.websites.error,
-  }));
-  const managementSnapshot =
-    overview?.managementSnapshot ??
-    deriveWebsiteManagementSnapshot(
-      overview ? ({ ...overview, forms } as WebsiteOverviewSummary) : overview
-    );
+  const isSaving = useAppSelector((state) => state.websites.isSaving);
+  const isLoading = useAppSelector((state) => state.websites.isLoading);
+  const error = useAppSelector((state) => state.websites.error);
   const previewHref = getWebsiteConsoleUrlTarget(overview?.deployment);
   const [drafts, setDrafts] = useState<Record<string, WebsiteFormOperationalConfig>>({});
   const [notice, setNotice] = useState<{
@@ -103,6 +98,12 @@ const WebsiteFormsPage: React.FC = () => {
   }, [forms]);
 
   const integrationStatus = integrations ?? overview?.integrations ?? emptyIntegrationStatus;
+  const formsOverview = overview
+    ? ({ ...overview, forms, integrations: integrationStatus } as WebsiteOverviewSummary)
+    : null;
+  const managementSnapshot =
+    formsOverview?.managementSnapshot ?? deriveWebsiteManagementSnapshot(formsOverview);
+  const managedFormVerification = deriveWebsiteManagedFormVerification(formsOverview);
 
   const groupedForms = useMemo(() => {
     const groups = new Map<string, WebsiteFormDefinition[]>();
@@ -152,8 +153,8 @@ const WebsiteFormsPage: React.FC = () => {
     <WebsiteConsoleLayout
       siteId={siteId}
       overview={overview}
-      title="Manage connected public form blocks discovered from the linked template."
-      subtitle="Changes here merge over the builder-authored component config and affect public submissions immediately."
+      title="Manage connected public form blocks, launch readiness, and the one-form verification loop."
+      subtitle="Changes here merge over the builder-authored component config while keeping preview, live, and submission behavior visible."
       actions={
         <div className="flex flex-wrap gap-3">
           <WebsiteConsoleUrlAction
@@ -163,12 +164,12 @@ const WebsiteFormsPage: React.FC = () => {
           >
             Open preview
           </WebsiteConsoleUrlAction>
-          <a
-            href={getWebsiteBuilderPath(siteId)}
+          <Link
+            to={getWebsiteBuilderPath(siteId)}
             className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
           >
             Open builder
-          </a>
+          </Link>
         </div>
       }
     >
@@ -188,6 +189,13 @@ const WebsiteFormsPage: React.FC = () => {
             onDismiss={() => setNotice(null)}
           />
         ) : null}
+
+        <WebsiteManagedFormVerificationPanel
+          siteId={siteId}
+          summary={managedFormVerification}
+          title="Managed form launch verification"
+          description="Keep one managed public form easy to verify where you edit it: confirm its launch readiness, open the preview or live page, and follow the submission endpoint before you publish again."
+        />
 
         <section className="rounded-3xl border border-app-border bg-app-surface p-5">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

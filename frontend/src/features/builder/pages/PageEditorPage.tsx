@@ -23,6 +23,9 @@ import {
   getBuilderBackLabel,
   getBuilderBackTarget,
   getBuilderContextLabel,
+  getBuilderFollowUpHref,
+  getBuilderFollowUpLabel,
+  getBuilderFormsLabel,
   getBuilderStatusLabel,
 } from '../lib/siteAwareEditor';
 import { getTemplateGalleryPath } from '../lib/builderRouteTargets';
@@ -151,7 +154,10 @@ const PageEditor: React.FC = () => {
           backLabel={getBuilderBackLabel(siteContext)}
           contextLabel={getBuilderContextLabel(siteContext)}
           statusLabel={getBuilderStatusLabel(siteContext)}
+          formsLabel={getBuilderFormsLabel(siteContext)}
           previewHref={siteContext?.previewUrl || siteContext?.primaryUrl}
+          followUpHref={getBuilderFollowUpHref(siteContext)}
+          followUpLabel={getBuilderFollowUpLabel(siteContext)}
           publishingHref={siteContext ? getWebsitePublishingPath(siteContext.siteId) : undefined}
         />
 

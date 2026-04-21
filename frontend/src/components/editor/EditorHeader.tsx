@@ -28,8 +28,11 @@ interface EditorHeaderProps {
   backLabel?: string;
   contextLabel?: string;
   statusLabel?: string;
+  formsLabel?: string;
   previewHref?: string;
   publishingHref?: string;
+  followUpHref?: string;
+  followUpLabel?: string;
 }
 
 const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -52,8 +55,11 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   backLabel = 'Back',
   contextLabel,
   statusLabel,
+  formsLabel,
   previewHref,
   publishingHref,
+  followUpHref,
+  followUpLabel,
 }) => {
   // Format last saved time
   const formatLastSaved = (date: Date | null | undefined) => {
@@ -65,6 +71,9 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     return date.toLocaleTimeString();
   };
+  const secondaryActionHref = followUpHref || publishingHref;
+  const secondaryActionLabel = followUpLabel || (publishingHref ? 'Publishing' : undefined);
+
   return (
     <header className="sticky top-0 z-40 border-b border-app-border bg-app-surface/95 backdrop-blur supports-[backdrop-filter]:bg-app-surface/90">
       <div className="mx-auto grid max-w-[100vw] gap-4 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:px-6">
@@ -138,6 +147,12 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
             <span className="inline-flex items-center rounded-full border border-app-border bg-app-surface-muted px-3 py-1 text-xs font-medium text-app-text-muted">
               {template.status}
             </span>
+
+            {formsLabel ? (
+              <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-900">
+                {formsLabel}
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -260,12 +275,12 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
             </a>
           ) : null}
 
-          {publishingHref ? (
+          {secondaryActionHref && secondaryActionLabel ? (
             <a
-              href={publishingHref}
+              href={secondaryActionHref}
               className="rounded-full border border-app-border bg-app-surface px-4 py-2 text-sm font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted"
             >
-              Publishing
+              {secondaryActionLabel}
             </a>
           ) : null}
 

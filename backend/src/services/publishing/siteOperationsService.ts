@@ -36,6 +36,17 @@ import {
   websiteSiteSettingsService,
 } from './siteSettingsService';
 
+const buildVersionedPreviewUrl = (primaryUrl: string, version: string): string => {
+  try {
+    const url = new URL(primaryUrl);
+    url.searchParams.set('preview', 'true');
+    url.searchParams.set('version', version);
+    return url.toString().replace(/\/(?=\?|$)/, '');
+  } catch {
+    return `${primaryUrl.replace(/\/$/, '')}?preview=true&version=${encodeURIComponent(version)}`;
+  }
+};
+
 export class SiteOperationsService {
   private readonly siteManagement: SiteManagementService;
   private readonly siteAnalytics: SiteAnalyticsService;
@@ -116,15 +127,41 @@ export class SiteOperationsService {
     };
   }
 
+  private async loadLatestPreviewVersion(siteId: string): Promise<string | null> {
+    const result = await this.pool.query<{ version: string }>(
+      `SELECT version
+       FROM site_versions
+       WHERE site_id = $1
+         AND version LIKE 'preview-v%'
+       ORDER BY published_at DESC
+       LIMIT 1`,
+      [siteId]
+    );
+
+    return result.rows[0]?.version || null;
+  }
+
   private async loadFormsForSite(site: PublishedSite): Promise<WebsiteFormDefinition[]> {
     const settings = await this.siteSettings.getSettingsForSite(site);
     const { pages } = await this.loadTemplateSource(site);
+    const primaryUrl = this.siteManagement.getSiteUrl(site);
+    const latestPreviewVersion = await this.loadLatestPreviewVersion(site.id);
 
     return this.formRegistry.extract(
       pages,
       settings,
       site.publishedContent?.pages || [],
-      site.migrationStatus === 'needs_assignment'
+      site.migrationStatus === 'needs_assignment',
+      {
+        siteKey: site.id,
+        liveBaseUrl: site.status === 'published' ? primaryUrl : null,
+        livePreviewBaseUrl: site.publishedVersion
+          ? buildVersionedPreviewUrl(primaryUrl, site.publishedVersion)
+          : null,
+        previewBaseUrl: latestPreviewVersion
+          ? buildVersionedPreviewUrl(primaryUrl, latestPreviewVersion)
+          : null,
+      }
     );
   }
 

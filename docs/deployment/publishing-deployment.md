@@ -1,6 +1,6 @@
 # Website Publishing & Deployment Guide
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-20
 
 This guide covers the website publishing system, including custom domains, SSL certificates, and version management.
 
@@ -15,9 +15,62 @@ Base URL choices for local testing:
 
 The publishing system allows users to:
 - Publish templates as live websites
+- Verify one managed public form before or after a live publish
 - Configure custom domains with DNS verification
 - Manage SSL certificates
 - Rollback to previous versions
+
+## Managed Public Form Publish Loop
+
+Use this loop when you want the smallest high-confidence proof that the builder, website console, publish action, and public runtime still line up for a live site.
+
+1. Create or reuse the site entry:
+
+```bash
+POST /api/v2/sites
+Content-Type: application/json
+
+{
+  "templateId": "uuid...",
+  "name": "Westside Intake Site",
+  "subdomain": "westside-intake"
+}
+```
+
+2. Inspect the discovered public form blocks and save any site-level operational override:
+
+```bash
+GET /api/v2/sites/:siteId/forms
+
+PUT /api/v2/sites/:siteId/forms/:formKey
+Content-Type: application/json
+
+{
+  "submitText": "Request Support",
+  "successMessage": "Thanks for reaching out.",
+  "defaultTags": ["website-intake"]
+}
+```
+
+3. Publish the linked template snapshot:
+
+```bash
+POST /api/v2/sites/publish
+Content-Type: application/json
+
+{
+  "siteId": "uuid...",
+  "templateId": "uuid...",
+  "target": "live"
+}
+```
+
+4. Verify the public runtime:
+   - Open the live or preview URL surfaced by `/api/v2/sites/:siteId/deployment`.
+   - Confirm the public page renders the updated button text or helper copy.
+   - Submit through `/api/v2/public/forms/:siteKey/:formKey/submit`.
+
+The public runtime merges the saved site-level operational settings over the builder-authored form block, so the published form should reflect the latest console override without changing route families.
 
 ## API Endpoints
 

@@ -24,6 +24,7 @@ import {
 import { escapeHtml } from '@services/site-generator/escapeHtml';
 import { generateComponentHtml } from '@services/site-generator/componentRenderer';
 import { sanitizeNewsletterHtml } from '@services/publishing/newsletterHtmlSanitizer';
+import { buildPublicWebsiteFormSubmissionPath } from '@services/publishing/publicWebsiteFormServiceHelpers';
 import { sanitizeRenderableUrl } from '@services/site-generator/urlSanitizer';
 import { PublicSiteRouteResolver } from './routeResolver';
 import {
@@ -82,7 +83,7 @@ export class PublicSiteRenderer {
       <form
         class="npm-public-form npm-public-form--${escapeHtml(component.type)}"
         data-public-site-form="true"
-        action="/api/v2/public/forms/${encodeURIComponent(site.id)}/${encodeURIComponent(component.id)}/submit"
+        action="${escapeHtml(buildPublicWebsiteFormSubmissionPath(site.id, component.id))}"
         method="post"
         style="display: grid; gap: 0.85rem; padding: 1.35rem; border: 1px solid var(--npm-border); border-radius: 18px; background: var(--npm-surface); box-shadow: 0 12px 30px rgba(19, 49, 38, 0.08);"
       >
