@@ -66,9 +66,11 @@ make typecheck
 make test
 ```
 
+`make typecheck` now runs backend/frontend type checks plus the shared `contracts` export smoke check.
 `make test` runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate.
 `make test-coverage` is the coverage-focused companion to `make test`: it runs backend and frontend coverage, host Playwright smoke, and the same isolated Docker-backed smoke gate.
 `make test-coverage-full` is the higher-confidence coverage lane: it runs backend and frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate.
+The coverage lanes now self-supply the CI Redis URL and backend coverage heap in the wrapper layer. Run them from a clean shell and do not export the full `.env.development` contract into those lanes, because it can override the isolated test DB contract.
 `make test-tooling` runs the targeted tooling-contract regression suite for selector, route-audit, helper-script, and wrapper changes.
 For a durable archived host Playwright CI report, use `cd e2e && npm run test:ci:report`; it preserves the run under `tmp/e2e-reports/` instead of reusing `e2e/playwright-report`.
 The full Playwright CI matrix stays gated to the default browser projects; `Mobile Safari` and `Tablet` remain manual/ad hoc projects that you can run explicitly when needed.

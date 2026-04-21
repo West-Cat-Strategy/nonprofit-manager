@@ -67,6 +67,7 @@ Use this file for repo-specific coding-agent guardrails. It is not the setup gui
 Prefer repo-root commands:
 
 ```bash
+make db-verify
 make lint
 make typecheck
 make test
@@ -83,8 +84,12 @@ make test-tooling
 ./scripts/select-checks.sh --base HEAD~1 --mode fast
 ```
 
+`make ci-fast` is a static lint + typecheck pass only. Use [../testing/TESTING.md](../testing/TESTING.md) for the current meaning of `make ci*`, `make test-coverage*`, and the broader review-lane commands.
+
 ## Do Not Assume
 
 - Do not assume Docker dev, direct runtime, and Playwright use the same ports or env settings.
 - Do not assume a package-level `npm run typecheck` script exists; this repo uses `npm run type-check`.
 - Do not assume GitHub Actions is the required default gate; local repo validation commands are the documented baseline.
+- Do not assume the host coverage/review lanes are Docker-free; the current `make test-coverage*` and `make ci-full` flows still need Docker for Redis and isolated test DB bootstrap.
+- Do not export the full development env into CI-style coverage lanes; use the documented commands as-is so the isolated test DB contract stays pinned to `127.0.0.1:8012`.

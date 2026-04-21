@@ -81,7 +81,7 @@ fi
 
 if [[ "$unit_only" -eq 1 ]]; then
   run bash -lc 'cd backend && npm run test:unit:coverage'
-  run bash -lc 'cd frontend && npm run test:coverage'
+  run bash -lc 'cd frontend && VITEST_RELAX_COVERAGE_THRESHOLDS=1 npm run test:coverage'
 else
   if [[ "$coverage" -eq 1 ]]; then
     run make test-coverage-full

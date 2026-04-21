@@ -27,6 +27,7 @@ COMPOSE_PROJECT_PROD ?= nonprofit-prod
 COMPOSE_PROJECT_DEV ?= nonprofit-dev
 COMPOSE_PROJECT_CI ?= nonprofit-ci
 COMPOSE_PROJECT_SMOKE ?= nonprofit-smoke
+CI_REDIS_URL ?= redis://redis:6379
 DEV_DB_PORT ?= 8002
 DEV_REDIS_PORT ?= 8003
 DEV_BACKEND_PORT ?= 8004
@@ -49,6 +50,8 @@ COMPOSE_DEV_CADDY_ARGS := $(COMPOSE_DEV_ARGS) -f docker-compose.caddy.yml
 COMPOSE_DEV_SMOKE_ARGS := -p $(COMPOSE_PROJECT_SMOKE) -f docker-compose.dev.yml
 COMPOSE_CI_INFRA_ARGS := -p $(COMPOSE_PROJECT_CI) -f docker-compose.yml -f docker-compose.host-access.yml -f docker-compose.ci.yml
 E2E_NPM_RUN := cd e2e && npm run
+CI_INFRA_ENV := REDIS_URL=$(CI_REDIS_URL) DB_PASSWORD=postgres
+CI_TEST_DB_ENV := DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres COMPOSE_MODE=ci
 SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true
 
 #------------------------------------------------------------------------------
@@ -93,7 +96,7 @@ help:
 	@echo "  make lint-route-integrity Enforce literal route targets resolve via routeCatalog"
 	@echo "  make lint-route-catalog-drift Enforce routeCatalog stays aligned with registered routes"
 	@echo "  make lint-fix       Run linters and auto-fix issues"
-	@echo "  make typecheck      Run TypeScript type checking"
+	@echo "  make typecheck      Run TypeScript type checking across backend, frontend, and contracts"
 	@echo "  make test           Run backend/frontend tests + host Playwright CI + isolated Docker smoke gate"
 	@echo "  make test-coverage  Run backend/frontend coverage + host smoke + isolated Docker smoke gate"
 	@echo "  make test-coverage-full  Run backend/frontend coverage + host CI Playwright matrix + isolated Docker smoke gate"
@@ -375,13 +378,15 @@ typecheck:
 	cd backend && npm run type-check
 	@echo "$(BLUE)Type checking frontend...$(RESET)"
 	cd frontend && npm run type-check
+	@echo "$(BLUE)Type checking shared contracts...$(RESET)"
+	cd contracts && npm run type-check
 	@echo "$(GREEN)Type checking complete!$(RESET)"
 
 test:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
+	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
-	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
+	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	@echo "$(BLUE)Running backend tests...$(RESET)"
 	cd backend && npm test -- --runInBand
 	@echo "$(BLUE)Running frontend tests...$(RESET)"
@@ -393,13 +398,13 @@ test:
 
 test-coverage:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
+	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
-	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
+	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
 	@sleep 5
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
-	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --coverage --runInBand
+	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm run test:coverage
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
 	cd frontend && npm test -- --run --coverage
 	@echo "$(BLUE)Running Playwright E2E host smoke tests...$(RESET)"
@@ -409,13 +414,13 @@ test-coverage:
 
 test-coverage-full:
 	@echo "$(BLUE)Ensuring test infrastructure is running (Redis)...$(RESET)"
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
+	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
 	@echo "$(BLUE)Preparing isolated test database...$(RESET)"
-	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
+	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
 	@sleep 5
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
-	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --coverage --runInBand
+	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm run test:coverage
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
 	cd frontend && npm test -- --run --coverage
 	@echo "$(BLUE)Running Playwright E2E host CI matrix...$(RESET)"
@@ -427,8 +432,8 @@ test-tooling:
 	node --test scripts/tests/tooling-contracts.test.cjs
 
 test-backend:
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
-	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
+	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
+	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
 	@sleep 5
 	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand
@@ -437,8 +442,8 @@ test-frontend:
 	cd frontend && npm test -- --run
 
 test-e2e:
-	DB_PASSWORD=postgres $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
-	@DB_PORT=8012 DB_NAME=nonprofit_manager_test COMPOSE_MODE=ci ./scripts/db-migrate.sh
+	$(CI_INFRA_ENV) $(DOCKER_COMPOSE) $(COMPOSE_CI_INFRA_ARGS) up -d redis
+	@$(CI_TEST_DB_ENV) ./scripts/db-migrate.sh
 	$(E2E_NPM_RUN) test:ci
 
 test-e2e-docker-smoke:
@@ -597,8 +602,8 @@ hooks:
 	@echo "$(GREEN)Git hooks installed!$(RESET)"
 	@echo ""
 	@echo "Hooks will run:"
-	@echo "  - pre-commit: Lint staged files"
-	@echo "  - pre-push: Run typecheck"
+	@echo "  - pre-commit: Run repo lint"
+	@echo "  - pre-push: Run repo typecheck"
 	@echo ""
 	@echo "To skip: git commit --no-verify"
 

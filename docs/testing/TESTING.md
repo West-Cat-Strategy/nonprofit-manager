@@ -20,6 +20,7 @@ This file is the active test command map for nonprofit-manager. Use [../../CONTR
 | Layer | Primary Command | Notes |
 |------|------------------|-------|
 | DB contract verification | `make db-verify` | Rebuilds the isolated `_test` database and checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window |
+| Contracts export smoke | `make typecheck` | Verifies the type-only `contracts` workspace through its export/type smoke check; this is part of repo-wide type validation, not a runtime test or coverage lane |
 | Repo-wide validation | `make test` | Runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
 | Coverage variant (fast local lane) | `make test-coverage` | Runs backend/frontend coverage, host Playwright smoke, and the isolated Docker-backed smoke gate |
 | Coverage gate (full behavior lane) | `make test-coverage-full` | Runs backend/frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
@@ -50,6 +51,8 @@ make typecheck
 make test
 ```
 
+`make typecheck` now covers backend, frontend, and the shared `contracts` export smoke check.
+
 Coverage and release commands:
 
 ```bash
@@ -63,6 +66,8 @@ make test-e2e-docker-smoke
 make test-tooling
 ```
 
+`make ci-fast` is a lint + typecheck-only static pass. It is useful for quick feedback, but it is not a behavior or confidence lane.
+`make test-coverage` and `make test-coverage-full` now self-supply the CI Redis URL and the backend coverage heap in the wrapper layer. Run those lanes from a clean shell and do not export the full development env into them, because values such as `DB_HOST=postgres` can override the isolated test DB contract.
 `make ci-full` now uses the stronger `make test-coverage-full` lane, so coverage runs still include the host Playwright CI matrix instead of dropping down to the smaller smoke-only host run.
 
 `make ci-unit` remains a relaxed, non-gating developer signal for backend/frontend unit coverage only. It is useful for quick local feedback, but it is not the repo's full coverage acceptance path.
@@ -79,6 +84,9 @@ cd e2e && npm run test:docker:audit
 ```
 
 `make ci-full` already covers lint, typecheck, backend/frontend coverage, the host Playwright CI matrix, build, and the isolated Docker smoke gate. Add the Docker cross-browser and audit slices above when you need the broader Phase 5-style E2E review across both host and externally managed runtime contracts.
+Docker must still be running locally for `make ci-full`, because the host review lane still depends on the Docker-backed Redis sidecar and isolated test DB bootstrap before Playwright starts.
+If the host frontend port `5173` is already occupied, rerun the host review commands with `E2E_FRONTEND_PORT=<open-port>` such as `E2E_FRONTEND_PORT=5317 make ci-full` or `cd e2e && E2E_FRONTEND_PORT=5317 npm run test:ci:report`.
+The Docker cross-browser slice, Docker audit slice, `Mobile Safari`, and `Tablet` remain outside the default gate above; they are explicit review-lane follow-ons rather than CI-gated defaults.
 
 ## Targeted Website Publish-Loop Proof
 

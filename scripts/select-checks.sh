@@ -140,6 +140,11 @@ for file in "${changed_files[@]}"; do
     frontend/*)
       has_frontend=1
       ;;
+    e2e/playwright.config.ts|e2e/package.json)
+      has_e2e=1
+      has_runtime_orchestration=1
+      has_tooling_contracts=1
+      ;;
     e2e/*)
       has_e2e=1
       ;;
@@ -261,13 +266,20 @@ if [[ $has_hook_tooling -eq 1 ]]; then
 fi
 
 if [[ $has_runtime_docs -eq 1 && $surface_count -eq 0 && "$mode" == "strict" ]]; then
-  add_command "make test-e2e-docker-smoke"
+  add_command "make test-coverage-full"
 fi
 
 if [[ "$mode" == "strict" ]]; then
   if [[ $surface_count -eq 0 ]]; then
     :
-  elif [[ $has_database -eq 1 || $has_runtime_orchestration -eq 1 || $surface_count -gt 1 ]]; then
+  elif [[ $has_runtime_orchestration -eq 1 ]]; then
+    add_command "make lint"
+    add_command "make typecheck"
+    add_command "make test-coverage-full"
+    if [[ $has_database -eq 1 ]]; then
+      add_command "make db-verify"
+    fi
+  elif [[ $has_database -eq 1 || $surface_count -gt 1 ]]; then
     add_command "make lint"
     add_command "make typecheck"
     add_command "make test"

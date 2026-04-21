@@ -320,7 +320,7 @@ test('select-checks keeps docs-only fast mode on docs validation', () => {
   assert.deepEqual(result.stdout.trim().split('\n'), ['make check-links']);
 });
 
-test('select-checks broadens docs-only strict mode into a runtime smoke check', () => {
+test('select-checks broadens docs-only strict mode into the coverage gate', () => {
   const result = run('bash', [
     'scripts/select-checks.sh',
     '--files',
@@ -332,7 +332,7 @@ test('select-checks broadens docs-only strict mode into a runtime smoke check', 
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(result.stdout.trim().split('\n'), [
     'make check-links',
-    'make test-e2e-docker-smoke',
+    'make test-coverage-full',
   ]);
 });
 
@@ -351,6 +351,41 @@ test('select-checks recommends tooling regression coverage for orchestration cha
     './scripts/install-git-hooks.sh --dry-run',
     'make test-e2e-docker-smoke',
     'make db-verify',
+  ]);
+});
+
+test('select-checks treats Playwright config as tooling plus behavior in fast mode', () => {
+  const result = run('bash', [
+    'scripts/select-checks.sh',
+    '--files',
+    'e2e/playwright.config.ts',
+    '--mode',
+    'fast',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split('\n'), [
+    'make test-tooling',
+    'cd e2e && npm run test:smoke',
+    'make test-e2e-docker-smoke',
+  ]);
+});
+
+test('select-checks broadens orchestration changes into the coverage gate in strict mode', () => {
+  const result = run('bash', [
+    'scripts/select-checks.sh',
+    '--files',
+    'Makefile scripts/ci.sh scripts/select-checks.sh',
+    '--mode',
+    'strict',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split('\n'), [
+    'make test-tooling',
+    'make lint',
+    'make typecheck',
+    'make test-coverage-full',
   ]);
 });
 

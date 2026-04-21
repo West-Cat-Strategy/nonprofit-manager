@@ -1,11 +1,12 @@
 import type { Config } from 'jest';
 
-const explicitCoverageScopeRequested = process.argv.some(
+const targetedCoveragePathRequested = process.argv.some(
   (arg) => arg.includes('/__tests__/') || arg.endsWith('.test.ts') || arg.endsWith('.spec.ts')
 );
-const relaxCoverageThresholds =
-  process.env.JEST_RELAX_COVERAGE_THRESHOLDS === '1' ||
-  (process.argv.includes('--coverage') && explicitCoverageScopeRequested);
+const runningTargetedCoverage =
+  process.argv.includes('--coverage') && targetedCoveragePathRequested;
+const coverageThresholdsEnabled =
+  process.env.JEST_RELAX_COVERAGE_THRESHOLDS !== '1' && !runningTargetedCoverage;
 
 const config: Config = {
   extensionsToTreatAsEsm: ['.ts'],
@@ -41,9 +42,8 @@ const config: Config = {
   verbose: true,
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!<rootDir>/src/**/__tests__/**', '!<rootDir>/src/index.ts'],
-  ...(relaxCoverageThresholds
-    ? {}
-    : {
+  ...(coverageThresholdsEnabled
+    ? {
         coverageThreshold: {
           global: {
             branches: 32,
@@ -52,7 +52,8 @@ const config: Config = {
             statements: 47,
           },
         },
-      }),
+      }
+    : {}),
 };
 
 export default config;

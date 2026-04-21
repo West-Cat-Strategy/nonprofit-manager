@@ -99,6 +99,8 @@ cd e2e
 npm run test:ci:report
 ```
 
+If `127.0.0.1:5173` is already occupied on your machine, prefix the host review command with an alternate port such as `E2E_FRONTEND_PORT=5317 npm run test:ci:report`.
+
 This wrapper:
 
 - archives each run under `tmp/e2e-reports/host-ci-*`
@@ -123,6 +125,9 @@ Repo-root CI flows call these E2E commands today:
 - `make ci-full`: `./scripts/ci.sh --build --audit --coverage`, which runs `make lint`, `make typecheck`, `make test-coverage-full`, `make build`, and `make security-audit`
 
 `make ci-unit` is the unit-only coverage lane and intentionally skips Playwright.
+The default gate stops here. Docker cross-browser, Docker audit, `Mobile Safari`, and `Tablet` remain explicit review-lane follow-ons rather than CI-gated defaults.
+The coverage-backed root lanes now self-supply the CI Redis URL and backend coverage heap from the wrapper layer. Run them from a clean shell and do not export the full `.env.development` contract into the lane, because it can override the isolated test DB contract.
+Even the host review lane still depends on Docker for the Redis sidecar and isolated test DB bootstrap before Playwright starts.
 
 ## Full Playwright Review Lane
 
@@ -141,6 +146,8 @@ That sequence gives you:
 - the isolated Docker-backed smoke gate through `make ci-full`
 - the full Docker cross-browser slice through `npm run test:docker:ci`
 - the Docker dark-mode and route-audit slice through `npm run test:docker:audit`
+
+If the host frontend port is occupied, rerun the host command with `E2E_FRONTEND_PORT=<open-port>` such as `E2E_FRONTEND_PORT=5317 make ci-full`.
 
 ## Docker App Stack Runtime
 

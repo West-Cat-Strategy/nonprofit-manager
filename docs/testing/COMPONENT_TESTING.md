@@ -1,6 +1,6 @@
 # Component Testing Guide
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-20
 
 How to test React components in nonprofit-manager using React Testing Library and Vitest. For the active validation matrix and repo-default command selection, start with [TESTING.md](TESTING.md); this guide is the narrower frontend component-testing reference.
 
@@ -45,23 +45,32 @@ Component tests:
 
 ### File Location
 
-Test files live next to the component:
+Most frontend tests live in `__tests__` folders near the owning surface, with shared render helpers under `src/test/`:
 
 ```
 frontend/src/
   components/
-    Button.tsx                 ← Component
-    Button.test.tsx            ← Test file (same directory)
-    Button.module.css
-  pages/
-    Dashboard.tsx
-    Dashboard.test.tsx
-    Dashboard.module.css
+    Navigation.tsx
+    __tests__/
+      Navigation.test.tsx
+  features/
+    auth/
+      pages/
+        LoginPage.tsx
+        __tests__/
+          LoginPage.test.tsx
+  routes/
+    __tests__/
+      adminRedirects.test.tsx
+  test/
+    testUtils.tsx
+    ux/
+      RouteUxSmoke.test.tsx
 ```
 
 ### File Naming
 
-- `ComponentName.test.tsx` (Vitest convention)
+- `__tests__/ComponentName.test.tsx` (repo-default Vitest convention)
 - `ComponentName.spec.tsx` (also works)
 
 ### Running Tests
@@ -76,7 +85,7 @@ npm test -- --run
 npm test -- --watch
 
 ## Run tests for a specific file once
-npm test -- --run Button.test.tsx
+npm test -- --run src/components/__tests__/Navigation.test.tsx
 
 ## Run tests matching a pattern once
 npm test -- --run --testNamePattern="should render"
@@ -91,17 +100,24 @@ npm run test:coverage
 ### Basic Test Template
 
 ```typescript
-import { render, screen } from '@testing-library/react';
-import { Button } from './Button';
+import { screen } from '@testing-library/react';
+import { renderWithProviders } from '../../test/testUtils';
+import { LoginPage } from '../../features/auth/pages/LoginPage';
 
-describe('Button', () => {
-  it('should render with text', () => {
-    render(<Button>Click me</Button>);
+describe('LoginPage', () => {
+  it('renders the sign-in heading', () => {
+    renderWithProviders(<LoginPage />);
     
-    expect(screen.getByText('Click me')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
   });
 });
 ```
+
+## Choosing The Right Layer
+
+- Use component tests for React behavior that stays inside one render tree, especially when `renderWithProviders` from `frontend/src/test/testUtils.tsx` gives you the store, router, theme, and toast providers you need.
+- Use route-focused tests under `src/routes/__tests__/` or `src/test/ux/` when the assertion is about redirects, route shells, copy drift, or navigation ergonomics rather than one component.
+- Use Playwright when the behavior depends on the browser runtime, cross-page workflows, auth bootstrap, or the host-vs-Docker contract described in [TESTING.md](TESTING.md) and [../../e2e/README.md](../../e2e/README.md).
 
 ---
 

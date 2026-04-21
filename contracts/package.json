@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "sideEffects": false,
+  "scripts": {
+    "type-check": "tsc --project tsconfig.verify.json --noEmit"
+  },
   "types": "./index.d.ts",
   "exports": {
     ".": {

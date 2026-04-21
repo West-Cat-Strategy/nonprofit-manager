@@ -73,11 +73,15 @@ Use the smallest validation set that still covers your change.
 |---|---|
 | Docs-only | `make check-links` |
 | Docs with API wording/examples | `make check-links` and `make lint-doc-api-versioning` |
+| Database, migration, or DB contract work | `make db-verify` and the narrowest behavior check that matches the changed surface |
 | Smaller scoped code change | `./scripts/select-checks.sh --base HEAD~1 --mode fast` (use `--mode strict` for shared runtime, hook, Docker, or runtime-doc changes) |
 | Broader code change | `make lint`, `make typecheck`, and `make test` |
-| Full confidence pass | `make ci`, `make ci-fast`, or `make ci-full` as appropriate |
+| Higher-confidence validation | `make ci` or `make ci-full` as appropriate |
 
 Prefer root commands first. Use package-level scripts only when the change is narrow enough that a package-specific check is the clearest fit.
+`make ci-fast` is a lint + typecheck-only static pass. It is useful for quick feedback, but it is not a test lane or a full-confidence pass.
+`make typecheck` now includes the backend, frontend, and the shared `contracts` export smoke check.
+Use [docs/testing/TESTING.md](docs/testing/TESTING.md) for the current meaning of `make ci*`, `make test-coverage*`, and `make db-verify`, including current review-lane caveats.
 
 ## Documentation Hygiene
 

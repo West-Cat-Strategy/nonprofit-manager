@@ -18,3 +18,11 @@ Use it for small, stable contracts that both frontend and backend need without i
 - Keep this package type-only. Do not add runtime code here.
 - Add contracts here only when the same shape is intentionally shared across app boundaries.
 - When you add a new declaration file, update [package.json](package.json) exports and [index.d.ts](index.d.ts) if the new types should be publicly reachable.
+
+## Verification
+
+This package is verified with a lightweight export/type smoke check rather than runtime tests or coverage.
+
+- Run `npm run type-check --workspace contracts` from the repo root, or `npm run type-check` inside `contracts/`.
+- The smoke check compiles [export-smoke.d.ts](export-smoke.d.ts) with [tsconfig.verify.json](tsconfig.verify.json) and imports the package root plus the `./messaging` and `./websiteBuilder` subpath exports.
+- When you add or reorganize public exports, keep the smoke check aligned so the package export map stays verifiable without introducing runtime code.
