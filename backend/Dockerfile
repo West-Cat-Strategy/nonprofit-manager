@@ -54,7 +54,9 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
 FROM base AS production-deps
 
 COPY --from=workspace /backend/package.json ./package.json
+COPY --from=workspace-production-deps /workspace/node_modules ./node_modules
 COPY --from=workspace-production-deps /workspace/backend/node_modules ./node_modules
+RUN rm -rf ./node_modules/@nonprofit-manager/contracts
 
 FROM app AS dev
 

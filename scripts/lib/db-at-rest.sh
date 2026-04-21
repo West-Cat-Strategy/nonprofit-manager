@@ -57,15 +57,17 @@ load_env_file_defaults() {
   local key
   local entry
   local value
-  local -A env_keys=()
+  local env_keys=$'\n'
 
   require_env_file "$file" || return 1
 
   while IFS= read -r key; do
-    [[ -n "$key" ]] && env_keys["$key"]=1
+    if [[ -n "$key" ]]; then
+      env_keys+="${key}"$'\n'
+    fi
   done < <(env_file_var_names "$file")
 
-  if [[ "${#env_keys[@]}" -eq 0 ]]; then
+  if [[ "$env_keys" == $'\n' ]]; then
     return 0
   fi
 
@@ -78,7 +80,7 @@ load_env_file_defaults() {
     key="${entry%%=*}"
     value="${entry#*=}"
 
-    if [[ -n "${env_keys[$key]:-}" && -z "${!key+x}" ]]; then
+    if [[ "$env_keys" == *$'\n'"$key"$'\n'* && -z "${!key+x}" ]]; then
       export "$key=$value"
     fi
   done < <(bash -lc 'set -a; source "$1" >/dev/null 2>&1; env -0' _ "$file")
