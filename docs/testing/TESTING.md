@@ -89,6 +89,8 @@ cd e2e
 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium tests/publishing.spec.ts tests/public-website.spec.ts
 ```
 
+Docker must still be available locally for this command today. Even in host mode, the Playwright-managed backend bootstraps the isolated test DB through Docker before the browser slice starts.
+
 This slice proves the current website/public-runtime contract without widening into the full browser matrix:
 
 - `tests/publishing.spec.ts`: site-aware builder context, website-console form discovery and overrides, publish controls, and the live public snapshot

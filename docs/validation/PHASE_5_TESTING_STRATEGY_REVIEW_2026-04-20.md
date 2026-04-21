@@ -16,6 +16,7 @@ The dashboard UX smoke blocker is fixed. The current broad-lane blockers now sit
 
 - Local shell runtime during this review: `node v25.9.0`
 - Docker Desktop was not running at the start of the review and had to be launched before the compose-backed parts of `make ci-full` could run.
+- Local Docker Desktop also occupied `127.0.0.1:5173` during the follow-up host rerun on this machine, so the preserved host CI wrapper needed `E2E_FRONTEND_PORT=5317` to avoid the frontend-port collision while still using the host runtime contract.
 - The repo-local CI wrapper currently needs `REDIS_URL` exported in the shell for the `docker compose ... up -d redis` step inside `make test-coverage-full`.
 - Exporting the entire `.env.development` contract leaked `DB_HOST=postgres`, which conflicts with the isolated test DB helper. Injecting only `REDIS_URL=redis://redis:6379` preserved the expected `127.0.0.1:8012` test DB contract.
 
@@ -71,6 +72,23 @@ Contacts Module › should merge a contact into an inactive target without losin
   - Result: Not run because the command sequence stops at the failing `make ci-full` lane.
 - `cd e2e && npm run test:docker:audit`
   - Result: Not run because the command sequence stops at the failing `make ci-full` lane.
+- `cd e2e && E2E_FRONTEND_PORT=5317 npm run test:ci:report`
+  - Result: Reached the preserved host CI lane on 2026-04-20 after Docker stabilized and the frontend port moved off the locally occupied `5173` socket.
+  - The rerun reproduced current shared failures before the sweep was intentionally stopped to finish the workboard split and `P5-T4` closeout:
+
+```text
+tests/admin.spec.ts
+Admin & Settings Module › user settings uploads and persists the profile avatar
+Admin & Settings Module › legacy settings compatibility routes are not supported
+
+tests/analytics.spec.ts
+Analytics Module › should navigate to report templates
+
+tests/auth.spec.ts
+Authentication Flow › dashboard startup loads workbench summary endpoints without duplicate refetches
+```
+
+  - Contacts coverage had advanced into `tests/contacts.spec.ts` before the rerun was stopped, but the earlier contacts failures were not re-confirmed in this shorter pass.
 
 ## Host Vs Docker Runtime Observations
 
@@ -85,11 +103,12 @@ Contacts Module › should merge a contact into an inactive target without losin
 - Backend and frontend coverage both clear when the process is given a larger heap and the shell exports only `REDIS_URL`, which suggests the remaining broad-lane issues are now primarily Playwright/runtime regressions rather than coverage blockers.
 - The dashboard UX smoke contract is now aligned with the current `Workbench` heading, so that earlier copy drift is no longer the gating failure.
 - The narrowed `P5-T4` publishing/public-site browser proof is now green in host mode, which reduces uncertainty for the website builder plus public website slice even though the broad shared Playwright lane is still red.
+- The preserved host rerun reproduced the broad shared failures in `admin`, `analytics`, and `auth`, which confirms `P5-T2B` is now a validation-stabilization task rather than a website-slice implementation blocker.
 - Because the host lane still does not complete cleanly, the follow-on Docker Playwright cross-browser and audit commands remain intentionally deferred.
 
 ## Recommended Next Steps
 
-1. Re-run `NODE_OPTIONS=--max-old-space-size=8192 REDIS_URL=redis://redis:6379 make ci-full` and triage the current host Playwright failures in `admin`, `analytics`, `auth`, and `contacts` instead of spending more time on the cleared dashboard smoke contract.
+1. Resume from the preserved host CI lane and triage the currently reproduced failures in `admin`, `analytics`, and `auth`, then continue far enough to confirm whether the earlier `contacts` failures still reproduce under the refreshed runtime.
 2. Keep the shell contract narrow: export `REDIS_URL=redis://redis:6379` without exporting the entire development env, and keep the larger backend coverage heap until Node/runtime behavior is revisited.
 3. Once the broad host lane is green again, continue with `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`.
 4. Consider hardening the CI wrapper so `make ci-full` documents or injects the required `REDIS_URL` without relying on a caller to export it manually.

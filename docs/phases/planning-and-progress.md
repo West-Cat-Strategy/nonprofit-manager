@@ -10,10 +10,10 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 5 |
-| In Progress | 2 |
+| Active rows | 6 |
+| In Progress | 1 |
 | Blocked | 0 |
-| Review | 0 |
+| Review | 2 |
 | Ready | 3 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
@@ -41,8 +41,14 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| In Progress | P5-T2 | Full Playwright/E2E pass plus test coverage and testing-strategy review | The dashboard UX smoke contract now matches the current `Workbench` heading and the rerun has advanced through backend/frontend coverage into the host Playwright matrix. Let the current `NODE_OPTIONS=--max-old-space-size=8192 REDIS_URL=redis://redis:6379 make ci-full` run finish, then continue with `cd e2e && npm run test:docker:ci`, `cd e2e && npm run test:docker:audit`, and the CI wrapper follow-through for `REDIS_URL` plus the backend coverage heap requirement. |
-| In Progress | P5-T4 | Website surfaces wave: website builder plus public website | Run the coordinated `P5-T4` slice around one managed public form: align backend form runtime metadata, website console verification, site-aware builder cues, and targeted docs/E2E without changing route families or public endpoint shapes. |
+| In Progress | P5-T2B | Shared validation lane stabilization | Resume from the preserved host CI rerun, starting with the currently reproduced `admin` / `analytics` / `auth` failures and continuing far enough to confirm whether the earlier `contacts` failures still reproduce. Once the host lane is green, finish `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`, then capture any surviving `REDIS_URL` or heap requirements as explicit wrapper/docs follow-through. |
+
+### Review Queue
+
+| Status | ID | Task | Immediate Next Move |
+|---|---|---|---|
+| Review | P5-T2A | Testing-strategy review artifact and findings | Keep [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) as the canonical artifact while `P5-T2B` owns the remaining validation-lane stabilization work. |
+| Review | P5-T4 | Website surfaces wave: website builder plus public website | Use [../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md](../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md) as the row-local proof note for the one-form managed publish loop. Final broad signoff still depends on `P5-T2B`. |
 
 ### Ready Next
 
@@ -76,6 +82,7 @@ Maintenance rules:
   Expected tests: targeted publishing service and integration coverage for form metadata and public submission/runtime
   Handoff notes: summarize contract additions, cache/runtime assumptions, and any follow-up needed in frontend or docs
   Docs ownership: lead
+  Disposition: `Review`
 - Lane: `frontend-websites-console`
   Goal: expose one-form verification, publish-state, and public-surface actions in the website console
   Owned paths: `frontend/src/features/websites/**`, `frontend/src/types/websiteBuilder.ts`
@@ -83,6 +90,7 @@ Maintenance rules:
   Expected tests: targeted website overview/forms/publishing page coverage
   Handoff notes: summarize UI contract changes and any builder/doc dependencies
   Docs ownership: lead
+  Disposition: `Review`
 - Lane: `frontend-builder`
   Goal: keep the site-aware builder aware of managed-form publish state and point editors back to the console follow-through
   Owned paths: `frontend/src/features/builder/**`, `frontend/src/components/editor/**`
@@ -90,6 +98,7 @@ Maintenance rules:
   Expected tests: targeted page-editor controller coverage
   Handoff notes: summarize site-context changes and any overlap requiring lead integration
   Docs ownership: lead
+  Disposition: `Review`
 - Lane: `docs-e2e`
   Goal: align the website/public-runtime docs and targeted browser proof with the one-form managed publish loop
   Owned paths: `docs/features/TEMPLATE_SYSTEM.md`, `docs/features/FEATURE_MATRIX.md`, `docs/deployment/publishing-deployment.md`, `docs/testing/TESTING.md`, `e2e/tests/public-website.spec.ts`, `e2e/tests/publishing.spec.ts`
@@ -97,6 +106,7 @@ Maintenance rules:
   Expected tests: targeted Playwright publishing/public-site coverage plus `make check-links` when docs change
   Handoff notes: summarize doc/runtime wording changes and exact browser proof added
   Docs ownership: lane
+  Disposition: `Review`
 - For future modularization exceptions, use the lane contract and workboard format in [../development/SUBAGENT_MODULARIZATION_GUIDE.md](../development/SUBAGENT_MODULARIZATION_GUIDE.md).
 - Move blocked work to `Blocked` with a reason and next step.
 - Use task IDs in commits and pull request titles.
@@ -118,8 +128,9 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 
 | ID | Task | Status | Owner | Next Step / Blocker | Evidence |
 |---|---|---|---|---|---|
-| P5-T2 | Full Playwright/E2E pass plus test coverage and testing-strategy review | In Progress | Codex | The dashboard UX smoke contract is fixed in `frontend/src/test/ux/RouteUxSmoke.test.tsx`, and the rerun of `NODE_OPTIONS=--max-old-space-size=8192 REDIS_URL=redis://redis:6379 make ci-full` has progressed through backend/frontend coverage into the host Playwright matrix. Finish that run, then continue with the Docker cross-browser and audit lanes and capture the follow-through around `REDIS_URL` plus the backend coverage heap requirement if the current Node runtime still needs it. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
-| P5-T4 | Website surfaces wave: website builder plus public website | In Progress | Codex | Coordinated slice is focused on one managed public form across the existing site-aware publish loop. Lead owns the workboard, route registrars, and final integration while delegated lanes cover backend publishing/runtime metadata, website console verification, site-aware builder cues, and docs/E2E proof. Final broad signoff stays gated on the shared `P5-T2` validation lane finishing cleanly. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
+| P5-T2A | Testing-strategy review artifact and findings | Review | Codex | The Phase 5 testing-strategy review artifact is published. Keep the validation note current as reruns land, but leave the remaining runtime stabilization and failure triage to `P5-T2B`. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
+| P5-T2B | Shared validation lane stabilization | In Progress | Codex | The preserved host CI rerun reproduced current shared failures in `admin`, `analytics`, and `auth`. Resume from that rerun, continue far enough to confirm whether the earlier `contacts` failures still reproduce, then finish `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`. Capture any surviving `REDIS_URL` or heap requirements as explicit wrapper/docs follow-through. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
+| P5-T4 | Website surfaces wave: website builder plus public website | Review | Codex | The one-form managed public publish-loop proof is now green across the website console, builder, publish flow, and public runtime. Keep the row in `Review` while `P5-T2B` finishes the broader host-plus-Docker validation lane. | [../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md](../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md) |
 | P5-T3 | Email platform wave: blast email plus email builder/formatter | Ready | Codex | Scope outbound campaign flow, email authoring/formatting needs, delivery reliability, preview/testing, and reuse of existing template/mailchimp surfaces. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
 | P5-T5 | Client portal wave | Ready | Codex | Plan and execute portal UX, messaging/documents/forms/appointments follow-through, with persona and workflow audit support. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
 | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Ready | Codex | Use the benchmark and repo audit to shape the later-wave backlog for metadata-driven workflows, fundraising depth, and nonprofit-specific program/finance ops. | [../product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](../product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md) |
