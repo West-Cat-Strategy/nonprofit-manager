@@ -124,9 +124,7 @@ export const useContactListPage = () => {
     parseAllowedValue(searchParams.get('sort_order'), SORT_ORDER_VALUES) || 'desc'
   );
   const [showImportExport, setShowImportExport] = useState(false);
-  const [filterCollapsed, setFilterCollapsed] = useState(
-    !(searchParams.get('search') || searchParams.get('type') || searchParams.get('status'))
-  );
+  const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [hiddenDeletedContactIds, setHiddenDeletedContactIds] = useState<string[]>([]);
 
   const resolvedIsActive =
@@ -158,6 +156,19 @@ export const useContactListPage = () => {
   useEffect(() => {
     deselectAll();
   }, [currentPage, debouncedSearchInput, roleFilter, activeFilter, sortBy, sortOrder, deselectAll]);
+
+  useEffect(() => {
+    const nextSearchInput = searchParams.get('search') || '';
+    const nextRoleFilter = normalizeRoleFilter(searchParams.get('type'));
+    const nextActiveFilter =
+      parseAllowedValue(searchParams.get('status'), STATUS_FILTER_VALUES) || '';
+    const nextPage = parsePositiveInteger(searchParams.get('page'), 1);
+
+    setSearchInput((current) => (current === nextSearchInput ? current : nextSearchInput));
+    setRoleFilter((current) => (current === nextRoleFilter ? current : nextRoleFilter));
+    setActiveFilter((current) => (current === nextActiveFilter ? current : nextActiveFilter));
+    setCurrentPage((current) => (current === nextPage ? current : nextPage));
+  }, [searchParams]);
 
   useEffect(() => {
     const params = new URLSearchParams();

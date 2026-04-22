@@ -97,8 +97,11 @@ test.describe('Analytics Module', () => {
     test('should navigate to report templates', async ({ authenticatedPage }) => {
         await authenticatedPage.goto('/reports/templates');
 
+        const filterSummary = authenticatedPage.getByText(/filter templates/i);
         await expect(authenticatedPage.getByRole('heading', { name: /report templates/i })).toBeVisible();
-        await expect(authenticatedPage.getByText(/filter by category/i)).toBeVisible();
+        await expect(filterSummary).toBeVisible();
+        await filterSummary.click();
+        await expect(authenticatedPage.getByText(/^category$/i)).toBeVisible();
     });
 
     test('should navigate to custom dashboard', async ({ authenticatedPage }) => {

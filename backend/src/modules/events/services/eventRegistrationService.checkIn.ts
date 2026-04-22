@@ -87,7 +87,7 @@ export const checkInAttendeeMutation = async (
 
   try {
     await client.query('BEGIN');
-    await setTransactionUserContext(client, options.checkedInBy ?? null);
+    await setTransactionUserContext(client, options.actorUserId ?? options.checkedInBy ?? null);
 
     const registrationResult = await client.query<LockedRegistrationRow>(
       `SELECT
@@ -284,7 +284,7 @@ export const walkInCheckInMutation = async (
     let contactId = await ctx.support.resolveContactIdByIdentity(client, {
       email: data.email,
       phone: data.phone,
-    });
+    }, event.organization_id);
     walkInContactId = contactId;
 
     if (!contactId) {
@@ -293,6 +293,7 @@ export const walkInCheckInMutation = async (
         lastName: data.last_name,
         email: data.email,
         phone: data.phone,
+        accountId: event.organization_id,
         createdBy: checkedInBy,
       });
       walkInContactId = contactId;

@@ -115,7 +115,7 @@ test.describe('Authentication Flow', () => {
       .poll(
         async () => {
           const headingVisible = await page
-            .getByRole('heading', { name: /workbench overview|dashboard/i })
+            .getByRole('heading', { name: /^workbench$/i })
             .first()
             .isVisible();
           if (headingVisible) {
@@ -133,6 +133,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test('login helper honors the credentials passed by the caller', async ({ page }) => {
+    const previousSharedUser = getSharedTestUser();
     const tempEmail = `e2e+login-helper-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
     const tempPassword = 'Test123!@#';
 
@@ -140,17 +141,21 @@ test.describe('Authentication Flow', () => {
       firstName: 'Temp',
       lastName: 'User',
     });
-    setSharedTestUser({
-      email: tempEmail,
-      password: 'WrongPass123!',
-    });
+    try {
+      setSharedTestUser({
+        email: tempEmail,
+        password: 'WrongPass123!',
+      });
 
-    await clearAuth(page);
-    await login(page, tempEmail, tempPassword);
+      await clearAuth(page);
+      await login(page, tempEmail, tempPassword);
 
-    await expect(page).toHaveURL(dashboardUrl);
-    const user = await page.evaluate(() => localStorage.getItem('user'));
-    expect(user).toContain(tempEmail);
+      await expect(page).toHaveURL(dashboardUrl);
+      const user = await page.evaluate(() => localStorage.getItem('user'));
+      expect(user).toContain(tempEmail);
+    } finally {
+      setSharedTestUser(previousSharedUser);
+    }
   });
 
   test('dashboard startup loads workbench summary endpoints without duplicate refetches', async ({ page }) => {
@@ -170,7 +175,7 @@ test.describe('Authentication Flow', () => {
       .poll(
         async () => {
           const headingVisible = await page
-            .getByRole('heading', { name: /workbench overview|dashboard/i })
+            .getByRole('heading', { name: /^workbench$/i })
             .first()
             .isVisible();
           if (headingVisible) {
@@ -182,7 +187,7 @@ test.describe('Authentication Flow', () => {
       )
       .toBe(true);
 
-    await expect(page.getByRole('heading', { name: /workbench overview/i }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^workbench$/i }).first()).toBeVisible();
     await expect(page.getByText(/pinned shortcuts/i).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /create intake/i }).first()).toBeVisible();
 

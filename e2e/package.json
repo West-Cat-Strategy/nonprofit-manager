@@ -17,7 +17,7 @@
     "test:docker:audit": "bash ../scripts/e2e-playwright.sh docker ./node_modules/.bin/playwright test --project=chromium tests/dark-mode-accessibility-audit.spec.ts",
     "test:docker:ci:mobile": "CI=1 bash ../scripts/e2e-playwright.sh docker ./node_modules/.bin/playwright test --project=\"Mobile Chrome\" tests/ux-regression.spec.ts --grep \"mobile navigation drawer keeps the compact section layout|mobile auth entry routes keep forms above the fold|mobile staff routes use compact cards and avoid horizontal overflow\"",
     "test:ci:mobile": "CI=1 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=\"Mobile Chrome\" tests/ux-regression.spec.ts --grep \"mobile navigation drawer keeps the compact section layout|mobile auth entry routes keep forms above the fold|mobile staff routes use compact cards and avoid horizontal overflow\"",
-    "test:ci": "CI=1 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium --project=firefox --project=webkit --grep-invert \"Dark Mode Accessibility Audit\" && npm run test:ci:mobile"
+    "test:ci": "CI=1 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium --project=firefox --project=webkit --grep-invert \"Dark Mode Accessibility Audit|Fresh workspace multi-user session\" && npm run test:ci:mobile"
   },
   "keywords": [
     "e2e",

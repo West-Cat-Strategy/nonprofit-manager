@@ -62,7 +62,27 @@ const toValidDate = (value: unknown): Date | null => {
       return null;
     }
 
-    const parsed = new Date(trimmed);
+    const normalized = trimmed
+      .replace(
+        /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d+)?)(Z|[+-]\d{2}:\d{2}|[+-]\d{4}|[+-]\d{2})?$/,
+        (_match, datePart: string, timePart: string, offset: string | undefined) => {
+          if (!offset) {
+            return `${datePart}T${timePart}`;
+          }
+
+          if (/^[+-]\d{2}$/.test(offset)) {
+            return `${datePart}T${timePart}${offset}:00`;
+          }
+
+          if (/^[+-]\d{4}$/.test(offset)) {
+            return `${datePart}T${timePart}${offset.slice(0, 3)}:${offset.slice(3)}`;
+          }
+
+          return `${datePart}T${timePart}${offset}`;
+        }
+      );
+
+    const parsed = new Date(normalized);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 

@@ -14,6 +14,7 @@ declare global {
       organizationId?: string;
       accountId?: string;
       tenantId?: string;
+      validatedBody?: Record<string, unknown>;
       validatedQuery?: Record<string, unknown>;
       validatedParams?: Record<string, string>;
       authorizationContext?: AuthorizationRequestContext;

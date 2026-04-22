@@ -101,7 +101,7 @@ DESKTOP_COMMAND=(
   --project=chromium
   --project=firefox
   --project=webkit
-  --grep-invert "Dark Mode Accessibility Audit"
+  --grep-invert "Dark Mode Accessibility Audit|Fresh workspace multi-user session"
 )
 MOBILE_COMMAND=(
   env

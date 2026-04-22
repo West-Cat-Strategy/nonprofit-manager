@@ -22,6 +22,7 @@ export interface EventRegistrationCaseLink {
 export interface EventRow {
   event_id: string;
   event_name: string;
+  organization_id: string | null;
 }
 
 export interface LockedOccurrenceRow extends EventCheckInWindowEventRow {
@@ -191,7 +192,7 @@ export const getEventRow = async (
   queryable: Queryable = ctx.pool
 ): Promise<EventRow | null> => {
   const result = await queryable.query<EventRow>(
-    `SELECT id as event_id, name as event_name
+    `SELECT id as event_id, name as event_name, organization_id
      FROM events
      WHERE id = $1
      LIMIT 1`,

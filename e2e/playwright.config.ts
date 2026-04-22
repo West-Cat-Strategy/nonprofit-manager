@@ -87,7 +87,7 @@ const WEB_SERVER_TIMEOUT_MS = RUNNING_IN_CI || useCompiledRuntime ? 300 * 1000 :
 const backendRuntimeCommand = useCompiledRuntime
   ? 'npm run build && node dist/index.js'
   : 'npx ts-node -r tsconfig-paths/register --transpileOnly src/index.ts';
-const backendStartCommand = `cd .. && DB_AUTO_START=true COMPOSE_MODE=ci DB_HOST=${E2E_DB_HOST} DB_PORT=${E2E_DB_PORT} DB_NAME=${E2E_DB_NAME} DB_USER=${E2E_DB_USER} DB_PASSWORD=${E2E_DB_PASSWORD} ./scripts/db-migrate.sh && cd backend && ${backendRuntimeCommand}`;
+const backendStartCommand = `cd .. && DB_AUTO_START=true DB_REUSE_IF_READY=1 COMPOSE_MODE=ci DB_HOST=${E2E_DB_HOST} DB_PORT=${E2E_DB_PORT} DB_NAME=${E2E_DB_NAME} DB_USER=${E2E_DB_USER} DB_PASSWORD=${E2E_DB_PASSWORD} ./scripts/db-migrate.sh && cd backend && ${backendRuntimeCommand}`;
 
 const frontendRuntimeCommand = useCompiledRuntime
   ? `${clearFrontendPortCommand} && npm run build && ${clearFrontendPortCommand} && npx vite preview --host ${E2E_FRONTEND_HOST} --port ${E2E_FRONTEND_PORT} --strictPort`

@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import type { Contact, ContactMergeRequest, ContactMergeResult } from '@app-types/contact';
+import { setCurrentUserId } from '@config/database';
 import { logger } from '@config/logger';
 import { recordActivityEventSafely } from '@modules/events/services/shared';
 import { syncContactMethodSummaries } from '@services/contactMethodSyncService';
@@ -107,6 +108,7 @@ export class ContactMergeService {
 
     try {
       await client.query('BEGIN');
+      await setCurrentUserId(client, userId, { local: true });
 
       const lockedContacts = await client.query<
         ContactRecord & { phn_encrypted?: string | null; roles: string[] }
@@ -162,7 +164,6 @@ export class ContactMergeService {
          FOR UPDATE`,
         [[contactId, targetContactId]]
       );
-
       if (lockedContacts.rows.length !== 2) {
         await client.query('ROLLBACK');
         return null;

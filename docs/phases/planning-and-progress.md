@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-21
 
 ## At a Glance
 
@@ -41,13 +41,13 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| In Progress | P5-T2B | Shared validation lane stabilization | Resume from the preserved host CI rerun, starting with the currently reproduced `admin` / `analytics` / `auth` failures and continuing far enough to confirm whether the earlier `contacts` failures still reproduce. Once the host lane is green, finish `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`, then capture any surviving `REDIS_URL` or heap requirements as explicit wrapper/docs follow-through. |
+| In Progress | P5-T2B | Shared validation lane stabilization | The repo-local lane contract, stale host expectations, and the avatar / contacts / donations / events regressions are now fixed in the current tree. Next finish the full host rerun, validate `fresh-workspace-multi-user` on a truly fresh Docker starter stack, then run `cd e2e && npm run test:docker:ci`, `cd e2e && npm run test:docker:audit`, and refresh the Phase 5 validation artifact. |
 
 ### Review Queue
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| Review | P5-T2A | Testing-strategy review artifact and findings | Keep [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) as the canonical artifact while `P5-T2B` owns the remaining validation-lane stabilization work. |
+| Review | P5-T2A | Testing-strategy review artifact and findings | Keep [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) as the canonical artifact while `P5-T2B` finishes the final host rerun, the fresh-volume Docker MFA proof, and the Docker cross-browser/audit follow-through. |
 | Review | P5-T4 | Website surfaces wave: website builder plus public website | Use [../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md](../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md) as the row-local proof note for the one-form managed publish loop. Final broad signoff still depends on `P5-T2B`. |
 
 ### Ready Next
@@ -61,7 +61,7 @@ Maintenance rules:
 ## Current Phase Shape
 
 - The Phase 5 docs, archive, benchmark, and persona-skill refresh is complete and archived in [archive/P5-T1_CLOSEOUT_2026-04-20.md](archive/P5-T1_CLOSEOUT_2026-04-20.md).
-- Phase 5 now enters the early full Playwright/E2E and testing-strategy review lane before the main product waves.
+- Phase 5 is still inside the shared Playwright/E2E and testing-strategy review lane, but the remaining work is now concentrated in final reruns and Docker proof follow-through rather than core lint/typecheck/coverage breakage.
 - Product execution then centers on blast email plus the email builder/formatter, website builder plus public website, and the client portal.
 - Follow-on backlog from repo review and external benchmarking stays visible as later Phase 5 work rather than hidden in archive notes.
 
@@ -129,7 +129,7 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | ID | Task | Status | Owner | Next Step / Blocker | Evidence |
 |---|---|---|---|---|---|
 | P5-T2A | Testing-strategy review artifact and findings | Review | Codex | The Phase 5 testing-strategy review artifact is published. Keep the validation note current as reruns land, but leave the remaining runtime stabilization and failure triage to `P5-T2B`. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
-| P5-T2B | Shared validation lane stabilization | In Progress | Codex | The preserved host CI rerun reproduced current shared failures in `admin`, `analytics`, and `auth`. Resume from that rerun, continue far enough to confirm whether the earlier `contacts` failures still reproduce, then finish `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`. Capture any surviving `REDIS_URL` or heap requirements as explicit wrapper/docs follow-through. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
+| P5-T2B | Shared validation lane stabilization | In Progress | Codex | The repo-local lane contract is now baked in, smoke cleanup is hardened, UI audit drift is refreshed, stale host expectations are aligned, and the avatar / contacts / donations / events regressions are fixed. Remaining work: rerun the full host matrix, validate the fresh-workspace MFA proof on a fresh Docker starter stack, then finish `npm run test:docker:ci`, `npm run test:docker:audit`, and the final validation closeout. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
 | P5-T4 | Website surfaces wave: website builder plus public website | Review | Codex | The one-form managed public publish-loop proof is now green across the website console, builder, publish flow, and public runtime. Keep the row in `Review` while `P5-T2B` finishes the broader host-plus-Docker validation lane. | [../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md](../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md) |
 | P5-T3 | Email platform wave: blast email plus email builder/formatter | Ready | Codex | Scope outbound campaign flow, email authoring/formatting needs, delivery reliability, preview/testing, and reuse of existing template/mailchimp surfaces. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
 | P5-T5 | Client portal wave | Ready | Codex | Plan and execute portal UX, messaging/documents/forms/appointments follow-through, with persona and workflow audit support. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |

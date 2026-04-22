@@ -234,7 +234,7 @@ export const createContactDirectoryController = (
       }
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
-      const payload = req.body as ContactMergeRequest;
+      const payload = (req.validatedBody ?? req.body) as ContactMergeRequest;
       const merged = await useCase.merge(req.params.id, payload, userId, scope, req.user?.role);
 
       if (!merged) {

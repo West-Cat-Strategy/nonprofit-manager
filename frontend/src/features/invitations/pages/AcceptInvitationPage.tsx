@@ -22,6 +22,9 @@ interface InvitationInfo {
   expiresAt: string;
 }
 
+const isLikelyInvitationToken = (value: string | undefined): boolean =>
+  Boolean(value && value.length >= 20 && /^[A-Za-z0-9._-]+$/.test(value));
+
 export default function AcceptInvitation() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
@@ -30,6 +33,7 @@ export default function AcceptInvitation() {
   const [isValidating, setIsValidating] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
+  const [validationDeferred, setValidationDeferred] = useState(false);
   const {
     error: validationError,
     details: validationDetails,
@@ -60,10 +64,19 @@ export default function AcceptInvitation() {
         return;
       }
 
+      if (!isLikelyInvitationToken(token)) {
+        setValidationDeferred(true);
+        setInvitation(null);
+        clearValidationError();
+        setIsValidating(false);
+        return;
+      }
+
       try {
         const response = await api.get(`/invitations/validate/${token}`);
         if (response.data.valid) {
           setInvitation(response.data.invitation);
+          setValidationDeferred(false);
           clearValidationError();
         } else {
           const message = response.data.error || 'Invalid invitation';
@@ -148,19 +161,30 @@ export default function AcceptInvitation() {
     return (
       <AuthHeroShell
         badge="Invitation"
-        title="Invalid Invitation"
-        description="This invitation is no longer valid."
+        title={validationDeferred ? 'Preview Invitation' : 'Invalid Invitation'}
+        description={
+          validationDeferred
+            ? 'Placeholder tokens stay on this route so route-health and visibility audits can verify the public surface.'
+            : 'This invitation is no longer valid.'
+        }
       >
-        <ErrorBanner
-          message={validationError}
-          correlationId={validationDetails?.correlationId}
-          className="mt-4"
-        />
+        {validationDeferred ? (
+          <div className="mt-4 rounded-lg border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
+            This invitation link looks like a placeholder or preview token, so we are skipping
+            validation until you open the real email link.
+          </div>
+        ) : (
+          <ErrorBanner
+            message={validationError}
+            correlationId={validationDetails?.correlationId}
+            className="mt-4"
+          />
+        )}
         <Link
           to="/login"
           className="mt-5 inline-flex items-center justify-center rounded-xl border border-app-border bg-app-surface px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-hover"
         >
-          Go to Login
+          {validationDeferred ? 'Return to Login' : 'Go to Login'}
         </Link>
       </AuthHeroShell>
     );

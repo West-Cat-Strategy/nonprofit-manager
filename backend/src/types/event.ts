@@ -320,6 +320,7 @@ export interface CheckInResult {
 export interface CheckInOptions {
   method?: 'manual' | 'qr';
   checkedInBy?: string | null;
+  actorUserId?: string | null;
 }
 
 export interface EventCheckInSettings {

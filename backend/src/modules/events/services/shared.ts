@@ -212,7 +212,8 @@ export class EventParticipantSupport {
 
   async resolveContactIdByIdentity(
     client: { query: Pool['query'] },
-    identity: { email?: string; phone?: string }
+    identity: { email?: string; phone?: string },
+    accountId?: string | null
   ): Promise<string | null> {
     const email = identity.email?.trim().toLowerCase();
     if (email) {
@@ -220,9 +221,10 @@ export class EventParticipantSupport {
         `SELECT id
          FROM contacts
          WHERE lower(email) = $1
+           AND ($2::uuid IS NULL OR account_id = $2)
          ORDER BY created_at ASC
          LIMIT 1`,
-        [email]
+        [email, accountId ?? null]
       );
       if (byEmail.rows[0]?.id) {
         return byEmail.rows[0].id;
@@ -234,11 +236,14 @@ export class EventParticipantSupport {
       const byPhone = await client.query<EventContactRow>(
         `SELECT id
          FROM contacts
-         WHERE regexp_replace(COALESCE(mobile_phone, ''), '[^0-9]', '', 'g') = $1
-            OR regexp_replace(COALESCE(phone, ''), '[^0-9]', '', 'g') = $1
+         WHERE (
+           regexp_replace(COALESCE(mobile_phone, ''), '[^0-9]', '', 'g') = $1
+           OR regexp_replace(COALESCE(phone, ''), '[^0-9]', '', 'g') = $1
+         )
+           AND ($2::uuid IS NULL OR account_id = $2)
          ORDER BY created_at ASC
          LIMIT 1`,
-        [normalizedPhone]
+        [normalizedPhone, accountId ?? null]
       );
       if (byPhone.rows[0]?.id) {
         return byPhone.rows[0].id;
@@ -255,11 +260,13 @@ export class EventParticipantSupport {
       lastName: string;
       email?: string;
       phone?: string;
+      accountId?: string | null;
       createdBy: string | null;
     }
   ): Promise<string> {
     const result = await client.query<{ id: string }>(
       `INSERT INTO contacts (
+        account_id,
         first_name,
         last_name,
         email,
@@ -267,9 +274,10 @@ export class EventParticipantSupport {
         mobile_phone,
         created_by,
         modified_by
-      ) VALUES ($1, $2, $3, $4, $4, $5, $5)
+      ) VALUES ($1, $2, $3, $4, $5, $5, $6, $6)
       RETURNING id`,
       [
+        args.accountId ?? null,
         args.firstName.trim(),
         args.lastName.trim(),
         args.email?.trim().toLowerCase() || null,

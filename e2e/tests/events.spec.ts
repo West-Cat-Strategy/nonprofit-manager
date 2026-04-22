@@ -118,7 +118,7 @@ test.describe('Events Module', () => {
     await expect(authenticatedPage.getByText('Central Park')).toBeVisible();
 
     await authenticatedPage.getByRole('link', { name: 'Edit event' }).click();
-    await authenticatedPage.waitForURL(new RegExp(`/events/${id}/edit$`));
+    await authenticatedPage.waitForURL(new RegExp(`/events/${id}/edit(?:\\?|$)`));
     await expect(authenticatedPage.locator('input[name="location_name"]')).toHaveValue('Central Park');
   });
 

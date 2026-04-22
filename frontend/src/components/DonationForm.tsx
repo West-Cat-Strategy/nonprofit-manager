@@ -27,6 +27,26 @@ const secondaryButtonClassName =
 const primaryButtonClassName =
   'app-focus-ring rounded-md bg-app-accent px-6 py-2 text-[var(--app-accent-foreground)] hover:bg-app-accent-hover focus:outline-none disabled:opacity-50';
 
+const normalizeDateTimeLikeString = (value: string): string =>
+  value.replace(
+    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d+)?)(Z|[+-]\d{2}:\d{2}|[+-]\d{4}|[+-]\d{2})?$/,
+    (_match, datePart: string, timePart: string, offset: string | undefined) => {
+      if (!offset) {
+        return `${datePart}T${timePart}`;
+      }
+
+      if (/^[+-]\d{2}$/.test(offset)) {
+        return `${datePart}T${timePart}${offset}:00`;
+      }
+
+      if (/^[+-]\d{4}$/.test(offset)) {
+        return `${datePart}T${timePart}${offset.slice(0, 3)}:${offset.slice(3)}`;
+      }
+
+      return `${datePart}T${timePart}${offset}`;
+    }
+  );
+
 const toDateTimeLocalValue = (value: unknown): string => {
   if (!value) {
     return '';
@@ -95,15 +115,17 @@ const toDateTimeLocalValue = (value: unknown): string => {
     return '';
   }
 
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
-    return value;
+  const normalizedValue = normalizeDateTimeLikeString(value.trim());
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(normalizedValue)) {
+    return normalizedValue;
   }
 
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) {
-    return value.slice(0, 16);
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(normalizedValue)) {
+    return normalizedValue.slice(0, 16);
   }
 
-  const parsed = new Date(value);
+  const parsed = new Date(normalizedValue);
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 16);
 };
 

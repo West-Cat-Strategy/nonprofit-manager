@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 import {
   EventStatus,
   EventType,
@@ -7,6 +7,7 @@ import {
   PublicEventCheckInInfo,
   PublicEventCheckInResult,
   PublicEventDetail,
+  type EventRegistration,
   PublicEventListItem,
   PublicEventRegistrationDTO,
   PublicEventRegistrationResult,
@@ -23,6 +24,8 @@ import {
 import { EventOccurrenceService } from './eventOccurrenceService';
 import { EventRegistrationService } from './eventRegistrationService';
 import { createEventHttpError, isEventHttpError } from '../eventHttpErrors';
+import { setCurrentUserId } from '@config/database';
+import { getContactRegistrationsQuery } from './eventRegistrationService.helpers';
 
 interface PublicEventSeriesRow {
   event_id: string;
@@ -33,6 +36,8 @@ interface PublicEventSeriesRow {
   event_type: EventType;
   status: EventStatus;
   is_public: boolean;
+  organization_id: string | null;
+  created_by: string | null;
   start_date: Date;
   end_date: Date;
   location_name: string | null;
@@ -80,6 +85,8 @@ export class EventPublicService {
          e.event_type,
          e.status,
          e.is_public,
+         e.organization_id,
+         e.created_by,
          e.start_date,
          e.end_date,
          e.location_name,
@@ -130,6 +137,117 @@ export class EventPublicService {
     return result.rows[0] ?? null;
   }
 
+  private async withPublicActorContext<T>(
+    series: PublicEventSeriesRow,
+    fn: (queryable: Pick<Pool, 'query'> | Pick<PoolClient, 'query'>) => Promise<T>
+  ): Promise<T> {
+    if (!series.created_by) {
+      return fn(this.pool);
+    }
+
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await setCurrentUserId(client, series.created_by, { local: true });
+      const result = await fn(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  private async getPublicContactRegistrations(
+    series: PublicEventSeriesRow,
+    contactId: string
+  ): Promise<EventRegistration[]> {
+    return this.withPublicActorContext(series, (queryable) =>
+      getContactRegistrationsQuery(
+        queryable,
+        contactId,
+        series.organization_id ? [series.organization_id] : undefined
+      )
+    );
+  }
+
+  private async resolveOrCreatePublicContact(
+    series: PublicEventSeriesRow,
+    input: {
+      firstName: string;
+      lastName: string;
+      email?: string;
+      phone?: string;
+    }
+  ): Promise<{ contactId: string; createdContact: boolean }> {
+    const actorUserId = series.created_by;
+    const accountId = series.organization_id;
+
+    if (!actorUserId) {
+      let contactId = await this.support.resolveContactIdByIdentity(
+        this.pool,
+        {
+          email: input.email,
+          phone: input.phone,
+        },
+        accountId
+      );
+      let createdContact = false;
+
+      if (!contactId) {
+        contactId = await this.support.createWalkInContact(this.pool, {
+          firstName: input.firstName,
+          lastName: input.lastName,
+          email: input.email,
+          phone: input.phone,
+          accountId,
+          createdBy: null,
+        });
+        createdContact = true;
+      }
+
+      return { contactId, createdContact };
+    }
+
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await setCurrentUserId(client, actorUserId, { local: true });
+
+      let contactId = await this.support.resolveContactIdByIdentity(
+        client,
+        {
+          email: input.email,
+          phone: input.phone,
+        },
+        accountId
+      );
+      let createdContact = false;
+
+      if (!contactId) {
+        contactId = await this.support.createWalkInContact(client, {
+          firstName: input.firstName,
+          lastName: input.lastName,
+          email: input.email,
+          phone: input.phone,
+          accountId,
+          createdBy: actorUserId,
+        });
+        createdContact = true;
+      }
+
+      await client.query('COMMIT');
+      return { contactId, createdContact };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   private toPublicListItem(row: PublicEventSeriesRow): PublicEventListItem {
     const occurrenceLabel =
       row.occurrence_count > 1
@@ -169,6 +287,15 @@ export class EventPublicService {
       next_occurrence_start_date: row.next_occurrence_start_date,
       next_occurrence_end_date: row.next_occurrence_end_date,
       next_occurrence_status: row.next_occurrence_status,
+    };
+  }
+
+  private getPublicMutationContext(
+    series: PublicEventSeriesRow
+  ): { actorUserId?: string | null; source: 'public' } {
+    return {
+      actorUserId: series.created_by ?? null,
+      source: 'public',
     };
   }
 
@@ -370,22 +497,12 @@ export class EventPublicService {
       throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
     }
 
-    let contactId = await this.support.resolveContactIdByIdentity(this.pool, {
+    const { contactId, createdContact } = await this.resolveOrCreatePublicContact(series, {
+      firstName: data.first_name,
+      lastName: data.last_name,
       email: data.email,
       phone: data.phone,
     });
-    let createdContact = false;
-
-    if (!contactId) {
-      contactId = await this.support.createWalkInContact(this.pool, {
-        firstName: data.first_name,
-        lastName: data.last_name,
-        email: data.email,
-        phone: data.phone,
-        createdBy: null,
-      });
-      createdContact = true;
-    }
 
     try {
       const registration = await this.registrations.registerContact(
@@ -398,9 +515,7 @@ export class EventPublicService {
           send_confirmation_email: data.send_confirmation_email,
           notes: data.notes,
         },
-        {
-          source: 'public',
-        }
+        this.getPublicMutationContext(series)
       );
 
       return {
@@ -412,7 +527,7 @@ export class EventPublicService {
       };
     } catch (error) {
       if (isEventHttpError(error) && error.code === 'ALREADY_REGISTERED') {
-        const existing = await this.registrations.getContactRegistrations(contactId);
+        const existing = await this.getPublicContactRegistrations(series, contactId);
         const registration =
           existing.find((row) => row.event_id === eventId && row.occurrence_id === defaultOccurrence.occurrence_id) ??
           existing.find((row) => row.event_id === eventId) ??
@@ -516,7 +631,9 @@ export class EventPublicService {
       throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Event not found');
     }
 
-    const lockedOccurrenceResult = await this.pool.query<{
+    // Public kiosk submit only needs a fresh snapshot here; the downstream
+    // registration and check-in mutations take their own lock-safe writes.
+    const currentOccurrenceResult = await this.pool.query<{
       id: string;
       event_id: string;
       start_date: Date;
@@ -538,32 +655,31 @@ export class EventPublicService {
          public_checkin_enabled,
          public_checkin_pin_hash
        FROM event_occurrences
-       WHERE id = $1
-       FOR UPDATE`,
+       WHERE id = $1`,
       [occurrence.occurrence_id]
     );
 
-    const lockedOccurrence = lockedOccurrenceResult.rows[0];
-    if (!lockedOccurrence || !lockedOccurrence.public_checkin_enabled) {
+    const currentOccurrence = currentOccurrenceResult.rows[0];
+    if (!currentOccurrence || !currentOccurrence.public_checkin_enabled) {
       throw createEventHttpError('EVENT_NOT_FOUND', 404, 'Public check-in is not enabled for this event');
     }
-    if (!lockedOccurrence.public_checkin_pin_hash) {
+    if (!currentOccurrence.public_checkin_pin_hash) {
       throw createEventHttpError('PIN_NOT_CONFIGURED', 400, 'Event check-in PIN is not configured');
     }
 
-    const pinMatch = await bcrypt.compare(data.pin.trim(), lockedOccurrence.public_checkin_pin_hash);
+    const pinMatch = await bcrypt.compare(data.pin.trim(), currentOccurrence.public_checkin_pin_hash);
     if (!pinMatch) {
       throw createEventHttpError('INVALID_PIN', 403, 'Invalid event check-in PIN');
     }
 
     try {
       this.support.assertCheckInAllowed({
-        id: lockedOccurrence.id,
-        start_date: lockedOccurrence.start_date,
-        end_date: lockedOccurrence.end_date,
-        status: lockedOccurrence.status,
-        capacity: lockedOccurrence.capacity,
-        registered_count: lockedOccurrence.registered_count,
+        id: currentOccurrence.id,
+        start_date: currentOccurrence.start_date,
+        end_date: currentOccurrence.end_date,
+        status: currentOccurrence.status,
+        capacity: currentOccurrence.capacity,
+        registered_count: currentOccurrence.registered_count,
       });
     } catch (error) {
       throw createEventHttpError(
@@ -573,25 +689,15 @@ export class EventPublicService {
       );
     }
 
-    let createdContact = false;
-    let contactId = await this.support.resolveContactIdByIdentity(this.pool, {
+    const { contactId, createdContact } = await this.resolveOrCreatePublicContact(series, {
+      firstName: data.first_name,
+      lastName: data.last_name,
       email: data.email,
       phone: data.phone,
     });
 
-    if (!contactId) {
-      contactId = await this.support.createWalkInContact(this.pool, {
-        firstName: data.first_name,
-        lastName: data.last_name,
-        email: data.email,
-        phone: data.phone,
-        createdBy: null,
-      });
-      createdContact = true;
-    }
-
     let createdRegistration = false;
-    const currentRegistrations = await this.registrations.getContactRegistrations(contactId);
+    const currentRegistrations = await this.getPublicContactRegistrations(series, contactId);
     let registration =
       currentRegistrations.find(
         (row) => row.event_id === eventId && row.occurrence_id === occurrence.occurrence_id
@@ -604,11 +710,11 @@ export class EventPublicService {
           occurrence_id: occurrence.occurrence_id,
           contact_id: contactId,
           registration_status: undefined,
-          send_confirmation_email: true,
+          // Kiosk attendees are already on site, so confirmation delivery should not
+          // delay the check-in response path.
+          send_confirmation_email: false,
         },
-        {
-          source: 'public',
-        }
+        this.getPublicMutationContext(series)
       );
       createdRegistration = true;
     }
@@ -625,6 +731,7 @@ export class EventPublicService {
 
     const checkInResult = await this.registrations.checkInAttendee(registration.registration_id, {
       method: 'manual',
+      actorUserId: series.created_by ?? null,
       checkedInBy: null,
     });
 

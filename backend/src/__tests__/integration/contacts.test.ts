@@ -2315,6 +2315,117 @@ describe('Contact API Integration Tests', () => {
       expect(targetVolunteerRows.rows[0]?.is_active).toBe(true);
     });
 
+    it('merges into an inactive target while preserving linked records', async () => {
+      const relatedSourceContactId = await createContact(authToken, testAccountId, {
+        account_id: testAccountId,
+        first_name: 'Jordan',
+        last_name: 'Source Related',
+      });
+      const relatedTargetContactId = await createContact(authToken, testAccountId, {
+        account_id: testAccountId,
+        first_name: 'Casey',
+        last_name: 'Target Related',
+      });
+      const sourceContactId = await createContact(staffAuthToken, testAccountId, {
+        account_id: testAccountId,
+        first_name: 'Taylor',
+        last_name: 'Merge',
+        email: 'shared-merge@example.com',
+        phone: '555-600-1000',
+      });
+      const targetContactId = await createContact(staffAuthToken, testAccountId, {
+        account_id: testAccountId,
+        first_name: 'Morgan',
+        last_name: 'Merge',
+        email: 'shared-merge@example.com',
+        phone: '555-600-1000',
+      });
+
+      await createPhone(staffAuthToken, testAccountId, sourceContactId, {
+        phone_number: '555-600-1001',
+        label: 'work',
+        is_primary: false,
+      });
+      await createPhone(staffAuthToken, testAccountId, targetContactId, {
+        phone_number: '555-600-1002',
+        label: 'work',
+        is_primary: false,
+      });
+      await createEmail(staffAuthToken, testAccountId, sourceContactId, {
+        email_address: 'source-extra@example.com',
+        label: 'work',
+        is_primary: false,
+      });
+      await createEmail(staffAuthToken, testAccountId, targetContactId, {
+        email_address: 'target-extra@example.com',
+        label: 'work',
+        is_primary: false,
+      });
+      await createRelationship(staffAuthToken, testAccountId, sourceContactId, {
+        related_contact_id: relatedSourceContactId,
+        relationship_type: 'friend',
+        relationship_label: 'Merge test relationship',
+        is_bidirectional: true,
+        notes: 'Source relationship',
+      });
+      await createRelationship(staffAuthToken, testAccountId, targetContactId, {
+        related_contact_id: relatedTargetContactId,
+        relationship_type: 'friend',
+        relationship_label: 'Merge test relationship',
+        is_bidirectional: true,
+        notes: 'Target relationship',
+      });
+
+      await request(app)
+        .delete(`/api/v2/contacts/${targetContactId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .set('X-Organization-Id', testAccountId)
+        .expect(204);
+
+      const previewResponse = await withStaffAuth(
+        request(app)
+          .get(`/api/v2/contacts/${sourceContactId}/merge-preview`)
+          .query({ target_contact_id: targetContactId })
+      ).expect(200);
+      const preview = payloadFromResponse<{
+        fields: Array<{ field: string; conflict: boolean }>;
+      }>(previewResponse.body);
+      expect(preview.fields.some((field) => field.field === 'first_name' && field.conflict)).toBe(true);
+      expect(preview.fields.some((field) => field.field === 'is_active' && field.conflict)).toBe(true);
+
+      const mergeResponse = await withStaffAuth(
+        request(app)
+          .post(`/api/v2/contacts/${sourceContactId}/merge`)
+          .send({
+            target_contact_id: targetContactId,
+            resolutions: {
+              first_name: 'source',
+              is_active: 'source',
+            },
+          })
+      );
+
+      expect(mergeResponse.status).toBe(200);
+
+      const mergePayload = payloadFromResponse<{
+        survivor_contact: {
+          contact_id: string;
+          first_name: string;
+          is_active: boolean;
+          phone_count: number;
+          email_count: number;
+          relationship_count: number;
+        };
+      }>(mergeResponse.body);
+
+      expect(mergePayload.survivor_contact.contact_id).toBe(targetContactId);
+      expect(mergePayload.survivor_contact.first_name).toBe('Taylor');
+      expect(mergePayload.survivor_contact.is_active).toBe(true);
+      expect(mergePayload.survivor_contact.phone_count).toBe(3);
+      expect(mergePayload.survivor_contact.email_count).toBe(3);
+      expect(mergePayload.survivor_contact.relationship_count).toBe(2);
+    });
+
     it('rejects self merges with a validation error', async () => {
       const contactId = await createContact(staffAuthToken, testAccountId, {
         account_id: testAccountId,

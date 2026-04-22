@@ -20,6 +20,7 @@ import {
 } from './taxReceiptModels';
 import { renderReceiptPdf } from './taxReceiptPdf';
 import { TaxReceiptPersistence } from './taxReceiptPersistence';
+import { setCurrentUserId } from '@config/database';
 
 export class TaxReceiptService {
   private readonly persistence: TaxReceiptPersistence;
@@ -134,6 +135,7 @@ export class TaxReceiptService {
 
     try {
       await client.query('BEGIN');
+      await setCurrentUserId(client, args.userId, { local: true });
 
       const payee = await this.persistence.resolvePayeeRecord(
         client,
@@ -228,6 +230,7 @@ export class TaxReceiptService {
 
     try {
       await client.query('BEGIN');
+      await setCurrentUserId(client, args.userId, { local: true });
 
       const payee = await this.persistence.resolvePayeeRecord(
         client,

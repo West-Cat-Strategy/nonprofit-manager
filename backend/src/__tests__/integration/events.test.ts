@@ -2203,6 +2203,76 @@ describe('Event API Integration Tests', () => {
       expect(idempotentSecond.status).toBe('already_checked_in');
     });
 
+    it('supports recurring kiosk check-in for an explicit occurrence', async () => {
+      const now = Date.now();
+      const createEventResponse = await request(app)
+        .post('/api/v2/events')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          event_name: 'Recurring Public Kiosk Event',
+          event_type: 'community',
+          is_public: true,
+          is_recurring: true,
+          recurrence_pattern: 'weekly',
+          recurrence_interval: 1,
+          recurrence_end_date: new Date(now + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          start_date: new Date(now + 60 * 60 * 1000).toISOString(),
+          end_date: new Date(now + 2 * 60 * 60 * 1000).toISOString(),
+        })
+        .expect(201);
+
+      const eventId = unwrap<{ event_id: string }>(createEventResponse.body).event_id;
+      createdScopedEventIds.push(eventId);
+
+      const detailResponse = await request(app)
+        .get(`/api/v2/events/${eventId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+      const detail = unwrap<{
+        next_occurrence_id?: string | null;
+        occurrences?: Array<{ occurrence_id: string }>;
+      }>(detailResponse.body);
+      const occurrenceId = detail.next_occurrence_id || detail.occurrences?.[0]?.occurrence_id;
+      expect(occurrenceId).toBeTruthy();
+
+      const rotateResponse = await request(app)
+        .post(`/api/v2/events/${eventId}/check-in/pin/rotate`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ occurrence_id: occurrenceId })
+        .expect(200);
+      const rotated = unwrap<{ pin: string }>(rotateResponse.body);
+      expect(rotated.pin).toMatch(/^\d{6}$/);
+
+      const infoResponse = await request(app)
+        .get(`/api/v2/public/events/${eventId}/check-in`)
+        .query({ occurrence_id: occurrenceId })
+        .expect(200);
+      const info = unwrap<{
+        event_id: string;
+        occurrence_id: string;
+        public_checkin_enabled: boolean;
+      }>(infoResponse.body);
+      expect(info.event_id).toBe(eventId);
+      expect(info.occurrence_id).toBe(occurrenceId);
+      expect(info.public_checkin_enabled).toBe(true);
+
+      const attendeeEmail = `public-kiosk-recurring-${unique()}@example.com`;
+      const checkInResponse = await request(app)
+        .post(`/api/v2/public/events/${eventId}/check-in`)
+        .send({
+          occurrence_id: occurrenceId,
+          first_name: 'Recurring',
+          last_name: 'Attendee',
+          email: attendeeEmail,
+          pin: rotated.pin,
+        })
+        .expect(201);
+
+      const checkedIn = unwrap<{ status: string; contact_id: string }>(checkInResponse.body);
+      expect(checkedIn.status).toBe('checked_in');
+      createdContactIds.push(checkedIn.contact_id);
+    });
+
     it.each(['waitlisted', 'no_show'] as const)(
       'rejects kiosk check-in for %s registrations',
       async (registrationStatus) => {
@@ -2229,10 +2299,17 @@ describe('Event API Integration Tests', () => {
         const blockedEmail = `public-blocked-${registrationStatus}-${unique()}@example.com`;
 
         const contactResult = await pool.query<{ id: string }>(
-          `INSERT INTO contacts (first_name, last_name, email, created_by, modified_by)
-           VALUES ('Public', 'Blocked', $1, NULL, NULL)
+          `INSERT INTO contacts (
+             account_id,
+             first_name,
+             last_name,
+             email,
+             created_by,
+             modified_by
+           )
+           VALUES ($1, 'Public', 'Blocked', $2, $3, $3)
            RETURNING id`,
-          [blockedEmail]
+          [organizationId, blockedEmail, adminUserId]
         );
         const contactId = contactResult.rows[0].id;
         createdContactIds.push(contactId);

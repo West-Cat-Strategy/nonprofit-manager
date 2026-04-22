@@ -4,10 +4,10 @@
  * Canonical donation edit implementation for feature-owned finance routes.
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchDonationById, updateDonation } from '../state';
+import { clearSelectedDonation, fetchDonationById, updateDonation } from '../state';
 import DonationForm from '../../../components/DonationForm';
 import type { UpdateDonationDTO } from '../../../types/donation';
 
@@ -15,11 +15,29 @@ const DonationEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
   const { selectedDonation, loading, error } = useAppSelector((state) => state.finance.donations);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      dispatch(fetchDonationById(id));
+    let isActive = true;
+
+    if (!id) {
+      setIsBootstrapping(false);
+      return;
     }
+
+    dispatch(clearSelectedDonation());
+    setIsBootstrapping(true);
+
+    void dispatch(fetchDonationById(id)).finally(() => {
+      if (isActive) {
+        setIsBootstrapping(false);
+      }
+    });
+
+    return () => {
+      isActive = false;
+      dispatch(clearSelectedDonation());
+    };
   }, [id, dispatch]);
 
   const handleSubmit = async (donationData: UpdateDonationDTO) => {
@@ -27,7 +45,7 @@ const DonationEdit: React.FC = () => {
     await dispatch(updateDonation({ donationId: id, donationData })).unwrap();
   };
 
-  if (loading) {
+  if (loading || isBootstrapping) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-lg text-app-text-muted">Loading...</div>

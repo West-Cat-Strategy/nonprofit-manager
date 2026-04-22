@@ -1,6 +1,6 @@
 # Phase 5 Testing Strategy Review
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-21
 
 
 **Date:** 2026-04-20  
@@ -10,15 +10,23 @@
 
 Phase 5's full Playwright/E2E and testing-strategy review is in progress.
 
-The dashboard UX smoke blocker is fixed. The current broad-lane blockers now sit deeper in the host Playwright matrix inside `make ci-full`, and the follow-on Docker cross-browser and audit lanes remain pending.
+The shared validation lane is materially healthier than it was on 2026-04-20.
+
+- `make ci-full` is now self-sufficient for lint, UI audit, typecheck, backend coverage, and frontend coverage without manual shell exports.
+- The earlier broad host regressions in `admin`, `analytics`, `auth`, `contacts`, `donations`, and `events` have been fixed in the current tree and revalidated in their targeted slices.
+- The host Playwright launcher now survives locally occupied frontend ports by auto-falling back off `5173` instead of killing unrelated system listeners.
+- The isolated Docker smoke gate is green again after explicit startup-failure cleanup hardening.
+
+The remaining open lane gap is narrower now: finish the full host matrix rerun on the refreshed tree, then run the Docker cross-browser and audit follow-ons. A separate fresh-volume Docker proof is still needed for `tests/fresh-workspace-multi-user.spec.ts`, which is intentionally excluded from the host lane.
 
 ## Environment Notes
 
 - Local shell runtime during this review: `node v25.9.0`
-- Docker Desktop was not running at the start of the review and had to be launched before the compose-backed parts of `make ci-full` could run.
-- Local Docker Desktop also occupied `127.0.0.1:5173` during the follow-up host rerun on this machine, so the preserved host CI wrapper needed `E2E_FRONTEND_PORT=5317` to avoid the frontend-port collision while still using the host runtime contract.
-- The repo-local CI wrapper currently needs `REDIS_URL` exported in the shell for the `docker compose ... up -d redis` step inside `make test-coverage-full`.
-- Exporting the entire `.env.development` contract leaked `DB_HOST=postgres`, which conflicts with the isolated test DB helper. Injecting only `REDIS_URL=redis://redis:6379` preserved the expected `127.0.0.1:8012` test DB contract.
+- Docker Desktop had to be relaunched once after the old host E2E preflight killed an unrelated `com.docke` listener on `127.0.0.1:5173`.
+- The repo now bakes the Redis URL and backend coverage heap into the validation wrappers, so `make ci-full` no longer depends on caller-exported `REDIS_URL` or `NODE_OPTIONS`.
+- The host Playwright wrapper now auto-selects an alternate frontend port starting with `5317` when `5173` is already occupied locally.
+- The host Playwright backend startup now opts into `DB_REUSE_IF_READY=1`, so a ready isolated test DB can be reused instead of always forcing a Docker-backed rebuild during the `webServer` bootstrap.
+- `tests/fresh-workspace-multi-user.spec.ts` is a Docker-only proof. It requires `SKIP_WEBSERVER=1`, `BYPASS_MFA_FOR_TESTS=false`, and a truly fresh starter-only Docker volume.
 
 ## Command Log
 
@@ -29,41 +37,34 @@ The dashboard UX smoke blocker is fixed. The current broad-lane blockers now sit
 - `make test-tooling`
   - Result: Passed on 2026-04-20. `22` tooling-contract tests passed.
 - `make ci-full`
-  - Result: Failed on 2026-04-20 before coverage because the compose bootstrap required `REDIS_URL` in the shell environment.
-- `make ci-full` after launching Docker Desktop and exporting the full `.env.development`
-  - Result: Failed on 2026-04-20 during isolated test DB prep because the exported dev env leaked `DB_HOST=postgres`, causing `./scripts/db-migrate.sh` to wait on `postgres:8012` instead of `127.0.0.1:8012`.
-- `REDIS_URL=redis://redis:6379 make ci-full`
-  - Result: Failed on 2026-04-20 during backend coverage with a Node heap OOM.
-- `NODE_OPTIONS=--max-old-space-size=8192 REDIS_URL=redis://redis:6379 make ci-full`
-  - Result: Reached the host Playwright matrix on 2026-04-20 after backend and frontend coverage completed successfully with the larger Node heap and exported `REDIS_URL`.
-  - Frontend blocker cleared during this rerun:
+  - Result: On 2026-04-21, lint, UI audit, typecheck, backend coverage, and frontend coverage all passed on the refreshed lane contract.
+  - Backend coverage result: `220` suites passed, `1784` tests passed.
+  - Frontend coverage result: `223` files passed, `1140` tests passed.
+  - The first rerun still failed at the host Playwright startup boundary because the old preflight killed a local `com.docke` listener on `5173`, which in turn made Docker unavailable before Playwright's backend `webServer` boot completed.
+- `cd backend && DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres REDIS_URL=redis://redis:6379 REQUIRE_TEST_DB=true SKIP_INTEGRATION_DB_PREP=1 npm exec -- jest src/__tests__/integration/adminRegistrationReview.test.ts --runInBand`
+  - Result: Passed on 2026-04-21 after seeding the reviewer admin user directly in the test fixture.
+- `cd e2e && npm run test:ci`
+  - Result: Reached real host Playwright execution on 2026-04-21 with the repaired launcher, automatically moving the frontend runtime to `5317` while `5173` was occupied by Docker Desktop.
+  - The earlier targeted failures in `admin`, `analytics`, `auth`, `contacts`, `donations`, and `events` were green in the partial Chromium rerun before it was stopped for focused remediation and artifact updates.
+  - Two remaining early failures were identified during that partial run:
 
 ```text
-frontend/src/test/ux/RouteUxSmoke.test.tsx
-dashboard heading expectation updated from /workbench overview/i to /^workbench$/i
+tests/fresh-workspace-multi-user.spec.ts
+Fresh workspace multi-user session › boots a fresh workspace and proves MFA-aware persona auth on canonical API surfaces
+
+tests/link-health.spec.ts
+Public route health › loads /accept-invitation/test-token
 ```
 
-  - Broad host Playwright then surfaced unrelated failures in shared areas, including:
-
-```text
-tests/admin.spec.ts
-Admin & Settings Module › legacy settings compatibility routes are not supported
-
-tests/analytics.spec.ts
-Analytics Module › should navigate to report templates
-
-tests/auth.spec.ts
-Authentication Flow › dashboard startup loads workbench summary endpoints without duplicate refetches
-
-tests/contacts.spec.ts
-Contacts Module › should search contacts and filter by inactive status
-Contacts Module › should persist contacts list filters in the URL after reload
-Contacts Module › should merge a contact into an inactive target without losing linked records
-```
-
-  - The broad run was interrupted after those failures to free the host runtime for the narrower `P5-T4` browser proof.
-  - Backend coverage result under this rerun: targeted publishing/backend slices remained green after the larger-heap rerun.
-  - Frontend coverage result under this rerun: the dashboard smoke blocker was cleared and the host review lane moved into Playwright.
+- `cd e2e && CI=1 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test tests/link-health.spec.ts --project=chromium --grep "loads /accept-invitation/test-token"`
+  - Result: Passed on 2026-04-21 after teaching the public invitation page to defer placeholder-token validation the same way the portal invite surface already did.
+- `cd e2e && CI=1 bash ../scripts/e2e-playwright.sh host --direct ./node_modules/.bin/playwright test --list --project=chromium --grep-invert "Dark Mode Accessibility Audit|Fresh workspace multi-user session"`
+  - Result: Confirmed on 2026-04-21 that the Docker-only fresh-workspace MFA proof is now excluded from the host matrix.
+- `make test-e2e-docker-smoke`
+  - Result: Passed on 2026-04-21 after explicitly purging partial containers and named volumes on smoke-stack startup failure.
+- `make docker-up-dev && cd e2e && npm run test:docker -- tests/fresh-workspace-multi-user.spec.ts --project=chromium`
+  - Result: Failed on 2026-04-21 because the long-lived dev Docker volume was already initialized (`setupRequired=false`, `userCount=6`), not because of a product regression.
+  - The proof still needs a separate fresh starter-only Docker project or a freshly reset starter volume.
 - `cd frontend && npm test -- --run src/test/ux/RouteUxSmoke.test.tsx`
   - Result: Passed on 2026-04-20 after updating the dashboard heading expectation to the current `Workbench` copy.
 - `cd e2e && bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium tests/publishing.spec.ts tests/public-website.spec.ts`
@@ -92,30 +93,31 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
 
 ## Host Vs Docker Runtime Observations
 
-- The host review lane is not purely host-local: `make ci-full` still depends on Docker for the CI Redis sidecar and the isolated test database bootstrap before it reaches frontend coverage or Playwright.
-- The current CI shell contract is fragile. `REDIS_URL` must be exported for compose to start, but exporting the full development env breaks the isolated test DB helper by carrying `DB_HOST=postgres` into a lane that expects `127.0.0.1:8012`.
-- The Docker development stack itself was healthy once Docker Desktop started; `docker ps` showed the dev frontend, backend, public site, Postgres, and Redis containers running on `8005/8004/8006/8002/8003`.
+- The host review lane is still not purely host-local: `make ci-full` depends on Docker for the CI Redis sidecar and isolated test DB contract before it reaches Playwright.
+- The shell contract is much less fragile now that the repo-local wrappers inject `REDIS_URL=redis://redis:6379` and `NODE_OPTIONS=--max-old-space-size=8192` directly.
+- The host launcher bug was a true runner issue, not an app failure: preflight killed an unrelated Docker Desktop listener on `5173`. The wrapper now auto-falls back to `5317`+ and leaves unrelated processes alone.
+- The backend `webServer` startup now prefers reusing a ready isolated test DB instead of always forcing a Docker-backed rebuild.
 - Host-mode Playwright serves published-site requests through the main backend runtime on `127.0.0.1:3001`, so public-site form submission in this mode depends on the backend route stack allowing same-host origins for `/api/v2/public/*` and `/api/v2/sites/:siteId/track`.
-- The planned Docker cross-browser and audit runs remain unverified because the host `ci-full` lane is still red in broader Playwright coverage.
+- The isolated Docker smoke gate is now back to green.
+- The fresh-workspace MFA proof is not a host-lane responsibility. It belongs to an externally managed Docker runtime with MFA bypass disabled and a fresh starter-only volume.
 
 ## Coverage And Blind Spots
 
-- Backend and frontend coverage both clear when the process is given a larger heap and the shell exports only `REDIS_URL`, which suggests the remaining broad-lane issues are now primarily Playwright/runtime regressions rather than coverage blockers.
-- The dashboard UX smoke contract is now aligned with the current `Workbench` heading, so that earlier copy drift is no longer the gating failure.
-- The narrowed `P5-T4` publishing/public-site browser proof is now green in host mode, which reduces uncertainty for the website builder plus public website slice even though the broad shared Playwright lane is still red.
-- The preserved host rerun reproduced the broad shared failures in `admin`, `analytics`, and `auth`, which confirms `P5-T2B` is now a validation-stabilization task rather than a website-slice implementation blocker.
-- Because the host lane still does not complete cleanly, the follow-on Docker Playwright cross-browser and audit commands remain intentionally deferred.
+- Backend and frontend coverage are no longer the blocker.
+- The targeted Phase 5 regressions in avatar persistence, legacy admin redirects, analytics templates, workbench auth startup, contacts filters/merge/delete/pagination, donations receipts/filters, and events hybrid check-in all now have green targeted proof in the host runtime.
+- The public `/accept-invitation/:token` surface now behaves cleanly for placeholder preview tokens, which removes the route-health false negative without weakening real-token validation.
+- The smoke-stack startup failure mode is hardened, but the broader Docker cross-browser and audit lanes are still pending.
+- The remaining blind spot is the fresh-volume MFA proof: we confirmed it is excluded from the host matrix and still valid as a Docker concern, but we have not yet rerun it on a truly fresh starter-only Docker project in this pass.
 
 ## Recommended Next Steps
 
-1. Resume from the preserved host CI lane and triage the currently reproduced failures in `admin`, `analytics`, and `auth`, then continue far enough to confirm whether the earlier `contacts` failures still reproduce under the refreshed runtime.
-2. Keep the shell contract narrow: export `REDIS_URL=redis://redis:6379` without exporting the entire development env, and keep the larger backend coverage heap until Node/runtime behavior is revisited.
-3. Once the broad host lane is green again, continue with `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`.
-4. Consider hardening the CI wrapper so `make ci-full` documents or injects the required `REDIS_URL` without relying on a caller to export it manually.
-5. Consider formalizing the backend coverage heap requirement if Node `v25.9.0` remains the active local runtime for this repo.
+1. Rerun the full host matrix on the refreshed tree now that the launcher fallback and placeholder invitation fix are in place.
+2. Bring up a separate fresh starter-only Docker project for `tests/fresh-workspace-multi-user.spec.ts` using isolated ports and `BYPASS_MFA_FOR_TESTS=false`, rather than reusing the long-lived dev volume.
+3. Once the host rerun and fresh-volume MFA proof are both green, continue with `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`.
+4. Refresh the Phase 5 validation/workboard artifacts one more time after those final reruns land.
 
 ## Implications For Phase 5 Waves
 
-- `P5-T3` Email platform work should not expand until the shared `ci-full` lane is stable again, because delivery, preview, and template changes will need the same backend-plus-frontend coverage baseline.
-- `P5-T4` Website surfaces work now has a narrow host Playwright proof for the managed-form publish loop, but it is still missing the broader Docker cross-browser and audit follow-through.
-- `P5-T5` Client portal work should assume the current UX smoke layer is sensitive to product-copy drift; route-level UX contracts need to stay aligned with intentional content changes or they will block the validation lane early.
+- `P5-T3` Email platform work should still wait for the final host-plus-Docker validation pass, but the lane is no longer blocked at lint, typecheck, or coverage.
+- `P5-T4` Website surfaces proof remains green and is no longer the main validation blocker.
+- `P5-T5` Client portal and auth-facing work should keep route-health placeholder-token behavior aligned across public and portal invite/reset surfaces, because those routes are exercised by strict runtime health checks.

@@ -25,6 +25,43 @@ set_runtime_env() {
   export "$name"
 }
 
+port_has_listener() {
+  local port="$1"
+
+  if ! command -v lsof >/dev/null 2>&1; then
+    return 1
+  fi
+
+  lsof -nP -tiTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
+}
+
+pick_host_frontend_port() {
+  local configured_port="${E2E_FRONTEND_PORT:-}"
+  local default_port="5173"
+  local candidate
+
+  if [[ -n "$configured_port" ]]; then
+    printf '%s\n' "$configured_port"
+    return 0
+  fi
+
+  if ! port_has_listener "$default_port"; then
+    printf '%s\n' "$default_port"
+    return 0
+  fi
+
+  for candidate in 5317 5417 5517 5617; do
+    if ! port_has_listener "$candidate"; then
+      log_warn "Default host E2E frontend port ${default_port} is occupied; using ${candidate} instead." >&2
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  log_warn "Default host E2E frontend port ${default_port} is occupied and no alternate fallback port is free; keeping ${default_port}." >&2
+  printf '%s\n' "$default_port"
+}
+
 uses_durable_audit_runtime() {
   local arg
 
@@ -70,7 +107,7 @@ case "$mode" in
     set_runtime_env E2E_BACKEND_HOST "${E2E_BACKEND_HOST:-127.0.0.1}"
     set_runtime_env E2E_FRONTEND_HOST "${E2E_FRONTEND_HOST:-127.0.0.1}"
     set_runtime_env E2E_BACKEND_PORT "${E2E_BACKEND_PORT:-3001}"
-    set_runtime_env E2E_FRONTEND_PORT "${E2E_FRONTEND_PORT:-5173}"
+    set_runtime_env E2E_FRONTEND_PORT "$(pick_host_frontend_port)"
     set_runtime_env E2E_PUBLIC_SITE_PORT "${E2E_PUBLIC_SITE_PORT:-${E2E_BACKEND_PORT}}"
     set_runtime_env BASE_URL "${BASE_URL:-http://${E2E_FRONTEND_HOST}:${E2E_FRONTEND_PORT}}"
     set_runtime_env API_URL "${API_URL:-http://${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}}"

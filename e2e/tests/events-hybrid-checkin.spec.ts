@@ -170,7 +170,16 @@ test.describe('Events Hybrid Check-In', () => {
     }
 
     const kioskAttendeeEmail = `public-kiosk-${now}@example.com`;
-    await authenticatedPage.goto(`/event-check-in/${eventId}`);
+    const kioskUrl = (await authenticatedPage
+      .locator('code')
+      .filter({ hasText: `/event-check-in/${eventId}` })
+      .first()
+      .textContent())?.trim();
+    if (!kioskUrl) {
+      throw new Error(`Unable to parse kiosk URL for event ${eventId}`);
+    }
+
+    await authenticatedPage.goto(kioskUrl);
     await expect(authenticatedPage.getByRole('heading', { level: 1, name: eventName })).toBeVisible({
       timeout: 30000,
     });

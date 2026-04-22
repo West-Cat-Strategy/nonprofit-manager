@@ -19,6 +19,7 @@ DB_USER="${DB_USER:-nonprofit_app_user}"
 DB_PASSWORD="${DB_PASSWORD:-nonprofit_app_password}"
 DB_ADMIN_USER="${DB_ADMIN_USER:-postgres}"
 DB_ADMIN_PASSWORD="${DB_ADMIN_PASSWORD:-postgres}"
+DB_REUSE_IF_READY="${DB_REUSE_IF_READY:-0}"
 TEST_CONTAINER_NAME="${DB_TEST_CONTAINER_NAME:-nonprofit-manager-test-postgres}"
 TEST_VOLUME_NAME="${DB_TEST_VOLUME_NAME:-nonprofit-manager-test-postgres-data}"
 TEST_IMAGE="${DB_TEST_IMAGE:-postgres:14-alpine}"
@@ -117,6 +118,39 @@ wait_for_host_connection() {
   done
 }
 
+host_connection_ready() {
+  PGPASSWORD="$DB_ADMIN_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_ADMIN_USER" -d "$DB_NAME" -Atqc 'SELECT 1;' >/dev/null 2>&1
+}
+
+host_schema_migration_count() {
+  PGPASSWORD="$DB_ADMIN_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_ADMIN_USER" -d "$DB_NAME" -Atqc \
+    'SELECT COUNT(*) FROM schema_migrations WHERE canonical_filename IS NOT NULL;' 2>/dev/null || true
+}
+
+reuse_ready_test_database() {
+  local expected_count
+  local observed_count
+
+  if [[ "$DB_REUSE_IF_READY" != "1" ]]; then
+    return 1
+  fi
+
+  if ! host_connection_ready; then
+    return 1
+  fi
+
+  expected_count="$(expected_manifest_migration_count)"
+  observed_count="$(host_schema_migration_count)"
+
+  if [[ "$observed_count" =~ ^[0-9]+$ ]] && [[ "$observed_count" -ge "$expected_count" ]]; then
+    log_info "Reusing existing isolated test database on ${DB_HOST}:${DB_PORT}/${DB_NAME} (${observed_count}/${expected_count} manifest migrations detected)."
+    return 0
+  fi
+
+  log_warn "Existing isolated test database on ${DB_HOST}:${DB_PORT}/${DB_NAME} is missing manifest migrations (${observed_count:-0}/${expected_count}); rebuilding."
+  return 1
+}
+
 ensure_dev_database() {
   local container_id
   container_id="$(dev_compose ps -q postgres 2>/dev/null || true)"
@@ -141,6 +175,10 @@ ensure_test_database() {
   local attempt=1
   local max_attempts=5
   local run_log
+
+  if reuse_ready_test_database; then
+    return 0
+  fi
 
   while [[ "$attempt" -le "$max_attempts" ]]; do
     log_info "Rebuilding the isolated test database on ${DB_HOST}:${DB_PORT}/${DB_NAME} (attempt ${attempt}/${max_attempts})..."

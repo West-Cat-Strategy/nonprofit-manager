@@ -212,6 +212,7 @@ export class PortalResourceRepository {
     const result = await this.pool.query(
       `SELECT
          e.id,
+         e.created_by,
          e.is_public,
          e.status,
          COALESCE(next_occurrence.start_date, e.start_date) as start_date

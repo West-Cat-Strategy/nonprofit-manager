@@ -239,6 +239,7 @@ describe('TaxReceiptService', () => {
 
     client.query
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [makeAccountPayeeRow()] })
       .mockResolvedValueOnce({
         rows: [
@@ -323,6 +324,7 @@ describe('TaxReceiptService', () => {
 
     client.query
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [makeAccountPayeeRow()] })
       .mockResolvedValueOnce({
         rows: [
@@ -398,6 +400,7 @@ describe('TaxReceiptService', () => {
       .mockResolvedValueOnce({ rows: [] });
 
     client.query
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [makeAccountPayeeRow()] })
       .mockResolvedValueOnce({ rows: [] })

@@ -1311,7 +1311,26 @@ test.describe('Contacts Module', () => {
     const activeStatusField = mergeDialog.getByRole('group', { name: /active status/i });
     await activeStatusField.getByRole('button', { name: /^source/i }).click();
 
+    const mergeResponsePromise = authenticatedPage.waitForResponse((response) => {
+      return (
+        response.request().method() === 'POST' &&
+        response.url().includes(`/api/v2/contacts/${sourceContact.id}/merge`)
+      );
+    });
     await mergeDialog.getByRole('button', { name: /merge contacts/i }).click();
+    const mergeResponse = await mergeResponsePromise;
+    const mergeResponseBody = await mergeResponse.text();
+    expect(mergeResponse.request().postDataJSON()).toMatchObject({
+      target_contact_id: targetContact.id,
+      resolutions: {
+        first_name: 'source',
+        is_active: 'source',
+      },
+    });
+    expect(
+      mergeResponse.ok(),
+      `merge response ${mergeResponse.status()}: ${mergeResponseBody}`
+    ).toBeTruthy();
     await expect(authenticatedPage).toHaveURL(new RegExp(`/contacts/${targetContact.id}$`), {
       timeout: 30000,
     });

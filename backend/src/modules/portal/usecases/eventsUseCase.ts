@@ -3,6 +3,13 @@ import eventService, { EventService } from '@modules/events/services/eventServic
 import { logPortalActivity } from '@services/domains/integration';
 import { PortalRepository } from '../repositories/portalRepository';
 
+interface PortalRegistrationEventRow {
+  created_by?: string | null;
+  is_public: boolean;
+  status: string;
+  start_date: string | Date;
+}
+
 const normalizeUserAgent = (userAgent?: string | string[]): string | null =>
   typeof userAgent === 'string' ? userAgent : null;
 
@@ -38,7 +45,9 @@ export class PortalEventsUseCase {
     ipAddress?: string;
     userAgent?: string | string[];
   }): Promise<'not_found' | 'not_public' | 'started' | 'inactive' | 'created' | 'exists' | 'full'> {
-    const event = await this.repository.getEventForPortalRegistration(input.eventId);
+    const event = (await this.repository.getEventForPortalRegistration(
+      input.eventId
+    )) as PortalRegistrationEventRow | null;
     if (!event) {
       return 'not_found';
     }
@@ -56,13 +65,24 @@ export class PortalEventsUseCase {
     }
 
     try {
-      await this.service.registerContact({
-        event_id: input.eventId,
-        contact_id: input.contactId,
-        registration_status: RegistrationStatus.REGISTERED,
-      });
+      await this.service.registerContact(
+        {
+          event_id: input.eventId,
+          contact_id: input.contactId,
+          registration_status: RegistrationStatus.REGISTERED,
+        },
+        {
+          actorUserId: event.created_by ?? null,
+          source: 'portal',
+        }
+      );
     } catch (error) {
-      if (error instanceof Error && error.message === 'Contact is already registered for this event') {
+      if (
+        error instanceof Error &&
+        (error.message === 'Contact is already registered for this event' ||
+          error.message === 'Contact is already registered for this occurrence' ||
+          error.message === 'Contact is already registered for this event series')
+      ) {
         return 'exists';
       }
       if (error instanceof Error && error.message === 'Event is at full capacity') {
@@ -89,12 +109,18 @@ export class PortalEventsUseCase {
     ipAddress?: string;
     userAgent?: string | string[];
   }): Promise<'not_found' | 'cancelled'> {
+    const event = (await this.repository.getEventForPortalRegistration(
+      input.eventId
+    )) as PortalRegistrationEventRow | null;
     const registrationId = await this.repository.getPortalRegistrationByEvent(input.eventId, input.contactId);
     if (!registrationId) {
       return 'not_found';
     }
 
-    await this.service.cancelRegistration(registrationId);
+    await this.service.cancelRegistration(registrationId, {
+      actorUserId: event?.created_by ?? null,
+      source: 'portal',
+    });
 
     await logPortalActivity({
       portalUserId: input.portalUserId,

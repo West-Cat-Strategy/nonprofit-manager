@@ -428,11 +428,11 @@ const DonationDetail: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-app-text-muted">
               <div>
                 <span className="font-medium">Created:</span>{' '}
-                {new Date(donation.created_at).toLocaleDateString()}
+                {formatDateTime(donation.created_at) || 'Unavailable'}
               </div>
               <div>
                 <span className="font-medium">Last Updated:</span>{' '}
-                {new Date(donation.updated_at).toLocaleDateString()}
+                {formatDateTime(donation.updated_at) || 'Unavailable'}
               </div>
             </div>
           </div>

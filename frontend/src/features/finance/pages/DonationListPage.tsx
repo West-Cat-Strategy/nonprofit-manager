@@ -98,6 +98,7 @@ const DonationList: React.FC = () => {
   const [defaultDeliveryMode, setDefaultDeliveryMode] =
     useState<TaxReceiptDeliveryMode>('download');
   const [isReceiptSubmitting, setIsReceiptSubmitting] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(true);
 
   const [search, setSearch] = useState(() => {
     const fromUrl = searchParams.get('search') || '';
@@ -371,7 +372,8 @@ const DonationList: React.FC = () => {
             </button>
           </div>
         <details
-          open={hasActiveFilters}
+          open={filtersExpanded}
+          onToggle={(event) => setFiltersExpanded(event.currentTarget.open)}
           className="rounded-[var(--ui-radius-sm)] border border-app-border bg-app-surface-muted px-4 py-3"
         >
           <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-app-text-muted">

@@ -28,6 +28,7 @@ COMPOSE_PROJECT_DEV ?= nonprofit-dev
 COMPOSE_PROJECT_CI ?= nonprofit-ci
 COMPOSE_PROJECT_SMOKE ?= nonprofit-smoke
 CI_REDIS_URL ?= redis://redis:6379
+CI_BACKEND_COVERAGE_NODE_OPTIONS ?= --max-old-space-size=8192
 DEV_DB_PORT ?= 8002
 DEV_REDIS_PORT ?= 8003
 DEV_BACKEND_PORT ?= 8004
@@ -51,6 +52,7 @@ COMPOSE_DEV_SMOKE_ARGS := -p $(COMPOSE_PROJECT_SMOKE) -f docker-compose.dev.yml
 COMPOSE_CI_INFRA_ARGS := -p $(COMPOSE_PROJECT_CI) -f docker-compose.yml -f docker-compose.host-access.yml -f docker-compose.ci.yml
 E2E_NPM_RUN := cd e2e && npm run
 CI_INFRA_ENV := REDIS_URL=$(CI_REDIS_URL) DB_PASSWORD=postgres
+CI_BACKEND_COVERAGE_ENV := REDIS_URL=$(CI_REDIS_URL) NODE_OPTIONS=$(CI_BACKEND_COVERAGE_NODE_OPTIONS)
 CI_TEST_DB_ENV := DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres COMPOSE_MODE=ci
 SMOKE_STACK_ENV := COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_SMOKE) DEV_DB_PORT=$(SMOKE_DB_PORT) DEV_REDIS_PORT=$(SMOKE_REDIS_PORT) DEV_BACKEND_PORT=$(SMOKE_BACKEND_PORT) DEV_FRONTEND_PORT=$(SMOKE_FRONTEND_PORT) DEV_PUBLIC_SITE_PORT=$(SMOKE_PUBLIC_SITE_PORT) DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true
 
@@ -404,7 +406,7 @@ test-coverage:
 	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
 	@sleep 5
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
-	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm run test:coverage
+	cd backend && $(CI_BACKEND_COVERAGE_ENV) SKIP_INTEGRATION_DB_PREP=1 npm run test:coverage
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
 	cd frontend && npm test -- --run --coverage
 	@echo "$(BLUE)Running Playwright E2E host smoke tests...$(RESET)"
@@ -420,7 +422,7 @@ test-coverage-full:
 	@echo "$(BLUE)Waiting for database to complete post-init restart...$(RESET)"
 	@sleep 5
 	@echo "$(BLUE)Running backend tests with coverage...$(RESET)"
-	cd backend && SKIP_INTEGRATION_DB_PREP=1 npm run test:coverage
+	cd backend && $(CI_BACKEND_COVERAGE_ENV) SKIP_INTEGRATION_DB_PREP=1 npm run test:coverage
 	@echo "$(BLUE)Running frontend tests with coverage...$(RESET)"
 	cd frontend && npm test -- --run --coverage
 	@echo "$(BLUE)Running Playwright E2E host CI matrix...$(RESET)"
@@ -448,18 +450,40 @@ test-e2e:
 
 test-e2e-docker-smoke:
 	@set -eu; \
+	purge_smoke_stack() { \
+	  $(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) down --remove-orphans --volumes >/dev/null 2>&1 || true; \
+	  for container in \
+	    "$(COMPOSE_PROJECT_SMOKE)-postgres-1" \
+	    "$(COMPOSE_PROJECT_SMOKE)-redis-1" \
+	    "$(COMPOSE_PROJECT_SMOKE)-backend-dev-1" \
+	    "$(COMPOSE_PROJECT_SMOKE)-frontend-dev-1" \
+	    "$(COMPOSE_PROJECT_SMOKE)-public-site-dev-1"; do \
+	    docker rm -f "$$container" >/dev/null 2>&1 || true; \
+	  done; \
+	  for volume in \
+	    "$(COMPOSE_PROJECT_SMOKE)_nonprofit-manager-postgres-data" \
+	    "$(COMPOSE_PROJECT_SMOKE)_backend-dev-node-modules" \
+	    "$(COMPOSE_PROJECT_SMOKE)_frontend-dev-node-modules"; do \
+	    docker volume rm -f "$$volume" >/dev/null 2>&1 || true; \
+	  done; \
+	  docker network rm "$(COMPOSE_PROJECT_SMOKE)_default" >/dev/null 2>&1 || true; \
+	}; \
 	cleanup() { \
 	  if [ "$${KEEP_SMOKE_STACK:-$(KEEP_SMOKE_STACK)}" = "1" ]; then \
 	    echo "$(YELLOW)Keeping isolated Docker smoke stack $(COMPOSE_PROJECT_SMOKE) on ports $(SMOKE_FRONTEND_PORT)/$(SMOKE_BACKEND_PORT)/$(SMOKE_PUBLIC_SITE_PORT).$(RESET)"; \
 	    return 0; \
 	  fi; \
 	  echo "$(BLUE)Stopping isolated Docker smoke stack $(COMPOSE_PROJECT_SMOKE)...$(RESET)"; \
-	  $(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) down --remove-orphans --volumes >/dev/null 2>&1 || true; \
+	  purge_smoke_stack; \
 	}; \
 	trap cleanup EXIT; \
 	echo "$(BLUE)Starting isolated Docker smoke stack $(COMPOSE_PROJECT_SMOKE) on ports $(SMOKE_FRONTEND_PORT)/$(SMOKE_BACKEND_PORT)/$(SMOKE_PUBLIC_SITE_PORT)...$(RESET)"; \
-	$(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) down --remove-orphans --volumes >/dev/null 2>&1 || true; \
-	$(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) up -d; \
+	purge_smoke_stack; \
+	if ! $(SMOKE_STACK_ENV) $(DOCKER_COMPOSE) $(COMPOSE_DEV_SMOKE_ARGS) up -d; then \
+	  echo "$(YELLOW)Smoke stack startup failed; purging partial containers and volumes before exit.$(RESET)"; \
+	  purge_smoke_stack; \
+	  exit 1; \
+	fi; \
 	./scripts/wait-for-http-ready.sh \
 	  "http://127.0.0.1:$(SMOKE_BACKEND_PORT)/health/ready" \
 	  "http://127.0.0.1:$(SMOKE_FRONTEND_PORT)" \

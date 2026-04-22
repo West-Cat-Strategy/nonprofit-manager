@@ -401,10 +401,10 @@ test('user settings uploads and persists the profile avatar', async ({ request, 
       .toMatch(/synced|offline fallback/i);
   });
 
-  test('legacy settings compatibility routes are not supported', async ({ page }) => {
+  test('legacy settings compatibility routes redirect to their canonical settings surfaces', async ({ page }) => {
     await ensureAuthenticatedSession(page);
     const legacyRoutes = [
-      { route: '/email-marketing', canonical: '/settings/email-marketing' },
+      { route: '/email-marketing', canonical: '/settings/communications' },
       { route: '/admin/audit-logs', canonical: '/settings/admin/audit_logs' },
       { route: '/settings/organization', canonical: '/settings/admin/organization' },
     ];
@@ -412,12 +412,12 @@ test('user settings uploads and persists the profile avatar', async ({ request, 
     for (const { route, canonical } of legacyRoutes) {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
 
-      const currentPath = getPathWithQuery(page.url());
-      expect(
-        currentPath,
-        `Legacy route ${route} should not resolve to canonical ${canonical}`
-      ).not.toBe(canonical);
-      expect(['/dashboard', '/login']).toContain(new URL(page.url()).pathname);
+      await expect
+        .poll(
+          async () => getPathWithQuery(page.url()),
+          { timeout: 10000, intervals: [250, 500, 1000] }
+        )
+        .toBe(canonical);
     }
   });
 

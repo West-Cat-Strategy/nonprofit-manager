@@ -52,6 +52,7 @@ export function validateRequest(sources: ValidationSource) {
         hasError = true;
       } else {
         req.body = result.data;
+        req.validatedBody = result.data as Request['validatedBody'];
       }
     }
 

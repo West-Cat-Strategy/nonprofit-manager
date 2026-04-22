@@ -20,6 +20,7 @@ export function useUserSettingsPageController() {
   const { user } = useAppSelector((state) => state.auth);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const latestUserRef = useRef(user);
 
   const [profile, setProfile] = useState<UserProfile>({
     firstName: '',
@@ -87,6 +88,12 @@ export function useUserSettingsPageController() {
     hasUnsavedChanges: isProfileDirty && !isSaving && !isProcessingImage,
   });
 
+  useEffect(() => {
+    latestUserRef.current = user;
+  }, [user]);
+
+  const authUserId = user?.id ?? null;
+
   const fetchProfile = useCallback(async () => {
     setIsLoading(true);
     setSaveStatus('idle');
@@ -95,14 +102,14 @@ export function useUserSettingsPageController() {
 
     try {
       const data = await LoopApiService.getUserProfile();
-      const normalized = buildUserProfile(data, user ?? undefined);
+      const normalized = buildUserProfile(data, latestUserRef.current ?? undefined);
       setProfile(normalized.profile);
       setCustomPronouns(normalized.customPronouns);
       setPreviewImage(normalized.previewImage);
       setSavedProfileSnapshot(serializeUserProfile(normalized.profile, normalized.customPronouns));
       setProfileLoadState('ready');
     } catch {
-      const normalized = buildUserProfile(null, user ?? undefined);
+      const normalized = buildUserProfile(null, latestUserRef.current ?? undefined);
       setProfile(normalized.profile);
       setCustomPronouns(normalized.customPronouns);
       setPreviewImage(normalized.previewImage);
@@ -112,7 +119,7 @@ export function useUserSettingsPageController() {
     } finally {
       setIsLoading(false);
     }
-  }, [clearErrorMessage, user]);
+  }, [authUserId, clearErrorMessage]);
 
   useEffect(() => {
     void fetchProfile();

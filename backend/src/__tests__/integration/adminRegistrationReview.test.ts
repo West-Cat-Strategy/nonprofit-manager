@@ -5,23 +5,32 @@ import { issueAdminPendingRegistrationReviewToken } from '@utils/sessionTokens';
 
 describe('Admin Registration Review API', () => {
   let reviewerId = '';
+  let reviewerEmail = '';
   const createdPendingRegistrationIds: string[] = [];
 
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   beforeAll(async () => {
+    reviewerEmail = `admin-registration-reviewer-${unique()}@example.com`;
     const result = await pool.query<{ id: string }>(
-      `SELECT id
-         FROM users
-        WHERE role = 'admin'
-          AND COALESCE(is_active, true) = true
-        ORDER BY created_at ASC
-        LIMIT 1`
+      `INSERT INTO users (
+         email,
+         password_hash,
+         first_name,
+         last_name,
+         role,
+         is_active,
+         created_at,
+         updated_at
+       )
+       VALUES ($1, $2, $3, $4, 'admin', true, NOW(), NOW())
+       RETURNING id`,
+      [reviewerEmail, '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG', 'Admin', 'Reviewer']
     );
 
     reviewerId = result.rows[0]?.id ?? '';
     if (!reviewerId) {
-      throw new Error('Admin registration review integration test requires an active admin user.');
+      throw new Error('Failed to seed reviewer admin user for admin registration review test.');
     }
   });
 
@@ -33,6 +42,14 @@ describe('Admin Registration Review API', () => {
     await pool.query('DELETE FROM pending_registrations WHERE id = ANY($1::uuid[])', [
       createdPendingRegistrationIds.splice(0, createdPendingRegistrationIds.length),
     ]);
+  });
+
+  afterAll(async () => {
+    if (!reviewerEmail) {
+      return;
+    }
+
+    await pool.query('DELETE FROM users WHERE email = $1', [reviewerEmail]);
   });
 
   it('previews a pending registration review token without leaking a server error', async () => {
