@@ -10,7 +10,7 @@ vi.mock('../../hooks/useMeetingForm', () => ({
   useMeetingForm: vi.fn(),
 }));
 
-const mockUseMeetingForm = useMeetingForm as any;
+const mockUseMeetingForm = vi.mocked(useMeetingForm);
 
 describe('Meeting Form Pages', () => {
   it('renders MeetingCreatePage', () => {

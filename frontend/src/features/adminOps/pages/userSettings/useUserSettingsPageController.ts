@@ -92,8 +92,6 @@ export function useUserSettingsPageController() {
     latestUserRef.current = user;
   }, [user]);
 
-  const authUserId = user?.id ?? null;
-
   const fetchProfile = useCallback(async () => {
     setIsLoading(true);
     setSaveStatus('idle');
@@ -119,7 +117,7 @@ export function useUserSettingsPageController() {
     } finally {
       setIsLoading(false);
     }
-  }, [authUserId, clearErrorMessage]);
+  }, [clearErrorMessage]);
 
   useEffect(() => {
     void fetchProfile();

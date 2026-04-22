@@ -7,6 +7,7 @@ import { activitiesApiClient } from '../api';
 import type { ActivityRecord, ActivityListFilters } from '../types';
 
 export const useRecentActivities = (filters?: ActivityListFilters | undefined) => {
+  const limit = filters?.limit;
   const [activities, setActivities] = useState<ActivityRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -15,7 +16,7 @@ export const useRecentActivities = (filters?: ActivityListFilters | undefined) =
   const fetchActivities = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await activitiesApiClient.getRecentActivities(filters);
+      const data = await activitiesApiClient.getRecentActivities(limit ? { limit } : undefined);
       setActivities(data.activities);
       setTotal(data.total);
       setError(null);
@@ -26,7 +27,7 @@ export const useRecentActivities = (filters?: ActivityListFilters | undefined) =
     } finally {
       setLoading(false);
     }
-  }, [filters?.limit]);
+  }, [limit]);
 
   useEffect(() => {
     fetchActivities();

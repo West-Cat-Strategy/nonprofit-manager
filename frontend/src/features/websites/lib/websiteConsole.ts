@@ -189,7 +189,7 @@ const buildPublicSurfaceUrl = (
   try {
     const url = new URL(baseUrl);
 
-    if (path && path.startsWith('?')) {
+    if (path?.startsWith('?')) {
       url.search = path;
       return url.toString();
     }
@@ -512,7 +512,7 @@ export const pickManagedWebsiteForm = (
     return flaggedPrimary;
   }
 
-  return [...forms].sort((left, right) => {
+  const prioritizedForms = [...forms].sort((left, right) => {
     if (left.live !== right.live) {
       return Number(right.live) - Number(left.live);
     }
@@ -524,7 +524,9 @@ export const pickManagedWebsiteForm = (
     }
 
     return left.title.localeCompare(right.title);
-  })[0]!;
+  });
+
+  return prioritizedForms[0] ?? null;
 };
 
 export const deriveWebsiteManagedFormVerification = (

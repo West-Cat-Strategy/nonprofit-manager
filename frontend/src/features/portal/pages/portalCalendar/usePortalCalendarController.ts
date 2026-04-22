@@ -199,7 +199,7 @@ export function usePortalCalendarController() {
 
   const handleMonthRangeChange = useCallback((range: { startDate: string; endDate: string }) => {
     setVisibleRange((current) => {
-      if (current && current.startDate === range.startDate && current.endDate === range.endDate) {
+      if (current?.startDate === range.startDate && current?.endDate === range.endDate) {
         return current;
       }
 

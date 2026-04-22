@@ -14,6 +14,18 @@ import {
 } from '../routeCatalog';
 import { createDefaultWorkspaceModuleSettings } from '../../features/workspaceModules/catalog';
 
+const requireRouteCatalogEntry = (id: string) => {
+  const entry = getRouteCatalogEntryById(id);
+
+  expect(entry).toBeDefined();
+
+  if (!entry) {
+    throw new Error(`Expected route catalog entry for ${id}`);
+  }
+
+  return entry;
+};
+
 describe('routeCatalog matching', () => {
   it('matches canonical routes and keeps query strings attached to canonical paths', () => {
     expect(matchRouteCatalogEntry('/settings/admin/approvals')?.id).toBe(
@@ -54,18 +66,18 @@ describe('routeCatalog matching', () => {
   });
 
   it('looks up catalog entries by id and honors feature and workspace gating', () => {
-    const teamChat = getRouteCatalogEntryById('team-chat');
-    const cases = getRouteCatalogEntryById('cases');
+    const teamChat = requireRouteCatalogEntry('team-chat');
+    const cases = requireRouteCatalogEntry('cases');
 
     expect(teamChat).toMatchObject({
       id: 'team-chat',
       path: '/team-chat',
     });
-    expect(getRouteHref(teamChat!)).toBe('/team-chat');
-    expect(isRouteCatalogEntryEnabled(teamChat!, { VITE_TEAM_CHAT_ENABLED: 'true' })).toBe(true);
-    expect(isRouteCatalogEntryEnabled(teamChat!, { VITE_TEAM_CHAT_ENABLED: 'false' })).toBe(false);
+    expect(getRouteHref(teamChat)).toBe('/team-chat');
+    expect(isRouteCatalogEntryEnabled(teamChat, { VITE_TEAM_CHAT_ENABLED: 'true' })).toBe(true);
+    expect(isRouteCatalogEntryEnabled(teamChat, { VITE_TEAM_CHAT_ENABLED: 'false' })).toBe(false);
     expect(
-      isRouteCatalogEntryEnabled(cases!, {}, { ...createDefaultWorkspaceModuleSettings(), cases: false })
+      isRouteCatalogEntryEnabled(cases, {}, { ...createDefaultWorkspaceModuleSettings(), cases: false })
     ).toBe(false);
   });
 

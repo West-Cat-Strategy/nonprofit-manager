@@ -7,6 +7,7 @@ import { activitiesApiClient } from '../api';
 import type { ActivityRecord, EntityActivityFilters } from '../types';
 
 export const useEntityActivities = (filters: EntityActivityFilters) => {
+  const { entityType, entityId } = filters;
   const [activities, setActivities] = useState<ActivityRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -15,7 +16,7 @@ export const useEntityActivities = (filters: EntityActivityFilters) => {
   const fetchActivities = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await activitiesApiClient.getEntityActivities(filters);
+      const data = await activitiesApiClient.getEntityActivities({ entityType, entityId });
       setActivities(data.activities);
       setTotal(data.total);
       setError(null);
@@ -26,7 +27,7 @@ export const useEntityActivities = (filters: EntityActivityFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [filters.entityType, filters.entityId]);
+  }, [entityId, entityType]);
 
   useEffect(() => {
     fetchActivities();

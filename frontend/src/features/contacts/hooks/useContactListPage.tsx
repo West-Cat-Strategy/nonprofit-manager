@@ -406,7 +406,7 @@ export const useContactListPage = () => {
         <p className="text-xs font-medium text-app-text-subtle">Use actions to open the full record.</p>
       </div>
     ),
-    [navigate]
+    []
   );
 
   return {

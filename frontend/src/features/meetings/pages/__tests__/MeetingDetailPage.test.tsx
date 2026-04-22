@@ -9,7 +9,7 @@ vi.mock('../../hooks/useMeetingDetailPage', () => ({
   useMeetingDetailPage: vi.fn(),
 }));
 
-const mockUseMeetingDetailPage = useMeetingDetailPage as any;
+const mockUseMeetingDetailPage = vi.mocked(useMeetingDetailPage);
 
 describe('MeetingDetailPage', () => {
   it('renders loading state', () => {

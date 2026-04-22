@@ -17,11 +17,11 @@
       "ignore": ["export-smoke.d.ts"]
     },
     "backend": {
-      "entry": ["src/index.ts", "src/public-site.ts", "src/worker.ts"],
+      "entry": ["src/public-site.ts", "src/worker.ts"],
       "project": ["src/**/*.ts", "scripts/**/*.ts"]
     },
     "frontend": {
-      "entry": ["src/main.tsx", "src/grantsSmoke.tsx"],
+      "entry": ["src/grantsSmoke.tsx"],
       "project": ["src/**/*.{ts,tsx}"]
     },
     "e2e": {

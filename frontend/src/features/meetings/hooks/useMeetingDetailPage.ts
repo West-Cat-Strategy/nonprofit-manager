@@ -44,7 +44,7 @@ export const useMeetingDetailPage = () => {
       // In a real app, we'd probably open a modal or navigate to a preview page
       console.log('Minutes Draft:', markdown);
       alert('Minutes draft generated! Check console for markdown.');
-    } catch (err) {
+    } catch {
       alert('Failed to generate minutes');
     }
   };

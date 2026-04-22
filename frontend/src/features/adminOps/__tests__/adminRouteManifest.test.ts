@@ -8,7 +8,7 @@ const getRedirectEntry = (id: string) => {
   expect(entry).toBeDefined();
   expect(entry?.kind).toBe('redirect');
 
-  if (!entry || entry.kind !== 'redirect') {
+  if (entry?.kind !== 'redirect') {
     throw new Error(`Expected redirect entry for ${id}`);
   }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import type {
+  TemplateListItem,
   TemplateCategory,
   TemplateStatus,
 } from '../../../../types/websiteBuilder';
@@ -92,7 +93,7 @@ export function useTemplateGalleryController() {
     [dispatch]
   );
 
-  const handlePreviewTemplate = useCallback((template: any) => {
+  const handlePreviewTemplate = useCallback((template: TemplateListItem) => {
     window.open(getTemplatePreviewPath(template.id), '_blank', 'noopener,noreferrer');
   }, []);
 

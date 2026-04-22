@@ -2,11 +2,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
+import type { CaseProvenance } from '../../../../types/case';
 import CaseDetail from '../CaseDetailPage';
 
 const dispatchMock = vi.fn(() => Promise.resolve({ unwrap: () => Promise.resolve({}) }));
 const validCaseId = '22222222-2222-4222-8222-222222222222';
 const validContactId = '33333333-3333-4333-8333-333333333333';
+const defaultProvenance: CaseProvenance | undefined = undefined;
 
 const mockState = {
   cases: {
@@ -39,7 +41,7 @@ const mockState = {
       assigned_last_name: 'Rivera',
       tags: [],
       contact_id: validContactId,
-      provenance: undefined as any,
+      provenance: defaultProvenance,
     },
     caseStatuses: [],
     caseMilestones: [],

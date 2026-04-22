@@ -4,7 +4,6 @@ import type * as ReactRouterDom from 'react-router-dom';
 import { vi } from 'vitest';
 import Register from '../RegisterPage';
 import { authService } from '../../../../services/authService';
-import { primeStaffSession } from '../../utils/primeStaffSession';
 import { createTestStore, renderWithProviders } from '../../../../test/testUtils';
 
 const mockNavigate = vi.fn();

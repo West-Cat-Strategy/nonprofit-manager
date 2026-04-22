@@ -6,43 +6,50 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { rootReducer } from '../../../../store';
 import useStaffNavigationViewModel from '../useStaffNavigationViewModel';
+import { createDefaultWorkspaceModuleSettings } from '../../../workspaceModules/catalog';
+
+const mockNavigationPreferences = {
+  enabledItems: [
+    { id: 'dashboard', group: 'primary', path: '/dashboard' },
+    { id: 'contacts', group: 'secondary', path: '/contacts' },
+    { id: 'websites', group: 'secondary', path: '/websites' },
+  ],
+  secondaryItems: [
+    { id: 'contacts', group: 'secondary', path: '/contacts' },
+    { id: 'websites', group: 'secondary', path: '/websites' },
+  ],
+  favoriteItems: [],
+};
+
+const mockWorkspaceModules = createDefaultWorkspaceModuleSettings();
+const mockBranding = {
+  appName: 'Nonprofit Manager',
+  appIcon: null,
+};
+const mockThemeState = {
+  availableThemes: ['neobrutalist', 'clean-modern'],
+  isDarkMode: false,
+  setTheme: vi.fn(),
+  theme: 'neobrutalist',
+  toggleDarkMode: vi.fn(),
+};
 
 vi.mock('../../../../hooks/useNavigationPreferences', () => ({
-  useNavigationPreferences: () => ({
-    enabledItems: [
-      { id: 'dashboard', group: 'primary', path: '/dashboard' },
-      { id: 'contacts', group: 'secondary', path: '/contacts' },
-      { id: 'websites', group: 'secondary', path: '/websites' },
-    ],
-    secondaryItems: [
-      { id: 'contacts', group: 'secondary', path: '/contacts' },
-      { id: 'websites', group: 'secondary', path: '/websites' },
-    ],
-    favoriteItems: [],
-  }) as any,
+  useNavigationPreferences: () => mockNavigationPreferences,
 }));
 
 vi.mock('../../../workspaceModules/useWorkspaceModuleAccess', () => ({
-  useWorkspaceModuleAccess: () => ({} as any),
+  useWorkspaceModuleAccess: () => mockWorkspaceModules,
 }));
 
 vi.mock('../../../../contexts/BrandingContext', () => ({
   useBranding: () => ({
-    branding: {
-      appName: 'Nonprofit Manager',
-      appIcon: null,
-    },
-  }) as any,
+    branding: mockBranding,
+  }),
 }));
 
 vi.mock('../../../../contexts/ThemeContext', () => ({
-  useTheme: () => ({
-    availableThemes: ['neobrutalist', 'clean-modern'],
-    isDarkMode: false,
-    setTheme: vi.fn(),
-    theme: 'neobrutalist',
-    toggleDarkMode: vi.fn(),
-  }) as any,
+  useTheme: () => mockThemeState,
 }));
 
 vi.mock('../../../auth/state/adminAccess', () => ({

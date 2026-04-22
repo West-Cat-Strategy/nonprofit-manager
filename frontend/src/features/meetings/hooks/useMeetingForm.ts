@@ -58,7 +58,7 @@ export const useMeetingForm = (isEdit = false) => {
         const newMeeting = await meetingsApiClient.createMeeting(formData);
         navigate(`/meetings/${newMeeting.id}`);
       }
-    } catch (err) {
+    } catch {
       alert('Failed to save meeting');
       setSubmitting(false);
     }
