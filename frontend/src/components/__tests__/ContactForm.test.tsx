@@ -14,6 +14,16 @@ vi.mock('../../services/api', () => ({
 }));
 
 const mockApi = api as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; put: ReturnType<typeof vi.fn> };
+const showSuccessMock = vi.fn();
+const showErrorMock = vi.fn();
+
+vi.mock('../../contexts/useToast', () => ({
+  useToast: () => ({
+    showSuccess: showSuccessMock,
+    showError: showErrorMock,
+  }),
+}));
+
 const mockRoles = [
   { id: 'role-staff', name: 'Staff', description: 'Internal team member' },
   { id: 'role-board', name: 'Board Member', description: 'Board role' },
@@ -29,9 +39,12 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const renderContactForm = async (component: React.ReactElement) => {
+const renderContactForm = async (
+  component: React.ReactElement,
+  options: { route?: string } = {}
+) => {
   const store = createTestStore();
-  const view = renderWithProviders(component, { store });
+  const view = renderWithProviders(component, { store, route: options.route });
   // ContactForm fetches role/options on mount; wait for the effect to settle to avoid act warnings.
   await waitFor(() => expect(mockApi.get).toHaveBeenCalled());
   return view;
@@ -40,8 +53,18 @@ const renderContactForm = async (component: React.ReactElement) => {
 describe('ContactForm', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    showSuccessMock.mockReset();
+    showErrorMock.mockReset();
     mockApi.post.mockReset();
     mockApi.put.mockReset();
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      callback(0);
+      return 0;
+    });
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
     mockApi.post.mockResolvedValue({
       data: {
         success: true,
@@ -344,6 +367,116 @@ describe('ContactForm', () => {
           '/v2/contacts',
           expect.objectContaining({ phn: '1234567890' })
         );
+      });
+    });
+
+    it('requires email when assigning staff roles and focuses the email field', async () => {
+      await renderContactForm(<ContactForm mode="create" />);
+
+      fireEvent.change(screen.getByLabelText(/first name \*/i), { target: { value: 'Jamie' } });
+      fireEvent.change(screen.getByLabelText(/last name \*/i), { target: { value: 'Staffer' } });
+      fireEvent.click(screen.getByText('Staff'));
+      fireEvent.click(screen.getByRole('button', { name: /create contact/i }));
+
+      expect(
+        await screen.findByText(/email is required when assigning staff or executive director roles/i)
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText(/^email$/i)).toHaveFocus();
+      });
+      expect(mockApi.post).not.toHaveBeenCalled();
+    });
+
+    it('requires phone and mobile phone to be different and focuses the phone field', async () => {
+      await renderContactForm(<ContactForm mode="create" />);
+
+      fireEvent.change(screen.getByLabelText(/first name \*/i), { target: { value: 'Jamie' } });
+      fireEvent.change(screen.getByLabelText(/last name \*/i), { target: { value: 'Phones' } });
+      fireEvent.change(screen.getByLabelText(/^phone$/i), { target: { value: '555-123-4567' } });
+      fireEvent.change(screen.getByLabelText(/^mobile phone$/i), { target: { value: '(555) 123-4567' } });
+      fireEvent.click(screen.getByRole('button', { name: /create contact/i }));
+
+      const messages = await screen.findAllByText(/phone and mobile phone must be different/i);
+      expect(messages).toHaveLength(2);
+      await waitFor(() => {
+        expect(screen.getByLabelText(/^phone$/i)).toHaveFocus();
+      });
+      expect(mockApi.post).not.toHaveBeenCalled();
+    });
+
+    it('omits malformed account ids while preserving hydrated names and return navigation', async () => {
+      await renderContactForm(<ContactForm mode="create" />, {
+        route: '/contacts/new?first_name=Ana&last_name=Bell&account_id=not-a-uuid&return_to=contact-123',
+      });
+
+      expect(screen.getByLabelText(/first name \*/i)).toHaveValue('Ana');
+      expect(screen.getByLabelText(/last name \*/i)).toHaveValue('Bell');
+
+      fireEvent.click(screen.getByRole('button', { name: /create contact/i }));
+
+      await waitFor(() => {
+        expect(mockApi.post).toHaveBeenCalledTimes(1);
+      });
+
+      const [, payload] = mockApi.post.mock.calls[0];
+      expect(payload).not.toHaveProperty('account_id');
+      expect(mockNavigate).toHaveBeenCalledWith('/contacts/contact-123/edit');
+    });
+
+    it('shows backend save errors inline and via toast and focuses the submit banner', async () => {
+      mockApi.post.mockRejectedValueOnce({
+        response: {
+          data: {
+            error: {
+              message: 'Validation failed',
+              details: {
+                issues: [{ path: 'email', message: 'already exists' }],
+              },
+            },
+          },
+        },
+      });
+
+      await renderContactForm(<ContactForm mode="create" />);
+
+      fireEvent.change(screen.getByLabelText(/first name \*/i), { target: { value: 'Jamie' } });
+      fireEvent.change(screen.getByLabelText(/last name \*/i), { target: { value: 'Server' } });
+      fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: 'jamie@example.com' } });
+      fireEvent.click(screen.getByRole('button', { name: /create contact/i }));
+
+      const banner = await screen.findByText('email: already exists');
+
+      expect(showErrorMock).toHaveBeenCalledWith('email: already exists');
+      await waitFor(() => {
+        expect(banner).toHaveFocus();
+      });
+    });
+
+    it('clears submit errors after the user edits the form again', async () => {
+      mockApi.post.mockRejectedValueOnce({
+        response: {
+          data: {
+            error: {
+              code: 'validation_error',
+              message: 'Account not found',
+            },
+          },
+        },
+      });
+
+      await renderContactForm(<ContactForm mode="create" />);
+
+      fireEvent.change(screen.getByLabelText(/first name \*/i), { target: { value: 'Jamie' } });
+      fireEvent.change(screen.getByLabelText(/last name \*/i), { target: { value: 'Retry' } });
+      fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: 'jamie@example.com' } });
+      fireEvent.click(screen.getByRole('button', { name: /create contact/i }));
+
+      expect(await screen.findByText(/account not found/i)).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText(/first name \*/i), { target: { value: 'Jamie 2' } });
+
+      await waitFor(() => {
+        expect(screen.queryByText(/account not found/i)).not.toBeInTheDocument();
       });
     });
   });

@@ -14,6 +14,8 @@ import type { ContactRole, CreateContactRelationshipDTO, RelationshipType } from
 import { useToast } from '../../../../contexts/useToast';
 import { validatePostalCode } from '../../../../utils/validation';
 import { toDateInputValue } from '../../../../utils/format';
+import { formatApiErrorMessage } from '../../../../utils/apiError';
+import { isUuid } from '../../../../utils/uuid';
 import type { ContactFormValues, ContactRecord } from './types';
 import { useUnsavedChangesGuard } from '../../../../hooks/useUnsavedChangesGuard';
 import useConfirmDialog, { confirmPresets } from '../../../../hooks/useConfirmDialog';
@@ -27,6 +29,27 @@ interface UseContactFormProps {
 }
 
 const isMaskedPhn = (value: string): boolean => /^\*{2,}\d{4}$/.test(value.trim());
+const STAFF_ACCOUNT_ROLE_NAMES = new Set(['Staff', 'Executive Director']);
+const ERROR_FOCUS_PRIORITY = ['first_name', 'last_name', 'email', 'phone', 'mobile_phone', 'phn', 'postal_code'];
+
+const normalizePhoneForComparison = (value: string | null | undefined): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const digits = value.replace(/\D/g, '');
+  return digits.length > 0 ? digits : null;
+};
+
+const scrollAndFocusElement = (element: HTMLElement) => {
+  element.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+
+  try {
+    element.focus({ preventScroll: true });
+  } catch {
+    element.focus();
+  }
+};
 
 export function useContactForm({ contact, mode, onCreated, onCancel }: UseContactFormProps) {
   const navigate = useNavigate();
@@ -35,7 +58,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   const { showSuccess, showError } = useToast();
   const { dialogState, confirm, handleConfirm, handleCancel: handleConfirmCancel } = useConfirmDialog();
   const getErrorMessage = (error: unknown, fallback: string) =>
-    error instanceof Error ? error.message : fallback;
+    typeof error === 'string' ? error : formatApiErrorMessage(error, fallback);
   const { relationships, relationshipsLoading } = useAppSelector((state) => state.contacts.relationships);
   const { contacts, availableTags } = useAppSelector((state) => state.contacts.list);
   const [availableRoles, setAvailableRoles] = useState<ContactRole[]>([]);
@@ -83,6 +106,64 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const hydratedContactIdRef = useRef<string | null>(null);
+
+  const clearErrors = (...fieldNames: string[]) => {
+    if (fieldNames.length === 0) {
+      return;
+    }
+
+    setErrors((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const fieldName of fieldNames) {
+        if (fieldName in next) {
+          delete next[fieldName];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  };
+
+  const focusFieldInForm = (form: HTMLFormElement, fieldName: string) => {
+    const target =
+      form.querySelector<HTMLElement>(`[name="${fieldName}"]`) ??
+      form.querySelector<HTMLElement>(`#${fieldName}`);
+
+    if (target) {
+      scrollAndFocusElement(target);
+    }
+  };
+
+  const focusSubmitErrorBanner = (form: HTMLFormElement, message: string) => {
+    const banner = Array.from(form.querySelectorAll<HTMLElement>('div')).find(
+      (element) => element.textContent?.trim() === message
+    );
+
+    if (!banner) {
+      return;
+    }
+
+    if (banner.tabIndex < 0) {
+      banner.tabIndex = -1;
+    }
+
+    scrollAndFocusElement(banner);
+  };
+
+  const focusFirstError = (form: HTMLFormElement, nextErrors: Record<string, string>) => {
+    const firstKey = ERROR_FOCUS_PRIORITY.find((key) => nextErrors[key]) || Object.keys(nextErrors)[0];
+    if (!firstKey) {
+      return;
+    }
+
+    if (firstKey === 'submit') {
+      focusSubmitErrorBanner(form, nextErrors.submit);
+      return;
+    }
+
+    focusFieldInForm(form, firstKey);
+  };
 
   // Relationship form state
   const [isAddingRelationship, setIsAddingRelationship] = useState(false);
@@ -158,17 +239,17 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
     }));
 
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+    if (name === 'phone' || name === 'mobile_phone') {
+      clearErrors('phone', 'mobile_phone', 'submit');
+      return;
     }
+
+    clearErrors(name, 'submit');
   };
 
   const handleToggleRole = (roleName: string) => {
     setIsDirty(true);
+    clearErrors('roles', 'email', 'submit');
     setFormData((prev) => {
       const roles = prev.roles || [];
       const clientSubRoles = [
@@ -202,6 +283,15 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
 
   const handleNoFixedAddressChange = (checked: boolean) => {
     setIsDirty(true);
+    clearErrors(
+      'address_line1',
+      'address_line2',
+      'city',
+      'state_province',
+      'postal_code',
+      'country',
+      'submit'
+    );
     setFormData((prev) => ({
       ...prev,
       no_fixed_address: checked,
@@ -220,6 +310,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     const normalized = tag.trim();
     if (!normalized) return;
     setIsDirty(true);
+    clearErrors('tags', 'submit');
     setFormData((prev) => {
       const existing = prev.tags || [];
       if (existing.some((value) => value.toLowerCase() === normalized.toLowerCase())) {
@@ -234,13 +325,14 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
 
   const handleRemoveTag = (tag: string) => {
     setIsDirty(true);
+    clearErrors('tags', 'submit');
     setFormData((prev) => ({
       ...prev,
       tags: (prev.tags || []).filter((value) => value !== tag),
     }));
   };
 
-  const validateForm = (): boolean => {
+  const validateForm = (form: HTMLFormElement): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.first_name.trim()) {
@@ -253,6 +345,14 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
+    }
+
+    const selectedRoles = formData.roles || [];
+    if (
+      selectedRoles.some((roleName) => STAFF_ACCOUNT_ROLE_NAMES.has(roleName)) &&
+      !(formData.email || '').trim()
+    ) {
+      newErrors.email = 'Email is required when assigning Staff or Executive Director roles';
     }
 
     if (formData.phone && !/^[\d\s+() -]+$/.test(formData.phone)) {
@@ -291,14 +391,31 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
       }
     }
 
+    const normalizedPhone = normalizePhoneForComparison(formData.phone);
+    const normalizedMobilePhone = normalizePhoneForComparison(formData.mobile_phone);
+    if (
+      normalizedPhone &&
+      normalizedMobilePhone &&
+      normalizedPhone === normalizedMobilePhone &&
+      !newErrors.phone &&
+      !newErrors.mobile_phone
+    ) {
+      newErrors.phone = 'Phone and mobile phone must be different';
+      newErrors.mobile_phone = 'Phone and mobile phone must be different';
+    }
+
     setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      focusFirstError(form, newErrors);
+    }
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
 
-    if (!validateForm()) {
+    if (!validateForm(form)) {
       return;
     }
 
@@ -324,10 +441,13 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
         }
         return trimmed;
       };
+      const normalizedAccountId = isUuid(formData.account_id) ? formData.account_id : undefined;
+      const baseFormData = { ...formData };
+      delete baseFormData.account_id;
 
       const cleanedData = {
-        ...formData,
-        account_id: formData.account_id || undefined,
+        ...baseFormData,
+        ...(normalizedAccountId ? { account_id: normalizedAccountId } : {}),
         preferred_name: formData.preferred_name || undefined,
         middle_name: formData.middle_name || undefined,
         salutation: formData.salutation || undefined,
@@ -389,8 +509,19 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
         navigate(`/contacts/${contact.contact_id}`);
       }
     } catch (error) {
+      const message = getErrorMessage(
+        error,
+        mode === 'create' ? 'Failed to create contact' : 'Failed to update contact'
+      );
       console.error('Failed to save contact:', error);
-      setErrors({ submit: 'Failed to save contact. Please try again.' });
+      setErrors((prev) => ({
+        ...prev,
+        submit: message,
+      }));
+      showError(message);
+      window.setTimeout(() => {
+        focusSubmitErrorBanner(form, message);
+      }, 0);
     } finally {
       setIsSubmitting(false);
     }

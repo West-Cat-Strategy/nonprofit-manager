@@ -4,6 +4,18 @@ import { logger } from './logger';
 import { DATABASE } from './constants';
 import { getRequestContext } from './requestContext';
 
+export const TEST_DATABASE_DEFAULTS = {
+  DB_HOST: '127.0.0.1',
+  DB_PORT: '8012',
+  DB_NAME: 'nonprofit_manager_test',
+  DB_USER: 'postgres',
+  DB_PASSWORD: 'postgres',
+} as const;
+
+const TEST_DATABASE_OVERRIDE_KEYS = Object.keys(TEST_DATABASE_DEFAULTS) as Array<
+  keyof typeof TEST_DATABASE_DEFAULTS
+>;
+
 if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
   process.env.NODE_ENV = 'test';
 }
@@ -17,20 +29,18 @@ if (process.env.NODE_ENV === 'test') {
     ...testEnv,
     ...testLocalEnv,
   };
-  const dbOverrideKeys = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'] as const;
-  dbOverrideKeys.forEach((key) => {
+  TEST_DATABASE_OVERRIDE_KEYS.forEach((key) => {
     if (process.env[key]) {
       return;
     }
-    const value = mergedTestEnv[key];
-    if (value) {
-      process.env[key] = value;
-    }
+    process.env[key] = mergedTestEnv[key] || TEST_DATABASE_DEFAULTS[key];
   });
   dotenv.config({ path: '.env', quiet: true });
 } else {
   dotenv.config({ path: '.env', quiet: true });
 }
+
+const isTestEnvironment = process.env.NODE_ENV === 'test';
 
 export function resolveDatabaseSslConfig(
   env: NodeJS.ProcessEnv = process.env
@@ -57,21 +67,34 @@ export function resolveDatabaseSslConfig(
 }
 
 const config: PoolConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'nonprofit_manager',
+  host: process.env.DB_HOST || (isTestEnvironment ? TEST_DATABASE_DEFAULTS.DB_HOST : 'localhost'),
+  port: parseInt(process.env.DB_PORT || (isTestEnvironment ? TEST_DATABASE_DEFAULTS.DB_PORT : '5432')),
+  database:
+    process.env.DB_NAME || (isTestEnvironment ? TEST_DATABASE_DEFAULTS.DB_NAME : 'nonprofit_manager'),
   user:
     process.env.DB_USER ||
-    (process.env.NODE_ENV === 'production' ? 'nonprofit_app_user_prod' : 'nonprofit_app_user'),
+    (
+      isTestEnvironment
+        ? TEST_DATABASE_DEFAULTS.DB_USER
+        : process.env.NODE_ENV === 'production'
+          ? 'nonprofit_app_user_prod'
+          : 'nonprofit_app_user'
+    ),
   password:
     process.env.DB_PASSWORD ??
-    (process.env.NODE_ENV === 'production' ? undefined : 'nonprofit_app_password'),
-  max: process.env.NODE_ENV === 'test' ? 10 : DATABASE.POOL_MAX_CONNECTIONS,
-  idleTimeoutMillis: process.env.NODE_ENV === 'test' ? 1000 : DATABASE.IDLE_TIMEOUT_MS,
+    (
+      isTestEnvironment
+        ? TEST_DATABASE_DEFAULTS.DB_PASSWORD
+        : process.env.NODE_ENV === 'production'
+          ? undefined
+          : 'nonprofit_app_password'
+    ),
+  max: isTestEnvironment ? 10 : DATABASE.POOL_MAX_CONNECTIONS,
+  idleTimeoutMillis: isTestEnvironment ? 1000 : DATABASE.IDLE_TIMEOUT_MS,
   connectionTimeoutMillis: DATABASE.CONNECTION_TIMEOUT_MS,
   // Avoid Jest hanging on open TCP handles while still allowing real connections during tests.
   // https://node-postgres.com/api/pool
-  allowExitOnIdle: process.env.NODE_ENV === 'test',
+  allowExitOnIdle: isTestEnvironment,
   // SSL/TLS Configuration for Database Connection
   // Managed/external production databases keep SSL on; local Postgres does not.
   ssl: resolveDatabaseSslConfig(),

@@ -3,7 +3,7 @@
  * Reusable form for creating and editing donations
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Donation, CreateDonationDTO, UpdateDonationDTO } from '../types/donation';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
@@ -163,6 +163,8 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
   const navigate = useNavigate();
   const { accounts, loading: accountsLoading } = useAppSelector((state) => state.accounts.list);
   const { contacts, loading: contactsLoading } = useAppSelector((state) => state.contacts.list);
+  const hasRequestedAccountsRef = useRef(false);
+  const hasRequestedContactsRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -202,7 +204,8 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
   }, [donation]);
 
   useEffect(() => {
-    if (accounts.length === 0 && !accountsLoading) {
+    if (!hasRequestedAccountsRef.current && accounts.length === 0 && !accountsLoading) {
+      hasRequestedAccountsRef.current = true;
       void dispatch(
         fetchAccounts({
           page: 1,
@@ -212,7 +215,8 @@ const DonationForm: React.FC<DonationFormProps> = ({ donation, onSubmit, isEdit 
       );
     }
 
-    if (contacts.length === 0 && !contactsLoading) {
+    if (!hasRequestedContactsRef.current && contacts.length === 0 && !contactsLoading) {
+      hasRequestedContactsRef.current = true;
       void dispatch(
         fetchContacts({
           page: 1,

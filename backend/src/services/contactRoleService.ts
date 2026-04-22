@@ -8,6 +8,13 @@ export interface ContactRole {
   is_system: boolean;
 }
 
+const createValidationError = (message: string, details?: Record<string, unknown>) =>
+  Object.assign(new Error(message), {
+    statusCode: 400,
+    code: 'validation_error',
+    ...(details ? { details } : {}),
+  });
+
 export class ContactRoleService {
   constructor(private pool: Pool) {}
 
@@ -39,7 +46,7 @@ export class ContactRoleService {
     assignedBy?: string,
     externalClient?: PoolClient
   ): Promise<ContactRole[]> {
-    const trimmedNames = roleNames.map((name) => name.trim()).filter(Boolean);
+    const trimmedNames = Array.from(new Set(roleNames.map((name) => name.trim()).filter(Boolean)));
 
     const client = externalClient || (await this.pool.connect());
     try {
@@ -62,10 +69,13 @@ export class ContactRoleService {
         [trimmedNames]
       );
 
-      const foundNames = rolesResult.rows.map((role) => role.name);
-      const missing = trimmedNames.filter((name) => !foundNames.includes(name));
+      const foundNames = new Set(rolesResult.rows.map((role) => role.name));
+      const missing = trimmedNames.filter((name) => !foundNames.has(name));
       if (missing.length > 0) {
-        throw new Error(`Invalid contact roles: ${missing.join(', ')}`);
+        throw createValidationError(`Invalid contact roles: ${missing.join(', ')}`, {
+          field: 'roles',
+          invalid_roles: missing,
+        });
       }
 
       await client.query('DELETE FROM contact_role_assignments WHERE contact_id = $1', [contactId]);

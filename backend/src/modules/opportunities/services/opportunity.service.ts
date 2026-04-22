@@ -82,7 +82,7 @@ export class OpportunityService {
          $6::boolean[],
          $7::boolean[]
        ) WITH ORDINALITY AS staged(name, probability, is_closed, is_won, is_active, ordinality)
-       ON CONFLICT (organization_id, name) DO NOTHING`,
+       ON CONFLICT DO NOTHING`,
       [
         organizationId,
         userId,

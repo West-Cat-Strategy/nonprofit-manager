@@ -44,6 +44,17 @@ const nullablePhoneSchema = z.preprocess((value) => {
   .nullable()
   .optional());
 
+const normalizePhoneForComparison = (value: string | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const digits = value.replace(/\D/g, '');
+  return digits.length > 0 ? digits : null;
+};
+
+const STAFF_ACCOUNT_REQUIRED_ROLES = new Set(['Staff', 'Executive Director']);
+
 // Contact role enum
 export const contactRoleSchema = z.enum(CONTACT_ROLE_FILTER_VALUES);
 
@@ -83,39 +94,75 @@ export const documentTypeSchema = z.enum([
 export type DocumentType = z.infer<typeof documentTypeSchema>;
 
 // Create contact - comprehensive
-export const createContactSchema = z.object({
-  account_id: uuidSchema.optional(),
-  first_name: z.string().trim().min(1).max(100),
-  preferred_name: z.string().max(100).optional(),
-  last_name: z.string().min(1).max(100),
-  middle_name: z.string().max(100).optional(),
-  salutation: z.string().max(50).optional(),
-  suffix: z.string().max(50).optional(),
-  birth_date: dateOnlySchema.optional(),
-  gender: z.string().max(50).optional(),
-  pronouns: z.string().max(50).optional(),
-  phn: optionalPhnSchema,
-  email: emailSchema.optional(),
-  phone: phoneSchema.optional(),
-  mobile_phone: phoneSchema.optional(),
-  address_line1: z.string().max(200).optional(),
-  address_line2: z.string().max(200).optional(),
-  city: z.string().max(100).optional(),
-  state_province: z.string().max(100).optional(),
-  postal_code: z.string().max(20).optional(),
-  country: z.string().max(100).optional(),
-  job_title: z.string().max(100).optional(),
-  department: z.string().max(100).optional(),
-  preferred_contact_method: z.string().max(50).optional(),
-  no_fixed_address: z.boolean().default(false).optional(),
-  do_not_email: z.boolean().default(false).optional(),
-  do_not_phone: z.boolean().default(false).optional(),
-  do_not_text: z.boolean().default(false).optional(),
-  do_not_voicemail: z.boolean().default(false).optional(),
-  notes: z.string().max(2000).optional(),
-  tags: z.array(z.string().min(1).max(40)).optional(),
-  roles: z.array(z.string()).optional(),
-});
+export const createContactSchema = z
+  .object({
+    account_id: uuidSchema.optional(),
+    first_name: z.string().trim().min(1).max(100),
+    preferred_name: z.string().max(100).optional(),
+    last_name: z.string().min(1).max(100),
+    middle_name: z.string().max(100).optional(),
+    salutation: z.string().max(50).optional(),
+    suffix: z.string().max(50).optional(),
+    birth_date: dateOnlySchema.optional(),
+    gender: z.string().max(50).optional(),
+    pronouns: z.string().max(50).optional(),
+    phn: optionalPhnSchema,
+    email: emailSchema.optional(),
+    phone: phoneSchema.optional(),
+    mobile_phone: phoneSchema.optional(),
+    address_line1: z.string().max(200).optional(),
+    address_line2: z.string().max(200).optional(),
+    city: z.string().max(100).optional(),
+    state_province: z.string().max(100).optional(),
+    postal_code: z.string().max(20).optional(),
+    country: z.string().max(100).optional(),
+    job_title: z.string().max(100).optional(),
+    department: z.string().max(100).optional(),
+    preferred_contact_method: z.string().max(50).optional(),
+    no_fixed_address: z.boolean().default(false).optional(),
+    do_not_email: z.boolean().default(false).optional(),
+    do_not_phone: z.boolean().default(false).optional(),
+    do_not_text: z.boolean().default(false).optional(),
+    do_not_voicemail: z.boolean().default(false).optional(),
+    notes: z.string().max(2000).optional(),
+    tags: z.array(z.string().min(1).max(40)).optional(),
+    roles: z.array(z.string()).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const normalizedPhone = normalizePhoneForComparison(value.phone);
+    const normalizedMobilePhone = normalizePhoneForComparison(value.mobile_phone);
+
+    if (
+      normalizedPhone &&
+      normalizedMobilePhone &&
+      normalizedPhone === normalizedMobilePhone
+    ) {
+      const message = 'Phone and mobile phone must be different';
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['phone'],
+        message,
+      });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['mobile_phone'],
+        message,
+      });
+    }
+
+    const normalizedRoles = Array.isArray(value.roles)
+      ? value.roles.map((role) => role.trim()).filter(Boolean)
+      : [];
+    const requiresEmail = normalizedRoles.some((role) => STAFF_ACCOUNT_REQUIRED_ROLES.has(role));
+
+    if (requiresEmail && !value.email) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['email'],
+        message: 'Email is required when assigning Staff or Executive Director roles',
+      });
+    }
+  });
 
 export type CreateContactInput = z.infer<typeof createContactSchema>;
 

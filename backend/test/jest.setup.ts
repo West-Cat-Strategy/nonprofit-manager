@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import type { PoolClient } from 'pg';
-import pool from '../src/config/database';
+import pool, { TEST_DATABASE_DEFAULTS } from '../src/config/database';
 
 const explicitEnv = { ...process.env };
 
@@ -15,10 +15,18 @@ process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'test-encryption-key';
 
+const resolvedTestDbEnv = {
+  DB_HOST: process.env.DB_HOST || TEST_DATABASE_DEFAULTS.DB_HOST,
+  DB_PORT: process.env.DB_PORT || TEST_DATABASE_DEFAULTS.DB_PORT,
+  DB_NAME: process.env.DB_NAME || TEST_DATABASE_DEFAULTS.DB_NAME,
+  DB_USER: process.env.DB_USER || TEST_DATABASE_DEFAULTS.DB_USER,
+  DB_PASSWORD: process.env.DB_PASSWORD || TEST_DATABASE_DEFAULTS.DB_PASSWORD,
+};
+
 // Some service tests use DATABASE_URL directly.
-// Keep it aligned with src/config/database defaults so tests can run in local/dev docker.
+// Keep it aligned with src/config/database defaults so direct Jest runs bind to the isolated test DB.
 process.env.DATABASE_URL = process.env.DATABASE_URL
-  || `postgres://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || 'postgres'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME || 'nonprofit_manager'}`;
+  || `postgres://${resolvedTestDbEnv.DB_USER}:${resolvedTestDbEnv.DB_PASSWORD}@${resolvedTestDbEnv.DB_HOST}:${resolvedTestDbEnv.DB_PORT}/${resolvedTestDbEnv.DB_NAME}`;
 
 const DB_COMPAT_SETUP_FLAG = '__NONPROFIT_MANAGER_DB_COMPAT_SETUP_DONE__';
 

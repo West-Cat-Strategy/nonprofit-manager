@@ -91,6 +91,25 @@ describe('Authorization Integration Tests', () => {
     viewer: 'viewer',
   };
   let defaultOrganizationId: string | null = null;
+  const assignOnlyExplicitRole = async (userId: string, roleName: string): Promise<void> => {
+    try {
+      const roleResult = await pool.query<{ id: string }>('SELECT id FROM roles WHERE name = $1', [
+        roleName,
+      ]);
+      if (roleResult.rows.length === 0) {
+        return;
+      }
+
+      await pool.query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
+      await pool.query(
+        'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [userId, roleResult.rows[0].id]
+      );
+    } catch {
+      // Role tables may not exist yet - that's ok for basic auth tests
+    }
+  };
+
   const ensureTestUsersExist = async (): Promise<void> => {
     for (const testUser of testUsers) {
       await pool.query(
@@ -114,19 +133,7 @@ describe('Authorization Integration Tests', () => {
         ]
       );
 
-      try {
-        const roleResult = await pool.query<{ id: string }>('SELECT id FROM roles WHERE name = $1', [
-          testUser.role,
-        ]);
-        if (roleResult.rows.length > 0) {
-          await pool.query(
-            'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [testUser.id, roleResult.rows[0].id]
-          );
-        }
-      } catch {
-        // Role tables may not exist yet - that's ok for basic auth tests
-      }
+      await assignOnlyExplicitRole(testUser.id, testUser.role);
     }
   };
 
@@ -201,18 +208,7 @@ describe('Authorization Integration Tests', () => {
       // Update user role in database (bypass normal flow for testing)
       await pool.query('UPDATE users SET role = $1 WHERE id = $2', [role, userIds[role]]);
 
-      // Assign user to role in user_roles table if it exists
-      try {
-        const roleResult = await pool.query('SELECT id FROM roles WHERE name = $1', [role]);
-        if (roleResult.rows.length > 0) {
-          await pool.query(
-            'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [userIds[role], roleResult.rows[0].id]
-          );
-        }
-      } catch {
-        // Role tables may not exist yet - that's ok for basic auth tests
-      }
+      await assignOnlyExplicitRole(userIds[role], role);
     }
     await ensureTestUsersExist();
 
@@ -621,6 +617,34 @@ describe('Authorization Integration Tests', () => {
         }
       });
 
+      it('should allow manager to create contacts', async () => {
+        const email = `manager-contact-${unique()}@example.com`;
+        const response = await request(app)
+          .post('/api/v2/contacts')
+          .set('Authorization', `Bearer ${tokens.manager}`)
+          .send({
+            first_name: 'Manager',
+            last_name: 'Contact',
+            email,
+          });
+
+        expect(response.status).toBe(201);
+
+        const createdContact = unwrap<{ contact_id?: string; id?: string; email?: string }>(
+          response.body
+        );
+        const createdContactId = createdContact.contact_id ?? createdContact.id;
+        expect(createdContactId).toEqual(expect.any(String));
+        if (createdContactId) {
+          const persisted = await pool.query<{ email: string }>(
+            'SELECT email FROM contacts WHERE id = $1',
+            [createdContactId]
+          );
+          expect(persisted.rows[0]).toMatchObject({ email });
+          await pool.query('DELETE FROM contacts WHERE id = $1', [createdContactId]);
+        }
+      });
+
       it('should allow staff to create contacts', async () => {
         const email = `staff-contact-${unique()}@example.com`;
         const response = await request(app)
@@ -648,6 +672,68 @@ describe('Authorization Integration Tests', () => {
           expect(persisted.rows[0]).toMatchObject({ email });
           await pool.query('DELETE FROM contacts WHERE id = $1', [createdContactId]);
         }
+      });
+
+      it('should return a validation error when account_id is outside the active organization context', async () => {
+        const accountResponse = await request(app)
+          .post('/api/v2/accounts')
+          .set('Authorization', `Bearer ${tokens.admin}`)
+          .send({
+            account_name: `Authorization Contact Scope ${unique()}`,
+            account_type: 'organization',
+          })
+          .expect(201);
+
+        const createdAccount = unwrap<{ account_id?: string; id?: string }>(accountResponse.body);
+        const secondaryAccountId = createdAccount.account_id ?? createdAccount.id ?? '';
+        expect(secondaryAccountId).toEqual(expect.any(String));
+
+        try {
+          const response = await request(app)
+            .post('/api/v2/contacts')
+            .set('Authorization', `Bearer ${tokens.staff}`)
+            .send({
+              first_name: 'Scoped',
+              last_name: 'Contact',
+              email: `scoped-contact-${unique()}@example.com`,
+              account_id: secondaryAccountId,
+            });
+
+          expect(response.status).toBe(400);
+          expect(response.body).toMatchObject({
+            success: false,
+            error: {
+              code: 'validation_error',
+              message: 'Selected account is outside the current request scope',
+            },
+          });
+        } finally {
+          if (secondaryAccountId) {
+            await pool.query('DELETE FROM contacts WHERE account_id = $1', [secondaryAccountId]);
+            await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [secondaryAccountId]);
+            await pool.query('DELETE FROM accounts WHERE id = $1', [secondaryAccountId]);
+          }
+        }
+      });
+
+      it.each(['viewer', 'volunteer'] as const)('should forbid %s from creating contacts', async (role) => {
+        const response = await request(app)
+          .post('/api/v2/contacts')
+          .set('Authorization', `Bearer ${tokens[role]}`)
+          .send({
+            first_name: role,
+            last_name: 'Contact',
+            email: `${role}-contact-${unique()}@example.com`,
+          });
+
+        expect(response.status).toBe(403);
+        expect(response.body).toMatchObject({
+          success: false,
+          error: {
+            code: 'forbidden',
+            message: expect.any(String),
+          },
+        });
       });
     });
 

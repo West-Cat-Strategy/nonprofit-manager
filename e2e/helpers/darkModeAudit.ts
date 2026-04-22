@@ -111,7 +111,16 @@ const benignRuntimeConsolePatterns = [
   /downloadable font: download failed/i,
 ];
 const routeErrorResourceTypes = new Set(['fetch', 'xhr', 'script', 'stylesheet']);
-const abortErrorPatterns = [/net::ERR_ABORTED/i, /net::ERR_BLOCKED_BY_CLIENT/i, /NS_BINDING_ABORTED/i];
+const navigationChurnCancellationPatterns = [
+  /net::ERR_ABORTED/i,
+  /net::ERR_BLOCKED_BY_CLIENT/i,
+  /NS_BINDING_ABORTED/i,
+  /\bcancel(?:led|ed)?\b/i,
+  /\babort(?:ed|ing)?\b/i,
+  /the request was canceled/i,
+  /the request was cancelled/i,
+  /the user aborted a request/i,
+];
 const instrumentedPages = new WeakSet<Page>();
 const darkModeInitializedPages = new WeakSet<Page>();
 
@@ -214,6 +223,17 @@ const isBenignAuthBootstrapCancellation = (
 ): boolean =>
   isRuntimeBootstrapAllowed(url, allowAuthBootstrapNoise) && /cancel(?:led|ed)/i.test(failure);
 
+const isSameOriginRuntimeUrl = (url: string): boolean => {
+  try {
+    return runtimeOrigins.has(new URL(url).origin);
+  } catch {
+    return false;
+  }
+};
+
+const isNavigationChurnCancellation = (failure: string): boolean =>
+  navigationChurnCancellationPatterns.some((pattern) => pattern.test(failure));
+
 const ensureRouteTransitionCapture = async (page: Page): Promise<void> => {
   if (instrumentedPages.has(page)) {
     return;
@@ -310,6 +330,7 @@ export async function captureRouteRuntime(
   const consoleErrors: string[] = [];
   const requestFailures: string[] = [];
   const failedResponses: string[] = [];
+  const requestFailureRecords: Array<{ resourceType: string; url: string; failure: string }> = [];
   let suppressedAuthBootstrapResponseCount = 0;
 
   const onPageError = (error: Error) => {
@@ -347,20 +368,17 @@ export async function captureRouteRuntime(
       return;
     }
 
-    if (!runtimeOrigins.has(new URL(request.url()).origin)) {
+    const url = request.url();
+    if (!isSameOriginRuntimeUrl(url)) {
       return;
     }
 
     const failure = request.failure()?.errorText || 'unknown failure';
-    if (isBenignAuthBootstrapCancellation(request.url(), failure, allowAuthBootstrapNoise)) {
+    if (isBenignAuthBootstrapCancellation(url, failure, allowAuthBootstrapNoise)) {
       return;
     }
 
-    if (abortErrorPatterns.some((pattern) => pattern.test(failure))) {
-      return;
-    }
-
-    requestFailures.push(`${resourceType} ${request.url()} (${failure})`);
+    requestFailureRecords.push({ resourceType, url, failure });
   };
 
   const onResponse = (response: {
@@ -431,6 +449,28 @@ export async function captureRouteRuntime(
 
     const finalLocation = normalizeRouteLocation(page.url());
     const routeTransitions = await readRouteTransitions(page);
+    const routeLoadedSuccessfully =
+      navigationErrors.length === 0 &&
+      pageErrors.length === 0 &&
+      consoleErrors.length === 0 &&
+      failedResponses.length === 0 &&
+      expectedLocations.includes(finalLocation);
+
+    requestFailures.push(
+      ...requestFailureRecords
+        .filter((entry) => {
+          if (isBenignAuthBootstrapCancellation(entry.url, entry.failure, allowAuthBootstrapNoise)) {
+            return false;
+          }
+
+          if (routeLoadedSuccessfully && isNavigationChurnCancellation(entry.failure)) {
+            return false;
+          }
+
+          return true;
+        })
+        .map((entry) => `${entry.resourceType} ${entry.url} (${entry.failure})`)
+    );
 
     if (!expectedLocations.includes(finalLocation)) {
       navigationErrors.push(

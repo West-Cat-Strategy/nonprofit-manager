@@ -119,16 +119,16 @@ const expectRouteRuntimeClean = (route: string, snapshot: RouteRuntimeSnapshot):
     `${route} threw page errors:\n${snapshot.pageErrors.join('\n')}`
   ).toEqual([]);
   expect(
-    snapshot.consoleErrors,
-    `${route} emitted console errors:\n${snapshot.consoleErrors.join('\n')}`
-  ).toEqual([]);
-  expect(
     snapshot.requestFailures,
     `${route} had request failures:\n${snapshot.requestFailures.join('\n')}`
   ).toEqual([]);
   expect(
     snapshot.failedResponses,
     `${route} had failed network responses:\n${snapshot.failedResponses.join('\n')}`
+  ).toEqual([]);
+  expect(
+    snapshot.consoleErrors,
+    `${route} emitted console errors:\n${snapshot.consoleErrors.join('\n')}`
   ).toEqual([]);
 };
 
@@ -137,6 +137,8 @@ const assertRouteLoads = async (
   route: string,
   options: { allowAuthBootstrapNoise?: boolean; expectedLocation?: string | string[] } = {}
 ) => {
+  // The shared runtime capture now filters benign same-origin churn cancellations after the
+  // route settles, so this check stays strict on real 4xx/5xx, console, and page errors.
   const runtimeSnapshot = await captureRouteRuntime(page, route, options);
   expectRouteRuntimeClean(route, runtimeSnapshot);
 };

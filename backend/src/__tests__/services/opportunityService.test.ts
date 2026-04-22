@@ -75,6 +75,7 @@ describe('OpportunityService', () => {
     const [sql, params] = query.mock.calls[1];
     expect(sql).toContain('FROM UNNEST');
     expect(sql).toContain('WITH ORDINALITY');
+    expect(sql).toContain('ON CONFLICT DO NOTHING');
     const typedParams = params as unknown[];
     expect(typedParams[0]).toBe('org-1');
     expect(typedParams[1]).toBe('user-1');

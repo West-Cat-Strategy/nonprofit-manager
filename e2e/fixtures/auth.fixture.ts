@@ -10,6 +10,7 @@ import {
   clearAuth,
   applyAuthTokenState,
   invalidateSharedAuthCaches,
+  invalidateIncompatibleAdminAuthBootstrapCaches,
 } from '../helpers/auth';
 import { clearDatabase } from '../helpers/database';
 
@@ -81,6 +82,12 @@ const resetCachedAuthState = async (
 };
 
 const ensureSharedAuthState = async (page: Page): Promise<CachedAuthState> => {
+  const invalidatedStaleAdminAuth = await invalidateIncompatibleAdminAuthBootstrapCaches(page);
+  if (invalidatedStaleAdminAuth) {
+    cachedAuthState = null;
+    await clearAuth(page);
+  }
+
   if (cachedAuthState?.token) {
     try {
       const restoredSession = await applyAuthTokenState(

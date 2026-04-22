@@ -686,6 +686,45 @@ type CachedEffectiveAdminSession = CachedAuthCredentials & {
   user?: AuthUser;
 };
 
+export type AdminAuthBootstrapContract = Pick<ResolvedAdminCredentials, 'email' | 'password'>;
+
+export type AdminAuthBootstrapCacheSnapshot = {
+  admin?: CachedAuthCredentials | null;
+  session?:
+    | Pick<CachedEffectiveAdminSession, 'email' | 'password' | 'user'>
+    | null;
+};
+
+const normalizeCachedAuthEmail = (value: string | undefined): string =>
+  typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+export const isCompatibleAdminAuthBootstrapCache = (
+  contract: AdminAuthBootstrapContract,
+  cache: AdminAuthBootstrapCacheSnapshot
+): boolean => {
+  const contractEmail = normalizeCachedAuthEmail(contract.email);
+
+  if (cache.admin) {
+    const cachedAdminEmail = normalizeCachedAuthEmail(cache.admin.email);
+    if (cachedAdminEmail !== contractEmail || cache.admin.password !== contract.password) {
+      return false;
+    }
+  }
+
+  if (cache.session) {
+    const cachedSessionEmail = normalizeCachedAuthEmail(cache.session.email);
+    if (cachedSessionEmail !== contractEmail || cache.session.password !== contract.password) {
+      return false;
+    }
+
+    if (!isAdminRole(cache.session.user?.role)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const readCachedAuthCredentials = (filePath: string): CachedAuthCredentials | null => {
   try {
     const payload = JSON.parse(fs.readFileSync(filePath, 'utf8')) as {
@@ -818,6 +857,34 @@ export const invalidateSharedAuthCaches = (
     unlinkIfExists(authLockFile);
     unlinkIfExists(sharedUserLockFile);
   }
+};
+
+const readAdminAuthBootstrapCacheSnapshot = (): AdminAuthBootstrapCacheSnapshot => ({
+  admin: readEffectiveAdminCache(),
+  session: readEffectiveAdminSessionCache(),
+});
+
+export const invalidateIncompatibleAdminAuthBootstrapCaches = async (
+  page: Page
+): Promise<boolean> => {
+  const cacheSnapshot = readAdminAuthBootstrapCacheSnapshot();
+  if (!cacheSnapshot.admin && !cacheSnapshot.session) {
+    return false;
+  }
+
+  const setupStatus = await getSetupStatusOrNull(page, { attempts: 1, delayMs: 100 }).catch(
+    () => null
+  );
+  const { primary } = resolveAdminCredentialCandidates({
+    setupRequired: setupStatus?.setupRequired ?? null,
+  });
+
+  if (isCompatibleAdminAuthBootstrapCache(primary, cacheSnapshot)) {
+    return false;
+  }
+
+  invalidateSharedAuthCaches({ clearLocks: true, clearAdminCaches: true });
+  return true;
 };
 
 const toOrigin = (value: string): string | null => {
@@ -1973,6 +2040,10 @@ export async function ensureAdminLoginViaAPI(
   const allowExternallyManagedAuthFallbacks = shouldAllowExternallyManagedAuthFallbacks();
   let alternateDefaultAdminError: unknown;
 
+  if (initialSetupStatus?.setupRequired && !allowExternallyManagedAuthFallbacks) {
+    invalidateSharedAuthCaches({ clearLocks: true, clearAdminCaches: true });
+  }
+
   const toSession = (
     result: { token: string; user: any },
     email: string,
@@ -2058,6 +2129,23 @@ export async function ensureAdminLoginViaAPI(
   };
 
   if (strictAdminAuth) {
+    if (initialSetupStatus?.setupRequired) {
+      const setupCredentials = await ensureSetupComplete(page, adminEmail, adminPassword, {
+        firstName: profile?.firstName || 'Admin',
+        lastName: profile?.lastName || 'User',
+        organizationName: profile?.organizationName || 'E2E Organization',
+      });
+
+      try {
+        return await loginAndValidateAdminSession(setupCredentials.email, setupCredentials.password);
+      } catch (error) {
+        const details = error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Strict admin auth is enabled (E2E_REQUIRE_STRICT_ADMIN_AUTH=true). Admin setup completed, but login still failed for ${setupCredentials.email}: ${details}`
+        );
+      }
+    }
+
     try {
       return await loginAndValidateAdminSession(adminEmail, adminPassword);
     } catch (error) {
@@ -2169,6 +2257,7 @@ export async function ensureEffectiveAdminLoginViaAPI(
 ): Promise<AuthSession> {
   const bootstrapValidationFailureMessage =
     'Elevated admin fallback session failed cookie-backed /auth/bootstrap validation';
+  await invalidateIncompatibleAdminAuthBootstrapCaches(page);
 
   const normalizeAdminSession = async (session: AuthSession): Promise<AuthSession> => {
     const organizationId =
@@ -2198,8 +2287,20 @@ export async function ensureEffectiveAdminLoginViaAPI(
   const establishEffectiveAdminSession = async (): Promise<AuthSession> => {
     const allowExternallyManagedAuthFallbacks = shouldAllowExternallyManagedAuthFallbacks();
     const { primary: configuredAdminCredentials } = resolveAdminCredentialCandidates();
+    const initialSetupStatus = await getSetupStatusOrNull(page, { attempts: 3, delayMs: 200 }).catch(
+      () => null
+    );
+    const starterStateRequiresFreshBootstrap =
+      Boolean(initialSetupStatus?.setupRequired) && !allowExternallyManagedAuthFallbacks;
 
-    const currentAdminSession = await getCurrentAdminSession(page);
+    if (starterStateRequiresFreshBootstrap) {
+      invalidateSharedAuthCaches({ clearLocks: true, clearAdminCaches: true });
+      await clearAuth(page);
+    }
+
+    const currentAdminSession = starterStateRequiresFreshBootstrap
+      ? null
+      : await getCurrentAdminSession(page);
     if (currentAdminSession) {
       const normalizedCurrentAdminSession = await normalizeAdminSession(currentAdminSession);
       writeEffectiveAdminCache(
@@ -2710,7 +2811,12 @@ export async function logout(page: Page): Promise<void> {
  * Clear authentication state
  */
 export async function clearAuth(page: Page): Promise<void> {
-  await page.context().clearCookies();
+  await Promise.race([
+    page.context().clearCookies(),
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, 1500);
+    }),
+  ]).catch(() => undefined);
   try {
     await page.evaluate(() => {
       localStorage.clear();

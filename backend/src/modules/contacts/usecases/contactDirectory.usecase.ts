@@ -34,6 +34,25 @@ const getStaffRoleForContact = (roles: string[]): string | null => {
   return null;
 };
 
+const createValidationError = (message: string, details?: Record<string, unknown>) =>
+  Object.assign(new Error(message), {
+    statusCode: 400,
+    code: 'validation_error',
+    ...(details ? { details } : {}),
+  });
+
+const normalizeRoleNames = (roles: string[]): string[] =>
+  Array.from(
+    new Set(
+      roles
+        .map((role) => role.trim())
+        .filter(Boolean)
+    )
+  );
+
+const hasContactEmail = (email: string | null | undefined): boolean =>
+  typeof email === 'string' && email.trim().length > 0;
+
 const normalizeVolunteerMergePreviewRow = (
   row: Record<string, unknown> | null | undefined
 ): Record<string, unknown> | null => {
@@ -68,7 +87,10 @@ export class ContactDirectoryUseCase {
 
     const contact = await this.repository.findContactIdentity(contactId, client);
     if (!contact?.email) {
-      throw new Error('Staff roles require a contact email to create an account');
+      throw createValidationError('Staff roles require a contact email to create an account', {
+        field: 'email',
+        roles,
+      });
     }
 
     const existingUser = await this.repository.findUserByEmail(contact.email);
@@ -100,6 +122,121 @@ export class ContactDirectoryUseCase {
         return { role: targetRole };
       }
       throw error;
+    }
+  }
+
+  private async validateCreateAccountContext(
+    accountId: string | undefined,
+    scope: DataScopeFilter | undefined,
+    client: PoolClient,
+    userId: string,
+    viewerRole?: string
+  ): Promise<void> {
+    if (!accountId) {
+      return;
+    }
+
+    if (viewerRole === 'admin') {
+      const adminAccountResult = await client.query<{ id: string; is_active: boolean }>(
+        `SELECT id, COALESCE(is_active, true) AS is_active
+         FROM accounts
+         WHERE id = $1
+         LIMIT 1`,
+        [accountId]
+      );
+
+      if (adminAccountResult.rows.length === 0) {
+        throw createValidationError('Selected account was not found', {
+          field: 'account_id',
+          account_id: accountId,
+        });
+      }
+
+      if (!adminAccountResult.rows[0].is_active) {
+        throw createValidationError('Selected account is inactive', {
+          field: 'account_id',
+          account_id: accountId,
+        });
+      }
+
+      return;
+    }
+
+    const scopedAccountIds = scope?.accountIds?.filter(Boolean) || [];
+
+    if (scopedAccountIds.length > 0 && !scopedAccountIds.includes(accountId)) {
+      throw createValidationError('Selected account is outside the current request scope', {
+        field: 'account_id',
+        account_id: accountId,
+      });
+    }
+
+    if (scopedAccountIds.length === 0) {
+      const accessResult = await client.query<{ account_id: string }>(
+        `SELECT account_id
+         FROM user_account_access
+         WHERE user_id = $1
+           AND account_id = $2
+         LIMIT 1`,
+        [userId, accountId]
+      );
+
+      if (accessResult.rows.length === 0) {
+        throw createValidationError('Selected account is outside the current request scope', {
+          field: 'account_id',
+          account_id: accountId,
+        });
+      }
+    }
+
+    const result = await client.query<{ id: string; is_active: boolean }>(
+      `SELECT id, COALESCE(is_active, true) AS is_active
+       FROM accounts
+       WHERE id = $1
+       LIMIT 1`,
+      [accountId]
+    );
+
+    if (result.rows.length === 0) {
+      throw createValidationError('Selected account was not found', {
+        field: 'account_id',
+        account_id: accountId,
+      });
+    }
+
+    if (!result.rows[0].is_active) {
+      throw createValidationError('Selected account is inactive', {
+        field: 'account_id',
+        account_id: accountId,
+      });
+    }
+  }
+
+  private async validateCreateRoles(roles: string[]): Promise<void> {
+    if (roles.length === 0) {
+      return;
+    }
+
+    const validRoleNames = new Set((await this.repository.getContactRoles()).map((role) => role.name));
+    const invalidRoles = roles.filter((role) => !validRoleNames.has(role));
+    if (invalidRoles.length > 0) {
+      throw createValidationError(`Invalid contact roles: ${invalidRoles.join(', ')}`, {
+        field: 'roles',
+        invalid_roles: invalidRoles,
+      });
+    }
+  }
+
+  private validateCreateStaffRoleRequirements(roles: string[], email: string | null | undefined): void {
+    if (!getStaffRoleForContact(roles)) {
+      return;
+    }
+
+    if (!hasContactEmail(email)) {
+      throw createValidationError('Staff roles require a contact email to create an account', {
+        field: 'email',
+        roles,
+      });
     }
   }
 
@@ -165,18 +302,23 @@ export class ContactDirectoryUseCase {
   async create(
     payload: CreateContactDTO,
     userId: string,
-    viewerRole?: string
+    viewerRole?: string,
+    scope?: DataScopeFilter
   ): Promise<Contact & { roles: string[]; staffInvitation: { inviteUrl?: string; role?: string } | null }> {
-    const rolesInput = Array.isArray(payload.roles) ? payload.roles : [];
+    const rolesInput = Array.isArray(payload.roles) ? normalizeRoleNames(payload.roles) : [];
     const createPayload: CreateContactDTO = {
       ...payload,
       roles: undefined,
     };
 
+    await this.validateCreateRoles(rolesInput);
+    this.validateCreateStaffRoleRequirements(rolesInput, payload.email);
+
     const client = await services.pool.connect();
     try {
       await client.query('BEGIN');
       await this.bindTransactionUserContext(client, userId);
+      await this.validateCreateAccountContext(createPayload.account_id, scope, client, userId, viewerRole);
 
       const created = await this.repository.createContact(createPayload, userId, viewerRole, client);
       let assignedRoles: string[] = [];

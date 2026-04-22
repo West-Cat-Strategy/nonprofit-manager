@@ -365,6 +365,126 @@ describe('Contact API Integration Tests', () => {
         }))
         .expect(400);
     });
+
+    it('returns a validation error for invalid role names', async () => {
+      const email = `invalid-role-${unique()}@example.com`;
+      const response = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Invalid',
+          last_name: 'Role',
+          email,
+          roles: ['staff'],
+        }))
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'validation_error',
+          message: 'Invalid contact roles: staff',
+        },
+      });
+
+      const persisted = await pool.query<{ count: string }>(
+        'SELECT COUNT(*)::text AS count FROM contacts WHERE email = $1',
+        [email]
+      );
+      expect(Number(persisted.rows[0]?.count ?? '0')).toBe(0);
+    });
+
+    it('returns validation errors when Staff or Executive Director roles are assigned without email', async () => {
+      for (const role of ['Staff', 'Executive Director']) {
+        const response = await withStaffAuth(request(app)
+          .post('/api/v2/contacts')
+          .send({
+            account_id: testAccountId,
+            first_name: 'Missing',
+            last_name: role.replace(/\s+/g, ''),
+            roles: [role],
+          }))
+          .expect(400);
+
+        expect(response.body).toMatchObject({
+          success: false,
+          error: {
+            code: 'validation_error',
+            message: 'Validation failed',
+          },
+        });
+        expect(response.body.error.details?.validation?.body?.email).toContain(
+          'Email is required when assigning Staff or Executive Director roles'
+        );
+      }
+    });
+
+    it('returns a validation error when phone and mobile_phone are the same', async () => {
+      const response = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Duplicate',
+          last_name: 'Phones',
+          phone: '555-123-4567',
+          mobile_phone: '(555) 123-4567',
+        }))
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        success: false,
+        error: {
+          code: 'validation_error',
+          message: 'Validation failed',
+        },
+      });
+      expect(response.body.error.details?.validation?.body?.phone).toContain(
+        'Phone and mobile phone must be different'
+      );
+      expect(response.body.error.details?.validation?.body?.mobile_phone).toContain(
+        'Phone and mobile phone must be different'
+      );
+    });
+
+    it('returns a validation error for out-of-scope account_id values', async () => {
+      const secondaryAccountResponse = await request(app)
+        .post('/api/v2/accounts')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          account_name: `Scoped Contact Create ${unique()}`,
+          account_type: 'organization',
+        })
+        .expect(201);
+      const secondaryAccountId = accountIdFromResponse(secondaryAccountResponse.body);
+      expect(secondaryAccountId).toBeTruthy();
+
+      if (!secondaryAccountId) {
+        throw new Error('Failed to create scoped secondary account');
+      }
+
+      try {
+        const response = await withStaffAuth(request(app)
+          .post('/api/v2/contacts')
+          .send({
+            account_id: secondaryAccountId,
+            first_name: 'Scoped',
+            last_name: 'Blocked',
+          }))
+          .expect(400);
+
+        expect(response.body).toMatchObject({
+          success: false,
+          error: {
+            code: 'validation_error',
+            message: 'Selected account is outside the current request scope',
+          },
+        });
+      } finally {
+        await pool.query('DELETE FROM contacts WHERE account_id = $1', [secondaryAccountId]);
+        await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [secondaryAccountId]);
+        await pool.query('DELETE FROM accounts WHERE id = $1', [secondaryAccountId]);
+      }
+    });
   });
 
   describe('GET /api/v2/contacts', () => {

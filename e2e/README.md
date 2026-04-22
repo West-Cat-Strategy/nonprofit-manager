@@ -284,6 +284,8 @@ npx playwright test --debug
 
 If you want to reuse already running services on the Playwright-managed host runtime, set `PW_REUSE_EXISTING_SERVER=1`; the wrapper will switch its port preflight into reuse mode instead of killing the occupied listeners. If you want to target an externally managed runtime, use `npm run test:docker*` with explicit `E2E_*_PORT`, `BASE_URL`, or `API_URL` overrides, or run `npx playwright test ...` directly when you need a fully custom hybrid contract.
 
+If the shared Playwright lock is held by another active host run and you intentionally want a targeted rerun to take ownership of it, prepend `E2E_RUNNER_ACTION=kill` to that command. Keep the default behavior for normal `npm test` runs so they fail fast instead of terminating another valid suite unexpectedly.
+
 ## Related References
 
 - [../docs/testing/TESTING.md](../docs/testing/TESTING.md)

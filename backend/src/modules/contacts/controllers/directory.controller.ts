@@ -151,7 +151,9 @@ export const createContactDirectoryController = (
         return;
       }
 
-      const contact = await useCase.create(req.body as CreateContactDTO, userId, req.user?.role);
+      const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const payload = (req.validatedBody ?? req.body) as CreateContactDTO;
+      const contact = await useCase.create(payload, userId, req.user?.role, scope);
       sendData(res, contact, 201);
     } catch (error) {
       next(error);
@@ -167,9 +169,10 @@ export const createContactDirectoryController = (
       }
 
       const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+      const payload = (req.validatedBody ?? req.body) as UpdateContactDTO;
       const contact = await useCase.update(
         req.params.id,
-        req.body as UpdateContactDTO,
+        payload,
         userId,
         scope,
         req.user?.role

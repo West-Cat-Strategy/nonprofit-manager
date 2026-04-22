@@ -9,7 +9,7 @@ const dispatchMock = vi.hoisted(() => vi.fn());
 const fetchAccountsMock = vi.hoisted(() => vi.fn((payload: unknown) => ({ type: 'accounts/fetch', payload })));
 const fetchContactsMock = vi.hoisted(() => vi.fn((payload: unknown) => ({ type: 'contacts/fetch', payload })));
 
-const mockState = {
+const createMockState = () => ({
   accounts: {
     list: {
       accounts: [
@@ -37,7 +37,9 @@ const mockState = {
       loading: false,
     },
   },
-};
+});
+
+let currentState = createMockState();
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof ReactRouterDomModule>('react-router-dom');
@@ -49,7 +51,7 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../../store/hooks', () => ({
   useAppDispatch: () => dispatchMock,
-  useAppSelector: (selector: (state: typeof mockState) => unknown) => selector(mockState),
+  useAppSelector: (selector: (state: ReturnType<typeof createMockState>) => unknown) => selector(currentState),
 }));
 
 vi.mock('../../hooks/useUnsavedChangesGuard', () => ({
@@ -74,6 +76,7 @@ describe('DonationForm', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    currentState = createMockState();
   });
 
   it('submits manual donations with linked donor records and transaction ids', async () => {
@@ -129,5 +132,78 @@ describe('DonationForm', () => {
       ).toBeInTheDocument();
     });
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('only requests empty donor lookups once per mount', async () => {
+    currentState = {
+      accounts: {
+        list: {
+          accounts: [],
+          loading: false,
+        },
+      },
+      contacts: {
+        list: {
+          contacts: [],
+          loading: false,
+        },
+      },
+    };
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <DonationForm onSubmit={vi.fn().mockResolvedValue(undefined)} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(fetchAccountsMock).toHaveBeenCalledTimes(1);
+      expect(fetchContactsMock).toHaveBeenCalledTimes(1);
+    });
+
+    currentState = {
+      accounts: {
+        list: {
+          accounts: [],
+          loading: true,
+        },
+      },
+      contacts: {
+        list: {
+          contacts: [],
+          loading: true,
+        },
+      },
+    };
+
+    rerender(
+      <MemoryRouter>
+        <DonationForm onSubmit={vi.fn().mockResolvedValue(undefined)} />
+      </MemoryRouter>
+    );
+
+    currentState = {
+      accounts: {
+        list: {
+          accounts: [],
+          loading: false,
+        },
+      },
+      contacts: {
+        list: {
+          contacts: [],
+          loading: false,
+        },
+      },
+    };
+
+    rerender(
+      <MemoryRouter>
+        <DonationForm onSubmit={vi.fn().mockResolvedValue(undefined)} />
+      </MemoryRouter>
+    );
+
+    expect(fetchAccountsMock).toHaveBeenCalledTimes(1);
+    expect(fetchContactsMock).toHaveBeenCalledTimes(1);
   });
 });

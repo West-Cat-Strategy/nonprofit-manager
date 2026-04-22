@@ -1,7 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { contactsApiClient } from '../api/contactsApiClient';
+import { formatApiErrorMessageWith } from '../../../utils/apiError';
 import type { Contact, ContactMergePreview, ContactMergeRequest } from '../../../types/contact';
 import type { ContactMutationPayload } from '../types/contracts';
+
+const getErrorMessage = (error: unknown, fallbackMessage: string) =>
+  formatApiErrorMessageWith(fallbackMessage)(error);
 
 export interface ContactsCoreState {
   currentContact: Contact | null;
@@ -15,24 +19,40 @@ const initialState: ContactsCoreState = {
   error: null,
 };
 
-export const fetchContactById = createAsyncThunk(
+export const fetchContactById = createAsyncThunk<Contact, string, { rejectValue: string }>(
   'contactsCore/fetchContactById',
-  async (contactId: string) => {
-    return await contactsApiClient.getContact(contactId);
+  async (contactId: string, { rejectWithValue }) => {
+    try {
+      return await contactsApiClient.getContact(contactId);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch contact'));
+    }
   }
 );
 
-export const createContact = createAsyncThunk(
+export const createContact = createAsyncThunk<Contact, Partial<Contact>, { rejectValue: string }>(
   'contactsCore/createContact',
-  async (contactData: Partial<Contact>) => {
-    return await contactsApiClient.createContact(contactData as ContactMutationPayload);
+  async (contactData: Partial<Contact>, { rejectWithValue }) => {
+    try {
+      return await contactsApiClient.createContact(contactData as ContactMutationPayload);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to create contact'));
+    }
   }
 );
 
-export const updateContact = createAsyncThunk(
+export const updateContact = createAsyncThunk<
+  Contact,
+  { contactId: string; data: Partial<Contact> },
+  { rejectValue: string }
+>(
   'contactsCore/updateContact',
-  async ({ contactId, data }: { contactId: string; data: Partial<Contact> }) => {
-    return await contactsApiClient.updateContact(contactId, data as ContactMutationPayload);
+  async ({ contactId, data }: { contactId: string; data: Partial<Contact> }, { rejectWithValue }) => {
+    try {
+      return await contactsApiClient.updateContact(contactId, data as ContactMutationPayload);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to update contact'));
+    }
   }
 );
 
@@ -96,7 +116,7 @@ const contactsCoreSlice = createSlice({
       })
       .addCase(fetchContactById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch contact';
+        state.error = action.payload || action.error.message || 'Failed to fetch contact';
       })
       .addCase(createContact.pending, (state) => {
         state.loading = true;
@@ -104,15 +124,26 @@ const contactsCoreSlice = createSlice({
       })
       .addCase(createContact.fulfilled, (state) => {
         state.loading = false;
+        state.error = null;
       })
       .addCase(createContact.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to create contact';
+        state.error = action.payload || action.error.message || 'Failed to create contact';
+      })
+      .addCase(updateContact.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
       .addCase(updateContact.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
         if (state.currentContact?.contact_id === action.payload.contact_id) {
           state.currentContact = action.payload;
         }
+      })
+      .addCase(updateContact.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message || 'Failed to update contact';
       })
       .addCase(deleteContact.fulfilled, (state, action) => {
         if (state.currentContact?.contact_id === action.payload) {

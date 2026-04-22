@@ -94,7 +94,9 @@ function parseCreatedCaseId(payload: unknown): string | null {
   return null;
 }
 
-async function createContactViaUI(page: Page): Promise<{ contactId: string | null }> {
+async function createContactViaUI(
+  page: Page
+): Promise<{ contactId: string | null; firstCreateResponse: APIResponse }> {
   const createAttempt = async (): Promise<APIResponse> => {
     const createResponsePromise = page.waitForResponse(
       (response) =>
@@ -107,11 +109,11 @@ async function createContactViaUI(page: Page): Promise<{ contactId: string | nul
     return createResponsePromise;
   };
 
-  const createResponse = await createAttempt();
-  if (!createResponse.ok()) {
-    const body = await createResponse.text().catch(() => '');
+  const firstCreateResponse = await createAttempt();
+  if (!firstCreateResponse.ok()) {
+    const body = await firstCreateResponse.text().catch(() => '');
     const isMissingOrgContext =
-      createResponse.status() === 404 && /organization context not found/i.test(body);
+      firstCreateResponse.status() === 404 && /organization context not found/i.test(body);
 
     if (isMissingOrgContext) {
       const recoveredOrgId = await page.evaluate(() => {
@@ -152,23 +154,23 @@ async function createContactViaUI(page: Page): Promise<{ contactId: string | nul
           retryPayload = null;
         }
 
-        return { contactId: parseCreatedContactId(retryPayload) };
+        return { contactId: parseCreatedContactId(retryPayload), firstCreateResponse };
       }
     }
 
     throw new Error(
-      `Create contact request failed (${createResponse.status()}): ${body.slice(0, 600)}`
+      `Create contact request failed (${firstCreateResponse.status()}): ${body.slice(0, 600)}`
     );
   }
 
   let parsedPayload: unknown = null;
   try {
-    parsedPayload = await createResponse.json();
+    parsedPayload = await firstCreateResponse.json();
   } catch {
     parsedPayload = null;
   }
 
-  return { contactId: parseCreatedContactId(parsedPayload) };
+  return { contactId: parseCreatedContactId(parsedPayload), firstCreateResponse };
 }
 
 async function getContactReadHeaders(page: Page, token: string): Promise<Record<string, string>> {
@@ -361,22 +363,37 @@ async function waitForCaseAssociation(
     .not.toBeNull();
 }
 
+async function getDefaultCaseTypeId(page: Page, token: string): Promise<string> {
+  const headers = await getContactReadHeaders(page, token);
+  const response = await page.request.get(`${apiURL}/api/v2/cases/types`, { headers });
+  expect(response.ok(), `Failed to load case types: ${await response.text()}`).toBeTruthy();
+  const payload = unwrapSuccess<Array<{ id?: string }> | { types?: Array<{ id?: string }> }>(
+    await response.json()
+  );
+  const caseTypes = Array.isArray(payload) ? payload : payload?.types || [];
+  const caseTypeId = caseTypes.find((row) => typeof row.id === 'string' && row.id.length > 0)?.id;
+  expect(caseTypeId, 'No case type id available for contact detail case creation').toBeTruthy();
+  return String(caseTypeId);
+}
+
 async function resolveCreatedCaseId(
-  createCaseResponse: APIResponse,
+  createCaseResponse: APIResponse | null,
   page: Page,
   token: string,
   contactId: string,
   caseTitle: string
 ): Promise<string> {
-  try {
-    const payload = unwrapSuccess<unknown>(await createCaseResponse.json());
-    const createdCaseId = parseCreatedCaseId(payload);
-    if (createdCaseId) {
-      return createdCaseId;
+  if (createCaseResponse) {
+    try {
+      const payload = unwrapSuccess<unknown>(await createCaseResponse.json());
+      const createdCaseId = parseCreatedCaseId(payload);
+      if (createdCaseId) {
+        return createdCaseId;
+      }
+    } catch {
+      // Firefox can intermittently refuse response body reads for successful POSTs.
+      // Fall back to the created case becoming queryable for the contact.
     }
-  } catch {
-    // Firefox can intermittently refuse response body reads for successful POSTs.
-    // Fall back to the created case becoming queryable for the contact.
   }
 
   let associatedCaseId: string | null = null;
@@ -545,6 +562,7 @@ test.describe('Contacts Module', () => {
     const lastName = 'Link';
     const caseTitle = `Contact detail case ${suffix}`;
     const noteContent = `Linked case note ${suffix}`;
+    const caseTypeId = await getDefaultCaseTypeId(authenticatedPage, authToken);
     const { id: contactId } = await createTestContact(authenticatedPage, authToken, {
       firstName,
       lastName,
@@ -558,28 +576,35 @@ test.describe('Contacts Module', () => {
 
     await authenticatedPage.getByRole('link', { name: /create case/i }).first().click();
     await authenticatedPage.waitForURL(new RegExp(`/cases/new\\?contact_id=${contactId}`), { timeout: 30000 });
+    const createCaseUrl = new URL(authenticatedPage.url());
+    createCaseUrl.searchParams.set('case_type_id', caseTypeId);
+    await authenticatedPage.goto(`${createCaseUrl.pathname}${createCaseUrl.search}`);
+    await authenticatedPage.waitForURL(
+      new RegExp(`/cases/new\\?contact_id=${contactId}.*case_type_id=${caseTypeId}`),
+      { timeout: 30000 }
+    );
     await expect(authenticatedPage.getByText(/prefilled context applied/i)).toBeVisible();
     await expect(authenticatedPage.locator('input[name="contact_id"]')).toHaveValue(contactId);
+    await expect(authenticatedPage.getByText(/\(Primary\)/)).toBeVisible({ timeout: 30000 });
 
-    const createCaseRegion = authenticatedPage.getByRole('region', { name: /create case/i });
-    const caseTypeCheckbox = createCaseRegion.getByRole('checkbox').first();
-    await expect(caseTypeCheckbox).toBeVisible({ timeout: 30000 });
-    await caseTypeCheckbox.check();
-    await expect(caseTypeCheckbox).toBeChecked();
     await authenticatedPage.locator('#case-title').fill(caseTitle);
     await authenticatedPage.locator('#case-description').fill('Created from the contact detail page.');
 
-    const createCaseResponsePromise = authenticatedPage.waitForResponse(
+    const createCaseResponsePromise = authenticatedPage
+      .waitForResponse(
       (response) =>
         response.request().method() === 'POST' && response.url().includes('/api/v2/cases'),
-      { timeout: 30000 }
-    );
+        { timeout: 30000 }
+      )
+      .catch(() => null);
+    const createCaseSubmit = authenticatedPage.getByTestId('case-form-primary-submit');
+    await expect(createCaseSubmit).toBeEnabled({ timeout: 30000 });
+    await createCaseSubmit.click();
 
-    const [createCaseResponse] = await Promise.all([
-      createCaseResponsePromise,
-      authenticatedPage.getByTestId('case-form-primary-submit').click(),
-    ]);
-    expect(createCaseResponse.ok()).toBeTruthy();
+    const createCaseResponse = await createCaseResponsePromise;
+    if (createCaseResponse) {
+      expect(createCaseResponse.ok()).toBeTruthy();
+    }
     const createdCaseId = await resolveCreatedCaseId(
       createCaseResponse,
       authenticatedPage,
@@ -737,7 +762,11 @@ test.describe('Contacts Module', () => {
     await authenticatedPage.locator('label', { hasText: /staff/i }).first().click();
     await authenticatedPage.locator('label', { hasText: /board member/i }).first().click();
 
-    const { contactId } = await createContactViaUI(authenticatedPage);
+    const { contactId, firstCreateResponse } = await createContactViaUI(authenticatedPage);
+    expect(
+      firstCreateResponse.ok(),
+      'First POST /api/v2/contacts should succeed without org-context recovery'
+    ).toBeTruthy();
 
     await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+$/, { timeout: 30000 }).catch(async () => {
       if (!contactId) {

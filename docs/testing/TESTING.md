@@ -24,9 +24,9 @@ This file is the active test command map for nonprofit-manager. Use [../../CONTR
 | Repo-wide validation | `make test` | Runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
 | Coverage variant (fast local lane) | `make test-coverage` | Runs backend/frontend coverage, host Playwright smoke, and the isolated Docker-backed smoke gate |
 | Coverage gate (full behavior lane) | `make test-coverage-full` | Runs backend/frontend coverage, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
-| Backend unit/integration | `cd backend && npm test` / `cd backend && npm test -- src/__tests__/integration` | `npm test` prepares the CI-style test DB before running the full Jest suite; add a narrower Jest path when you only need one backend integration file |
+| Backend unit/integration | `cd backend && npm test` / `cd backend && npm test -- src/__tests__/integration` | `npm test` still prepares the CI-style test DB before running Jest. Plain backend `npx jest ...` runs in `NODE_ENV=test` now inherit the same isolated test DB contract (`127.0.0.1:8012/nonprofit_manager_test`, `postgres/postgres`) when `DB_*` is not explicitly set. |
 | Frontend unit/component | `cd frontend && npm test -- --run` | Frontend uses Vitest |
-| E2E | `cd e2e && npm test` | Wrapper-driven host commands use the Playwright-managed `5173/3001` contract; `npm run test:docker*` default to the externally managed Docker contract on `8005/8004`, and `make test-e2e-docker-smoke` provisions an isolated Docker smoke stack on `18005/18004`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. |
+| E2E | `cd e2e && npm test` | Wrapper-driven host commands use the Playwright-managed `5173/3001` contract; `npm run test:docker*` default to the externally managed Docker contract on `8005/8004`, and `make test-e2e-docker-smoke` provisions an isolated Docker smoke stack on `18005/18004`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. Use `E2E_RUNNER_ACTION=kill` only when you intentionally want a targeted rerun to take ownership of the shared Playwright lock. |
 | Docs validation | `make check-links` | Use for any docs change; add `make lint-doc-api-versioning` when API wording/examples or versioned API docs changed |
 | Tooling regression coverage | `make test-tooling` | Targeted contract suite for route-audit, selector, helper-script, and wrapper changes |
 
@@ -119,6 +119,7 @@ npm test
 npm run test:unit
 npm test -- src/__tests__/integration
 npm test -- src/__tests__/integration/routeGuardrails.test.ts
+npx jest --runInBand src/__tests__/integration/routeGuardrails.test.ts
 npm run test:coverage
 npm run type-check
 ```
