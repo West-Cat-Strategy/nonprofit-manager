@@ -13,14 +13,15 @@
       ]
     },
     "contracts": {
-      "project": ["*.d.ts"]
+      "project": ["*.d.ts"],
+      "ignore": ["export-smoke.d.ts"]
     },
     "backend": {
-      "entry": ["src/public-site.ts", "src/worker.ts"],
+      "entry": ["src/index.ts", "src/public-site.ts", "src/worker.ts"],
       "project": ["src/**/*.ts", "scripts/**/*.ts"]
     },
     "frontend": {
-      "entry": ["src/grantsSmoke.tsx"],
+      "entry": ["src/main.tsx", "src/grantsSmoke.tsx"],
       "project": ["src/**/*.{ts,tsx}"]
     },
     "e2e": {
