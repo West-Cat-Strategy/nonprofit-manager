@@ -26,6 +26,8 @@ describe('PortalCaseFormsApiClient', () => {
               id: 'assignment-1',
               title: 'Portal Intake Form',
               status: 'sent',
+              case_number: 'CASE-001',
+              case_title: 'Housing Support',
             },
           ],
         },
@@ -40,6 +42,8 @@ describe('PortalCaseFormsApiClient', () => {
               contact_id: 'contact-1',
               title: 'Portal Intake Form',
               status: 'sent',
+              case_number: 'CASE-001',
+              case_title: 'Housing Support',
               schema: {
                 version: 1,
                 title: 'Portal Intake Form',
@@ -81,6 +85,8 @@ describe('PortalCaseFormsApiClient', () => {
               contact_id: 'contact-1',
               title: 'Portal Intake Form',
               status: 'submitted',
+              case_number: 'CASE-001',
+              case_title: 'Housing Support',
               schema: {
                 version: 1,
                 title: 'Portal Intake Form',
@@ -94,7 +100,7 @@ describe('PortalCaseFormsApiClient', () => {
         },
       } as never);
 
-    await client.listForms();
+    const forms = await client.listForms();
     await client.getForm('assignment-1');
     await client.uploadAsset('assignment-1', {
       question_key: 'consent',
@@ -104,6 +110,10 @@ describe('PortalCaseFormsApiClient', () => {
     await client.saveDraft('assignment-1', { answers: { consent: true } });
     await client.submit('assignment-1', { answers: { consent: true } });
 
+    expect(forms[0]).toMatchObject({
+      case_number: 'CASE-001',
+      case_title: 'Housing Support',
+    });
     expect(portalApi.get).toHaveBeenNthCalledWith(1, '/v2/portal/forms/assignments');
     expect(portalApi.get).toHaveBeenNthCalledWith(2, '/v2/portal/forms/assignments/assignment-1');
     expect(portalApi.post).toHaveBeenNthCalledWith(

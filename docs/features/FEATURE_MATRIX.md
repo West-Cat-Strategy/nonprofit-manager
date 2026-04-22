@@ -1,6 +1,6 @@
 # Feature Matrix
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-22
 
 Capability map for the current routed product surfaces in Nonprofit Manager.
 
@@ -40,7 +40,7 @@ This matrix is route-first rather than backlog-first. It documents what is mount
 | Surface | Current routes | Availability notes | Primary docs | Code anchors |
 |---|---|---|---|---|
 | Portal access and onboarding | `/portal/login`, `/portal/signup`, `/portal/forgot-password`, `/portal/reset-password/:token`, `/portal/accept-invitation/:token`, `/public/case-forms/:token` | Current public access surface for portal authentication, invitation acceptance, and tokenized case forms | [README.md#portal-and-shared-client-surfaces](README.md#portal-and-shared-client-surfaces), [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md) | [../../frontend/src/routes/portalRoutes.tsx](../../frontend/src/routes/portalRoutes.tsx), [../../frontend/src/routes/routeCatalog/public.ts](../../frontend/src/routes/routeCatalog/public.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
-| Portal workspace | `/portal`, `/portal/profile`, `/portal/people`, `/portal/calendar`, `/portal/events`, `/portal/messages`, `/portal/cases`, `/portal/cases/:id`, `/portal/appointments`, `/portal/documents`, `/portal/notes`, `/portal/forms`, `/portal/reminders` | Current authenticated client portal surface mounted separately from the staff shell | [README.md#portal-and-shared-client-surfaces](README.md#portal-and-shared-client-surfaces), [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md), [FOLLOW_UP_LIFECYCLE.md](FOLLOW_UP_LIFECYCLE.md), [../api/API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md) | [../../frontend/src/routes/portalRoutes.tsx](../../frontend/src/routes/portalRoutes.tsx), [../../frontend/src/routes/routeCatalog/portal.ts](../../frontend/src/routes/routeCatalog/portal.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
+| Portal workspace | `/portal`, `/portal/profile`, `/portal/people`, `/portal/calendar`, `/portal/events`, `/portal/messages`, `/portal/cases`, `/portal/cases/:id`, `/portal/appointments`, `/portal/documents`, `/portal/notes`, `/portal/forms`, `/portal/reminders` | Current authenticated client portal surface mounted separately from the staff shell; `/portal/forms` is the assignment-backed case-form inbox, while read-only shared form documents remain available through the separate portal resources contract | [README.md#portal-and-shared-client-surfaces](README.md#portal-and-shared-client-surfaces), [CASE_CLIENT_VISIBILITY_AND_FILES.md](CASE_CLIENT_VISIBILITY_AND_FILES.md), [FOLLOW_UP_LIFECYCLE.md](FOLLOW_UP_LIFECYCLE.md), [../api/API_REFERENCE_PORTAL_APPOINTMENTS.md](../api/API_REFERENCE_PORTAL_APPOINTMENTS.md) | [../../frontend/src/routes/portalRoutes.tsx](../../frontend/src/routes/portalRoutes.tsx), [../../frontend/src/routes/routeCatalog/portal.ts](../../frontend/src/routes/routeCatalog/portal.ts), [../../backend/src/routes/v2/index.ts](../../backend/src/routes/v2/index.ts) |
 
 ## Notes
 

@@ -116,14 +116,6 @@ export interface PortalDocumentsQuery {
   offset?: number;
 }
 
-export interface PortalFormsQuery {
-  search?: string;
-  sort?: 'created_at' | 'title' | 'document_type' | 'original_name';
-  order?: PortalSortOrder;
-  limit?: number;
-  offset?: number;
-}
-
 export interface PortalNote {
   id: string;
   note_type: string;
@@ -284,7 +276,6 @@ export interface PortalApiClient {
   bookAppointmentSlot(slotId: string, payload: PortalAppointmentSlotBookingInput): Promise<void>;
   cancelAppointment(appointmentId: string): Promise<void>;
   listDocuments(query?: PortalDocumentsQuery): Promise<PortalPagedResult<PortalDocument>>;
-  listForms(query?: PortalFormsQuery): Promise<PortalPagedResult<PortalDocument>>;
   listNotes(query?: PortalNotesQuery): Promise<PortalPagedResult<PortalNote>>;
   listReminders(query?: PortalRemindersQuery): Promise<PortalPagedResult<PortalReminder>>;
   listCases(): Promise<PortalCaseSummary[]>;

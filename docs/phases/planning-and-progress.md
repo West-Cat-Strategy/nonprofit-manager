@@ -11,10 +11,10 @@
 | Snapshot | Value |
 |---|---|
 | Active rows | 6 |
-| In Progress | 1 |
+| In Progress | 2 |
 | Blocked | 0 |
 | Review | 2 |
-| Ready | 3 |
+| Ready | 2 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
 
@@ -42,6 +42,7 @@ Maintenance rules:
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
 | In Progress | P5-T2B | Shared validation lane stabilization | The repo-local lane contract, stale host expectations, and the avatar / contacts / donations / events regressions are now fixed in the current tree. Next finish the full host rerun, validate `fresh-workspace-multi-user` on a truly fresh Docker starter stack, then run `cd e2e && npm run test:docker:ci`, `cd e2e && npm run test:docker:audit`, and refresh the Phase 5 validation artifact. |
+| In Progress | P5-T5 | Client portal wave | Take the assignment-backed portal forms inbox from scoped to active: add case-aware summary metadata and active/completed filtering on the backend/frontend contract, keep `/portal/forms/assignments*` as the canonical runtime, align docs/E2E proof, and hold shared route/workboard seams with the lead while `P5-T2B` finishes reruns. |
 
 ### Review Queue
 
@@ -55,7 +56,6 @@ Maintenance rules:
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
 | Ready | P5-T3 | Email platform wave: blast email plus email builder/formatter | Scope outbound campaign flow, email authoring/formatting needs, delivery reliability, preview/testing, and reuse of existing template/mailchimp surfaces. |
-| Ready | P5-T5 | Client portal wave | Plan and execute portal UX, messaging/documents/forms/appointments follow-through, with persona and workflow audit support. |
 | Ready | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Use the benchmark and repo audit to shape the later-wave backlog for metadata-driven workflows, fundraising depth, and nonprofit-specific program/finance ops. |
 
 ## Current Phase Shape
@@ -107,6 +107,36 @@ Maintenance rules:
   Handoff notes: summarize doc/runtime wording changes and exact browser proof added
   Docs ownership: lane
   Disposition: `Review`
+- Coordinated exception, 2026-04-22: `P5-T5` is split across parallel lanes while `P5-T2B` stays in final rerun/validation follow-through.
+  Lead: Codex
+  Backend lanes: `portal-forms-contract`
+  Frontend lanes: `portal-forms-inbox`
+  Other lanes: `portal-docs-e2e`
+  Integration owner: Codex
+- Lane: `portal-forms-contract`
+  Goal: make the assignment-backed portal forms payload the canonical inbox contract and expose case-aware summary metadata without widening shared route seams
+  Owned paths: `backend/src/modules/portal/**`, `backend/src/modules/cases/usecases/caseForms.usecase.portal.ts`, `backend/src/modules/cases/repositories/caseFormsRepository.ts`, `backend/src/validations/caseForms.ts`
+  Forbidden shared paths: `backend/src/routes/v2/index.ts`, `docs/phases/planning-and-progress.md`, `frontend/src/routes/**`
+  Expected tests: targeted portal/case-forms integration coverage plus module-local case-form portal tests
+  Handoff notes: summarize canonical list/detail contract changes, added assignment summary metadata, and any frontend/doc follow-up
+  Docs ownership: lead
+  Disposition: `In Progress`
+- Lane: `portal-forms-inbox`
+  Goal: make `/portal/forms` a case-aware assignment inbox with clearer active/completed workflow, case context, due dates, and canonical assignment-client usage
+  Owned paths: `frontend/src/features/portal/**`, `frontend/src/types/caseForms.ts`
+  Forbidden shared paths: `frontend/src/routes/**`, `docs/phases/planning-and-progress.md`
+  Expected tests: targeted portal forms page and portal case-forms client coverage
+  Handoff notes: summarize UI contract assumptions, filter/empty-state behavior, and any doc/E2E follow-up
+  Docs ownership: lead
+  Disposition: `In Progress`
+- Lane: `portal-docs-e2e`
+  Goal: align portal docs and focused browser proof with the assignment-backed portal forms inbox and case-aware workflow wording
+  Owned paths: `docs/features/FEATURE_MATRIX.md`, `docs/features/PORTAL_REALTIME_FILTERING.md`, `docs/features/CASE_CLIENT_VISIBILITY_AND_FILES.md`, `e2e/tests/portal-workspace.spec.ts`
+  Forbidden shared paths: `docs/phases/planning-and-progress.md`, `frontend/src/routes/**`, `backend/src/routes/v2/index.ts`
+  Expected tests: targeted Playwright portal workspace coverage plus `make check-links` when docs change
+  Handoff notes: summarize doc wording changes and exact portal forms proof added
+  Docs ownership: lane
+  Disposition: `In Progress`
 - For future modularization exceptions, use the lane contract and workboard format in [../development/SUBAGENT_MODULARIZATION_GUIDE.md](../development/SUBAGENT_MODULARIZATION_GUIDE.md).
 - Move blocked work to `Blocked` with a reason and next step.
 - Use task IDs in commits and pull request titles.
@@ -132,5 +162,5 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | P5-T2B | Shared validation lane stabilization | In Progress | Codex | The repo-local lane contract is now baked in, smoke cleanup is hardened, UI audit drift is refreshed, stale host expectations are aligned, and the avatar / contacts / donations / events regressions are fixed. Remaining work: rerun the full host matrix, validate the fresh-workspace MFA proof on a fresh Docker starter stack, then finish `npm run test:docker:ci`, `npm run test:docker:audit`, and the final validation closeout. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
 | P5-T4 | Website surfaces wave: website builder plus public website | Review | Codex | The one-form managed public publish-loop proof is now green across the website console, builder, publish flow, and public runtime. Keep the row in `Review` while `P5-T2B` finishes the broader host-plus-Docker validation lane. | [../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md](../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md) |
 | P5-T3 | Email platform wave: blast email plus email builder/formatter | Ready | Codex | Scope outbound campaign flow, email authoring/formatting needs, delivery reliability, preview/testing, and reuse of existing template/mailchimp surfaces. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
-| P5-T5 | Client portal wave | Ready | Codex | Plan and execute portal UX, messaging/documents/forms/appointments follow-through, with persona and workflow audit support. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
+| P5-T5 | Client portal wave | In Progress | Codex | The first active slice is portal forms inbox alignment: keep `/api/v2/portal/forms/assignments*` as the canonical runtime, add case-aware assignment summary metadata and active/completed workflow support, and land focused docs/E2E proof through coordinated backend/frontend/docs lanes while shared route/workboard seams stay lead-owned. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
 | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Ready | Codex | Use the benchmark and repo audit to shape the later-wave backlog for metadata-driven workflows, fundraising depth, and nonprofit-specific program/finance ops. | [../product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](../product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md) |

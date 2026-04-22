@@ -433,6 +433,28 @@ describe('CaseFormsUseCase', () => {
     });
   });
 
+  it('preserves case summary metadata in portal assignment lists', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'sent',
+      delivery_target: 'portal',
+    });
+
+    mocks.listAssignmentsForPortal.mockResolvedValue([assignment]);
+
+    const result = await useCase.listAssignmentsForPortal('contact-1', 'sent');
+
+    expect(mocks.listAssignmentsForPortal).toHaveBeenCalledWith('contact-1', 'sent');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      case_number: 'CASE-001',
+      case_title: 'Housing support',
+      contact_first_name: 'Client',
+      contact_last_name: 'Person',
+    });
+  });
+
   it('captures the source default version when creating an assignment from a saved default', async () => {
     const { repository, mocks } = createRepositoryMock();
     const useCase = new CaseFormsUseCase(repository);

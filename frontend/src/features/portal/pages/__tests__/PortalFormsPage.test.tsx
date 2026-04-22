@@ -41,6 +41,10 @@ const buildAssignment = (
   id: overrides.id,
   case_id: overrides.case_id ?? 'case-1',
   contact_id: overrides.contact_id ?? 'contact-1',
+  case_number: overrides.case_number ?? 'CASE-001',
+  case_title: overrides.case_title ?? 'Housing Support',
+  contact_first_name: overrides.contact_first_name ?? 'Case',
+  contact_last_name: overrides.contact_last_name ?? 'Client',
   title: overrides.title,
   description: overrides.description ?? `${overrides.title} description`,
   status: overrides.status,
@@ -125,6 +129,7 @@ describe('PortalFormsPage', () => {
     renderWithProviders(<PortalFormsPage />);
 
     expect(await screen.findByText('Portal Delivery Form')).toBeInTheDocument();
+    expect(screen.getAllByText('CASE-001 - Housing Support').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Available in the portal').length).toBeGreaterThan(0);
     expect(await screen.findByRole('link', { name: /download response packet/i })).toHaveAttribute(
       'href',

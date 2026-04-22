@@ -176,6 +176,10 @@ export interface CaseFormAssignment {
   updated_at: Date | string;
   created_by?: string | null;
   updated_by?: string | null;
+  case_number?: string | null;
+  case_title?: string | null;
+  contact_first_name?: string | null;
+  contact_last_name?: string | null;
   draft_assets?: CaseFormAsset[];
   latest_submission?: CaseFormSubmission | null;
   access_link_url?: string | null;

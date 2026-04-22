@@ -18,7 +18,6 @@ import type {
   PortalDocumentsQuery,
   PortalEvent,
   PortalEventsQuery,
-  PortalFormsQuery,
   PortalNote,
   PortalNotesQuery,
   PortalPagedResult,
@@ -157,19 +156,6 @@ export class PortalV2ApiClient implements PortalApiClient {
         },
       }
     );
-    return unwrapApiData(response.data);
-  }
-
-  async listForms(query: PortalFormsQuery = {}): Promise<PortalPagedResult<PortalDocument>> {
-    const response = await portalApi.get<ApiEnvelope<PortalPagedResult<PortalDocument>>>('/v2/portal/forms', {
-      params: {
-        search: query.search,
-        sort: query.sort,
-        order: query.order,
-        limit: query.limit,
-        offset: query.offset,
-      },
-    });
     return unwrapApiData(response.data);
   }
 

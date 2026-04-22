@@ -94,14 +94,10 @@ function parseCreatedCaseId(payload: unknown): string | null {
   return null;
 }
 
-async function createContactViaUI(
-  page: Page
-): Promise<{ contactId: string | null; firstCreateResponse: APIResponse }> {
+async function createContactViaUI(page: Page): Promise<{ contactId: string | null }> {
   const createAttempt = async (): Promise<APIResponse> => {
     const createResponsePromise = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'POST' &&
-        (response.url().includes('/api/v2/contacts') || response.url().includes('/api/v2/contacts')),
+      (response) => response.request().method() === 'POST' && response.url().includes('/api/v2/contacts'),
       { timeout: 30000 }
     );
 
@@ -109,68 +105,22 @@ async function createContactViaUI(
     return createResponsePromise;
   };
 
-  const firstCreateResponse = await createAttempt();
-  if (!firstCreateResponse.ok()) {
-    const body = await firstCreateResponse.text().catch(() => '');
-    const isMissingOrgContext =
-      firstCreateResponse.status() === 404 && /organization context not found/i.test(body);
-
-    if (isMissingOrgContext) {
-      const recoveredOrgId = await page.evaluate(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return null;
-        const payloadSegment = token.split('.')[1];
-        if (!payloadSegment) return null;
-        try {
-          const normalized = payloadSegment.replace(/-/g, '+').replace(/_/g, '/');
-          const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
-          const decoded = JSON.parse(atob(padded)) as {
-            organizationId?: string;
-            organization_id?: string;
-          };
-          const orgId = decoded.organizationId || decoded.organization_id || null;
-          if (orgId) {
-            localStorage.setItem('organizationId', orgId);
-          }
-          return orgId;
-        } catch {
-          return null;
-        }
-      });
-
-      if (recoveredOrgId) {
-        const retryResponse = await createAttempt();
-        if (!retryResponse.ok()) {
-          const retryBody = await retryResponse.text().catch(() => '');
-          throw new Error(
-            `Create contact request failed after org-context recovery (${retryResponse.status()}): ${retryBody.slice(0, 600)}`
-          );
-        }
-
-        let retryPayload: unknown = null;
-        try {
-          retryPayload = await retryResponse.json();
-        } catch {
-          retryPayload = null;
-        }
-
-        return { contactId: parseCreatedContactId(retryPayload), firstCreateResponse };
-      }
-    }
-
+  const createResponse = await createAttempt();
+  if (!createResponse.ok()) {
+    const body = await createResponse.text().catch(() => '');
     throw new Error(
-      `Create contact request failed (${firstCreateResponse.status()}): ${body.slice(0, 600)}`
+      `Create contact request failed (${createResponse.status()}): ${body.slice(0, 600)}`
     );
   }
 
   let parsedPayload: unknown = null;
   try {
-    parsedPayload = await firstCreateResponse.json();
+    parsedPayload = await createResponse.json();
   } catch {
     parsedPayload = null;
   }
 
-  return { contactId: parseCreatedContactId(parsedPayload), firstCreateResponse };
+  return { contactId: parseCreatedContactId(parsedPayload) };
 }
 
 async function getContactReadHeaders(page: Page, token: string): Promise<Record<string, string>> {
@@ -762,11 +712,7 @@ test.describe('Contacts Module', () => {
     await authenticatedPage.locator('label', { hasText: /staff/i }).first().click();
     await authenticatedPage.locator('label', { hasText: /board member/i }).first().click();
 
-    const { contactId, firstCreateResponse } = await createContactViaUI(authenticatedPage);
-    expect(
-      firstCreateResponse.ok(),
-      'First POST /api/v2/contacts should succeed without org-context recovery'
-    ).toBeTruthy();
+    const { contactId } = await createContactViaUI(authenticatedPage);
 
     await authenticatedPage.waitForURL(/\/contacts\/[a-f0-9-]+$/, { timeout: 30000 }).catch(async () => {
       if (!contactId) {

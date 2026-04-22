@@ -20,6 +20,22 @@ const COMPLETED_FORM_STATUSES = new Set<CaseFormAssignment['status']>([
 ]);
 
 const RECEIPT_FORM_STATUSES = new Set<CaseFormAssignment['status']>(['submitted', 'reviewed']);
+const formatAssignmentStatus = (status: CaseFormAssignment['status']): string => status.replace(/_/g, ' ');
+const formatAssignmentCaseContext = (assignment: Pick<CaseFormAssignment, 'case_number' | 'case_title'>): string | null => {
+  const parts = [assignment.case_number, assignment.case_title].filter(
+    (value): value is string => Boolean(value)
+  );
+  return parts.length > 0 ? parts.join(' - ') : null;
+};
+const formatAssignmentTimeline = (assignment: Pick<CaseFormAssignment, 'submitted_at' | 'sent_at' | 'updated_at'>): string => {
+  if (assignment.submitted_at) {
+    return `Submitted ${new Date(assignment.submitted_at).toLocaleString()}`;
+  }
+  if (assignment.sent_at) {
+    return `Sent ${new Date(assignment.sent_at).toLocaleString()}`;
+  }
+  return `Updated ${new Date(assignment.updated_at).toLocaleString()}`;
+};
 
 export default function PortalForms() {
   const { showSuccess, showError } = useToast();
@@ -238,13 +254,19 @@ export default function PortalForms() {
                   <li key={form.id}>
                     <PortalListCard
                       title={form.title}
-                      subtitle={form.status.replace('_', ' ')}
-                      meta={
-                        form.submitted_at
-                          ? `Submitted ${new Date(form.submitted_at).toLocaleString()}`
-                          : form.sent_at
-                            ? `Sent ${new Date(form.sent_at).toLocaleString()}`
-                            : `Updated ${new Date(form.updated_at).toLocaleString()}`
+                      subtitle={formatAssignmentCaseContext(form) || formatAssignmentStatus(form.status)}
+                      meta={formatAssignmentTimeline(form)}
+                      badges={
+                        <>
+                          <span className="rounded border border-app-border px-2 py-1 font-semibold uppercase">
+                            {formatAssignmentStatus(form.status)}
+                          </span>
+                          {form.due_at && (
+                            <span className="rounded border border-app-border px-2 py-1">
+                              Due {new Date(form.due_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </>
                       }
                       actions={
                         <button
@@ -281,20 +303,26 @@ export default function PortalForms() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h2 className="text-xl font-semibold text-app-text">{detail.assignment.title}</h2>
+                    {formatAssignmentCaseContext(detail.assignment) && (
+                      <p className="mt-1 text-sm font-medium text-app-text-muted">
+                        {formatAssignmentCaseContext(detail.assignment)}
+                      </p>
+                    )}
                     {detail.assignment.description && (
                       <p className="mt-1 text-sm text-app-text-muted">{detail.assignment.description}</p>
                     )}
                   </div>
                   <span className="rounded border border-app-border px-2 py-1 text-xs font-semibold uppercase">
-                    {detail.assignment.status.replace('_', ' ')}
+                    {formatAssignmentStatus(detail.assignment.status)}
                   </span>
                 </div>
 
-                {detail.assignment.due_at && (
-                  <p className="text-sm text-app-text-muted">
-                    Due {new Date(detail.assignment.due_at).toLocaleString()}
-                  </p>
-                )}
+                <div className="space-y-1 text-sm text-app-text-muted">
+                  {detail.assignment.due_at && (
+                    <p>Due {new Date(detail.assignment.due_at).toLocaleString()}</p>
+                  )}
+                  <p>{formatAssignmentTimeline(detail.assignment)}</p>
+                </div>
 
                 {isReceiptState && (
                   <div className="rounded border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">

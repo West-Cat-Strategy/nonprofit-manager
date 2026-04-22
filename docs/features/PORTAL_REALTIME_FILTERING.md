@@ -1,10 +1,10 @@
 # Portal Realtime + Filtering Contracts (P4-T7D)
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-22
 
 
 ## Scope
-This document describes the P4-T7D contract extension for client and admin portal messaging/appointments.
+This document describes the P4-T7D contract extension for client and admin portal messaging/appointments, plus the maintained distinction between paged portal resource lists and the assignment-backed portal forms inbox.
 
 ## Feature Flags
 - Backend realtime gate: `PORTAL_REALTIME_ENABLED`
@@ -29,10 +29,15 @@ This document describes the P4-T7D contract extension for client and admin porta
   - optional query: `search`, `sort`, `order`, `limit`, `offset`
   - allowed sort values: `created_at`, `title`, `document_type`, `original_name`
   - response contract: `data = { items, page }`
+- `GET /api/v2/portal/forms/assignments`
+  - optional query: `status`
+  - response contract: `data = CaseFormAssignment[]`
+  - `/portal/forms` uses this assignment inbox together with `/api/v2/portal/forms/assignments/:assignmentId*` detail, draft, submit, asset, and response-packet endpoints
 - `GET /api/v2/portal/forms`
   - optional query: `search`, `sort`, `order`, `limit`, `offset`
   - allowed sort values: `created_at`, `title`, `document_type`, `original_name`
   - response contract: `data = { items, page }`
+  - read-only shared form documents/resources list; not the interactive `/portal/forms` inbox runtime
 - `GET /api/v2/portal/notes`
   - optional query: `search`, `sort`, `order`, `limit`, `offset`
   - allowed sort values: `created_at`, `subject`, `note_type`
@@ -48,7 +53,7 @@ This document describes the P4-T7D contract extension for client and admin porta
     - `portal.slot.updated`
 
 ### Shared offset page payload
-All list-heavy client resources above return:
+All paged client resources above except `/api/v2/portal/forms/assignments` return:
 
 ```json
 {

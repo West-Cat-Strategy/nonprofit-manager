@@ -1,6 +1,6 @@
 # Case Client Visibility and Files
 
-**Last Updated:** 2026-04-13
+**Last Updated:** 2026-04-22
 **Applies To:** `/api/v2/cases/*`, `/api/v2/portal/cases/*`
 
 ## Purpose
@@ -79,6 +79,13 @@ Inline preview is supported for safe mime types (`application/pdf`, images) usin
 - `GET /api/v2/portal/cases/:id/timeline?limit=50&cursor=...`
 - `GET /api/v2/portal/cases/:id/documents`
 - `GET /api/v2/portal/cases/:id/documents/:documentId/download`
+- `GET /api/v2/portal/forms/assignments`
+- `GET /api/v2/portal/forms/assignments/:assignmentId`
+- `POST /api/v2/portal/forms/assignments/:assignmentId/draft`
+- `POST /api/v2/portal/forms/assignments/:assignmentId/submit`
+- `GET /api/v2/portal/forms/assignments/:assignmentId/response-packet`
+
+The `/portal/forms` route is the assignment-backed case-form inbox for client-visible case work. The older `GET /api/v2/portal/forms` endpoint remains the read-only shared form-document resource list, not the interactive assignment workflow.
 
 Portal timeline intentionally excludes staff-only topic events.
 Both staff and portal timeline endpoints return a cursor-paged payload:
