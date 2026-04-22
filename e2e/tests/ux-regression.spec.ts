@@ -474,22 +474,19 @@ test.describe("UI/UX regression flows", () => {
     await expect(globalNav).toBeVisible({ timeout: 10000 });
     await expect(primaryNav).toBeVisible();
     await expect(
-      primaryNav.getByRole("link", { name: /^home$/i }).first(),
+      primaryNav.getByRole("link", { name: /^workbench$/i }).first(),
     ).toBeVisible();
     await expect(
       primaryNav.getByRole("link", { name: /^people$/i }).first(),
     ).toBeVisible();
     await expect(
-      primaryNav.getByRole("link", { name: /^events$/i }).first(),
+      primaryNav.getByRole("link", { name: /^cases$/i }).first(),
     ).toBeVisible();
     await expect(moreButton).toBeVisible();
     await expect(userMenuButton).toBeVisible({ timeout: 10000 });
     await expect(mainMenuButton).toBeHidden();
     await expect(
-      authenticatedPage.getByRole("heading", { name: /workbench overview/i }).first(),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByText(/pinned shortcuts/i).first(),
+      authenticatedPage.getByRole("heading", { name: /^workbench$/i }).first(),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole("link", { name: /create intake/i }).first(),
@@ -899,7 +896,7 @@ test.describe("UI/UX regression flows", () => {
     await topNavUserMenuButton.click();
     await expect(
       page
-        .getByTestId("admin-quick-actions-compact")
+        .locator("#topnav-user-menu")
         .getByRole("link", { name: /invite users/i })
         .first(),
     ).toBeVisible();
@@ -993,7 +990,7 @@ test.describe("UI/UX regression flows", () => {
     }
 
     const removedCompatibilityRoutes = [
-      { legacy: "/email-marketing", canonical: "/settings/email-marketing" },
+      { legacy: "/email-marketing", canonical: "/settings/communications" },
       { legacy: "/admin/audit-logs", canonical: "/settings/admin/audit_logs" },
       {
         legacy: "/settings/organization",
@@ -1005,12 +1002,11 @@ test.describe("UI/UX regression flows", () => {
       await page.goto(legacy);
       await page.waitForLoadState("domcontentloaded");
 
-      const currentPath = normalizePathWithQuery(page.url());
+      const currentPath = normalizePathname(page.url());
       expect(
         currentPath,
-        `Legacy route ${legacy} should no longer resolve to ${canonical}`,
-      ).not.toBe(canonical);
-      expect(["/dashboard", "/login"]).toContain(normalizePathname(page.url()));
+        `Legacy route ${legacy} should redirect to ${canonical}`,
+      ).toBe(normalizePathname(canonical));
     }
 
     expectNoRuntimeIssues("admin settings and portal routes", runtimeIssues);

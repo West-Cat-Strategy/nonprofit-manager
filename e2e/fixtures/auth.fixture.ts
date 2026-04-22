@@ -27,6 +27,19 @@ type CachedAuthState = {
 
 let cachedAuthState: CachedAuthState | null = null;
 
+const APP_LOADING_LABEL = '[aria-label="Loading application"]';
+
+const waitForAuthenticatedShellReady = async (page: Page): Promise<void> => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.locator(APP_LOADING_LABEL).waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => undefined);
+  await page
+    .waitForURL(
+      (url) => !url.pathname.startsWith('/login') && !url.pathname.startsWith('/setup'),
+      { timeout: 15_000 }
+    )
+    .catch(() => undefined);
+};
+
 const normalizeOrganizationId = (value: unknown): string | undefined => {
   if (typeof value !== 'string') {
     return undefined;
@@ -141,6 +154,7 @@ const ensureSharedAuthState = async (page: Page): Promise<CachedAuthState> => {
 export const test = base.extend<AuthFixtures>({
   authenticatedPage: async ({ page }, use) => {
     await ensureSharedAuthState(page);
+    await waitForAuthenticatedShellReady(page);
 
     // Provide authenticated page to test
     await use(page);

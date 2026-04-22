@@ -105,6 +105,11 @@ const authBootstrapRequestPatterns = [
   /\/api\/(?:v2\/)?auth\/registration-status(?:\?|$)/,
   /\/api\/(?:v2\/)?auth\/setup-status(?:\?|$)/,
 ];
+const benignRuntimeConsolePatterns = [
+  /favicon\.ico/i,
+  /ResizeObserver loop limit exceeded/i,
+  /downloadable font: download failed/i,
+];
 const routeErrorResourceTypes = new Set(['fetch', 'xhr', 'script', 'stylesheet']);
 const abortErrorPatterns = [/net::ERR_ABORTED/i, /net::ERR_BLOCKED_BY_CLIENT/i, /NS_BINDING_ABORTED/i];
 const instrumentedPages = new WeakSet<Page>();
@@ -201,6 +206,13 @@ export async function waitForSettledPage(page: Page): Promise<void> {
 
 const isRuntimeBootstrapAllowed = (url: string, allowAuthBootstrapNoise: boolean): boolean =>
   allowAuthBootstrapNoise && authBootstrapRequestPatterns.some((pattern) => pattern.test(url));
+
+const isBenignAuthBootstrapCancellation = (
+  url: string,
+  failure: string,
+  allowAuthBootstrapNoise: boolean
+): boolean =>
+  isRuntimeBootstrapAllowed(url, allowAuthBootstrapNoise) && /cancel(?:led|ed)/i.test(failure);
 
 const ensureRouteTransitionCapture = async (page: Page): Promise<void> => {
   if (instrumentedPages.has(page)) {
@@ -310,7 +322,7 @@ export async function captureRouteRuntime(
     }
 
     const text = message.text();
-    if (/favicon\.ico/i.test(text) || /ResizeObserver loop limit exceeded/i.test(text)) {
+    if (benignRuntimeConsolePatterns.some((pattern) => pattern.test(text))) {
       return;
     }
 
@@ -340,6 +352,10 @@ export async function captureRouteRuntime(
     }
 
     const failure = request.failure()?.errorText || 'unknown failure';
+    if (isBenignAuthBootstrapCancellation(request.url(), failure, allowAuthBootstrapNoise)) {
+      return;
+    }
+
     if (abortErrorPatterns.some((pattern) => pattern.test(failure))) {
       return;
     }

@@ -10,6 +10,7 @@ import DonationSummaryWidget from '../DonationSummaryWidget';
 import type { DashboardWidget } from '../../../types/dashboard';
 import api from '../../../services/api';
 import { DashboardDataProvider } from '../../../features/dashboard/context/DashboardDataContext';
+import { resetDashboardDataLoaderCacheForTests } from '../../../features/dashboard/context/useDashboardDataLoader';
 import { renderWithProviders } from '../../../test/testUtils';
 
 // Mock the API
@@ -79,6 +80,7 @@ describe('DonationSummaryWidget', () => {
     );
 
   beforeEach(() => {
+    resetDashboardDataLoaderCacheForTests();
     vi.clearAllMocks();
     Object.defineProperty(window, 'requestIdleCallback', {
       value: (callback: () => void) => {

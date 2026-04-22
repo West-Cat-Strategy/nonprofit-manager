@@ -76,6 +76,9 @@ SET account_id = EXCLUDED.account_id,
     created_by = EXCLUDED.created_by,
     modified_by = EXCLUDED.modified_by;
 
+DELETE FROM volunteers
+WHERE contact_id = :'fixture_contact_id';
+
 INSERT INTO user_account_access (
   id,
   user_id,
@@ -88,7 +91,7 @@ VALUES (
   :'fixture_access_id',
   :'fixture_user_id',
   :'fixture_account_id',
-  'viewer',
+  'editor',
   :'fixture_user_id',
   true
 )

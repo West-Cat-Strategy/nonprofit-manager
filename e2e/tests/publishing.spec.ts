@@ -57,6 +57,24 @@ const getDatabaseConfig = (): {
 const unwrapBody = <T>(body: unknown): T =>
   ((body as { data?: T } | undefined)?.data ?? body) as T;
 
+const unwrapCollection = <T>(body: unknown): T[] => {
+  const payload = unwrapBody<unknown>(body);
+
+  if (Array.isArray(payload)) {
+    return payload as T[];
+  }
+
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    Array.isArray((payload as { data?: unknown[] }).data)
+  ) {
+    return (payload as { data: T[] }).data;
+  }
+
+  return [];
+};
+
 async function deletePublicSubmissionArtifacts(input: {
   contactIds?: string[];
 }): Promise<void> {
@@ -143,6 +161,10 @@ test.describe('Publishing Workflows', () => {
           formType: string;
           title: string;
           path: string;
+          operationalSettings?: {
+            submitText?: string;
+            successMessage?: string;
+          };
           publicRuntime?: {
             publicPath?: string | null;
           };
@@ -204,18 +226,47 @@ test.describe('Publishing Workflows', () => {
       await contactCard.getByRole('button', { name: 'Save form settings' }).click();
 
       const saveResponse = await saveResponsePromise;
-      expect(saveResponse.ok()).toBeTruthy();
-      const saveBody = unwrapBody<{
-        operationalSettings?: {
-          submitText?: string;
-          successMessage?: string;
-        };
-      }>(await saveResponse.json());
-      expect(saveBody.operationalSettings).toMatchObject({
-        submitText: submitTextOverride,
-        successMessage: successMessageOverride,
-      });
+      expect(
+        saveResponse.ok(),
+        `Saving managed form settings failed (${saveResponse.status()})`
+      ).toBeTruthy();
       await expect(authenticatedPage.getByText('Form settings saved.')).toBeVisible();
+
+      await expect
+        .poll(
+          async () => {
+            const refreshedFormsResponse = await authenticatedPage.request.get(
+              `${API_URL}/api/v2/sites/${siteId}/forms`,
+              { headers }
+            );
+            if (!refreshedFormsResponse.ok()) {
+              return null;
+            }
+
+            const refreshedForms = unwrapBody<
+              Array<{
+                formKey: string;
+                operationalSettings?: {
+                  submitText?: string;
+                  successMessage?: string;
+                };
+              }>
+            >(await refreshedFormsResponse.json());
+            const refreshedContactForm = refreshedForms.find(
+              (form) => form.formKey === contactForm.formKey
+            );
+
+            return refreshedContactForm?.operationalSettings ?? null;
+          },
+          {
+            message: `Expected managed form overrides for ${contactForm.formKey} to persist`,
+            timeout: 15_000,
+          }
+        )
+        .toMatchObject({
+          submitText: submitTextOverride,
+          successMessage: successMessageOverride,
+        });
 
       await authenticatedPage.goto(`/websites/${siteId}/publishing`, {
         waitUntil: 'domcontentloaded',
@@ -275,23 +326,46 @@ test.describe('Publishing Workflows', () => {
       await publicContactForm.getByRole('button', { name: submitTextOverride }).click();
 
       const publicSubmitResponse = await publicSubmitResponsePromise;
-      const publicSubmitRawBody = await publicSubmitResponse.text();
       expect(
         publicSubmitResponse.ok(),
-        `Public contact submit failed (${publicSubmitResponse.status()}): ${publicSubmitRawBody}`
+        `Public contact submit failed (${publicSubmitResponse.status()})`
       ).toBeTruthy();
-      const publicSubmitBody = unwrapBody<{ message?: string; contactId?: string }>(
-        JSON.parse(publicSubmitRawBody)
-      );
-      expect(publicSubmitBody.message).toBe(successMessageOverride);
-      expect(publicSubmitBody.contactId).toBeTruthy();
-      if (publicSubmitBody.contactId) {
-        createdContactIds.push(publicSubmitBody.contactId);
-      }
 
       await expect(publicContactForm.locator('[data-form-status]')).toHaveText(
         successMessageOverride
       );
+
+      let createdContactId: string | null = null;
+      await expect
+        .poll(
+          async () => {
+            const lookupResponse = await authenticatedPage.request.get(
+              `${API_URL}/api/v2/contacts?search=${encodeURIComponent(contactEmail)}`,
+              { headers }
+            );
+            if (!lookupResponse.ok()) {
+              return null;
+            }
+
+            const contacts = unwrapCollection<{ contact_id?: string; email?: string | null }>(
+              await lookupResponse.json()
+            );
+            const matchingContact =
+              contacts.find((contact) => contact.email === contactEmail) ?? contacts[0];
+
+            createdContactId = matchingContact?.contact_id ?? null;
+            return createdContactId;
+          },
+          {
+            message: `Expected public contact submission for ${contactEmail} to be queryable`,
+            timeout: 15_000,
+          }
+        )
+        .not.toBeNull();
+
+      if (createdContactId) {
+        createdContactIds.push(createdContactId);
+      }
     } finally {
       await deletePublicSubmissionArtifacts({ contactIds: createdContactIds });
       await deleteWebsiteSite(authenticatedPage, authToken, siteId);

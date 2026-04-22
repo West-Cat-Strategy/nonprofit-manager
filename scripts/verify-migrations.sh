@@ -263,17 +263,27 @@ check_app_role_rls_behavior() {
 
   local unknown_accounts
   local unknown_contacts
+  local unknown_volunteers
   local known_accounts
   local known_contacts
+  local known_volunteers
+  local inserted_volunteers
+  local updated_volunteers
+  local deleted_volunteers
   mapfile -t scoped_rows <<<"$scoped_counts"
   unknown_accounts="${scoped_rows[1]:-}"
   unknown_contacts="${scoped_rows[2]:-}"
-  known_accounts="${scoped_rows[4]:-}"
-  known_contacts="${scoped_rows[5]:-}"
+  unknown_volunteers="${scoped_rows[3]:-}"
+  known_accounts="${scoped_rows[5]:-}"
+  known_contacts="${scoped_rows[6]:-}"
+  known_volunteers="${scoped_rows[7]:-}"
+  inserted_volunteers="${scoped_rows[8]:-}"
+  updated_volunteers="${scoped_rows[9]:-}"
+  deleted_volunteers="${scoped_rows[10]:-}"
 
-  if [[ "$unknown_accounts" != "0" || "$unknown_contacts" != "0" || "$known_accounts" != "1" || "$known_contacts" != "1" ]]; then
+  if [[ "$unknown_accounts" != "0" || "$unknown_contacts" != "0" || "$unknown_volunteers" != "0" || "$known_accounts" != "1" || "$known_contacts" != "1" || "$known_volunteers" != "0" || "$inserted_volunteers" != "1" || "$updated_volunteers" != "1" || "$deleted_volunteers" != "1" ]]; then
     echo "Migration verification failed: app role RLS behavior did not match expectations" >&2
-    echo "Observed counts: unknown_accounts=$unknown_accounts unknown_contacts=$unknown_contacts known_accounts=$known_accounts known_contacts=$known_contacts" >&2
+    echo "Observed counts: unknown_accounts=$unknown_accounts unknown_contacts=$unknown_contacts unknown_volunteers=$unknown_volunteers known_accounts=$known_accounts known_contacts=$known_contacts known_volunteers=$known_volunteers inserted_volunteers=$inserted_volunteers updated_volunteers=$updated_volunteers deleted_volunteers=$deleted_volunteers" >&2
     return 1
   fi
 

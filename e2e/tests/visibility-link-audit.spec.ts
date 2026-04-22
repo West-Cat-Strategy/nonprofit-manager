@@ -154,13 +154,13 @@ const publicRouteAudits: RouteAuditConfig[] = [
     surface: 'public',
     expectedEntryId: 'portal-accept-invitation',
     heading: /accept portal invitation|invitation is invalid or expired/i,
-    primaryAction: /activate portal account|return to portal login/i,
+    primaryAction: /return to portal sign in/i,
   },
   {
     name: 'demo dashboard',
     route: '/demo/dashboard',
     surface: 'demo',
-    heading: /workbench overview|dashboard/i,
+    heading: /workbench|dashboard/i,
   },
   {
     name: 'demo audit',
@@ -176,7 +176,7 @@ const staffRouteAudits: RouteAuditConfig[] = [
     route: '/dashboard',
     surface: 'staff',
     expectedEntryId: 'dashboard',
-    heading: /workbench overview|dashboard/i,
+    heading: /workbench|dashboard/i,
     primaryAction: /create intake/i,
   },
   {
@@ -272,7 +272,7 @@ const staffRouteAudits: RouteAuditConfig[] = [
     name: 'reports',
     route: '/reports/builder',
     surface: 'staff',
-    expectedEntryId: 'reports',
+    expectedEntryId: 'reports-builder',
     heading: /report builder|reports/i,
     primaryAction: /generate report/i,
   },
@@ -394,15 +394,15 @@ const portalRouteAudits: RouteAuditConfig[] = [
 ];
 
 const staffNavigationLinks: ClickthroughAuditLink[] = [
-  { label: 'Home', href: '/dashboard', surface: 'staff', scope: 'primary-navigation' },
+  { label: 'Workbench', href: '/dashboard', surface: 'staff', scope: 'primary-navigation' },
   { label: 'People', href: '/contacts', surface: 'staff', scope: 'primary-navigation' },
-  { label: 'Events', href: '/events', surface: 'staff', scope: 'primary-navigation' },
+  { label: 'Cases', href: '/cases', surface: 'staff', scope: 'primary-navigation' },
   { label: 'More', href: '#topnav-more-menu', surface: 'staff', scope: 'more-button' },
   { label: 'Tasks', href: '/tasks', surface: 'staff', scope: 'more-navigation' },
   { label: 'Accounts', href: '/accounts', surface: 'staff', scope: 'more-navigation' },
   { label: 'Volunteers', href: '/volunteers', surface: 'staff', scope: 'more-navigation' },
   { label: 'Analytics', href: '/analytics', surface: 'staff', scope: 'more-navigation' },
-  { label: 'Reports', href: '/reports/builder', surface: 'staff', scope: 'more-navigation' },
+  { label: 'Reports', href: '/reports', surface: 'staff', scope: 'more-navigation' },
   { label: 'Alerts', href: '/alerts', surface: 'staff', scope: 'alerts-shortcut' },
 ];
 

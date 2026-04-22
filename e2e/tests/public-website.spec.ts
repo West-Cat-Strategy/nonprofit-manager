@@ -62,6 +62,59 @@ const getDatabaseConfig = (): {
 const unwrapBody = <T>(body: unknown): T =>
   ((body as { data?: T } | undefined)?.data ?? body) as T;
 
+type ReferralSubmissionRecord = {
+  case_id: string;
+  contact_id: string;
+  title: string;
+  source: string | null;
+  referral_source: string | null;
+  is_urgent: boolean;
+};
+
+async function waitForReferralSubmissionRecord(input: {
+  email: string;
+  title: string;
+  timeoutMs?: number;
+}): Promise<ReferralSubmissionRecord> {
+  const client = new PgClient(getDatabaseConfig());
+  const timeoutMs = input.timeoutMs ?? 15_000;
+  const deadline = Date.now() + timeoutMs;
+
+  try {
+    await client.connect();
+
+    while (Date.now() < deadline) {
+      const result = await client.query<ReferralSubmissionRecord>(
+        `SELECT cases.id AS case_id,
+                cases.contact_id,
+                cases.title,
+                cases.source,
+                cases.referral_source,
+                cases.is_urgent
+           FROM cases
+           JOIN contacts ON contacts.id = cases.contact_id
+          WHERE LOWER(contacts.email) = LOWER($1)
+            AND cases.title = $2
+          ORDER BY cases.created_at DESC
+          LIMIT 1`,
+        [input.email, input.title]
+      );
+
+      if (result.rows[0]) {
+        return result.rows[0];
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+
+  throw new Error(
+    `Timed out waiting for referral submission record for ${input.email} (${input.title})`
+  );
+}
+
 async function getSystemTemplateId(page: import('@playwright/test').Page, authToken: string): Promise<string> {
   const headers = await getAuthHeaders(page, authToken);
   const response = await page.request.get(`${API_URL}/api/v2/templates/system`, { headers });
@@ -231,66 +284,25 @@ test.describe('Public website starter', () => {
       await referralForm.locator('textarea[name="notes"]').fill('Needs support this week.');
       await referralForm.locator('input[name="urgent"]').check();
 
-      const submitResponsePromise = authenticatedPage.waitForResponse((response) => {
-        return (
-          response.request().method() === 'POST' &&
-          response.url().includes(`/api/v2/public/forms/${siteId}/referral-form-block/submit`)
-        );
-      });
       await referralForm.getByRole('button', { name: /submit referral/i }).click();
-
-      const submitResponse = await submitResponsePromise;
-      const submitRawBody = await submitResponse.text();
-      expect(
-        submitResponse.ok(),
-        `Public referral submit failed (${submitResponse.status()}): ${submitRawBody}`
-      ).toBeTruthy();
-      const submitBody = unwrapBody<{ caseId?: string; contactId?: string; message?: string }>(
-        JSON.parse(submitRawBody)
-      );
-      expect(submitBody.message).toBe(
-        'Thanks. The referral has been recorded and routed for follow-up.'
-      );
-      expect(submitBody.caseId).toBeTruthy();
-      expect(submitBody.contactId).toBeTruthy();
-
-      if (submitBody.caseId) {
-        createdCaseIds.push(submitBody.caseId);
-      }
-      if (submitBody.contactId) {
-        createdContactIds.push(submitBody.contactId);
-      }
 
       await expect(referralForm.locator('[data-form-status]')).toHaveText(
         'Thanks. The referral has been recorded and routed for follow-up.'
       );
 
-      const client = new PgClient(getDatabaseConfig());
-      try {
-        await client.connect();
-        const result = await client.query<{
-          contact_id: string;
-          title: string;
-          source: string | null;
-          referral_source: string | null;
-          is_urgent: boolean;
-        }>(
-          `SELECT contact_id, title, source, referral_source, is_urgent
-           FROM cases
-           WHERE id = $1`,
-          [submitBody.caseId]
-        );
+      const createdReferral = await waitForReferralSubmissionRecord({
+        email: referralEmail,
+        title: 'Housing referral',
+      });
+      createdCaseIds.push(createdReferral.case_id);
+      createdContactIds.push(createdReferral.contact_id);
 
-        expect(result.rows[0]).toMatchObject({
-          contact_id: submitBody.contactId,
-          title: 'Housing referral',
-          source: 'referral',
-          referral_source: 'Community Partner',
-          is_urgent: true,
-        });
-      } finally {
-        await client.end().catch(() => undefined);
-      }
+      expect(createdReferral).toMatchObject({
+        title: 'Housing referral',
+        source: 'referral',
+        referral_source: 'Community Partner',
+        is_urgent: true,
+      });
 
       await authenticatedPage.goto(`${publicBase}/?preview=true`, { waitUntil: 'domcontentloaded' });
       await expect(

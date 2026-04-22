@@ -2,6 +2,7 @@ import {
   createCorsOptions,
   createCorsOptionsDelegate,
   resolveTrustProxy,
+  shouldEnableUpgradeInsecureRequests,
 } from '../../config/requestSecurity';
 
 const invokeOriginCheck = (
@@ -151,5 +152,30 @@ describe('requestSecurity helpers', () => {
     expect(resolveTrustProxy('false')).toBe(false);
     expect(resolveTrustProxy('2')).toBe(2);
     expect(resolveTrustProxy('loopback')).toBe('loopback');
+  });
+
+  it('disables upgrade-insecure-requests when production uses loopback origins', () => {
+    expect(
+      shouldEnableUpgradeInsecureRequests({
+        nodeEnv: 'production',
+        origins: ['http://localhost:3000', 'http://localhost:5173'],
+      })
+    ).toBe(false);
+
+    expect(
+      shouldEnableUpgradeInsecureRequests({
+        nodeEnv: 'production',
+        origins: ['https://community-demo.localhost:3001'],
+      })
+    ).toBe(false);
+  });
+
+  it('keeps upgrade-insecure-requests enabled for non-local production origins', () => {
+    expect(
+      shouldEnableUpgradeInsecureRequests({
+        nodeEnv: 'production',
+        origins: ['https://api.westcat.ca', 'https://admin.westcat.ca'],
+      })
+    ).toBe(true);
   });
 });

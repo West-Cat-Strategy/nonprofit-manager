@@ -230,8 +230,9 @@ const smokeCases: SmokeCase[] = [
     primaryActionPattern: /create account/i,
     requireMainLandmark: true,
     contractAssertion: async () => {
-      await expectGetRequest(apiMatchers.invitationValidate);
-      expect(await screen.findByDisplayValue('invitee@example.org')).toBeInTheDocument();
+      const emailField = await screen.findByLabelText(/email address/i);
+      expect(emailField).toHaveValue('');
+      expect(getTestApiCalls('get', apiMatchers.invitationValidate)).toHaveLength(0);
     },
   },
   {

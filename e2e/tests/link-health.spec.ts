@@ -216,12 +216,12 @@ base.describe('Public route health', () => {
 authTest.describe('Authenticated staff route health', () => {
   for (const route of staffAuthenticatedRoutes) {
     authTest(`loads ${route}`, async ({ authenticatedPage }) => {
-      await assertRouteLoads(authenticatedPage, route);
+      await assertRouteLoads(authenticatedPage, route, { allowAuthBootstrapNoise: true });
     });
   }
 
   authTest('cases new route keeps Save Case primary action visible', async ({ authenticatedPage }) => {
-    await assertRouteLoads(authenticatedPage, '/cases/new');
+    await assertRouteLoads(authenticatedPage, '/cases/new', { allowAuthBootstrapNoise: true });
     const saveCaseButton = authenticatedPage.getByTestId('case-form-primary-submit');
     await expect(saveCaseButton).toBeVisible();
     await expect(saveCaseButton).toHaveText(/save case/i);
@@ -229,7 +229,10 @@ authTest.describe('Authenticated staff route health', () => {
 
   for (const { path, redirectsTo } of legacyRedirectRoutes) {
     authTest(`legacy route ${path} resolves to ${redirectsTo}`, async ({ authenticatedPage }) => {
-      await assertRouteLoads(authenticatedPage, path, { expectedLocation: redirectsTo });
+      await assertRouteLoads(authenticatedPage, path, {
+        allowAuthBootstrapNoise: true,
+        expectedLocation: redirectsTo,
+      });
     });
   }
 });

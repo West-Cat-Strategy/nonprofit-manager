@@ -1,15 +1,16 @@
 import request from 'supertest';
-import jwt from 'jsonwebtoken';
 import { Client } from 'pg';
 import app from '../../index';
 import pool from '../../config/database';
-import { getJwtSecret } from '../../config/jwt';
+import { issueAppSessionToken } from '../../utils/sessionTokens';
 
 describe('Event API Integration Tests', () => {
   let authToken: string;
   let adminUserId: string;
+  let adminEmail: string;
   let managerAuthToken: string;
   let managerUserId: string;
+  let managerEmail: string;
   let organizationId: string;
   let secondaryOrganizationId: string;
   const createdAccountIds: string[] = [];
@@ -34,6 +35,27 @@ describe('Event API Integration Tests', () => {
     });
     await client.connect();
     return client;
+  };
+  const issueFreshToken = async (params: {
+    userId: string;
+    email: string;
+    role: string;
+    organizationId: string;
+  }): Promise<string> => {
+    const result = await pool.query<{ auth_revision: number }>(
+      `SELECT COALESCE(auth_revision, 0) AS auth_revision
+       FROM users
+       WHERE id = $1`,
+      [params.userId]
+    );
+
+    return issueAppSessionToken({
+      id: params.userId,
+      email: params.email,
+      role: params.role,
+      organizationId: params.organizationId,
+      authRevision: result.rows[0]?.auth_revision ?? 0,
+    });
   };
   const expectCanonicalError = (response: request.Response, code: string): void => {
     expect(response.body).toMatchObject({
@@ -141,7 +163,7 @@ describe('Event API Integration Tests', () => {
   };
 
   beforeAll(async () => {
-    const adminEmail = `event-admin-${unique()}@example.com`;
+    adminEmail = `event-admin-${unique()}@example.com`;
     const adminUserResult = await pool.query<{ id: string }>(
       `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
        VALUES ($1, $2, 'Event', 'Tester', 'admin', NOW(), NOW())
@@ -151,7 +173,7 @@ describe('Event API Integration Tests', () => {
 
     adminUserId = adminUserResult.rows[0].id;
 
-    const managerEmail = `event-manager-${unique()}@example.com`;
+    managerEmail = `event-manager-${unique()}@example.com`;
     const managerUserResult = await pool.query<{ id: string }>(
       `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
        VALUES ($1, $2, 'Event', 'Manager', 'manager', NOW(), NOW())
@@ -179,16 +201,21 @@ describe('Event API Integration Tests', () => {
     secondaryOrganizationId = secondaryOrgResult.rows[0].id;
     createdAccountIds.push(secondaryOrganizationId);
 
-    authToken = jwt.sign(
-      { id: adminUserId, email: adminEmail, role: 'admin', organizationId },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
-    managerAuthToken = jwt.sign(
-      { id: managerUserId, email: managerEmail, role: 'manager', organizationId },
-      getJwtSecret(),
-      { expiresIn: '1h' }
-    );
+  });
+
+  beforeEach(async () => {
+    authToken = await issueFreshToken({
+      userId: adminUserId,
+      email: adminEmail,
+      role: 'admin',
+      organizationId,
+    });
+    managerAuthToken = await issueFreshToken({
+      userId: managerUserId,
+      email: managerEmail,
+      role: 'manager',
+      organizationId,
+    });
   });
 
   afterAll(async () => {

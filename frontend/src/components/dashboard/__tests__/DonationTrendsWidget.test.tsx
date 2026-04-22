@@ -5,6 +5,7 @@ import '@testing-library/jest-dom';
 import DonationTrendsWidget from '../DonationTrendsWidget';
 import type { DashboardWidget } from '../../../types/dashboard';
 import { DashboardDataProvider } from '../../../features/dashboard/context/DashboardDataContext';
+import { resetDashboardDataLoaderCacheForTests } from '../../../features/dashboard/context/useDashboardDataLoader';
 import { renderWithProviders } from '../../../test/testUtils';
 
 const fetchDonationTrendsMock = vi.fn();
@@ -96,6 +97,7 @@ describe('DonationTrendsWidget', () => {
     );
 
   beforeEach(() => {
+    resetDashboardDataLoaderCacheForTests();
     vi.clearAllMocks();
     Object.defineProperty(window, 'requestIdleCallback', {
       value: (callback: () => void) => {

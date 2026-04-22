@@ -99,3 +99,4 @@
 099	099_user_account_access_write_policies.sql
 100	100_portal_public_signup_contact_bridge.sql
 101	101_portal_signup_request_resolution_status.sql
+102	102_volunteer_write_policies.sql

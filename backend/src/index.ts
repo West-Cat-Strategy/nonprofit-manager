@@ -20,7 +20,11 @@ import { registerV2Routes } from '@routes/v2';
 import { setPaymentPool } from '@modules/payments';
 import { renderPublishedWebsite } from '@modules/publishing/controllers';
 import pool from './config/database';
-import { createCorsOptionsDelegate, resolveTrustProxy } from './config/requestSecurity';
+import {
+  createCorsOptionsDelegate,
+  resolveTrustProxy,
+  shouldEnableUpgradeInsecureRequests,
+} from './config/requestSecurity';
 import { validateProductionSecurityConfig } from './config/productionSecurityConfig';
 
 if (process.env.JEST_WORKER_ID && !process.env.NODE_ENV) {
@@ -116,8 +120,13 @@ app.use(
         baseUri: ["'self'"],
         // Form submissions: only to same origin
         formAction: ["'self'"],
-        // Upgrade insecure requests to HTTPS in production
-        ...(process.env.NODE_ENV === 'production' ? { upgradeInsecureRequests: [] } : {}),
+        // Upgrade insecure requests to HTTPS in production unless the runtime is still on loopback hosts.
+        upgradeInsecureRequests: shouldEnableUpgradeInsecureRequests({
+          nodeEnv: process.env.NODE_ENV,
+          origins: [process.env.API_ORIGIN, process.env.FRONTEND_URL, process.env.CORS_ORIGIN],
+        })
+          ? []
+          : null,
       },
       // Report CSP violations for monitoring (optional, for production)
       ...(process.env.CSP_REPORT_URI ? { reportUri: [process.env.CSP_REPORT_URI] } : {}),

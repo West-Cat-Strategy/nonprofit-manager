@@ -424,7 +424,10 @@ describe('usePageEditorController', () => {
         }),
       { timeout: 4500 }
     );
-    expect(result.current.lastSaved).toBeInstanceOf(Date);
+    await waitFor(() => {
+      expect(result.current.lastSaved).toBeInstanceOf(Date);
+      expect(result.current.hasUnsavedChanges).toBe(false);
+    });
   });
 
   it('reorders existing components and adds palette components into the hovered section', async () => {

@@ -11,6 +11,7 @@ import {
 } from '../DashboardDataContext';
 import { logout } from '../../../auth/state';
 import { createTestStore, renderWithProviders } from '../../../../test/testUtils';
+import { resetDashboardDataLoaderCacheForTests } from '../useDashboardDataLoader';
 
 const analyticsSummaryMock = vi.fn();
 const donationTrendsMock = vi.fn();
@@ -75,6 +76,7 @@ function createDeferred<T>() {
 
 describe('DashboardDataContext', () => {
   beforeEach(() => {
+    resetDashboardDataLoaderCacheForTests();
     Object.defineProperty(window, 'requestIdleCallback', {
       value: (callback: () => void) => {
         callback();
@@ -152,6 +154,7 @@ describe('DashboardDataContext', () => {
   });
 
   afterEach(() => {
+    resetDashboardDataLoaderCacheForTests();
     vi.clearAllMocks();
   });
 
@@ -339,5 +342,50 @@ describe('DashboardDataContext', () => {
 
     await waitFor(() => expect(screen.getByTestId('donation-trend-count')).toHaveTextContent('1'));
     expect(screen.getByTestId('case-lane-renders')).toHaveTextContent(String(rendersAfterCaseSettled));
+  });
+
+  it('reuses recent workbench lane results across a short remount window', async () => {
+    const preloadedState = {
+      auth: {
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'admin',
+        },
+        isAuthenticated: true,
+        authLoading: false,
+        loading: false,
+      },
+    };
+
+    const firstRender = renderWithProviders(
+      <DashboardDataProvider lanes={WORKBENCH_DASHBOARD_LANES}>
+        <DashboardCompatibilityConsumer />
+      </DashboardDataProvider>,
+      { preloadedState }
+    );
+
+    await waitFor(() => expect(screen.getByTestId('urgent-cases')).toHaveTextContent('2'));
+    expect(analyticsSummaryMock).toHaveBeenCalledTimes(1);
+    expect(taskSummaryMock).toHaveBeenCalledTimes(1);
+
+    firstRender.unmount();
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 25));
+    });
+
+    renderWithProviders(
+      <DashboardDataProvider lanes={WORKBENCH_DASHBOARD_LANES}>
+        <DashboardCompatibilityConsumer />
+      </DashboardDataProvider>,
+      { preloadedState }
+    );
+
+    await waitFor(() => expect(screen.getByTestId('urgent-cases')).toHaveTextContent('2'));
+    expect(analyticsSummaryMock).toHaveBeenCalledTimes(1);
+    expect(taskSummaryMock).toHaveBeenCalledTimes(1);
   });
 });

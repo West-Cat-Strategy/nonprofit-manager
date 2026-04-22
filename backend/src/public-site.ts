@@ -17,7 +17,11 @@ import { correlationIdMiddleware, CORRELATION_ID_HEADER } from './middleware/cor
 import { metricsMiddleware, metricsRouter } from './middleware/metrics';
 import { legacyApiTombstoneMiddleware } from './middleware/legacyApiTombstone';
 import { validateBody, validateParams } from './middleware/zodValidation';
-import { createCorsOptionsDelegate, resolveTrustProxy } from './config/requestSecurity';
+import {
+  createCorsOptionsDelegate,
+  resolveTrustProxy,
+  shouldEnableUpgradeInsecureRequests,
+} from './config/requestSecurity';
 import { validateProductionSecurityConfig } from './config/productionSecurityConfig';
 import healthRoutes, { setHealthCheckPool } from '@routes/health';
 import pool from './config/database';
@@ -87,7 +91,12 @@ app.use(
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
-        ...(process.env.NODE_ENV === 'production' ? { upgradeInsecureRequests: [] } : {}),
+        upgradeInsecureRequests: shouldEnableUpgradeInsecureRequests({
+          nodeEnv: process.env.NODE_ENV,
+          origins: [process.env.API_ORIGIN, process.env.FRONTEND_URL, process.env.CORS_ORIGIN],
+        })
+          ? []
+          : null,
       },
       ...(process.env.CSP_REPORT_URI ? { reportUri: [process.env.CSP_REPORT_URI] } : {}),
       reportOnly: process.env.NODE_ENV === 'development',

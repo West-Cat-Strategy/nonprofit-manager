@@ -97,7 +97,7 @@ services:
       - "${DEV_PUBLIC_SITE_PORT:-8006}:8006"
     volumes:
       - ./backend:/app
-      - backend-dev-node-modules:/app/node_modules
+      - public-site-dev-node-modules:/app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -136,4 +136,5 @@ services:
 volumes:
   nonprofit-manager-postgres-data:
   backend-dev-node-modules:
+  public-site-dev-node-modules:
   frontend-dev-node-modules:

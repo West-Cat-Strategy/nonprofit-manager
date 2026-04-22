@@ -10,15 +10,18 @@ test.describe('Team Messenger', () => {
     await expect(page).toHaveURL(/\/(login|setup)(?:\?|$)/);
   });
 
-  test('shows the staff messenger dock on authenticated pages', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  test('shows the Team Messenger dock launcher on the dedicated route shell', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto(TEAM_CHAT_ROUTE, { waitUntil: 'domcontentloaded' });
     await waitForPageReady(authenticatedPage, {
-      url: /\/dashboard(?:\?|$)/,
-      selectors: ['button:has-text("Team Messenger")'],
+      url: /\/team-chat(?:\?|$)/,
+      selectors: ['h1:has-text("Team Messenger")', 'button:has-text("Team Messenger")'],
       timeoutMs: 25000,
     });
 
-    await expectCriticalSection(authenticatedPage, ['button:has-text("Team Messenger")']);
+    await expectCriticalSection(authenticatedPage, [
+      'h1:has-text("Team Messenger")',
+      'button:has-text("Team Messenger")',
+    ]);
   });
 
   test('loads the Team Messenger page and keeps messaging surfaces distinct', async ({ authenticatedPage }) => {

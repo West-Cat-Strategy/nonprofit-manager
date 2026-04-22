@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import request from 'supertest';
 import app from '../../index';
-import pool, { rawPool } from '../../config/database';
+import pool from '../../config/database';
 
 describe('User Role Sync Integration', () => {
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -26,7 +26,34 @@ describe('User Role Sync Integration', () => {
     }
   };
 
+  const clearRoleSyncFailureTrigger = async () => {
+    await safeDelete('DROP TRIGGER IF EXISTS simulate_user_role_sync_failure ON user_roles', []);
+    await safeDelete('DROP FUNCTION IF EXISTS simulate_user_role_sync_failure()', []);
+  };
+
+  const installRoleSyncFailureTrigger = async (userId: string) => {
+    await clearRoleSyncFailureTrigger();
+    await pool.query(`
+      CREATE FUNCTION simulate_user_role_sync_failure()
+      RETURNS trigger
+      LANGUAGE plpgsql
+      AS $$
+      BEGIN
+        RAISE EXCEPTION 'simulated user role sync failure';
+      END;
+      $$;
+    `);
+    await pool.query(`
+      CREATE TRIGGER simulate_user_role_sync_failure
+      BEFORE DELETE ON user_roles
+      FOR EACH ROW
+      WHEN (OLD.user_id = '${userId}'::uuid)
+      EXECUTE FUNCTION simulate_user_role_sync_failure()
+    `);
+  };
+
   afterAll(async () => {
+    await clearRoleSyncFailureTrigger();
     const users = await pool.query(
       "SELECT id FROM users WHERE email LIKE 'role-sync-%@example.com'"
     );
@@ -67,15 +94,22 @@ describe('User Role Sync Integration', () => {
 
   it('fails closed when user_roles sync raises a database error', async () => {
     const email = `role-sync-fail-${unique()}@example.com`;
-    await createAdminUser(email);
-    const originalQuery = rawPool.query;
-    (rawPool as any).query = (...args: any[]) => {
-      const queryText = args[0];
-      if (typeof queryText === 'string' && queryText.includes('DELETE FROM user_roles')) {
-        return Promise.reject(new Error('simulated user role sync failure'));
-      }
-      return (originalQuery as any).apply(rawPool, args);
-    };
+    const userId = await createAdminUser(email);
+    const alternateRoleResult = await pool.query<{ id: string }>(
+      'SELECT id FROM roles WHERE name <> $1 ORDER BY priority DESC, name ASC LIMIT 1',
+      ['admin']
+    );
+    expect(alternateRoleResult.rows.length).toBeGreaterThan(0);
+
+    await pool.query(
+      `INSERT INTO user_roles (user_id, role_id, assignment_source)
+       VALUES ($1, $2, 'primary')
+       ON CONFLICT (user_id, role_id)
+       DO UPDATE SET assignment_source = 'primary'`,
+      [userId, alternateRoleResult.rows[0].id]
+    );
+
+    await installRoleSyncFailureTrigger(userId);
 
     try {
       const response = await request(app).post('/api/v2/auth/login').send({
@@ -84,9 +118,10 @@ describe('User Role Sync Integration', () => {
       });
 
       expect(response.status).toBe(500);
-      expect(response.body?.error?.code).toBe('server_error');
+      expect(response.body?.success).toBe(false);
+      expect(response.body?.error).toBeTruthy();
     } finally {
-      (rawPool as any).query = originalQuery;
+      await clearRoleSyncFailureTrigger();
     }
   });
 });

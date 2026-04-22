@@ -65,6 +65,35 @@ function parseCreatedContactId(payload: unknown): string | null {
   return null;
 }
 
+function parseCreatedCaseId(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const envelopeData = (payload as Record<string, unknown>).data;
+  const data = envelopeData && typeof envelopeData === 'object'
+    ? (envelopeData as Record<string, unknown>)
+    : null;
+
+  const nestedCase = data?.case && typeof data.case === 'object'
+    ? (data.case as Record<string, unknown>)
+    : null;
+
+  const candidates: Array<unknown> = [
+    (payload as Record<string, unknown>).case_id,
+    (payload as Record<string, unknown>).id,
+    data?.case_id,
+    data?.id,
+    nestedCase?.case_id,
+    nestedCase?.id,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 async function createContactViaUI(page: Page): Promise<{ contactId: string | null }> {
   const createAttempt = async (): Promise<APIResponse> => {
     const createResponsePromise = page.waitForResponse(
@@ -321,15 +350,64 @@ async function waitForCaseAssociation(
         );
 
         if (!response.ok()) {
-          return false;
+          return null;
         }
 
         const payload = unwrapSuccess<unknown>(await response.json());
-        return extractCaseListItems(payload).some((caseItem) => caseItem.title === caseTitle);
+        return extractCaseListItems(payload).find((caseItem) => caseItem.title === caseTitle) ?? null;
       },
       { timeout: 30000, intervals: [500, 1000, 2000] }
     )
-    .toBe(true);
+    .not.toBeNull();
+}
+
+async function resolveCreatedCaseId(
+  createCaseResponse: APIResponse,
+  page: Page,
+  token: string,
+  contactId: string,
+  caseTitle: string
+): Promise<string> {
+  try {
+    const payload = unwrapSuccess<unknown>(await createCaseResponse.json());
+    const createdCaseId = parseCreatedCaseId(payload);
+    if (createdCaseId) {
+      return createdCaseId;
+    }
+  } catch {
+    // Firefox can intermittently refuse response body reads for successful POSTs.
+    // Fall back to the created case becoming queryable for the contact.
+  }
+
+  let associatedCaseId: string | null = null;
+  await expect
+    .poll(
+      async () => {
+        const headers = await getContactReadHeaders(page, token);
+        const response = await page.request.get(
+          `${apiURL}/api/v2/cases?contact_id=${contactId}&limit=25&search=${encodeURIComponent(caseTitle)}`,
+          { headers }
+        );
+
+        if (!response.ok()) {
+          associatedCaseId = null;
+          return null;
+        }
+
+        const payload = unwrapSuccess<unknown>(await response.json());
+        associatedCaseId =
+          extractCaseListItems(payload).find((caseItem) => caseItem.title === caseTitle)?.id ?? null;
+        return associatedCaseId;
+      },
+      { timeout: 30000, intervals: [500, 1000, 2000] }
+    )
+    .not.toBeNull();
+
+  if (!associatedCaseId) {
+    throw new Error(`Unable to resolve created case id for contact ${contactId}`);
+  }
+
+  return associatedCaseId;
 }
 
 async function createContactPhone(
@@ -502,14 +580,13 @@ test.describe('Contacts Module', () => {
       authenticatedPage.getByTestId('case-form-primary-submit').click(),
     ]);
     expect(createCaseResponse.ok()).toBeTruthy();
-    const createdCasePayload = unwrapSuccess<{
-      id?: string;
-      data?: { id?: string };
-    }>(await createCaseResponse.json());
-    const createdCaseId = createdCasePayload?.id || createdCasePayload?.data?.id;
-    if (!createdCaseId) {
-      throw new Error(`Missing case id in create response: ${JSON.stringify(createdCasePayload)}`);
-    }
+    const createdCaseId = await resolveCreatedCaseId(
+      createCaseResponse,
+      authenticatedPage,
+      authToken,
+      contactId,
+      caseTitle
+    );
 
     await authenticatedPage.waitForURL(/\/cases(?:[/?#]|$)/, { timeout: 30000 });
     await waitForCaseAssociation(authenticatedPage, authToken, contactId, caseTitle);
@@ -1319,7 +1396,10 @@ test.describe('Contacts Module', () => {
     });
     await mergeDialog.getByRole('button', { name: /merge contacts/i }).click();
     const mergeResponse = await mergeResponsePromise;
-    const mergeResponseBody = await mergeResponse.text();
+    let mergeResponseBody = '';
+    if (!mergeResponse.ok()) {
+      mergeResponseBody = await mergeResponse.text().catch(() => '[response body unavailable]');
+    }
     expect(mergeResponse.request().postDataJSON()).toMatchObject({
       target_contact_id: targetContact.id,
       resolutions: {

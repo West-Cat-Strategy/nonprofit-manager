@@ -13,6 +13,17 @@ const normalizeOrigin = (value: string): string => {
   }
 };
 
+const LOCAL_HOSTNAME_SUFFIXES = ['.localhost', '.local'];
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+const isLocalHostname = (value: string): boolean => {
+  const normalized = value.trim().toLowerCase();
+  return (
+    LOCAL_HOSTNAMES.has(normalized) ||
+    LOCAL_HOSTNAME_SUFFIXES.some((suffix) => normalized.endsWith(suffix))
+  );
+};
+
 const parseOriginList = (value: string | undefined, fallbackOrigins: string[]): string[] => {
   const rawValue =
     typeof value === 'string' && value.trim().length > 0 ? value : fallbackOrigins.join(',');
@@ -120,8 +131,35 @@ export const createCorsOptionsDelegate = (
   };
 };
 
+export const shouldEnableUpgradeInsecureRequests = (input: {
+  nodeEnv?: string;
+  origins?: Array<string | undefined>;
+}): boolean => {
+  if (input.nodeEnv !== 'production') {
+    return false;
+  }
+
+  const values = (input.origins || [])
+    .flatMap((value) => (typeof value === 'string' ? value.split(',') : []))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  for (const value of values) {
+    try {
+      if (isLocalHostname(new URL(value).hostname)) {
+        return false;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return true;
+};
+
 export const requestSecurityHelpers = {
   createCorsOptions,
   createCorsOptionsDelegate,
   resolveTrustProxy,
+  shouldEnableUpgradeInsecureRequests,
 };

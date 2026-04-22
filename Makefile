@@ -463,6 +463,7 @@ test-e2e-docker-smoke:
 	  for volume in \
 	    "$(COMPOSE_PROJECT_SMOKE)_nonprofit-manager-postgres-data" \
 	    "$(COMPOSE_PROJECT_SMOKE)_backend-dev-node-modules" \
+	    "$(COMPOSE_PROJECT_SMOKE)_public-site-dev-node-modules" \
 	    "$(COMPOSE_PROJECT_SMOKE)_frontend-dev-node-modules"; do \
 	    docker volume rm -f "$$volume" >/dev/null 2>&1 || true; \
 	  done; \

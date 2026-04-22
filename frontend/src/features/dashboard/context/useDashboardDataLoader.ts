@@ -32,6 +32,68 @@ const toErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const DASHBOARD_STARTUP_DEDUPE_WINDOW_MS = 1500;
+
+const inflightDashboardLaneRequests = new Map<string, Promise<unknown>>();
+const recentDashboardLaneResults = new Map<
+  string,
+  {
+    expiresAt: number;
+    value: unknown;
+  }
+>();
+const scheduledDashboardLaneCleanup = new Map<string, ReturnType<typeof setTimeout>>();
+
+const getLaneCacheKey = (key: DashboardDataKey, userId: string | null) => `${key}:${userId ?? 'anonymous'}`;
+
+const getRecentLaneResult = <T,>(cacheKey: string): T | undefined => {
+  const cached = recentDashboardLaneResults.get(cacheKey);
+  if (!cached) {
+    return undefined;
+  }
+  if (cached.expiresAt < Date.now()) {
+    recentDashboardLaneResults.delete(cacheKey);
+    return undefined;
+  }
+  return cached.value as T;
+};
+
+const cancelScheduledLaneCleanup = (cacheKey: string): void => {
+  const cleanupHandle = scheduledDashboardLaneCleanup.get(cacheKey);
+  if (!cleanupHandle) {
+    return;
+  }
+  clearTimeout(cleanupHandle);
+  scheduledDashboardLaneCleanup.delete(cacheKey);
+};
+
+const scheduleLaneCleanup = (cacheKey: string): void => {
+  cancelScheduledLaneCleanup(cacheKey);
+  const cached = recentDashboardLaneResults.get(cacheKey);
+  if (!cached) {
+    return;
+  }
+
+  const cleanupDelayMs = Math.max(cached.expiresAt - Date.now(), 0);
+  const cleanupHandle = setTimeout(() => {
+    const latestCached = recentDashboardLaneResults.get(cacheKey);
+    if (!latestCached || latestCached.expiresAt <= Date.now()) {
+      recentDashboardLaneResults.delete(cacheKey);
+    }
+    scheduledDashboardLaneCleanup.delete(cacheKey);
+  }, cleanupDelayMs);
+  scheduledDashboardLaneCleanup.set(cacheKey, cleanupHandle);
+};
+
+export const resetDashboardDataLoaderCacheForTests = (): void => {
+  inflightDashboardLaneRequests.clear();
+  recentDashboardLaneResults.clear();
+  for (const cleanupHandle of scheduledDashboardLaneCleanup.values()) {
+    clearTimeout(cleanupHandle);
+  }
+  scheduledDashboardLaneCleanup.clear();
+};
+
 export function useDashboardDataLoader({
   lanes,
   isAuthenticated,
@@ -110,10 +172,36 @@ export function useDashboardDataLoader({
       onSuccess: (result: T) => void,
       fallbackMessage: string
     ) => {
+      const cacheKey = getLaneCacheKey(key, userId);
+      cancelScheduledLaneCleanup(cacheKey);
+      const recentResult = getRecentLaneResult<T>(cacheKey);
+      if (recentResult !== undefined) {
+        updateError(key, null);
+        onSuccess(recentResult);
+        updateLoading(key, false);
+        return;
+      }
+
       updateLoading(key, true);
       updateError(key, null);
       try {
-        const result = await request();
+        let requestPromise = inflightDashboardLaneRequests.get(cacheKey) as Promise<T> | undefined;
+        if (!requestPromise) {
+          requestPromise = request()
+            .then((result) => {
+              recentDashboardLaneResults.set(cacheKey, {
+                expiresAt: Date.now() + DASHBOARD_STARTUP_DEDUPE_WINDOW_MS,
+                value: result,
+              });
+              return result;
+            })
+            .finally(() => {
+              inflightDashboardLaneRequests.delete(cacheKey);
+            });
+          inflightDashboardLaneRequests.set(cacheKey, requestPromise);
+        }
+
+        const result = await requestPromise;
         if (cancelled) return;
         onSuccess(result);
       } catch (error) {
@@ -122,6 +210,8 @@ export function useDashboardDataLoader({
         updateLoading(key, false);
       }
     };
+
+    const activeLaneCacheKeys = Array.from(enabledLanes, (key) => getLaneCacheKey(key, userId));
 
     const loadDashboardData = () => {
       if (enabledLanes.has('analytics')) {
@@ -232,6 +322,9 @@ export function useDashboardDataLoader({
       }
       if (idleHandle !== null && typeof idleWindow.cancelIdleCallback === 'function') {
         idleWindow.cancelIdleCallback(idleHandle);
+      }
+      for (const cacheKey of activeLaneCacheKeys) {
+        scheduleLaneCleanup(cacheKey);
       }
     };
   }, [enabledLanes, isAuthenticated, userId]);
