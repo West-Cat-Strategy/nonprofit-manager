@@ -114,7 +114,7 @@ describe('PortalFormsPage', () => {
       description: 'Available in the portal',
     });
 
-    listFormsMock.mockResolvedValue([assignment]);
+    listFormsMock.mockImplementation(async (bucket?: string) => (bucket === 'completed' ? [] : [assignment]));
     getFormMock.mockResolvedValue(
       buildDetail({
         id: assignment.id,
@@ -139,41 +139,40 @@ describe('PortalFormsPage', () => {
       'href',
       '/api/v2/portal/forms/assignments/assignment-portal/response-packet'
     );
+    expect(listFormsMock).toHaveBeenCalledWith('active');
     expect(getResponsePacketDownloadUrlMock).toHaveBeenCalledWith('assignment-portal');
   });
 
-  it('defaults the active view to the first active assignment even when completed forms are returned first', async () => {
-    listFormsMock.mockResolvedValue([
-      buildAssignment({
-        id: 'assignment-completed',
-        title: 'Completed Intake Form',
-        status: 'reviewed',
-        description: 'Already submitted',
-        submitted_at: '2026-04-16T12:30:00.000Z',
-      }),
-      buildAssignment({
+  it('defaults the active view to the first active assignment from the active bucket', async () => {
+    listFormsMock.mockImplementation(async (bucket?: string) =>
+      bucket === 'completed'
+        ? [
+            buildAssignment({
+              id: 'assignment-completed',
+              title: 'Completed Intake Form',
+              status: 'reviewed',
+              description: 'Already submitted',
+              submitted_at: '2026-04-16T12:30:00.000Z',
+            }),
+          ]
+        : [
+            buildAssignment({
+              id: 'assignment-active',
+              title: 'Active Follow-up Form',
+              status: 'sent',
+              description: 'Needs your response',
+            }),
+          ]
+    );
+    getFormMock.mockResolvedValue(
+      buildDetail({
         id: 'assignment-active',
         title: 'Active Follow-up Form',
         status: 'sent',
         description: 'Needs your response',
-      }),
-    ]);
-    getFormMock.mockImplementation(async (assignmentId: string) =>
-      assignmentId === 'assignment-active'
-        ? buildDetail({
-            id: 'assignment-active',
-            title: 'Active Follow-up Form',
-            status: 'sent',
-            description: 'Needs your response',
-            latest_submission: null,
-            submitted_at: null,
-          })
-        : buildDetail({
-            id: 'assignment-completed',
-            title: 'Completed Intake Form',
-            status: 'reviewed',
-            description: 'Already submitted',
-          })
+        latest_submission: null,
+        submitted_at: null,
+      })
     );
 
     renderWithProviders(<PortalFormsPage />);
@@ -181,31 +180,36 @@ describe('PortalFormsPage', () => {
     expect(await screen.findByText('Active Follow-up Form')).toBeInTheDocument();
     expect(screen.queryByText('Completed Intake Form')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Active' })).toHaveAttribute('aria-pressed', 'true');
+    expect(listFormsMock).toHaveBeenCalledWith('active');
 
     await waitFor(() => {
       expect(getFormMock).toHaveBeenCalledWith('assignment-active');
     });
-    expect(getFormMock).not.toHaveBeenCalledWith('assignment-completed');
   });
 
   it('switches detail panels when the user changes between active and completed filters', async () => {
     const user = userEvent.setup();
 
-    listFormsMock.mockResolvedValue([
-      buildAssignment({
-        id: 'assignment-completed',
-        title: 'Completed Intake Form',
-        status: 'reviewed',
-        description: 'Already submitted',
-        submitted_at: '2026-04-16T12:30:00.000Z',
-      }),
-      buildAssignment({
-        id: 'assignment-active',
-        title: 'Active Follow-up Form',
-        status: 'sent',
-        description: 'Needs your response',
-      }),
-    ]);
+    listFormsMock.mockImplementation(async (bucket?: string) =>
+      bucket === 'completed'
+        ? [
+            buildAssignment({
+              id: 'assignment-completed',
+              title: 'Completed Intake Form',
+              status: 'reviewed',
+              description: 'Already submitted',
+              submitted_at: '2026-04-16T12:30:00.000Z',
+            }),
+          ]
+        : [
+            buildAssignment({
+              id: 'assignment-active',
+              title: 'Active Follow-up Form',
+              status: 'sent',
+              description: 'Needs your response',
+            }),
+          ]
+    );
     getFormMock.mockImplementation(async (assignmentId: string) =>
       assignmentId === 'assignment-active'
         ? buildDetail({
@@ -230,26 +234,31 @@ describe('PortalFormsPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Completed' }));
 
-    expect(await screen.findAllByText('Completed Intake Form')).toHaveLength(2);
-    expect(screen.queryByText('Active Follow-up Form')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Completed' })).toHaveAttribute('aria-pressed', 'true');
+    expect(listFormsMock).toHaveBeenLastCalledWith('completed');
 
     await waitFor(() => {
       expect(getFormMock).toHaveBeenCalledWith('assignment-completed');
+      expect(screen.getByRole('heading', { name: 'Completed Intake Form' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Active Follow-up Form' })).not.toBeInTheDocument();
     });
   });
 
   it('shows empty-state guidance when the selected filter bucket has no forms', async () => {
     const user = userEvent.setup();
 
-    listFormsMock.mockResolvedValue([
-      buildAssignment({
-        id: 'assignment-active',
-        title: 'Active Follow-up Form',
-        status: 'sent',
-        description: 'Needs your response',
-      }),
-    ]);
+    listFormsMock.mockImplementation(async (bucket?: string) =>
+      bucket === 'completed'
+        ? []
+        : [
+            buildAssignment({
+              id: 'assignment-active',
+              title: 'Active Follow-up Form',
+              status: 'sent',
+              description: 'Needs your response',
+            }),
+          ]
+    );
     getFormMock.mockResolvedValue(
       buildDetail({
         id: 'assignment-active',
@@ -270,19 +279,24 @@ describe('PortalFormsPage', () => {
     expect(await screen.findByText('No completed forms.')).toBeInTheDocument();
     expect(screen.getByText('No completed form selected.')).toBeInTheDocument();
     expect(screen.getByText('There are no completed forms to display right now.')).toBeInTheDocument();
+    expect(listFormsMock).toHaveBeenLastCalledWith('completed');
     expect(screen.queryByTestId('portal-form-renderer')).not.toBeInTheDocument();
   });
 
   it('keeps submitted forms in the active bucket until staff review is complete', async () => {
-    listFormsMock.mockResolvedValue([
-      buildAssignment({
-        id: 'assignment-submitted',
-        title: 'Submitted Intake Form',
-        status: 'submitted',
-        description: 'Awaiting staff review',
-        submitted_at: '2026-04-16T12:30:00.000Z',
-      }),
-    ]);
+    listFormsMock.mockImplementation(async (bucket?: string) =>
+      bucket === 'completed'
+        ? []
+        : [
+            buildAssignment({
+              id: 'assignment-submitted',
+              title: 'Submitted Intake Form',
+              status: 'submitted',
+              description: 'Awaiting staff review',
+              submitted_at: '2026-04-16T12:30:00.000Z',
+            }),
+          ]
+    );
     getFormMock.mockResolvedValue(
       buildDetail({
         id: 'assignment-submitted',
@@ -296,6 +310,7 @@ describe('PortalFormsPage', () => {
 
     expect(await screen.findByText('Submitted Intake Form')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Active' })).toHaveAttribute('aria-pressed', 'true');
+    expect(listFormsMock).toHaveBeenCalledWith('active');
     expect(
       await screen.findByText(
         /you can still update this form and resubmit it until staff finish reviewing the submission/i

@@ -103,7 +103,11 @@ export const completeSubmission = async (
     portalUserId?: string | null;
     accessTokenId?: string | null;
   },
-  payload: SubmitCaseFormDTO
+  payload: SubmitCaseFormDTO,
+  detailOptions: {
+    responsePacketDownloadUrl?: string | null;
+    buildAssetDownloadUrl?: ((assetId: string) => string) | null;
+  } = {}
 ): Promise<AssignmentDetailResult> => {
   if (TERMINAL_ASSIGNMENT_STATUSES.has(assignment.status) && assignment.status !== 'submitted') {
     throw Object.assign(new Error('This form assignment can no longer accept submissions'), {
@@ -129,7 +133,7 @@ export const completeSubmission = async (
           code: 'idempotency_conflict',
         });
       }
-      return buildAssignmentDetail(repository, assignment);
+      return buildAssignmentDetail(repository, assignment, detailOptions);
     }
   }
 
@@ -278,5 +282,5 @@ export const completeSubmission = async (
       code: 'not_found',
     });
   }
-  return buildAssignmentDetail(repository, refreshed);
+  return buildAssignmentDetail(repository, refreshed, detailOptions);
 };

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { CaseFormAssignmentStatusBucket } from '@app-types/caseForms';
 import { isoDateTimeSchema, optionalStrictBooleanSchema, uuidSchema } from './shared';
 
 export const caseFormQuestionTypeSchema = z.enum([
@@ -36,6 +37,11 @@ export const caseFormAssignmentStatusSchema = z.enum([
   'closed',
   'expired',
   'cancelled',
+]);
+
+export const caseFormAssignmentStatusBucketSchema: z.ZodType<CaseFormAssignmentStatusBucket> = z.enum([
+  'active',
+  'completed',
 ]);
 
 export const caseFormAssetKindSchema = z.enum(['upload', 'signature']);
@@ -236,6 +242,6 @@ export const caseFormTokenParamsSchema = z
 
 export const caseFormListQuerySchema = z
   .object({
-    status: caseFormAssignmentStatusSchema.optional(),
+    status: z.union([caseFormAssignmentStatusSchema, caseFormAssignmentStatusBucketSchema]).optional(),
   })
   .strict();

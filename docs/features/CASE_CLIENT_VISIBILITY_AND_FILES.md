@@ -83,9 +83,14 @@ Inline preview is supported for safe mime types (`application/pdf`, images) usin
 - `GET /api/v2/portal/forms/assignments/:assignmentId`
 - `POST /api/v2/portal/forms/assignments/:assignmentId/draft`
 - `POST /api/v2/portal/forms/assignments/:assignmentId/submit`
+- `POST /api/v2/portal/forms/assignments/:assignmentId/assets`
 - `GET /api/v2/portal/forms/assignments/:assignmentId/response-packet`
 
-The `/portal/forms` route is the assignment-backed case-form inbox for client-visible case work. The older `GET /api/v2/portal/forms` endpoint remains the read-only shared form-document resource list, not the interactive assignment workflow.
+The `/portal/forms` route is the assignment-backed case-form inbox for client-visible case work. Active assignments stay in the default bucket until they are reviewed or closed, and reviewed items move into the completed bucket with read-only receipt and packet links. Each assignment card surfaces the case context summary and due date when one exists.
+
+Portal form uploads use `POST /api/v2/portal/forms/assignments/:assignmentId/assets` for question-bound upload and signature attachments.
+
+The older `GET /api/v2/portal/forms` endpoint remains the read-only shared form-document resource list, not the interactive assignment workflow.
 
 Portal timeline intentionally excludes staff-only topic events.
 Both staff and portal timeline endpoints return a cursor-paged payload:
@@ -158,6 +163,7 @@ Controls:
 4. Portal
 - Log in as linked portal user.
 - Confirm case appears only after `client_viewable=true`.
+- Open `/portal/forms`, verify the active bucket is the default, then switch to completed and confirm reviewed assignments expose receipt and packet links.
 - Open case detail and verify:
   - visible note appears
   - internal note does not appear

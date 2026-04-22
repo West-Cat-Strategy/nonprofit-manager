@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PortalPageState from '../../../components/portal/PortalPageState';
 import PortalPageShell from '../../../components/portal/PortalPageShell';
 import PortalListCard from '../../../components/portal/PortalListCard';
 import { useToast } from '../../../contexts/useToast';
 import type {
   CaseFormAsset,
+  CaseFormAssignmentBucket,
   CaseFormAssignment,
   CaseFormAssignmentDetail,
+  CaseFormAssignmentSummary,
   CaseFormQuestion,
 } from '../../../types/caseForms';
 import CaseFormRenderer from '../../cases/components/CaseFormRenderer';
@@ -42,79 +44,92 @@ export default function PortalForms() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [forms, setForms] = useState<CaseFormAssignment[]>([]);
+  const [forms, setForms] = useState<CaseFormAssignmentSummary[]>([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const [detail, setDetail] = useState<CaseFormAssignmentDetail | null>(null);
   const [draftAnswers, setDraftAnswers] = useState<Record<string, unknown>>({});
-  const [filter, setFilter] = useState<'active' | 'completed'>('active');
+  const [filter, setFilter] = useState<CaseFormAssignmentBucket>('active');
+  const formsRequestIdRef = useRef(0);
+  const detailRequestIdRef = useRef(0);
 
-  const loadForms = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const assignments = await portalCaseFormsApiClient.listForms();
-      setForms(assignments);
-      setSelectedAssignmentId((current) =>
-        current && assignments.some((item) => item.id === current) ? current : assignments[0]?.id || null
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load forms';
-      setError(message);
-      showError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [showError]);
-
-  const loadDetail = useCallback(async (assignmentId: string): Promise<void> => {
-    setError(null);
-    try {
-      const nextDetail = await portalCaseFormsApiClient.getForm(assignmentId);
+  const loadForms = useCallback(
+    async (bucket: CaseFormAssignmentBucket): Promise<void> => {
+      const requestId = ++formsRequestIdRef.current;
+      setLoading(true);
       setError(null);
-      setDetail(nextDetail);
-      setDraftAnswers(nextDetail.assignment.current_draft_answers || {});
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load form';
-      setError(message);
-      showError(message);
-    }
-  }, [showError]);
 
-  useEffect(() => {
-    void loadForms();
-  }, [loadForms]);
+      try {
+        const assignments = await portalCaseFormsApiClient.listForms(bucket);
+        if (requestId !== formsRequestIdRef.current) {
+          return;
+        }
 
-  const isCompletedStatus = (status: string): boolean =>
-    COMPLETED_FORM_STATUSES.has(status as CaseFormAssignment['status']);
+        setForms(assignments);
+        setSelectedAssignmentId((current) =>
+          current && assignments.some((item) => item.id === current) ? current : assignments[0]?.id || null
+        );
 
-  const visibleForms = useMemo(
-    () => forms.filter((form) => (filter === 'active' ? !isCompletedStatus(form.status) : isCompletedStatus(form.status))),
-    [filter, forms]
+        if (assignments.length === 0) {
+          setDetail(null);
+          setDraftAnswers({});
+        }
+      } catch (error) {
+        if (requestId !== formsRequestIdRef.current) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : 'Failed to load forms';
+        setError(message);
+        showError(message);
+      } finally {
+        if (requestId === formsRequestIdRef.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [showError]
   );
 
-  const visibleSelectionId = useMemo(() => {
-    if (selectedAssignmentId && visibleForms.some((form) => form.id === selectedAssignmentId)) {
-      return selectedAssignmentId;
-    }
+  const loadDetail = useCallback(
+    async (assignmentId: string): Promise<void> => {
+      const requestId = ++detailRequestIdRef.current;
+      setError(null);
+      try {
+        const nextDetail = await portalCaseFormsApiClient.getForm(assignmentId);
+        if (requestId !== detailRequestIdRef.current) {
+          return;
+        }
 
-    return visibleForms[0]?.id ?? null;
-  }, [selectedAssignmentId, visibleForms]);
+        setError(null);
+        setDetail(nextDetail);
+        setDraftAnswers(nextDetail.assignment.current_draft_answers || {});
+      } catch (error) {
+        if (requestId !== detailRequestIdRef.current) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : 'Failed to load form';
+        setError(message);
+        showError(message);
+      }
+    },
+    [showError]
+  );
 
   useEffect(() => {
-    if (selectedAssignmentId !== visibleSelectionId) {
-      setSelectedAssignmentId(visibleSelectionId);
-    }
-  }, [selectedAssignmentId, visibleSelectionId]);
+    void loadForms(filter);
+  }, [loadForms, filter]);
 
   useEffect(() => {
-    if (visibleSelectionId) {
-      void loadDetail(visibleSelectionId);
+    if (selectedAssignmentId) {
+      void loadDetail(selectedAssignmentId);
       return;
     }
 
+    detailRequestIdRef.current += 1;
     setDetail(null);
     setDraftAnswers({});
-  }, [loadDetail, visibleSelectionId]);
+  }, [loadDetail, selectedAssignmentId]);
 
   const assets = useMemo(() => {
     if (!detail) return [];
@@ -215,15 +230,15 @@ export default function PortalForms() {
       <PortalPageState
         loading={loading}
         error={error}
-        empty={!loading && !error && forms.length === 0}
+        empty={!loading && !error && filter === 'active' && forms.length === 0}
         loadingLabel="Loading forms..."
         emptyTitle="No forms available."
         emptyDescription="Forms appear here when staff assign them to your case."
         onRetry={() => {
-          void loadForms();
+          void loadForms(filter);
         }}
       />
-      {!loading && !error && forms.length > 0 && (
+      {!loading && !error && (forms.length > 0 || filter === 'completed') && (
         <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
           <div className="space-y-4">
             <div className="flex gap-2">
@@ -248,9 +263,9 @@ export default function PortalForms() {
                 Completed
               </button>
             </div>
-            {visibleForms.length > 0 ? (
+            {forms.length > 0 ? (
               <ul className="space-y-3">
-                {visibleForms.map((form) => (
+                {forms.map((form) => (
                   <li key={form.id}>
                     <PortalListCard
                       title={form.title}
@@ -423,7 +438,7 @@ export default function PortalForms() {
                 compact
                 emptyTitle={filter === 'active' ? 'Select an active form.' : 'No completed form selected.'}
                 emptyDescription={
-                  visibleForms.length > 0
+                  forms.length > 0
                     ? 'Choose a form on the left to review its details here.'
                     : filter === 'active'
                       ? 'There are no active forms to display right now.'

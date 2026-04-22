@@ -50,7 +50,8 @@ export const assignmentSelect = `
     ct.last_name AS contact_last_name
   FROM case_form_assignments cfa
   INNER JOIN cases c ON c.id = cfa.case_id
-  INNER JOIN contacts ct ON ct.id = cfa.contact_id
+  -- Keep assignment rows visible for portal access even when contact RLS hides the joined row.
+  LEFT JOIN contacts ct ON ct.id = cfa.contact_id
 `;
 
 export const submissionSelect = `

@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import EmailCampaignBuilder from '../../builder/components/EmailCampaignBuilder';
+import { createDefaultEmailBuilderContent } from '../../builder/components/emailCampaignBuilderDefaults';
+import CampaignPreviewModal from './CampaignPreviewModal';
 import type {
   MailchimpCampaign,
   MailchimpList,
   MailchimpSegment,
   CreateCampaignRequest,
+  MailchimpCampaignPreview,
 } from '../../../types/mailchimp';
 
 export function StatusBadge({ status }: { status: string }) {
@@ -188,11 +192,15 @@ export function CampaignCreateModal({
   lists,
   segments,
   onClose,
+  onListChange,
+  onPreview,
   onSubmit,
 }: {
   lists: MailchimpList[];
   segments: MailchimpSegment[];
   onClose: () => void;
+  onListChange: (listId: string) => void;
+  onPreview: (data: CreateCampaignRequest) => Promise<MailchimpCampaignPreview>;
   onSubmit: (data: CreateCampaignRequest, sendNow: boolean) => void;
 }) {
   const [formData, setFormData] = useState<CreateCampaignRequest>({
@@ -204,10 +212,60 @@ export function CampaignCreateModal({
     replyTo: '',
     htmlContent: '',
     plainTextContent: '',
+    builderContent: createDefaultEmailBuilderContent(),
     segmentId: undefined,
     sendTime: undefined,
   });
+  const [compositionMode, setCompositionMode] = useState<'builder' | 'html'>('builder');
+  const [previewResult, setPreviewResult] = useState<MailchimpCampaignPreview | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!formData.listId && lists[0]?.id) {
+      setFormData((prev) => ({ ...prev, listId: lists[0].id }));
+      onListChange(lists[0].id);
+    }
+  }, [formData.listId, lists, onListChange]);
+
+  const hasBuilderContent = (data: CreateCampaignRequest): boolean =>
+    Boolean(
+      data.builderContent?.blocks.some((block) => {
+        switch (block.type) {
+          case 'heading':
+          case 'paragraph':
+            return Boolean(block.content.trim());
+          case 'button':
+            return Boolean(block.label.trim() && block.url.trim());
+          case 'image':
+            return Boolean(block.src.trim());
+          case 'divider':
+            return true;
+        }
+      })
+    );
+
+  const buildRequest = (shouldSendNow: boolean): CreateCampaignRequest => {
+    const sendTime = shouldSendNow ? undefined : formData.sendTime;
+
+    if (compositionMode === 'builder') {
+      return {
+        ...formData,
+        htmlContent: undefined,
+        plainTextContent: undefined,
+        builderContent: formData.builderContent,
+        sendTime,
+      };
+    }
+
+    return {
+      ...formData,
+      builderContent: undefined,
+      htmlContent: formData.htmlContent?.trim() || undefined,
+      plainTextContent: formData.plainTextContent?.trim() || undefined,
+      sendTime,
+    };
+  };
 
   const validateForm = (shouldSendNow: boolean): boolean => {
     const newErrors: Record<string, string> = {};
@@ -220,6 +278,14 @@ export function CampaignCreateModal({
       newErrors.replyTo = 'Reply-to email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.replyTo)) {
       newErrors.replyTo = 'Invalid email address';
+    }
+
+    if (compositionMode === 'builder') {
+      if (!hasBuilderContent(formData)) {
+        newErrors.content = 'Add at least one meaningful builder block before sending or previewing.';
+      }
+    } else if (!formData.htmlContent?.trim() && !formData.plainTextContent?.trim()) {
+      newErrors.content = 'Add HTML or plain text content before sending or previewing.';
     }
 
     if (!shouldSendNow && formData.sendTime) {
@@ -236,19 +302,34 @@ export function CampaignCreateModal({
   const handleSubmit = (e: React.FormEvent, shouldSendNow: boolean) => {
     e.preventDefault();
     if (validateForm(shouldSendNow)) {
-      onSubmit(
-        {
-          ...formData,
-          sendTime: shouldSendNow ? undefined : formData.sendTime,
-        },
-        shouldSendNow
-      );
+      onSubmit(buildRequest(shouldSendNow), shouldSendNow);
+    }
+  };
+
+  const handlePreview = async () => {
+    if (!validateForm(false)) {
+      return;
+    }
+
+    try {
+      setIsPreviewing(true);
+      const preview = await onPreview(buildRequest(false));
+      setErrors((prev) => ({ ...prev, content: '' }));
+      setPreviewResult(preview);
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        content: typeof error === 'string' ? error : 'Failed to render preview.',
+      }));
+    } finally {
+      setIsPreviewing(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50 overflow-y-auto">
-      <div className="bg-app-surface rounded-lg shadow-xl max-w-3xl w-full mx-4 my-8">
+    <>
+      <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50 overflow-y-auto">
+        <div className="bg-app-surface rounded-lg shadow-xl max-w-5xl w-full mx-4 my-8">
         <div className="flex justify-between items-center p-6 border-b border-app-border">
           <h3 className="text-xl font-medium text-app-text">Create Email Campaign</h3>
           <button onClick={onClose} className="text-app-text-subtle hover:text-app-text-muted">
@@ -263,16 +344,19 @@ export function CampaignCreateModal({
           </button>
         </div>
 
-        <form className="p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+          <form className="p-6 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           <div>
             <label className="block text-sm font-medium text-app-text-label mb-1">
               Audience <span className="text-app-accent">*</span>
             </label>
             <select
+              aria-label="Audience"
               value={formData.listId}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, listId: e.target.value, segmentId: undefined }))
-              }
+              onChange={(e) => {
+                const nextListId = e.target.value;
+                setFormData((prev) => ({ ...prev, listId: nextListId, segmentId: undefined }));
+                onListChange(nextListId);
+              }}
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
             >
               {lists.map((list) => (
@@ -314,6 +398,7 @@ export function CampaignCreateModal({
               Campaign Title <span className="text-app-accent">*</span>
             </label>
             <input
+              aria-label="Campaign Title"
               type="text"
               value={formData.title}
               onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
@@ -328,6 +413,7 @@ export function CampaignCreateModal({
               Subject Line <span className="text-app-accent">*</span>
             </label>
             <input
+              aria-label="Subject Line"
               type="text"
               value={formData.subject}
               onChange={(e) => setFormData((prev) => ({ ...prev, subject: e.target.value }))}
@@ -342,6 +428,7 @@ export function CampaignCreateModal({
               Preview Text (Optional)
             </label>
             <input
+              aria-label="Preview Text"
               type="text"
               value={formData.previewText}
               onChange={(e) => setFormData((prev) => ({ ...prev, previewText: e.target.value }))}
@@ -356,6 +443,7 @@ export function CampaignCreateModal({
                 From Name <span className="text-app-accent">*</span>
               </label>
               <input
+                aria-label="From Name"
                 type="text"
                 value={formData.fromName}
                 onChange={(e) => setFormData((prev) => ({ ...prev, fromName: e.target.value }))}
@@ -370,6 +458,7 @@ export function CampaignCreateModal({
                 Reply-To Email <span className="text-app-accent">*</span>
               </label>
               <input
+                aria-label="Reply-To Email"
                 type="email"
                 value={formData.replyTo}
                 onChange={(e) => setFormData((prev) => ({ ...prev, replyTo: e.target.value }))}
@@ -382,33 +471,83 @@ export function CampaignCreateModal({
 
           <div>
             <label className="block text-sm font-medium text-app-text-label mb-1">
-              HTML Content (Optional)
+              Compose Message
             </label>
-            <textarea
-              value={formData.htmlContent}
-              onChange={(e) => setFormData((prev) => ({ ...prev, htmlContent: e.target.value }))}
-              rows={6}
-              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent font-mono text-sm"
-              placeholder="<h1>Welcome!</h1><p>Your email content here...</p>"
-            />
-            <p className="mt-1 text-xs text-app-text-muted">
-              You can edit this later in Mailchimp's editor
-            </p>
-          </div>
+            <div className="rounded-lg border border-app-border bg-app-surface-muted p-4">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCompositionMode('builder')}
+                  className={`rounded-full px-3 py-1.5 text-sm ${
+                    compositionMode === 'builder'
+                      ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                      : 'border border-app-input-border text-app-text-muted'
+                  }`}
+                >
+                  Guided Builder
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCompositionMode('html')}
+                  className={`rounded-full px-3 py-1.5 text-sm ${
+                    compositionMode === 'html'
+                      ? 'bg-app-accent text-[var(--app-accent-foreground)]'
+                      : 'border border-app-input-border text-app-text-muted'
+                  }`}
+                >
+                  Paste HTML
+                </button>
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-app-text-label mb-1">
-              Plain Text Content (Optional)
-            </label>
-            <textarea
-              value={formData.plainTextContent}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, plainTextContent: e.target.value }))
-              }
-              rows={4}
-              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
-              placeholder="Plain text version for email clients that don't support HTML"
-            />
+              <p className="mt-3 text-xs text-app-text-muted">
+                Guided Builder creates preview-ready email content without touching website
+                templates. Paste HTML keeps the existing raw-provider workflow.
+              </p>
+
+              <div className="mt-4">
+                {compositionMode === 'builder' ? (
+                  <EmailCampaignBuilder
+                    value={formData.builderContent || createDefaultEmailBuilderContent()}
+                    onChange={(builderContent) => setFormData((prev) => ({ ...prev, builderContent }))}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-app-text-label mb-1">
+                        HTML Content
+                      </label>
+                      <textarea
+                        aria-label="HTML Content"
+                        value={formData.htmlContent}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, htmlContent: e.target.value }))
+                        }
+                        rows={8}
+                        className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent font-mono text-sm"
+                        placeholder="<h1>Welcome!</h1><p>Your email content here...</p>"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-app-text-label mb-1">
+                        Plain Text Content
+                      </label>
+                      <textarea
+                        aria-label="Plain Text Content"
+                        value={formData.plainTextContent}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, plainTextContent: e.target.value }))
+                        }
+                        rows={4}
+                        className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
+                        placeholder="Plain text version for email clients that don't support HTML"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            {errors.content && <p className="mt-1 text-sm text-app-accent">{errors.content}</p>}
           </div>
 
           <div>
@@ -416,6 +555,7 @@ export function CampaignCreateModal({
               Schedule Send Time (Optional)
             </label>
             <input
+              aria-label="Schedule Send Time"
               type="datetime-local"
               value={formData.sendTime || ''}
               onChange={(e) => setFormData((prev) => ({ ...prev, sendTime: e.target.value }))}
@@ -436,6 +576,14 @@ export function CampaignCreateModal({
           </button>
           <div className="flex gap-3">
             <button
+              type="button"
+              onClick={handlePreview}
+              disabled={isPreviewing}
+              className="px-4 py-2 text-app-text bg-app-surface border border-app-input-border rounded-lg hover:bg-app-surface-muted transition-colors disabled:opacity-60"
+            >
+              {isPreviewing ? 'Rendering Preview...' : 'Preview'}
+            </button>
+            <button
               onClick={(e) => handleSubmit(e, false)}
               className="px-4 py-2 text-app-accent bg-app-accent-soft border border-app-accent rounded-lg hover:bg-app-accent-soft transition-colors"
             >
@@ -450,6 +598,11 @@ export function CampaignCreateModal({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+
+      {previewResult && (
+        <CampaignPreviewModal preview={previewResult} onClose={() => setPreviewResult(null)} />
+      )}
+    </>
   );
 }

@@ -326,7 +326,12 @@ export const submitCaseFormForCase = async (
     repository,
     assignment,
     { actorType: 'staff', userId: userId || null },
-    payload
+    payload,
+    {
+      responsePacketDownloadUrl: `/api/v2/cases/${assignment.case_id}/forms/${assignment.id}/response-packet`,
+      buildAssetDownloadUrl: (assetId) =>
+        `/api/v2/cases/${assignment.case_id}/forms/${assignment.id}/assets/${assetId}/download`,
+    }
   );
 };
 

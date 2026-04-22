@@ -9,64 +9,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../store';
 import { getTemplateGalleryPath } from '../lib/builderRouteTargets';
-
-const SCRIPT_TAG_PATTERN = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
-const ANALYTICS_COMMENT_PATTERN = /^(?:Site|Google)\s+Analytics$/i;
-const INLINE_EVENT_HANDLER_PATTERN = /^on/i;
-
-const getAdjacentMeaningfulSibling = (
-  node: ChildNode,
-  direction: 'previousSibling' | 'nextSibling'
-): ChildNode | null => {
-  let sibling = node[direction];
-
-  while (sibling?.nodeType === Node.TEXT_NODE && !sibling.textContent?.trim()) {
-    sibling = sibling[direction];
-  }
-
-  return sibling;
-};
-
-const removeLeadingAnalyticsComment = (scriptNode: HTMLScriptElement): void => {
-  const previousSibling = getAdjacentMeaningfulSibling(scriptNode, 'previousSibling');
-
-  if (
-    previousSibling?.nodeType === Node.COMMENT_NODE &&
-    ANALYTICS_COMMENT_PATTERN.test(previousSibling.textContent?.trim() ?? '')
-  ) {
-    previousSibling.remove();
-  }
-};
-
-const stripPreviewScripts = (html: string): string => {
-  if (!html) {
-    return html;
-  }
-
-  if (typeof DOMParser === 'undefined') {
-    return html.replace(SCRIPT_TAG_PATTERN, '');
-  }
-
-  const parsedDocument = new DOMParser().parseFromString(html, 'text/html');
-
-  parsedDocument.querySelectorAll('script').forEach((scriptNode) => {
-    removeLeadingAnalyticsComment(scriptNode);
-    scriptNode.remove();
-  });
-
-  parsedDocument.querySelectorAll('*').forEach((element) => {
-    for (const attributeName of element.getAttributeNames()) {
-      if (INLINE_EVENT_HANDLER_PATTERN.test(attributeName)) {
-        element.removeAttribute(attributeName);
-      }
-    }
-  });
-
-  const doctype = html.match(/<!doctype[^>]*>/i)?.[0];
-  const serializedDocument = parsedDocument.documentElement.outerHTML;
-
-  return doctype ? `${doctype}\n${serializedDocument}` : serializedDocument;
-};
+import SanitizedPreviewFrame from '../components/SanitizedPreviewFrame';
 
 const TemplatePreview: React.FC = () => {
   const { templateId } = useParams<{ templateId: string }>();
@@ -92,11 +35,6 @@ const TemplatePreview: React.FC = () => {
     }
     return `${apiUrl}/api/v2/templates/${templateId}/preview?page=${encodeURIComponent(pageSlug)}`;
   }, [templateId, pageSlug]);
-
-  const iframeSrcDoc = useMemo(
-    () => stripPreviewScripts(previewHtml),
-    [previewHtml]
-  );
 
   useEffect(() => {
     const fetchPreview = async () => {
@@ -201,14 +139,9 @@ const TemplatePreview: React.FC = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-app-accent"></div>
           </div>
         ) : (
-          <iframe
-            title="Template Preview"
-            className="w-full h-full border-0"
-            srcDoc={iframeSrcDoc}
-            // Builder preview is a static visual render. Keep the iframe fully sandboxed so any
-            // generated runtime hooks that slip through sanitization cannot execute against storage.
-            sandbox=""
-          />
+          // Builder preview is a static visual render. Keep the iframe fully sandboxed so any
+          // generated runtime hooks that slip through sanitization cannot execute against storage.
+          <SanitizedPreviewFrame html={previewHtml} title="Template Preview" />
         )}
       </div>
     </div>

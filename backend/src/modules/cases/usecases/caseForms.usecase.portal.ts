@@ -17,6 +17,9 @@ import { completeSubmission } from './caseForms.usecase.submission';
 const isTerminalAssignmentStatus = (status: CaseFormAssignmentRecord['status']): boolean =>
   TERMINAL_ASSIGNMENT_STATUSES.has(status);
 
+const getPortalResponsePacketDownloadUrl = (assignmentId: string): string =>
+  `/api/v2/portal/forms/assignments/${assignmentId}/response-packet`;
+
 export const listCaseFormAssignmentsForPortal = async (
   repository: CaseFormsRepository,
   contactId: string,
@@ -33,7 +36,9 @@ export const getCaseFormAssignmentDetailForPortal = async (
     await repository.markAssignmentViewed(client, assignment.id);
   });
   const refreshed = await getPortalAssignment(repository, input, assignmentId);
-  return buildAssignmentDetail(repository, refreshed);
+  return buildAssignmentDetail(repository, refreshed, {
+    responsePacketDownloadUrl: getPortalResponsePacketDownloadUrl(refreshed.id),
+  });
 };
 
 export const uploadCaseFormAssetForPortal = async (
@@ -105,7 +110,10 @@ export const submitCaseFormForPortal = async (
     repository,
     assignment,
     { actorType: 'portal', portalUserId: input.portalUserId || null },
-    payload
+    payload,
+    {
+      responsePacketDownloadUrl: getPortalResponsePacketDownloadUrl(assignment.id),
+    }
   );
 };
 
@@ -115,7 +123,9 @@ export const getCaseFormResponsePacketForPortal = async (
   assignmentId: string
 ): Promise<DownloadableFile> => {
   const assignment = await getPortalAssignment(repository, input, assignmentId);
-  const detail = await buildAssignmentDetail(repository, assignment);
+  const detail = await buildAssignmentDetail(repository, assignment, {
+    responsePacketDownloadUrl: getPortalResponsePacketDownloadUrl(assignment.id),
+  });
   const latest = detail.assignment.latest_submission;
   if (!latest?.response_packet_file_path || !latest.response_packet_file_name) {
     throw Object.assign(new Error('Response packet not found'), { statusCode: 404, code: 'not_found' });

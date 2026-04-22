@@ -45,6 +45,48 @@ const createSegmentSchema = z.object({
   conditions: z.array(segmentConditionSchema).min(1, 'At least one condition is required'),
 });
 
+const hexColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#(?:[0-9a-fA-F]{3}){1,2}$/, 'Accent color must be a valid hex value');
+
+const emailBuilderBlockSchema = z.discriminatedUnion('type', [
+  z.object({
+    id: z.string().trim().min(1).max(100),
+    type: z.literal('heading'),
+    content: z.string().min(1).max(500),
+    level: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  }),
+  z.object({
+    id: z.string().trim().min(1).max(100),
+    type: z.literal('paragraph'),
+    content: z.string().min(1).max(5000),
+  }),
+  z.object({
+    id: z.string().trim().min(1).max(100),
+    type: z.literal('button'),
+    label: z.string().min(1).max(120),
+    url: z.string().min(1).max(2048),
+  }),
+  z.object({
+    id: z.string().trim().min(1).max(100),
+    type: z.literal('image'),
+    src: z.string().min(1).max(2048),
+    alt: z.string().max(240).optional(),
+    href: z.string().max(2048).optional(),
+  }),
+  z.object({
+    id: z.string().trim().min(1).max(100),
+    type: z.literal('divider'),
+  }),
+]);
+
+const emailBuilderContentSchema = z.object({
+  accentColor: hexColorSchema.optional(),
+  footerText: z.string().max(4000).optional(),
+  blocks: z.array(emailBuilderBlockSchema).max(50),
+});
+
 const addMemberSchema = z.object({
   listId: listIdSchema,
   email: emailSchema,
@@ -89,6 +131,7 @@ const createCampaignSchema = z.object({
   previewText: z.string().optional(),
   htmlContent: z.string().optional(),
   plainTextContent: z.string().optional(),
+  builderContent: emailBuilderContentSchema.optional(),
   segmentId: z.coerce.number().optional(),
   sendTime: dateStringSchema.optional(),
 });
@@ -218,6 +261,16 @@ router.get(
   '/campaigns',
   validateQuery(campaignsQuerySchema),
   mailchimpController.getCampaigns
+);
+
+/**
+ * POST /api/mailchimp/campaigns/preview
+ * Render a local preview for a campaign draft
+ */
+router.post(
+  '/campaigns/preview',
+  validateBody(createCampaignSchema),
+  mailchimpController.previewCampaign
 );
 
 /**

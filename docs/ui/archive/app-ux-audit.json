@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-21T00:00:00Z",
+  "generatedAt": "2026-04-22T00:00:00Z",
   "baseline": {
     "auditedAt": "2026-03-05T00:00:00.000Z",
     "staticAudit": {
@@ -84,16 +84,16 @@
     ]
   },
   "postFix": {
-    "auditedAt": "2026-04-21T00:00:00Z",
+    "auditedAt": "2026-04-22T00:00:00Z",
     "staticAudit": {
       "routeIntegrityPassed": true,
       "routeCatalogDriftPassed": true,
       "brokenTargets": [],
       "styleAudit": {
-        "hardcodedColorUtilities": 1261,
-        "semanticTokenUtilities": 9372,
+        "hardcodedColorUtilities": 1262,
+        "semanticTokenUtilities": 9443,
         "inlineStyleUsages": 58,
-        "ratioSemanticToHardcoded": 7.4322
+        "ratioSemanticToHardcoded": 7.4826
       },
       "disallowedInlineStylePaths": []
     },

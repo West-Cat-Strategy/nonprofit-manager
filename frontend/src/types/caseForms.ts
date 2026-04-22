@@ -32,6 +32,8 @@ export type CaseFormAssignmentStatus =
   | 'expired'
   | 'cancelled';
 
+export type CaseFormAssignmentBucket = 'active' | 'completed';
+
 export type CaseFormActorType = 'staff' | 'portal' | 'public';
 export type CaseFormAssetKind = 'upload' | 'signature';
 export type CaseFormDeliveryTarget = 'portal' | 'email' | 'portal_and_email';
@@ -183,6 +185,19 @@ export interface CaseFormAssignment {
   draft_assets?: CaseFormAsset[];
   latest_submission?: CaseFormSubmission | null;
   access_link_url?: string | null;
+}
+
+export interface CaseFormAssignmentSummary {
+  id: string;
+  title: string;
+  status: CaseFormAssignmentStatus;
+  description?: string | null;
+  due_at?: string | null;
+  sent_at?: string | null;
+  submitted_at?: string | null;
+  updated_at: string;
+  case_number?: string | null;
+  case_title?: string | null;
 }
 
 export interface CaseFormReviewDecision {

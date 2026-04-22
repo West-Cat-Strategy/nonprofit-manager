@@ -82,6 +82,8 @@ describe('EmailMarketingPage', () => {
 
       return Promise.resolve({ data: {} });
     });
+
+    mockedApi.post.mockResolvedValue({ data: { ok: true } });
   });
 
   it('keeps the campaign title input stable while typing', async () => {
@@ -113,5 +115,52 @@ describe('EmailMarketingPage', () => {
     });
 
     expect(await screen.findByRole('heading', { name: /newsletter campaigns/i })).toBeInTheDocument();
+  });
+
+  it('renders a sandboxed preview for guided-builder campaigns', async () => {
+    mockedApi.post.mockImplementation((url: string) => {
+      if (url === '/mailchimp/campaigns/preview') {
+        return Promise.resolve({
+          data: {
+            subject: 'Spring Appeal',
+            previewText: 'Support our spring programs',
+            html: '<!doctype html><html><body><h1>Preview body</h1></body></html>',
+            plainText: 'Preview body',
+            warnings: [],
+          },
+        });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+
+    const user = userEvent.setup();
+    renderWithProviders(<EmailMarketingPage />, {
+      route: '/settings/email-marketing',
+    });
+
+    const newCampaignButton = await screen.findByRole('button', { name: /new campaign/i });
+    await user.click(newCampaignButton);
+
+    await user.type(screen.getByLabelText(/campaign title/i), 'Spring Appeal');
+    await user.type(screen.getByLabelText(/subject line/i), 'Spring Appeal');
+    await user.type(screen.getByLabelText(/from name/i), 'Community Org');
+    await user.type(screen.getByLabelText(/reply-to email/i), 'hello@example.org');
+    await user.click(screen.getByRole('button', { name: /^preview$/i }));
+
+    expect(await screen.findByRole('heading', { name: /campaign preview/i })).toBeInTheDocument();
+    expect(screen.getByTitle('Campaign Preview')).toHaveAttribute('sandbox', '');
+    expect(mockedApi.post).toHaveBeenCalledWith(
+      '/mailchimp/campaigns/preview',
+      expect.objectContaining({
+        title: 'Spring Appeal',
+        subject: 'Spring Appeal',
+        fromName: 'Community Org',
+        replyTo: 'hello@example.org',
+        builderContent: expect.objectContaining({
+          blocks: expect.any(Array),
+        }),
+      })
+    );
   });
 });

@@ -14,6 +14,7 @@ import {
   fetchListSegments,
   bulkSyncContacts,
   createCampaign,
+  previewCampaign,
   sendCampaign,
   clearSyncResult,
   setSelectedList,
@@ -23,6 +24,7 @@ import type {
   MailchimpCampaign,
   MailchimpList,
   CreateCampaignRequest,
+  MailchimpCampaignPreview,
 } from '../../../types/mailchimp';
 import type { Contact } from '../../contacts/state';
 import AdminQuickActionsBar from '../../adminOps/components/AdminQuickActionsBar';
@@ -166,6 +168,10 @@ export default function EmailMarketing() {
       console.error('Failed to create campaign:', error);
     }
   };
+
+  const handlePreviewCampaign = async (
+    data: CreateCampaignRequest
+  ): Promise<MailchimpCampaignPreview> => dispatch(previewCampaign(data)).unwrap();
 
   // Not configured state
   if (status && !status.configured) {
@@ -506,6 +512,8 @@ export default function EmailMarketing() {
             lists={lists}
             segments={segments}
             onClose={handleCloseCampaignModal}
+            onListChange={setCampaignListId}
+            onPreview={handlePreviewCampaign}
             onSubmit={handleCreateCampaign}
           />
         )}

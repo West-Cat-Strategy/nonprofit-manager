@@ -24,6 +24,7 @@ import type {
   MailchimpSegment,
   CreateCampaignRequest,
 } from '@app-types/mailchimp';
+import { resolveMailchimpCampaignContent } from '@services/template/emailCampaignRenderer';
 
 // Note: @mailchimp/mailchimp_marketing has incomplete TypeScript definitions.
 // We use 'any' here because the library's types don't expose the actual API methods
@@ -646,6 +647,8 @@ export async function createCampaign(request: CreateCampaignRequest): Promise<Ma
   }
 
   try {
+    const resolvedContent = resolveMailchimpCampaignContent(request);
+
     // Create campaign
     const campaignData: {
       type: 'regular';
@@ -680,22 +683,10 @@ export async function createCampaign(request: CreateCampaignRequest): Promise<Ma
 
     const campaign = await mailchimpClient.campaigns.create(campaignData);
 
-    // Set campaign content if provided
-    if (request.htmlContent || request.plainTextContent) {
-      const contentData: {
-        html?: string;
-        plain_text?: string;
-      } = {};
-
-      if (request.htmlContent) {
-        contentData.html = request.htmlContent;
-      }
-      if (request.plainTextContent) {
-        contentData.plain_text = request.plainTextContent;
-      }
-
-      await mailchimpClient.campaigns.setContent(campaign.id, contentData);
-    }
+    await mailchimpClient.campaigns.setContent(campaign.id, {
+      html: resolvedContent.html,
+      plain_text: resolvedContent.plainText,
+    });
 
     // Schedule campaign if send time is provided
     if (request.sendTime) {

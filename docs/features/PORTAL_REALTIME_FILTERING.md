@@ -32,7 +32,8 @@ This document describes the P4-T7D contract extension for client and admin porta
 - `GET /api/v2/portal/forms/assignments`
   - optional query: `status`
   - response contract: `data = CaseFormAssignment[]`
-  - `/portal/forms` uses this assignment inbox together with `/api/v2/portal/forms/assignments/:assignmentId*` detail, draft, submit, asset, and response-packet endpoints
+  - `/portal/forms` uses this assignment inbox together with `/api/v2/portal/forms/assignments/:assignmentId` detail, `/draft`, `/submit`, `/assets`, and `/response-packet`
+  - `status` accepts raw assignment statuses plus the inbox buckets `active` (`draft`, `sent`, `viewed`, `in_progress`, `submitted`) and `completed` (`reviewed`, `closed`, `expired`, `cancelled`)
 - `GET /api/v2/portal/forms`
   - optional query: `search`, `sort`, `order`, `limit`, `offset`
   - allowed sort values: `created_at`, `title`, `document_type`, `original_name`

@@ -1,5 +1,6 @@
 import pool from '@config/database';
 import {
+  listAssignmentsForPortal,
   markAssignmentSent,
   updateAssignment,
 } from '../caseFormsRepository.assignments';
@@ -95,5 +96,41 @@ describe('caseFormsRepository.assignments', () => {
       expect.stringContaining('SET sent_at = NOW(),'),
       ['assignment-1']
     );
+  });
+
+  it('expands the active portal status bucket to the portal-editable statuses', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+
+    await expect(listAssignmentsForPortal(pool, 'contact-1', 'active')).resolves.toEqual([]);
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('cfa.status = ANY($2::text[])');
+    expect(params).toEqual([
+      'contact-1',
+      ['draft', 'sent', 'viewed', 'in_progress', 'submitted'],
+    ]);
+  });
+
+  it('expands the completed portal status bucket to the terminal statuses', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+
+    await expect(listAssignmentsForPortal(pool, 'contact-1', 'completed')).resolves.toEqual([]);
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('cfa.status = ANY($2::text[])');
+    expect(params).toEqual([
+      'contact-1',
+      ['reviewed', 'closed', 'expired', 'cancelled'],
+    ]);
+  });
+
+  it('keeps exact portal statuses as a single-status filter', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+
+    await expect(listAssignmentsForPortal(pool, 'contact-1', 'submitted')).resolves.toEqual([]);
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('cfa.status = ANY($2::text[])');
+    expect(params).toEqual(['contact-1', ['submitted']]);
   });
 });

@@ -102,7 +102,11 @@ export const submitCaseFormByToken = async (
     repository,
     access.token.assignment,
     { actorType: 'public', accessTokenId: access.token.id },
-    payload
+    payload,
+    {
+      responsePacketDownloadUrl: `/api/v2/public/case-forms/${rawToken}/response-packet`,
+      buildAssetDownloadUrl: null,
+    }
   );
 };
 

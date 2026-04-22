@@ -31,14 +31,26 @@ describe('Portal Visibility Integration', () => {
   let portalRegistrationId: string;
   let portalCheckInToken: string;
   let organizationId: string;
+  let adminUserId: string;
+  let caseTypeId: string;
+  let activeStatusId: string;
+  let portalCaseId: string;
+  let activeAssignmentId: string;
+  let reviewedAssignmentId: string;
 
   const createdDocIds: string[] = [];
   const createdNoteIds: string[] = [];
   const createdPortalUserIds: string[] = [];
   const createdContactIds: string[] = [];
+  const createdCaseIds: string[] = [];
+  const createdAssignmentIds: string[] = [];
+  const createdSubmissionIds: string[] = [];
   const createdEventIds: string[] = [];
   const createdOccurrenceIds: string[] = [];
   const createdRegistrationIds: string[] = [];
+  const createdStatusIds: string[] = [];
+  const createdCaseTypeIds: string[] = [];
+  const createdUserIds: string[] = [];
 
   const buildPortalToken = () =>
     jwt.sign(
@@ -52,11 +64,39 @@ describe('Portal Visibility Integration', () => {
   beforeAll(async () => {
     const suffix = unique();
 
+    const adminEmail = `portal-visibility-admin-${suffix}@example.com`;
+    const adminUserResult = await pool.query(
+      `INSERT INTO users (email, password_hash, first_name, last_name, role, created_at, updated_at)
+       VALUES ($1, $2, 'Portal', 'Admin', 'admin', NOW(), NOW())
+       RETURNING id`,
+      [adminEmail, '$2a$10$012345678901234567890uI6TTMsnx6Vf7hYhVJrV2N4mcoX8f6mG']
+    );
+    adminUserId = adminUserResult.rows[0].id as string;
+    createdUserIds.push(adminUserId);
+
     const orgResult = await pool.query(
       "INSERT INTO accounts (account_name, account_type, created_at, updated_at) VALUES ($1, 'organization', NOW(), NOW()) RETURNING id",
       [`Portal Visibility Org ${suffix}`]
     );
     organizationId = orgResult.rows[0].id;
+
+    const caseTypeResult = await pool.query(
+      `INSERT INTO case_types (name, description, created_at, updated_at)
+       VALUES ($1, 'Portal visibility type', NOW(), NOW())
+       RETURNING id`,
+      [`Portal Visibility Type ${suffix}`]
+    );
+    caseTypeId = caseTypeResult.rows[0].id as string;
+    createdCaseTypeIds.push(caseTypeId);
+
+    const statusResult = await pool.query(
+      `INSERT INTO case_statuses (name, status_type, sort_order, is_active, created_at, updated_at)
+       VALUES ($1, 'active', 10, true, NOW(), NOW())
+       RETURNING id`,
+      [`Portal Visibility Active ${suffix}`]
+    );
+    activeStatusId = statusResult.rows[0].id as string;
+    createdStatusIds.push(activeStatusId);
 
     portalEmail = `portal-visibility-${suffix}@example.com`;
     const contactResult = await pool.query(
@@ -267,9 +307,157 @@ describe('Portal Visibility Integration', () => {
     portalRegistrationId = portalRegistration.rows[0].id as string;
     portalCheckInToken = portalRegistration.rows[0].check_in_token;
     createdRegistrationIds.push(portalRegistrationId);
+
+    const portalCase = await pool.query(
+      `INSERT INTO cases (
+         account_id,
+         case_number,
+         contact_id,
+         case_type_id,
+         status_id,
+         title,
+         description,
+         client_viewable,
+         assigned_to,
+         created_by,
+         modified_by,
+         created_at,
+         updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $8, $8, NOW(), NOW())
+       RETURNING id`,
+      [
+        organizationId,
+        `PORTAL-FORMS-${suffix}`,
+        contactId,
+        caseTypeId,
+        activeStatusId,
+        'Portal Forms Case',
+        'Assignment-backed portal forms integration coverage',
+        adminUserId,
+      ]
+    );
+    portalCaseId = portalCase.rows[0].id as string;
+    createdCaseIds.push(portalCaseId);
+
+    const schema = {
+      version: 1,
+      title: 'Portal Forms Fixture',
+      sections: [
+        {
+          id: 'section-1',
+          title: 'Details',
+          questions: [
+            {
+              id: 'question-notes',
+              key: 'notes',
+              type: 'textarea',
+              label: 'Notes',
+              required: true,
+            },
+          ],
+        },
+      ],
+    };
+
+    const activeAssignment = await pool.query(
+      `INSERT INTO case_form_assignments (
+         case_id,
+         contact_id,
+         account_id,
+         title,
+         description,
+         status,
+         schema,
+         current_draft_answers,
+         due_at,
+         delivery_target,
+         sent_at,
+         created_by,
+         updated_by
+       ) VALUES ($1, $2, $3, $4, $5, 'sent', $6::jsonb, '{}'::jsonb, NOW() + interval '5 days', 'portal', NOW(), $7, $7)
+       RETURNING id`,
+      [
+        portalCaseId,
+        contactId,
+        organizationId,
+        'Active Portal Intake Form',
+        'Needs a current response',
+        JSON.stringify(schema),
+        adminUserId,
+      ]
+    );
+    activeAssignmentId = activeAssignment.rows[0].id as string;
+    createdAssignmentIds.push(activeAssignmentId);
+
+    const reviewedAssignment = await pool.query(
+      `INSERT INTO case_form_assignments (
+         case_id,
+         contact_id,
+         account_id,
+         title,
+         description,
+         status,
+         schema,
+         current_draft_answers,
+         delivery_target,
+         sent_at,
+         submitted_at,
+         reviewed_at,
+         created_by,
+         updated_by
+       ) VALUES ($1, $2, $3, $4, $5, 'reviewed', $6::jsonb, $7::jsonb, 'portal', NOW() - interval '3 days', NOW() - interval '2 days', NOW() - interval '1 day', $8, $8)
+       RETURNING id`,
+      [
+        portalCaseId,
+        contactId,
+        organizationId,
+        'Reviewed Consent Form',
+        'Already reviewed',
+        JSON.stringify(schema),
+        JSON.stringify({ notes: 'Reviewed portal response' }),
+        adminUserId,
+      ]
+    );
+    reviewedAssignmentId = reviewedAssignment.rows[0].id as string;
+    createdAssignmentIds.push(reviewedAssignmentId);
+
+    const reviewedSubmission = await pool.query(
+      `INSERT INTO case_form_submissions (
+         assignment_id,
+         case_id,
+         contact_id,
+         submission_number,
+         answers,
+         mapping_audit,
+         response_packet_file_name,
+         response_packet_file_path,
+         submitted_by_actor_type,
+         submitted_by_portal_user_id
+       ) VALUES ($1, $2, $3, 1, $4::jsonb, '[]'::jsonb, $5, $6, 'portal', $7)
+       RETURNING id`,
+      [
+        reviewedAssignmentId,
+        portalCaseId,
+        contactId,
+        JSON.stringify({ notes: 'Reviewed portal response' }),
+        'portal-reviewed-packet.pdf',
+        `case-forms/portal-reviewed-packet-${suffix}.pdf`,
+        portalUserId,
+      ]
+    );
+    createdSubmissionIds.push(reviewedSubmission.rows[0].id as string);
   });
 
   afterAll(async () => {
+    if (createdSubmissionIds.length > 0) {
+      await pool.query('DELETE FROM case_form_submissions WHERE id = ANY($1)', [createdSubmissionIds]);
+    }
+    if (createdAssignmentIds.length > 0) {
+      await pool.query('DELETE FROM case_form_assignments WHERE id = ANY($1)', [createdAssignmentIds]);
+    }
+    if (createdCaseIds.length > 0) {
+      await pool.query('DELETE FROM cases WHERE id = ANY($1)', [createdCaseIds]);
+    }
     if (createdRegistrationIds.length > 0) {
       await pool.query('DELETE FROM event_registrations WHERE id = ANY($1)', [createdRegistrationIds]);
     }
@@ -290,6 +478,15 @@ describe('Portal Visibility Integration', () => {
     }
     if (createdContactIds.length > 0) {
       await pool.query('DELETE FROM contacts WHERE id = ANY($1)', [createdContactIds]);
+    }
+    if (createdStatusIds.length > 0) {
+      await pool.query('DELETE FROM case_statuses WHERE id = ANY($1)', [createdStatusIds]);
+    }
+    if (createdCaseTypeIds.length > 0) {
+      await pool.query('DELETE FROM case_types WHERE id = ANY($1)', [createdCaseTypeIds]);
+    }
+    if (createdUserIds.length > 0) {
+      await pool.query('DELETE FROM users WHERE id = ANY($1)', [createdUserIds]);
     }
     if (organizationId) {
       await pool.query('DELETE FROM accounts WHERE id = $1', [organizationId]);
@@ -373,6 +570,106 @@ describe('Portal Visibility Integration', () => {
     expect(errorCode).toMatch(/DOCUMENT_FILE_NOT_FOUND|NOT_FOUND/i);
   });
 
+  it('returns assignment-backed portal forms buckets on the canonical portal forms route', async () => {
+    const activeResponse = await request(app)
+      .get('/api/v2/portal/forms/assignments')
+      .query({ status: 'active' })
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(200);
+
+    const activePayload = unwrap<
+      Array<{
+        id: string;
+        status: string;
+        case_id: string;
+        case_number?: string | null;
+        case_title?: string | null;
+        due_at?: string | null;
+      }>
+    >(activeResponse.body);
+
+    expect(activePayload).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: activeAssignmentId,
+          status: 'sent',
+          case_id: portalCaseId,
+          case_title: 'Portal Forms Case',
+        }),
+      ])
+    );
+    expect(activePayload.find((assignment) => assignment.id === reviewedAssignmentId)).toBeUndefined();
+
+    const completedResponse = await request(app)
+      .get('/api/v2/portal/forms/assignments')
+      .query({ status: 'completed' })
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(200);
+
+    const completedPayload = unwrap<
+      Array<{
+        id: string;
+        status: string;
+      }>
+    >(completedResponse.body);
+
+    expect(completedPayload).toEqual([
+      expect.objectContaining({
+        id: reviewedAssignmentId,
+        status: 'reviewed',
+      }),
+    ]);
+
+    const exactStatusResponse = await request(app)
+      .get('/api/v2/portal/forms/assignments')
+      .query({ status: 'sent' })
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(200);
+
+    const exactStatusPayload = unwrap<Array<{ id: string; status: string }>>(exactStatusResponse.body);
+    expect(exactStatusPayload).toEqual([
+      expect.objectContaining({
+        id: activeAssignmentId,
+        status: 'sent',
+      }),
+    ]);
+  });
+
+  it('returns portal assignment detail with the packet download contract for reviewed submissions', async () => {
+    const response = await request(app)
+      .get(`/api/v2/portal/forms/assignments/${reviewedAssignmentId}`)
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(200);
+
+    const detail = unwrap<{
+      assignment: {
+        id: string;
+        status: string;
+        case_id: string;
+        case_title?: string | null;
+        latest_submission?: {
+          response_packet_download_url?: string | null;
+        } | null;
+      };
+      submissions: Array<{
+        response_packet_download_url?: string | null;
+      }>;
+    }>(response.body);
+
+    expect(detail.assignment).toMatchObject({
+      id: reviewedAssignmentId,
+      status: 'reviewed',
+      case_id: portalCaseId,
+      case_title: 'Portal Forms Case',
+    });
+    expect(detail.assignment.latest_submission?.response_packet_download_url).toBe(
+      `/api/v2/portal/forms/assignments/${reviewedAssignmentId}/response-packet`
+    );
+    expect(detail.submissions[0]?.response_packet_download_url).toBe(
+      `/api/v2/portal/forms/assignments/${reviewedAssignmentId}/response-packet`
+    );
+  });
+
   it('validates resource/event list query params for strict sort/search/order/limit/offset support', async () => {
     await request(app)
       .get('/api/v2/portal/events')
@@ -389,6 +686,12 @@ describe('Portal Visibility Integration', () => {
     await request(app)
       .get('/api/v2/portal/reminders')
       .query({ order: 'up' })
+      .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
+      .expect(400);
+
+    await request(app)
+      .get('/api/v2/portal/forms/assignments')
+      .query({ status: 'unknown' })
       .set('Cookie', [`portal_auth_token=${buildPortalToken()}`])
       .expect(400);
   });

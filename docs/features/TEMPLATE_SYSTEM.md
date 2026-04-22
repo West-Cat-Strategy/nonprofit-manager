@@ -1,6 +1,6 @@
 # Website Builder - Template System Documentation
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-22
 
 
 ## Overview
@@ -217,6 +217,13 @@ The preview system allows you to see exactly how a template will look before pub
    - Converts to published format
    - Generates static HTML/CSS
    - Returns rendered HTML
+
+### Shared Preview Primitive
+
+- The builder preview iframe is now a shared sanitized-preview primitive rather than a template-only implementation detail.
+- The website builder still owns `/api/v2/templates/:templateId/preview?page=...` and the site-aware editor flows.
+- The communications workspace at `/settings/communications` reuses the same sandboxed preview behavior for blast-email drafts, but email draft content stays separate from website template records.
+- Blast-email preview runs through `POST /api/v2/mailchimp/campaigns/preview`, which accepts the normal Mailchimp campaign request plus optional guided-builder content and returns the rendered preview HTML, derived plain-text fallback, and any preview warnings.
 
 2. **Frontend Preview Display**:
    - Click "Preview" button on any template

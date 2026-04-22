@@ -1,6 +1,7 @@
 import type { CaseFormAssignmentRecord, DbExecutor } from './caseFormsRepository.shared';
 import { assignmentSelect, mapAssignment } from './caseFormsRepository.shared';
 import type { CaseFormDeliveryTarget, CaseFormSchema } from '@app-types/caseForms';
+import { resolvePortalAssignmentStatuses } from '../usecases/caseForms.usecase.shared';
 
 const mapMutationAssignmentRow = (row: Record<string, unknown>): CaseFormAssignmentRecord =>
   mapAssignment({
@@ -35,14 +36,15 @@ export async function listAssignmentsForPortal(
   contactId: string,
   status?: string
 ): Promise<CaseFormAssignmentRecord[]> {
+  const statusFilter = resolvePortalAssignmentStatuses(status);
   const result = await db.query(
     `${assignmentSelect}
      WHERE cfa.contact_id = $1
        AND c.client_viewable = true
        AND cfa.delivery_target IN ('portal', 'portal_and_email')
-       AND ($2::text IS NULL OR cfa.status = $2::text)
+       AND ($2::text[] IS NULL OR cfa.status = ANY($2::text[]))
      ORDER BY COALESCE(cfa.submitted_at, cfa.sent_at, cfa.updated_at) DESC, cfa.updated_at DESC`,
-    [contactId, status || null]
+    [contactId, statusFilter]
   );
   return result.rows.map(mapAssignment);
 }

@@ -455,6 +455,54 @@ describe('CaseFormsUseCase', () => {
     });
   });
 
+  it('allows portal draft saves after an assignment has been submitted', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const submittedAssignment = makeAssignment({
+      status: 'submitted',
+      delivery_target: 'portal',
+      submitted_at: '2026-04-16T12:30:00.000Z',
+    });
+    const savedAssignment = makeAssignment({
+      status: 'submitted',
+      delivery_target: 'portal',
+      submitted_at: '2026-04-16T12:30:00.000Z',
+      last_draft_saved_at: '2026-04-16T12:45:00.000Z',
+    });
+
+    mocks.getAssignmentById.mockResolvedValueOnce(submittedAssignment);
+    mocks.saveDraft.mockResolvedValue(savedAssignment);
+
+    await expect(
+      useCase.saveDraftForPortal(
+        { contactId: 'contact-1', portalUserId: 'portal-user-1' },
+        submittedAssignment.id,
+        {
+          answers: {
+            email: 'client@example.com',
+          },
+        }
+      )
+    ).resolves.toMatchObject({
+      id: submittedAssignment.id,
+      status: 'submitted',
+      last_draft_saved_at: '2026-04-16T12:45:00.000Z',
+    });
+
+    expect(mocks.markAssignmentViewed).toHaveBeenCalledWith(expect.anything(), submittedAssignment.id);
+    expect(mocks.saveDraft).toHaveBeenCalledWith(
+      expect.anything(),
+      submittedAssignment.id,
+      {
+        email: 'client@example.com',
+      },
+      expect.objectContaining({
+        status: 'submitted',
+        userId: 'portal-user-1',
+      })
+    );
+  });
+
   it('captures the source default version when creating an assignment from a saved default', async () => {
     const { repository, mocks } = createRepositoryMock();
     const useCase = new CaseFormsUseCase(repository);

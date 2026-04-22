@@ -1,6 +1,6 @@
 # Phase 5 Testing Strategy Review
 
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-04-22
 
 
 **Date:** 2026-04-20  
@@ -8,16 +8,17 @@
 
 ## Status
 
-Phase 5's full Playwright/E2E and testing-strategy review is in progress.
+Phase 5's full Playwright/E2E and testing-strategy review is still in progress.
 
-The shared validation lane is materially healthier than it was on 2026-04-20.
+The shared validation lane remains materially healthier than it was on 2026-04-20, and the targeted `P5-T5` portal forms slice is now green in backend, frontend, docs, and focused Playwright proof.
 
-- `make ci-full` is now self-sufficient for lint, UI audit, typecheck, backend coverage, and frontend coverage without manual shell exports.
+- `make ci-full` remains self-sufficient for lint, UI audit, typecheck, backend coverage, and frontend coverage without manual shell exports.
 - The earlier broad host regressions in `admin`, `analytics`, `auth`, `contacts`, `donations`, and `events` have been fixed in the current tree and revalidated in their targeted slices.
-- The host Playwright launcher now survives locally occupied frontend ports by auto-falling back off `5173` instead of killing unrelated system listeners.
-- The isolated Docker smoke gate is green again after explicit startup-failure cleanup hardening.
+- The host Playwright launcher still survives locally occupied frontend ports by auto-falling back off `5173` instead of killing unrelated system listeners.
+- The isolated Docker smoke gate is still green after explicit startup-failure cleanup hardening.
+- The 2026-04-22 host rerun moved past the earlier lane-contract issues, but it surfaced two concrete backend coverage blockers that belong to owning surfaces rather than the shared runner: `src/__tests__/integration/volunteers.test.ts` and `src/__tests__/config/database.test.ts`.
 
-The remaining open lane gap is narrower now: finish the full host matrix rerun on the refreshed tree, then run the Docker cross-browser and audit follow-ons. A separate fresh-volume Docker proof is still needed for `tests/fresh-workspace-multi-user.spec.ts`, which is intentionally excluded from the host lane.
+Because the host lane is not yet green, the fresh-volume Docker MFA proof for `tests/fresh-workspace-multi-user.spec.ts` and the broader Docker follow-ons (`npm run test:docker:ci`, `npm run test:docker:audit`) remain intentionally pending.
 
 ## Environment Notes
 
@@ -27,6 +28,7 @@ The remaining open lane gap is narrower now: finish the full host matrix rerun o
 - The host Playwright wrapper now auto-selects an alternate frontend port starting with `5317` when `5173` is already occupied locally.
 - The host Playwright backend startup now opts into `DB_REUSE_IF_READY=1`, so a ready isolated test DB can be reused instead of always forcing a Docker-backed rebuild during the `webServer` bootstrap.
 - `tests/fresh-workspace-multi-user.spec.ts` is a Docker-only proof. It requires `SKIP_WEBSERVER=1`, `BYPASS_MFA_FOR_TESTS=false`, and a truly fresh starter-only Docker volume.
+- The 2026-04-22 host rerun used `E2E_FRONTEND_PORT=5317` and refreshed the checked-in UI audit baseline after legitimate repo-wide style-count drift.
 
 ## Command Log
 
@@ -41,6 +43,34 @@ The remaining open lane gap is narrower now: finish the full host matrix rerun o
   - Backend coverage result: `220` suites passed, `1784` tests passed.
   - Frontend coverage result: `223` files passed, `1140` tests passed.
   - The first rerun still failed at the host Playwright startup boundary because the old preflight killed a local `com.docke` listener on `5173`, which in turn made Docker unavailable before Playwright's backend `webServer` boot completed.
+- `cd backend && npm run type-check`
+  - Result: Passed on 2026-04-22 for the `P5-T5` portal forms contract follow-through.
+- `cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand src/modules/cases/usecases/__tests__/caseForms.usecase.test.ts`
+  - Result: Passed on 2026-04-22 with the broadened assignment-status bucket support and portal `submitted` semantics.
+- `cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand src/modules/cases/repositories/__tests__/caseFormsRepository.assignments.test.ts`
+  - Result: Passed on 2026-04-22 with repository coverage for `active` and `completed` assignment buckets.
+- `cd backend && npm test -- --runInBand src/__tests__/integration/portalVisibility.test.ts`
+  - Result: Passed on 2026-04-22 after adding assignment-backed portal forms integration coverage, including the assignment detail path.
+- `cd frontend && npm test -- --run src/features/portal/api/portalCaseFormsApiClient.test.ts src/features/portal/pages/__tests__/PortalFormsPage.test.tsx`
+  - Result: Passed on 2026-04-22 for canonical bucket-driven portal inbox fetching and assignment summary rendering.
+- `make check-links`
+  - Result: Passed again on 2026-04-22 after the portal docs wording updates.
+- `cd e2e && E2E_RUNNER_ACTION=kill bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium tests/portal-workspace.spec.ts`
+  - Result: Passed on 2026-04-22. The focused portal workspace proof now covers the assignment-backed forms inbox, default active view, completed toggle, due-date summary, and response packet link.
+- `E2E_FRONTEND_PORT=5317 make ci-full`
+  - Result: On 2026-04-22, the host lane advanced past the old runner-contract issues after refreshing `docs/ui/archive/app-ux-audit.json` for legitimate style-count drift and moving the exported email-builder default factory into `frontend/src/features/builder/components/emailCampaignBuilderDefaults.ts`.
+  - Result: The rerun then surfaced real backend coverage failures and was intentionally stopped before any wider Docker reruns:
+
+```text
+src/__tests__/integration/volunteers.test.ts
+Volunteer Module Integration Tests › should create a volunteer and automatically create a contact record
+
+src/__tests__/config/database.test.ts
+database config › uses non-production defaults outside production
+```
+
+  - The volunteer failure reported `Failed to create volunteer test contact` after `Selected account is outside the current request scope` during contact creation, which points to a contact-scope regression in that test path rather than a shared runner bug.
+  - The database-config failure showed expectation drift between the asserted non-production defaults and the current isolated test contract (`127.0.0.1:8012/nonprofit_manager_test`, `postgres/postgres`).
 - `cd backend && DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres REDIS_URL=redis://redis:6379 REQUIRE_TEST_DB=true SKIP_INTEGRATION_DB_PREP=1 npm exec -- jest src/__tests__/integration/adminRegistrationReview.test.ts --runInBand`
   - Result: Passed on 2026-04-21 after seeding the reviewer admin user directly in the test fixture.
 - `cd e2e && npm run test:ci`
@@ -103,21 +133,23 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
 
 ## Coverage And Blind Spots
 
-- Backend and frontend coverage are no longer the blocker.
+- The targeted `P5-T5` portal forms slice is green across backend, frontend, docs, and focused Playwright proof.
+- Backend and frontend coverage are no longer blocked by the old shared runner contract.
 - The targeted Phase 5 regressions in avatar persistence, legacy admin redirects, analytics templates, workbench auth startup, contacts filters/merge/delete/pagination, donations receipts/filters, and events hybrid check-in all now have green targeted proof in the host runtime.
 - The public `/accept-invitation/:token` surface now behaves cleanly for placeholder preview tokens, which removes the route-health false negative without weakening real-token validation.
 - The smoke-stack startup failure mode is hardened, but the broader Docker cross-browser and audit lanes are still pending.
-- The remaining blind spot is the fresh-volume MFA proof: we confirmed it is excluded from the host matrix and still valid as a Docker concern, but we have not yet rerun it on a truly fresh starter-only Docker project in this pass.
+- The current host-lane blind spots are now concrete owning-surface failures rather than runner instability: the volunteer/contact-scope regression in `src/__tests__/integration/volunteers.test.ts` and the expectation drift in `src/__tests__/config/database.test.ts`.
+- The fresh-volume MFA proof is still excluded from the host matrix and still valid as a Docker concern, but it has not been rerun in this pass because the host lane stopped on the new blockers first.
 
 ## Recommended Next Steps
 
-1. Rerun the full host matrix on the refreshed tree now that the launcher fallback and placeholder invitation fix are in place.
-2. Bring up a separate fresh starter-only Docker project for `tests/fresh-workspace-multi-user.spec.ts` using isolated ports and `BYPASS_MFA_FOR_TESTS=false`, rather than reusing the long-lived dev volume.
-3. Once the host rerun and fresh-volume MFA proof are both green, continue with `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`.
-4. Refresh the Phase 5 validation/workboard artifacts one more time after those final reruns land.
+1. Route the volunteer/contact-scope regression in `src/__tests__/integration/volunteers.test.ts` back to the owning surface, then rerun the host lane once that path is repaired.
+2. Route the non-production database-config expectation drift in `src/__tests__/config/database.test.ts` to the config/test-contract owner, then rerun `E2E_FRONTEND_PORT=5317 make ci-full`.
+3. Only after the host lane is green again, bring up a separate fresh starter-only Docker project for `tests/fresh-workspace-multi-user.spec.ts` using isolated ports and `BYPASS_MFA_FOR_TESTS=false`, rather than reusing the long-lived dev volume.
+4. Once the host rerun and fresh-volume MFA proof are both green, continue with `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`, then refresh the Phase 5 validation/workboard artifacts one more time.
 
 ## Implications For Phase 5 Waves
 
 - `P5-T3` Email platform work should still wait for the final host-plus-Docker validation pass, but the lane is no longer blocked at lint, typecheck, or coverage.
 - `P5-T4` Website surfaces proof remains green and is no longer the main validation blocker.
-- `P5-T5` Client portal and auth-facing work should keep route-health placeholder-token behavior aligned across public and portal invite/reset surfaces, because those routes are exercised by strict runtime health checks.
+- `P5-T5` Client portal work now has a green first slice for the assignment-backed forms inbox, but broader phase signoff still depends on the shared `P5-T2B` host-plus-Docker lane.

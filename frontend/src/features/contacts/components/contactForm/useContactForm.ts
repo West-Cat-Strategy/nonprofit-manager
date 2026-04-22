@@ -15,11 +15,11 @@ import { useToast } from '../../../../contexts/useToast';
 import { validatePostalCode } from '../../../../utils/validation';
 import { toDateInputValue } from '../../../../utils/format';
 import { formatApiErrorMessage } from '../../../../utils/apiError';
-import { isUuid } from '../../../../utils/uuid';
 import type { ContactFormValues, ContactRecord } from './types';
 import { useUnsavedChangesGuard } from '../../../../hooks/useUnsavedChangesGuard';
 import useConfirmDialog, { confirmPresets } from '../../../../hooks/useConfirmDialog';
 import { contactsApiClient } from '../../api/contactsApiClient';
+import { buildContactMutationPayload } from './contactMutationPayload';
 
 interface UseContactFormProps {
   contact?: ContactRecord;
@@ -422,57 +422,7 @@ export function useContactForm({ contact, mode, onCreated, onCancel }: UseContac
     setIsSubmitting(true);
 
     try {
-      const cleanedTags = (formData.tags || [])
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0);
-      const rawPhn = (formData.phn || '').trim();
-      let normalizedPhn: string | null | undefined;
-      if (rawPhn.length === 0) {
-        normalizedPhn = mode === 'edit' ? null : undefined;
-      } else if (isMaskedPhn(rawPhn)) {
-        normalizedPhn = undefined;
-      } else {
-        normalizedPhn = rawPhn.replace(/\D/g, '');
-      }
-      const normalizeOptionalField = (value: string | null | undefined) => {
-        const trimmed = typeof value === 'string' ? value.trim() : value;
-        if (!trimmed) {
-          return mode === 'edit' ? null : undefined;
-        }
-        return trimmed;
-      };
-      const normalizedAccountId = isUuid(formData.account_id) ? formData.account_id : undefined;
-      const baseFormData = { ...formData };
-      delete baseFormData.account_id;
-
-      const cleanedData = {
-        ...baseFormData,
-        ...(normalizedAccountId ? { account_id: normalizedAccountId } : {}),
-        preferred_name: formData.preferred_name || undefined,
-        middle_name: formData.middle_name || undefined,
-        salutation: formData.salutation || undefined,
-        suffix: formData.suffix || undefined,
-        birth_date: formData.birth_date ? toDateInputValue(formData.birth_date) : (mode === 'edit' ? null : undefined),
-        gender: formData.gender || undefined,
-        pronouns: formData.pronouns || undefined,
-        phn: normalizedPhn,
-        email: normalizeOptionalField(formData.email),
-        phone: normalizeOptionalField(formData.phone),
-        mobile_phone: normalizeOptionalField(formData.mobile_phone),
-        job_title: formData.job_title || undefined,
-        department: formData.department || undefined,
-        address_line1: formData.no_fixed_address ? undefined : (formData.address_line1 || undefined),
-        address_line2: formData.no_fixed_address ? undefined : (formData.address_line2 || undefined),
-        city: formData.no_fixed_address ? undefined : (formData.city || undefined),
-        state_province: formData.no_fixed_address ? undefined : (formData.state_province || undefined),
-        postal_code: formData.no_fixed_address ? undefined : (formData.postal_code || undefined),
-        country: formData.no_fixed_address ? undefined : (formData.country || undefined),
-        no_fixed_address: formData.no_fixed_address || false,
-        preferred_contact_method: formData.preferred_contact_method || undefined,
-        notes: formData.notes || undefined,
-        tags: cleanedTags,
-        roles: formData.roles || [],
-      };
+      const cleanedData = buildContactMutationPayload(formData, mode);
 
       if (mode === 'create') {
         const result = await dispatch(createContact(cleanedData)).unwrap();

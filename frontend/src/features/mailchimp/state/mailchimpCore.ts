@@ -18,6 +18,7 @@ import type {
   BulkSyncResponse,
   SyncResult,
   CreateCampaignRequest,
+  MailchimpCampaignPreview,
 } from '../../../types/mailchimp';
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
@@ -175,6 +176,22 @@ export const createCampaign = createAsyncThunk<MailchimpCampaign, CreateCampaign
       return response.data;
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to create campaign');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+/**
+ * Render a local campaign preview
+ */
+export const previewCampaign = createAsyncThunk<MailchimpCampaignPreview, CreateCampaignRequest>(
+  'mailchimp/previewCampaign',
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/mailchimp/campaigns/preview', data);
+      return response.data;
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to preview campaign');
       return rejectWithValue(message);
     }
   }

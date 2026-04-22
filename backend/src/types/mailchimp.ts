@@ -168,8 +168,65 @@ export interface CreateCampaignRequest {
   replyTo: string;
   htmlContent?: string;
   plainTextContent?: string;
+  builderContent?: EmailBuilderContent;
   segmentId?: number;
   sendTime?: Date;
+}
+
+export type EmailBuilderBlockType = 'heading' | 'paragraph' | 'button' | 'image' | 'divider';
+
+interface EmailBuilderBlockBase {
+  id: string;
+  type: EmailBuilderBlockType;
+}
+
+export interface EmailHeadingBlock extends EmailBuilderBlockBase {
+  type: 'heading';
+  content: string;
+  level?: 1 | 2 | 3;
+}
+
+export interface EmailParagraphBlock extends EmailBuilderBlockBase {
+  type: 'paragraph';
+  content: string;
+}
+
+export interface EmailButtonBlock extends EmailBuilderBlockBase {
+  type: 'button';
+  label: string;
+  url: string;
+}
+
+export interface EmailImageBlock extends EmailBuilderBlockBase {
+  type: 'image';
+  src: string;
+  alt?: string;
+  href?: string;
+}
+
+export interface EmailDividerBlock extends EmailBuilderBlockBase {
+  type: 'divider';
+}
+
+export type EmailBuilderBlock =
+  | EmailHeadingBlock
+  | EmailParagraphBlock
+  | EmailButtonBlock
+  | EmailImageBlock
+  | EmailDividerBlock;
+
+export interface EmailBuilderContent {
+  accentColor?: string;
+  footerText?: string;
+  blocks: EmailBuilderBlock[];
+}
+
+export interface MailchimpCampaignPreview {
+  subject: string;
+  previewText?: string;
+  html: string;
+  plainText: string;
+  warnings: string[];
 }
 
 /**

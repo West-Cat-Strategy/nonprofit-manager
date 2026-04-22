@@ -8,6 +8,7 @@ import type {
   CaseFormSchema,
   CaseFormSubmission,
 } from '@app-types/caseForms';
+import { CASE_FORM_ASSIGNMENT_STATUS_BUCKETS } from '@app-types/caseForms';
 import type {
   CaseFormAccessTokenRecord,
   CaseFormAssignmentRecord,
@@ -39,13 +40,21 @@ export interface FlattenedQuestion {
 }
 
 export const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
-export const TERMINAL_ASSIGNMENT_STATUSES = new Set<CaseFormAssignmentStatus>([
-  'submitted',
-  'reviewed',
-  'closed',
-  'expired',
-  'cancelled',
-]);
+export const TERMINAL_ASSIGNMENT_STATUSES = new Set<CaseFormAssignmentStatus>(
+  CASE_FORM_ASSIGNMENT_STATUS_BUCKETS.completed
+);
+
+export const resolvePortalAssignmentStatuses = (status?: string): string[] | null => {
+  if (!status) {
+    return null;
+  }
+
+  if (status === 'active' || status === 'completed') {
+    return CASE_FORM_ASSIGNMENT_STATUS_BUCKETS[status];
+  }
+
+  return [status];
+};
 
 const CONTACT_FIELD_COERCERS: Record<string, (value: unknown) => unknown> = {
   first_name: (value) => String(value ?? '').trim(),

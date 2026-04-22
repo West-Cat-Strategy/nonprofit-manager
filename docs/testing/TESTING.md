@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-04-22
 
 This file is the active test command map for nonprofit-manager. Use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports; use this file when you need to choose the right validation command.
 
@@ -108,6 +108,27 @@ This slice proves the current website/public-runtime contract without widening i
 - `tests/public-website.spec.ts`: public runtime rendering and submission behavior for the published managed form plus the existing public website slices
 
 Pair that command with `make check-links` when the same task updates website or testing docs.
+
+## Targeted Email Wave Proof
+
+Use this narrower proof when the change is limited to the communications workspace, Mailchimp campaign authoring, the email preview formatter, or the shared sanitized preview frame:
+
+```bash
+cd backend && npm test -- --runInBand src/__tests__/services/emailCampaignRenderer.test.ts src/__tests__/services/mailchimpService.test.ts src/__tests__/modules/mailchimp.routes.security.test.ts
+cd frontend && npm test -- --run src/features/adminOps/pages/__tests__/EmailMarketingPage.test.tsx src/features/builder/pages/__tests__/TemplatePreviewPage.test.tsx
+cd backend && npm run type-check
+cd frontend && npm run type-check
+```
+
+This slice proves the current email-wave contract without widening into the host/Docker review lane:
+
+- `src/__tests__/services/emailCampaignRenderer.test.ts`: guided-builder and raw-HTML formatting, sanitization, and warning behavior
+- `src/__tests__/services/mailchimpService.test.ts`: Mailchimp campaign creation, generated content payloads, scheduling, and send behavior
+- `src/__tests__/modules/mailchimp.routes.security.test.ts`: admin-only protection for campaign preview and other Mailchimp routes
+- `src/features/adminOps/pages/__tests__/EmailMarketingPage.test.tsx`: communications workspace authoring and preview flow
+- `src/features/builder/pages/__tests__/TemplatePreviewPage.test.tsx`: shared sandboxed preview-frame behavior
+
+Pair that command set with `make check-links` when the same task updates email-wave or testing docs.
 
 ## Package-Level Commands
 

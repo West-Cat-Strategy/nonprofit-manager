@@ -28,6 +28,10 @@ jest.mock('@mailchimp/mailchimp_marketing', () => ({
   },
   campaigns: {
     list: jest.fn(),
+    create: jest.fn(),
+    setContent: jest.fn(),
+    schedule: jest.fn(),
+    send: jest.fn(),
   },
 }));
 
@@ -577,6 +581,70 @@ describe('MailchimpService', () => {
       expect(segments).toHaveLength(1);
       expect(segments[0].name).toBe('Active Donors');
       expect(segments[0].memberCount).toBe(100);
+    });
+  });
+
+  describe('createCampaign', () => {
+    it('renders builder content into Mailchimp campaign content and schedules delivery', async () => {
+      (mockMailchimp.campaigns.create as jest.Mock).mockResolvedValue({
+        id: 'campaign-123',
+        create_time: '2024-01-15T10:00:00Z',
+      });
+      (mockMailchimp.campaigns.setContent as jest.Mock).mockResolvedValue({});
+      (mockMailchimp.campaigns.schedule as jest.Mock).mockResolvedValue({});
+
+      const sendTime = new Date('2026-05-01T10:00:00Z');
+      const campaign = await mailchimpService.createCampaign({
+        listId: 'list-123',
+        title: 'Spring Appeal',
+        subject: 'Spring Appeal',
+        previewText: 'Support our spring programs',
+        fromName: 'Community Org',
+        replyTo: 'hello@example.org',
+        builderContent: {
+          accentColor: '#1d4ed8',
+          blocks: [
+            { id: 'heading-1', type: 'heading', content: 'Spring Appeal', level: 1 },
+            {
+              id: 'paragraph-1',
+              type: 'paragraph',
+              content: 'Help fund our spring programs.',
+            },
+          ],
+        },
+        sendTime,
+      });
+
+      expect(mockMailchimp.campaigns.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          settings: expect.objectContaining({
+            subject_line: 'Spring Appeal',
+            preview_text: 'Support our spring programs',
+          }),
+        })
+      );
+      expect(mockMailchimp.campaigns.setContent).toHaveBeenCalledWith(
+        'campaign-123',
+        expect.objectContaining({
+          html: expect.stringContaining('Spring Appeal'),
+          plain_text: expect.stringContaining('Help fund our spring programs.'),
+        })
+      );
+      expect(mockMailchimp.campaigns.schedule).toHaveBeenCalledWith('campaign-123', {
+        schedule_time: sendTime.toISOString(),
+      });
+      expect(campaign.status).toBe('schedule');
+      expect(campaign.sendTime).toEqual(sendTime);
+    });
+  });
+
+  describe('sendCampaign', () => {
+    it('sends a campaign immediately', async () => {
+      (mockMailchimp.campaigns.send as jest.Mock).mockResolvedValue({});
+
+      await expect(mailchimpService.sendCampaign('campaign-123')).resolves.toBeUndefined();
+
+      expect(mockMailchimp.campaigns.send).toHaveBeenCalledWith('campaign-123');
     });
   });
 });

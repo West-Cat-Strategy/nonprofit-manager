@@ -9,6 +9,7 @@ export { getTemplatePages, getTemplatePage, createTemplatePage, updateTemplatePa
 export { createTemplateVersion, getTemplateVersions, restoreTemplateVersion } from './templateVersions';
 export { getSystemTemplates, duplicateTemplate, generateTemplatePreview, getTemplateCssVariables, applyPaletteToTemplate, applyFontPairingToTemplate } from './templateTheme';
 export { generateThemeCssVariables } from './helpers';
+export { renderMailchimpCampaignPreview, resolveMailchimpCampaignContent } from './emailCampaignRenderer';
 
 // Import for default export (backwards compatibility)
 import { createTemplate, getTemplate, searchTemplates, updateTemplate, deleteTemplate } from './templateCrud';

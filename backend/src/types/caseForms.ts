@@ -32,6 +32,16 @@ export type CaseFormAssignmentStatus =
   | 'expired'
   | 'cancelled';
 
+export type CaseFormAssignmentStatusBucket = 'active' | 'completed';
+
+export const CASE_FORM_ASSIGNMENT_STATUS_BUCKETS: Record<
+  CaseFormAssignmentStatusBucket,
+  CaseFormAssignmentStatus[]
+> = {
+  active: ['draft', 'sent', 'viewed', 'in_progress', 'submitted'],
+  completed: ['reviewed', 'closed', 'expired', 'cancelled'],
+};
+
 export type CaseFormActorType = 'staff' | 'portal' | 'public';
 export type CaseFormAssetKind = 'upload' | 'signature';
 export type CaseFormDeliveryTarget = 'portal' | 'email' | 'portal_and_email';

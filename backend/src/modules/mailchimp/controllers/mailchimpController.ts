@@ -16,6 +16,7 @@ import type {
   MailchimpWebhookPayload,
   CreateCampaignRequest,
 } from '@app-types/mailchimp';
+import { renderMailchimpCampaignPreview } from '@services/template/emailCampaignRenderer';
 import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '@utils/responseHelpers';
 import { sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
 
@@ -500,6 +501,71 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
 };
 
 /**
+ * Render a local preview for a campaign draft
+ */
+export const previewCampaign = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const {
+      listId,
+      title,
+      subject,
+      previewText,
+      fromName,
+      replyTo,
+      htmlContent,
+      plainTextContent,
+      builderContent,
+      segmentId,
+      sendTime,
+    } = req.body as CreateCampaignRequest;
+
+    if (!listId) {
+      badRequest(res, 'List ID is required');
+      return;
+    }
+
+    if (!title) {
+      badRequest(res, 'Campaign title is required');
+      return;
+    }
+
+    if (!subject) {
+      badRequest(res, 'Subject line is required');
+      return;
+    }
+
+    if (!fromName) {
+      badRequest(res, 'From name is required');
+      return;
+    }
+
+    if (!replyTo) {
+      badRequest(res, 'Reply-to email is required');
+      return;
+    }
+
+    const preview = renderMailchimpCampaignPreview({
+      listId,
+      title,
+      subject,
+      previewText,
+      fromName,
+      replyTo,
+      htmlContent,
+      plainTextContent,
+      builderContent,
+      segmentId,
+      sendTime: sendTime ? new Date(sendTime) : undefined,
+    });
+
+    res.json(preview);
+  } catch (error) {
+    logger.error('Error previewing campaign', { error });
+    serverError(res, 'Failed to render campaign preview');
+  }
+};
+
+/**
  * Send a campaign immediately
  */
 export const sendCampaign = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -613,6 +679,7 @@ export default {
   updateMemberTags,
   getListTags,
   getCampaigns,
+  previewCampaign,
   createCampaign,
   sendCampaign,
   createSegment,

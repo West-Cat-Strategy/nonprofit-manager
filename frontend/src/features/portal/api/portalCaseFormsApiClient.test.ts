@@ -26,6 +26,11 @@ describe('PortalCaseFormsApiClient', () => {
               id: 'assignment-1',
               title: 'Portal Intake Form',
               status: 'sent',
+              description: 'Portal intake summary',
+              due_at: '2026-04-20T12:00:00.000Z',
+              sent_at: '2026-04-16T12:00:00.000Z',
+              submitted_at: null,
+              updated_at: '2026-04-16T12:00:00.000Z',
               case_number: 'CASE-001',
               case_title: 'Housing Support',
             },
@@ -114,7 +119,9 @@ describe('PortalCaseFormsApiClient', () => {
       case_number: 'CASE-001',
       case_title: 'Housing Support',
     });
-    expect(portalApi.get).toHaveBeenNthCalledWith(1, '/v2/portal/forms/assignments');
+    expect(portalApi.get).toHaveBeenNthCalledWith(1, '/v2/portal/forms/assignments', {
+      params: { status: 'active' },
+    });
     expect(portalApi.get).toHaveBeenNthCalledWith(2, '/v2/portal/forms/assignments/assignment-1');
     expect(portalApi.post).toHaveBeenNthCalledWith(
       1,
@@ -151,7 +158,7 @@ describe('PortalCaseFormsApiClient', () => {
     } as never);
 
     await expect(client.listForms()).rejects.toThrow(
-      'Portal forms contract error: expected an array of case-form assignments from /v2/portal/forms/assignments.'
+      'Portal forms contract error: expected an array of case-form assignment summaries from /v2/portal/forms/assignments.'
     );
   });
 });

@@ -16,6 +16,7 @@ const mailchimpControllerMocks = {
   syncContact: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   bulkSyncContacts: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   getCampaigns: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
+  previewCampaign: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   createCampaign: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   sendCampaign: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   handleWebhook: jest.fn((_req: unknown, res: Response) => res.status(200).json({ received: true })),
@@ -60,6 +61,38 @@ describe('mailchimp routes authorization', () => {
     await request(app).get('/api/v2/mailchimp/status').expect(200);
 
     expect(mailchimpControllerMocks.getStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps campaign preview behind the admin permission gate', async () => {
+    const managerApp = buildApp('manager');
+
+    await request(managerApp)
+      .post('/api/v2/mailchimp/campaigns/preview')
+      .send({
+        listId: 'list-1',
+        title: 'Spring Appeal',
+        subject: 'Spring Appeal',
+        fromName: 'Org',
+        replyTo: 'hello@example.org',
+      })
+      .expect(403);
+
+    expect(mailchimpControllerMocks.previewCampaign).not.toHaveBeenCalled();
+
+    const adminApp = buildApp('admin');
+
+    await request(adminApp)
+      .post('/api/v2/mailchimp/campaigns/preview')
+      .send({
+        listId: 'list-1',
+        title: 'Spring Appeal',
+        subject: 'Spring Appeal',
+        fromName: 'Org',
+        replyTo: 'hello@example.org',
+      })
+      .expect(200);
+
+    expect(mailchimpControllerMocks.previewCampaign).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the Mailchimp webhook public', async () => {
