@@ -127,7 +127,7 @@ export function useDashboardDataLoader({
       cancelIdleCallback?: (handle: number) => void;
     };
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !userId) {
       setAnalyticsSummary(null);
       setDonationTrends([]);
       setCaseSummary(null);

@@ -244,7 +244,7 @@ const buildMfaRuntimeGuardMessage = (proofName: string): string => {
   const skipWebserver = process.env.SKIP_WEBSERVER ?? '(unset)';
   const bypassMfa = process.env.BYPASS_MFA_FOR_TESTS ?? '(unset)';
 
-  return `${proofName} requires an externally managed E2E runtime with MFA bypass disabled. Current env: SKIP_WEBSERVER=${skipWebserver}, BYPASS_MFA_FOR_TESTS=${bypassMfa}. The Playwright-managed host harness pins BYPASS_MFA_FOR_TESTS=true, so it cannot prove admin/manager MFA behavior. Re-run with SKIP_WEBSERVER=1 and BYPASS_MFA_FOR_TESTS=false, for example: make docker-up-dev && cd e2e && npm run test:docker -- tests/fresh-workspace-multi-user.spec.ts --project=chromium`;
+  return `${proofName} requires an externally managed E2E runtime with MFA bypass disabled. Current env: SKIP_WEBSERVER=${skipWebserver}, BYPASS_MFA_FOR_TESTS=${bypassMfa}. The shared docker wrapper also pins BYPASS_MFA_FOR_TESTS=true, so this proof must run directly against a starter-only Docker stack. Re-run, for example, with: make docker-up-dev && cd e2e && SKIP_WEBSERVER=1 BYPASS_MFA_FOR_TESTS=false BYPASS_REGISTRATION_POLICY_IN_TEST=true BASE_URL=http://127.0.0.1:8005 API_URL=http://127.0.0.1:8004 E2E_DB_PORT=8002 E2E_DB_NAME=nonprofit_manager ./node_modules/.bin/playwright test tests/fresh-workspace-multi-user.spec.ts --project=chromium`;
 };
 
 export const assertMfaEnforcedExternalRuntime = (
@@ -562,10 +562,15 @@ const getAuthDatabaseConfig = (): {
   user: string;
   password: string;
 } => ({
-  host: process.env.DB_HOST || process.env.E2E_DB_HOST || '127.0.0.1',
-  port: Number(process.env.DB_PORT || process.env.E2E_DB_PORT || '8012'),
+  // Prefer explicit E2E runtime overrides so isolated Docker proofs can point
+  // helper-side DB mutations at the same stack the app under test is using.
+  host: process.env.E2E_DB_HOST || process.env.DB_HOST || '127.0.0.1',
+  port: Number(process.env.E2E_DB_PORT || process.env.DB_PORT || '8012'),
   database:
-    process.env.DB_NAME || process.env.E2E_DB_NAME || process.env.TEST_DB_NAME || 'nonprofit_manager_test',
+    process.env.E2E_DB_NAME ||
+    process.env.DB_NAME ||
+    process.env.TEST_DB_NAME ||
+    (isDockerBackedRun() ? 'nonprofit_manager' : 'nonprofit_manager_test'),
   user: process.env.E2E_DB_ADMIN_USER || process.env.TEST_DB_ADMIN_USER || 'postgres',
   password: process.env.E2E_DB_ADMIN_PASSWORD || process.env.TEST_DB_ADMIN_PASSWORD || 'postgres',
 });
@@ -1467,6 +1472,57 @@ const createDefaultOrganizationForSession = async (
   return accountId;
 };
 
+const ensureDatabaseBackedOrganizationAccessForUser = async (userId: string): Promise<string> => {
+  return withAuthDatabaseClient(async (client) => {
+    const existingAccess = await client.query<{ account_id: string }>(
+      `SELECT account_id::text
+       FROM user_account_access
+       WHERE user_id = $1
+         AND is_active = true
+       ORDER BY granted_at ASC
+       LIMIT 1`,
+      [userId]
+    );
+
+    if (existingAccess.rows[0]?.account_id) {
+      return existingAccess.rows[0].account_id;
+    }
+
+    const existingOrganization = await client.query<{ id: string }>(
+      `SELECT id
+       FROM accounts
+       WHERE account_type = 'organization'
+         AND COALESCE(is_active, true) = true
+       ORDER BY created_at ASC
+       LIMIT 1`
+    );
+
+    const accountId =
+      existingOrganization.rows[0]?.id ||
+      (
+        await client.query<{ id: string }>(
+          `INSERT INTO accounts (account_name, account_type, created_by, modified_by)
+           VALUES ($1, 'organization', $2, $2)
+           RETURNING id`,
+          [`E2E Session Org ${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, userId]
+        )
+      ).rows[0].id;
+
+    await client.query(
+      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+       VALUES ($1, $2, 'editor', $1, true)
+       ON CONFLICT (user_id, account_id)
+       DO UPDATE SET access_level = EXCLUDED.access_level,
+                     granted_by = EXCLUDED.granted_by,
+                     is_active = true,
+                     granted_at = CURRENT_TIMESTAMP`,
+      [userId, accountId]
+    );
+
+    return accountId;
+  });
+};
+
 const ensureOrganizationBackedSession = async (
   page: Page,
   email: string,
@@ -1477,7 +1533,19 @@ const ensureOrganizationBackedSession = async (
     return loginResult;
   }
 
-  const createdOrganizationId = await createDefaultOrganizationForSession(page, loginResult.token);
+  let createdOrganizationId: string;
+  try {
+    createdOrganizationId = await createDefaultOrganizationForSession(page, loginResult.token);
+  } catch (error) {
+    const userId = normalizeString(loginResult.user?.id) || normalizeString(loginResult.user?.user_id);
+
+    if (!shouldAllowExternallyManagedAuthFallbacks() || !userId) {
+      throw error;
+    }
+
+    createdOrganizationId = await ensureDatabaseBackedOrganizationAccessForUser(userId);
+  }
+
   const refreshedLogin = await loginViaAPI(page, email, password);
   if (refreshedLogin.organizationId) {
     return refreshedLogin;
@@ -2567,6 +2635,23 @@ export async function ensureLoginViaAPI(
   profile?: { firstName?: string; lastName?: string }
 ): Promise<{ token: string; user: any; organizationId?: string }> {
   const allowExternallyManagedAuthFallbacks = shouldAllowExternallyManagedAuthFallbacks();
+  const cacheEffectiveAdminSessionIfApplicable = (
+    session: { token: string; user: any; organizationId?: string },
+    sessionEmail: string,
+    sessionPassword: string
+  ): void => {
+    if (!isAdminRole(session.user?.role)) {
+      return;
+    }
+
+    writeEffectiveAdminCache(sessionEmail, sessionPassword);
+    writeEffectiveAdminSessionCache({
+      ...session,
+      email: sessionEmail,
+      password: sessionPassword,
+      isAdmin: true,
+    });
+  };
   const attemptLogin = async () => {
     const loginResult = await loginViaAPI(page, email, password);
     return ensureOrganizationBackedSession(page, email, password, loginResult);
@@ -2658,6 +2743,7 @@ export async function ensureLoginViaAPI(
       await ensureSetupComplete(page, email, password, profile);
       try {
         const afterSetup = await attemptLogin();
+        cacheEffectiveAdminSessionIfApplicable(afterSetup, email, password);
         writeReadyAuthCache(email);
         return afterSetup;
       } catch {
@@ -2671,6 +2757,7 @@ export async function ensureLoginViaAPI(
     try {
       await createTestUser(page, { email, password, firstName, lastName });
       const registeredUser = await attemptLogin();
+      cacheEffectiveAdminSessionIfApplicable(registeredUser, email, password);
       writeReadyAuthCache(email);
       return registeredUser;
     } catch (registerError) {
@@ -2687,6 +2774,7 @@ export async function ensureLoginViaAPI(
         try {
           await ensureDatabaseBackedTestUser({ email, password, firstName, lastName });
           const databaseBackedUser = await attemptLogin();
+          cacheEffectiveAdminSessionIfApplicable(databaseBackedUser, email, password);
           invalidateSharedAuthCaches();
           setSharedTestUser({ email, password });
           writeReadyAuthCache(email);
@@ -2710,6 +2798,7 @@ export async function ensureLoginViaAPI(
         // Registration can fail after user creation side-effects; try login once before hard-failing.
         try {
           const loginAfterError = await attemptLogin();
+          cacheEffectiveAdminSessionIfApplicable(loginAfterError, email, password);
           writeReadyAuthCache(email);
           return loginAfterError;
         } catch {
@@ -2720,6 +2809,7 @@ export async function ensureLoginViaAPI(
 
     try {
       const result = await attemptLogin();
+      cacheEffectiveAdminSessionIfApplicable(result, email, password);
       writeReadyAuthCache(email);
       return result;
     } catch (loginError) {
@@ -2758,6 +2848,7 @@ export async function ensureLoginViaAPI(
               fallbackPassword,
               await loginViaAPI(page, fallbackEmail, fallbackPassword)
             );
+            cacheEffectiveAdminSessionIfApplicable(existingFallback, fallbackEmail, fallbackPassword);
             invalidateSharedAuthCaches();
             setSharedTestUser({ email: fallbackEmail, password: fallbackPassword });
             writeReadyAuthCache(fallbackEmail);
@@ -2778,6 +2869,7 @@ export async function ensureLoginViaAPI(
         fallbackPassword,
         await loginViaAPI(page, fallbackEmail, fallbackPassword)
       );
+      cacheEffectiveAdminSessionIfApplicable(result, fallbackEmail, fallbackPassword);
       writeReadyAuthCache(fallbackEmail);
       return result;
     }

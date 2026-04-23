@@ -136,6 +136,7 @@ case "$mode" in
     set_runtime_env API_URL "${API_URL:-http://${E2E_BACKEND_HOST}:${E2E_BACKEND_PORT}}"
     set_runtime_env SKIP_WEBSERVER "1"
     set_runtime_env BYPASS_REGISTRATION_POLICY_IN_TEST "true"
+    set_runtime_env BYPASS_MFA_FOR_TESTS "${BYPASS_MFA_FOR_TESTS:-true}"
     export DB_HOST="${DB_HOST:-127.0.0.1}"
     export DB_PORT="${DB_PORT:-${E2E_DB_PORT:-8002}}"
     export DB_NAME="${DB_NAME:-nonprofit_manager}"

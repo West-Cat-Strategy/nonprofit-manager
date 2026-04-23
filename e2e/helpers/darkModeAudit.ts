@@ -234,6 +234,15 @@ const isSameOriginRuntimeUrl = (url: string): boolean => {
 const isNavigationChurnCancellation = (failure: string): boolean =>
   navigationChurnCancellationPatterns.some((pattern) => pattern.test(failure));
 
+const isNavigationChurnAssetCancellation = (entry: {
+  resourceType: string;
+  url: string;
+  failure: string;
+}): boolean =>
+  isSameOriginRuntimeUrl(entry.url) &&
+  (entry.resourceType === 'script' || entry.resourceType === 'stylesheet') &&
+  isNavigationChurnCancellation(entry.failure);
+
 const ensureRouteTransitionCapture = async (page: Page): Promise<void> => {
   if (instrumentedPages.has(page)) {
     return;
@@ -460,6 +469,13 @@ export async function captureRouteRuntime(
       ...requestFailureRecords
         .filter((entry) => {
           if (isBenignAuthBootstrapCancellation(entry.url, entry.failure, allowAuthBootstrapNoise)) {
+            return false;
+          }
+
+          // Vite-backed route changes can cancel in-flight same-origin module fetches after the next
+          // route shell has already settled. Keep route-health strict on real XHR/fetch failures, but
+          // do not treat these canceled asset loads as app regressions.
+          if (isNavigationChurnAssetCancellation(entry)) {
             return false;
           }
 

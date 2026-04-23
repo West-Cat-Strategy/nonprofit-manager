@@ -30,7 +30,8 @@ The wrapper-driven runtime commands are mode-defining:
 
 - `npm test`, `npm run test:smoke`, `npm run test:ci`, `npm run test:ci:mobile`, `npm run test:headed`, `npm run test:debug`, and `npm run test:ui` always use the Playwright-managed host contract on `127.0.0.1:5173/3001`.
 - `npm run test:docker*` default to the externally managed Docker contract on `127.0.0.1:8005/8004/8006` with `SKIP_WEBSERVER=1`.
-- Those wrapper contracts also pin `BYPASS_REGISTRATION_POLICY_IN_TEST=false` for host runs and `BYPASS_REGISTRATION_POLICY_IN_TEST=true` for docker runs.
+- Those wrapper contracts also pin `BYPASS_REGISTRATION_POLICY_IN_TEST=false` for host runs and `BYPASS_REGISTRATION_POLICY_IN_TEST=true` for docker runs. For the Docker review lane, the already-running backend must also be launched with `NODE_ENV=test`; the wrapper cannot change backend env after the stack is up.
+- Docker dev/review stacks now keep Mailchimp disabled unless you explicitly set `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX`, which prevents the placeholder `.env.development` values from turning admin route-health into false `500` probes.
 
 The wrapper still enforces the host-vs-docker mode contract, but explicit overrides for `BASE_URL`, `API_URL`, `E2E_BACKEND_PORT`, `E2E_FRONTEND_PORT`, `E2E_PUBLIC_SITE_PORT`, and `E2E_DB_PORT` are honored inside that mode. That makes it possible to point `npm run test:docker*` at an alternate externally managed stack such as the repo's isolated smoke project.
 Host wrapper runs now default to fresh Playwright-managed services (`PW_REUSE_EXISTING_SERVER=0`) and let Playwright own the web-server readiness check. The shared runner still preflights ports for every mode, and it preflights HTTP readiness URLs for Docker-backed runs plus explicit host reuse runs so externally managed stacks fail on the real endpoints instead of silently falling back to the default `8005/8004/8006` contract.
@@ -83,7 +84,7 @@ npm run test:report
 - `npm run test:ci:report`: same host CI lane as `npm run test:ci`, but archives the desktop and mobile slice reports under `tmp/e2e-reports/host-ci-*`, exposes a top-level `playwright-report` and `test-results.json` pointer for the report that matches the final lane outcome, and opens that report in the background
 - `npm run test:docker`: run against an already running Docker app stack, defaulting to `8005/8004/8006`
 - `npm run test:docker:smoke`: Chromium smoke slice against Docker-hosted services, defaulting to `8005/8004/8006`
-- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services, defaulting to `8005/8004/8006`, then `npm run test:docker:ci:mobile`
+- `npm run test:docker:ci`: cross-browser functional slice against Docker-hosted services, defaulting to `8005/8004/8006`, excluding the separate fresh starter-only MFA proof, then `npm run test:docker:ci:mobile`
 - `npm run test:docker:ci:mobile`: Mobile Chrome regression slice against Docker-hosted services, defaulting to `8005/8004/8006`
 - `npm run test:docker:audit`: dedicated Chromium dark-mode route audit against Docker-hosted services, defaulting to `8005/8004/8006`
 - `npm run test:report`: open the HTML report
@@ -159,7 +160,7 @@ If the host frontend port is occupied, rerun the host command with `E2E_FRONTEND
 If you want Playwright to target the long-lived Docker development stack instead of starting host processes:
 
 ```bash
-make docker-up-dev
+DEV_NODE_ENV=test DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true make docker-up-dev
 cd e2e
 npm run test:docker:smoke
 npm run test:docker:ci
@@ -179,8 +180,13 @@ These commands assume:
 - Public site: `http://127.0.0.1:8006`
 - `SKIP_WEBSERVER=1`
 - `PW_REUSE_EXISTING_SERVER=1`
+- the review-lane runtime was launched with `DEV_NODE_ENV=test`, `DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true`, and `DEV_BYPASS_MFA_FOR_TESTS=true`
+- Mailchimp stays intentionally unconfigured in Docker dev/review unless you opt in with `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX`
 - `make docker-up-dev` uses the starter-only init path, so a fresh volume lands on `/setup` until the E2E helper completes first-time admin setup
 - Optional mock-data snapshots that explicitly load `database/seeds/003_mock_data.sql` still expose the seeded `admin@example.com` account described below
+
+Plain `make docker-up-dev` remains fine for manual development, but it does not satisfy the full Docker review-lane contract by default because the backend keeps registration policy enforcement when `NODE_ENV` stays on `development`.
+If you do want real Mailchimp behavior in a Docker dev stack, export `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX` explicitly before `make docker-up-dev`; the compose contract no longer inherits the checked-in placeholder values by default.
 
 If you want the repo-root smoke gate instead of the long-lived dev stack, run:
 
@@ -216,9 +222,29 @@ Set `ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` explicitly only when:
 
 - Playwright-managed host runs (`npm test`, `npm run test:smoke`, `npm run test:ci`, headed/debug/UI runs) force `BYPASS_REGISTRATION_POLICY_IN_TEST=false`.
 - In that runtime, E2E helpers create test users through the authenticated admin-managed user path instead of `/api/v2/auth/register`.
-- Wrapper-driven docker runs force `BYPASS_REGISTRATION_POLICY_IN_TEST=true`, which keeps the starter-only first-time setup path plus the seeded-admin direct-registration and shared-user fallback path available.
+- Wrapper-driven docker runs force the test-side `BYPASS_REGISTRATION_POLICY_IN_TEST=true`, but the externally managed backend only honors the direct-registration fallback when that Docker runtime was also launched with `NODE_ENV=test` and `DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true`.
 - Other externally managed runtimes such as ad hoc `SKIP_WEBSERVER=1` runs may still opt into direct registration and shared-user fallback with `BYPASS_REGISTRATION_POLICY_IN_TEST=true`.
 - If an externally managed runtime sets `BYPASS_REGISTRATION_POLICY_IN_TEST=false`, the helpers fall back to the managed-user path instead of the direct-registration path.
+
+## Fresh Starter-Only MFA Proof
+
+The Docker-only `tests/fresh-workspace-multi-user.spec.ts` proof is intentionally separate from the wrapper-driven `npm run test:docker*` family. `npm run test:docker:ci` excludes it, and the generic docker wrapper still pins the test-side MFA bypass flag to `true`.
+
+Run the MFA-enforced proof directly against a fresh starter-only Docker volume instead:
+
+```bash
+cd e2e
+SKIP_WEBSERVER=1 \
+BYPASS_MFA_FOR_TESTS=false \
+BYPASS_REGISTRATION_POLICY_IN_TEST=true \
+BASE_URL=http://127.0.0.1:8005 \
+API_URL=http://127.0.0.1:8004 \
+E2E_DB_PORT=8002 \
+E2E_DB_NAME=nonprofit_manager \
+./node_modules/.bin/playwright test tests/fresh-workspace-multi-user.spec.ts --project=chromium
+```
+
+If you are not using the default Docker dev ports, add the matching `E2E_BACKEND_PORT`, `E2E_FRONTEND_PORT`, and `E2E_PUBLIC_SITE_PORT` overrides too.
 
 ## Remote macOS WebKit Note
 

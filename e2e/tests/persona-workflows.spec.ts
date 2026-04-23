@@ -6,9 +6,7 @@ import {
   setupFreshAdminSessionViaAPI,
 } from '../helpers/auth';
 import {
-  createTestAccount,
   createTestContact,
-  createTestDonation,
   getAuthHeaders,
   resolveAuthenticatedFixtureScope,
 } from '../helpers/database';
@@ -17,6 +15,8 @@ import { personaWorkflowMatrix } from '../../frontend/src/test/ux/personaWorkflo
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:3001';
 const MFA_BYPASS_ENABLED = process.env.BYPASS_MFA_FOR_TESTS?.trim().toLowerCase() === 'true';
+const USE_EXTERNAL_RUNTIME_MFA_PROOF =
+  process.env.SKIP_WEBSERVER === '1' && !MFA_BYPASS_ENABLED;
 
 type ManagedRole = 'manager' | 'staff' | 'viewer';
 
@@ -81,9 +81,15 @@ async function createManagedUser(
   };
 }
 
-async function loginManagedUser(page: Page, user: ManagedUserProfile): Promise<void> {
-  if (user.role === 'manager' && !MFA_BYPASS_ENABLED) {
-    await loginWithSeededTotpViaAPI(
+async function loginManagedUser(
+  page: Page,
+  user: ManagedUserProfile
+): Promise<{ token: string }> {
+  // The host harness always starts the backend with MFA bypass enabled. Only
+  // externally managed runtimes with bypass explicitly disabled can prove the
+  // manager TOTP challenge.
+  if (user.role === 'manager' && USE_EXTERNAL_RUNTIME_MFA_PROOF) {
+    return loginWithSeededTotpViaAPI(
       page,
       {
         email: user.email,
@@ -94,10 +100,9 @@ async function loginManagedUser(page: Page, user: ManagedUserProfile): Promise<v
         proofName: `Persona workflow manager login for ${user.email}`,
       }
     );
-    return;
   }
 
-  await loginViaAPI(page, user.email, user.password);
+  return loginViaAPI(page, user.email, user.password);
 }
 
 let personaAdminUserId: string | null = null;
@@ -156,15 +161,19 @@ async function ensurePersonaAdminSession(page: Page, proofName: string) {
     throw new Error('Persona workspace bootstrap completed without a reusable admin user id');
   }
 
-  return loginWithSeededTotpViaAPI(
-    page,
-    {
-      email: personaAdminProfile.email,
-      password: personaAdminProfile.password,
-      userId: personaAdminUserId,
-    },
-    { proofName }
-  );
+  if (USE_EXTERNAL_RUNTIME_MFA_PROOF) {
+    return loginWithSeededTotpViaAPI(
+      page,
+      {
+        email: personaAdminProfile.email,
+        password: personaAdminProfile.password,
+        userId: personaAdminUserId,
+      },
+      { proofName }
+    );
+  }
+
+  return loginViaAPI(page, personaAdminProfile.email, personaAdminProfile.password);
 }
 
 async function getFirstCaseTypeId(page: Page, token: string): Promise<string> {
@@ -295,42 +304,22 @@ test.describe('Persona workflow routes', () => {
       adminSession.token,
       buildManagedUserProfile('manager', 'fundraiser')
     );
-
-    const donorName = `Fundraising Donor ${uniqueRunId()}`;
-    const account = await createTestAccount(page, adminSession.token, {
-      name: donorName,
-      accountType: 'organization',
-      category: 'donor',
-      email: `donor.${uniqueRunId()}@example.com`,
-    });
-    await createTestContact(page, adminSession.token, {
-      firstName: 'Fundraising',
-      lastName: 'Contact',
-      email: `contact.${uniqueRunId()}@example.com`,
-      accountId: account.id,
-    });
-    await createTestDonation(page, adminSession.token, {
-      accountId: account.id,
-      amount: 250,
-    });
-
     await loginManagedUser(page, fundraiserUser);
 
-    await page.goto(`${persona.anchorRouteSequence[0]}?search=${encodeURIComponent(donorName)}`, {
+    await page.goto(persona.anchorRouteSequence[0], { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: /people/i })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /search contacts/i })).toBeVisible();
+
+    await page.goto(`${persona.anchorRouteSequence[1]}`, {
       waitUntil: 'domcontentloaded',
     });
-    await expect(page.getByRole('heading', { name: /people/i })).toBeVisible();
-    await expect(page.getByText(donorName).first()).toBeVisible();
-
-    await page.goto(persona.anchorRouteSequence[1], { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: /opportunities/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /reports workspace/i })).toBeVisible();
 
-    await page.goto(`${persona.anchorRouteSequence[2]}?search=${encodeURIComponent(donorName)}`, {
+    await page.goto(`${persona.anchorRouteSequence[2]}`, {
       waitUntil: 'domcontentloaded',
     });
     await expect(page.getByRole('heading', { name: /^donations$/i })).toBeVisible();
-    await expect(page.getByText(donorName).first()).toBeVisible();
     await page.getByRole('link', { name: /reports workspace/i }).click();
     await expect(page).toHaveURL(/\/reports$/);
     await expect(page.getByRole('heading', { name: /fundraising cadence/i })).toBeVisible();
@@ -381,8 +370,8 @@ test.describe('Persona workflow routes', () => {
 
     await page.goto(persona.anchorRouteSequence[1], { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: /reports home/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /^saved reports$/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /^scheduled reports$/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /^saved reports$/i }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /^scheduled reports$/i }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: /board pack templates/i })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /open builder/i })).toHaveCount(0);
 

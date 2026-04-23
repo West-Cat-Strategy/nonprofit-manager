@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchContacts, deleteContact } from '../state';
@@ -95,6 +95,7 @@ export const useContactListPage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const lastSyncedSearchParamsRef = useRef<string | null>(null);
   const { contacts, loading, error, pagination } = useAppSelector(resolveContactListState);
   const initialRoleFilter = normalizeRoleFilter(searchParams.get('type'));
 
@@ -158,6 +159,11 @@ export const useContactListPage = () => {
   }, [currentPage, debouncedSearchInput, roleFilter, activeFilter, sortBy, sortOrder, deselectAll]);
 
   useEffect(() => {
+    const nextSearchParamsString = searchParams.toString();
+    if (lastSyncedSearchParamsRef.current === nextSearchParamsString) {
+      return;
+    }
+
     const nextSearchInput = searchParams.get('search') || '';
     const nextRoleFilter = normalizeRoleFilter(searchParams.get('type'));
     const nextActiveFilter =
@@ -179,6 +185,7 @@ export const useContactListPage = () => {
     if (currentLimit !== 20) params.set('limit', String(currentLimit));
     if (sortBy !== 'created_at') params.set('sort_by', sortBy);
     if (sortOrder !== 'desc') params.set('sort_order', sortOrder);
+    lastSyncedSearchParamsRef.current = params.toString();
     setSearchParams(params, { replace: true });
   }, [searchInput, roleFilter, activeFilter, currentPage, currentLimit, sortBy, sortOrder, setSearchParams]);
 

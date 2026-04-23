@@ -1,6 +1,6 @@
 # Phase 5 Testing Strategy Review
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-23
 
 
 **Date:** 2026-04-20  
@@ -8,18 +8,19 @@
 
 ## Status
 
-Phase 5's full Playwright/E2E and testing-strategy review is still in progress.
+Phase 5's full Playwright/E2E and testing-strategy review is still in progress, but the `P5-T2B` gate is now narrowed to one remaining broad Docker-matrix rerun.
 
-The shared validation lane remains materially healthier than it was on 2026-04-20, and the targeted `P5-T5` portal forms slice is now green in backend, frontend, docs, and focused Playwright proof.
+The host coverage blocker that was active on 2026-04-22 is cleared in targeted proof, the `P5-T2C` remediation slice is functionally proof-complete, the auth-alias operations handoff is published, and the Docker smoke and dark-mode audit follow-ons are green on the corrected Docker review contract.
 
 - `make ci-full` remains self-sufficient for lint, UI audit, typecheck, backend coverage, and frontend coverage without manual shell exports.
 - The earlier broad host regressions in `admin`, `analytics`, `auth`, `contacts`, `donations`, and `events` have been fixed in the current tree and revalidated in their targeted slices.
 - The host Playwright launcher still survives locally occupied frontend ports by auto-falling back off `5173` instead of killing unrelated system listeners.
 - The isolated Docker smoke gate is still green after explicit startup-failure cleanup hardening.
 - The volunteer/contact-scope and database-config blockers are now fixed and green in their narrow backend proofs.
-- The latest 2026-04-22 host rerun now stops earlier in lint/policy checks on a fresh UI audit baseline mismatch: expected `1262/9443/58`, got `1262/9391/58`.
+- The 2026-04-23 backend coverage repro passed with `223` suites and `1874` tests, and the later host rerun re-proved backend coverage, frontend coverage, and the changed host Playwright slices before it was intentionally stopped.
+- The full Docker CI matrix has been attempted repeatedly on the corrected review stack, but it has not completed end-to-end in this session. Every reproduced failure so far now has targeted green proof: route-health `/outreach`, portal case-detail auth-bootstrap noise, persona MFA-bypass handling, contact filter URL sync, and dashboard startup duplicate analytics fetches.
 
-Because the host lane is not yet green, the fresh-volume Docker MFA proof for `tests/fresh-workspace-multi-user.spec.ts` and the broader Docker follow-ons (`npm run test:docker:ci`, `npm run test:docker:audit`) remain intentionally pending.
+The remaining `P5-T2B` next step is a clean uninterrupted `cd e2e && npm run test:docker:ci` rerun from the corrected Docker review contract, followed by final workboard promotion if it stays green.
 
 ## Environment Notes
 
@@ -30,6 +31,9 @@ Because the host lane is not yet green, the fresh-volume Docker MFA proof for `t
 - The host Playwright backend startup now opts into `DB_REUSE_IF_READY=1`, so a ready isolated test DB can be reused instead of always forcing a Docker-backed rebuild during the `webServer` bootstrap.
 - `tests/fresh-workspace-multi-user.spec.ts` is a Docker-only proof. It requires `SKIP_WEBSERVER=1`, `BYPASS_MFA_FOR_TESTS=false`, and a truly fresh starter-only Docker volume.
 - The 2026-04-22 host rerun used `E2E_FRONTEND_PORT=5317` and refreshed the checked-in UI audit baseline after legitimate repo-wide style-count drift.
+- The Docker review wrapper now exports `BYPASS_MFA_FOR_TESTS=true` by default in Docker mode, while preserving an explicit `BYPASS_MFA_FOR_TESTS=false` override for the separate fresh-workspace MFA proof.
+- Docker dev/review stacks now keep Mailchimp unconfigured by default unless `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX` are explicitly set, so checked-in placeholder credentials no longer produce false configured-provider failures.
+- The latest corrected Docker review stack used `18804` backend, `18805` frontend, `18806` public site, and `18802` Postgres with blank Mailchimp env and `BYPASS_MFA_FOR_TESTS=true`.
 
 ## Command Log
 
@@ -134,6 +138,40 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
 ```
 
   - Contacts coverage had advanced into `tests/contacts.spec.ts` before the rerun was stopped, but the earlier contacts failures were not re-confirmed in this shorter pass.
+- `cd frontend && npm test -- --run src/features/builder/pages/__tests__/useBuilderSiteContext.test.tsx src/features/builder/pages/__tests__/usePageEditorKeyboardShortcuts.test.tsx src/features/builder/pages/__tests__/usePageEditorController.test.tsx`
+  - Result: Passed on 2026-04-23 for the `P5-T2C` builder remediation closeout proof.
+- `cd backend && npm test -- --runInBand src/__tests__/services/scheduledReportService.test.ts src/__tests__/services/reportTemplateService.test.ts`
+  - Result: Passed on 2026-04-23 for the `P5-T2C` scheduled-report and report-template closeout proof.
+- `cd frontend && npm run type-check`
+  - Result: Passed on 2026-04-23 for the `P5-T2C` closeout proof and again after the Docker review fixes.
+- `cd backend && npm run type-check`
+  - Result: Passed on 2026-04-23 for the `P5-T2C` closeout proof.
+- `cd backend && REDIS_URL=redis://redis:6379 NODE_OPTIONS=--max-old-space-size=8192 SKIP_INTEGRATION_DB_PREP=1 npm run test:coverage`
+  - Result: Passed on 2026-04-23. Backend coverage completed with `223` suites and `1874` tests green.
+- `make test-coverage-full`
+  - Result: Partially rerun on 2026-04-23. Backend coverage, frontend coverage, and the changed host Playwright slices re-proved green before the command was intentionally stopped because the earlier same-day full host Playwright artifact was already green and the Docker follow-ons needed the remaining time.
+- `node scripts/check-auth-guard-policy.ts`
+  - Result: Passed on 2026-04-23 after the auth-alias operations handoff update.
+- `node scripts/check-rate-limit-key-policy.ts`
+  - Result: Passed on 2026-04-23 after the auth-alias operations handoff update.
+- `make test-e2e-docker-smoke`
+  - Result: Passed on 2026-04-23 against an isolated smoke stack. `4` Chromium smoke/public-website tests passed.
+- `cd e2e && SKIP_WEBSERVER=1 BYPASS_MFA_FOR_TESTS=false BYPASS_REGISTRATION_POLICY_IN_TEST=true E2E_DB_NAME=nonprofit_manager ... ./node_modules/.bin/playwright test tests/fresh-workspace-multi-user.spec.ts --project=chromium`
+  - Result: Passed on 2026-04-23 against a fresh starter-only Docker stack. This remains intentionally separate from `test:docker:ci`.
+- `cd e2e && E2E_BACKEND_PORT=18804 E2E_FRONTEND_PORT=18805 E2E_PUBLIC_SITE_PORT=18806 E2E_DB_PORT=18802 BASE_URL=http://127.0.0.1:18805 API_URL=http://127.0.0.1:18804 npm run test:docker -- tests/link-health.spec.ts --project=chromium --grep 'loads /outreach|loads /portal/cases/:id' --retries=0`
+  - Result: Passed on 2026-04-23 after fixing the outreach key warning and allowing expected auth-bootstrap noise for the portal case-detail route-health assertion.
+- `cd e2e && E2E_BACKEND_PORT=18804 E2E_FRONTEND_PORT=18805 E2E_PUBLIC_SITE_PORT=18806 E2E_DB_PORT=18802 BASE_URL=http://127.0.0.1:18805 API_URL=http://127.0.0.1:18804 npm run test:docker -- tests/persona-workflows.spec.ts --project=chromium --grep 'fundraiser-prospect-research-to-pipeline' --retries=0`
+  - Result: Passed on 2026-04-23 after aligning Docker wrapper MFA-bypass env with the review-stack runtime contract.
+- `cd e2e && E2E_BACKEND_PORT=18804 E2E_FRONTEND_PORT=18805 E2E_PUBLIC_SITE_PORT=18806 E2E_DB_PORT=18802 BASE_URL=http://127.0.0.1:18805 API_URL=http://127.0.0.1:18804 npm run test:docker -- tests/contacts.spec.ts --project=chromium --retries=0`
+  - Result: Passed on 2026-04-23. `18` Chromium contacts tests passed after fixing contact-list URL sync and tightening the E2E filter flow.
+- `cd e2e && E2E_BACKEND_PORT=18804 E2E_FRONTEND_PORT=18805 E2E_PUBLIC_SITE_PORT=18806 E2E_DB_PORT=18802 BASE_URL=http://127.0.0.1:18805 API_URL=http://127.0.0.1:18804 npm run test:docker -- tests/auth.spec.ts --project=chromium --grep 'dashboard startup loads workbench summary endpoints without duplicate refetches' --retries=0`
+  - Result: Passed on 2026-04-23 after deferring dashboard lane loading until an authenticated user id is available.
+- `cd frontend && npm test -- --run src/features/dashboard/context/__tests__/DashboardDataContext.test.tsx src/features/dashboard/pages/__tests__/WorkbenchDashboardPage.test.tsx src/features/contacts/pages/__tests__/ContactListPage.test.tsx src/features/neoBrutalist/pages/__tests__/OutreachCenterPage.test.tsx`
+  - Result: Passed on 2026-04-23. `14` tests passed across dashboard context, workbench, contacts, and outreach coverage.
+- `cd e2e && E2E_BACKEND_PORT=18804 E2E_FRONTEND_PORT=18805 E2E_PUBLIC_SITE_PORT=18806 E2E_DB_PORT=18802 BASE_URL=http://127.0.0.1:18805 API_URL=http://127.0.0.1:18804 npm run test:docker:audit`
+  - Result: Passed on 2026-04-23. The dark-mode accessibility audit covered all cataloged routes in `3.1m`.
+- `cd e2e && E2E_BACKEND_PORT=18804 E2E_FRONTEND_PORT=18805 E2E_PUBLIC_SITE_PORT=18806 E2E_DB_PORT=18802 BASE_URL=http://127.0.0.1:18805 API_URL=http://127.0.0.1:18804 npm run test:docker:ci`
+  - Result: Attempted multiple times on 2026-04-23 but not completed end-to-end. Each reproduced failure was narrowed and fixed in targeted proof; the final broad rerun still needs to be repeated after the dashboard duplicate-fetch fix.
 
 ## Host Vs Docker Runtime Observations
 
@@ -144,6 +182,9 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
 - Host-mode Playwright serves published-site requests through the main backend runtime on `127.0.0.1:3001`, so public-site form submission in this mode depends on the backend route stack allowing same-host origins for `/api/v2/public/*` and `/api/v2/sites/:siteId/track`.
 - The isolated Docker smoke gate is now back to green.
 - The fresh-workspace MFA proof is not a host-lane responsibility. It belongs to an externally managed Docker runtime with MFA bypass disabled and a fresh starter-only volume.
+- Docker review stacks now default Mailchimp off instead of inheriting checked-in placeholder credentials from `.env.development`.
+- The Docker wrapper now makes the review-stack MFA bypass explicit for normal `test:docker:*` commands, while the fresh-workspace MFA proof can still opt out by running directly with `BYPASS_MFA_FOR_TESTS=false`.
+- Route-runtime capture now ignores same-origin `ERR_ABORTED` script/stylesheet cancellations from benign Vite navigation churn, while still failing on real page errors, console errors, and failed responses.
 
 ## Coverage And Blind Spots
 
@@ -152,14 +193,15 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
 - The targeted Phase 5 regressions in avatar persistence, legacy admin redirects, analytics templates, workbench auth startup, contacts filters/merge/delete/pagination, donations receipts/filters, and events hybrid check-in all now have green targeted proof in the host runtime.
 - The public `/accept-invitation/:token` surface now behaves cleanly for placeholder preview tokens, which removes the route-health false negative without weakening real-token validation.
 - The smoke-stack startup failure mode is hardened, but the broader Docker cross-browser and audit lanes are still pending.
-- The current host-lane blind spot is now an owning-surface UI audit mismatch rather than runner instability or backend contract drift.
-- The fresh-volume MFA proof is still excluded from the host matrix and still valid as a Docker concern, but it has not been rerun in this pass because the host lane stopped on the new blockers first.
+- The Docker smoke gate, fresh-volume MFA proof, and Docker dark-mode audit are green in current proof.
+- The remaining blind spot is not a known failing targeted seam; it is the absence of one uninterrupted `npm run test:docker:ci` artifact after the final dashboard duplicate-fetch fix.
+- The final broad Docker CI attempts surfaced real or test-contract issues in route health, persona MFA handling, contacts filter sync, and dashboard startup fetching. Those are now fixed and targeted-green, but the full matrix should still be rerun before promoting `P5-T2B` to review.
 
 ## Recommended Next Steps
 
-1. Route the fresh UI audit baseline mismatch (`Expected 1262/9443/58, got 1262/9391/58`) back to the owning frontend/style surface, then rerun `E2E_FRONTEND_PORT=5317 make ci-full`.
-2. Only after the host lane is green again, bring up a separate fresh starter-only Docker project for `tests/fresh-workspace-multi-user.spec.ts` using isolated ports and `BYPASS_MFA_FOR_TESTS=false`, rather than reusing the long-lived dev volume.
-3. Once the host rerun and fresh-volume MFA proof are both green, continue with `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`, then refresh the Phase 5 validation/workboard artifacts one more time.
+1. Rerun `cd e2e && npm run test:docker:ci` from the corrected Docker review contract after the final dashboard duplicate-fetch fix. If it passes, promote `P5-T2B` to review.
+2. If the rerun surfaces another failure, keep the fix in the owning Docker/E2E or frontend/backend runtime seam and add targeted proof here before another broad attempt.
+3. Keep the fresh-workspace MFA proof separate from `test:docker:ci`; it should continue to run only against a fresh starter-only stack with `BYPASS_MFA_FOR_TESTS=false`.
 
 ## Implications For Phase 5 Waves
 

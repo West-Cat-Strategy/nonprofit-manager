@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 import {
-  getConfiguredAdminCredentials,
   isCompatibleAdminAuthBootstrapCache,
   resolveDefaultAdminCredentialProfiles,
 } from '../helpers/auth';
@@ -42,10 +41,13 @@ test.describe('Admin Bootstrap Contract', () => {
   });
 
   test('Playwright-managed host admin rejects stale docker bootstrap cache state', () => {
-    const primary = getConfiguredAdminCredentials();
+    const hostContract = {
+      email: 'admin@example.com',
+      password: 'Admin123!@#',
+    };
 
     expect(
-      isCompatibleAdminAuthBootstrapCache(primary, {
+      isCompatibleAdminAuthBootstrapCache(hostContract, {
         admin: { email: 'admin@example.com', password: 'password123' },
         session: {
           email: 'admin@example.com',
@@ -57,10 +59,13 @@ test.describe('Admin Bootstrap Contract', () => {
   });
 
   test('Playwright-managed host admin keeps the Admin123!@# cache contract', () => {
-    const primary = getConfiguredAdminCredentials();
+    const hostContract = {
+      email: 'admin@example.com',
+      password: 'Admin123!@#',
+    };
 
     expect(
-      isCompatibleAdminAuthBootstrapCache(primary, {
+      isCompatibleAdminAuthBootstrapCache(hostContract, {
         admin: { email: 'admin@example.com', password: 'Admin123!@#' },
         session: {
           email: 'admin@example.com',

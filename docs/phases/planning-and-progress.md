@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-23
 
 ## At a Glance
 
@@ -11,9 +11,9 @@
 | Snapshot | Value |
 |---|---|
 | Active rows | 11 |
-| In Progress | 5 |
+| In Progress | 4 |
 | Blocked | 0 |
-| Review | 2 |
+| Review | 3 |
 | Ready | 4 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
@@ -41,8 +41,7 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| In Progress | P5-T2B | Shared validation lane stabilization | The repo-local lane contract, stale host expectations, the volunteer/contact-scope blocker, the database-config expectation drift, the fresh UI audit mismatch, and the red backend dependency audit are now fixed in the current tree: `docs/ui/archive/app-ux-audit.json` is refreshed to `1262/9403/58`, `make security-scan` plus the auth and rate-limit policy scripts are green, and the smallest shared frontend coverage helper landed by widening the CI/coverage timeout budget. The latest 2026-04-22 host reruns still are not green, though: one rerun was invalidated by a local coverage-directory collision, the next exposed a broad frontend coverage timeout wave that the helper addresses in targeted proof, and the latest follow-on rerun now stops during backend `npm run test:coverage`. Triage the remaining shared coverage blocker, then finish the auth-alias operations handoff, fresh Docker MFA proof, and Docker cross-browser/audit follow-ons. |
-| In Progress | P5-T2C | Review findings remediation | Keep this row tightly scoped to the surfaced code-review findings only: fix the stale builder site-context bug, add direct builder shortcut and site-context regression coverage, close the scheduled-report helper/service proof gap, and make the report-template validator and seed-failure behavior visibly proved. Rerun the targeted backend/frontend suites plus package type-checks, then hand the remaining shared host coverage triage, auth-alias/security operations follow-through, wider email-wave follow-through, and the report/portal persona-proof timeout lane back to `P5-T2B`, `P5-T3`, and `P5-T2D`. |
+| In Progress | P5-T2B | Shared validation lane stabilization | The host coverage blocker, auth-alias operations handoff, fresh starter-only Docker MFA proof, Docker smoke gate, and Docker dark-mode audit are now green in targeted proof. The corrected Docker review contract keeps Mailchimp opt-in, exports MFA bypass for normal Docker review runs, and fixes the reproduced `/outreach`, portal case-detail, persona MFA, contact filter URL-sync, and dashboard duplicate-fetch failures. Do not promote this row yet: one uninterrupted `cd e2e && npm run test:docker:ci` artifact is still missing after the final dashboard fix. Rerun that matrix next and only widen if it surfaces a new owning-seam failure. |
 | In Progress | P5-T3 | Email platform wave: blast email plus email builder/formatter | Keep the coordinated email wave active while the current pickup stays behavior-preserving inside the `frontend-email-builder` lane: the persistence/autosave cluster is now extracted out of `usePageEditorController`, targeted builder tests plus frontend type-check are green, and the next widening step is broader email-wave preview/QA/scheduling/delivery follow-through once `P5-T2B` clears the shared gate. |
 | In Progress | P5-T5 | Client portal wave | The first portal forms slice remains green in targeted backend/frontend/docs/E2E proof, and the next scoped pickup is now landed in targeted backend/frontend proof: `/api/v2/portal/appointments*` plus `/portal/appointments` are case-aware with selected-case summary cues, case number/title on appointment cards, pointperson context, and quick links back to the case workspace and messages. Keep the next proof step narrow: finish the focused portal Playwright/browser follow-through once `P5-T2B` clears, then choose the next portal slice without widening beyond current route seams. |
 | In Progress | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) as the canonical later-wave backlog artifact, and treat the repo-by-repo OSS benchmark review wave as complete. Keep the six-project cohort cloned under local-only `reference-repos/external/`, keep the runtime and pattern findings current in [../development/reference-patterns/P5-T6-oss-benchmark/adoption-spec.md](../development/reference-patterns/P5-T6-oss-benchmark/adoption-spec.md) plus [../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md](../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md), then publish five analysis-only capability briefs through the coordinated synthesis lanes: `fundraising-ops-brief` (`PAT-01`, `PAT-02`, `PAT-03`, boundary into `PAT-07`), `portal-ops-brief` (`PAT-04`, `PAT-05`, `PAT-06`), `volunteer-dispatch-brief` (`PAT-14`), `finance-membership-brief` (`PAT-09`, `PAT-10`, `PAT-11`), and `workflow-program-ops-brief` (`PAT-08`, `PAT-12`, `PAT-13`). Use those briefs to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit, then continue the explicit queued `P5-T6A` governance/compliance oversight, `P5-T6B` fundraising stewardship/restrictions, and `P5-T6C` service-delivery workflow-depth briefs after the `P5-T3` and `P5-T5` handoffs. Runtime implementation still stays blocked on the active product waves. |
@@ -51,7 +50,8 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| Review | P5-T2A | Testing-strategy review artifact and findings | Keep [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) as the canonical artifact while `P5-T2B` resolves the remaining shared coverage blocker in the host lane, then finishes the auth-alias operations handoff, fresh-volume Docker MFA proof, and Docker cross-browser/audit follow-through. |
+| Review | P5-T2A | Testing-strategy review artifact and findings | Keep [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) as the canonical artifact while `P5-T2B` finishes the last broad Docker CI rerun. Host coverage, auth-alias handoff, fresh-volume Docker MFA proof, Docker smoke, and Docker audit are green in targeted proof; the remaining artifact gap is one uninterrupted `npm run test:docker:ci` pass after the final dashboard duplicate-fetch fix. |
+| Review | P5-T2C | Review findings remediation | Treat this row as functionally proof-complete and keep it tightly scoped to the surfaced review findings only: the targeted builder remediation tests, scheduled-report proof, report-template proof, and backend/frontend package type-checks are green in the current tree. Keep optional hardening ideas deferred unless a future `P5-T2B` rerun points back here, then leave the remaining shared host coverage triage, auth-alias/security operations follow-through, wider email-wave follow-through, and the report/portal persona-proof timeout lane with `P5-T2B`, `P5-T3`, and `P5-T2D`. |
 | Review | P5-T4 | Website surfaces wave: website builder plus public website | Use [../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md](../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md) as the row-local proof note for the one-form managed publish loop. Final broad signoff still depends on `P5-T2B`. |
 
 ### Ready Queue
@@ -72,9 +72,9 @@ Maintenance rules:
 ## Current Phase Shape
 
 - The Phase 5 docs, archive, benchmark, and persona-skill refresh is complete and archived in [archive/P5-T1_CLOSEOUT_2026-04-20.md](archive/P5-T1_CLOSEOUT_2026-04-20.md).
-- Phase 5 is still inside the shared Playwright/E2E and testing-strategy review lane, but the remaining work is now concentrated in targeted owning-surface follow-through from the latest host reruns plus the final Docker proof sequence rather than the earlier UI-audit or dependency-audit regressions. The volunteer/contact-scope, database-config, UI-audit, and red security-baseline blockers are cleared; the host lane now needs shared coverage triage to finish the rerun.
-- `P5-T2C` is the dedicated review-findings remediation row: it closes the stale builder site-context bug and the newly surfaced backend/frontend proof gaps, but it does not clear the remaining `P5-T2B` shared coverage blocker, the broader `P5-T3` email-wave follow-through, or `P5-T4`'s dependency on shared signoff. The newly surfaced report and portal persona-proof timeouts now sit in `P5-T2D` so this row stays tightly scoped.
-- Security hardening now belongs inside `P5-T2B`, not as a fourth product wave: the deliberate backend `exceljs -> uuid` remediation is landed and the live security baseline is green again, but the auth-alias operational handoff is still queued behind the shared host gate and the active email/portal slices must keep permission, PII/audit, rate-limit, and SSRF proof current through the published [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md).
+- Phase 5 is still inside the shared Playwright/E2E and testing-strategy review lane, but the remaining work is now concentrated in one final Docker CI artifact rather than the earlier UI-audit, dependency-audit, or backend coverage regressions. The volunteer/contact-scope, database-config, UI-audit, red security-baseline, backend coverage, auth-alias operations, fresh Docker MFA, Docker smoke, and Docker audit blockers are cleared in targeted proof.
+- `P5-T2C` is now in `Review`: the stale builder site-context fix, extracted builder shortcut/site-context proof, scheduled-report helper/service proof, and report-template negative-path proof are green in the current tree alongside backend/frontend package type-checks. Keep optional hardening ideas deferred unless a future `P5-T2B` rerun points directly back here, and leave the remaining shared host coverage triage, broader email-wave follow-through, and persona-proof timeout work with `P5-T2B`, `P5-T3`, and `P5-T2D`.
+- Security hardening now belongs inside `P5-T2B`, not as a fourth product wave: the deliberate backend `exceljs -> uuid` remediation is landed, the live security baseline is green again, and the auth-alias operational handoff is published. The active email/portal slices must keep permission, PII/audit, rate-limit, and SSRF proof current through the published [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md).
 - Product execution then centers on blast email plus the email builder/formatter, website builder plus public website, and the client portal.
 - The first `P5-T5` portal forms inbox slice is now green in targeted backend/frontend/docs/E2E proof, and the next named portal slice, case-aware appointments continuity, is now landed in targeted backend/frontend proof while shared broad signoff still stays with `P5-T2B`.
 - Follow-on backlog from repo review and external benchmarking now stays visible through explicit queued `P5-T6` briefs rather than a summary-only artifact. The repo-by-repo OSS benchmark review wave is now complete, and the next `P5-T6` planning move is the capability-based adoption-brief sequence: `fundraising-ops-brief`, `portal-ops-brief`, `volunteer-dispatch-brief`, `finance-membership-brief`, and `workflow-program-ops-brief`. The current persona gaps review still adds three concrete queued later briefs: `P5-T6A` governance/compliance oversight, `P5-T6B` fundraising stewardship/restrictions, and `P5-T6C` service-delivery workflow depth.
@@ -146,7 +146,7 @@ Maintenance rules:
   Frontend lanes: none
   Other lanes: `fundraising-ops-brief`, `portal-ops-brief`, `volunteer-dispatch-brief`, `finance-membership-brief`, `workflow-program-ops-brief`
   Integration owner: Codex
-- Coordinated exception, 2026-04-22: `P5-T2C` is split across focused remediation lanes while shared route/workboard seams stay lead-owned.
+- Coordinated exception, 2026-04-22: `P5-T2C` proof from the focused remediation lanes is landed and now sits in review while shared route/workboard seams stay lead-owned.
   Lead: Codex
   Backend lanes: `scheduled-reports-proof`, `report-template-proof`
   Frontend lanes: `frontend-builder-remediation`
@@ -159,7 +159,7 @@ Maintenance rules:
   Expected tests: `make security-scan`, `node scripts/check-auth-guard-policy.ts`, `node scripts/check-rate-limit-key-policy.ts`, plus the narrowest auth, portal, payments, reconciliation, SSRF, or webhook suites touched by the lane
   Handoff notes: summarize dependency-scan status, operational dashboard or policy changes, and any follow-up the active email or portal lanes must carry
   Docs ownership: lane
-  Disposition: `In Progress`
+  Disposition: `Review`
 - Lane: `portal-forms-contract`
   Goal: make the assignment-backed portal forms payload the canonical inbox contract and expose case-aware summary metadata without widening shared route seams
   Owned paths: `backend/src/modules/portal/**`, `backend/src/modules/cases/usecases/caseForms.usecase.portal.ts`, `backend/src/modules/cases/repositories/caseFormsRepository.ts`, `backend/src/validations/caseForms.ts`
@@ -223,7 +223,7 @@ Maintenance rules:
   Expected tests: targeted builder hook/controller coverage plus `cd frontend && npm run type-check`
   Handoff notes: summarize site-context clearing behavior, shortcut behavior, and any editor-state assumptions
   Docs ownership: lead
-  Disposition: `In Progress`
+  Disposition: `Review`
 - Lane: `scheduled-reports-proof`
   Goal: make the scheduled-report helper split fully test-covered without changing runtime contracts
   Owned paths: `backend/src/modules/scheduledReports/**`, `backend/src/__tests__/services/scheduledReport*.test.ts`
@@ -231,7 +231,7 @@ Maintenance rules:
   Expected tests: targeted scheduled-report unit coverage plus `cd backend && npm run type-check`
   Handoff notes: summarize newly covered branches and any residual untestable paths
   Docs ownership: lead
-  Disposition: `In Progress`
+  Disposition: `Review`
 - Lane: `report-template-proof`
   Goal: make the report-template validator split and seed behavior visibly proved through negative-path tests
   Owned paths: `backend/src/modules/reports/services/reportTemplate*.ts`, `backend/src/__tests__/services/reportTemplateService.test.ts`
@@ -239,7 +239,7 @@ Maintenance rules:
   Expected tests: targeted report-template service coverage plus `cd backend && npm run type-check`
   Handoff notes: summarize negative-path coverage and any deferred validation hardening
   Docs ownership: lead
-  Disposition: `In Progress`
+  Disposition: `Review`
 - Lane: `docs-email-wave`
   Goal: align product/docs/testing language with the active blast-email authoring, preview, formatting, and delivery wave
   Owned paths: `docs/product/product-spec.md`, `docs/features/FEATURE_MATRIX.md`, `docs/features/TEMPLATE_SYSTEM.md`, `docs/testing/TESTING.md`
@@ -310,8 +310,8 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | ID | Task | Status | Owner | Next Step / Blocker | Evidence |
 |---|---|---|---|---|---|
 | P5-T2A | Testing-strategy review artifact and findings | Review | Codex | The Phase 5 testing-strategy review artifact is published. Keep the validation note current as reruns land, but leave the remaining runtime stabilization and failure triage to `P5-T2B`. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
-| P5-T2B | Shared validation lane stabilization | In Progress | Codex | The repo-local lane contract is now baked in, smoke cleanup is hardened, UI audit drift is refreshed to `1262/9403/58`, stale host expectations are aligned, the avatar / contacts / donations / events regressions are fixed, and the live security baseline is green again after the deliberate backend `exceljs -> uuid` remediation. The smallest shared frontend coverage helper is also landed by widening the CI/coverage timeout budget, and targeted proof for that helper plus the owning email/portal slices is green. The shared host rerun still is not closed, though: one rerun was invalidated by a local coverage-directory collision, the next exposed a broad frontend coverage timeout wave, and the latest 2026-04-22 follow-on rerun now stops during backend `npm run test:coverage`. Triage the remaining shared coverage blocker, then finish the auth-alias operations handoff, fresh-workspace MFA proof, `npm run test:docker:ci`, `npm run test:docker:audit`, and final validation closeout. | [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md) |
-| P5-T2C | Review findings remediation | In Progress | Codex | Keep this row tightly scoped to the surfaced review findings only: the active pickup is the coordinated `frontend-builder-remediation`, `scheduled-reports-proof`, and `report-template-proof` lanes, covering the stale builder site-context bug, direct builder shortcut/site-context regression coverage, the scheduled-report helper/service proof gap, and visible negative-path proof for the report-template validator plus seed-failure behavior. Rerun the targeted backend/frontend suites plus package type-checks, then hand the remaining shared host coverage triage, queued auth-alias/security operations follow-through, wider email-wave preview/QA/scheduling/delivery work, and the report/portal persona-proof timeout lane back to `P5-T2B`, `P5-T3`, and `P5-T2D`. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
+| P5-T2B | Shared validation lane stabilization | In Progress | Codex | Host coverage, the auth-alias operations handoff, fresh-workspace MFA proof, Docker smoke, and Docker audit are now green in targeted proof. The corrected Docker review contract keeps Mailchimp off by default, exports MFA bypass for normal Docker review runs, and fixes every reproduced broad-matrix failure so far: `/outreach` route-health, portal case-detail auth-bootstrap noise, persona MFA-bypass handling, contact filter URL sync, and dashboard duplicate analytics fetches. Keep this row in progress until one uninterrupted `cd e2e && npm run test:docker:ci` artifact passes after the final dashboard fix, then promote to review. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
+| P5-T2C | Review findings remediation | Review | Codex | Treat this row as functionally proof-complete and keep it tightly scoped to the surfaced review findings only: the coordinated `frontend-builder-remediation`, `scheduled-reports-proof`, and `report-template-proof` lanes are green in the current tree, the targeted builder/backend service reruns are passing, and backend/frontend package type-checks are clean. Keep optional hardening ideas deferred unless a future `P5-T2B` rerun points back here, then leave the remaining shared host coverage triage, queued auth-alias/security operations follow-through, wider email-wave preview/QA/scheduling/delivery work, and the report/portal persona-proof timeout lane with `P5-T2B`, `P5-T3`, and `P5-T2D`. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
 | P5-T2D | Persona proof lane stabilization | Ready | Codex | Root-cause the currently timed-out report and portal page tests in the narrow persona-proof slice, restore a green route/report/portal persona lane, and feed any remaining host-only drift back to `P5-T2B` instead of treating it as persona-support regression. | [../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) |
 | P5-T4 | Website surfaces wave: website builder plus public website | Review | Codex | The one-form managed public publish-loop proof is now green across the website console, builder, publish flow, and public runtime. Keep the row in `Review` while `P5-T2B` finishes the broader host-plus-Docker validation lane. | [../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md](../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md) |
 | P5-T3 | Email platform wave: blast email plus email builder/formatter | In Progress | Codex | Keep `/api/v2/mailchimp/*` as the outbound contract while the current builder pickup stays behavior-preserving and builder-local. The persistence/autosave cluster is now extracted out of `usePageEditorController`, targeted builder coverage plus `cd frontend && npm run type-check` are green, and the next widening step is broader email authoring, preview, QA, scheduling, and delivery follow-through once `P5-T2B` clears the shared gate. Any send, schedule, preview, or outbound integration widening must keep targeted route-security, preview-sanitization, and SSRF-sensitive integration proof current. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |

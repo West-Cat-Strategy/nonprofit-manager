@@ -10,6 +10,11 @@ x-backend-dev-env: &backend-dev-env
   DB_PASSWORD: nonprofit_app_password
   BYPASS_REGISTRATION_POLICY_IN_TEST: ${DEV_BYPASS_REGISTRATION_POLICY_IN_TEST:-false}
   BYPASS_MFA_FOR_TESTS: ${DEV_BYPASS_MFA_FOR_TESTS:-false}
+  # Keep Mailchimp opt-in for Docker dev/review stacks. The checked-in `.env.development`
+  # placeholders are intentionally non-functional and can otherwise make review lanes look
+  # "configured" before failing live status probes.
+  MAILCHIMP_API_KEY: ${DEV_MAILCHIMP_API_KEY:-}
+  MAILCHIMP_SERVER_PREFIX: ${DEV_MAILCHIMP_SERVER_PREFIX:-}
   SITE_BASE_URL: ${DEV_SITE_BASE_URL:-http://sites.localhost}
 
 x-workspace-build-contexts: &workspace-build-contexts

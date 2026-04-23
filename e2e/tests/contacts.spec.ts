@@ -37,6 +37,26 @@ function hasUrlParam(url: string, key: string, expectedValue: string): boolean {
   return parsed.searchParams.get(key) === expectedValue;
 }
 
+async function expectUrlParam(
+  page: Page,
+  key: string,
+  expectedValue: string,
+  timeout = 10000
+): Promise<void> {
+  await expect
+    .poll(() => hasUrlParam(page.url(), key, expectedValue), { timeout })
+    .toBe(true);
+}
+
+async function expectUrlParamAbsent(page: Page, key: string, timeout = 10000): Promise<void> {
+  await expect
+    .poll(() => {
+      const parsed = parseUrl(page.url());
+      return parsed ? !parsed.searchParams.has(key) : false;
+    }, { timeout })
+    .toBe(true);
+}
+
 function parseCreatedContactId(payload: unknown): string | null {
   if (!payload || typeof payload !== 'object') return null;
   const envelopeData = (payload as Record<string, unknown>).data;
@@ -1212,6 +1232,7 @@ test.describe('Contacts Module', () => {
     await authenticatedPage.goto('/contacts');
 
     await authenticatedPage.getByLabel('Search contacts').fill(activeFirstName);
+    await expectUrlParam(authenticatedPage, 'search', activeFirstName);
     const searchButton = authenticatedPage.locator('form').getByRole('button', { name: /^search$/i });
     await searchButton.click();
     await expect
@@ -1222,7 +1243,10 @@ test.describe('Contacts Module', () => {
       .toBeGreaterThan(0);
 
     await authenticatedPage.getByLabel('Search contacts').fill('');
+    await expectUrlParamAbsent(authenticatedPage, 'search');
     await authenticatedPage.getByLabel('Status').selectOption('inactive');
+    await expect(authenticatedPage.getByLabel('Status')).toHaveValue('inactive');
+    await expectUrlParam(authenticatedPage, 'status', 'inactive');
     await searchButton.click();
     await expect
       .poll(
@@ -1259,15 +1283,27 @@ test.describe('Contacts Module', () => {
     });
 
     await authenticatedPage.goto('/contacts');
-    await authenticatedPage.getByLabel('Search contacts').fill(firstName);
-    await authenticatedPage.getByLabel('Status').selectOption('active');
+    const searchButton = authenticatedPage.locator('form').getByRole('button', { name: /^search$/i });
+    const persistedContactRow = authenticatedPage.locator('tr', { hasText: `${firstName} Contact` });
 
-    await expect.poll(
-      () =>
-        hasUrlParam(authenticatedPage.url(), 'search', firstName) &&
-        hasUrlParam(authenticatedPage.url(), 'status', 'active'),
-      { timeout: 10000 }
-    ).toBe(true);
+    await authenticatedPage.getByLabel('Search contacts').fill(firstName);
+    await searchButton.click();
+    await expectUrlParam(authenticatedPage, 'search', firstName);
+    await expect(persistedContactRow).toHaveCount(1, { timeout: 15000 });
+
+    await authenticatedPage.getByLabel('Status').selectOption('active');
+    await searchButton.click();
+    await expect(authenticatedPage.getByLabel('Status')).toHaveValue('active');
+    await expectUrlParam(authenticatedPage, 'status', 'active');
+
+    await expect
+      .poll(
+        () =>
+          hasUrlParam(authenticatedPage.url(), 'search', firstName) &&
+          hasUrlParam(authenticatedPage.url(), 'status', 'active'),
+        { timeout: 10000 }
+      )
+      .toBe(true);
 
     await authenticatedPage.reload();
 
@@ -1277,9 +1313,7 @@ test.describe('Contacts Module', () => {
       () => hasUrlParam(authenticatedPage.url(), 'search', firstName) && hasUrlParam(authenticatedPage.url(), 'status', 'active'),
       { timeout: 10000 }
     ).toBe(true);
-    await expect(
-      authenticatedPage.locator('tr', { hasText: `Persist${suffix} Contact` })
-    ).toHaveCount(1, { timeout: 15000 });
+    await expect(persistedContactRow).toHaveCount(1, { timeout: 15000 });
   });
   test('should merge a contact into an inactive target without losing linked records', async ({
     authenticatedPage,

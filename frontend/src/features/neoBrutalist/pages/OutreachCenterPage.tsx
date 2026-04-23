@@ -154,31 +154,35 @@ export default function OutreachCenter() {
                     </div>
 
                     <div className="space-y-4">
-                        {events.map((event) => (
-                            <div key={event.id} className="flex items-center justify-between border-b-2 border-black/10 pb-4">
-                                <div className="flex items-center gap-6">
-                                    <div className="bg-app-surface border-2 border-black p-3 text-center min-w-[80px]">
-                                        <div className="text-xs font-bold uppercase text-black">{event.date.split(' ')[0]}</div>
-                                        <div className="text-2xl font-black text-black">{event.date.split(' ')[1]}</div>
-                                    </div>
+                        {events.map((event, index) => {
+                            const eventKey = event.id || `${event.title}-${event.date}-${event.time}-${index}`;
 
-                                    <div>
-                                        <h3 className="font-bold text-lg text-black">{event.title}</h3>
-                                        <div className="flex items-center gap-4 mt-1 text-sm text-black/80">
-                                            <span>📅 {event.rsvpCount} RSVPs</span>
-                                            <span>⏰ {event.time}</span>
+                            return (
+                                <div key={eventKey} className="flex items-center justify-between border-b-2 border-black/10 pb-4">
+                                    <div className="flex items-center gap-6">
+                                        <div className="bg-app-surface border-2 border-black p-3 text-center min-w-[80px]">
+                                            <div className="text-xs font-bold uppercase text-black">{event.date.split(' ')[0]}</div>
+                                            <div className="text-2xl font-black text-black">{event.date.split(' ')[1]}</div>
+                                        </div>
+
+                                        <div>
+                                            <h3 className="font-bold text-lg text-black">{event.title}</h3>
+                                            <div className="flex items-center gap-4 mt-1 text-sm text-black/80">
+                                                <span>📅 {event.rsvpCount} RSVPs</span>
+                                                <span>⏰ {event.time}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <button
-                                    onClick={() => handleManageEvent(event.id)}
-                                    className="px-4 py-2 bg-[var(--loop-yellow)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-[var(--loop-cyan)] font-bold uppercase text-sm"
-                                >
-                                    MANAGE
-                                </button>
-                            </div>
-                        ))}
+                                    <button
+                                        onClick={() => handleManageEvent(event.id)}
+                                        className="px-4 py-2 bg-[var(--loop-yellow)] text-black border-2 border-black shadow-[2px_2px_0px_0px_var(--shadow-color)] hover:bg-[var(--loop-cyan)] font-bold uppercase text-sm"
+                                    >
+                                        MANAGE
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
