@@ -32,6 +32,13 @@ Rank evidence from strongest to weakest:
 
 Use the highest available evidence first. Do not let a lower rung silently overrule a higher rung.
 
+## High-Signal Evidence Paths
+
+- `frontend/src/test/ux/personaWorkflowMatrix.ts` is the canonical contract source when you need the persona, route, and workflow IDs to stay aligned.
+- `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` is the quick route-level UX proof when you only need to know whether the first-touch screen still renders correctly.
+- `e2e/tests/persona-workflows.spec.ts` is the runtime proof when you need seeded data and authenticated flows to exercise the workflow end to end.
+- If the workflow outcome is outside the app, say so directly. Do not rebrand an external process as a missing product feature unless the repo evidence supports that conclusion.
+
 ## Required Sections For A Persona Validation Pass
 
 - `Scope`

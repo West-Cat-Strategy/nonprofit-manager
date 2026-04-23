@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
 import { beforeEach, vi } from 'vitest';
+
+configure({ asyncUtilTimeout: 5000 });
 
 type ApiMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
 

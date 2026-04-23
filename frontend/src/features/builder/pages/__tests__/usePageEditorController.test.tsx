@@ -41,6 +41,12 @@ import api from '../../../../services/api';
 import type { PageSection, Template, TemplatePage } from '../../../../types/websiteBuilder';
 import templateReducer, { fetchTemplate } from '../../state/templateCore';
 import { websitesApiClient } from '../../../websites/api/websitesApiClient';
+import {
+  fetchWebsiteDeployment,
+  fetchWebsiteOverview,
+  fetchWebsiteVersions,
+  publishWebsiteSite,
+} from '../../../websites/state';
 import { usePageEditorController } from '../usePageEditorController';
 
 const createSection = (id: string, components: Array<Record<string, unknown>>): PageSection =>
@@ -362,6 +368,7 @@ describe('usePageEditorController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.get).mockResolvedValue({ data: template });
+    vi.mocked(api.post).mockResolvedValue({ data: template });
     vi.mocked(websitesApiClient.getOverview).mockResolvedValue(createOverview());
     vi.mocked(api.put).mockImplementation((url: unknown, payload: unknown) => {
       if (url === '/templates/template-1/pages/page-home') {
@@ -467,6 +474,225 @@ describe('usePageEditorController', () => {
     expect(result.current.selectedComponent?.type).toBe('heading');
   });
 
+  it('applies page settings updates through the extracted persistence hook', async () => {
+    const store = createStore();
+    const { result } = renderHook(() => usePageEditorController(), {
+      wrapper: createWrapper(store),
+    });
+
+    await waitFor(() => expect(result.current.currentPage?.id).toBe('page-home'));
+
+    await act(async () => {
+      await result.current.handleUpdatePage({
+        name: '  Mission landing  ',
+        slug: '  Mission & Impact  ',
+      });
+    });
+
+    expect(api.put).toHaveBeenCalledWith('/templates/template-1/pages/page-home', {
+      name: 'Mission landing',
+      slug: 'mission-impact',
+      pageType: 'static',
+      collection: undefined,
+      routePattern: '/',
+    });
+  });
+
+  it('saves the current page immediately before creating a manual version', async () => {
+    const store = createStore();
+    const { result } = renderHook(() => usePageEditorController(), {
+      wrapper: createWrapper(store),
+    });
+
+    await waitFor(() => expect(result.current.currentPage?.id).toBe('page-home'));
+
+    act(() => {
+      result.current.handleUpdateComponent('component-a', {
+        content: 'Manual save copy',
+      });
+    });
+
+    await waitFor(() =>
+      expect(result.current.historySections[0].components[0]).toMatchObject({
+        id: 'component-a',
+        content: 'Manual save copy',
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleSaveVersion();
+    });
+
+    expect(api.put).toHaveBeenCalledWith('/templates/template-1/pages/page-home', {
+      sections: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'section-home',
+          components: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'component-a',
+              content: 'Manual save copy',
+            }),
+          ]),
+        }),
+      ]),
+    });
+    expect(api.post).toHaveBeenCalledWith('/templates/template-1/versions', {
+      changes: 'Manual save',
+    });
+    await waitFor(() => {
+      expect(result.current.lastSaved).toBeInstanceOf(Date);
+      expect(result.current.hasUnsavedChanges).toBe(false);
+    });
+  });
+
+  it('routes keyboard save through the controller save path after the shortcut hook split', async () => {
+    const store = createStore();
+    const { result } = renderHook(() => usePageEditorController(), {
+      wrapper: createWrapper(store),
+    });
+
+    await waitFor(() => expect(result.current.currentPage?.id).toBe('page-home'));
+
+    act(() => {
+      result.current.handleUpdateComponent('component-a', {
+        content: 'Keyboard shortcut copy',
+      });
+    });
+
+    await waitFor(() =>
+      expect(result.current.historySections[0].components[0]).toMatchObject({
+        id: 'component-a',
+        content: 'Keyboard shortcut copy',
+      })
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 's',
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    });
+
+    await waitFor(() =>
+      expect(api.put).toHaveBeenCalledWith('/templates/template-1/pages/page-home', {
+        sections: expect.arrayContaining([
+          expect.objectContaining({
+            id: 'section-home',
+            components: expect.arrayContaining([
+              expect.objectContaining({
+                id: 'component-a',
+                content: 'Keyboard shortcut copy',
+              }),
+            ]),
+          }),
+        ]),
+      })
+    );
+  });
+
+  it('publishes via the site context after saving page changes and refreshes website metadata', async () => {
+    const store = createStore();
+    vi.mocked(websitesApiClient.getOverview).mockResolvedValueOnce(
+      createOverview({
+        site: {
+          id: 'site-9',
+          templateId: 'template-1',
+          templateName: 'Advocacy',
+          templateStatus: 'published',
+          organizationId: 'org-1',
+          organizationName: 'Neighborhood Mutual Aid',
+          siteKind: 'organization',
+          migrationStatus: 'complete',
+          name: 'Neighborhood Mutual Aid',
+          status: 'published',
+          subdomain: 'mutual-aid',
+          customDomain: null,
+          sslEnabled: true,
+          sslCertificateExpiresAt: null,
+          publishedVersion: 'v1',
+          publishedAt: '2026-04-18T00:00:00.000Z',
+          primaryUrl: 'https://example.org',
+          previewUrl: 'https://preview.example.org',
+          analyticsEnabled: true,
+          blocked: false,
+          createdAt: '2026-04-18T00:00:00.000Z',
+          updatedAt: '2026-04-18T00:00:00.000Z',
+        },
+        deployment: {
+          primaryUrl: 'https://example.org',
+          previewUrl: 'https://preview.example.org',
+          domainStatus: 'configured',
+          sslStatus: 'active',
+        },
+      })
+    );
+    const { result } = renderHook(() => usePageEditorController(), {
+      wrapper: createWrapper(store, {
+        initialEntries: ['/websites/site-9/builder'],
+        routePath: '/websites/:siteId/builder',
+      }),
+    });
+
+    await waitFor(() => expect(result.current.siteContext?.siteId).toBe('site-9'));
+
+    act(() => {
+      result.current.handleUpdateComponent('component-a', {
+        content: 'Ready to publish',
+      });
+    });
+
+    await waitFor(() =>
+      expect(result.current.historySections[0].components[0]).toMatchObject({
+        id: 'component-a',
+        content: 'Ready to publish',
+      })
+    );
+
+    await act(async () => {
+      await result.current.handlePublishPage({
+        name: '  Homepage  ',
+      });
+    });
+
+    expect(publishWebsiteSite).toHaveBeenCalledWith({
+      siteId: 'site-9',
+      templateId: 'template-1',
+      target: 'live',
+    });
+    expect(fetchWebsiteDeployment).toHaveBeenCalledWith('site-9');
+    expect(fetchWebsiteOverview).toHaveBeenCalledWith({ siteId: 'site-9', period: 30 });
+    expect(fetchWebsiteVersions).toHaveBeenCalledWith({ siteId: 'site-9', limit: 10 });
+    expect(api.put).toHaveBeenNthCalledWith(1, '/templates/template-1/pages/page-home', {
+      sections: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'section-home',
+          components: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'component-a',
+              content: 'Ready to publish',
+            }),
+          ]),
+        }),
+      ]),
+    });
+    expect(api.put).toHaveBeenNthCalledWith(2, '/templates/template-1/pages/page-home', {
+      name: 'Homepage',
+      pageType: 'static',
+      collection: undefined,
+    });
+    await waitFor(() =>
+      expect(result.current.publishNotice).toEqual({
+        tone: 'success',
+        message: 'Published live at https://example.org.',
+      })
+    );
+    expect(result.current.isPublishing).toBe(false);
+  });
+
   it('loads site context from a website builder route and resolves the linked template', async () => {
     const store = createStore();
     vi.mocked(websitesApiClient.getOverview).mockResolvedValueOnce(
@@ -529,6 +755,166 @@ describe('usePageEditorController', () => {
           href: '/websites/site-9/publishing',
           label: 'Review publishing',
         },
+      })
+    );
+    expect(result.current.resolvedTemplateId).toBe('template-1');
+  });
+
+  it('loads site context from the query string when the route does not provide a site id', async () => {
+    const store = createStore();
+    const querySiteOverview = createOverview({
+      site: {
+        id: 'site-query',
+        templateId: 'template-1',
+        templateName: 'Advocacy',
+        templateStatus: 'published',
+        organizationId: 'org-1',
+        organizationName: 'Neighborhood Mutual Aid',
+        siteKind: 'organization',
+        migrationStatus: 'complete',
+        name: 'Query Selected Site',
+        status: 'published',
+        subdomain: 'query-site',
+        customDomain: null,
+        sslEnabled: true,
+        sslCertificateExpiresAt: null,
+        publishedVersion: 'v1',
+        publishedAt: '2026-04-18T00:00:00.000Z',
+        primaryUrl: 'https://query.example.org',
+        previewUrl: 'https://preview.query.example.org',
+        analyticsEnabled: true,
+        blocked: false,
+        createdAt: '2026-04-18T00:00:00.000Z',
+        updatedAt: '2026-04-18T00:00:00.000Z',
+      },
+      deployment: {
+        primaryUrl: 'https://query.example.org',
+        previewUrl: 'https://preview.query.example.org',
+        domainStatus: 'configured',
+        sslStatus: 'active',
+      },
+      settings: {
+        siteId: 'site-query',
+        organizationId: 'org-1',
+        newsletter: {
+          provider: 'mautic',
+        },
+        mailchimp: {},
+        mautic: {},
+        stripe: {},
+        social: {
+          facebook: {},
+        },
+        formDefaults: {},
+        formOverrides: {},
+        conversionTracking: {
+          enabled: true,
+          events: {
+            formSubmit: true,
+            donation: true,
+            eventRegister: true,
+          },
+        },
+        createdAt: null,
+        updatedAt: null,
+      },
+    });
+    vi.mocked(websitesApiClient.getOverview).mockResolvedValueOnce(querySiteOverview);
+
+    const { result } = renderHook(() => usePageEditorController(), {
+      wrapper: createWrapper(store, {
+        initialEntries: ['/builder/template-1?siteId=site-query'],
+        routePath: '/builder/:templateId',
+      }),
+    });
+
+    await waitFor(() =>
+      expect(websitesApiClient.getOverview).toHaveBeenCalledWith('site-query', 30)
+    );
+    await waitFor(() =>
+      expect(result.current.siteContext).toMatchObject({
+        siteId: 'site-query',
+        siteName: 'Query Selected Site',
+      })
+    );
+    expect(result.current.resolvedTemplateId).toBe('template-1');
+  });
+
+  it('prefers the route site id over a conflicting query-string site id', async () => {
+    const store = createStore();
+    const routeSiteOverview = createOverview({
+      site: {
+        id: 'site-route',
+        templateId: 'template-1',
+        templateName: 'Advocacy',
+        templateStatus: 'published',
+        organizationId: 'org-1',
+        organizationName: 'Neighborhood Mutual Aid',
+        siteKind: 'organization',
+        migrationStatus: 'complete',
+        name: 'Route Selected Site',
+        status: 'published',
+        subdomain: 'route-site',
+        customDomain: null,
+        sslEnabled: true,
+        sslCertificateExpiresAt: null,
+        publishedVersion: 'v1',
+        publishedAt: '2026-04-18T00:00:00.000Z',
+        primaryUrl: 'https://route.example.org',
+        previewUrl: 'https://preview.route.example.org',
+        analyticsEnabled: true,
+        blocked: false,
+        createdAt: '2026-04-18T00:00:00.000Z',
+        updatedAt: '2026-04-18T00:00:00.000Z',
+      },
+      deployment: {
+        primaryUrl: 'https://route.example.org',
+        previewUrl: 'https://preview.route.example.org',
+        domainStatus: 'configured',
+        sslStatus: 'active',
+      },
+      settings: {
+        siteId: 'site-route',
+        organizationId: 'org-1',
+        newsletter: {
+          provider: 'mautic',
+        },
+        mailchimp: {},
+        mautic: {},
+        stripe: {},
+        social: {
+          facebook: {},
+        },
+        formDefaults: {},
+        formOverrides: {},
+        conversionTracking: {
+          enabled: true,
+          events: {
+            formSubmit: true,
+            donation: true,
+            eventRegister: true,
+          },
+        },
+        createdAt: null,
+        updatedAt: null,
+      },
+    });
+    vi.mocked(websitesApiClient.getOverview).mockResolvedValueOnce(routeSiteOverview);
+
+    const { result } = renderHook(() => usePageEditorController(), {
+      wrapper: createWrapper(store, {
+        initialEntries: ['/websites/site-route/builder?siteId=site-query'],
+        routePath: '/websites/:siteId/builder',
+      }),
+    });
+
+    await waitFor(() =>
+      expect(websitesApiClient.getOverview).toHaveBeenCalledWith('site-route', 30)
+    );
+    await waitFor(() =>
+      expect(result.current.siteContext).toMatchObject({
+        siteId: 'site-route',
+        siteName: 'Route Selected Site',
       })
     );
     expect(result.current.resolvedTemplateId).toBe('template-1');

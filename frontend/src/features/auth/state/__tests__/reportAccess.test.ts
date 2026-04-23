@@ -50,4 +50,19 @@ describe('reportAccess', () => {
       canViewScheduledReports: false,
     });
   });
+
+  it('keeps board-style viewers read-only when they only have saved and scheduled report visibility', () => {
+    expect(
+      getReportAccess({
+        role: 'viewer',
+        permissions: ['report:view', 'scheduled_report:view'],
+      })
+    ).toEqual({
+      canExportReports: false,
+      canManageReports: false,
+      canManageScheduledReports: false,
+      canViewReports: true,
+      canViewScheduledReports: true,
+    });
+  });
 });

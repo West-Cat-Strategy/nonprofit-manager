@@ -1,4 +1,14 @@
 import { logPortalActivity } from '@services/domains/integration';
+import type {
+  AppointmentSlot,
+  PortalAppointment,
+} from '@modules/portalAdmin/services/portalAppointmentSlotService';
+import {
+  toPortalClientAppointmentSlotsPayload,
+  toPortalClientAppointmentSummary,
+  type PortalClientAppointmentSlotsPayload,
+  type PortalClientAppointmentSummary,
+} from '../mappers/portalMappers';
 import type { PortalAppointmentsPort } from '../types/ports';
 
 const normalizeUserAgent = (userAgent?: string | string[]): string | null =>
@@ -18,8 +28,14 @@ export class PortalAppointmentsUseCase {
       limit?: number;
       offset?: number;
     }
-  ): Promise<unknown[]> {
-    return this.appointmentsPort.listPortalAppointments(contactId, filters);
+  ): Promise<PortalClientAppointmentSummary[]> {
+    return this.appointmentsPort
+      .listPortalAppointments(contactId, filters)
+      .then((appointments) =>
+        (appointments as PortalAppointment[]).map((appointment) =>
+          toPortalClientAppointmentSummary(appointment)
+        )
+      );
   }
 
   listSlots(
@@ -29,8 +45,18 @@ export class PortalAppointmentsUseCase {
       from?: string;
       to?: string;
     }
-  ): Promise<unknown> {
-    return this.appointmentsPort.listPortalAppointmentSlots(contactId, filters);
+  ): Promise<PortalClientAppointmentSlotsPayload> {
+    return this.appointmentsPort
+      .listPortalAppointmentSlots(contactId, filters)
+      .then((payload) =>
+        toPortalClientAppointmentSlotsPayload(
+          payload as {
+            selected_case_id: string | null;
+            selected_pointperson_user_id: string | null;
+            slots: AppointmentSlot[];
+          }
+        )
+      );
   }
 
   async bookSlot(input: {
@@ -42,15 +68,15 @@ export class PortalAppointmentsUseCase {
     description: string | null;
     ipAddress?: string;
     userAgent?: string | string[];
-  }): Promise<unknown> {
-    const appointment = await this.appointmentsPort.bookPortalAppointmentSlot({
+  }): Promise<PortalClientAppointmentSummary> {
+    const appointment = (await this.appointmentsPort.bookPortalAppointmentSlot({
       slotId: input.slotId,
       contactId: input.contactId,
       portalUserId: input.portalUserId,
       caseId: input.caseId,
       title: input.title,
       description: input.description,
-    });
+    })) as PortalAppointment;
 
     await logPortalActivity({
       portalUserId: input.portalUserId,
@@ -60,7 +86,7 @@ export class PortalAppointmentsUseCase {
       userAgent: normalizeUserAgent(input.userAgent),
     });
 
-    return appointment;
+    return toPortalClientAppointmentSummary(appointment);
   }
 
   async createManualRequest(input: {
@@ -74,8 +100,8 @@ export class PortalAppointmentsUseCase {
     location: string | null;
     ipAddress?: string;
     userAgent?: string | string[];
-  }): Promise<unknown> {
-    const appointment = await this.appointmentsPort.createPortalManualAppointmentRequest({
+  }): Promise<PortalClientAppointmentSummary> {
+    const appointment = (await this.appointmentsPort.createPortalManualAppointmentRequest({
       contactId: input.contactId,
       portalUserId: input.portalUserId,
       caseId: input.caseId,
@@ -84,7 +110,7 @@ export class PortalAppointmentsUseCase {
       startTime: input.startTime,
       endTime: input.endTime,
       location: input.location,
-    });
+    })) as PortalAppointment;
 
     await logPortalActivity({
       portalUserId: input.portalUserId,
@@ -94,7 +120,7 @@ export class PortalAppointmentsUseCase {
       userAgent: normalizeUserAgent(input.userAgent),
     });
 
-    return appointment;
+    return toPortalClientAppointmentSummary(appointment);
   }
 
   async cancel(input: {
@@ -103,11 +129,11 @@ export class PortalAppointmentsUseCase {
     portalUserId: string;
     ipAddress?: string;
     userAgent?: string | string[];
-  }): Promise<unknown | null> {
-    const appointment = await this.appointmentsPort.cancelPortalAppointment({
+  }): Promise<PortalClientAppointmentSummary | null> {
+    const appointment = (await this.appointmentsPort.cancelPortalAppointment({
       appointmentId: input.appointmentId,
       contactId: input.contactId,
-    });
+    })) as PortalAppointment | null;
 
     if (appointment) {
       await logPortalActivity({
@@ -119,6 +145,6 @@ export class PortalAppointmentsUseCase {
       });
     }
 
-    return appointment;
+    return appointment ? toPortalClientAppointmentSummary(appointment) : null;
   }
 }

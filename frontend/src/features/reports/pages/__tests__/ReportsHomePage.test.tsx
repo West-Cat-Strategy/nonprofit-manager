@@ -93,4 +93,36 @@ describe('ReportsHomePage', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /saved reports/i })).not.toBeInTheDocument();
   });
+
+  it('keeps board-style viewers on a read-only oversight path instead of a builder-first route', () => {
+    renderWithProviders(<ReportsHomePage />, {
+      preloadedState: buildAuthState(['report:view', 'scheduled_report:view']),
+    });
+
+    const executiveCard = screen
+      .getByRole('heading', { name: /executive \+ board pack/i })
+      .closest('article');
+    const adminCard = screen
+      .getByRole('heading', { name: /admin reporting reliability/i })
+      .closest('article');
+
+    expect(executiveCard).not.toBeNull();
+    expect(adminCard).not.toBeNull();
+
+    expect(
+      within(executiveCard as HTMLElement).getByRole('link', { name: /^saved reports$/i })
+    ).toHaveAttribute('href', '/reports/saved');
+    expect(
+      within(adminCard as HTMLElement).getByRole('link', { name: /^scheduled reports$/i })
+    ).toHaveAttribute('href', '/reports/scheduled');
+    expect(
+      screen.queryByRole('link', { name: /board pack templates/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /open builder/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /fundraising templates/i })
+    ).not.toBeInTheDocument();
+  });
 });

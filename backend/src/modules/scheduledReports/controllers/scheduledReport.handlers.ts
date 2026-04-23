@@ -1,6 +1,5 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
-import { scheduledReportService } from '@services/scheduledReportService';
 import { sendSuccess } from '@modules/shared/http/envelope';
 import { badRequest, notFoundMessage, serverError, unauthorized } from '@utils/responseHelpers';
 import {
@@ -9,6 +8,7 @@ import {
   sendUnauthorized,
 } from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
+import { scheduledReportService } from '../services/scheduledReportService';
 
 const getOrgId = (req: AuthRequest): string | null => req.organizationId || req.accountId || req.tenantId || null;
 

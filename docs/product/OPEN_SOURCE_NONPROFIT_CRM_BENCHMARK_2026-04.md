@@ -27,6 +27,15 @@ Use this document as the summary and navigation surface for nonprofit-manager's 
 - Email platform depth, richer portal service workflows, memberships or appeals, and deeper finance or workflow customization still trail the stronger benchmark products.
 - The benchmark is most useful when translated into persona-aware follow-through rather than treated as a generic feature checklist.
 
+## Precision Crosswalk
+
+| Persona family | Best benchmark lens | Boundary reminder |
+|---|---|---|
+| Executive, governance, and board oversight | CiviCRM, OpenPetra, SuiteCRM | packet and finance-control expectations sharpen here, but governance delivery is still a repo question |
+| Fundraising and donor stewardship | CiviCRM, ERPNext, OpenPetra, SuiteCRM | constituent, campaign, and gift expectations sharpen here, but donor-governance completion remains product-specific |
+| Administrative and access stewardship | OpenPetra, ERPNext, SuiteCRM, CiviCRM | setup rigor and admin hygiene sharpen here, but compliance-vault parity is not implied |
+| Case and service delivery | OpenSPP, CiviCRM, Sahana Eden | staged cases and service coordination sharpen here, but rehab-specific plan tooling may still be missing |
+
 ## Phase 5 Linkage
 
 | Workboard row | Benchmark pressure |

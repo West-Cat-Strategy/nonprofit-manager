@@ -5,6 +5,8 @@ import { expect, vi } from 'vitest';
 import { renderWithProviders } from './testUtils';
 import type { RootState } from '../store';
 
+export type RouteActionRole = Parameters<typeof screen.findAllByRole>[0];
+
 export type RouteUxCase = {
   name: string;
   route: string;
@@ -12,7 +14,7 @@ export type RouteUxCase = {
   page: ReactElement;
   heading: string | RegExp;
   primaryActionPattern: RegExp;
-  primaryActionRole?: 'button' | 'link';
+  primaryActionRole?: RouteActionRole;
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   requireMainLandmark?: boolean;
   preloadedState?: Partial<RootState>;

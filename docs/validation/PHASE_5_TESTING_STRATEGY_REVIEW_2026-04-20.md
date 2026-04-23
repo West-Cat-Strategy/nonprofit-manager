@@ -16,7 +16,8 @@ The shared validation lane remains materially healthier than it was on 2026-04-2
 - The earlier broad host regressions in `admin`, `analytics`, `auth`, `contacts`, `donations`, and `events` have been fixed in the current tree and revalidated in their targeted slices.
 - The host Playwright launcher still survives locally occupied frontend ports by auto-falling back off `5173` instead of killing unrelated system listeners.
 - The isolated Docker smoke gate is still green after explicit startup-failure cleanup hardening.
-- The 2026-04-22 host rerun moved past the earlier lane-contract issues, but it surfaced two concrete backend coverage blockers that belong to owning surfaces rather than the shared runner: `src/__tests__/integration/volunteers.test.ts` and `src/__tests__/config/database.test.ts`.
+- The volunteer/contact-scope and database-config blockers are now fixed and green in their narrow backend proofs.
+- The latest 2026-04-22 host rerun now stops earlier in lint/policy checks on a fresh UI audit baseline mismatch: expected `1262/9443/58`, got `1262/9391/58`.
 
 Because the host lane is not yet green, the fresh-volume Docker MFA proof for `tests/fresh-workspace-multi-user.spec.ts` and the broader Docker follow-ons (`npm run test:docker:ci`, `npm run test:docker:audit`) remain intentionally pending.
 
@@ -45,6 +46,10 @@ Because the host lane is not yet green, the fresh-volume Docker MFA proof for `t
   - The first rerun still failed at the host Playwright startup boundary because the old preflight killed a local `com.docke` listener on `5173`, which in turn made Docker unavailable before Playwright's backend `webServer` boot completed.
 - `cd backend && npm run type-check`
   - Result: Passed on 2026-04-22 for the `P5-T5` portal forms contract follow-through.
+- `cd backend && npm exec -- jest src/__tests__/integration/volunteers.test.ts --runInBand`
+  - Result: Passed on 2026-04-22 after aligning the volunteer fixture with the current scoped-account contract by seeding `user_account_access` for the created test account before contact creation.
+- `cd backend && npm run test:unit -- --runInBand --runTestsByPath src/__tests__/config/database.test.ts`
+  - Result: Passed on 2026-04-22 after updating the test to assert `TEST_DATABASE_DEFAULTS` for Jest/test fallback connections instead of the old non-production app-role defaults.
 - `cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand src/modules/cases/usecases/__tests__/caseForms.usecase.test.ts`
   - Result: Passed on 2026-04-22 with the broadened assignment-status bucket support and portal `submitted` semantics.
 - `cd backend && SKIP_INTEGRATION_DB_PREP=1 npm test -- --runInBand src/modules/cases/repositories/__tests__/caseFormsRepository.assignments.test.ts`
@@ -71,6 +76,15 @@ database config › uses non-production defaults outside production
 
   - The volunteer failure reported `Failed to create volunteer test contact` after `Selected account is outside the current request scope` during contact creation, which points to a contact-scope regression in that test path rather than a shared runner bug.
   - The database-config failure showed expectation drift between the asserted non-production defaults and the current isolated test contract (`127.0.0.1:8012/nonprofit_manager_test`, `postgres/postgres`).
+- `E2E_FRONTEND_PORT=5317 make ci-full`
+  - Result: On 2026-04-22, the host lane moved past the volunteer/contact-scope and database-config blockers and then stopped in the lint/policy stage on a fresh UI audit mismatch:
+
+```text
+UI audit failed:
+- Style audit mismatch. Expected 1262/9443/58, got 1262/9391/58.
+```
+
+  - The rerun did not reach typecheck, backend coverage, frontend coverage, or Playwright because `node scripts/ui-audit.ts --enforce-baseline` failed inside `make lint`.
 - `cd backend && DB_HOST=127.0.0.1 DB_PORT=8012 DB_NAME=nonprofit_manager_test DB_USER=postgres DB_PASSWORD=postgres REDIS_URL=redis://redis:6379 REQUIRE_TEST_DB=true SKIP_INTEGRATION_DB_PREP=1 npm exec -- jest src/__tests__/integration/adminRegistrationReview.test.ts --runInBand`
   - Result: Passed on 2026-04-21 after seeding the reviewer admin user directly in the test fixture.
 - `cd e2e && npm run test:ci`
@@ -138,15 +152,14 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
 - The targeted Phase 5 regressions in avatar persistence, legacy admin redirects, analytics templates, workbench auth startup, contacts filters/merge/delete/pagination, donations receipts/filters, and events hybrid check-in all now have green targeted proof in the host runtime.
 - The public `/accept-invitation/:token` surface now behaves cleanly for placeholder preview tokens, which removes the route-health false negative without weakening real-token validation.
 - The smoke-stack startup failure mode is hardened, but the broader Docker cross-browser and audit lanes are still pending.
-- The current host-lane blind spots are now concrete owning-surface failures rather than runner instability: the volunteer/contact-scope regression in `src/__tests__/integration/volunteers.test.ts` and the expectation drift in `src/__tests__/config/database.test.ts`.
+- The current host-lane blind spot is now an owning-surface UI audit mismatch rather than runner instability or backend contract drift.
 - The fresh-volume MFA proof is still excluded from the host matrix and still valid as a Docker concern, but it has not been rerun in this pass because the host lane stopped on the new blockers first.
 
 ## Recommended Next Steps
 
-1. Route the volunteer/contact-scope regression in `src/__tests__/integration/volunteers.test.ts` back to the owning surface, then rerun the host lane once that path is repaired.
-2. Route the non-production database-config expectation drift in `src/__tests__/config/database.test.ts` to the config/test-contract owner, then rerun `E2E_FRONTEND_PORT=5317 make ci-full`.
-3. Only after the host lane is green again, bring up a separate fresh starter-only Docker project for `tests/fresh-workspace-multi-user.spec.ts` using isolated ports and `BYPASS_MFA_FOR_TESTS=false`, rather than reusing the long-lived dev volume.
-4. Once the host rerun and fresh-volume MFA proof are both green, continue with `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`, then refresh the Phase 5 validation/workboard artifacts one more time.
+1. Route the fresh UI audit baseline mismatch (`Expected 1262/9443/58, got 1262/9391/58`) back to the owning frontend/style surface, then rerun `E2E_FRONTEND_PORT=5317 make ci-full`.
+2. Only after the host lane is green again, bring up a separate fresh starter-only Docker project for `tests/fresh-workspace-multi-user.spec.ts` using isolated ports and `BYPASS_MFA_FOR_TESTS=false`, rather than reusing the long-lived dev volume.
+3. Once the host rerun and fresh-volume MFA proof are both green, continue with `cd e2e && npm run test:docker:ci` and `cd e2e && npm run test:docker:audit`, then refresh the Phase 5 validation/workboard artifacts one more time.
 
 ## Implications For Phase 5 Waves
 

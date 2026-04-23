@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "generatedAt": "2026-04-22",
+  "wave": "P5-T6-oss-benchmark",
+  "workspaceRoot": "/Users/bryan/projects/nonprofit-manager/reference-repos",
+  "trackedFilesOnly": [
+    "README.md",
+    "manifest.lock.json"
+  ],
+  "repos": [
+    {
+      "id": "nm--civicrm-core",
+      "product": "CiviCRM",
+      "role": "primary",
+      "reviewLane": "civicrm-review",
+      "path": "reference-repos/external/nm--civicrm-core",
+      "remote": "https://github.com/civicrm/civicrm-core.git",
+      "branch": "master",
+      "commit": "401c7b905ae5a3752d765d54911f2a00a6a679ac",
+      "runtimeStrategy": "review-first; companion repo used for standalone lab",
+      "runtimeResult": "no direct lab attempted from core repo"
+    },
+    {
+      "id": "nm--civicrm-docker",
+      "product": "CiviCRM",
+      "role": "companion",
+      "reviewLane": "civicrm-review",
+      "path": "reference-repos/external/nm--civicrm-docker",
+      "remote": "https://github.com/civicrm/civicrm-docker.git",
+      "branch": "main",
+      "commit": "ee9457a36c72403ba81491ae89c2f596852e6a72",
+      "runtimeStrategy": "wave-one lab companion",
+      "runtimeResult": "compose config validated; example standalone containers booted via docker compose and were then torn down"
+    },
+    {
+      "id": "nm--openpetra",
+      "product": "OpenPetra",
+      "role": "primary",
+      "reviewLane": "openpetra-erpnext-review",
+      "path": "reference-repos/external/nm--openpetra",
+      "remote": "https://github.com/openpetra/openpetra.git",
+      "branch": "master",
+      "commit": "9762f8d0ec55cdb1e09deec1eb6d8abdedec22bd",
+      "runtimeStrategy": "wave-one lab; official dev bootstrap is system-level",
+      "runtimeResult": "prerequisite blocked; official flow requires bootstrap script plus Nant, and `nant` is not installed on this machine"
+    },
+    {
+      "id": "nm--erpnext",
+      "product": "ERPNext",
+      "role": "primary",
+      "reviewLane": "openpetra-erpnext-review",
+      "path": "reference-repos/external/nm--erpnext",
+      "remote": "https://github.com/frappe/erpnext.git",
+      "branch": "develop",
+      "commit": "7f8fa7cf5e467bfa045ecc485930e65ee5d6cd72",
+      "runtimeStrategy": "deferred; code/docs review first",
+      "runtimeResult": "not attempted in wave one"
+    },
+    {
+      "id": "nm--suitecrm",
+      "product": "SuiteCRM",
+      "role": "primary",
+      "reviewLane": "suitecrm-review",
+      "path": "reference-repos/external/nm--suitecrm",
+      "remote": "https://github.com/SuiteCRM/SuiteCRM.git",
+      "branch": "hotfix",
+      "commit": "1e97fa326893273568829b4219d177043f2a44f2",
+      "runtimeStrategy": "wave-one lab; prerequisite check only",
+      "runtimeResult": "prerequisite blocked; repo has install docs but no safe turnkey local lab here, and `php` is not installed on this machine"
+    },
+    {
+      "id": "nm--openspp2",
+      "product": "OpenSPP",
+      "role": "primary",
+      "reviewLane": "openspp-sahana-review",
+      "path": "reference-repos/external/nm--openspp2",
+      "remote": "https://github.com/OpenSPP/OpenSPP2.git",
+      "branch": "19.0",
+      "commit": "5f420e82ae3a292409f965e25e5b14da61db7217",
+      "runtimeStrategy": "wave-one docker lab",
+      "runtimeResult": "compose config validated; `docker compose --profile ui up -d` exposed early `openspp-dev` image pull/access trouble before a clean boot completed"
+    },
+    {
+      "id": "nm--sahana-eden",
+      "product": "Sahana Eden",
+      "role": "primary",
+      "reviewLane": "openspp-sahana-review",
+      "path": "reference-repos/external/nm--sahana-eden",
+      "remote": "https://github.com/sahana/eden.git",
+      "branch": "master",
+      "commit": "0e55ecf7ed780b7ad659e70398b56260c41de021",
+      "runtimeStrategy": "deferred; code/docs review first",
+      "runtimeResult": "not attempted in wave one"
+    }
+  ]
+}

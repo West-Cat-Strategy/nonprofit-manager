@@ -1,6 +1,6 @@
 # Phase 5 Development Plan
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-22
 
 Use this document for the Phase 5 roadmap and sequencing. Use [planning-and-progress.md](planning-and-progress.md) for row-level tracked status.
 
@@ -12,7 +12,9 @@ Phase 5 shifts the project from Phase 4 modularization and hardening closeout in
 - Website builder plus the public website runtime
 - Client portal workflows
 
-Phase 5 still starts with docs, benchmark, and validation groundwork so later product work lands on a cleaner planning surface and a stronger testing contract.
+Phase 5 still starts from docs, benchmark, and validation groundwork so later product work lands on a cleaner planning surface and a stronger testing contract.
+
+Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, `P5-T2A` is the published testing-strategy review artifact, `P5-T2B` is the active shared validation gate, `P5-T2C` is the focused review-findings remediation slice, `P5-T4` is waiting in `Review`, and `P5-T3`, `P5-T5`, and analysis-only `P5-T6` are now running in parallel behind that gate.
 
 ## Phase 5 Goals
 
@@ -26,63 +28,74 @@ Phase 5 still starts with docs, benchmark, and validation groundwork so later pr
 
 - Keep `docs/phases/` focused on live planning only.
 - Run the full Playwright/E2E and testing-strategy review early enough to shape the rest of the phase.
+- Keep active email, website, and portal work behind explicit auth, audit, rate-limit, and supply-chain expectations instead of leaving security follow-through in archived audits.
 - Refresh contributor docs and repo-local skills so future work routes cleanly.
 - Use OSS benchmarking to drive the backlog instead of rediscovering well-known nonprofit CRM patterns from scratch.
 
 ## Execution Order
 
-### 1. Phase Transition And Planning Refresh
+### 1. Phase Transition And Planning Refresh (Completed)
 
 - Refresh the workboard and create this Phase 5 plan.
 - Move Phase 4 proof/history behind the phase archive index.
 - Update contributor docs, docs indexes, runtime guidance, and repo-local skills.
-- Publish the OSS benchmark and tooling evaluation.
+- Publish the OSS benchmark and initial tooling evaluation.
 
-### 2. Early Validation And Testing Review
+### 2. Shared Validation Gate And Testing Review (Active)
 
-- Run the full host Playwright matrix and the full Docker-backed E2E slices.
-- Review overall test coverage, CI/runtime split, and verification strategy.
-- Publish concrete recommendations for which lanes should stay early-phase gates.
+- Keep `P5-T2A` as the canonical testing-strategy review artifact while `P5-T2B` finishes the remaining host and Docker proof chain.
+- The old `volunteers.test.ts`, `database.test.ts`, UI-audit, and backend dependency-audit blockers are now cleared in the tree, but the host rerun is still not closed: a frontend coverage timeout-budget helper is landed in targeted proof and the next rerun now needs shared coverage triage before Docker follow-through can resume.
+- Treat security baseline and observability as part of `P5-T2B`: keep `make security-scan`, the auth and rate-limit policy scripts, the queued auth-alias daily-ratio dashboard handoff, and row-local security acceptance criteria current while the shared validation gate stays active.
+- Land only the smallest tool-assisted follow-through that removes current validation friction instead of expanding the review lane further: the frontend coverage timeout-budget helper is now part of that posture, and any next helper should stay scoped to the remaining shared coverage blocker, fresh-volume Docker MFA proof, or Docker cross-browser/audit follow-through.
 
-### 3. Product Wave: Email Platform
+### 3. Product Wave: Email Platform (Active In Parallel)
 
-- Build out blast-email workflow requirements and supporting authoring/formatting.
-- Reuse or tighten the current template, Mailchimp, scheduled-report, and notification surfaces where practical.
-- Define preview, QA, and delivery-reliability expectations before deep implementation.
+- Keep the builder-local modularity cleanup scoped to behavior-preserving editor follow-through until `P5-T2C` closes the stale site-context and extracted-hook proof gaps.
+- Keep `/api/v2/mailchimp/*` and `/settings/communications` as the canonical campaign contract and staff workspace.
+- The persistence/autosave slice of the builder-local modularity cleanup is now landed in targeted proof; finish the remaining builder-local cleanup, then widen back into preview, QA, scheduling, and delivery follow-through.
+- Use the post-wave handoff to scope the smallest typed appeals and campaign-measurement brief that can reuse the real `P5-T3` authoring and reporting seams.
 
-### 4. Product Wave: Website Surfaces
+### 4. Review Findings Remediation (Active)
 
-- Improve the builder editing surface, template/publish workflow, and runtime reliability for public pages and forms.
-- Keep public-site runtime docs, contributor docs, and E2E coverage aligned with the implemented behavior.
+- Use `P5-T2C` as the dedicated row for the current code-review findings instead of silently widening `P5-T2B` or `P5-T3`.
+- Keep the row narrowly scoped: fix the stale builder site-context behavior, add direct regression coverage for the extracted builder seams, prove the scheduled-report helper and service branches, and prove report-template negative and seed-resilience paths.
+- After `P5-T2C` closes, hand the remaining host validation, security, wider email authoring, and shared signoff work back to `P5-T2B`, `P5-T3`, and `P5-T4`.
 
-### 5. Product Wave: Client Portal
+### 5. Product Wave: Website Surfaces (Review Pending Shared Signoff)
 
-- Focus on portal UX, messaging, documents, forms, appointments, and client-facing navigation.
-- Use persona/workflow audit findings to prioritize the highest-value staff and client journeys.
+- Keep the one-form managed publish loop in `Review` while `P5-T2B` finishes the broader host-plus-Docker validation lane.
+- Avoid reopening website scope unless the shared validation gate or review findings require it.
 
-### 6. Later-Wave Backlog
+### 6. Product Wave: Client Portal (Active In Parallel)
 
-- Metadata-driven customization and workflow tooling
-- Memberships, appeals, and fundraising depth
-- Program-service and nonprofit finance operations
-- Optional scaffolding or generator support for new modules and extensions
+- Keep the assignment-backed forms inbox slice as the current green baseline.
+- The next scoped portal pickup, case-aware appointments continuity on top of the mounted portal and case surfaces, is now landed in targeted backend/frontend proof; finish the focused Playwright follow-through before widening again.
+- Use persona and benchmark follow-through to sharpen later program-service workflow work, not to over-claim current portal parity.
+
+### 7. Later-Wave Backlog And Enabling Tooling (Active Analysis Only)
+
+- Keep `P5-T6` as the active planning lane while runtime implementation stays behind `P5-T3`, `P5-T5`, and `P5-T2B`.
+- Convert the backlog into explicit queued briefs instead of a summary-only artifact: typed appeals plus restriction modeling after the email-wave handoff, then domain-scoped workflow/program-ops follow-through after the portal handoff.
+- Keep memberships later than those adjacent extensions, and keep wider tooling changes scoped to the smallest additions that reduce validation or contract drift first.
 
 ## Workstreams
 
 | Row | Scope | Main Outputs | Dependencies | Exit Criteria |
 |---|---|---|---|---|
 | `P5-T1` | Docs, archive, benchmark, and skills refresh | Live Phase 5 workboard, benchmark doc, archive cleanup, contributor/runtime docs, refreshed skills | none | Top-level `docs/phases/` reads as live planning only; benchmark and touched skills validate cleanly |
-| `P5-T2` | Full Playwright/E2E plus testing-strategy review | Runtime review note, coverage gap summary, recommended CI/runtime updates | `P5-T1` docs/runtime cleanup | Full host and Docker review lanes complete with written follow-through and workboard impact |
-| `P5-T3` | Blast email and email builder/formatter | Feature plan, implementation slice, validation slice, follow-on backlog | `P5-T2` for reliable validation lanes | Authoring, preview, formatting, and delivery workflow are reviewable with explicit tests |
-| `P5-T4` | Website builder and public website | Builder UX follow-through, publish/runtime reliability, public-site validation | `P5-T1`, `P5-T2` | Builder and public runtime docs/tests match the current surface |
-| `P5-T5` | Client portal | Portal UX and workflow follow-through across messaging/documents/forms/appointments | `P5-T2` and Phase 5 product prioritization | Portal journeys are supported by current docs, routes, and targeted validation |
-| `P5-T6` | Later-wave backlog from research and repo review | Prioritized backlog for customization, fundraising depth, and program/finance ops | benchmark + early product waves | Clear later-wave candidates exist without overloading active rows |
+| `P5-T2A` | Testing-strategy review artifact and findings | Published review note, coverage gap summary, recommended CI/runtime updates | `P5-T1` docs/runtime cleanup | The review artifact stays current while `P5-T2B` closes the remaining host-plus-Docker gate |
+| `P5-T2B` | Shared validation lane stabilization | Clean host rerun, fresh-volume Docker MFA proof, Docker cross-browser/audit follow-through, the live security baseline, auth-alias operational visibility, and the smallest high-value validation or security-tooling helpers | `P5-T2A` plus active owning-surface fixes | Host rerun, required Docker follow-ons, and the live security baseline are green enough to stop gating later Phase 5 signoff |
+| `P5-T2C` | Review findings remediation | Stale builder site-context fix, extracted builder seam regression coverage, scheduled-report helper and service proof, and report-template negative plus seed-resilience proof | `P5-T2A` review findings plus current module-local refactors | Builder stale-context behavior is fixed, the extracted builder seams are directly covered, scheduled-report helper/service branches are proved, report-template negative/seed-resilience paths are proved, and targeted validations are green while the remaining host/security/email-wave blockers stay with their parent rows |
+| `P5-T3` | Blast email and email builder/formatter | Feature plan, implementation slice, validation slice, and post-wave fundraising-depth handoff | `P5-T2B` for full shared signoff, but active lane work continues in parallel | Authoring, preview, formatting, and delivery workflow are reviewable with explicit tests and a reusable post-wave contract |
+| `P5-T4` | Website builder and public website | Builder UX follow-through, publish/runtime reliability, public-site validation | `P5-T1`, `P5-T2B` | Builder and public runtime docs/tests match the current surface and the row clears final shared validation signoff |
+| `P5-T5` | Client portal | Portal workflow slices across forms, appointments, messaging, and client-facing navigation | `P5-T2B` for full shared signoff plus portal prioritization | The active portal slice is green, the next named slice is explicit, and targeted proof matches the current portal contract |
+| `P5-T6` | Later-wave backlog from research and repo review | Prioritized backlog, explicit post-wave briefs for typed appeals/restrictions and domain-scoped workflow/program ops, plus tooling recommendations | benchmark + `P5-T3`/`P5-T5` handoffs | Later-wave candidates are ranked and the next planning pickups are explicit without overloading active runtime rows |
 
-## Backlog Revealed By Repo Review
+## Completed Phase Inputs
 
-### Immediate Follow-through
+The early Phase 5 repo review already produced the following durable planning inputs, and they should now be treated as completed groundwork rather than as live cleanup:
 
-- Contributor docs still needed a current archive/live split, public-site runtime guidance, worker runtime guidance, and explicit workspace documentation.
+- Contributor docs needed a current archive/live split, public-site runtime guidance, worker runtime guidance, and explicit workspace documentation.
 - Feature inventory needed to match actual routed surfaces instead of earlier Phase 4 framing.
 - Skills needed better resumption guidance, cleaner runtime ownership, and clearer audit routing.
 
@@ -105,18 +118,31 @@ The archived executive-director remediation tracker surfaced a governance/compli
 
 ## Tooling Evaluation
 
-### High-Value Candidates
+### Phase 5 Follow-Through Candidates
 
-- `@hey-api/openapi-ts`: generate safer frontend clients and reduce hand-written API drift once the OpenAPI surface is trusted enough.
+- OWASP ASVS 5.0 plus OWASP API Security Top 10 2023 crosswalk: turn auth, access-control, logging, SSRF, and admin-flow security into explicit acceptance criteria for active Phase 5 lanes instead of archived audit context.
+- GitHub CodeQL plus dependency review, Dependabot alerts or security updates, and secret scanning push protection when GitHub-backed CI is available; otherwise mirror the same controls in the existing CI system instead of treating local scans as sufficient.
+- `npm sbom` now, with CycloneDX later if multi-workspace BOM depth or downstream consumers justify it: add release-time supply-chain visibility before adding heavier signing or attestation expectations.
+- Semgrep in non-blocking mode first: use custom rules for repo-specific guardrails such as no unsafe outbound fetch without SSRF controls, no sensitive logging regressions, and no missing auth or rate-limit protections on critical routes.
+- Trivy repo and image scanning if Docker build and deploy paths remain central to Phase 5 release confidence: fill the current gap around image, IaC, and broader misconfiguration scanning.
+- `Redocly CLI` or `Spectral`: lint `docs/api/openapi.yaml` so the machine-readable spec becomes trustworthy enough for code generation and contract-drift checks.
+- `@hey-api/openapi-ts`: pilot generated clients and validators on one active domain once the OpenAPI trust gate exists, instead of attempting repo-wide generation immediately.
+- Playwright harness cleanup patterns plus a repo-local `make test-e2e-docker-fresh` helper: keep the host-vs-Docker contract explicit, follow native `webServer`/`reuseExistingServer` and stored-auth-state patterns where they reduce drift, and give the Docker-only MFA proof a dedicated fresh-volume path.
+- `make doctor` and `make check-changed --run`: preflight local runtime prerequisites and turn the changed-files selector into an executable shared entrypoint for contributors and hooks.
+
+### Later Backlog Candidates
+
 - `@tanstack/react-form`: improve complex authoring and settings flows with a stronger form-state model.
 - `@tanstack/react-table`: standardize dense admin/data surfaces without imposing a visual system.
-- OpenTelemetry JS: add standardized tracing and metrics across auth, payments, webhooks, and runtime-critical flows.
-- Playwright harness cleanup patterns: keep the host-vs-Docker contract explicit and reduce long-run audit drift.
-- Repo-local module or extension generator: reduce repetitive setup for new modules, docs, and validation wiring.
+- OpenTelemetry JS: add standardized backend traces and metrics across auth, payments, webhooks, and runtime-critical flows, while keeping current plans realistic about JS logs still being in development and browser instrumentation still being experimental.
+- Volta or `mise` plus `engines` / `packageManager`: reduce version drift once the current validation bottlenecks are no longer the shortest path to Phase 5 confidence.
+- Repo-local module or extension generator: reduce repetitive setup for new modules, docs, and validation wiring after the active product waves settle.
 
 ### Decision Rule
 
 - Borrow platform patterns and tooling where they reduce drift or repetitive work.
+- Prefer the smallest tool addition that removes an active bottleneck before adopting broader infrastructure polish.
+- Avoid stacking overlapping scanners or provenance tools unless the team has a clear triage owner and release-path consumer for the signal.
 - Do not rewrite the stack to match other projects; keep the current TypeScript/React/Express/Postgres architecture.
 
 ## External Benchmarks
@@ -136,5 +162,7 @@ Phase 5 is on track when:
 
 - The live workboard and Phase 5 plan stay current without leaking historical proof back into top-level `docs/phases/`.
 - The early Playwright/E2E and testing-strategy review is complete and influences later lanes.
+- The live security baseline and supply-chain follow-through are explicit tracked inputs to `P5-T2B` rather than orphaned notes or one-off scans.
+- `P5-T2C` closes the current review findings without silently widening scope: builder stale-context behavior is fixed, extracted builder seams are directly covered, scheduled-report helper/service branches are proved, and report-template negative/seed-resilience paths are proved.
 - Email, website, and portal work each have explicit tracked rows with current validation guidance.
 - The benchmark doc and tooling evaluation remain visible inputs to later-wave backlog decisions.

@@ -72,6 +72,7 @@ export interface PortalAppointmentSlot {
   available_count: number;
   status: 'open' | 'closed' | 'cancelled';
   case_number?: string | null;
+  case_title?: string | null;
   pointperson_first_name?: string | null;
   pointperson_last_name?: string | null;
 }
@@ -154,6 +155,7 @@ export interface PortalThreadSummary {
 
 export interface PortalAppointmentSummary {
   id: string;
+  case_id?: string | null;
   title: string;
   description?: string | null;
   start_time: string;
@@ -163,6 +165,8 @@ export interface PortalAppointmentSummary {
   case_number?: string | null;
   case_title?: string | null;
   request_type?: 'manual_request' | 'slot_booking';
+  pointperson_first_name?: string | null;
+  pointperson_last_name?: string | null;
 }
 
 export interface PortalRemindersQuery {

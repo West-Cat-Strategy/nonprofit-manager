@@ -2,6 +2,13 @@
 
 This file is the canonical detailed layer for leadership, governance, fundraising, and administrative personas.
 
+## Validation Notes
+
+- Read these cards together with `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, and `e2e/tests/persona-workflows.spec.ts` when you need to confirm whether a route or workflow claim is actually exercised in the repo.
+- Use `Confirmed repo evidence` for route, permission, and test-backed claims.
+- Use `Inference` for role mapping, packet composition, and other boundary judgments that the repo does not state directly.
+- Treat board packets, filings, stewardship outreach, and governance exception handling as outside-the-app boundaries unless the repo shows a first-class in-app workflow.
+
 ## Executive Director
 
 - `canonical_role_boundary`: `admin`; mapping source `backend/src/modules/admin/usecases/roleCatalogUseCase.ts` and `backend/src/utils/permissions.ts`; confidence `High`; confirmed permissions include dashboards, analytics, reports, scheduled reports, and organization-level oversight; workflow scope covers executive reporting, governance review, restricted-funds oversight, and escalation handoff; explicitly inferred scope excludes a first-class board packet composer, formal governance exception workspace, and a full IRS 990 workflow.
@@ -20,7 +27,7 @@ This file is the canonical detailed layer for leadership, governance, fundraisin
 - `pain_points`: Rebuilding context through exports, over-trusting partial restricted-funds workflows, and losing governance continuity when escalation paths live outside a first-class workspace.
 - `anchor_scenarios`: Primary scenario: run a weekly health scan, prepare a monthly leadership packet, and route a fundraising-risk item plus a service-delivery-risk item to the correct owner. Failure-mode scenario: assume the app owns filing and governance exception tracking end to end and miss an external compliance deadline.
 - `external_analogs`: CiviCRM sharpens the leadership persona through dashboarded fundraising and case reporting; OpenPetra sharpens the finance-control and batch-audit lens; ERPNext sharpens typed grants, members, and accounting visibility; SuiteCRM sharpens workflow automation and campaign visibility for leadership review.
-- `evidence`: `docs/product/product-spec.md`, `docs/features/FEATURE_MATRIX.md`, `docs/features/REPORTING_GUIDE.md`, `frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx`, `frontend/src/features/reports/routes/createReportRoutes.tsx`, `frontend/src/features/adminOps/adminRouteManifest.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.
+- `evidence`: `docs/product/product-spec.md`, `docs/features/FEATURE_MATRIX.md`, `docs/features/REPORTING_GUIDE.md`, `frontend/src/features/dashboard/pages/WorkbenchDashboardPage.tsx`, `frontend/src/features/reports/routes/createReportRoutes.tsx`, `frontend/src/features/adminOps/adminRouteManifest.ts`, `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.
 
 ## Fundraiser
 
@@ -40,7 +47,7 @@ This file is the canonical detailed layer for leadership, governance, fundraisin
 - `pain_points`: Search misses, duplicate profiles, weak in-app prospect research, payment-state ambiguity, and partial stewardship automation.
 - `anchor_scenarios`: Primary scenario: review a prospect list, confirm donor and gift status, plan stewardship follow-through, and prepare a clean leadership summary. Failure-mode scenario: donor preferences or restricted-use terms fall out of the workflow because they are only partially modeled in-product.
 - `external_analogs`: CiviCRM sharpens constituent segmentation, fundraising campaigns, and memberships; OpenPetra sharpens donation-batch and finance-control habits; ERPNext sharpens typed donor or member entities plus payment automation; SuiteCRM sharpens campaign, email, and workflow automation patterns.
-- `evidence`: `docs/features/OPPORTUNITIES_PIPELINE.md`, `docs/features/REPORTING_GUIDE.md`, `frontend/src/routes/routeCatalog/staffPeopleRoutes.ts`, `frontend/src/routes/routeCatalog/staffFinanceRoutes.ts`, `frontend/src/routes/routeCatalog/staffInsightsRoutes.ts`, `frontend/src/features/finance/pages/DonationListPage.tsx`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.
+- `evidence`: `docs/features/OPPORTUNITIES_PIPELINE.md`, `docs/features/REPORTING_GUIDE.md`, `frontend/src/routes/routeCatalog/staffPeopleRoutes.ts`, `frontend/src/routes/routeCatalog/staffFinanceRoutes.ts`, `frontend/src/routes/routeCatalog/staffInsightsRoutes.ts`, `frontend/src/features/finance/pages/DonationListPage.tsx`, `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.
 
 ## Nonprofit Administrator
 
@@ -60,7 +67,7 @@ This file is the canonical detailed layer for leadership, governance, fundraisin
 - `pain_points`: Drift between docs and runtime, partial full-journey proof for onboarding or offboarding, and missing first-class compliance-vault or corrective-action ledger surfaces.
 - `anchor_scenarios`: Primary scenario: review weekly access and configuration health, apply role changes, confirm report delivery, and hand blockers to leadership or technical owners. Failure-mode scenario: onboarding or de-provisioning happens through manual notes and leaves stale access or missing evidence.
 - `external_analogs`: OpenPetra sharpens administrator expectations for explicit setup flows and finance or contact operations; ERPNext sharpens typed entity and accounting-connected administration; SuiteCRM sharpens dashboard, workflow, and admin-configuration patterns; CiviCRM sharpens role-aware nonprofit administration and reminder-driven operations.
-- `evidence`: `frontend/src/features/adminOps/adminNavigationCatalog.ts`, `frontend/src/features/adminOps/adminRouteManifest.ts`, `docs/features/FEATURE_MATRIX.md`, `docs/features/REPORTING_GUIDE.md`, `backend/src/modules/admin/usecases/roleCatalogUseCase.ts`, `backend/src/utils/permissions.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.
+- `evidence`: `frontend/src/features/adminOps/adminNavigationCatalog.ts`, `frontend/src/features/adminOps/adminRouteManifest.ts`, `docs/features/FEATURE_MATRIX.md`, `docs/features/REPORTING_GUIDE.md`, `backend/src/modules/admin/usecases/roleCatalogUseCase.ts`, `backend/src/utils/permissions.ts`, `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.
 
 ## Board Member
 
@@ -80,4 +87,4 @@ This file is the canonical detailed layer for leadership, governance, fundraisin
 - `pain_points`: Builder-like entry points, unclear packet lifecycle, and overly broad view access that can leak operator-facing detail.
 - `anchor_scenarios`: Primary scenario: open a scheduled packet, review committee actions and KPI deltas, and ask focused follow-up questions. Failure-mode scenario: land in an admin-style or builder-style path that weakens the oversight posture.
 - `external_analogs`: CiviCRM sharpens read-only packet and report consumption patterns; SuiteCRM sharpens dashboard and report navigation; OpenPetra sharpens conservative administration and finance-summary expectations; ERPNext sharpens typed membership, grants, and accounting views that leadership may expect to see summarized.
-- `evidence`: `frontend/src/features/reports/routes/createReportRoutes.tsx`, `frontend/src/features/savedReports/pages/__tests__/PublicReportSnapshot.test.tsx`, `frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx`, `backend/src/utils/roleSlug.ts`, `backend/src/utils/permissions.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.
+- `evidence`: `frontend/src/features/reports/routes/createReportRoutes.tsx`, `frontend/src/features/savedReports/pages/__tests__/PublicReportSnapshot.test.tsx`, `frontend/src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx`, `backend/src/utils/roleSlug.ts`, `backend/src/utils/permissions.ts`, `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.

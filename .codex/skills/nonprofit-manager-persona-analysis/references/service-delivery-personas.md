@@ -2,6 +2,13 @@
 
 This file is the canonical detailed layer for service-delivery and frontline continuity personas.
 
+## Validation Notes
+
+- Read these cards together with `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, and `e2e/tests/persona-workflows.spec.ts` when you need to confirm whether a route or workflow claim is exercised in the repo.
+- Use `Confirmed repo evidence` for route, permission, and test-backed claims.
+- Use `Inference` for role mapping, service-plan expectations, and other workflow edges that the repo does not state directly.
+- Treat reassessment governance, eligibility exceptions, authorization follow-through, and placement continuity as outside-the-app boundaries unless the repo shows a first-class in-app workflow.
+
 ## Case Manager
 
 - `canonical_role_boundary`: inferred `staff`; mapping source `backend/src/utils/permissions.ts`; confidence `High`; confirmed permissions include cases, follow-ups, notes, services, appointments, portal visibility controls, and people or accounts; workflow scope covers intake, case progression, handoffs, outcomes documentation, and closure continuity; explicitly inferred scope excludes full person-centered plan governance and richer compliance-specific service plan enforcement.
@@ -20,7 +27,7 @@ This file is the canonical detailed layer for service-delivery and frontline con
 - `pain_points`: Context breaks during handoff, unclear reassessment expectations, and manual continuity work outside a standardized packet.
 - `anchor_scenarios`: Primary scenario: capture referral and consent context, open a plan, schedule follow-ups, log outcomes, and hand the case to the next owner cleanly. Failure-mode scenario: a case stalls because reassessment and closure continuity steps live outside explicit workflow checkpoints.
 - `external_analogs`: OpenSPP sharpens explicit case-worker, supervisor, and manager roles, staged case workflows, approvals, and grievance escalation; CiviCRM sharpens activity-driven case follow-up; Sahana Eden sharpens task and field-work coordination.
-- `evidence`: `docs/features/CASE_MANAGEMENT_SYSTEM.md`, `docs/features/FOLLOW_UP_LIFECYCLE.md`, `docs/features/CASE_CLIENT_VISIBILITY_AND_FILES.md`, `frontend/src/routes/workflowRoutes.tsx`, `frontend/src/routes/portalRoutes.tsx`, `backend/src/utils/permissions.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.
+- `evidence`: `docs/features/CASE_MANAGEMENT_SYSTEM.md`, `docs/features/FOLLOW_UP_LIFECYCLE.md`, `docs/features/CASE_CLIENT_VISIBILITY_AND_FILES.md`, `frontend/src/routes/workflowRoutes.tsx`, `frontend/src/routes/portalRoutes.tsx`, `backend/src/utils/permissions.ts`, `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.
 
 ## Rehab Worker
 
@@ -40,4 +47,4 @@ This file is the canonical detailed layer for service-delivery and frontline con
 - `pain_points`: Terminology mismatch, missing rehab-specific plan structures, and fragmented placement or authorization tracking.
 - `anchor_scenarios`: Primary scenario: capture eligibility context, record a structured service encounter, update follow-ups and referrals, and transition the case with clear next actions. Failure-mode scenario: authorization or placement details drift outside the app and break continuity.
 - `external_analogs`: OpenSPP sharpens explicit case and service-delivery roles, service points, approvals, and grievance paths; Sahana Eden sharpens field coordination, tasks, and location-aware work; CiviCRM sharpens case activities and follow-up automation.
-- `evidence`: `docs/features/CASE_MANAGEMENT_SYSTEM.md`, `docs/features/FOLLOW_UP_LIFECYCLE.md`, `docs/api/API_REFERENCE_PORTAL_APPOINTMENTS.md`, `frontend/src/routes/workflowRoutes.tsx`, `frontend/src/routes/portalRoutes.tsx`, `frontend/src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx`, `backend/src/utils/permissions.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.
+- `evidence`: `docs/features/CASE_MANAGEMENT_SYSTEM.md`, `docs/features/FOLLOW_UP_LIFECYCLE.md`, `docs/api/API_REFERENCE_PORTAL_APPOINTMENTS.md`, `frontend/src/routes/workflowRoutes.tsx`, `frontend/src/routes/portalRoutes.tsx`, `frontend/src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx`, `backend/src/utils/permissions.ts`, `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts`, and `docs/validation/archive/persona-workflow-audit-2026-04-18.md`.

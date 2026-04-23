@@ -89,6 +89,14 @@ describe('Volunteer API Integration Tests', () => {
       throw new Error('Failed to create volunteer test account');
     }
 
+    await pool.query(
+      `INSERT INTO user_account_access (user_id, account_id, access_level, granted_by, is_active)
+       VALUES ($1, $2, 'admin', $1, TRUE)
+       ON CONFLICT (user_id, account_id)
+       DO UPDATE SET access_level = EXCLUDED.access_level, granted_by = EXCLUDED.granted_by, is_active = TRUE`,
+      [userId, testAccountId]
+    );
+
     // Create test contact for volunteer
     const contactResponse = await request(app)
       .post('/api/v2/contacts')
@@ -118,6 +126,8 @@ describe('Volunteer API Integration Tests', () => {
       `, [testAccountId]);
       // Then delete contacts
       await pool.query('DELETE FROM contacts WHERE account_id = $1', [testAccountId]);
+      // Remove any scoped-access rows created for this test account
+      await pool.query('DELETE FROM user_account_access WHERE account_id = $1', [testAccountId]);
       // Finally delete account
       await pool.query('DELETE FROM accounts WHERE id = $1', [testAccountId]);
     }

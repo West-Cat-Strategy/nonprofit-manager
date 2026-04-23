@@ -62,12 +62,16 @@ vi.mock('../../client/usePortalAppointments', () => ({
     appointments: [
       {
         id: 'appointment-1',
+        case_id: 'case-1',
         title: 'Case check-in',
         description: 'Bring intake papers',
         start_time: '2026-03-16T18:00:00.000Z',
         status: 'confirmed',
         location: 'Main office',
         case_number: 'CASE-001',
+        case_title: 'Housing Support',
+        pointperson_first_name: 'Alex',
+        pointperson_last_name: 'Rivera',
         request_type: 'manual_request',
       },
     ],
@@ -159,6 +163,16 @@ describe('Portal workflow pages', () => {
 
     expect(await screen.findByText('Morning slot')).toBeInTheDocument();
     expect(screen.getByText('Case check-in')).toBeInTheDocument();
+    expect(screen.getAllByText('CASE-001 - Housing Support').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Pointperson: Alex Rivera').length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: /case workspace/i })).toHaveAttribute(
+      'href',
+      '/portal/cases/case-1'
+    );
+    expect(screen.getByRole('link', { name: /^messages$/i })).toHaveAttribute(
+      'href',
+      '/portal/messages'
+    );
     expect(screen.getByRole('button', { name: /request appointment/i })).toBeInTheDocument();
   });
 });

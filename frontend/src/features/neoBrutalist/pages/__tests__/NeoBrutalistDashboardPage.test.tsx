@@ -251,13 +251,18 @@ describe('NeoBrutalistDashboard', () => {
 
     renderWithProviders(<NeoBrutalistDashboard />, { store, route: '/dashboard' });
 
-    expect(screen.getByRole('heading', { name: /workbench/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^workbench$/i, level: 1 })).toBeInTheDocument();
     expect(screen.getByText('Workspace Summary')).toBeInTheDocument();
     expect(screen.getByText('Focus Queue')).toBeInTheDocument();
+    expect(screen.getByText('Workbench setup')).toBeInTheDocument();
     expect(screen.getByText('Pinned Shortcuts')).toBeInTheDocument();
     expect(screen.getByText('Enabled Workstreams')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /create intake/i })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /customize layout/i })).not.toHaveLength(0);
+    expect(screen.getByRole('link', { name: /open layout editor/i })).toHaveAttribute(
+      'href',
+      '/dashboard/custom'
+    );
+    expect(screen.queryByText('Daily Paths')).not.toBeInTheDocument();
     expect(api.get).not.toHaveBeenCalled();
     expect(preloadContactsPeopleRouteMock).not.toHaveBeenCalled();
     expect(preloadNavigationQuickLookupDialogMock).not.toHaveBeenCalled();

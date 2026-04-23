@@ -17,3 +17,14 @@ Use this matrix to translate the benchmark cohort into persona-aware product imp
 - `Bulk operational review`: SuiteCRM and OpenPetra make list-level operational cleanup easier.
 - `Typed records`: ERPNext clarifies who is a donor, member, volunteer, or grant applicant.
 - `Public and portal intake`: CiviCRM and OpenSPP both demonstrate structured public or self-service entry points that still feed disciplined back-office workflows.
+
+## Precision Crosswalk
+
+| Persona | Confirmed repo anchor | Inference or outside-app boundary | Benchmark lens |
+|---|---|---|---|
+| Executive Director | dashboards, reports, scheduled reports, escalation surfaces | board packets and compliance follow-through stay outside the app | CiviCRM, OpenPetra, SuiteCRM |
+| Fundraiser | contacts, donations, opportunities, reporting surfaces | outreach cadence and donor-governance work are partially external | CiviCRM, ERPNext, OpenPetra, SuiteCRM |
+| Nonprofit Administrator | admin settings, users, permissions, report delivery | compliance vault and corrective-action ledger are outside the app today | OpenPetra, ERPNext, SuiteCRM, CiviCRM |
+| Board Member | read-only reports and dashboards | governance packet composition and committee process are external | CiviCRM, SuiteCRM, OpenPetra |
+| Case Manager | cases, follow-ups, portal collaboration | reassessment rigor and standard handoff packets are only partially modeled | OpenSPP, CiviCRM |
+| Rehab Worker | cases, services, appointments, portal workflows | individualized employment plans and placement tooling remain missing | OpenSPP, Sahana Eden, CiviCRM |

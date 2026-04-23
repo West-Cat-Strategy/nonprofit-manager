@@ -10,11 +10,11 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 6 |
-| In Progress | 4 |
+| Active rows | 11 |
+| In Progress | 5 |
 | Blocked | 0 |
 | Review | 2 |
-| Ready | 0 |
+| Ready | 4 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
 
@@ -41,30 +41,44 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| In Progress | P5-T2B | Shared validation lane stabilization | The repo-local lane contract, stale host expectations, UI audit baseline drift, and the avatar / contacts / donations / events regressions are now fixed in the current tree, but the 2026-04-22 host rerun surfaced new owning-surface blockers in `src/__tests__/integration/volunteers.test.ts` and `src/__tests__/config/database.test.ts`. Route those failures back to their owners and rerun `E2E_FRONTEND_PORT=5317 make ci-full` before widening into the fresh Docker MFA proof or Docker cross-browser/audit follow-ons. |
-| In Progress | P5-T3 | Email platform wave: blast email plus email builder/formatter | Start the coordinated email wave: extend the existing `/api/v2/mailchimp/*` campaign surface for draft/schedule/preview-ready authoring, add an email-safe formatter/preview path that reuses current builder primitives, keep `/settings/communications` canonical, and land targeted backend/frontend/docs proof without widening shared route seams. |
-| In Progress | P5-T5 | Client portal wave | The first portal forms slice is now green in targeted backend/frontend/docs/E2E proof: `/api/v2/portal/forms/assignments*` is the canonical active/completed inbox contract with case-aware summary metadata, due dates, and packet links. Keep the broader portal wave active for the next scoped pickup while shared final signoff remains coupled to `P5-T2B`. |
-| In Progress | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) as the canonical later-wave backlog artifact, and hold any runtime implementation behind the active `P5-T3` and `P5-T5` product waves. |
+| In Progress | P5-T2B | Shared validation lane stabilization | The repo-local lane contract, stale host expectations, the volunteer/contact-scope blocker, the database-config expectation drift, the fresh UI audit mismatch, and the red backend dependency audit are now fixed in the current tree: `docs/ui/archive/app-ux-audit.json` is refreshed to `1262/9403/58`, `make security-scan` plus the auth and rate-limit policy scripts are green, and the smallest shared frontend coverage helper landed by widening the CI/coverage timeout budget. The latest 2026-04-22 host reruns still are not green, though: one rerun was invalidated by a local coverage-directory collision, the next exposed a broad frontend coverage timeout wave that the helper addresses in targeted proof, and the latest follow-on rerun now stops during backend `npm run test:coverage`. Triage the remaining shared coverage blocker, then finish the auth-alias operations handoff, fresh Docker MFA proof, and Docker cross-browser/audit follow-ons. |
+| In Progress | P5-T2C | Review findings remediation | Keep this row tightly scoped to the surfaced code-review findings only: fix the stale builder site-context bug, add direct builder shortcut and site-context regression coverage, close the scheduled-report helper/service proof gap, and make the report-template validator and seed-failure behavior visibly proved. Rerun the targeted backend/frontend suites plus package type-checks, then hand the remaining shared host coverage triage, auth-alias/security operations follow-through, wider email-wave follow-through, and the report/portal persona-proof timeout lane back to `P5-T2B`, `P5-T3`, and `P5-T2D`. |
+| In Progress | P5-T3 | Email platform wave: blast email plus email builder/formatter | Keep the coordinated email wave active while the current pickup stays behavior-preserving inside the `frontend-email-builder` lane: the persistence/autosave cluster is now extracted out of `usePageEditorController`, targeted builder tests plus frontend type-check are green, and the next widening step is broader email-wave preview/QA/scheduling/delivery follow-through once `P5-T2B` clears the shared gate. |
+| In Progress | P5-T5 | Client portal wave | The first portal forms slice remains green in targeted backend/frontend/docs/E2E proof, and the next scoped pickup is now landed in targeted backend/frontend proof: `/api/v2/portal/appointments*` plus `/portal/appointments` are case-aware with selected-case summary cues, case number/title on appointment cards, pointperson context, and quick links back to the case workspace and messages. Keep the next proof step narrow: finish the focused portal Playwright/browser follow-through once `P5-T2B` clears, then choose the next portal slice without widening beyond current route seams. |
+| In Progress | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) as the canonical later-wave backlog artifact, and treat the repo-by-repo OSS benchmark review wave as complete. Keep the six-project cohort cloned under local-only `reference-repos/external/`, keep the runtime and pattern findings current in [../development/reference-patterns/P5-T6-oss-benchmark/adoption-spec.md](../development/reference-patterns/P5-T6-oss-benchmark/adoption-spec.md) plus [../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md](../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md), then publish five analysis-only capability briefs through the coordinated synthesis lanes: `fundraising-ops-brief` (`PAT-01`, `PAT-02`, `PAT-03`, boundary into `PAT-07`), `portal-ops-brief` (`PAT-04`, `PAT-05`, `PAT-06`), `volunteer-dispatch-brief` (`PAT-14`), `finance-membership-brief` (`PAT-09`, `PAT-10`, `PAT-11`), and `workflow-program-ops-brief` (`PAT-08`, `PAT-12`, `PAT-13`). Use those briefs to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit, then continue the explicit queued `P5-T6A` governance/compliance oversight, `P5-T6B` fundraising stewardship/restrictions, and `P5-T6C` service-delivery workflow-depth briefs after the `P5-T3` and `P5-T5` handoffs. Runtime implementation still stays blocked on the active product waves. |
 
 ### Review Queue
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| Review | P5-T2A | Testing-strategy review artifact and findings | Keep [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) as the canonical artifact while `P5-T2B` resolves the newly surfaced volunteer/contact-scope and database-config host blockers, then finishes the fresh-volume Docker MFA proof and the Docker cross-browser/audit follow-through. |
+| Review | P5-T2A | Testing-strategy review artifact and findings | Keep [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) as the canonical artifact while `P5-T2B` resolves the remaining shared coverage blocker in the host lane, then finishes the auth-alias operations handoff, fresh-volume Docker MFA proof, and Docker cross-browser/audit follow-through. |
 | Review | P5-T4 | Website surfaces wave: website builder plus public website | Use [../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md](../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md) as the row-local proof note for the one-form managed publish loop. Final broad signoff still depends on `P5-T2B`. |
+
+### Ready Queue
+
+| Status | ID | Task | Immediate Next Move |
+|---|---|---|---|
+| Ready | P5-T2D | Persona proof lane stabilization | Take the repo-truth persona review's current frontend timeouts as a focused proof-stability pickup: root-cause the timed-out report and portal page tests in `ReportsHomePage.test.tsx`, `SavedReportsPage.test.tsx`, `ScheduledReportsPage.test.tsx`, and `PortalWorkflowPages.test.tsx`, restore a green narrow persona-proof slice, and hand any remaining host-only drift back to `P5-T2B` instead of reclassifying persona support. |
+| Ready | P5-T6A | Governance and compliance oversight brief | Draft the smallest later-wave brief for board-only posture tightening, governance-risk escalation, board packet workflow, compliance-document retention, and corrective-action tracking while keeping annual filing and legal review steps explicitly `external only`. |
+| Ready | P5-T6B | Fundraising stewardship and restrictions brief | After the current email-wave handoff, draft the smallest fundraiser-depth brief that connects donor-preference governance, acknowledgment handoff, campaign/deadline orchestration, and typed appeals/restriction modeling to the live Mailchimp, donations, recurring, and reporting seams. |
+| Ready | P5-T6C | Service-delivery workflow depth brief | After the current portal appointments-continuity slice, draft the smallest service-delivery brief for reassessment cadence, handoff packets, closure continuity, rehab planning artifacts, and authorization/referral depth on top of the mounted cases, services, appointments, and portal surfaces. |
 
 ### Ready Next
 
-- No live ready rows remain. Keep new pickups behind the active `P5-T2B`, `P5-T3`, `P5-T5`, and `P5-T6` lanes unless the workboard is updated again.
+- Keep `P5-T2D` queued, but do not start it until `P5-T2B` finishes the current shared coverage triage and host rerun.
+- Keep `P5-T6A` as the next later-wave planning pickup, then queue `P5-T6B` behind the `P5-T3` handoff and `P5-T6C` behind the `P5-T5` appointments-continuity slice.
+- Keep `P5-T6` inside the capability-based adoption-brief synthesis lanes in parallel; publish the five analysis-only briefs before widening into any new runtime implementation row.
 
 ## Current Phase Shape
 
 - The Phase 5 docs, archive, benchmark, and persona-skill refresh is complete and archived in [archive/P5-T1_CLOSEOUT_2026-04-20.md](archive/P5-T1_CLOSEOUT_2026-04-20.md).
-- Phase 5 is still inside the shared Playwright/E2E and testing-strategy review lane, but the remaining work is now concentrated in targeted owning-surface follow-through from the latest host rerun plus the final Docker proof sequence rather than core lint/typecheck/coverage breakage.
+- Phase 5 is still inside the shared Playwright/E2E and testing-strategy review lane, but the remaining work is now concentrated in targeted owning-surface follow-through from the latest host reruns plus the final Docker proof sequence rather than the earlier UI-audit or dependency-audit regressions. The volunteer/contact-scope, database-config, UI-audit, and red security-baseline blockers are cleared; the host lane now needs shared coverage triage to finish the rerun.
+- `P5-T2C` is the dedicated review-findings remediation row: it closes the stale builder site-context bug and the newly surfaced backend/frontend proof gaps, but it does not clear the remaining `P5-T2B` shared coverage blocker, the broader `P5-T3` email-wave follow-through, or `P5-T4`'s dependency on shared signoff. The newly surfaced report and portal persona-proof timeouts now sit in `P5-T2D` so this row stays tightly scoped.
+- Security hardening now belongs inside `P5-T2B`, not as a fourth product wave: the deliberate backend `exceljs -> uuid` remediation is landed and the live security baseline is green again, but the auth-alias operational handoff is still queued behind the shared host gate and the active email/portal slices must keep permission, PII/audit, rate-limit, and SSRF proof current through the published [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md).
 - Product execution then centers on blast email plus the email builder/formatter, website builder plus public website, and the client portal.
-- The first `P5-T5` portal forms inbox slice is now green in targeted backend/frontend/docs/E2E proof, so the remaining portal wave work can stay scoped while shared broad signoff remains with `P5-T2B`.
-- Follow-on backlog from repo review and external benchmarking stays visible as later Phase 5 work rather than hidden in archive notes.
-- `P5-T3` is now active as the dedicated email platform wave, while `P5-T6` runs in parallel as analysis-only backlog synthesis rather than runtime implementation.
+- The first `P5-T5` portal forms inbox slice is now green in targeted backend/frontend/docs/E2E proof, and the next named portal slice, case-aware appointments continuity, is now landed in targeted backend/frontend proof while shared broad signoff still stays with `P5-T2B`.
+- Follow-on backlog from repo review and external benchmarking now stays visible through explicit queued `P5-T6` briefs rather than a summary-only artifact. The repo-by-repo OSS benchmark review wave is now complete, and the next `P5-T6` planning move is the capability-based adoption-brief sequence: `fundraising-ops-brief`, `portal-ops-brief`, `volunteer-dispatch-brief`, `finance-membership-brief`, and `workflow-program-ops-brief`. The current persona gaps review still adds three concrete queued later briefs: `P5-T6A` governance/compliance oversight, `P5-T6B` fundraising stewardship/restrictions, and `P5-T6C` service-delivery workflow depth.
+- `P5-T3` and `P5-T5` remain the active runtime waves, while `P5-T6` is now the planning lane for the completed OSS benchmark review wave and the next capability-based adoption briefs before any later typed-domain runtime row is signed out.
 
 ## Coordination
 
@@ -108,6 +122,12 @@ Maintenance rules:
   Handoff notes: summarize doc/runtime wording changes and exact browser proof added
   Docs ownership: lane
   Disposition: `Review`
+- Coordinated exception, 2026-04-22: `P5-T2B` includes a `security-hardening` sub-lane while shared validation, route, and workboard seams stay lead-owned.
+  Lead: Codex
+  Backend lanes: `security-hardening`
+  Frontend lanes: none
+  Other lanes: none
+  Integration owner: Codex
 - Coordinated exception, 2026-04-22: `P5-T5` is split across parallel lanes while `P5-T2B` stays in final rerun/validation follow-through.
   Lead: Codex
   Backend lanes: `portal-forms-contract`
@@ -118,8 +138,28 @@ Maintenance rules:
   Lead: Codex
   Backend lanes: `backend-mailchimp-campaigns`, `backend-email-renderer`
   Frontend lanes: `frontend-communications-workspace`, `frontend-email-builder`
-  Other lanes: `docs-email-wave`, `workflow-customization-backlog`, `memberships-appeals-backlog`, `finance-program-ops-backlog`
+  Other lanes: `docs-email-wave`, `fundraising-ops-brief`, `portal-ops-brief`, `volunteer-dispatch-brief`, `finance-membership-brief`, `workflow-program-ops-brief`
   Integration owner: Codex
+- Coordinated exception, 2026-04-22: `P5-T6` shifts from repo-review lanes into capability-based adoption briefs while shared workboard and synthesis docs stay lead-owned.
+  Lead: Codex
+  Backend lanes: none
+  Frontend lanes: none
+  Other lanes: `fundraising-ops-brief`, `portal-ops-brief`, `volunteer-dispatch-brief`, `finance-membership-brief`, `workflow-program-ops-brief`
+  Integration owner: Codex
+- Coordinated exception, 2026-04-22: `P5-T2C` is split across focused remediation lanes while shared route/workboard seams stay lead-owned.
+  Lead: Codex
+  Backend lanes: `scheduled-reports-proof`, `report-template-proof`
+  Frontend lanes: `frontend-builder-remediation`
+  Other lanes: none
+  Integration owner: Codex
+- Lane: `security-hardening`
+  Goal: clear the current security-scan red state and make auth and security monitoring operational without changing shared route or workboard contracts
+  Owned paths: `docs/security/**`, `docs/validation/**`, `scripts/security-scan.sh`, `scripts/check-auth-guard-policy.ts`, `scripts/check-rate-limit-key-policy.ts`, `backend/package.json`, `backend/package-lock.json`, `backend/src/modules/auth/**`, `backend/src/middleware/apiKeyAuth.ts`, `backend/src/middleware/portalAuth.ts`, `backend/src/services/authGuardService.ts`, `backend/src/services/piiService.ts`, `backend/src/__tests__/modules/auth/**`, `backend/src/__tests__/modules/*.security.test.ts`, `backend/src/__tests__/services/paymentProviderService.ssrf.test.ts`, `backend/src/__tests__/services/webhookService.secretExposure.test.ts`
+  Forbidden shared paths: `backend/src/routes/v2/index.ts`, `frontend/src/routes/**`, `docs/phases/planning-and-progress.md`
+  Expected tests: `make security-scan`, `node scripts/check-auth-guard-policy.ts`, `node scripts/check-rate-limit-key-policy.ts`, plus the narrowest auth, portal, payments, reconciliation, SSRF, or webhook suites touched by the lane
+  Handoff notes: summarize dependency-scan status, operational dashboard or policy changes, and any follow-up the active email or portal lanes must carry
+  Docs ownership: lane
+  Disposition: `In Progress`
 - Lane: `portal-forms-contract`
   Goal: make the assignment-backed portal forms payload the canonical inbox contract and expose case-aware summary metadata without widening shared route seams
   Owned paths: `backend/src/modules/portal/**`, `backend/src/modules/cases/usecases/caseForms.usecase.portal.ts`, `backend/src/modules/cases/repositories/caseFormsRepository.ts`, `backend/src/validations/caseForms.ts`
@@ -176,6 +216,30 @@ Maintenance rules:
   Handoff notes: summarize reusable editor primitives, email-safe preview assumptions, and any overlap requiring lead integration
   Docs ownership: lead
   Disposition: `In Progress`
+- Lane: `frontend-builder-remediation`
+  Goal: remove stale builder site context and add direct coverage for the extracted builder seams without changing shared routes
+  Owned paths: `frontend/src/features/builder/**`
+  Forbidden shared paths: `frontend/src/routes/**`, `docs/phases/planning-and-progress.md`
+  Expected tests: targeted builder hook/controller coverage plus `cd frontend && npm run type-check`
+  Handoff notes: summarize site-context clearing behavior, shortcut behavior, and any editor-state assumptions
+  Docs ownership: lead
+  Disposition: `In Progress`
+- Lane: `scheduled-reports-proof`
+  Goal: make the scheduled-report helper split fully test-covered without changing runtime contracts
+  Owned paths: `backend/src/modules/scheduledReports/**`, `backend/src/__tests__/services/scheduledReport*.test.ts`
+  Forbidden shared paths: `backend/src/routes/v2/index.ts`, `docs/phases/planning-and-progress.md`, `frontend/src/routes/**`
+  Expected tests: targeted scheduled-report unit coverage plus `cd backend && npm run type-check`
+  Handoff notes: summarize newly covered branches and any residual untestable paths
+  Docs ownership: lead
+  Disposition: `In Progress`
+- Lane: `report-template-proof`
+  Goal: make the report-template validator split and seed behavior visibly proved through negative-path tests
+  Owned paths: `backend/src/modules/reports/services/reportTemplate*.ts`, `backend/src/__tests__/services/reportTemplateService.test.ts`
+  Forbidden shared paths: `backend/src/routes/v2/index.ts`, `docs/phases/planning-and-progress.md`, `frontend/src/routes/**`
+  Expected tests: targeted report-template service coverage plus `cd backend && npm run type-check`
+  Handoff notes: summarize negative-path coverage and any deferred validation hardening
+  Docs ownership: lead
+  Disposition: `In Progress`
 - Lane: `docs-email-wave`
   Goal: align product/docs/testing language with the active blast-email authoring, preview, formatting, and delivery wave
   Owned paths: `docs/product/product-spec.md`, `docs/features/FEATURE_MATRIX.md`, `docs/features/TEMPLATE_SYSTEM.md`, `docs/testing/TESTING.md`
@@ -184,28 +248,44 @@ Maintenance rules:
   Handoff notes: summarize docs wording changes and exact validation guidance added
   Docs ownership: lane
   Disposition: `In Progress`
-- Lane: `workflow-customization-backlog`
-  Goal: audit current metadata-driven workflow and customization support, then hand the lead ranked later-wave backlog recommendations without direct repo edits
+- Lane: `fundraising-ops-brief`
+  Goal: synthesize benchmark-backed fundraising carry-over on saved audiences, campaign-run history, donor preference/receipting, and the boundary into typed appeals without direct repo edits
   Owned paths: none; analysis-only lane
-  Forbidden shared paths: all repo-tracked files; report findings to the lead instead of editing directly
-  Expected tests: none; evidence comes from current repo docs, route catalogs, and benchmark canon
-  Handoff notes: provide confirmed repo support, visible gaps, borrowable patterns, persona implications, and priority recommendations
+  Forbidden shared paths: all repo-tracked files except lead-owned synthesis docs; report findings to the lead instead of editing directly
+  Expected tests: none; evidence comes from current repo docs, the benchmark canon, and completed clone-review notes
+  Handoff notes: provide ranked `PAT-01`, `PAT-02`, `PAT-03`, and `PAT-07` outcomes, concrete landing zones, smallest future type targets (`saved_audience`, `campaign_run`, `donor_profile`), and parity traps around Mailchimp lists/segments or `campaign_name`
   Docs ownership: lead
   Disposition: `In Progress`
-- Lane: `memberships-appeals-backlog`
-  Goal: audit memberships, appeals, and fundraising-depth gaps, then hand the lead ranked later-wave backlog recommendations without direct repo edits
+- Lane: `portal-ops-brief`
+  Goal: synthesize the next portal carry-over on shared public-intake resolution, reusable queue definitions, shared triage-shell reuse inside `PAT-05`, and typed portal escalations without direct repo edits
   Owned paths: none; analysis-only lane
-  Forbidden shared paths: all repo-tracked files; report findings to the lead instead of editing directly
-  Expected tests: none; evidence comes from current repo docs, route catalogs, and benchmark canon
-  Handoff notes: provide confirmed repo support, visible gaps, borrowable patterns, persona implications, and priority recommendations
+  Forbidden shared paths: all repo-tracked files except lead-owned synthesis docs; report findings to the lead instead of editing directly
+  Expected tests: none; evidence comes from current repo docs, the benchmark canon, and completed clone-review notes
+  Handoff notes: provide ranked `PAT-04`, `PAT-05`, and `PAT-06` outcomes, concrete landing zones, smallest future type targets (shared `public_intake_resolution`, `queue_view_definition`, `portal_escalation`), and parity traps around duplicate resolution, queue reuse, or over-widening the active portal slice
   Docs ownership: lead
   Disposition: `In Progress`
-- Lane: `finance-program-ops-backlog`
-  Goal: audit finance and program-operations gaps, then hand the lead ranked later-wave backlog recommendations without direct repo edits
+- Lane: `volunteer-dispatch-brief`
+  Goal: synthesize the volunteer-dispatch carry-over on searchable event/task pickers, skill-fit reuse, and dispatch-oriented volunteer detail follow-through without direct repo edits
   Owned paths: none; analysis-only lane
-  Forbidden shared paths: all repo-tracked files; report findings to the lead instead of editing directly
-  Expected tests: none; evidence comes from current repo docs, route catalogs, and benchmark canon
-  Handoff notes: provide confirmed repo support, visible gaps, borrowable patterns, persona implications, and priority recommendations
+  Forbidden shared paths: all repo-tracked files except lead-owned synthesis docs; report findings to the lead instead of editing directly
+  Expected tests: none; evidence comes from current repo docs, the benchmark canon, and completed clone-review notes
+  Handoff notes: provide ranked `PAT-14` outcomes, concrete landing zones, and the smallest active task/event picker contract needed for dispatch follow-through, plus parity traps around widening into a new volunteer domain model
+  Docs ownership: lead
+  Disposition: `In Progress`
+- Lane: `finance-membership-brief`
+  Goal: synthesize later-wave typed finance and constituent-lifecycle work on restrictions, donation batches, and memberships without direct repo edits
+  Owned paths: none; analysis-only lane
+  Forbidden shared paths: all repo-tracked files except lead-owned synthesis docs; report findings to the lead instead of editing directly
+  Expected tests: none; evidence comes from current repo docs, the benchmark canon, and completed clone-review notes
+  Handoff notes: provide ranked `PAT-09`, `PAT-10`, and `PAT-11` outcomes, concrete landing zones, smallest future type targets (`fund_designation`, `donation_batch`, `membership`), and parity traps around free-text designations, batchless finance review, or contact-role membership inference
+  Docs ownership: lead
+  Disposition: `In Progress`
+- Lane: `workflow-program-ops-brief`
+  Goal: synthesize domain-scoped workflow and program-ops follow-through on transition registries, service-point routing, and case-form approvals without direct repo edits
+  Owned paths: none; analysis-only lane
+  Forbidden shared paths: all repo-tracked files except lead-owned synthesis docs; report findings to the lead instead of editing directly
+  Expected tests: none; evidence comes from current repo docs, the benchmark canon, and completed clone-review notes
+  Handoff notes: provide ranked `PAT-08`, `PAT-12`, and `PAT-13` outcomes, concrete landing zones, smallest future type targets (a domain-scoped transition registry, `service_site`, expanded case-form approval states), and parity traps around opening a generic workflow studio or metadata builder
   Docs ownership: lead
   Disposition: `In Progress`
 - For future modularization exceptions, use the lane contract and workboard format in [../development/SUBAGENT_MODULARIZATION_GUIDE.md](../development/SUBAGENT_MODULARIZATION_GUIDE.md).
@@ -230,8 +310,13 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | ID | Task | Status | Owner | Next Step / Blocker | Evidence |
 |---|---|---|---|---|---|
 | P5-T2A | Testing-strategy review artifact and findings | Review | Codex | The Phase 5 testing-strategy review artifact is published. Keep the validation note current as reruns land, but leave the remaining runtime stabilization and failure triage to `P5-T2B`. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
-| P5-T2B | Shared validation lane stabilization | In Progress | Codex | The repo-local lane contract is now baked in, smoke cleanup is hardened, UI audit drift is refreshed, stale host expectations are aligned, and the avatar / contacts / donations / events regressions are fixed. The 2026-04-22 host rerun then surfaced new blockers in `src/__tests__/integration/volunteers.test.ts` and `src/__tests__/config/database.test.ts`; route those back to the owning surfaces and rerun `E2E_FRONTEND_PORT=5317 make ci-full` before attempting the fresh-workspace MFA proof, `npm run test:docker:ci`, `npm run test:docker:audit`, and final validation closeout. | [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
+| P5-T2B | Shared validation lane stabilization | In Progress | Codex | The repo-local lane contract is now baked in, smoke cleanup is hardened, UI audit drift is refreshed to `1262/9403/58`, stale host expectations are aligned, the avatar / contacts / donations / events regressions are fixed, and the live security baseline is green again after the deliberate backend `exceljs -> uuid` remediation. The smallest shared frontend coverage helper is also landed by widening the CI/coverage timeout budget, and targeted proof for that helper plus the owning email/portal slices is green. The shared host rerun still is not closed, though: one rerun was invalidated by a local coverage-directory collision, the next exposed a broad frontend coverage timeout wave, and the latest 2026-04-22 follow-on rerun now stops during backend `npm run test:coverage`. Triage the remaining shared coverage blocker, then finish the auth-alias operations handoff, fresh-workspace MFA proof, `npm run test:docker:ci`, `npm run test:docker:audit`, and final validation closeout. | [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md) |
+| P5-T2C | Review findings remediation | In Progress | Codex | Keep this row tightly scoped to the surfaced review findings only: the active pickup is the coordinated `frontend-builder-remediation`, `scheduled-reports-proof`, and `report-template-proof` lanes, covering the stale builder site-context bug, direct builder shortcut/site-context regression coverage, the scheduled-report helper/service proof gap, and visible negative-path proof for the report-template validator plus seed-failure behavior. Rerun the targeted backend/frontend suites plus package type-checks, then hand the remaining shared host coverage triage, queued auth-alias/security operations follow-through, wider email-wave preview/QA/scheduling/delivery work, and the report/portal persona-proof timeout lane back to `P5-T2B`, `P5-T3`, and `P5-T2D`. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
+| P5-T2D | Persona proof lane stabilization | Ready | Codex | Root-cause the currently timed-out report and portal page tests in the narrow persona-proof slice, restore a green route/report/portal persona lane, and feed any remaining host-only drift back to `P5-T2B` instead of treating it as persona-support regression. | [../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) |
 | P5-T4 | Website surfaces wave: website builder plus public website | Review | Codex | The one-form managed public publish-loop proof is now green across the website console, builder, publish flow, and public runtime. Keep the row in `Review` while `P5-T2B` finishes the broader host-plus-Docker validation lane. | [../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md](../validation/P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md) |
-| P5-T3 | Email platform wave: blast email plus email builder/formatter | In Progress | Codex | Start the coordinated email wave: keep `/api/v2/mailchimp/*` as the outbound contract, extend campaign authoring for draft/schedule/preview-ready flows, reuse current builder primitives for email-safe preview/formatting, and land focused backend/frontend/docs proof while shared route/workboard seams stay lead-owned. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
-| P5-T5 | Client portal wave | In Progress | Codex | The portal forms inbox slice is now green in targeted proof: `/api/v2/portal/forms/assignments*` is the canonical active/completed contract, `/portal/forms` refetches by bucket with case-aware summary metadata and due dates, and the focused portal docs/E2E coverage is updated. Keep the broader portal wave active for the next scoped pickup while shared broad signoff remains coupled to `P5-T2B`. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
-| P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | In Progress | Codex | Use the published synthesis artifact to keep workflow/customization, memberships/appeals, and finance/program-ops work ranked and visible, but keep runtime implementation blocked on the active `P5-T3` and `P5-T5` product waves. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) |
+| P5-T3 | Email platform wave: blast email plus email builder/formatter | In Progress | Codex | Keep `/api/v2/mailchimp/*` as the outbound contract while the current builder pickup stays behavior-preserving and builder-local. The persistence/autosave cluster is now extracted out of `usePageEditorController`, targeted builder coverage plus `cd frontend && npm run type-check` are green, and the next widening step is broader email authoring, preview, QA, scheduling, and delivery follow-through once `P5-T2B` clears the shared gate. Any send, schedule, preview, or outbound integration widening must keep targeted route-security, preview-sanitization, and SSRF-sensitive integration proof current. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
+| P5-T5 | Client portal wave | In Progress | Codex | The portal forms inbox slice is now green in targeted proof, and the next named portal slice, case-aware appointments continuity, is landed in targeted backend/frontend proof: `/api/v2/portal/appointments*` remains the canonical contract, `/portal/appointments` now keeps selected-case context visible, and appointment cards expose client-safe case and pointperson cues with links back to the case workspace and messages. Finish the focused portal Playwright proof once `P5-T2B` clears, then choose the next portal slice without widening beyond the current portal and case seams. Any broader portal pickup must keep object-level authorization plus PII and audit proof current before widening again. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
+| P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | In Progress | Codex | Keep the published synthesis artifact as the canonical later-wave backlog note, and treat the repo-by-repo OSS benchmark review wave as complete. Keep the local clone set pinned in `reference-repos/manifest.lock.json`, keep the standardized benchmark findings current in `docs/development/reference-patterns/P5-T6-oss-benchmark/**`, then publish five analysis-only capability briefs: `fundraising-ops-brief`, `portal-ops-brief`, `volunteer-dispatch-brief`, `finance-membership-brief`, and `workflow-program-ops-brief`. Use those briefs to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit before continuing the explicit queued `P5-T6A`, `P5-T6B`, and `P5-T6C` briefs after the `P5-T3` and `P5-T5` handoffs. Runtime implementation remains blocked on the active `P5-T3` and `P5-T5` product waves. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [../development/reference-patterns/P5-T6-oss-benchmark/adoption-spec.md](../development/reference-patterns/P5-T6-oss-benchmark/adoption-spec.md), [../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md](../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md) |
+| P5-T6A | Governance and compliance oversight brief | Ready | Codex | Draft the smallest later-wave governance/compliance brief for board-only posture tightening, governance-risk escalation, board packet workflow, compliance-document retention, and corrective-action tracking while keeping annual filing and legal review explicitly `external only`. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) |
+| P5-T6B | Fundraising stewardship and restrictions brief | Ready | Codex | After the `P5-T3` handoff, draft the smallest fundraiser-depth brief that connects donor-preference governance, acknowledgment handoff, campaign/deadline orchestration, and typed appeals/restriction modeling to the live Mailchimp, donations, recurring, and reporting seams. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) |
+| P5-T6C | Service-delivery workflow depth brief | Ready | Codex | After the `P5-T5` appointments-continuity slice, draft the smallest service-delivery brief for reassessment cadence, handoff packets, closure continuity, rehab planning artifacts, and authorization/referral depth on top of the mounted cases, services, appointments, and portal surfaces. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) |

@@ -262,13 +262,11 @@ describe('MailchimpService', () => {
     });
 
     it('should throw on other errors', async () => {
-      (mockMailchimp.lists.getListMember as jest.Mock).mockRejectedValue(
-        new Error('Server error')
-      );
+      (mockMailchimp.lists.getListMember as jest.Mock).mockRejectedValue(new Error('Server error'));
 
-      await expect(
-        mailchimpService.getMember('list-123', 'test@example.com')
-      ).rejects.toThrow('Server error');
+      await expect(mailchimpService.getMember('list-123', 'test@example.com')).rejects.toThrow(
+        'Server error'
+      );
     });
   });
 
@@ -551,9 +549,7 @@ describe('MailchimpService', () => {
         listId: 'list-123',
         name: 'High Donors',
         matchType: 'all',
-        conditions: [
-          { field: 'DONATION_TOTAL', op: 'greater', value: 1000 },
-        ],
+        conditions: [{ field: 'DONATION_TOTAL', op: 'greater', value: 1000 }],
       });
 
       expect(segment.name).toBe('High Donors');
@@ -596,6 +592,7 @@ describe('MailchimpService', () => {
       const sendTime = new Date('2026-05-01T10:00:00Z');
       const campaign = await mailchimpService.createCampaign({
         listId: 'list-123',
+        segmentId: 42,
         title: 'Spring Appeal',
         subject: 'Spring Appeal',
         previewText: 'Support our spring programs',
@@ -617,6 +614,11 @@ describe('MailchimpService', () => {
 
       expect(mockMailchimp.campaigns.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          recipients: expect.objectContaining({
+            segment_opts: {
+              saved_segment_id: 42,
+            },
+          }),
           settings: expect.objectContaining({
             subject_line: 'Spring Appeal',
             preview_text: 'Support our spring programs',

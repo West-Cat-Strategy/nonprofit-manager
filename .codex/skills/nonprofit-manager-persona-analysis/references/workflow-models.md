@@ -9,6 +9,19 @@ This file is the canonical workflow layer for the six-persona pack. `docs/produc
 - `external only`: the app provides context or inputs, but the workflow outcome is mostly external
 - `missing`: no practical in-product realization today
 
+## Validation Surfaces
+
+Use these when you need to check the workflow contract, smoke the first-touch UX, or prove the flow end to end:
+
+- `frontend/src/test/ux/personaWorkflowMatrix.ts` when you need the canonical persona-to-route/workflow contract.
+- `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` when you need a fast route-level UX smoke check for headings, posture, and console errors.
+- `e2e/tests/persona-workflows.spec.ts` when you need seeded runtime proof of persona workflows against the live app.
+
+## Boundary Reminder
+
+- `external only` means the repo can surface data, context, or handoff artifacts, but the real-world success condition stays outside the app.
+- Use that label for filings, governance packet assembly, external outreach, and similar workflows where the repo is intentionally a helper rather than the system of record.
+
 ## Governance And Revenue Workflows
 
 ### Executive Director

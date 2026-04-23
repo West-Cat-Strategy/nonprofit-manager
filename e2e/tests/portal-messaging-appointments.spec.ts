@@ -73,7 +73,26 @@ test.describe('Portal Messaging + Appointments', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ success: true, data: [] }),
+          body: JSON.stringify({
+            success: true,
+            data: [
+              {
+                id: 'appointment-1',
+                case_id: 'case-1',
+                title: 'Case follow-up',
+                description: 'Bring paperwork',
+                start_time: '2026-04-02T16:00:00.000Z',
+                end_time: '2026-04-02T16:30:00.000Z',
+                status: 'confirmed',
+                location: 'Main office',
+                case_number: 'CASE-001',
+                case_title: 'Housing Support',
+                pointperson_first_name: 'Alex',
+                pointperson_last_name: 'Rivera',
+                request_type: 'manual_request',
+              },
+            ],
+          }),
         });
         return;
       }
@@ -115,5 +134,16 @@ test.describe('Portal Messaging + Appointments', () => {
 
     await page.goto('/portal/appointments');
     await expect(page.getByRole('combobox').first()).toHaveValue('case-1');
+    await expect(page.locator('p', { hasText: 'Selected Case' })).toBeVisible();
+    await expect(page.getByText('Case: CASE-001 - Housing Support').first()).toBeVisible();
+    await expect(page.getByText('Pointperson: Alex Rivera').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Case workspace' })).toHaveAttribute(
+      'href',
+      '/portal/cases/case-1'
+    );
+    await expect(page.getByRole('link', { name: 'Messages' })).toHaveAttribute(
+      'href',
+      '/portal/messages'
+    );
   });
 });

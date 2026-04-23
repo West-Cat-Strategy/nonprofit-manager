@@ -6,6 +6,8 @@ const hasPackage = (id: string, packageName: string): boolean =>
   id.includes(`/node_modules/${packageName}/`)
 
 const normalizeId = (id: string): string => id.replace(/\\/g, '/')
+const isCoverageRun = process.argv.includes('--coverage')
+const useExtendedCiTimeouts = isCoverageRun || process.env.CI === 'true'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -172,6 +174,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
+    testTimeout: useExtendedCiTimeouts ? 15000 : 5000,
+    hookTimeout: useExtendedCiTimeouts ? 15000 : 10000,
     coverage: {
       // Vitest 4 uses the include glob to discover uncovered source files.
       include: ['src/**/*.{ts,tsx}'],

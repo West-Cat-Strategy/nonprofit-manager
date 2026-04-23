@@ -444,7 +444,7 @@ const smokeCases: SmokeCase[] = [
     primaryActionPattern: /create intake/i,
     primaryActionRole: 'link',
     contractAssertion: async () => {
-      expect(await screen.findByRole('heading', { name: /quick actions/i, level: 3 })).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: /focus queue/i })).toBeInTheDocument();
     },
   },
   {

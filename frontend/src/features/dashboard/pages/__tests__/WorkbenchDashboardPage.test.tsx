@@ -177,25 +177,21 @@ describe('WorkbenchDashboardPage', () => {
     renderWithProviders(<WorkbenchDashboardPage />, { route: '/dashboard' });
 
     expect(screen.getByRole('link', { name: 'New Case' })).toHaveAttribute('href', '/cases/new');
-    const dailyPathsSection = screen.getByRole('heading', { name: /daily paths/i }).closest('section');
-    expect(dailyPathsSection).not.toBeNull();
     const pinnedShortcutsSection = screen.getByRole('heading', { name: /pinned shortcuts/i })
       .closest('section');
     expect(pinnedShortcutsSection).not.toBeNull();
+    expect(screen.queryByRole('heading', { name: /daily paths/i })).not.toBeInTheDocument();
+    const setupSection = screen.getByRole('heading', { name: /workbench setup/i }).closest('section');
+    expect(setupSection).not.toBeNull();
     expect(
       within(pinnedShortcutsSection as HTMLElement).getByRole('link', { name: /people/i })
     ).toHaveAttribute('href', '/contacts');
     expect(
-      within(dailyPathsSection as HTMLElement).getByRole('link', {
-        name: /cases jump into the active service queue and case detail views/i,
-      })
-    ).toHaveAttribute('href', '/cases');
+      within(setupSection as HTMLElement).getByRole('button', { name: /customize view/i })
+    ).toBeInTheDocument();
     expect(
-      within(dailyPathsSection as HTMLElement).getByRole('link', { name: /donations/i })
-    ).toHaveAttribute('href', '/donations');
-    expect(
-      within(dailyPathsSection as HTMLElement).getByRole('link', { name: /reports/i })
-    ).toHaveAttribute('href', '/reports');
+      within(setupSection as HTMLElement).getByRole('link', { name: /open layout editor/i })
+    ).toHaveAttribute('href', '/dashboard/custom');
     expect(screen.getByRole('link', { name: /Call client/ })).toBeInTheDocument();
     expect(numberFormatSpy).toHaveBeenCalledWith(
       undefined,

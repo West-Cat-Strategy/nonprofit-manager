@@ -8,6 +8,7 @@ This note is the row-local synthesis artifact for `P5-T6`. It converts the Phase
 
 - [planning-and-progress.md](planning-and-progress.md)
 - [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md)
+- [../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md)
 - [../product/product-spec.md](../product/product-spec.md)
 - [../product/persona-workflows.md](../product/persona-workflows.md)
 - [../product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md](../product/OPEN_SOURCE_NONPROFIT_CRM_BENCHMARK_2026-04.md)
@@ -30,59 +31,52 @@ This note is the row-local synthesis artifact for `P5-T6`. It converts the Phase
 - The repo already supports finance and program baselines through donations, recurring giving, receipting, Stripe-backed reconciliation, grants, cases, services, follow-ups, appointments, portal coordination, referral intake, and external service-provider workflows.
 - The repo does not currently mount typed restricted-fund controls, allocation/release tracking, nonprofit budgeting/disbursement operations, grievance queues, service-point routing, or service-authorization workflow as first-class product surfaces.
 
-## Ranked Later-Wave Backlog
+## Fresh External-Source Pressure
+
+The highest-pressure benchmark claims were refreshed against official product docs on `2026-04-22`, and they sharpen the current backlog in several useful ways:
+
+- CiviCRM membership docs confirm selectable membership types, renewal-specific copy, auto-renew support, and multi-term / multi-class signup through price sets. Memberships still read as a later new domain here, but they should eventually be scoped as a typed lifecycle rather than a generic contact flag.
+- OpenSPP approvals and service-point docs confirm explicit approval states, multi-tier approval, searchable service-point operations, and frontline routing patterns. That keeps workflow/program-ops pressure focused on stateful case and portal follow-through rather than a generic workflow builder first.
+- OpenPetra donation docs keep finance depth close to project-specific donation assignment and batch entry, which reinforces typed restriction/allocation and finance exception review ahead of any broader accounting-suite ambition.
+- SuiteCRM campaign docs confirm campaign types, target lists, scheduled send expectations, ROI tracking, and template editing, which keeps typed appeals and campaign measurement adjacent to the active `P5-T3` seam instead of treating them as a detached future domain.
+- ERPNext membership docs confirm explicit membership statuses and payment/invoicing hooks, which is another signal that memberships are better treated as a later typed domain than as the next adjacent extension of current routed surfaces.
+
+## Ranked Capability Briefs
 
 ### Priority 1
 
-1. Reusable workflow-state and approval kernel.
-   Repo truth: approvals and workflow checks exist only in siloed flows today.
-   Borrowable patterns: OpenSPP and SuiteCRM stateful transitions, approvals, queues, and audit history.
-   Persona impact: Nonprofit Administrator, Case Manager, and Rehab Worker benefit first; Executive Director and Board Member stay read-first consumers of the resulting oversight history.
+1. `fundraising-ops-brief`
+   Scope: `PAT-01`, `PAT-02`, `PAT-03`, and the boundary into `PAT-07`.
+   Future targets: `saved_audience`, `campaign_run`, `donor_profile`, and the later typed appeal boundary.
+   Why here: the product already has live People, Mailchimp, donations, recurring giving, and reporting seams, but it still lacks first-class saved audiences, a local campaign-run ledger, and donor preference governance. This brief keeps those `borrow now` carry-overs explicit without letting Mailchimp lists/segments or `campaign_name` strings masquerade as first-class records.
 
-2. Typed appeal attribution and fundraising measurement.
-   Repo truth: the product can track gifts, recurring plans, opportunities, reports, and Mailchimp segments, but appeal execution is still stitched together across those surfaces.
-   Borrowable patterns: CiviCRM appeal/campaign workflows, ERPNext typed constituent records, SuiteCRM campaign visibility.
-   Persona impact: Fundraiser gets first-class campaign measurement; leadership gets appeal ROI and lifecycle visibility instead of report-only snapshots.
+2. `portal-ops-brief`
+   Scope: `PAT-04`, `PAT-05`, `PAT-06`.
+   Future targets: shared `public_intake_resolution`, `queue_view_definition`, `portal_escalation`.
+   Why here: the portal and public-intake seams are already real, but they still resolve contacts inconsistently, keep saved triage views local to one surface, and fall back to generic threads instead of typed escalations. This should be the first post-appointments-continuity `P5-T5` carry-over, with the shared triage shell folded into `PAT-05` instead of spun out as a separate platform row.
 
-3. Typed restriction and allocation layer across donations, grants, funded programs, and reporting.
-   Repo truth: designation and campaign text exist today, but restriction governance is still partial and mostly policy-driven outside the app.
-   Borrowable patterns: OpenPetra finance controls, ERPNext typed finance/program relationships.
-   Persona impact: Executive Director, Fundraiser, and Nonprofit Administrator gain stronger restricted-funds stewardship and finance-ready exception review.
+3. `volunteer-dispatch-brief`
+   Scope: `PAT-14`.
+   Future targets: the smallest active task/event picker contract that can sit on top of the existing assignment shape and skill-fit ranking without opening a new volunteer domain model.
+   Why here: this is the only volunteer `borrow now` carry-over from the benchmark wave. The repo already has skills, availability, and matching support, so the brief should stay tightly focused on dispatch ergonomics instead of inventing a broader volunteer domain rewrite.
 
 ### Priority 2
 
-4. Metadata-driven intake, portal, and case-form configuration on top of existing surfaces.
-   Repo truth: website forms and admin outcome definitions already show usable override/taxonomy patterns.
-   Borrowable patterns: CiviCRM structured public intake and OpenSPP configurable operational flows.
-   Persona impact: Nonprofit Administrator and Case Manager gain safer configurable intake without jumping straight to generic schema editing.
+4. `finance-membership-brief`
+   Scope: `PAT-09`, `PAT-10`, `PAT-11`.
+   Future targets: `fund_designation`, `donation_batch`, `membership`.
+   Why here: designation and campaign text exist today, but restriction governance is still policy-heavy, donation entry has no batch/review boundary, and membership remains a contact-role inference. This brief keeps the typed-domain work explicit while preserving the current rule that no runtime implementation starts until separate scoped rows exist.
 
-5. Membership record, tier, renewal, lapse, and join/renew lifecycle.
-   Repo truth: no routed membership entity exists today.
-   Borrowable patterns: CiviCRM and ERPNext membership tiers, renewals, and public sign-up.
-   Persona impact: Fundraiser and Nonprofit Administrator gain recurring constituent lifecycle control; leadership gains membership-health visibility.
-
-6. Program workflow layer for service authorization, grievance/escalation, and provider/service-point routing.
-   Repo truth: cases, services, referrals, appointments, and portal coordination are present, but the stateful program-service layer above them is not.
-   Borrowable patterns: OpenSPP service points, approvals, and grievance handling.
-   Persona impact: Case Manager and Rehab Worker gain clearer handoffs, checkpoints, and frontline continuity cues.
-
-### Priority 3
-
-7. Deeper stewardship automation and campaign operations.
-   Repo truth: cadence support exists via reports, opportunities, follow-ups, and Mailchimp, but formal stewardship automation is still partial.
-   Borrowable patterns: CiviCRM and SuiteCRM workflow automation and campaign coordination.
-   Persona impact: Fundraiser gains operational scale, but this should follow typed appeals/memberships rather than precede them.
-
-8. Broader nonprofit finance breadth.
-   Repo truth: reconciliation and grants are already meaningful, but the repo is not a general accounting suite.
-   Borrowable patterns: ERPNext/OpenPetra budgeting, disbursement, and finance exception handling.
-   Persona impact: Nonprofit Administrator and Executive Director gain broader finance-control tooling, but only after the typed restriction/allocation layer exists.
+5. `workflow-program-ops-brief`
+   Scope: `PAT-08`, `PAT-12`, `PAT-13`.
+   Future targets: a domain-scoped transition registry, `service_site`, and expanded case-form approval states.
+   Why here: cases, services, appointments, and portal coordination are already real, but the richer workflow, routing, and approval depth above them is still fragmented. This brief should stay domain-scoped, sequence after the active `P5-T5` stabilization work, and keep the generic workflow studio/builder path rejected.
 
 ## Repo Truth Vs Benchmark Inspiration
 
 | Area | Confirmed repo support today | Benchmark-inspired later wave |
 |---|---|---|
-| Workflow/customization | Fixed-domain approvals, dashboards, reports, website-form overrides, outcome definitions | Reusable workflow-state kernel, configurable transitions, auditable approvals, metadata-driven forms |
+| Workflow/customization | Fixed-domain approvals, dashboards, reports, website-form overrides, outcome definitions | Domain-scoped workflow/configuration first, then a reusable workflow-state kernel if those slices prove shared primitives |
 | Memberships/appeals | Donations, recurring giving, opportunities, Mailchimp, fundraising reports/templates | Typed appeals, memberships, renewals, lifecycle dashboards, richer stewardship automation |
 | Finance/program ops | Reconciliation, grants, cases, services, referrals, appointments, portal coordination | Restricted-fund governance, allocation/release controls, service authorization, grievance/service-point routing |
 
@@ -91,3 +85,24 @@ This note is the row-local synthesis artifact for `P5-T6`. It converts the Phase
 - `P5-T3` should land the new communications authoring/preview model before deeper campaign automation or appeal orchestration is scoped, so later fundraising-depth work can reuse the real outbound messaging seam instead of a temporary one.
 - `P5-T5` should finish the current portal forms/case-aware inbox wave before program-service backlog slices define new service-authorization or grievance patterns, so those later waves build on the stabilized portal and case contracts.
 - This artifact is intentionally backlog-only. It does not authorize runtime implementation for memberships, appeals, workflow builders, finance breadth, or program-ops depth until those rows are separately signed out.
+
+## Downstream Persona Briefs
+
+1. `P5-T6A` Governance and compliance oversight brief.
+   Scope: board-only posture vs `viewer`, executive/board governance-risk escalation, board-packet assembly, compliance-document vault, and corrective-action ledger follow-through.
+   Downstream dependency: use the capability-brief outputs as proof inputs, but keep annual filing, legal review, and other true outside-the-product steps explicitly `external only`.
+
+2. `P5-T6B` Fundraising stewardship and restrictions brief.
+   Scope: donor-preference governance, acknowledgment handoff, campaign/deadline orchestration, typed appeals attribution, and restriction modeling on top of the active `P5-T3` communications and reporting seams.
+   Downstream dependency: build this on the outputs of `fundraising-ops-brief` and `finance-membership-brief` instead of inventing a separate fundraising stack.
+
+3. `P5-T6C` Service-delivery workflow depth brief.
+   Scope: reassessment cadence, structured handoff packets, closure continuity, rehab-specific planning artifacts, and authorization/referral depth on top of the active `P5-T5` cases, services, appointments, and portal seams.
+   Downstream dependency: build this on `portal-ops-brief`, `volunteer-dispatch-brief`, and `workflow-program-ops-brief`, and keep the first follow-through domain-scoped before any generic workflow kernel is reconsidered.
+
+## Queued Next Planning Actions
+
+1. Keep `fundraising-ops-brief` behind the active `P5-T3` handoff and use it to pin `saved_audience`, `campaign_run`, `donor_profile`, and the typed appeal boundary before widening into `P5-T6B`.
+2. Make `portal-ops-brief` the first post-appointments-continuity `P5-T5` carry-over, and keep the shared triage-shell idea folded into `PAT-05` instead of opening a separate queue-platform row.
+3. Keep `volunteer-dispatch-brief` as the only volunteer `borrow now` carry-over from the benchmark wave, and prove it can stay inside the current assignment contract before opening any new volunteer row.
+4. Hold `finance-membership-brief` and `workflow-program-ops-brief` behind the active product waves, then use them to shape later `P5-T6B`, `P5-T6C`, and any future typed-domain row without reopening a generic workflow studio or metadata builder.

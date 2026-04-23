@@ -27,11 +27,23 @@ Use this document as the summary and navigation surface for nonprofit-manager pe
 | Case Manager | `Inference: staff` | Frontline continuity coordinator | Cases, follow-ups, appointments, portal sharing | Privacy leakage or weak reassessment and handoff gates |
 | Rehab Worker | `Inference: staff` | Service delivery and referral continuity lead | Cases, services, follow-ups, appointments, portal workflows | Rehab-specific workflow gaps and fragmented referral context |
 
+## Precision Crosswalk
+
+| Persona | Evidence posture | Outside-the-app boundary | Best confirmation surface |
+|---|---|---|---|
+| Executive Director | admin role is confirmed; board-packet scope is partly inferred | board packets and compliance follow-through | `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts` |
+| Fundraiser | manager mapping is inferred; CRM surfaces are confirmed | donor outreach and stewardship cadence | `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts` |
+| Nonprofit Administrator | admin mapping is confirmed; compliance depth is inferred | audit vault and corrective-action tracking | `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts` |
+| Board Member | viewer mapping is inferred; read-only posture is confirmed | committee and governance process | `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts` |
+| Case Manager | staff mapping is inferred; continuity flow is confirmed | reassessment and handoff rigor | `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts` |
+| Rehab Worker | staff mapping is inferred; service-routing flow is confirmed | individualized plan and placement tooling | `frontend/src/test/ux/personaWorkflowMatrix.ts`, `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`, `e2e/tests/persona-workflows.spec.ts` |
+
 ## Role Model Caveats
 
 - The canonical auth-role slugs remain `admin`, `manager`, `staff`, `volunteer`, and `viewer`.
 - `fundraiser`, `board-member`, and `rehab-worker` are planning personas, not guaranteed auth roles.
 - The detailed persona cards label `Inference` explicitly and keep role-mapping confidence attached to each card.
+- Use the tracked validation surfaces above when you need to confirm a persona route or workflow claim against the current repo.
 
 ## Use This Summary For
 

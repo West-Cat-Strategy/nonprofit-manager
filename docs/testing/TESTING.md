@@ -91,6 +91,30 @@ Docker must still be running locally for `make ci-full`, because the host review
 If the host frontend port `5173` is already occupied, the Playwright host wrapper now auto-selects an alternate frontend port starting with `5317`. You can still pin one explicitly with `E2E_FRONTEND_PORT=<open-port>` such as `E2E_FRONTEND_PORT=5317 make ci-full` or `cd e2e && E2E_FRONTEND_PORT=5317 npm run test:ci:report`.
 The Docker cross-browser slice, Docker audit slice, `Mobile Safari`, and `Tablet` remain outside the default gate above; they are explicit review-lane follow-ons rather than CI-gated defaults.
 
+## Persona UI/UX Validation
+
+Use this lane when the task is validating the canonical six-persona pack against first-touch route clarity, board/read-only report posture, and thin cross-surface workflow anchors:
+
+```bash
+cd frontend && npm run type-check
+cd frontend && npm test -- --run src/test/ux/PersonaRouteUxSmoke.test.tsx src/routes/__tests__/routeCatalog.test.ts src/features/auth/state/__tests__/reportAccess.test.ts src/features/reports/routes/__tests__/createReportRoutes.test.tsx src/features/reports/pages/__tests__/ReportsHomePage.test.tsx src/features/savedReports/pages/__tests__/SavedReportsPage.test.tsx src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx
+cd e2e && npm test -- --project=chromium tests/persona-workflows.spec.ts
+cd e2e && npm test -- --project=chromium tests/fresh-workspace-multi-user.spec.ts tests/reports.spec.ts tests/donations.spec.ts tests/opportunities.spec.ts tests/admin.spec.ts tests/portal-workspace.spec.ts tests/portal-messaging-appointments.spec.ts
+```
+
+This lane proves:
+
+- persona-aware first-touch route contracts through `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx`
+- explicit board-member read-only report access through `reportAccess`, reports-home, saved-reports, scheduled-reports, and route-fallback tests
+- portal-adjacent continuity shells through `PortalWorkflowPages.test.tsx`
+- thin browser anchors through `e2e/tests/persona-workflows.spec.ts`, with the broader existing companion suites available as the expanded browser proof
+
+Playwright preconditions:
+
+- On a starter-only host or Docker runtime, the helper can complete first-time admin setup automatically.
+- On an already provisioned host runtime with a non-default admin, set `ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` in `e2e/.env.test.local` before running the persona browser lane.
+- Pair the persona lane with [DARK_MODE_ACCESSIBILITY_AUDIT.md](DARK_MODE_ACCESSIBILITY_AUDIT.md) or `tests/ux-regression.spec.ts` only when the changed routes overlap persona-critical surfaces.
+
 ## Targeted Website Publish-Loop Proof
 
 Use this narrower host run when the change is limited to the site-aware builder, website console, and one managed public form publish loop:

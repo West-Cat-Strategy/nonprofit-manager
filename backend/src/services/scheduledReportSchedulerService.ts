@@ -1,5 +1,5 @@
 import { IntervalBatchRunner } from '@services/queue/intervalBatchRunner';
-import { scheduledReportService } from '@services/scheduledReportService';
+import { scheduledReportService } from '@modules/scheduledReports/services/scheduledReportService';
 
 const DEFAULT_INTERVAL_MS = 60_000;
 const DEFAULT_BATCH_SIZE = 10;

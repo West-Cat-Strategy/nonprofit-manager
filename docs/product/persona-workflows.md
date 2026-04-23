@@ -28,6 +28,17 @@ Use this document as the summary and navigation surface for persona workflows. T
 | Case Manager | Intake, progress notes, handoffs, and closure continuity are partially supported | Person-centered reassessment rigor and standardized handoff packets remain incomplete | Cases, follow-ups, notes, portal-sharing surfaces |
 | Rehab Worker | Assessment, follow-up cadence, referral transitions, and outcome tracking are partial | Individualized employment plan workflow remains missing | Cases, services, appointments, forms, portal workflows |
 
+## Validation Crosswalk
+
+| Persona | Best proof path | Outside-the-app boundary | When to use |
+|---|---|---|---|
+| Executive Director | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | board packets and 990/compliance follow-through | use when checking oversight, dashboard, or saved-report claims |
+| Fundraiser | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | donor outreach and stewardship cadence | use when checking contacts, donations, and opportunity flow claims |
+| Nonprofit Administrator | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | audit vault, retention, and corrective actions | use when checking admin settings, users, or scheduled-report claims |
+| Board Member | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | committee governance and packet assembly | use when checking read-only report and dashboard claims |
+| Case Manager | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | reassessment rigor and handoff packets | use when checking case, follow-up, or portal-sharing claims |
+| Rehab Worker | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | individualized plan and placement tooling | use when checking service, appointment, or referral claims |
+
 ## Validation Context
 
 - Use [docs/validation/archive/persona-workflow-audit-2026-04-18.md](../validation/archive/persona-workflow-audit-2026-04-18.md) for the last broad persona workflow audit snapshot.

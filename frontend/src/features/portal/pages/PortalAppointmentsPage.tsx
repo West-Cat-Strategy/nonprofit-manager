@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import portalApi from '../../../services/portalApi';
 import { unwrapApiData } from '../../../services/apiEnvelope';
 import { useToast } from '../../../contexts/useToast';
@@ -10,40 +11,11 @@ import PortalListCard from '../../../components/portal/PortalListCard';
 import { usePersistentPortalCaseContext } from '../../../hooks/usePersistentPortalCaseContext';
 import usePortalAppointments from '../../../features/portal/client/usePortalAppointments';
 import type { PortalStreamStatus } from '../../../features/portal/client/types';
-
-interface AppointmentSlot {
-  id: string;
-  title: string | null;
-  details: string | null;
-  location: string | null;
-  start_time: string;
-  end_time: string;
-  available_count: number;
-  status: 'open' | 'closed' | 'cancelled';
-  case_number?: string | null;
-  pointperson_first_name?: string | null;
-  pointperson_last_name?: string | null;
-}
-
-interface SlotsPayload {
-  selected_case_id: string | null;
-  selected_pointperson_user_id: string | null;
-  slots: AppointmentSlot[];
-}
-
-interface CaseContext {
-  case_id: string;
-  case_number: string;
-  case_title: string;
-  is_messageable: boolean;
-  is_default: boolean;
-}
-
-interface PointpersonContextPayload {
-  default_case_id: string | null;
-  selected_case_id?: string | null;
-  cases: CaseContext[];
-}
+import type {
+  PortalAppointmentSlot,
+  PortalAppointmentSlotsPayload,
+  PortalPointpersonContext,
+} from '../types/contracts';
 
 type AppointmentStatusFilter = 'all' | 'requested' | 'confirmed' | 'cancelled' | 'completed';
 type AppointmentCaseFilter = 'all' | 'selected';
@@ -55,6 +27,28 @@ const toIsoFromLocal = (value: string): string | null => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
+};
+
+const formatPointpersonName = (
+  firstName?: string | null,
+  lastName?: string | null
+): string | null => {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  return fullName || null;
+};
+
+const formatCaseSummary = (
+  caseEntry?: { case_number?: string | null; case_title?: string | null } | null
+): string | null => {
+  if (!caseEntry?.case_number && !caseEntry?.case_title) {
+    return null;
+  }
+
+  if (caseEntry.case_number && caseEntry.case_title) {
+    return `${caseEntry.case_number} - ${caseEntry.case_title}`;
+  }
+
+  return caseEntry.case_number || caseEntry.case_title || null;
 };
 
 const getStreamStatusBadge = (status: PortalStreamStatus): { label: string; className: string } => {
@@ -87,8 +81,8 @@ const getStreamStatusBadge = (status: PortalStreamStatus): { label: string; clas
 
 export default function PortalAppointments() {
   const [mode, setMode] = useState<'slot' | 'request'>('slot');
-  const [slots, setSlots] = useState<AppointmentSlot[]>([]);
-  const [context, setContext] = useState<PointpersonContextPayload | null>(null);
+  const [slots, setSlots] = useState<PortalAppointmentSlot[]>([]);
+  const [context, setContext] = useState<PortalPointpersonContext | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -125,6 +119,11 @@ export default function PortalAppointments() {
     () => context?.cases.find((caseEntry) => caseEntry.case_id === selectedCaseId) || null,
     [context, selectedCaseId]
   );
+  const selectedCaseSummary = useMemo(() => formatCaseSummary(selectedCase), [selectedCase]);
+  const selectedCasePointperson = useMemo(
+    () => formatPointpersonName(selectedCase?.pointperson_first_name, selectedCase?.pointperson_last_name),
+    [selectedCase]
+  );
 
   const visibleSlots = useMemo(() => {
     const needle = slotSearch.trim().toLowerCase();
@@ -157,7 +156,7 @@ export default function PortalAppointments() {
     async (caseId: string) => {
       setSlotsLoading(true);
       try {
-        const response = await portalApi.get<SlotsPayload>('/v2/portal/appointments/slots', {
+        const response = await portalApi.get<PortalAppointmentSlotsPayload>('/v2/portal/appointments/slots', {
           params: caseId ? { case_id: caseId } : undefined,
         });
         const payload = unwrapApiData(response.data);
@@ -199,7 +198,7 @@ export default function PortalAppointments() {
   const streamBadge = useMemo(() => getStreamStatusBadge(streamStatus), [streamStatus]);
 
   const loadContext = useCallback(async () => {
-    const response = await portalApi.get<PointpersonContextPayload>('/v2/portal/pointperson/context');
+    const response = await portalApi.get<PortalPointpersonContext>('/v2/portal/pointperson/context');
     const payload = unwrapApiData(response.data);
     setContext(payload);
 
@@ -300,7 +299,7 @@ export default function PortalAppointments() {
     }
   };
 
-  const handleBookSlot = async (slot: AppointmentSlot) => {
+  const handleBookSlot = async (slot: PortalAppointmentSlot) => {
     if (!selectedCaseId) {
       showError('Select a case before booking.');
       return;
@@ -351,7 +350,7 @@ export default function PortalAppointments() {
   return (
     <PortalPageShell
       title="Appointments"
-      description="Book available slots or request a time that works for you."
+      description="Book or request time while keeping the current case workspace and messages in view."
     >
       <PortalPageState
         loading={loading}
@@ -411,6 +410,45 @@ export default function PortalAppointments() {
                 )}
               </select>
             </div>
+
+            {selectedCase && (
+              <div className="mt-4 rounded-[var(--ui-radius-md)] border border-app-border-muted bg-app-surface-muted p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-app-text-subtle">
+                      Selected Case
+                    </p>
+                    {selectedCaseSummary && (
+                      <p className="mt-1 text-sm font-semibold text-app-text">{selectedCaseSummary}</p>
+                    )}
+                    <p className="mt-1 text-sm text-app-text-muted">
+                      {selectedCasePointperson
+                        ? `Pointperson: ${selectedCasePointperson}`
+                        : 'Pointperson assignment is still pending for this case.'}
+                    </p>
+                    <p className="mt-1 text-xs text-app-text-subtle">
+                      Booking, appointment requests, and messages all stay tied to this case selection.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      to={`/portal/cases/${selectedCase.case_id}`}
+                      onClick={() => setSelectedCaseId(selectedCase.case_id)}
+                      className="rounded border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text hover:bg-app-surface"
+                    >
+                      Case workspace
+                    </Link>
+                    <Link
+                      to="/portal/messages"
+                      onClick={() => setSelectedCaseId(selectedCase.case_id)}
+                      className="rounded border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text hover:bg-app-surface"
+                    >
+                      Messages
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {mode === 'slot' ? (
               <div className="mt-4 space-y-3">
@@ -603,52 +641,63 @@ export default function PortalAppointments() {
             />
             {appointments.length > 0 && (
               <ul className="space-y-3">
-                {appointments.map((appointment) => (
-                  <li key={appointment.id}>
-                    <PortalListCard
-                      title={appointment.title}
-                      subtitle={new Date(appointment.start_time).toLocaleString()}
-                      meta={`Status: ${appointment.status}`}
-                      badges={
-                        <>
+                {appointments.map((appointment) => {
+                  const appointmentCaseSummary = formatCaseSummary(appointment);
+                  const appointmentPointperson = formatPointpersonName(
+                    appointment.pointperson_first_name,
+                    appointment.pointperson_last_name
+                  );
+
+                  return (
+                    <li key={appointment.id}>
+                      <PortalListCard
+                        title={appointment.title}
+                        subtitle={new Date(appointment.start_time).toLocaleString()}
+                        meta={`Status: ${appointment.status}`}
+                        badges={
                           <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
                             {appointment.request_type === 'slot_booking' ? 'Slot booking' : 'Manual request'}
                           </span>
-                          {appointment.case_number && (
-                            <span className="rounded bg-app-surface-muted px-2 py-0.5 text-xs text-app-text-muted">
-                              Case: {appointment.case_number}
-                            </span>
-                          )}
-                        </>
-                      }
-                      actions={
-                        appointment.status !== 'cancelled' && appointment.status !== 'completed' ? (
-                          <button
-                            onClick={() => {
-                              void handleCancelAppointment(appointment.id);
-                            }}
-                            disabled={appointmentToCancel === appointment.id}
-                            className="rounded border border-app-border px-2 py-1 text-xs text-app-accent-text"
-                          >
-                            {appointmentToCancel === appointment.id ? 'Canceling...' : 'Cancel'}
-                          </button>
-                        ) : undefined
-                      }
-                    >
-                      {appointment.description && (
-                        <p className="text-sm text-app-text-muted">{appointment.description}</p>
-                      )}
-                      {appointment.location && (
-                        <p className="text-xs text-app-text-subtle">Location: {appointment.location}</p>
-                      )}
-                      {appointment.status === 'confirmed' && (
-                        <p className="text-xs text-app-text-subtle">
-                          Reminder cadence: 24h and 2h before start
-                        </p>
-                      )}
-                    </PortalListCard>
-                  </li>
-                ))}
+                        }
+                        actions={
+                          appointment.status !== 'cancelled' && appointment.status !== 'completed' ? (
+                            <button
+                              onClick={() => {
+                                void handleCancelAppointment(appointment.id);
+                              }}
+                              disabled={appointmentToCancel === appointment.id}
+                              className="rounded border border-app-border px-2 py-1 text-xs text-app-accent-text"
+                            >
+                              {appointmentToCancel === appointment.id ? 'Canceling...' : 'Cancel'}
+                            </button>
+                          ) : undefined
+                        }
+                      >
+                        {appointmentCaseSummary && (
+                          <p className="text-xs font-medium text-app-text">
+                            Case: {appointmentCaseSummary}
+                          </p>
+                        )}
+                        {appointmentPointperson && (
+                          <p className="text-xs text-app-text-subtle">
+                            Pointperson: {appointmentPointperson}
+                          </p>
+                        )}
+                        {appointment.description && (
+                          <p className="text-sm text-app-text-muted">{appointment.description}</p>
+                        )}
+                        {appointment.location && (
+                          <p className="text-xs text-app-text-subtle">Location: {appointment.location}</p>
+                        )}
+                        {appointment.status === 'confirmed' && (
+                          <p className="text-xs text-app-text-subtle">
+                            Reminder cadence: 24h and 2h before start
+                          </p>
+                        )}
+                      </PortalListCard>
+                    </li>
+                  );
+                })}
               </ul>
             )}
             {hasMore && (

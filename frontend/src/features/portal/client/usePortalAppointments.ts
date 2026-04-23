@@ -2,24 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import portalApi from '../../../services/portalApi';
 import { unwrapApiData } from '../../../services/apiEnvelope';
 import usePortalRealtimeStream from './usePortalRealtimeStream';
+import type { PortalAppointmentSummary } from '../types/contracts';
 import type {
   PortalRealtimeEventName,
   PortalRealtimeEventPayload,
   PortalStreamStatus,
 } from './types';
 
-export interface PortalAppointmentListItem {
-  id: string;
-  title: string;
-  description?: string | null;
-  start_time: string;
-  end_time?: string | null;
-  status: string;
-  location?: string | null;
-  case_number?: string | null;
-  case_title?: string | null;
-  request_type?: 'manual_request' | 'slot_booking';
-}
+export type PortalAppointmentListItem = PortalAppointmentSummary;
 
 interface UsePortalAppointmentsOptions {
   statusFilter: 'all' | 'requested' | 'confirmed' | 'cancelled' | 'completed';

@@ -31,6 +31,13 @@ Use this file as the canonical field map for persona work in nonprofit-manager.
 - Keep external analogs additive. They sharpen the persona but do not override current repo truth.
 - When the repo changes, update the detailed skill references first, then adjust the summary docs under `docs/product`.
 
+## Evidence Posture
+
+- `Confirmed repo evidence` means the claim is backed by current routes, permissions, feature docs, implementation seams, or passing tests.
+- `Inference` means the claim is a role mapping, a workflow expectation, or a boundary judgment that is not explicitly spelled out in the repo.
+- `Outside-the-app boundary` means the work happens in another system or process even when the repo provides useful inputs, such as packets, filings, approvals, donor outreach, or governance follow-through.
+- Keep the six-persona pack intact and use the four workflow status labels exactly as defined in the workflow model.
+
 ## Role Mapping Rules
 
 - The canonical role slugs remain `admin`, `manager`, `staff`, `volunteer`, and `viewer`.

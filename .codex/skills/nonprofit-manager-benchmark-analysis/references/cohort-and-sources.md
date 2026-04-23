@@ -26,3 +26,12 @@ All source links below were accessed on `2026-04-20`.
 - Use OpenPetra and ERPNext to sharpen expectations around finance, typed records, and administrative rigor.
 - Use SuiteCRM to sharpen workflow, dashboard, campaign, and list-productivity patterns.
 - Use OpenSPP and Sahana Eden to sharpen service-delivery, case, grievance, volunteer, and field-operations thinking.
+
+## Persona Lens Crosswalk
+
+| Persona family | Best-fit benchmark products | Precision reminder |
+|---|---|---|
+| Executive, governance, and board oversight | CiviCRM, OpenPetra, SuiteCRM | Use these for packet, dashboard, and finance-control expectations, not for claiming full governance parity |
+| Fundraising and donor stewardship | CiviCRM, ERPNext, OpenPetra, SuiteCRM | Use these for constituent, donation, and campaign patterns, not for overstating donor-governance completion |
+| Administrative and access stewardship | OpenPetra, ERPNext, SuiteCRM, CiviCRM | Use these for setup rigor, typed records, and admin workflow precision, not for assuming a compliance vault exists |
+| Case and service delivery | OpenSPP, CiviCRM, Sahana Eden | Use these for staged cases, follow-up continuity, and field/service coordination, not for assuming rehab-specific templates exist |

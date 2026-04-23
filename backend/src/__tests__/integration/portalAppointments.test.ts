@@ -169,8 +169,26 @@ describe('Portal Appointments Integration', () => {
       .send({ case_id: caseId })
       .expect(201);
 
-    const booked = unwrap<{ appointment: { id: string; request_type: string } }>(bookingResponse.body);
+    const booked = unwrap<{
+      appointment: {
+        id: string;
+        request_type: string;
+        case_id?: string | null;
+        case_number?: string | null;
+        case_title?: string | null;
+        pointperson_first_name?: string | null;
+        pointperson_last_name?: string | null;
+      };
+    }>(bookingResponse.body);
     expect(booked.appointment.request_type).toBe('slot_booking');
+    expect(booked.appointment.case_id).toBe(caseId);
+    expect(booked.appointment.case_number).toMatch(/^PORTAL-APPT-/);
+    expect(booked.appointment.case_title).toBe('Appointments Case');
+    expect(booked.appointment.pointperson_first_name).toBe('Portal');
+    expect(booked.appointment.pointperson_last_name).toBe('Scheduler');
+    expect(booked.appointment).not.toHaveProperty('missing_note');
+    expect(booked.appointment).not.toHaveProperty('missing_outcome');
+    expect(booked.appointment).not.toHaveProperty('pointperson_email');
     createdAppointmentIds.push(booked.appointment.id as string);
 
     const secondAttempt = await request(app)
@@ -247,18 +265,46 @@ describe('Portal Appointments Integration', () => {
       })
       .expect(201);
 
-    const created = unwrap<{ appointment: { id: string; request_type: string } }>(createResponse.body);
+    const created = unwrap<{
+      appointment: {
+        id: string;
+        request_type: string;
+        case_id?: string | null;
+        case_number?: string | null;
+        case_title?: string | null;
+        pointperson_first_name?: string | null;
+        pointperson_last_name?: string | null;
+      };
+    }>(createResponse.body);
     const appointmentId = created.appointment.id as string;
     createdAppointmentIds.push(appointmentId);
     expect(created.appointment.request_type).toBe('manual_request');
+    expect(created.appointment.case_id).toBe(caseId);
+    expect(created.appointment.case_title).toBe('Appointments Case');
+    expect(created.appointment.pointperson_first_name).toBe('Portal');
+    expect(created.appointment.pointperson_last_name).toBe('Scheduler');
+    expect(created.appointment).not.toHaveProperty('missing_note');
+    expect(created.appointment).not.toHaveProperty('missing_outcome');
 
     const cancelResponse = await request(app)
       .patch(`/api/v2/portal/appointments/${appointmentId}/cancel`)
       .set('Cookie', [`portal_auth_token=${portalToken}`])
       .expect(200);
 
-    const cancelled = unwrap<{ appointment: { status: string } }>(cancelResponse.body);
+    const cancelled = unwrap<{
+      appointment: {
+        status: string;
+        case_id?: string | null;
+        pointperson_first_name?: string | null;
+        pointperson_last_name?: string | null;
+      };
+    }>(cancelResponse.body);
     expect(cancelled.appointment.status).toBe('cancelled');
+    expect(cancelled.appointment.case_id).toBe(caseId);
+    expect(cancelled.appointment.pointperson_first_name).toBe('Portal');
+    expect(cancelled.appointment.pointperson_last_name).toBe('Scheduler');
+    expect(cancelled.appointment).not.toHaveProperty('missing_note');
+    expect(cancelled.appointment).not.toHaveProperty('missing_outcome');
   });
 
   it('supports appointment and slot filtering with pagination parameters', async () => {
@@ -293,12 +339,30 @@ describe('Portal Appointments Integration', () => {
       })
       .expect(200);
 
-    const filteredAppointments = unwrap<Array<{ id: string; status: string }>>(
+    const filteredAppointments = unwrap<
+      Array<{
+        id: string;
+        status: string;
+        case_id?: string | null;
+        case_number?: string | null;
+        case_title?: string | null;
+        pointperson_first_name?: string | null;
+        pointperson_last_name?: string | null;
+      }>
+    >(
       filteredAppointmentsResponse.body
     );
     expect(filteredAppointments.length).toBe(1);
     expect(filteredAppointments[0]?.status).toBe('requested');
     expect(filteredAppointments[0]?.id).toBe(requestedAppointment.appointment.id);
+    expect(filteredAppointments[0]?.case_id).toBe(caseId);
+    expect(filteredAppointments[0]?.case_number).toMatch(/^PORTAL-APPT-/);
+    expect(filteredAppointments[0]?.case_title).toBe('Appointments Case');
+    expect(filteredAppointments[0]?.pointperson_first_name).toBe('Portal');
+    expect(filteredAppointments[0]?.pointperson_last_name).toBe('Scheduler');
+    expect(filteredAppointments[0]).not.toHaveProperty('missing_note');
+    expect(filteredAppointments[0]).not.toHaveProperty('missing_outcome');
+    expect(filteredAppointments[0]).not.toHaveProperty('pointperson_email');
 
     const openSlotStart = new Date(now + 10 * 60 * 60 * 1000);
     const openSlotEnd = new Date(openSlotStart.getTime() + 30 * 60 * 1000);
@@ -414,13 +478,25 @@ describe('Portal Appointments Integration', () => {
     const filteredSlots = unwrap<{
       selected_case_id: string | null;
       selected_pointperson_user_id: string | null;
-      slots: Array<{ id: string }>;
+      slots: Array<{
+        id: string;
+        case_number?: string | null;
+        case_title?: string | null;
+        pointperson_first_name?: string | null;
+        pointperson_last_name?: string | null;
+      }>;
     }>(filteredSlotsResponse.body);
 
     expect(filteredSlots.selected_case_id).toBe(caseId);
     expect(filteredSlots.selected_pointperson_user_id).toBe(adminUserId);
     expect(filteredSlots.slots.some((slot) => slot.id === inRangeSlotId)).toBe(true);
     expect(filteredSlots.slots.some((slot) => slot.id === outOfRangeSlotId)).toBe(false);
+    const inRangeSlot = filteredSlots.slots.find((slot) => slot.id === inRangeSlotId);
+    expect(inRangeSlot?.case_number).toMatch(/^PORTAL-APPT-/);
+    expect(inRangeSlot?.case_title).toBe('Appointments Case');
+    expect(inRangeSlot?.pointperson_first_name).toBe('Portal');
+    expect(inRangeSlot?.pointperson_last_name).toBe('Scheduler');
+    expect(inRangeSlot).not.toHaveProperty('pointperson_email');
   });
 
   it('supports admin appointment inbox, reminder history/manual send, and check-in', async () => {

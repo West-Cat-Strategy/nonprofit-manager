@@ -9,6 +9,14 @@ Use this file to choose evidence sources for persona validation work.
 - `../nonprofit-manager-persona-analysis/references/service-delivery-personas.md`
 - `../nonprofit-manager-persona-analysis/references/workflow-models.md`
 
+## Validation Surfaces
+
+Use these together when you want the current repo proof chain in order from contract to smoke test to end-to-end runtime:
+
+- `frontend/src/test/ux/personaWorkflowMatrix.ts` for the canonical persona-to-route/workflow map.
+- `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` for the first-touch route UX smoke and console-error check.
+- `e2e/tests/persona-workflows.spec.ts` for seeded end-to-end persona workflow proof.
+
 ## Current Summary Docs
 
 - `docs/product/user-personas.md`

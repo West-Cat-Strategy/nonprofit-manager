@@ -6,8 +6,8 @@ import { BackupService } from '@services/backupService';
 import { DashboardService } from '@services/dashboardService';
 import { ExportService } from '@services/exportService';
 import { ReportService } from '@modules/reports/services/reportService';
+import { ReportTemplateService } from '@modules/reports/services/reportTemplateService';
 import { SavedReportService } from '@services/savedReportService';
-import { ReportTemplateService } from '@services/reportTemplateService';
 import { PIIService } from '@services/piiService';
 
 export interface OperationsProviders {

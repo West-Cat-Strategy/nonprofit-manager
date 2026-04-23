@@ -12,6 +12,13 @@ Use this file to rebuild persona context quickly without overloading the main `S
 4. `references/workflow-models.md` when the question depends on daily workflow support
 5. Supporting repo docs only as needed
 
+## Evidence Discipline
+
+- Prefer `Confirmed repo evidence` first: routes, permissions, implementation seams, tracked docs, and passing tests.
+- Label anything that is not explicit in the repo as `Inference`.
+- Treat outside-the-app outcomes, such as board packets, filings, grievance handling, and external communications, as workflow boundaries rather than hidden product gaps unless the repo proves otherwise.
+- Use benchmark sources only to sharpen expectations after the repo conclusion is already clear.
+
 ## Canonical Detailed Layer
 
 - `references/persona-schema.md`
@@ -39,6 +46,14 @@ These tracked docs summarize and navigate to the persona canon instead of duplic
 - `backend/src/utils/permissions.ts`
 - `backend/src/utils/roleSlug.ts`
 - `backend/src/modules/admin/usecases/roleCatalogUseCase.ts`
+
+## Validation Surfaces
+
+Use these when you need the tracked persona contract, a fast UX smoke check, or runtime proof:
+
+- `frontend/src/test/ux/personaWorkflowMatrix.ts` when you need the canonical persona-to-route/workflow contract or want to keep route and workflow IDs aligned.
+- `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` when you need a quick first-touch route UX check for headings, route posture, and console-error regressions.
+- `e2e/tests/persona-workflows.spec.ts` when you need seeded end-to-end proof that the persona workflows still work against the live runtime.
 
 ## Validation And Historical Inputs
 
