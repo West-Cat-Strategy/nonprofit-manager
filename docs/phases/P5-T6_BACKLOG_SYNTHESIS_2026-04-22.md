@@ -1,8 +1,10 @@
 # P5-T6 Backlog Synthesis (2026-04-22)
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-24
 
 This note is the row-local synthesis artifact for `P5-T6`. It converts the Phase 5 benchmark and repo-audit follow-through into a ranked later-wave backlog without claiming current product parity where the repo does not have routed support yet.
+
+The `2026-04-24` reference-repo follow-through keeps this ranking intact and refines the implementation pressure in [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md). The follow-through is still analysis-only: it does not authorize runtime work, direct source copying, generic workflow tooling, or direct ERPNext nonprofit-module parity claims.
 
 ## Inputs
 
@@ -102,7 +104,7 @@ The highest-pressure benchmark claims were refreshed against official product do
 
 ## Queued Next Planning Actions
 
-1. Keep `fundraising-ops-brief` behind the active `P5-T3` handoff and use it to pin `saved_audience`, `campaign_run`, `donor_profile`, and the typed appeal boundary before widening into `P5-T6B`.
-2. Make `portal-ops-brief` the first post-appointments-continuity `P5-T5` carry-over, and keep the shared triage-shell idea folded into `PAT-05` instead of opening a separate queue-platform row.
-3. Keep `volunteer-dispatch-brief` as the only volunteer `borrow now` carry-over from the benchmark wave, and prove it can stay inside the current assignment contract before opening any new volunteer row.
-4. Hold `finance-membership-brief` and `workflow-program-ops-brief` behind the active product waves, then use them to shape later `P5-T6B`, `P5-T6C`, and any future typed-domain row without reopening a generic workflow studio or metadata builder.
+1. Keep `fundraising-ops-brief` behind the active `P5-T3` handoff and use it to pin `saved_audience`, `campaign_run`, `donor_profile`, test/suppression campaign lanes, and the later typed appeal boundary before widening into `P5-T6B`.
+2. Make `portal-ops-brief` the first post-appointments-continuity `P5-T5` carry-over, with provenance-first public intake, server-backed queue definitions, and one typed case-scoped portal review request before any ticketing or grievance module.
+3. Keep `volunteer-dispatch-brief` as the only volunteer `borrow now` carry-over from the benchmark wave, and prove active task/event pickers with skill and availability cues can stay inside the current assignment contract before opening any new volunteer row.
+4. Hold `finance-membership-brief` and `workflow-program-ops-brief` behind the active product waves, then use them to shape later `P5-T6B`, `P5-T6C`, and any future typed-domain row without reopening a generic workflow studio, metadata builder, no-code change-request platform, or direct ERPNext nonprofit parity claim.

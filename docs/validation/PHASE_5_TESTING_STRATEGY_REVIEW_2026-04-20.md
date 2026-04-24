@@ -1,6 +1,6 @@
 # Phase 5 Testing Strategy Review
 
-**Last Updated:** 2026-04-23
+**Last Updated:** 2026-04-24
 
 
 **Date:** 2026-04-20  
@@ -18,7 +18,7 @@ The host coverage blocker that was active on 2026-04-22 is cleared in targeted p
 - The isolated Docker smoke gate is still green after explicit startup-failure cleanup hardening.
 - The volunteer/contact-scope and database-config blockers are now fixed and green in their narrow backend proofs.
 - The 2026-04-23 backend coverage repro passed with `223` suites and `1874` tests, and the later host rerun re-proved backend coverage, frontend coverage, and the changed host Playwright slices before it was intentionally stopped.
-- The full Docker CI matrix has been attempted repeatedly on the corrected review stack, but it has not completed end-to-end in this session. Every reproduced failure so far now has targeted green proof: route-health `/outreach`, portal case-detail auth-bootstrap noise, persona MFA-bypass handling, contact filter URL sync, and dashboard startup duplicate analytics fetches.
+- The full Docker CI matrix has been attempted repeatedly on the corrected review stack, but it has not completed end-to-end in this session. Every reproduced failure so far now has targeted green proof: route-health `/outreach`, portal case-detail auth-bootstrap noise, persona MFA-bypass handling, contact filter URL sync, dashboard startup duplicate analytics fetches, WebKit-only lazy-module import recovery bursts on `/people`, `/settings/user`, `/dashboard`, the short desktop user-menu flow, compact/expanded navigation, and core route headings/actions, plus Firefox auth-fixture navigation abort, authenticated route render-settle recovery, and WebKit contact cancel navigation.
 
 The remaining `P5-T2B` next step is a clean uninterrupted `cd e2e && npm run test:docker:ci` rerun from the corrected Docker review contract, followed by final workboard promotion if it stays green.
 
@@ -34,6 +34,7 @@ The remaining `P5-T2B` next step is a clean uninterrupted `cd e2e && npm run tes
 - The Docker review wrapper now exports `BYPASS_MFA_FOR_TESTS=true` by default in Docker mode, while preserving an explicit `BYPASS_MFA_FOR_TESTS=false` override for the separate fresh-workspace MFA proof.
 - Docker dev/review stacks now keep Mailchimp unconfigured by default unless `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX` are explicitly set, so checked-in placeholder credentials no longer produce false configured-provider failures.
 - The latest corrected Docker review stack used `18804` backend, `18805` frontend, `18806` public site, and `18802` Postgres with blank Mailchimp env and `BYPASS_MFA_FOR_TESTS=true`.
+- The 2026-04-24 focused WebKit recovery proof used the documented `nonprofit-dev` Docker review stack on `8004` backend, `8005` frontend, and `8006` public site with `DEV_NODE_ENV=test`, `DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true`, and `DEV_BYPASS_MFA_FOR_TESTS=true`.
 
 ## Command Log
 
@@ -172,6 +173,24 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
   - Result: Passed on 2026-04-23. The dark-mode accessibility audit covered all cataloged routes in `3.1m`.
 - `cd e2e && E2E_BACKEND_PORT=18804 E2E_FRONTEND_PORT=18805 E2E_PUBLIC_SITE_PORT=18806 E2E_DB_PORT=18802 BASE_URL=http://127.0.0.1:18805 API_URL=http://127.0.0.1:18804 npm run test:docker:ci`
   - Result: Attempted multiple times on 2026-04-23 but not completed end-to-end. Each reproduced failure was narrowed and fixed in targeted proof; the final broad rerun still needs to be repeated after the dashboard duplicate-fetch fix.
+- `DEV_NODE_ENV=test DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true make docker-up-dev`
+  - Result: Passed on 2026-04-24. The `nonprofit-dev` Docker review stack built and reached HTTP readiness on `8004`, `8005`, and `8006`.
+- `cd e2e && npm run test:docker -- tests/link-health.spec.ts tests/setup-launch.spec.ts tests/visibility-link-audit.spec.ts --project=webkit --grep "dashboard|people|settings/user|launch-critical authenticated|staff route audit|staff navigation links"`
+  - Result: Passed on 2026-04-24. `16` focused WebKit route-health, launch, and visibility/link tests passed against the Docker review stack.
+- `cd e2e && npm run test:docker:ci`
+  - Result: Attempted on 2026-04-24 after the focused WebKit route recovery proof. The desktop matrix ran for `50.9m` with `978` passed, `11` skipped, and `4` failed; the mobile follow-on did not start because the desktop matrix failed. The broad rerun proved the earlier WebKit route-health/module-import failures green and narrowed the remaining follow-through to Firefox dashboard summary counting, Firefox auth-fixture `NS_BINDING_ABORTED`, Firefox authenticated `/cases` render settle, and the WebKit short desktop user-menu recoverable import burst.
+- `cd e2e && npm run test:docker -- tests/auth.spec.ts tests/linking-operations-outreach.spec.ts tests/setup-launch.spec.ts --project=firefox --grep "dashboard startup loads workbench summary endpoints without duplicate refetches|displays linking module and supports creating a partnership record|launch-critical authenticated routes have no unhandled runtime errors"`
+  - Result: Passed on 2026-04-24. `3` focused Firefox recovery tests passed after counting successful dashboard summary responses only after API-auth bootstrap, retrying only recoverable root-navigation aborts, and allowing the shared route-render blocker to wait for either visible route content or an app error boundary.
+- `cd e2e && npm run test:docker -- tests/ux-regression.spec.ts --project=webkit --grep "short desktop viewport keeps admin settings reachable from the user menu"`
+  - Result: Passed on 2026-04-24. `1` WebKit focused test passed after limiting recovery to proven visible admin-route content with no persistent loading shell or app error boundary.
+- `cd e2e && npm run test:docker:ci`
+  - Result: Attempted on 2026-04-24 after the first Firefox/WebKit recovery pass. The desktop matrix ran for `55.1m` with `978` passed, `11` skipped, and `4` failed; the mobile follow-on did not start because the desktop matrix failed. The rerun proved the prior Firefox auth/linking failures and WebKit route-health/setup-launch failures green, then narrowed the remaining follow-through to Firefox setup-launch `/contacts` opaque React boundary console recovery, WebKit contact edit-form cancel targeting, and two WebKit UX regression module-import recovery sites.
+- `cd e2e && npm run test:docker -- tests/setup-launch.spec.ts tests/contacts.spec.ts tests/ux-regression.spec.ts --project=firefox --project=webkit --grep "launch-critical authenticated routes have no unhandled runtime errors|should support cancel navigation in create and edit forms|global navigation stays compact below lg and expands at lg|core app route headings and primary actions remain available"`
+  - Result: Passed on 2026-04-24. `8` focused Firefox/WebKit tests passed in `1.1m` after the setup-launch route-proof recovery, precise contact form cancel targeting, and expanded WebKit UX module-import recovery guards.
+- `cd e2e && npm run test:docker:ci`
+  - Result: Attempted again on 2026-04-24 after the focused 8-test Firefox/WebKit recovery proof. The desktop matrix ran for roughly `1.0h` with `979` passed, `11` skipped, and `3` failed; the mobile follow-on did not start because the desktop matrix failed. This rerun proved the previous Firefox setup-launch, WebKit contact cancel-navigation, and WebKit UX module-import failures green, then narrowed the remaining follow-through to Firefox dashboard summary response de-duping, Firefox admin/portal opaque React boundary console recovery, and WebKit contact create-form validation timing.
+- `cd e2e && npm run test:docker -- tests/auth.spec.ts tests/ux-regression.spec.ts tests/contacts.spec.ts --project=firefox --project=webkit --grep "dashboard startup loads workbench summary endpoints without duplicate refetches|admin settings and portal routes keep headings/actions and redirect contracts|should validate create form required and format errors"`
+  - Result: Passed on 2026-04-24. `6` focused Firefox/WebKit tests passed in `46.8s` after de-duping repeated Playwright response notifications for the same Firefox request object, adding final-route proof for the Firefox admin/portal opaque boundary pair, and scoping contact create-form validation assertions to the actual form.
 
 ## Host Vs Docker Runtime Observations
 
@@ -194,12 +213,12 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
 - The public `/accept-invitation/:token` surface now behaves cleanly for placeholder preview tokens, which removes the route-health false negative without weakening real-token validation.
 - The smoke-stack startup failure mode is hardened, but the broader Docker cross-browser and audit lanes are still pending.
 - The Docker smoke gate, fresh-volume MFA proof, and Docker dark-mode audit are green in current proof.
-- The remaining blind spot is not a known failing targeted seam; it is the absence of one uninterrupted `npm run test:docker:ci` artifact after the final dashboard duplicate-fetch fix.
-- The final broad Docker CI attempts surfaced real or test-contract issues in route health, persona MFA handling, contacts filter sync, and dashboard startup fetching. Those are now fixed and targeted-green, but the full matrix should still be rerun before promoting `P5-T2B` to review.
+- The remaining blind spot is not a known failing targeted seam; it is the absence of one uninterrupted `npm run test:docker:ci` artifact after the latest Firefox and WebKit broad-matrix recovery fixes.
+- The final broad Docker CI attempts surfaced real or test-contract issues in route health, persona MFA handling, contacts filter sync, dashboard startup fetching, Firefox navigation/render settle, WebKit contact cancel navigation, WebKit contact validation timing, Firefox admin/portal opaque React boundary recovery, and WebKit lazy-module import recovery. Those are now fixed and targeted-green, but the full matrix should still be rerun before promoting `P5-T2B` to review.
 
 ## Recommended Next Steps
 
-1. Rerun `cd e2e && npm run test:docker:ci` from the corrected Docker review contract after the final dashboard duplicate-fetch fix. If it passes, promote `P5-T2B` to review.
+1. Rerun `cd e2e && npm run test:docker:ci` from the corrected Docker review contract after the focused Firefox and WebKit recovery proofs. If it passes, promote `P5-T2B` to review.
 2. If the rerun surfaces another failure, keep the fix in the owning Docker/E2E or frontend/backend runtime seam and add targeted proof here before another broad attempt.
 3. Keep the fresh-workspace MFA proof separate from `test:docker:ci`; it should continue to run only against a fresh starter-only stack with `BYPASS_MFA_FOR_TESTS=false`.
 

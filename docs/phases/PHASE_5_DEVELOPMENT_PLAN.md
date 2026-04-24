@@ -1,6 +1,6 @@
 # Phase 5 Development Plan
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-24
 
 Use this document for the Phase 5 roadmap and sequencing. Use [planning-and-progress.md](planning-and-progress.md) for row-level tracked status.
 
@@ -14,7 +14,7 @@ Phase 5 shifts the project from Phase 4 modularization and hardening closeout in
 
 Phase 5 still starts from docs, benchmark, and validation groundwork so later product work lands on a cleaner planning surface and a stronger testing contract.
 
-Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, `P5-T2A` is the published testing-strategy review artifact, `P5-T2B` is the active shared validation gate, `P5-T2C` is the focused review-findings remediation slice, `P5-T4` is waiting in `Review`, and `P5-T3`, `P5-T5`, and analysis-only `P5-T6` are now running in parallel behind that gate.
+Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, `P5-T2A` is the published testing-strategy review artifact, `P5-T2B` is narrowed to one final uninterrupted Docker CI artifact, `P5-T2C`, `P5-T4`, `P5-T6`, `P5-T6A`, `P5-T6C`, and `P5-T6D` are in `Review`, `P5-T3` and `P5-T5` remain active runtime waves, and `P5-T6B` stays queued behind its parent handoff.
 
 ## Phase 5 Goals
 
@@ -43,53 +43,60 @@ Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, `P5-T2A` is the 
 
 ### 2. Shared Validation Gate And Testing Review (Active)
 
-- Keep `P5-T2A` as the canonical testing-strategy review artifact while `P5-T2B` finishes the remaining host and Docker proof chain.
-- The old `volunteers.test.ts`, `database.test.ts`, UI-audit, and backend dependency-audit blockers are now cleared in the tree, but the host rerun is still not closed: a frontend coverage timeout-budget helper is landed in targeted proof and the next rerun now needs shared coverage triage before Docker follow-through can resume.
-- Treat security baseline and observability as part of `P5-T2B`: keep `make security-scan`, the auth and rate-limit policy scripts, the queued auth-alias daily-ratio dashboard handoff, and row-local security acceptance criteria current while the shared validation gate stays active.
-- Land only the smallest tool-assisted follow-through that removes current validation friction instead of expanding the review lane further: the frontend coverage timeout-budget helper is now part of that posture, and any next helper should stay scoped to the remaining shared coverage blocker, fresh-volume Docker MFA proof, or Docker cross-browser/audit follow-through.
+- Keep `P5-T2A` as the canonical testing-strategy review artifact while `P5-T2B` finishes one final uninterrupted `cd e2e && npm run test:docker:ci` artifact.
+- Host coverage, auth-alias operations handoff, fresh starter-only Docker MFA proof, Docker smoke, and Docker dark-mode audit are green in targeted proof.
+- Treat security baseline and observability as part of `P5-T2B`: keep `make security-scan`, the auth and rate-limit policy scripts, the auth-alias operational handoff, and row-local security acceptance criteria current while the shared validation gate stays active.
+- Do not widen `P5-T2B` unless the final Docker CI artifact surfaces a new owning-seam failure.
 
 ### 3. Product Wave: Email Platform (Active In Parallel)
 
-- Keep the builder-local modularity cleanup scoped to behavior-preserving editor follow-through until `P5-T2C` closes the stale site-context and extracted-hook proof gaps.
+- Keep the builder-local modularity cleanup scoped to behavior-preserving editor follow-through while `P5-T2C` stays in review as functionally proof-complete.
 - Keep `/api/v2/mailchimp/*` and `/settings/communications` as the canonical campaign contract and staff workspace.
 - The persistence/autosave slice of the builder-local modularity cleanup is now landed in targeted proof; finish the remaining builder-local cleanup, then widen back into preview, QA, scheduling, and delivery follow-through.
 - Use the post-wave handoff to scope the smallest typed appeals and campaign-measurement brief that can reuse the real `P5-T3` authoring and reporting seams.
 
-### 4. Review Findings Remediation (Active)
+### 4. Review Findings Remediation (Review)
 
-- Use `P5-T2C` as the dedicated row for the current code-review findings instead of silently widening `P5-T2B` or `P5-T3`.
-- Keep the row narrowly scoped: fix the stale builder site-context behavior, add direct regression coverage for the extracted builder seams, prove the scheduled-report helper and service branches, and prove report-template negative and seed-resilience paths.
-- After `P5-T2C` closes, hand the remaining host validation, security, wider email authoring, and shared signoff work back to `P5-T2B`, `P5-T3`, and `P5-T4`.
+- Keep `P5-T2C` in `Review` as the dedicated row for the surfaced code-review findings instead of widening `P5-T2B` or `P5-T3`.
+- Treat the row as functionally proof-complete: targeted builder remediation tests, scheduled-report proof, report-template proof, and backend/frontend package type-checks are green in the current tree.
+- Keep optional hardening deferred unless a future `P5-T2B` rerun points back here, and leave shared host validation, security operations, wider email authoring, and persona-proof timeout work with their parent rows.
 
 ### 5. Product Wave: Website Surfaces (Review Pending Shared Signoff)
 
-- Keep the one-form managed publish loop in `Review` while `P5-T2B` finishes the broader host-plus-Docker validation lane.
+- Keep the one-form managed publish loop in `Review` while `P5-T2B` finishes the final Docker CI artifact.
 - Avoid reopening website scope unless the shared validation gate or review findings require it.
 
 ### 6. Product Wave: Client Portal (Active In Parallel)
 
 - Keep the assignment-backed forms inbox slice as the current green baseline.
-- The next scoped portal pickup, case-aware appointments continuity on top of the mounted portal and case surfaces, is now landed in targeted backend/frontend proof; finish the focused Playwright follow-through before widening again.
+- The next scoped portal pickup, case-aware appointments continuity on top of the mounted portal and case surfaces, is now landed in targeted backend/frontend proof; finish the focused Playwright follow-through once `P5-T2B` clears before widening again.
 - Use persona and benchmark follow-through to sharpen later program-service workflow work, not to over-claim current portal parity.
 
-### 7. Later-Wave Backlog And Enabling Tooling (Active Analysis Only)
+### 7. Later-Wave Backlog And Enabling Tooling (Review)
 
-- Keep `P5-T6` as the active planning lane while runtime implementation stays behind `P5-T3`, `P5-T5`, and `P5-T2B`.
-- Convert the backlog into explicit queued briefs instead of a summary-only artifact: typed appeals plus restriction modeling after the email-wave handoff, then domain-scoped workflow/program-ops follow-through after the portal handoff.
-- Keep memberships later than those adjacent extensions, and keep wider tooling changes scoped to the smallest additions that reduce validation or contract drift first.
+- Keep `P5-T6` in `Review` with [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) published alongside [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md).
+- Keep `P5-T6A` in `Review` with [P5-T6A_GOVERNANCE_COMPLIANCE_BRIEF_2026-04-24.md](P5-T6A_GOVERNANCE_COMPLIANCE_BRIEF_2026-04-24.md) as the planning artifact.
+- Keep `P5-T6C` in `Review` with [P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md](P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md) as the planning artifact.
+- Keep `P5-T6B` behind the `P5-T3` handoff.
+- Treat `P5-T6D` as the only signed-out runtime carry-over from the current packet: the volunteer assignment event/task picker slice is in `Review` with the existing assignment contract preserved.
+- Do not authorize any other runtime `P5-T6` implementation until a separate scoped row is signed out.
 
 ## Workstreams
 
 | Row | Scope | Main Outputs | Dependencies | Exit Criteria |
 |---|---|---|---|---|
 | `P5-T1` | Docs, archive, benchmark, and skills refresh | Live Phase 5 workboard, benchmark doc, archive cleanup, contributor/runtime docs, refreshed skills | none | Top-level `docs/phases/` reads as live planning only; benchmark and touched skills validate cleanly |
-| `P5-T2A` | Testing-strategy review artifact and findings | Published review note, coverage gap summary, recommended CI/runtime updates | `P5-T1` docs/runtime cleanup | The review artifact stays current while `P5-T2B` closes the remaining host-plus-Docker gate |
-| `P5-T2B` | Shared validation lane stabilization | Clean host rerun, fresh-volume Docker MFA proof, Docker cross-browser/audit follow-through, the live security baseline, auth-alias operational visibility, and the smallest high-value validation or security-tooling helpers | `P5-T2A` plus active owning-surface fixes | Host rerun, required Docker follow-ons, and the live security baseline are green enough to stop gating later Phase 5 signoff |
-| `P5-T2C` | Review findings remediation | Stale builder site-context fix, extracted builder seam regression coverage, scheduled-report helper and service proof, and report-template negative plus seed-resilience proof | `P5-T2A` review findings plus current module-local refactors | Builder stale-context behavior is fixed, the extracted builder seams are directly covered, scheduled-report helper/service branches are proved, report-template negative/seed-resilience paths are proved, and targeted validations are green while the remaining host/security/email-wave blockers stay with their parent rows |
+| `P5-T2A` | Testing-strategy review artifact and findings | Published review note, coverage gap summary, recommended CI/runtime updates | `P5-T1` docs/runtime cleanup | The review artifact stays current while `P5-T2B` closes the final Docker CI artifact |
+| `P5-T2B` | Shared validation lane stabilization | One uninterrupted `cd e2e && npm run test:docker:ci` artifact after the final dashboard fix, plus the live security baseline and auth-alias operational visibility | `P5-T2A` plus active owning-surface fixes | The final Docker CI artifact is green without surfacing a new owning-seam failure, and the live security baseline stays current enough to stop gating later Phase 5 signoff |
+| `P5-T2C` | Review findings remediation | Stale builder site-context fix, extracted builder seam regression coverage, scheduled-report helper and service proof, report-template negative plus seed-resilience proof, and package type-check proof | `P5-T2A` review findings plus current module-local refactors | Row is in `Review` and functionally proof-complete while optional hardening remains deferred unless `P5-T2B` points back here |
 | `P5-T3` | Blast email and email builder/formatter | Feature plan, implementation slice, validation slice, and post-wave fundraising-depth handoff | `P5-T2B` for full shared signoff, but active lane work continues in parallel | Authoring, preview, formatting, and delivery workflow are reviewable with explicit tests and a reusable post-wave contract |
 | `P5-T4` | Website builder and public website | Builder UX follow-through, publish/runtime reliability, public-site validation | `P5-T1`, `P5-T2B` | Builder and public runtime docs/tests match the current surface and the row clears final shared validation signoff |
 | `P5-T5` | Client portal | Portal workflow slices across forms, appointments, messaging, and client-facing navigation | `P5-T2B` for full shared signoff plus portal prioritization | The active portal slice is green, the next named slice is explicit, and targeted proof matches the current portal contract |
-| `P5-T6` | Later-wave backlog from research and repo review | Prioritized backlog, explicit post-wave briefs for typed appeals/restrictions and domain-scoped workflow/program ops, plus tooling recommendations | benchmark + `P5-T3`/`P5-T5` handoffs | Later-wave candidates are ranked and the next planning pickups are explicit without overloading active runtime rows |
+| `P5-T6` | Later-wave backlog from research and repo review | Published capability brief packet, backlog synthesis, explicit `borrow now`, `queue for P5-T6`, and `reject` decisions, plus tooling recommendations | benchmark + `P5-T3`/`P5-T5` handoffs | Row is in `Review`; `P5-T6A` and `P5-T6C` are in review against published planning briefs, `P5-T6B` waits behind `P5-T3`, and no runtime implementation starts without a new signed-out scoped row |
+| `P5-T6A` | Governance and compliance oversight brief | Published later-wave governance/compliance planning brief | `P5-T6` capability brief packet | Row is in `Review`; board-only posture, governance-risk escalation, board packet workflow, retention, and corrective-action scope are captured while annual filing and legal review remain external only |
+| `P5-T6B` | Fundraising stewardship and restrictions brief | Small fundraiser-depth planning brief | `P5-T3` handoff | Donor-preference governance, acknowledgment handoff, campaign/deadline orchestration, and typed appeals/restriction modeling are mapped to live Mailchimp, donations, recurring, and reporting seams |
+| `P5-T6C` | Service-delivery workflow depth brief | Published later-wave service-delivery planning brief | `P5-T5` handoff | Row is in `Review`; reassessment cadence, handoff packets, closure continuity, rehab planning artifacts, and authorization/referral depth are mapped to mounted cases, services, appointments, and portal surfaces while runtime work stays blocked on a future scoped row |
+| `P5-T6D` | Volunteer assignment dispatch radar | Active event/task pickers in the existing volunteer assignment form | `P5-T6` capability brief packet plus current volunteer assignment contract | Assignment creation/editing no longer requires staff to paste raw event/task UUIDs, existing assignment payloads remain compatible, and no new volunteer domain model or shared route seam is opened |
 
 ## Completed Phase Inputs
 
@@ -161,8 +168,8 @@ Primary analogs:
 Phase 5 is on track when:
 
 - The live workboard and Phase 5 plan stay current without leaking historical proof back into top-level `docs/phases/`.
-- The early Playwright/E2E and testing-strategy review is complete and influences later lanes.
+- The early Playwright/E2E and testing-strategy review is complete, and `P5-T2B` closes the final uninterrupted Docker CI artifact.
 - The live security baseline and supply-chain follow-through are explicit tracked inputs to `P5-T2B` rather than orphaned notes or one-off scans.
-- `P5-T2C` closes the current review findings without silently widening scope: builder stale-context behavior is fixed, extracted builder seams are directly covered, scheduled-report helper/service branches are proved, and report-template negative/seed-resilience paths are proved.
+- `P5-T2C` stays functionally proof-complete in `Review` without silently widening scope.
 - Email, website, and portal work each have explicit tracked rows with current validation guidance.
-- The benchmark doc and tooling evaluation remain visible inputs to later-wave backlog decisions.
+- The benchmark doc, tooling evaluation, `P5-T6` capability briefs, `P5-T6A` governance/compliance brief, and `P5-T6C` service-delivery workflow depth brief remain visible inputs to later-wave backlog decisions, with runtime work blocked until a separate scoped row is signed out.

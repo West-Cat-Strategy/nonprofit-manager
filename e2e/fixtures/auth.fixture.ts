@@ -29,9 +29,35 @@ type CachedAuthState = {
 let cachedAuthState: CachedAuthState | null = null;
 
 const APP_LOADING_LABEL = '[aria-label="Loading application"]';
+const recoverableNavigationAbortPattern =
+  /NS_BINDING_ABORTED|net::ERR_ABORTED|navigation interrupted|navigation failed because page was closed|frame was detached/i;
+
+const isRecoverableNavigationAbort = (error: unknown): boolean =>
+  error instanceof Error && recoverableNavigationAbortPattern.test(error.message);
+
+const gotoAuthenticatedEntry = async (page: Page): Promise<void> => {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!isRecoverableNavigationAbort(error) || attempt === 2) {
+        throw error;
+      }
+      await page.waitForTimeout(250);
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Authenticated entry navigation failed');
+};
 
 const waitForAuthenticatedShellReady = async (page: Page): Promise<void> => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoAuthenticatedEntry(page);
   await page.locator(APP_LOADING_LABEL).waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => undefined);
   await page
     .waitForURL(

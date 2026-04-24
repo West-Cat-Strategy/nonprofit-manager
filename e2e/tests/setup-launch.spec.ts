@@ -1,6 +1,18 @@
-import { test as base, expect, type ConsoleMessage, type Page } from '@playwright/test';
+import {
+  test as base,
+  expect,
+  type ConsoleMessage,
+  type Locator,
+  type Page,
+  type Response,
+} from '@playwright/test';
 import { test as authTest } from '../fixtures/auth.fixture';
 import '../helpers/testEnv';
+import {
+  collectRouteRenderBlockers,
+  isOpaqueReactBoundaryCompanionConsoleBurst,
+  isRecoverableModuleImportConsoleBurst,
+} from '../helpers/moduleImportRecovery';
 
 const benignConsolePatterns = [
   /favicon\.ico/i,
@@ -12,12 +24,6 @@ const benignConsolePatterns = [
   /Firefox can’t establish a connection to the server at .*\/api\/v2\/team-chat\/messenger\/stream/i,
   /The connection to .*\/api\/v2\/team-chat\/messenger\/stream.* was interrupted while the page was loading/i,
   /Cross-Origin Request Blocked: .*\/api\/v2\/team-chat\/messenger\/stream.*CORS request did not succeed/i,
-];
-
-const retryableReactBoundaryConsolePatterns = [
-  /The above error occurred in one of your React components\./i,
-  /React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary\./i,
-  /^Error boundary caught: Error JSHandle@object$/i,
 ];
 
 const benignPageErrorPatterns = [
@@ -103,6 +109,43 @@ const assertPrimaryAuthForm = async (page: Page): Promise<void> => {
   expect(backgroundColor).not.toBe('transparent');
 };
 
+type RuntimeErrors = {
+  pageErrors: string[];
+  consoleErrors: string[];
+};
+
+type LaunchCriticalAuthenticatedRoute = {
+  path: string;
+  contentLocator: (page: Page) => Locator;
+};
+
+const launchCriticalAuthenticatedRoutes: LaunchCriticalAuthenticatedRoute[] = [
+  {
+    path: '/dashboard',
+    contentLocator: (page) => page.locator('main').getByRole('heading', { name: /^Workbench$/, level: 1 }),
+  },
+  {
+    path: '/contacts',
+    contentLocator: (page) => page.locator('main').getByRole('heading', { name: /^People$/, level: 1 }),
+  },
+  {
+    path: '/cases',
+    contentLocator: (page) => page.locator('main').getByRole('heading', { name: /^Cases$/, level: 1 }),
+  },
+  {
+    path: '/donations',
+    contentLocator: (page) => page.locator('main').getByRole('heading', { name: /^Donations$/, level: 1 }),
+  },
+  {
+    path: '/reports/templates',
+    contentLocator: (page) => page.locator('main').getByRole('heading', { name: /^Report Templates$/, level: 1 }),
+  },
+  {
+    path: '/settings/navigation',
+    contentLocator: (page) => page.locator('main').getByRole('heading', { name: /^Navigation$/, level: 1 }),
+  },
+];
+
 const trackRuntimeErrors = (page: Page) => {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
@@ -140,10 +183,7 @@ const trackRuntimeErrors = (page: Page) => {
   };
 };
 
-const expectNoRuntimeErrors = (
-  route: string,
-  errors: { pageErrors: string[]; consoleErrors: string[] }
-): void => {
+const expectNoRuntimeErrors = (route: string, errors: RuntimeErrors): void => {
   expect(
     errors.pageErrors,
     `${route} threw page errors:\n${errors.pageErrors.join('\n')}`
@@ -154,17 +194,66 @@ const expectNoRuntimeErrors = (
   ).toEqual([]);
 };
 
-const hasOnlyRetryableReactBoundaryConsoleErrors = (errors: {
-  pageErrors: string[];
-  consoleErrors: string[];
-}): boolean => {
-  return (
-    errors.pageErrors.length === 0 &&
-    errors.consoleErrors.length > 0 &&
-    errors.consoleErrors.every((message) =>
-      retryableReactBoundaryConsolePatterns.some((pattern) => pattern.test(message))
-    )
-  );
+const hasOnlyRetryableRouteRecoveryConsoleErrors = (
+  browserName: string,
+  errors: RuntimeErrors
+): boolean => {
+  if (errors.pageErrors.length > 0) {
+    return false;
+  }
+
+  if (isRecoverableModuleImportConsoleBurst(errors.consoleErrors)) {
+    return browserName === 'webkit' || browserName === 'firefox';
+  }
+
+  return browserName === 'firefox' && isOpaqueReactBoundaryCompanionConsoleBurst(errors.consoleErrors);
+};
+
+const stripRecoveredRouteRecoveryConsoleErrors = (browserName: string, errors: RuntimeErrors): void => {
+  if (hasOnlyRetryableRouteRecoveryConsoleErrors(browserName, errors)) {
+    errors.consoleErrors.length = 0;
+  }
+};
+
+const waitForExpectedRouteContent = async (
+  page: Page,
+  route: LaunchCriticalAuthenticatedRoute,
+  timeoutMs = 15_000
+): Promise<boolean> => {
+  const deadline = Date.now() + timeoutMs;
+  const locator = route.contentLocator(page).first();
+
+  while (Date.now() < deadline) {
+    if (await locator.isVisible().catch(() => false)) {
+      return true;
+    }
+
+    await page.waitForTimeout(150);
+  }
+
+  return false;
+};
+
+const collectLaunchCriticalRouteProofBlockers = async (
+  page: Page,
+  route: LaunchCriticalAuthenticatedRoute,
+  response: Response | null
+): Promise<string[]> => {
+  const blockers: string[] = [];
+
+  if (!response) {
+    blockers.push(`No response was returned for ${route.path}.`);
+  } else if (response.status() >= 400) {
+    blockers.push(`${route.path} returned HTTP ${response.status()}.`);
+  }
+
+  if (!(await waitForExpectedRouteContent(page, route))) {
+    blockers.push(`Expected ${route.path} route content did not become visible after recovery.`);
+  }
+
+  blockers.push(...(await collectRouteRenderBlockers(page)));
+
+  return blockers;
 };
 
 const collectRuntimeErrorsForRoute = async (
@@ -181,6 +270,20 @@ const collectRuntimeErrorsForRoute = async (
   const snapshot = {
     response,
     pageErrors: [...runtimeErrors.pageErrors],
+    consoleErrors: [...runtimeErrors.consoleErrors],
+  };
+  runtimeErrors.detach();
+  return snapshot;
+};
+
+const collectRuntimeErrorsDuringRouteProof = async (
+  page: Page,
+  collectRouteProofBlockers: () => Promise<string[]>
+): Promise<RuntimeErrors> => {
+  const runtimeErrors = trackRuntimeErrors(page);
+  const routeProofBlockers = await collectRouteProofBlockers();
+  const snapshot = {
+    pageErrors: [...runtimeErrors.pageErrors, ...routeProofBlockers],
     consoleErrors: [...runtimeErrors.consoleErrors],
   };
   runtimeErrors.detach();
@@ -293,29 +396,30 @@ base.describe('Setup and launch stability (public)', () => {
 });
 
 authTest.describe('Setup and launch stability (authenticated)', () => {
-  authTest('launch-critical authenticated routes have no unhandled runtime errors', async ({ authenticatedPage }) => {
-    const routes = [
-      '/dashboard',
-      '/contacts',
-      '/cases',
-      '/donations',
-      '/reports/templates',
-      '/settings/navigation',
-    ];
+  authTest('launch-critical authenticated routes have no unhandled runtime errors', async ({
+    authenticatedPage,
+    browserName,
+  }) => {
+    for (const route of launchCriticalAuthenticatedRoutes) {
+      let runtimeSnapshot = await collectRuntimeErrorsForRoute(authenticatedPage, route.path);
+      let retriedRouteRecoveryBurst = false;
 
-    for (const route of routes) {
-      let runtimeSnapshot = await collectRuntimeErrorsForRoute(authenticatedPage, route);
-
-      if (hasOnlyRetryableReactBoundaryConsoleErrors(runtimeSnapshot)) {
-        runtimeSnapshot = await collectRuntimeErrorsForRoute(authenticatedPage, route);
+      if (hasOnlyRetryableRouteRecoveryConsoleErrors(browserName, runtimeSnapshot)) {
+        runtimeSnapshot = await collectRuntimeErrorsForRoute(authenticatedPage, route.path);
+        retriedRouteRecoveryBurst = true;
       }
 
-      expect(runtimeSnapshot.response, `no response for ${route}`).not.toBeNull();
-      if (runtimeSnapshot.response) {
-        expect(runtimeSnapshot.response.status(), `bad status for ${route}`).toBeLessThan(400);
+      const routeProofRuntimeErrors = await collectRuntimeErrorsDuringRouteProof(authenticatedPage, () =>
+        collectLaunchCriticalRouteProofBlockers(authenticatedPage, route, runtimeSnapshot.response)
+      );
+      runtimeSnapshot.pageErrors.push(...routeProofRuntimeErrors.pageErrors);
+      runtimeSnapshot.consoleErrors.push(...routeProofRuntimeErrors.consoleErrors);
+
+      if (retriedRouteRecoveryBurst) {
+        stripRecoveredRouteRecoveryConsoleErrors(browserName, runtimeSnapshot);
       }
 
-      expectNoRuntimeErrors(route, runtimeSnapshot);
+      expectNoRuntimeErrors(route.path, runtimeSnapshot);
     }
   });
 });

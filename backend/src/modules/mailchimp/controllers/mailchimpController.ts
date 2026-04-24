@@ -442,6 +442,7 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
       replyTo,
       htmlContent,
       plainTextContent,
+      builderContent,
       segmentId,
       sendTime,
     } = req.body as CreateCampaignRequest;
@@ -485,6 +486,7 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
       replyTo,
       htmlContent,
       plainTextContent,
+      builderContent,
       segmentId,
       sendTime: sendTime ? new Date(sendTime) : undefined,
     });

@@ -135,7 +135,11 @@ const expectRouteRuntimeClean = (route: string, snapshot: RouteRuntimeSnapshot):
 const assertRouteLoads = async (
   page: Page,
   route: string,
-  options: { allowAuthBootstrapNoise?: boolean; expectedLocation?: string | string[] } = {}
+  options: {
+    allowAuthBootstrapNoise?: boolean;
+    expectedLocation?: string | string[];
+    recoverModuleImportErrors?: boolean;
+  } = {}
 ) => {
   // The shared runtime capture now filters benign same-origin churn cancellations after the
   // route settles, so this check stays strict on real 4xx/5xx, console, and page errors.
@@ -209,31 +213,42 @@ const provisionPortalCaseFixture = async (page: Page): Promise<ProvisionedPortal
 
 base.describe('Public route health', () => {
   for (const { route, expectedLocation } of publicRoutes) {
-    base(`loads ${route}`, async ({ page }) => {
-      await assertRouteLoads(page, route, { allowAuthBootstrapNoise: true, expectedLocation });
+    base(`loads ${route}`, async ({ page, browserName }) => {
+      await assertRouteLoads(page, route, {
+        allowAuthBootstrapNoise: true,
+        expectedLocation,
+        recoverModuleImportErrors: browserName === 'webkit',
+      });
     });
   }
 });
 
 authTest.describe('Authenticated staff route health', () => {
   for (const route of staffAuthenticatedRoutes) {
-    authTest(`loads ${route}`, async ({ authenticatedPage }) => {
-      await assertRouteLoads(authenticatedPage, route, { allowAuthBootstrapNoise: true });
+    authTest(`loads ${route}`, async ({ authenticatedPage, browserName }) => {
+      await assertRouteLoads(authenticatedPage, route, {
+        allowAuthBootstrapNoise: true,
+        recoverModuleImportErrors: browserName === 'webkit',
+      });
     });
   }
 
-  authTest('cases new route keeps Save Case primary action visible', async ({ authenticatedPage }) => {
-    await assertRouteLoads(authenticatedPage, '/cases/new', { allowAuthBootstrapNoise: true });
+  authTest('cases new route keeps Save Case primary action visible', async ({ authenticatedPage, browserName }) => {
+    await assertRouteLoads(authenticatedPage, '/cases/new', {
+      allowAuthBootstrapNoise: true,
+      recoverModuleImportErrors: browserName === 'webkit',
+    });
     const saveCaseButton = authenticatedPage.getByTestId('case-form-primary-submit');
     await expect(saveCaseButton).toBeVisible();
     await expect(saveCaseButton).toHaveText(/save case/i);
   });
 
   for (const { path, redirectsTo } of legacyRedirectRoutes) {
-    authTest(`legacy route ${path} resolves to ${redirectsTo}`, async ({ authenticatedPage }) => {
+    authTest(`legacy route ${path} resolves to ${redirectsTo}`, async ({ authenticatedPage, browserName }) => {
       await assertRouteLoads(authenticatedPage, path, {
         allowAuthBootstrapNoise: true,
         expectedLocation: redirectsTo,
+        recoverModuleImportErrors: browserName === 'webkit',
       });
     });
   }
@@ -254,14 +269,18 @@ base.describe('Authenticated portal route health', () => {
   });
 
   for (const route of portalAuthenticatedRoutes) {
-    base(`loads ${route}`, async ({ page }) => {
-      await assertRouteLoads(page, route, { allowAuthBootstrapNoise: true });
+    base(`loads ${route}`, async ({ page, browserName }) => {
+      await assertRouteLoads(page, route, {
+        allowAuthBootstrapNoise: true,
+        recoverModuleImportErrors: browserName === 'webkit',
+      });
     });
   }
 
-  base('loads /portal/cases/:id using a fixture-linked portal user', async ({ page }) => {
+  base('loads /portal/cases/:id using a fixture-linked portal user', async ({ page, browserName }) => {
     await assertRouteLoads(page, `/portal/cases/${portalFixture.caseId}`, {
       allowAuthBootstrapNoise: true,
+      recoverModuleImportErrors: browserName === 'webkit',
     });
     await expect(page).toHaveURL(new RegExp(`/portal/cases/${portalFixture.caseId}(?:\\?|$)`));
     await expect(page.getByRole('heading', { name: portalFixture.caseTitle, level: 1 })).toBeVisible();

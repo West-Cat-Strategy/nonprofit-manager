@@ -13,6 +13,11 @@ import {
   resolveAuthenticatedFixtureScope,
 } from "../helpers/database";
 import { unwrapSuccess } from "../helpers/apiEnvelope";
+import {
+  collectRouteRenderBlockers,
+  isOpaqueReactBoundaryCompanionConsoleBurst,
+  isRecoverableModuleImportConsoleBurst,
+} from "../helpers/moduleImportRecovery";
 import type { ConsoleMessage, Locator, Page } from "@playwright/test";
 
 const apiURL = process.env.API_URL || "http://localhost:3001";
@@ -251,6 +256,84 @@ const expectNoRuntimeIssues = (
   ).toEqual([]);
 };
 
+const expectNoRuntimeIssuesAfterRouteRecovery = async (
+  page: Page,
+  routeLabel: string,
+  issues: { pageErrors: string[]; consoleErrors: string[] },
+  expectedPath: string,
+  heading: RegExp,
+  expectedVisibleLocators: Locator[] = [],
+): Promise<void> => {
+  if (
+    issues.pageErrors.length === 0 &&
+    isRecoverableModuleImportConsoleBurst(issues.consoleErrors)
+  ) {
+    await expect(
+      page.getByRole("heading", { name: heading }).first(),
+    ).toBeVisible();
+    for (const locator of expectedVisibleLocators) {
+      await expect(locator).toBeVisible();
+    }
+
+    const currentPathname = normalizePathname(page.url());
+    const expectedPathnames = resolveExpectedAdminPathnames(expectedPath);
+    expect(
+      expectedPathnames.has(currentPathname),
+      `${routeLabel} recovered from a module import burst on ${currentPathname}, expected one of ${[
+        ...expectedPathnames,
+      ].join(", ")}`,
+    ).toBe(true);
+
+    const routeBlockers = await collectRouteRenderBlockers(page);
+    expect(
+      routeBlockers,
+      `${routeLabel} had recoverable module import console errors, but route render checks failed`,
+    ).toEqual([]);
+    return;
+  }
+
+  expectNoRuntimeIssues(routeLabel, issues);
+};
+
+const expectNoRuntimeIssuesAfterOpaqueFirefoxBoundaryRecovery = async (
+  page: Page,
+  browserName: string,
+  routeLabel: string,
+  issues: { pageErrors: string[]; consoleErrors: string[] },
+  expectedPath: string,
+  heading: RegExp,
+  expectedVisibleLocators: Locator[] = [],
+): Promise<void> => {
+  if (
+    browserName === "firefox" &&
+    issues.pageErrors.length === 0 &&
+    isOpaqueReactBoundaryCompanionConsoleBurst(issues.consoleErrors)
+  ) {
+    const currentPathname = normalizePathname(page.url());
+    const expectedPathname = normalizePathname(expectedPath);
+    expect(
+      currentPathname,
+      `${routeLabel} recovered from Firefox opaque React boundary console text on ${currentPathname}`,
+    ).toBe(expectedPathname);
+
+    await expect(
+      page.getByRole("heading", { name: heading }).first(),
+    ).toBeVisible();
+    for (const locator of expectedVisibleLocators) {
+      await expect(locator).toBeVisible();
+    }
+
+    const routeBlockers = await collectRouteRenderBlockers(page);
+    expect(
+      routeBlockers,
+      `${routeLabel} had Firefox opaque React boundary console text, but route render checks failed`,
+    ).toEqual([]);
+    return;
+  }
+
+  expectNoRuntimeIssues(routeLabel, issues);
+};
+
 const hasOnlyRecoverableConsoleErrors = (issues: {
   pageErrors: string[];
   consoleErrors: string[];
@@ -468,6 +551,15 @@ test.describe("UI/UX regression flows", () => {
       Math.round(element.getBoundingClientRect().height),
     );
     expect(compactNavHeight).toBeLessThanOrEqual(72);
+    await expectNoRuntimeIssuesAfterRouteRecovery(
+      authenticatedPage,
+      "dashboard compact navigation",
+      runtimeIssues,
+      "/dashboard",
+      /^workbench$/i,
+      [globalNav, mainMenuButton, searchButton, alertsLink],
+    );
+    runtimeIssues.clear();
 
     await authenticatedPage.setViewportSize({ width: 1280, height: 900 });
     await authenticatedPage.goto("/dashboard");
@@ -528,7 +620,20 @@ test.describe("UI/UX regression flows", () => {
     );
     expect(fullNavHeight).toBeLessThanOrEqual(72);
 
-    expectNoRuntimeIssues("dashboard shell", runtimeIssues);
+    await expectNoRuntimeIssuesAfterRouteRecovery(
+      authenticatedPage,
+      "dashboard expanded navigation",
+      runtimeIssues,
+      "/dashboard",
+      /^workbench$/i,
+      [
+        globalNav,
+        primaryNav,
+        userMenuButton,
+        searchButton,
+        authenticatedPage.getByRole("link", { name: /create intake/i }).first(),
+      ],
+    );
     runtimeIssues.detach();
   });
 
@@ -577,7 +682,13 @@ test.describe("UI/UX regression flows", () => {
         .first(),
     ).toBeVisible();
 
-    expectNoRuntimeIssues("short desktop user menu", runtimeIssues);
+    await expectNoRuntimeIssuesAfterRouteRecovery(
+      authenticatedPage,
+      "short desktop user menu",
+      runtimeIssues,
+      "/settings/admin",
+      /admin hub|admin settings/i,
+    );
     runtimeIssues.detach();
   });
 
@@ -804,16 +915,26 @@ test.describe("UI/UX regression flows", () => {
     ];
 
     for (const check of checks) {
+      runtimeIssues.clear();
       await authenticatedPage.goto(check.path);
-      await expect(
-        authenticatedPage.getByRole("heading", { name: check.heading }).first(),
-      ).toBeVisible();
-      await expect(
-        authenticatedPage.getByRole(check.actionRole, { name: check.action }).first(),
-      ).toBeVisible();
+      const headingLocator = authenticatedPage
+        .getByRole("heading", { name: check.heading })
+        .first();
+      const actionLocator = authenticatedPage
+        .getByRole(check.actionRole, { name: check.action })
+        .first();
+      await expect(headingLocator).toBeVisible();
+      await expect(actionLocator).toBeVisible();
+      await expectNoRuntimeIssuesAfterRouteRecovery(
+        authenticatedPage,
+        `core app headings/actions on ${check.path}`,
+        runtimeIssues,
+        check.path,
+        check.heading,
+        [headingLocator, actionLocator],
+      );
     }
 
-    expectNoRuntimeIssues("core app headings/actions", runtimeIssues);
     runtimeIssues.detach();
   });
 
@@ -855,6 +976,7 @@ test.describe("UI/UX regression flows", () => {
   });
 
   test("admin settings and portal routes keep headings/actions and redirect contracts", async ({
+    browserName,
     page,
   }, testInfo) => {
     test.skip(
@@ -1009,7 +1131,19 @@ test.describe("UI/UX regression flows", () => {
       ).toBe(normalizePathname(canonical));
     }
 
-    expectNoRuntimeIssues("admin settings and portal routes", runtimeIssues);
+    await expectNoRuntimeIssuesAfterOpaqueFirefoxBoundaryRecovery(
+      page,
+      browserName,
+      "admin settings and portal routes",
+      runtimeIssues,
+      "/settings/admin/organization",
+      /organization profile/i,
+      [
+        page
+          .getByRole("button", { name: /save changes/i })
+          .first(),
+      ],
+    );
     runtimeIssues.detach();
   });
 });

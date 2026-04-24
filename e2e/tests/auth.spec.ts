@@ -5,7 +5,7 @@
 
 import '../helpers/testEnv';
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Page, Request } from '@playwright/test';
 import {
   login,
   logout,
@@ -18,6 +18,34 @@ import { getSharedTestUser, setSharedTestUser } from '../helpers/testUser';
 let currentCreds = getConfiguredAdminCredentials();
 const getCreds = () => currentCreds;
 const dashboardUrl = /\/dashboard(?:[/?#]|$)/;
+const trackSuccessfulSummaryResponses = (page: Page, urls: string[], pattern: RegExp) => {
+  const seenRequests = new WeakSet<Request>();
+
+  page.on('response', (response) => {
+    const url = response.url();
+    if (!pattern.test(url)) {
+      return;
+    }
+
+    const request = response.request();
+    if (!['fetch', 'xhr'].includes(request.resourceType())) {
+      return;
+    }
+
+    if (request.method() !== 'GET') {
+      return;
+    }
+
+    if (seenRequests.has(request)) {
+      return;
+    }
+    seenRequests.add(request);
+
+    if (response.status() < 400) {
+      urls.push(url);
+    }
+  });
+};
 
 const gotoLogin = async (page: Page) => {
   for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -44,12 +72,16 @@ const gotoLogin = async (page: Page) => {
   await expect(page).toHaveURL(/\/login/);
 };
 
-const gotoDashboardWithApiAuth = async (page: Page) => {
+const ensureDashboardApiAuth = async (page: Page) => {
   const { email, password } = getCreds();
-  await ensureLoginViaAPI(page, email, password, {
+  return ensureLoginViaAPI(page, email, password, {
     firstName: 'Test',
     lastName: 'User',
   });
+};
+
+const gotoDashboardWithApiAuth = async (page: Page) => {
+  await ensureDashboardApiAuth(page);
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(dashboardUrl);
 };
@@ -161,16 +193,11 @@ test.describe('Authentication Flow', () => {
   test('dashboard startup loads workbench summary endpoints without duplicate refetches', async ({ page }) => {
     const analyticsSummaryRequests: string[] = [];
     const taskSummaryRequests: string[] = [];
-    page.on('request', (request) => {
-      const url = request.url();
-      if (/\/api\/(?:v2\/)?analytics\/summary(?:\?|$)/.test(url)) {
-        analyticsSummaryRequests.push(url);
-      }
-      if (/\/api\/(?:v2\/)?tasks\/summary(?:\?|$)/.test(url)) {
-        taskSummaryRequests.push(url);
-      }
-    });
-    await gotoDashboardWithApiAuth(page);
+    await ensureDashboardApiAuth(page);
+    trackSuccessfulSummaryResponses(page, analyticsSummaryRequests, /\/api\/v2\/analytics\/summary(?:\?|$)/);
+    trackSuccessfulSummaryResponses(page, taskSummaryRequests, /\/api\/v2\/tasks\/summary(?:\?|$)/);
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(dashboardUrl);
     await expect
       .poll(
         async () => {

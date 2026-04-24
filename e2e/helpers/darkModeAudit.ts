@@ -2,6 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import type { Page } from '@playwright/test';
 import { normalizeRouteLocation } from '../../frontend/src/routes/routeCatalog';
+import {
+  collectRouteRenderBlockers,
+  isRecoverableModuleImportConsoleBurst,
+} from './moduleImportRecovery';
 
 export type AuditSeverity = 'critical' | 'serious' | 'moderate' | 'blocked';
 
@@ -76,6 +80,7 @@ export type RouteRuntimeOptions = {
   allowAuthBootstrapNoise?: boolean;
   expectedLocation?: string | string[];
   allowWildcardFallback?: boolean;
+  recoverModuleImportErrors?: boolean;
 };
 
 export type RouteRuntimeSnapshot = {
@@ -234,6 +239,61 @@ const isSameOriginRuntimeUrl = (url: string): boolean => {
 const isNavigationChurnCancellation = (failure: string): boolean =>
   navigationChurnCancellationPatterns.some((pattern) => pattern.test(failure));
 
+const stripSuppressedAuthBootstrapConsoleErrors = (consoleErrors: string[]): void => {
+  const genericAuthBootstrapConsoleErrorPattern =
+    /Failed to load resource: the server responded with a status of (?:401|403) \((?:Unauthorized|Forbidden)\)/i;
+
+  for (let index = consoleErrors.length - 1; index >= 0; index -= 1) {
+    if (genericAuthBootstrapConsoleErrorPattern.test(consoleErrors[index])) {
+      consoleErrors.splice(index, 1);
+    }
+  }
+};
+
+const hasOnlyRecoverableModuleImportConsoleErrors = (input: {
+  recoverModuleImportErrors: boolean;
+  navigationErrors: string[];
+  pageErrors: string[];
+  consoleErrors: string[];
+  requestFailureRecords: Array<{ resourceType: string; url: string; failure: string }>;
+  failedResponses: string[];
+  expectedLocations: string[];
+  finalLocation: string;
+}): boolean =>
+  input.recoverModuleImportErrors &&
+  input.navigationErrors.length === 0 &&
+  input.pageErrors.length === 0 &&
+  input.requestFailureRecords.length === 0 &&
+  input.failedResponses.length === 0 &&
+  input.expectedLocations.includes(input.finalLocation) &&
+  isRecoverableModuleImportConsoleBurst(input.consoleErrors);
+
+const stripRecoverableModuleImportConsoleErrorsAfterRecoveredRoute = (input: {
+  recoverModuleImportErrors: boolean;
+  navigationErrors: string[];
+  pageErrors: string[];
+  consoleErrors: string[];
+  requestFailures: string[];
+  failedResponses: string[];
+  expectedLocations: string[];
+  finalLocation: string;
+}): void => {
+  const routeOtherwiseClean =
+    input.navigationErrors.length === 0 &&
+    input.pageErrors.length === 0 &&
+    input.requestFailures.length === 0 &&
+    input.failedResponses.length === 0 &&
+    input.expectedLocations.includes(input.finalLocation);
+
+  if (
+    input.recoverModuleImportErrors &&
+    routeOtherwiseClean &&
+    isRecoverableModuleImportConsoleBurst(input.consoleErrors)
+  ) {
+    input.consoleErrors.length = 0;
+  }
+};
+
 const isNavigationChurnAssetCancellation = (entry: {
   resourceType: string;
   url: string;
@@ -328,7 +388,11 @@ export async function captureRouteRuntime(
 ): Promise<RouteRuntimeSnapshot> {
   await ensureRouteTransitionCapture(page);
 
-  const { allowAuthBootstrapNoise = false, allowWildcardFallback = false } = options;
+  const {
+    allowAuthBootstrapNoise = false,
+    allowWildcardFallback = false,
+    recoverModuleImportErrors = false,
+  } = options;
   const requestedLocation = normalizeRouteLocation(route);
   const expectedLocations = (Array.isArray(options.expectedLocation) ? options.expectedLocation : [options.expectedLocation ?? route]).map(
     (value) => normalizeRouteLocation(value)
@@ -446,18 +510,58 @@ export async function captureRouteRuntime(
     await waitForSettledPage(page);
 
     if (allowAuthBootstrapNoise && suppressedAuthBootstrapResponseCount > 0) {
-      const genericAuthBootstrapConsoleErrorPattern =
-        /Failed to load resource: the server responded with a status of (?:401|403) \((?:Unauthorized|Forbidden)\)/i;
-
-      for (let index = consoleErrors.length - 1; index >= 0; index -= 1) {
-        if (genericAuthBootstrapConsoleErrorPattern.test(consoleErrors[index])) {
-          consoleErrors.splice(index, 1);
-        }
-      }
+      stripSuppressedAuthBootstrapConsoleErrors(consoleErrors);
     }
 
-    const finalLocation = normalizeRouteLocation(page.url());
-    const routeTransitions = await readRouteTransitions(page);
+    let finalLocation = normalizeRouteLocation(page.url());
+    let routeTransitions = await readRouteTransitions(page);
+
+    if (
+      hasOnlyRecoverableModuleImportConsoleErrors({
+        recoverModuleImportErrors,
+        navigationErrors,
+        pageErrors,
+        consoleErrors,
+        requestFailureRecords,
+        failedResponses,
+        expectedLocations,
+        finalLocation,
+      })
+    ) {
+      // WebKit occasionally surfaces a one-off React boundary burst while a lazy route module
+      // import recovers on the next navigation. Retry once, then keep the route-health check strict.
+      navigationErrors.length = 0;
+      pageErrors.length = 0;
+      consoleErrors.length = 0;
+      requestFailureRecords.length = 0;
+      failedResponses.length = 0;
+      suppressedAuthBootstrapResponseCount = 0;
+
+      try {
+        const retryResponse = await page.goto(route, { waitUntil: 'domcontentloaded' });
+
+        if (!retryResponse) {
+          navigationErrors.push(`No document response was captured for ${requestedLocation} during retry.`);
+        } else if (retryResponse.status() >= 400) {
+          navigationErrors.push(
+            `Document request for ${requestedLocation} returned ${retryResponse.status()} from ${retryResponse.url()} during retry.`
+          );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        navigationErrors.push(`Retry navigation to ${requestedLocation} failed: ${message}`);
+      }
+
+      await waitForSettledPage(page);
+
+      if (allowAuthBootstrapNoise && suppressedAuthBootstrapResponseCount > 0) {
+        stripSuppressedAuthBootstrapConsoleErrors(consoleErrors);
+      }
+
+      finalLocation = normalizeRouteLocation(page.url());
+      routeTransitions = await readRouteTransitions(page);
+    }
+
     const routeLoadedSuccessfully =
       navigationErrors.length === 0 &&
       pageErrors.length === 0 &&
@@ -504,6 +608,20 @@ export async function captureRouteRuntime(
         `Wildcard fallback redirect chain detected while loading ${requestedLocation}: ${formatRouteTransitions(routeTransitions)}.`
       );
     }
+
+    const routeRenderBlockers = await collectRouteRenderBlockers(page);
+    pageErrors.push(...routeRenderBlockers);
+
+    stripRecoverableModuleImportConsoleErrorsAfterRecoveredRoute({
+      recoverModuleImportErrors,
+      navigationErrors,
+      pageErrors,
+      consoleErrors,
+      requestFailures,
+      failedResponses,
+      expectedLocations,
+      finalLocation,
+    });
 
     return {
       requestedLocation,

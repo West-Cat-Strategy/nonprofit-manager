@@ -149,7 +149,9 @@ test.describe('Volunteers Module', () => {
         }
 
         await expect(authenticatedPage).toHaveURL(new RegExp(`/volunteers/${targetVolunteerId}$`));
-        await expect(authenticatedPage.getByText(/available/i).first()).toBeVisible();
+        await expect(
+            authenticatedPage.locator('p', { hasText: /^available$/i }).first()
+        ).toBeVisible();
 
         await authenticatedPage.goto(`/volunteers?search=${encodeURIComponent(targetFirstName)}`);
         const deleteRow = await waitForVolunteerRow(authenticatedPage, targetFullName);

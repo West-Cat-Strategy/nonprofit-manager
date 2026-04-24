@@ -645,21 +645,34 @@ test.describe('Contacts Module', () => {
   test('should validate create form required and format errors', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/contacts/new');
 
-    await authenticatedPage.getByRole('button', { name: /create contact/i }).click();
+    const contactForm = authenticatedPage.locator('form').filter({
+      has: authenticatedPage.locator('input[name="first_name"]'),
+    });
+    const firstNameInput = contactForm.getByLabel(/first name \*/i);
+    const lastNameInput = contactForm.getByLabel(/last name \*/i);
+    const createButton = contactForm.getByRole('button', { name: /^create contact$/i });
 
-    await expect(authenticatedPage.getByText(/first name is required/i)).toBeVisible();
-    await expect(authenticatedPage.getByText(/last name is required/i)).toBeVisible();
+    await expect(firstNameInput).toBeVisible({ timeout: 30000 });
+    await expect(createButton).toBeEnabled({ timeout: 30000 });
+    await createButton.click();
 
-    await authenticatedPage.getByLabel(/first name \*/i).fill('Invalid');
-    await authenticatedPage.getByLabel(/last name \*/i).fill('Entry');
-    await authenticatedPage.getByLabel(/^email$/i).fill('invalid.entry@example.com');
-    await authenticatedPage.locator('input[name="phone"]').fill('12345');
-    await authenticatedPage.getByLabel(/personal health number \(phn\)/i).fill('12345');
+    await expect(contactForm.getByText(/first name is required/i)).toBeVisible({ timeout: 15000 });
+    await expect(contactForm.getByText(/last name is required/i)).toBeVisible({ timeout: 15000 });
 
-    await authenticatedPage.getByRole('button', { name: /create contact/i }).click();
+    await firstNameInput.fill('Invalid');
+    await lastNameInput.fill('Entry');
+    await contactForm.getByLabel(/^email$/i).fill('invalid.entry@example.com');
+    await contactForm.locator('input[name="phone"]').fill('12345');
+    await contactForm.getByLabel(/personal health number \(phn\)/i).fill('12345');
 
-    await expect(authenticatedPage.getByText(/phone number must be at least 10 digits/i)).toBeVisible();
-    await expect(authenticatedPage.getByText(/phn must contain exactly 10 digits/i)).toBeVisible();
+    await createButton.click();
+
+    await expect(contactForm.getByText(/phone number must be at least 10 digits/i)).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(contactForm.getByText(/phn must contain exactly 10 digits/i)).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test('should support PHN create and edit happy path', async ({ authenticatedPage, authToken }) => {
@@ -1183,7 +1196,16 @@ test.describe('Contacts Module', () => {
     const suffix = uniqueSuffix();
 
     await authenticatedPage.goto('/contacts/new');
-    await authenticatedPage.locator('form').getByRole('button', { name: /^cancel$/i }).click();
+    const createFormCancelButton = authenticatedPage
+      .locator('form button[type="button"]')
+      .filter({ hasText: /^Cancel$/ })
+      .last();
+    await createFormCancelButton.scrollIntoViewIfNeeded();
+    await expect(createFormCancelButton).toBeVisible();
+    await Promise.all([
+      authenticatedPage.waitForURL((url) => url.pathname === '/contacts', { timeout: 30000 }),
+      createFormCancelButton.click(),
+    ]);
     await expect(authenticatedPage).toHaveURL(/\/contacts$/);
 
     const { id } = await createTestContact(authenticatedPage, authToken, {
@@ -1198,8 +1220,17 @@ test.describe('Contacts Module', () => {
     await expect(authenticatedPage.getByRole('heading', { name: /edit contact/i })).toBeVisible({
       timeout: 30000,
     });
-    await authenticatedPage.locator('form').getByRole('button', { name: /^cancel$/i }).click();
-    await waitForContactDetailReady(authenticatedPage);
+    const editFormCancelButton = authenticatedPage
+      .locator('form button[type="button"]')
+      .filter({ hasText: /^Cancel$/ })
+      .last();
+    await editFormCancelButton.scrollIntoViewIfNeeded();
+    await expect(editFormCancelButton).toBeVisible();
+    await Promise.all([
+      authenticatedPage.waitForURL((url) => url.pathname === `/contacts/${id}`, { timeout: 30000 }),
+      editFormCancelButton.click(),
+    ]);
+    await waitForContactDetailReady(authenticatedPage, new RegExp(`Cancel${suffix} Flow`, 'i'));
     await expect(authenticatedPage).toHaveURL(new RegExp(`/contacts/${id}$`));
   });
 

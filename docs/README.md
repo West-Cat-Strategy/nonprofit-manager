@@ -1,6 +1,6 @@
 # Documentation Home
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-24
 
 Welcome to the Nonprofit Manager documentation hub. Use this file to find the live contributor workflow, runtime docs, feature inventory, tracked persona canon, and historical archives without mixing current planning with older closeout material. Tracked `*.example` env files are templates; copied live `.env*` and deploy override files stay local-only and ignored. Inside `.codex`, only the three canonical persona and benchmark `references/**` trees are versioned.
 
@@ -109,6 +109,9 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 ### Governance And History
 - [Planning and Progress](phases/planning-and-progress.md)
 - [Phase 5 Development Plan](phases/PHASE_5_DEVELOPMENT_PLAN.md)
+- [P5-T6 Capability Briefs](phases/P5-T6_CAPABILITY_BRIEFS_2026-04-23.md)
+- [P5-T6A Governance and Compliance Oversight Brief](phases/P5-T6A_GOVERNANCE_COMPLIANCE_BRIEF_2026-04-24.md)
+- [P5-T6C Service-Delivery Workflow Depth Brief](phases/P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md)
 - [Phase Archive Index](phases/archive/README.md)
 - [Documentation Style Guide](DOCUMENTATION_STYLE_GUIDE.md)
 - [Help Center Archive Note](archive/help-center/README.md)

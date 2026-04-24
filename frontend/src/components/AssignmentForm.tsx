@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
 import { createAssignment, updateAssignment } from '../features/volunteers/state';
 import type { VolunteerAssignment } from '../features/volunteers/state';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
+import { eventsApiClient } from '../features/events/api/eventsApiClient';
+import { tasksApiClient } from '../features/tasks/api/tasksApiClient';
+import type { Event } from '../types/event';
+import type { Task } from '../types/task';
 
 interface Assignment {
   assignment_id?: string;
@@ -24,6 +28,55 @@ interface AssignmentFormProps {
   volunteerId: string; // The volunteer this assignment is for
   mode: 'create' | 'edit';
 }
+
+interface AssignmentPickerOption {
+  id: string;
+  label: string;
+  description: string;
+}
+
+const ACTIVE_EVENT_STATUSES: Event['status'][] = ['planned', 'active'];
+const ACTIVE_TASK_STATUSES: Task['status'][] = ['not_started', 'in_progress', 'waiting'];
+
+const formatDateLabel = (value?: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toLocaleDateString();
+};
+
+const mapEventToPickerOption = (event: Event): AssignmentPickerOption => {
+  const dateLabel = formatDateLabel(event.next_occurrence_start_date || event.start_date);
+  const description = [dateLabel, event.location_name, event.event_type].filter(Boolean).join(' - ');
+
+  return {
+    id: event.event_id,
+    label: event.event_name || 'Untitled event',
+    description,
+  };
+};
+
+const mapTaskToPickerOption = (task: Task): AssignmentPickerOption => {
+  const dueDateLabel = formatDateLabel(task.due_date);
+  const description = [task.status.replace(/_/g, ' '), task.priority, dueDateLabel]
+    .filter(Boolean)
+    .join(' - ');
+
+  return {
+    id: task.id,
+    label: task.subject || 'Untitled task',
+    description,
+  };
+};
+
+const sortTaskOptions = (left: AssignmentPickerOption, right: AssignmentPickerOption) =>
+  left.label.localeCompare(right.label);
 
 export const AssignmentForm: React.FC<AssignmentFormProps> = ({
   assignment,
@@ -49,6 +102,14 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [eventSearch, setEventSearch] = useState('');
+  const [taskSearch, setTaskSearch] = useState('');
+  const [eventOptions, setEventOptions] = useState<AssignmentPickerOption[]>([]);
+  const [taskOptions, setTaskOptions] = useState<AssignmentPickerOption[]>([]);
+  const [eventPickerLoading, setEventPickerLoading] = useState(false);
+  const [taskPickerLoading, setTaskPickerLoading] = useState(false);
+  const [eventPickerError, setEventPickerError] = useState<string | null>(null);
+  const [taskPickerError, setTaskPickerError] = useState<string | null>(null);
 
   useEffect(() => {
     if (assignment && mode === 'edit') {
@@ -65,9 +126,160 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
     }
   }, [assignment, mode]);
 
+  useEffect(() => {
+    if (formData.assignment_type !== 'event') {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadEvents = async () => {
+      setEventPickerLoading(true);
+      setEventPickerError(null);
+
+      try {
+        const responses = await Promise.all(
+          ACTIVE_EVENT_STATUSES.map((status) =>
+            eventsApiClient.listEvents({
+              status,
+              search: eventSearch.trim() || undefined,
+              page: 1,
+              limit: 25,
+              sortBy: 'start_date',
+              sortOrder: 'asc',
+            })
+          )
+        );
+
+        if (!cancelled) {
+          const seen = new Set<string>();
+          const nextOptions = responses
+            .flatMap((response) => response.data || [])
+            .filter((event) => {
+              if (seen.has(event.event_id)) {
+                return false;
+              }
+              seen.add(event.event_id);
+              return true;
+            })
+            .map(mapEventToPickerOption)
+            .slice(0, 25);
+
+          setEventOptions(nextOptions);
+        }
+      } catch (error) {
+        console.error('Failed to load planned or active events:', error);
+        if (!cancelled) {
+          setEventOptions([]);
+          setEventPickerError('Planned and active events could not be loaded.');
+        }
+      } finally {
+        if (!cancelled) {
+          setEventPickerLoading(false);
+        }
+      }
+    };
+
+    void loadEvents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [eventSearch, formData.assignment_type]);
+
+  useEffect(() => {
+    if (formData.assignment_type !== 'task') {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadTasks = async () => {
+      setTaskPickerLoading(true);
+      setTaskPickerError(null);
+
+      try {
+        const responses = await Promise.all(
+          ACTIVE_TASK_STATUSES.map((status) =>
+            tasksApiClient.listTasks({
+              status,
+              search: taskSearch.trim() || undefined,
+              page: 1,
+              limit: 15,
+            })
+          )
+        );
+
+        if (!cancelled) {
+          const seen = new Set<string>();
+          const nextOptions = responses
+            .flatMap((response) => response.tasks || [])
+            .filter((task) => {
+              if (seen.has(task.id)) {
+                return false;
+              }
+              seen.add(task.id);
+              return true;
+            })
+            .map(mapTaskToPickerOption)
+            .sort(sortTaskOptions)
+            .slice(0, 25);
+
+          setTaskOptions(nextOptions);
+        }
+      } catch (error) {
+        console.error('Failed to load active tasks:', error);
+        if (!cancelled) {
+          setTaskOptions([]);
+          setTaskPickerError('Active tasks could not be loaded.');
+        }
+      } finally {
+        if (!cancelled) {
+          setTaskPickerLoading(false);
+        }
+      }
+    };
+
+    void loadTasks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [formData.assignment_type, taskSearch]);
+
   useUnsavedChangesGuard({
     hasUnsavedChanges: isDirty && !isSubmitting,
   });
+
+  const eventSelectOptions = useMemo(() => {
+    if (!formData.event_id || eventOptions.some((option) => option.id === formData.event_id)) {
+      return eventOptions;
+    }
+
+    return [
+      {
+        id: formData.event_id,
+        label: `Current event (${formData.event_id})`,
+        description: 'Previously selected event',
+      },
+      ...eventOptions,
+    ];
+  }, [eventOptions, formData.event_id]);
+
+  const taskSelectOptions = useMemo(() => {
+    if (!formData.task_id || taskOptions.some((option) => option.id === formData.task_id)) {
+      return taskOptions;
+    }
+
+    return [
+      {
+        id: formData.task_id,
+        label: `Current task (${formData.task_id})`,
+        description: 'Previously selected task',
+      },
+      ...taskOptions,
+    ];
+  }, [formData.task_id, taskOptions]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -76,6 +288,9 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
 
     setFormData((prev) => ({
       ...prev,
+      ...(name === 'assignment_type' && value === 'general' ? { event_id: '', task_id: '' } : {}),
+      ...(name === 'assignment_type' && value === 'event' ? { task_id: '' } : {}),
+      ...(name === 'assignment_type' && value === 'task' ? { event_id: '' } : {}),
       [name]: type === 'number' ? (value === '' ? undefined : Number(value)) : value,
     }));
     setIsDirty(true);
@@ -210,46 +425,88 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
 
           {formData.assignment_type === 'event' && (
             <div className="sm:col-span-2">
-              <label htmlFor="event_id" className="block text-sm font-medium text-app-text-label">
-                Event *
+              <label htmlFor="event_search" className="block text-sm font-medium text-app-text-label">
+                Search Events
               </label>
               <input
                 type="text"
+                name="event_search"
+                id="event_search"
+                value={eventSearch}
+                onChange={(event) => setEventSearch(event.target.value)}
+                placeholder="Search by event name"
+                className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
+              />
+
+              <label htmlFor="event_id" className="mt-4 block text-sm font-medium text-app-text-label">
+                Event *
+              </label>
+              <select
                 name="event_id"
                 id="event_id"
                 value={formData.event_id ?? ''}
                 onChange={handleChange}
-                placeholder="Event ID (e.g., from events list)"
                 className={`mt-1 block w-full border ${
                   errors.event_id ? 'border-app-border' : 'border-app-input-border'
                 } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
-              />
+              >
+                <option value="">
+                  {eventPickerLoading ? 'Loading events...' : 'Select an event'}
+                </option>
+                {eventSelectOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.description ? `${option.label} - ${option.description}` : option.label}
+                  </option>
+                ))}
+              </select>
               {errors.event_id && <p className="mt-1 text-sm text-app-accent">{errors.event_id}</p>}
+              {eventPickerError && <p className="mt-1 text-sm text-app-accent">{eventPickerError}</p>}
               <p className="mt-1 text-sm text-app-text-muted">
-                Enter the event UUID. Event management will be available in Step 2.3.
+                Planned and active events are shown. Search narrows the list without changing the saved event ID.
               </p>
             </div>
           )}
 
           {formData.assignment_type === 'task' && (
             <div className="sm:col-span-2">
-              <label htmlFor="task_id" className="block text-sm font-medium text-app-text-label">
-                Task *
+              <label htmlFor="task_search" className="block text-sm font-medium text-app-text-label">
+                Search Active Tasks
               </label>
               <input
                 type="text"
+                name="task_search"
+                id="task_search"
+                value={taskSearch}
+                onChange={(event) => setTaskSearch(event.target.value)}
+                placeholder="Search by task subject"
+                className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
+              />
+
+              <label htmlFor="task_id" className="mt-4 block text-sm font-medium text-app-text-label">
+                Task *
+              </label>
+              <select
                 name="task_id"
                 id="task_id"
                 value={formData.task_id ?? ''}
                 onChange={handleChange}
-                placeholder="Task ID (e.g., from tasks list)"
                 className={`mt-1 block w-full border ${
                   errors.task_id ? 'border-app-border' : 'border-app-input-border'
                 } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
-              />
+              >
+                <option value="">
+                  {taskPickerLoading ? 'Loading active tasks...' : 'Select an active task'}
+                </option>
+                {taskSelectOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.description ? `${option.label} - ${option.description}` : option.label}
+                  </option>
+                ))}
+              </select>
               {errors.task_id && <p className="mt-1 text-sm text-app-accent">{errors.task_id}</p>}
+              {taskPickerError && <p className="mt-1 text-sm text-app-accent">{taskPickerError}</p>}
               <p className="mt-1 text-sm text-app-text-muted">
-                Enter the task UUID. Task management will be available in Step 2.5.
+                Active task results include not started, in progress, and waiting tasks.
               </p>
             </div>
           )}

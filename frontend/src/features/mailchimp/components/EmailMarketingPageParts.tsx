@@ -20,17 +20,29 @@ export function StatusBadge({ status }: { status: string }) {
     canceled: 'bg-app-accent-soft text-app-accent-text',
     archived: 'bg-app-surface-muted text-app-text-muted',
   };
+  const statusLabels: Record<string, string> = {
+    sent: 'Sent',
+    sending: 'Sending',
+    schedule: 'Scheduled',
+    paused: 'Paused',
+    save: 'Draft',
+    canceled: 'Canceled',
+    canceling: 'Canceling',
+    archived: 'Archived',
+  };
 
   return (
     <span
       className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[status] || 'bg-app-surface-muted text-app-text'}`}
     >
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {statusLabels[status] || status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );
 }
 
 export function CampaignCard({ campaign }: { campaign: MailchimpCampaign }) {
+  const sendTimeLabel = campaign.status === 'schedule' ? 'Scheduled' : 'Sent';
+
   return (
     <div className="bg-app-surface border border-app-border rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start">
@@ -72,7 +84,7 @@ export function CampaignCard({ campaign }: { campaign: MailchimpCampaign }) {
 
       <div className="mt-4 text-xs text-app-text-subtle">
         Created: {new Date(campaign.createdAt).toLocaleDateString()}
-        {campaign.sendTime && ` | Sent: ${new Date(campaign.sendTime).toLocaleDateString()}`}
+        {campaign.sendTime && ` | ${sendTimeLabel}: ${new Date(campaign.sendTime).toLocaleDateString()}`}
       </div>
     </div>
   );

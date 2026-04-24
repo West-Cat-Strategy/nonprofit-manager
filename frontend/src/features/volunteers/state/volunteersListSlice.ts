@@ -11,6 +11,7 @@ export interface VolunteersListState {
   volunteers: Volunteer[];
   loading: boolean;
   error: string | null;
+  currentRequestId: string | null;
   pagination: {
     total: number;
     page: number;
@@ -30,6 +31,7 @@ const initialState: VolunteersListState = {
   volunteers: [],
   loading: false,
   error: null,
+  currentRequestId: null,
   pagination: {
     total: 0,
     page: 1,
@@ -72,28 +74,47 @@ const volunteersListSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchVolunteers.pending, (state) => {
+      .addCase(fetchVolunteers.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        state.currentRequestId = action.meta.requestId;
       })
       .addCase(fetchVolunteers.fulfilled, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.loading = false;
+        state.currentRequestId = null;
         state.volunteers = action.payload.data;
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchVolunteers.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.loading = false;
+        state.currentRequestId = null;
         state.error = action.error.message || 'Failed to fetch volunteers';
       })
-      .addCase(fetchVolunteersBySkills.pending, (state) => {
+      .addCase(fetchVolunteersBySkills.pending, (state, action) => {
         state.loading = true;
+        state.error = null;
+        state.currentRequestId = action.meta.requestId;
       })
       .addCase(fetchVolunteersBySkills.fulfilled, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.loading = false;
+        state.currentRequestId = null;
         state.volunteers = action.payload;
       })
       .addCase(fetchVolunteersBySkills.rejected, (state, action) => {
+        if (state.currentRequestId !== action.meta.requestId) {
+          return;
+        }
         state.loading = false;
+        state.currentRequestId = null;
         state.error = action.error.message || 'Failed to fetch volunteers by skills';
       })
       .addCase(deleteVolunteer.fulfilled, (state, action) => {

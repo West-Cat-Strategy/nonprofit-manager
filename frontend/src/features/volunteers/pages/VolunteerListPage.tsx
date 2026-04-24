@@ -68,6 +68,7 @@ const resolveVolunteerListState = createSelector(
         volunteers: listState.volunteers ?? [],
         loading: listState.loading ?? false,
         error: listState.error ?? null,
+        currentRequestId: listState.currentRequestId ?? null,
         pagination: listState.pagination ?? EMPTY_PAGINATION,
         filters: {
           ...EMPTY_FILTERS,
@@ -80,6 +81,7 @@ const resolveVolunteerListState = createSelector(
       volunteers: volunteersState?.volunteers ?? [],
       loading: volunteersState?.loading ?? false,
       error: volunteersState?.error ?? null,
+      currentRequestId: volunteersState?.currentRequestId ?? null,
       pagination: volunteersState?.pagination ?? EMPTY_PAGINATION,
       filters: {
         ...EMPTY_FILTERS,
@@ -336,13 +338,21 @@ const VolunteerList = () => {
       render: (_, row: Volunteer) => (
         <div className="flex gap-2">
           <button
-            onClick={() => navigate(`/volunteers/${row.volunteer_id}/edit`)}
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              navigate(`/volunteers/${row.volunteer_id}/edit`);
+            }}
             className="px-2 py-1 border border-app-border rounded text-app-text text-xs font-mono hover:bg-app-surface-muted transition"
           >
             Edit
           </button>
           <button
-            onClick={async () => {
+            type="button"
+            onClick={async (event) => {
+              event.preventDefault();
+              event.stopPropagation();
               const confirmed = await confirm(
                 confirmPresets.delete(`${row.first_name} ${row.last_name}`)
               );

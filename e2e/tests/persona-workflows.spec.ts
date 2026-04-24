@@ -173,7 +173,17 @@ async function ensurePersonaAdminSession(page: Page, proofName: string) {
     );
   }
 
-  return loginViaAPI(page, personaAdminProfile.email, personaAdminProfile.password);
+  const session = await ensureEffectiveAdminLoginViaAPI(page, {
+    firstName: personaAdminProfile.firstName,
+    lastName: personaAdminProfile.lastName,
+    organizationName: personaAdminProfile.organizationName,
+  });
+  personaAdminProfile = {
+    ...personaAdminProfile,
+    email: session.email,
+    password: session.password,
+  };
+  return session;
 }
 
 async function getFirstCaseTypeId(page: Page, token: string): Promise<string> {

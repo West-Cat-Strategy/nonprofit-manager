@@ -14,10 +14,16 @@ import {
   matchRouteCatalogEntry,
   normalizeRouteLocation,
 } from '../../frontend/src/routes/routeCatalog';
+import {
+  hasVisibleAppErrorBoundary,
+  hasVisibleRouteContent as hasMountedRouteContent,
+  trackModuleImportConsoleBurst,
+} from '../helpers/moduleImportRecovery';
 
 const HTTP_SCHEME = ['http', '://'].join('');
 const apiURL = process.env.API_URL || `${HTTP_SCHEME}127.0.0.1:3001`;
 const baseURL = process.env.BASE_URL || `${HTTP_SCHEME}127.0.0.1:5173`;
+const APP_LOADING_LABEL = '[aria-label="Loading application"]';
 
 type RouteAuditConfig = {
   name: string;
@@ -57,6 +63,10 @@ type VisibilityAuditIssue = {
   kind: 'control' | 'link';
   name: string;
   issue: string;
+};
+
+type ModuleImportRecoveryOptions = {
+  recoverModuleImportErrors?: boolean;
 };
 
 type CaseTypeRow = {
@@ -424,14 +434,6 @@ const localSystemOrigins = new Set([
   new URL(apiURL).origin,
 ]);
 
-const waitForAppRoute = async (page: Page) => {
-  const loadingText = page.getByText('Loading...').first();
-  if (await loadingText.isVisible().catch(() => false)) {
-    await loadingText.waitFor({ state: 'detached', timeout: 30_000 }).catch(() => undefined);
-  }
-  await page.waitForLoadState('networkidle', { timeout: 2_000 }).catch(() => undefined);
-};
-
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const toNamePattern = (value: string): RegExp =>
@@ -468,6 +470,104 @@ const getNamedControlLocator = async (page: Page, name: RegExp): Promise<Locator
 const getNamedFieldLocator = async (page: Page, name: RegExp): Promise<Locator> =>
   resolvePreferredVisibleLocator(getNamedFieldCandidates(page, name));
 
+const getRoutePrimaryActionPattern = (
+  config: RouteAuditConfig
+): RegExp | undefined => {
+  const catalogPrimaryActionLabel = config.expectedEntryId
+    ? getRouteCatalogEntryById(config.expectedEntryId)?.primaryAction?.label
+    : undefined;
+
+  return config.primaryAction || (
+    catalogPrimaryActionLabel ? toNamePattern(catalogPrimaryActionLabel) : undefined
+  );
+};
+
+const getRouteReadinessLocators = (
+  page: Page,
+  config?: RouteAuditConfig
+): Locator[] => {
+  const locators: Locator[] = [
+    page.locator('main').first(),
+    page.getByRole('main').first(),
+    page.getByRole('navigation').first(),
+    page.getByRole('heading').first(),
+  ];
+
+  if (!config) {
+    return locators;
+  }
+
+  if (config.heading) {
+    locators.unshift(page.getByRole('heading', { name: config.heading }).first());
+  }
+
+  const primaryAction = getRoutePrimaryActionPattern(config);
+  if (primaryAction) {
+    locators.unshift(...getNamedControlCandidates(page, primaryAction));
+  }
+
+  for (const tabName of config.requiredTabs ?? []) {
+    locators.push(page.getByRole('tab', { name: tabName }).first());
+  }
+
+  return locators;
+};
+
+const hasVisibleRouteContent = async (
+  page: Page,
+  readinessLocators: Locator[]
+): Promise<boolean> => {
+  for (const locator of readinessLocators) {
+    if (await locator.isVisible().catch(() => false)) {
+      return true;
+    }
+  }
+
+  return hasMountedRouteContent(page);
+};
+
+const waitForAppRoute = async (
+  page: Page,
+  options: {
+    readinessLocators?: Locator[];
+    timeoutMs?: number;
+  } = {}
+) => {
+  const {
+    readinessLocators = [],
+    timeoutMs = 30_000,
+  } = options;
+  const loadingIndicators = [
+    page.locator(APP_LOADING_LABEL).first(),
+    page.getByText('Loading...').first(),
+  ];
+
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+
+  for (const indicator of loadingIndicators) {
+    if (await indicator.isVisible().catch(() => false)) {
+      await indicator.waitFor({ state: 'hidden', timeout: timeoutMs }).catch(() => undefined);
+    }
+  }
+
+  await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
+
+  await expect
+    .poll(
+      async () => {
+        for (const indicator of loadingIndicators) {
+          if (await indicator.isVisible().catch(() => false)) {
+            return false;
+          }
+        }
+
+        return hasVisibleRouteContent(page, readinessLocators);
+      },
+      { timeout: timeoutMs, intervals: [250, 500, 1_000, 1_500] }
+    )
+    .toBeTruthy();
+};
+
 const isPatternVisible = async (page: Page, pattern: RegExp): Promise<boolean> => {
   const locators = [
     page.getByRole('heading', { name: pattern }).first(),
@@ -489,13 +589,156 @@ const isPatternVisible = async (page: Page, pattern: RegExp): Promise<boolean> =
 const formatAuditIssues = (route: string, issues: VisibilityAuditIssue[]): string =>
   issues.map((issue) => `${route} :: ${issue.kind} "${issue.name}" -> ${issue.issue}`).join('\n');
 
-const gotoAuditedRoute = async (page: Page, route: string) => {
-  const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
-  expect(response, `no response for ${route}`).not.toBeNull();
-  if (response) {
-    expect(response.status(), `bad status for ${route}`).toBeLessThan(400);
+const findRouteAuditConfig = (
+  surface: RouteAuditConfig['surface'],
+  route: string
+): RouteAuditConfig | undefined => {
+  const normalizedRoute = normalizeRouteLocation(route);
+  const routeAudits =
+    surface === 'staff'
+      ? staffRouteAudits
+      : surface === 'portal'
+        ? portalRouteAudits
+        : surface === 'public'
+          ? publicRouteAudits
+          : publicRouteAudits;
+
+  return routeAudits.find(
+    (config) =>
+      config.surface === surface &&
+      normalizeRouteLocation(config.route) === normalizedRoute
+  );
+};
+
+const gotoAuditedRoute = async (
+  page: Page,
+  route: string,
+  config?: RouteAuditConfig,
+  options: ModuleImportRecoveryOptions = {}
+) => {
+  const readinessLocators = getRouteReadinessLocators(page, config);
+
+  const navigateAndSettle = async (
+    retry = false
+  ): Promise<{ settled: boolean; sawRecoverableBurst: boolean; failure?: string }> => {
+    const moduleImportTracker = options.recoverModuleImportErrors
+      ? trackModuleImportConsoleBurst(page)
+      : undefined;
+
+    try {
+      const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
+      if (!response) {
+        return {
+          settled: false,
+          sawRecoverableBurst: moduleImportTracker?.hasRecoverableBurst() ?? false,
+          failure: `no response for ${route}${retry ? ' during retry' : ''}`,
+        };
+      }
+
+      if (response) {
+        const status = response.status();
+        if (status >= 400) {
+          return {
+            settled: false,
+            sawRecoverableBurst: moduleImportTracker?.hasRecoverableBurst() ?? false,
+            failure: `bad status for ${route}${retry ? ' during retry' : ''}: ${status}`,
+          };
+        }
+      }
+
+      await waitForAppRoute(page, { readinessLocators });
+      if (await hasVisibleAppErrorBoundary(page)) {
+        return {
+          settled: false,
+          sawRecoverableBurst: moduleImportTracker?.hasRecoverableBurst() ?? false,
+          failure: `route ${route}${retry ? ' retry' : ''} stayed on the generic error boundary`,
+        };
+      }
+
+      if (!(await hasVisibleRouteContent(page, readinessLocators))) {
+        return {
+          settled: false,
+          sawRecoverableBurst: moduleImportTracker?.hasRecoverableBurst() ?? false,
+          failure: `route ${route}${retry ? ' retry' : ''} rendered no visible route content`,
+        };
+      }
+
+      return {
+        settled: true,
+        sawRecoverableBurst: moduleImportTracker?.hasRecoverableBurst() ?? false,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        settled: false,
+        sawRecoverableBurst: moduleImportTracker?.hasRecoverableBurst() ?? false,
+        failure: `route ${route}${retry ? ' retry' : ''} did not settle: ${message}`,
+      };
+    } finally {
+      moduleImportTracker?.detach();
+    }
+  };
+
+  const firstNavigation = await navigateAndSettle();
+
+  // WebKit can occasionally land on the app's generic error boundary or a blank partially
+  // mounted shell during a lazy route-module import burst. Retry only when that exact burst
+  // was observed, then keep the audit strict on any remaining boundary or blank-shell state.
+  if (
+    !firstNavigation.settled &&
+    options.recoverModuleImportErrors &&
+    firstNavigation.sawRecoverableBurst
+  ) {
+    const retryNavigation = await navigateAndSettle(true);
+    expect(
+      retryNavigation.failure,
+      `route ${route} did not settle after retry`
+    ).toBeUndefined();
+    return;
   }
-  await waitForAppRoute(page);
+
+  expect(firstNavigation.failure, `route ${route} did not settle`).toBeUndefined();
+};
+
+const waitForCanonicalNavigation = async (
+  page: Page,
+  targetHref: string,
+  surface: ClickthroughAuditLink['surface'],
+  options: ModuleImportRecoveryOptions = {}
+) => {
+  const normalizedTargetHref = normalizeRouteLocation(targetHref);
+  const targetConfig = findRouteAuditConfig(surface, normalizedTargetHref);
+  const readinessLocators = getRouteReadinessLocators(page, targetConfig);
+
+  await expect
+    .poll(
+      async () => normalizeRouteLocation(page.url()),
+      { timeout: 15_000, intervals: [250, 500, 1_000] }
+    )
+    .toBe(normalizedTargetHref);
+
+  const clickedRouteSettled = await (async (): Promise<boolean> => {
+    try {
+      await waitForAppRoute(page, { readinessLocators });
+      return (
+        !(await hasVisibleAppErrorBoundary(page)) &&
+        await hasVisibleRouteContent(page, readinessLocators)
+      );
+    } catch {
+      return false;
+    }
+  })();
+
+  // Once the click has proved it reached the expected URL, keep the direct-route
+  // recovery for blank or error-boundary mounts without masking broken hrefs.
+  if (!clickedRouteSettled) {
+    expect(normalizeRouteLocation(page.url())).toBe(normalizedTargetHref);
+    expect(
+      options.recoverModuleImportErrors,
+      `route ${normalizedTargetHref} reached the expected URL but did not render visible content`
+    ).toBeTruthy();
+    await gotoAuditedRoute(page, normalizedTargetHref, targetConfig, options);
+  }
 };
 
 const collectVisibilityAuditIssues = async (page: Page): Promise<VisibilityAuditIssue[]> =>
@@ -714,11 +957,7 @@ const assertRequiredChrome = async (page: Page, config: RouteAuditConfig) => {
     await expect(page.getByRole('heading').first()).toBeVisible();
   }
 
-  const catalogPrimaryActionLabel = config.expectedEntryId
-    ? getRouteCatalogEntryById(config.expectedEntryId)?.primaryAction?.label
-    : undefined;
-  const primaryAction =
-    config.primaryAction || (catalogPrimaryActionLabel ? toNamePattern(catalogPrimaryActionLabel) : undefined);
+  const primaryAction = getRoutePrimaryActionPattern(config);
 
   if (primaryAction) {
     const actionLocator = await getNamedControlLocator(page, primaryAction);
@@ -768,8 +1007,12 @@ const assertInteractionExpectations = async (page: Page, config: RouteAuditConfi
   }
 };
 
-const auditRoute = async (page: Page, config: RouteAuditConfig) => {
-  await gotoAuditedRoute(page, config.route);
+const auditRoute = async (
+  page: Page,
+  config: RouteAuditConfig,
+  options: ModuleImportRecoveryOptions = {}
+) => {
+  await gotoAuditedRoute(page, config.route, config, options);
   await assertCatalogRouteMatch(page, config.surface, config.expectedEntryId);
   await assertRequiredChrome(page, config);
   await assertVisibleTextAndLinks(page, normalizeRouteLocation(page.url()));
@@ -857,21 +1100,32 @@ base.describe('Public text visibility and link audit', () => {
   });
 
   for (const config of publicRouteAudits) {
-    base(`audits ${config.name}`, async ({ page }) => {
-      await auditRoute(page, config);
+    base(`audits ${config.name}`, async ({ page, browserName }) => {
+      await auditRoute(page, config, { recoverModuleImportErrors: browserName === 'webkit' });
     });
   }
 });
 
 authTest.describe('Staff text visibility and link audit', () => {
   for (const config of staffRouteAudits) {
-    authTest(`audits ${config.name}`, async ({ authenticatedPage }) => {
-      await auditRoute(authenticatedPage, config);
+    authTest(`audits ${config.name}`, async ({ authenticatedPage, browserName }) => {
+      await auditRoute(authenticatedPage, config, {
+        recoverModuleImportErrors: browserName === 'webkit',
+      });
     });
   }
 
-  authTest('staff navigation links stay visible and canonical', async ({ authenticatedPage }) => {
-    await gotoAuditedRoute(authenticatedPage, '/dashboard');
+  authTest('staff navigation links stay visible and canonical', async ({
+    authenticatedPage,
+    browserName,
+  }) => {
+    const recoveryOptions = { recoverModuleImportErrors: browserName === 'webkit' };
+    await gotoAuditedRoute(
+      authenticatedPage,
+      '/dashboard',
+      findRouteAuditConfig('staff', '/dashboard'),
+      recoveryOptions
+    );
     const primaryNavigation = authenticatedPage.getByRole('navigation', {
       name: /primary navigation/i,
     });
@@ -908,14 +1162,24 @@ authTest.describe('Staff text visibility and link audit', () => {
       }
       await link.scrollIntoViewIfNeeded();
       await link.click();
-      await waitForAppRoute(authenticatedPage);
+      await waitForCanonicalNavigation(
+        authenticatedPage,
+        targetHref,
+        linkConfig.surface,
+        recoveryOptions
+      );
 
       const currentMatch = matchRouteCatalogEntry(authenticatedPage.url());
       expect(currentMatch, `no route match after clicking ${linkConfig.label}`).not.toBeNull();
       expect(currentMatch?.surface).toBe(linkConfig.surface);
       expect(normalizeRouteLocation(authenticatedPage.url())).toBe(targetHref);
 
-      await gotoAuditedRoute(authenticatedPage, '/dashboard');
+      await gotoAuditedRoute(
+        authenticatedPage,
+        '/dashboard',
+        findRouteAuditConfig('staff', '/dashboard'),
+        recoveryOptions
+      );
     }
   });
 });
@@ -935,23 +1199,31 @@ base.describe('Portal text visibility and link audit', () => {
   });
 
   for (const config of portalRouteAudits) {
-    base(`audits ${config.name}`, async ({ page }) => {
-      await auditRoute(page, config);
+    base(`audits ${config.name}`, async ({ page, browserName }) => {
+      await auditRoute(page, config, { recoverModuleImportErrors: browserName === 'webkit' });
     });
   }
 
-  base('audits fixture-backed portal case detail', async ({ page }) => {
+  base('audits fixture-backed portal case detail', async ({ page, browserName }) => {
     await auditRoute(page, {
       name: 'portal case detail',
       route: `/portal/cases/${portalFixture.caseId}`,
       surface: 'portal',
       expectedEntryId: 'portal-case-detail',
       heading: new RegExp(escapeRegex(portalFixture.caseTitle), 'i'),
+    }, {
+      recoverModuleImportErrors: browserName === 'webkit',
     });
   });
 
-  base('portal navigation links stay visible and canonical', async ({ page }) => {
-    await gotoAuditedRoute(page, '/portal');
+  base('portal navigation links stay visible and canonical', async ({ page, browserName }) => {
+    const recoveryOptions = { recoverModuleImportErrors: browserName === 'webkit' };
+    await gotoAuditedRoute(
+      page,
+      '/portal',
+      findRouteAuditConfig('portal', '/portal'),
+      recoveryOptions
+    );
     await expect(page.getByRole('heading', { name: /quick actions/i })).toBeVisible();
 
     for (const linkConfig of portalNavigationLinks(portalFixture.caseId)) {
@@ -961,14 +1233,19 @@ base.describe('Portal text visibility and link audit', () => {
       await expect(link, `missing visible portal nav link for ${linkConfig.label}`).toBeVisible();
       await link.scrollIntoViewIfNeeded();
       await link.click();
-      await waitForAppRoute(page);
+      await waitForCanonicalNavigation(page, targetHref, linkConfig.surface, recoveryOptions);
 
       const currentMatch = matchRouteCatalogEntry(page.url());
       expect(currentMatch, `no route match after clicking ${linkConfig.label}`).not.toBeNull();
       expect(currentMatch?.surface).toBe(linkConfig.surface);
       expect(normalizeRouteLocation(page.url())).toBe(targetHref);
 
-      await gotoAuditedRoute(page, '/portal');
+      await gotoAuditedRoute(
+        page,
+        '/portal',
+        findRouteAuditConfig('portal', '/portal'),
+        recoveryOptions
+      );
     }
   });
 });

@@ -163,4 +163,112 @@ describe('EmailMarketingPage', () => {
       })
     );
   });
+
+  it('passes guided-builder content through campaign creation', async () => {
+    mockedApi.post.mockImplementation((url: string) => {
+      if (url === '/mailchimp/campaigns') {
+        return Promise.resolve({
+          data: {
+            id: 'campaign-1',
+            type: 'regular',
+            status: 'save',
+            title: 'Spring Appeal',
+            subject: 'Spring Appeal',
+            listId: 'list-1',
+            createdAt: '2026-04-24T12:00:00Z',
+          },
+        });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+
+    const user = userEvent.setup();
+    renderWithProviders(<EmailMarketingPage />, {
+      route: '/settings/email-marketing',
+    });
+
+    const newCampaignButton = await screen.findByRole('button', { name: /new campaign/i });
+    await user.click(newCampaignButton);
+
+    await user.type(screen.getByLabelText(/campaign title/i), 'Spring Appeal');
+    await user.type(screen.getByLabelText(/subject line/i), 'Spring Appeal');
+    await user.type(screen.getByLabelText(/from name/i), 'Community Org');
+    await user.type(screen.getByLabelText(/reply-to email/i), 'hello@example.org');
+    await user.click(screen.getByRole('button', { name: /save as draft/i }));
+
+    await waitFor(() => {
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        '/mailchimp/campaigns',
+        expect.objectContaining({
+          title: 'Spring Appeal',
+          subject: 'Spring Appeal',
+          fromName: 'Community Org',
+          replyTo: 'hello@example.org',
+          htmlContent: undefined,
+          plainTextContent: undefined,
+          builderContent: expect.objectContaining({
+            blocks: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'heading',
+                content: 'Campaign headline',
+              }),
+            ]),
+          }),
+        })
+      );
+    });
+  });
+
+  it('labels scheduled campaigns as scheduled instead of sent', async () => {
+    mockedApi.get.mockImplementation((url: string) => {
+      if (url === '/mailchimp/status') {
+        return Promise.resolve({ data: { configured: true } });
+      }
+
+      if (url === '/mailchimp/lists') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'list-1',
+              name: 'Main Audience',
+              memberCount: 42,
+              doubleOptIn: false,
+            },
+          ],
+        });
+      }
+
+      if (url === '/mailchimp/campaigns') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'campaign-1',
+              type: 'regular',
+              status: 'schedule',
+              title: 'Spring Appeal',
+              subject: 'Spring Appeal',
+              listId: 'list-1',
+              createdAt: '2026-04-24T12:00:00Z',
+              sendTime: '2026-05-01T10:00:00Z',
+            },
+          ],
+        });
+      }
+
+      if (url === '/mailchimp/lists/list-1/segments') {
+        return Promise.resolve({ data: [] });
+      }
+
+      return Promise.resolve({ data: {} });
+    });
+
+    renderWithProviders(<EmailMarketingPage />, {
+      route: '/settings/email-marketing',
+    });
+
+    expect(await screen.findByText('Scheduled')).toBeInTheDocument();
+    expect(screen.getByText(/Scheduled:/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Sent:/i)).not.toBeInTheDocument();
+  });
 });
