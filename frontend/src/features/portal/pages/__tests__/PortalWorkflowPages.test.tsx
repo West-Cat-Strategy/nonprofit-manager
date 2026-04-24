@@ -5,6 +5,10 @@ import PortalMessagesPage from '../PortalMessagesPage';
 import PortalAppointmentsPage from '../PortalAppointmentsPage';
 
 const portalGetMock = vi.fn();
+const refreshAppointmentsMock = vi.fn().mockResolvedValue(undefined);
+const refreshThreadsMock = vi.fn().mockResolvedValue(undefined);
+const loadMoreAppointmentsMock = vi.fn().mockResolvedValue(undefined);
+const loadMoreThreadsMock = vi.fn().mockResolvedValue(undefined);
 const setSelectedCaseIdMock = vi.fn();
 
 vi.mock('../../../../services/portalApi', () => ({
@@ -52,8 +56,8 @@ vi.mock('../../client/usePortalMessageThreads', () => ({
     hasMore: false,
     error: null,
     streamStatus: 'connected',
-    refresh: vi.fn().mockResolvedValue(undefined),
-    loadMore: vi.fn().mockResolvedValue(undefined),
+    refresh: refreshThreadsMock,
+    loadMore: loadMoreThreadsMock,
   }),
 }));
 
@@ -80,8 +84,8 @@ vi.mock('../../client/usePortalAppointments', () => ({
     hasMore: false,
     error: null,
     streamStatus: 'connected',
-    refresh: vi.fn().mockResolvedValue(undefined),
-    loadMore: vi.fn().mockResolvedValue(undefined),
+    refresh: refreshAppointmentsMock,
+    loadMore: loadMoreAppointmentsMock,
   }),
 }));
 
@@ -94,6 +98,11 @@ vi.mock('../../../../contexts/useToast', () => ({
 
 describe('Portal workflow pages', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    refreshAppointmentsMock.mockResolvedValue(undefined);
+    refreshThreadsMock.mockResolvedValue(undefined);
+    loadMoreAppointmentsMock.mockResolvedValue(undefined);
+    loadMoreThreadsMock.mockResolvedValue(undefined);
     portalGetMock.mockImplementation((url: string) => {
       if (url === '/v2/portal/pointperson/context') {
         return Promise.resolve({

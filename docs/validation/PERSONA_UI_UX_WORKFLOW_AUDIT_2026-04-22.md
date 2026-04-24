@@ -1,6 +1,6 @@
 # Persona UI/UX Workflow Audit (2026-04-22)
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-24
 
 ## Scope
 
@@ -27,6 +27,12 @@
   - Result: `passed`
 - `cd frontend && npm test -- --run src/test/ux/PersonaRouteUxSmoke.test.tsx src/routes/__tests__/routeCatalog.test.ts src/features/auth/state/__tests__/reportAccess.test.ts src/features/reports/routes/__tests__/createReportRoutes.test.tsx src/features/reports/pages/__tests__/ReportsHomePage.test.tsx src/features/savedReports/pages/__tests__/SavedReportsPage.test.tsx src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx`
   - Result: `passed` with `57` tests across `8` files
+- `cd frontend && npm test -- --run src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx`
+  - Result: `passed` with `2` tests on 2026-04-24 after stabilizing mocked portal workflow hook callbacks so refresh/load-more references no longer retrigger effects under load.
+- `cd frontend && npm run type-check`
+  - Result: `passed` on 2026-04-24 for the `P5-T2D` persona-proof-stability follow-up.
+- `cd frontend && npm test -- --run src/test/ux/PersonaRouteUxSmoke.test.tsx src/routes/__tests__/routeCatalog.test.ts src/features/auth/state/__tests__/reportAccess.test.ts src/features/reports/routes/__tests__/createReportRoutes.test.tsx src/features/reports/pages/__tests__/ReportsHomePage.test.tsx src/features/savedReports/pages/__tests__/SavedReportsPage.test.tsx src/features/scheduledReports/pages/__tests__/ScheduledReportsPage.test.tsx src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx`
+  - Result: `passed` with `57` tests on 2026-04-24 for the `P5-T2D` persona-proof-stability follow-up.
 - `cd e2e && npm test -- --project=chromium tests/persona-workflows.spec.ts`
   - Result: `attempted`
   - Blocker: the local host runtime was already provisioned and did not accept the documented default admin credentials; after the spec was updated to support both starter-only and existing-runtime admin bootstrap, the host run still required explicit `ADMIN_USER_EMAIL` and `ADMIN_USER_PASSWORD` for this non-default local runtime

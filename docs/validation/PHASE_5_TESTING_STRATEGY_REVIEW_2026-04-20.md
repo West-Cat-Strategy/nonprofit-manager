@@ -8,7 +8,7 @@
 
 ## Status
 
-Phase 5's full Playwright/E2E and testing-strategy review is still in progress, but the `P5-T2B` gate is now narrowed to one remaining broad Docker-matrix rerun.
+Phase 5's full Playwright/E2E and testing-strategy review has moved to review. The `P5-T2B` gate is now proof-complete after the final uninterrupted broad Docker-matrix rerun passed on 2026-04-24.
 
 The host coverage blocker that was active on 2026-04-22 is cleared in targeted proof, the `P5-T2C` remediation slice is functionally proof-complete, the auth-alias operations handoff is published, and the Docker smoke and dark-mode audit follow-ons are green on the corrected Docker review contract.
 
@@ -18,9 +18,9 @@ The host coverage blocker that was active on 2026-04-22 is cleared in targeted p
 - The isolated Docker smoke gate is still green after explicit startup-failure cleanup hardening.
 - The volunteer/contact-scope and database-config blockers are now fixed and green in their narrow backend proofs.
 - The 2026-04-23 backend coverage repro passed with `223` suites and `1874` tests, and the later host rerun re-proved backend coverage, frontend coverage, and the changed host Playwright slices before it was intentionally stopped.
-- The full Docker CI matrix has been attempted repeatedly on the corrected review stack, but it has not completed end-to-end in this session. Every reproduced failure so far now has targeted green proof: route-health `/outreach`, portal case-detail auth-bootstrap noise, persona MFA-bypass handling, contact filter URL sync, dashboard startup duplicate analytics fetches, WebKit-only lazy-module import recovery bursts on `/people`, `/settings/user`, `/dashboard`, the short desktop user-menu flow, compact/expanded navigation, and core route headings/actions, plus Firefox auth-fixture navigation abort, authenticated route render-settle recovery, and WebKit contact cancel navigation.
+- The full Docker CI matrix now has a clean end-to-end artifact on the corrected review stack. Earlier reproduced failures all remained covered by targeted green proof: route-health `/outreach`, portal case-detail auth-bootstrap noise, persona MFA-bypass handling, contact filter URL sync, dashboard startup duplicate analytics fetches, WebKit-only lazy-module import recovery bursts on `/people`, `/settings/user`, `/dashboard`, the short desktop user-menu flow, compact/expanded navigation, and core route headings/actions, plus Firefox auth-fixture navigation abort, authenticated route render-settle recovery, WebKit contact cancel navigation, and WebKit contact validation timing.
 
-The remaining `P5-T2B` next step is a clean uninterrupted `cd e2e && npm run test:docker:ci` rerun from the corrected Docker review contract, followed by final workboard promotion if it stays green.
+The final `P5-T2B` proof command was `cd e2e && npm run test:docker:ci`. It passed with `982` desktop Docker cross-browser tests passed, `11` skipped in `51.3m`, followed by the Mobile Chrome Docker follow-on with `3` passed in `13.8s`. The only notable warnings were accepted occupied Docker ports and Node `NO_COLOR` / `FORCE_COLOR` warnings.
 
 ## Environment Notes
 
@@ -35,6 +35,7 @@ The remaining `P5-T2B` next step is a clean uninterrupted `cd e2e && npm run tes
 - Docker dev/review stacks now keep Mailchimp unconfigured by default unless `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX` are explicitly set, so checked-in placeholder credentials no longer produce false configured-provider failures.
 - The latest corrected Docker review stack used `18804` backend, `18805` frontend, `18806` public site, and `18802` Postgres with blank Mailchimp env and `BYPASS_MFA_FOR_TESTS=true`.
 - The 2026-04-24 focused WebKit recovery proof used the documented `nonprofit-dev` Docker review stack on `8004` backend, `8005` frontend, and `8006` public site with `DEV_NODE_ENV=test`, `DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true`, and `DEV_BYPASS_MFA_FOR_TESTS=true`.
+- The 2026-04-24 final Docker CI proof used the same documented `nonprofit-dev` Docker review stack. The standard Playwright report files reflect the final Mobile Chrome follow-on because `test:docker:ci` runs desktop first and then mobile; the desktop summary is recorded in this command log.
 
 ## Command Log
 
@@ -191,6 +192,13 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
   - Result: Attempted again on 2026-04-24 after the focused 8-test Firefox/WebKit recovery proof. The desktop matrix ran for roughly `1.0h` with `979` passed, `11` skipped, and `3` failed; the mobile follow-on did not start because the desktop matrix failed. This rerun proved the previous Firefox setup-launch, WebKit contact cancel-navigation, and WebKit UX module-import failures green, then narrowed the remaining follow-through to Firefox dashboard summary response de-duping, Firefox admin/portal opaque React boundary console recovery, and WebKit contact create-form validation timing.
 - `cd e2e && npm run test:docker -- tests/auth.spec.ts tests/ux-regression.spec.ts tests/contacts.spec.ts --project=firefox --project=webkit --grep "dashboard startup loads workbench summary endpoints without duplicate refetches|admin settings and portal routes keep headings/actions and redirect contracts|should validate create form required and format errors"`
   - Result: Passed on 2026-04-24. `6` focused Firefox/WebKit tests passed in `46.8s` after de-duping repeated Playwright response notifications for the same Firefox request object, adding final-route proof for the Firefox admin/portal opaque boundary pair, and scoping contact create-form validation assertions to the actual form.
+- `cd e2e && npm run test:docker:ci`
+  - Result: Passed on 2026-04-24 as the final uninterrupted Docker CI artifact for `P5-T2B`.
+  - Desktop Docker cross-browser matrix: `982` passed, `11` skipped in `51.3m`.
+  - Mobile Chrome follow-on: `3` passed in `13.8s`.
+  - Failure summary: no failing tests or product/runtime errors.
+  - Artifacts: [../../e2e/playwright-report/index.html](../../e2e/playwright-report/index.html), [../../e2e/test-results.json](../../e2e/test-results.json), and [../../e2e/test-results/.last-run.json](../../e2e/test-results/.last-run.json). The standard report/test-result files now reflect the Mobile Chrome follow-on because the wrapper runs that slice after the desktop matrix.
+  - Non-failure warnings: occupied Docker ports were accepted by the wrapper, and Node printed `NO_COLOR` / `FORCE_COLOR` warnings.
 
 ## Host Vs Docker Runtime Observations
 
@@ -211,19 +219,19 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
 - Backend and frontend coverage are no longer blocked by the old shared runner contract.
 - The targeted Phase 5 regressions in avatar persistence, legacy admin redirects, analytics templates, workbench auth startup, contacts filters/merge/delete/pagination, donations receipts/filters, and events hybrid check-in all now have green targeted proof in the host runtime.
 - The public `/accept-invitation/:token` surface now behaves cleanly for placeholder preview tokens, which removes the route-health false negative without weakening real-token validation.
-- The smoke-stack startup failure mode is hardened, but the broader Docker cross-browser and audit lanes are still pending.
-- The Docker smoke gate, fresh-volume MFA proof, and Docker dark-mode audit are green in current proof.
-- The remaining blind spot is not a known failing targeted seam; it is the absence of one uninterrupted `npm run test:docker:ci` artifact after the latest Firefox and WebKit broad-matrix recovery fixes.
-- The final broad Docker CI attempts surfaced real or test-contract issues in route health, persona MFA handling, contacts filter sync, dashboard startup fetching, Firefox navigation/render settle, WebKit contact cancel navigation, WebKit contact validation timing, Firefox admin/portal opaque React boundary recovery, and WebKit lazy-module import recovery. Those are now fixed and targeted-green, but the full matrix should still be rerun before promoting `P5-T2B` to review.
+- The smoke-stack startup failure mode is hardened, and the broader Docker cross-browser and audit lanes are now green in current proof.
+- The Docker smoke gate, fresh-volume MFA proof, Docker dark-mode audit, and final Docker CI artifact are green in current proof.
+- The prior blind spot, the absence of one uninterrupted `npm run test:docker:ci` artifact after the latest Firefox and WebKit broad-matrix recovery fixes, is now closed.
+- The final broad Docker CI attempts surfaced real or test-contract issues in route health, persona MFA handling, contacts filter sync, dashboard startup fetching, Firefox navigation/render settle, WebKit contact cancel navigation, WebKit contact validation timing, Firefox admin/portal opaque React boundary recovery, and WebKit lazy-module import recovery. Those are now fixed, targeted-green, and covered by the passing full Docker CI artifact.
 
 ## Recommended Next Steps
 
-1. Rerun `cd e2e && npm run test:docker:ci` from the corrected Docker review contract after the focused Firefox and WebKit recovery proofs. If it passes, promote `P5-T2B` to review.
-2. If the rerun surfaces another failure, keep the fix in the owning Docker/E2E or frontend/backend runtime seam and add targeted proof here before another broad attempt.
+1. Keep `P5-T2B` in review against this artifact and avoid reopening shared validation unless a future feature/runtime change produces new evidence.
+2. Keep `P5-T2D` in review against the restored report and portal frontend persona-proof slice without reclassifying persona support.
 3. Keep the fresh-workspace MFA proof separate from `test:docker:ci`; it should continue to run only against a fresh starter-only stack with `BYPASS_MFA_FOR_TESTS=false`.
 
 ## Implications For Phase 5 Waves
 
-- `P5-T3` Email platform work should still wait for the final host-plus-Docker validation pass, but the lane is no longer blocked at lint, typecheck, or coverage.
+- `P5-T3` Email platform work is no longer waiting on the final host-plus-Docker validation pass, but any next send, schedule, preview, or outbound widening should keep targeted route-security, preview-sanitization, and SSRF-sensitive integration proof current.
 - `P5-T4` Website surfaces proof remains green and is no longer the main validation blocker.
-- `P5-T5` Client portal work now has a green first slice for the assignment-backed forms inbox, but broader phase signoff still depends on the shared `P5-T2B` host-plus-Docker lane.
+- `P5-T5` Client portal work now has a green first slice for the assignment-backed forms inbox, and broader phase signoff no longer depends on `P5-T2B`; the next portal proof should stay focused on the landed case-aware appointments continuity slice.
