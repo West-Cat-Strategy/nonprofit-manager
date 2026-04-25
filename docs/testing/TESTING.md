@@ -19,7 +19,7 @@ This file is the active test command map for nonprofit-manager. Use [../../CONTR
 
 | Layer | Primary Command | Notes |
 |------|------------------|-------|
-| DB contract verification | `make db-verify` | Rebuilds the isolated `_test` database and checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window. Required when migrations `103` through `107` or their manifest/initdb parity change. |
+| DB contract verification | `make db-verify` | Rebuilds the isolated `_test` database and checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window. Required when migrations `103` through `108` or their manifest/initdb parity change. |
 | Contracts export smoke | `make typecheck` | Verifies the type-only `contracts` workspace through its export/type smoke check; this is part of repo-wide type validation, not a runtime test or coverage lane |
 | Repo-wide validation | `make test` | Runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
 | Coverage variant (fast local lane) | `make test-coverage` | Runs backend/frontend coverage, host Playwright smoke, and the isolated Docker-backed smoke gate |
@@ -238,7 +238,7 @@ make lint-doc-api-versioning
 ```
 
 - Add `make lint-doc-api-versioning` when API wording, API examples, or versioned API docs changed.
-- Add `make db-verify` when migration docs or database contract expectations changed, including the Phase 5 hardening migrations `103` through `107`.
+- Add `make db-verify` when migration docs or database contract expectations changed, including the Phase 5 hardening and reassessment migrations `103` through `108`.
 
 ## Choosing A Smaller Check Set
 
