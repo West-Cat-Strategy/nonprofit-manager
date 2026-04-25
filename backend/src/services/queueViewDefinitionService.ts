@@ -1,6 +1,15 @@
 import pool from '@config/database';
 
 export type QueueViewSurface = 'cases' | 'portal_appointments' | 'portal_conversations' | 'workbench';
+export type QueueViewRowActionStyle = 'primary' | 'secondary' | 'danger';
+
+export interface QueueViewRowAction {
+  id: string;
+  label: string;
+  style: QueueViewRowActionStyle;
+  permissionScope?: string[];
+  metadata?: Record<string, unknown>;
+}
 
 export interface QueueViewDefinition {
   id: string;
@@ -12,6 +21,8 @@ export interface QueueViewDefinition {
   sort: Record<string, unknown>;
   rowLimit: number;
   dashboardBehavior: Record<string, unknown>;
+  rowActions: QueueViewRowAction[];
+  emptyState: Record<string, unknown>;
   permissionScope: string[];
   status: 'active' | 'archived';
   createdAt: Date;
@@ -28,8 +39,23 @@ export interface UpsertQueueViewDefinitionInput {
   sort?: Record<string, unknown>;
   rowLimit?: number;
   dashboardBehavior?: Record<string, unknown>;
+  rowActions?: QueueViewRowAction[];
+  emptyState?: Record<string, unknown>;
   permissionScope?: string[];
   userId?: string | null;
+}
+
+export interface QueueViewCountResponse {
+  surface: QueueViewSurface;
+  viewId: string | null;
+  count: number;
+  rowLimit: number | null;
+}
+
+export interface QueueViewPreviewResponse<T = unknown> extends QueueViewCountResponse {
+  rows: T[];
+  rowActions: QueueViewRowAction[];
+  emptyState: Record<string, unknown>;
 }
 
 interface QueueViewDefinitionRow {
@@ -48,21 +74,98 @@ interface QueueViewDefinitionRow {
   updated_at: Date;
 }
 
-const mapRow = (row: QueueViewDefinitionRow): QueueViewDefinition => ({
-  id: row.id,
-  ownerUserId: row.owner_user_id,
-  surface: row.surface,
-  name: row.name,
-  filters: row.filters ?? {},
-  columns: row.columns ?? [],
-  sort: row.sort ?? {},
-  rowLimit: Number(row.row_limit),
-  dashboardBehavior: row.dashboard_behavior ?? {},
-  permissionScope: row.permission_scope ?? [],
-  status: row.status,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
+const supportedSurfaces: QueueViewSurface[] = [
+  'cases',
+  'portal_appointments',
+  'portal_conversations',
+  'workbench',
+];
+
+const assertSupportedSurface = (surface: QueueViewSurface): void => {
+  if (!supportedSurfaces.includes(surface)) {
+    const error = new Error('Unsupported queue view surface') as Error & {
+      statusCode?: number;
+    };
+    error.statusCode = 400;
+    throw error;
+  }
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const normalizeRowActionStyle = (style: unknown): QueueViewRowActionStyle =>
+  style === 'primary' || style === 'danger' ? style : 'secondary';
+
+const normalizeRowActions = (actions?: unknown[]): QueueViewRowAction[] =>
+  (actions ?? [])
+    .filter(isRecord)
+    .filter(
+      (action) =>
+        typeof action.id === 'string' &&
+        action.id.trim().length > 0 &&
+        typeof action.label === 'string' &&
+        action.label.trim().length > 0
+    )
+    .map((action) => ({
+      id: String(action.id).trim(),
+      label: String(action.label).trim(),
+      style: normalizeRowActionStyle(action.style),
+      permissionScope: normalizePermissionScope(
+        Array.isArray(action.permissionScope)
+          ? action.permissionScope.filter(
+              (entry): entry is string => typeof entry === 'string'
+            )
+          : []
+      ),
+      metadata: isRecord(action.metadata) ? action.metadata : {},
+    }));
+
+const buildDashboardBehavior = (
+  dashboardBehavior: Record<string, unknown> | undefined,
+  rowActions?: QueueViewRowAction[],
+  emptyState?: Record<string, unknown>
+): Record<string, unknown> => {
+  const next: Record<string, unknown> = { ...(dashboardBehavior ?? {}) };
+
+  if (rowActions) {
+    next.row_actions = normalizeRowActions(rowActions);
+  }
+
+  if (emptyState) {
+    next.empty_state = emptyState;
+  }
+
+  return next;
+};
+
+const mapRow = (row: QueueViewDefinitionRow): QueueViewDefinition => {
+  const dashboardBehavior = row.dashboard_behavior ?? {};
+  const rowActions = Array.isArray(dashboardBehavior.row_actions)
+    ? normalizeRowActions(dashboardBehavior.row_actions)
+    : [];
+  const emptyState = isRecord(dashboardBehavior.empty_state)
+    ? dashboardBehavior.empty_state
+    : {};
+
+  return {
+    id: row.id,
+    ownerUserId: row.owner_user_id,
+    surface: row.surface,
+    name: row.name,
+    filters: row.filters ?? {},
+    columns: row.columns ?? [],
+    sort: row.sort ?? {},
+    rowLimit: Number(row.row_limit),
+    dashboardBehavior,
+    rowActions,
+    emptyState,
+    permissionScope: row.permission_scope ?? [],
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+};
 
 const throwQueueViewOwnershipError = (): never => {
   const error = new Error('Queue view definition not found for current owner') as Error & {
@@ -77,6 +180,8 @@ export async function listQueueViewDefinitions(
   ownerUserId?: string | null,
   permissionScopes: string[] = []
 ): Promise<QueueViewDefinition[]> {
+  assertSupportedSurface(surface);
+
   if (!ownerUserId) {
     return [];
   }
@@ -104,7 +209,14 @@ export async function listQueueViewDefinitions(
 export async function upsertQueueViewDefinition(
   input: UpsertQueueViewDefinitionInput
 ): Promise<QueueViewDefinition> {
+  assertSupportedSurface(input.surface);
+
   const permissionScope = normalizePermissionScope(input.permissionScope ?? []);
+  const dashboardBehavior = buildDashboardBehavior(
+    input.dashboardBehavior,
+    input.rowActions,
+    input.emptyState
+  );
   const values = [
     input.id ?? null,
     input.ownerUserId ?? null,
@@ -114,7 +226,7 @@ export async function upsertQueueViewDefinition(
     JSON.stringify(input.columns ?? []),
     JSON.stringify(input.sort ?? {}),
     input.rowLimit ?? 25,
-    JSON.stringify(input.dashboardBehavior ?? {}),
+    JSON.stringify(dashboardBehavior),
     permissionScope,
     input.userId ?? null,
   ];
@@ -167,6 +279,8 @@ export async function archiveQueueViewDefinition(args: {
   permissionScopes?: string[];
   userId?: string | null;
 }): Promise<QueueViewDefinition> {
+  assertSupportedSurface(args.surface);
+
   const result = await pool.query<QueueViewDefinitionRow>(
     `UPDATE queue_view_definitions
      SET status = 'archived',
@@ -197,8 +311,45 @@ export async function archiveQueueViewDefinition(args: {
   return mapRow(result.rows[0]);
 }
 
+export function buildQueueViewCountResponse(args: {
+  surface: QueueViewSurface;
+  view?: QueueViewDefinition | null;
+  count: number;
+}): QueueViewCountResponse {
+  assertSupportedSurface(args.surface);
+
+  return {
+    surface: args.surface,
+    viewId: args.view?.id ?? null,
+    count: Math.max(0, Math.trunc(args.count)),
+    rowLimit: args.view?.rowLimit ?? null,
+  };
+}
+
+export function buildQueueViewPreviewResponse<T>(args: {
+  surface: QueueViewSurface;
+  view?: QueueViewDefinition | null;
+  count: number;
+  rows: T[];
+}): QueueViewPreviewResponse<T> {
+  const countResponse = buildQueueViewCountResponse({
+    surface: args.surface,
+    view: args.view,
+    count: args.count,
+  });
+
+  return {
+    ...countResponse,
+    rows: args.rows.slice(0, args.view?.rowLimit ?? args.rows.length),
+    rowActions: args.view?.rowActions ?? [],
+    emptyState: args.view?.emptyState ?? {},
+  };
+}
+
 export const queueViewDefinitionService = {
   archiveQueueViewDefinition,
+  buildQueueViewCountResponse,
+  buildQueueViewPreviewResponse,
   listQueueViewDefinitions,
   upsertQueueViewDefinition,
 };

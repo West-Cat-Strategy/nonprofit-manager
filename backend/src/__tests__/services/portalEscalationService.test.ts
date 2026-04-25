@@ -52,6 +52,12 @@ describe('portalEscalationService', () => {
 
     expect(escalation.accountId).toBe('account-1');
     expect(escalation.createdByPortalUserId).toBe('portal-user-1');
+    expect(escalation.triage).toEqual({
+      staffTriageReady: true,
+      staffOwned: true,
+      slaTracked: false,
+      resolutionComplete: false,
+    });
     expect(mockQuery.mock.calls[0][0]).toContain('created_by_portal_user_id');
     expect(mockQuery.mock.calls[0][1]).toEqual(
       expect.arrayContaining(['portal-user-1', null])
@@ -97,11 +103,60 @@ describe('portalEscalationService', () => {
 
     expect(escalation.status).toBe('resolved');
     expect(escalation.createdByPortalUserId).toBe('portal-user-1');
+    expect(escalation.triage.resolutionComplete).toBe(true);
     expect(mockQuery.mock.calls[0][0]).toContain('updated_by = $10');
     expect(mockQuery.mock.calls[0][0]).toContain('c.account_id = $11');
     expect(mockQuery.mock.calls[0][1]).toEqual(
       expect.arrayContaining(['escalation-1', 'case-1', 'resolved', 'staff-2', 'account-1'])
     );
+  });
+
+  it('moves assigned or SLA-tracked escalations into review when staff triage starts', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          ...escalationRow,
+          status: 'in_review',
+          assignee_user_id: 'staff-2',
+          sla_due_at: new Date('2026-04-26T00:00:00Z'),
+        },
+      ],
+    });
+
+    const slaDueAt = new Date('2026-04-26T00:00:00Z');
+    const escalation = await updatePortalEscalationForCase({
+      id: 'escalation-1',
+      caseId: 'case-1',
+      accountId: 'account-1',
+      assigneeUserId: 'staff-2',
+      slaDueAt,
+      updatedBy: 'staff-2',
+    });
+
+    expect(escalation.status).toBe('in_review');
+    expect(escalation.triage).toEqual({
+      staffTriageReady: true,
+      staffOwned: true,
+      slaTracked: true,
+      resolutionComplete: false,
+    });
+    expect(mockQuery.mock.calls[0][1][2]).toBe('in_review');
+    expect(mockQuery.mock.calls[0][1][5]).toBe(true);
+    expect(mockQuery.mock.calls[0][1][7]).toBe(true);
+  });
+
+  it('rejects blank resolution summaries when staff resolve or refer an escalation', async () => {
+    await expect(
+      updatePortalEscalationForCase({
+        id: 'escalation-1',
+        caseId: 'case-1',
+        accountId: 'account-1',
+        status: 'resolved',
+        resolutionSummary: '   ',
+        updatedBy: 'staff-2',
+      })
+    ).rejects.toThrow('Resolution summary must not be blank');
+    expect(mockQuery).not.toHaveBeenCalled();
   });
 
   it('returns not found when staff updates an escalation outside the case/account scope', async () => {

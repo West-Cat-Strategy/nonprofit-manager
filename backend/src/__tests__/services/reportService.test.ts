@@ -7,7 +7,7 @@ import {
   DirectReportExportTooLargeError,
   MAX_DIRECT_EXPORT_ROWS,
   ReportService,
-} from '../../../src/services/reportService';
+} from '@modules/reports/services/reportService';
 import type { ReportDefinition, ReportEntity } from '../../../src/types/report';
 
 describe('ReportService', () => {

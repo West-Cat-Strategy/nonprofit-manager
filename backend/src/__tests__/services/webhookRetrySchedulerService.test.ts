@@ -1,7 +1,7 @@
-import { webhookRetrySchedulerService } from '@services/webhookRetrySchedulerService';
-import { processRetries } from '../../modules/webhooks/services/webhookService';
+import { webhookRetrySchedulerService } from '@modules/webhooks/services/webhookRetrySchedulerService';
+import { processRetries } from '@modules/webhooks/services/webhookService';
 
-jest.mock('../../modules/webhooks/services/webhookService', () => ({
+jest.mock('@modules/webhooks/services/webhookService', () => ({
   processRetries: jest.fn().mockResolvedValue(0),
 }));
 

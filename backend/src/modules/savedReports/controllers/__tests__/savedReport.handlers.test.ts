@@ -5,23 +5,21 @@
 
 import { Response, NextFunction } from 'express';
 import * as savedReportController from '../savedReport.handlers';
-import { services } from '@container/services';
+import { savedReportService } from '../../services/savedReportService';
 import { AuthRequest } from '@middleware/auth';
 
 // Mock the services
-jest.mock('@container/services', () => ({
-    services: {
-        savedReport: {
-            getSavedReports: jest.fn(),
-            getSavedReportById: jest.fn(),
-            createSavedReport: jest.fn(),
-            updateSavedReport: jest.fn(),
-            deleteSavedReport: jest.fn(),
-        },
+jest.mock('../../services/savedReportService', () => ({
+    savedReportService: {
+        getSavedReports: jest.fn(),
+        getSavedReportById: jest.fn(),
+        createSavedReport: jest.fn(),
+        updateSavedReport: jest.fn(),
+        deleteSavedReport: jest.fn(),
     },
 }));
 
-const mockSavedReportService = services.savedReport as jest.Mocked<typeof services.savedReport>;
+const mockSavedReportService = savedReportService as jest.Mocked<typeof savedReportService>;
 
 describe('Saved Report Controller', () => {
     let mockRequest: Partial<AuthRequest>;

@@ -361,7 +361,31 @@ describe('EmailMarketingPage', () => {
       }
       if (url === '/mailchimp/campaigns') return Promise.resolve({ data: [] });
       if (url === '/mailchimp/audiences') return Promise.resolve({ data: [] });
-      if (url === '/mailchimp/campaign-runs') return Promise.resolve({ data: [] });
+      if (url === '/mailchimp/campaign-runs') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'run-previous',
+              provider: 'mailchimp',
+              providerCampaignId: 'campaign-previous',
+              title: 'Already mailed',
+              listId: 'list-1',
+              includeAudienceId: 'audience-2',
+              exclusionAudienceIds: [],
+              suppressionSnapshot: [],
+              testRecipients: [],
+              audienceSnapshot: {
+                targetContactIds: ['contact-2'],
+              },
+              requestedSendTime: null,
+              status: 'sent',
+              counts: { targetContactCount: 1 },
+              createdAt: '2026-04-24T00:00:00Z',
+              updatedAt: '2026-04-24T00:00:00Z',
+            },
+          ],
+        });
+      }
       if (url === '/mailchimp/lists/list-1/tags') return Promise.resolve({ data: [] });
       if (url === '/v2/contacts') {
         return Promise.resolve({
@@ -510,7 +534,31 @@ describe('EmailMarketingPage', () => {
           ],
         });
       }
-      if (url === '/mailchimp/campaign-runs') return Promise.resolve({ data: [] });
+      if (url === '/mailchimp/campaign-runs') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'run-previous',
+              provider: 'mailchimp',
+              providerCampaignId: 'campaign-previous',
+              title: 'Already mailed',
+              listId: 'list-1',
+              includeAudienceId: 'audience-2',
+              exclusionAudienceIds: [],
+              suppressionSnapshot: [],
+              testRecipients: [],
+              audienceSnapshot: {
+                targetContactIds: ['contact-2'],
+              },
+              requestedSendTime: null,
+              status: 'sent',
+              counts: { targetContactCount: 1 },
+              createdAt: '2026-04-24T00:00:00Z',
+              updatedAt: '2026-04-24T00:00:00Z',
+            },
+          ],
+        });
+      }
       if (url === '/v2/contacts') {
         return Promise.resolve({
           data: {
@@ -592,7 +640,31 @@ describe('EmailMarketingPage', () => {
           ],
         });
       }
-      if (url === '/mailchimp/campaign-runs') return Promise.resolve({ data: [] });
+      if (url === '/mailchimp/campaign-runs') {
+        return Promise.resolve({
+          data: [
+            {
+              id: 'run-previous',
+              provider: 'mailchimp',
+              providerCampaignId: 'campaign-previous',
+              title: 'Already mailed',
+              listId: 'list-1',
+              includeAudienceId: 'audience-2',
+              exclusionAudienceIds: [],
+              suppressionSnapshot: [],
+              testRecipients: [],
+              audienceSnapshot: {
+                targetContactIds: ['contact-2'],
+              },
+              requestedSendTime: null,
+              status: 'sent',
+              counts: { targetContactCount: 1 },
+              createdAt: '2026-04-24T00:00:00Z',
+              updatedAt: '2026-04-24T00:00:00Z',
+            },
+          ],
+        });
+      }
       if (url === '/mailchimp/lists/list-1/segments') return Promise.resolve({ data: [] });
       if (url === '/v2/contacts') {
         return Promise.resolve({
@@ -631,6 +703,18 @@ describe('EmailMarketingPage', () => {
     await user.click(screen.getByRole('button', { name: /^saved audience$/i }));
     await user.selectOptions(screen.getByLabelText(/^saved audience$/i), 'audience-1');
     await user.selectOptions(screen.getByLabelText(/suppress saved audience/i), 'audience-2');
+    const priorRunsSelect = screen.getByLabelText(/suppress prior campaign runs/i);
+    await waitFor(() => {
+      expect(priorRunsSelect).not.toBeDisabled();
+    });
+    const priorRunOption = Array.from((priorRunsSelect as HTMLSelectElement).options).find(
+      (option) => option.value === 'run-previous'
+    );
+    expect(priorRunOption).toBeTruthy();
+    if (priorRunOption) {
+      priorRunOption.selected = true;
+    }
+    fireEvent.change(priorRunsSelect);
     fireEvent.change(screen.getByLabelText(/campaign title/i), {
       target: { value: 'Spring Appeal' },
     });
@@ -654,6 +738,7 @@ describe('EmailMarketingPage', () => {
         expect.objectContaining({
           includeAudienceId: 'audience-1',
           exclusionAudienceIds: ['audience-2'],
+          priorRunSuppressionIds: ['run-previous'],
           suppressionSnapshot: [
             expect.objectContaining({
               id: 'audience-2',
@@ -699,14 +784,19 @@ describe('EmailMarketingPage', () => {
                 savedAudienceName: 'Spring donors',
                 providerSegmentId: 789,
                 providerSegmentName: 'NPM 2026-04-25T00:00:00 run',
+                targetContactIds: ['contact-1', 'contact-2'],
               },
               requestedSendTime: null,
               status: 'draft',
               counts: {
                 requestedContactCount: 12,
+                targetContactCount: 2,
                 syncedContactCount: 9,
                 skippedContactCount: 1,
                 suppressionSourceCount: 3,
+                providerLifecycle: {
+                  lastWebhookStatus: 'sent',
+                },
               },
               createdAt: '2026-04-25T00:00:00Z',
               updatedAt: '2026-04-25T00:00:00Z',
@@ -732,7 +822,9 @@ describe('EmailMarketingPage', () => {
     expect(await screen.findByText('Spring Appeal')).toBeInTheDocument();
     expect(screen.getByText(/Run segment: NPM 2026-04-25T00:00:00 run \(#789\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Contacts: 9 synced from 12 requested, 1 skipped/i)).toBeInTheDocument();
+    expect(screen.getByText(/Target snapshot: 2 contacts/i)).toBeInTheDocument();
     expect(screen.getByText(/3 contacts suppressed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Provider lifecycle: sent/i)).toBeInTheDocument();
     expect(screen.getByText(/Test recipients: review@example.org/i)).toBeInTheDocument();
   });
 

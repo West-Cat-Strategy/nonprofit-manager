@@ -7,7 +7,7 @@ import { DashboardService } from '@services/dashboardService';
 import { ExportService } from '@services/exportService';
 import { ReportService } from '@modules/reports/services/reportService';
 import { ReportTemplateService } from '@modules/reports/services/reportTemplateService';
-import { SavedReportService } from '@services/savedReportService';
+import { SavedReportService } from '@modules/savedReports/services/savedReportService';
 import { PIIService } from '@services/piiService';
 
 export interface OperationsProviders {

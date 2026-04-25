@@ -26,6 +26,7 @@ import type {
   MailchimpSegment,
   CreateCampaignRequest,
   CommunicationsSelectedContactsAudienceFilters,
+  MailchimpWebhookPayload,
 } from '@app-types/mailchimp';
 import { resolveMailchimpCampaignContent } from '@services/template/emailCampaignRenderer';
 import {
@@ -173,6 +174,11 @@ const validateSavedAudienceFilters = (
     listId: filters.listId,
   };
 };
+
+const getStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? uniqueStrings(value.filter((item): item is string => typeof item === 'string'))
+    : [];
 
 async function loadContactScopes(contactIds: string[]): Promise<ContactScopeRow[]> {
   const result = await pool.query<ContactScopeRow>(
@@ -364,6 +370,7 @@ function buildCampaignRunAudienceSnapshot(
     segmentId: request.segmentId ?? null,
     includeAudienceId: request.includeAudienceId ?? null,
     exclusionAudienceIds: request.exclusionAudienceIds ?? [],
+    priorRunSuppressionIds: request.priorRunSuppressionIds ?? [],
     ...(request.audienceSnapshot ?? {}),
     ...(targeting?.audienceSnapshot ?? {}),
   };
@@ -407,6 +414,30 @@ async function createPendingCampaignRun(
   );
 
   return mapCampaignRunRow(result.rows[0]);
+}
+
+async function getCampaignRunsByIds(
+  runIds: string[],
+  requesterScopeAccountIds?: string[]
+): Promise<CampaignRun[]> {
+  if (runIds.length === 0) {
+    return [];
+  }
+
+  const scopeAccountIds = uniqueStrings(requesterScopeAccountIds ?? []);
+  const result = await pool.query<CampaignRunRow>(
+    `SELECT id, provider, provider_campaign_id, title, list_id, include_audience_id,
+            exclusion_audience_ids, suppression_snapshot, test_recipients, audience_snapshot,
+            requested_send_time, status, counts, scope_account_ids, failure_message,
+            requested_by, created_at, updated_at
+     FROM campaign_runs
+     WHERE provider = 'mailchimp'
+       AND id = ANY($1::uuid[])
+       AND ($2::uuid[] IS NULL OR scope_account_ids && $2::uuid[])`,
+    [runIds, scopeAccountIds.length > 0 ? scopeAccountIds : null]
+  );
+
+  return result.rows.map(mapCampaignRunRow);
 }
 
 async function finalizeCampaignRun(
@@ -475,9 +506,12 @@ async function prepareSavedAudienceTargeting(
   runId: string
 ): Promise<PreparedCampaignTargeting | null> {
   if (!request.includeAudienceId) {
-    if ((request.exclusionAudienceIds ?? []).length > 0) {
+    if (
+      (request.exclusionAudienceIds ?? []).length > 0 ||
+      (request.priorRunSuppressionIds ?? []).length > 0
+    ) {
       return throwCampaignTargetingValidation(
-        'Suppression audiences require a saved audience target'
+        'Suppressions require a saved audience target'
       );
     }
     return null;
@@ -490,6 +524,9 @@ async function prepareSavedAudienceTargeting(
   }
 
   const exclusionAudienceIds = request.exclusionAudienceIds ?? [];
+  const priorRunSuppressionIds = uniqueStrings(request.priorRunSuppressionIds ?? []);
+  assertUuidList(priorRunSuppressionIds, 'priorRunSuppressionIds');
+
   if (exclusionAudienceIds.includes(request.includeAudienceId)) {
     return throwCampaignTargetingValidation('A saved audience cannot suppress itself');
   }
@@ -522,6 +559,36 @@ async function prepareSavedAudienceTargeting(
       id: audience.id,
       name: audience.name,
       sourceCount: audience.sourceCount,
+    });
+  }
+
+  const priorRuns = await getCampaignRunsByIds(priorRunSuppressionIds, request.scopeAccountIds);
+  if (priorRuns.length !== priorRunSuppressionIds.length) {
+    return throwCampaignTargetingValidation('Prior campaign run suppression was not found');
+  }
+
+  for (const run of priorRuns) {
+    if (run.listId !== request.listId) {
+      return throwCampaignTargetingValidation(
+        'Prior campaign run suppression belongs to a different Mailchimp audience'
+      );
+    }
+
+    const targetContactIds = getStringArray(run.audienceSnapshot.targetContactIds);
+    if (targetContactIds.length === 0) {
+      return throwCampaignTargetingValidation(
+        'Prior campaign run suppression is missing a target contact snapshot'
+      );
+    }
+
+    targetContactIds.forEach((contactId) => suppressionContactIds.add(contactId));
+    run.scopeAccountIds.forEach((accountId) => scopeAccountIds.add(accountId));
+    suppressionSnapshot.push({
+      type: 'prior_campaign_run',
+      id: run.id,
+      title: run.title,
+      providerCampaignId: run.providerCampaignId,
+      targetContactCount: targetContactIds.length,
     });
   }
 
@@ -571,7 +638,9 @@ async function prepareSavedAudienceTargeting(
     counts: {
       includeSourceCount: includeAudience.sourceCount,
       suppressionSourceCount: suppressionContactIds.size,
+      priorRunSuppressionCount: priorRuns.length,
       requestedContactCount: requestedContactIds.length,
+      targetContactCount: requestedContactIds.length,
       syncedContactCount: syncedEmails.length,
       skippedContactCount: syncResult.skipped + syncResult.errors,
       providerSegmentMemberCount: syncedEmails.length,
@@ -583,9 +652,54 @@ async function prepareSavedAudienceTargeting(
       providerSegmentId,
       providerSegmentName: segment.name ?? segmentName,
       suppressionAudiences: suppressionSnapshot,
+      targetContactIds: requestedContactIds,
+      priorRunSuppressionIds,
       mailchimpListId: request.listId,
     },
   };
+}
+
+function resolveCampaignWebhookStatus(payload: MailchimpWebhookPayload): CampaignRunStatus | null {
+  const lifecycleValue = String(payload.data?.status ?? payload.data?.action ?? '').toLowerCase();
+  if (['sent', 'send'].includes(lifecycleValue)) return 'sent';
+  if (['sending', 'started', 'start'].includes(lifecycleValue)) return 'sending';
+  if (['canceled', 'cancelled', 'cancel'].includes(lifecycleValue)) return 'canceled';
+  if (['failed', 'error'].includes(lifecycleValue)) return 'failed';
+  if (['scheduled', 'schedule'].includes(lifecycleValue)) return 'scheduled';
+  return null;
+}
+
+export async function recordCampaignLifecycleWebhook(
+  payload: MailchimpWebhookPayload
+): Promise<boolean> {
+  if (payload.type !== 'campaign') {
+    return false;
+  }
+
+  const providerCampaignId = payload.data?.campaignId ?? payload.data?.id;
+  if (!providerCampaignId) {
+    return false;
+  }
+
+  const nextStatus = resolveCampaignWebhookStatus(payload);
+  const lifecycleSummary = {
+    lastWebhookType: payload.type,
+    lastWebhookAction: payload.data?.action ?? null,
+    lastWebhookStatus: payload.data?.status ?? null,
+    lastWebhookAt: payload.firedAt instanceof Date ? payload.firedAt.toISOString() : new Date().toISOString(),
+  };
+
+  const result = await pool.query(
+    `UPDATE campaign_runs
+     SET status = COALESCE($2::varchar, status),
+         counts = jsonb_set(COALESCE(counts, '{}'::jsonb), '{providerLifecycle}', $3::jsonb, true),
+         updated_at = CURRENT_TIMESTAMP
+     WHERE provider = 'mailchimp'
+       AND provider_campaign_id = $1`,
+    [providerCampaignId, nextStatus, JSON.stringify(lifecycleSummary)]
+  );
+
+  return (result.rowCount ?? 0) > 0;
 }
 
 /**
@@ -992,6 +1106,11 @@ export async function createCampaign(request: CreateCampaignRequest): Promise<Ma
       'Suppression audiences require a saved audience target'
     );
   }
+  if (!request.includeAudienceId && (request.priorRunSuppressionIds ?? []).length > 0) {
+    return throwCampaignTargetingValidation(
+      'Prior campaign run suppressions require a saved audience target'
+    );
+  }
 
   let pendingRun: CampaignRun | null = null;
   try {
@@ -1104,6 +1223,7 @@ export const mailchimpService = {
   listCampaignRuns,
   createCampaign,
   sendCampaign,
+  recordCampaignLifecycleWebhook,
   createSegment,
   getSegments,
 };

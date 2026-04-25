@@ -1,1 +1,1 @@
-export { default as TemplateCard } from './TemplateCard';
+export { default as TemplateCard } from '../../features/builder/components/templates/TemplateCard';

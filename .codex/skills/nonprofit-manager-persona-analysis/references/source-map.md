@@ -58,6 +58,7 @@ Use these when you need the tracked persona contract, a fast UX smoke check, or 
 ## Validation And Historical Inputs
 
 - `docs/validation/README.md`
+- `docs/validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md`
 - `docs/validation/archive/README.md`
 - `docs/validation/archive/persona-workflow-audit-2026-04-18.md`
 - `docs/validation/archive/executive-director-persona-findings-2026-04-20.md`

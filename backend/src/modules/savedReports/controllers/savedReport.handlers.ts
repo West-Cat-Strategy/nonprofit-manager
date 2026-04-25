@@ -4,12 +4,11 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { services } from '@container/services';
 import { AuthRequest } from '@middleware/auth';
 import type { CreateSavedReportRequest, UpdateSavedReportRequest } from '@app-types/savedReport';
 import { badRequest, notFoundMessage, unauthorized } from '@utils/responseHelpers';
+import { savedReportService } from '../services/savedReportService';
 
-const savedReportService = services.savedReport;
 const getUserRoles = (req: AuthRequest): string[] => {
   const contextualRoles = (req.authorizationContext?.roles || []).filter(Boolean);
   const primaryRole = req.user?.role ? [req.user.role] : [];

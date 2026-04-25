@@ -134,6 +134,16 @@ export function CampaignRunCard({ run }: { run: CampaignRun }) {
       : run.suppressionSnapshot.length;
   const skippedCount =
     typeof run.counts.skippedContactCount === 'number' ? run.counts.skippedContactCount : undefined;
+  const targetContactCount =
+    typeof run.counts.targetContactCount === 'number'
+      ? run.counts.targetContactCount
+      : Array.isArray(run.audienceSnapshot.targetContactIds)
+        ? run.audienceSnapshot.targetContactIds.length
+        : undefined;
+  const providerLifecycle =
+    typeof run.counts.providerLifecycle === 'object' && run.counts.providerLifecycle !== null
+      ? (run.counts.providerLifecycle as Record<string, unknown>)
+      : null;
 
   return (
     <div className="rounded-lg border border-app-border bg-app-surface p-4">
@@ -167,8 +177,24 @@ export function CampaignRunCard({ run }: { run: CampaignRun }) {
             {skippedCount !== undefined && skippedCount > 0 ? `, ${skippedCount} skipped` : ''}
           </p>
         ) : null}
+        {targetContactCount !== undefined ? (
+          <p>
+            Target snapshot: {targetContactCount} contact
+            {targetContactCount === 1 ? '' : 's'}
+          </p>
+        ) : null}
         {suppressionCount > 0 ? (
           <p>{suppressionCount} contact{suppressionCount === 1 ? '' : 's'} suppressed</p>
+        ) : null}
+        {providerLifecycle ? (
+          <p>
+            Provider lifecycle:{' '}
+            {String(
+              providerLifecycle.lastWebhookStatus ||
+                providerLifecycle.lastWebhookAction ||
+                'received'
+            )}
+          </p>
         ) : null}
         {run.testRecipients.length > 0 ? (
           <p>
@@ -299,6 +325,7 @@ export function CampaignCreateModal({
   lists,
   segments,
   savedAudiences,
+  campaignRuns,
   isCreatingCampaign,
   isSendingCampaign,
   onClose,
@@ -309,6 +336,7 @@ export function CampaignCreateModal({
   lists: MailchimpList[];
   segments: MailchimpSegment[];
   savedAudiences: SavedAudience[];
+  campaignRuns: CampaignRun[];
   isCreatingCampaign: boolean;
   isSendingCampaign: boolean;
   onClose: () => void;
@@ -337,6 +365,7 @@ export function CampaignCreateModal({
     sendTime: undefined,
     includeAudienceId: undefined,
     exclusionAudienceIds: [],
+    priorRunSuppressionIds: [],
     suppressionSnapshot: [],
     testRecipients: [],
     audienceSnapshot: {},
@@ -404,6 +433,16 @@ export function CampaignCreateModal({
 
   const selectedIncludeAudience = savedAudiencesForList.find(
     (audience) => audience.id === formData.includeAudienceId
+  );
+  const suppressiblePriorRuns = useMemo(
+    () =>
+      campaignRuns.filter(
+        (run) =>
+          run.listId === formData.listId &&
+          Array.isArray(run.audienceSnapshot.targetContactIds) &&
+          run.audienceSnapshot.targetContactIds.length > 0
+      ),
+    [campaignRuns, formData.listId]
   );
 
   const hasBuilderContent = (data: CreateCampaignRequest): boolean =>
@@ -591,6 +630,7 @@ export function CampaignCreateModal({
                   segmentId: undefined,
                   includeAudienceId: undefined,
                   exclusionAudienceIds: [],
+                  priorRunSuppressionIds: [],
                   suppressionSnapshot: [],
                   audienceSnapshot: {},
                 }));
@@ -631,6 +671,8 @@ export function CampaignCreateModal({
                         nextMode === 'saved_audience' ? prev.includeAudienceId : undefined,
                       exclusionAudienceIds:
                         nextMode === 'saved_audience' ? prev.exclusionAudienceIds : [],
+                      priorRunSuppressionIds:
+                        nextMode === 'saved_audience' ? prev.priorRunSuppressionIds : [],
                       suppressionSnapshot:
                         nextMode === 'saved_audience' ? prev.suppressionSnapshot : [],
                       audienceSnapshot: nextMode === 'saved_audience' ? prev.audienceSnapshot : {},
@@ -674,7 +716,7 @@ export function CampaignCreateModal({
             )}
 
             {targetingMode === 'saved_audience' && (
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
                   <label className="block text-sm font-medium text-app-text-label mb-1">
                     Saved Audience
@@ -762,8 +804,35 @@ export function CampaignCreateModal({
                       ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-app-text-label mb-1">
+                    Suppress Prior Runs
+                  </label>
+                  <select
+                    multiple
+                    aria-label="Suppress Prior Campaign Runs"
+                    value={formData.priorRunSuppressionIds || []}
+                    disabled={!formData.includeAudienceId || suppressiblePriorRuns.length === 0}
+                    onChange={(e) => {
+                      const selectedRunIds = Array.from(e.target.selectedOptions).map(
+                        (option) => option.value
+                      );
+                      setFormData((prev) => ({
+                        ...prev,
+                        priorRunSuppressionIds: selectedRunIds,
+                      }));
+                    }}
+                    className="h-[42px] w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent disabled:bg-app-surface-muted"
+                  >
+                    {suppressiblePriorRuns.map((run) => (
+                      <option key={run.id} value={run.id}>
+                        {run.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {selectedIncludeAudience ? (
-                  <p className="text-xs text-app-text-muted md:col-span-2">
+                  <p className="text-xs text-app-text-muted md:col-span-3">
                     Delivery will sync {selectedIncludeAudience.sourceCount.toLocaleString()}{' '}
                     selected contacts into a run-specific Mailchimp segment.
                   </p>

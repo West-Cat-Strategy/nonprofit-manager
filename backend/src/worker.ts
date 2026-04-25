@@ -12,8 +12,8 @@ import { followUpReminderSchedulerService } from './services/followUpReminderSch
 import { appointmentReminderSchedulerService } from './services/appointmentReminderSchedulerService';
 import { publicReportSnapshotCleanupSchedulerService } from './services/publicReportSnapshotCleanupSchedulerService';
 import { scheduledReportSchedulerService } from './services/scheduledReportSchedulerService';
-import { socialMediaSyncSchedulerService } from './services/socialMediaSyncSchedulerService';
-import { webhookRetrySchedulerService } from './services/webhookRetrySchedulerService';
+import { socialMediaSyncSchedulerService } from '@modules/socialMedia/services/socialMediaSyncSchedulerService';
+import { webhookRetrySchedulerService } from '@modules/webhooks/services/webhookRetrySchedulerService';
 
 // Load environment variables
 dotenv.config({ path: '.env', quiet: true });

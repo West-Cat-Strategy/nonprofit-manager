@@ -338,6 +338,16 @@ export const queueViewDefinitionQuerySchema = z
   })
   .strict();
 
+const queueViewRowActionSchema = z
+  .object({
+    id: z.string().trim().min(1).max(100),
+    label: z.string().trim().min(1).max(120),
+    style: z.enum(['primary', 'secondary', 'danger']).optional(),
+    permissionScope: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
+
 export const queueViewDefinitionSchema = z
   .object({
     id: uuidSchema.optional(),
@@ -348,6 +358,8 @@ export const queueViewDefinitionSchema = z
     sort: z.record(z.string(), z.unknown()).optional(),
     rowLimit: z.coerce.number().int().min(1).max(250).optional(),
     dashboardBehavior: z.record(z.string(), z.unknown()).optional(),
+    rowActions: z.array(queueViewRowActionSchema).max(25).optional(),
+    emptyState: z.record(z.string(), z.unknown()).optional(),
     permissionScope: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
   })
   .strict();

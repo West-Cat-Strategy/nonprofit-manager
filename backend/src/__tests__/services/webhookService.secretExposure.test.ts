@@ -16,7 +16,7 @@ jest.mock('../../config/database', () => ({
   },
 }));
 
-import * as webhookService from '../../services/webhookService';
+import * as webhookService from '@modules/webhooks/services/webhookService';
 
 const baseEndpointRow = {
   id: 'endpoint-1',

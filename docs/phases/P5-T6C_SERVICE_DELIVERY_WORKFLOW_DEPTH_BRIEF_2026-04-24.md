@@ -51,10 +51,22 @@ These are future planning targets, not current product claims:
 | `referral_authorization_handoff` | Typed authorization, referral, or partner-handoff metadata connected to services, appointments, case forms, and follow-ups | `backend/src/modules/cases/usecases/caseForms.usecase.staff.ts`, `backend/src/modules/portalAdmin/services/portalAppointmentStatusWorkflow.ts`, `frontend/src/features/followUps/**` |
 | `service_site` | Optional typed site reference and snapshot label/status for services and appointment slots while preserving current free-text location fallback | `backend/src/modules/portalAdmin/services/portalAppointmentSlotService/**`, `backend/src/modules/portal/mappers/**`, `frontend/src/components/cases/CaseServices.tsx` |
 
+## Reference Expansion Queue Additions
+
+The final reference-repo pass sharpens the later service-delivery targets without authorizing runtime work. Keep these as queued refinements behind `P5-T6C` unless a future scoped row signs them out.
+
+| Future pattern | Source pressure | Later typed record intent | Boundary |
+|---|---|---|---|
+| Reassessment windows and checklist timing | Avni program encounters and checklists | `case_reassessment_cycle` with earliest/latest review windows, cancellation reason, completion marker, and dependent checklist timing | Do not create a generic program engine |
+| Case-plan intervention ledger | Primero case plan, service, follow-up, and task patterns | `case_plan_intervention` with service/provider, goal, target date, success marker, and due-task linkage | Keep attached to cases/services before any workflow kernel |
+| Consent-aware referral and transfer status | Primero referral and transfer status model | `referral_transfer_status` with consent/override, accepted/rejected/done/revoked states, response timestamp, service linkage, and rejection notes | Do not claim authorization compliance or grievance parity |
+| Closure readiness evidence | OpenSPP graduation and Primero closure forms | `closure_readiness_evidence` with optional assessment history and unresolved continuity cues | Treat as closure-support evidence, not eligibility adjudication |
+| Field-ready case packet | CommCare and Sahana field/mobile packet patterns | `field_case_packet` for handoff or field review assembled from existing case/form/service data | Reject offline sync, device conflict resolution, and mobile replication engines |
+
 ## Sequencing
 
 1. Start with `case_reassessment_cycle` because recurring review cadence is the smallest cross-role depth improvement and can reuse cases plus follow-ups without changing portal routing.
-2. Add `case_handoff_packet` by assembling existing case detail, service, form, appointment, and portal-visibility data before creating new service-delivery entities.
+2. Add `case_handoff_packet` by assembling existing case detail, service, form, appointment, and portal-visibility data before creating new service-delivery entities; a later `field_case_packet` may reuse the same assembly vocabulary without adding offline sync.
 3. Add `closure_continuity_checklist` after handoff packets so closure has the same next-action and visibility vocabulary.
 4. Add `referral_authorization_handoff` inside case forms, follow-ups, appointments, and services before introducing a broader workflow registry.
 5. Add `service_plan_artifact` and optional `service_site` references once services and appointments share stable snapshot language; keep free-text provider and location fallbacks during the first implementation.

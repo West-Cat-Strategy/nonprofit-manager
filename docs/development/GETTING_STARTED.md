@@ -1,6 +1,6 @@
 # Getting Started
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-25
 
 Use this guide to choose a local runtime, set up the matching environment, and confirm the expected ports. Keep broader contributor workflow in [../../CONTRIBUTING.md](../../CONTRIBUTING.md); this file is the runtime and setup source of truth.
 
@@ -128,14 +128,14 @@ cp backend/.env.example backend/.env
 cd /path/to/nonprofit-manager
 npm ci
 cd backend
-npm run dev:public
+PORT=8006 npm run dev:public
 ```
 
 Expected endpoint:
 
 - Public site: `http://localhost:8006`
 
-This runtime uses the same `backend/.env` contract as the direct API runtime. Keep the DB, Redis, and origin settings aligned with the backing services you chose in Path 2 or Path 3.
+This runtime uses the same `backend/.env` contract as the direct API runtime. `backend/.env.example` sets `PORT=3000` for the direct API server, so set `PORT=8006` when running the public-site server directly. `PUBLIC_SITE_PORT` is used by Compose overlays and does not override the direct Node process by itself. Keep the DB, Redis, and origin settings aligned with the backing services you chose in Path 2 or Path 3.
 
 ## Path 5: Direct Worker Runtime
 
@@ -228,4 +228,5 @@ Open these next only if you need more than setup guidance:
 - [../testing/TESTING.md](../testing/TESTING.md) for the validation matrix
 - [CONVENTIONS.md](CONVENTIONS.md) for repo conventions
 - [../../backend/README.md](../../backend/README.md) or [../../frontend/README.md](../../frontend/README.md) for service-specific details, including direct public-site and worker runtimes
+- [../../e2e/README.md](../../e2e/README.md) for Playwright host and Docker wrapper behavior
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) when the runtime does not match the expected contract

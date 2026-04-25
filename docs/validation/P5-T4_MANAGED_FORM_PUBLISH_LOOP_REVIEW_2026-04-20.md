@@ -1,6 +1,6 @@
 # P5-T4 Managed Form Publish-Loop Review
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-25
 
 **Date:** 2026-04-20  
 **Task:** `P5-T4`  
@@ -10,7 +10,7 @@
 
 - Commit `82a26d39` landed the coordinated managed-form publish-loop slice across backend publishing/runtime metadata, website-console verification UI, and site-aware builder cues.
 - The remaining `docs-e2e` gap is now closed for the narrow row-local slice: the Playwright proof saves a real site-level form override from `/websites/:siteId/forms`, publishes from `/websites/:siteId/publishing`, then verifies the override on the public site before submission.
-- `P5-T4` can move to `Review` on the live workboard. Final broad signoff for the wave still depends on `P5-T2B` finishing the shared host-plus-Docker validation lane.
+- `P5-T4` is in `Review` on the live workboard. The shared `P5-T2B` host-plus-Docker validation lane is now green, so this row waits on final row-local signoff rather than broad validation follow-through.
 
 ## Landed Lanes
 
@@ -34,11 +34,11 @@
   - Result: Passed on 2026-04-20. `5` files and `12` tests green.
 - `make check-links`
   - Result: Passed on 2026-04-20. Checked `124` files and `993` local links with no broken active-doc links.
-- `cd e2e && E2E_FRONTEND_PORT=5317 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium tests/publishing.spec.ts tests/public-website.spec.ts`
+- `cd e2e && E2E_FRONTEND_PORT=5317 bash ../scripts/e2e-playwright.sh host ../node_modules/.bin/playwright test --project=chromium tests/publishing.spec.ts tests/public-website.spec.ts`
   - Result: Passed on 2026-04-20. `4` tests green for the narrowed website builder/forms/publishing/public-runtime loop.
   - Local runtime note: this machine needed `E2E_FRONTEND_PORT=5317` because Docker Desktop occupied the default `127.0.0.1:5173` host frontend port during the rerun.
 
 ## Board Disposition
 
 - Move `P5-T4` from `In Progress` to `Review`.
-- Keep broader browser-matrix and Docker follow-through attached to `P5-T2B`; do not archive or remove `P5-T4` until that shared validation lane is complete.
+- Keep `P5-T4` in `Review` for final row-local signoff; the broader browser-matrix and Docker follow-through is now recorded under the green `P5-T2B` validation artifact.

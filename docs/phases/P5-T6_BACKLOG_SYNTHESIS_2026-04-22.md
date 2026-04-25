@@ -43,6 +43,8 @@ The highest-pressure benchmark claims were refreshed against official product do
 - SuiteCRM campaign docs confirm campaign types, target lists, scheduled send expectations, ROI tracking, and template editing, which keeps typed appeals and campaign measurement adjacent to the active `P5-T3` seam instead of treating them as a detached future domain.
 - ERPNext membership docs confirm explicit membership statuses and payment/invoicing hooks, which is another signal that memberships are better treated as a later typed domain than as the next adjacent extension of current routed surfaces.
 
+The later `P5-T6-reference-expansion-2026-04` pass sharpens the queue but does not change the ranked runtime posture. Mautic, GiveWP, OCA, CiviCRM, and Open Collective add future fundraising refinements for communication fatigue, channel-specific do-not-contact reasons, pledge schedules, soft credits, in-kind receipt eligibility, public campaign presentation, contribution timelines, and finance snapshots. Avni, Primero, CommCare, Sahana, OpenSPP, and OpenCRVS add future service-delivery refinements for reassessment windows, checklist timing, case-plan interventions, consent-aware referral/transfer states, closure readiness evidence, field-ready packets, and action-led queue caution. pretix and Open Collective add future event/finance refinements for event check-in policy, immutable order snapshots, and ledger-style reporting. All remain queued behind scoped rows; the active borrow-now set remains limited to `P5-T3` and `P5-T5`.
+
 ## Ranked Capability Briefs
 
 ### Priority 1

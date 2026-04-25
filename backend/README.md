@@ -1,6 +1,6 @@
 # Backend Service
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-25
 
 This guide covers the backend service only. For the contributor workflow, start at [../CONTRIBUTING.md](../CONTRIBUTING.md). Use [../README.md](../README.md) for product context and contributor handoff.
 
@@ -22,7 +22,7 @@ Active domain-owned backend code lives under `src/modules/`.
 |------|---------------|---------|-------|
 | Docker development | `make dev` from repo root | API `http://localhost:8004`, public site `http://localhost:8006` | Docker-managed Postgres and Redis with the repo dev-stack contract |
 | Direct API runtime | `cd backend && npm run dev` | `http://localhost:3000` | Uses `backend/.env`; defaults frontend-facing URLs and origins to the host Playwright contract unless you override them |
-| Direct public-site runtime | `cd backend && npm run dev:public` | `http://localhost:8006` | Uses the same `backend/.env`; serves the public-site runtime outside Docker |
+| Direct public-site runtime | `cd backend && PORT=8006 npm run dev:public` | `http://localhost:8006` | Uses the same `backend/.env`; `PORT=8006` is required when `backend/.env` keeps the direct API default of `PORT=3000` |
 | Direct worker runtime | `cd backend && npm run worker:dev` | no HTTP port | Runs schedulers, jobs, and worker-side integrations only |
 | E2E harness backend | started by Playwright | `http://127.0.0.1:3001` | Used by `cd e2e && npm test`; host Playwright also serves public routes through this runtime |
 

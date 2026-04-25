@@ -25,10 +25,24 @@ The current runtime pickup is intentionally small: saved audiences and campaign 
 | Typed appeals | `missing`: campaign intent is still provider campaign metadata or donation `campaign_name` text | Keep typed appeal or campaign spine queued behind the stabilized communications model |
 | Fund restrictions | `partial`: `designation` exists but remains free text | Keep typed fund designation policy queued before donation batches or memberships |
 
+## Reference Expansion Queue Additions
+
+The final reference-repo pass adds future refinements only. These do not change the active `P5-T3` runtime pickup, and they should be opened only as separately scoped rows after the current saved-audience, campaign-run, and donor-default seams settle.
+
+| Future pattern | Source pressure | Later typed record intent | Boundary |
+|---|---|---|---|
+| Communication fatigue policy | Mautic frequency rules and channel preferences | `communication_suppression_policy` for channel, timing, and send-limit evidence | Queue after campaign runs; do not add a marketing automation canvas or self-hosted tracking |
+| Channel-specific do-not-contact reasons | Mautic DNC reason/source/comment model | `contact_dnc_reason` adjacent to donor profiles and Mailchimp targeting | Keep current `no_solicitations` as a narrow default until a future suppression row exists |
+| Pledge commitment schedule | CiviCRM pledge summary patterns | `pledge_schedule` adjacent to recurring donations and finance stewardship | Queue behind typed appeals and donation-model cleanup |
+| Tribute or soft-credit attribution | CiviCRM and GiveWP stewardship attribution patterns | `donation_soft_credit` separate from received gift value | Do not overload current donation or campaign text fields |
+| In-kind receipt eligibility | OCA/GiveWP receipt and non-cash gift handling | `in_kind_receipt_policy` for non-cash eligibility, valuation notes, and receipt behavior | Queue after restrictions and donation batches; current receipt-defaulting remains contact-linked only |
+| Public campaign presentation | GiveWP campaign forms, donor blocks, and goals | later appeal/public-site presentation tied to a typed appeal/campaign record | Do not build public campaign goal or donor-recognition blocks before typed appeals exist |
+
 ## Implementation Boundary
 
 - The current implementation can safely borrow `PAT-01`, `PAT-02`, and the narrow `PAT-03` defaulting layer because those attach to existing Mailchimp, contacts, donations, and receipt seams.
 - `PAT-07` typed appeal, `PAT-09` fund designation, `PAT-10` donation batch, and `PAT-11` membership remain queued and need separate scoped rows.
+- Communication fatigue rules, channel-specific DNC reason ledgers, pledge schedules, soft-credit attribution, in-kind eligibility, and public campaign presentation remain queued refinements; none may expand the current `P5-T3` implementation boundary.
 - Donor-profile defaults may influence receipt delivery defaults only when staff have not supplied an explicit delivery mode or recipient override.
 - Annual-only, no-receipt, and non-contact payee cases default back to download/no-send behavior rather than forcing email delivery.
 - Saved-audience targeting may generate a run-specific Mailchimp static segment, but the internal `saved_audience` remains the durable stewardship record.

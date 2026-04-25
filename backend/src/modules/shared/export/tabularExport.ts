@@ -1,4 +1,3 @@
-import ExcelJS from 'exceljs';
 import type { Response } from 'express';
 
 export type TabularExportFormat = 'csv' | 'xlsx';
@@ -36,6 +35,8 @@ const DANGEROUS_SPREADSHEET_PREFIX = /^\s*[=+\-@]/;
 const EXCEL_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const CSV_CONTENT_TYPE = 'text/csv; charset=utf-8';
+
+const loadExcelJs = async (): Promise<typeof import('exceljs')> => import('exceljs');
 
 const isDate = (value: unknown): value is Date =>
   value instanceof Date && !Number.isNaN(value.getTime());
@@ -151,6 +152,7 @@ export const buildTabularExport = async <Row>(
     };
   }
 
+  const ExcelJS = await loadExcelJs();
   const workbook = new ExcelJS.Workbook();
   workbook.created = new Date();
 

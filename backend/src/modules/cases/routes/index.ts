@@ -68,6 +68,7 @@ import { CaseServicesUseCase } from '../usecases/caseServices.usecase';
 import { CaseOutcomesUseCase } from '../usecases/caseOutcomes.usecase';
 import { CaseDocumentsUseCase } from '../usecases/caseDocuments.usecase';
 import { CaseFormsUseCase } from '../usecases/caseForms.usecase';
+import { CaseReassessmentsRepository } from '../repositories/caseReassessmentsRepository';
 import { Permission } from '@utils/permissions';
 import {
   caseFormAssetParamsSchema,
@@ -117,6 +118,56 @@ const outcomesModeSchema = z.enum(['replace', 'merge']);
 const caseIdParamsSchema = z.object({
   id: uuidSchema,
 });
+
+const caseReassessmentParamsSchema = z.object({
+  id: uuidSchema,
+  reassessmentId: uuidSchema,
+});
+
+const caseReassessmentStatusUpdateSchema = z.enum(['scheduled', 'in_progress']);
+
+const createCaseReassessmentSchema = z
+  .object({
+    title: z.string().trim().min(1),
+    summary: z.string().trim().nullable().optional(),
+    earliest_review_date: dateStringSchema.nullable().optional(),
+    due_date: dateStringSchema,
+    latest_review_date: dateStringSchema.nullable().optional(),
+    owner_user_id: uuidSchema.nullable().optional(),
+  })
+  .strict();
+
+const updateCaseReassessmentSchema = z
+  .object({
+    title: z.string().trim().min(1).optional(),
+    summary: z.string().trim().nullable().optional(),
+    earliest_review_date: dateStringSchema.nullable().optional(),
+    due_date: dateStringSchema.optional(),
+    latest_review_date: dateStringSchema.nullable().optional(),
+    owner_user_id: uuidSchema.nullable().optional(),
+    status: caseReassessmentStatusUpdateSchema.optional(),
+  })
+  .strict();
+
+const completeCaseReassessmentSchema = z
+  .object({
+    completion_summary: z.string().trim().min(1),
+    outcome_definition_ids: z.array(uuidSchema).optional(),
+    outcome_visibility: optionalStrictBooleanSchema,
+    next_due_date: dateStringSchema.optional(),
+    next_title: z.string().trim().min(1).optional(),
+    next_summary: z.string().trim().nullable().optional(),
+    next_earliest_review_date: dateStringSchema.nullable().optional(),
+    next_latest_review_date: dateStringSchema.nullable().optional(),
+    next_owner_user_id: uuidSchema.nullable().optional(),
+  })
+  .strict();
+
+const cancelCaseReassessmentSchema = z
+  .object({
+    cancellation_reason: z.string().trim().min(1),
+  })
+  .strict();
 
 const milestoneIdParamsSchema = z.object({
   milestoneId: uuidSchema,
@@ -404,6 +455,7 @@ export const createCasesRoutes = (): Router => {
   const outcomesRepository = new CaseOutcomesRepository();
   const documentsRepository = new CaseDocumentsRepository();
   const caseFormsRepository = new CaseFormsRepository();
+  const reassessmentsRepository = new CaseReassessmentsRepository();
 
   const catalogController = createCaseCatalogController(new CaseCatalogUseCase(caseRepository));
   const lifecycleController = createCaseLifecycleController(new CaseLifecycleUseCase(caseRepository));
@@ -604,6 +656,101 @@ export const createCasesRoutes = (): Router => {
     formsController.downloadAsset
   );
   router.get('/:id', validateParams(caseIdParamsSchema), catalogController.getCaseById);
+  router.get(
+    '/:id/reassessments',
+    validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
+    async (req, res, next) => {
+      try {
+        const reassessments = await reassessmentsRepository.list(
+          req.params.id,
+          req.organizationId ?? ''
+        );
+        sendSuccess(res, reassessments);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  router.post(
+    '/:id/reassessments',
+    validateParams(caseIdParamsSchema),
+    validateBody(createCaseReassessmentSchema),
+    requirePermission(Permission.CASE_EDIT),
+    async (req, res, next) => {
+      try {
+        const reassessment = await reassessmentsRepository.create(
+          req.params.id,
+          req.organizationId ?? '',
+          req.user?.id ?? '',
+          req.validatedBody ?? req.body
+        );
+        sendSuccess(res, reassessment, 201);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  router.patch(
+    '/:id/reassessments/:reassessmentId',
+    validateParams(caseReassessmentParamsSchema),
+    validateBody(updateCaseReassessmentSchema),
+    requirePermission(Permission.CASE_EDIT),
+    async (req, res, next) => {
+      try {
+        const reassessment = await reassessmentsRepository.update(
+          req.params.id,
+          req.params.reassessmentId,
+          req.organizationId ?? '',
+          req.user?.id ?? '',
+          req.validatedBody ?? req.body
+        );
+        sendSuccess(res, reassessment);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  router.post(
+    '/:id/reassessments/:reassessmentId/complete',
+    validateParams(caseReassessmentParamsSchema),
+    validateBody(completeCaseReassessmentSchema),
+    requirePermission(Permission.CASE_EDIT),
+    async (req, res, next) => {
+      try {
+        const result = await reassessmentsRepository.complete(
+          req.params.id,
+          req.params.reassessmentId,
+          req.organizationId ?? '',
+          req.user?.id ?? '',
+          req.validatedBody ?? req.body
+        );
+        sendSuccess(res, result);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  router.post(
+    '/:id/reassessments/:reassessmentId/cancel',
+    validateParams(caseReassessmentParamsSchema),
+    validateBody(cancelCaseReassessmentSchema),
+    requirePermission(Permission.CASE_EDIT),
+    async (req, res, next) => {
+      try {
+        const reassessment = await reassessmentsRepository.cancel(
+          req.params.id,
+          req.params.reassessmentId,
+          req.organizationId ?? '',
+          req.user?.id ?? '',
+          (req.validatedBody ?? req.body).cancellation_reason
+        );
+        sendSuccess(res, reassessment);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
   router.get(
     '/:id/portal/escalations',
     validateParams(caseIdParamsSchema),

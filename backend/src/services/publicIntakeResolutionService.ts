@@ -9,6 +9,20 @@ export type PublicIntakeResolutionStatus =
   | 'created'
   | 'needs_contact_resolution'
   | 'failed';
+export type PublicIntakeMatchPosture = 'strict' | 'fuzzy' | 'manual' | 'not_attempted';
+export type PublicIntakeResolutionAction =
+  | 'linked_existing_contact'
+  | 'created_contact'
+  | 'queued_contact_resolution'
+  | 'failed';
+
+export interface PublicIntakeBusinessError {
+  code: string;
+  message: string;
+  field?: string | null;
+  severity?: 'info' | 'warning' | 'error';
+  metadata?: Record<string, unknown>;
+}
 
 export interface RecordPublicIntakeResolutionInput {
   sourceSystem: PublicIntakeSourceSystem;
@@ -24,6 +38,9 @@ export interface RecordPublicIntakeResolutionInput {
   matchedContactId?: string | null;
   ambiguityState?: PublicIntakeAmbiguityState;
   resolutionStatus: PublicIntakeResolutionStatus;
+  matchPosture?: PublicIntakeMatchPosture;
+  resolutionAction?: PublicIntakeResolutionAction;
+  businessErrors?: PublicIntakeBusinessError[];
   auditTrail?: unknown[];
   createdBy?: string | null;
 }
@@ -37,6 +54,41 @@ const hashSourceReference = (sourceReference?: string | null): string | null => 
     return null;
   }
   return crypto.createHash('sha256').update(sourceReference).digest('hex');
+};
+
+const deriveResolutionAction = (
+  resolutionStatus: PublicIntakeResolutionStatus
+): PublicIntakeResolutionAction => {
+  switch (resolutionStatus) {
+    case 'resolved':
+      return 'linked_existing_contact';
+    case 'created':
+      return 'created_contact';
+    case 'needs_contact_resolution':
+      return 'queued_contact_resolution';
+    case 'failed':
+      return 'failed';
+  }
+};
+
+const buildAuditTrail = (input: RecordPublicIntakeResolutionInput): unknown[] => {
+  const auditTrail = Array.isArray(input.auditTrail) ? [...input.auditTrail] : [];
+  const businessErrors = input.businessErrors ?? [];
+
+  auditTrail.push({
+    event: 'public_intake_resolution_contract',
+    match_posture: input.matchPosture ?? 'not_attempted',
+    resolution_action: input.resolutionAction ?? deriveResolutionAction(input.resolutionStatus),
+    business_errors: businessErrors.map((error) => ({
+      code: error.code,
+      message: error.message,
+      field: error.field ?? null,
+      severity: error.severity ?? 'error',
+      metadata: error.metadata ?? {},
+    })),
+  });
+
+  return auditTrail;
 };
 
 export async function recordPublicIntakeResolution(
@@ -76,7 +128,7 @@ export async function recordPublicIntakeResolution(
       input.matchedContactId ?? null,
       input.ambiguityState ?? 'none',
       input.resolutionStatus,
-      JSON.stringify(input.auditTrail ?? []),
+      JSON.stringify(buildAuditTrail(input)),
       input.createdBy ?? null,
     ]
   );
@@ -96,6 +148,8 @@ export async function recordPublicIntakeResolutionBestEffort(
       sourceReferenceHash: hashSourceReference(input.sourceReference),
       matchedContactId: input.matchedContactId,
       resolutionStatus: input.resolutionStatus,
+      matchPosture: input.matchPosture,
+      resolutionAction: input.resolutionAction,
     });
     return null;
   }

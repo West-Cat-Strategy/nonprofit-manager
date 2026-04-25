@@ -1,14 +1,7 @@
 import type { NextFunction, Response } from 'express';
 import { AuthRequest } from '@middleware/auth';
 import * as reportSharingController from '../reportSharing.handlers';
-import {
-  generatePublicLink as sharedGeneratePublicLink,
-  getSharePrincipals as sharedGetSharePrincipals,
-  removeShare as sharedRemoveShare,
-  revokePublicLink as sharedRevokePublicLink,
-  shareReport as sharedShareReport,
-} from '@modules/shared/reports/reportSharing.handlers';
-import { services } from '@container/services';
+import { savedReportService } from '../../services/savedReportService';
 import { publicReportSnapshotService } from '@services/publicReportSnapshotService';
 import { requirePermissionSafe } from '@services/authGuardService';
 
@@ -24,13 +17,11 @@ jest.mock('@utils/responseHelpers', () => ({
   ),
 }));
 
-jest.mock('@container/services', () => ({
-  services: {
-    savedReport: {
-      getSharePrincipals: jest.fn(),
-      shareReport: jest.fn(),
-      removeShare: jest.fn(),
-    },
+jest.mock('../../services/savedReportService', () => ({
+  savedReportService: {
+    getSharePrincipals: jest.fn(),
+    shareReport: jest.fn(),
+    removeShare: jest.fn(),
   },
 }));
 
@@ -49,7 +40,7 @@ jest.mock('@services/authGuardService', () => ({
   sendUnauthorized: jest.fn(),
 }));
 
-const mockSavedReportService = services.savedReport as jest.Mocked<typeof services.savedReport>;
+const mockSavedReportService = savedReportService as jest.Mocked<typeof savedReportService>;
 const mockSnapshotService = publicReportSnapshotService as jest.Mocked<
   typeof publicReportSnapshotService
 >;
@@ -88,12 +79,12 @@ describe('savedReports reportSharing.handlers facade', () => {
     };
   });
 
-  it('re-exports the shared saved-report handlers', () => {
-    expect(reportSharingController.getSharePrincipals).toBe(sharedGetSharePrincipals);
-    expect(reportSharingController.shareReport).toBe(sharedShareReport);
-    expect(reportSharingController.removeShare).toBe(sharedRemoveShare);
-    expect(reportSharingController.generatePublicLink).toBe(sharedGeneratePublicLink);
-    expect(reportSharingController.revokePublicLink).toBe(sharedRevokePublicLink);
+  it('exposes module-owned saved-report sharing handlers', () => {
+    expect(typeof reportSharingController.getSharePrincipals).toBe('function');
+    expect(typeof reportSharingController.shareReport).toBe('function');
+    expect(typeof reportSharingController.removeShare).toBe('function');
+    expect(typeof reportSharingController.generatePublicLink).toBe('function');
+    expect(typeof reportSharingController.revokePublicLink).toBe('function');
   });
 
   it('returns share principals', async () => {

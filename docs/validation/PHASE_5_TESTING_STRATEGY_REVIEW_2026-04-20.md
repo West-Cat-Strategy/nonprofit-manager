@@ -66,7 +66,7 @@ The final `P5-T2B` proof command was `cd e2e && npm run test:docker:ci`. It pass
   - Result: Passed on 2026-04-22 for canonical bucket-driven portal inbox fetching and assignment summary rendering.
 - `make check-links`
   - Result: Passed again on 2026-04-22 after the portal docs wording updates.
-- `cd e2e && E2E_RUNNER_ACTION=kill bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium tests/portal-workspace.spec.ts`
+- `cd e2e && E2E_RUNNER_ACTION=kill bash ../scripts/e2e-playwright.sh host ../node_modules/.bin/playwright test --project=chromium tests/portal-workspace.spec.ts`
   - Result: Passed on 2026-04-22. The focused portal workspace proof now covers the assignment-backed forms inbox, default active view, completed toggle, due-date summary, and response packet link.
 - `E2E_FRONTEND_PORT=5317 make ci-full`
   - Result: On 2026-04-22, the host lane advanced past the old runner-contract issues after refreshing `docs/ui/archive/app-ux-audit.json` for legitimate style-count drift and moving the exported email-builder default factory into `frontend/src/features/builder/components/emailCampaignBuilderDefaults.ts`.
@@ -106,9 +106,9 @@ tests/link-health.spec.ts
 Public route health › loads /accept-invitation/test-token
 ```
 
-- `cd e2e && CI=1 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test tests/link-health.spec.ts --project=chromium --grep "loads /accept-invitation/test-token"`
+- `cd e2e && CI=1 bash ../scripts/e2e-playwright.sh host ../node_modules/.bin/playwright test tests/link-health.spec.ts --project=chromium --grep "loads /accept-invitation/test-token"`
   - Result: Passed on 2026-04-21 after teaching the public invitation page to defer placeholder-token validation the same way the portal invite surface already did.
-- `cd e2e && CI=1 bash ../scripts/e2e-playwright.sh host --direct ./node_modules/.bin/playwright test --list --project=chromium --grep-invert "Dark Mode Accessibility Audit|Fresh workspace multi-user session"`
+- `cd e2e && CI=1 bash ../scripts/e2e-playwright.sh host --direct ../node_modules/.bin/playwright test --list --project=chromium --grep-invert "Dark Mode Accessibility Audit|Fresh workspace multi-user session"`
   - Result: Confirmed on 2026-04-21 that the Docker-only fresh-workspace MFA proof is now excluded from the host matrix.
 - `make test-e2e-docker-smoke`
   - Result: Passed on 2026-04-21 after explicitly purging partial containers and named volumes on smoke-stack startup failure.
@@ -117,7 +117,7 @@ Public route health › loads /accept-invitation/test-token
   - The proof still needs a separate fresh starter-only Docker project or a freshly reset starter volume.
 - `cd frontend && npm test -- --run src/test/ux/RouteUxSmoke.test.tsx`
   - Result: Passed on 2026-04-20 after updating the dashboard heading expectation to the current `Workbench` copy.
-- `cd e2e && bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium tests/publishing.spec.ts tests/public-website.spec.ts`
+- `cd e2e && bash ../scripts/e2e-playwright.sh host ../node_modules/.bin/playwright test --project=chromium tests/publishing.spec.ts tests/public-website.spec.ts`
   - Result: Passed on 2026-04-20. `4` tests green for the narrowed `P5-T4` website builder/forms/publishing/public-runtime loop after restoring `tests/publishing.spec.ts` and fixing same-host public-form CORS for published-site origins in host mode.
 - `cd e2e && npm run test:docker:ci`
   - Result: Not run because the command sequence stops at the failing `make ci-full` lane.
@@ -158,7 +158,7 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
   - Result: Passed on 2026-04-23 after the auth-alias operations handoff update.
 - `make test-e2e-docker-smoke`
   - Result: Passed on 2026-04-23 against an isolated smoke stack. `4` Chromium smoke/public-website tests passed.
-- `cd e2e && SKIP_WEBSERVER=1 BYPASS_MFA_FOR_TESTS=false BYPASS_REGISTRATION_POLICY_IN_TEST=true E2E_DB_NAME=nonprofit_manager ... ./node_modules/.bin/playwright test tests/fresh-workspace-multi-user.spec.ts --project=chromium`
+- `cd e2e && SKIP_WEBSERVER=1 BYPASS_MFA_FOR_TESTS=false BYPASS_REGISTRATION_POLICY_IN_TEST=true E2E_DB_NAME=nonprofit_manager ... ../node_modules/.bin/playwright test tests/fresh-workspace-multi-user.spec.ts --project=chromium`
   - Result: Passed on 2026-04-23 against a fresh starter-only Docker stack. This remains intentionally separate from `test:docker:ci`.
 - `cd e2e && E2E_BACKEND_PORT=18804 E2E_FRONTEND_PORT=18805 E2E_PUBLIC_SITE_PORT=18806 E2E_DB_PORT=18802 BASE_URL=http://127.0.0.1:18805 API_URL=http://127.0.0.1:18804 npm run test:docker -- tests/link-health.spec.ts --project=chromium --grep 'loads /outreach|loads /portal/cases/:id' --retries=0`
   - Result: Passed on 2026-04-23 after fixing the outreach key warning and allowing expected auth-bootstrap noise for the portal case-detail route-health assertion.
@@ -197,7 +197,7 @@ Authentication Flow › dashboard startup loads workbench summary endpoints with
   - Desktop Docker cross-browser matrix: `982` passed, `11` skipped in `51.3m`.
   - Mobile Chrome follow-on: `3` passed in `13.8s`.
   - Failure summary: no failing tests or product/runtime errors.
-  - Artifacts: [../../e2e/playwright-report/index.html](../../e2e/playwright-report/index.html), [../../e2e/test-results.json](../../e2e/test-results.json), and [../../e2e/test-results/.last-run.json](../../e2e/test-results/.last-run.json). The standard report/test-result files now reflect the Mobile Chrome follow-on because the wrapper runs that slice after the desktop matrix.
+  - Generated local artifacts: `e2e/playwright-report/index.html`, `e2e/test-results.json`, and `e2e/test-results/.last-run.json`. These files are ignored local Playwright outputs rather than durable repo evidence; the durable proof for this note is the dated command summary above. The standard report/test-result files now reflect the Mobile Chrome follow-on because the wrapper runs that slice after the desktop matrix.
   - Non-failure warnings: occupied Docker ports were accepted by the wrapper, and Node printed `NO_COLOR` / `FORCE_COLOR` warnings.
 
 ## Host Vs Docker Runtime Observations

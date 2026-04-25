@@ -1,4 +1,3 @@
-import ExcelJS from 'exceljs';
 import { ingestPreviewFromBuffer } from '../../../ingest/preview';
 import { schemaRegistry } from '../../../ingest/schemaRegistry';
 import type {
@@ -41,6 +40,8 @@ const CSV_MIME_TYPES = new Set([
 const EXCEL_MIME_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]);
+
+const loadExcelJs = async (): Promise<typeof import('exceljs')> => import('exceljs');
 
 const normalizeImportFormat = (
   originalName: string | undefined,
@@ -176,6 +177,7 @@ const parseExcelRows = async (
   hasHeader: boolean,
   sheetName?: string
 ): Promise<Array<Record<string, string | null>>> => {
+  const ExcelJS = await loadExcelJs();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
 

@@ -4,6 +4,7 @@
  */
 
 import { Pool } from 'pg';
+import pool from '@config/database';
 import { logger } from '@config/logger';
 import {
   buildTabularExport,
@@ -140,5 +141,7 @@ export class ReportService {
     };
   }
 }
+
+export const reportService = new ReportService(pool);
 
 export default ReportService;

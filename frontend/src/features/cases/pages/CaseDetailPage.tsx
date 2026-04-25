@@ -17,6 +17,8 @@ import CaseTeamChatPanel from '../../teamChat/components/CaseTeamChatPanel';
 import CaseDetailTabs from '../components/CaseDetailTabs';
 import CaseStatusChangeModal from '../components/CaseStatusChangeModal';
 import CaseFormsPanel from '../components/CaseFormsPanel';
+import CaseReassessmentPanel from '../components/CaseReassessmentPanel';
+import CasePortalEscalationsPanel from '../components/CasePortalEscalationsPanel';
 import { useCaseDetailPage } from '../hooks/useCaseDetailPage';
 
 const CaseDetail = () => {
@@ -717,7 +719,8 @@ const CaseDetail = () => {
 
           {activeTab === 'portal' && id && (
             <div id="panel-portal" role="tabpanel" aria-labelledby="tab-portal">
-              <BrutalCard color="white" className="p-6">
+              <BrutalCard color="white" className="space-y-6 p-6">
+                <CasePortalEscalationsPanel caseId={id} onChanged={refreshCaseArtifacts} />
                 <CasePortalConversations
                   caseId={id}
                   outcomeDefinitions={activeOutcomeDefinitions}
@@ -741,7 +744,19 @@ const CaseDetail = () => {
 
           {activeTab === 'followups' && id && (
             <div id="panel-followups" role="tabpanel" aria-labelledby="tab-followups">
-              <BrutalCard color="white" className="p-6">
+              <BrutalCard color="white" className="p-6 space-y-6">
+                <CaseReassessmentPanel
+                  caseId={id}
+                  defaultOwnerUserId={currentCase.assigned_to || null}
+                  defaultOwnerName={
+                    [currentCase.assigned_first_name, currentCase.assigned_last_name]
+                      .filter(Boolean)
+                      .join(' ')
+                      .trim() || currentCase.assigned_email || null
+                  }
+                  outcomeDefinitions={activeOutcomeDefinitions}
+                  onChanged={refreshCaseArtifacts}
+                />
                 <FollowUpList entityType="case" entityId={id} />
               </BrutalCard>
             </div>

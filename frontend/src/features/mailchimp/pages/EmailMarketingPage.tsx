@@ -721,6 +721,7 @@ export default function EmailMarketing() {
             lists={lists}
             segments={campaignSegments}
             savedAudiences={savedAudiences}
+            campaignRuns={campaignRuns}
             isCreatingCampaign={isCreatingCampaign}
             isSendingCampaign={isSendingCampaign}
             onClose={handleCloseCampaignModal}

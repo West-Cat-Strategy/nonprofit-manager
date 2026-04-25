@@ -1,6 +1,6 @@
 # Events API Reference (`/api/v2/events`)
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-25
 
 
 This document describes the current Events v2 contract, including registration check-in metadata, reminder automation, QR scan check-in, public kiosk check-in, and portal QR pass fields.
@@ -44,6 +44,18 @@ This document describes the current Events v2 contract, including registration c
 7. `DELETE /api/v2/events/:id`
 - Soft-cancels event.
 
+## Occurrence Endpoints
+
+1. `GET /api/v2/events/occurrences`
+- Query supports the current occurrence list filters used by the staff calendar and event workspace.
+
+2. `PATCH /api/v2/events/occurrences/:occurrenceId`
+- Updates a single occurrence by default.
+- The route also accepts the controller-supported occurrence update scope for future occurrences or the full series.
+
+3. `DELETE /api/v2/events/occurrences/:occurrenceId`
+- Cancels or removes the scoped occurrence target according to the current route/controller contract.
+
 ## Registration and Check-In Endpoints
 
 1. `GET /api/v2/events/:id/registrations`
@@ -83,6 +95,9 @@ This document describes the current Events v2 contract, including registration c
 - Creates or resolves contact, registers attendee if needed, and checks in immediately.
 
 13. `DELETE /api/v2/events/registrations/:id`
+
+14. `POST /api/v2/events/registrations/:id/confirmation-email/send`
+- Sends or resends the registration confirmation email through the current event confirmation service.
 
 ### Check-In Guardrails
 

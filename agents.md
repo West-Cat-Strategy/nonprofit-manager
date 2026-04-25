@@ -6,7 +6,7 @@ This page explains the three meanings of "agents" in this repo. It is an orienta
 
 **Document Role:** Orientation and terminology only.
 **Use This Page For:** Understanding what "agents" means in this repo and finding the correct canonical doc.
-**Go Elsewhere For:** Contributor workflow in [CONTRIBUTING.md](CONTRIBUTING.md), runtime setup and ports in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md), docs navigation in [docs/README.md](docs/README.md), live tracked work in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md), current phase sequencing in [docs/phases/PHASE_5_DEVELOPMENT_PLAN.md](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md), archived closeouts in [docs/phases/archive/README.md](docs/phases/archive/README.md), and audit or validation artifacts in [docs/validation/README.md](docs/validation/README.md).
+**Go Elsewhere For:** Contributor workflow in [CONTRIBUTING.md](CONTRIBUTING.md), runtime setup and ports in [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md), code and documentation conventions in [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md), docs navigation in [docs/README.md](docs/README.md), live tracked work in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md), current phase sequencing in [docs/phases/PHASE_5_DEVELOPMENT_PLAN.md](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md), archived closeouts in [docs/phases/archive/README.md](docs/phases/archive/README.md), and audit or validation artifacts in [docs/validation/README.md](docs/validation/README.md).
 
 1. Developer agents: AI assistants contributing code and docs under repo rules.
 2. Multi-agent coordination: the task workflow for parallel contributors.
@@ -87,6 +87,7 @@ Some services behave like automated delivery systems, but they are still ordinar
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [docs/README.md](docs/README.md)
 - [docs/development/GETTING_STARTED.md](docs/development/GETTING_STARTED.md)
+- [docs/development/CONVENTIONS.md](docs/development/CONVENTIONS.md)
 - [docs/development/AGENT_INSTRUCTIONS.md](docs/development/AGENT_INSTRUCTIONS.md)
 - [docs/development/SUBAGENT_MODULARIZATION_GUIDE.md](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md)
 - [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md)

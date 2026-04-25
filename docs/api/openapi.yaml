@@ -545,7 +545,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessEnvelope'
-  /v2/portal/stream:
+  /portal/stream:
     get:
       summary: Open client portal realtime stream (SSE)
       parameters:
@@ -574,7 +574,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
-  /v2/portal/messages/threads:
+  /portal/messages/threads:
     get:
       summary: List portal message threads
       parameters:
@@ -623,7 +623,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
-  /v2/portal/appointments:
+  /portal/appointments:
     get:
       summary: List portal appointments
       parameters:
@@ -888,7 +888,7 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
   /reports/templates:
     get:
-      summary: List report templates (legacy)
+      summary: List report templates
       security:
         - bearerAuth: []
       parameters:
@@ -911,32 +911,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
-  /v2/reports/templates:
-    get:
-      summary: List report templates (v2)
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: query
-          name: category
-          required: false
-          schema:
-            type: string
-            enum: [fundraising, engagement, operations, finance, compliance, custom]
-      responses:
-        '200':
-          description: Template list
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessEnvelope'
-        '400':
-          description: Validation error for malformed or unknown query parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-  /v2/tasks:
+  /tasks:
     get:
       summary: List tasks (v2)
       security:
@@ -1009,7 +984,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
-  /v2/volunteers:
+  /volunteers:
     get:
       summary: List volunteers (v2)
       security:
@@ -1070,7 +1045,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
-  /v2/cases/{id}/documents/{documentId}/download:
+  /cases/{id}/documents/{documentId}/download:
     get:
       summary: Download a case document (v2)
       security:

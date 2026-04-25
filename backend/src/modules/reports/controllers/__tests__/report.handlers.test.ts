@@ -1,13 +1,15 @@
 import { Response, NextFunction } from 'express';
 import * as reportController from '../report.handlers';
-import { services } from '@container/services';
 import { AuthRequest } from '@middleware/auth';
 import {
   requirePermissionSafe,
   sendForbidden,
   sendUnauthorized,
 } from '@services/authGuardService';
-import { DirectReportExportTooLargeError } from '@modules/reports/services/reportService';
+import {
+  DirectReportExportTooLargeError,
+  reportService,
+} from '@modules/reports/services/reportService';
 import { Permission } from '@utils/permissions';
 
 jest.mock('@utils/responseHelpers', () => ({
@@ -25,16 +27,27 @@ jest.mock('@services/authGuardService', () => ({
   sendUnauthorized: jest.fn(),
 }));
 
-jest.mock('@container/services', () => ({
-  services: {
-    report: {
+jest.mock('@modules/shared/export/tabularExport', () => ({
+  setTabularDownloadHeaders: jest.fn((res, file) => {
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+    res.setHeader('Content-Length', file.buffer.length.toString());
+  }),
+}));
+
+jest.mock('@modules/reports/services/reportService', () => {
+  class DirectReportExportTooLargeError extends Error {}
+
+  return {
+    DirectReportExportTooLargeError,
+    reportService: {
       assertDirectExportSupported: jest.fn(),
       generateReport: jest.fn(),
       getAvailableFields: jest.fn(),
       exportReport: jest.fn(),
     },
-  },
-}));
+  };
+});
 
 jest.mock('@services/reportExportJobService', () => ({
   ReportExportJobArtifactNotReadyError: class ReportExportJobArtifactNotReadyError extends Error {},
@@ -47,7 +60,7 @@ jest.mock('@services/reportExportJobService', () => ({
   },
 }));
 
-const mockReportService = services.report as jest.Mocked<typeof services.report>;
+const mockReportService = reportService as jest.Mocked<typeof reportService>;
 const mockRequirePermissionSafe = requirePermissionSafe as jest.Mock;
 const mockSendForbidden = sendForbidden as jest.Mock;
 const mockSendUnauthorized = sendUnauthorized as jest.Mock;

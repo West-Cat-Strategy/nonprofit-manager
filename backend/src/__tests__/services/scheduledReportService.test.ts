@@ -28,6 +28,13 @@ jest.mock('@services/emailService', () => ({
   sendMail: (...args: unknown[]) => sendMail(...args),
 }));
 
+jest.mock('@services/reportExportJobService', () => ({
+  ReportExportJobService: jest.fn().mockImplementation(() => ({
+    createAndProcessJob: jest.fn(),
+    readArtifact: jest.fn(),
+  })),
+}));
+
 const NOW = new Date('2026-04-22T12:34:56.000Z');
 const NOW_ISO = NOW.toISOString();
 

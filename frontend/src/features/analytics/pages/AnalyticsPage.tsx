@@ -3,8 +3,7 @@
  * Displays organization-wide analytics and reporting with charts
  */
 
-import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   EmptyState,
   ErrorState,
@@ -16,18 +15,8 @@ import {
   SectionCard,
 } from '../../../components/ui';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import {
-  fetchAnalyticsSummary,
-  fetchComparativeAnalytics,
-  fetchDonationTrends,
-  fetchEventAttendanceTrends,
-  fetchVolunteerHoursTrends,
-  setFilters,
-} from '../state';
 import {
   exportAnalyticsSummaryToCSV,
-  exportAnalyticsSummaryToPDF,
   exportConstituentOverviewToCSV,
   exportEngagementToCSV,
 } from '../../../utils/exportUtils';
@@ -41,7 +30,7 @@ import {
 } from './charts';
 import { ComparisonCard, MetricCard } from './metrics';
 import { formatCurrency, formatNumber } from './utils';
-import { parseAllowedValue } from '../../../utils/persistedFilters';
+import { useAnalyticsPageController } from '../hooks/useAnalyticsPageController';
 
 const getProgressWidthClass = (value: number): string => {
   if (value <= 0) return 'w-0';
@@ -55,7 +44,6 @@ const getProgressWidthClass = (value: number): string => {
   return 'w-full';
 };
 
-const COMPARISON_PERIOD_VALUES = ['month', 'quarter', 'year'] as const;
 const analyticsActionLinkClass =
   'inline-flex items-center justify-center rounded-[var(--ui-radius-sm)] border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-sm font-semibold text-[var(--app-text)] shadow-sm transition hover:bg-[var(--app-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2';
 const relatedWorkspaceLinkClass =
@@ -85,35 +73,7 @@ const relatedWorkspaceLinks = [
   },
 ];
 
-const normalizeDateParam = (value: string | null): string =>
-  value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
-
-const buildAnalyticsParams = ({
-  startDate,
-  endDate,
-  period,
-}: {
-  startDate: string;
-  endDate: string;
-  period: (typeof COMPARISON_PERIOD_VALUES)[number];
-}) => {
-  const params = new URLSearchParams();
-  if (startDate) {
-    params.set('start_date', startDate);
-  }
-  if (endDate) {
-    params.set('end_date', endDate);
-  }
-  if (period !== 'month') {
-    params.set('period', period);
-  }
-  return params;
-};
-
 export default function Analytics() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const dispatch = useAppDispatch();
   const {
     summary,
     summaryLoading,
@@ -124,119 +84,17 @@ export default function Analytics() {
     comparativeAnalytics,
     comparativeLoading,
     error,
-  } = useAppSelector((state) => state.analytics);
-
-  const appliedStartDate = normalizeDateParam(searchParams.get('start_date'));
-  const appliedEndDate = normalizeDateParam(searchParams.get('end_date'));
-  const comparisonPeriod =
-    parseAllowedValue(searchParams.get('period'), COMPARISON_PERIOD_VALUES) || 'month';
-  const [dateRange, setDateRange] = useState({
-    start_date: appliedStartDate,
-    end_date: appliedEndDate,
-  });
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
-  const [summaryPdfExporting, setSummaryPdfExporting] = useState(false);
-
-  useEffect(() => {
-    setDateRange((current) =>
-      current.start_date === appliedStartDate && current.end_date === appliedEndDate
-        ? current
-        : {
-            start_date: appliedStartDate,
-            end_date: appliedEndDate,
-          }
-    );
-  }, [appliedStartDate, appliedEndDate]);
-
-  useEffect(() => {
-    const sanitizedParams = buildAnalyticsParams({
-      startDate: appliedStartDate,
-      endDate: appliedEndDate,
-      period: comparisonPeriod,
-    });
-    const currentParams = searchParamsString;
-    const nextParams = sanitizedParams.toString();
-    if (currentParams !== nextParams) {
-      setSearchParams(sanitizedParams, { replace: true });
-    }
-  }, [appliedStartDate, appliedEndDate, comparisonPeriod, searchParamsString, setSearchParams]);
-
-  useEffect(() => {
-    dispatch(
-      setFilters({
-        start_date: appliedStartDate || undefined,
-        end_date: appliedEndDate || undefined,
-      })
-    );
-  }, [appliedEndDate, appliedStartDate, dispatch]);
-
-  useEffect(() => {
-    dispatch(
-      fetchAnalyticsSummary({
-        start_date: appliedStartDate || undefined,
-        end_date: appliedEndDate || undefined,
-      })
-    );
-    dispatch(fetchDonationTrends(12));
-    dispatch(fetchVolunteerHoursTrends(12));
-    dispatch(fetchEventAttendanceTrends(12));
-    dispatch(fetchComparativeAnalytics(comparisonPeriod));
-  }, [appliedEndDate, appliedStartDate, comparisonPeriod, dispatch]);
-
-  useEffect(() => {
-    if (!summary && !comparativeAnalytics) {
-      return;
-    }
-    if (summaryLoading || trendsLoading || comparativeLoading) {
-      return;
-    }
-    setLastUpdatedAt(new Date());
-  }, [summary, comparativeAnalytics, summaryLoading, trendsLoading, comparativeLoading]);
-
-  const handleApplyFilters = () => {
-    setSearchParams(
-      buildAnalyticsParams({
-        startDate: dateRange.start_date,
-        endDate: dateRange.end_date,
-        period: comparisonPeriod,
-      }),
-      { replace: true }
-    );
-  };
-
-  const handleClearFilters = () => {
-    setDateRange({ start_date: '', end_date: '' });
-    setSearchParams(
-      buildAnalyticsParams({
-        startDate: '',
-        endDate: '',
-        period: comparisonPeriod,
-      }),
-      { replace: true }
-    );
-  };
-
-  const handleComparisonChange = (nextPeriod: (typeof COMPARISON_PERIOD_VALUES)[number]) => {
-    setSearchParams(
-      buildAnalyticsParams({
-        startDate: appliedStartDate,
-        endDate: appliedEndDate,
-        period: nextPeriod,
-      }),
-      { replace: true }
-    );
-  };
-
-  const handleExportSummaryPdf = async () => {
-    if (!summary || summaryPdfExporting) return;
-
-    setSummaryPdfExporting(true);
-    try {
-      await exportAnalyticsSummaryToPDF(summary);
-    } finally {
-      setSummaryPdfExporting(false);
-    }
-  };
+    dateRange,
+    setDateRange,
+    lastUpdatedAt,
+    summaryPdfExporting,
+    comparisonPeriod,
+    handleApplyFilters,
+    handleClearFilters,
+    handleComparisonChange,
+    handleExportSummaryPdf,
+    refreshAnalytics,
+  } = useAnalyticsPageController();
 
   return (
     <NeoBrutalistLayout pageTitle="ANALYTICS">
@@ -340,18 +198,7 @@ export default function Analytics() {
         {!summaryLoading && error && (
           <ErrorState
             message={error}
-            onRetry={() => {
-              dispatch(
-                fetchAnalyticsSummary({
-                  start_date: appliedStartDate || undefined,
-                  end_date: appliedEndDate || undefined,
-                })
-              );
-              dispatch(fetchDonationTrends(12));
-              dispatch(fetchVolunteerHoursTrends(12));
-              dispatch(fetchEventAttendanceTrends(12));
-              dispatch(fetchComparativeAnalytics(comparisonPeriod));
-            }}
+            onRetry={refreshAnalytics}
             retryLabel="Retry analytics"
           />
         )}

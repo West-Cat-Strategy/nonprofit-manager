@@ -1,9 +1,11 @@
 import type { IngestPreviewResult, IngestSourceType } from './types';
 import { schemaRegistry } from './schemaRegistry';
 import { parseCsvToDataset } from './parsers/csv';
-import { parseExcelToDatasets } from './parsers/excel';
 import { parseSqlToDatasets } from './parsers/sql';
 import { suggestSchemaMatches } from './matcher';
+
+const loadExcelParser = async (): Promise<typeof import('./parsers/excel')> =>
+  import('./parsers/excel');
 
 function inferFormatFromFilename(filename: string | undefined): IngestSourceType | undefined {
   if (!filename) return undefined;
@@ -81,7 +83,9 @@ export async function ingestPreviewFromBuffer(params: {
 
   const datasets =
     format === 'excel'
-      ? await parseExcelToDatasets(params.buffer, { name, sheetName: params.sheetName })
+      ? await loadExcelParser().then(({ parseExcelToDatasets }) =>
+          parseExcelToDatasets(params.buffer, { name, sheetName: params.sheetName })
+        )
       : format === 'sql'
         ? parseSqlToDatasets(params.buffer.toString('utf8'), { name })
         : [parseCsvToDataset(params.buffer.toString('utf8'), { name })];

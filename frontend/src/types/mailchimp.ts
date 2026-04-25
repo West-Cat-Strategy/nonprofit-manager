@@ -188,6 +188,7 @@ export interface CreateCampaignRequest {
   sendTime?: string;
   includeAudienceId?: string;
   exclusionAudienceIds?: string[];
+  priorRunSuppressionIds?: string[];
   suppressionSnapshot?: unknown[];
   testRecipients?: string[];
   audienceSnapshot?: Record<string, unknown>;

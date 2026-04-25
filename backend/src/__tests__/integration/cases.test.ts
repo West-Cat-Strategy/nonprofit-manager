@@ -8,6 +8,7 @@ describe('Case API Integration Tests', () => {
   let userId = '';
   let organizationId = '';
   let caseTypeId = '';
+  let outcomeDefinitionId = '';
   const createdCaseIds: string[] = [];
   const createdContactIds: string[] = [];
   const unique = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -51,7 +52,15 @@ describe('Case API Integration Tests', () => {
       return;
     }
 
+    await pool.query('DELETE FROM case_reassessment_cycles WHERE case_id = ANY($1::uuid[])', [
+      createdCaseIds,
+    ]);
+    await pool.query(
+      "DELETE FROM follow_ups WHERE entity_type = 'case' AND entity_id = ANY($1::uuid[])",
+      [createdCaseIds]
+    );
     await pool.query('DELETE FROM case_notes WHERE case_id = ANY($1::uuid[])', [createdCaseIds]);
+    await pool.query('DELETE FROM case_outcomes WHERE case_id = ANY($1::uuid[])', [createdCaseIds]);
     await pool.query('DELETE FROM cases WHERE id = ANY($1::uuid[])', [createdCaseIds]);
     createdCaseIds.length = 0;
   };
@@ -221,6 +230,16 @@ describe('Case API Integration Tests', () => {
     );
     caseTypeId = caseTypeResult.rows[0]?.id || '';
     expect(caseTypeId).toBeTruthy();
+
+    const outcomeDefinitionResult = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM outcome_definitions
+       WHERE is_active = true
+       ORDER BY sort_order ASC, name ASC
+       LIMIT 1`
+    );
+    outcomeDefinitionId = outcomeDefinitionResult.rows[0]?.id || '';
+    expect(outcomeDefinitionId).toBeTruthy();
   });
 
   afterEach(async () => {
@@ -298,5 +317,227 @@ describe('Case API Integration Tests', () => {
 
   it('defaults omitted account_id to the active organization for contacts without org ownership', async () => {
     await expectCaseVisibleWithDefaultedOrgAccount();
+  });
+
+  it('creates, lists, and updates case reassessment cycles with linked follow-ups', async () => {
+    const contactId = await createContact(organizationId);
+    const createdCase = await createCaseWithoutAccount(
+      contactId,
+      `Reassessment lifecycle ${unique()}`
+    );
+
+    const createResponse = await withAuth(
+      request(app)
+        .post(`/api/v2/cases/${createdCase.id}/reassessments`)
+        .send({
+          title: 'Quarterly reassessment',
+          summary: 'Review housing stability and benefits status',
+          earliest_review_date: '2032-01-01',
+          due_date: '2032-01-15',
+          latest_review_date: '2032-01-31',
+          owner_user_id: userId,
+        })
+    ).expect(201);
+
+    const created = payloadFromResponse<{
+      id: string;
+      follow_up_id: string;
+      title: string;
+      due_date: string;
+    }>(createResponse.body);
+
+    expect(created.title).toBe('Quarterly reassessment');
+    expect(created.due_date).toBe('2032-01-15');
+    expect(created.follow_up_id).toBeTruthy();
+
+    const linkedFollowUp = await pool.query<{
+      title: string;
+      entity_type: string;
+      entity_id: string;
+      frequency: string;
+      scheduled_date: string;
+      assigned_to: string | null;
+    }>(
+      `SELECT title, entity_type, entity_id, frequency, scheduled_date::text AS scheduled_date, assigned_to
+       FROM follow_ups
+       WHERE id = $1`,
+      [created.follow_up_id]
+    );
+
+    expect(linkedFollowUp.rows[0]).toEqual(
+      expect.objectContaining({
+        title: 'Quarterly reassessment',
+        entity_type: 'case',
+        entity_id: createdCase.id,
+        frequency: 'once',
+        scheduled_date: '2032-01-15',
+        assigned_to: userId,
+      })
+    );
+
+    const listResponse = await withAuth(
+      request(app).get(`/api/v2/cases/${createdCase.id}/reassessments`)
+    ).expect(200);
+    const listed = payloadFromResponse<Array<{ id: string }>>(listResponse.body);
+    expect(listed.map((item) => item.id)).toContain(created.id);
+
+    const updateResponse = await withAuth(
+      request(app)
+        .patch(`/api/v2/cases/${createdCase.id}/reassessments/${created.id}`)
+        .send({
+          title: 'Updated reassessment',
+          status: 'in_progress',
+          due_date: '2032-02-01',
+          latest_review_date: '2032-02-15',
+          summary: null,
+        })
+    ).expect(200);
+
+    const updated = payloadFromResponse<{
+      title: string;
+      status: string;
+      due_date: string;
+      summary: string | null;
+    }>(updateResponse.body);
+    expect(updated).toEqual(
+      expect.objectContaining({
+        title: 'Updated reassessment',
+        status: 'in_progress',
+        due_date: '2032-02-01',
+        summary: null,
+      })
+    );
+  });
+
+  it('enforces reassessment organization scope and outcome-backed completion', async () => {
+    const contactId = await createContact(organizationId);
+    const createdCase = await createCaseWithoutAccount(
+      contactId,
+      `Reassessment completion ${unique()}`
+    );
+
+    const createResponse = await withAuth(
+      request(app)
+        .post(`/api/v2/cases/${createdCase.id}/reassessments`)
+        .send({
+          title: 'Benefits reassessment',
+          due_date: '2032-03-15',
+        })
+    ).expect(201);
+    const created = payloadFromResponse<{ id: string; follow_up_id: string }>(createResponse.body);
+
+    await request(app)
+      .get(`/api/v2/cases/${createdCase.id}/reassessments`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .set('X-Organization-Id', '11111111-1111-4111-8111-111111111111')
+      .expect(404);
+
+    const invalidCompletion = await withAuth(
+      request(app)
+        .post(`/api/v2/cases/${createdCase.id}/reassessments/${created.id}/complete`)
+        .send({
+          completion_summary: 'Reviewed without an outcome',
+        })
+    ).expect(400);
+    expect(invalidCompletion.body.error.message).toBe(
+      'Case reassessment completion requires at least one outcome definition'
+    );
+
+    const completeResponse = await withAuth(
+      request(app)
+        .post(`/api/v2/cases/${createdCase.id}/reassessments/${created.id}/complete`)
+        .send({
+          completion_summary: 'Reviewed stability plan and confirmed next check-in',
+          outcome_definition_ids: [outcomeDefinitionId],
+          outcome_visibility: false,
+          next_due_date: '2032-06-15',
+          next_title: 'Next reassessment',
+        })
+    ).expect(200);
+
+    const completed = payloadFromResponse<{
+      reassessment: { status: string; completion_summary: string | null };
+      next_reassessment: { id: string; follow_up_id: string; due_date: string } | null;
+    }>(completeResponse.body);
+
+    expect(completed.reassessment).toEqual(
+      expect.objectContaining({
+        status: 'completed',
+        completion_summary: 'Reviewed stability plan and confirmed next check-in',
+      })
+    );
+    expect(completed.next_reassessment).toEqual(
+      expect.objectContaining({
+        due_date: '2032-06-15',
+      })
+    );
+
+    const linkedFollowUp = await pool.query<{ status: string; completed_notes: string | null }>(
+      'SELECT status, completed_notes FROM follow_ups WHERE id = $1',
+      [created.follow_up_id]
+    );
+    expect(linkedFollowUp.rows[0]).toEqual(
+      expect.objectContaining({
+        status: 'completed',
+        completed_notes: 'Reviewed stability plan and confirmed next check-in',
+      })
+    );
+
+    const outcomeRows = await pool.query<{ id: string }>(
+      `SELECT id
+       FROM case_outcomes
+       WHERE case_id = $1
+         AND source_entity_id = $2`,
+      [createdCase.id, created.follow_up_id]
+    );
+    expect(outcomeRows.rowCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('cancels a case reassessment cycle and linked follow-up', async () => {
+    const contactId = await createContact(organizationId);
+    const createdCase = await createCaseWithoutAccount(
+      contactId,
+      `Reassessment cancel ${unique()}`
+    );
+
+    const createResponse = await withAuth(
+      request(app)
+        .post(`/api/v2/cases/${createdCase.id}/reassessments`)
+        .send({
+          title: 'Closure review',
+          due_date: '2032-04-15',
+        })
+    ).expect(201);
+    const created = payloadFromResponse<{ id: string; follow_up_id: string }>(createResponse.body);
+
+    const cancelResponse = await withAuth(
+      request(app)
+        .post(`/api/v2/cases/${createdCase.id}/reassessments/${created.id}/cancel`)
+        .send({
+          cancellation_reason: 'Case closed before review window',
+        })
+    ).expect(200);
+
+    const cancelled = payloadFromResponse<{
+      status: string;
+      cancellation_reason: string | null;
+    }>(cancelResponse.body);
+    expect(cancelled).toEqual(
+      expect.objectContaining({
+        status: 'cancelled',
+        cancellation_reason: 'Case closed before review window',
+      })
+    );
+
+    const linkedFollowUp = await pool.query<{ status: string; completed_notes: string | null }>(
+      'SELECT status, completed_notes FROM follow_ups WHERE id = $1',
+      [created.follow_up_id]
+    );
+    expect(linkedFollowUp.rows[0]).toEqual(
+      expect.objectContaining({
+        status: 'cancelled',
+        completed_notes: 'Case closed before review window',
+      })
+    );
   });
 });

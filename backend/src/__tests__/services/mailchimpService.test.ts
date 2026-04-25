@@ -951,11 +951,236 @@ describe('MailchimpService', () => {
       expect(JSON.parse(finalizeRunCall?.[1][11])).toEqual(
         expect.objectContaining({
           requestedContactCount: 2,
+          targetContactCount: 2,
           syncedContactCount: 2,
           providerSegmentMemberCount: 2,
         })
       );
-      expect(JSON.parse(finalizeRunCall?.[1][8])).not.toHaveProperty('requestedContactIds');
+      expect(JSON.parse(finalizeRunCall?.[1][8])).toEqual(
+        expect.objectContaining({
+          targetContactIds: [contactOneId, contactTwoId],
+        })
+      );
+    });
+
+    it('suppresses contacts from a prior run target snapshot', async () => {
+      const suppressedOneId = '11111111-1111-4111-8111-111111111111';
+      const suppressedTwoId = '22222222-2222-4222-8222-222222222222';
+      const targetId = '33333333-3333-4333-8333-333333333333';
+      const accountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      const priorRunId = '44444444-4444-4444-8444-444444444444';
+
+      (mockMailchimp.lists.getListMember as jest.Mock).mockRejectedValue(
+        Object.assign(new Error('Not found'), { status: 404 })
+      );
+      (mockMailchimp.lists.setListMember as jest.Mock).mockResolvedValue({
+        id: 'member-carol',
+        email_address: 'carol@example.org',
+        status: 'subscribed',
+        merge_fields: {},
+        tags: [],
+        list_id: 'list-123',
+        timestamp_signup: '2024-01-15T10:00:00Z',
+        last_changed: '2024-01-15T10:00:00Z',
+      });
+      (mockMailchimp.lists.createSegment as jest.Mock).mockResolvedValue({
+        id: 790,
+        name: 'NPM Prior Suppression Campaign',
+        member_count: 0,
+        list_id: 'list-123',
+        created_at: '2024-01-15T10:00:00Z',
+        updated_at: '2024-01-15T10:00:00Z',
+      });
+      (mockMailchimp.lists.batchSegmentMembers as jest.Mock).mockResolvedValue({
+        total_added: 1,
+      });
+      (mockMailchimp.campaigns.create as jest.Mock).mockResolvedValue({
+        id: 'campaign-456',
+        create_time: '2024-01-15T10:00:00Z',
+      });
+      (mockMailchimp.campaigns.setContent as jest.Mock).mockResolvedValue({});
+
+      (mockPool.query as jest.Mock).mockImplementation((sql: string, params: unknown[]) => {
+        if (sql.includes('INSERT INTO campaign_runs')) {
+          return Promise.resolve({
+            rows: [
+              {
+                id: 'run-2',
+                provider: 'mailchimp',
+                provider_campaign_id: null,
+                title: 'Prior Suppression Campaign',
+                list_id: 'list-123',
+                include_audience_id: 'audience-1',
+                exclusion_audience_ids: [],
+                suppression_snapshot: [],
+                test_recipients: [],
+                audience_snapshot: {},
+                requested_send_time: null,
+                status: 'draft',
+                counts: {},
+                scope_account_ids: [accountId],
+                failure_message: null,
+                requested_by: null,
+                created_at: new Date('2024-01-15T10:00:00Z'),
+                updated_at: new Date('2024-01-15T10:00:00Z'),
+              },
+            ],
+          });
+        }
+
+        if (sql.includes('FROM saved_audiences')) {
+          return Promise.resolve({
+            rows: [
+              {
+                id: 'audience-1',
+                name: 'Spring Donors',
+                description: null,
+                filters: {
+                  source: 'communications_selected_contacts',
+                  contactIds: [suppressedOneId, suppressedTwoId, targetId],
+                  listId: 'list-123',
+                },
+                source_count: 3,
+                scope_account_ids: [accountId],
+                status: 'active',
+                created_at: new Date('2024-01-15T10:00:00Z'),
+                updated_at: new Date('2024-01-15T10:00:00Z'),
+                created_by: 'user-1',
+              },
+            ],
+          });
+        }
+
+        if (sql.includes('SELECT id, account_id')) {
+          return Promise.resolve({
+            rows: [
+              { id: suppressedOneId, account_id: accountId },
+              { id: suppressedTwoId, account_id: accountId },
+              { id: targetId, account_id: accountId },
+            ],
+          });
+        }
+
+        if (sql.includes('FROM campaign_runs') && sql.includes('id = ANY')) {
+          expect(params[0]).toEqual([priorRunId]);
+          return Promise.resolve({
+            rows: [
+              {
+                id: priorRunId,
+                provider: 'mailchimp',
+                provider_campaign_id: 'campaign-prior',
+                title: 'Already Mailed',
+                list_id: 'list-123',
+                include_audience_id: 'audience-old',
+                exclusion_audience_ids: [],
+                suppression_snapshot: [],
+                test_recipients: [],
+                audience_snapshot: {
+                  targetContactIds: [suppressedOneId, suppressedTwoId],
+                },
+                requested_send_time: null,
+                status: 'sent',
+                counts: { targetContactCount: 2 },
+                scope_account_ids: [accountId],
+                failure_message: null,
+                requested_by: null,
+                created_at: new Date('2024-01-10T10:00:00Z'),
+                updated_at: new Date('2024-01-10T10:00:00Z'),
+              },
+            ],
+          });
+        }
+
+        if (sql.includes('FROM contacts WHERE id = $1')) {
+          expect(params).toEqual([targetId]);
+          return Promise.resolve({
+            rows: [
+              {
+                contact_id: targetId,
+                account_id: accountId,
+                first_name: 'Carol',
+                last_name: 'Shaw',
+                email: 'carol@example.org',
+                do_not_email: false,
+              },
+            ],
+          });
+        }
+
+        if (sql.includes('UPDATE campaign_runs')) {
+          return Promise.resolve({
+            rows: [
+              {
+                id: 'run-2',
+                provider: 'mailchimp',
+                provider_campaign_id: 'campaign-456',
+                title: 'Prior Suppression Campaign',
+                list_id: 'list-123',
+                include_audience_id: 'audience-1',
+                exclusion_audience_ids: [],
+                suppression_snapshot: JSON.parse(params[6] as string),
+                test_recipients: [],
+                audience_snapshot: JSON.parse(params[8] as string),
+                requested_send_time: null,
+                status: 'draft',
+                counts: JSON.parse(params[11] as string),
+                scope_account_ids: [accountId],
+                failure_message: null,
+                requested_by: null,
+                created_at: new Date('2024-01-15T10:00:00Z'),
+                updated_at: new Date('2024-01-15T10:00:00Z'),
+              },
+            ],
+          });
+        }
+
+        return Promise.resolve({ rows: [] });
+      });
+
+      await mailchimpService.createCampaign({
+        listId: 'list-123',
+        includeAudienceId: 'audience-1',
+        priorRunSuppressionIds: [priorRunId],
+        title: 'Prior Suppression Campaign',
+        subject: 'Prior Suppression Campaign',
+        fromName: 'Community Org',
+        replyTo: 'hello@example.org',
+        htmlContent: '<p>Hello</p>',
+      });
+
+      expect(mockMailchimp.lists.batchSegmentMembers).toHaveBeenCalledWith(
+        {
+          members_to_add: ['carol@example.org'],
+          members_to_remove: [],
+        },
+        'list-123',
+        790
+      );
+
+      const finalizeRunCall = (mockPool.query as jest.Mock).mock.calls.find(
+        ([sql]) => typeof sql === 'string' && sql.includes('UPDATE campaign_runs')
+      );
+      expect(JSON.parse(finalizeRunCall?.[1][6])).toEqual([
+        expect.objectContaining({
+          type: 'prior_campaign_run',
+          id: priorRunId,
+          targetContactCount: 2,
+        }),
+      ]);
+      expect(JSON.parse(finalizeRunCall?.[1][8])).toEqual(
+        expect.objectContaining({
+          targetContactIds: [targetId],
+          priorRunSuppressionIds: [priorRunId],
+        })
+      );
+      expect(JSON.parse(finalizeRunCall?.[1][11])).toEqual(
+        expect.objectContaining({
+          suppressionSourceCount: 2,
+          priorRunSuppressionCount: 1,
+          requestedContactCount: 1,
+          targetContactCount: 1,
+        })
+      );
     });
 
     it('rejects saved-audience targeting when a provider segment is also selected', async () => {
@@ -973,6 +1198,38 @@ describe('MailchimpService', () => {
       ).rejects.toThrow('Choose either a provider segment or a saved audience, not both');
 
       expect(mockMailchimp.campaigns.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('recordCampaignLifecycleWebhook', () => {
+    it('updates local run lifecycle summary when a campaign webhook includes a provider id', async () => {
+      (mockPool.query as jest.Mock).mockResolvedValue({ rowCount: 1 });
+
+      await expect(
+        mailchimpService.recordCampaignLifecycleWebhook({
+          type: 'campaign',
+          firedAt: new Date('2026-04-25T12:00:00Z'),
+          data: {
+            id: 'campaign-123',
+            listId: 'list-123',
+            status: 'sent',
+          },
+        })
+      ).resolves.toBe(true);
+
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining("'{providerLifecycle}'"),
+        [
+          'campaign-123',
+          'sent',
+          JSON.stringify({
+            lastWebhookType: 'campaign',
+            lastWebhookAction: null,
+            lastWebhookStatus: 'sent',
+            lastWebhookAt: '2026-04-25T12:00:00.000Z',
+          }),
+        ]
+      );
     });
   });
 

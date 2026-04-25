@@ -10,10 +10,10 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 12 |
-| In Progress | 2 |
+| Active rows | 14 |
+| In Progress | 3 |
 | Blocked | 0 |
-| Review | 10 |
+| Review | 11 |
 | Ready | 0 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
@@ -43,6 +43,7 @@ Maintenance rules:
 |---|---|---|---|
 | In Progress | P5-T3 | Email platform wave: blast email plus email builder/formatter | Continue the reference-repo `borrow now` email slice inside the existing Mailchimp/communications seams: saved audiences target run-specific provider static segments, campaign-run history records local/provider lifecycle metadata, and donor-profile receipt defaults stay narrow and overrideable. Keep this scoped to `/api/v2/mailchimp/*`, `/settings/communications`, and receipt defaulting; typed appeals, restrictions, donation batches, memberships, and broader campaign ROI remain queued behind separate scoped rows. |
 | In Progress | P5-T5 | Client portal wave | The first portal forms slice remains green in targeted backend/frontend/docs/E2E proof, and case-aware appointments continuity is now green in focused Chromium browser proof. Continue the reference-repo portal carry-over in sequence: shared public-intake resolution (`PAT-04`) with best-effort audit writes, server-backed queue view definitions (`PAT-05`) with owner/surface/permission limits, and case-scoped typed portal review requests (`PAT-06`) with portal/staff actor attribution, without widening beyond current portal, public intake, and case seams. |
+| In Progress | P5-T6C1 | Case reassessment cadence runtime slice | Implement the first scoped `P5-T6C` runtime pickup: case-scoped reassessment cycles backed by explicit `case_reassessment_cycles` records and linked one-time follow-ups. Keep the slice inside existing case and follow-up surfaces; no generic workflow studio, portal routing change, offline sync, referral engine, service-site routing, field packet, or broader case-plan system is in scope. |
 
 ### Review Queue
 
@@ -58,11 +59,14 @@ Maintenance rules:
 | Review | P5-T6B | Fundraising stewardship and restrictions brief | Use [P5-T6B_FUNDRAISING_STEWARDSHIP_RESTRICTIONS_BRIEF_2026-04-25.md](P5-T6B_FUNDRAISING_STEWARDSHIP_RESTRICTIONS_BRIEF_2026-04-25.md) as the planning artifact for saved audiences, campaign-run history, donor-profile defaults, typed appeal boundaries, and later fund-designation policy. Keep provider static segments run-specific, donor-profile receipt defaults overrideable, and typed appeals, restrictions, donation batches, memberships, and broader campaign ROI queued behind separate scoped rows. |
 | Review | P5-T6C | Service-delivery workflow depth brief | Use [P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md](P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md) as the planning artifact for reassessment cadence, structured handoff packets, closure continuity, rehab planning artifacts, and authorization/referral depth. Keep runtime implementation blocked until a future scoped row is signed out. |
 | Review | P5-T6D | Volunteer assignment dispatch radar | The signed-out Operation Signal Bridge `dispatch-radar` slice is landed in targeted frontend proof: assignment event/task references now use active pickers backed by existing event/task clients, planned and active events plus non-terminal tasks are available, and the saved assignment payload still submits `event_id` or `task_id`. Keep `campaign-control` behind the `P5-T3` handoff and `clearwater` behind the `P5-T5` handoff. |
+| Review | P5-T7 | Cross-surface modularization hardening | The behavior-preserving modularization wave is landed in focused proof: social-media scheduler/service ownership moved under the module with root shim compatibility, webhook/API-key tests now target module-owned services, saved-report implementation moved under `modules/savedReports`, builder/editor/template implementations moved under the builder feature with global shims, and analytics/finance/dashboard orchestration moved into feature-local hooks. Keep route/catalog/root-store/API behavior unchanged and leave full raw `reportService.test.ts` rerun blocked by the existing ExcelJS/uuid Jest transform issue. |
 
 ### Ready Next
 
 - Keep `P5-T2D` in review against the green frontend persona-proof slice; any future browser-only drift returns to validation/runtime ownership rather than persona reclassification.
 - Keep `P5-T6A` in review against its published governance/compliance brief, keep `P5-T6B` in review against its published fundraising stewardship/restrictions brief, and keep `P5-T6C` in review against its published service-delivery workflow depth brief.
+- Use `P5-T6C1` as the signed-out runtime row for case reassessment cadence only; later handoff packets, closure continuity, authorization/referral depth, service plans, and service-site references still need separate scoped rows.
+- Keep `P5-T7` in review against focused backend/frontend proof and boundary checks; any future shim removal must stay lead-owned and preserve current `/api/v2`, route-catalog, root-store, auth/workspace-module, and browser URL contracts.
 - Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; `P5-T6D` is the only signed-out runtime pickup from that packet, and broader runtime rows still need their own signout.
 
 ## Current Phase Shape
@@ -75,8 +79,9 @@ Maintenance rules:
 - Product execution then centers on blast email plus the email builder/formatter, website builder plus public website, and the client portal.
 - The first `P5-T5` portal forms inbox slice is now green in targeted backend/frontend/docs/E2E proof, and the next named portal slice, case-aware appointments continuity, is now green in focused Chromium browser proof; the current portal pickup follows the reference-repo sequence: public-intake resolution (`PAT-04`) with best-effort audit behavior, queue view definitions (`PAT-05`) with owner/surface/permission limits, then case-scoped typed portal review requests (`PAT-06`) with portal/staff actor attribution before widening again.
 - Follow-on backlog from repo review and external benchmarking now has a published capability-brief packet in [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md). The repo-by-repo OSS benchmark review wave is complete, the five analysis-only lanes now keep `borrow now`, `queue for P5-T6`, and `reject` outcomes explicit, `P5-T6A` has a governance/compliance oversight brief in review, `P5-T6B` has a fundraising stewardship/restrictions brief in review, and `P5-T6C` has a service-delivery workflow depth brief in review.
-- `P5-T3` and `P5-T5` remain the active runtime waves, while `P5-T6` now sits in `Review` as the planning packet feeding `P5-T6A`, `P5-T6B`, and `P5-T6C`; `P5-T6D` is the narrow volunteer-dispatch carry-over in `Review`, and later typed-domain runtime rows still need separate signout.
-- The current hardening migrations `103` through `107` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, and donor profiles; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
+- `P5-T3` and `P5-T5` remain the active runtime waves, while `P5-T6` now sits in `Review` as the planning packet feeding `P5-T6A`, `P5-T6B`, and `P5-T6C`; `P5-T6C1` is the signed-out case reassessment cadence runtime slice, `P5-T6D` is the narrow volunteer-dispatch carry-over in `Review`, and later typed-domain runtime rows still need separate signout.
+- `P5-T7` is now in review: the signed-out modularization lanes moved internal ownership boundaries while preserving shared route registrars, route catalogs, root store wiring, auth/permission policy, frontend API clients, and browser contracts. Worker imports now point at module-owned scheduler services through the lead-owned seam, while compatibility shims remain for shared callers.
+- The current hardening and reassessment migrations `103` through `108` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, donor profiles, and case reassessment cycles; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
 
 ## Coordination
 
@@ -156,6 +161,82 @@ Maintenance rules:
   Frontend lanes: `dispatch-radar`
   Other lanes: none
   Integration owner: Codex
+- Coordinated exception, 2026-04-25: `P5-T6C1` is split into backend and frontend runtime lanes while shared workboard/docs and final verification stay lead-owned.
+  Lead: Codex
+  Backend lanes: `backend-reassessment-cycle`
+  Frontend lanes: `frontend-reassessment-panel`
+  Other lanes: none
+  Integration owner: Codex
+- Lane: `backend-reassessment-cycle`
+  Goal: add explicit case reassessment-cycle records linked to one-time case follow-ups, with list/create/update/complete/cancel case endpoints and focused backend proof
+  Owned paths: `database/migrations/108_case_reassessment_cycles.sql`, `database/migrations/manifest.tsv`, `backend/src/modules/cases/**`, `backend/src/types/case.ts`, `backend/src/__tests__/integration/cases.test.ts`, `backend/src/__tests__/integration/followUps.test.ts`
+  Forbidden shared paths: `frontend/src/**`, `docs/phases/planning-and-progress.md`, `backend/src/routes/v2/index.ts`
+  Expected tests: `cd backend && npm test -- --runInBand src/__tests__/integration/followUps.test.ts src/__tests__/integration/cases.test.ts`, `cd backend && npm run type-check`, and `make db-verify` when the migration/manifest changes
+  Handoff notes: summarize reassessment status transitions, linked follow-up behavior, outcome requirements, and next-cycle creation boundaries
+  Docs ownership: lead
+  Disposition: `In Progress`
+- Lane: `frontend-reassessment-panel`
+  Goal: expose the case reassessment cadence inside the existing case detail Follow-ups tab above the generic follow-up list, without adding routes or portal surfaces
+  Owned paths: `frontend/src/features/cases/**`, `frontend/src/types/case.ts`, `frontend/src/features/cases/pages/__tests__/CaseDetailTabs.test.tsx`
+  Forbidden shared paths: `backend/src/**`, `docs/phases/planning-and-progress.md`, `frontend/src/routes/**`
+  Expected tests: `cd frontend && npm test -- --run src/features/cases/pages/__tests__/CaseDetailTabs.test.tsx src/features/followUps/pages/__tests__/FollowUpsPage.test.tsx` plus `cd frontend && npm run type-check`
+  Handoff notes: summarize visible cadence states, form behavior, linked follow-up assumptions, and any backend contract dependency
+  Docs ownership: lead
+  Disposition: `In Progress`
+- Coordinated exception, 2026-04-25: `P5-T7` is split across backend and frontend modularization lanes while shared route/store/catalog/workboard/runtime seams stay lead-owned.
+  Lead: Codex
+  Backend lanes: `backend-social-media-boundary`, `backend-webhooks-boundary`, `backend-reports-family-boundary`
+  Frontend lanes: `frontend-publishing-builder-boundary`, `frontend-insights-finance-boundary`
+  Other lanes: `lead-integration`
+  Integration owner: Codex
+- Lane: `backend-social-media-boundary`
+  Goal: finish social-media domain isolation, including scheduler-adjacent service cleanup, without changing route behavior
+  Owned paths: `backend/src/modules/socialMedia/**`, `backend/src/services/socialMediaSyncSchedulerService.ts`, social-media backend tests
+  Forbidden shared paths: `backend/src/routes/v2/index.ts`, `backend/src/worker.ts`, auth/policy helpers, `docs/phases/planning-and-progress.md`
+  Expected tests: social-media module tests, social-media integration test, and `cd backend && npm run type-check`
+  Handoff notes: summarize scheduler assumptions, import changes, and any lead-owned worker follow-up
+  Docs ownership: lead
+  Disposition: `Review`
+- Lane: `backend-webhooks-boundary`
+  Goal: move webhook and API-key behavior behind module-owned services while leaving worker startup and compatibility exports lead-owned
+  Owned paths: `backend/src/modules/webhooks/**`, webhook/API-key service tests
+  Forbidden shared paths: `backend/src/worker.ts`, `backend/src/routes/v2/index.ts`, root compatibility exports unless lead-approved, `docs/phases/planning-and-progress.md`
+  Expected tests: webhook integration/service tests, API-key service tests, module-boundary policy check, and `cd backend && npm run type-check`
+  Handoff notes: summarize retry/runtime behavior, compatibility exports still needed, and any worker follow-up
+  Docs ownership: lead
+  Disposition: `Review`
+- Lane: `backend-reports-family-boundary`
+  Goal: consolidate reports, saved reports, and scheduled reports around module-owned services/usecases while preserving scheduler and public-report behavior
+  Owned paths: `backend/src/modules/reports/**`, `backend/src/modules/savedReports/**`, `backend/src/modules/scheduledReports/**`, related report tests
+  Forbidden shared paths: `backend/src/worker.ts`, `backend/src/routes/v2/index.ts`, public report snapshot services unless lead-approved, `docs/phases/planning-and-progress.md`
+  Expected tests: report, saved-report, and scheduled-report focused tests plus `cd backend && npm run type-check`
+  Handoff notes: summarize scheduler/public-report assumptions and any compatibility shims still required
+  Docs ownership: lead
+  Disposition: `Review`
+- Lane: `frontend-publishing-builder-boundary`
+  Goal: reduce global editor/template leakage by moving publishing-owned UI logic toward websites/builder feature ownership
+  Owned paths: `frontend/src/features/websites/**`, `frontend/src/features/builder/**`, `frontend/src/components/editor/**`, `frontend/src/components/templates/**`, `frontend/src/types/websiteBuilder.ts`
+  Forbidden shared paths: `frontend/src/routes/**`, `frontend/src/routes/routeCatalog/**`, shared API clients, `docs/phases/planning-and-progress.md`
+  Expected tests: websites, builder, and editor Vitest suites plus `cd frontend && npm run type-check`
+  Handoff notes: summarize moved ownership, preview/editor behavior covered, and any route/catalog follow-up
+  Docs ownership: lead
+  Disposition: `Review`
+- Lane: `frontend-insights-finance-boundary`
+  Goal: split large analytics, reports, finance, grants, dashboard, outcomes, and alerts surfaces into feature-local controllers/hooks/components
+  Owned paths: `frontend/src/features/reports/**`, `frontend/src/features/savedReports/**`, `frontend/src/features/scheduledReports/**`, `frontend/src/features/analytics/**`, `frontend/src/features/dashboard/**`, `frontend/src/features/finance/**`, `frontend/src/features/grants/**`, `frontend/src/features/outcomes/**`, `frontend/src/features/alerts/**`
+  Forbidden shared paths: `frontend/src/routes/**`, `frontend/src/routes/routeCatalog/**`, `frontend/src/store/index.ts`, shared navigation, `docs/phases/planning-and-progress.md`
+  Expected tests: focused feature Vitest suites plus `cd frontend && npm run type-check`
+  Handoff notes: summarize extracted controllers/hooks/components, route/store assumptions, and any lead-owned integration follow-up
+  Docs ownership: lead
+  Disposition: `Review`
+- Lane: `lead-integration`
+  Goal: own workboard, route/store/catalog seams, compatibility-shim removal order, and final validation
+  Owned paths: `docs/phases/planning-and-progress.md`, `backend/src/routes/v2/index.ts`, `backend/src/index.ts`, `backend/src/worker.ts`, `frontend/src/routes/**`, `frontend/src/routes/routeCatalog/**`, `frontend/src/store/index.ts`, shared auth/permission helpers, shared frontend API clients
+  Forbidden shared paths: lane-owned module and feature paths unless integrating returned work
+  Expected tests: route/catalog tests, root lint/typecheck/test pass, and selected E2E proof only if route or browser behavior changed
+  Handoff notes: record compatibility-shim disposition, skipped broad proof rationale, and final validation commands
+  Docs ownership: lead
+  Disposition: `Review`
 - Lane: `dispatch-radar`
   Goal: replace raw volunteer assignment event/task UUID entry with searchable active event/task pickers while preserving the existing assignment contract
   Owned paths: `frontend/src/components/AssignmentForm.tsx`, `frontend/src/components/__tests__/AssignmentForm.test.tsx`, `frontend/src/features/volunteers/pages/VolunteerDetailPage.tsx`, `frontend/src/features/volunteers/api/volunteersApiClient.ts`, `frontend/src/features/tasks/api/tasksApiClient.ts`, `frontend/src/features/events/api/eventsApiClient.ts`
@@ -360,4 +441,5 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | P5-T6A | Governance and compliance oversight brief | Review | Codex | The governance/compliance oversight brief is published. Keep board-only posture, governance-risk escalation, board packet workflow, compliance-document retention, and corrective-action tracking planning-only while annual filing and legal review remain explicitly `external only`; runtime implementation still needs a new scoped row before work starts. | [P5-T6A_GOVERNANCE_COMPLIANCE_BRIEF_2026-04-24.md](P5-T6A_GOVERNANCE_COMPLIANCE_BRIEF_2026-04-24.md), [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) |
 | P5-T6B | Fundraising stewardship and restrictions brief | Review | Codex | The fundraising stewardship and restrictions brief is published. Keep saved audiences and campaign-run history tied to the live Mailchimp seam through run-specific provider static segments, keep donor-profile defaults narrow and overrideable, and leave typed appeals, restrictions, donation batches, memberships, and broader fundraising runtime work queued behind separate scoped rows. | [P5-T6B_FUNDRAISING_STEWARDSHIP_RESTRICTIONS_BRIEF_2026-04-25.md](P5-T6B_FUNDRAISING_STEWARDSHIP_RESTRICTIONS_BRIEF_2026-04-25.md), [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) |
 | P5-T6C | Service-delivery workflow depth brief | Review | Codex | The service-delivery workflow depth brief is published. Keep reassessment cadence, structured handoff packets, closure continuity, rehab planning artifacts, and authorization/referral depth planning-only while runtime implementation remains blocked until a future scoped row is signed out. | [P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md](P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md), [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md](../validation/PERSONA_UI_UX_WORKFLOW_AUDIT_2026-04-22.md) |
+| P5-T6C1 | Case reassessment cadence runtime slice | In Progress | Codex | Implement the first scoped `P5-T6C` runtime pickup: case-scoped reassessment cycles backed by explicit `case_reassessment_cycles` records and linked one-time follow-ups. Keep the slice inside existing case and follow-up surfaces; no generic workflow studio, portal routing change, offline sync, referral engine, service-site routing, field packet, or broader case-plan system is in scope. | [P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md](P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md), [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) |
 | P5-T6D | Volunteer assignment dispatch radar | Review | Codex | The `dispatch-radar` slice is landed in targeted frontend proof: assignment event/task references use existing event/task clients, planned and active events plus non-terminal tasks are available to staff, and create/update payloads still submit the existing `event_id` or `task_id` fields. | [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md](../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md) |

@@ -17,7 +17,7 @@ import {
   PropertyPanel,
   EditorHeader,
   PageList,
-} from '../../../components/editor';
+} from '../components/editor';
 import TemplateSettingsDialog from '../components/TemplateSettingsDialog';
 import {
   getBuilderBackLabel,

@@ -37,6 +37,16 @@ The second-pass subagent review merged three reference lanes into one ranked opp
 
 This synthesis does not promote queued work into implementation. It keeps the current runtime pickup limited to active `P5-T3` and `P5-T5` seams while using the larger reference set to sharpen future `P5-T6B`, `P5-T6C`, and finance/event rows.
 
+## Second-Pass Queue Additions
+
+The final reference-review pass adds named future records without changing the active interface boundary:
+
+| Area | Future typed records | Source pressure | Disposition |
+|---|---|---|---|
+| Fundraising stewardship | `communication_suppression_policy`, `contact_dnc_reason`, `pledge_schedule`, `donation_soft_credit`, `in_kind_receipt_policy` | Mautic fatigue/DNC rules, CiviCRM pledges and soft credits, OCA/GiveWP receipt eligibility | Queue behind `P5-T6B`; do not widen current saved-audience, campaign-run, or donor-default work |
+| Service delivery | `case_reassessment_cycle`, `case_plan_intervention`, `referral_transfer_status`, `closure_readiness_evidence`, `field_case_packet` | Avni encounter/checklist cadence, Primero plans/referrals/closure forms, CommCare/Sahana field packets | Queue behind `P5-T6C`; reject offline sync and generic action engines |
+| Events and finance | `event_check_in_policy`, `event_order_snapshot`, `public_finance_snapshot`, `contribution_timeline_entry` | pretix check-in/order snapshots and Open Collective budget/contribution timelines | Queue behind separate events/finance rows; do not claim public ledger, fiscal-host, or paid-event parity |
+
 ## Interface Boundaries
 
 - Live `P5-T3` interfaces stay on existing Mailchimp, contact, donation, receipt, and reporting seams.

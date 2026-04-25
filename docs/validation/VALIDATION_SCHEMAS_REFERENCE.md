@@ -1,14 +1,14 @@
-# Validation Schemas - Complete Reference
+# Validation Schemas Reference
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-25
 
 
 **Location**: `backend/src/validations/`  
-**Framework**: Zod v3.22.4  
-**Validation File Inventory**: 14 top-level files as of 2026-04-18
-**Status**: Reference snapshot; verify on-disk exports for live coverage
+**Framework**: Zod v4.x (`backend/package.json` currently pins `zod ^4.3.6`)
+**Validation File Inventory**: 14 top-level files as of 2026-04-25
+**Status**: Reference snapshot; verify on-disk exports and route-local schemas for live coverage
 
-Use `backend/src/validations/index.ts` and the current directory contents as the source of truth for active validation coverage. Some newer validation surfaces may have been added after the original version of this document.
+Use the current directory contents plus route-local schemas as the source of truth for active validation coverage. There is no top-level `backend/src/validations/index.ts` barrel in the current tree; import through the configured `@validations/*` alias or relative module paths.
 
 ---
 
@@ -44,8 +44,7 @@ import { registerSchema } from '@validations/auth';
 // Multiple schemas
 import { createVolunteerSchema, updateVolunteerSchema } from '@validations/volunteer';
 
-// All exports
-import * from '@validations';
+// There is no top-level @validations barrel; import concrete modules.
 ```
 
 ### Use in Routes (Middleware)
@@ -229,37 +228,9 @@ const register = async (data: RegisterInput) => {
 
 ---
 
-### Case Schemas (`case.ts`)
+### Case And Task Route Schemas
 
-**CRUD**:
-- `createCaseSchema` - Title, description, priority, case type
-- `updateCaseSchema` - Partial updates
-- `updateCaseStatusSchema` - Status changes with optional notes
-
-**Queries**:
-- `caseFilterSchema` - Filter by status, priority, created date, assigned worker
-
-**Validation Helpers**:
-- Enum: `CaseStatus` - open, in_progress, resolved, closed, on_hold
-- Enum: `CasePriority` - low, medium, high, critical
-
----
-
-### Task Schemas (`task.ts`)
-
-**CRUD**:
-- `createTaskSchema` - Title, description, priority, tags, due date
-- `updateTaskSchema` - Partial updates including tag management
-- `completeTaskSchema` - Mark complete with notes
-
-**Queries**:
-- `taskFilterSchema` - Filter by status, priority, tags, date, assigned user
-
-**Validation Helpers**:
-- Enum: `TaskStatus` - pending, in_progress, completed, cancelled
-- Enum: `TaskPriority` - low, medium, high
-- Tags support (array of strings)
-- Due date validation
+Case-form validation lives in `caseForms.ts`; broader case lifecycle, reassessment, queue-view, and task validation is route/module-local in the current modular backend. When updating case or task contracts, verify the owning route files under `backend/src/modules/cases/**` and `backend/src/modules/tasks/**` instead of expecting `case.ts` or `task.ts` in `backend/src/validations/`.
 
 ---
 
@@ -406,18 +377,14 @@ describe('createContactSchema', () => {
 
 ## 📊 Schema Statistics
 
-| Category | Files | Schemas | Purpose |
-|----------|-------|---------|---------|
-| Shared | 1 | 15 | Base types used everywhere |
-| Auth | 1 | 12 | Login, 2FA, setup |
-| User | 1 | 6 | User management |
-| Volunteer | 1 | 6 | Volunteer operations |
-| Event | 1 | 3 | Event management |
-| Contact | 1 | 6 | Contact information |
-| Donation | 1 | 6 | Fundraising |
-| Case | 1 | 4 | Case management |
-| Task | 1 | 4 | Task tracking |
-| **TOTAL** | **9** | **44** | **Complete API coverage** |
+| Category | Files | Purpose |
+|----------|-------|---------|
+| Shared | `shared.ts` | Base primitives reused by validation modules |
+| Auth and user | `auth.ts`, `user.ts`, `admin.ts` | Login, MFA/passkeys, setup, user/admin settings |
+| People, volunteer, and engagement | `contact.ts`, `volunteer.ts`, `event.ts`, `teamChat.ts`, `portal.ts` | Contact, volunteer, event, team-chat, and portal validation |
+| Fundraising and grants | `donation.ts`, `grant.ts` | Donation and grant-facing validation helpers |
+| Case outcomes and forms | `caseForms.ts`, `outcomeDefinition.ts`, `outcomeImpact.ts` | Case-form and outcome-related validation |
+| **TOTAL** | **14** | **Shared validation modules; route-local schemas also exist outside this directory** |
 
 ---
 

@@ -541,6 +541,7 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
       sendTime,
       includeAudienceId,
       exclusionAudienceIds,
+      priorRunSuppressionIds,
       suppressionSnapshot,
       testRecipients,
       audienceSnapshot,
@@ -590,6 +591,7 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
       sendTime: sendTime ? new Date(sendTime) : undefined,
       includeAudienceId,
       exclusionAudienceIds,
+      priorRunSuppressionIds,
       suppressionSnapshot,
       testRecipients,
       audienceSnapshot,
@@ -762,8 +764,12 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
 
       case 'campaign':
         logger.info('Campaign event', {
+          campaignId: payload.data.id ?? payload.data.campaignId,
           listId: payload.data.listId,
+          action: payload.data.action,
+          status: payload.data.status,
         });
+        await mailchimpService.recordCampaignLifecycleWebhook(payload);
         break;
 
       default:

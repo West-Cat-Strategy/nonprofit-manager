@@ -1,6 +1,6 @@
 # Phase Documentation Archive
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-25
 
 Use this directory for historical phase notes, closeout artifacts, and earlier workboard material.
 
@@ -27,11 +27,21 @@ Do not use the files in this archive as the source of truth for current status.
   - [P4_FINAL_CLOSEOUT_2026-04-20.md](P4_FINAL_CLOSEOUT_2026-04-20.md)
 - Row-local closeout notes:
   - [P4-T1_CLOSEOUT_2026-04-13.md](P4-T1_CLOSEOUT_2026-04-13.md)
+  - [P4-T1R4C_CLOSEOUT_2026-04-13.md](P4-T1R4C_CLOSEOUT_2026-04-13.md)
   - [P4-T1R4_CLUSTER_CLOSEOUT_2026-04-14.md](P4-T1R4_CLUSTER_CLOSEOUT_2026-04-14.md)
+  - [P4-T1R4W3A_CLOSEOUT_2026-04-14.md](P4-T1R4W3A_CLOSEOUT_2026-04-14.md)
+  - [P4-T1R4W3F_CLOSEOUT_2026-04-20.md](P4-T1R4W3F_CLOSEOUT_2026-04-20.md)
   - [P4-T6_CLUSTER_CLOSEOUT_2026-04-14.md](P4-T6_CLUSTER_CLOSEOUT_2026-04-14.md)
   - [P4-T7E_CLOSEOUT_2026-04-18.md](P4-T7E_CLOSEOUT_2026-04-18.md)
+  - [P4-T7J_CLOSEOUT_2026-04-14.md](P4-T7J_CLOSEOUT_2026-04-14.md)
+  - [P4-T9H_CLOSEOUT_2026-04-14.md](P4-T9H_CLOSEOUT_2026-04-14.md)
+  - [P4-T12_CLOSEOUT_2026-04-14.md](P4-T12_CLOSEOUT_2026-04-14.md)
   - [P4-T37_T38_CLOSEOUT_2026-04-14.md](P4-T37_T38_CLOSEOUT_2026-04-14.md)
+  - [P4-T40_CLOSEOUT_2026-04-14.md](P4-T40_CLOSEOUT_2026-04-14.md)
+  - [P4-T41_CLOSEOUT_2026-04-14.md](P4-T41_CLOSEOUT_2026-04-14.md)
   - [P4-T47_GITHUB_SUPPORT_PURGE_2026-04-19.md](P4-T47_GITHUB_SUPPORT_PURGE_2026-04-19.md)
+- Baseline notes retained outside the archive directory:
+  - [../baselines/P4-T8-baseline-20260302-180024.md](../baselines/P4-T8-baseline-20260302-180024.md)
 
 ### Workboard And Session History
 

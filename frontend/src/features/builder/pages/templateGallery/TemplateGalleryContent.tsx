@@ -1,4 +1,4 @@
-import { TemplateCard } from '../../../../components/templates';
+import { TemplateCard } from '../../components/templates';
 import type { TemplateListItem } from '../../../../types/websiteBuilder';
 import type { TemplateGalleryTab } from './options';
 

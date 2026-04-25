@@ -2,7 +2,7 @@ import * as dns from 'dns/promises';
 import {
   createPinnedWebhookLookup,
   validateWebhookUrl,
-} from '@services/webhookTransport';
+} from '@modules/webhooks/services/webhookTransport';
 
 jest.mock('dns/promises', () => ({
   lookup: jest.fn(),

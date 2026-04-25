@@ -234,6 +234,7 @@ export interface CreateCampaignRequest {
   sendTime?: Date;
   includeAudienceId?: string;
   exclusionAudienceIds?: string[];
+  priorRunSuppressionIds?: string[];
   suppressionSnapshot?: unknown[];
   testRecipients?: string[];
   audienceSnapshot?: Record<string, unknown>;
@@ -322,6 +323,9 @@ export interface MailchimpWebhookPayload {
     newEmail?: string;
     merges?: MailchimpMergeFields;
     reason?: string;
+    action?: string;
+    status?: string;
+    campaignId?: string;
   };
 }
 

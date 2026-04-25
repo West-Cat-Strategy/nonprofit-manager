@@ -69,9 +69,17 @@ make test-tooling
 `make ci-fast` is a lint + typecheck-only static pass. It is useful for quick feedback, but it is not a behavior or confidence lane.
 `make test-coverage` and `make test-coverage-full` now self-supply the CI Redis URL and the backend coverage heap in the wrapper layer. Run those lanes from a clean shell and do not export the full development env into them, because values such as `DB_HOST=postgres` can override the isolated test DB contract.
 `make ci-full` now uses the stronger `make test-coverage-full` lane, so coverage runs still include the host Playwright CI matrix instead of dropping down to the smaller smoke-only host run.
+`make ci-full` also runs the production build step and `make security-audit` after the full coverage lane.
 
 `make ci-unit` remains a relaxed, non-gating developer signal for backend/frontend unit coverage only. It is useful for quick local feedback, but it is not the repo's full coverage acceptance path.
 `make test-tooling` is the targeted regression suite for selector, route-catalog audit, wrapper, and shell-helper contract changes.
+
+## Security And Policy Checks
+
+- `make lint` runs package linting plus the shared policy gates, including route validation, auth guards, rate-limit key policy, migration manifest policy, route catalog drift, implementation-size, and deleted-path guards.
+- `make security-audit` runs npm audit across the workspace packages.
+- `make security-scan` runs the audit lane plus secret scanning when `gitleaks` is available locally.
+- `make ci-full` includes `make security-audit`, but it does not replace the broader `make security-scan` lane when secret-scan evidence is required.
 
 ## Full Playwright Review Lane
 

@@ -43,6 +43,54 @@ describe('publicIntakeResolutionService', () => {
     expect(mockQuery.mock.calls[0][1]).toEqual(
       expect.arrayContaining(['account-1', 'contact-1'])
     );
+    expect(JSON.parse(mockQuery.mock.calls[0][1][13])).toEqual([
+      {
+        event: 'public_intake_resolution_contract',
+        match_posture: 'not_attempted',
+        resolution_action: 'linked_existing_contact',
+        business_errors: [],
+      },
+    ]);
+  });
+
+  it('stores explicit match posture, resolution action, and business errors in audit JSON', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ id: 'resolution-2' }] });
+
+    await recordPublicIntakeResolution({
+      sourceSystem: 'website_form',
+      sourceReference: 'form-1',
+      resolutionStatus: 'needs_contact_resolution',
+      matchPosture: 'fuzzy',
+      resolutionAction: 'queued_contact_resolution',
+      businessErrors: [
+        {
+          code: 'duplicate_email',
+          message: 'Email matched more than one contact',
+          field: 'email',
+          severity: 'warning',
+          metadata: { candidateCount: 2 },
+        },
+      ],
+      auditTrail: [{ event: 'source_received' }],
+    });
+
+    expect(JSON.parse(mockQuery.mock.calls[0][1][13])).toEqual([
+      { event: 'source_received' },
+      {
+        event: 'public_intake_resolution_contract',
+        match_posture: 'fuzzy',
+        resolution_action: 'queued_contact_resolution',
+        business_errors: [
+          {
+            code: 'duplicate_email',
+            message: 'Email matched more than one contact',
+            field: 'email',
+            severity: 'warning',
+            metadata: { candidateCount: 2 },
+          },
+        ],
+      },
+    ]);
   });
 
   it('does not throw and logs a hashed source reference when audit persistence fails', async () => {

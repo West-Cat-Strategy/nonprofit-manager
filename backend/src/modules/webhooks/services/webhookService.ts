@@ -756,7 +756,9 @@ export const webhookService = {
   triggerWebhooks,
   processRetries,
   testWebhookEndpoint,
-  getAvailableWebhookEvents, validateWebhookUrl, sendWebhookRequest,
+  getAvailableWebhookEvents,
+  validateWebhookUrl,
+  sendWebhookRequest,
 };
 
 export { validateWebhookUrl, sendWebhookRequest };

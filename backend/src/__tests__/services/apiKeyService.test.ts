@@ -14,7 +14,7 @@ jest.mock('../../config/logger', () => ({
   },
 }));
 
-import * as apiKeyService from '../../services/apiKeyService';
+import * as apiKeyService from '@modules/webhooks/services/apiKeyService';
 import type { ApiKey } from '../../types/webhook';
 
 const makeApiKeyRow = (overrides: Record<string, unknown> = {}) => ({

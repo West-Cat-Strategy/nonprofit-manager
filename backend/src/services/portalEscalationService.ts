@@ -30,6 +30,12 @@ export interface PortalEscalation {
   slaDueAt: Date | null;
   status: 'open' | 'in_review' | 'resolved' | 'referred';
   resolutionSummary: string | null;
+  triage: {
+    staffTriageReady: boolean;
+    staffOwned: boolean;
+    slaTracked: boolean;
+    resolutionComplete: boolean;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,24 +70,45 @@ interface PortalEscalationRow {
   updated_at: Date;
 }
 
-const mapRow = (row: PortalEscalationRow): PortalEscalation => ({
-  id: row.id,
-  caseId: row.case_id,
-  accountId: row.account_id,
-  contactId: row.contact_id,
-  portalUserId: row.portal_user_id,
-  createdByPortalUserId: row.created_by_portal_user_id,
-  category: row.category,
-  reason: row.reason,
-  severity: row.severity,
-  sensitivity: row.sensitivity,
-  assigneeUserId: row.assignee_user_id,
-  slaDueAt: row.sla_due_at,
-  status: row.status,
-  resolutionSummary: row.resolution_summary,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
+const isResolutionStatus = (status?: PortalEscalation['status'] | null): boolean =>
+  status === 'resolved' || status === 'referred';
+
+const hasOwn = (input: object, key: string): boolean =>
+  Object.prototype.hasOwnProperty.call(input, key);
+
+const normalizeNullableText = (value?: string | null): string | null =>
+  typeof value === 'string' ? value.trim() || null : value ?? null;
+
+const mapRow = (row: PortalEscalationRow): PortalEscalation => {
+  const staffOwned = Boolean(row.assignee_user_id);
+  const slaTracked = Boolean(row.sla_due_at);
+  const resolutionComplete = isResolutionStatus(row.status);
+
+  return {
+    id: row.id,
+    caseId: row.case_id,
+    accountId: row.account_id,
+    contactId: row.contact_id,
+    portalUserId: row.portal_user_id,
+    createdByPortalUserId: row.created_by_portal_user_id,
+    category: row.category,
+    reason: row.reason,
+    severity: row.severity,
+    sensitivity: row.sensitivity,
+    assigneeUserId: row.assignee_user_id,
+    slaDueAt: row.sla_due_at,
+    status: row.status,
+    resolutionSummary: row.resolution_summary,
+    triage: {
+      staffTriageReady: !resolutionComplete && (staffOwned || slaTracked),
+      staffOwned,
+      slaTracked,
+      resolutionComplete,
+    },
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+};
 
 const basePortalEscalationSelect = `
   SELECT pe.id, pe.case_id, pe.account_id, pe.contact_id, pe.portal_user_id,
@@ -142,6 +169,26 @@ export async function listPortalEscalationsForCase(
 export async function updatePortalEscalationForCase(
   input: UpdatePortalEscalationInput
 ): Promise<PortalEscalation> {
+  const hasAssigneeUpdate = hasOwn(input, 'assigneeUserId');
+  const hasSlaUpdate = hasOwn(input, 'slaDueAt');
+  const nextStatus =
+    input.status ?? (hasAssigneeUpdate || hasSlaUpdate ? 'in_review' : null);
+  const nextResolutionSummary = hasOwn(input, 'resolutionSummary')
+    ? normalizeNullableText(input.resolutionSummary)
+    : null;
+
+  if (
+    isResolutionStatus(nextStatus) &&
+    typeof input.resolutionSummary === 'string' &&
+    input.resolutionSummary.trim().length === 0
+  ) {
+    const error = new Error('Resolution summary must not be blank') as Error & {
+      statusCode?: number;
+    };
+    error.statusCode = 400;
+    throw error;
+  }
+
   const result = await pool.query<PortalEscalationRow>(
     `UPDATE portal_escalations pe
      SET status = COALESCE($3, pe.status),
@@ -167,12 +214,12 @@ export async function updatePortalEscalationForCase(
     [
       input.id,
       input.caseId,
-      input.status ?? null,
-      Object.prototype.hasOwnProperty.call(input, 'resolutionSummary'),
-      input.resolutionSummary ?? null,
-      Object.prototype.hasOwnProperty.call(input, 'assigneeUserId'),
+      nextStatus,
+      hasOwn(input, 'resolutionSummary'),
+      nextResolutionSummary,
+      hasAssigneeUpdate,
       input.assigneeUserId ?? null,
-      Object.prototype.hasOwnProperty.call(input, 'slaDueAt'),
+      hasSlaUpdate,
       input.slaDueAt ?? null,
       input.updatedBy ?? null,
       input.accountId ?? null,

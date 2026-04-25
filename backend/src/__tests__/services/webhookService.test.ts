@@ -1,4 +1,4 @@
-import * as webhookService from '@services/webhookService';
+import * as webhookService from '@modules/webhooks/services/webhookService';
 import * as dns from 'dns/promises';
 
 jest.mock('dns/promises', () => ({

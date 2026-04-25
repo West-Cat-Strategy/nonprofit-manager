@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import pool from '@config/database';
 import { logger } from '@config/logger';
 import type {
   CreateTemplateRequest,
@@ -199,5 +200,7 @@ export class ReportTemplateService {
     return JSON.parse(definitionStr);
   }
 }
+
+export const reportTemplateService = new ReportTemplateService(pool);
 
 export default ReportTemplateService;

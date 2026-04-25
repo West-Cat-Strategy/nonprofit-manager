@@ -1,6 +1,6 @@
 # Postman Collection Guide
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-25
 
 ## Overview
 
@@ -8,7 +8,7 @@ This directory contains Postman collection and environment files for testing the
 
 ## Files
 
-- `Nonprofit-Manager-API.postman_collection.json` - Complete API endpoint collection
+- `Nonprofit-Manager-API.postman_collection.json` - Curated workflow collection for common local API checks
 - `Nonprofit-Manager.postman_environment.json` - Environment variables for local development
 
 ## Setup
@@ -39,7 +39,7 @@ cd backend
 npm run dev
 ```
 
-The collection base URL points directly at `/api/v2`. Health aliases such as `/health`, `/api/health`, and `/api/v2/health` remain documented separately.
+The collection base URL points directly at `/api/v2`. Health aliases such as `/health`, `/api/health`, and `/api/v2/health` remain documented separately. The collection is a maintained workflow aid, not a complete endpoint inventory; use [../README.md](../README.md) and [../openapi.yaml](../openapi.yaml) for the broader API map.
 
 ## Using the Collection
 

@@ -14,7 +14,7 @@ Phase 5 shifts the project from Phase 4 modularization and hardening closeout in
 
 Phase 5 still starts from docs, benchmark, and validation groundwork so later product work lands on a cleaner planning surface and a stronger testing contract.
 
-Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, `P5-T2A` is the published testing-strategy review artifact, `P5-T2B` has a green final uninterrupted Docker CI artifact, `P5-T2C`, `P5-T4`, `P5-T6`, `P5-T6A`, `P5-T6B`, `P5-T6C`, and `P5-T6D` are in `Review`, and `P5-T3` plus `P5-T5` remain the active runtime waves.
+Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, `P5-T2A` is the published testing-strategy review artifact, `P5-T2B` has a green final uninterrupted Docker CI artifact, `P5-T2C`, `P5-T2D`, `P5-T4`, `P5-T6`, `P5-T6A`, `P5-T6B`, `P5-T6C`, and `P5-T6D` are in `Review`, and `P5-T3`, `P5-T5`, the scoped `P5-T6C1` reassessment runtime slice, and `P5-T7` modularization hardening remain active.
 
 ## Phase 5 Goals
 
@@ -80,7 +80,13 @@ Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, `P5-T2A` is the 
 - Keep `P5-T6B` in `Review` with [P5-T6B_FUNDRAISING_STEWARDSHIP_RESTRICTIONS_BRIEF_2026-04-25.md](P5-T6B_FUNDRAISING_STEWARDSHIP_RESTRICTIONS_BRIEF_2026-04-25.md) as the fundraising stewardship and restrictions planning artifact.
 - Keep `P5-T6C` in `Review` with [P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md](P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md) as the planning artifact.
 - Treat `P5-T6D` as the only signed-out runtime carry-over from the current packet: the volunteer assignment event/task picker slice is in `Review` with the existing assignment contract preserved.
-- Do not authorize any other runtime `P5-T6` implementation until a separate scoped row is signed out; typed appeals, restrictions, donation batches, memberships, finance breadth, and generic workflow tooling remain queued.
+- Use `P5-T6C1` as the only active service-delivery runtime pickup from `P5-T6C`: case reassessment cadence records and linked one-time follow-ups inside the existing case/follow-up surfaces.
+- Do not authorize any other runtime `P5-T6` implementation until a separate scoped row is signed out; typed appeals, restrictions, donation batches, memberships, finance breadth, handoff packets, closure continuity, service-site routing, and generic workflow tooling remain queued.
+
+### 8. Cross-Surface Modularization Hardening (Active)
+
+- Keep `P5-T7` behavior-preserving: it may move internal ownership boundaries and trim compatibility shims, but it must preserve current `/api/v2`, route-catalog, root-store, auth/workspace-module, and browser URL contracts.
+- Keep shared seams lead-owned: route registrars, route catalogs, root store wiring, worker startup, auth/permission policy, shared frontend API clients, workboard/docs, and final validation.
 
 ## Workstreams
 
@@ -90,6 +96,7 @@ Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, `P5-T2A` is the 
 | `P5-T2A` | Testing-strategy review artifact and findings | Published review note, coverage gap summary, recommended CI/runtime updates | `P5-T1` docs/runtime cleanup | The review artifact stays current while `P5-T2B` waits for final signoff on the green Docker CI artifact |
 | `P5-T2B` | Shared validation lane stabilization | One uninterrupted `cd e2e && npm run test:docker:ci` artifact after the final dashboard fix, plus the live security baseline and auth-alias operational visibility | `P5-T2A` plus active owning-surface fixes | Row is in `Review`; the final Docker CI artifact is green without surfacing a new owning-seam failure, and the live security baseline stays current enough to stop gating later Phase 5 signoff |
 | `P5-T2C` | Review findings remediation | Stale builder site-context fix, extracted builder seam regression coverage, scheduled-report helper and service proof, report-template negative plus seed-resilience proof, and package type-check proof | `P5-T2A` review findings plus current module-local refactors | Row is in `Review` and functionally proof-complete while optional hardening remains deferred unless `P5-T2B` points back here |
+| `P5-T2D` | Persona proof lane stabilization | Stable portal workflow test callbacks plus the restored persona frontend proof slice | `P5-T2A` persona proof follow-through | Row is in `Review`; future host-only drift returns to validation/runtime ownership instead of reclassifying persona support |
 | `P5-T3` | Blast email and email builder/formatter | Feature plan, implementation slice, validation slice, provider static-segment saved-audience targeting, campaign-run history, and donor-profile receipt-default handoff | `P5-T2B` for final shared signoff, but active lane work continues in parallel | Authoring, preview, formatting, delivery, saved-audience targeting, and donor-profile receipt defaults are reviewable with explicit tests while typed appeals/restrictions stay queued |
 | `P5-T4` | Website builder and public website | Builder UX follow-through, publish/runtime reliability, public-site validation | `P5-T1`, `P5-T2B` | Builder and public runtime docs/tests match the current surface and the row clears final shared validation signoff |
 | `P5-T5` | Client portal | Portal workflow slices across forms, appointments, public intake, queue views, typed escalations, messaging, and client-facing navigation | `P5-T2B` for final shared signoff plus portal prioritization | The forms and appointments slices are green, the current hardening pickup stays limited to `PAT-04` through `PAT-06`, and targeted proof matches the public-intake, queue-view, and portal-escalation contracts |
@@ -97,7 +104,9 @@ Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, `P5-T2A` is the 
 | `P5-T6A` | Governance and compliance oversight brief | Published later-wave governance/compliance planning brief | `P5-T6` capability brief packet | Row is in `Review`; board-only posture, governance-risk escalation, board packet workflow, retention, and corrective-action scope are captured while annual filing and legal review remain external only |
 | `P5-T6B` | Fundraising stewardship and restrictions brief | Small fundraiser-depth planning brief | `P5-T3` handoff plus current donor-profile receipt-default pickup | Row is in `Review`; saved audiences, campaign-run history, and donor-profile defaults are mapped to live seams while typed appeals, restrictions, donation batches, memberships, and broader fundraising runtime work remain queued |
 | `P5-T6C` | Service-delivery workflow depth brief | Published later-wave service-delivery planning brief | `P5-T5` handoff | Row is in `Review`; reassessment cadence, handoff packets, closure continuity, rehab planning artifacts, and authorization/referral depth are mapped to mounted cases, services, appointments, and portal surfaces while runtime work stays blocked on a future scoped row |
+| `P5-T6C1` | Case reassessment cadence runtime slice | Case-scoped reassessment cycles linked to one-time follow-ups | `P5-T6C` signout plus existing cases/follow-ups seams | Row is `In Progress`; implementation stays limited to case reassessment cadence and must not add portal routing, generic workflow tooling, handoff packets, closure continuity, offline sync, referral engines, or service-site routing |
 | `P5-T6D` | Volunteer assignment dispatch radar | Active event/task pickers in the existing volunteer assignment form | `P5-T6` capability brief packet plus current volunteer assignment contract | Assignment creation/editing no longer requires staff to paste raw event/task UUIDs, existing assignment payloads remain compatible, and no new volunteer domain model or shared route seam is opened |
+| `P5-T7` | Cross-surface modularization hardening | Behavior-preserving boundary cleanup across backend/frontend surfaces | Active runtime rows plus lead-owned shared seams | Row is `In Progress`; route shapes, browser URLs, auth/workspace-module behavior, root-store behavior, and public contracts remain unchanged while internal ownership boundaries are tightened |
 
 ## Completed Phase Inputs
 
@@ -172,5 +181,5 @@ Phase 5 is on track when:
 - The early Playwright/E2E and testing-strategy review is complete, and `P5-T2B` keeps its final uninterrupted Docker CI artifact in review for signoff.
 - The live security baseline and supply-chain follow-through are explicit tracked inputs to `P5-T2B` rather than orphaned notes or one-off scans.
 - `P5-T2C` stays functionally proof-complete in `Review` without silently widening scope.
-- Email, website, and portal work each have explicit tracked rows with current validation guidance, including database verification for migrations `103` through `107` when those hardening slices are touched.
-- The benchmark doc, tooling evaluation, `P5-T6` capability briefs, `P5-T6A` governance/compliance brief, `P5-T6B` fundraising stewardship/restrictions brief, and `P5-T6C` service-delivery workflow depth brief remain visible inputs to later-wave backlog decisions, with runtime work blocked until a separate scoped row is signed out.
+- Email, website, portal, and scoped service-delivery work each have explicit tracked rows with current validation guidance, including database verification for migrations `103` through `108` when those hardening or reassessment slices are touched.
+- The benchmark doc, tooling evaluation, `P5-T6` capability briefs, `P5-T6A` governance/compliance brief, `P5-T6B` fundraising stewardship/restrictions brief, and `P5-T6C` service-delivery workflow depth brief remain visible inputs to later-wave backlog decisions; only `P5-T6C1` is currently signed out for runtime service-delivery work.

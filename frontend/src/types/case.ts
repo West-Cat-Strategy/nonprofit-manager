@@ -392,6 +392,98 @@ export interface CasePortalConversation {
   messages: CasePortalMessage[];
 }
 
+export type CaseReassessmentStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface CaseReassessment {
+  id: string;
+  organization_id: string;
+  case_id: string;
+  follow_up_id: string;
+  owner_user_id: string | null;
+  status: CaseReassessmentStatus;
+  title: string;
+  summary: string | null;
+  earliest_review_date: string | null;
+  due_date: string;
+  latest_review_date: string | null;
+  completion_summary: string | null;
+  cancellation_reason?: string | null;
+  completed_at?: string | null;
+  completed_by?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCaseReassessmentDTO {
+  title: string;
+  summary?: string | null;
+  earliest_review_date?: string | null;
+  due_date: string;
+  latest_review_date?: string | null;
+  owner_user_id?: string | null;
+}
+
+export interface UpdateCaseReassessmentDTO {
+  title?: string;
+  summary?: string | null;
+  earliest_review_date?: string | null;
+  due_date?: string;
+  latest_review_date?: string | null;
+  owner_user_id?: string | null;
+  status?: Extract<CaseReassessmentStatus, 'scheduled' | 'in_progress'>;
+}
+
+export interface CompleteCaseReassessmentDTO {
+  completion_summary: string;
+  outcome_definition_ids?: string[];
+  outcome_visibility?: boolean;
+  next_due_date?: string;
+  next_title?: string;
+  next_summary?: string | null;
+  next_earliest_review_date?: string | null;
+  next_latest_review_date?: string | null;
+  next_owner_user_id?: string | null;
+}
+
+export interface CancelCaseReassessmentDTO {
+  cancellation_reason: string;
+}
+
+export interface CompleteCaseReassessmentResult {
+  reassessment: CaseReassessment;
+  next_reassessment: CaseReassessment | null;
+}
+
+export type CasePortalEscalationStatus = 'open' | 'in_review' | 'resolved' | 'referred';
+
+export interface CasePortalEscalation {
+  id: string;
+  caseId: string;
+  contactId: string | null;
+  accountId: string | null;
+  portalUserId: string | null;
+  createdByPortalUserId: string | null;
+  category: string;
+  reason: string;
+  severity: 'low' | 'normal' | 'high' | 'urgent';
+  sensitivity: 'standard' | 'sensitive';
+  assigneeUserId: string | null;
+  slaDueAt: string | null;
+  status: CasePortalEscalationStatus;
+  resolutionSummary: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateCasePortalEscalationDTO {
+  status?: CasePortalEscalationStatus;
+  resolution_summary?: string | null;
+  assignee_user_id?: string | null;
+  sla_due_at?: string | null;
+}
+
 export type CaseAppointmentAttendanceState = 'scheduled' | 'attended' | 'cancelled' | 'no_show';
 
 export interface CaseAppointment {

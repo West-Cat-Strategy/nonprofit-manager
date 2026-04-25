@@ -94,6 +94,7 @@ vi.mock('../../../../components/neo-brutalist', () => ({
 }));
 
 vi.mock('../../components/CaseNotesPanel', () => ({ default: () => <div>Notes panel</div> }));
+vi.mock('../../components/CaseReassessmentPanel', () => ({ default: () => <div>Reassessment panel</div> }));
 vi.mock('../../../../components/CaseDocuments', () => ({ default: () => <div>Documents panel</div> }));
 vi.mock('../../../../components/FollowUpList', () => ({ default: () => <div>Follow-ups panel</div> }));
 vi.mock('../../../../components/cases/CaseRelationships', () => ({ default: () => <div>Relationships panel</div> }));
@@ -190,6 +191,20 @@ describe('Case detail tabs URL sync', () => {
     );
     expect(screen.getByText('Appointments panel')).toBeInTheDocument();
     expect(screen.getByTestId('location-search')).toHaveTextContent('tab=appointments');
+  });
+
+  it('keeps reassessment cadence inside the follow-ups tab', () => {
+    renderCaseDetail(`/cases/${validCaseId}`);
+
+    fireEvent.click(screen.getByRole('tab', { name: /follow-ups/i }));
+
+    expect(screen.getByRole('tab', { name: /follow-ups/i })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByText('Reassessment panel')).toBeInTheDocument();
+    expect(screen.getByText('Follow-ups panel')).toBeInTheDocument();
+    expect(screen.getByTestId('location-search')).toHaveTextContent('tab=followups');
   });
 
   it('renders a local invalid-link state and skips case fetches for non-UUID params', () => {

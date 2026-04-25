@@ -1,6 +1,6 @@
 # Report Generator Guide
 
-**Last Updated:** 2026-04-19
+**Last Updated:** 2026-04-25
 
 
 ## Overview
@@ -12,7 +12,7 @@ Primary capabilities:
 - Save report definitions for reuse.
 - Share saved reports with specific users and roles.
 - Publish optional public snapshot links with explicit CSV/XLSX downloads.
-- Export in `csv`, `xlsx`, and on-demand `pdf`.
+- Export report-builder runs in `csv` and `xlsx`.
 - Schedule recurring report delivery by email.
 
 ## Report Builder
@@ -30,7 +30,6 @@ Builder notes:
 Supported export formats:
 - `csv`
 - `xlsx`
-- `pdf` (manual/on-demand export)
 
 ## Scheduled Reports
 
@@ -128,7 +127,7 @@ Storage notes:
 
 - Frequency options are controlled (no raw cron in v1).
 - Scheduled attachment formats are `csv` and `xlsx`.
-- PDF scheduling is deferred.
+- PDF export and PDF scheduling are deferred.
 
 ## Technical Architecture
 
@@ -142,7 +141,7 @@ Frontend:
 - `frontend/src/features/reports/pages/ReportBuilderPage.tsx`
 - `frontend/src/features/savedReports/pages/SavedReportsPage.tsx`
 - `frontend/src/features/scheduledReports/pages/ScheduledReportsPage.tsx`
-- `frontend/src/features/scheduledReports/state/index.ts`
+- `frontend/src/features/scheduledReports/api/scheduledReportsApiClient.ts`
 
 Data model:
 - `scheduled_reports`

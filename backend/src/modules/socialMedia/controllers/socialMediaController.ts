@@ -2,7 +2,7 @@ import type { NextFunction, Response } from 'express';
 import type { AuthRequest } from '@middleware/auth';
 import { badRequest, notFoundMessage, serviceUnavailable } from '@utils/responseHelpers';
 import { sendSuccess } from '@modules/shared/http/envelope';
-import { socialMediaService } from '..';
+import { socialMediaService } from '../services/socialMediaService';
 
 const handleKnownError = (res: Response, error: unknown): boolean => {
   if (!(error instanceof Error)) {

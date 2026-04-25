@@ -1,7 +1,10 @@
 import type {
   BulkStatusUpdateDTO,
+  CancelCaseReassessmentDTO,
   CaseDocument,
   CaseOutcomeEvent,
+  CasePortalEscalation,
+  CaseReassessment,
   CaseTimelinePage,
   CaseTopicDefinition,
   CaseTopicEvent,
@@ -15,10 +18,13 @@ import type {
   CaseType,
   CaseWithDetails,
   CasesResponse,
+  CompleteCaseReassessmentDTO,
+  CompleteCaseReassessmentResult,
   CreateCaseDTO,
   CreateCaseMilestoneDTO,
   CreateCaseNoteDTO,
   CreateCaseOutcomeDTO,
+  CreateCaseReassessmentDTO,
   CreateCaseRelationshipDTO,
   CreateCaseServiceDTO,
   CreateCaseTopicDefinitionDTO,
@@ -29,6 +35,8 @@ import type {
   UpdateCaseMilestoneDTO,
   UpdateCaseNoteDTO,
   UpdateCaseOutcomeDTO,
+  UpdateCasePortalEscalationDTO,
+  UpdateCaseReassessmentDTO,
   UpdateCaseServiceDTO,
   UpdateCaseStatusDTO,
 } from '../../../types/case';
@@ -88,6 +96,29 @@ export interface CasesApiClientPort {
   createCaseOutcome(caseId: string, payload: CreateCaseOutcomeDTO): Promise<CaseOutcomeEvent>;
   updateCaseOutcome(outcomeId: string, payload: UpdateCaseOutcomeDTO): Promise<CaseOutcomeEvent>;
   deleteCaseOutcome(outcomeId: string): Promise<void>;
+  listCaseReassessments(caseId: string): Promise<CaseReassessment[]>;
+  createCaseReassessment(caseId: string, payload: CreateCaseReassessmentDTO): Promise<CaseReassessment>;
+  updateCaseReassessment(
+    caseId: string,
+    reassessmentId: string,
+    payload: UpdateCaseReassessmentDTO
+  ): Promise<CaseReassessment>;
+  completeCaseReassessment(
+    caseId: string,
+    reassessmentId: string,
+    payload: CompleteCaseReassessmentDTO
+  ): Promise<CompleteCaseReassessmentResult>;
+  cancelCaseReassessment(
+    caseId: string,
+    reassessmentId: string,
+    payload: CancelCaseReassessmentDTO
+  ): Promise<CaseReassessment>;
+  listCasePortalEscalations(caseId: string): Promise<CasePortalEscalation[]>;
+  updateCasePortalEscalation(
+    caseId: string,
+    escalationId: string,
+    payload: UpdateCasePortalEscalationDTO
+  ): Promise<CasePortalEscalation>;
   listCaseTopicDefinitions(caseId: string): Promise<CaseTopicDefinition[]>;
   createCaseTopicDefinition(caseId: string, payload: CreateCaseTopicDefinitionDTO): Promise<CaseTopicDefinition>;
   listCaseTopicEvents(caseId: string): Promise<CaseTopicEvent[]>;

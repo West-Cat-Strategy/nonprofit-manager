@@ -697,6 +697,70 @@ export interface BulkStatusUpdateDTO {
   notes?: string;
 }
 
+export type CaseReassessmentStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface CaseReassessmentCycle {
+  id: string;
+  organization_id: string;
+  case_id: string;
+  follow_up_id: string;
+  owner_user_id: string | null;
+  status: CaseReassessmentStatus;
+  title: string;
+  summary: string | null;
+  earliest_review_date: string | null;
+  due_date: string;
+  latest_review_date: string | null;
+  completion_summary: string | null;
+  cancellation_reason: string | null;
+  completed_at: string | null;
+  completed_by: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCaseReassessmentDTO {
+  title: string;
+  summary?: string | null;
+  earliest_review_date?: string | null;
+  due_date: string;
+  latest_review_date?: string | null;
+  owner_user_id?: string | null;
+}
+
+export interface UpdateCaseReassessmentDTO {
+  title?: string;
+  summary?: string | null;
+  earliest_review_date?: string | null;
+  due_date?: string;
+  latest_review_date?: string | null;
+  owner_user_id?: string | null;
+  status?: Extract<CaseReassessmentStatus, 'scheduled' | 'in_progress'>;
+}
+
+export interface CompleteCaseReassessmentDTO {
+  completion_summary: string;
+  outcome_definition_ids?: string[];
+  outcome_visibility?: boolean;
+  next_due_date?: string;
+  next_title?: string;
+  next_summary?: string | null;
+  next_earliest_review_date?: string | null;
+  next_latest_review_date?: string | null;
+  next_owner_user_id?: string | null;
+}
+
+export interface CancelCaseReassessmentDTO {
+  cancellation_reason: string;
+}
+
+export interface CaseReassessmentCycleCompletionResult {
+  reassessment: CaseReassessmentCycle;
+  next_reassessment: CaseReassessmentCycle | null;
+}
+
 /**
  * Create Case Relationship DTO
  */

@@ -5,11 +5,11 @@
 
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '@middleware/auth';
-import { services } from '@container/services';
 import { badRequest } from '@utils/responseHelpers';
 import type { TemplateCategory } from '@app-types/reportTemplate';
+import { reportTemplateService } from '../services/reportTemplateService';
 
-const templateService = services.reportTemplate;
+const templateService = reportTemplateService;
 
 /**
  * GET /api/reports/templates

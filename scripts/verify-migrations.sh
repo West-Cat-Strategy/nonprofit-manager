@@ -270,7 +270,11 @@ check_app_role_rls_behavior() {
   local inserted_volunteers
   local updated_volunteers
   local deleted_volunteers
-  mapfile -t scoped_rows <<<"$scoped_counts"
+  local scoped_rows=()
+  local scoped_row
+  while IFS= read -r scoped_row; do
+    scoped_rows+=("$scoped_row")
+  done <<<"$scoped_counts"
   unknown_accounts="${scoped_rows[1]:-}"
   unknown_contacts="${scoped_rows[2]:-}"
   unknown_volunteers="${scoped_rows[3]:-}"

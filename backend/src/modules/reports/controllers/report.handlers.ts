@@ -4,7 +4,6 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { services } from '@container/services';
 import { AuthRequest } from '@middleware/auth';
 import { setTabularDownloadHeaders } from '@modules/shared/export/tabularExport';
 import { sendError, sendSuccess } from '@modules/shared/http/envelope';
@@ -14,7 +13,10 @@ import {
   ReportExportJobArtifactGoneError,
   ReportExportJobArtifactNotReadyError,
 } from '@services/reportExportJobService';
-import { DirectReportExportTooLargeError } from '@modules/reports/services/reportService';
+import {
+  DirectReportExportTooLargeError,
+  reportService,
+} from '@modules/reports/services/reportService';
 import { badRequest, conflict, notFoundMessage, unauthorized } from '@utils/responseHelpers';
 import {
   requirePermissionSafe,
@@ -23,7 +25,6 @@ import {
 } from '@services/authGuardService';
 import { Permission } from '@utils/permissions';
 
-const reportService = services.report;
 const DIRECT_EXPORT_TOO_LARGE_MESSAGE =
   'Report is too large for direct export. Use /v2/reports/exports to create an export job.';
 const getOrgId = (req: AuthRequest): string | null =>
