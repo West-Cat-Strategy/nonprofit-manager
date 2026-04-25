@@ -7,6 +7,7 @@ export interface PortalCaseContext {
   status_id: string;
   status_name: string;
   status_type: string;
+  account_id: string | null;
   updated_at: string;
   assigned_to: string | null;
   pointperson_first_name: string | null;
@@ -33,6 +34,7 @@ export const getActiveCaseContextsForContact = async (
       c.case_number,
       c.title AS case_title,
       c.status_id,
+      c.account_id,
       cs.name AS status_name,
       cs.status_type,
       c.updated_at,
@@ -129,6 +131,7 @@ export const ensureCaseIsPortalAccessible = async (
       c.case_number,
       c.title AS case_title,
       c.status_id,
+      c.account_id,
       cs.name AS status_name,
       cs.status_type,
       c.updated_at,

@@ -1,0 +1,98 @@
+# P5-T6 Reference Expansion Improvement Opportunities
+
+**Last Updated:** 2026-04-25
+
+## Purpose
+
+This document captures the `P5-T6-reference-expansion-2026-04` research wave. It reviews additional open-source and self-hostable projects against nonprofit-manager's current seams and turns the findings into implementation-oriented opportunities.
+
+This wave is planning and research only. It does not revise the locked `P5-T6` OSS benchmark cohort, authorize runtime implementation, or permit direct source copying.
+
+## Source Cohort
+
+| Project | Local repo | Review lane | License signal | Reuse class |
+|---|---|---|---|---|
+| Primero | `reference-repos/external/nm--primero` | service delivery | AGPL-3.0 | `architecture_only` |
+| CommCare HQ | `reference-repos/external/nm--commcare-hq` | service delivery | BSD-3-Clause | `architecture_only` |
+| Avni Server | `reference-repos/external/nm--avni-server` | service delivery | AGPL-3.0 | `architecture_only` |
+| Avni Webapp | `reference-repos/external/nm--avni-webapp` | service delivery | AGPL-3.0 | `architecture_only` |
+| GiveWP | `reference-repos/external/nm--givewp` | fundraising and membership | GPL-3.0 | `architecture_only` |
+| OCA Donation | `reference-repos/external/nm--oca-donation` | fundraising and membership | AGPL-3.0 | `architecture_only` |
+| OCA Vertical Association | `reference-repos/external/nm--oca-vertical-association` | fundraising and membership | AGPL-3.0 | `architecture_only` |
+| pretix | `reference-repos/external/nm--pretix` | events and finance | AGPL-3.0 with additional terms | `architecture_only` |
+| Open Collective API | `reference-repos/external/nm--opencollective-api` | events and finance | MIT | `architecture_only` |
+| Open Collective Frontend | `reference-repos/external/nm--opencollective-frontend` | events and finance | MIT | `architecture_only` |
+| OpenCRVS Core | `reference-repos/external/nm--opencrvs-core` | service delivery | MPL-2.0 | `architecture_only` |
+| Mautic | `reference-repos/external/nm--mautic` | campaign automation | GPL-3.0-or-later | `architecture_only` |
+
+## Current Repo Seams
+
+The strongest current landing zones are:
+
+- `P5-T3` email and campaign follow-through: existing Mailchimp, contact, donation, receipt, and reporting seams.
+- `P5-T5` portal and service delivery follow-through: public intake, portal signup, public events, portal appointments, portal messaging, cases, queue views, escalations, and portal-admin.
+- Later `P5-T6` typed-domain rows: appeals, memberships, donation validation, receipt lifecycle, fund designations, donation batches, case-plan review, service-site routing, event registration and check-in, finance exports, materialized reporting, compliance audit, public finance summaries, and narrow governance roles.
+
+## Ranked Opportunity Set
+
+### Rank 1: Active `P5-T3` Borrow-Now Slice
+
+| Pattern | Source paths | Borrowable idea | Nonprofit Manager landing zones | Boundary |
+|---|---|---|---|---|
+| Saved-audience suppression and prior-send controls | `nm--civicrm-core/CRM/Campaign/BAO/Campaign.php`, `nm--suitecrm/modules/ProspectLists/ProspectList.php`, `nm--mautic/app/bundles/LeadBundle/Segment`, `nm--mautic/app/bundles/EmailBundle/EventListener/MatchFilterForLeadTrait.php` | Keep internal saved audiences reusable, then snapshot include/exclude and prior-run suppression when targeting provider sends. | `backend/src/modules/mailchimp/**`, `frontend/src/features/mailchimp/**`, `frontend/src/features/contacts/**`, `database/migrations/103_mailchimp_saved_audiences_and_campaign_runs.sql` | `borrow now`; do not persist provider segments as durable audiences or build a generic audience-union engine. |
+| Campaign-run lifecycle with consent and suppression evidence | `nm--suitecrm/modules/EmailMan/`, `nm--suitecrm/modules/Campaigns/QueueCampaign.php`, `nm--mautic/app/bundles/EmailBundle/Helper/MailHelper.php`, `nm--mautic/app/bundles/LeadBundle/Entity/DoNotContact.php`, `nm--mautic/app/bundles/CampaignBundle/Entity/LeadEventLog.php` | Store local run status, requester, test/schedule path, provider campaign id, generated targeting metadata, suppression snapshot, failure summary, and provider-fed lifecycle evidence. | `backend/src/modules/mailchimp/**`, `backend/src/types/mailchimp.ts`, `frontend/src/features/mailchimp/**`, reports surfaces that consume campaign-run summaries | `borrow now`; no self-hosted tracking pixel, full automation canvas, or per-recipient event firehose in the active wave. |
+| Donor receipt defaults | `nm--oca-donation/donation_base/models/res_partner.py`, `nm--oca-donation/donation_base/models/donation_tax_receipt.py`, `nm--oca-donation/donation/models/donation.py`, `nm--givewp/src/Donors/Models/Donor.php`, `nm--givewp/src/Donations/Repositories/DonationRepository.php` | Let donor-profile preferences default receipt delivery and solicitation handling only when staff have not supplied an explicit override. | `backend/src/modules/donations/services/taxReceiptService.ts`, receipt persistence, `frontend/src/features/contacts/**`, `database/migrations/107_donor_profiles.sql` | `borrow now`; keep annual/no-receipt/no-contact cases from silently emailing one-off receipts. |
+
+### Rank 2: Active `P5-T5` Borrow-Now Slice
+
+| Pattern | Source paths | Borrowable idea | Nonprofit Manager landing zones | Boundary |
+|---|---|---|---|---|
+| Ambiguity-aware public intake | `nm--opencrvs-core/packages/commons/src/events/DeduplicationConfig.ts`, `nm--commcare-hq/docs/api/bulk-upload-cases.rst`, `nm--commcare-hq/corehq/apps/case_importer/do_import.py`, `nm--openspp2/spp_source_tracking/`, `nm--openspp2/spp_import_match/` | Record strict/fuzzy match posture, source system/reference, create-vs-update choice, ambiguity state, and row-level business errors without blocking successful intake on audit-write failure. | `backend/src/services/publishing/publicWebsiteFormService.ts`, `backend/src/services/portalAuthService.ts`, `backend/src/modules/events/services/eventPublicService.ts`, `database/migrations/104_public_intake_resolutions.sql` | `borrow now`; reject full MPI, dedupe-admin console, and merge-engine parity. |
+| Typed queue definitions with scoped counts and actions | `nm--opencrvs-core/packages/commons/src/events/WorkqueueConfig.ts`, `nm--opencrvs-core/packages/events/src/router/workqueue/index.ts`, `nm--opencrvs-core/packages/client/src/v2-events/hooks/useWorkqueue.ts`, `nm--suitecrm/modules/SavedSearch/SavedSearch.php`, `nm--suitecrm/include/Dashlets/DashletGeneric.php` | Define operational queues as typed configs with slug, surface, owner/permission scope, query/filter, columns, sort, counts, row actions, and empty-state metadata. | `backend/src/services/queueViewDefinitionService.ts`, `frontend/src/features/adminOps/pages/portalAdmin/**`, `frontend/src/features/dashboard/components/workbench/**`, `database/migrations/105_queue_view_definitions.sql` | `borrow now`; do not persist raw request blobs or allow owner/surface boundary crossing. |
+| Actor-attributed portal escalations | `nm--primero/app/models/transition.rb`, `nm--primero/app/models/referral.rb`, `nm--primero/app/models/transfer_request.rb`, `nm--avni-server/avni-server-data/src/main/java/org/avni/server/domain/CommentThread.java`, `nm--openspp2/spp_grm/models/grm_ticket.py` | Promote portal requests into case-linked escalation records with category, severity, sensitivity, owner, SLA due date, status, resolution, and separate portal/staff actor attribution. | `backend/src/modules/portal/**`, `backend/src/services/portalPointpersonService.ts`, `backend/src/services/portalEscalationService.ts`, `frontend/src/features/portal/**`, `frontend/src/features/adminOps/pages/portalAdmin/**`, `database/migrations/106_portal_escalations.sql` | `borrow now`; do not turn generic messages into a helpdesk or grievance product. |
+
+### Rank 3: Later `P5-T6B` Fundraising And Finance Rows
+
+| Pattern | Source paths | Borrowable idea | Future landing zones | Why queued |
+|---|---|---|---|---|
+| Typed appeal or campaign spine | `nm--givewp/src/Campaigns/Models/Campaign.php`, `nm--givewp/src/Campaigns/Repositories/CampaignRepository.php`, `nm--oca-donation/donation/models/donation_campaign.py`, `nm--civicrm-core/CRM/Campaign/BAO/Campaign.php`, `nm--suitecrm/modules/Campaigns/Campaign.php` | Create a local appeal/campaign record that ties forms, donations, recurring gifts, reports, and provider campaigns together. | `backend/src/modules/mailchimp/**`, `backend/src/services/publishing/publicWebsiteFormService.ts`, `backend/src/modules/donations/**`, `frontend/src/features/mailchimp/**` | Needs a new typed-domain row after active campaign-run work settles. |
+| Donation validation and receipt lifecycle | `nm--oca-donation/donation/models/donation.py`, `nm--oca-donation/donation/wizard/donation_validate.py`, `nm--oca-donation/donation_base/models/donation_tax_receipt.py`, `nm--givewp/src/Donations/resources/admin/components/DonationDetailsPage/Tabs/Overview/DonationReceipt/ReceiptActions.tsx` | Separate draft/validated donation state from tax receipt state, including receipt eligibility, numbering, resend, annual receipt, and donor history flows. | `backend/src/modules/donations/**`, future receipt services, `frontend/src/features/donations/**`, donor portal history | Larger than current donor-profile defaulting; needs service and migration proof. |
+| Fund designation policy | `nm--openpetra/db/petra.xml`, `nm--erpnext/erpnext/accounts/doctype/accounting_dimension/**`, `nm--opencollective-api/server/models/AccountingCategory.ts`, `nm--opencollective-api/server/models/AccountingCategoryRule.ts` | Add typed restricted-gift designation policy with default account/category metadata, receipt/report flags, and write-path/report-path validation. | `backend/src/types/donation.ts`, `backend/src/types/recurringDonation.ts`, `backend/src/modules/donations/**`, `backend/src/modules/reports/**`, future finance admin config | Reinforces `PAT-09`; keep explicit and migration-backed, not ERPNext-style dynamic dimensions. |
+| Donation batch and import staging boundary | `nm--openpetra/db/petra.xml`, `nm--openpetra/csharp/ICT/Petra/Server/lib/MFinance/Gift/Gift.Batch.cs`, `nm--opencollective-api/server/models/TransactionsImport.ts`, `nm--opencollective-api/server/models/TransactionsImportRow.ts` | Review donations in batches with control totals, effective dates, bank/import staging, exception preview, and close/lock semantics. | `backend/src/modules/donations/**`, `backend/src/modules/reconciliation/**`, `frontend/src/features/finance/**` | Reinforces `PAT-10`; no GL posting, period close, or automatic bank matching in the first row. |
+| Membership lifecycle | `nm--oca-vertical-association/membership_extension/models/res_partner.py`, `nm--oca-vertical-association/membership_withdrawal/models/membership_line.py`, `nm--oca-vertical-association/membership_delegated_partner/models/membership_line.py`, `nm--civicrm-core/CRM/Member/BAO/MembershipType.php` | Model membership as a dated typed lifecycle with status precedence, categories, evidence links, and withdrawal reasons. | future membership module adjacent to donations and recurring plans, plus `frontend/src/features/contacts/pages/ContactDetailPage.tsx` | Needs a new membership row; public join/renew, delegated memberships, prorating, and gamification stay out of the first slice. |
+
+### Rank 4: Later `P5-T6C`, Events, Governance, And Reporting Rows
+
+| Pattern | Source paths | Borrowable idea | Future landing zones | Why queued |
+|---|---|---|---|---|
+| Case-plan review, services, follow-ups, and closure continuity | `nm--primero/db/configuration/forms/case/cp_case_plan.rb`, `nm--primero/db/configuration/forms/case/services.rb`, `nm--primero/db/configuration/forms/case/followup.rb`, `nm--primero/db/configuration/forms/case/closure_form.rb`, `nm--avni-server/avni-server-data/src/main/java/org/avni/server/domain/EntityApprovalStatus.java`, `nm--avni-server/avni-server-data/src/main/java/org/avni/server/domain/Checklist.java` | Add reviewable case-plan/service rows with due dates, provider, status, revision semantics, linked follow-ups, and closure checklist continuity. | `backend/src/modules/cases/**`, `frontend/src/components/cases/CaseServices.tsx`, `backend/src/modules/cases/usecases/caseForms.usecase.staff.ts`, `frontend/src/features/followUps/**` | Reinforces `PAT-13` and `P5-T6C`; prove concrete case/service seams before any generic approval kernel. |
+| Typed service-site routing | `nm--openspp2/spp_api_v2_service_points/README.rst`, `nm--openspp2/spp_api_v2_service_points/services/service_point_service.py`, `nm--sahana-eden/modules/s3db/project.py` | Add optional service-site references with stable identifiers, area, service category, active/disabled state, version/snapshot metadata, and free-text fallback. | `backend/src/modules/portalAdmin/services/portalAppointmentSlotService.ts`, `backend/src/modules/portal/mappers/portalMappers.ts`, `frontend/src/components/cases/CaseServices.tsx` | Reinforces `PAT-12`; do not add service-point users, OAuth/API, or contract lifecycle in the first row. |
+| Event order and check-in lifecycle | `nm--pretix/doc/development/concepts.rst`, `nm--pretix/doc/api/guides/order_lifecycle.rst`, `nm--pretix/src/pretix/base/models/orders.py`, `nm--pretix/src/pretix/base/models/checkin.py`, `nm--opencollective-api/server/models/Order.ts`, `nm--opencollective-api/server/constants/order-status.ts` | Model paid registrations separately from payment/provider state, then add named check-in lists with entry/exit records, include-pending rules, and audit events. | `backend/src/modules/events/**`, `backend/src/modules/payments/**`, future event registrations/check-in frontend surfaces | Needs a scoped events/payments row before runtime work. |
+| Finance ledger exports and transparent reporting | `nm--opencollective-api/server/models/Transaction.ts`, `nm--opencollective-api/server/constants/transaction-kind.ts`, `nm--opencollective-api/server/models/ExportRequest.ts`, `nm--opencollective-api/server/workers/exports.ts`, `nm--opencollective-frontend/lib/export-csv/transactions-csv.tsx`, `nm--opencollective-frontend/components/collective-page/sections/Budget.js` | Use ledger-style projections, transaction kinds, CSV field groups, async exports, and drill-through summaries as board-packet and finance-reporting inspiration. | future finance module, `backend/src/modules/reports/**`, `backend/src/modules/export/**`, `frontend/src/features/reports/**`, public website surfaces | Strengthens `P5-T6A/B` planning, but public ledger or fiscal-host parity is not a current product claim. |
+| Materialized reporting pipeline | `nm--commcare-hq/corehq/apps/userreports/README.rst`, `nm--commcare-hq/corehq/apps/userreports/models.py`, `nm--avni-webapp/src/reports/export/NewExport.jsx`, `nm--avni-server/avni-server-data/src/main/java/org/avni/server/domain/ReportCard.java`, `nm--givewp/src/Revenue/Migrations/CreateRevenueTable.php` | Build validated reporting sources and projections for service-delivery, campaign, finance, and compliance summaries. | `backend/src/modules/reports/**`, analytics query services, dashboard API contracts, scheduled reports | Useful after active waves, but too broad for current docs/runtime work. |
+
+## Reject Or Defer For This Wave
+
+- Generic low-code, rule, workflow, custom-field, or form-builder parity from Avni, Primero, OpenSPP, or OpenCRVS. Source paths include `nm--avni-webapp/src/adminApp/Program/EditProgramFields.jsx`, `nm--avni-webapp/src/adminApp/WorklistUpdationRule.jsx`, `nm--primero/app/models/form_section.rb`, `nm--primero/app/models/field.rb`, `nm--openspp2/spp_custom_field/`, and `nm--opencrvs-core/packages/commons/src/events/EventConfig.ts`.
+- Mautic-style automation canvas, generic campaign-event builder, self-hosted tracking pixels, and privacy-invasive event collection as active-wave email scope.
+- Literal donor leaderboards, public membership gamification, public member directories, or recognition defaults without explicit opt-in.
+- Open Collective fiscal-host, collective, host-application, expense/disbursement, legal-document, KYC, or tax-form hierarchy as a direct governance model.
+- ERPNext/OpenPetra/OCA GL, journal-entry, accounting-suite, period-close, and dynamic accounting-dimension parity.
+- Direct source copying from any GPL, AGPL, MPL, BSD, or MIT source in this wave; all findings remain architecture or product inspiration until a future scoped row says otherwise.
+
+## Priority Implications
+
+1. `P5-T3` should keep saved audiences, prior-send suppression, campaign-run lifecycle, consent/suppression evidence, and donor receipt defaults tightly inside Mailchimp, contact, donation, receipt, and reporting seams.
+2. `P5-T5` should keep public intake ambiguity review, typed queue definitions, and actor-attributed portal escalations tightly inside portal, public website form, public event, case, queue-view, and portal-admin seams.
+3. `P5-T6B` should own future typed appeals, memberships, donation validation, receipt lifecycle, fund designations, donation batches, and broader fundraising or finance runtime rows.
+4. `P5-T6C` should own future case-plan review, service-site routing, service-delivery closure continuity, and any later transition-registry proof.
+5. Separate future rows should own event order/check-in lifecycle, finance ledger exports, and materialized reporting before any dashboard, public website, or board-packet parity claim expands.
+6. Generic workflow studios remain rejected until at least two typed domain seams prove the same status, owner, due-date, side-effect, and audit primitives.
+
+## Validation Path
+
+- Docs-only synthesis changes: run `make check-links`.
+- Run `make lint-doc-api-versioning` only if a future edit adds or changes `/api/v2` examples.
+- Future `P5-T3` implementation rows should add targeted Mailchimp, contact, tax receipt, reports, and frontend communications proof, plus `make db-verify` when migrations `103` or `107` change.
+- Future `P5-T5` implementation rows should add targeted public intake, portal auth, public event, queue definition, portal escalation, portal-admin, and focused Playwright portal proof, plus `make db-verify` when migrations `104` through `106` change.
+- Future finance, events, and reporting rows should add migration verification, backend state-transition tests, and frontend queue/detail tests before board-packet, public-ledger, or dashboard claims expand.

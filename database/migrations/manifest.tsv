@@ -100,3 +100,8 @@
 100	100_portal_public_signup_contact_bridge.sql
 101	101_portal_signup_request_resolution_status.sql
 102	102_volunteer_write_policies.sql
+103	103_mailchimp_saved_audiences_and_campaign_runs.sql
+104	104_public_intake_resolutions.sql
+105	105_queue_view_definitions.sql
+106	106_portal_escalations.sql
+107	107_donor_profiles.sql

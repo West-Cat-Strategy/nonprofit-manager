@@ -13,6 +13,9 @@ import type {
   MailchimpTag,
   MailchimpCampaign,
   MailchimpSegment,
+  SavedAudience,
+  CampaignRun,
+  CreateSavedAudienceRequest,
   SyncContactRequest,
   BulkSyncRequest,
   BulkSyncResponse,
@@ -29,10 +32,24 @@ const initialState: MailchimpState = {
   selectedList: null,
   tags: [],
   campaigns: [],
+  savedAudiences: [],
+  campaignRuns: [],
   segments: [],
+  segmentsListId: null,
   syncResult: null,
   isLoading: false,
   isSyncing: false,
+  isLoadingSavedAudiences: false,
+  isCreatingSavedAudience: false,
+  isArchivingSavedAudience: false,
+  savedAudienceMessage: null,
+  savedAudienceError: null,
+  savedAudienceLoadError: null,
+  savedAudienceCreateError: null,
+  isLoadingCampaignRuns: false,
+  campaignRunsError: null,
+  isCreatingCampaign: false,
+  isSendingCampaign: false,
   error: null,
 };
 
@@ -133,6 +150,58 @@ export const fetchCampaigns = createAsyncThunk<MailchimpCampaign[], string | und
   }
 );
 
+export const fetchSavedAudiences = createAsyncThunk<SavedAudience[]>(
+  'mailchimp/fetchSavedAudiences',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/mailchimp/audiences');
+      return response.data;
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to fetch saved audiences');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const createSavedAudience = createAsyncThunk<SavedAudience, CreateSavedAudienceRequest>(
+  'mailchimp/createSavedAudience',
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/mailchimp/audiences', data);
+      return response.data;
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to create saved audience');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const archiveSavedAudience = createAsyncThunk<SavedAudience, string>(
+  'mailchimp/archiveSavedAudience',
+  async (audienceId, { rejectWithValue }) => {
+    try {
+      const response = await api.patch(`/mailchimp/audiences/${audienceId}/archive`);
+      return response.data;
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to archive saved audience');
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const fetchCampaignRuns = createAsyncThunk<CampaignRun[]>(
+  'mailchimp/fetchCampaignRuns',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/mailchimp/campaign-runs');
+      return response.data;
+    } catch (error) {
+      const message = getErrorMessage(error, 'Failed to fetch campaign run history');
+      return rejectWithValue(message);
+    }
+  }
+);
+
 /**
  * Sync a single contact
  */
@@ -218,12 +287,21 @@ const mailchimpSlice = createSlice({
   reducers: {
     clearMailchimpError: (state) => {
       state.error = null;
+      state.savedAudienceError = null;
+      state.savedAudienceLoadError = null;
+      state.savedAudienceCreateError = null;
+      state.campaignRunsError = null;
     },
     clearSyncResult: (state) => {
       state.syncResult = null;
     },
     setSelectedList: (state, action) => {
       state.selectedList = action.payload;
+    },
+    clearSavedAudienceMessage: (state) => {
+      state.savedAudienceMessage = null;
+      state.savedAudienceError = null;
+      state.savedAudienceCreateError = null;
     },
   },
   extraReducers: (builder) => {
@@ -288,15 +366,22 @@ const mailchimpSlice = createSlice({
 
     // Fetch segments
     builder
-      .addCase(fetchListSegments.pending, (state) => {
+      .addCase(fetchListSegments.pending, (state, action) => {
         state.isLoading = true;
+        state.segments = [];
+        state.segmentsListId = action.meta.arg;
       })
       .addCase(fetchListSegments.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.segments = action.payload;
+        if (state.segmentsListId === action.meta.arg) {
+          state.segments = action.payload;
+        }
       })
       .addCase(fetchListSegments.rejected, (state, action) => {
         state.isLoading = false;
+        if (state.segmentsListId === action.meta.arg) {
+          state.segments = [];
+        }
         state.error = action.payload as string;
       });
 
@@ -312,6 +397,66 @@ const mailchimpSlice = createSlice({
       .addCase(fetchCampaigns.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+      });
+
+    builder
+      .addCase(fetchSavedAudiences.pending, (state) => {
+        state.isLoadingSavedAudiences = true;
+        state.savedAudienceError = null;
+        state.savedAudienceLoadError = null;
+      })
+      .addCase(fetchSavedAudiences.fulfilled, (state, action) => {
+        state.isLoadingSavedAudiences = false;
+        state.savedAudiences = action.payload;
+      })
+      .addCase(fetchSavedAudiences.rejected, (state, action) => {
+        state.isLoadingSavedAudiences = false;
+        state.savedAudienceLoadError = action.payload as string;
+        state.savedAudienceError = action.payload as string;
+      })
+      .addCase(createSavedAudience.pending, (state) => {
+        state.isCreatingSavedAudience = true;
+        state.savedAudienceMessage = null;
+        state.savedAudienceError = null;
+        state.savedAudienceCreateError = null;
+      })
+      .addCase(createSavedAudience.fulfilled, (state, action) => {
+        state.isCreatingSavedAudience = false;
+        state.savedAudiences.unshift(action.payload);
+        state.savedAudienceMessage = `Saved "${action.payload.name}" for future campaigns.`;
+      })
+      .addCase(createSavedAudience.rejected, (state, action) => {
+        state.isCreatingSavedAudience = false;
+        state.savedAudienceCreateError = action.payload as string;
+        state.savedAudienceError = action.payload as string;
+      })
+      .addCase(archiveSavedAudience.pending, (state) => {
+        state.isArchivingSavedAudience = true;
+        state.savedAudienceMessage = null;
+        state.savedAudienceError = null;
+      })
+      .addCase(archiveSavedAudience.fulfilled, (state, action) => {
+        state.isArchivingSavedAudience = false;
+        state.savedAudiences = state.savedAudiences.filter(
+          (audience) => audience.id !== action.payload.id
+        );
+        state.savedAudienceMessage = `Archived "${action.payload.name}".`;
+      })
+      .addCase(archiveSavedAudience.rejected, (state, action) => {
+        state.isArchivingSavedAudience = false;
+        state.savedAudienceError = action.payload as string;
+      })
+      .addCase(fetchCampaignRuns.pending, (state) => {
+        state.isLoadingCampaignRuns = true;
+        state.campaignRunsError = null;
+      })
+      .addCase(fetchCampaignRuns.fulfilled, (state, action) => {
+        state.isLoadingCampaignRuns = false;
+        state.campaignRuns = action.payload;
+      })
+      .addCase(fetchCampaignRuns.rejected, (state, action) => {
+        state.isLoadingCampaignRuns = false;
+        state.campaignRunsError = action.payload as string;
       });
 
     // Sync contact
@@ -356,14 +501,17 @@ const mailchimpSlice = createSlice({
     builder
       .addCase(createCampaign.pending, (state) => {
         state.isLoading = true;
+        state.isCreatingCampaign = true;
         state.error = null;
       })
       .addCase(createCampaign.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isCreatingCampaign = false;
         state.campaigns.unshift(action.payload);
       })
       .addCase(createCampaign.rejected, (state, action) => {
         state.isLoading = false;
+        state.isCreatingCampaign = false;
         state.error = action.payload as string;
       });
 
@@ -371,13 +519,16 @@ const mailchimpSlice = createSlice({
     builder
       .addCase(sendCampaign.pending, (state) => {
         state.isLoading = true;
+        state.isSendingCampaign = true;
         state.error = null;
       })
       .addCase(sendCampaign.fulfilled, (state) => {
         state.isLoading = false;
+        state.isSendingCampaign = false;
       })
       .addCase(sendCampaign.rejected, (state, action) => {
         state.isLoading = false;
+        state.isSendingCampaign = false;
         state.error = action.payload as string;
       });
   },
@@ -386,6 +537,7 @@ const mailchimpSlice = createSlice({
 export const {
   clearMailchimpError,
   clearSyncResult,
+  clearSavedAudienceMessage,
   setSelectedList,
 } = mailchimpSlice.actions;
 

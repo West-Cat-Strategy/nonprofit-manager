@@ -156,6 +156,67 @@ export interface MailchimpCampaign {
   };
 }
 
+export type SavedAudienceStatus = 'active' | 'archived';
+
+export interface SavedAudience {
+  id: string;
+  name: string;
+  description?: string;
+  filters: Record<string, unknown>;
+  sourceCount: number;
+  scopeAccountIds: string[];
+  status: SavedAudienceStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string | null;
+}
+
+export interface CommunicationsSelectedContactsAudienceFilters {
+  source: 'communications_selected_contacts';
+  contactIds: string[];
+  listId: string;
+}
+
+export interface CreateSavedAudienceRequest {
+  name: string;
+  description?: string;
+  filters: CommunicationsSelectedContactsAudienceFilters;
+  scopeAccountIds?: string[];
+}
+
+export type CampaignRunStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'canceled';
+
+export interface CampaignRun {
+  id: string;
+  provider: 'mailchimp';
+  providerCampaignId?: string | null;
+  title: string;
+  listId: string;
+  includeAudienceId?: string | null;
+  exclusionAudienceIds: string[];
+  suppressionSnapshot: unknown[];
+  testRecipients: string[];
+  audienceSnapshot: Record<string, unknown>;
+  requestedSendTime?: Date | null;
+  status: CampaignRunStatus;
+  counts: Record<string, unknown>;
+  scopeAccountIds: string[];
+  failureMessage?: string | null;
+  requestedBy?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MailchimpCampaignTargetingCounts {
+  includeSourceCount?: number;
+  suppressionSourceCount?: number;
+  requestedContactCount?: number;
+  syncedContactCount?: number;
+  skippedContactCount?: number;
+  providerSegmentMemberCount?: number;
+  [key: string]: unknown;
+}
+
 /**
  * Request to create a campaign
  */
@@ -171,6 +232,13 @@ export interface CreateCampaignRequest {
   builderContent?: EmailBuilderContent;
   segmentId?: number;
   sendTime?: Date;
+  includeAudienceId?: string;
+  exclusionAudienceIds?: string[];
+  suppressionSnapshot?: unknown[];
+  testRecipients?: string[];
+  audienceSnapshot?: Record<string, unknown>;
+  requestedBy?: string;
+  scopeAccountIds?: string[];
 }
 
 export type EmailBuilderBlockType = 'heading' | 'paragraph' | 'button' | 'image' | 'divider';

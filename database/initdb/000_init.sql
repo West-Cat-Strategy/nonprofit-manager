@@ -118,6 +118,11 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/100_portal_public_signup_contact_bridge.sql
 \i /migrations/101_portal_signup_request_resolution_status.sql
 \i /migrations/102_volunteer_write_policies.sql
+\i /migrations/103_mailchimp_saved_audiences_and_campaign_runs.sql
+\i /migrations/104_public_intake_resolutions.sql
+\i /migrations/105_queue_view_definitions.sql
+\i /migrations/106_portal_escalations.sql
+\i /migrations/107_donor_profiles.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -241,7 +246,12 @@ VALUES
     ('099_user_account_access_write_policies.sql', '099', '099_user_account_access_write_policies.sql'),
     ('100_portal_public_signup_contact_bridge.sql', '100', '100_portal_public_signup_contact_bridge.sql'),
     ('101_portal_signup_request_resolution_status.sql', '101', '101_portal_signup_request_resolution_status.sql'),
-    ('102_volunteer_write_policies.sql', '102', '102_volunteer_write_policies.sql')
+    ('102_volunteer_write_policies.sql', '102', '102_volunteer_write_policies.sql'),
+    ('103_mailchimp_saved_audiences_and_campaign_runs.sql', '103', '103_mailchimp_saved_audiences_and_campaign_runs.sql'),
+    ('104_public_intake_resolutions.sql', '104', '104_public_intake_resolutions.sql'),
+    ('105_queue_view_definitions.sql', '105', '105_queue_view_definitions.sql'),
+    ('106_portal_escalations.sql', '106', '106_portal_escalations.sql'),
+    ('107_donor_profiles.sql', '107', '107_donor_profiles.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

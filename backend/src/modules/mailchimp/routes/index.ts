@@ -33,6 +33,26 @@ const campaignIdParamsSchema = z.object({
   campaignId: z.string().trim().min(1, 'Campaign ID is required'),
 });
 
+const audienceIdParamsSchema = z.object({
+  audienceId: uuidSchema,
+});
+
+const savedAudienceFiltersSchema = z
+  .object({
+    source: z.literal('communications_selected_contacts'),
+    contactIds: z.array(uuidSchema).min(1).max(500),
+    listId: listIdSchema,
+  })
+  .strict();
+
+const savedAudienceSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Audience name is required').max(255),
+    description: z.string().trim().max(4000).optional(),
+    filters: savedAudienceFiltersSchema,
+  })
+  .strict();
+
 const segmentConditionSchema = z.object({
   field: z.string().min(1, 'Condition field is required'),
   op: z.enum(['is', 'not', 'contains', 'notcontain', 'greater', 'less', 'blank', 'blank_not']),
@@ -122,19 +142,26 @@ const campaignsQuerySchema = z
 
 const dateStringSchema = isoDateTimeSchema;
 
-const createCampaignSchema = z.object({
-  listId: listIdSchema,
-  title: z.string().min(1, 'Campaign title is required'),
-  subject: z.string().min(1, 'Subject line is required'),
-  fromName: z.string().min(1, 'From name is required'),
-  replyTo: emailSchema,
-  previewText: z.string().optional(),
-  htmlContent: z.string().optional(),
-  plainTextContent: z.string().optional(),
-  builderContent: emailBuilderContentSchema.optional(),
-  segmentId: z.coerce.number().optional(),
-  sendTime: dateStringSchema.optional(),
-});
+const createCampaignSchema = z
+  .object({
+    listId: listIdSchema,
+    title: z.string().min(1, 'Campaign title is required'),
+    subject: z.string().min(1, 'Subject line is required'),
+    fromName: z.string().min(1, 'From name is required'),
+    replyTo: emailSchema,
+    previewText: z.string().optional(),
+    htmlContent: z.string().optional(),
+    plainTextContent: z.string().optional(),
+    builderContent: emailBuilderContentSchema.optional(),
+    segmentId: z.coerce.number().optional(),
+    sendTime: dateStringSchema.optional(),
+    includeAudienceId: uuidSchema.optional(),
+    exclusionAudienceIds: z.array(uuidSchema).max(50).optional(),
+    suppressionSnapshot: z.array(z.unknown()).max(1000).optional(),
+    testRecipients: z.array(emailSchema).max(50).optional(),
+    audienceSnapshot: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
 
 /**
  * POST /api/mailchimp/webhook
@@ -184,6 +211,20 @@ router.get(
   '/lists/:listId/segments',
   validateParams(listIdOnlyParamsSchema),
   mailchimpController.getSegments
+);
+
+router.get('/audiences', mailchimpController.getSavedAudiences);
+
+router.post(
+  '/audiences',
+  validateBody(savedAudienceSchema),
+  mailchimpController.createSavedAudience
+);
+
+router.patch(
+  '/audiences/:audienceId/archive',
+  validateParams(audienceIdParamsSchema),
+  mailchimpController.archiveSavedAudience
 );
 
 /**
@@ -262,6 +303,8 @@ router.get(
   validateQuery(campaignsQuerySchema),
   mailchimpController.getCampaigns
 );
+
+router.get('/campaign-runs', mailchimpController.getCampaignRuns);
 
 /**
  * POST /api/mailchimp/campaigns/preview

@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-25
 
 This file is the active test command map for nonprofit-manager. Use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports; use this file when you need to choose the right validation command.
 
@@ -19,7 +19,7 @@ This file is the active test command map for nonprofit-manager. Use [../../CONTR
 
 | Layer | Primary Command | Notes |
 |------|------------------|-------|
-| DB contract verification | `make db-verify` | Rebuilds the isolated `_test` database and checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window |
+| DB contract verification | `make db-verify` | Rebuilds the isolated `_test` database and checks manifest/initdb parity, starter bootstrap seeds, the disposable app-role/RLS probe, known superseded indexes, and the audit-log future partition window. Required when migrations `103` through `107` or their manifest/initdb parity change. |
 | Contracts export smoke | `make typecheck` | Verifies the type-only `contracts` workspace through its export/type smoke check; this is part of repo-wide type validation, not a runtime test or coverage lane |
 | Repo-wide validation | `make test` | Runs backend/frontend tests, the host Playwright CI matrix, and the isolated Docker-backed smoke gate |
 | Coverage variant (fast local lane) | `make test-coverage` | Runs backend/frontend coverage, host Playwright smoke, and the isolated Docker-backed smoke gate |
@@ -123,7 +123,7 @@ Use this narrower host run when the change is limited to the site-aware builder,
 
 ```bash
 cd e2e
-bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium tests/publishing.spec.ts tests/public-website.spec.ts
+bash ../scripts/e2e-playwright.sh host ../node_modules/.bin/playwright test --project=chromium tests/publishing.spec.ts tests/public-website.spec.ts
 ```
 
 Docker must still be available locally for this command today. Even in host mode, the Playwright-managed backend bootstraps the isolated test DB through Docker before the browser slice starts.
@@ -142,6 +142,7 @@ Use this narrower proof when the change is limited to the communications workspa
 ```bash
 cd backend && npm test -- --runInBand src/__tests__/services/emailCampaignRenderer.test.ts src/__tests__/services/mailchimpService.test.ts src/__tests__/modules/mailchimp.routes.security.test.ts
 cd frontend && npm test -- --run src/features/adminOps/pages/__tests__/EmailMarketingPage.test.tsx src/features/builder/pages/__tests__/TemplatePreviewPage.test.tsx
+make db-verify
 cd backend && npm run type-check
 cd frontend && npm run type-check
 ```
@@ -149,12 +150,34 @@ cd frontend && npm run type-check
 This slice proves the current email-wave contract without widening into the host/Docker review lane:
 
 - `src/__tests__/services/emailCampaignRenderer.test.ts`: guided-builder and raw-HTML formatting, sanitization, and warning behavior
-- `src/__tests__/services/mailchimpService.test.ts`: Mailchimp campaign creation, generated content payloads, scheduling, and send behavior
+- `src/__tests__/services/mailchimpService.test.ts`: Mailchimp campaign creation, generated content payloads, saved-audience provider targeting through run-specific static segments, campaign-run history, scheduling, and send behavior
 - `src/__tests__/modules/mailchimp.routes.security.test.ts`: admin-only protection for campaign preview and other Mailchimp routes
-- `src/features/adminOps/pages/__tests__/EmailMarketingPage.test.tsx`: communications workspace authoring and preview flow
+- `src/features/adminOps/pages/__tests__/EmailMarketingPage.test.tsx`: communications workspace authoring, saved-audience selection, campaign-run history, and preview flow
 - `src/features/builder/pages/__tests__/TemplatePreviewPage.test.tsx`: shared sandboxed preview-frame behavior
 
 Pair that command set with `make check-links` when the same task updates email-wave or testing docs.
+Add `make lint-doc-api-versioning` when the same task changes `/api/v2` route wording, include `src/__tests__/services/taxReceiptService.test.ts` when donor-profile receipt defaults change with the email wave, and keep `make db-verify` in the slice when migrations `103_mailchimp_saved_audiences_and_campaign_runs.sql` or `107_donor_profiles.sql` change.
+
+## Targeted Portal Hardening Proof
+
+Use this narrower proof when the change is limited to public-intake resolution audit, server-backed queue view definitions, portal escalation records, or the current portal appointments/forms carry-over:
+
+```bash
+cd backend && npm test -- --runInBand src/__tests__/services/portalAuthService.test.ts src/__tests__/services/queueViewDefinitionService.test.ts
+cd frontend && npm test -- --run src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx
+make db-verify
+cd backend && npm run type-check
+cd frontend && npm run type-check
+```
+
+This slice proves the current portal hardening contract without widening into the full browser matrix:
+
+- `src/__tests__/services/portalAuthService.test.ts`: portal signup resolution and best-effort public-intake audit behavior
+- `src/__tests__/services/queueViewDefinitionService.test.ts`: queue view create, update, archive ownership, and surface limits
+- `src/features/portal/pages/__tests__/PortalWorkflowPages.test.tsx`: portal workflow shells, including appointments continuity
+- `make db-verify`: manifest/initdb parity for migrations `104_public_intake_resolutions.sql`, `105_queue_view_definitions.sql`, and `106_portal_escalations.sql`
+
+Add the focused Playwright portal suites from the persona lane when the UI route contract changes. Keep actor attribution checks with the backend service or route tests when portal escalation creation changes.
 
 ## Package-Level Commands
 
@@ -207,7 +230,7 @@ make lint-doc-api-versioning
 ```
 
 - Add `make lint-doc-api-versioning` when API wording, API examples, or versioned API docs changed.
-- Add `make db-verify` when migration docs or database contract expectations changed.
+- Add `make db-verify` when migration docs or database contract expectations changed, including the Phase 5 hardening migrations `103` through `107`.
 
 ## Choosing A Smaller Check Set
 

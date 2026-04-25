@@ -132,6 +132,14 @@ export const portalCaseDocumentUploadSchema = z
     description: optionalTrimmedString(2000),
   })
   .strict();
+export const portalCaseEscalationSchema = z
+  .object({
+    category: z.string().trim().min(1).max(80).optional(),
+    reason: z.string().trim().min(1).max(5000),
+    severity: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+    sensitivity: z.enum(['standard', 'sensitive']).optional(),
+  })
+  .strict();
 export const portalEventParamsSchema = z.object({ eventId: uuidSchema });
 export const portalAppointmentParamsSchema = z.object({ id: uuidSchema });
 export const portalThreadParamsSchema = z.object({ threadId: uuidSchema });
@@ -317,6 +325,41 @@ export const portalAdminConversationQuerySchema = z
   })
   .strict();
 
+export const queueViewSurfaceSchema = z.enum([
+  'cases',
+  'portal_appointments',
+  'portal_conversations',
+  'workbench',
+]);
+
+export const queueViewDefinitionQuerySchema = z
+  .object({
+    surface: queueViewSurfaceSchema,
+  })
+  .strict();
+
+export const queueViewDefinitionSchema = z
+  .object({
+    id: uuidSchema.optional(),
+    surface: queueViewSurfaceSchema,
+    name: z.string().trim().min(1).max(255),
+    filters: z.record(z.string(), z.unknown()).optional(),
+    columns: z.array(z.unknown()).optional(),
+    sort: z.record(z.string(), z.unknown()).optional(),
+    rowLimit: z.coerce.number().int().min(1).max(250).optional(),
+    dashboardBehavior: z.record(z.string(), z.unknown()).optional(),
+    permissionScope: z.array(z.string().trim().min(1).max(100)).max(50).optional(),
+  })
+  .strict();
+
+export const scopedQueueViewDefinitionSchema = queueViewDefinitionSchema.omit({
+  surface: true,
+  permissionScope: true,
+});
+
+export const portalAdminQueueViewQuerySchema = queueViewDefinitionQuerySchema;
+export const portalAdminQueueViewSchema = queueViewDefinitionSchema;
+
 export const portalAdminSlotQuerySchema = z
   .object({
     status: z.enum(['open', 'closed', 'cancelled']).optional(),
@@ -436,3 +479,20 @@ export const casePortalConversationMessageSchema = z.object({
   client_message_id: uuidSchema.optional(),
   is_internal: z.boolean().optional(),
 });
+
+export const portalEscalationParamsSchema = z.object({
+  id: uuidSchema,
+  escalationId: uuidSchema,
+});
+
+export const portalCaseEscalationUpdateSchema = z
+  .object({
+    status: z.enum(['open', 'in_review', 'resolved', 'referred']).optional(),
+    resolution_summary: z.string().trim().max(5000).optional().nullable(),
+    assignee_user_id: uuidSchema.optional().nullable(),
+    sla_due_at: z.string().datetime().optional().nullable(),
+  })
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one escalation field is required',
+  });

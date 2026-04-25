@@ -15,7 +15,11 @@ const mailchimpControllerMocks = {
   updateMemberTags: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   syncContact: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   bulkSyncContacts: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
+  getSavedAudiences: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
+  createSavedAudience: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
+  archiveSavedAudience: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   getCampaigns: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
+  getCampaignRuns: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   previewCampaign: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   createCampaign: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
   sendCampaign: jest.fn((_req: unknown, res: Response) => res.status(200).json({ ok: true })),
@@ -93,6 +97,72 @@ describe('mailchimp routes authorization', () => {
       .expect(200);
 
     expect(mailchimpControllerMocks.previewCampaign).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects unsupported saved-audience filter shapes before the controller', async () => {
+    const app = buildApp('admin');
+
+    await request(app)
+      .post('/api/v2/mailchimp/audiences')
+      .send({
+        name: 'Unsafe Audience',
+        filters: {
+          source: 'freeform',
+          contactIds: ['11111111-1111-4111-8111-111111111111'],
+          listId: 'list-1',
+        },
+        sourceCount: 99,
+      })
+      .expect(400);
+
+    expect(mailchimpControllerMocks.createSavedAudience).not.toHaveBeenCalled();
+  });
+
+  it('accepts selected-contact saved audiences without client-supplied source counts', async () => {
+    const app = buildApp('admin');
+
+    await request(app)
+      .post('/api/v2/mailchimp/audiences')
+      .send({
+        name: 'Selected Contacts',
+        filters: {
+          source: 'communications_selected_contacts',
+          contactIds: ['11111111-1111-4111-8111-111111111111'],
+          listId: 'list-1',
+        },
+      })
+      .expect(200);
+
+    expect(mailchimpControllerMocks.createSavedAudience).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects saved-audience archive requests without UUID audience IDs', async () => {
+    const app = buildApp('admin');
+
+    await request(app)
+      .patch('/api/v2/mailchimp/audiences/not-a-uuid/archive')
+      .send({})
+      .expect(400);
+
+    expect(mailchimpControllerMocks.archiveSavedAudience).not.toHaveBeenCalled();
+  });
+
+  it('rejects campaign creation fields outside the signed-out targeting contract', async () => {
+    const app = buildApp('admin');
+
+    await request(app)
+      .post('/api/v2/mailchimp/campaigns')
+      .send({
+        listId: 'list-1',
+        title: 'Spring Appeal',
+        subject: 'Spring Appeal',
+        fromName: 'Org',
+        replyTo: 'hello@example.org',
+        typedAppealId: '11111111-1111-4111-8111-111111111111',
+      })
+      .expect(400);
+
+    expect(mailchimpControllerMocks.createCampaign).not.toHaveBeenCalled();
   });
 
   it('keeps the Mailchimp webhook public', async () => {

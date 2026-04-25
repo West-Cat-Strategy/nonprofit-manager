@@ -740,6 +740,107 @@ describe('Contact API Integration Tests', () => {
     });
   });
 
+  describe('GET/PUT /api/v2/contacts/:id/donor-profile', () => {
+    it('returns default donor receipt preferences before a profile is saved', async () => {
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Donor',
+          last_name: 'Defaults',
+          email: `donor-defaults-${unique()}@example.com`,
+        }))
+        .expect(201);
+
+      const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
+
+      const response = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${contactId}/donor-profile`))
+        .expect(200);
+
+      const payload = payloadFromResponse<{
+        id: string | null;
+        contact_id: string;
+        account_id: string | null;
+        receipt_frequency: string;
+        receipt_each_gift: boolean;
+        email_gift_statement: boolean;
+      }>(response.body);
+      expect(payload).toEqual(
+        expect.objectContaining({
+          id: null,
+          contact_id: contactId,
+          account_id: testAccountId,
+          receipt_frequency: 'per_gift',
+          receipt_each_gift: true,
+          email_gift_statement: false,
+        })
+      );
+    });
+
+    it('lets contact editors save donor receipt preferences', async () => {
+      const createResponse = await withStaffAuth(request(app)
+        .post('/api/v2/contacts')
+        .send({
+          account_id: testAccountId,
+          first_name: 'Receipt',
+          last_name: 'Preference',
+          email: `donor-profile-${unique()}@example.com`,
+        }))
+        .expect(201);
+
+      const contactId = payloadFromResponse<{ contact_id: string }>(createResponse.body).contact_id;
+
+      await withViewerAuth(request(app)
+        .put(`/api/v2/contacts/${contactId}/donor-profile`)
+        .send({
+          receipt_frequency: 'annual',
+          receipt_each_gift: false,
+          email_gift_statement: true,
+        }))
+        .expect(403);
+
+      const updateResponse = await withStaffAuth(request(app)
+        .put(`/api/v2/contacts/${contactId}/donor-profile`)
+        .send({
+          receipt_frequency: 'annual',
+          receipt_each_gift: false,
+          email_gift_statement: true,
+          anonymous_donor: true,
+          no_solicitations: true,
+          notes: 'Annual email receipt only',
+        }))
+        .expect(200);
+
+      const updated = payloadFromResponse<{
+        id: string;
+        contact_id: string;
+        receipt_frequency: string;
+        receipt_each_gift: boolean;
+        email_gift_statement: boolean;
+        anonymous_donor: boolean;
+        no_solicitations: boolean;
+        notes: string | null;
+      }>(updateResponse.body);
+      expect(updated).toEqual(
+        expect.objectContaining({
+          contact_id: contactId,
+          receipt_frequency: 'annual',
+          receipt_each_gift: false,
+          email_gift_statement: true,
+          anonymous_donor: true,
+          no_solicitations: true,
+          notes: 'Annual email receipt only',
+        })
+      );
+
+      const getResponse = await withStaffAuth(request(app)
+        .get(`/api/v2/contacts/${contactId}/donor-profile`))
+        .expect(200);
+      expect(payloadFromResponse<{ id: string }>(getResponse.body).id).toBe(updated.id);
+    });
+  });
+
   describe('GET /api/v2/contacts/:id/communications', () => {
     it('returns aggregated appointment and event reminder history for the contact', async () => {
       const suffix = unique();

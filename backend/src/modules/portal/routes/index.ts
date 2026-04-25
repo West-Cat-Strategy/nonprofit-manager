@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Pool } from 'pg';
 import pool from '@config/database';
 import { authenticatePortal } from '@middleware/domains/auth';
+import type { PortalAuthRequest } from '@middleware/portalAuth';
 import { handleMulterError, documentUpload } from '@middleware/domains/platform';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
 import {
@@ -9,6 +10,7 @@ import {
   portalAppointmentsQuerySchema,
   portalBookSlotSchema,
   portalCaseDocumentUploadSchema,
+  portalCaseEscalationSchema,
   portalCaseDocumentDownloadParamsSchema,
   portalCaseParamsSchema,
   portalCaseTimelineQuerySchema,
@@ -57,6 +59,9 @@ import { PortalRelationshipsUseCase } from '../usecases/relationshipsUseCase';
 import { CaseFormsUseCase } from '@modules/cases/usecases/caseForms.usecase';
 import type { PortalAppointmentsPort, PortalMessagingPort } from '../types/ports';
 import { createPortalFormsController } from '../controllers/forms.controller';
+import { ensureCaseIsPortalAccessible } from '@services/portalPointpersonService';
+import { createPortalEscalation } from '@services/portalEscalationService';
+import { sendError, sendSuccess } from '@modules/shared/http/envelope';
 import {
   caseFormAssetUploadSchema,
   caseFormDraftSchema,
@@ -109,6 +114,50 @@ export const createPortalV2Routes = (deps: PortalRouteDependencies = {}): Router
 
   portalV2Routes.get('/cases', casesController.listCases);
   portalV2Routes.get('/cases/:id', validateParams(portalCaseParamsSchema), casesController.getCaseById);
+  portalV2Routes.post(
+    '/cases/:id/escalations',
+    validateParams(portalCaseParamsSchema),
+    validateBody(portalCaseEscalationSchema),
+    async (req: PortalAuthRequest, res, next) => {
+      try {
+        const contactId = req.portalUser?.contactId;
+        if (!contactId || !req.portalUser?.id) {
+          sendError(res, 'PORTAL_CONTACT_MISSING', 'Portal user not linked to a contact', 400);
+          return;
+        }
+
+        const portalCase = await ensureCaseIsPortalAccessible(contactId, req.params.id);
+        if (!portalCase) {
+          sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+          return;
+        }
+
+        const body = req.body as {
+          category?: string;
+          reason: string;
+          severity?: 'low' | 'normal' | 'high' | 'urgent';
+          sensitivity?: 'standard' | 'sensitive';
+        };
+        const escalation = await createPortalEscalation({
+          caseId: req.params.id,
+          accountId: portalCase.account_id,
+          contactId,
+          portalUserId: req.portalUser.id,
+          createdByPortalUserId: req.portalUser.id,
+          category: body.category,
+          reason: body.reason,
+          severity: body.severity,
+          sensitivity: body.sensitivity,
+          assigneeUserId: portalCase.assigned_to,
+          createdBy: null,
+        });
+
+        sendSuccess(res, escalation, 201);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
   portalV2Routes.get(
     '/cases/:id/timeline',
     validateParams(portalCaseParamsSchema),

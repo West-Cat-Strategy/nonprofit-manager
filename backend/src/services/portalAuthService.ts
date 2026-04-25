@@ -1,4 +1,5 @@
 import pool from '@config/database';
+import { recordPublicIntakeResolutionBestEffort } from '@services/publicIntakeResolutionService';
 
 interface ContactIdRow {
   id: string;
@@ -100,6 +101,46 @@ export const resolvePortalSignupContact = async (input: {
   if (!row) {
     throw new Error('Portal signup resolution bridge returned no row');
   }
+
+  let accountId: string | null = null;
+  if (row.contact_id) {
+    try {
+      const accountResult = await pool.query<{ account_id: string | null }>(
+        'SELECT account_id FROM contacts WHERE id = $1',
+        [row.contact_id]
+      );
+      accountId = accountResult.rows[0]?.account_id ?? null;
+    } catch {
+      accountId = null;
+    }
+  }
+
+  await recordPublicIntakeResolutionBestEffort({
+    sourceSystem: 'portal_signup',
+    sourceReference: input.email,
+    collectionMethod: 'portal_signup',
+    firstName: input.firstName,
+    lastName: input.lastName,
+    email: input.email,
+    phone: input.phone ?? null,
+    accountId,
+    organizationId: accountId,
+    matchedContactId: row.contact_id,
+    ambiguityState:
+      row.resolution_status === 'needs_contact_resolution'
+        ? 'multiple_matches'
+        : row.contact_id
+          ? 'single_match'
+          : 'no_match',
+    resolutionStatus: row.resolution_status,
+    auditTrail: [
+      {
+        action: 'portal_signup_resolution',
+        resolutionStatus: row.resolution_status,
+        at: new Date().toISOString(),
+      },
+    ],
+  });
 
   return {
     contactId: row.contact_id,

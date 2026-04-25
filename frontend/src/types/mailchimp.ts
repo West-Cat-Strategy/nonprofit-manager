@@ -75,6 +75,49 @@ export interface MailchimpCampaign {
   };
 }
 
+export type SavedAudienceStatus = 'active' | 'archived';
+
+export interface SavedAudience {
+  id: string;
+  name: string;
+  description?: string;
+  filters: Record<string, unknown>;
+  sourceCount: number;
+  scopeAccountIds?: string[];
+  status: SavedAudienceStatus;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string | null;
+}
+
+export interface CreateSavedAudienceRequest {
+  name: string;
+  description?: string;
+  filters: Record<string, unknown>;
+}
+
+export type CampaignRunStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'canceled';
+
+export interface CampaignRun {
+  id: string;
+  provider: 'mailchimp';
+  providerCampaignId?: string | null;
+  title: string;
+  listId: string;
+  includeAudienceId?: string | null;
+  exclusionAudienceIds: string[];
+  suppressionSnapshot: unknown[];
+  testRecipients: string[];
+  audienceSnapshot: Record<string, unknown>;
+  requestedSendTime?: string | null;
+  status: CampaignRunStatus;
+  counts: Record<string, unknown>;
+  failureMessage?: string | null;
+  requestedBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /**
  * Mailchimp segment
  */
@@ -143,6 +186,11 @@ export interface CreateCampaignRequest {
   builderContent?: EmailBuilderContent;
   segmentId?: number;
   sendTime?: string;
+  includeAudienceId?: string;
+  exclusionAudienceIds?: string[];
+  suppressionSnapshot?: unknown[];
+  testRecipients?: string[];
+  audienceSnapshot?: Record<string, unknown>;
 }
 
 export type EmailBuilderBlockType = 'heading' | 'paragraph' | 'button' | 'image' | 'divider';
@@ -210,9 +258,23 @@ export interface MailchimpState {
   selectedList: MailchimpList | null;
   tags: MailchimpTag[];
   campaigns: MailchimpCampaign[];
+  savedAudiences: SavedAudience[];
+  campaignRuns: CampaignRun[];
   segments: MailchimpSegment[];
+  segmentsListId: string | null;
   syncResult: BulkSyncResponse | null;
   isLoading: boolean;
   isSyncing: boolean;
+  isLoadingSavedAudiences: boolean;
+  isCreatingSavedAudience: boolean;
+  isArchivingSavedAudience: boolean;
+  savedAudienceMessage: string | null;
+  savedAudienceError: string | null;
+  savedAudienceLoadError: string | null;
+  savedAudienceCreateError: string | null;
+  isLoadingCampaignRuns: boolean;
+  campaignRunsError: string | null;
+  isCreatingCampaign: boolean;
+  isSendingCampaign: boolean;
   error: string | null;
 }

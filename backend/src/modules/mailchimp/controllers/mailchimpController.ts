@@ -15,14 +15,34 @@ import type {
   AddMemberRequest,
   MailchimpWebhookPayload,
   CreateCampaignRequest,
+  CreateSavedAudienceRequest,
 } from '@app-types/mailchimp';
 import { renderMailchimpCampaignPreview } from '@services/template/emailCampaignRenderer';
 import { badRequest, notFoundMessage, serverError, serviceUnavailable } from '@utils/responseHelpers';
 import { sendProviderAck, sendSuccess } from '@modules/shared/http/envelope';
+import type { DataScopeFilter } from '@app-types/dataScope';
 
 const isMailchimpNotFoundError = (error: unknown): boolean => {
   return typeof error === 'object' && error !== null && (error as { status?: number }).status === 404;
 };
+
+const getRequesterScopeAccountIds = (req: AuthRequest): string[] => {
+  const scope = req.dataScope?.filter as DataScopeFilter | undefined;
+  const accountIds = new Set<string>();
+  (scope?.accountIds ?? []).forEach((accountId) => accountIds.add(accountId));
+  if (req.accountId) {
+    accountIds.add(req.accountId);
+  }
+  if (req.organizationId) {
+    accountIds.add(req.organizationId);
+  }
+  return Array.from(accountIds);
+};
+
+const isValidationStatusError = (error: unknown): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  (error as { statusCode?: number }).statusCode === 400;
 
 /**
  * Get Mailchimp configuration status
@@ -358,6 +378,80 @@ export const getCampaigns = async (req: Request, res: Response): Promise<void> =
   }
 };
 
+export const getSavedAudiences = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const audiences = await mailchimpService.listSavedAudiences(
+      'active',
+      getRequesterScopeAccountIds(req)
+    );
+    res.json(audiences);
+  } catch (error) {
+    logger.error('Error getting saved audiences', { error });
+    serverError(res, 'Failed to get saved audiences');
+  }
+};
+
+export const createSavedAudience = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name, description, filters } = req.body as CreateSavedAudienceRequest;
+
+    if (!name?.trim()) {
+      badRequest(res, 'Audience name is required');
+      return;
+    }
+
+    const audience = await mailchimpService.createSavedAudience(
+      {
+        name,
+        description,
+        filters,
+        scopeAccountIds: getRequesterScopeAccountIds(req),
+      },
+      req.user?.id
+    );
+
+    res.status(201).json(audience);
+  } catch (error) {
+    if (isValidationStatusError(error)) {
+      badRequest(res, error instanceof Error ? error.message : 'Invalid saved audience');
+      return;
+    }
+    logger.error('Error creating saved audience', { error });
+    serverError(res, 'Failed to create saved audience');
+  }
+};
+
+export const archiveSavedAudience = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { audienceId } = req.params;
+    const audience = await mailchimpService.archiveSavedAudience(
+      audienceId,
+      req.user?.id,
+      getRequesterScopeAccountIds(req)
+    );
+
+    if (!audience) {
+      notFoundMessage(res, 'Saved audience not found');
+      return;
+    }
+
+    res.json(audience);
+  } catch (error) {
+    logger.error('Error archiving saved audience', { error });
+    serverError(res, 'Failed to archive saved audience');
+  }
+};
+
+export const getCampaignRuns = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const runs = await mailchimpService.listCampaignRuns(20, getRequesterScopeAccountIds(req));
+    res.json(runs);
+  } catch (error) {
+    logger.error('Error getting campaign runs', { error });
+    serverError(res, 'Failed to get campaign runs');
+  }
+};
+
 /**
  * Create a segment
  */
@@ -445,6 +539,11 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
       builderContent,
       segmentId,
       sendTime,
+      includeAudienceId,
+      exclusionAudienceIds,
+      suppressionSnapshot,
+      testRecipients,
+      audienceSnapshot,
     } = req.body as CreateCampaignRequest;
 
     if (!listId) {
@@ -489,12 +588,23 @@ export const createCampaign = async (req: AuthRequest, res: Response): Promise<v
       builderContent,
       segmentId,
       sendTime: sendTime ? new Date(sendTime) : undefined,
+      includeAudienceId,
+      exclusionAudienceIds,
+      suppressionSnapshot,
+      testRecipients,
+      audienceSnapshot,
+      requestedBy: req.user?.id,
+      scopeAccountIds: getRequesterScopeAccountIds(req),
     });
 
     res.status(201).json(campaign);
   } catch (error) {
     if (isMailchimpNotFoundError(error)) {
       notFoundMessage(res, 'Mailchimp list not found');
+      return;
+    }
+    if (isValidationStatusError(error)) {
+      badRequest(res, error instanceof Error ? error.message : 'Invalid campaign targeting');
       return;
     }
     logger.error('Error creating campaign', { error });
@@ -680,7 +790,11 @@ export default {
   bulkSyncContacts,
   updateMemberTags,
   getListTags,
+  getSavedAudiences,
+  createSavedAudience,
+  archiveSavedAudience,
   getCampaigns,
+  getCampaignRuns,
   previewCampaign,
   createCampaign,
   sendCampaign,

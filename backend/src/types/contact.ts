@@ -303,6 +303,33 @@ export interface Contact {
   roles?: string[];
 }
 
+export type DonorReceiptFrequency = 'per_gift' | 'annual' | 'none';
+
+export interface DonorProfile {
+  id: string | null;
+  contact_id: string;
+  account_id: string | null;
+  receipt_frequency: DonorReceiptFrequency;
+  receipt_each_gift: boolean;
+  email_gift_statement: boolean;
+  anonymous_donor: boolean;
+  no_solicitations: boolean;
+  notes: string | null;
+  created_at: Date | null;
+  updated_at: Date | null;
+  created_by: string | null;
+  updated_by: string | null;
+}
+
+export interface UpdateDonorProfileDTO {
+  receipt_frequency: DonorReceiptFrequency;
+  receipt_each_gift?: boolean;
+  email_gift_statement?: boolean;
+  anonymous_donor?: boolean;
+  no_solicitations?: boolean;
+  notes?: string | null;
+}
+
 export type ContactMergeResolution = 'source' | 'target';
 
 export interface ContactMergeFieldPreview {

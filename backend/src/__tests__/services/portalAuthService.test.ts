@@ -23,7 +23,7 @@ describe('portalAuthService', () => {
   it('returns a resolved contact when the signup bridge finds a single normalized-email match', async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [{ contact_id: 'contact-1', resolution_status: 'resolved' }],
-    });
+    }).mockResolvedValueOnce({ rows: [{ id: 'resolution-1' }] });
 
     const result = await resolvePortalSignupContact({
       email: 'client@example.com',
@@ -45,7 +45,7 @@ describe('portalAuthService', () => {
   it('returns a resolved contact when the signup bridge creates a new contact for a no-match email', async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [{ contact_id: 'contact-2', resolution_status: 'resolved' }],
-    });
+    }).mockResolvedValueOnce({ rows: [{ id: 'resolution-2' }] });
 
     const result = await resolvePortalSignupContact({
       email: 'newclient@example.com',
@@ -68,7 +68,7 @@ describe('portalAuthService', () => {
   it('returns an unresolved signup result when multiple contacts share the email', async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [{ contact_id: null, resolution_status: 'needs_contact_resolution' }],
-    });
+    }).mockResolvedValueOnce({ rows: [{ id: 'resolution-3' }] });
 
     await expect(
       resolvePortalSignupContact({
@@ -79,6 +79,25 @@ describe('portalAuthService', () => {
     ).resolves.toEqual({
       contactId: null,
       resolutionStatus: 'needs_contact_resolution',
+    });
+  });
+
+  it('does not fail signup resolution when intake audit logging fails', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [{ contact_id: 'contact-1', resolution_status: 'resolved' }],
+      })
+      .mockRejectedValueOnce(new Error('audit insert failed'));
+
+    await expect(
+      resolvePortalSignupContact({
+        email: 'client@example.com',
+        firstName: 'Client',
+        lastName: 'One',
+      })
+    ).resolves.toEqual({
+      contactId: 'contact-1',
+      resolutionStatus: 'resolved',
     });
   });
 

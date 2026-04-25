@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import EmailCampaignBuilder from '../../builder/components/EmailCampaignBuilder';
 import { createDefaultEmailBuilderContent } from '../../builder/components/emailCampaignBuilderDefaults';
 import CampaignPreviewModal from './CampaignPreviewModal';
@@ -6,6 +6,8 @@ import type {
   MailchimpCampaign,
   MailchimpList,
   MailchimpSegment,
+  SavedAudience,
+  CampaignRun,
   CreateCampaignRequest,
   MailchimpCampaignPreview,
 } from '../../../types/mailchimp';
@@ -15,20 +17,26 @@ export function StatusBadge({ status }: { status: string }) {
     sent: 'bg-app-accent-soft text-app-accent-text',
     sending: 'bg-app-accent-soft text-app-accent-text',
     schedule: 'bg-app-accent-soft text-app-accent-text',
+    scheduled: 'bg-app-accent-soft text-app-accent-text',
     paused: 'bg-app-surface-muted text-app-text',
     save: 'bg-app-surface-muted text-app-text',
+    draft: 'bg-app-surface-muted text-app-text',
     canceled: 'bg-app-accent-soft text-app-accent-text',
+    failed: 'bg-app-accent-soft text-app-accent-text',
     archived: 'bg-app-surface-muted text-app-text-muted',
   };
   const statusLabels: Record<string, string> = {
     sent: 'Sent',
     sending: 'Sending',
     schedule: 'Scheduled',
+    scheduled: 'Scheduled',
     paused: 'Paused',
     save: 'Draft',
+    draft: 'Draft',
     canceled: 'Canceled',
     canceling: 'Canceling',
     archived: 'Archived',
+    failed: 'Failed',
   };
 
   return (
@@ -85,6 +93,93 @@ export function CampaignCard({ campaign }: { campaign: MailchimpCampaign }) {
       <div className="mt-4 text-xs text-app-text-subtle">
         Created: {new Date(campaign.createdAt).toLocaleDateString()}
         {campaign.sendTime && ` | ${sendTimeLabel}: ${new Date(campaign.sendTime).toLocaleDateString()}`}
+      </div>
+    </div>
+  );
+}
+
+export function CampaignRunCard({ run }: { run: CampaignRun }) {
+  const statusLabels: Record<CampaignRun['status'], string> = {
+    draft: 'Draft',
+    scheduled: 'Scheduled',
+    sending: 'Sending',
+    sent: 'Sent',
+    failed: 'Failed',
+    canceled: 'Canceled',
+  };
+  const targetName =
+    typeof run.audienceSnapshot.savedAudienceName === 'string'
+      ? run.audienceSnapshot.savedAudienceName
+      : run.includeAudienceId
+        ? 'Saved audience'
+        : 'Provider audience';
+  const providerCampaignId = run.providerCampaignId || 'Pending provider id';
+  const requestedCount =
+    typeof run.counts.requestedContactCount === 'number'
+      ? run.counts.requestedContactCount
+      : undefined;
+  const syncedCount =
+    typeof run.counts.syncedContactCount === 'number' ? run.counts.syncedContactCount : undefined;
+  const providerSegmentName =
+    typeof run.audienceSnapshot.providerSegmentName === 'string'
+      ? run.audienceSnapshot.providerSegmentName
+      : undefined;
+  const providerSegmentId =
+    typeof run.audienceSnapshot.providerSegmentId === 'number'
+      ? run.audienceSnapshot.providerSegmentId
+      : undefined;
+  const suppressionCount =
+    typeof run.counts.suppressionSourceCount === 'number'
+      ? run.counts.suppressionSourceCount
+      : run.suppressionSnapshot.length;
+  const skippedCount =
+    typeof run.counts.skippedContactCount === 'number' ? run.counts.skippedContactCount : undefined;
+
+  return (
+    <div className="rounded-lg border border-app-border bg-app-surface p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-app-text-heading">{run.title}</p>
+          <p className="mt-1 text-xs text-app-text-muted">
+            Local lifecycle: {statusLabels[run.status]}
+          </p>
+        </div>
+        <StatusBadge status={run.status === 'scheduled' ? 'schedule' : run.status} />
+      </div>
+      <div className="mt-3 space-y-1 text-xs text-app-text-subtle">
+        <p>Provider campaign: {providerCampaignId}</p>
+        <p>
+          Target: {targetName}
+          {run.exclusionAudienceIds.length > 0
+            ? ` with ${run.exclusionAudienceIds.length} suppression${run.exclusionAudienceIds.length === 1 ? '' : 's'}`
+            : ''}
+        </p>
+        {providerSegmentId !== undefined || providerSegmentName ? (
+          <p>
+            Run segment: {providerSegmentName || 'Mailchimp static segment'}
+            {providerSegmentId !== undefined ? ` (#${providerSegmentId})` : ''}
+          </p>
+        ) : null}
+        {requestedCount !== undefined || syncedCount !== undefined ? (
+          <p>
+            Contacts: {syncedCount ?? requestedCount} synced
+            {requestedCount !== undefined ? ` from ${requestedCount} requested` : ''}
+            {skippedCount !== undefined && skippedCount > 0 ? `, ${skippedCount} skipped` : ''}
+          </p>
+        ) : null}
+        {suppressionCount > 0 ? (
+          <p>{suppressionCount} contact{suppressionCount === 1 ? '' : 's'} suppressed</p>
+        ) : null}
+        {run.testRecipients.length > 0 ? (
+          <p>
+            Test recipients: {run.testRecipients.slice(0, 2).join(', ')}
+            {run.testRecipients.length > 2 ? ` +${run.testRecipients.length - 2}` : ''}
+          </p>
+        ) : null}
+        {run.requestedSendTime ? (
+          <p>Requested send: {new Date(run.requestedSendTime).toLocaleString()}</p>
+        ) : null}
+        {run.failureMessage ? <p className="text-app-accent">Failure: {run.failureMessage}</p> : null}
       </div>
     </div>
   );
@@ -203,6 +298,9 @@ export function SyncResultModal({
 export function CampaignCreateModal({
   lists,
   segments,
+  savedAudiences,
+  isCreatingCampaign,
+  isSendingCampaign,
   onClose,
   onListChange,
   onPreview,
@@ -210,11 +308,21 @@ export function CampaignCreateModal({
 }: {
   lists: MailchimpList[];
   segments: MailchimpSegment[];
+  savedAudiences: SavedAudience[];
+  isCreatingCampaign: boolean;
+  isSendingCampaign: boolean;
   onClose: () => void;
   onListChange: (listId: string) => void;
   onPreview: (data: CreateCampaignRequest) => Promise<MailchimpCampaignPreview>;
-  onSubmit: (data: CreateCampaignRequest, sendNow: boolean) => void;
+  onSubmit: (data: CreateCampaignRequest, sendNow: boolean) => Promise<void> | void;
 }) {
+  type TargetingMode = 'all' | 'provider_segment' | 'saved_audience';
+  type SubmitIntent = 'draft_or_schedule' | 'send_now';
+  const dialogTitleId = useId();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const previewResultRef = useRef<MailchimpCampaignPreview | null>(null);
   const [formData, setFormData] = useState<CreateCampaignRequest>({
     listId: lists[0]?.id || '',
     title: '',
@@ -227,11 +335,54 @@ export function CampaignCreateModal({
     builderContent: createDefaultEmailBuilderContent(),
     segmentId: undefined,
     sendTime: undefined,
+    includeAudienceId: undefined,
+    exclusionAudienceIds: [],
+    suppressionSnapshot: [],
+    testRecipients: [],
+    audienceSnapshot: {},
   });
+  const [targetingMode, setTargetingMode] = useState<TargetingMode>('all');
   const [compositionMode, setCompositionMode] = useState<'builder' | 'html'>('builder');
   const [previewResult, setPreviewResult] = useState<MailchimpCampaignPreview | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const [submitIntent, setSubmitIntent] = useState<SubmitIntent | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const isCampaignSubmitPending = isCreatingCampaign || isSendingCampaign;
+  const isCampaignActionPending = isPreviewing || isCampaignSubmitPending;
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    previewResultRef.current = previewResult;
+  }, [previewResult]);
+
+  useEffect(() => {
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !previewResultRef.current) {
+        event.preventDefault();
+        onCloseRef.current();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocusedElementRef.current?.focus();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isCampaignSubmitPending) {
+      setSubmitIntent(null);
+    }
+  }, [isCampaignSubmitPending]);
 
   useEffect(() => {
     if (!formData.listId && lists[0]?.id) {
@@ -239,6 +390,21 @@ export function CampaignCreateModal({
       onListChange(lists[0].id);
     }
   }, [formData.listId, lists, onListChange]);
+
+  const savedAudiencesForList = useMemo(
+    () =>
+      savedAudiences.filter(
+        (audience) =>
+          audience.status === 'active' &&
+          typeof audience.filters.listId === 'string' &&
+          audience.filters.listId === formData.listId
+      ),
+    [formData.listId, savedAudiences]
+  );
+
+  const selectedIncludeAudience = savedAudiencesForList.find(
+    (audience) => audience.id === formData.includeAudienceId
+  );
 
   const hasBuilderContent = (data: CreateCampaignRequest): boolean =>
     Boolean(
@@ -259,6 +425,20 @@ export function CampaignCreateModal({
 
   const buildRequest = (shouldSendNow: boolean): CreateCampaignRequest => {
     const sendTime = shouldSendNow ? undefined : formData.sendTime;
+    const testRecipients = (formData.testRecipients || [])
+      .map((recipient) => recipient.trim())
+      .filter(Boolean);
+    const audienceSnapshot = {
+      ...(formData.audienceSnapshot || {}),
+      listId: formData.listId,
+      targetingMode:
+        targetingMode === 'saved_audience'
+          ? 'saved_audience'
+          : targetingMode === 'provider_segment'
+            ? 'provider_segment'
+            : 'all_subscribers',
+      testRecipientCount: testRecipients.length,
+    };
 
     if (compositionMode === 'builder') {
       return {
@@ -267,6 +447,8 @@ export function CampaignCreateModal({
         plainTextContent: undefined,
         builderContent: formData.builderContent,
         sendTime,
+        testRecipients,
+        audienceSnapshot,
       };
     }
 
@@ -276,6 +458,8 @@ export function CampaignCreateModal({
       htmlContent: formData.htmlContent?.trim() || undefined,
       plainTextContent: formData.plainTextContent?.trim() || undefined,
       sendTime,
+      testRecipients,
+      audienceSnapshot,
     };
   };
 
@@ -307,18 +491,39 @@ export function CampaignCreateModal({
       }
     }
 
+    if (targetingMode === 'provider_segment' && !formData.segmentId) {
+      newErrors.targeting = 'Choose a provider segment or use all subscribers.';
+    }
+
+    if (targetingMode === 'saved_audience' && !formData.includeAudienceId) {
+      newErrors.targeting = 'Choose a saved audience for campaign delivery.';
+    }
+
+    if (
+      targetingMode === 'saved_audience' &&
+      formData.includeAudienceId &&
+      formData.exclusionAudienceIds?.includes(formData.includeAudienceId)
+    ) {
+      newErrors.targeting = 'A saved audience cannot suppress itself.';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent, shouldSendNow: boolean) => {
     e.preventDefault();
-    if (validateForm(shouldSendNow)) {
+    if (!isCampaignActionPending && validateForm(shouldSendNow)) {
+      setSubmitIntent(shouldSendNow ? 'send_now' : 'draft_or_schedule');
       onSubmit(buildRequest(shouldSendNow), shouldSendNow);
     }
   };
 
   const handlePreview = async () => {
+    if (isCampaignActionPending) {
+      return;
+    }
+
     if (!validateForm(false)) {
       return;
     }
@@ -341,10 +546,23 @@ export function CampaignCreateModal({
   return (
     <>
       <div className="fixed inset-0 app-popup-backdrop flex items-center justify-center z-50 overflow-y-auto">
-        <div className="bg-app-surface rounded-lg shadow-xl max-w-5xl w-full mx-4 my-8">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={dialogTitleId}
+          className="bg-app-surface rounded-lg shadow-xl max-w-5xl w-full mx-4 my-8"
+        >
         <div className="flex justify-between items-center p-6 border-b border-app-border">
-          <h3 className="text-xl font-medium text-app-text">Create Email Campaign</h3>
-          <button onClick={onClose} className="text-app-text-subtle hover:text-app-text-muted">
+          <h3 id={dialogTitleId} className="text-xl font-medium text-app-text">
+            Create Email Campaign
+          </h3>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Close campaign creation dialog"
+            className="text-app-text-subtle hover:text-app-text-muted"
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -366,7 +584,16 @@ export function CampaignCreateModal({
               value={formData.listId}
               onChange={(e) => {
                 const nextListId = e.target.value;
-                setFormData((prev) => ({ ...prev, listId: nextListId, segmentId: undefined }));
+                setTargetingMode('all');
+                setFormData((prev) => ({
+                  ...prev,
+                  listId: nextListId,
+                  segmentId: undefined,
+                  includeAudienceId: undefined,
+                  exclusionAudienceIds: [],
+                  suppressionSnapshot: [],
+                  audienceSnapshot: {},
+                }));
                 onListChange(nextListId);
               }}
               className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
@@ -380,30 +607,176 @@ export function CampaignCreateModal({
             {errors.listId && <p className="mt-1 text-sm text-app-accent">{errors.listId}</p>}
           </div>
 
-          {segments.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-app-text-label mb-1">
-                Segment (Optional)
-              </label>
-              <select
-                value={formData.segmentId || ''}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    segmentId: e.target.value ? Number(e.target.value) : undefined,
-                  }))
-                }
-                className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
-              >
-                <option value="">All subscribers</option>
-                {segments.map((segment) => (
-                  <option key={segment.id} value={segment.id}>
-                    {segment.name} ({segment.memberCount.toLocaleString()} members)
-                  </option>
-                ))}
-              </select>
+          <div className="rounded-lg border border-app-border p-4">
+            <label className="block text-sm font-medium text-app-text-label mb-2">
+              Targeting
+            </label>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+              {[
+                ['all', 'All subscribers'],
+                ['provider_segment', 'Provider segment'],
+                ['saved_audience', 'Saved audience'],
+              ].map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  aria-pressed={targetingMode === mode}
+                  onClick={() => {
+                    const nextMode = mode as TargetingMode;
+                    setTargetingMode(nextMode);
+                    setFormData((prev) => ({
+                      ...prev,
+                      segmentId: nextMode === 'provider_segment' ? prev.segmentId : undefined,
+                      includeAudienceId:
+                        nextMode === 'saved_audience' ? prev.includeAudienceId : undefined,
+                      exclusionAudienceIds:
+                        nextMode === 'saved_audience' ? prev.exclusionAudienceIds : [],
+                      suppressionSnapshot:
+                        nextMode === 'saved_audience' ? prev.suppressionSnapshot : [],
+                      audienceSnapshot: nextMode === 'saved_audience' ? prev.audienceSnapshot : {},
+                    }));
+                  }}
+                  className={`rounded-lg border px-3 py-2 text-sm ${
+                    targetingMode === mode
+                      ? 'border-app-accent bg-app-accent-soft text-app-accent-text'
+                      : 'border-app-input-border text-app-text-muted'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-          )}
+
+            {targetingMode === 'provider_segment' && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-app-text-label mb-1">
+                  Provider Segment
+                </label>
+                <select
+                  aria-label="Provider Segment"
+                  value={formData.segmentId || ''}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      segmentId: e.target.value ? Number(e.target.value) : undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
+                >
+                  <option value="">Choose segment</option>
+                  {segments.map((segment) => (
+                    <option key={segment.id} value={segment.id}>
+                      {segment.name} ({segment.memberCount.toLocaleString()} members)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {targetingMode === 'saved_audience' && (
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-app-text-label mb-1">
+                    Saved Audience
+                  </label>
+                  <select
+                    aria-label="Saved Audience"
+                    value={formData.includeAudienceId || ''}
+                    onChange={(e) => {
+                      const nextAudienceId = e.target.value || undefined;
+                      const nextAudience = savedAudiencesForList.find(
+                        (audience) => audience.id === nextAudienceId
+                      );
+                      setFormData((prev) => ({
+                        ...prev,
+                        includeAudienceId: nextAudienceId,
+                        exclusionAudienceIds: (prev.exclusionAudienceIds || []).filter(
+                          (id) => id !== nextAudienceId
+                        ),
+                        suppressionSnapshot: (prev.suppressionSnapshot || []).filter(
+                          (snapshot) =>
+                            !(
+                              typeof snapshot === 'object' &&
+                              snapshot !== null &&
+                              'id' in snapshot &&
+                              snapshot.id === nextAudienceId
+                            )
+                        ),
+                        audienceSnapshot: nextAudienceId
+                          ? {
+                              ...(prev.audienceSnapshot || {}),
+                              savedAudienceId: nextAudienceId,
+                              savedAudienceName: nextAudience?.name,
+                              savedAudienceSourceCount: nextAudience?.sourceCount,
+                            }
+                          : {},
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
+                  >
+                    <option value="">Choose saved audience</option>
+                    {savedAudiencesForList.map((audience) => (
+                      <option key={audience.id} value={audience.id}>
+                        {audience.name} ({audience.sourceCount.toLocaleString()} contacts)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-app-text-label mb-1">
+                    Suppress Saved Audience
+                  </label>
+                  <select
+                    aria-label="Suppress Saved Audience"
+                    value={formData.exclusionAudienceIds?.[0] || ''}
+                    disabled={!formData.includeAudienceId}
+                    onChange={(e) => {
+                      const nextExclusionId = e.target.value;
+                      const nextExclusion = savedAudiencesForList.find(
+                        (audience) => audience.id === nextExclusionId
+                      );
+                      setFormData((prev) => ({
+                        ...prev,
+                        exclusionAudienceIds: nextExclusionId ? [nextExclusionId] : [],
+                        suppressionSnapshot: nextExclusionId
+                          ? [
+                              {
+                                type: 'saved_audience',
+                                id: nextExclusionId,
+                                name: nextExclusion?.name,
+                                sourceCount: nextExclusion?.sourceCount,
+                              },
+                            ]
+                          : [],
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent disabled:bg-app-surface-muted"
+                  >
+                    <option value="">No suppression</option>
+                    {savedAudiencesForList
+                      .filter((audience) => audience.id !== formData.includeAudienceId)
+                      .map((audience) => (
+                        <option key={audience.id} value={audience.id}>
+                          {audience.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                {selectedIncludeAudience ? (
+                  <p className="text-xs text-app-text-muted md:col-span-2">
+                    Delivery will sync {selectedIncludeAudience.sourceCount.toLocaleString()}{' '}
+                    selected contacts into a run-specific Mailchimp segment.
+                  </p>
+                ) : null}
+              </div>
+            )}
+            {targetingMode === 'saved_audience' && savedAudiencesForList.length === 0 ? (
+              <p className="mt-3 text-xs text-app-text-muted">
+                No saved audiences are tied to this provider audience yet.
+              </p>
+            ) : null}
+            {errors.targeting && <p className="mt-2 text-sm text-app-accent">{errors.targeting}</p>}
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-app-text-label mb-1">
@@ -577,11 +950,38 @@ export function CampaignCreateModal({
             {errors.sendTime && <p className="mt-1 text-sm text-app-accent">{errors.sendTime}</p>}
             <p className="mt-1 text-xs text-app-text-muted">Leave empty to save as draft</p>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-app-text-label mb-1">
+              Test Recipients (Optional)
+            </label>
+            <textarea
+              aria-label="Test Recipients"
+              value={formData.testRecipients?.join(', ') || ''}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  testRecipients: e.target.value
+                    .split(/[\n,]+/)
+                    .map((recipient) => recipient.trim())
+                    .filter(Boolean),
+                }))
+              }
+              rows={2}
+              className="w-full px-3 py-2 border border-app-input-border rounded-lg focus:ring-2 focus:ring-app-accent focus:border-app-accent"
+              placeholder="board@example.org, staff@example.org"
+            />
+            <p className="mt-1 text-xs text-app-text-muted">
+              Stored with the local campaign run snapshot for proof and follow-up.
+            </p>
+          </div>
         </form>
 
         <div className="flex justify-between items-center p-6 border-t border-app-border bg-app-surface-muted">
           <button
+            type="button"
             onClick={onClose}
+            disabled={isCampaignSubmitPending}
             className="px-4 py-2 text-app-text-muted bg-app-surface border border-app-input-border rounded-lg hover:bg-app-surface-muted transition-colors"
           >
             Cancel
@@ -590,22 +990,32 @@ export function CampaignCreateModal({
             <button
               type="button"
               onClick={handlePreview}
-              disabled={isPreviewing}
+              disabled={isCampaignActionPending}
               className="px-4 py-2 text-app-text bg-app-surface border border-app-input-border rounded-lg hover:bg-app-surface-muted transition-colors disabled:opacity-60"
             >
               {isPreviewing ? 'Rendering Preview...' : 'Preview'}
             </button>
             <button
+              type="button"
               onClick={(e) => handleSubmit(e, false)}
-              className="px-4 py-2 text-app-accent bg-app-accent-soft border border-app-accent rounded-lg hover:bg-app-accent-soft transition-colors"
+              disabled={isCampaignActionPending}
+              className="px-4 py-2 text-app-accent bg-app-accent-soft border border-app-accent rounded-lg hover:bg-app-accent-soft transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Save as Draft
+              {submitIntent === 'draft_or_schedule' && isCampaignSubmitPending
+                ? formData.sendTime
+                  ? 'Scheduling...'
+                  : 'Saving...'
+                : formData.sendTime
+                  ? 'Schedule Campaign'
+                  : 'Save as Draft'}
             </button>
             <button
+              type="button"
               onClick={(e) => handleSubmit(e, true)}
-              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover transition-colors"
+              disabled={isCampaignActionPending}
+              className="px-4 py-2 bg-app-accent text-[var(--app-accent-foreground)] rounded-lg hover:bg-app-accent-hover transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Send Now
+              {submitIntent === 'send_now' && isCampaignSubmitPending ? 'Sending...' : 'Send Now'}
             </button>
           </div>
         </div>

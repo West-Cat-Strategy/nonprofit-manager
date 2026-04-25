@@ -11,11 +11,16 @@ import {
   fetchMailchimpLists,
   fetchListTags,
   fetchCampaigns,
+  fetchSavedAudiences,
+  fetchCampaignRuns,
+  createSavedAudience,
+  archiveSavedAudience,
   fetchListSegments,
   bulkSyncContacts,
   createCampaign,
   previewCampaign,
   sendCampaign,
+  clearSavedAudienceMessage,
   clearSyncResult,
   setSelectedList,
 } from '../../mailchimp/state';
@@ -23,6 +28,7 @@ import { fetchContacts } from '../../contacts/state';
 import type {
   MailchimpCampaign,
   MailchimpList,
+  CampaignRun,
   CreateCampaignRequest,
   MailchimpCampaignPreview,
 } from '../../../types/mailchimp';
@@ -31,6 +37,7 @@ import AdminQuickActionsBar from '../../adminOps/components/AdminQuickActionsBar
 import AdminWorkspaceShell from '../../adminOps/components/AdminWorkspaceShell';
 import {
   CampaignCard,
+  CampaignRunCard,
   CampaignCreateModal,
   ListCard,
   SyncResultModal,
@@ -49,10 +56,24 @@ export default function EmailMarketing() {
     lists,
     selectedList,
     campaigns,
+    savedAudiences,
+    campaignRuns,
     segments,
+    segmentsListId,
     syncResult,
     isLoading,
     isSyncing,
+    isLoadingSavedAudiences,
+    isCreatingSavedAudience,
+    isArchivingSavedAudience,
+    savedAudienceMessage,
+    savedAudienceError,
+    savedAudienceLoadError,
+    savedAudienceCreateError,
+    isLoadingCampaignRuns,
+    campaignRunsError,
+    isCreatingCampaign,
+    isSendingCampaign,
     error,
   } = useAppSelector((state) => state.mailchimp);
   const { contacts } = useAppSelector((state) => state.contacts.list);
@@ -63,6 +84,8 @@ export default function EmailMarketing() {
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [campaignListId, setCampaignListId] = useState<string>('');
+  const [savedAudienceName, setSavedAudienceName] = useState('');
+  const [localSavedAudienceError, setLocalSavedAudienceError] = useState<string | null>(null);
 
   // Fetch Mailchimp status on mount, then load dependent data only when configured.
   useEffect(() => {
@@ -76,6 +99,8 @@ export default function EmailMarketing() {
 
     dispatch(fetchMailchimpLists());
     dispatch(fetchCampaigns());
+    dispatch(fetchSavedAudiences());
+    dispatch(fetchCampaignRuns());
     dispatch(fetchContacts({ page: 1, limit: 100 }));
   }, [dispatch, isMailchimpConfigured]);
 
@@ -83,6 +108,11 @@ export default function EmailMarketing() {
   useEffect(() => {
     if (selectedList) {
       dispatch(fetchListTags(selectedList.id));
+      setSelectedContactIds([]);
+      setSelectAll(false);
+      setSavedAudienceName('');
+      setLocalSavedAudienceError(null);
+      dispatch(clearSavedAudienceMessage());
     }
   }, [dispatch, selectedList]);
 
@@ -92,6 +122,15 @@ export default function EmailMarketing() {
       dispatch(fetchListSegments(campaignListId));
     }
   }, [dispatch, campaignListId]);
+
+  const campaignSegments =
+    segmentsListId === campaignListId
+      ? segments.filter(
+          (segment) =>
+            segment.listId === campaignListId &&
+            !/^NPM \d{4}-\d{2}-\d{2}T/.test(segment.name)
+        )
+      : [];
 
   // Show sync result modal
   useEffect(() => {
@@ -109,6 +148,8 @@ export default function EmailMarketing() {
       setSelectedContactIds(contactsWithEmail.map((c: Contact) => c.contact_id));
     }
     setSelectAll(!selectAll);
+    setLocalSavedAudienceError(null);
+    dispatch(clearSavedAudienceMessage());
   };
 
   // Handle individual contact selection
@@ -116,6 +157,8 @@ export default function EmailMarketing() {
     setSelectedContactIds((prev) =>
       prev.includes(contactId) ? prev.filter((id) => id !== contactId) : [...prev, contactId]
     );
+    setLocalSavedAudienceError(null);
+    dispatch(clearSavedAudienceMessage());
   };
 
   // Handle sync
@@ -128,6 +171,37 @@ export default function EmailMarketing() {
         listId: selectedList.id,
       })
     );
+  };
+
+  const handleCreateSavedAudience = async () => {
+    const trimmedName = savedAudienceName.trim();
+    if (!selectedList) {
+      setLocalSavedAudienceError('Select a Mailchimp audience before saving this audience.');
+      return;
+    }
+    if (!trimmedName || selectedContactIds.length === 0) {
+      return;
+    }
+
+    setLocalSavedAudienceError(null);
+    try {
+      await dispatch(
+        createSavedAudience({
+          name: trimmedName,
+          description: 'Saved from the communications workspace contact selection.',
+          filters: {
+            source: 'communications_selected_contacts',
+            contactIds: selectedContactIds,
+            listId: selectedList.id,
+          },
+        })
+      ).unwrap();
+      setSavedAudienceName('');
+    } catch (error) {
+      setLocalSavedAudienceError(
+        typeof error === 'string' ? error : 'Failed to save this audience.'
+      );
+    }
   };
 
   // Close sync modal
@@ -163,6 +237,7 @@ export default function EmailMarketing() {
 
       handleCloseCampaignModal();
       dispatch(fetchCampaigns());
+      dispatch(fetchCampaignRuns());
     } catch (error) {
       // Error is handled by the slice
       console.error('Failed to create campaign:', error);
@@ -172,6 +247,14 @@ export default function EmailMarketing() {
   const handlePreviewCampaign = async (
     data: CreateCampaignRequest
   ): Promise<MailchimpCampaignPreview> => dispatch(previewCampaign(data)).unwrap();
+
+  const handleArchiveSavedAudience = async (audienceId: string) => {
+    try {
+      await dispatch(archiveSavedAudience(audienceId)).unwrap();
+    } catch {
+      // The slice owns the displayable error state.
+    }
+  };
 
   // Not configured state
   if (status && !status.configured) {
@@ -386,6 +469,51 @@ export default function EmailMarketing() {
                     </button>
                   </div>
 
+                  <div className="border-b border-app-border bg-app-surface px-4 py-4">
+                    <label className="block text-sm font-medium text-app-text-label">
+                      Save current selection as audience
+                    </label>
+                    <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        aria-label="Saved audience name"
+                        type="text"
+                        value={savedAudienceName}
+                        onChange={(event) => {
+                          setSavedAudienceName(event.target.value);
+                          setLocalSavedAudienceError(null);
+                          dispatch(clearSavedAudienceMessage());
+                        }}
+                        className="min-w-0 flex-1 rounded-lg border border-app-input-border px-3 py-2 focus:border-app-accent focus:ring-2 focus:ring-app-accent"
+                        placeholder="Example: Spring appeal donors"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateSavedAudience}
+                        disabled={
+                          isCreatingSavedAudience ||
+                          !savedAudienceName.trim() ||
+                          selectedContactIds.length === 0
+                        }
+                        className="rounded-lg bg-app-accent px-4 py-2 text-sm font-medium text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:bg-app-text-subtle"
+                      >
+                        {isCreatingSavedAudience ? 'Saving...' : 'Save Audience'}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-app-text-muted">
+                      Saves {selectedContactIds.length} selected contact
+                      {selectedContactIds.length === 1 ? '' : 's'} as an internal targeting
+                      snapshot tied to {selectedList.name}.
+                    </p>
+                    {(localSavedAudienceError || savedAudienceCreateError) && (
+                      <p className="mt-2 text-xs text-app-accent">
+                        {localSavedAudienceError || savedAudienceCreateError}
+                      </p>
+                    )}
+                    {savedAudienceMessage && !localSavedAudienceError && (
+                      <p className="mt-2 text-xs text-app-accent-text">{savedAudienceMessage}</p>
+                    )}
+                  </div>
+
                   {/* Contact List */}
                   <div className="max-h-96 overflow-y-auto">
                     {contacts
@@ -501,6 +629,87 @@ export default function EmailMarketing() {
           )}
         </div>
 
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <section>
+            <h2 className="mb-4 text-lg font-medium text-app-text-heading">Saved Audiences</h2>
+            {savedAudienceMessage ? (
+              <p className="mb-3 text-sm text-app-accent-text">{savedAudienceMessage}</p>
+            ) : null}
+            {isLoadingSavedAudiences ? (
+              <div className="rounded-lg border border-app-border bg-app-surface p-6 text-sm text-app-text-muted">
+                Loading saved audiences...
+              </div>
+            ) : savedAudienceLoadError ? (
+              <div className="rounded-lg border border-app-border bg-app-accent-soft p-6 text-sm text-app-accent-text">
+                {savedAudienceLoadError}
+              </div>
+            ) : savedAudiences.length > 0 ? (
+              <div className="space-y-3">
+                {savedAudiences.slice(0, 5).map((audience) => (
+                  <div
+                    key={audience.id}
+                    className="rounded-lg border border-app-border bg-app-surface p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-app-text-heading">
+                          {audience.name}
+                        </p>
+                        <p className="mt-1 text-sm text-app-text-muted">
+                          {audience.sourceCount.toLocaleString()} contacts in latest snapshot
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleArchiveSavedAudience(audience.id)}
+                        disabled={isArchivingSavedAudience}
+                        className="shrink-0 rounded-lg border border-app-input-border px-3 py-1.5 text-xs font-medium text-app-text-muted transition-colors hover:bg-app-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Archive
+                      </button>
+                    </div>
+                    {typeof audience.filters.listId === 'string' ? (
+                      <p className="mt-2 text-xs text-app-text-subtle">
+                        Provider audience: {audience.filters.listId}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+                {savedAudienceError ? (
+                  <p className="text-sm text-app-accent">{savedAudienceError}</p>
+                ) : null}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-app-input-border bg-app-surface p-6 text-sm text-app-text-muted">
+                No saved audiences yet.
+              </div>
+            )}
+          </section>
+
+          <section>
+            <h2 className="mb-4 text-lg font-medium text-app-text-heading">Campaign Run History</h2>
+            {isLoadingCampaignRuns ? (
+              <div className="rounded-lg border border-app-border bg-app-surface p-6 text-sm text-app-text-muted">
+                Loading campaign run history...
+              </div>
+            ) : campaignRunsError ? (
+              <div className="rounded-lg border border-app-border bg-app-accent-soft p-6 text-sm text-app-accent-text">
+                {campaignRunsError}
+              </div>
+            ) : campaignRuns.length > 0 ? (
+              <div className="space-y-3">
+                {campaignRuns.slice(0, 5).map((run: CampaignRun) => (
+                  <CampaignRunCard key={run.id} run={run} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-app-input-border bg-app-surface p-6 text-sm text-app-text-muted">
+                Local campaign run history will appear after a draft, schedule, or send action.
+              </div>
+            )}
+          </section>
+        </div>
+
         {/* Sync Result Modal */}
         {showSyncModal && syncResult && (
           <SyncResultModal result={syncResult} onClose={handleCloseSyncModal} />
@@ -510,7 +719,10 @@ export default function EmailMarketing() {
         {showCampaignModal && (
           <CampaignCreateModal
             lists={lists}
-            segments={segments}
+            segments={campaignSegments}
+            savedAudiences={savedAudiences}
+            isCreatingCampaign={isCreatingCampaign}
+            isSendingCampaign={isSendingCampaign}
             onClose={handleCloseCampaignModal}
             onListChange={setCampaignListId}
             onPreview={handlePreviewCampaign}

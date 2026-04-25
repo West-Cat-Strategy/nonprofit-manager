@@ -62,6 +62,42 @@ export class TaxReceiptService {
     });
   }
 
+  private async resolveDonorProfileDeliveryDefault(
+    payee: {
+      payeeType: string;
+      payeeId: string;
+    },
+    receiptScope: 'single' | 'annual'
+  ): Promise<TaxReceiptDeliveryMode> {
+    if (payee.payeeType !== 'contact') {
+      return 'download';
+    }
+
+    const result = await this.pool.query<{
+      email_gift_statement: boolean;
+      receipt_frequency: string;
+      receipt_each_gift: boolean;
+    }>(
+      `SELECT email_gift_statement, receipt_frequency, receipt_each_gift
+       FROM donor_profiles
+       WHERE contact_id = $1`,
+      [payee.payeeId]
+    );
+
+    const profile = result.rows[0];
+    if (!profile || profile.receipt_frequency === 'none') {
+      return 'download';
+    }
+
+    if (receiptScope === 'single') {
+      if (profile.receipt_frequency !== 'per_gift' || profile.receipt_each_gift === false) {
+        return 'download';
+      }
+    }
+
+    return profile.email_gift_statement ? 'email' : 'download';
+  }
+
   async issueSingleReceipt(args: {
     organizationId: string;
     userId: string;
@@ -100,7 +136,15 @@ export class TaxReceiptService {
         throw new Error('Existing tax receipt is unavailable');
       }
 
-      const deliveryMode = args.request.deliveryMode ?? 'download';
+      const deliveryMode =
+        args.request.deliveryMode ??
+        (await this.resolveDonorProfileDeliveryDefault(
+          {
+            payeeType: existingWithPdf.payee_type,
+            payeeId: existingWithPdf.payee_id,
+          },
+          existingWithPdf.kind.startsWith('annual_') ? 'annual' : 'single'
+        ));
       const requestedRecipient = args.request.email ?? existingWithPdf.payee_email;
       const delivery =
         deliveryMode === 'email' || deliveryMode === 'both'
@@ -169,6 +213,9 @@ export class TaxReceiptService {
         includePreviouslyReceipted: false,
       });
       const pdfContent = await renderReceiptPdf(snapshot);
+      const deliveryMode =
+        args.request.deliveryMode ??
+        (await this.resolveDonorProfileDeliveryDefault(payee, 'single'));
       const receipt = await this.persistence.insertReceipt(client, {
         organizationId: args.organizationId,
         receiptNumber: receiptAllocation.receiptNumber,
@@ -177,7 +224,7 @@ export class TaxReceiptService {
         kind: 'single_official',
         isOfficial: true,
         payee,
-        deliveryMode: args.request.deliveryMode ?? 'download',
+        deliveryMode,
         includePreviouslyReceipted: false,
         totalAmount: snapshot.totalAmount,
         currency: donation.currency,
@@ -198,7 +245,7 @@ export class TaxReceiptService {
       }
 
       const delivery = await this.maybeDeliverReceipt(
-        args.request.deliveryMode ?? 'download',
+        deliveryMode,
         storedReceipt,
         storedReceipt.pdf_content,
         args.request.email ?? payee.payeeEmail,
@@ -282,6 +329,9 @@ export class TaxReceiptService {
         includePreviouslyReceipted: includeAlreadyReceipted,
       });
       const pdfContent = await renderReceiptPdf(snapshot);
+      const deliveryMode =
+        args.request.deliveryMode ??
+        (await this.resolveDonorProfileDeliveryDefault(payee, 'annual'));
       const receipt = await this.persistence.insertReceipt(client, {
         organizationId: args.organizationId,
         receiptNumber: receiptAllocation.receiptNumber,
@@ -290,7 +340,7 @@ export class TaxReceiptService {
         kind,
         isOfficial: kind !== 'annual_summary_reprint',
         payee,
-        deliveryMode: args.request.deliveryMode ?? 'download',
+        deliveryMode,
         includePreviouslyReceipted: includeAlreadyReceipted,
         totalAmount: snapshot.totalAmount,
         currency: donations[0]?.currency ?? organizationSettings.currency,
@@ -318,7 +368,7 @@ export class TaxReceiptService {
       }
 
       const delivery = await this.maybeDeliverReceipt(
-        args.request.deliveryMode ?? 'download',
+        deliveryMode,
         storedReceipt,
         storedReceipt.pdf_content,
         args.request.email ?? payee.payeeEmail,

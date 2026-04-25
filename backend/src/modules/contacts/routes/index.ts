@@ -28,9 +28,11 @@ import {
   updateContactRelationshipSchema,
   updateContactPhoneSchema,
   updateContactSchema,
+  donorProfileSchema,
   uuidSchema,
 } from '@validations/contact';
 import { createContactDirectoryController } from '../controllers/directory.controller';
+import { createContactDonorProfileController } from '../controllers/donorProfile.controller';
 import { followUpController as followUpsController } from '@modules/followUps/controllers/followUps.handlers';
 import { createContactCommunicationsController } from '../controllers/communications.controller';
 import { createContactNotesController } from '../controllers/notes.controller';
@@ -53,6 +55,7 @@ import { ContactPhonesUseCase } from '../usecases/contactPhones.usecase';
 import { ContactEmailsUseCase } from '../usecases/contactEmails.usecase';
 import { ContactRelationshipsUseCase } from '../usecases/contactRelationships.usecase';
 import { ContactDocumentsUseCase } from '../usecases/contactDocuments.usecase';
+import { DonorProfileService } from '../services/donorProfileService';
 import { piiFieldAccessControl } from '@middleware/piiFieldAccessControl';
 import { services } from '@container/services';
 import { Permission } from '@utils/permissions';
@@ -112,6 +115,10 @@ export const createContactsRoutes = (): Router => {
   const communicationsController = createContactCommunicationsController(
     new ContactCommunicationsUseCase(communicationsRepository),
     directoryUseCase
+  );
+  const donorProfileController = createContactDonorProfileController(
+    directoryUseCase,
+    new DonorProfileService(pool)
   );
   const requireContactsDataScope = loadDataScope('contacts');
 
@@ -173,6 +180,19 @@ export const createContactsRoutes = (): Router => {
     validateParams(z.object({ id: uuidSchema })),
     piiFieldAccessControl(services.pii, 'contacts'),
     directoryController.getContactById
+  );
+  scopedRouter.get(
+    '/:id/donor-profile',
+    validateParams(z.object({ id: uuidSchema })),
+    requirePermission(Permission.CONTACT_VIEW),
+    donorProfileController.getDonorProfile
+  );
+  scopedRouter.put(
+    '/:id/donor-profile',
+    validateParams(z.object({ id: uuidSchema })),
+    validateBody(donorProfileSchema),
+    requirePermission(Permission.CONTACT_EDIT),
+    donorProfileController.updateDonorProfile
   );
   scopedRouter.get(
     '/:id/merge-preview',

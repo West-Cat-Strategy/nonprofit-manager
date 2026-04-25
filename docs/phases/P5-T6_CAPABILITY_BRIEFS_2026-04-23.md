@@ -1,10 +1,10 @@
 # P5-T6 Capability Briefs (2026-04-23)
 
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-04-25
 
-This packet publishes the five analysis-only capability briefs called for by `P5-T6`. It turns the benchmark and repo-review wave into explicit `borrow now`, `queue for P5-T6`, and `reject` decisions without authorizing runtime implementation while `P5-T2B`, `P5-T3`, and `P5-T5` remain active.
+This packet publishes the five capability briefs called for by `P5-T6`. It turns the benchmark and repo-review wave into explicit `borrow now`, `queue for P5-T6`, and `reject` decisions without authorizing runtime implementation beyond the scoped active pickups tied to `P5-T3`, `P5-T5`, and `P5-T6D`.
 
-The `2026-04-24` second-pass reference review tightened the packet with architecture-only refinements from CiviCRM, SuiteCRM, OpenPetra, ERPNext, OpenSPP, and Sahana Eden. It did not expand the cohort, authorize runtime implementation, or allow direct source copying.
+The `2026-04-25` hardening pass keeps the packet analysis-led while acknowledging the narrow runtime pickups already tied to `P5-T3` and `P5-T5`: saved audiences, campaign-run history, donor-profile receipt defaults, public-intake resolution audit, queue view definitions, and portal escalations. It did not expand the cohort, authorize typed appeals/restrictions/memberships, or allow direct source copying.
 
 ## Inputs
 
@@ -29,8 +29,8 @@ The current fundraiser surface is real but still partial: People, Mailchimp, don
 
 | Pattern | Outcome | Concrete landing zones |
 |---|---|---|
-| `PAT-01` saved audiences with include, exclude, and prior-send controls | `borrow now` | `frontend/src/features/contacts/**`, `frontend/src/features/mailchimp/**`, `backend/src/modules/mailchimp/**` |
-| `PAT-02` internal campaign-run history with target, suppression, test-send, audience snapshot, and local lifecycle | `borrow now` | `frontend/src/features/mailchimp/**`, `backend/src/modules/mailchimp/**` |
+| `PAT-01` saved audiences with include, exclude, and prior-send controls | `borrow now` | `frontend/src/features/contacts/**`, `frontend/src/features/mailchimp/**`, `backend/src/modules/mailchimp/**`; implemented through run-specific provider static segments, not reusable Mailchimp list segments |
+| `PAT-02` internal campaign-run history with target, suppression, test-send, audience snapshot, and local lifecycle | `borrow now` | `frontend/src/features/mailchimp/**`, `backend/src/modules/mailchimp/**`; local lifecycle records retain the provider campaign and generated targeting metadata |
 | `PAT-03` donor subprofile with receipt defaults, anonymity, and solicitation preferences | `borrow now` | `backend/src/types/contact.ts`, `backend/src/modules/donations/services/taxReceiptService.ts`, `frontend/src/features/contacts/**` |
 | `PAT-07` typed appeal or campaign spine plus later provider-fed campaign event ledger | `queue for P5-T6` | `backend/src/modules/mailchimp/**`, `backend/src/services/publishing/publicWebsiteFormService.ts`, `frontend/src/features/mailchimp/**` |
 
@@ -43,11 +43,12 @@ Future type targets:
 
 Sequencing guardrails:
 - Keep `PAT-01` and `PAT-02` adjacent to the live `/settings/communications` and `/api/v2/mailchimp/*` seams, with no generic audience-union engine.
-- Treat `PAT-03` as stewardship and receipt-defaulting with explicit staff override, not as finance-breadth work.
+- Treat `PAT-03` as stewardship and receipt-defaulting with explicit staff override, not as finance-breadth work. Donor-profile defaults may choose email vs download only when the receipt request has no explicit delivery override, and annual or no-receipt preferences must not silently email one-off receipts.
 - Hold `PAT-07` behind the `P5-T3` handoff and use it to shape `P5-T6B`, not the current email-wave implementation.
 
 Parity traps and non-goals:
 - Do not treat Mailchimp lists or segments as substitutes for `saved_audience`.
+- Do not persist a reusable provider segment as the saved audience; provider static segments are generated per campaign run for targeting.
 - Do not skip test-recipient and suppression snapshots when shaping `campaign_run`.
 - Do not treat free-text `campaign_name` values or provider campaign IDs as typed appeal records.
 - Do not add self-hosted tracking pixels or privacy-invasive event collection; rely on provider summaries or webhooks.
@@ -59,9 +60,9 @@ The portal is already a primary product surface, but public intake is still reso
 
 | Pattern | Outcome | Concrete landing zones |
 |---|---|---|
-| `PAT-04` provenance-first public-intake identity resolution across website, portal, and events | `borrow now` | `backend/src/services/publishing/publicWebsiteFormService.ts`, `backend/src/services/portalAuthService.ts`, `backend/src/modules/events/services/eventPublicService.ts` |
-| `PAT-05` server-backed queue view definitions reused by list screens and workbench entry points | `borrow now` | `frontend/src/features/cases/hooks/useSavedCaseViews.ts`, `frontend/src/features/adminOps/pages/portalAdmin/**`, `frontend/src/features/dashboard/components/workbench/**` |
-| `PAT-06` typed portal review requests linked back to the case record | `borrow now` | `frontend/src/features/portal/pages/PortalCaseDetailPage.tsx`, `backend/src/modules/portal/services/portalMessagingService.validation.ts`, `backend/src/services/portalPointpersonService.ts` |
+| `PAT-04` provenance-first public-intake identity resolution across website, portal, and events | `borrow now` | `backend/src/services/publishing/publicWebsiteFormService.ts`, `backend/src/services/portalAuthService.ts`, `backend/src/modules/events/services/eventPublicService.ts`; audit writes are best effort and must not fail the source intake action |
+| `PAT-05` server-backed queue view definitions reused by list screens and workbench entry points | `borrow now` | `frontend/src/features/cases/hooks/useSavedCaseViews.ts`, `frontend/src/features/adminOps/pages/portalAdmin/**`, `frontend/src/features/dashboard/components/workbench/**`; updates stay owner-user and surface scoped with permission-scope metadata |
+| `PAT-06` typed portal review requests linked back to the case record | `borrow now` | `frontend/src/features/portal/pages/PortalCaseDetailPage.tsx`, `backend/src/modules/portal/services/portalMessagingService.validation.ts`, `backend/src/services/portalPointpersonService.ts`; records preserve portal-user and staff actor attribution |
 
 Future type targets:
 - `public_intake_resolution`
@@ -70,14 +71,16 @@ Future type targets:
 
 Sequencing guardrails:
 - Keep this as the first post-appointments-continuity `P5-T5` carry-over.
-- Sequence `PAT-04` first at the backend contract layer with source system, source reference, collection method/date, ambiguity state, and resolution audit.
-- Fold the shared triage shell into server-backed `PAT-05` queue definitions instead of opening a separate queue-platform row.
-- Sequence `PAT-06` third as one typed portal action on a stabilized case seam with reason, severity, sensitivity, SLA due date, decision state, and resolution summary.
+- Sequence `PAT-04` first at the backend contract layer with source system, source reference, collection method/date, ambiguity state, and resolution audit; failed audit inserts should log and return `null` rather than breaking website, portal signup, or event intake.
+- Fold the shared triage shell into server-backed `PAT-05` queue definitions instead of opening a separate queue-platform row; list and update behavior must keep user-owned views isolated while allowing shared ownerless views only when the permission scope allows it.
+- Sequence `PAT-06` third as one typed portal action on a stabilized case seam with reason, severity, sensitivity, SLA due date, decision state, and resolution summary; retain portal actor attribution separately from staff `created_by` / `updated_by`.
 
 Parity traps and non-goals:
 - Do not claim full dedupe, constituent-mastering, MPI, import-match admin, or merge-engine parity.
 - Do not keep queue reuse trapped in localStorage-only case views, fixed deep links, or raw request payloads.
+- Do not allow a queue-view update to cross owner or surface boundaries.
 - Do not let generic messaging threads masquerade as typed escalations.
+- Do not collapse portal-user attribution into a generic staff actor on escalations.
 - Do not widen this brief into a standalone ticketing product, grievance module, or generic workflow studio.
 
 ## `volunteer-dispatch-brief`
@@ -166,7 +169,7 @@ The reject boundary also includes:
 
 ## Downstream Handoff
 
-- `P5-T6A` is the next later-wave planning pickup. Use this packet plus the persona audit to scope governance and compliance oversight without pulling annual filing or legal review into product claims.
-- `P5-T6B` should build on `fundraising-ops-brief` and `finance-membership-brief` after the `P5-T3` handoff.
-- `P5-T6C` should build on `portal-ops-brief`, `volunteer-dispatch-brief`, and `workflow-program-ops-brief` after the `P5-T5` handoff.
-- No runtime implementation is authorized from this packet until a separate scoped row is signed out on the live workboard.
+- `P5-T6A` uses this packet plus the persona audit to scope governance and compliance oversight without pulling annual filing or legal review into product claims.
+- `P5-T6B` builds on `fundraising-ops-brief` and `finance-membership-brief` while keeping typed appeals, restrictions, donation batches, and memberships queued behind separate scoped rows.
+- `P5-T6C` builds on `portal-ops-brief`, `volunteer-dispatch-brief`, and `workflow-program-ops-brief` while keeping broader service-delivery runtime implementation behind a future scoped row.
+- No additional runtime implementation is authorized from this packet until a separate scoped row is signed out on the live workboard. The only current pickups are the narrow `P5-T3` and `P5-T5` slices named above; typed appeals, fund restrictions, donation batches, memberships, finance breadth, workflow studios, and metadata builders remain queued or rejected according to their rows.

@@ -209,6 +209,24 @@ export const updateContactSchema = z.object({
 
 export type UpdateContactInput = z.infer<typeof updateContactSchema>;
 
+export const donorProfileSchema = z
+  .object({
+    receipt_frequency: z.enum(['per_gift', 'annual', 'none']),
+    receipt_each_gift: z.boolean().optional(),
+    email_gift_statement: z.boolean().optional(),
+    anonymous_donor: z.boolean().optional(),
+    no_solicitations: z.boolean().optional(),
+    notes: z.preprocess((value) => {
+      if (value === '') {
+        return null;
+      }
+      return value;
+    }, z.string().trim().max(2000).nullable().optional()),
+  })
+  .strict();
+
+export type DonorProfileInput = z.infer<typeof donorProfileSchema>;
+
 // Bulk update contacts
 export const bulkUpdateContactsSchema = z.object({
   contactIds: z.array(uuidSchema).min(1),

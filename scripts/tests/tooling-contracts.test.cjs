@@ -290,7 +290,7 @@ test('e2e host ci report wrapper honors report root and run id overrides in dry-
   assert.equal(env.SHOW_REPORT_LOG, `${reportRoot}/${runId}/show-report.log`);
   assert.equal(
     env.OPEN_REPORT_COMMAND,
-    `./node_modules/.bin/playwright show-report ${reportRoot}/${runId}/playwright-report`
+    `${repoRoot}/node_modules/.bin/playwright show-report ${reportRoot}/${runId}/playwright-report`
   );
 });
 

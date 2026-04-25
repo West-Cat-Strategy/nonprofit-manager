@@ -43,6 +43,9 @@ const CaseList = () => {
     quickFilter,
     dueSoonDays,
     savedViews,
+    savedViewsLoading,
+    savedViewsError,
+    savedViewsUsingLocalFallback,
     selectedViewId,
     savedViewName,
     setSavedViewName,
@@ -344,6 +347,10 @@ const CaseList = () => {
                   >
                     Delete
                   </button>
+                </div>
+                <div className="min-h-5 text-xs font-bold text-app-text-subtle">
+                  {savedViewsLoading && 'Syncing saved views...'}
+                  {!savedViewsLoading && savedViewsUsingLocalFallback && savedViewsError}
                 </div>
               </div>
               <div className="flex flex-col gap-2">

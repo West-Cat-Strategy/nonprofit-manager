@@ -8,6 +8,7 @@ const getCaseMock = vi.fn();
 const getCaseTimelineMock = vi.fn();
 const listCaseDocumentsMock = vi.fn();
 const uploadCaseDocumentMock = vi.fn();
+const createCaseEscalationMock = vi.fn();
 const portalGetMock = vi.fn();
 const setSelectedCaseIdMock = vi.fn();
 const showSuccessMock = vi.fn();
@@ -19,6 +20,7 @@ vi.mock('../../api/portalApiClient', () => ({
     getCaseTimeline: (...args: unknown[]) => getCaseTimelineMock(...args),
     listCaseDocuments: (...args: unknown[]) => listCaseDocumentsMock(...args),
     uploadCaseDocument: (...args: unknown[]) => uploadCaseDocumentMock(...args),
+    createCaseEscalation: (...args: unknown[]) => createCaseEscalationMock(...args),
     getCaseDocumentDownloadUrl: (caseId: string, documentId: string) =>
       `/api/v2/portal/cases/${caseId}/documents/${documentId}/download`,
   },
@@ -178,6 +180,24 @@ describe('PortalCaseDetailPage', () => {
       mime_type: 'application/pdf',
       created_at: '2026-03-15T19:00:00.000Z',
     });
+    createCaseEscalationMock.mockResolvedValue({
+      id: 'escalation-1',
+      caseId: 'case-1',
+      contactId: 'contact-1',
+      accountId: null,
+      portalUserId: 'portal-user-1',
+      createdByPortalUserId: 'portal-user-1',
+      category: 'case_review',
+      reason: 'Please review my housing eligibility update.',
+      severity: 'high',
+      sensitivity: 'standard',
+      assigneeUserId: 'staff-1',
+      slaDueAt: null,
+      status: 'open',
+      resolutionSummary: null,
+      createdAt: '2026-03-15T20:00:00.000Z',
+      updatedAt: '2026-03-15T20:00:00.000Z',
+    });
   });
 
   it('renders the case workspace and uploads a new document', async () => {
@@ -212,5 +232,37 @@ describe('PortalCaseDetailPage', () => {
     });
 
     expect(await screen.findByText('Client intake package')).toBeInTheDocument();
+  });
+
+  it('submits a focused staff review request for the portal case', async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/portal/cases/:id" element={<PortalCaseDetailPage />} />
+      </Routes>,
+      { route: '/portal/cases/case-1' }
+    );
+
+    expect(await screen.findByText('Request Staff Review')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('What should staff review?'), {
+      target: { value: 'Please review my housing eligibility update.' },
+    });
+    fireEvent.change(screen.getByLabelText('Priority'), {
+      target: { value: 'high' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /request review/i }));
+
+    await waitFor(() => {
+      expect(createCaseEscalationMock).toHaveBeenCalledWith('case-1', {
+        category: 'case_review',
+        reason: 'Please review my housing eligibility update.',
+        severity: 'high',
+        sensitivity: 'standard',
+      });
+      expect(showSuccessMock).toHaveBeenCalledWith('Review request sent to staff.');
+    });
+
+    expect(await screen.findByText(/Sent/)).toBeInTheDocument();
   });
 });

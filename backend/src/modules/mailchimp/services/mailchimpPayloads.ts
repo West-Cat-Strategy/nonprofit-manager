@@ -10,6 +10,7 @@ import type {
 
 export interface MailchimpContactRow {
   contact_id: string;
+  account_id?: string | null;
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;

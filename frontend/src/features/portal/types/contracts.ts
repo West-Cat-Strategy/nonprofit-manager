@@ -233,6 +233,32 @@ export interface PortalCaseDocument {
   created_at: string;
 }
 
+export interface PortalCaseReviewRequestInput {
+  category?: string;
+  reason: string;
+  severity?: 'low' | 'normal' | 'high' | 'urgent';
+  sensitivity?: 'standard' | 'sensitive';
+}
+
+export interface PortalCaseReviewRequest {
+  id: string;
+  caseId: string;
+  contactId: string | null;
+  accountId: string | null;
+  portalUserId: string | null;
+  createdByPortalUserId: string | null;
+  category: string;
+  reason: string;
+  severity: PortalCaseReviewRequestInput['severity'];
+  sensitivity: PortalCaseReviewRequestInput['sensitivity'];
+  assigneeUserId: string | null;
+  slaDueAt: string | null;
+  status: 'open' | 'in_review' | 'resolved' | 'referred';
+  resolutionSummary: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PortalDashboardData {
   active_cases: PortalCaseSummary[];
   unread_threads_count: number;
@@ -287,6 +313,10 @@ export interface PortalApiClient {
   getCaseTimeline(caseId: string, query?: PortalCaseTimelineQuery): Promise<PortalCaseTimelinePage>;
   listCaseDocuments(caseId: string): Promise<PortalCaseDocument[]>;
   uploadCaseDocument(caseId: string, formData: FormData): Promise<PortalCaseDocument>;
+  createCaseEscalation(
+    caseId: string,
+    payload: PortalCaseReviewRequestInput
+  ): Promise<PortalCaseReviewRequest>;
   getCaseDocumentDownloadUrl(
     caseId: string,
     documentId: string,

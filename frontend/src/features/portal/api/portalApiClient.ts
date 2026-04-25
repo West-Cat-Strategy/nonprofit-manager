@@ -10,6 +10,8 @@ import type {
   PortalAppointmentSummary,
   PortalCaseDetail,
   PortalCaseDocument,
+  PortalCaseReviewRequest,
+  PortalCaseReviewRequestInput,
   PortalCaseSummary,
   PortalCaseTimelinePage,
   PortalCaseTimelineQuery,
@@ -222,6 +224,17 @@ export class PortalV2ApiClient implements PortalApiClient {
       {
         headers: { 'Content-Type': 'multipart/form-data' },
       }
+    );
+    return unwrapApiData(response.data);
+  }
+
+  async createCaseEscalation(
+    caseId: string,
+    payload: PortalCaseReviewRequestInput
+  ): Promise<PortalCaseReviewRequest> {
+    const response = await portalApi.post<ApiEnvelope<PortalCaseReviewRequest>>(
+      `/v2/portal/cases/${caseId}/escalations`,
+      payload
     );
     return unwrapApiData(response.data);
   }

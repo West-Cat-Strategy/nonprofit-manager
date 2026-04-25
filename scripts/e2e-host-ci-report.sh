@@ -92,12 +92,13 @@ RUN_ID="${E2E_REPORT_RUN_ID:-host-ci-$(timestamp)-$$}"
 RUN_DIR="$REPORT_ROOT/$RUN_ID"
 SHOW_REPORT_LOG="$RUN_DIR/show-report.log"
 OPENED_REPORT_SLICE=""
+PLAYWRIGHT_BIN="${PLAYWRIGHT_BIN:-$PROJECT_ROOT/node_modules/.bin/playwright}"
 
 DESKTOP_COMMAND=(
   env
   CI=1
   bash ../scripts/e2e-playwright.sh host
-  ./node_modules/.bin/playwright test
+  "$PLAYWRIGHT_BIN" test
   --project=chromium
   --project=firefox
   --project=webkit
@@ -107,7 +108,7 @@ MOBILE_COMMAND=(
   env
   CI=1
   bash ../scripts/e2e-playwright.sh host
-  ./node_modules/.bin/playwright test
+  "$PLAYWRIGHT_BIN" test
   --project
   "Mobile Chrome"
   tests/ux-regression.spec.ts
@@ -121,7 +122,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
   printf 'PLAYWRIGHT_HTML_OUTPUT_DIR=%s\n' "$RUN_DIR/playwright-report"
   printf 'PLAYWRIGHT_JSON_OUTPUT_FILE=%s\n' "$RUN_DIR/test-results.json"
   printf 'SHOW_REPORT_LOG=%s\n' "$SHOW_REPORT_LOG"
-  printf 'OPEN_REPORT_COMMAND=%s\n' "./node_modules/.bin/playwright show-report $RUN_DIR/playwright-report"
+  printf 'OPEN_REPORT_COMMAND=%s\n' "$PLAYWRIGHT_BIN show-report $RUN_DIR/playwright-report"
 fi
 
 desktop_status=0
@@ -164,7 +165,7 @@ create_compat_links "$RUN_DIR/$OPENED_REPORT_SLICE" "$RUN_DIR"
 if [[ -f "$RUN_DIR/playwright-report/index.html" ]]; then
   (
     cd "$PROJECT_ROOT/e2e"
-    nohup ./node_modules/.bin/playwright show-report "$RUN_DIR/playwright-report" >"$SHOW_REPORT_LOG" 2>&1 &
+    nohup "$PLAYWRIGHT_BIN" show-report "$RUN_DIR/playwright-report" >"$SHOW_REPORT_LOG" 2>&1 &
     printf '%s\n' "$!" > "$RUN_DIR/show-report.pid"
   )
   log_info "Preserved host Playwright CI report under $RUN_DIR"

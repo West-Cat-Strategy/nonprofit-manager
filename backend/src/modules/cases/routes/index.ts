@@ -20,7 +20,20 @@ import {
   casePortalConversationMessageParamsSchema,
   casePortalConversationMessageSchema,
   casePortalConversationParamsSchema,
+  portalCaseEscalationUpdateSchema,
+  portalEscalationParamsSchema,
+  scopedQueueViewDefinitionSchema,
 } from '@validations/portal';
+import { sendSuccess } from '@modules/shared/http/envelope';
+import {
+  archiveQueueViewDefinition,
+  listQueueViewDefinitions,
+  upsertQueueViewDefinition,
+} from '@services/queueViewDefinitionService';
+import {
+  listPortalEscalationsForCase,
+  updatePortalEscalationForCase,
+} from '@services/portalEscalationService';
 import {
   isoDateSchema,
   isoDateTimeSchema,
@@ -132,6 +145,10 @@ const topicEventIdParamsSchema = z.object({
 const documentIdParamsSchema = z.object({
   id: uuidSchema,
   documentId: uuidSchema,
+});
+
+const queueViewParamsSchema = z.object({
+  viewId: uuidSchema,
 });
 
 const caseDocumentDownloadQuerySchema = z
@@ -452,6 +469,58 @@ export const createCasesRoutes = (): Router => {
   );
   router.get('/', validateQuery(caseCatalogQuerySchema), catalogController.getCases);
   router.get(
+    '/queue-views',
+    requirePermission(Permission.CASE_VIEW),
+    async (req, res, next) => {
+      try {
+        const views = await listQueueViewDefinitions('cases', req.user?.id ?? null, [
+          'cases',
+        ]);
+        sendSuccess(res, views);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  router.post(
+    '/queue-views',
+    validateBody(scopedQueueViewDefinitionSchema),
+    requirePermission(Permission.CASE_VIEW),
+    async (req, res, next) => {
+      try {
+        const view = await upsertQueueViewDefinition({
+          ...(req.body as Parameters<typeof upsertQueueViewDefinition>[0]),
+          surface: 'cases',
+          ownerUserId: req.user?.id ?? null,
+          permissionScope: ['cases'],
+          userId: req.user?.id ?? null,
+        });
+        sendSuccess(res, view, 201);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  router.delete(
+    '/queue-views/:viewId',
+    validateParams(queueViewParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
+    async (req, res, next) => {
+      try {
+        const view = await archiveQueueViewDefinition({
+          id: String(req.params.viewId),
+          surface: 'cases',
+          ownerUserId: req.user?.id ?? null,
+          permissionScopes: ['cases'],
+          userId: req.user?.id ?? null,
+        });
+        sendSuccess(res, view);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  router.get(
     '/:id/forms/recommended-defaults',
     validateParams(caseFormCaseParamsSchema),
     formsController.listRecommendedDefaults
@@ -535,6 +604,62 @@ export const createCasesRoutes = (): Router => {
     formsController.downloadAsset
   );
   router.get('/:id', validateParams(caseIdParamsSchema), catalogController.getCaseById);
+  router.get(
+    '/:id/portal/escalations',
+    validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
+    async (req, res, next) => {
+      try {
+        const escalations = await listPortalEscalationsForCase(
+          req.params.id,
+          req.organizationId ?? null
+        );
+        sendSuccess(res, escalations);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  router.patch(
+    '/:id/portal/escalations/:escalationId',
+    validateParams(portalEscalationParamsSchema),
+    validateBody(portalCaseEscalationUpdateSchema),
+    requirePermission(Permission.CASE_EDIT),
+    async (req, res, next) => {
+      try {
+        const body = req.body as {
+          status?: Parameters<typeof updatePortalEscalationForCase>[0]['status'];
+          resolution_summary?: string | null;
+          assignee_user_id?: string | null;
+          sla_due_at?: string | null;
+        };
+        const updateInput: Parameters<typeof updatePortalEscalationForCase>[0] = {
+          id: req.params.escalationId,
+          caseId: req.params.id,
+          accountId: req.organizationId ?? null,
+          updatedBy: req.user?.id ?? null,
+        };
+
+        if ('status' in body) {
+          updateInput.status = body.status;
+        }
+        if ('resolution_summary' in body) {
+          updateInput.resolutionSummary = body.resolution_summary ?? null;
+        }
+        if ('assignee_user_id' in body) {
+          updateInput.assigneeUserId = body.assignee_user_id ?? null;
+        }
+        if ('sla_due_at' in body) {
+          updateInput.slaDueAt = body.sla_due_at ? new Date(body.sla_due_at) : null;
+        }
+
+        const escalation = await updatePortalEscalationForCase(updateInput);
+        sendSuccess(res, escalation);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
   router.get(
     '/:id/follow-ups',
     validateParams(caseIdParamsSchema),

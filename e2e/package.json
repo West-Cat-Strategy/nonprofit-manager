@@ -3,21 +3,21 @@
   "version": "1.0.0",
   "description": "End-to-end tests for Nonprofit Manager",
   "scripts": {
-    "test": "bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test",
-    "test:headed": "bash ../scripts/e2e-playwright.sh host --direct ./node_modules/.bin/playwright test --headed",
-    "test:debug": "bash ../scripts/e2e-playwright.sh host --direct ./node_modules/.bin/playwright test --debug",
-    "test:ui": "bash ../scripts/e2e-playwright.sh host --direct ./node_modules/.bin/playwright test --ui",
-    "test:report": "./node_modules/.bin/playwright show-report",
+    "test": "bash ../scripts/e2e-playwright.sh host ../node_modules/.bin/playwright test",
+    "test:headed": "bash ../scripts/e2e-playwright.sh host --direct ../node_modules/.bin/playwright test --headed",
+    "test:debug": "bash ../scripts/e2e-playwright.sh host --direct ../node_modules/.bin/playwright test --debug",
+    "test:ui": "bash ../scripts/e2e-playwright.sh host --direct ../node_modules/.bin/playwright test --ui",
+    "test:report": "../node_modules/.bin/playwright show-report",
     "test:ci:report": "bash ../scripts/e2e-host-ci-report.sh",
-    "test:codegen": "./node_modules/.bin/playwright codegen",
-    "test:smoke": "E2E_RUNNER_ACTION=${E2E_RUNNER_ACTION:-kill} PW_REUSE_EXISTING_SERVER=0 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium tests/smoke-public.spec.ts tests/public-website.spec.ts",
-    "test:docker": "bash ../scripts/e2e-playwright.sh docker ./node_modules/.bin/playwright test",
-    "test:docker:smoke": "bash ../scripts/e2e-playwright.sh docker ./node_modules/.bin/playwright test --project=chromium tests/smoke-public.spec.ts tests/public-website.spec.ts",
-    "test:docker:ci": "bash ../scripts/e2e-playwright.sh docker ./node_modules/.bin/playwright test --project=chromium --project=firefox --project=webkit --grep-invert \"Dark Mode Accessibility Audit|Fresh workspace multi-user session\" && npm run test:docker:ci:mobile",
-    "test:docker:audit": "bash ../scripts/e2e-playwright.sh docker ./node_modules/.bin/playwright test --project=chromium tests/dark-mode-accessibility-audit.spec.ts",
-    "test:docker:ci:mobile": "CI=1 bash ../scripts/e2e-playwright.sh docker ./node_modules/.bin/playwright test --project=\"Mobile Chrome\" tests/ux-regression.spec.ts --grep \"mobile navigation drawer keeps the compact section layout|mobile auth entry routes keep forms above the fold|mobile staff routes use compact cards and avoid horizontal overflow\"",
-    "test:ci:mobile": "CI=1 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=\"Mobile Chrome\" tests/ux-regression.spec.ts --grep \"mobile navigation drawer keeps the compact section layout|mobile auth entry routes keep forms above the fold|mobile staff routes use compact cards and avoid horizontal overflow\"",
-    "test:ci": "CI=1 bash ../scripts/e2e-playwright.sh host ./node_modules/.bin/playwright test --project=chromium --project=firefox --project=webkit --grep-invert \"Dark Mode Accessibility Audit|Fresh workspace multi-user session\" && npm run test:ci:mobile"
+    "test:codegen": "../node_modules/.bin/playwright codegen",
+    "test:smoke": "E2E_RUNNER_ACTION=${E2E_RUNNER_ACTION:-kill} PW_REUSE_EXISTING_SERVER=0 bash ../scripts/e2e-playwright.sh host ../node_modules/.bin/playwright test --project=chromium tests/smoke-public.spec.ts tests/public-website.spec.ts",
+    "test:docker": "bash ../scripts/e2e-playwright.sh docker ../node_modules/.bin/playwright test",
+    "test:docker:smoke": "bash ../scripts/e2e-playwright.sh docker ../node_modules/.bin/playwright test --project=chromium tests/smoke-public.spec.ts tests/public-website.spec.ts",
+    "test:docker:ci": "bash ../scripts/e2e-playwright.sh docker ../node_modules/.bin/playwright test --project=chromium --project=firefox --project=webkit --grep-invert \"Dark Mode Accessibility Audit|Fresh workspace multi-user session\" && npm run test:docker:ci:mobile",
+    "test:docker:audit": "bash ../scripts/e2e-playwright.sh docker ../node_modules/.bin/playwright test --project=chromium tests/dark-mode-accessibility-audit.spec.ts",
+    "test:docker:ci:mobile": "CI=1 bash ../scripts/e2e-playwright.sh docker ../node_modules/.bin/playwright test --project=\"Mobile Chrome\" tests/ux-regression.spec.ts --grep \"mobile navigation drawer keeps the compact section layout|mobile auth entry routes keep forms above the fold|mobile staff routes use compact cards and avoid horizontal overflow\"",
+    "test:ci:mobile": "CI=1 bash ../scripts/e2e-playwright.sh host ../node_modules/.bin/playwright test --project=\"Mobile Chrome\" tests/ux-regression.spec.ts --grep \"mobile navigation drawer keeps the compact section layout|mobile auth entry routes keep forms above the fold|mobile staff routes use compact cards and avoid horizontal overflow\"",
+    "test:ci": "CI=1 bash ../scripts/e2e-playwright.sh host ../node_modules/.bin/playwright test --project=chromium --project=firefox --project=webkit --grep-invert \"Dark Mode Accessibility Audit|Fresh workspace multi-user session\" && npm run test:ci:mobile"
   },
   "keywords": [
     "e2e",
@@ -27,8 +27,8 @@
   "author": "Bryan Crockett",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^25.5.0",
-    "dotenv": "^17.3.1"
+    "dotenv": "^17.4.2"
   }
 }

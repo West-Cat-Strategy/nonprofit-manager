@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { InputHTMLAttributes, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import type * as ReactRouterDomModule from 'react-router-dom';
@@ -7,6 +7,9 @@ import CaseListPage from '../CaseListPage';
 
 const navigateMock = vi.hoisted(() => vi.fn());
 const dispatchMock = vi.hoisted(() => vi.fn());
+const listQueueViewsMock = vi.hoisted(() => vi.fn());
+const saveQueueViewMock = vi.hoisted(() => vi.fn());
+const archiveQueueViewMock = vi.hoisted(() => vi.fn());
 const validCaseId = '44444444-4444-4444-8444-444444444444';
 
 const mockState = {
@@ -115,6 +118,14 @@ vi.mock('../../../../contexts/useToast', () => ({
   useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn() }),
 }));
 
+vi.mock('../../api/queueViewsApiClient', () => ({
+  queueViewsApiClient: {
+    listQueueViews: (...args: unknown[]) => listQueueViewsMock(...args),
+    saveQueueView: (...args: unknown[]) => saveQueueViewMock(...args),
+    archiveQueueView: (...args: unknown[]) => archiveQueueViewMock(...args),
+  },
+}));
+
 vi.mock('../../../../features/cases/state', () => ({
   default: () => ({
     cases: [],
@@ -202,6 +213,29 @@ describe('Case list page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    listQueueViewsMock.mockResolvedValue([]);
+    saveQueueViewMock.mockImplementation(async (payload: {
+      surface: string;
+      name: string;
+      filters: Record<string, unknown>;
+      sort?: Record<string, unknown>;
+      rowLimit?: number;
+    }) => ({
+      id: 'server-view-1',
+      ownerUserId: 'user-1',
+      surface: payload.surface,
+      name: payload.name,
+      filters: payload.filters,
+      columns: [],
+      sort: payload.sort || {},
+      rowLimit: payload.rowLimit || 20,
+      dashboardBehavior: {},
+      permissionScope: [],
+      status: 'active',
+      createdAt: '2026-04-24T00:00:00.000Z',
+      updatedAt: '2026-04-24T00:00:00.000Z',
+    }));
+    archiveQueueViewMock.mockResolvedValue(undefined);
     mockState.cases.list.total = 1;
     mockState.cases.list.filters = {
       page: 1,
@@ -291,7 +325,73 @@ describe('Case list page', () => {
     );
   });
 
-  it('saves, reapplies, and deletes a saved view so staff can recover queue state', () => {
+  it('loads server-backed saved views for the cases queue', async () => {
+    listQueueViewsMock.mockResolvedValue([
+      {
+        id: 'queue-view-1',
+        ownerUserId: 'user-1',
+        surface: 'cases',
+        name: 'Urgent cases',
+        filters: {
+          search: 'housing',
+          imported_only: true,
+          quick_filter: 'urgent',
+        },
+        columns: [],
+        sort: { sort_by: 'created_at', sort_order: 'desc' },
+        rowLimit: 20,
+        dashboardBehavior: {},
+        permissionScope: [],
+        status: 'active',
+        createdAt: '2026-04-24T00:00:00.000Z',
+        updatedAt: '2026-04-24T00:00:00.000Z',
+      },
+    ]);
+
+    renderCaseListPage();
+
+    expect(await screen.findByRole('option', { name: 'Urgent cases' })).toBeInTheDocument();
+    expect(listQueueViewsMock).toHaveBeenCalledWith('cases');
+
+    fireEvent.change(screen.getByLabelText('Saved case views'), {
+      target: { value: 'queue-view-1' },
+    });
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'cases/setFilters',
+        payload: expect.objectContaining({
+          search: 'housing',
+          imported_only: true,
+          quick_filter: 'urgent',
+        }),
+      })
+    );
+  });
+
+  it('falls back to local saved views when the server queue view API is unavailable', async () => {
+    listQueueViewsMock.mockRejectedValue(new Error('Forbidden'));
+    localStorage.setItem(
+      'cases.savedViews',
+      JSON.stringify([
+        {
+          id: 'local-view-1',
+          name: 'Local housing queue',
+          quickFilter: 'all',
+          filters: { search: 'local housing' },
+        },
+      ])
+    );
+
+    renderCaseListPage();
+
+    expect(await screen.findByRole('option', { name: 'Local housing queue' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Server saved views are unavailable. Local saved views are being used on this device.')
+    ).toBeInTheDocument();
+  });
+
+  it('saves, reapplies, and deletes a saved view so staff can recover queue state', async () => {
     renderCaseListPage();
 
     fireEvent.change(screen.getByLabelText('Search cases'), {
@@ -302,6 +402,19 @@ describe('Case list page', () => {
       target: { value: 'Imported housing queue' },
     });
     fireEvent.click(screen.getByRole('button', { name: /save view/i }));
+
+    await waitFor(() => {
+      expect(saveQueueViewMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          surface: 'cases',
+          name: 'Imported housing queue',
+          filters: expect.objectContaining({
+            search: 'Housing support',
+            imported_only: true,
+          }),
+        })
+      );
+    });
 
     const storedViews = JSON.parse(localStorage.getItem('cases.savedViews') || '[]') as Array<{
       id: string;
@@ -317,11 +430,11 @@ describe('Case list page', () => {
         imported_only: true,
       },
     });
-    expect(screen.getByLabelText('Saved case views')).toHaveValue(storedViews[0].id);
+    expect(screen.getByLabelText('Saved case views')).toHaveValue('server-view-1');
 
     dispatchMock.mockClear();
     fireEvent.change(screen.getByLabelText('Saved case views'), {
-      target: { value: storedViews[0].id },
+      target: { value: 'server-view-1' },
     });
 
     expect(dispatchMock).toHaveBeenCalledWith(
@@ -338,5 +451,6 @@ describe('Case list page', () => {
 
     expect(screen.getByLabelText('Saved case views')).toHaveValue('');
     expect(localStorage.getItem('cases.savedViews')).toBe('[]');
+    expect(archiveQueueViewMock).toHaveBeenCalledWith('cases', 'server-view-1');
   });
 });

@@ -25,6 +25,7 @@ import { EventOccurrenceService } from './eventOccurrenceService';
 import { EventRegistrationService } from './eventRegistrationService';
 import { createEventHttpError, isEventHttpError } from '../eventHttpErrors';
 import { setCurrentUserId } from '@config/database';
+import { recordPublicIntakeResolutionBestEffort } from '@services/publicIntakeResolutionService';
 import { getContactRegistrationsQuery } from './eventRegistrationService.helpers';
 
 interface PublicEventSeriesRow {
@@ -184,6 +185,31 @@ export class EventPublicService {
   ): Promise<{ contactId: string; createdContact: boolean }> {
     const actorUserId = series.created_by;
     const accountId = series.organization_id;
+    const recordResolution = async (contactId: string, createdContact: boolean): Promise<void> => {
+      await recordPublicIntakeResolutionBestEffort({
+        sourceSystem: 'public_event',
+        sourceReference: series.event_id,
+        collectionMethod: 'event_registration',
+        firstName: input.firstName,
+        lastName: input.lastName,
+        email: input.email ?? null,
+        phone: input.phone ?? null,
+        accountId,
+        organizationId: accountId,
+        matchedContactId: contactId,
+        ambiguityState: createdContact ? 'no_match' : 'single_match',
+        resolutionStatus: createdContact ? 'created' : 'resolved',
+        auditTrail: [
+          {
+            action: 'public_event_contact_resolution',
+            eventId: series.event_id,
+            seriesId: series.series_id,
+            at: new Date().toISOString(),
+          },
+        ],
+        createdBy: actorUserId ?? null,
+      });
+    };
 
     if (!actorUserId) {
       let contactId = await this.support.resolveContactIdByIdentity(
@@ -208,6 +234,7 @@ export class EventPublicService {
         createdContact = true;
       }
 
+      await recordResolution(contactId, createdContact);
       return { contactId, createdContact };
     }
 
@@ -239,6 +266,7 @@ export class EventPublicService {
       }
 
       await client.query('COMMIT');
+      await recordResolution(contactId, createdContact);
       return { contactId, createdContact };
     } catch (error) {
       await client.query('ROLLBACK');

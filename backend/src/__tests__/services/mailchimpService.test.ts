@@ -25,6 +25,7 @@ jest.mock('@mailchimp/mailchimp_marketing', () => ({
     updateListMemberTags: jest.fn(),
     listSegments: jest.fn(),
     createSegment: jest.fn(),
+    batchSegmentMembers: jest.fn(),
   },
   campaigns: {
     list: jest.fn(),
@@ -534,6 +535,114 @@ describe('MailchimpService', () => {
     });
   });
 
+  describe('saved audiences and campaign runs', () => {
+    it('lists saved audiences inside the requester account scope', async () => {
+      const accountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [
+          {
+            id: '11111111-1111-4111-8111-111111111111',
+            name: 'Spring donors',
+            description: null,
+            filters: {
+              source: 'communications_selected_contacts',
+              contactIds: ['22222222-2222-4222-8222-222222222222'],
+              listId: 'list-123',
+            },
+            source_count: 1,
+            scope_account_ids: [accountId],
+            status: 'active',
+            created_at: new Date('2026-04-25T00:00:00Z'),
+            updated_at: new Date('2026-04-25T00:00:00Z'),
+            created_by: 'user-1',
+          },
+        ],
+      });
+
+      const audiences = await mailchimpService.listSavedAudiences('active', [accountId]);
+
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('scope_account_ids &&'), [
+        'active',
+        [accountId],
+      ]);
+      expect(audiences).toHaveLength(1);
+      expect(audiences[0].scopeAccountIds).toEqual([accountId]);
+    });
+
+    it('archives saved audiences only inside the requester account scope', async () => {
+      const accountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [
+          {
+            id: '11111111-1111-4111-8111-111111111111',
+            name: 'Spring donors',
+            description: null,
+            filters: {
+              source: 'communications_selected_contacts',
+              contactIds: ['22222222-2222-4222-8222-222222222222'],
+              listId: 'list-123',
+            },
+            source_count: 1,
+            scope_account_ids: [accountId],
+            status: 'archived',
+            created_at: new Date('2026-04-25T00:00:00Z'),
+            updated_at: new Date('2026-04-25T00:00:00Z'),
+            created_by: 'user-1',
+          },
+        ],
+      });
+
+      const audience = await mailchimpService.archiveSavedAudience(
+        '11111111-1111-4111-8111-111111111111',
+        'user-1',
+        [accountId]
+      );
+
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('scope_account_ids &&'), [
+        '11111111-1111-4111-8111-111111111111',
+        'user-1',
+        [accountId],
+      ]);
+      expect(audience?.status).toBe('archived');
+    });
+
+    it('lists campaign run history inside the requester account scope', async () => {
+      const accountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [
+          {
+            id: 'run-1',
+            provider: 'mailchimp',
+            provider_campaign_id: 'campaign-1',
+            title: 'Spring Campaign',
+            list_id: 'list-123',
+            include_audience_id: null,
+            exclusion_audience_ids: [],
+            suppression_snapshot: [],
+            test_recipients: ['reviewer@example.org'],
+            audience_snapshot: { targetingMode: 'all_subscribers' },
+            requested_send_time: null,
+            status: 'draft',
+            counts: {},
+            scope_account_ids: [accountId],
+            failure_message: null,
+            requested_by: 'user-1',
+            created_at: new Date('2026-04-25T00:00:00Z'),
+            updated_at: new Date('2026-04-25T00:00:00Z'),
+          },
+        ],
+      });
+
+      const runs = await mailchimpService.listCampaignRuns(20, [accountId]);
+
+      expect(mockPool.query).toHaveBeenCalledWith(expect.stringContaining('scope_account_ids &&'), [
+        20,
+        [accountId],
+      ]);
+      expect(runs[0].testRecipients).toEqual(['reviewer@example.org']);
+    });
+  });
+
   describe('createSegment', () => {
     it('should create a new segment', async () => {
       (mockMailchimp.lists.createSegment as jest.Mock).mockResolvedValue({
@@ -588,8 +697,32 @@ describe('MailchimpService', () => {
       });
       (mockMailchimp.campaigns.setContent as jest.Mock).mockResolvedValue({});
       (mockMailchimp.campaigns.schedule as jest.Mock).mockResolvedValue({});
-
       const sendTime = new Date('2026-05-01T10:00:00Z');
+      (mockPool.query as jest.Mock).mockResolvedValue({
+        rows: [
+          {
+            id: 'run-1',
+            provider: 'mailchimp',
+            provider_campaign_id: 'campaign-123',
+            title: 'Spring Appeal',
+            list_id: 'list-123',
+            include_audience_id: null,
+            exclusion_audience_ids: [],
+            suppression_snapshot: [],
+            test_recipients: [],
+            audience_snapshot: {},
+            requested_send_time: sendTime,
+            status: 'scheduled',
+            counts: {},
+            scope_account_ids: [],
+            failure_message: null,
+            requested_by: null,
+            created_at: new Date('2024-01-15T10:00:00Z'),
+            updated_at: new Date('2024-01-15T10:00:00Z'),
+          },
+        ],
+      });
+
       const campaign = await mailchimpService.createCampaign({
         listId: 'list-123',
         segmentId: 42,
@@ -638,11 +771,215 @@ describe('MailchimpService', () => {
       expect(campaign.status).toBe('schedule');
       expect(campaign.sendTime).toEqual(sendTime);
     });
+
+    it('creates a run-specific static segment for saved-audience targeting', async () => {
+      const contactOneId = '11111111-1111-4111-8111-111111111111';
+      const contactTwoId = '22222222-2222-4222-8222-222222222222';
+      const accountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+      (mockMailchimp.lists.getListMember as jest.Mock).mockRejectedValue(
+        Object.assign(new Error('Not found'), { status: 404 })
+      );
+      (mockMailchimp.lists.setListMember as jest.Mock).mockResolvedValue({
+        id: 'member-abc',
+        email_address: 'synced@example.org',
+        status: 'subscribed',
+        merge_fields: {},
+        tags: [],
+        list_id: 'list-123',
+        timestamp_signup: '2024-01-15T10:00:00Z',
+        last_changed: '2024-01-15T10:00:00Z',
+      });
+      (mockMailchimp.lists.createSegment as jest.Mock).mockResolvedValue({
+        id: 789,
+        name: 'NPM Saved Campaign',
+        member_count: 0,
+        list_id: 'list-123',
+        created_at: '2024-01-15T10:00:00Z',
+        updated_at: '2024-01-15T10:00:00Z',
+      });
+      (mockMailchimp.lists.batchSegmentMembers as jest.Mock).mockResolvedValue({
+        total_added: 2,
+      });
+      (mockMailchimp.campaigns.create as jest.Mock).mockResolvedValue({
+        id: 'campaign-123',
+        create_time: '2024-01-15T10:00:00Z',
+      });
+      (mockMailchimp.campaigns.setContent as jest.Mock).mockResolvedValue({});
+
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'run-1',
+              provider: 'mailchimp',
+              provider_campaign_id: null,
+              title: 'Saved Campaign',
+              list_id: 'list-123',
+              include_audience_id: 'audience-1',
+              exclusion_audience_ids: [],
+              suppression_snapshot: [],
+              test_recipients: [],
+              audience_snapshot: {},
+              requested_send_time: null,
+              status: 'draft',
+              counts: {},
+              scope_account_ids: [accountId],
+              failure_message: null,
+              requested_by: null,
+              created_at: new Date('2024-01-15T10:00:00Z'),
+              updated_at: new Date('2024-01-15T10:00:00Z'),
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'audience-1',
+              name: 'Spring Donors',
+              description: null,
+              filters: {
+                source: 'communications_selected_contacts',
+                contactIds: [contactOneId, contactTwoId],
+                listId: 'list-123',
+              },
+              source_count: 2,
+              scope_account_ids: [accountId],
+              status: 'active',
+              created_at: new Date('2024-01-15T10:00:00Z'),
+              updated_at: new Date('2024-01-15T10:00:00Z'),
+              created_by: 'user-1',
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            { id: contactOneId, account_id: accountId },
+            { id: contactTwoId, account_id: accountId },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              contact_id: contactOneId,
+              account_id: accountId,
+              first_name: 'Ada',
+              last_name: 'Lovelace',
+              email: 'ada@example.org',
+              do_not_email: false,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              contact_id: contactTwoId,
+              account_id: accountId,
+              first_name: 'Grace',
+              last_name: 'Hopper',
+              email: 'grace@example.org',
+              do_not_email: false,
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 'run-1',
+              provider: 'mailchimp',
+              provider_campaign_id: 'campaign-123',
+              title: 'Saved Campaign',
+              list_id: 'list-123',
+              include_audience_id: 'audience-1',
+              exclusion_audience_ids: [],
+              suppression_snapshot: [],
+              test_recipients: [],
+              audience_snapshot: {
+                targetingMode: 'saved_audience_static_segment',
+                providerSegmentId: 789,
+              },
+              requested_send_time: null,
+              status: 'draft',
+              counts: {
+                requestedContactCount: 2,
+                syncedContactCount: 2,
+                providerSegmentMemberCount: 2,
+              },
+              scope_account_ids: [accountId],
+              failure_message: null,
+              requested_by: null,
+              created_at: new Date('2024-01-15T10:00:00Z'),
+              updated_at: new Date('2024-01-15T10:00:00Z'),
+            },
+          ],
+        });
+
+      await mailchimpService.createCampaign({
+        listId: 'list-123',
+        includeAudienceId: 'audience-1',
+        title: 'Saved Campaign',
+        subject: 'Saved Campaign',
+        fromName: 'Community Org',
+        replyTo: 'hello@example.org',
+        htmlContent: '<p>Hello</p>',
+      });
+
+      expect(mockMailchimp.lists.createSegment).toHaveBeenCalledWith('list-123', {
+        name: expect.stringContaining('Saved Campaign'),
+        static_segment: [],
+      });
+      expect(mockMailchimp.lists.batchSegmentMembers).toHaveBeenCalledWith(
+        {
+          members_to_add: ['ada@example.org', 'grace@example.org'],
+          members_to_remove: [],
+        },
+        'list-123',
+        789
+      );
+      expect(mockMailchimp.campaigns.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipients: expect.objectContaining({
+            segment_opts: {
+              saved_segment_id: 789,
+            },
+          }),
+        })
+      );
+      const finalizeRunCall = (mockPool.query as jest.Mock).mock.calls.find(
+        ([sql]) => typeof sql === 'string' && sql.includes('UPDATE campaign_runs')
+      );
+      expect(JSON.parse(finalizeRunCall?.[1][11])).toEqual(
+        expect.objectContaining({
+          requestedContactCount: 2,
+          syncedContactCount: 2,
+          providerSegmentMemberCount: 2,
+        })
+      );
+      expect(JSON.parse(finalizeRunCall?.[1][8])).not.toHaveProperty('requestedContactIds');
+    });
+
+    it('rejects saved-audience targeting when a provider segment is also selected', async () => {
+      await expect(
+        mailchimpService.createCampaign({
+          listId: 'list-123',
+          includeAudienceId: 'audience-1',
+          segmentId: 42,
+          title: 'Invalid Campaign',
+          subject: 'Invalid Campaign',
+          fromName: 'Community Org',
+          replyTo: 'hello@example.org',
+          htmlContent: '<p>Hello</p>',
+        })
+      ).rejects.toThrow('Choose either a provider segment or a saved audience, not both');
+
+      expect(mockMailchimp.campaigns.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('sendCampaign', () => {
     it('sends a campaign immediately', async () => {
       (mockMailchimp.campaigns.send as jest.Mock).mockResolvedValue({});
+      (mockPool.query as jest.Mock).mockResolvedValue({ rows: [] });
 
       await expect(mailchimpService.sendCampaign('campaign-123')).resolves.toBeUndefined();
 

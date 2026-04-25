@@ -1,10 +1,10 @@
 # P5-T6 Backlog Synthesis (2026-04-22)
 
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-04-25
 
 This note is the row-local synthesis artifact for `P5-T6`. It converts the Phase 5 benchmark and repo-audit follow-through into a ranked later-wave backlog without claiming current product parity where the repo does not have routed support yet.
 
-The `2026-04-24` reference-repo follow-through keeps this ranking intact and refines the implementation pressure in [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md). The follow-through is still analysis-only: it does not authorize runtime work, direct source copying, generic workflow tooling, or direct ERPNext nonprofit-module parity claims.
+The `2026-04-25` hardening pass keeps this ranking intact while acknowledging the narrow runtime pickups now attached to the active `P5-T3` and `P5-T5` rows. It does not authorize direct source copying, generic workflow tooling, direct ERPNext nonprofit-module parity claims, or queued typed-domain work such as appeals, restrictions, donation batches, memberships, finance breadth, or workflow studios.
 
 ## Inputs
 
@@ -50,12 +50,12 @@ The highest-pressure benchmark claims were refreshed against official product do
 1. `fundraising-ops-brief`
    Scope: `PAT-01`, `PAT-02`, `PAT-03`, and the boundary into `PAT-07`.
    Future targets: `saved_audience`, `campaign_run`, `donor_profile`, and the later typed appeal boundary.
-   Why here: the product already has live People, Mailchimp, donations, recurring giving, and reporting seams, but it still lacks first-class saved audiences, a local campaign-run ledger, and donor preference governance. This brief keeps those `borrow now` carry-overs explicit without letting Mailchimp lists/segments or `campaign_name` strings masquerade as first-class records.
+   Why here: the product already has live People, Mailchimp, donations, recurring giving, and reporting seams, and the active `P5-T3` pickup now carries saved audiences, campaign-run history, and donor-profile receipt defaults through those seams. This brief keeps those `borrow now` carry-overs explicit without letting Mailchimp lists/segments or `campaign_name` strings masquerade as first-class records.
 
 2. `portal-ops-brief`
    Scope: `PAT-04`, `PAT-05`, `PAT-06`.
    Future targets: shared `public_intake_resolution`, `queue_view_definition`, `portal_escalation`.
-   Why here: the portal and public-intake seams are already real, but they still resolve contacts inconsistently, keep saved triage views local to one surface, and fall back to generic threads instead of typed escalations. This should be the first post-appointments-continuity `P5-T5` carry-over, with the shared triage shell folded into `PAT-05` instead of spun out as a separate platform row.
+   Why here: the portal and public-intake seams are already real, and the active `P5-T5` pickup now carries shared public-intake resolution audit, server-backed queue view definitions, and typed portal escalations through those seams. This remains the first post-appointments-continuity carry-over, with the shared triage shell folded into `PAT-05` instead of spun out as a separate platform row.
 
 3. `volunteer-dispatch-brief`
    Scope: `PAT-14`.
@@ -84,9 +84,9 @@ The highest-pressure benchmark claims were refreshed against official product do
 
 ## Dependencies On Active Product Waves
 
-- `P5-T3` should land the new communications authoring/preview model before deeper campaign automation or appeal orchestration is scoped, so later fundraising-depth work can reuse the real outbound messaging seam instead of a temporary one.
-- `P5-T5` should finish the current portal forms/case-aware inbox wave before program-service backlog slices define new service-authorization or grievance patterns, so those later waves build on the stabilized portal and case contracts.
-- This artifact is intentionally backlog-only. It does not authorize runtime implementation for memberships, appeals, workflow builders, finance breadth, or program-ops depth until those rows are separately signed out.
+- `P5-T3` should keep the new communications authoring/preview model, saved-audience targeting, campaign-run history, and donor-profile receipt defaults narrow before deeper campaign automation or appeal orchestration is scoped, so later fundraising-depth work can reuse the real outbound messaging seam instead of a temporary one.
+- `P5-T5` should keep the current portal forms, appointments, public-intake resolution, queue-view definition, and portal-escalation work narrow before program-service backlog slices define new service-authorization or grievance patterns, so those later waves build on the stabilized portal and case contracts.
+- This artifact is intentionally backlog-only beyond the named active pickups. It does not authorize runtime implementation for memberships, appeals, restrictions, donation batches, workflow builders, finance breadth, or program-ops depth until those rows are separately signed out.
 
 ## Downstream Persona Briefs
 
@@ -104,7 +104,7 @@ The highest-pressure benchmark claims were refreshed against official product do
 
 ## Queued Next Planning Actions
 
-1. Keep `fundraising-ops-brief` behind the active `P5-T3` handoff and use it to pin `saved_audience`, `campaign_run`, `donor_profile`, test/suppression campaign lanes, and the later typed appeal boundary before widening into `P5-T6B`.
-2. Make `portal-ops-brief` the first post-appointments-continuity `P5-T5` carry-over, with provenance-first public intake, server-backed queue definitions, and one typed case-scoped portal review request before any ticketing or grievance module.
+1. Keep the `P5-T3` fundraising pickup limited to `saved_audience`, `campaign_run`, donor-profile receipt defaults, test/suppression campaign lanes, and provider static-segment targeting; use `P5-T6B` to preserve the later typed appeal, restriction, donation-batch, and membership boundary.
+2. Keep the `P5-T5` portal pickup limited to provenance-first public intake, best-effort resolution audit, owner/surface-scoped queue definitions, and one actor-attributed case-scoped portal review request before any ticketing or grievance module.
 3. Keep `volunteer-dispatch-brief` as the only volunteer `borrow now` carry-over from the benchmark wave, and prove active task/event pickers with skill and availability cues can stay inside the current assignment contract before opening any new volunteer row.
 4. Hold `finance-membership-brief` and `workflow-program-ops-brief` behind the active product waves, then use them to shape later `P5-T6B`, `P5-T6C`, and any future typed-domain row without reopening a generic workflow studio, metadata builder, no-code change-request platform, or direct ERPNext nonprofit parity claim.

@@ -92,10 +92,22 @@ type UploadDraft = {
   description: string;
 };
 
+type ReviewRequestDraft = {
+  reason: string;
+  severity: 'normal' | 'high' | 'urgent';
+  sensitivity: 'standard' | 'sensitive';
+};
+
 const initialUploadDraft: UploadDraft = {
   document_name: '',
   document_type: 'other',
   description: '',
+};
+
+const initialReviewRequestDraft: ReviewRequestDraft = {
+  reason: '',
+  severity: 'normal',
+  sensitivity: 'standard',
 };
 
 export default function PortalCaseDetailPage() {
@@ -114,6 +126,11 @@ export default function PortalCaseDetailPage() {
   const [uploadDraft, setUploadDraft] = useState<UploadDraft>(initialUploadDraft);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [reviewRequestDraft, setReviewRequestDraft] =
+    useState<ReviewRequestDraft>(initialReviewRequestDraft);
+  const [reviewRequestSubmitting, setReviewRequestSubmitting] = useState(false);
+  const [reviewRequestError, setReviewRequestError] = useState<string | null>(null);
+  const [reviewRequestSubmittedAt, setReviewRequestSubmittedAt] = useState<string | null>(null);
   const { setSelectedCaseId } = usePersistentPortalCaseContext();
 
   const messageThreadsState = usePortalMessageThreads({
@@ -226,6 +243,52 @@ export default function PortalCaseDetailPage() {
       ...current,
       [event.target.name]: event.target.value,
     }));
+  };
+
+  const handleReviewRequestDraftChange = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = event.target;
+    setReviewRequestDraft((current) => ({
+      ...current,
+      [name]: value,
+    }));
+    setReviewRequestError(null);
+    setReviewRequestSubmittedAt(null);
+  };
+
+  const handleReviewRequestSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!id) {
+      return;
+    }
+
+    const reason = reviewRequestDraft.reason.trim();
+    if (!reason) {
+      setReviewRequestError('Tell staff what needs review before sending.');
+      return;
+    }
+
+    try {
+      setReviewRequestSubmitting(true);
+      setReviewRequestError(null);
+      const escalation = await portalV2ApiClient.createCaseEscalation(id, {
+        category: 'case_review',
+        reason,
+        severity: reviewRequestDraft.severity,
+        sensitivity: reviewRequestDraft.sensitivity,
+      });
+      setReviewRequestDraft(initialReviewRequestDraft);
+      setReviewRequestSubmittedAt(escalation.createdAt || new Date().toISOString());
+      showSuccess('Review request sent to staff.');
+    } catch (reviewRequestFailure) {
+      console.error('Failed to request portal case review', reviewRequestFailure);
+      const message = 'Unable to send this review request right now.';
+      setReviewRequestError(message);
+      showError(message);
+    } finally {
+      setReviewRequestSubmitting(false);
+    }
   };
 
   const handleUpload = async (event: FormEvent) => {
@@ -453,6 +516,78 @@ export default function PortalCaseDetailPage() {
             </SectionCard>
 
             <div className="space-y-5">
+              <SectionCard
+                title="Request Staff Review"
+                subtitle="Send a focused case-review request to the assigned team."
+              >
+                <form onSubmit={handleReviewRequestSubmit} className="space-y-3">
+                  <div>
+                    <label htmlFor="portal-case-review-reason" className="text-sm font-medium text-app-text">
+                      What should staff review?
+                    </label>
+                    <textarea
+                      id="portal-case-review-reason"
+                      name="reason"
+                      value={reviewRequestDraft.reason}
+                      onChange={handleReviewRequestDraftChange}
+                      rows={4}
+                      maxLength={5000}
+                      placeholder="Briefly describe the update, concern, or decision you need reviewed."
+                      className="mt-2 w-full rounded-md border border-app-input-border bg-app-input-bg px-3 py-2 text-sm text-app-text"
+                    />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="portal-case-review-severity" className="text-sm font-medium text-app-text">
+                        Priority
+                      </label>
+                      <select
+                        id="portal-case-review-severity"
+                        name="severity"
+                        value={reviewRequestDraft.severity}
+                        onChange={handleReviewRequestDraftChange}
+                        className="mt-2 w-full rounded-md border border-app-input-border bg-app-input-bg px-3 py-2 text-sm text-app-text"
+                      >
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="portal-case-review-sensitivity" className="text-sm font-medium text-app-text">
+                        Sensitivity
+                      </label>
+                      <select
+                        id="portal-case-review-sensitivity"
+                        name="sensitivity"
+                        value={reviewRequestDraft.sensitivity}
+                        onChange={handleReviewRequestDraftChange}
+                        className="mt-2 w-full rounded-md border border-app-input-border bg-app-input-bg px-3 py-2 text-sm text-app-text"
+                      >
+                        <option value="standard">Standard</option>
+                        <option value="sensitive">Sensitive</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {reviewRequestError && <p className="text-sm text-app-accent-text">{reviewRequestError}</p>}
+                  {reviewRequestSubmittedAt && (
+                    <p className="text-sm text-app-text-muted">
+                      Sent {formatDateTime(reviewRequestSubmittedAt)}.
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={reviewRequestSubmitting}
+                    className="rounded border border-app-accent bg-app-accent px-4 py-2 text-sm font-semibold text-[var(--app-accent-foreground)] disabled:opacity-60"
+                  >
+                    {reviewRequestSubmitting ? 'Sending...' : 'Request Review'}
+                  </button>
+                </form>
+              </SectionCard>
+
               <SectionCard
                 title="Case Conversations"
                 subtitle="Open portal conversations for this case."

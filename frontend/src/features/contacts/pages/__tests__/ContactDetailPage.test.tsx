@@ -126,6 +126,9 @@ vi.mock('../../components/ContactCommunicationsPanel', () => ({ default: () => <
 vi.mock('../../components/ContactFollowUpsPanel', () => ({ default: () => <div>Follow-ups Panel</div> }));
 vi.mock('../../components/ContactDocumentsPanel', () => ({ default: () => <div>Documents Panel</div> }));
 vi.mock('../../components/ContactPaymentsPanel', () => ({ default: () => <div>Payments Panel</div> }));
+vi.mock('../../components/ContactDonorPreferencesPanel', () => ({
+  default: () => <div>Donor Preferences Panel</div>,
+}));
 vi.mock('../../components/ContactMergeDialog', () => ({
   default: ({ isOpen }: { isOpen: boolean }) => (isOpen ? <div>Merge Dialog</div> : null),
 }));

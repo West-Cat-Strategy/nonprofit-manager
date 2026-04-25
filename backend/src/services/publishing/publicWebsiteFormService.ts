@@ -7,6 +7,7 @@ import type { Activity } from '@app-types/activity';
 import type { RecurringDonationPlanStatus } from '@app-types/recurringDonation';
 import type { PaymentProvider } from '@app-types/payment';
 import { activityEventService, type CreateActivityEventInput } from '@services/activityEventService';
+import { recordPublicIntakeResolutionBestEffort } from '@services/publicIntakeResolutionService';
 import newsletterProviderService from '@services/newsletterProviderService';
 import { paymentProviderService } from '@services/paymentProviderService';
 import { SiteManagementService } from './siteManagementService';
@@ -113,6 +114,7 @@ interface PublicWebsiteFormSubmissionOutcome {
   resultEntityType?: Activity['entity_type'];
   resultEntityId?: string;
   activity?: CreateActivityEventInput;
+  contactCreated?: boolean;
 }
 
 export class PublicWebsiteFormService {
@@ -271,6 +273,7 @@ export class PublicWebsiteFormService {
       },
       resultEntityType: 'contact',
       resultEntityId: contactId,
+      contactCreated: created,
       activity: {
         organizationId: site.organizationId,
         siteId: site.id,
@@ -332,6 +335,7 @@ export class PublicWebsiteFormService {
       },
       resultEntityType: 'contact',
       resultEntityId: contactId,
+      contactCreated: created,
       activity: {
         organizationId: site.organizationId,
         siteId: site.id,
@@ -361,7 +365,7 @@ export class PublicWebsiteFormService {
     const defaultTags = appendUniqueTags((component.defaultTags as string[] | undefined) || [], [
       'volunteer-interest',
     ]);
-    const { contactId } = await this.ensureContact(site, identity, defaultTags);
+    const { contactId, created } = await this.ensureContact(site, identity, defaultTags);
     const volunteer = await this.pool.query<{ volunteer_id: string }>(
       `SELECT id as volunteer_id
        FROM volunteers
@@ -400,6 +404,7 @@ export class PublicWebsiteFormService {
       },
       resultEntityType: volunteerId ? 'volunteer' : 'contact',
       resultEntityId: volunteerId || contactId,
+      contactCreated: created,
       activity: {
         organizationId: site.organizationId,
         siteId: site.id,
@@ -430,7 +435,7 @@ export class PublicWebsiteFormService {
       'referral',
       'intake',
     ]);
-    const { contactId } = await this.ensureContact(site, identity, defaultTags);
+    const { contactId, created } = await this.ensureContact(site, identity, defaultTags);
     const caseTypeId = await this.resolveReferralCaseTypeId(site);
     const referralSource =
       typeof payload.referral_source === 'string' && payload.referral_source.trim().length > 0
@@ -478,6 +483,7 @@ export class PublicWebsiteFormService {
       },
       resultEntityType: 'case',
       resultEntityId: caseRecord.id,
+      contactCreated: created,
       activity: {
         organizationId: site.organizationId,
         siteId: site.id,
@@ -576,7 +582,7 @@ export class PublicWebsiteFormService {
         throw new Error(`Monthly donations require ${providerLabel} to be configured`);
       }
 
-      const { contactId } = await this.ensureContact(site, identity, ['donor']);
+      const { contactId, created } = await this.ensureContact(site, identity, ['donor']);
 
       const checkoutPlan = await services.recurringDonation.createPublicCheckoutPlan({
         organizationId: site.organizationId,
@@ -612,6 +618,7 @@ export class PublicWebsiteFormService {
         },
         resultEntityType: 'contact',
         resultEntityId: contactId,
+        contactCreated: created,
         activity: {
           organizationId: site.organizationId,
           siteId: site.id,
@@ -632,7 +639,7 @@ export class PublicWebsiteFormService {
       };
     }
 
-    const { contactId } = await this.ensureContact(site, identity, ['donor']);
+    const { contactId, created } = await this.ensureContact(site, identity, ['donor']);
 
     const donation = await services.donation.createDonation(
       {
@@ -681,6 +688,7 @@ export class PublicWebsiteFormService {
       },
       resultEntityType: 'donation',
       resultEntityId: donation.donation_id,
+      contactCreated: created,
       activity: {
         organizationId: site.organizationId,
         siteId: site.id,
@@ -777,6 +785,33 @@ export class PublicWebsiteFormService {
             donationId: outcome.result.donationId || null,
             recurringPlanId: outcome.result.recurringPlanId || null,
           }),
+        });
+      }
+
+      if (outcome.result.contactId) {
+        await recordPublicIntakeResolutionBestEffort({
+          sourceSystem: 'website_form',
+          sourceReference: submissionId || formKey,
+          collectionMethod: formType,
+          firstName: identity.firstName,
+          lastName: identity.lastName,
+          email: identity.email ?? null,
+          phone: identity.phone ?? null,
+          accountId: site.organizationId || null,
+          organizationId: site.organizationId || null,
+          matchedContactId: outcome.result.contactId,
+          ambiguityState: outcome.contactCreated ? 'no_match' : 'single_match',
+          resolutionStatus: outcome.contactCreated ? 'created' : 'resolved',
+          auditTrail: [
+            {
+              action: 'website_form_resolution',
+              formType,
+              formKey,
+              siteId: site.id,
+              at: new Date().toISOString(),
+            },
+          ],
+          createdBy: site.ownerUserId || site.userId || null,
         });
       }
 

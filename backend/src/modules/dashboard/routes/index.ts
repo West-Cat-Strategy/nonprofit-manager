@@ -4,9 +4,20 @@ import { authenticate } from '@middleware/domains/auth';
 import { validateBody, validateParams } from '@middleware/zodValidation';
 import { uuidSchema, optionalStrictBooleanSchema } from '@validations/shared';
 import { createDashboardController } from '../controllers/dashboard.controller';
+import { sendSuccess } from '@modules/shared/http/envelope';
+import { scopedQueueViewDefinitionSchema } from '@validations/portal';
+import {
+  archiveQueueViewDefinition,
+  listQueueViewDefinitions,
+  upsertQueueViewDefinition,
+} from '@services/queueViewDefinitionService';
 
 const dashboardIdParamsSchema = z.object({
   id: uuidSchema,
+});
+
+const queueViewParamsSchema = z.object({
+  viewId: uuidSchema,
 });
 
 const createDashboardSchema = z.object({
@@ -36,6 +47,53 @@ export const createDashboardRoutes = (): Router => {
   const controller = createDashboardController();
 
   router.use(authenticate);
+
+  router.get('/queue-views', async (req, res, next) => {
+    try {
+      const views = await listQueueViewDefinitions('workbench', req.user?.id ?? null, [
+        'workbench',
+      ]);
+      sendSuccess(res, views);
+    } catch (error) {
+      next(error);
+    }
+  });
+  router.post(
+    '/queue-views',
+    validateBody(scopedQueueViewDefinitionSchema),
+    async (req, res, next) => {
+      try {
+        const view = await upsertQueueViewDefinition({
+          ...(req.body as Parameters<typeof upsertQueueViewDefinition>[0]),
+          surface: 'workbench',
+          ownerUserId: req.user?.id ?? null,
+          permissionScope: ['workbench'],
+          userId: req.user?.id ?? null,
+        });
+        sendSuccess(res, view, 201);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+  router.delete(
+    '/queue-views/:viewId',
+    validateParams(queueViewParamsSchema),
+    async (req, res, next) => {
+      try {
+        const view = await archiveQueueViewDefinition({
+          id: String(req.params.viewId),
+          surface: 'workbench',
+          ownerUserId: req.user?.id ?? null,
+          permissionScopes: ['workbench'],
+          userId: req.user?.id ?? null,
+        });
+        sendSuccess(res, view);
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
 
   router.get('/configs', controller.getDashboards);
   router.get('/configs/default', controller.getDefaultDashboard);

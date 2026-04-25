@@ -1,6 +1,14 @@
 import { Router } from 'express';
 import { authenticate } from '@middleware/domains/auth';
+import type { AuthRequest } from '@middleware/auth';
 import { validateBody, validateParams, validateQuery } from '@middleware/zodValidation';
+import { sendSuccess } from '@modules/shared/http/envelope';
+import {
+  archiveQueueViewDefinition,
+  listQueueViewDefinitions,
+  upsertQueueViewDefinition,
+} from '@services/queueViewDefinitionService';
+import { ensurePortalAdmin, getPortalAdminQuery } from '../controllers/portalAdminController.shared';
 import {
   listPortalSignupRequests,
   approvePortalSignupRequest,
@@ -32,6 +40,8 @@ import {
   portalAdminApproveRequestSchema,
   portalAdminConversationQuerySchema,
   portalAdminCreateInvitationSchema,
+  portalAdminQueueViewQuerySchema,
+  portalAdminQueueViewSchema,
   portalAdminReminderSendSchema,
   portalAdminRejectRequestSchema,
   portalAdminResetPasswordSchema,
@@ -55,6 +65,73 @@ const router = Router();
 
 router.use(authenticate);
 router.get('/stream', validateQuery(portalAdminRealtimeStreamQuerySchema), streamPortalAdminRealtime);
+
+router.get(
+  '/queue-views',
+  validateQuery(portalAdminQueueViewQuerySchema),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!ensurePortalAdmin(req, res)) {
+        return;
+      }
+      const query = getPortalAdminQuery<{ surface: Parameters<typeof listQueueViewDefinitions>[0] }>(req);
+      const views = await listQueueViewDefinitions(query.surface, req.user?.id ?? null, [
+        'portal_admin',
+      ]);
+      sendSuccess(res, views);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/queue-views',
+  validateBody(portalAdminQueueViewSchema),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!ensurePortalAdmin(req, res)) {
+        return;
+      }
+      const body = req.body as Parameters<typeof upsertQueueViewDefinition>[0];
+      const view = await upsertQueueViewDefinition({
+        ...body,
+        ownerUserId: req.user?.id ?? null,
+        permissionScope:
+          Array.isArray(body.permissionScope) && body.permissionScope.length > 0
+            ? body.permissionScope
+            : ['portal_admin'],
+        userId: req.user?.id ?? null,
+      });
+      sendSuccess(res, view, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+router.delete(
+  '/queue-views/:id',
+  validateParams(portalUuidParamsSchema),
+  validateQuery(portalAdminQueueViewQuerySchema),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!ensurePortalAdmin(req, res)) {
+        return;
+      }
+      const query = getPortalAdminQuery<{ surface: Parameters<typeof listQueueViewDefinitions>[0] }>(req);
+      const view = await archiveQueueViewDefinition({
+        id: String(req.params.id),
+        surface: query.surface,
+        ownerUserId: req.user?.id ?? null,
+        permissionScopes: ['portal_admin'],
+        userId: req.user?.id ?? null,
+      });
+      sendSuccess(res, view);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 router.get('/requests', listPortalSignupRequests);
 router.post(

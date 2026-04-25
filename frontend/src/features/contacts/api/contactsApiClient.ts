@@ -14,11 +14,13 @@ import type {
   ContactRelationship,
   ContactRole,
   ContactPhoneNumber,
+  DonorProfile,
   CreateContactDocumentDTO,
   CreateContactEmailDTO,
   CreateContactNoteDTO,
   CreateContactRelationshipDTO,
   CreateContactPhoneDTO,
+  UpdateDonorProfileDTO,
   UpdateContactDocumentDTO,
   UpdateContactEmailDTO,
   UpdateContactNoteDTO,
@@ -80,6 +82,22 @@ export class ContactsApiClient implements ContactsApiClientPort {
 
   async getContact(contactId: string): Promise<Contact> {
     const response = await api.get<ApiEnvelope<Contact>>(`/v2/contacts/${contactId}`);
+    return unwrapApiData(response.data);
+  }
+
+  async getDonorProfile(contactId: string): Promise<DonorProfile> {
+    const response = await api.get<ApiEnvelope<DonorProfile>>(`/v2/contacts/${contactId}/donor-profile`);
+    return unwrapApiData(response.data);
+  }
+
+  async updateDonorProfile(
+    contactId: string,
+    payload: UpdateDonorProfileDTO
+  ): Promise<DonorProfile> {
+    const response = await api.put<ApiEnvelope<DonorProfile>>(
+      `/v2/contacts/${contactId}/donor-profile`,
+      payload
+    );
     return unwrapApiData(response.data);
   }
 

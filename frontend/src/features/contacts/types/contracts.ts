@@ -12,11 +12,13 @@ import type {
   ContactRelationship,
   ContactRole,
   ContactPhoneNumber,
+  DonorProfile,
   CreateContactDocumentDTO,
   CreateContactEmailDTO,
   CreateContactNoteDTO,
   CreateContactRelationshipDTO,
   CreateContactPhoneDTO,
+  UpdateDonorProfileDTO,
   UpdateContactDocumentDTO,
   UpdateContactEmailDTO,
   UpdateContactNoteDTO,
@@ -77,6 +79,8 @@ export interface ContactsApiClientPort {
     options?: { signal?: AbortSignal }
   ): Promise<{ items: ContactLookupItem[] }>;
   getContact(contactId: string): Promise<Contact>;
+  getDonorProfile(contactId: string): Promise<DonorProfile>;
+  updateDonorProfile(contactId: string, payload: UpdateDonorProfileDTO): Promise<DonorProfile>;
   createContact(payload: ContactMutationPayload): Promise<Contact>;
   updateContact(contactId: string, payload: ContactMutationPayload): Promise<Contact>;
   deleteContact(contactId: string): Promise<void>;

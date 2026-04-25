@@ -221,6 +221,118 @@ describe('TaxReceiptService', () => {
     ).toBe(true);
   });
 
+  it('does not email a single receipt by default for an annual-only donor profile', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [makeDonationRow()] })
+      .mockResolvedValueOnce({
+        rows: [makeReceiptRow({ payee_type: 'contact', payee_id: 'contact-1' })],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          makeReceiptRow({
+            payee_type: 'contact',
+            payee_id: 'contact-1',
+            pdf_content: Buffer.from('pdf-content'),
+          }),
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            email_gift_statement: true,
+            receipt_frequency: 'annual',
+            receipt_each_gift: true,
+          },
+        ],
+      });
+
+    const result = await service.issueSingleReceipt({
+      organizationId: 'org-1',
+      userId: 'user-1',
+      donationId: 'donation-1',
+      request: {},
+    });
+
+    expect(result.delivery.requested).toBe(false);
+    expect(mockedSendMail).not.toHaveBeenCalled();
+  });
+
+  it('emails a reused single receipt by default for per-gift donor profiles', async () => {
+    mockedSendMail.mockResolvedValue(true);
+    mockQuery
+      .mockResolvedValueOnce({ rows: [makeDonationRow()] })
+      .mockResolvedValueOnce({
+        rows: [makeReceiptRow({ payee_type: 'contact', payee_id: 'contact-1' })],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          makeReceiptRow({
+            payee_type: 'contact',
+            payee_id: 'contact-1',
+            pdf_content: Buffer.from('pdf-content'),
+          }),
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            email_gift_statement: true,
+            receipt_frequency: 'per_gift',
+            receipt_each_gift: true,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] });
+
+    const result = await service.issueSingleReceipt({
+      organizationId: 'org-1',
+      userId: 'user-1',
+      donationId: 'donation-1',
+      request: {},
+    });
+
+    expect(result.delivery.status).toBe('sent');
+    expect(mockedSendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'donor@example.com',
+      })
+    );
+  });
+
+  it('keeps explicit receipt delivery overrides ahead of donor profile defaults', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [makeDonationRow()] })
+      .mockResolvedValueOnce({
+        rows: [makeReceiptRow({ payee_type: 'contact', payee_id: 'contact-1' })],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          makeReceiptRow({
+            payee_type: 'contact',
+            payee_id: 'contact-1',
+            pdf_content: Buffer.from('pdf-content'),
+          }),
+        ],
+      });
+
+    const result = await service.issueSingleReceipt({
+      organizationId: 'org-1',
+      userId: 'user-1',
+      donationId: 'donation-1',
+      request: {
+        deliveryMode: 'download',
+      },
+    });
+
+    expect(result.delivery.requested).toBe(false);
+    expect(mockedSendMail).not.toHaveBeenCalled();
+    expect(
+      mockQuery.mock.calls.some(
+        ([sql]) => typeof sql === 'string' && sql.includes('FROM donor_profiles')
+      )
+    ).toBe(false);
+  });
+
   it('batches annual official receipt item inserts into a single UNNEST query', async () => {
     const client = makeClient();
     mockConnect.mockResolvedValue(client as unknown as PoolClient);
