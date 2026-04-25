@@ -17,7 +17,7 @@
   - Structured logging and optional log aggregation are wired through `backend/src/config/logger.ts`.
   - Targeted security coverage already exists for active surfaces, including `backend/src/__tests__/modules/mailchimp.routes.security.test.ts`, `backend/src/__tests__/modules/payments.routes.security.test.ts`, `backend/src/__tests__/modules/reconciliation.routes.security.test.ts`, `backend/src/__tests__/services/paymentProviderService.ssrf.test.ts`, and `backend/src/__tests__/services/webhookService.secretExposure.test.ts`.
 - Planning gap: Phase 5 did not yet treat the security baseline, auth-alias operational visibility, and supply-chain follow-through as live tracked work even though they now affect the active validation lane.
-- Process drift: the helper security-contract reference still points to `scripts/daily-security-report.py`, but that file is not present in the current `scripts/` tree.
+- Process drift: resolved under `P5-T8`; the helper security-contract reference now points at the current `scripts/security-scan.sh` / `make security-scan` baseline instead of the removed daily-report helper.
 - CI caveat: no checked-in `.github/workflows/*` or `dependabot.yml` files were present in the repo root during this review. If CI lives elsewhere, mirror the same controls there instead of treating GitHub-only tooling as a hard requirement.
 
 ## External Guidance Applied
