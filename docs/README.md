@@ -34,8 +34,10 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 | Historical phase material | [phases/archive/README.md](phases/archive/README.md) | Use for provenance, not current status |
 | Runtime setup and ports | [development/GETTING_STARTED.md](development/GETTING_STARTED.md) | Docker, direct app, public-site, worker, and Playwright runtime contracts |
 | Validation and testing | [testing/TESTING.md](testing/TESTING.md) | Active test-command selection map |
+| Verification scripts | [verification/VERIFICATION_SYSTEM.md](verification/VERIFICATION_SYSTEM.md) | Legacy/broad verifier entrypoints that still exist under `scripts/` |
 | Validation and audit artifacts | [validation/README.md](validation/README.md) | Audit snapshots, remediation trackers, and validation references |
 | Persona and benchmark detail | [../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md](../.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md) | Canonical detailed layer for persona analysis, persona validation, and benchmark synthesis |
+| Retained reference patterns | [development/reference-patterns/README.md](development/reference-patterns/README.md) | Preserved adoption specs, pattern catalogs, and check matrices |
 | Helper scripts | [../scripts/README.md](../scripts/README.md) | Repo-local command and policy-script index |
 | Database contract | [../database/README.md](../database/README.md) | Schema, seeds, manifest, and migration-contract orientation |
 | Shared contracts | [../contracts/README.md](../contracts/README.md) | Shared type-only package used across app surfaces |
@@ -61,6 +63,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [Subagent Modularization Guide](development/SUBAGENT_MODULARIZATION_GUIDE.md)
 - [Backend Module Ownership Map](development/BACKEND_MODULE_OWNERSHIP_MAP.md)
 - [Compatibility Shim Deprecation Ledger](development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md)
+- [Retained Reference Patterns](development/reference-patterns/README.md)
 - [Agent Terminology](../agents.md)
 - [Quick Command Reference](quick-reference/QUICK_REFERENCE.md)
 
@@ -91,6 +94,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [Testing Guide](testing/TESTING.md)
 - [Integration Test Guide](testing/INTEGRATION_TEST_GUIDE.md)
 - [Component Testing](testing/COMPONENT_TESTING.md)
+- [Verification System](verification/VERIFICATION_SYSTEM.md)
 - [Playwright E2E Guide](../e2e/README.md)
 - [Testing Archive](testing/archive/README.md)
 - [Validation And Audit Index](validation/README.md)
@@ -99,6 +103,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 ### Deployment, Security, And Operations
 - [Deployment Guide](deployment/DEPLOYMENT.md)
 - [Database Setup And Migrations](deployment/DB_SETUP.md)
+- [Publishing Deployment Guide](deployment/publishing-deployment.md)
 - [Security Monitoring Guide](security/SECURITY_MONITORING_GUIDE.md)
 - [Auth Alias Telemetry Operations Guide](security/AUTH_ALIAS_TELEMETRY_OPERATIONS_GUIDE.md)
 - [Auth Alias Deprecation Checklist](security/AUTH_ALIAS_DEPRECATION_CHECKLIST.md)
@@ -115,6 +120,9 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [P5-T6B Fundraising Stewardship and Restrictions Brief](phases/P5-T6B_FUNDRAISING_STEWARDSHIP_RESTRICTIONS_BRIEF_2026-04-25.md)
 - [P5-T6C Service-Delivery Workflow Depth Brief](phases/P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md)
 - [Phase Archive Index](phases/archive/README.md)
+- [Development Archive Index](development/archive/README.md)
+- [Performance Archive Index](performance/archive/README.md)
+- [Security Archive Index](security/archive/README.md)
 - [Documentation Style Guide](DOCUMENTATION_STYLE_GUIDE.md)
 - [Help Center Archive Note](archive/help-center/README.md)
 

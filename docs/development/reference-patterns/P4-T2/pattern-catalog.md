@@ -39,7 +39,7 @@ Date: 2026-03-02
   - run log table for observability,
   - manual run-now path.
 - Target files:
-  - `backend/src/services/scheduledReportService.ts`
+  - `backend/src/modules/scheduledReports/services/scheduledReportService.ts`
   - `backend/src/services/scheduledReportSchedulerService.ts`
   - `database/migrations/054_scheduled_reports.sql`
 

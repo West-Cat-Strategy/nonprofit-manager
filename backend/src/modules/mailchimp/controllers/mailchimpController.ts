@@ -711,63 +711,66 @@ export const handleWebhook = async (req: Request, res: Response): Promise<void> 
   try {
     // Mailchimp sends webhook data as form data
     const payload = req.body as MailchimpWebhookPayload;
+    const data = payload.data ?? {};
 
     logger.info('Mailchimp webhook received', {
       type: payload.type,
-      listId: payload.data?.listId,
-      email: payload.data?.email,
+      listId: data.listId,
+      hasEmail: Boolean(data.email),
+      hasOldEmail: Boolean(data.oldEmail),
+      hasNewEmail: Boolean(data.newEmail),
     });
 
     // Handle different webhook event types
     switch (payload.type) {
       case 'subscribe':
         logger.info('New subscriber', {
-          email: payload.data.email,
-          listId: payload.data.listId,
+          listId: data.listId,
+          hasEmail: Boolean(data.email),
         });
         // Could sync back to contacts table if needed
         break;
 
       case 'unsubscribe':
         logger.info('Unsubscribe', {
-          email: payload.data.email,
-          listId: payload.data.listId,
+          listId: data.listId,
+          hasEmail: Boolean(data.email),
         });
         // Could update contact's do_not_email flag
         break;
 
       case 'profile':
         logger.info('Profile update', {
-          email: payload.data.email,
-          listId: payload.data.listId,
+          listId: data.listId,
+          hasEmail: Boolean(data.email),
         });
         // Could sync profile changes back to contacts
         break;
 
       case 'upemail':
         logger.info('Email address changed', {
-          oldEmail: payload.data.oldEmail,
-          newEmail: payload.data.newEmail,
-          listId: payload.data.listId,
+          listId: data.listId,
+          hasOldEmail: Boolean(data.oldEmail),
+          hasNewEmail: Boolean(data.newEmail),
         });
         // Could update contact email if needed
         break;
 
       case 'cleaned':
         logger.info('Email cleaned (bounced/invalid)', {
-          email: payload.data.email,
-          listId: payload.data.listId,
-          reason: payload.data.reason,
+          listId: data.listId,
+          hasEmail: Boolean(data.email),
+          reason: data.reason,
         });
         // Could mark contact email as invalid
         break;
 
       case 'campaign':
         logger.info('Campaign event', {
-          campaignId: payload.data.id ?? payload.data.campaignId,
-          listId: payload.data.listId,
-          action: payload.data.action,
-          status: payload.data.status,
+          campaignId: data.id ?? data.campaignId,
+          listId: data.listId,
+          action: data.action,
+          status: data.status,
         });
         await mailchimpService.recordCampaignLifecycleWebhook(payload);
         break;

@@ -34,6 +34,7 @@ const config: Config = {
     '^@middleware/(.*)$': '<rootDir>/src/middleware/$1',
     '^@controllers/(.*)$': '<rootDir>/src/controllers/$1',
     '^@routes/(.*)$': '<rootDir>/src/routes/$1',
+    '^uuid$': '<rootDir>/test/uuid-jest-shim.js',
   },
   moduleFileExtensions: ['ts', 'js', 'json'],
   setupFilesAfterEnv: ['<rootDir>/test/jest.setup.ts'],

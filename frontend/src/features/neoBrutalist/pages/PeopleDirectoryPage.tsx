@@ -51,6 +51,35 @@ const EMPTY_COUNTS: Record<TabType, number> = {
 const BRUTAL_FOCUS_RING =
     'focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]';
 
+const DirectoryTabButton = ({
+    tab,
+    label,
+    count,
+    activeTab,
+    loading,
+    onTabChange,
+}: {
+    tab: TabType;
+    label: string;
+    count: number;
+    activeTab: TabType;
+    loading: boolean;
+    onTabChange: (tab: TabType) => void;
+}) => (
+    <button
+        type="button"
+        onClick={() => onTabChange(tab)}
+        disabled={loading}
+        aria-pressed={activeTab === tab}
+        className={`px-6 py-3 font-bold uppercase border-2 border-app-border transition-all disabled:opacity-50 ${BRUTAL_FOCUS_RING} ${activeTab === tab
+            ? 'bg-[var(--loop-pink)] text-app-brutal-ink shadow-[2px_2px_0px_0px_var(--shadow-color)]'
+            : 'bg-app-surface-elevated text-app-text-heading hover:bg-app-surface-muted hover:text-app-text-heading shadow-[2px_2px_0px_0px_var(--shadow-color)]'
+            }`}
+    >
+        {label} {!loading && `(${count})`}
+    </button>
+);
+
 const normalizeQuery = (value: string): string | undefined => {
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : undefined;
@@ -234,21 +263,6 @@ export default function PeopleDirectory() {
         };
     }, [activeTab, refresh, searchTerm]);
 
-    const TabButton = ({ tab, label, count }: { tab: TabType; label: string; count: number }) => (
-        <button
-            type="button"
-            onClick={() => handleTabChange(tab)}
-            disabled={loading}
-            aria-pressed={activeTab === tab}
-            className={`px-6 py-3 font-bold uppercase border-2 border-app-border transition-all disabled:opacity-50 ${BRUTAL_FOCUS_RING} ${activeTab === tab
-                ? 'bg-[var(--loop-pink)] text-app-brutal-ink shadow-[2px_2px_0px_0px_var(--shadow-color)]'
-                : 'bg-app-surface-elevated text-app-text-heading hover:bg-app-surface-muted hover:text-app-text-heading shadow-[2px_2px_0px_0px_var(--shadow-color)]'
-                }`}
-        >
-            {label} {!loading && `(${count})`}
-        </button>
-    );
-
     if (loading) {
         return (
             <NeoBrutalistLayout pageTitle="DIRECTORY">
@@ -336,10 +350,38 @@ export default function PeopleDirectory() {
 
                 {/* Tabs */}
                 <div className="mb-6 flex gap-2">
-                    <TabButton tab="all" label="ALL PEOPLE" count={counts.all} />
-                    <TabButton tab="staff" label="STAFF" count={counts.staff} />
-                    <TabButton tab="volunteer" label="VOLUNTEERS" count={counts.volunteer} />
-                    <TabButton tab="board" label="BOARD" count={counts.board} />
+                    <DirectoryTabButton
+                        tab="all"
+                        label="ALL PEOPLE"
+                        count={counts.all}
+                        activeTab={activeTab}
+                        loading={loading}
+                        onTabChange={handleTabChange}
+                    />
+                    <DirectoryTabButton
+                        tab="staff"
+                        label="STAFF"
+                        count={counts.staff}
+                        activeTab={activeTab}
+                        loading={loading}
+                        onTabChange={handleTabChange}
+                    />
+                    <DirectoryTabButton
+                        tab="volunteer"
+                        label="VOLUNTEERS"
+                        count={counts.volunteer}
+                        activeTab={activeTab}
+                        loading={loading}
+                        onTabChange={handleTabChange}
+                    />
+                    <DirectoryTabButton
+                        tab="board"
+                        label="BOARD"
+                        count={counts.board}
+                        activeTab={activeTab}
+                        loading={loading}
+                        onTabChange={handleTabChange}
+                    />
                 </div>
 
                 {/* People Grid - Using Reusable PeopleCard Component */}

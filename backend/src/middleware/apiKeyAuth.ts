@@ -15,7 +15,7 @@
 import { Request, Response, NextFunction } from 'express';
 import pool from '@config/database';
 import { logger } from '@config/logger';
-import * as apiKeyService from '@services/apiKeyService';
+import * as apiKeyService from '@modules/webhooks/services/apiKeyService';
 import type { ApiKey, ApiKeyScope } from '@app-types/webhook';
 import { unauthorized, forbidden } from '@utils/responseHelpers';
 import { sendError } from '@modules/shared/http/envelope';

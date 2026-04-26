@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import EditorHeader from '../EditorHeader';
-import type { Template, TemplatePage } from '../../../types/websiteBuilder';
+import type { Template, TemplatePage } from '../../../../../types/websiteBuilder';
 
 const template: Template = {
   id: 'template-1',

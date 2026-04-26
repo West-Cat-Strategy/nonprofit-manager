@@ -132,9 +132,9 @@ Storage notes:
 ## Technical Architecture
 
 Backend:
-- `backend/src/services/reportService.ts`
+- `backend/src/modules/reports/services/reportService.ts`
 - `backend/src/services/exportService.ts`
-- `backend/src/services/scheduledReportService.ts`
+- `backend/src/modules/scheduledReports/services/scheduledReportService.ts`
 - `backend/src/services/scheduledReportSchedulerService.ts`
 
 Frontend:

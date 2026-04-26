@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import PagePropertyEditor from '../PagePropertyEditor';
-import type { TemplatePage } from '../../../../types/websiteBuilder';
+import type { TemplatePage } from '../../../../../../types/websiteBuilder';
 
 const currentPage: TemplatePage = {
   id: 'page-1',

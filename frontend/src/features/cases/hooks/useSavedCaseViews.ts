@@ -154,7 +154,7 @@ export function useSavedCaseViews({
         persistLocalViews(serverViews);
         setSavedViewsError(null);
         setSavedViewsUsingLocalFallback(false);
-      } catch (error) {
+      } catch {
         if (cancelled) {
           return;
         }

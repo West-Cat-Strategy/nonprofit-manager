@@ -3,7 +3,8 @@
  * API endpoints for email marketing integration
  */
 
-import { Router } from 'express';
+import { timingSafeEqual } from 'crypto';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requirePermission } from '@middleware/permissions';
@@ -11,6 +12,7 @@ import { validateBody, validateParams, validateQuery } from '@middleware/zodVali
 import * as mailchimpController from '../controllers';
 import { Permission } from '@utils/permissions';
 import { emailSchema, isoDateTimeSchema, uuidSchema } from '@validations/shared';
+import { unauthorized } from '@utils/responseHelpers';
 
 const router = Router();
 
@@ -142,6 +144,45 @@ const campaignsQuerySchema = z
 
 const dateStringSchema = isoDateTimeSchema;
 
+const getMailchimpWebhookSecret = (): string | undefined => {
+  const secret = process.env.MAILCHIMP_WEBHOOK_SECRET?.trim();
+  return secret ? secret : undefined;
+};
+
+const isMatchingSecret = (provided: unknown, expected: string): boolean => {
+  if (typeof provided !== 'string') {
+    return false;
+  }
+
+  const providedBuffer = Buffer.from(provided);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (providedBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(providedBuffer, expectedBuffer);
+};
+
+const requireMailchimpWebhookSecret = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const expectedSecret = getMailchimpWebhookSecret();
+  if (!expectedSecret) {
+    next();
+    return;
+  }
+
+  if (!isMatchingSecret(req.query.secret, expectedSecret)) {
+    unauthorized(res, 'Invalid Mailchimp webhook secret');
+    return;
+  }
+
+  next();
+};
+
 const createCampaignSchema = z
   .object({
     listId: listIdSchema,
@@ -157,6 +198,7 @@ const createCampaignSchema = z
     sendTime: dateStringSchema.optional(),
     includeAudienceId: uuidSchema.optional(),
     exclusionAudienceIds: z.array(uuidSchema).max(50).optional(),
+    priorRunSuppressionIds: z.array(uuidSchema).max(50).optional(),
     suppressionSnapshot: z.array(z.unknown()).max(1000).optional(),
     testRecipients: z.array(emailSchema).max(50).optional(),
     audienceSnapshot: z.record(z.string(), z.unknown()).optional(),
@@ -167,7 +209,7 @@ const createCampaignSchema = z
  * POST /api/mailchimp/webhook
  * Mailchimp webhook handler (no auth - Mailchimp sends webhooks)
  */
-router.post('/webhook', mailchimpController.handleWebhook);
+router.post('/webhook', requireMailchimpWebhookSecret, mailchimpController.handleWebhook);
 
 router.use(authenticate, requirePermission(Permission.ADMIN_SETTINGS));
 

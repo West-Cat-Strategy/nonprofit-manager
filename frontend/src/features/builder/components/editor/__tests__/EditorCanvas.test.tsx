@@ -2,7 +2,7 @@ import { DndContext } from '@dnd-kit/core';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import EditorCanvas from '../EditorCanvas';
-import type { PageSection, TemplateTheme } from '../../../types/websiteBuilder';
+import type { PageSection, TemplateTheme } from '../../../../../types/websiteBuilder';
 
 const theme: TemplateTheme = {
   colors: {

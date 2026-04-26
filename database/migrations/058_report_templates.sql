@@ -1,5 +1,5 @@
 -- Migration: Create report_templates table for reports template workflows
--- Source alignment: backend/src/services/reportTemplateService.ts
+-- Source alignment: backend/src/modules/reports/services/reportTemplateService.ts
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

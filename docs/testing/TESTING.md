@@ -13,6 +13,7 @@ This file is the active test command map for nonprofit-manager. Use [../../CONTR
 | Backend Jest integration workflow | Active, scoped | [INTEGRATION_TEST_GUIDE.md](INTEGRATION_TEST_GUIDE.md) |
 | Playwright runtime wrappers and browser contracts | Active, scoped | [../../e2e/README.md](../../e2e/README.md) |
 | Dark-mode accessibility audit flow | Active, focused | [DARK_MODE_ACCESSIBILITY_AUDIT.md](DARK_MODE_ACCESSIBILITY_AUDIT.md) |
+| Legacy verification script entrypoints | Active, scoped | [../verification/VERIFICATION_SYSTEM.md](../verification/VERIFICATION_SYSTEM.md) |
 | Historical testing references | Historical only | [archive/README.md](archive/README.md) |
 
 ## Test Layers

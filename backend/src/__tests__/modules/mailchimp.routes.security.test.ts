@@ -33,6 +33,8 @@ jest.mock('../../middleware/domains/auth', () => ({
 
 import { createMailchimpRoutes } from '../../modules/mailchimp/routes';
 
+const originalMailchimpWebhookSecret = process.env.MAILCHIMP_WEBHOOK_SECRET;
+
 const buildApp = (role?: string) => {
   const app = express();
   app.use(express.json());
@@ -46,9 +48,26 @@ const buildApp = (role?: string) => {
   return app;
 };
 
+const validCampaignPayload = () => ({
+  listId: 'list-1',
+  title: 'Spring Appeal',
+  subject: 'Spring Appeal',
+  fromName: 'Org',
+  replyTo: 'hello@example.org',
+});
+
 describe('mailchimp routes authorization', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    delete process.env.MAILCHIMP_WEBHOOK_SECRET;
+  });
+
+  afterAll(() => {
+    if (originalMailchimpWebhookSecret === undefined) {
+      delete process.env.MAILCHIMP_WEBHOOK_SECRET;
+    } else {
+      process.env.MAILCHIMP_WEBHOOK_SECRET = originalMailchimpWebhookSecret;
+    }
   });
 
   it('blocks admin mailchimp routes for non-admin roles', async () => {
@@ -72,13 +91,7 @@ describe('mailchimp routes authorization', () => {
 
     await request(managerApp)
       .post('/api/v2/mailchimp/campaigns/preview')
-      .send({
-        listId: 'list-1',
-        title: 'Spring Appeal',
-        subject: 'Spring Appeal',
-        fromName: 'Org',
-        replyTo: 'hello@example.org',
-      })
+      .send(validCampaignPayload())
       .expect(403);
 
     expect(mailchimpControllerMocks.previewCampaign).not.toHaveBeenCalled();
@@ -87,13 +100,7 @@ describe('mailchimp routes authorization', () => {
 
     await request(adminApp)
       .post('/api/v2/mailchimp/campaigns/preview')
-      .send({
-        listId: 'list-1',
-        title: 'Spring Appeal',
-        subject: 'Spring Appeal',
-        fromName: 'Org',
-        replyTo: 'hello@example.org',
-      })
+      .send(validCampaignPayload())
       .expect(200);
 
     expect(mailchimpControllerMocks.previewCampaign).toHaveBeenCalledTimes(1);
@@ -153,16 +160,95 @@ describe('mailchimp routes authorization', () => {
     await request(app)
       .post('/api/v2/mailchimp/campaigns')
       .send({
-        listId: 'list-1',
-        title: 'Spring Appeal',
-        subject: 'Spring Appeal',
-        fromName: 'Org',
-        replyTo: 'hello@example.org',
+        ...validCampaignPayload(),
         typedAppealId: '11111111-1111-4111-8111-111111111111',
       })
       .expect(400);
 
     expect(mailchimpControllerMocks.createCampaign).not.toHaveBeenCalled();
+  });
+
+  it('accepts prior run suppression UUID arrays for campaign creation', async () => {
+    const app = buildApp('admin');
+    const priorRunSuppressionIds = [
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',
+    ];
+
+    await request(app)
+      .post('/api/v2/mailchimp/campaigns')
+      .send({
+        ...validCampaignPayload(),
+        priorRunSuppressionIds,
+      })
+      .expect(200);
+
+    expect(mailchimpControllerMocks.createCampaign).toHaveBeenCalledTimes(1);
+    expect(
+      (mailchimpControllerMocks.createCampaign.mock.calls[0]?.[0] as express.Request).body
+        .priorRunSuppressionIds
+    ).toEqual(priorRunSuppressionIds);
+  });
+
+  it('rejects invalid prior run suppression IDs for campaign creation before the controller', async () => {
+    const app = buildApp('admin');
+
+    await request(app)
+      .post('/api/v2/mailchimp/campaigns')
+      .send({
+        ...validCampaignPayload(),
+        priorRunSuppressionIds: ['not-a-uuid'],
+      })
+      .expect(400);
+
+    expect(mailchimpControllerMocks.createCampaign).not.toHaveBeenCalled();
+  });
+
+  it('accepts prior run suppression UUID arrays for campaign preview', async () => {
+    const app = buildApp('admin');
+    const priorRunSuppressionIds = ['11111111-1111-4111-8111-111111111111'];
+
+    await request(app)
+      .post('/api/v2/mailchimp/campaigns/preview')
+      .send({
+        ...validCampaignPayload(),
+        priorRunSuppressionIds,
+      })
+      .expect(200);
+
+    expect(mailchimpControllerMocks.previewCampaign).toHaveBeenCalledTimes(1);
+    expect(
+      (mailchimpControllerMocks.previewCampaign.mock.calls[0]?.[0] as express.Request).body
+        .priorRunSuppressionIds
+    ).toEqual(priorRunSuppressionIds);
+  });
+
+  it('rejects invalid prior run suppression IDs for campaign preview before the controller', async () => {
+    const app = buildApp('admin');
+
+    await request(app)
+      .post('/api/v2/mailchimp/campaigns/preview')
+      .send({
+        ...validCampaignPayload(),
+        priorRunSuppressionIds: ['not-a-uuid'],
+      })
+      .expect(400);
+
+    expect(mailchimpControllerMocks.previewCampaign).not.toHaveBeenCalled();
+  });
+
+  it('rejects campaign preview fields outside the signed-out targeting contract', async () => {
+    const app = buildApp('admin');
+
+    await request(app)
+      .post('/api/v2/mailchimp/campaigns/preview')
+      .send({
+        ...validCampaignPayload(),
+        typedAppealId: '11111111-1111-4111-8111-111111111111',
+      })
+      .expect(400);
+
+    expect(mailchimpControllerMocks.previewCampaign).not.toHaveBeenCalled();
   });
 
   it('keeps the Mailchimp webhook public', async () => {
@@ -171,5 +257,30 @@ describe('mailchimp routes authorization', () => {
     await request(app).post('/api/v2/mailchimp/webhook').send({}).expect(200);
 
     expect(mailchimpControllerMocks.handleWebhook).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts the Mailchimp webhook query secret when configured', async () => {
+    process.env.MAILCHIMP_WEBHOOK_SECRET = 'shared-webhook-secret';
+    const app = buildApp();
+
+    await request(app)
+      .post('/api/v2/mailchimp/webhook?secret=shared-webhook-secret')
+      .send({})
+      .expect(200);
+
+    expect(mailchimpControllerMocks.handleWebhook).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects missing or invalid Mailchimp webhook query secrets before the controller', async () => {
+    process.env.MAILCHIMP_WEBHOOK_SECRET = 'shared-webhook-secret';
+    const app = buildApp();
+
+    await request(app).post('/api/v2/mailchimp/webhook').send({}).expect(401);
+    await request(app)
+      .post('/api/v2/mailchimp/webhook?secret=wrong-secret')
+      .send({})
+      .expect(401);
+
+    expect(mailchimpControllerMocks.handleWebhook).not.toHaveBeenCalled();
   });
 });

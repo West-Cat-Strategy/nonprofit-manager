@@ -1,27 +1,48 @@
 {
   "$schema": "./node_modules/knip/schema.json",
-  "ignoreBinaries": ["make", "knip"],
+  "ignoreBinaries": ["make"],
   "workspaces": {
     ".": {
-      "entry": ["package.json"],
-      "project": ["scripts/**/*.{js,ts}"],
-      "ignore": [
-        "scripts/check-*.ts",
-        "scripts/check-*.js",
-        "scripts/lib/*.ts",
-        "scripts/ui-audit.ts"
-      ]
+      "entry": [
+        "package.json",
+        "scripts/check-links.ts",
+        "scripts/check-frontend-bundle-size.js",
+        "scripts/check-rate-limit-key-policy.ts",
+        "scripts/check-success-envelope-policy.ts",
+        "scripts/check-route-validation-policy.ts",
+        "scripts/check-query-contract-policy.ts",
+        "scripts/check-express-validator-policy.ts",
+        "scripts/check-controller-sql-policy.ts",
+        "scripts/check-auth-guard-policy.ts",
+        "scripts/check-migration-manifest-policy.ts",
+        "scripts/check-duplicate-test-tree.ts",
+        "scripts/check-doc-api-versioning.ts",
+        "scripts/check-v2-module-ownership-policy.ts",
+        "scripts/check-module-boundary-policy.ts",
+        "scripts/check-module-route-proxy-policy.ts",
+        "scripts/check-canonical-module-import-policy.ts",
+        "scripts/check-implementation-size-policy.ts",
+        "scripts/check-frontend-feature-boundary-policy.ts",
+        "scripts/check-frontend-legacy-slice-import-policy.ts",
+        "scripts/check-frontend-legacy-page-path-policy.ts",
+        "scripts/check-route-integrity.ts",
+        "scripts/check-route-catalog-drift.ts",
+        "scripts/ui-audit.ts",
+        "scripts/check-backend-legacy-controller-wrapper-policy.ts",
+        "scripts/tests/tooling-contracts.test.cjs"
+      ],
+      "project": ["scripts/**/*.{js,ts,cjs}"]
     },
     "contracts": {
       "project": ["*.d.ts"],
       "ignore": ["export-smoke.d.ts"]
     },
     "backend": {
-      "entry": ["src/public-site.ts", "src/worker.ts"],
+      "entry": ["src/{index,public-site,worker}.ts"],
       "project": ["src/**/*.ts", "scripts/**/*.ts"]
     },
     "frontend": {
-      "entry": ["src/grantsSmoke.tsx"],
+      "entry": ["src/{main,grantsSmoke}.tsx"],
       "project": ["src/**/*.{ts,tsx}"]
     },
     "e2e": {

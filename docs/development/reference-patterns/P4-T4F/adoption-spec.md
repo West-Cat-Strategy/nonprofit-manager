@@ -19,8 +19,8 @@
 - Canonical entity source-of-truth: `backend/src/types/report.ts`.
 - Route validation alignment: `backend/src/routes/reports.ts`, `backend/src/routes/savedReports.ts`.
 - Permission + scope propagation: `backend/src/controllers/reportController.ts`.
-- Opportunity + case KPI fields and computed flags: `backend/src/services/reportService.ts`.
-- Scheduled scope propagation: `backend/src/services/scheduledReportService.ts`.
+- Opportunity + case KPI fields and computed flags: `backend/src/modules/reports/services/reportService.ts`.
+- Scheduled scope propagation: `backend/src/modules/scheduledReports/services/scheduledReportService.ts`.
 - Case summary org hardening: `backend/src/modules/cases/controllers/catalog.controller.ts`, `backend/src/modules/cases/usecases/caseCatalog.usecase.ts`, `backend/src/modules/cases/repositories/caseRepository.ts`, `backend/src/services/caseService.ts`.
 
 ## Frontend Adoption Mapping

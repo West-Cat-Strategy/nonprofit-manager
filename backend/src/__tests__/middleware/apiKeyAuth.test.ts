@@ -1,6 +1,6 @@
 import { authenticateApiKey, auditApiKeyUsage, validateApiKeyScope } from '@middleware/apiKeyAuth';
 import pool from '@config/database';
-import * as apiKeyService from '@services/apiKeyService';
+import * as apiKeyService from '@modules/webhooks/services/apiKeyService';
 import { logger } from '@config/logger';
 import { forbidden, unauthorized } from '@utils/responseHelpers';
 
@@ -9,7 +9,7 @@ jest.mock('@config/database', () => ({
   default: { query: jest.fn() },
 }));
 
-jest.mock('@services/apiKeyService', () => ({
+jest.mock('@modules/webhooks/services/apiKeyService', () => ({
   validateApiKey: jest.fn(),
   incrementRateLimit: jest.fn(),
   logApiKeyUsage: jest.fn(),
