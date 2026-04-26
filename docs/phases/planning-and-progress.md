@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-04-26
 
 ## At a Glance
 
@@ -13,8 +13,8 @@
 | Active rows | 19 |
 | In Progress | 0 |
 | Blocked | 0 |
-| Review | 14 |
-| Ready | 5 |
+| Review | 15 |
+| Ready | 4 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
 
@@ -39,9 +39,7 @@ Maintenance rules:
 
 ### Needs Attention Now
 
-| Status | ID | Task | Immediate Next Move |
-|---|---|---|---|
-| None | - | - | No rows are currently signed out as in progress. |
+No tracked rows are currently in progress.
 
 ### Review Queue
 
@@ -60,7 +58,8 @@ Maintenance rules:
 | Review | P5-T6C1 | Case reassessment cadence runtime slice | The first scoped service-delivery runtime pickup is landed in targeted proof: case reassessment cycles are backed by explicit `case_reassessment_cycles` records, linked one-time follow-ups, outcome-backed completion, cancellation, and optional next-cycle scheduling from the Case Detail Follow-ups tab. Before closeout, attach a compact row-local proof note or explicit durable validation link; keep later handoff packets, closure continuity, authorization/referral depth, service plans, service-site references, portal routing, offline sync, and generic workflow tooling behind separate scoped rows. |
 | Review | P5-T6D | Volunteer assignment dispatch radar | The Operation Signal Bridge `dispatch-radar` slice is landed in targeted frontend proof: assignment event/task references now use active pickers backed by existing event/task clients, planned and active events plus non-terminal tasks are available, and the saved assignment payload still submits `event_id` or `task_id`. Before closeout, attach a compact row-local proof note or explicit durable validation link; keep `campaign-control` behind the `P5-T3` handoff and `clearwater` behind the `P5-T5` handoff. |
 | Review | P5-T7 | Cross-surface modularization hardening | The behavior-preserving modularization wave is landed in focused proof: social-media scheduler/service ownership moved under the module with root shim compatibility, webhook/API-key tests now target module-owned services, saved-report implementation moved under `modules/savedReports`, builder/editor/template implementations moved under the builder feature with global shims, and analytics/finance/dashboard orchestration moved into feature-local hooks. Before closeout, attach a compact row-local proof note or explicit durable validation link; keep route/catalog/root-store/API behavior unchanged and leave full raw `reportService.test.ts` rerun blocked by the existing ExcelJS/uuid Jest transform issue. |
-| Review | P5-T8 | Codex skill suite audit and refresh | Helper-skill routing is refreshed against `AGENTS.md`, contributor docs, current runtime/testing guidance, validation references, and actual code layout. Repo-local helper bodies now preserve the local-only boundary, stale CBIS app-import guidance is marked retired and rerouted, broken helper references are repaired, and proof is green across touched skill validation, skill path sweep, `make check-links`, `git diff --check`, and `.codex` ignore-boundary review. |
+| Review | P5-T8 | Codex skill suite audit and refresh | Helper-skill routing is refreshed against `agents.md`, contributor docs, current runtime/testing guidance, validation references, and actual code layout. Repo-local helper bodies now preserve the local-only boundary, stale CBIS app-import guidance is marked retired and rerouted, broken helper references are repaired, and the advisory `.github` Copilot/custom-agent bridge now points back to canonical docs without adding workflows, hooks, MCP config, SaaS bots, or app-level agents. |
+| Review | P5-T11 | Comprehensive modularity and simplicity refactor plan | Use [../refactoring/MODULARITY_SIMPLICITY_REUSE_HANDOFF_2026-04.md](../refactoring/MODULARITY_SIMPLICITY_REUSE_HANDOFF_2026-04.md) as the row-local proof note. The first behavior-preserving cleanup wave is landed: confirmed dead root shims and global builder wrappers were removed, cases route subregistrars were extracted, and the Mailchimp card cluster moved into a feature-local component. Keep deeper dead-code/dead-doc cleanup with `P5-T9`/`P5-T10` and full browser signoff with `P5-T12`. |
 
 ### Ready Queue
 
@@ -69,18 +68,18 @@ Maintenance rules:
 | Ready | P5-T3 | Email platform wave: blast email plus email builder/formatter | When work resumes, fix Mailchimp campaign and preview route validation for `priorRunSuppressionIds`, add focused route tests, review Mailchimp webhook authenticity and PII-safe logging before closeout, then rerun the targeted email proof plus `make db-verify`. Keep typed appeals, restrictions, donation batches, memberships, campaign ROI, and generic automation queued behind separate scoped rows. |
 | Ready | P5-T9 | Dead code review | Run a repo-wide dead-code and unused-export review across backend, frontend, scripts, and E2E helpers. Use existing tooling where available, separate true removals from compatibility shims or intentionally exported contracts, and produce scoped cleanup rows before deleting shared surfaces. |
 | Ready | P5-T10 | Dead docs review | Review docs for stale, duplicate, historical, or orphaned material that should be archived, consolidated, redirected, or removed. Preserve canonical navigation and avoid deleting validation evidence that still backs active workboard rows. |
-| Ready | P5-T11 | Comprehensive modularity and simplicity refactor plan | Plan a broad behavior-preserving refactor for modularity and simplicity across backend modules, frontend feature ownership, shared route/store seams, tests, docs, and compatibility shims. Produce a sequenced implementation plan before any runtime refactor starts. |
 | Ready | P5-T12 | Full E2E/Playwright review and clean all-green validation | Run the full browser/runtime review after cleanup and proof-note rows are settled: `make ci-full`, optional fresh `make test-e2e-docker-smoke`, `cd e2e && npm run test:docker:ci`, `cd e2e && npm run test:docker:audit`, separate fresh-workspace MFA proof when required, and final all-green confirmation with documented skips only. |
 
 ### Ready Next
 
-- Keep `P5-T8` in review against the refreshed helper routing and green validation proof; do not reopen app code or API work from that row.
+- Keep `P5-T8` in review against the refreshed helper routing, including the advisory `.github` Copilot/custom-agent bridge; do not reopen app code, API work, GitHub workflow automation, or SaaS bot adoption from that row.
 - Pick up `P5-T3` when the email wave resumes, keeping it narrowed to the Mailchimp `priorRunSuppressionIds` validation gap, focused route proof, webhook authenticity review, and PII-safe logging follow-through; attach a compact row-local proof note or explicit durable validation link before closeout.
 - Keep `P5-T2D` in review against the green frontend persona-proof slice; any future browser-only drift returns to validation/runtime ownership rather than persona reclassification.
 - Keep `P5-T6A` in review against its published governance/compliance brief, keep `P5-T6B` in review against its published fundraising stewardship/restrictions brief, and keep `P5-T6C` in review against its published service-delivery workflow depth brief.
 - Keep `P5-T5`, `P5-T6C1`, `P5-T6D`, and `P5-T7` in review against targeted proof, but require compact row-local proof notes or explicit durable validation links before closeout; any future shim removal must stay lead-owned and preserve current `/api/v2`, route-catalog, root-store, auth/workspace-module, and browser URL contracts.
 - Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; `P5-T6D` is the only signed-out runtime pickup from that packet, and broader runtime rows still need their own signout.
-- Queue `P5-T9`, `P5-T10`, and `P5-T11` before broad cleanup implementation so dead code, dead docs, and modularity/simplicity work are reviewed and sequenced rather than folded into active product rows.
+- Keep `P5-T11` in review against [../refactoring/MODULARITY_SIMPLICITY_REUSE_HANDOFF_2026-04.md](../refactoring/MODULARITY_SIMPLICITY_REUSE_HANDOFF_2026-04.md); any deeper cleanup needs a scoped follow-up rather than widening this completed first wave.
+- Keep `P5-T9` and `P5-T10` queued as adjacent review lanes for deeper dead-code and dead-doc cleanup that was not proved by the current implementation wave.
 - Save `P5-T12` for the later full E2E/Playwright review and clean all-green validation after the review rows have row-local proof notes or explicit carry-forward blockers.
 
 ## Current Phase Shape
@@ -90,18 +89,65 @@ Maintenance rules:
 - `P5-T2C` is now in `Review`: the stale builder site-context fix, extracted builder shortcut/site-context proof, scheduled-report helper/service proof, report-template negative-path proof, backend/frontend package type-checks, and shared Docker CI signoff are green in the current tree. Keep optional hardening ideas deferred unless a future feature rerun points directly back here, and leave broader email-wave follow-through with `P5-T3`.
 - `P5-T2D` is now in `Review`: the narrow persona-proof-stability lane fixed the portal workflow test timeout risk by stabilizing mocked refresh/load-more callbacks, and frontend type-check plus the documented persona frontend slice are green.
 - Security hardening remains recorded under `P5-T2B`, not as a fourth product wave: the deliberate backend `exceljs -> uuid` remediation is landed, the live security baseline is green again, the auth-alias operational handoff is published, and the shared Docker CI gate is green. The queued email follow-through and portal review slices must keep permission, PII/audit, rate-limit, and SSRF proof current through the published [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md).
-- Product execution now has the portal, website, modularization, volunteer-dispatch, and reassessment runtime pickups in `Review`, while `P5-T3` is back in `Ready` for the narrowed Mailchimp route-validation and webhook-hardening follow-through found during review. Row-local signoff should focus on proof review and closeout rather than opening new runtime scope inside those rows.
+- Product execution now has the portal, website, modularization, volunteer-dispatch, reassessment, and `P5-T11` first-wave refactor pickups in `Review`, while `P5-T3` is back in `Ready` for the narrowed Mailchimp route-validation and webhook-hardening follow-through found during review. Row-local signoff should focus on proof review and closeout rather than opening new runtime scope inside those rows.
 - The current `P5-T5` portal pickup is now green in targeted proof across public-intake resolution (`PAT-04`) with structured audit evidence, queue view definitions (`PAT-05`) with row-action and empty-state metadata, and case-scoped typed portal review requests (`PAT-06`) with staff-facing triage in the Case Detail Portal tab. Keep MPI/dedupe consoles, generic saved-search builders, helpdesk/grievance scope, referral engines, and wider service-delivery workflow depth out of this row.
 - Follow-on backlog from repo review and external benchmarking now has a published capability-brief packet in [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md). The repo-by-repo OSS benchmark review wave is complete, the five analysis-only lanes now keep `borrow now`, `queue for P5-T6`, and `reject` outcomes explicit, `P5-T6A` has a governance/compliance oversight brief in review, `P5-T6B` has a fundraising stewardship/restrictions brief in review, and `P5-T6C` has a service-delivery workflow depth brief in review.
 - `P5-T5` and `P5-T6C1` are now in `Review`: the portal public-intake/queue/escalation slice and case reassessment cadence slice are landed in targeted proof. `P5-T3` is ready to resume when the Mailchimp `priorRunSuppressionIds` route-validation gap, focused route proof, webhook authenticity review, and PII-safe logging follow-through are picked back up. `P5-T6` still sits in `Review` as the planning packet feeding `P5-T6A`, `P5-T6B`, and `P5-T6C`, and later typed-domain runtime rows still need separate signout.
 - Latest targeted proof for `P5-T5`, `P5-T6C1`, and integration seams is green across backend service tests, backend follow-up/case integration tests, targeted frontend tests, backend/frontend package type-checks, `make db-verify`, `make check-links`, and `git diff --check`. `P5-T3` needs a fresh targeted email proof after the remaining Mailchimp validation and webhook-hardening follow-through.
-- `P5-T7` is now in review: the modularization lanes moved internal ownership boundaries while preserving shared route registrars, route catalogs, root store wiring, auth/permission policy, frontend API clients, and browser contracts. Worker imports now point at module-owned scheduler services through the lead-owned seam, while compatibility shims remain for shared callers.
+- `P5-T7` is now in review: the modularization lanes moved internal ownership boundaries while preserving shared route registrars, route catalogs, root store wiring, auth/permission policy, frontend API clients, and browser contracts. Worker imports point at module-owned scheduler services through the lead-owned seam, and `P5-T11` later pruned only the confirmed dead compatibility wrappers.
+- `P5-T11` is now in review: the first behavior-preserving modularity/simplicity/reuse wave published a durable plan and handoff, removed confirmed dead root shims and global builder wrappers, extracted case route subregistrars, and split the Mailchimp card cluster without changing route/API/auth/database/root-store/browser contracts.
 - The current hardening and reassessment migrations `103` through `108` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, donor profiles, and case reassessment cycles; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
 
 ## Coordination
 
 - Update this file before editing tracked work.
 - Keep one active task per agent by default unless a coordinated exception is documented here.
+- Coordinated exception, 2026-04-26: `P5-T11` is split across implementation and evidence lanes while shared route/store/catalog/workboard/runtime seams stay lead-owned.
+  Lead: Codex
+  Backend lanes: `backend-shim-prune`, `cases-route-decomposition`
+  Frontend lanes: `builder-wrapper-cleanup`, `frontend-monolith-split`
+  Other lanes: `docs-handoff`, `pruning-validation`
+  Integration owner: Codex
+- Lane: `backend-shim-prune`
+  Goal: remove only confirmed-unused root backend service shims after current `rg` and `knip` evidence, without changing module implementations or runtime behavior.
+  Removed root shim paths: `backend/src/services/reportService.ts`, `backend/src/services/reportTemplateService.ts`, `backend/src/services/savedReportService.ts`, `backend/src/services/scheduledReportService.ts`, `backend/src/services/socialMediaSyncSchedulerService.ts`, `backend/src/services/webhookRetrySchedulerService.ts`, `backend/src/services/webhookService.ts`, `backend/src/services/webhookTransport.ts`
+  Forbidden shared paths: `backend/src/routes/v2/index.ts`, `backend/src/worker.ts`, auth/permission helpers, `docs/phases/planning-and-progress.md`
+  Expected tests: final import grep, `npm run knip`, backend type-check, and module-boundary/canonical-import policy checks
+  Handoff notes: summarize deleted shims, grep evidence, and any retained compatibility shims
+  Docs ownership: lead
+  Disposition: `Review`
+- Lane: `cases-route-decomposition`
+  Goal: split the cases route registrar into module-local schema and subroute helpers while preserving route order, validation, permissions, and `/api/v2/cases/*` behavior.
+  Owned paths: `backend/src/modules/cases/routes/**`
+  Forbidden shared paths: `backend/src/routes/v2/index.ts`, migrations, auth/permission helpers, `docs/phases/planning-and-progress.md`
+  Expected tests: route-validation policy, focused cases/follow-ups integration tests, and backend type-check
+  Handoff notes: summarize route groups moved and route-order safeguards
+  Docs ownership: lead
+  Disposition: `Review`
+- Lane: `builder-wrapper-cleanup`
+  Goal: move remaining global builder/editor wrapper tests to feature-owned builder imports, then delete unused global wrappers only when current import evidence proves they are dead.
+  Removed wrapper paths: `frontend/src/components/editor/**`, `frontend/src/components/templates/**`; coverage moved to feature-owned builder tests.
+  Forbidden shared paths: `frontend/src/routes/**`, `frontend/src/store/**`, `docs/phases/planning-and-progress.md`
+  Expected tests: targeted builder/editor Vitest, `npm run knip`, frontend type-check, and frontend deleted-path guards
+  Handoff notes: summarize removed wrappers, retained test coverage, and hidden-import checks
+  Docs ownership: lead
+  Disposition: `Review`
+- Lane: `frontend-monolith-split`
+  Goal: complete one feature-owned frontend split, favoring Mailchimp page/controller or portal case-detail inner extraction, without changing routes, API clients, or browser-visible behavior.
+  Owned paths: `frontend/src/features/mailchimp/**` or `frontend/src/features/portal/**` as selected by the integrator
+  Forbidden shared paths: `frontend/src/routes/**`, `frontend/src/store/index.ts`, shared API clients, `docs/phases/planning-and-progress.md`
+  Expected tests: targeted feature Vitest plus frontend type-check
+  Handoff notes: summarize extracted hooks/components and behavior-preservation proof
+  Docs ownership: lead
+  Disposition: `Review`
+- Lane: `docs-handoff`
+  Goal: publish the refactor plan and final handoff under `docs/refactoring/` and link the new section from the docs catalog and workboard.
+  Owned paths: `docs/refactoring/**`, `docs/README.md`, `docs/phases/planning-and-progress.md`, `docs/phases/PHASE_5_DEVELOPMENT_PLAN.md`
+  Forbidden shared paths: runtime code
+  Expected tests: `make check-links`, plus API-version docs lint only if versioned API wording changes
+  Handoff notes: record completed refactors, validation, skipped checks, and next candidates
+  Docs ownership: lead
+  Disposition: `Review`
 - Coordinated exception, 2026-04-20: `P5-T4` is split across parallel lanes.
   Lead: Codex
   Backend lanes: `backend-publishing-runtime`
@@ -126,7 +172,7 @@ Maintenance rules:
   Disposition: `Review`
 - Lane: `frontend-builder`
   Goal: keep the site-aware builder aware of managed-form publish state and point editors back to the console follow-through
-  Owned paths: `frontend/src/features/builder/**`, `frontend/src/components/editor/**`
+  Owned paths: `frontend/src/features/builder/**`, `frontend/src/features/builder/components/editor/**`
   Forbidden shared paths: `frontend/src/routes/**`, `docs/phases/planning-and-progress.md`
   Expected tests: targeted page-editor controller coverage
   Handoff notes: summarize site-context changes and any overlap requiring lead integration
@@ -206,7 +252,7 @@ Maintenance rules:
   Integration owner: Codex
 - Lane: `backend-social-media-boundary`
   Goal: finish social-media domain isolation, including scheduler-adjacent service cleanup, without changing route behavior
-  Owned paths: `backend/src/modules/socialMedia/**`, `backend/src/services/socialMediaSyncSchedulerService.ts`, social-media backend tests
+  Owned paths: `backend/src/modules/socialMedia/**`, social-media backend tests
   Forbidden shared paths: `backend/src/routes/v2/index.ts`, `backend/src/worker.ts`, auth/policy helpers, `docs/phases/planning-and-progress.md`
   Expected tests: social-media module tests, social-media integration test, and `cd backend && npm run type-check`
   Handoff notes: summarize scheduler assumptions, import changes, and any lead-owned worker follow-up
@@ -230,7 +276,7 @@ Maintenance rules:
   Disposition: `Review`
 - Lane: `frontend-publishing-builder-boundary`
   Goal: reduce global editor/template leakage by moving publishing-owned UI logic toward websites/builder feature ownership
-  Owned paths: `frontend/src/features/websites/**`, `frontend/src/features/builder/**`, `frontend/src/components/editor/**`, `frontend/src/components/templates/**`, `frontend/src/types/websiteBuilder.ts`
+  Owned paths: `frontend/src/features/websites/**`, `frontend/src/features/builder/**`, `frontend/src/features/builder/components/editor/**`, `frontend/src/features/builder/components/templates/**`, `frontend/src/types/websiteBuilder.ts`
   Forbidden shared paths: `frontend/src/routes/**`, `frontend/src/routes/routeCatalog/**`, shared API clients, `docs/phases/planning-and-progress.md`
   Expected tests: websites, builder, and editor Vitest suites plus `cd frontend && npm run type-check`
   Handoff notes: summarize moved ownership, preview/editor behavior covered, and any route/catalog follow-up
@@ -346,7 +392,7 @@ Maintenance rules:
   Disposition: `Review`
 - Lane: `frontend-email-builder`
   Goal: reuse editor and builder primitives for email composition and preview while keeping email composition data distinct from website template records
-  Owned paths: `frontend/src/components/editor/**`, `frontend/src/features/builder/**`
+  Owned paths: `frontend/src/features/builder/**`, `frontend/src/features/builder/components/editor/**`
   Forbidden shared paths: `frontend/src/features/mailchimp/**`, `frontend/src/routes/**`, `docs/phases/planning-and-progress.md`
   Expected tests: targeted builder/editor preview coverage plus `cd frontend && npm run type-check`
   Handoff notes: summarize reusable editor primitives, email-safe preview assumptions, and any overlap requiring lead integration
@@ -459,8 +505,8 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | P5-T6C1 | Case reassessment cadence runtime slice | Review | Codex | The first scoped `P5-T6C` runtime pickup is landed in targeted proof: case reassessment cycles are backed by explicit `case_reassessment_cycles` records, linked one-time follow-ups, outcome-backed completion, cancellation, and optional next-cycle scheduling from the Case Detail Follow-ups tab. Before closeout, attach a compact row-local proof note or explicit durable validation link; keep later handoff packets, closure continuity, authorization/referral depth, service plans, service-site references, portal routing, offline sync, and generic workflow tooling behind separate scoped rows. | [P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md](P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md), [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) |
 | P5-T6D | Volunteer assignment dispatch radar | Review | Codex | The `dispatch-radar` slice is landed in targeted frontend proof: assignment event/task references use existing event/task clients, planned and active events plus non-terminal tasks are available to staff, and create/update payloads still submit the existing `event_id` or `task_id` fields. Before closeout, attach a compact row-local proof note or explicit durable validation link. | [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md](../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md) |
 | P5-T7 | Cross-surface modularization hardening | Review | Codex | Behavior-preserving boundary cleanup is landed in focused proof. Before closeout, attach a compact row-local proof note or explicit durable validation link, preserve current route/catalog/root-store/API behavior, and retain the full raw `reportService.test.ts` rerun caveat for the existing ExcelJS/uuid Jest transform issue. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md), [../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md](../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md) |
-| P5-T8 | Codex skill suite audit and refresh | Review | Codex | Helper-skill routing is refreshed without app contract changes: canonical-doc/helper-prompt boundaries are explicit, stale CBIS app-import guidance is retired and rerouted to current CBIS bundle or generic import/export owners, runtime/E2E guidance matches the current docs, and helper path validation plus docs checks are green. | [../../AGENTS.md](../../AGENTS.md), [../testing/TESTING.md](../testing/TESTING.md), [../validation/README.md](../validation/README.md) |
+| P5-T8 | Codex skill suite audit and refresh | Review | Codex | Helper-skill routing is refreshed without app contract changes: canonical-doc/helper-prompt boundaries are explicit, stale CBIS app-import guidance is retired and rerouted to current CBIS bundle or generic import/export owners, runtime/E2E guidance matches the current docs, and the advisory `.github` Copilot/custom-agent bridge routes GitHub-side contributors back to canonical docs without enabling workflows, hooks, MCP config, SaaS bots, or app-level agents. | [../../agents.md](../../agents.md), [../testing/TESTING.md](../testing/TESTING.md), [../validation/README.md](../validation/README.md), [../../.github/README.md](../../.github/README.md) |
 | P5-T9 | Dead code review | Ready | Codex | Run a repo-wide dead-code and unused-export review across backend, frontend, scripts, and E2E helpers. Use existing tooling where available, separate true removals from compatibility shims or intentionally exported contracts, and produce scoped cleanup rows before deleting shared surfaces. | [../development/CONVENTIONS.md](../development/CONVENTIONS.md), [../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md](../development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md) |
 | P5-T10 | Dead docs review | Ready | Codex | Review docs for stale, duplicate, historical, or orphaned material that should be archived, consolidated, redirected, or removed. Preserve canonical navigation and avoid deleting validation evidence that still backs active workboard rows. | [../README.md](../README.md), [../validation/README.md](../validation/README.md), [archive/README.md](archive/README.md) |
-| P5-T11 | Comprehensive modularity and simplicity refactor plan | Ready | Codex | Plan a broad behavior-preserving refactor for modularity and simplicity across backend modules, frontend feature ownership, shared route/store seams, tests, docs, and compatibility shims. Produce a sequenced implementation plan before any runtime refactor starts. | [../development/SUBAGENT_MODULARIZATION_GUIDE.md](../development/SUBAGENT_MODULARIZATION_GUIDE.md), [../development/BACKEND_MODULE_OWNERSHIP_MAP.md](../development/BACKEND_MODULE_OWNERSHIP_MAP.md) |
+| P5-T11 | Comprehensive modularity and simplicity refactor plan | Review | Codex | The first behavior-preserving modularity/simplicity/reuse wave is landed with durable plan and handoff artifacts, confirmed dead shim/wrapper deletion, cases route subregistrars, and a Mailchimp feature-local component split. Keep deeper cleanup with `P5-T9`/`P5-T10` or a new scoped row. | [../refactoring/MODULARITY_SIMPLICITY_REUSE_PLAN_2026-04.md](../refactoring/MODULARITY_SIMPLICITY_REUSE_PLAN_2026-04.md), [../refactoring/MODULARITY_SIMPLICITY_REUSE_HANDOFF_2026-04.md](../refactoring/MODULARITY_SIMPLICITY_REUSE_HANDOFF_2026-04.md) |
 | P5-T12 | Full E2E/Playwright review and clean all-green validation | Ready | Codex | Run the full browser/runtime review after cleanup and proof-note rows are settled: `make ci-full`, optional fresh `make test-e2e-docker-smoke`, `cd e2e && npm run test:docker:ci`, `cd e2e && npm run test:docker:audit`, separate fresh-workspace MFA proof when required, and final all-green confirmation with documented skips only. | [../testing/TESTING.md](../testing/TESTING.md), [../validation/README.md](../validation/README.md) |

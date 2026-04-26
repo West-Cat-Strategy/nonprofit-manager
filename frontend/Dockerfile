@@ -14,7 +14,8 @@ COPY --from=workspace /frontend/package.json ./frontend/package.json
 COPY --from=workspace /contracts/package.json ./contracts/package.json
 COPY --from=workspace /e2e/package.json ./e2e/package.json
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    npm ci --workspace frontend --include-workspace-root=false --no-audit --no-fund
+    npm ci --workspace frontend --include-workspace-root=false --no-audit --no-fund && \
+    mkdir -p frontend/node_modules
 
 FROM base AS deps
 

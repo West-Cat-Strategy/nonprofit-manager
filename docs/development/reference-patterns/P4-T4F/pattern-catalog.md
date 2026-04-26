@@ -13,9 +13,9 @@
 
 | Pattern ID | Source | Path | Behavior | Reuse Class | Target Candidates | Risk | Priority |
 |---|---|---|---|---|---|---|---|
-| P01 | `nm--open-mercato` | `/Users/bryan/projects/reference-repos/nm--open-mercato` | Widget-data/pipeline-summary query-shape patterns for stage metrics, weighted value, and board-summary fields. | `adapt_with_attribution` | `backend/src/services/reportService.ts`, `backend/src/services/reportTemplateService.ts` | Medium | High |
-| P02 | `wm--twenty` (+ `nm--twenty`) | `/Users/bryan/projects/reference-repos/wm--twenty` | Pipeline semantics: stage ordering, probability semantics, won/lost/closed lifecycle flags. | `architecture_only` | `backend/src/services/reportService.ts`, `backend/src/types/report.ts`, `frontend/src/types/report.ts` | Medium-High | Medium |
-| P03 | `wm--openproject` | `/Users/bryan/projects/reference-repos/wm--openproject` | Organization-scoped reporting execution patterns, including scheduled execution context propagation and scope-aware summary aggregation. | `architecture_only` | `backend/src/controllers/reportController.ts`, `backend/src/services/scheduledReportService.ts`, `backend/src/services/caseService.ts` | Medium-High | High |
+| P01 | `nm--open-mercato` | `/Users/bryan/projects/reference-repos/nm--open-mercato` | Widget-data/pipeline-summary query-shape patterns for stage metrics, weighted value, and board-summary fields. | `adapt_with_attribution` | `backend/src/modules/reports/services/reportService.ts`, `backend/src/modules/reports/services/reportTemplateService.ts` | Medium | High |
+| P02 | `wm--twenty` (+ `nm--twenty`) | `/Users/bryan/projects/reference-repos/wm--twenty` | Pipeline semantics: stage ordering, probability semantics, won/lost/closed lifecycle flags. | `architecture_only` | `backend/src/modules/reports/services/reportService.ts`, `backend/src/types/report.ts`, `frontend/src/types/report.ts` | Medium-High | Medium |
+| P03 | `wm--openproject` | `/Users/bryan/projects/reference-repos/wm--openproject` | Organization-scoped reporting execution patterns, including scheduled execution context propagation and scope-aware summary aggregation. | `architecture_only` | `backend/src/controllers/reportController.ts`, `backend/src/modules/scheduledReports/services/scheduledReportService.ts`, `backend/src/services/caseService.ts` | Medium-High | High |
 
 ## Attribution Notes
 

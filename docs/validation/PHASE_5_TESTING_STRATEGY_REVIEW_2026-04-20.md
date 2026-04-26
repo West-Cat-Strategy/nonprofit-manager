@@ -1,6 +1,6 @@
 # Phase 5 Testing Strategy Review
 
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-04-25
 
 
 **Date:** 2026-04-20  
@@ -21,6 +21,41 @@ The host coverage blocker that was active on 2026-04-22 is cleared in targeted p
 - The full Docker CI matrix now has a clean end-to-end artifact on the corrected review stack. Earlier reproduced failures all remained covered by targeted green proof: route-health `/outreach`, portal case-detail auth-bootstrap noise, persona MFA-bypass handling, contact filter URL sync, dashboard startup duplicate analytics fetches, WebKit-only lazy-module import recovery bursts on `/people`, `/settings/user`, `/dashboard`, the short desktop user-menu flow, compact/expanded navigation, and core route headings/actions, plus Firefox auth-fixture navigation abort, authenticated route render-settle recovery, WebKit contact cancel navigation, and WebKit contact validation timing.
 
 The final `P5-T2B` proof command was `cd e2e && npm run test:docker:ci`. It passed with `982` desktop Docker cross-browser tests passed, `11` skipped in `51.3m`, followed by the Mobile Chrome Docker follow-on with `3` passed in `13.8s`. The only notable warnings were accepted occupied Docker ports and Node `NO_COLOR` / `FORCE_COLOR` warnings.
+
+## P5-T12 Full E2E Review - 2026-04-25
+
+Status: Host proof green; broader Docker review proof in progress.
+
+Planned proof order:
+
+1. `make ci-full`
+2. `DEV_NODE_ENV=test DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true make docker-up-dev`
+3. `cd e2e && npm run test:docker:ci`
+4. `cd e2e && npm run test:docker:audit`
+
+Host proof:
+
+- `make ci-full`
+  - Result: Passed on 2026-04-25 after the `exceljs` Jest `uuid` shim, Playwright Firefox/WebKit browser install, and Docker workspace-dependency copy fix.
+  - Backend coverage: `228` suites passed, `1921` tests passed.
+  - Frontend coverage: `233` files passed, `1241` tests passed.
+  - Host Playwright desktop matrix: `982` passed, `11` skipped in `40.1m`.
+  - Host Mobile Chrome follow-on: `3` passed in `53.5s`.
+  - Isolated Docker smoke inside `ci-full`: `4` passed in `10.3s`.
+  - Build and security audit: backend build, frontend build, bundle budget, backend `npm audit --omit=dev --audit-level=moderate`, and frontend `npm audit --omit=dev --audit-level=moderate` all passed with `0` vulnerabilities.
+- `make test-e2e-docker-smoke`
+  - Result: Passed on 2026-04-25 as a targeted rerun of the failed `ci-full` smoke segment after the Dockerfile dependency-copy fix. `4` Chromium smoke tests passed in `11.6s`.
+
+Docker proof:
+
+- `DEV_NODE_ENV=test DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true make docker-up-dev`
+  - Result: Pending.
+- `cd e2e && npm run test:docker:ci`
+  - Result: Pending.
+- `cd e2e && npm run test:docker:audit`
+  - Result: Pending.
+
+The standalone fresh starter-only MFA proof remains separate and should only be run if the final all-green evidence needs explicit MFA coverage.
 
 ## Environment Notes
 

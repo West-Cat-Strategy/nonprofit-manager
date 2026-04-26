@@ -3,7 +3,7 @@
  * Displays key metrics from Plausible Analytics via backend proxy
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { DashboardWidget } from '../../types/dashboard';
 import WidgetContainer from './WidgetContainer';
 import api from '../../services/api';
@@ -65,11 +65,7 @@ const PlausibleStatsWidget = ({ widget, editMode, onRemove }: PlausibleStatsWidg
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchPlausibleStats();
-  }, []);
-
-  const fetchPlausibleStats = async () => {
+  const fetchPlausibleStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -111,7 +107,11 @@ const PlausibleStatsWidget = ({ widget, editMode, onRemove }: PlausibleStatsWidg
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPlausibleStats();
+  }, [fetchPlausibleStats]);
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);

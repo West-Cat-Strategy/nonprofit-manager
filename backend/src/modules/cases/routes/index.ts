@@ -20,20 +20,7 @@ import {
   casePortalConversationMessageParamsSchema,
   casePortalConversationMessageSchema,
   casePortalConversationParamsSchema,
-  portalCaseEscalationUpdateSchema,
-  portalEscalationParamsSchema,
-  scopedQueueViewDefinitionSchema,
 } from '@validations/portal';
-import { sendSuccess } from '@modules/shared/http/envelope';
-import {
-  archiveQueueViewDefinition,
-  listQueueViewDefinitions,
-  upsertQueueViewDefinition,
-} from '@services/queueViewDefinitionService';
-import {
-  listPortalEscalationsForCase,
-  updatePortalEscalationForCase,
-} from '@services/portalEscalationService';
 import {
   isoDateSchema,
   isoDateTimeSchema,
@@ -51,6 +38,9 @@ import { createCaseServicesController } from '../controllers/services.controller
 import { createCaseOutcomesController } from '../controllers/outcomes.controller';
 import { createCaseDocumentsController } from '../controllers/documents.controller';
 import { createCaseFormsController } from '../controllers/forms.controller';
+import { registerCasePortalEscalationRoutes } from './portalEscalations.routes';
+import { registerCaseQueueViewRoutes } from './queueViews.routes';
+import { registerCaseReassessmentRoutes } from './reassessments.routes';
 import { CaseRepository } from '../repositories/caseRepository';
 import { CaseNotesRepository } from '../repositories/caseNotesRepository';
 import { CaseMilestonesRepository } from '../repositories/caseMilestonesRepository';
@@ -68,7 +58,6 @@ import { CaseServicesUseCase } from '../usecases/caseServices.usecase';
 import { CaseOutcomesUseCase } from '../usecases/caseOutcomes.usecase';
 import { CaseDocumentsUseCase } from '../usecases/caseDocuments.usecase';
 import { CaseFormsUseCase } from '../usecases/caseForms.usecase';
-import { CaseReassessmentsRepository } from '../repositories/caseReassessmentsRepository';
 import { Permission } from '@utils/permissions';
 import {
   caseFormAssetParamsSchema,
@@ -119,56 +108,6 @@ const caseIdParamsSchema = z.object({
   id: uuidSchema,
 });
 
-const caseReassessmentParamsSchema = z.object({
-  id: uuidSchema,
-  reassessmentId: uuidSchema,
-});
-
-const caseReassessmentStatusUpdateSchema = z.enum(['scheduled', 'in_progress']);
-
-const createCaseReassessmentSchema = z
-  .object({
-    title: z.string().trim().min(1),
-    summary: z.string().trim().nullable().optional(),
-    earliest_review_date: dateStringSchema.nullable().optional(),
-    due_date: dateStringSchema,
-    latest_review_date: dateStringSchema.nullable().optional(),
-    owner_user_id: uuidSchema.nullable().optional(),
-  })
-  .strict();
-
-const updateCaseReassessmentSchema = z
-  .object({
-    title: z.string().trim().min(1).optional(),
-    summary: z.string().trim().nullable().optional(),
-    earliest_review_date: dateStringSchema.nullable().optional(),
-    due_date: dateStringSchema.optional(),
-    latest_review_date: dateStringSchema.nullable().optional(),
-    owner_user_id: uuidSchema.nullable().optional(),
-    status: caseReassessmentStatusUpdateSchema.optional(),
-  })
-  .strict();
-
-const completeCaseReassessmentSchema = z
-  .object({
-    completion_summary: z.string().trim().min(1),
-    outcome_definition_ids: z.array(uuidSchema).optional(),
-    outcome_visibility: optionalStrictBooleanSchema,
-    next_due_date: dateStringSchema.optional(),
-    next_title: z.string().trim().min(1).optional(),
-    next_summary: z.string().trim().nullable().optional(),
-    next_earliest_review_date: dateStringSchema.nullable().optional(),
-    next_latest_review_date: dateStringSchema.nullable().optional(),
-    next_owner_user_id: uuidSchema.nullable().optional(),
-  })
-  .strict();
-
-const cancelCaseReassessmentSchema = z
-  .object({
-    cancellation_reason: z.string().trim().min(1),
-  })
-  .strict();
-
 const milestoneIdParamsSchema = z.object({
   milestoneId: uuidSchema,
 });
@@ -196,10 +135,6 @@ const topicEventIdParamsSchema = z.object({
 const documentIdParamsSchema = z.object({
   id: uuidSchema,
   documentId: uuidSchema,
-});
-
-const queueViewParamsSchema = z.object({
-  viewId: uuidSchema,
 });
 
 const caseDocumentDownloadQuerySchema = z
@@ -455,7 +390,6 @@ export const createCasesRoutes = (): Router => {
   const outcomesRepository = new CaseOutcomesRepository();
   const documentsRepository = new CaseDocumentsRepository();
   const caseFormsRepository = new CaseFormsRepository();
-  const reassessmentsRepository = new CaseReassessmentsRepository();
 
   const catalogController = createCaseCatalogController(new CaseCatalogUseCase(caseRepository));
   const lifecycleController = createCaseLifecycleController(new CaseLifecycleUseCase(caseRepository));
@@ -520,58 +454,7 @@ export const createCasesRoutes = (): Router => {
     lifecycleController.createCase
   );
   router.get('/', validateQuery(caseCatalogQuerySchema), catalogController.getCases);
-  router.get(
-    '/queue-views',
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const views = await listQueueViewDefinitions('cases', req.user?.id ?? null, [
-          'cases',
-        ]);
-        sendSuccess(res, views);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.post(
-    '/queue-views',
-    validateBody(scopedQueueViewDefinitionSchema),
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const view = await upsertQueueViewDefinition({
-          ...(req.body as Parameters<typeof upsertQueueViewDefinition>[0]),
-          surface: 'cases',
-          ownerUserId: req.user?.id ?? null,
-          permissionScope: ['cases'],
-          userId: req.user?.id ?? null,
-        });
-        sendSuccess(res, view, 201);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.delete(
-    '/queue-views/:viewId',
-    validateParams(queueViewParamsSchema),
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const view = await archiveQueueViewDefinition({
-          id: String(req.params.viewId),
-          surface: 'cases',
-          ownerUserId: req.user?.id ?? null,
-          permissionScopes: ['cases'],
-          userId: req.user?.id ?? null,
-        });
-        sendSuccess(res, view);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
+  registerCaseQueueViewRoutes(router);
   router.get(
     '/:id/forms/recommended-defaults',
     validateParams(caseFormCaseParamsSchema),
@@ -656,157 +539,8 @@ export const createCasesRoutes = (): Router => {
     formsController.downloadAsset
   );
   router.get('/:id', validateParams(caseIdParamsSchema), catalogController.getCaseById);
-  router.get(
-    '/:id/reassessments',
-    validateParams(caseIdParamsSchema),
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const reassessments = await reassessmentsRepository.list(
-          req.params.id,
-          req.organizationId ?? ''
-        );
-        sendSuccess(res, reassessments);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.post(
-    '/:id/reassessments',
-    validateParams(caseIdParamsSchema),
-    validateBody(createCaseReassessmentSchema),
-    requirePermission(Permission.CASE_EDIT),
-    async (req, res, next) => {
-      try {
-        const reassessment = await reassessmentsRepository.create(
-          req.params.id,
-          req.organizationId ?? '',
-          req.user?.id ?? '',
-          req.validatedBody ?? req.body
-        );
-        sendSuccess(res, reassessment, 201);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.patch(
-    '/:id/reassessments/:reassessmentId',
-    validateParams(caseReassessmentParamsSchema),
-    validateBody(updateCaseReassessmentSchema),
-    requirePermission(Permission.CASE_EDIT),
-    async (req, res, next) => {
-      try {
-        const reassessment = await reassessmentsRepository.update(
-          req.params.id,
-          req.params.reassessmentId,
-          req.organizationId ?? '',
-          req.user?.id ?? '',
-          req.validatedBody ?? req.body
-        );
-        sendSuccess(res, reassessment);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.post(
-    '/:id/reassessments/:reassessmentId/complete',
-    validateParams(caseReassessmentParamsSchema),
-    validateBody(completeCaseReassessmentSchema),
-    requirePermission(Permission.CASE_EDIT),
-    async (req, res, next) => {
-      try {
-        const result = await reassessmentsRepository.complete(
-          req.params.id,
-          req.params.reassessmentId,
-          req.organizationId ?? '',
-          req.user?.id ?? '',
-          req.validatedBody ?? req.body
-        );
-        sendSuccess(res, result);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.post(
-    '/:id/reassessments/:reassessmentId/cancel',
-    validateParams(caseReassessmentParamsSchema),
-    validateBody(cancelCaseReassessmentSchema),
-    requirePermission(Permission.CASE_EDIT),
-    async (req, res, next) => {
-      try {
-        const reassessment = await reassessmentsRepository.cancel(
-          req.params.id,
-          req.params.reassessmentId,
-          req.organizationId ?? '',
-          req.user?.id ?? '',
-          (req.validatedBody ?? req.body).cancellation_reason
-        );
-        sendSuccess(res, reassessment);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.get(
-    '/:id/portal/escalations',
-    validateParams(caseIdParamsSchema),
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const escalations = await listPortalEscalationsForCase(
-          req.params.id,
-          req.organizationId ?? null
-        );
-        sendSuccess(res, escalations);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.patch(
-    '/:id/portal/escalations/:escalationId',
-    validateParams(portalEscalationParamsSchema),
-    validateBody(portalCaseEscalationUpdateSchema),
-    requirePermission(Permission.CASE_EDIT),
-    async (req, res, next) => {
-      try {
-        const body = req.body as {
-          status?: Parameters<typeof updatePortalEscalationForCase>[0]['status'];
-          resolution_summary?: string | null;
-          assignee_user_id?: string | null;
-          sla_due_at?: string | null;
-        };
-        const updateInput: Parameters<typeof updatePortalEscalationForCase>[0] = {
-          id: req.params.escalationId,
-          caseId: req.params.id,
-          accountId: req.organizationId ?? null,
-          updatedBy: req.user?.id ?? null,
-        };
-
-        if ('status' in body) {
-          updateInput.status = body.status;
-        }
-        if ('resolution_summary' in body) {
-          updateInput.resolutionSummary = body.resolution_summary ?? null;
-        }
-        if ('assignee_user_id' in body) {
-          updateInput.assigneeUserId = body.assignee_user_id ?? null;
-        }
-        if ('sla_due_at' in body) {
-          updateInput.slaDueAt = body.sla_due_at ? new Date(body.sla_due_at) : null;
-        }
-
-        const escalation = await updatePortalEscalationForCase(updateInput);
-        sendSuccess(res, escalation);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
+  registerCaseReassessmentRoutes(router);
+  registerCasePortalEscalationRoutes(router);
   router.get(
     '/:id/follow-ups',
     validateParams(caseIdParamsSchema),

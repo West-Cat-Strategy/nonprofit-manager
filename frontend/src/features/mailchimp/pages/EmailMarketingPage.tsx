@@ -35,13 +35,8 @@ import type {
 import type { Contact } from '../../contacts/state';
 import AdminQuickActionsBar from '../../adminOps/components/AdminQuickActionsBar';
 import AdminWorkspaceShell from '../../adminOps/components/AdminWorkspaceShell';
-import {
-  CampaignCard,
-  CampaignRunCard,
-  CampaignCreateModal,
-  ListCard,
-  SyncResultModal,
-} from '../components/EmailMarketingPageParts';
+import { CampaignCard, CampaignRunCard, ListCard } from '../components/EmailMarketingCards';
+import { CampaignCreateModal, SyncResultModal } from '../components/EmailMarketingPageParts';
 import EmailSettingsSection from '../../adminOps/pages/adminSettings/sections/EmailSettingsSection';
 
 /**

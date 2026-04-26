@@ -88,8 +88,8 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
 - Risk: High
 - Source patterns: `PAT-010`, `PAT-011`, `PAT-016`
 - Target files:
-  - `backend/src/services/webhookService.ts`
-  - `backend/src/services/webhookRetrySchedulerService.ts`
+  - `backend/src/modules/webhooks/services/webhookService.ts`
+  - `backend/src/modules/webhooks/services/webhookRetrySchedulerService.ts`
   - `backend/src/types/webhook.ts`
 - Acceptance criteria:
   - Delivery lifecycle states are explicit: `pending -> running/retrying -> success|failed|dead_letter`.
@@ -104,7 +104,7 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
 - Risk: High
 - Source patterns: `PAT-009`
 - Target files:
-  - `backend/src/services/webhookService.ts`
+  - `backend/src/modules/webhooks/services/webhookService.ts`
   - `backend/src/routes/webhooks.ts`
   - `backend/src/controllers/webhookController.ts`
 - Acceptance criteria:
@@ -135,7 +135,7 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
 - Risk: Medium
 - Source patterns: `PAT-019`, `PAT-020`
 - Target files:
-  - `backend/src/services/webhookRetrySchedulerService.ts`
+  - `backend/src/modules/webhooks/services/webhookRetrySchedulerService.ts`
   - `backend/src/services/queue/intervalBatchRunner.ts`
 - Acceptance criteria:
   - Scheduler supports overlap prevention semantics for long-running batches.
@@ -185,7 +185,7 @@ This backlog converts extracted reference patterns into actionable nonprofit-man
 - Risk: Medium
 - Source patterns: `PAT-023`, `PAT-024`
 - Target files:
-  - `backend/src/services/scheduledReportService.ts`
+  - `backend/src/modules/scheduledReports/services/scheduledReportService.ts`
   - `backend/src/services/scheduledReportSchedulerService.ts`
   - `backend/src/services/emailService.ts`
   - `frontend/src/pages/analytics/ScheduledReports.tsx`
