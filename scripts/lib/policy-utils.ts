@@ -15,7 +15,31 @@ const defaultSkipDirs = new Set([
 ]);
 
 function relativeToRepo(filePath) {
-  return path.relative(repoRoot, filePath);
+  const relativePath = path.relative(repoRoot, filePath);
+  if (!relativePath.startsWith('..') && !path.isAbsolute(relativePath)) {
+    return relativePath.split(path.sep).join('/');
+  }
+
+  const normalizedPath = filePath.split(path.sep).join('/');
+  const repoRelativeMarkers = [
+    '/.github/',
+    '/backend/',
+    '/contracts/',
+    '/database/',
+    '/docs/',
+    '/e2e/',
+    '/frontend/',
+    '/scripts/',
+  ];
+
+  for (const marker of repoRelativeMarkers) {
+    const markerIndex = normalizedPath.indexOf(marker);
+    if (markerIndex !== -1) {
+      return normalizedPath.slice(markerIndex + 1);
+    }
+  }
+
+  return relativePath.split(path.sep).join('/');
 }
 
 function readText(filePath) {
@@ -176,4 +200,3 @@ module.exports = {
   failIfIssues,
   readBaselineJson,
 };
-
