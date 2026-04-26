@@ -64,4 +64,8 @@ export class CaseCatalogUseCase {
   statuses(): Promise<unknown[]> {
     return this.repository.getCaseStatuses();
   }
+
+  handoffPacket(caseId: string, organizationId?: string): Promise<unknown> {
+    return this.repository.getCaseHandoffPacket(caseId.trim(), normalizeString(organizationId));
+  }
 }

@@ -331,6 +331,12 @@ export const createCasesRoutes = (): Router => {
   );
   router.get('/:id', validateParams(caseIdParamsSchema), catalogController.getCaseById);
   router.get(
+    '/:id/handoff-packet',
+    validateParams(caseIdParamsSchema),
+    requirePermission(Permission.CASE_VIEW),
+    catalogController.getCaseHandoffPacket
+  );
+  router.get(
     '/:id/reassessments',
     validateParams(caseIdParamsSchema),
     requirePermission(Permission.CASE_VIEW),

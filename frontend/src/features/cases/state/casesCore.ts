@@ -9,6 +9,7 @@ import type {
   UpdateCaseDTO,
   UpdateCaseStatusDTO,
   ReassignCaseDTO,
+  CaseHandoffPacket,
 } from '../../../types/case';
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => formatApiErrorMessageWith(fallbackMessage)(error);
@@ -24,6 +25,7 @@ export interface CasesCoreState {
     error: string | null;
     fetchedAt: number | null;
   }>;
+  handoffPacket: CaseHandoffPacket | null;
   loading: boolean;
   error: string | null;
 }
@@ -33,6 +35,7 @@ const initialState: CasesCoreState = {
   caseTypes: [],
   caseStatuses: [],
   contactCasesByContactId: {},
+  handoffPacket: null,
   loading: false,
   error: null,
 };
@@ -239,6 +242,17 @@ export const selectCasesByContact = (
   contactId: string
 ): CaseWithDetails[] => state.cases?.core?.contactCasesByContactId?.[contactId]?.cases ?? [];
 
+export const fetchCaseHandoffPacket = createAsyncThunk(
+  'casesCore/fetchCaseHandoffPacket',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      return await casesApiClient.getCaseHandoffPacket(id);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch handoff packet'));
+    }
+  }
+);
+
 const casesCoreSlice = createSlice({
   name: 'casesCore',
   initialState,
@@ -328,6 +342,18 @@ const casesCoreSlice = createSlice({
           error: rejectedPayload?.message ?? 'Failed to fetch contact cases',
           fetchedAt: existing?.fetchedAt ?? null,
         };
+      })
+      .addCase(fetchCaseHandoffPacket.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCaseHandoffPacket.fulfilled, (state, action) => {
+        state.loading = false;
+        state.handoffPacket = action.payload;
+      })
+      .addCase(fetchCaseHandoffPacket.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });

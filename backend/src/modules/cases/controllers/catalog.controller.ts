@@ -130,6 +130,16 @@ export const createCaseCatalogController = (useCase: CaseCatalogUseCase) => {
     }
   };
 
+  const getCaseHandoffPacket = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const organizationId = req.organizationId || req.accountId || req.tenantId;
+      const packet = await useCase.handoffPacket(req.params.id, organizationId);
+      sendData(res, packet);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   return {
     getCases,
     getCaseById,
@@ -137,5 +147,6 @@ export const createCaseCatalogController = (useCase: CaseCatalogUseCase) => {
     getCaseSummary,
     getCaseTypes,
     getCaseStatuses,
+    getCaseHandoffPacket,
   };
 };

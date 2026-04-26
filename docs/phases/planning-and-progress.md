@@ -49,12 +49,13 @@ Maintenance rules:
 | Review | P5-T12 | Full E2E/Playwright review and clean all-green validation | Host and Docker proof is green in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md): `make ci-full`, fresh-stack `cd e2e && npm run test:docker:ci`, and fresh-stack `cd e2e && npm run test:docker:audit` all passed. Keep this row in review for final artifact signoff rather than reopening runtime work. |
 | Review | P5-T13 | GitHub CI/security pilot | Implementation is complete in PR #10; mirrors for `make ci-full`, `make security-scan`, CodeQL, and dependency review are live; Dependabot and CODEOWNERS are configured; repository security settings are enabled; and `main` is protected. Keep this row in review for final signoff and do not expand into deploy automation or additional SaaS bots. |
 | Review | P5-T14 | Local runtime preflights and changed-files selector | Implementation is complete; added `make doctor`, `make check-changed`, and `npm run sbom` targets; updated script documentation. Verified tools correctly identify environment state and changed-file check sets. |
+| Review | P5-T15 | Case handoff packets | Add a case-scoped handoff packet assembly layer that assembles current status, risks, next actions, visibility boundaries, and linked artifacts (services, forms, appointments) into a printable or sharable summary. |
 
 ### Ready Queue
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| Ready | P5-T15 | Case handoff packets | Add a case-scoped handoff packet assembly layer that assembles current status, risks, next actions, visibility boundaries, and linked artifacts (services, forms, appointments) into a printable or sharable summary. |
+| _None_ | _None_ | _None_ | _None_ |
 
 ### Ready Next
 
@@ -469,4 +470,4 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | P5-T12 | Full E2E/Playwright review and clean all-green validation | Review | Codex | Host `make ci-full`, fresh-stack Docker CI, and fresh-stack Docker audit proof are green and recorded in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md). Keep this row in review for final signoff; any future runtime failure needs an owning scoped follow-up. | [../testing/TESTING.md](../testing/TESTING.md), [../validation/README.md](../validation/README.md), [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
 | P5-T13 | GitHub CI/security pilot | Review | Codex | Implementation is complete in PR #10. Keep local `make` commands canonical and leave deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, and Knip expansion out of this row. | [../../.github/README.md](../../.github/README.md), [../testing/TESTING.md](../testing/TESTING.md), [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md) |
 | P5-T14 | Local runtime preflights and changed-files selector | Review | Codex | Implementation is complete; added `make doctor`, `make check-changed`, and `npm run sbom` targets; updated script documentation. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
-| P5-T15 | Case handoff packets | Ready | Codex | Implement `case_handoff_packet` assembly using existing case detail, service, form, and appointment data. | [P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md](P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md) |
+| P5-T15 | Case handoff packets | Review | Codex | Implementation complete; added handoff packet assembly API and printable UI summary. | [P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md](P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md) |

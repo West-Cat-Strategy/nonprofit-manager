@@ -5,6 +5,7 @@ import {
   clearCurrentCase,
   deleteCase,
   fetchCaseById,
+  fetchCaseHandoffPacket,
   fetchCaseMilestones,
   fetchCaseOutcomeDefinitions,
   fetchCaseStatuses,
@@ -12,7 +13,7 @@ import {
 } from '../state';
 import { useToast } from '../../../contexts/useToast';
 import useConfirmDialog, { confirmPresets } from '../../../hooks/useConfirmDialog';
-import type { CaseMilestone, CaseStatus, CaseStatusType, CaseWithDetails } from '../../../types/case';
+import type { CaseMilestone, CaseStatus, CaseStatusType, CaseWithDetails, CaseHandoffPacket } from '../../../types/case';
 import type { OutcomeDefinition } from '../../../types/outcomes';
 import { isUuid } from '../../../utils/uuid';
 import { formatCaseOutcomeLabel, summarizeLabels } from '../utils/caseClassification';
@@ -44,6 +45,7 @@ type CaseDetailState = {
   core?: {
     currentCase?: CaseWithDetails | null;
     caseStatuses?: CaseStatus[];
+    handoffPacket?: CaseHandoffPacket | null;
     loading?: boolean;
     error?: string | null;
   };
@@ -104,12 +106,13 @@ export const useCaseDetailPage = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { showSuccess, showError } = useToast();
-  const { currentCase, caseStatuses, loading, error } = useAppSelector((state) => {
+  const { currentCase, caseStatuses, handoffPacket, loading, error } = useAppSelector((state) => {
     const casesModule = state.cases as CaseDetailState;
     const core = casesModule?.core ?? {};
     return {
       currentCase: core.currentCase ?? casesModule?.currentCase ?? null,
       caseStatuses: core.caseStatuses ?? casesModule?.caseStatuses ?? [],
+      handoffPacket: core.handoffPacket ?? casesModule?.handoffPacket ?? null,
       loading: core.loading ?? casesModule?.loading ?? false,
       error: core.error ?? casesModule?.error ?? null,
     };
@@ -321,6 +324,19 @@ export const useCaseDetailPage = () => {
     }
   }, [currentCase, dispatch, id, showError, showSuccess]);
 
+  const [isHandoffModalOpen, setIsHandoffModalOpen] = useState(false);
+
+  const handleGenerateHandoff = useCallback(async () => {
+    if (!id) return;
+    try {
+      await dispatch(fetchCaseHandoffPacket(id)).unwrap();
+      setIsHandoffModalOpen(true);
+    } catch (err) {
+      console.error('Failed to generate handoff packet:', err);
+      showError('Failed to generate handoff packet');
+    }
+  }, [dispatch, id, showError]);
+
   const handleDelete = useCallback(async () => {
     if (!id) return;
     const confirmed = await confirm(confirmPresets.delete('Case'));
@@ -359,6 +375,7 @@ export const useCaseDetailPage = () => {
     hasValidId,
     currentCase,
     caseStatuses,
+    handoffPacket,
     loading,
     error,
     caseMilestones,
@@ -389,6 +406,8 @@ export const useCaseDetailPage = () => {
     setMilestoneDueDate,
     milestoneCompleted,
     setMilestoneCompleted,
+    isHandoffModalOpen,
+    setIsHandoffModalOpen,
     timelineRefreshKey,
     caseTypeLabels,
     caseOutcomeLabels,
@@ -404,6 +423,7 @@ export const useCaseDetailPage = () => {
     handleOpenNotes,
     handleOpenDocuments,
     handleToggleClientViewable,
+    handleGenerateHandoff,
     handleDelete,
     closeStatusChangeModal,
     resetMilestoneForm,
