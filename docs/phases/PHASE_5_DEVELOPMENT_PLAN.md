@@ -150,7 +150,7 @@ The archived executive-director remediation tracker surfaced a governance/compli
 ### Phase 5 Follow-Through Candidates
 
 - OWASP ASVS 5.0 plus OWASP API Security Top 10 2023 crosswalk: turn auth, access-control, logging, SSRF, and admin-flow security into explicit acceptance criteria for active Phase 5 lanes instead of archived audit context.
-- GitHub CodeQL plus dependency review, Dependabot alerts or security updates, and secret scanning push protection when GitHub-backed CI is available; otherwise mirror the same controls in the existing CI system instead of treating local scans as sufficient.
+- GitHub CI/security pilot (`P5-T13`): mirror `make ci-full`, `make security-scan`, CodeQL, and dependency review in GitHub Actions; enable Dependabot alerts/security updates plus secret scanning/push protection; then protect `main` once required check contexts exist.
 - `npm sbom` now, with CycloneDX later if multi-workspace BOM depth or downstream consumers justify it: add release-time supply-chain visibility before adding heavier signing or attestation expectations.
 - Semgrep in non-blocking mode first: use custom rules for repo-specific guardrails such as no unsafe outbound fetch without SSRF controls, no sensitive logging regressions, and no missing auth or rate-limit protections on critical routes.
 - Trivy repo and image scanning if Docker build and deploy paths remain central to Phase 5 release confidence: fill the current gap around image, IaC, and broader misconfiguration scanning.

@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-04-26
 
 ## At a Glance
 
@@ -10,8 +10,8 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 2 |
-| In Progress | 1 |
+| Active rows | 3 |
+| In Progress | 2 |
 | Blocked | 0 |
 | Review | 1 |
 | Ready | 0 |
@@ -42,6 +42,7 @@ Maintenance rules:
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
 | In Progress | P5-T12 | Full E2E/Playwright review and clean all-green validation | Run and record the host-first validation lane in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md): `make ci-full`, then `cd e2e && npm run test:docker:ci`, then `cd e2e && npm run test:docker:audit`. |
+| In Progress | P5-T13 | GitHub CI/security pilot | Add GitHub Actions mirrors for full CI, security scan, CodeQL, and dependency review; add Dependabot and workflow ownership config; enable repository security settings; then protect `main` once required check contexts exist. Keep local `make` targets as the canonical command surface and do not add deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, or Knip expansion in this row. |
 
 ### Review Queue
 
@@ -62,6 +63,7 @@ Maintenance rules:
 - Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; signoff-only child briefs are archived in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), and broader runtime rows still need their own signout.
 - `P5-T9`, `P5-T10`, and `P5-T11` are archived in [archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md](archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md); their cleanup implementation rows `P5-T9A`, `P5-T9B`, `P5-T9C`, `P5-T10A`, and `P5-T11A` are archived in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md).
 - `P5-T12` is signed out for the full E2E/Playwright review and clean all-green validation. Record the host `make ci-full` result in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) before adding Docker follow-on proof.
+- `P5-T13` is signed out for the GitHub CI/security pilot. Keep proof in [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), and do not expand this row into deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, or Knip expansion.
 
 ## Current Phase Shape
 
@@ -73,6 +75,7 @@ Maintenance rules:
 - `P5-T6` remains in `Review` as the parent capability/backlog packet. Keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit while broader typed appeals, restrictions, donation batches, memberships, finance breadth, and generic workflow tooling wait for separately scoped rows.
 - `P5-T9A`, `P5-T9B`, `P5-T9C`, `P5-T10A`, and `P5-T11A` are signed off and archived in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md), with proof in [../validation/P5_CLEANUP_WAVE_PROOF_2026-04-25.md](../validation/P5_CLEANUP_WAVE_PROOF_2026-04-25.md).
 - `P5-T12` is in progress for the final full E2E/Playwright clean-green validation lane.
+- `P5-T13` is in progress for the first GitHub CI/security pilot: GitHub Actions should mirror the local `make ci-full` and `make security-scan` gates, add CodeQL and dependency review, enable repository security settings, and protect `main` after the required check contexts exist.
 - The current hardening and reassessment migrations `103` through `108` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, donor profiles, and case reassessment cycles; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
 
 ## Coordination
@@ -464,3 +467,4 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 |---|---|---|---|---|---|
 | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Review | Codex | The capability-based `P5-T6` brief packet is published in [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), and child planning briefs `P5-T6A`, `P5-T6B`, and `P5-T6C` are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md). Keep [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) as the row-local backlog note, keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit, and leave broader runtime implementation blocked until a new scoped row is signed out. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), [../development/reference-patterns/P5-T6-oss-benchmark/adoption-spec.md](../development/reference-patterns/P5-T6-oss-benchmark/adoption-spec.md), [../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md](../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md) |
 | P5-T12 | Full E2E/Playwright review and clean all-green validation | In Progress | Codex | Run the full browser/runtime review with host proof first: `make ci-full`, then `cd e2e && npm run test:docker:ci`, then `cd e2e && npm run test:docker:audit`; record results in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md). | [../testing/TESTING.md](../testing/TESTING.md), [../validation/README.md](../validation/README.md), [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
+| P5-T13 | GitHub CI/security pilot | In Progress | Codex | Add GitHub-hosted mirrors for `make ci-full`, `make security-scan`, CodeQL, and dependency review; enable GitHub security settings; and protect `main` once the required check contexts exist. Keep local `make` commands canonical and leave deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, and Knip expansion out of this row. | [../../.github/README.md](../../.github/README.md), [../testing/TESTING.md](../testing/TESTING.md), [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md) |
