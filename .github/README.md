@@ -1,6 +1,6 @@
 # GitHub Contributor Guidance
 
-These files are advisory routing for GitHub Copilot and other GitHub-side contributor tools. They do not replace the repo's canonical docs, local `make` control plane, or workboard.
+These files route GitHub-side contributor tools and the approved CI/security pilot. They do not replace the repo's canonical docs, local `make` control plane, or workboard.
 
 Start every GitHub-assisted task with:
 
@@ -16,9 +16,11 @@ Start every GitHub-assisted task with:
 - [copilot-instructions.md](copilot-instructions.md) is the short bridge from GitHub Copilot into the canonical repo docs.
 - [agents/](agents/) contains thin lane profiles for GitHub Copilot custom agents if that feature is enabled for the repository.
 - [instructions/](instructions/) contains path-specific hints that route backend, frontend, docs, scripts, OpenAPI, and E2E work back to the canonical docs.
+- [workflows/](workflows/) contains the approved GitHub mirrors for full CI, security scanning, CodeQL, and dependency review.
+- [dependabot.yml](dependabot.yml), [dependency-review-config.yml](dependency-review-config.yml), and [CODEOWNERS](CODEOWNERS) contain the first supply-chain and workflow ownership configuration.
 
-## What Does Not Live Here
+## Guardrails
 
-This directory intentionally does not enable GitHub Actions workflows, Dependabot, CodeQL, GitHub MCP servers, hooks, or third-party SaaS review bots. Those tools need a separate permissions, data-exposure, and alert-triage decision before adoption.
+The approved GitHub pilot may run `make ci-full`, `make security-scan`, CodeQL, dependency review, and Dependabot updates. Local `make` commands remain the canonical command surface and must stay documented in [docs/testing/TESTING.md](../docs/testing/TESTING.md).
 
-Until that decision is made, keep the repository local-first: use the existing `Makefile`, focused test commands, and tracked validation notes.
+Do not add deploy automation, GitHub MCP config, hooks, third-party SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, Knip expansion, or extra workflows without a separate tracked approval.

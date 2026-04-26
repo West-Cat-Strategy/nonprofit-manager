@@ -1,8 +1,8 @@
 # Nonprofit Manager - Local CI/CD Makefile
 # Run 'make help' for available commands
 #
-# This replaces GitHub Actions with local commands.
-# All CI/CD operations can be run locally or via git hooks.
+# Local make targets remain the canonical CI/security command surface.
+# GitHub Actions mirrors selected CI/security targets for branch protection.
 
 .PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-e2e-docker-smoke test-coverage test-coverage-full test-tooling quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
 	security-audit security-scan ci ci-fast ci-full ci-unit \

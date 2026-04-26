@@ -1,8 +1,10 @@
 # Testing Guide
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-04-26
 
 This file is the active test command map for nonprofit-manager. Use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports; use this file when you need to choose the right validation command.
+
+GitHub Actions now mirrors selected CI/security checks for protected-branch gating, but the local commands documented here remain the canonical interface. When a GitHub workflow fails, reproduce it with the matching `make` target first unless the failure is clearly GitHub-runner-specific.
 
 ## Guide Map
 
@@ -29,6 +31,17 @@ This file is the active test command map for nonprofit-manager. Use [../../CONTR
 | E2E | `cd e2e && npm test` | Wrapper-driven host commands use the Playwright-managed `5173/3001` contract; `npm run test:docker*` default to the externally managed Docker contract on `8005/8004`, and `make test-e2e-docker-smoke` provisions an isolated Docker smoke stack on `18005/18004`. For the broader Docker review lane, the externally managed backend must also be launched with `NODE_ENV=test`, `DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true`, and `DEV_BYPASS_MFA_FOR_TESTS=true`; the wrapper cannot retrofit those backend env flags onto an already-running stack. Docker dev/review stacks now keep Mailchimp unconfigured by default unless you explicitly set `DEV_MAILCHIMP_API_KEY` and `DEV_MAILCHIMP_SERVER_PREFIX`, which prevents placeholder `.env.development` values from turning route-health checks into false `500`s. The Docker-only fresh-workspace MFA proof remains a separate direct-run lane with `BYPASS_MFA_FOR_TESTS=false`. `Mobile Safari` and `Tablet` are available as manual/ad hoc `--project` runs, not CI-gated projects. Use `E2E_RUNNER_ACTION=kill` only when you intentionally want a targeted rerun to take ownership of the shared Playwright lock. |
 | Docs validation | `make check-links` | Use for any docs change; add `make lint-doc-api-versioning` when API wording/examples or versioned API docs changed |
 | Tooling regression coverage | `make test-tooling` | Targeted contract suite for route-audit, selector, helper-script, and wrapper changes |
+
+## GitHub CI/Security Mirrors
+
+| GitHub check | Local source of truth | Notes |
+|---|---|---|
+| `CI / full-ci` | `make ci-full` | Full CI mirror for pull requests and `main`; installs Playwright browsers on the runner before invoking the local target |
+| `Security Scan / security-scan` | `make security-scan` | Installs pinned `gitleaks` `v8.30.1` before invoking the local target so CI does not rely on the Docker `latest` fallback |
+| `CodeQL / codeql-js-ts` | GitHub CodeQL advanced setup | JavaScript/TypeScript analysis with `security-extended` and `security-and-quality` query suites |
+| `Dependency Review / dependency-review` | `.github/dependency-review-config.yml` | Pull-request dependency diff gate matching the repo's `moderate` audit threshold |
+
+Keep GitHub as a mirror, not a parallel command system. Add new CI/security checks to this table only when the matching local target, workflow ownership, and alert triage owner are explicit.
 
 ## Runtime Matrix
 
@@ -80,6 +93,7 @@ make test-tooling
 - `make security-audit` runs npm audit across the workspace packages.
 - `make security-scan` runs the audit lane plus secret scanning when `gitleaks` is available locally.
 - `make ci-full` includes `make security-audit`, but it does not replace the broader `make security-scan` lane when secret-scan evidence is required.
+- GitHub security settings should keep Dependabot alerts/security updates, secret scanning, push protection, and validity checks enabled when available for the repo plan.
 
 ## Full Playwright Review Lane
 

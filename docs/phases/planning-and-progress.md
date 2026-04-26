@@ -10,8 +10,8 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 19 |
-| In Progress | 0 |
+| Active rows | 20 |
+| In Progress | 1 |
 | Blocked | 0 |
 | Review | 15 |
 | Ready | 4 |
@@ -39,7 +39,9 @@ Maintenance rules:
 
 ### Needs Attention Now
 
-No tracked rows are currently in progress.
+| Status | ID | Task | Immediate Next Move |
+|---|---|---|---|
+| In Progress | P5-T13 | GitHub CI/security pilot | Add GitHub Actions mirrors for full CI, security scan, CodeQL, and dependency review; add Dependabot and workflow ownership config; enable repository security settings; then protect `main` once required check contexts exist. Keep local `make` targets as the canonical command surface and do not add deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, or Knip expansion in this row. |
 
 ### Review Queue
 
@@ -510,3 +512,4 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | P5-T10 | Dead docs review | Ready | Codex | Review docs for stale, duplicate, historical, or orphaned material that should be archived, consolidated, redirected, or removed. Preserve canonical navigation and avoid deleting validation evidence that still backs active workboard rows. | [../README.md](../README.md), [../validation/README.md](../validation/README.md), [archive/README.md](archive/README.md) |
 | P5-T11 | Comprehensive modularity and simplicity refactor plan | Review | Codex | The first behavior-preserving modularity/simplicity/reuse wave is landed with durable plan and handoff artifacts, confirmed dead shim/wrapper deletion, cases route subregistrars, and a Mailchimp feature-local component split. Keep deeper cleanup with `P5-T9`/`P5-T10` or a new scoped row. | [../refactoring/MODULARITY_SIMPLICITY_REUSE_PLAN_2026-04.md](../refactoring/MODULARITY_SIMPLICITY_REUSE_PLAN_2026-04.md), [../refactoring/MODULARITY_SIMPLICITY_REUSE_HANDOFF_2026-04.md](../refactoring/MODULARITY_SIMPLICITY_REUSE_HANDOFF_2026-04.md) |
 | P5-T12 | Full E2E/Playwright review and clean all-green validation | Ready | Codex | Run the full browser/runtime review after cleanup and proof-note rows are settled: `make ci-full`, optional fresh `make test-e2e-docker-smoke`, `cd e2e && npm run test:docker:ci`, `cd e2e && npm run test:docker:audit`, separate fresh-workspace MFA proof when required, and final all-green confirmation with documented skips only. | [../testing/TESTING.md](../testing/TESTING.md), [../validation/README.md](../validation/README.md) |
+| P5-T13 | GitHub CI/security pilot | In Progress | Codex | Add GitHub-hosted mirrors for `make ci-full`, `make security-scan`, CodeQL, and dependency review; enable GitHub security settings; and protect `main` once the required check contexts exist. Keep local `make` commands canonical and leave deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, and Knip expansion out of this row. | [../../.github/README.md](../../.github/README.md), [../testing/TESTING.md](../testing/TESTING.md), [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md) |
