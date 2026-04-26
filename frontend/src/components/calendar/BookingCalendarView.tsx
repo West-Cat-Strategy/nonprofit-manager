@@ -14,6 +14,7 @@ import {
   startOfWeek,
   subMonths,
 } from 'date-fns';
+import { getVisibleMonthRange } from './calendarRange';
 
 export type BookingCalendarEntryKind = 'event' | 'appointment' | 'slot';
 
@@ -105,10 +106,7 @@ export default function BookingCalendarView<TMeta = unknown>({
       return;
     }
 
-    onMonthRangeChange({
-      startDate: startOfWeek(startOfMonth(activeMonth)).toISOString(),
-      endDate: endOfWeek(endOfMonth(activeMonth)).toISOString(),
-    });
+    onMonthRangeChange(getVisibleMonthRange(activeMonth));
   }, [activeMonth, onMonthRangeChange]);
 
   const entriesByDate = useMemo(() => {
