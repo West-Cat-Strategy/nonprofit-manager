@@ -12,6 +12,8 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [check-links.sh](check-links.sh) | Validate repo Markdown and HTML links used by the active docs. | `make check-links` |
 | [check-doc-api-versioning.ts](check-doc-api-versioning.ts) | Enforce active-doc `/api/v2` wording and catch stale API-version references. | `make lint-doc-api-versioning` |
 | [ci.sh](ci.sh) | Canonical root CI wrapper that backs the `make ci*` targets and coverage flows. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` / `make test-coverage` / `make test-coverage-full` |
+| [doctor.sh](doctor.sh) | Preflight local runtime prerequisites (Node, Docker, gitleaks, env files). | `make doctor` |
+| [check-changed.sh](check-changed.sh) | Identify and optionally run checks for files changed relative to `main`. | `make check-changed --run` |
 | [quality-baseline.sh](quality-baseline.sh) | Run the static quality baseline checks used by the repo's policy gates. | `make quality-baseline` |
 | [security-scan.sh](security-scan.sh) | Run dependency and secret scanning. | `make security-scan` |
 | [db-migrate.sh](db-migrate.sh) | Bootstrap or start the local database contract and isolated test database. | `make db-migrate` |
@@ -87,7 +89,7 @@ make lint-doc-api-versioning
 If you need a narrower sequence, ask the selector helper for a recommendation:
 
 ```bash
-./scripts/select-checks.sh --base HEAD~1 --mode fast
+make check-changed --run
 ```
 
 Use `--mode strict` when the change touches shared runtime orchestration, hooks, or runtime-facing docs and you want the selector to broaden into higher-confidence root checks.

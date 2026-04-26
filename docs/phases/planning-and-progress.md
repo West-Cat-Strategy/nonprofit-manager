@@ -10,11 +10,11 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 3 |
-| In Progress | 1 |
+| Active rows | 5 |
+| In Progress | 0 |
 | Blocked | 0 |
-| Review | 2 |
-| Ready | 0 |
+| Review | 4 |
+| Ready | 1 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
 
@@ -37,11 +37,9 @@ Maintenance rules:
 - Do not create summary-only tasks.
 - If a task no longer owns a concrete next step, archive its proof and remove it from the live ledger.
 
-### Needs Attention Now
-
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| In Progress | P5-T13 | GitHub CI/security pilot | Add GitHub Actions mirrors for full CI, security scan, CodeQL, and dependency review; add Dependabot and workflow ownership config; enable repository security settings; then protect `main` once required check contexts exist. Keep local `make` targets as the canonical command surface and do not add deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, or Knip expansion in this row. |
+| _None_ | _None_ | _None_ | No row is currently in progress. |
 
 ### Review Queue
 
@@ -49,12 +47,14 @@ Maintenance rules:
 |---|---|---|---|
 | Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) as the published capability-brief packet alongside [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md). Child planning briefs `P5-T6A`, `P5-T6B`, and `P5-T6C` are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md); keep the narrow `PAT-01`/`PAT-02`/`PAT-03` fundraising pickups signed off with `P5-T3`, `PAT-04`/`PAT-05`/`PAT-06` portal pickups signed off with `P5-T5`, and typed appeals, restrictions, donation batches, memberships, finance breadth, and generic workflow tooling behind separate scoped rows. |
 | Review | P5-T12 | Full E2E/Playwright review and clean all-green validation | Host and Docker proof is green in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md): `make ci-full`, fresh-stack `cd e2e && npm run test:docker:ci`, and fresh-stack `cd e2e && npm run test:docker:audit` all passed. Keep this row in review for final artifact signoff rather than reopening runtime work. |
+| Review | P5-T13 | GitHub CI/security pilot | Implementation is complete in PR #10; mirrors for `make ci-full`, `make security-scan`, CodeQL, and dependency review are live; Dependabot and CODEOWNERS are configured; repository security settings are enabled; and `main` is protected. Keep this row in review for final signoff and do not expand into deploy automation or additional SaaS bots. |
+| Review | P5-T14 | Local runtime preflights and changed-files selector | Implementation is complete; added `make doctor`, `make check-changed`, and `npm run sbom` targets; updated script documentation. Verified tools correctly identify environment state and changed-file check sets. |
 
 ### Ready Queue
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| _None_ | _None_ | _None_ | No row is currently ready and unsigned. |
+| Ready | P5-T15 | Case handoff packets | Add a case-scoped handoff packet assembly layer that assembles current status, risks, next actions, visibility boundaries, and linked artifacts (services, forms, appointments) into a printable or sharable summary. |
 
 ### Ready Next
 
@@ -467,4 +467,6 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 |---|---|---|---|---|---|
 | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Review | Codex | The capability-based `P5-T6` brief packet is published in [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), and child planning briefs `P5-T6A`, `P5-T6B`, and `P5-T6C` are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md). Keep [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) as the row-local backlog note, keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit, and leave broader runtime implementation blocked until a new scoped row is signed out. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), [../development/reference-patterns/P5-T6-oss-benchmark/adoption-spec.md](../development/reference-patterns/P5-T6-oss-benchmark/adoption-spec.md), [../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md](../development/reference-patterns/P5-T6-oss-benchmark/pattern-catalog.md) |
 | P5-T12 | Full E2E/Playwright review and clean all-green validation | Review | Codex | Host `make ci-full`, fresh-stack Docker CI, and fresh-stack Docker audit proof are green and recorded in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md). Keep this row in review for final signoff; any future runtime failure needs an owning scoped follow-up. | [../testing/TESTING.md](../testing/TESTING.md), [../validation/README.md](../validation/README.md), [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
-| P5-T13 | GitHub CI/security pilot | In Progress | Codex | Add GitHub-hosted mirrors for `make ci-full`, `make security-scan`, CodeQL, and dependency review; enable GitHub security settings; and protect `main` once the required check contexts exist. Keep local `make` commands canonical and leave deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, and Knip expansion out of this row. | [../../.github/README.md](../../.github/README.md), [../testing/TESTING.md](../testing/TESTING.md), [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md) |
+| P5-T13 | GitHub CI/security pilot | Review | Codex | Implementation is complete in PR #10. Keep local `make` commands canonical and leave deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, and Knip expansion out of this row. | [../../.github/README.md](../../.github/README.md), [../testing/TESTING.md](../testing/TESTING.md), [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md) |
+| P5-T14 | Local runtime preflights and changed-files selector | Review | Codex | Implementation is complete; added `make doctor`, `make check-changed`, and `npm run sbom` targets; updated script documentation. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
+| P5-T15 | Case handoff packets | Ready | Codex | Implement `case_handoff_packet` assembly using existing case detail, service, form, and appointment data. | [P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md](P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md) |

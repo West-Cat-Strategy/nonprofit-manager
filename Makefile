@@ -8,7 +8,7 @@
 	security-audit security-scan ci ci-fast ci-full ci-unit \
         deploy deploy-staging deploy-local \
         docker-build docker-up docker-up-dev docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
-        db-migrate db-verify hooks
+        db-migrate db-verify doctor check-changed hooks
 
 # Colors for output
 BLUE := \033[34m
@@ -105,6 +105,7 @@ help:
 	@echo "  make test-tooling   Run the targeted tooling-contract regression tests"
 	@echo "  make quality-baseline Generate code quality baseline report"
 	@echo "  make check-links    Validate markdown links"
+	@echo "  make check-changed  Identify and optionally run checks for changed files (--run)"
 	@echo "  make test-e2e-docker-smoke Run the Docker-backed Playwright smoke gate against the isolated smoke stack"
 	@echo ""
 	@echo "$(GREEN)CI Pipelines:$(RESET)"
@@ -129,6 +130,7 @@ help:
 	@echo "  make db-verify      Verify manifest/initdb parity and the isolated test database contract"
 	@echo ""
 	@echo "$(GREEN)Setup:$(RESET)"
+	@echo "  make doctor         Preflight local runtime prerequisites"
 	@echo "  make hooks          Install git hooks for local CI"
 	@echo "  make clean          Clean build artifacts"
 	@echo "  make clean-local    Remove local build and runtime artifacts"
@@ -347,6 +349,9 @@ lint-route-catalog-drift:
 	@echo "$(BLUE)Checking route catalog drift...$(RESET)"
 	node scripts/check-route-catalog-drift.ts
 	@echo "$(GREEN)Route catalog drift check complete!$(RESET)"
+
+check-changed:
+	@./scripts/check-changed.sh $(ARGS)
 
 lint-frontend-feature-boundary:
 	@echo "$(BLUE)Checking frontend feature boundary policy...$(RESET)"
@@ -602,6 +607,9 @@ db-migrate:
 db-verify:
 	@echo "$(BLUE)Verifying the manifest/initdb contract and isolated test database...$(RESET)"
 	@./scripts/verify-migrations.sh
+
+doctor:
+	@./scripts/doctor.sh
 
 #------------------------------------------------------------------------------
 # Deployment (replaces GitHub Actions deploy workflow)
