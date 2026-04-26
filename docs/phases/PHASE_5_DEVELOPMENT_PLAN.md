@@ -1,6 +1,6 @@
 # Phase 5 Development Plan
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-04-26
 
 Use this document for the Phase 5 roadmap and sequencing. Use [planning-and-progress.md](planning-and-progress.md) for row-level tracked status.
 
@@ -14,7 +14,7 @@ Phase 5 shifts the project from Phase 4 modularization and hardening closeout in
 
 Phase 5 still starts from docs, benchmark, and validation groundwork so later product work lands on a cleaner planning surface and a stronger testing contract.
 
-Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, the shared testing/remediation/persona/website/helper-skill review rows are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), the narrowed email hardening follow-through is signed off in [archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md](archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md), the portal/reassessment/dispatch/modularization runtime review rows are signed off in [archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md), the cleanup review/planning rows are signed off in [archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md](archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md), and the cleanup implementation wave is signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md). `P5-T6` stays in `Review` as the parent capability/backlog packet, and `P5-T12` is the current in-progress full E2E/Playwright validation row.
+Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, the shared testing/remediation/persona/website/helper-skill review rows are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), the narrowed email hardening follow-through is signed off in [archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md](archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md), the portal/reassessment/dispatch/modularization runtime review rows are signed off in [archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md), the cleanup review/planning rows are signed off in [archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md](archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md), and the cleanup implementation wave is signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md). `P5-T6` stays in `Review` as the parent capability/backlog packet, `P5-T12` is in `Review` after the full host-plus-Docker clean-green validation lane, and `P5-T13` is the current in-progress GitHub CI/security pilot.
 
 ## Phase 5 Goals
 
@@ -85,10 +85,10 @@ Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, the shared testi
 - Keep any future modularization behavior-preserving: it may move internal ownership boundaries and trim compatibility shims, but it must preserve current `/api/v2`, route-catalog, root-store, auth/workspace-module, and browser URL contracts.
 - Keep shared seams lead-owned: route registrars, route catalogs, root store wiring, worker startup, auth/permission policy, shared frontend API clients, workboard/docs, and final validation.
 
-### 9. Review Cleanup And Validation Queue (In Progress)
+### 9. Review Cleanup And Validation Queue (Review)
 
 - `P5-T8`, `P5-T9`, `P5-T10`, and `P5-T11` are complete, and the cleanup implementation rows they identified are signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md).
-- `P5-T12` is signed out for the full E2E/Playwright review and clean all-green validation pass, with host proof recorded before Docker follow-ons.
+- `P5-T12` is in `Review` with host proof recorded before the fresh-stack Docker CI and Docker audit follow-ons.
 
 ## Workstreams
 
@@ -118,7 +118,7 @@ Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, the shared testi
 | `P5-T9C` | Knip configuration hardening | Refined Knip app entries and policy-tooling coverage | `P5-T9`, `P5-T11` | Signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md); future dead-code findings should be more precise |
 | `P5-T10A` | Docs navigation and archive indexing cleanup | Added navigation links for under-linked active and retained historical docs | `P5-T10`, `P5-T11` | Signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md) with validation evidence preserved |
 | `P5-T11A` | Implementation-size policy cleanup | Split or extracted helpers from the files stopping `make lint` | `P5-T11` and final validation outcome | Signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md) with route shapes, service behavior, frontend flows, public types, and type-checks preserved |
-| `P5-T12` | Full E2E/Playwright review and clean all-green validation | Full host and Docker browser/runtime review plus clean all-green proof with documented skips only | Current testing guide, validation proof order, and row-local proof notes | In progress; record `make ci-full` before Docker follow-ons |
+| `P5-T12` | Full E2E/Playwright review and clean all-green validation | Full host and Docker browser/runtime review plus clean all-green proof with documented skips only | Current testing guide, validation proof order, and row-local proof notes | Row is in `Review`; host `make ci-full`, fresh-stack Docker CI, and fresh-stack Docker audit proof are green in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
 
 ## Completed Phase Inputs
 
