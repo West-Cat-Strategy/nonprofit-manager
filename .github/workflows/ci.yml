@@ -39,6 +39,9 @@ jobs:
       - name: Install Playwright browsers
         run: cd e2e && npx playwright install --with-deps chromium firefox webkit
 
+      - name: Prepare Docker smoke environment
+        run: cp .env.development.example .env.development
+
       - name: Run local full CI mirror
         run: make ci-full
 
