@@ -1,0 +1,57 @@
+name: Build Artifacts
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    # Weekly Monday build/package validation in UTC; this does not deploy.
+    - cron: '37 18 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-artifacts-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-validate-sbom:
+    name: Build Artifacts / docker-validate-sbom
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '25.x'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Docker build definitions
+        run: make docker-validate
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          mkdir -p artifacts
+          npm run --silent sbom > artifacts/nonprofit-manager.cdx.json
+          node -e "const fs = require('fs'); const sbom = JSON.parse(fs.readFileSync('artifacts/nonprofit-manager.cdx.json', 'utf8')); if (sbom.bomFormat !== 'CycloneDX') throw new Error('Expected CycloneDX SBOM');"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-cyclonedx-sbom
+          path: artifacts/nonprofit-manager.cdx.json
+          if-no-files-found: error
+          retention-days: 14

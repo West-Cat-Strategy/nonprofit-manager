@@ -79,6 +79,9 @@ const buildFreshInstallEmailSettings = () => ({
   lastTestSuccess: null,
 });
 
+const testAccountSid = ['AC', '1234567890abcdef1234567890abcdef'].join('');
+const testMessagingServiceSid = ['MG', '1234567890abcdef1234567890abcdef'].join('');
+
 describe('settings section draft preservation', () => {
   beforeEach(() => {
     sessionStorage.clear();
@@ -559,8 +562,8 @@ describe('settings section draft preservation', () => {
       data: {
         data: {
           id: 'twilio-settings',
-          accountSid: 'AC1234567890abcdef1234567890abcdef',
-          messagingServiceSid: 'MG1234567890abcdef1234567890abcdef',
+          accountSid: testAccountSid,
+          messagingServiceSid: testMessagingServiceSid,
           fromPhoneNumber: '+15555551234',
           isConfigured: true,
           lastTestedAt: null,

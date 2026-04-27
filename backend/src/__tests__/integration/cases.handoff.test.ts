@@ -68,7 +68,9 @@ describe('Case Handoff Packet Integration Tests', () => {
         last_name: 'Client',
       }))
       .expect(201);
-    contactId = payloadFromResponse<{ id: string }>(contactResponse.body).id;
+    const contactPayload = payloadFromResponse<{ contact_id?: string; id?: string }>(contactResponse.body);
+    contactId = contactPayload.contact_id ?? contactPayload.id ?? '';
+    expect(contactId).toBeTruthy();
 
     const caseResponse = await withAuth(request(app)
       .post('/api/v2/cases')
@@ -81,7 +83,9 @@ describe('Case Handoff Packet Integration Tests', () => {
         description: 'Test Description'
       }))
       .expect(201);
-    caseId = payloadFromResponse<{ id: string }>(caseResponse.body).id;
+    const casePayload = payloadFromResponse<{ case_id?: string; id?: string }>(caseResponse.body);
+    caseId = casePayload.case_id ?? casePayload.id ?? '';
+    expect(caseId).toBeTruthy();
 
     // Add a milestone
     await withAuth(request(app)
@@ -106,6 +110,7 @@ describe('Case Handoff Packet Integration Tests', () => {
       await pool.query('DELETE FROM accounts WHERE id = $1', [organizationId]);
     }
     if (userId) {
+      await pool.query('DELETE FROM contacts WHERE created_by = $1', [userId]);
       await pool.query('DELETE FROM users WHERE id = $1', [userId]);
     }
   });
