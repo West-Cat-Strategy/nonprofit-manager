@@ -48,7 +48,12 @@ jobs:
           curl --fail --location --show-error \
             "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
             --output gitleaks.tar.gz
-          grep "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" checksums.txt | sha256sum --check
+          CHECKSUM_LINE=$(grep -F "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" checksums.txt)
+          if [ -z "$CHECKSUM_LINE" ]; then
+            echo "ERROR: no checksum found for gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" >&2
+            exit 1
+          fi
+          echo "$CHECKSUM_LINE" | sha256sum --check
           mkdir -p gitleaks
           tar -xzf gitleaks.tar.gz -C gitleaks gitleaks
           echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
