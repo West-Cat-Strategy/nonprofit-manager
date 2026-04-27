@@ -1,7 +1,7 @@
 import React from 'react';
 import type { CaseHandoffPacket as HandoffData } from '../../../types/case';
-import { BrutalCard } from '../../../components/ui/BrutalCard';
-import { BrutalBadge } from '../../../components/ui/BrutalBadge';
+import BrutalCard from '../../../components/neo-brutalist/BrutalCard';
+import BrutalBadge from '../../../components/neo-brutalist/BrutalBadge';
 import { format } from 'date-fns';
 
 interface CaseHandoffPacketProps {
@@ -36,15 +36,14 @@ export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) =>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="font-bold uppercase text-sm text-gray-600">Current Status</span>
-              <BrutalBadge variant="neutral" className="bg-blue-400">
+              <BrutalBadge color="blue">
                 {case_details.status_name}
               </BrutalBadge>
             </div>
             <div className="flex justify-between items-center">
               <span className="font-bold uppercase text-sm text-gray-600">Priority</span>
               <BrutalBadge 
-                variant={case_details.is_urgent ? 'danger' : 'neutral'}
-                className={!case_details.is_urgent ? 'bg-yellow-400' : ''}
+                color={case_details.is_urgent ? 'red' : 'yellow'}
               >
                 {case_details.priority}
               </BrutalBadge>

@@ -47,7 +47,7 @@ jobs:
             --output checksums.txt
           curl --fail --location --show-error \
             "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
-            --output gitleaks.tar.gz
+            --output "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           CHECKSUM_LINE=$(grep -F "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" checksums.txt)
           if [ -z "$CHECKSUM_LINE" ]; then
             echo "ERROR: no checksum found for gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" >&2
@@ -55,7 +55,7 @@ jobs:
           fi
           echo "$CHECKSUM_LINE" | sha256sum --check
           mkdir -p gitleaks
-          tar -xzf gitleaks.tar.gz -C gitleaks gitleaks
+          tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -C gitleaks gitleaks
           echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
 
       - name: Run local security scan mirror
