@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-04-27
 
 ## At a Glance
 
@@ -10,11 +10,11 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 5 |
+| Active rows | 6 |
 | In Progress | 0 |
 | Blocked | 0 |
-| Review | 4 |
-| Ready | 1 |
+| Review | 6 |
+| Ready | 0 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
 
@@ -50,6 +50,7 @@ Maintenance rules:
 | Review | P5-T13 | GitHub CI/security pilot | Implementation is complete in PR #10; mirrors for `make ci-full`, `make security-scan`, CodeQL, and dependency review are live; Dependabot and CODEOWNERS are configured; repository security settings are enabled; and `main` is protected. Keep this row in review for final signoff and do not expand into deploy automation or additional SaaS bots. |
 | Review | P5-T14 | Local runtime preflights and changed-files selector | Implementation is complete; added `make doctor`, `make check-changed`, and `npm run sbom` targets; updated script documentation. Verified tools correctly identify environment state and changed-file check sets. |
 | Review | P5-T15 | Case handoff packets | Add a case-scoped handoff packet assembly layer that assembles current status, risks, next actions, visibility boundaries, and linked artifacts (services, forms, appointments) into a printable or sharable summary. |
+| Review | P5-T17 | GitHub build artifact validation | Build-only GitHub package validation is green in PR #12, and branch protection now requires `Build Artifacts / docker-validate-sbom`; after merge, resolve the sanitized Twilio fixture secret-scanning alert as a false-positive/test-fixture cleanup. |
 
 ### Ready Queue
 
@@ -65,6 +66,7 @@ Maintenance rules:
 - `P5-T9`, `P5-T10`, and `P5-T11` are archived in [archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md](archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md); their cleanup implementation rows `P5-T9A`, `P5-T9B`, `P5-T9C`, `P5-T10A`, and `P5-T11A` are archived in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md).
 - `P5-T12` is in `Review` with host-first and Docker follow-on proof recorded in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md). Do not reopen runtime scope from this row unless a future full-gate rerun finds a concrete owning failure.
 - `P5-T13` is signed out for the GitHub CI/security pilot. Keep proof in [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), and do not expand this row into deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, or Knip expansion.
+- `P5-T17` is the only approved CD-shaped follow-up right now, and it is build/package validation only: `make docker-validate`, `npm run sbom`, and SBOM artifact upload. It must not add deploy automation, staging/prod secrets, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, or Knip expansion.
 
 ## Current Phase Shape
 
@@ -76,7 +78,8 @@ Maintenance rules:
 - `P5-T6` remains in `Review` as the parent capability/backlog packet. Keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit while broader typed appeals, restrictions, donation batches, memberships, finance breadth, and generic workflow tooling wait for separately scoped rows.
 - `P5-T9A`, `P5-T9B`, `P5-T9C`, `P5-T10A`, and `P5-T11A` are signed off and archived in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md), with proof in [../validation/P5_CLEANUP_WAVE_PROOF_2026-04-25.md](../validation/P5_CLEANUP_WAVE_PROOF_2026-04-25.md).
 - `P5-T12` is in `Review` after the final full E2E/Playwright clean-green validation lane passed across host `make ci-full`, fresh-stack Docker CI, and fresh-stack Docker audit proof.
-- `P5-T13` is in progress for the first GitHub CI/security pilot: GitHub Actions should mirror the local `make ci-full` and `make security-scan` gates, add CodeQL and dependency review, enable repository security settings, and protect `main` after the required check contexts exist.
+- `P5-T13` is in `Review` for the first GitHub CI/security pilot: GitHub Actions mirror the local `make ci-full` and `make security-scan` gates, add CodeQL and dependency review, keep repository security settings enabled, and protect `main` with the required check contexts.
+- `P5-T17` is in `Review` for the build-only GitHub artifact-validation follow-up: Dockerfile validation and CycloneDX SBOM upload are green on PR #12, and branch protection now requires the new `Build Artifacts / docker-validate-sbom` context. Deploy automation and additional scanner/tooling expansion remain out of scope.
 - The current hardening and reassessment migrations `103` through `108` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, donor profiles, and case reassessment cycles; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
 
 ## Coordination
@@ -471,3 +474,4 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | P5-T13 | GitHub CI/security pilot | Review | Codex | Implementation is complete in PR #10. Keep local `make` commands canonical and leave deploy automation, MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, and Knip expansion out of this row. | [../../.github/README.md](../../.github/README.md), [../testing/TESTING.md](../testing/TESTING.md), [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), [../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md](../validation/PHASE_5_SECURITY_REVIEW_2026-04-22.md) |
 | P5-T14 | Local runtime preflights and changed-files selector | Review | Codex | Implementation is complete; added `make doctor`, `make check-changed`, and `npm run sbom` targets; updated script documentation. | [PHASE_5_DEVELOPMENT_PLAN.md](PHASE_5_DEVELOPMENT_PLAN.md) |
 | P5-T15 | Case handoff packets | Review | Codex | Implementation complete; added handoff packet assembly API and printable UI summary. | [P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md](P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md) |
+| P5-T17 | GitHub build artifact validation | Review | Codex | Implementation adds the build-only `Build Artifacts / docker-validate-sbom` GitHub gate, weekly CodeQL/security/build validation schedules, Node 25 workflow parity, and Twilio fixture cleanup. The first green check context is in PR #12, branch protection now requires it, and deploy automation remains out of scope. | [../../.github/README.md](../../.github/README.md), [../testing/TESTING.md](../testing/TESTING.md), [../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md](../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md) |

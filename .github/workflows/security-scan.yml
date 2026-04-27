@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # Weekly Monday scan in UTC; local make targets remain the source of truth.
+    - cron: '17 17 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -29,9 +32,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20.x'
+          node-version: '25.x'
           cache: npm
           cache-dependency-path: package-lock.json
+
+      - name: Align npm with local baseline
+        run: npm install --global npm@11.0.0
 
       - name: Install dependencies
         run: npm ci

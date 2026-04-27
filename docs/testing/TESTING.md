@@ -40,8 +40,11 @@ GitHub Actions now mirrors selected CI/security checks for protected-branch gati
 | `Security Scan / security-scan` | `make security-scan` | Installs pinned `gitleaks` `v8.30.1` before invoking the local target so CI does not rely on the Docker `latest` fallback |
 | `CodeQL / codeql-js-ts` | GitHub CodeQL advanced setup | JavaScript/TypeScript analysis with `security-extended` and `security-and-quality` query suites |
 | `Dependency Review / dependency-review` | `.github/dependency-review-config.yml` | Pull-request dependency diff gate matching the repo's `moderate` audit threshold |
+| `Build Artifacts / docker-validate-sbom` | `make docker-validate` and `npm run sbom` | Build/package validation only; uploads a CycloneDX SBOM artifact and does not deploy to staging or production |
 
-Keep GitHub as a mirror, not a parallel command system. Add new CI/security checks to this table only when the matching local target, workflow ownership, and alert triage owner are explicit.
+Npm-using workflows pin npm `11.0.0` after setting up Node `25.x` so GitHub mirrors the local CLI baseline instead of drifting with runner image updates.
+
+Keep GitHub as a mirror, not a parallel command system. Add new CI/security/build checks to this table only when the matching local target, workflow ownership, and alert triage owner are explicit.
 
 ## Runtime Matrix
 

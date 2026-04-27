@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # Weekly Monday analysis in UTC; keep this paired with repository security triage.
+    - cron: '47 17 * * 1'
   workflow_dispatch:
 
 permissions:

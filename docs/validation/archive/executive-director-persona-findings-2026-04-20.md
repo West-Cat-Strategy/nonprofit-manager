@@ -8,9 +8,9 @@
 - Ports: frontend `8005`, backend `8004`, public site `8006`, postgres `8002`, redis `8003`
 - Persona set: Executive Director, Fundraiser, Nonprofit Administrator, Board Member, Case Manager, Rehab Worker
 - Persona mapping reference files:
-  - [role mapping catalog](/Users/bryan/projects/nonprofit-manager/backend/src/modules/admin/usecases/roleCatalogUseCase.ts)
-  - [role normalization utilities](/Users/bryan/projects/nonprofit-manager/backend/src/utils/roleSlug.ts)
-  - [permission boundaries](/Users/bryan/projects/nonprofit-manager/backend/src/utils/permissions.ts)
+  - [role mapping catalog](../../../backend/src/modules/admin/usecases/roleCatalogUseCase.ts)
+  - [role normalization utilities](../../../backend/src/utils/roleSlug.ts)
+  - [permission boundaries](../../../backend/src/utils/permissions.ts)
 
 ## 1. Environment execution report
 
@@ -189,8 +189,8 @@ All checks used authenticated sessions where login was possible.
 
 - **Status tags:** dashboards/reports/admin seams are `supported`, while governance and board-readiness surfaces are `partial`.
 - Evidence:
-  - Admin/report route architecture exists and is mounted under V2: [backend/src/routes/v2/index.ts](/Users/bryan/projects/nonprofit-manager/backend/src/routes/v2/index.ts)
-  - Admin UI shells and route mappings: [frontend/src/features/adminOps/adminRouteManifest.ts](/Users/bryan/projects/nonprofit-manager/frontend/src/features/adminOps/adminRouteManifest.ts), [frontend/src/features/adminOps/adminNavigationCatalog.ts](/Users/bryan/projects/nonprofit-manager/frontend/src/features/adminOps/adminNavigationCatalog.ts)
+  - Admin/report route architecture exists and is mounted under V2: [backend/src/routes/v2/index.ts](../../../backend/src/routes/v2/index.ts)
+  - Admin UI shells and route mappings: [frontend/src/features/adminOps/adminRouteManifest.ts](../../../frontend/src/features/adminOps/adminRouteManifest.ts), [frontend/src/features/adminOps/adminNavigationCatalog.ts](../../../frontend/src/features/adminOps/adminNavigationCatalog.ts)
 - Gap:
   - No dedicated board packet/leadership escalation orchestration seam observed as first-class workflow.
 
@@ -198,8 +198,8 @@ All checks used authenticated sessions where login was possible.
 
 - **Status tags:** CRM intake/reporting is `supported`, campaign communication cadence and stewardship handoffs are `partial`.
 - Evidence:
-  - Route coverage for finance/contacts/opportunities: [frontend/src/routes/routeCatalog/staffPeopleRoutes.ts](/Users/bryan/projects/nonprofit-manager/frontend/src/routes/routeCatalog/staffPeopleRoutes.ts), [frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](/Users/bryan/projects/nonprofit-manager/frontend/src/routes/routeCatalog/staffFinanceRoutes.ts)
-  - Tests cover donation/report surfaces: [e2e/tests/donations.spec.ts](/Users/bryan/projects/nonprofit-manager/e2e/tests/donations.spec.ts)
+  - Route coverage for finance/contacts/opportunities: [frontend/src/routes/routeCatalog/staffPeopleRoutes.ts](../../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts), [frontend/src/routes/routeCatalog/staffFinanceRoutes.ts](../../../frontend/src/routes/routeCatalog/staffFinanceRoutes.ts)
+  - Tests cover donation/report surfaces: [e2e/tests/donations.spec.ts](../../../e2e/tests/donations.spec.ts)
 - Gap:
   - Fundraiser role (`manager`) cannot complete password login in this run because `mfa_required=true`, limiting warm-path validation.
 
@@ -207,8 +207,8 @@ All checks used authenticated sessions where login was possible.
 
 - **Status tags:** admin management primitives are `supported`; packaging and compliance governance controls are `partial`.
 - Evidence:
-  - `/api/v2/users` routes are admin-gated (used for user create/access by permissions): [backend/src/modules/users/routes/index.ts](/Users/bryan/projects/nonprofit-manager/backend/src/modules/users/routes/index.ts), [backend/src/modules/users/controllers/userController.ts](/Users/bryan/projects/nonprofit-manager/backend/src/modules/users/controllers/userController.ts)
-  - Policy/permission enforcement: [backend/src/utils/permissions.ts](/Users/bryan/projects/nonprofit-manager/backend/src/utils/permissions.ts)
+  - `/api/v2/users` routes are admin-gated (used for user create/access by permissions): [backend/src/modules/users/routes/index.ts](../../../backend/src/modules/users/routes/index.ts), [backend/src/modules/users/controllers/userController.ts](../../../backend/src/modules/users/controllers/userController.ts)
+  - Policy/permission enforcement: [backend/src/utils/permissions.ts](../../../backend/src/utils/permissions.ts)
 - Gap:
   - End-to-end onboarding for admin/workflow owner in this environment is blocked by MFA gate before permission verification.
 
@@ -216,8 +216,8 @@ All checks used authenticated sessions where login was possible.
 
 - **Status tags:** read-only analytics/reporting is `supported`, but board governance overlays are `partial/missing`.
 - Evidence:
-  - `viewer` mapping and capability boundary: [backend/src/utils/roleSlug.ts](/Users/bryan/projects/nonprofit-manager/backend/src/utils/roleSlug.ts), [backend/src/utils/permissions.ts](/Users/bryan/projects/nonprofit-manager/backend/src/utils/permissions.ts)
-  - Report access route patterns: [frontend/src/routes/routeCatalog/staffInsightsRoutes.ts](/Users/bryan/projects/nonprofit-manager/frontend/src/routes/routeCatalog/staffInsightsRoutes.ts)
+  - `viewer` mapping and capability boundary: [backend/src/utils/roleSlug.ts](../../../backend/src/utils/roleSlug.ts), [backend/src/utils/permissions.ts](../../../backend/src/utils/permissions.ts)
+  - Report access route patterns: [frontend/src/routes/routeCatalog/staffInsightsRoutes.ts](../../../frontend/src/routes/routeCatalog/staffInsightsRoutes.ts)
 - Gaps:
   - No explicit conflict recusal/delegation authority module visible as in a governance workflow.
 
@@ -225,8 +225,8 @@ All checks used authenticated sessions where login was possible.
 
 - **Status tags:** core case/follow-up operations are `supported`; formalized handoff and continuity packeting are `partial`.
 - Evidence:
-  - Case route coverage: [frontend/src/routes/routeCatalog/staffPeopleRoutes.ts](/Users/bryan/projects/nonprofit-manager/frontend/src/routes/routeCatalog/staffPeopleRoutes.ts)
-  - Follow-up/report context: [backend/src/modules/followUps/routes/index.ts](/Users/bryan/projects/nonprofit-manager/backend/src/modules/followUps/routes/index.ts)
+  - Case route coverage: [frontend/src/routes/routeCatalog/staffPeopleRoutes.ts](../../../frontend/src/routes/routeCatalog/staffPeopleRoutes.ts)
+  - Follow-up/report context: [backend/src/modules/followUps/routes/index.ts](../../../backend/src/modules/followUps/routes/index.ts)
 - Gap:
   - Standardized handoff packet artifacts not fully productized.
 
@@ -234,8 +234,8 @@ All checks used authenticated sessions where login was possible.
 
 - **Status tags:** service/documentation primitives are `supported`; dedicated rehab program pathways are `partial`.
 - Evidence:
-  - Staff and case pages: [frontend/src/features/cases/pages/CaseDetailPage.tsx](/Users/bryan/projects/nonprofit-manager/frontend/src/features/cases/pages/CaseDetailPage.tsx), [frontend/src/features/portal/pages/PortalCaseDetailPage.tsx](/Users/bryan/projects/nonprofit-manager/frontend/src/features/portal/pages/PortalCaseDetailPage.tsx)
-  - Portal workflow surfaces: [frontend/src/features/portal/pages/PortalCasesPage.tsx](/Users/bryan/projects/nonprofit-manager/frontend/src/features/portal/pages/PortalCasesPage.tsx)
+  - Staff and case pages: [frontend/src/features/cases/pages/CaseDetailPage.tsx](../../../frontend/src/features/cases/pages/CaseDetailPage.tsx), [frontend/src/features/portal/pages/PortalCaseDetailPage.tsx](../../../frontend/src/features/portal/pages/PortalCaseDetailPage.tsx)
+  - Portal workflow surfaces: [frontend/src/features/portal/pages/PortalCasesPage.tsx](../../../frontend/src/features/portal/pages/PortalCasesPage.tsx)
 - Gap:
   - Vocational/rehab assessment templates and placement outcome benchmarking not yet dedicated as specialized package flow.
 
