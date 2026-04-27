@@ -37,11 +37,11 @@ Approved GitHub coverage:
 
 | Item | Result | Notes |
 |---|---|---|
-| Pull request | Pending | Add URL after branch push |
-| `Build Artifacts / docker-validate-sbom` | Pending | First run creates the branch-protection check context |
-| Existing required checks | Pending | `CI / full-ci`, `Security Scan / security-scan`, `CodeQL / codeql-js-ts`, and `Dependency Review / dependency-review` should remain required |
-| Branch protection | Pending | Add `Build Artifacts / docker-validate-sbom` after the check context exists |
-| Secret scanning alert | Pending | Resolve the open Twilio Account SID alert after fixture cleanup lands on `main` |
+| Pull request | Passed | [PR #12](https://github.com/West-Cat-Strategy/nonprofit-manager/pull/12) carries the build-artifact pilot branch |
+| `Build Artifacts / docker-validate-sbom` | Passed | [Run 25020856322 / job 73280705568](https://github.com/West-Cat-Strategy/nonprofit-manager/actions/runs/25020856322/job/73280705568) validates Dockerfiles and uploads the CycloneDX SBOM artifact |
+| Existing required checks | Passed | [CI / full-ci](https://github.com/West-Cat-Strategy/nonprofit-manager/actions/runs/25020856319/job/73280705577), [Security Scan / security-scan](https://github.com/West-Cat-Strategy/nonprofit-manager/actions/runs/25020856310/job/73280705498), [CodeQL / codeql-js-ts](https://github.com/West-Cat-Strategy/nonprofit-manager/actions/runs/25020856300/job/73280705567), and [Dependency Review / dependency-review](https://github.com/West-Cat-Strategy/nonprofit-manager/actions/runs/25020856317/job/73280705519) all passed on the PR branch |
+| Branch protection | Passed | `main` now requires `CI / full-ci`, `Security Scan / security-scan`, `CodeQL / codeql-js-ts`, `Dependency Review / dependency-review`, and `Build Artifacts / docker-validate-sbom`, with strict up-to-date checks enabled and force pushes/deletions disabled |
+| Secret scanning alert | Post-merge action | Resolve the open Twilio Account SID alert after fixture cleanup lands on `main`; branch proof includes sanitized fixtures, targeted Twilio tests, and a clean `make security-scan` |
 
 ## Acceptance
 
