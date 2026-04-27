@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import BookingCalendarView, { type BookingCalendarEntry } from '../BookingCalendarView';
+import { getVisibleMonthRange } from '../calendarRange';
 
 const sampleEntries: BookingCalendarEntry[] = [
   {
@@ -28,6 +29,7 @@ const malformedEntry: BookingCalendarEntry = {
 describe('BookingCalendarView', () => {
   it('reports the full visible grid range for the active month', async () => {
     const handleMonthRangeChange = vi.fn();
+    const mayRange = getVisibleMonthRange(new Date('2026-05-01T12:00:00.000Z'));
 
     render(
       <BookingCalendarView
@@ -38,10 +40,7 @@ describe('BookingCalendarView', () => {
     );
 
     await waitFor(() => {
-      expect(handleMonthRangeChange).toHaveBeenCalledWith({
-        startDate: expect.stringMatching(/^2026-04-26/),
-        endDate: expect.stringMatching(/^2026-06-07/),
-      });
+      expect(handleMonthRangeChange).toHaveBeenCalledWith(mayRange);
     });
   });
 

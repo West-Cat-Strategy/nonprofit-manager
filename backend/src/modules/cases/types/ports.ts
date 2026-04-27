@@ -31,6 +31,7 @@ export interface CaseCatalogPort {
   getCaseSummary(organizationId?: string): Promise<unknown>;
   getCaseTypes(): Promise<unknown[]>;
   getCaseStatuses(): Promise<unknown[]>;
+  getCaseHandoffPacket(caseId: string, organizationId?: string): Promise<unknown>;
 }
 
 export interface CaseLifecyclePort {

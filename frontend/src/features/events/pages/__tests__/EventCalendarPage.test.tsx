@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { useLocation } from 'react-router-dom';
 import EventCalendarPage from '../EventCalendarPage';
+import { getVisibleMonthRange } from '../../../../components/calendar/calendarRange';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const {
@@ -54,6 +55,8 @@ describe('EventCalendarPage', () => {
   });
 
   it('renders the same calendar-first workspace on the legacy /events/calendar alias', async () => {
+    const mayRange = getVisibleMonthRange(new Date('2026-05-01T12:00:00.000Z'));
+
     renderWithProviders(<EventCalendarPage />, {
       route: '/events/calendar?month=2026-05&date=2026-05-12',
     });
@@ -65,8 +68,8 @@ describe('EventCalendarPage', () => {
     await waitFor(() => {
       expect(listEventOccurrencesMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          startDate: expect.stringMatching(/^2026-04-26/),
-          endDate: expect.stringMatching(/^2026-06-07/),
+          startDate: mayRange.startDate,
+          endDate: mayRange.endDate,
         })
       );
     });

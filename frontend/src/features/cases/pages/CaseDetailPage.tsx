@@ -16,6 +16,7 @@ import { getCasePriorityBadgeColor } from '../utils/casePriority';
 import CaseTeamChatPanel from '../../teamChat/components/CaseTeamChatPanel';
 import CaseDetailTabs from '../components/CaseDetailTabs';
 import CaseStatusChangeModal from '../components/CaseStatusChangeModal';
+import { CaseHandoffModal } from '../components/CaseHandoffModal';
 import CaseFormsPanel from '../components/CaseFormsPanel';
 import CaseReassessmentPanel from '../components/CaseReassessmentPanel';
 import CasePortalEscalationsPanel from '../components/CasePortalEscalationsPanel';
@@ -71,6 +72,7 @@ const CaseDetail = () => {
     handleOpenNotes,
     handleOpenDocuments,
     handleToggleClientViewable,
+    handleGenerateHandoff,
     handleDelete,
     closeStatusChangeModal,
     resetMilestoneForm,
@@ -80,6 +82,9 @@ const CaseDetail = () => {
     handleDeleteMilestone,
     handleToggleMilestoneComplete,
     refreshCaseArtifacts,
+    handoffPacket,
+    isHandoffModalOpen,
+    setIsHandoffModalOpen,
   } = useCaseDetailPage();
 
   if (id && !hasValidId) {
@@ -206,6 +211,9 @@ const CaseDetail = () => {
                 <BrutalButton onClick={handleOpenDocuments} variant="secondary" size="sm">
                   Upload Document
                 </BrutalButton>
+                <BrutalButton onClick={handleGenerateHandoff} variant="secondary" size="sm">
+                  Generate Handoff
+                </BrutalButton>
               </div>
               <div className="flex gap-2">
                 <BrutalButton onClick={handleNavigateEdit} variant="secondary">
@@ -293,6 +301,12 @@ const CaseDetail = () => {
           onOutcomeVisibilityChange={setStatusOutcomeVisibility}
           onCancel={closeStatusChangeModal}
           onSubmit={handleStatusChange}
+        />
+
+        <CaseHandoffModal
+          isOpen={isHandoffModalOpen}
+          onClose={() => setIsHandoffModalOpen(false)}
+          data={handoffPacket}
         />
 
         <CaseDetailTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTabWithUrl} />

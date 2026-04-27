@@ -35,4 +35,4 @@
 
 - `make lint` initially surfaced a stale UI-audit baseline that had been hidden by the implementation-size policy blocker; the baseline was updated to the current scan values and then passed through the root lint gate.
 - Existing unrelated worktree changes, including API-key/Mailchimp route hardening and pre-existing Phase 5 proof docs, were preserved.
-- `P5-T12` is intentionally not executed in this proof note; it remains the later full host/Docker browser-runtime validation lane.
+- `P5-T12` was intentionally outside this cleanup proof note; its full host/Docker browser-runtime validation is recorded in [PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md).

@@ -1,6 +1,6 @@
 # Phase 5 Testing Strategy Review
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-04-26
 
 
 **Date:** 2026-04-20  
@@ -24,18 +24,47 @@ The final `P5-T2B` proof command was `cd e2e && npm run test:docker:ci`. It pass
 
 ## P5-T12 Full E2E Review - 2026-04-25
 
-`P5-T12` is signed out for the final full E2E/Playwright clean-green validation lane after the cleanup implementation rows were signed off in [../phases/archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](../phases/archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md).
+Status: Complete; move `P5-T12` to `Review`.
 
-Planned proof order:
+`P5-T12` was signed out for the final full E2E/Playwright clean-green validation lane after the cleanup implementation rows were signed off in [../phases/archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](../phases/archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md). The lane is now green across host proof, fresh-stack Docker CI, and fresh-stack Docker audit.
+
+Proof order:
 
 1. `make ci-full`
 2. `DEV_NODE_ENV=test DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true make docker-up-dev`
 3. `cd e2e && npm run test:docker:ci`
 4. `cd e2e && npm run test:docker:audit`
 
-The standalone `make test-e2e-docker-smoke` rerun is skipped unless the host proof is narrower than a clean `make ci-full`, because `make ci-full` already includes the isolated Docker smoke gate. The fresh starter-only MFA proof remains a separate direct-run lane and is not part of the wrapper-driven `test:docker:*` sequence.
+Host proof:
 
-Current status: `make ci-full` pending.
+- `make ci-full`
+  - Result: Passed on 2026-04-26.
+  - Lint, UI audit, typecheck, backend build, frontend build, frontend bundle budget, backend `npm audit --omit=dev --audit-level=moderate`, and frontend `npm audit --omit=dev --audit-level=moderate` all passed. Both package audits reported `0` vulnerabilities.
+  - Backend coverage: `228` suites passed, `1914` tests passed in `80.469s`.
+  - Frontend coverage: `233` files passed, `1241` tests passed in `53.88s`.
+  - Host Playwright desktop matrix: `982` passed, `11` skipped in `36.6m`.
+  - Host Mobile Chrome follow-on: `3` passed in `36.1s`.
+  - Isolated Docker smoke inside `ci-full`: `4` passed in `9.7s`.
+
+Docker proof:
+
+- Fresh Docker stack: `COMPOSE_PROJECT_DEV=nonprofit-p5t12 DEV_DB_PORT=18102 DEV_REDIS_PORT=18103 DEV_BACKEND_PORT=18104 DEV_FRONTEND_PORT=18105 DEV_PUBLIC_SITE_PORT=18106 DEV_NODE_ENV=test DEV_BYPASS_REGISTRATION_POLICY_IN_TEST=true DEV_BYPASS_MFA_FOR_TESTS=true make docker-up-dev`.
+  - Result: Passed readiness on a fresh stack with `schema_migrations` count `107`; `case_reassessment_cycles`, `donor_profiles`, `public_intake_resolutions`, and `queue_view_definitions` were present.
+  - Backend test env confirmed `NODE_ENV=test`, `BYPASS_REGISTRATION_POLICY_IN_TEST=true`, and `BYPASS_MFA_FOR_TESTS=true`.
+- `E2E_BACKEND_PORT=18104 E2E_FRONTEND_PORT=18105 E2E_PUBLIC_SITE_PORT=18106 E2E_DB_PORT=18102 E2E_READY_URLS="http://127.0.0.1:18104/health/ready http://127.0.0.1:18105 http://127.0.0.1:18106/health/ready" E2E_REQUIRED_PORTS="18104 18105 18106" npm run test:docker:ci`
+  - Result: Passed on 2026-04-26 against the fresh `nonprofit-p5t12` stack.
+  - Docker desktop matrix: `982` passed, `11` skipped in `43.2m`.
+  - Docker Mobile Chrome follow-on: `3` passed in `10.3s`.
+- `E2E_BACKEND_PORT=18104 E2E_FRONTEND_PORT=18105 E2E_PUBLIC_SITE_PORT=18106 E2E_DB_PORT=18102 E2E_READY_URLS="http://127.0.0.1:18104/health/ready http://127.0.0.1:18105 http://127.0.0.1:18106/health/ready" E2E_REQUIRED_PORTS="18104 18105 18106" npm run test:docker:audit`
+  - Result: Passed on 2026-04-26 against the fresh `nonprofit-p5t12` stack; `1` Chromium dark-mode accessibility audit test passed in `2.8m`.
+
+Resolved non-product failures and environment notes:
+
+- The earlier default Docker stack failure on `8004`/`8005`/`8006` was traced to a stale `nonprofit-dev` Postgres volume: `schema_migrations` count `101`, with `queue_view_definitions`, `donor_profiles`, and `public_intake_resolutions` missing. The fresh `nonprofit-p5t12` stack had the current schema and passed the targeted route-health/setup slice, full Docker CI, and Docker audit gates.
+- One earlier host attempt was intentionally stopped after Docker Desktop's socket disappeared and `/api/v2/auth/setup-status` returned `ECONNREFUSED`; Docker Desktop was relaunched before the final host proof.
+- One backend coverage rerun surfaced a transient meetings fixture `401`; the targeted meetings integration test and backend coverage rerun passed, and the final `make ci-full` did not reproduce the issue.
+
+The standalone `make test-e2e-docker-smoke` rerun was not repeated after the final `make ci-full` because `make ci-full` already includes the isolated Docker smoke gate. The fresh starter-only MFA proof remains a separate direct-run lane and was not rerun because the final all-green evidence did not require additional MFA-specific coverage.
 
 ## Environment Notes
 

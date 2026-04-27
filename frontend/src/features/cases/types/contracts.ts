@@ -39,6 +39,7 @@ import type {
   UpdateCaseReassessmentDTO,
   UpdateCaseServiceDTO,
   UpdateCaseStatusDTO,
+  CaseHandoffPacket,
 } from '../../../types/case';
 import type {
   InteractionOutcomeImpact,
@@ -147,4 +148,5 @@ export interface CasesApiClientPort {
     interactionId: string,
     payload: UpdateInteractionOutcomesInput
   ): Promise<InteractionOutcomeImpact[]>;
+  getCaseHandoffPacket(caseId: string): Promise<CaseHandoffPacket>;
 }

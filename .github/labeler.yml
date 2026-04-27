@@ -1,0 +1,47 @@
+# Labeler configuration for actions/labeler@v5
+# Labels are applied to pull requests based on changed file paths.
+# Labels must exist in the repository before they can be applied.
+# Create labels via: GitHub UI → Issues → Labels
+
+backend:
+  - changed-files:
+    - any-glob-to-any-file: "backend/**"
+
+frontend:
+  - changed-files:
+    - any-glob-to-any-file: "frontend/**"
+
+e2e:
+  - changed-files:
+    - any-glob-to-any-file: "e2e/**"
+
+docs:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "docs/**"
+      - "*.md"
+      - "agents.md"
+      - "CONTRIBUTING.md"
+      - "README.md"
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - ".github/workflows/**"
+      - ".github/dependabot.yml"
+      - ".github/dependency-review-config.yml"
+      - ".github/zizmor.yml"
+      - "Makefile"
+      - "scripts/**"
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "package.json"
+      - "package-lock.json"
+      - "backend/package.json"
+      - "backend/package-lock.json"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - "e2e/package.json"
+      - "e2e/package-lock.json"

@@ -16,6 +16,7 @@ import {
   getCaseTimelineQuery,
   getCaseTypesQuery,
 } from '../queries/catalogQueries';
+import { getCaseHandoffPacketQuery } from '../queries/handoffQueries';
 import {
   bulkUpdateStatusQuery,
   createCaseQuery,
@@ -52,6 +53,10 @@ export class CaseRepository implements CaseCatalogPort, CaseLifecyclePort {
 
   async getCaseStatuses(): Promise<unknown[]> {
     return getCaseStatusesQuery(pool);
+  }
+
+  async getCaseHandoffPacket(caseId: string, organizationId?: string): Promise<unknown> {
+    return getCaseHandoffPacketQuery(pool, caseId, organizationId);
   }
 
   async createCase(data: CreateCaseDTO, userId?: string, organizationId?: string): Promise<unknown> {

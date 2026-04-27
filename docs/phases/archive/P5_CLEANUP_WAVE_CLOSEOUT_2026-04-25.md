@@ -28,4 +28,4 @@ This artifact preserves the signoff chain for the cleanup implementation rows pr
 
 The row-local proof note records green `make lint-implementation-size`, backend and frontend type-checks, root `make typecheck`, `npm run knip`, `make check-links`, `make lint-doc-api-versioning`, `make test-tooling`, `make db-verify`, targeted backend and frontend behavior tests, `cd frontend && npm run lint`, `make lint`, and `git diff --check`.
 
-`P5-T12` remains the separate full E2E/Playwright review lane and must record fresh host-first proof before Docker follow-ons.
+`P5-T12` remains a separate full E2E/Playwright review lane; its fresh host-first and Docker follow-on proof is recorded in [../../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md).

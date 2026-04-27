@@ -44,6 +44,7 @@ import type {
   UpdateCaseReassessmentDTO,
   UpdateCaseServiceDTO,
   UpdateCaseStatusDTO,
+  CaseHandoffPacket,
 } from '../../../types/case';
 import type {
   InteractionOutcomeImpact,
@@ -516,6 +517,11 @@ export class CasesApiClient implements CasesApiClientPort {
       `/v2/cases/${caseId}/interactions/${interactionId}/outcomes`,
       payload
     );
+    return unwrapApiData(response.data);
+  }
+
+  async getCaseHandoffPacket(caseId: string): Promise<CaseHandoffPacket> {
+    const response = await api.get<ApiEnvelope<CaseHandoffPacket>>(`/v2/cases/${caseId}/handoff-packet`);
     return unwrapApiData(response.data);
   }
 }

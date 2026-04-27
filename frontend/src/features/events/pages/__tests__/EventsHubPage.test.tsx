@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import { useLocation } from 'react-router-dom';
 import EventList from '../EventsHubPage';
+import { getVisibleMonthRange } from '../../../../components/calendar/calendarRange';
 import { renderWithProviders } from '../../../../test/testUtils';
 
 const {
@@ -74,6 +75,8 @@ describe('EventList page', () => {
   });
 
   it('restores workspace filters from the URL and loads month occurrences', async () => {
+    const mayRange = getVisibleMonthRange(new Date('2026-05-01T12:00:00.000Z'));
+
     renderWithProviders(<EventList />, {
       route: '/events?month=2026-05&date=2026-05-12&search=clinic&type=community&status=planned',
     });
@@ -90,8 +93,8 @@ describe('EventList page', () => {
           search: 'clinic',
           eventType: 'community',
           status: 'planned',
-          startDate: expect.stringMatching(/^2026-04-26/),
-          endDate: expect.stringMatching(/^2026-06-07/),
+          startDate: mayRange.startDate,
+          endDate: mayRange.endDate,
         })
       );
     });
@@ -115,6 +118,8 @@ describe('EventList page', () => {
   });
 
   it('reloads the workspace when the visible month changes', async () => {
+    const juneRange = getVisibleMonthRange(new Date('2026-06-01T12:00:00.000Z'));
+
     renderWithProviders(<EventList />, {
       route: '/events?month=2026-05&date=2026-05-12',
     });
@@ -128,8 +133,8 @@ describe('EventList page', () => {
     await waitFor(() => {
       expect(listEventOccurrencesMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          startDate: expect.stringMatching(/^2026-05-31/),
-          endDate: expect.stringMatching(/^2026-07-05/),
+          startDate: juneRange.startDate,
+          endDate: juneRange.endDate,
         })
       );
     });
@@ -227,6 +232,7 @@ describe('EventList page', () => {
   });
 
   it('loads event occurrences, appointments, and slots for admin scope=all within the visible range', async () => {
+    const mayRange = getVisibleMonthRange(new Date('2026-05-01T12:00:00.000Z'));
     canAccessAdminSettingsMock.mockReturnValue(true);
     listAppointmentsAllMock.mockResolvedValue([
       {
@@ -270,20 +276,20 @@ describe('EventList page', () => {
     await waitFor(() => {
       expect(listEventOccurrencesMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          startDate: expect.stringMatching(/^2026-04-26/),
-          endDate: expect.stringMatching(/^2026-06-07/),
+          startDate: mayRange.startDate,
+          endDate: mayRange.endDate,
         })
       );
       expect(listAppointmentsAllMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          date_from: expect.stringMatching(/^2026-04-26/),
-          date_to: expect.stringMatching(/^2026-06-07/),
+          date_from: mayRange.startDate,
+          date_to: mayRange.endDate,
         })
       );
       expect(listAppointmentSlotsAllMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          from: expect.stringMatching(/^2026-04-26/),
-          to: expect.stringMatching(/^2026-06-07/),
+          from: mayRange.startDate,
+          to: mayRange.endDate,
         })
       );
     });
