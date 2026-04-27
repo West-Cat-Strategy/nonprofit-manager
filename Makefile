@@ -547,7 +547,7 @@ build-frontend:
 	node scripts/check-frontend-bundle-size.js
 
 #------------------------------------------------------------------------------
-# CI Pipelines (replaces GitHub Actions)
+# CI Pipelines
 #------------------------------------------------------------------------------
 ci:
 	@echo ""
@@ -612,7 +612,7 @@ doctor:
 	@./scripts/doctor.sh
 
 #------------------------------------------------------------------------------
-# Deployment (replaces GitHub Actions deploy workflow)
+# Deployment
 #------------------------------------------------------------------------------
 deploy-local:
 	@echo "$(BLUE)Deploying locally (Docker rebuild)...$(RESET)"
@@ -627,7 +627,7 @@ deploy:
 	@./scripts/deploy.sh production
 
 #------------------------------------------------------------------------------
-# Git Hooks (replaces GitHub Actions PR checks)
+# Git Hooks
 #------------------------------------------------------------------------------
 hooks:
 	@echo "$(BLUE)Installing git hooks...$(RESET)"
