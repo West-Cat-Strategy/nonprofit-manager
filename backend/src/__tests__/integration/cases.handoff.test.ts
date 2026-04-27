@@ -100,6 +100,7 @@ describe('Case Handoff Packet Integration Tests', () => {
   afterAll(async () => {
     if (caseId) {
       await pool.query('DELETE FROM case_milestones WHERE case_id = $1', [caseId]);
+      await pool.query('DELETE FROM case_notes WHERE case_id = $1', [caseId]);
       await pool.query('DELETE FROM cases WHERE id = $1', [caseId]);
     }
     if (contactId) {
@@ -133,7 +134,7 @@ describe('Case Handoff Packet Integration Tests', () => {
     expect(packet.risks.risk_summary).toContain('High Priority');
     expect(packet.risks.risk_summary).toContain('1 Overdue Milestones');
 
-    expect(packet.artifacts_summary.notes_count).toBe(0);
+    expect(packet.artifacts_summary.notes_count).toBe(1);
     expect(packet.artifacts_summary.documents_count).toBe(0);
     
     expect(packet.next_actions.pending_milestones.length).toBe(1);

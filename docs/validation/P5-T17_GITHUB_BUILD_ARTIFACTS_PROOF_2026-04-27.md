@@ -29,6 +29,7 @@ Approved GitHub coverage:
 | `make security-scan` | Passed | Backend/frontend npm audit passed; gitleaks found no leaks |
 | `npm run --silent sbom` parse check | Passed | Generated CycloneDX `1.5` JSON with 1112 components |
 | GitHub build-artifact first run | Failed, fixed in branch | The first run used runner-bundled npm `11.12.1`; `npm sbom` failed with `ESBOMPROBLEMS` on existing security overrides, so npm-using workflows now pin npm `11.0.0` after Node setup |
+| GitHub CI first rerun | Failed, fixed in branch | The handoff integration fixture expected zero notes, but case creation intentionally adds a `Case created` note; the expectation now matches `notes_count = 1` and cleanup deletes test notes explicitly |
 | `make docker-validate` | Blocked locally | Docker daemon unavailable at `/Users/bryan/.docker/run/docker.sock`; GitHub runner must provide this proof |
 | `cd backend && npx jest --runInBand src/__tests__/integration/cases.handoff.test.ts` | Blocked locally | Isolated test DB unavailable at `127.0.0.1:8012`; GitHub `CI / full-ci` must provide this proof |
 
