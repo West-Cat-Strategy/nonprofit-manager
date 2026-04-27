@@ -30,7 +30,7 @@
 
 ## Validation
 
-- `cd frontend && npm test -- --run src/features/websites/pages/__tests__/WebsitePublishingPage.test.tsx src/features/websites/pages/__tests__/WebsiteOverviewPage.test.tsx src/features/websites/pages/__tests__/WebsiteFormsPage.test.tsx src/features/builder/pages/__tests__/usePageEditorController.test.tsx src/components/editor/__tests__/EditorHeader.test.tsx`
+- `cd frontend && npm test -- --run src/features/websites/pages/__tests__/WebsitePublishingPage.test.tsx src/features/websites/pages/__tests__/WebsiteOverviewPage.test.tsx src/features/websites/pages/__tests__/WebsiteFormsPage.test.tsx src/features/builder/pages/__tests__/usePageEditorController.test.tsx src/features/builder/components/editor/__tests__/EditorHeader.test.tsx`
   - Result: Passed on 2026-04-20. `5` files and `12` tests green.
 - `make check-links`
   - Result: Passed on 2026-04-20. Checked `124` files and `993` local links with no broken active-doc links.

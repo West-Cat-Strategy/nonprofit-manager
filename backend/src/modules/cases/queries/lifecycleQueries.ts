@@ -12,7 +12,7 @@ import type {
 import { createCaseWorkflowArtifacts } from '@services/caseWorkflowService';
 import { generateCaseNumber, normalizeCasePriority, requireCaseOwnership } from './shared';
  
-type PgExecutor = Pool | PoolClient;
+export type PgExecutor = Pool | PoolClient;
 
 const dedupeStrings = (values: Array<string | null | undefined>): string[] => {
   const result: string[] = [];

@@ -35,6 +35,9 @@ jest.mock('@utils/encryption', () => ({
   decrypt: jest.fn(() => 'twilio-auth-token'),
 }));
 
+const TEST_ACCOUNT_SID = ['AC', '1234567890abcdef1234567890abcdef'].join('');
+const TEST_MESSAGING_SERVICE_SID = ['MG', '1234567890abcdef1234567890abcdef'].join('');
+
 type TwilioSettingsRow = {
   id: string;
   account_sid: string | null;
@@ -51,14 +54,12 @@ type TwilioSettingsRow = {
 describe('twilioSmsService', () => {
   const mockQuery = pool.query as jest.Mock;
   const mockTwilio = twilio as unknown as jest.Mock;
-  const testAccountSid = ['AC', '1234567890abcdef1234567890abcdef'].join('');
-  const testMessagingServiceSid = ['MG', '1234567890abcdef1234567890abcdef'].join('');
 
   const makeSettingsRow = (overrides: Partial<TwilioSettingsRow> = {}): TwilioSettingsRow => ({
     id: 'twilio-settings-1',
-    account_sid: testAccountSid,
+    account_sid: TEST_ACCOUNT_SID,
     auth_token_encrypted: 'enc:twilio-auth-token',
-    messaging_service_sid: testMessagingServiceSid,
+    messaging_service_sid: TEST_MESSAGING_SERVICE_SID,
     from_phone_number: null,
     is_configured: true,
     last_tested_at: null,
@@ -93,13 +94,13 @@ describe('twilioSmsService', () => {
       sid: 'SM1234567890abcdef1234567890abcdef',
     });
 
-    expect(mockTwilio).toHaveBeenCalledWith(testAccountSid, 'twilio-auth-token', {
+    expect(mockTwilio).toHaveBeenCalledWith(TEST_ACCOUNT_SID, 'twilio-auth-token', {
       timeout: 15000,
     });
     expect(messagesCreateMock).toHaveBeenCalledWith({
       to: '+15551234567',
       body: 'Hello from Twilio',
-      messagingServiceSid: testMessagingServiceSid,
+      messagingServiceSid: TEST_MESSAGING_SERVICE_SID,
     });
   });
 
@@ -144,7 +145,7 @@ describe('twilioSmsService', () => {
       error: 'Request timed out',
     });
 
-    expect(mockTwilio).toHaveBeenCalledWith(testAccountSid, 'twilio-auth-token', {
+    expect(mockTwilio).toHaveBeenCalledWith(TEST_ACCOUNT_SID, 'twilio-auth-token', {
       timeout: 15000,
     });
   });
@@ -155,14 +156,14 @@ describe('twilioSmsService', () => {
       .mockResolvedValueOnce({ rows: [makeSettingsRow()] })
       .mockResolvedValueOnce({ rows: [] });
     accountFetchMock.mockResolvedValueOnce({
-      sid: testAccountSid,
+      sid: TEST_ACCOUNT_SID,
     });
 
     await expect(testTwilioConnection()).resolves.toEqual({
       success: true,
     });
 
-    expect(accountsMock).toHaveBeenCalledWith(testAccountSid);
+    expect(accountsMock).toHaveBeenCalledWith(TEST_ACCOUNT_SID);
     expect(mockQuery).toHaveBeenNthCalledWith(
       3,
       expect.stringContaining('UPDATE twilio_settings'),
@@ -182,7 +183,7 @@ describe('twilioSmsService', () => {
       error: 'Authentication failed',
     });
 
-    expect(accountsMock).toHaveBeenCalledWith(testAccountSid);
+    expect(accountsMock).toHaveBeenCalledWith(TEST_ACCOUNT_SID);
     expect(mockQuery).toHaveBeenNthCalledWith(
       3,
       expect.stringContaining('UPDATE twilio_settings'),

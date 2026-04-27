@@ -1,7 +1,6 @@
 import React from 'react';
 import type { CaseHandoffPacket as HandoffData } from '../../../types/case';
-import BrutalCard from '../../../components/neo-brutalist/BrutalCard';
-import BrutalBadge from '../../../components/neo-brutalist/BrutalBadge';
+import { BrutalBadge, BrutalCard } from '../../../components/neo-brutalist';
 import { format } from 'date-fns';
 
 interface CaseHandoffPacketProps {
@@ -10,13 +9,6 @@ interface CaseHandoffPacketProps {
 
 export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) => {
   const { case_details, risks, next_actions, artifacts_summary, generated_at } = data;
-  const artifactStats = [
-    { label: 'Services', count: artifacts_summary.services_count },
-    { label: 'Forms', count: artifacts_summary.forms_count },
-    { label: 'Appointments', count: artifacts_summary.appointments_count },
-    { label: 'Notes', count: artifacts_summary.notes_count },
-    { label: 'Documents', count: artifacts_summary.documents_count },
-  ];
 
   return (
     <div className="p-4 space-y-8 max-w-4xl mx-auto print:p-0 print:space-y-4 print:max-w-none">
@@ -43,7 +35,7 @@ export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) =>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="font-bold uppercase text-sm text-app-text-muted">Current Status</span>
-              <BrutalBadge color="blue">
+              <BrutalBadge color="blue" className="bg-app-accent-soft text-app-accent-text">
                 {case_details.status_name}
               </BrutalBadge>
             </div>
@@ -51,6 +43,7 @@ export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) =>
               <span className="font-bold uppercase text-sm text-app-text-muted">Priority</span>
               <BrutalBadge 
                 color={case_details.is_urgent ? 'red' : 'blue'}
+                className={!case_details.is_urgent ? 'bg-app-accent-soft text-app-accent-text' : ''}
               >
                 {case_details.priority}
               </BrutalBadge>
@@ -128,9 +121,15 @@ export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) =>
       <BrutalCard className="bg-app-surface-muted">
         <h2 className="text-xl font-black uppercase mb-4 border-b-2 border-app-border pb-2">Artifact Counts</h2>
         <div className="flex flex-wrap gap-4 justify-around print:justify-start print:gap-8">
-          {artifactStats.map(stat => (
+          {[
+            { label: 'Services', count: artifacts_summary.services_count },
+            { label: 'Forms', count: artifacts_summary.forms_count },
+            { label: 'Appointments', count: artifacts_summary.appointments_count },
+            { label: 'Notes', count: artifacts_summary.notes_count },
+            { label: 'Documents', count: artifacts_summary.documents_count },
+          ].map(stat => (
             <div key={stat.label} className="text-center">
-              <div className="w-16 h-16 border-4 border-app-border bg-app-accent-soft text-app-accent-text shadow-brutal flex items-center justify-center text-2xl font-black mb-2 print:w-10 print:h-10 print:text-sm print:border-2">
+              <div className="w-16 h-16 border-4 border-app-border bg-app-accent-soft text-app-accent-text shadow-[4px_4px_0px_0px_var(--shadow-color)] flex items-center justify-center text-2xl font-black mb-2 print:w-10 print:h-10 print:text-sm print:border-2">
                 {stat.count}
               </div>
               <p className="font-bold uppercase text-[10px]">{stat.label}</p>
@@ -157,7 +156,7 @@ export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) =>
         </p>
         <button 
           onClick={() => window.print()} 
-          className="bg-app-text-heading text-app-bg px-6 py-2 font-black uppercase hover:bg-app-surface hover:text-app-text-heading border-4 border-app-border transition-colors print:hidden"
+          className="bg-app-text text-app-surface px-6 py-2 font-black uppercase hover:bg-app-surface hover:text-app-text border-4 border-app-border transition-colors print:hidden"
         >
           Print Packet
         </button>
