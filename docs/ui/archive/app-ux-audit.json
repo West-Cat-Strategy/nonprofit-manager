@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-27T00:00:00Z",
+  "generatedAt": "2026-04-22T00:00:00Z",
   "baseline": {
     "auditedAt": "2026-03-05T00:00:00.000Z",
     "staticAudit": {
@@ -91,9 +91,9 @@
       "brokenTargets": [],
       "styleAudit": {
         "hardcodedColorUtilities": 1397,
-        "semanticTokenUtilities": 9579,
+        "semanticTokenUtilities": 9584,
         "inlineStyleUsages": 58,
-        "ratioSemanticToHardcoded": 6.8568
+        "ratioSemanticToHardcoded": 6.8604
       },
       "disallowedInlineStylePaths": []
     },
