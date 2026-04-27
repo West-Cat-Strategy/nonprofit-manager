@@ -34,6 +34,9 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Align npm with local baseline
+        run: npm install --global npm@11.0.0
+
       - name: Install dependencies
         run: npm ci
 

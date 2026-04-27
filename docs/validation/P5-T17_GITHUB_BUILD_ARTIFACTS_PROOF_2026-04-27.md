@@ -12,7 +12,7 @@ Approved GitHub coverage:
 
 - `Build Artifacts / docker-validate-sbom`: runs `make docker-validate`, generates a CycloneDX SBOM with the `npm run sbom` script in CI silent mode, and uploads the SBOM as a short-retention artifact.
 - Weekly CodeQL, security-scan, and build-artifact schedules in UTC.
-- Node `25.x` workflow parity with the local development/runtime baseline.
+- Node `25.x` and npm `11.0.0` workflow parity with the local development/runtime baseline.
 - Twilio fixture cleanup so provider-shaped test values do not remain as open secret-scanning noise.
 
 ## Local Proof
@@ -28,6 +28,7 @@ Approved GitHub coverage:
 | `make ci-fast` | Passed | Backend lint/policy checks, frontend lint, backend/frontend/contracts type-check passed |
 | `make security-scan` | Passed | Backend/frontend npm audit passed; gitleaks found no leaks |
 | `npm run --silent sbom` parse check | Passed | Generated CycloneDX `1.5` JSON with 1112 components |
+| GitHub build-artifact first run | Failed, fixed in branch | The first run used runner-bundled npm `11.12.1`; `npm sbom` failed with `ESBOMPROBLEMS` on existing security overrides, so npm-using workflows now pin npm `11.0.0` after Node setup |
 | `make docker-validate` | Blocked locally | Docker daemon unavailable at `/Users/bryan/.docker/run/docker.sock`; GitHub runner must provide this proof |
 | `cd backend && npx jest --runInBand src/__tests__/integration/cases.handoff.test.ts` | Blocked locally | Isolated test DB unavailable at `127.0.0.1:8012`; GitHub `CI / full-ci` must provide this proof |
 
