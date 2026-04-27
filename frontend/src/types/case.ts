@@ -871,6 +871,10 @@ export interface UpdateCaseServiceDTO {
   notes?: string;
 }
 
+export * from './caseClosure';
+export * from './caseHandoff';
+
+
 export type {
   CaseMilestonesResponse,
   CaseNotesResponse,

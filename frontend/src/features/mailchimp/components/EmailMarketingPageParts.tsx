@@ -1,9 +1,5 @@
 import type { ComponentProps } from 'react';
 import { CampaignCreateModal as CampaignCreateModalContent } from './CampaignCreateModal';
-import type {
-  MailchimpList,
-  CampaignRun,
-} from '../../../types/mailchimp';
 
 export function SyncResultModal({
   result,

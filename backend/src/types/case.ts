@@ -807,3 +807,6 @@ export interface UpdateCaseServiceDTO {
   currency?: string;
   notes?: string;
 }
+
+export * from './caseClosure';
+export * from './caseHandoff';

@@ -118,7 +118,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [Phase 5 Development Plan](phases/PHASE_5_DEVELOPMENT_PLAN.md)
 - [Modularity, Simplicity, and Reuse Plan](refactoring/MODULARITY_SIMPLICITY_REUSE_PLAN_2026-04.md)
 - [P5-T6 Backlog Synthesis](phases/P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md)
-- [P5-T6 Capability Briefs](phases/P5-T6_CAPABILITY_BRIEWS_2026-04-23.md)
+- [P5-T6 Capability Briefs](phases/P5-T6_CAPABILITY_BRIEFS_2026-04-23.md)
 - [P5-T6A Governance and Compliance Oversight Brief](phases/P5-T6A_GOVERNANCE_COMPLIANCE_BRIEF_2026-04-24.md)
 - [P5-T6B Fundraising Stewardship and Restrictions Brief](phases/P5-T6B_FUNDRAISING_STEWARDSHIP_RESTRICTIONS_BRIEF_2026-04-25.md)
 - [P5-T6C Service-Delivery Workflow Depth Brief](phases/P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md)
