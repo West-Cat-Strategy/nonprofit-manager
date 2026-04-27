@@ -31,6 +31,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 | Contributor workflow | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Start here before any edits |
 | Live tracked work | [phases/planning-and-progress.md](phases/planning-and-progress.md) | Current source of truth for row-level status |
 | Current phase roadmap | [phases/PHASE_5_DEVELOPMENT_PLAN.md](phases/PHASE_5_DEVELOPMENT_PLAN.md) | Phase 5 goals, sequence, gaps, and exit criteria |
+| Refactoring plans and handoffs | [refactoring/README.md](refactoring/README.md) | Durable broad-refactor planning and evidence notes |
 | Historical phase material | [phases/archive/README.md](phases/archive/README.md) | Use for provenance, not current status |
 | Runtime setup and ports | [development/GETTING_STARTED.md](development/GETTING_STARTED.md) | Docker, direct app, public-site, worker, and Playwright runtime contracts |
 | Validation and testing | [testing/TESTING.md](testing/TESTING.md) | Active test-command selection map |
@@ -64,6 +65,7 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 - [Backend Module Ownership Map](development/BACKEND_MODULE_OWNERSHIP_MAP.md)
 - [Compatibility Shim Deprecation Ledger](development/COMPATIBILITY_SHIM_DEPRECATION_LEDGER.md)
 - [Retained Reference Patterns](development/reference-patterns/README.md)
+- [Refactoring Notes](refactoring/README.md)
 - [Agent Terminology](../agents.md)
 - [Quick Command Reference](quick-reference/QUICK_REFERENCE.md)
 
@@ -114,8 +116,9 @@ If the task is tracked or resumed, open [**Planning and Progress**](phases/plann
 ### Governance And History
 - [Planning and Progress](phases/planning-and-progress.md)
 - [Phase 5 Development Plan](phases/PHASE_5_DEVELOPMENT_PLAN.md)
+- [Modularity, Simplicity, and Reuse Plan](refactoring/MODULARITY_SIMPLICITY_REUSE_PLAN_2026-04.md)
 - [P5-T6 Backlog Synthesis](phases/P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md)
-- [P5-T6 Capability Briefs](phases/P5-T6_CAPABILITY_BRIEFS_2026-04-23.md)
+- [P5-T6 Capability Briefs](phases/P5-T6_CAPABILITY_BRIEWS_2026-04-23.md)
 - [P5-T6A Governance and Compliance Oversight Brief](phases/P5-T6A_GOVERNANCE_COMPLIANCE_BRIEF_2026-04-24.md)
 - [P5-T6B Fundraising Stewardship and Restrictions Brief](phases/P5-T6B_FUNDRAISING_STEWARDSHIP_RESTRICTIONS_BRIEF_2026-04-25.md)
 - [P5-T6C Service-Delivery Workflow Depth Brief](phases/P5-T6C_SERVICE_DELIVERY_WORKFLOW_DEPTH_BRIEF_2026-04-24.md)

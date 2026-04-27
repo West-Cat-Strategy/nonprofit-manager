@@ -51,8 +51,8 @@ import {
   type MailchimpContactRow,
 } from './mailchimpPayloads';
 import {
+  CampaignTargetingValidationError,
   archiveSavedAudience,
-  assertCampaignRequestTargetingShape,
   createPendingCampaignRun,
   createSavedAudience,
   finalizeCampaignRun,
@@ -61,7 +61,7 @@ import {
   markCampaignRunFailed,
   prepareSavedAudienceTargeting,
   recordCampaignLifecycleWebhook,
-} from './mailchimpCampaignAudienceHelpers';
+} from './mailchimpCampaignRuns';
 
 export {
   CampaignTargetingValidationError,
@@ -70,12 +70,16 @@ export {
   listCampaignRuns,
   listSavedAudiences,
   recordCampaignLifecycleWebhook,
-} from './mailchimpCampaignAudienceHelpers';
+} from './mailchimpCampaignRuns';
 
 const CONTACT_SELECT_QUERY = `SELECT id AS contact_id, account_id, first_name, last_name, email, phone,
         address_line1, address_line2, city, state_province, postal_code, country,
         do_not_email
  FROM contacts WHERE id = $1`;
+
+const throwCampaignTargetingValidation = (message: string): never => {
+  throw new CampaignTargetingValidationError(message);
+};
 
 /**
  * Check if Mailchimp is configured
@@ -471,7 +475,21 @@ export async function getSegments(listId: string): Promise<MailchimpSegment[]> {
  */
 export async function createCampaign(request: CreateCampaignRequest): Promise<MailchimpCampaign> {
   assertMailchimpConfigured('Mailchimp is not configured. Campaign cannot be created.');
-  assertCampaignRequestTargetingShape(request);
+  if (request.includeAudienceId && request.segmentId) {
+    return throwCampaignTargetingValidation(
+      'Choose either a provider segment or a saved audience, not both'
+    );
+  }
+  if (!request.includeAudienceId && (request.exclusionAudienceIds ?? []).length > 0) {
+    return throwCampaignTargetingValidation(
+      'Suppression audiences require a saved audience target'
+    );
+  }
+  if (!request.includeAudienceId && (request.priorRunSuppressionIds ?? []).length > 0) {
+    return throwCampaignTargetingValidation(
+      'Prior campaign run suppressions require a saved audience target'
+    );
+  }
 
   let pendingRun: CampaignRun | null = null;
   try {

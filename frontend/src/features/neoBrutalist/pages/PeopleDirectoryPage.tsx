@@ -51,21 +51,16 @@ const EMPTY_COUNTS: Record<TabType, number> = {
 const BRUTAL_FOCUS_RING =
     'focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)]';
 
-const DirectoryTabButton = ({
-    tab,
-    label,
-    count,
-    activeTab,
-    loading,
-    onTabChange,
-}: {
+interface TabButtonProps {
     tab: TabType;
     label: string;
     count: number;
     activeTab: TabType;
     loading: boolean;
     onTabChange: (tab: TabType) => void;
-}) => (
+}
+
+const TabButton = ({ tab, label, count, activeTab, loading, onTabChange }: TabButtonProps) => (
     <button
         type="button"
         onClick={() => onTabChange(tab)}
@@ -350,38 +345,10 @@ export default function PeopleDirectory() {
 
                 {/* Tabs */}
                 <div className="mb-6 flex gap-2">
-                    <DirectoryTabButton
-                        tab="all"
-                        label="ALL PEOPLE"
-                        count={counts.all}
-                        activeTab={activeTab}
-                        loading={loading}
-                        onTabChange={handleTabChange}
-                    />
-                    <DirectoryTabButton
-                        tab="staff"
-                        label="STAFF"
-                        count={counts.staff}
-                        activeTab={activeTab}
-                        loading={loading}
-                        onTabChange={handleTabChange}
-                    />
-                    <DirectoryTabButton
-                        tab="volunteer"
-                        label="VOLUNTEERS"
-                        count={counts.volunteer}
-                        activeTab={activeTab}
-                        loading={loading}
-                        onTabChange={handleTabChange}
-                    />
-                    <DirectoryTabButton
-                        tab="board"
-                        label="BOARD"
-                        count={counts.board}
-                        activeTab={activeTab}
-                        loading={loading}
-                        onTabChange={handleTabChange}
-                    />
+                    <TabButton tab="all" label="ALL PEOPLE" count={counts.all} activeTab={activeTab} loading={loading} onTabChange={handleTabChange} />
+                    <TabButton tab="staff" label="STAFF" count={counts.staff} activeTab={activeTab} loading={loading} onTabChange={handleTabChange} />
+                    <TabButton tab="volunteer" label="VOLUNTEERS" count={counts.volunteer} activeTab={activeTab} loading={loading} onTabChange={handleTabChange} />
+                    <TabButton tab="board" label="BOARD" count={counts.board} activeTab={activeTab} loading={loading} onTabChange={handleTabChange} />
                 </div>
 
                 {/* People Grid - Using Reusable PeopleCard Component */}

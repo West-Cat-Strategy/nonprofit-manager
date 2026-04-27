@@ -48,17 +48,7 @@ const TaskCard = ({ task }: { task: Task }) => (
     </div>
 );
 
-const BoardColumn = ({
-    title,
-    count,
-    tasks,
-    loading,
-}: {
-    title: string;
-    count: number;
-    tasks: Task[];
-    loading: boolean;
-}) => (
+const Column = ({ title, count, tasks, loading }: { title: string; count: number; tasks: Task[]; loading: boolean }) => (
     <div className="flex flex-col">
         <div className="bg-app-surface dark:bg-[#121212] border-2 border-black dark:border-white shadow-[2px_2px_0px_0px_var(--shadow-color)] p-4 mb-4">
             <div className="flex justify-between items-center">
@@ -199,9 +189,9 @@ export default function OperationsBoard() {
 
                 {/* Kanban Columns */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <BoardColumn title="TO DO" count={todoTasks.length} tasks={todoTasks} loading={loading} />
-                    <BoardColumn title="IN PROGRESS" count={inProgressTasks.length} tasks={inProgressTasks} loading={loading} />
-                    <BoardColumn title="DONE" count={doneTasks.length} tasks={doneTasks} loading={loading} />
+                    <Column title="TO DO" count={todoTasks.length} tasks={todoTasks} loading={loading} />
+                    <Column title="IN PROGRESS" count={inProgressTasks.length} tasks={inProgressTasks} loading={loading} />
+                    <Column title="DONE" count={doneTasks.length} tasks={doneTasks} loading={loading} />
                 </div>
             </div>
         </NeoBrutalistLayout>

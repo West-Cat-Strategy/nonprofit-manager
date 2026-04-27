@@ -1,6 +1,6 @@
 # Agents in Nonprofit Manager
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-26
 
 This page explains the three meanings of "agents" in this repo. It is an orientation page, not the canonical source for coding rules, task status, or implementation details.
 
@@ -23,6 +23,7 @@ There are no autonomous AI agents running independently in the application. The 
 | Current phase roadmap | [docs/phases/PHASE_5_DEVELOPMENT_PLAN.md](docs/phases/PHASE_5_DEVELOPMENT_PLAN.md) |
 | Historical phase proof and earlier workboards | [docs/phases/archive/README.md](docs/phases/archive/README.md) |
 | Parallel contributor coordination | [docs/development/SUBAGENT_MODULARIZATION_GUIDE.md](docs/development/SUBAGENT_MODULARIZATION_GUIDE.md) plus the Coordination section in [docs/phases/planning-and-progress.md](docs/phases/planning-and-progress.md) |
+| GitHub Copilot or custom-agent helper routing | [`.github/README.md`](.github/README.md), [`.github/copilot-instructions.md`](.github/copilot-instructions.md), and [`.github/agents/README.md`](.github/agents/README.md); helper guidance only, with canonical policy in the contributor, development, testing, workboard, and validation docs above |
 | Validation and audit artifacts | [docs/validation/README.md](docs/validation/README.md) |
 | Repo-local helper prompts | Tracked detailed persona and benchmark canon lives under [`.codex/skills/nonprofit-manager-persona-analysis/references/`](.codex/skills/nonprofit-manager-persona-analysis/references/source-map.md), [`.codex/skills/nonprofit-manager-persona-validation/references/`](.codex/skills/nonprofit-manager-persona-validation/references/validation-rubric.md), and [`.codex/skills/nonprofit-manager-benchmark-analysis/references/`](.codex/skills/nonprofit-manager-benchmark-analysis/references/cohort-and-sources.md); only those three `references/**` trees are versioned under `.codex`, and other repo-local skill prompts remain helper guidance |
 
@@ -35,7 +36,7 @@ For the full set of technical guardrails, architecture boundaries, and validatio
 - [**docs/development/AGENT_INSTRUCTIONS.md**](docs/development/AGENT_INSTRUCTIONS.md)
 - [**CONTRIBUTING.md**](CONTRIBUTING.md)
 
-Local prompts under `.codex/skills/**` may mirror this workflow for Codex. The tracked persona-suite references named above are the explicit exception: they are the canonical detailed layer for persona analysis, persona validation, and benchmark synthesis, and only those `references/**` trees are versioned. Other repo-local skill prompts remain helper guidance rather than tracked repo policy.
+Local prompts under `.codex/skills/**` and GitHub-side prompts under `.github/**` may mirror this workflow for contributor tools. The tracked persona-suite references named above are the explicit exception: they are the canonical detailed layer for persona analysis, persona validation, and benchmark synthesis, and only those `references/**` trees are versioned. Other repo-local skill prompts and GitHub helper prompts remain helper guidance rather than tracked repo policy.
 
 ## Multi-Agent Coordination
 

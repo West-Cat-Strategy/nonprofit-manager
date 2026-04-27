@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
 import { requireActiveOrganizationContext } from '@middleware/requireActiveOrganizationContext';
 import { requirePermission } from '@middleware/permissions';
@@ -11,6 +12,7 @@ import {
 } from '../controllers/portalConversations.controller';
 import {
   caseOutcomeDefinitionsQuerySchema,
+  interactionOutcomeImpactItemSchema,
   interactionOutcomeParamsSchema,
   updateInteractionOutcomeImpactsSchema,
 } from '@validations/outcomeImpact';
@@ -18,37 +20,14 @@ import {
   casePortalConversationMessageParamsSchema,
   casePortalConversationMessageSchema,
   casePortalConversationParamsSchema,
-  portalCaseEscalationUpdateSchema,
-  portalEscalationParamsSchema,
-  scopedQueueViewDefinitionSchema,
 } from '@validations/portal';
-import { sendSuccess } from '@modules/shared/http/envelope';
 import {
-  archiveQueueViewDefinition,
-  listQueueViewDefinitions,
-  upsertQueueViewDefinition,
-} from '@services/queueViewDefinitionService';
-import {
-  listPortalEscalationsForCase,
-  updatePortalEscalationForCase,
-} from '@services/portalEscalationService';
-import { Permission } from '@utils/permissions';
-import {
-  caseFormAssetParamsSchema,
-  caseFormAssetUploadSchema,
-  caseFormAssignmentParamsSchema,
-  caseFormCaseParamsSchema,
-  caseFormCaseTypeParamsSchema,
-  caseFormDraftSchema,
-  caseFormListQuerySchema,
-  caseFormReviewDecisionSchema,
-  caseFormSendSchema,
-  caseFormSubmitSchema,
-  createCaseFormAssignmentSchema,
-  createCaseFormDefaultSchema,
-  updateCaseFormAssignmentSchema,
-  updateCaseFormDefaultSchema,
-} from '@validations/caseForms';
+  isoDateSchema,
+  isoDateTimeSchema,
+  optionalStrictBooleanSchema,
+  strictBooleanSchema,
+  uuidSchema,
+} from '@validations/shared';
 import { followUpController as followUpsController } from '@modules/followUps/controllers/followUps.handlers';
 import { createCaseCatalogController } from '../controllers/catalog.controller';
 import { createCaseLifecycleController } from '../controllers/lifecycle.controller';
@@ -59,6 +38,9 @@ import { createCaseServicesController } from '../controllers/services.controller
 import { createCaseOutcomesController } from '../controllers/outcomes.controller';
 import { createCaseDocumentsController } from '../controllers/documents.controller';
 import { createCaseFormsController } from '../controllers/forms.controller';
+import { registerCasePortalEscalationRoutes } from './portalEscalations.routes';
+import { registerCaseQueueViewRoutes } from './queueViews.routes';
+import { registerCaseReassessmentRoutes } from './reassessments.routes';
 import { CaseRepository } from '../repositories/caseRepository';
 import { CaseNotesRepository } from '../repositories/caseNotesRepository';
 import { CaseMilestonesRepository } from '../repositories/caseMilestonesRepository';
@@ -76,47 +58,326 @@ import { CaseServicesUseCase } from '../usecases/caseServices.usecase';
 import { CaseOutcomesUseCase } from '../usecases/caseOutcomes.usecase';
 import { CaseDocumentsUseCase } from '../usecases/caseDocuments.usecase';
 import { CaseFormsUseCase } from '../usecases/caseForms.usecase';
-import { CaseReassessmentsRepository } from '../repositories/caseReassessmentsRepository';
+import { Permission } from '@utils/permissions';
 import {
-  bulkStatusUpdateSchema,
-  cancelCaseReassessmentSchema,
-  caseCatalogQuerySchema,
-  caseDocumentDownloadQuerySchema,
-  caseFormDefaultDetailParamsSchema,
-  caseFormInstantiateParamsSchema,
-  caseIdParamsSchema,
-  caseReassessmentParamsSchema,
-  caseTimelineQuerySchema,
-  completeCaseReassessmentSchema,
-  createCaseMilestoneSchema,
-  createCaseNoteSchema,
-  createCaseOutcomeSchema,
-  createCaseReassessmentSchema,
-  createCaseRelationshipSchema,
-  createCaseSchema,
-  createCaseServiceSchema,
-  createTopicDefinitionSchema,
-  createTopicEventSchema,
-  documentIdParamsSchema,
-  milestoneIdParamsSchema,
-  noteIdParamsSchema,
-  outcomeIdParamsSchema,
-  queueViewParamsSchema,
-  reassignCaseSchema,
-  relationshipIdParamsSchema,
-  resolveCasePortalConversationSchema,
-  serviceIdParamsSchema,
-  topicEventIdParamsSchema,
-  updateCaseClientViewableSchema,
-  updateCaseDocumentSchema,
-  updateCaseMilestoneSchema,
-  updateCaseNoteSchema,
-  updateCaseOutcomeSchema,
-  updateCaseReassessmentSchema,
-  updateCaseSchema,
-  updateCaseServiceSchema,
-  updateCaseStatusSchema,
-} from './caseRouteSchemas';
+  caseFormAssetParamsSchema,
+  caseFormAssetUploadSchema,
+  caseFormAssignmentParamsSchema,
+  caseFormCaseParamsSchema,
+  caseFormCaseTypeParamsSchema,
+  caseFormDraftSchema,
+  caseFormListQuerySchema,
+  caseFormReviewDecisionSchema,
+  caseFormSendSchema,
+  caseFormSubmitSchema,
+  createCaseFormAssignmentSchema,
+  createCaseFormDefaultSchema,
+  updateCaseFormAssignmentSchema,
+  updateCaseFormDefaultSchema,
+} from '@validations/caseForms';
+
+const casePrioritySchema = z.enum(['low', 'medium', 'high', 'urgent', 'critical']);
+const caseOutcomeSchema = z.enum([
+  'successful',
+  'unsuccessful',
+  'referred',
+  'withdrawn',
+  'attended_event',
+  'additional_related_case',
+  'other',
+]);
+const quickFilterSchema = z.enum(['active', 'overdue', 'due_soon', 'unassigned', 'urgent']);
+const noteTypeSchema = z.enum([
+  'note',
+  'email',
+  'call',
+  'meeting',
+  'update',
+  'status_change',
+  'case_note',
+  'assignment',
+  'system',
+  'portal_message',
+]);
+
+const dateStringSchema = isoDateSchema;
+const dateTimeStringSchema = isoDateTimeSchema;
+const outcomesModeSchema = z.enum(['replace', 'merge']);
+
+const caseIdParamsSchema = z.object({
+  id: uuidSchema,
+});
+
+const milestoneIdParamsSchema = z.object({
+  milestoneId: uuidSchema,
+});
+
+const relationshipIdParamsSchema = z.object({
+  relationshipId: uuidSchema,
+});
+
+const serviceIdParamsSchema = z.object({
+  serviceId: uuidSchema,
+});
+
+const noteIdParamsSchema = z.object({
+  noteId: uuidSchema,
+});
+
+const outcomeIdParamsSchema = z.object({
+  outcomeId: uuidSchema,
+});
+
+const topicEventIdParamsSchema = z.object({
+  topicEventId: uuidSchema,
+});
+
+const documentIdParamsSchema = z.object({
+  id: uuidSchema,
+  documentId: uuidSchema,
+});
+
+const caseDocumentDownloadQuerySchema = z
+  .object({
+    disposition: z.enum(['inline', 'attachment']).optional(),
+  })
+  .strict();
+
+const caseTimelineQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    cursor: z.string().trim().max(512).optional(),
+  })
+  .strict();
+
+const caseCatalogQuerySchema = z
+  .object({
+    search: z.string().optional(),
+    contact_id: uuidSchema.optional(),
+    account_id: uuidSchema.optional(),
+    case_type_id: uuidSchema.optional(),
+    status_id: uuidSchema.optional(),
+    priority: casePrioritySchema.optional(),
+    assigned_to: uuidSchema.optional(),
+    assigned_team: z.string().optional(),
+    is_urgent: optionalStrictBooleanSchema,
+    requires_followup: optionalStrictBooleanSchema,
+    imported_only: optionalStrictBooleanSchema,
+    intake_start_date: dateStringSchema.optional(),
+    intake_end_date: dateStringSchema.optional(),
+    due_date_start: dateStringSchema.optional(),
+    due_date_end: dateStringSchema.optional(),
+    quick_filter: quickFilterSchema.optional(),
+    due_within_days: z.coerce.number().int().min(0).optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    sort_by: z.string().optional(),
+    sort_order: z.enum(['asc', 'desc']).optional(),
+  })
+  .strict();
+
+const createCaseSchema = z.object({
+  contact_id: uuidSchema,
+  account_id: uuidSchema.optional(),
+  case_type_id: uuidSchema.optional(),
+  case_type_ids: z.array(uuidSchema).optional(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  priority: casePrioritySchema.optional(),
+  outcome: caseOutcomeSchema.optional(),
+  source: z.string().optional(),
+  referral_source: z.string().optional(),
+  assigned_to: uuidSchema.optional(),
+  assigned_team: z.string().optional(),
+  due_date: dateStringSchema.optional(),
+  intake_data: z.record(z.string(), z.unknown()).optional(),
+  custom_data: z.record(z.string(), z.unknown()).optional(),
+  tags: z.array(z.string()).optional(),
+  is_urgent: optionalStrictBooleanSchema,
+  client_viewable: optionalStrictBooleanSchema,
+  case_outcome_values: z.array(caseOutcomeSchema).optional(),
+}).refine(
+  (payload) => Boolean(payload.case_type_id || (payload.case_type_ids && payload.case_type_ids.length > 0)),
+  {
+    message: 'At least one case type is required',
+    path: ['case_type_ids'],
+  }
+);
+
+const updateCaseSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().optional(),
+  priority: casePrioritySchema.optional(),
+  case_type_id: uuidSchema.optional(),
+  case_type_ids: z.array(uuidSchema).optional(),
+  assigned_to: uuidSchema.optional(),
+  assigned_team: z.string().optional(),
+  due_date: dateStringSchema.optional(),
+  outcome: caseOutcomeSchema.optional(),
+  case_outcome_values: z.array(caseOutcomeSchema).optional(),
+  outcome_notes: z.string().optional(),
+  closure_reason: z.string().optional(),
+  custom_data: z.record(z.string(), z.unknown()).optional(),
+  tags: z.array(z.string()).optional(),
+  is_urgent: optionalStrictBooleanSchema,
+  client_viewable: optionalStrictBooleanSchema,
+  requires_followup: optionalStrictBooleanSchema,
+  followup_date: dateStringSchema.optional(),
+});
+
+const updateCaseStatusSchema = z.object({
+  new_status_id: uuidSchema,
+  reason: z.string().optional(),
+  notes: z.string().trim().min(1),
+  outcome_definition_ids: z.array(uuidSchema).optional(),
+  outcome_visibility: optionalStrictBooleanSchema,
+});
+
+const updateCaseClientViewableSchema = z.object({
+  client_viewable: strictBooleanSchema,
+});
+
+const reassignCaseSchema = z.object({
+  assigned_to: z.union([uuidSchema, z.null()]),
+  reason: z.string().optional(),
+});
+
+const bulkStatusUpdateSchema = z.object({
+  case_ids: z.array(uuidSchema).min(1),
+  new_status_id: uuidSchema,
+  notes: z.string().trim().min(1),
+});
+
+const createCaseNoteSchema = z.object({
+  case_id: uuidSchema,
+  note_type: noteTypeSchema.optional().default('note'),
+  subject: z.string().optional(),
+  category: z.string().max(100).optional(),
+  content: z.string().min(1),
+  is_internal: optionalStrictBooleanSchema,
+  visible_to_client: optionalStrictBooleanSchema,
+  is_portal_visible: optionalStrictBooleanSchema,
+  is_important: optionalStrictBooleanSchema,
+  attachments: z.array(z.unknown()).optional(),
+  outcome_impacts: z.array(interactionOutcomeImpactItemSchema).optional(),
+  outcomes_mode: outcomesModeSchema.optional(),
+});
+
+const updateCaseNoteSchema = z.object({
+  note_type: noteTypeSchema.optional(),
+  subject: z.string().optional(),
+  category: z.string().max(100).optional().nullable(),
+  content: z.string().min(1).optional(),
+  is_internal: optionalStrictBooleanSchema,
+  visible_to_client: optionalStrictBooleanSchema,
+  is_portal_visible: optionalStrictBooleanSchema,
+  is_important: optionalStrictBooleanSchema,
+  attachments: z.array(z.unknown()).optional().nullable(),
+  outcome_impacts: z.array(interactionOutcomeImpactItemSchema).optional(),
+  outcomes_mode: outcomesModeSchema.optional(),
+});
+
+const createCaseOutcomeSchema = z.object({
+  outcome_type: z.string().max(100).optional(),
+  outcome_definition_id: uuidSchema.optional(),
+  outcome_date: dateStringSchema.optional(),
+  notes: z.string().optional(),
+  visible_to_client: optionalStrictBooleanSchema,
+  is_portal_visible: optionalStrictBooleanSchema,
+});
+
+const updateCaseOutcomeSchema = z
+  .object({
+    outcome_type: z.string().max(100).optional().nullable(),
+    outcome_definition_id: uuidSchema.optional(),
+    outcome_date: dateStringSchema.optional(),
+    notes: z.string().optional().nullable(),
+    visible_to_client: optionalStrictBooleanSchema,
+    is_portal_visible: optionalStrictBooleanSchema,
+  })
+  .refine((payload) => Object.values(payload).some((value) => value !== undefined), {
+    message: 'At least one field must be provided',
+  });
+
+const createTopicDefinitionSchema = z.object({
+  name: z.string().min(1).max(120),
+});
+
+const createTopicEventSchema = z.object({
+  topic_definition_id: uuidSchema.optional(),
+  topic_name: z.string().min(1).max(120).optional(),
+  discussed_at: dateTimeStringSchema.optional(),
+  notes: z.string().optional(),
+});
+
+const updateCaseDocumentSchema = z.object({
+  document_name: z.string().max(255).optional(),
+  document_type: z.string().max(100).optional().nullable(),
+  description: z.string().optional().nullable(),
+  visible_to_client: optionalStrictBooleanSchema,
+  is_portal_visible: optionalStrictBooleanSchema,
+  is_active: optionalStrictBooleanSchema,
+});
+
+const createCaseMilestoneSchema = z.object({
+  milestone_name: z.string().min(1),
+  description: z.string().optional(),
+  due_date: dateStringSchema.optional(),
+  sort_order: z.coerce.number().int().optional(),
+});
+
+const updateCaseMilestoneSchema = z.object({
+  milestone_name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  due_date: dateStringSchema.optional(),
+  is_completed: optionalStrictBooleanSchema,
+  sort_order: z.coerce.number().int().optional(),
+});
+
+const createCaseRelationshipSchema = z.object({
+  related_case_id: uuidSchema,
+  relationship_type: z.string().min(1),
+  description: z.string().optional(),
+});
+
+const createCaseServiceSchema = z.object({
+  service_name: z.string().min(1),
+  service_type: z.string().optional(),
+  service_provider: z.string().optional(),
+  external_service_provider_id: uuidSchema.optional(),
+  service_date: dateStringSchema,
+  start_time: z.string().optional(),
+  end_time: z.string().optional(),
+  duration_minutes: z.coerce.number().int().optional(),
+  status: z.string().optional(),
+  outcome: z.string().optional(),
+  cost: z.coerce.number().optional(),
+  currency: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const updateCaseServiceSchema = createCaseServiceSchema.partial();
+
+const resolveCasePortalConversationSchema = z.object({
+  resolution_note: z.string().trim().min(1),
+  outcome_definition_ids: z.array(uuidSchema).min(1),
+  close_status: z.enum(['closed', 'archived']).default('closed'),
+  visible_to_client: optionalStrictBooleanSchema,
+});
+
+const caseFormDefaultDetailParamsSchema = z
+  .object({
+    caseTypeId: uuidSchema,
+    defaultId: uuidSchema,
+  })
+  .strict();
+
+const caseFormInstantiateParamsSchema = z
+  .object({
+    id: uuidSchema,
+    defaultId: uuidSchema,
+  })
+  .strict();
 
 export const createCasesRoutes = (): Router => {
   const router = Router();
@@ -129,7 +390,6 @@ export const createCasesRoutes = (): Router => {
   const outcomesRepository = new CaseOutcomesRepository();
   const documentsRepository = new CaseDocumentsRepository();
   const caseFormsRepository = new CaseFormsRepository();
-  const reassessmentsRepository = new CaseReassessmentsRepository();
 
   const catalogController = createCaseCatalogController(new CaseCatalogUseCase(caseRepository));
   const lifecycleController = createCaseLifecycleController(new CaseLifecycleUseCase(caseRepository));
@@ -194,58 +454,7 @@ export const createCasesRoutes = (): Router => {
     lifecycleController.createCase
   );
   router.get('/', validateQuery(caseCatalogQuerySchema), catalogController.getCases);
-  router.get(
-    '/queue-views',
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const views = await listQueueViewDefinitions('cases', req.user?.id ?? null, [
-          'cases',
-        ]);
-        sendSuccess(res, views);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.post(
-    '/queue-views',
-    validateBody(scopedQueueViewDefinitionSchema),
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const view = await upsertQueueViewDefinition({
-          ...(req.body as Parameters<typeof upsertQueueViewDefinition>[0]),
-          surface: 'cases',
-          ownerUserId: req.user?.id ?? null,
-          permissionScope: ['cases'],
-          userId: req.user?.id ?? null,
-        });
-        sendSuccess(res, view, 201);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.delete(
-    '/queue-views/:viewId',
-    validateParams(queueViewParamsSchema),
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const view = await archiveQueueViewDefinition({
-          id: String(req.params.viewId),
-          surface: 'cases',
-          ownerUserId: req.user?.id ?? null,
-          permissionScopes: ['cases'],
-          userId: req.user?.id ?? null,
-        });
-        sendSuccess(res, view);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
+  registerCaseQueueViewRoutes(router);
   router.get(
     '/:id/forms/recommended-defaults',
     validateParams(caseFormCaseParamsSchema),
@@ -336,157 +545,8 @@ export const createCasesRoutes = (): Router => {
     requirePermission(Permission.CASE_VIEW),
     catalogController.getCaseHandoffPacket
   );
-  router.get(
-    '/:id/reassessments',
-    validateParams(caseIdParamsSchema),
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const reassessments = await reassessmentsRepository.list(
-          req.params.id,
-          req.organizationId ?? ''
-        );
-        sendSuccess(res, reassessments);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.post(
-    '/:id/reassessments',
-    validateParams(caseIdParamsSchema),
-    validateBody(createCaseReassessmentSchema),
-    requirePermission(Permission.CASE_EDIT),
-    async (req, res, next) => {
-      try {
-        const reassessment = await reassessmentsRepository.create(
-          req.params.id,
-          req.organizationId ?? '',
-          req.user?.id ?? '',
-          req.validatedBody ?? req.body
-        );
-        sendSuccess(res, reassessment, 201);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.patch(
-    '/:id/reassessments/:reassessmentId',
-    validateParams(caseReassessmentParamsSchema),
-    validateBody(updateCaseReassessmentSchema),
-    requirePermission(Permission.CASE_EDIT),
-    async (req, res, next) => {
-      try {
-        const reassessment = await reassessmentsRepository.update(
-          req.params.id,
-          req.params.reassessmentId,
-          req.organizationId ?? '',
-          req.user?.id ?? '',
-          req.validatedBody ?? req.body
-        );
-        sendSuccess(res, reassessment);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.post(
-    '/:id/reassessments/:reassessmentId/complete',
-    validateParams(caseReassessmentParamsSchema),
-    validateBody(completeCaseReassessmentSchema),
-    requirePermission(Permission.CASE_EDIT),
-    async (req, res, next) => {
-      try {
-        const result = await reassessmentsRepository.complete(
-          req.params.id,
-          req.params.reassessmentId,
-          req.organizationId ?? '',
-          req.user?.id ?? '',
-          req.validatedBody ?? req.body
-        );
-        sendSuccess(res, result);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.post(
-    '/:id/reassessments/:reassessmentId/cancel',
-    validateParams(caseReassessmentParamsSchema),
-    validateBody(cancelCaseReassessmentSchema),
-    requirePermission(Permission.CASE_EDIT),
-    async (req, res, next) => {
-      try {
-        const reassessment = await reassessmentsRepository.cancel(
-          req.params.id,
-          req.params.reassessmentId,
-          req.organizationId ?? '',
-          req.user?.id ?? '',
-          (req.validatedBody ?? req.body).cancellation_reason
-        );
-        sendSuccess(res, reassessment);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.get(
-    '/:id/portal/escalations',
-    validateParams(caseIdParamsSchema),
-    requirePermission(Permission.CASE_VIEW),
-    async (req, res, next) => {
-      try {
-        const escalations = await listPortalEscalationsForCase(
-          req.params.id,
-          req.organizationId ?? null
-        );
-        sendSuccess(res, escalations);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
-  router.patch(
-    '/:id/portal/escalations/:escalationId',
-    validateParams(portalEscalationParamsSchema),
-    validateBody(portalCaseEscalationUpdateSchema),
-    requirePermission(Permission.CASE_EDIT),
-    async (req, res, next) => {
-      try {
-        const body = req.body as {
-          status?: Parameters<typeof updatePortalEscalationForCase>[0]['status'];
-          resolution_summary?: string | null;
-          assignee_user_id?: string | null;
-          sla_due_at?: string | null;
-        };
-        const updateInput: Parameters<typeof updatePortalEscalationForCase>[0] = {
-          id: req.params.escalationId,
-          caseId: req.params.id,
-          accountId: req.organizationId ?? null,
-          updatedBy: req.user?.id ?? null,
-        };
-
-        if ('status' in body) {
-          updateInput.status = body.status;
-        }
-        if ('resolution_summary' in body) {
-          updateInput.resolutionSummary = body.resolution_summary ?? null;
-        }
-        if ('assignee_user_id' in body) {
-          updateInput.assigneeUserId = body.assignee_user_id ?? null;
-        }
-        if ('sla_due_at' in body) {
-          updateInput.slaDueAt = body.sla_due_at ? new Date(body.sla_due_at) : null;
-        }
-
-        const escalation = await updatePortalEscalationForCase(updateInput);
-        sendSuccess(res, escalation);
-      } catch (error) {
-        next(error);
-      }
-    }
-  );
+  registerCaseReassessmentRoutes(router);
+  registerCasePortalEscalationRoutes(router);
   router.get(
     '/:id/follow-ups',
     validateParams(caseIdParamsSchema),
