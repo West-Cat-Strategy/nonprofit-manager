@@ -51,6 +51,7 @@ type CaseDetailState = {
   };
   currentCase?: CaseWithDetails | null;
   caseStatuses?: CaseStatus[];
+  handoffPacket?: CaseHandoffPacket | null;
   loading?: boolean;
   error?: string | null;
   management?: {
