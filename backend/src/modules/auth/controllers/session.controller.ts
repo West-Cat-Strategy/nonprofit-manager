@@ -37,7 +37,7 @@ export const login = async (
   try {
     const { email, password }: LoginRequest = req.body;
     const normalizedEmail = email.trim().toLowerCase();
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+    const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
     const correlationId = (req as AuthRequest & { correlationId?: string }).correlationId;
 
     const result = await pool.query<UserRow>(

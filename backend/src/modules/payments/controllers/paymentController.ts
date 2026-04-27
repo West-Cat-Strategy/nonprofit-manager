@@ -39,7 +39,7 @@ const getRequestUserAgent = (req: Request): string | null => {
 };
 
 const getRequestIp = (req: Request): string | null => {
-  return req.ip || req.connection.remoteAddress || null;
+  return req.ip || req.socket?.remoteAddress || null;
 };
 
 const isNotFoundProviderError = (error: unknown): boolean => {

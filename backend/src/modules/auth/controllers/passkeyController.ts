@@ -464,7 +464,7 @@ export const loginVerify = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+    const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
     const { origins, rpID } = getWebAuthnConfig();
 
     const { email, challengeId, credential }: { email: string; challengeId: string; credential: AuthenticationResponseJSON } =

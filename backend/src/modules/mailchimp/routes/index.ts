@@ -13,6 +13,7 @@ import * as mailchimpController from '../controllers';
 import { Permission } from '@utils/permissions';
 import { emailSchema, isoDateTimeSchema, uuidSchema } from '@validations/shared';
 import { unauthorized } from '@utils/responseHelpers';
+import { logger } from '@config/logger';
 
 const router = Router();
 
@@ -158,6 +159,10 @@ const isMatchingSecret = (provided: unknown, expected: string): boolean => {
   const expectedBuffer = Buffer.from(expected);
 
   if (providedBuffer.length !== expectedBuffer.length) {
+    const maxLen = Math.max(providedBuffer.length, expectedBuffer.length);
+    const paddedProvided = Buffer.concat([providedBuffer, Buffer.alloc(maxLen - providedBuffer.length)]);
+    const paddedExpected = Buffer.concat([expectedBuffer, Buffer.alloc(maxLen - expectedBuffer.length)]);
+    timingSafeEqual(paddedProvided, paddedExpected);
     return false;
   }
 
@@ -171,6 +176,7 @@ const requireMailchimpWebhookSecret = (
 ): void => {
   const expectedSecret = getMailchimpWebhookSecret();
   if (!expectedSecret) {
+    logger.warn('MAILCHIMP_WEBHOOK_SECRET is not configured; Mailchimp webhook endpoint is unauthenticated');
     next();
     return;
   }

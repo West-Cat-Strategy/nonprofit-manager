@@ -265,7 +265,7 @@ export function auditPIIAccess(piiService: PIIService) {
     res.json = function (data: any) {
       // Audit PII access if user accessed sensitive data
       if (data && req.user && shouldAuditAccess(data)) {
-        const ipAddress = req.ip || req.connection.remoteAddress;
+        const ipAddress = req.ip || req.socket?.remoteAddress;
         const userAgent = req.get('user-agent');
 
         // Determine table and record ID from request

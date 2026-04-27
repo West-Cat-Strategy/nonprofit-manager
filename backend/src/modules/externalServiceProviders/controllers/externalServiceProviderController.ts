@@ -16,7 +16,7 @@ const getRequestUserAgent = (req: AuthRequest): string | null => {
 };
 
 const getRequestIp = (req: AuthRequest): string | null => {
-  return req.ip || req.connection.remoteAddress || null;
+  return req.ip || req.socket?.remoteAddress || null;
 };
 
 export const getExternalServiceProviders = async (req: AuthRequest, res: Response): Promise<void> => {

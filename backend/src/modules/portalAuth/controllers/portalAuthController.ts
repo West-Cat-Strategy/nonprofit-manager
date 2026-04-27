@@ -110,7 +110,7 @@ export const portalLogin = async (
   try {
     const { email, password }: PortalLoginRequest = req.body;
     const normalizedEmail = email.toLowerCase();
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+    const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
     const user = await portalAuthService.getPortalLoginUserByEmail(normalizedEmail);
     if (!user) {
       await trackLoginAttempt(normalizedEmail, false, undefined, clientIp);
