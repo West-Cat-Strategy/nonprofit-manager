@@ -3,7 +3,7 @@
  * API endpoints for email marketing integration
  */
 
-import { timingSafeEqual } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
@@ -155,18 +155,10 @@ const isMatchingSecret = (provided: unknown, expected: string): boolean => {
     return false;
   }
 
-  const providedBuffer = Buffer.from(provided);
-  const expectedBuffer = Buffer.from(expected);
+  const providedHash = createHash('sha256').update(provided).digest();
+  const expectedHash = createHash('sha256').update(expected).digest();
 
-  if (providedBuffer.length !== expectedBuffer.length) {
-    const maxLen = Math.max(providedBuffer.length, expectedBuffer.length);
-    const paddedProvided = Buffer.concat([providedBuffer, Buffer.alloc(maxLen - providedBuffer.length)]);
-    const paddedExpected = Buffer.concat([expectedBuffer, Buffer.alloc(maxLen - expectedBuffer.length)]);
-    timingSafeEqual(paddedProvided, paddedExpected);
-    return false;
-  }
-
-  return timingSafeEqual(providedBuffer, expectedBuffer);
+  return timingSafeEqual(providedHash, expectedHash);
 };
 
 const requireMailchimpWebhookSecret = (
