@@ -1,3 +1,2 @@
 docker-compose.elk.yml:curl-auth-user:23
-e2e/.cache/effective-admin-session.json:jwt:1
 docs/phases/archive/PHASE_2B_COMPLETION_SUMMARY.md:generic-api-key:153

@@ -10,7 +10,7 @@ const normalizePart = (value: unknown): string => {
 const buildKey = (...parts: unknown[]): string => parts.map(normalizePart).join(':');
 
 const getIp = (req: Request): string => {
-  return req.ip || req.connection.remoteAddress || 'unknown';
+  return req.ip || req.socket?.remoteAddress || 'unknown';
 };
 
 const getUserId = (req: Request): string | undefined => {

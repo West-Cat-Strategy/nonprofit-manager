@@ -23,6 +23,12 @@ export function validateProductionSecurityConfig(
     return { warnings, errors, fatalErrors };
   }
 
+  if (env.EXPOSE_AUTH_TOKENS_IN_RESPONSE === 'true') {
+    fatalErrors.push(
+      'EXPOSE_AUTH_TOKENS_IN_RESPONSE must not be set to "true" in production; it bypasses HTTP-only cookie protection for auth tokens'
+    );
+  }
+
   const jwtSecret = env.JWT_SECRET || '';
   if (jwtSecret.includes('dev') || jwtSecret.includes('placeholder') || jwtSecret.length < 32) {
     warnings.push(

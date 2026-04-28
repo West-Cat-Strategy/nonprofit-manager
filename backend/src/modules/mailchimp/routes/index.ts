@@ -3,7 +3,7 @@
  * API endpoints for email marketing integration
  */
 
-import { timingSafeEqual } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { authenticate } from '@middleware/domains/auth';
@@ -13,6 +13,7 @@ import * as mailchimpController from '../controllers';
 import { Permission } from '@utils/permissions';
 import { emailSchema, isoDateTimeSchema, uuidSchema } from '@validations/shared';
 import { unauthorized } from '@utils/responseHelpers';
+import { logger } from '@config/logger';
 
 const router = Router();
 
@@ -154,14 +155,10 @@ const isMatchingSecret = (provided: unknown, expected: string): boolean => {
     return false;
   }
 
-  const providedBuffer = Buffer.from(provided);
-  const expectedBuffer = Buffer.from(expected);
+  const providedHash = createHash('sha256').update(provided).digest();
+  const expectedHash = createHash('sha256').update(expected).digest();
 
-  if (providedBuffer.length !== expectedBuffer.length) {
-    return false;
-  }
-
-  return timingSafeEqual(providedBuffer, expectedBuffer);
+  return timingSafeEqual(providedHash, expectedHash);
 };
 
 const requireMailchimpWebhookSecret = (
@@ -171,6 +168,7 @@ const requireMailchimpWebhookSecret = (
 ): void => {
   const expectedSecret = getMailchimpWebhookSecret();
   if (!expectedSecret) {
+    logger.warn('MAILCHIMP_WEBHOOK_SECRET is not configured; Mailchimp webhook endpoint is unauthenticated');
     next();
     return;
   }

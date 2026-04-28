@@ -66,7 +66,6 @@ export const logPortalActivity = async (input: LogPortalActivityInput): Promise<
         metadata: {
           action: input.action,
           portalUserId: input.portalUserId,
-          userAgent: input.userAgent || null,
         },
       });
     }

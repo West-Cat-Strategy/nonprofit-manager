@@ -8,3 +8,10 @@ regexes = [
   '''^sk_live_abc123def456$''',
   '''^eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.\.\.$''',
 ]
+
+[[allowlists]]
+description = "Twilio-shaped test fixtures (all-hex pattern, not real credentials)."
+regexes = [
+  '''^AC1234567890abcdef1234567890abcdef$''',
+  '''^MG1234567890abcdef1234567890abcdef$''',
+]

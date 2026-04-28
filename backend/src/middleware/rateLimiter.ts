@@ -41,7 +41,7 @@ const isPathSkippedByRateLimit = (req: Request, skipPaths: readonly string[]): b
 
 const shouldSkipRateLimit = (req: Request): boolean => {
   if (!isDevEnv) return false;
-  const ip = req.ip || req.connection.remoteAddress || '';
+  const ip = req.ip || req.socket?.remoteAddress || '';
   return (
     ip === '127.0.0.1' ||
     ip === '::1' ||

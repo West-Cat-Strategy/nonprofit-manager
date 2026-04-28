@@ -234,7 +234,7 @@ export const completeTotpLogin = async (
       token: legacyToken,
     }: { email: string; mfaToken: string; code?: string; token?: string } = req.body;
     const code = rawCode ?? legacyToken ?? '';
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+    const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
 
     let decoded: {
       id: string;

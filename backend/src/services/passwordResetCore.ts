@@ -66,7 +66,8 @@ const findMatchingLegacyToken = async (
   const result = await pool.query<ActiveTokenRow>(
     `${selectActiveTokenColumns(config)}
      WHERE expires_at > NOW() AND used_at IS NULL
-     ORDER BY created_at DESC`
+     ORDER BY created_at DESC
+     LIMIT 50`
   );
 
   for (const row of result.rows) {
