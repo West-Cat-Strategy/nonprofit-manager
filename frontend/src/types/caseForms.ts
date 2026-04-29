@@ -27,6 +27,7 @@ export type CaseFormAssignmentStatus =
   | 'viewed'
   | 'in_progress'
   | 'submitted'
+  | 'revision_requested'
   | 'reviewed'
   | 'closed'
   | 'expired'
@@ -172,6 +173,8 @@ export interface CaseFormAssignment {
   sent_at?: string | null;
   viewed_at?: string | null;
   submitted_at?: string | null;
+  revision_requested_at?: string | null;
+  revision_notes?: string | null;
   reviewed_at?: string | null;
   closed_at?: string | null;
   created_at: string;
@@ -195,13 +198,14 @@ export interface CaseFormAssignmentSummary {
   due_at?: string | null;
   sent_at?: string | null;
   submitted_at?: string | null;
+  revision_requested_at?: string | null;
   updated_at: string;
   case_number?: string | null;
   case_title?: string | null;
 }
 
 export interface CaseFormReviewDecision {
-  decision: 'reviewed' | 'closed' | 'cancelled';
+  decision: 'revision_requested' | 'reviewed' | 'closed' | 'cancelled';
   notes?: string | null;
 }
 

@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppDispatch } from '../store/hooks';
-import { createAssignment, updateAssignment } from '../features/volunteers/state';
-import type { VolunteerAssignment } from '../features/volunteers/state';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import {
+  createAssignment,
+  fetchVolunteerAssignments,
+  fetchVolunteerById,
+  updateAssignment,
+} from '../features/volunteers/state';
+import type { Volunteer, VolunteerAssignment } from '../features/volunteers/state';
 import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard';
 import { eventsApiClient } from '../features/events/api/eventsApiClient';
 import { tasksApiClient } from '../features/tasks/api/tasksApiClient';
@@ -33,6 +38,7 @@ interface AssignmentPickerOption {
   id: string;
   label: string;
   description: string;
+  matchText: string;
 }
 
 const ACTIVE_EVENT_STATUSES: Event['status'][] = ['planned', 'active'];
@@ -51,14 +57,47 @@ const formatDateLabel = (value?: string | null): string | null => {
   return parsed.toLocaleDateString();
 };
 
+const formatDateTimeLabel = (value?: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
+const formatStatusLabel = (value?: string | null): string =>
+  value ? value.replace(/_/g, ' ') : 'Not specified';
+
 const mapEventToPickerOption = (event: Event): AssignmentPickerOption => {
   const dateLabel = formatDateLabel(event.next_occurrence_start_date || event.start_date);
-  const description = [dateLabel, event.location_name, event.event_type].filter(Boolean).join(' - ');
+  const description = [dateLabel, event.location_name, event.event_type]
+    .filter(Boolean)
+    .join(' - ');
 
   return {
     id: event.event_id,
     label: event.event_name || 'Untitled event',
     description,
+    matchText: [
+      event.event_name,
+      event.description,
+      event.event_type,
+      event.location_name,
+      event.city,
+      event.state_province,
+    ]
+      .filter(Boolean)
+      .join(' '),
   };
 };
 
@@ -72,11 +111,85 @@ const mapTaskToPickerOption = (task: Task): AssignmentPickerOption => {
     id: task.id,
     label: task.subject || 'Untitled task',
     description,
+    matchText: [
+      task.subject,
+      task.description,
+      task.priority,
+      task.related_to_type,
+      task.related_to_name,
+    ]
+      .filter(Boolean)
+      .join(' '),
   };
 };
 
 const sortTaskOptions = (left: AssignmentPickerOption, right: AssignmentPickerOption) =>
   left.label.localeCompare(right.label);
+
+const getAssignmentBounds = (
+  assignment: Pick<VolunteerAssignment, 'start_time' | 'end_time'>
+): { start: Date; end: Date } | null => {
+  const start = new Date(assignment.start_time);
+  if (Number.isNaN(start.getTime())) {
+    return null;
+  }
+
+  const end = assignment.end_time ? new Date(assignment.end_time) : start;
+  if (Number.isNaN(end.getTime())) {
+    return null;
+  }
+
+  return { start, end };
+};
+
+const getSelectedWindow = (startValue: string, endValue?: string | null) => {
+  if (!startValue) {
+    return null;
+  }
+
+  const start = new Date(startValue);
+  if (Number.isNaN(start.getTime())) {
+    return null;
+  }
+
+  const end = endValue ? new Date(endValue) : start;
+  if (Number.isNaN(end.getTime())) {
+    return null;
+  }
+
+  return { start, end };
+};
+
+const assignmentOverlapsWindow = (
+  assignment: VolunteerAssignment,
+  window: { start: Date; end: Date }
+) => {
+  const bounds = getAssignmentBounds(assignment);
+  if (!bounds) {
+    return false;
+  }
+
+  return bounds.start <= window.end && bounds.end >= window.start;
+};
+
+const buildVolunteerSearchTerms = (volunteer: Volunteer | null) => [
+  ...(volunteer?.skills || []),
+  ...(volunteer?.preferred_roles || []),
+];
+
+const findMatchedVolunteerTerms = (terms: string[], selectedText: string) => {
+  const normalizedText = selectedText.toLowerCase();
+  const seen = new Set<string>();
+
+  return terms.filter((term) => {
+    const normalizedTerm = term.trim().toLowerCase();
+    if (!normalizedTerm || seen.has(normalizedTerm)) {
+      return false;
+    }
+    seen.add(normalizedTerm);
+    return normalizedText.includes(normalizedTerm);
+  });
+};
 
 export const AssignmentForm: React.FC<AssignmentFormProps> = ({
   assignment,
@@ -85,6 +198,8 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
 }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { currentVolunteer } = useAppSelector((state) => state.volunteers.core);
+  const { assignments } = useAppSelector((state) => state.volunteers.assignments);
 
   const [formData, setFormData] = useState<Assignment>({
     volunteer_id: volunteerId,
@@ -110,6 +225,24 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
   const [taskPickerLoading, setTaskPickerLoading] = useState(false);
   const [eventPickerError, setEventPickerError] = useState<string | null>(null);
   const [taskPickerError, setTaskPickerError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!volunteerId) {
+      return;
+    }
+
+    if (currentVolunteer?.volunteer_id !== volunteerId) {
+      void dispatch(fetchVolunteerById(volunteerId));
+    }
+  }, [currentVolunteer?.volunteer_id, dispatch, volunteerId]);
+
+  useEffect(() => {
+    if (!volunteerId) {
+      return;
+    }
+
+    void dispatch(fetchVolunteerAssignments(volunteerId));
+  }, [dispatch, volunteerId]);
 
   useEffect(() => {
     if (assignment && mode === 'edit') {
@@ -261,6 +394,7 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
         id: formData.event_id,
         label: `Current event (${formData.event_id})`,
         description: 'Previously selected event',
+        matchText: formData.event_id,
       },
       ...eventOptions,
     ];
@@ -276,10 +410,44 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
         id: formData.task_id,
         label: `Current task (${formData.task_id})`,
         description: 'Previously selected task',
+        matchText: formData.task_id,
       },
       ...taskOptions,
     ];
   }, [formData.task_id, taskOptions]);
+
+  const volunteerForCues = currentVolunteer?.volunteer_id === volunteerId ? currentVolunteer : null;
+  const selectedEvent = eventSelectOptions.find((option) => option.id === formData.event_id);
+  const selectedTask = taskSelectOptions.find((option) => option.id === formData.task_id);
+  const selectedPickerText = [
+    selectedEvent?.label,
+    selectedEvent?.description,
+    selectedEvent?.matchText,
+    selectedTask?.label,
+    selectedTask?.description,
+    selectedTask?.matchText,
+    formData.role,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const matchedVolunteerTerms = findMatchedVolunteerTerms(
+    buildVolunteerSearchTerms(volunteerForCues),
+    selectedPickerText
+  );
+  const activeAssignments = assignments.filter(
+    (item) =>
+      item.assignment_id !== assignment?.assignment_id &&
+      item.status !== 'cancelled' &&
+      item.status !== 'completed'
+  );
+  const selectedWindow = getSelectedWindow(formData.start_time, formData.end_time);
+  const overlappingAssignments = selectedWindow
+    ? activeAssignments.filter((item) => assignmentOverlapsWindow(item, selectedWindow))
+    : [];
+  const activeAssignmentCount = activeAssignments.length;
+  const activeAssignmentLabel = `${activeAssignmentCount} active assignment${
+    activeAssignmentCount === 1 ? '' : 's'
+  } loaded`;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -398,7 +566,10 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
         <h2 className="text-lg font-medium text-app-text-heading mb-4">Assignment Details</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label htmlFor="assignment_type" className="block text-sm font-medium text-app-text-label">
+            <label
+              htmlFor="assignment_type"
+              className="block text-sm font-medium text-app-text-label"
+            >
               Assignment Type *
             </label>
             <select
@@ -423,9 +594,85 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
             </p>
           </div>
 
+          <section className="sm:col-span-2 rounded-md border border-app-border bg-app-surface-muted p-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-app-text-heading">Volunteer fit cues</h3>
+                {volunteerForCues ? (
+                  <p className="mt-1 text-sm text-app-text-muted">
+                    Availability is {formatStatusLabel(volunteerForCues.availability_status)}
+                    {volunteerForCues.max_hours_per_week
+                      ? ` with ${volunteerForCues.max_hours_per_week} hours per week max`
+                      : ''}
+                    .
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-app-text-muted">
+                    Loading volunteer availability and skills.
+                  </p>
+                )}
+              </div>
+              <div className="text-sm text-app-text-muted sm:text-right">
+                <p>{activeAssignmentLabel}</p>
+                {selectedWindow ? (
+                  <p>
+                    {overlappingAssignments.length > 0
+                      ? `${overlappingAssignments.length} schedule overlap${
+                          overlappingAssignments.length === 1 ? '' : 's'
+                        } found`
+                      : 'No loaded schedule overlaps'}
+                  </p>
+                ) : (
+                  <p>Schedule window not set</p>
+                )}
+              </div>
+            </div>
+
+            {volunteerForCues?.availability_notes && (
+              <p className="mt-3 text-sm text-app-text-muted">
+                Availability notes: {volunteerForCues.availability_notes}
+              </p>
+            )}
+
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-medium uppercase text-app-text-muted">Skills</p>
+                <p className="mt-1 text-sm text-app-text">
+                  {volunteerForCues?.skills?.length
+                    ? volunteerForCues.skills.slice(0, 6).join(', ')
+                    : 'No skills listed'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase text-app-text-muted">
+                  Assignment match
+                </p>
+                <p className="mt-1 text-sm text-app-text">
+                  {matchedVolunteerTerms.length > 0
+                    ? matchedVolunteerTerms.slice(0, 4).join(', ')
+                    : 'No skill or preferred-role overlap yet'}
+                </p>
+              </div>
+            </div>
+
+            {overlappingAssignments.length > 0 && (
+              <ul className="mt-3 space-y-1 text-sm text-app-accent-text">
+                {overlappingAssignments.slice(0, 2).map((item) => (
+                  <li key={item.assignment_id}>
+                    Overlap: {item.event_name || item.task_name || item.role || 'Assignment'} at{' '}
+                    {formatDateTimeLabel(item.start_time)}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           {formData.assignment_type === 'event' && (
             <div className="sm:col-span-2">
-              <label htmlFor="event_search" className="block text-sm font-medium text-app-text-label">
+              <label
+                htmlFor="event_search"
+                className="block text-sm font-medium text-app-text-label"
+              >
                 Search Events
               </label>
               <input
@@ -438,7 +685,10 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
                 className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
               />
 
-              <label htmlFor="event_id" className="mt-4 block text-sm font-medium text-app-text-label">
+              <label
+                htmlFor="event_id"
+                className="mt-4 block text-sm font-medium text-app-text-label"
+              >
                 Event *
               </label>
               <select
@@ -460,16 +710,22 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
                 ))}
               </select>
               {errors.event_id && <p className="mt-1 text-sm text-app-accent">{errors.event_id}</p>}
-              {eventPickerError && <p className="mt-1 text-sm text-app-accent">{eventPickerError}</p>}
+              {eventPickerError && (
+                <p className="mt-1 text-sm text-app-accent">{eventPickerError}</p>
+              )}
               <p className="mt-1 text-sm text-app-text-muted">
-                Planned and active events are shown. Search narrows the list without changing the saved event ID.
+                Planned and active events are shown. Search narrows the list without changing the
+                saved event ID.
               </p>
             </div>
           )}
 
           {formData.assignment_type === 'task' && (
             <div className="sm:col-span-2">
-              <label htmlFor="task_search" className="block text-sm font-medium text-app-text-label">
+              <label
+                htmlFor="task_search"
+                className="block text-sm font-medium text-app-text-label"
+              >
                 Search Active Tasks
               </label>
               <input
@@ -482,7 +738,10 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
                 className="mt-1 block w-full border border-app-input-border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm"
               />
 
-              <label htmlFor="task_id" className="mt-4 block text-sm font-medium text-app-text-label">
+              <label
+                htmlFor="task_id"
+                className="mt-4 block text-sm font-medium text-app-text-label"
+              >
                 Task *
               </label>
               <select
@@ -546,7 +805,9 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
                 errors.start_time ? 'border-app-border' : 'border-app-input-border'
               } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-app-accent focus:border-app-accent sm:text-sm`}
             />
-            {errors.start_time && <p className="mt-1 text-sm text-app-accent">{errors.start_time}</p>}
+            {errors.start_time && (
+              <p className="mt-1 text-sm text-app-accent">{errors.start_time}</p>
+            )}
           </div>
 
           <div>
@@ -592,7 +853,10 @@ export const AssignmentForm: React.FC<AssignmentFormProps> = ({
             </div>
 
             <div>
-              <label htmlFor="hours_logged" className="block text-sm font-medium text-app-text-label">
+              <label
+                htmlFor="hours_logged"
+                className="block text-sm font-medium text-app-text-label"
+              >
                 Hours Logged
               </label>
               <input

@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-04-28
+**Last Updated:** 2026-04-29
 
 ## At a Glance
 
@@ -10,10 +10,10 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 1 |
+| Active rows | 3 |
 | In Progress | 0 |
 | Blocked | 0 |
-| Review | 1 |
+| Review | 3 |
 | Ready | 0 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
@@ -46,6 +46,8 @@ Maintenance rules:
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
 | Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) as the published capability-brief packet alongside [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md). Child planning briefs `P5-T6A`, `P5-T6B`, and `P5-T6C` are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md); keep the narrow `PAT-01`/`PAT-02`/`PAT-03` fundraising pickups signed off with `P5-T3`, `PAT-04`/`PAT-05`/`PAT-06` portal pickups signed off with `P5-T5`, and typed appeals, restrictions, donation batches, memberships, finance breadth, and generic workflow tooling behind separate scoped rows. |
+| Review | P5-T18 | Case-form revision-capable review loop | Review the case-form-local revision request loop: staff can request changes with required notes, assignments move to `revision_requested`, portal/public clients see the notes and can resubmit, and the linked review follow-up stays open. Proof: `cd backend && npx jest --forceExit --runInBand src/modules/cases/usecases/__tests__/caseForms.usecase.test.ts src/modules/cases/repositories/__tests__/caseFormsRepository.assignments.test.ts`, `cd frontend && npm test -- --run src/features/cases/components/__tests__/CaseFormsPanel.test.tsx`, `cd backend && npm run type-check`, `cd frontend && npm run type-check`, targeted backend/frontend ESLint, `node scripts/check-migration-manifest-policy.ts`, and `make db-verify`. |
+| Review | P5-T19 | Workbench saved-queue dashboard entry points | Review the focused dashboard pickup: `FocusQueuePanel` now lists up to two owner-scoped `workbench` queue views from the existing `/v2/dashboard/queue-views` client route while fixed summary cards remain as fallback. Proof: `cd frontend && npm test -- --run src/features/dashboard/pages/__tests__/WorkbenchDashboardPage.test.tsx`, `cd backend && npm test -- --runInBand src/modules/dashboard/__tests__/dashboard.queueViews.routes.test.ts`, `cd frontend && npm run type-check`, `cd backend && npm run type-check`, `cd frontend && npm run lint`, `cd backend && npm run lint`. |
 
 ### Ready Queue
 
@@ -58,6 +60,8 @@ Maintenance rules:
 - Proof-complete and already archived rows have been removed from the live board: `P5-T2A`, `P5-T2B`, `P5-T2C`, `P5-T2D`, `P5-T3`, `P5-T4`, `P5-T5`, `P5-T6A`, `P5-T6B`, `P5-T6C`, `P5-T6C1`, `P5-T6D`, `P5-T7`, `P5-T8`, `P5-T9`, `P5-T10`, and `P5-T11`.
 - `P5-T6` remains live as the parent capability/backlog packet. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; broader runtime rows still need their own signout.
 - `P5-T12`, `P5-T13`, `P5-T14`, `P5-T15`, and `P5-T17` are archived in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md). Their proof lives in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md), [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), [../validation/P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md](../validation/P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md), and [../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md](../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md).
+- `P5-T18` is in Review with the case-form-local revision loop complete: required staff notes set `revision_requested`, clients see the requested changes in portal/public form surfaces, resubmission returns the assignment to `submitted`, and focused backend/frontend/database proof is green.
+- `P5-T19` is in Review with the narrow `PAT-05` saved-queue/workbench bridge complete: it reuses the existing `workbench` queue-view backend and frontend client contract, surfaces only dashboard entry points, keeps auth and route behavior unchanged, and is covered by focused backend/frontend tests plus package lint/type-check.
 
 ## Current Phase Shape
 
@@ -69,7 +73,7 @@ Maintenance rules:
 - `P5-T6` remains in `Review` as the parent capability/backlog packet. Keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit while broader typed appeals, restrictions, donation batches, memberships, finance breadth, and generic workflow tooling wait for separately scoped rows.
 - `P5-T9A`, `P5-T9B`, `P5-T9C`, `P5-T10A`, and `P5-T11A` are signed off and archived in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md), with proof in [../validation/P5_CLEANUP_WAVE_PROOF_2026-04-25.md](../validation/P5_CLEANUP_WAVE_PROOF_2026-04-25.md).
 - `P5-T12`, `P5-T13`, `P5-T14`, `P5-T15`, and `P5-T17` are signed off and archived in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md).
-- The current hardening and reassessment migrations `103` through `108` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, donor profiles, and case reassessment cycles; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
+- The current hardening and reassessment migrations `103` through `109` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, donor profiles, case reassessment cycles, and case-form revision requests; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
 
 ## Coordination
 

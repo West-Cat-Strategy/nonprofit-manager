@@ -368,12 +368,14 @@ export const buildReviewFollowUpDescription = (
   `Submission #${submissionNumber} for "${assignmentTitle}" was received. Review the mapped updates, packet, and attachments on the client file.`;
 
 export const buildReviewFollowUpResolutionNote = (
-  decision: 'reviewed' | 'closed' | 'cancelled',
+  decision: 'revision_requested' | 'reviewed' | 'closed' | 'cancelled',
   assignmentTitle: string,
   reviewerNotes?: string | null
 ): string => {
   const prefix =
-    decision === 'cancelled'
+    decision === 'revision_requested'
+      ? `Form revision requested for "${assignmentTitle}".`
+      : decision === 'cancelled'
       ? `Form review cancelled for "${assignmentTitle}".`
       : `Form review ${decision} for "${assignmentTitle}".`;
   const trimmedNotes = reviewerNotes?.trim();

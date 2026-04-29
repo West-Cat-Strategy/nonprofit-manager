@@ -15,6 +15,17 @@ import {
 import AvailabilityCalendar from '../../../components/AvailabilityCalendar';
 import TimeTracker from '../../../components/TimeTracker';
 
+const formatStatusLabel = (value?: string | null) =>
+  value ? value.replace(/_/g, ' ') : 'Not specified';
+
+const formatListSummary = (items?: string[] | null) => {
+  if (!items || items.length === 0) {
+    return 'None listed';
+  }
+
+  return items.slice(0, 6).join(', ');
+};
+
 const VolunteerDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -72,6 +83,9 @@ const VolunteerDetail = () => {
   }
 
   const fullName = `${currentVolunteer.first_name} ${currentVolunteer.last_name}`;
+  const activeAssignments = assignments.filter(
+    (assignment) => assignment.status === 'scheduled' || assignment.status === 'in_progress'
+  );
 
   const tabs = [
     { id: 'info', label: 'Information' },
@@ -268,6 +282,47 @@ const VolunteerDetail = () => {
               + New Assignment
             </button>
           </div>
+
+          <section className="mb-4 rounded-lg border border-app-border bg-app-surface-muted p-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div>
+                <p className="text-xs font-medium uppercase text-app-text-muted">Availability</p>
+                <p className="mt-1 text-sm capitalize text-app-text">
+                  {formatStatusLabel(currentVolunteer.availability_status)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase text-app-text-muted">Weekly max</p>
+                <p className="mt-1 text-sm text-app-text">
+                  {currentVolunteer.max_hours_per_week
+                    ? `${currentVolunteer.max_hours_per_week} hours`
+                    : 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase text-app-text-muted">Skills</p>
+                <p className="mt-1 text-sm text-app-text">
+                  {formatListSummary(currentVolunteer.skills)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase text-app-text-muted">Active load</p>
+                <p className="mt-1 text-sm text-app-text">
+                  {activeAssignments.length} assignment{activeAssignments.length === 1 ? '' : 's'}
+                </p>
+              </div>
+            </div>
+            {currentVolunteer.preferred_roles && currentVolunteer.preferred_roles.length > 0 && (
+              <p className="mt-3 text-sm text-app-text-muted">
+                Preferred roles: {formatListSummary(currentVolunteer.preferred_roles)}
+              </p>
+            )}
+            {currentVolunteer.availability_notes && (
+              <p className="mt-2 text-sm text-app-text-muted">
+                Availability notes: {currentVolunteer.availability_notes}
+              </p>
+            )}
+          </section>
 
           {assignments.length === 0 ? (
             <p className="text-app-text-muted text-center py-8">No assignments yet</p>

@@ -33,6 +33,7 @@ export const caseFormAssignmentStatusSchema = z.enum([
   'viewed',
   'in_progress',
   'submitted',
+  'revision_requested',
   'reviewed',
   'closed',
   'expired',
@@ -183,10 +184,19 @@ export const caseFormSendSchema = z
 
 export const caseFormReviewDecisionSchema = z
   .object({
-    decision: z.enum(['reviewed', 'closed', 'cancelled']),
+    decision: z.enum(['revision_requested', 'reviewed', 'closed', 'cancelled']),
     notes: z.string().trim().max(4000).nullable().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((payload, ctx) => {
+    if (payload.decision === 'revision_requested' && !payload.notes?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['notes'],
+        message: 'Revision notes are required when requesting changes.',
+      });
+    }
+  });
 
 export const caseFormAssetUploadSchema = z
   .object({

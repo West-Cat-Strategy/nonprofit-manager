@@ -19,6 +19,7 @@ const CASE_FORM_ASSIGNMENT_STATUSES = new Set<CaseFormAssignment['status']>([
   'viewed',
   'in_progress',
   'submitted',
+  'revision_requested',
   'reviewed',
   'closed',
   'expired',

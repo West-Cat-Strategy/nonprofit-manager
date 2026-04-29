@@ -1,5 +1,9 @@
 import { BrutalButton, BrutalCard } from '../../../components/neo-brutalist';
-import type { CaseFormAssignmentDetail, CaseFormDeliveryTarget } from '../../../types/caseForms';
+import type {
+  CaseFormAssignmentDetail,
+  CaseFormDeliveryTarget,
+  CaseFormReviewDecision,
+} from '../../../types/caseForms';
 import { staffCaseFormsApiClient } from '../api/caseFormsApiClient';
 import { sendLabelForTarget } from './caseFormsPanelUtils';
 
@@ -16,7 +20,7 @@ interface CaseFormsAssignmentActionsCardProps {
   onChangeDeliveryTarget: (value: CaseFormDeliveryTarget) => void;
   setReviewNotes: (value: string) => void;
   onCopyAccessLink: () => void;
-  onReviewDecision: (decision: 'reviewed' | 'closed' | 'cancelled') => void;
+  onReviewDecision: (decision: CaseFormReviewDecision['decision']) => void;
   onSaveDraft: () => void;
   onSend: () => void;
   onSubmitAsStaff: () => void;
@@ -40,6 +44,8 @@ export function CaseFormsAssignmentActionsCard({
   onSend,
   onSubmitAsStaff,
 }: CaseFormsAssignmentActionsCardProps) {
+  const revisionNotesRequired = !reviewNotes.trim();
+
   return (
     <BrutalCard color="white" className="p-6 space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -120,14 +126,33 @@ export function CaseFormsAssignmentActionsCard({
       )}
 
       <div className="rounded border-2 border-black bg-[var(--loop-pink)] p-4 space-y-3">
-        <label className="block text-xs font-black uppercase text-black/70">Review Notes</label>
+        {detail.assignment.status === 'revision_requested' && detail.assignment.revision_notes && (
+          <div className="rounded border-2 border-black bg-white px-3 py-2 text-sm font-semibold">
+            Changes requested: {detail.assignment.revision_notes}
+          </div>
+        )}
+        <label
+          className="block text-xs font-black uppercase text-black/70"
+          htmlFor="case-form-review-notes"
+        >
+          Review Notes
+        </label>
         <textarea
+          id="case-form-review-notes"
           value={reviewNotes}
           onChange={(event) => setReviewNotes(event.target.value)}
           rows={3}
           className="w-full border-2 border-black bg-white px-3 py-2 text-sm"
         />
         <div className="flex flex-wrap gap-3">
+          <BrutalButton
+            onClick={() => onReviewDecision('revision_requested')}
+            disabled={saving || revisionNotesRequired}
+            size="sm"
+            variant="secondary"
+          >
+            Request Changes
+          </BrutalButton>
           <BrutalButton onClick={() => onReviewDecision('reviewed')} disabled={saving} size="sm">
             Mark Reviewed
           </BrutalButton>

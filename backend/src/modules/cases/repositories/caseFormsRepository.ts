@@ -207,7 +207,8 @@ export class CaseFormsRepository {
     executor: DbExecutor,
     assignmentId: string,
     input: {
-      status: 'reviewed' | 'closed' | 'cancelled';
+      status: 'revision_requested' | 'reviewed' | 'closed' | 'cancelled';
+      notes?: string | null;
       userId?: string | null;
     }
   ): Promise<void> {

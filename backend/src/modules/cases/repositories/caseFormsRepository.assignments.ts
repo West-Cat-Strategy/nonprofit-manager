@@ -273,12 +273,15 @@ export async function markAssignmentReviewDecision(
   executor: DbExecutor,
   assignmentId: string,
   input: {
-    status: 'reviewed' | 'closed' | 'cancelled';
+    status: 'revision_requested' | 'reviewed' | 'closed' | 'cancelled';
+    notes?: string | null;
     userId?: string | null;
   }
 ): Promise<void> {
   const timestampField =
-    input.status === 'reviewed'
+    input.status === 'revision_requested'
+      ? 'revision_requested_at'
+      : input.status === 'reviewed'
       ? 'reviewed_at'
       : input.status === 'closed'
         ? 'closed_at'
@@ -289,14 +292,22 @@ export async function markAssignmentReviewDecision(
     'updated_at = NOW()',
     'updated_by = $3',
   ];
-  if (timestampField) {
-    assignments.push(`${timestampField} = COALESCE(${timestampField}, NOW())`);
+  const values = [assignmentId, input.status, input.userId || null];
+  if (input.status === 'revision_requested') {
+    assignments.push('revision_requested_at = NOW()');
+    assignments.push('revision_notes = $4');
+    values.push(input.notes?.trim() || null);
+  } else {
+    if (timestampField) {
+      assignments.push(`${timestampField} = COALESCE(${timestampField}, NOW())`);
+    }
+    assignments.push('revision_notes = NULL');
   }
 
   await executor.query(
     `UPDATE case_form_assignments
      SET ${assignments.join(', ')}
      WHERE id = $1`,
-    [assignmentId, input.status, input.userId || null]
+    values
   );
 }

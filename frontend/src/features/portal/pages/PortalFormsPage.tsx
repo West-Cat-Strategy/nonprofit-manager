@@ -29,7 +29,15 @@ const formatAssignmentCaseContext = (assignment: Pick<CaseFormAssignment, 'case_
   );
   return parts.length > 0 ? parts.join(' - ') : null;
 };
-const formatAssignmentTimeline = (assignment: Pick<CaseFormAssignment, 'submitted_at' | 'sent_at' | 'updated_at'>): string => {
+const formatAssignmentTimeline = (
+  assignment: Pick<
+    CaseFormAssignment,
+    'revision_requested_at' | 'status' | 'submitted_at' | 'sent_at' | 'updated_at'
+  >
+): string => {
+  if (assignment.status === 'revision_requested' && assignment.revision_requested_at) {
+    return `Revision requested ${new Date(assignment.revision_requested_at).toLocaleString()}`;
+  }
   if (assignment.submitted_at) {
     return `Submitted ${new Date(assignment.submitted_at).toLocaleString()}`;
   }
@@ -146,6 +154,7 @@ export default function PortalForms() {
     detail?.assignment.status &&
     RECEIPT_FORM_STATUSES.has(detail.assignment.status as CaseFormAssignment['status']);
   const isSubmittedAwaitingReview = detail?.assignment.status === 'submitted';
+  const isRevisionRequested = detail?.assignment.status === 'revision_requested';
 
   const handleUploadAsset = async (
     question: CaseFormQuestion,
@@ -352,6 +361,16 @@ export default function PortalForms() {
                   </div>
                 )}
 
+                {isRevisionRequested && (
+                  <div className="rounded border border-app-border bg-app-accent-soft px-4 py-3 text-sm text-app-accent-text">
+                    <p className="font-semibold">Changes requested.</p>
+                    <p className="mt-1 text-app-text-muted">
+                      {detail.assignment.revision_notes ||
+                        'Staff requested updates to this form. Review your responses and resubmit when ready.'}
+                    </p>
+                  </div>
+                )}
+
                 <CaseFormRenderer
                   schema={detail.assignment.schema}
                   answers={draftAnswers}
@@ -383,7 +402,7 @@ export default function PortalForms() {
                       disabled={saving}
                       className="rounded border border-app-text bg-app-text px-4 py-2 text-sm font-semibold text-white"
                     >
-                      {isSubmittedAwaitingReview ? 'Resubmit Form' : 'Submit Form'}
+                      {isSubmittedAwaitingReview || isRevisionRequested ? 'Resubmit Form' : 'Submit Form'}
                     </button>
                   </div>
                 )}

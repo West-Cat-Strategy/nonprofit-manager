@@ -118,6 +118,8 @@ export const mapAssignment = (row: QueryResultRow): CaseFormAssignmentRecord => 
   sent_at: (row.sent_at as Date | string | null | undefined) ?? null,
   viewed_at: (row.viewed_at as Date | string | null | undefined) ?? null,
   submitted_at: (row.submitted_at as Date | string | null | undefined) ?? null,
+  revision_requested_at: (row.revision_requested_at as Date | string | null | undefined) ?? null,
+  revision_notes: (row.revision_notes as string | null | undefined) ?? null,
   reviewed_at: (row.reviewed_at as Date | string | null | undefined) ?? null,
   closed_at: (row.closed_at as Date | string | null | undefined) ?? null,
   created_at: row.created_at as Date | string,

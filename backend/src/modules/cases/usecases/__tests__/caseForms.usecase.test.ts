@@ -87,6 +87,8 @@ const makeAssignment = (
   sent_at: null,
   viewed_at: null,
   submitted_at: null,
+  revision_requested_at: null,
+  revision_notes: null,
   reviewed_at: null,
   closed_at: null,
   created_at: '2026-04-16T12:00:00.000Z',
@@ -700,6 +702,75 @@ describe('CaseFormsUseCase', () => {
         followUpId: 'follow-up-1',
       })
     );
+    expect(mocks.cancelReviewFollowUp).not.toHaveBeenCalled();
+  });
+
+  it('keeps the linked follow-up open when staff requests revisions with notes', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'submitted',
+      delivery_target: 'portal',
+      review_follow_up_id: 'follow-up-1',
+    });
+    const refreshed = makeAssignment({
+      status: 'revision_requested',
+      delivery_target: 'portal',
+      review_follow_up_id: 'follow-up-1',
+      revision_requested_at: '2026-04-16T13:20:00.000Z',
+      revision_notes: 'Please upload the signed release.',
+    });
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment).mockResolvedValueOnce(refreshed);
+
+    await useCase.reviewAssignment('case-1', assignment.id, {
+      decision: 'revision_requested',
+      notes: '  Please upload the signed release.  ',
+    }, 'staff-1', 'org-1');
+
+    expect(mocks.completeReviewFollowUp).not.toHaveBeenCalled();
+    expect(mocks.cancelReviewFollowUp).not.toHaveBeenCalled();
+    expect(mocks.markAssignmentReviewDecision).toHaveBeenCalledWith(
+      expect.anything(),
+      assignment.id,
+      expect.objectContaining({
+        status: 'revision_requested',
+        notes: 'Please upload the signed release.',
+        userId: 'staff-1',
+      })
+    );
+    expect(createCaseNoteQueryMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        content: expect.stringContaining('Please upload the signed release.'),
+      }),
+      'staff-1'
+    );
+  });
+
+  it('requires notes before staff can request revisions', async () => {
+    const { repository, mocks } = createRepositoryMock();
+    const useCase = new CaseFormsUseCase(repository);
+    const assignment = makeAssignment({
+      status: 'submitted',
+      delivery_target: 'portal',
+      review_follow_up_id: 'follow-up-1',
+    });
+
+    mocks.getAssignmentById.mockResolvedValueOnce(assignment);
+
+    await expect(
+      useCase.reviewAssignment('case-1', assignment.id, {
+        decision: 'revision_requested',
+        notes: '   ',
+      }, 'staff-1', 'org-1')
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'validation_error',
+    });
+
+    expect(mocks.markAssignmentReviewDecision).not.toHaveBeenCalled();
+    expect(mocks.completeReviewFollowUp).not.toHaveBeenCalled();
     expect(mocks.cancelReviewFollowUp).not.toHaveBeenCalled();
   });
 

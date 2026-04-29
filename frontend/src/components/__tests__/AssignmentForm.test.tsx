@@ -6,6 +6,8 @@ import { renderWithProviders, createTestStore } from '../../test/testUtils';
 const apiMocks = vi.hoisted(() => ({
   listEvents: vi.fn(),
   listTasks: vi.fn(),
+  getVolunteerById: vi.fn(),
+  listAssignments: vi.fn(),
   createAssignment: vi.fn(),
   updateAssignment: vi.fn(),
 }));
@@ -36,9 +38,9 @@ vi.mock('../../features/volunteers/api/volunteersApiClient', () => ({
   volunteersApiClient: {
     createAssignment: apiMocks.createAssignment,
     updateAssignment: apiMocks.updateAssignment,
-    listAssignments: vi.fn(),
+    listAssignments: apiMocks.listAssignments,
     listVolunteers: vi.fn(),
-    getVolunteerById: vi.fn(),
+    getVolunteerById: apiMocks.getVolunteerById,
     findVolunteersBySkills: vi.fn(),
     createVolunteer: vi.fn(),
     updateVolunteer: vi.fn(),
@@ -56,8 +58,53 @@ describe('AssignmentForm', () => {
     mockNavigate.mockClear();
     apiMocks.listEvents.mockReset();
     apiMocks.listTasks.mockReset();
+    apiMocks.getVolunteerById.mockReset();
+    apiMocks.listAssignments.mockReset();
     apiMocks.createAssignment.mockReset();
     apiMocks.updateAssignment.mockReset();
+
+    apiMocks.getVolunteerById.mockResolvedValue({
+      volunteer_id: '123',
+      contact_id: 'contact-123',
+      first_name: 'Alex',
+      last_name: 'Taylor',
+      email: 'alex@example.org',
+      phone: null,
+      mobile_phone: null,
+      skills: ['Outreach', 'Data entry'],
+      availability_status: 'limited',
+      availability_notes: 'Weekday mornings preferred',
+      background_check_status: 'approved',
+      background_check_date: null,
+      background_check_expiry: null,
+      preferred_roles: ['Registration Desk'],
+      max_hours_per_week: 6,
+      emergency_contact_name: null,
+      emergency_contact_phone: null,
+      emergency_contact_relationship: null,
+      volunteer_since: '2026-01-15T00:00:00Z',
+      total_hours_logged: 24,
+      is_active: true,
+      created_at: '2026-01-15T00:00:00Z',
+      updated_at: '2026-01-15T00:00:00Z',
+    });
+
+    apiMocks.listAssignments.mockResolvedValue([
+      {
+        assignment_id: 'existing-assignment',
+        volunteer_id: '123',
+        event_id: 'event-existing',
+        task_id: null,
+        assignment_type: 'event',
+        role: 'Registration Desk',
+        start_time: '2026-05-10T08:00:00',
+        end_time: '2026-05-10T11:00:00',
+        hours_logged: 0,
+        status: 'scheduled',
+        notes: null,
+        event_name: 'Spring Outreach shift',
+      },
+    ]);
 
     apiMocks.listEvents.mockImplementation(({ status }) =>
       Promise.resolve({
@@ -205,6 +252,39 @@ describe('AssignmentForm', () => {
       expect(taskSelect.value).toBe('task-1');
     });
 
+    it('shows volunteer availability and skill-fit cues beside the picker', async () => {
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
+
+      expect(
+        await screen.findByText(/availability is limited with 6 hours per week max/i)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/availability notes: weekday mornings preferred/i)
+      ).toBeInTheDocument();
+      expect(screen.getByText(/1 active assignment loaded/i)).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText(/assignment type/i), { target: { value: 'event' } });
+      await screen.findByRole('option', { name: /spring outreach/i });
+      fireEvent.change(screen.getByLabelText(/^event \*/i), { target: { value: 'event-1' } });
+
+      expect(screen.getByText('Outreach')).toBeInTheDocument();
+    });
+
+    it('flags loaded schedule overlaps for the selected assignment window', async () => {
+      renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
+
+      await screen.findByText(/1 active assignment loaded/i);
+      fireEvent.change(screen.getByLabelText(/start time/i), {
+        target: { value: '2026-05-10T09:00' },
+      });
+      fireEvent.change(screen.getByLabelText(/end time/i), {
+        target: { value: '2026-05-10T10:00' },
+      });
+
+      expect(screen.getByText(/1 schedule overlap found/i)).toBeInTheDocument();
+      expect(screen.getByText(/overlap: spring outreach shift/i)).toBeInTheDocument();
+    });
+
     it('submits the selected picker ID as event_id', async () => {
       renderAssignmentForm(<AssignmentForm mode="create" volunteerId="123" />);
 
@@ -226,6 +306,10 @@ describe('AssignmentForm', () => {
           })
         );
       });
+
+      const submittedPayload = apiMocks.createAssignment.mock.calls[0][0];
+      expect(submittedPayload).not.toHaveProperty('skills');
+      expect(submittedPayload).not.toHaveProperty('availability_status');
     });
 
     it('allows entering role/position', () => {

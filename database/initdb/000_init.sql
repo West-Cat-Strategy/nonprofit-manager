@@ -124,6 +124,7 @@ CREATE INDEX IF NOT EXISTS idx_schema_migrations_canonical_filename
 \i /migrations/106_portal_escalations.sql
 \i /migrations/107_donor_profiles.sql
 \i /migrations/108_case_reassessment_cycles.sql
+\i /migrations/109_case_form_revision_requests.sql
 
 UPDATE schema_migrations
 SET migration_id = '032',
@@ -253,7 +254,8 @@ VALUES
     ('105_queue_view_definitions.sql', '105', '105_queue_view_definitions.sql'),
     ('106_portal_escalations.sql', '106', '106_portal_escalations.sql'),
     ('107_donor_profiles.sql', '107', '107_donor_profiles.sql'),
-    ('108_case_reassessment_cycles.sql', '108', '108_case_reassessment_cycles.sql')
+    ('108_case_reassessment_cycles.sql', '108', '108_case_reassessment_cycles.sql'),
+    ('109_case_form_revision_requests.sql', '109', '109_case_form_revision_requests.sql')
 ON CONFLICT (filename) DO UPDATE
 SET migration_id = EXCLUDED.migration_id,
     canonical_filename = EXCLUDED.canonical_filename;

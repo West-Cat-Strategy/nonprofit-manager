@@ -6,6 +6,8 @@ import { vi } from 'vitest';
 import WorkbenchDashboardPage from '../WorkbenchDashboardPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
+const listQueueViewsMock = vi.hoisted(() => vi.fn());
+
 const analyticsSummary = {
   total_accounts: 50,
   active_accounts: 35,
@@ -44,6 +46,12 @@ vi.mock('../../../../components/neo-brutalist/NeoBrutalistLayout', () => ({
 vi.mock('../../../../components/dashboard', () => ({
   QuickActionsWidget: () => <div>Quick Actions</div>,
   QuickLookupWidget: () => <div>Quick Lookup</div>,
+}));
+
+vi.mock('../../../../features/cases/api/queueViewsApiClient', () => ({
+  queueViewsApiClient: {
+    listQueueViews: (...args: unknown[]) => listQueueViewsMock(...args),
+  },
 }));
 
 vi.mock('../../../../hooks/useDashboardSettings', () => ({
@@ -144,11 +152,71 @@ vi.mock('../../context/DashboardDataContext', () => ({
 }));
 
 describe('WorkbenchDashboardPage', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
+  beforeEach(() => {
+    listQueueViewsMock.mockResolvedValue([
+      {
+        id: 'workbench-view-1',
+        ownerUserId: 'user-1',
+        surface: 'workbench',
+        name: 'Urgent intake queue',
+        filters: {},
+        columns: [],
+        sort: {},
+        rowLimit: 10,
+        dashboardBehavior: {
+          href: '/cases?quick_filter=urgent',
+          description: 'Cases needing same-day triage.',
+          cta: 'Open urgent cases',
+        },
+        permissionScope: ['workbench'],
+        status: 'active',
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+      {
+        id: 'workbench-view-2',
+        ownerUserId: 'user-1',
+        surface: 'workbench',
+        name: 'Today follow-ups',
+        filters: {},
+        columns: [],
+        sort: {},
+        rowLimit: 25,
+        dashboardBehavior: {
+          href: '/follow-ups?date=today',
+          description: 'Assigned follow-ups due today.',
+        },
+        permissionScope: ['workbench'],
+        status: 'active',
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+      {
+        id: 'workbench-view-3',
+        ownerUserId: 'user-1',
+        surface: 'workbench',
+        name: 'Overflow queue',
+        filters: {},
+        columns: [],
+        sort: {},
+        rowLimit: 25,
+        dashboardBehavior: {
+          href: '/tasks?scope=overflow',
+        },
+        permissionScope: ['workbench'],
+        status: 'active',
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+    ]);
   });
 
-  it('renders navigation-only primary actions as links and formats metrics with the runtime locale', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    listQueueViewsMock.mockReset();
+  });
+
+  it('renders navigation-only primary actions as links and formats metrics with the runtime locale', async () => {
     const originalNumberFormat = Intl.NumberFormat;
     const originalDateTimeFormat = Intl.DateTimeFormat;
     const numberFormatSpy = vi
@@ -176,6 +244,14 @@ describe('WorkbenchDashboardPage', () => {
 
     renderWithProviders(<WorkbenchDashboardPage />, { route: '/dashboard' });
 
+    const urgentQueueLink = await screen.findByRole('link', { name: /urgent intake queue/i });
+    expect(listQueueViewsMock).toHaveBeenCalledWith('workbench');
+    expect(urgentQueueLink).toHaveAttribute('href', '/cases?quick_filter=urgent');
+    expect(screen.getByRole('link', { name: /today follow-ups/i })).toHaveAttribute(
+      'href',
+      '/follow-ups?date=today'
+    );
+    expect(screen.queryByRole('link', { name: /overflow queue/i })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'New Case' })).toHaveAttribute('href', '/cases/new');
     const pinnedShortcutsSection = screen.getByRole('heading', { name: /pinned shortcuts/i })
       .closest('section');

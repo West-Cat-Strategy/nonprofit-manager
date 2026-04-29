@@ -177,6 +177,7 @@ export default function PublicCaseFormPage() {
   const isLockedReceiptState = assignmentStatus ? LOCKED_RECEIPT_STATUSES.has(assignmentStatus) : false;
   const isUnavailableState = assignmentStatus ? INACTIVE_STATUSES.has(assignmentStatus) : false;
   const isSubmittedAwaitingReview = assignmentStatus === 'submitted';
+  const isRevisionRequested = assignmentStatus === 'revision_requested';
   const statusLabel = assignmentStatus ? assignmentStatus.replaceAll('_', ' ') : null;
   const submittedAtLabel = assignment?.submitted_at
     ? formatPortalDateTime(assignment.submitted_at)
@@ -266,6 +267,16 @@ export default function PublicCaseFormPage() {
                 </div>
               ) : null}
 
+              {isRevisionRequested ? (
+                <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-app-accent-soft px-4 py-4 text-sm text-app-accent-text">
+                  <p className="font-medium">Changes requested.</p>
+                  <p className="mt-1 text-app-text-muted">
+                    {assignment.revision_notes ||
+                      'Staff requested updates to this secure form. Review your responses and resubmit when ready.'}
+                  </p>
+                </div>
+              ) : null}
+
               {isUnavailableState ? (
                 <div className="rounded-[var(--ui-radius-md)] border border-app-border bg-app-surface px-4 py-4 text-sm text-app-text-muted">
                   <p className="font-medium text-app-text-heading">{unavailableCopy?.title}</p>
@@ -303,7 +314,11 @@ export default function PublicCaseFormPage() {
                   onClick={() => void handleSubmit()}
                   disabled={saving}
                 >
-                  {saving ? 'Submitting...' : isSubmittedAwaitingReview ? 'Resubmit Form' : 'Submit Form'}
+                  {saving
+                    ? 'Submitting...'
+                    : isSubmittedAwaitingReview || isRevisionRequested
+                      ? 'Resubmit Form'
+                      : 'Submit Form'}
                 </PrimaryButton>
               </div>
             ) : null}

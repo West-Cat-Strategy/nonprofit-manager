@@ -1,6 +1,7 @@
 import pool from '@config/database';
 import {
   listAssignmentsForPortal,
+  markAssignmentReviewDecision,
   markAssignmentSent,
   updateAssignment,
 } from '../caseFormsRepository.assignments';
@@ -38,6 +39,8 @@ const assignmentRow = {
   sent_at: null,
   viewed_at: null,
   submitted_at: null,
+  revision_requested_at: null,
+  revision_notes: null,
   reviewed_at: null,
   closed_at: null,
   created_at: new Date('2026-04-16T12:00:00.000Z'),
@@ -98,6 +101,27 @@ describe('caseFormsRepository.assignments', () => {
     );
   });
 
+  it('marks revision requests with explicit notes and timestamp', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+
+    await markAssignmentReviewDecision(pool, 'assignment-1', {
+      status: 'revision_requested',
+      notes: '  Add the signed consent form.  ',
+      userId: 'reviewer-1',
+    });
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain('status = $2');
+    expect(sql).toContain('revision_requested_at = NOW()');
+    expect(sql).toContain('revision_notes = $4');
+    expect(params).toEqual([
+      'assignment-1',
+      'revision_requested',
+      'reviewer-1',
+      'Add the signed consent form.',
+    ]);
+  });
+
   it('expands the active portal status bucket to the portal-editable statuses', async () => {
     queryMock.mockResolvedValueOnce({ rows: [] });
 
@@ -107,7 +131,7 @@ describe('caseFormsRepository.assignments', () => {
     expect(sql).toContain('cfa.status = ANY($2::text[])');
     expect(params).toEqual([
       'contact-1',
-      ['draft', 'sent', 'viewed', 'in_progress', 'submitted'],
+      ['draft', 'sent', 'viewed', 'in_progress', 'submitted', 'revision_requested'],
     ]);
   });
 

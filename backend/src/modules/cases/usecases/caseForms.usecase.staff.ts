@@ -54,6 +54,10 @@ const applyReviewFollowUpDecision = async (
 
   const notes = buildReviewFollowUpResolutionNote(payload.decision, assignment.title, payload.notes);
 
+  if (payload.decision === 'revision_requested') {
+    return;
+  }
+
   if (payload.decision === 'cancelled') {
     await repository.cancelReviewFollowUp(client, {
       organizationId: assignment.account_id,
@@ -469,19 +473,34 @@ export const reviewCaseFormAssignment = async (
   organizationId?: string
 ): Promise<CaseFormAssignment> => {
   const assignment = await getCaseAssignment(repository, db, caseId, assignmentId, organizationId);
+  const notes = payload.notes?.trim() || null;
+
+  if (payload.decision === 'revision_requested' && !notes) {
+    throw Object.assign(new Error('Revision notes are required when requesting changes'), {
+      statusCode: 400,
+      code: 'validation_error',
+    });
+  }
+
+  const reviewPayload: CaseFormReviewDecision = {
+    ...payload,
+    notes,
+  };
+
   await repository.withTransaction(async (client) => {
-    await applyReviewFollowUpDecision(repository, client, assignment, payload, userId || null);
+    await applyReviewFollowUpDecision(repository, client, assignment, reviewPayload, userId || null);
     await repository.markAssignmentReviewDecision(client, assignment.id, {
-      status: payload.decision,
+      status: reviewPayload.decision,
+      notes,
       userId: userId || null,
     });
     await createLifecycleNote(
       client,
       assignment.case_id,
       noteContent(
-        payload.decision === 'reviewed' ? 'reviewed' : payload.decision,
+        reviewPayload.decision === 'revision_requested' ? 'revision requested' : reviewPayload.decision,
         assignment.title,
-        payload.notes || null
+        notes
       ),
       userId || null
     );

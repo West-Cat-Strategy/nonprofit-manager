@@ -8,6 +8,7 @@ import type {
   CaseFormDeliveryTarget,
   CaseFormDefault,
   CaseFormQuestion,
+  CaseFormReviewDecision,
   CaseFormSchema,
 } from '../../../types/caseForms';
 import { staffCaseFormsApiClient } from '../api/caseFormsApiClient';
@@ -276,9 +277,7 @@ export default function CaseFormsPanel({
     }
   };
 
-  const handleReviewDecision = async (
-    decision: 'reviewed' | 'closed' | 'cancelled'
-  ): Promise<void> => {
+  const handleReviewDecision = async (decision: CaseFormReviewDecision['decision']): Promise<void> => {
     if (!detail) return;
     setSaving(true);
     try {
@@ -298,7 +297,8 @@ export default function CaseFormsPanel({
             }
           : current
       );
-      showSuccess(`Form marked ${decision}`);
+      setReviewNotes('');
+      showSuccess(decision === 'revision_requested' ? 'Form sent back for changes' : `Form marked ${decision}`);
       onChanged?.();
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Failed to update review status');

@@ -27,6 +27,7 @@ export type CaseFormAssignmentStatus =
   | 'viewed'
   | 'in_progress'
   | 'submitted'
+  | 'revision_requested'
   | 'reviewed'
   | 'closed'
   | 'expired'
@@ -38,7 +39,7 @@ export const CASE_FORM_ASSIGNMENT_STATUS_BUCKETS: Record<
   CaseFormAssignmentStatusBucket,
   CaseFormAssignmentStatus[]
 > = {
-  active: ['draft', 'sent', 'viewed', 'in_progress', 'submitted'],
+  active: ['draft', 'sent', 'viewed', 'in_progress', 'submitted', 'revision_requested'],
   completed: ['reviewed', 'closed', 'expired', 'cancelled'],
 };
 
@@ -180,6 +181,8 @@ export interface CaseFormAssignment {
   sent_at?: Date | string | null;
   viewed_at?: Date | string | null;
   submitted_at?: Date | string | null;
+  revision_requested_at?: Date | string | null;
+  revision_notes?: string | null;
   reviewed_at?: Date | string | null;
   closed_at?: Date | string | null;
   created_at: Date | string;
@@ -196,7 +199,7 @@ export interface CaseFormAssignment {
 }
 
 export interface CaseFormReviewDecision {
-  decision: 'reviewed' | 'closed' | 'cancelled';
+  decision: 'revision_requested' | 'reviewed' | 'closed' | 'cancelled';
   notes?: string | null;
 }
 

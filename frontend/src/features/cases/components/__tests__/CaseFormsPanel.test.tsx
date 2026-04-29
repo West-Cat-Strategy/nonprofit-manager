@@ -7,6 +7,7 @@ const listRecommendedDefaultsMock = vi.fn();
 const listAssignmentsMock = vi.fn();
 const getAssignmentMock = vi.fn();
 const sendMock = vi.fn();
+const reviewMock = vi.fn();
 const showSuccessMock = vi.fn();
 const showErrorMock = vi.fn();
 
@@ -22,7 +23,7 @@ vi.mock('../../api/caseFormsApiClient', () => ({
     uploadAsset: vi.fn(),
     saveDraft: vi.fn(),
     submit: vi.fn(),
-    review: vi.fn(),
+    review: (...args: unknown[]) => reviewMock(...args),
     getResponsePacketDownloadUrl: vi.fn(() => '/api/v2/cases/case-1/forms/assignment-1/response-packet'),
     getAssetDownloadUrl: vi.fn(),
   },
@@ -70,6 +71,8 @@ const assignment = {
   recipient_email: 'client@example.com',
   delivery_target: 'email' as const,
   sent_at: '2026-04-16T12:00:00.000Z',
+  revision_requested_at: null,
+  revision_notes: null,
   created_at: '2026-04-16T12:00:00.000Z',
   updated_at: '2026-04-16T12:00:00.000Z',
   access_link_url: 'https://example.test/public/case-forms/stale-token',
@@ -151,6 +154,44 @@ describe('CaseFormsPanel', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /copy link/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('requires review notes and sends a revision request decision', async () => {
+    reviewMock.mockResolvedValue({
+      ...assignment,
+      status: 'revision_requested',
+      revision_requested_at: '2026-04-16T13:00:00.000Z',
+      revision_notes: 'Please upload the signed consent form.',
+    });
+
+    renderWithProviders(
+      <CaseFormsPanel
+        caseId="case-1"
+        clientEmail="client@example.com"
+        clientViewable
+      />
+    );
+
+    expect(await screen.findByText('Assignment Actions')).toBeInTheDocument();
+    const requestChangesButton = screen.getByRole('button', { name: /request changes/i });
+    expect(requestChangesButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/review notes/i), {
+      target: { value: 'Please upload the signed consent form.' },
+    });
+
+    expect(requestChangesButton).toBeEnabled();
+
+    await act(async () => {
+      fireEvent.click(requestChangesButton);
+    });
+
+    await waitFor(() => {
+      expect(reviewMock).toHaveBeenCalledWith('case-1', 'assignment-1', {
+        decision: 'revision_requested',
+        notes: 'Please upload the signed consent form.',
+      });
     });
   });
 });
