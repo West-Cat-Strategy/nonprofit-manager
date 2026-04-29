@@ -311,9 +311,7 @@ describe('TaskForm', () => {
 
   describe('Loading State', () => {
     it('shows Saving... text while submitting', async () => {
-      mockOnSubmit.mockImplementation(
-        () => new Promise((resolve) => setTimeout(resolve, 100))
-      );
+      mockOnSubmit.mockImplementation(() => new Promise(() => {}));
       renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/subject/i), {
@@ -327,9 +325,7 @@ describe('TaskForm', () => {
     });
 
     it('disables buttons while submitting', async () => {
-      mockOnSubmit.mockImplementation(
-        () => new Promise((resolve) => setTimeout(resolve, 100))
-      );
+      mockOnSubmit.mockImplementation(() => new Promise(() => {}));
       renderWithProviders(<TaskForm onSubmit={mockOnSubmit} />);
 
       fireEvent.change(screen.getByLabelText(/subject/i), {

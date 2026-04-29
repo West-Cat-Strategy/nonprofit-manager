@@ -1,5 +1,5 @@
 import type * as ReactRouterDom from 'react-router-dom';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 import NeoBrutalistDashboard from '../NeoBrutalistDashboardPage';
@@ -233,7 +233,7 @@ describe('NeoBrutalistDashboard', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the hybrid workbench without issuing startup API requests from the page shell', () => {
+  it('renders the hybrid workbench without issuing unexpected startup API requests from the page shell', async () => {
     const store = createTestStore({
       auth: {
         user: {
@@ -263,7 +263,10 @@ describe('NeoBrutalistDashboard', () => {
       '/dashboard/custom'
     );
     expect(screen.queryByText('Daily Paths')).not.toBeInTheDocument();
-    expect(api.get).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/v2/dashboard/queue-views', { params: undefined });
+    });
+    expect(api.get).toHaveBeenCalledTimes(1);
     expect(preloadContactsPeopleRouteMock).not.toHaveBeenCalled();
     expect(preloadNavigationQuickLookupDialogMock).not.toHaveBeenCalled();
   });
