@@ -21,6 +21,7 @@ create_gitleaks_scan_root() {
   while IFS= read -r -d '' file; do
     local source_path="$PROJECT_ROOT/$file"
     local target_path="$scan_root/$file"
+    [[ -e "$source_path" || -L "$source_path" ]] || continue
     mkdir -p "$(dirname "$target_path")"
     cp -p "$source_path" "$target_path"
   done < <(git -C "$PROJECT_ROOT" ls-files -co --exclude-standard -z)

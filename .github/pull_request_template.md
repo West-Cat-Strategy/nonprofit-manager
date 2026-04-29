@@ -12,8 +12,9 @@
 
 <!-- Describe how you validated this change. Check all that apply. -->
 
-- [ ] `make ci-fast` passes (lint, typecheck, unit tests)
+- [ ] `make ci-fast` passes (lint and typecheck)
 - [ ] `make ci-full` passes (full CI including coverage)
+- [ ] `make release-check` passes (release-facing local CI/security/Docker/SBOM gate)
 - [ ] `make security-scan` passes (if touching security-relevant code)
 - [ ] `make check-links` passes (if touching docs)
 - [ ] E2E tests run (`cd e2e && npm test` or Docker smoke)

@@ -1,12 +1,12 @@
 # Nonprofit Manager - Local CI/CD Makefile
 # Run 'make help' for available commands
 #
-# Local make targets remain the canonical CI/security command surface.
-# GitHub Actions mirrors selected CI/security/build-validation targets for branch protection.
+# Local make targets are the canonical CI/security/release command surface.
+# GitHub hosts the repo, but tracked workflows do not execute CI/CD.
 
 .PHONY: help install install-dev lint lint-rate-limit-keys lint-success-envelope lint-route-validation lint-express-validator lint-controller-sql lint-query-contract lint-auth-guards lint-migration-manifest lint-duplicate-tests lint-doc-api-versioning lint-v2-module-ownership lint-module-boundary lint-module-route-proxy lint-canonical-module-imports lint-implementation-size lint-frontend-feature-boundary lint-frontend-legacy-slice-imports lint-frontend-legacy-page-paths lint-backend-legacy-controller-wrappers lint-route-integrity lint-route-catalog-drift typecheck test test-backend test-frontend test-e2e test-e2e-docker-smoke test-coverage test-coverage-full test-tooling quality-baseline check-links build build-backend build-frontend clean clean-local clean-all \
 	security-audit security-scan ci ci-fast ci-full ci-unit \
-        deploy deploy-staging deploy-local \
+        release-check release-staging release-production deploy deploy-staging deploy-local \
         docker-build docker-up docker-up-dev docker-up-caddy docker-down docker-logs docker-rebuild docker-validate \
         db-migrate db-verify doctor check-changed hooks
 
@@ -113,6 +113,9 @@ help:
 	@echo "  make ci-fast        Run quick CI (lint + typecheck only)"
 	@echo "  make ci-full        Run coverage-focused CI + security audit"
 	@echo "  make ci-unit        Run coverage-focused CI with unit tests only"
+	@echo "  make release-check  Run the local release gate without deploying"
+	@echo "  make release-staging Run the local release gate, then stage deploy wrapper"
+	@echo "  make release-production Run the local release gate, then production deploy wrapper"
 	@echo ""
 	@echo "$(GREEN)Security:$(RESET)"
 	@echo "  make security-audit Run npm audit on all projects"
@@ -598,6 +601,18 @@ ci-unit:
 	@echo "$(GREEN)========================================$(RESET)"
 
 #------------------------------------------------------------------------------
+# Local Release Gates
+#------------------------------------------------------------------------------
+release-check:
+	@./scripts/local-release.sh check
+
+release-staging:
+	@./scripts/local-release.sh staging
+
+release-production:
+	@./scripts/local-release.sh production
+
+#------------------------------------------------------------------------------
 # Database
 #------------------------------------------------------------------------------
 db-migrate:
@@ -636,7 +651,7 @@ hooks:
 	@echo ""
 	@echo "Hooks will run:"
 	@echo "  - pre-commit: Run repo lint"
-	@echo "  - pre-push: Run repo typecheck"
+	@echo "  - pre-push: Run fast local CI"
 	@echo ""
 	@echo "To skip: git commit --no-verify"
 

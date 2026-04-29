@@ -590,7 +590,7 @@ gunzip -c /srv/nonprofit-manager/backups/database/backup_20260201_020000.sql.gz 
 
 ## Local CI Runner (No GitHub Actions)
 
-This project uses a local runner to validate changes without paid CI/CD services.
+This project uses local release gates instead of GitHub Actions or another hosted CI/CD service. GitHub can host pull requests and repository metadata, but CI, security, Docker validation, SBOM generation, and deploy gating happen from this checkout.
 
 ### Run Local CI
 
@@ -599,7 +599,12 @@ make ci          # Lint, type-check, tests, and build
 make ci-fast     # Lint and type-check only
 make ci-full     # Coverage + security audit + build
 make ci-unit     # Unit-test coverage without integration or E2E
+make release-check       # Full local release gate without deploying
+make release-staging     # Release gate, then staging deploy wrapper
+make release-production  # Release gate, then production deploy wrapper
 ```
+
+`make release-check` runs `make ci-full`, `make security-scan`, `make docker-validate`, generates a CycloneDX SBOM under ignored `tmp/local-release/<timestamp>/`, and validates the SBOM JSON. The release deploy targets run that same gate before calling `scripts/deploy.sh`; staging and production still use the deploy wrapper's dry-run default unless `DEPLOY_EXECUTE=1` is set.
 
 ### Optional Git Hooks
 
@@ -607,8 +612,9 @@ make ci-unit     # Unit-test coverage without integration or E2E
 make hooks
 ```
 
-This installs local hooks for the repo's standard lint/type-check flow.
+This installs local hooks for the repo's standard lint and fast-CI flow.
 It now resolves Git's active hooks path, preserves differing existing hooks by default, and supports `./scripts/install-git-hooks.sh --dry-run` when you want to inspect the install plan first.
+The installed pre-commit hook runs `make lint`; the installed pre-push hook runs `make ci-fast`.
 
 ### Migration Verification (Local)
 
@@ -626,8 +632,14 @@ make db-verify
 ### Manual Deployment Process
 
 ```bash
-## Run local CI before deploy
-make ci
+## Run the local release gate before deploy
+make release-check
+
+## Dry-run the production deploy wrapper after the gate
+make release-production
+
+## Execute the production deploy wrapper after the gate
+DEPLOY_EXECUTE=1 make release-production
 
 ## Tag a release
 git tag -a v1.0.0 -m "Release version 1.0.0"

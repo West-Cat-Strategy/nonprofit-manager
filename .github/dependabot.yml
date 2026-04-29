@@ -25,19 +25,3 @@ updates:
           - version-update:semver-major
     cooldown:
       default-days: 7
-
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-      time: "09:15"
-      timezone: America/Vancouver
-    open-pull-requests-limit: 3
-    groups:
-      github-actions:
-        patterns:
-          - "*"
-    cooldown:
-      default-days: 7
-

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAppSelector } from '../../../../store/hooks';
 import { queueViewsApiClient } from '../../../cases/api/queueViewsApiClient';
 import type { QueueViewDefinition } from '../../../cases/api/queueViewsApiClient';
 import {
@@ -23,6 +24,12 @@ interface SavedQueueEntry {
 }
 
 const MAX_SAVED_QUEUE_ENTRIES = 2;
+export const SAVED_QUEUE_LOAD_DELAY_MS = 2000;
+
+interface FocusQueuePanelProps {
+  loadSavedQueues?: boolean;
+  savedQueueLoadDelayMs?: number;
+}
 
 const isSafeInternalHref = (value: unknown): value is string =>
   typeof value === 'string' && value.startsWith('/') && !value.startsWith('//');
@@ -60,7 +67,11 @@ const toSavedQueueEntry = (view: QueueViewDefinition): SavedQueueEntry => ({
   cta: getBehaviorText(view.dashboardBehavior, 'cta') ?? 'Open saved queue',
 });
 
-export default function FocusQueuePanel() {
+export default function FocusQueuePanel({
+  loadSavedQueues = true,
+  savedQueueLoadDelayMs = SAVED_QUEUE_LOAD_DELAY_MS,
+}: FocusQueuePanelProps = {}) {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   const caseSummaryLane = useDashboardCaseSummary();
   const followUpSummaryLane = useDashboardFollowUpSummary();
   const taskSummaryLane = useDashboardTaskSummary();
@@ -82,6 +93,11 @@ export default function FocusQueuePanel() {
   useEffect(() => {
     let cancelled = false;
 
+    if (!loadSavedQueues || !isAuthenticated) {
+      setSavedQueueViews([]);
+      return undefined;
+    }
+
     const loadSavedQueueViews = async () => {
       try {
         const views = await queueViewsApiClient.listQueueViews('workbench');
@@ -95,12 +111,18 @@ export default function FocusQueuePanel() {
       }
     };
 
-    void loadSavedQueueViews();
+    const timeoutId = window.setTimeout(
+      () => {
+        void loadSavedQueueViews();
+      },
+      Math.max(0, savedQueueLoadDelayMs)
+    );
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
     };
-  }, []);
+  }, [isAuthenticated, loadSavedQueues, savedQueueLoadDelayMs]);
 
   return (
     <section className={workbenchPanelClassName}>
