@@ -12,6 +12,7 @@ Prefer the `make` targets when they exist. Call the scripts directly when you ne
 | [check-links.sh](check-links.sh) | Validate repo Markdown and HTML links used by the active docs. | `make check-links` |
 | [check-doc-api-versioning.ts](check-doc-api-versioning.ts) | Enforce active-doc `/api/v2` wording and catch stale API-version references. | `make lint-doc-api-versioning` |
 | [ci.sh](ci.sh) | Canonical root CI wrapper that backs the `make ci*` targets and coverage flows. | `make ci` / `make ci-fast` / `make ci-full` / `make ci-unit` / `make test-coverage` / `make test-coverage-full` |
+| [local-release.sh](local-release.sh) | Local-only release gate for CI, security scan, Docker validation, SBOM generation, and optional staging/production deploy handoff. | `make release-check` / `make release-staging` / `make release-production` |
 | [doctor.sh](doctor.sh) | Preflight local runtime prerequisites (Node, Docker, gitleaks, env files). | `make doctor` |
 | [check-changed.sh](check-changed.sh) | Identify and optionally run checks for files changed relative to `main`. | `make check-changed --run` |
 | [quality-baseline.sh](quality-baseline.sh) | Run the static quality baseline checks used by the repo's policy gates. | `make quality-baseline` |
@@ -78,6 +79,7 @@ The coverage lanes now self-supply the CI Redis URL and backend coverage heap in
 `make test-tooling` runs the targeted tooling-contract regression suite for selector, route-audit, helper-script, and wrapper changes.
 For a durable archived host Playwright CI report, use `cd e2e && npm run test:ci:report`; it preserves the run under `tmp/e2e-reports/` instead of reusing `e2e/playwright-report`.
 The full Playwright CI matrix stays gated to the default browser projects; `Mobile Safari` and `Tablet` remain manual/ad hoc projects that you can run explicitly when needed.
+Release-facing changes should use `make release-check`, which runs the full local release gate and writes the CycloneDX SBOM under ignored `tmp/local-release/<timestamp>/`. Use `make release-staging` or `make release-production` when you want the same gate followed by the deploy wrapper; those targets still inherit the deploy script's dry-run default unless `DEPLOY_EXECUTE=1` is set.
 
 If your change is docs-only, use:
 

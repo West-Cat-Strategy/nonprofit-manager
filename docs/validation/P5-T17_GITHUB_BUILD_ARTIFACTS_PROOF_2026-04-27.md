@@ -4,6 +4,8 @@
 **Status:** Closeout proof complete as of 2026-04-28
 **Workboard Row:** `P5-T17 GitHub build artifact validation`
 
+> Supersession note, 2026-04-29: this proof is historical. `P5-T20` replaces the GitHub build-artifact workflow with the local-only release gate documented in [../testing/TESTING.md](../testing/TESTING.md). `make release-check` now runs Docker validation, generates the CycloneDX SBOM under ignored `tmp/local-release/<timestamp>/`, and validates the SBOM JSON without uploading a GitHub artifact.
+
 ## Scope
 
 This row adds the first CD-shaped GitHub workload as build/package validation only. It does not deploy to staging or production, does not introduce app secrets, and does not enable MCP config, hooks, SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, or Knip expansion.

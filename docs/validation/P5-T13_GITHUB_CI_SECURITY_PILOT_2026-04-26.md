@@ -2,6 +2,8 @@
 
 **Last Updated:** 2026-04-28
 
+> Supersession note, 2026-04-29: this proof is historical. `P5-T20` replaces GitHub Actions CI/security/build gates with the local-only release process documented in [../testing/TESTING.md](../testing/TESTING.md). Use `make release-check` for current release proof and keep GitHub for repository hosting, PRs, npm Dependabot, vulnerability alerts, secret scanning, templates, and CODEOWNERS.
+
 ## Scope
 
 - Add GitHub-hosted mirrors for the repo's canonical local CI/security commands.

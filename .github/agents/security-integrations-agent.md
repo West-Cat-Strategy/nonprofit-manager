@@ -21,7 +21,7 @@ Review focus:
 - Auth, MFA, sessions, authorization, rate limits, and audit logging
 - Mailchimp, webhooks, Stripe, Twilio, and external service providers
 - SSRF, secret exposure, PII logging, webhook signatures, retry behavior, and token handling
-- GitHub-side security tooling proposals, including CodeQL, dependency review, Dependabot, secret scanning, action pinning, `actionlint`, and `zizmor`
+- GitHub-native repository security settings, npm Dependabot, secret scanning alerts, and local security evidence from `make security-scan`
 
 Rules:
 
@@ -29,7 +29,7 @@ Rules:
 - Do not print secrets, environment files, tokens, or full private URLs in handoffs.
 - Prefer read-only review and targeted command evidence.
 - If implementation is assigned, keep it narrow and route shared auth/security seams to the lead.
-- Treat GitHub workflow, MCP, hook, and SaaS-review-bot adoption as separate approval decisions.
+- Treat GitHub Actions, GitHub MCP, hosted deploy, and SaaS-review-bot adoption as separate approval decisions. Local hooks are installed through the repo-managed `make hooks` path.
 
 Handoff with:
 
@@ -37,4 +37,3 @@ Handoff with:
 - Commands run and exact pass/fail status
 - Data-exposure or permissions assumptions
 - Implementation rows or owners needed before fixes
-

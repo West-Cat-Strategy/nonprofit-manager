@@ -16,9 +16,16 @@ import {
 interface WorkbenchPanelsProps {
   settings: DashboardSettings;
   setupPanel?: ReactNode;
+  loadSavedQueues?: boolean;
+  savedQueueLoadDelayMs?: number;
 }
 
-export default function WorkbenchPanels({ settings, setupPanel }: WorkbenchPanelsProps) {
+export default function WorkbenchPanels({
+  settings,
+  setupPanel,
+  loadSavedQueues,
+  savedQueueLoadDelayMs,
+}: WorkbenchPanelsProps) {
   const { pinnedItems, enabledItems } = useNavigationPreferences();
 
   const pinnedWorkstreams = buildWorkbenchLinks(pinnedItems);
@@ -29,7 +36,10 @@ export default function WorkbenchPanels({ settings, setupPanel }: WorkbenchPanel
     <>
       {settings.showFocusQueue ? (
         <div className="mt-6">
-          <FocusQueuePanel />
+          <FocusQueuePanel
+            loadSavedQueues={loadSavedQueues}
+            savedQueueLoadDelayMs={savedQueueLoadDelayMs}
+          />
         </div>
       ) : null}
 

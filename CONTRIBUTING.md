@@ -77,11 +77,13 @@ Use the smallest validation set that still covers your change.
 | Smaller scoped code change | `./scripts/select-checks.sh --base HEAD~1 --mode fast` (use `--mode strict` for shared runtime, hook, Docker, or runtime-doc changes) |
 | Broader code change | `make lint`, `make typecheck`, and `make test` |
 | Higher-confidence validation | `make ci` or `make ci-full` as appropriate |
+| Release-facing validation | `make release-check` |
 
 Prefer root commands first. Use package-level scripts only when the change is narrow enough that a package-specific check is the clearest fit.
 `make ci-fast` is a lint + typecheck-only static pass. It is useful for quick feedback, but it is not a test lane or a full-confidence pass.
 `make typecheck` now includes the backend, frontend, and the shared `contracts` export smoke check.
 Use [docs/testing/TESTING.md](docs/testing/TESTING.md) for the current meaning of `make ci*`, `make test-coverage*`, and `make db-verify`, including current review-lane caveats.
+CI/CD is local-only. `make release-check` runs the release gate without deploying; `make release-staging` and `make release-production` run the same gate before delegating to the existing deploy wrapper, which still requires `DEPLOY_EXECUTE=1` for an actual staging or production deploy.
 
 ## Documentation Hygiene
 

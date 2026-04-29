@@ -1,6 +1,6 @@
 # Release Checklist
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-29
 
 Use this checklist before handing work to review, preparing a release branch, or cutting a deployment candidate. Use [../testing/TESTING.md](../testing/TESTING.md) when you need the fuller validation matrix and [GETTING_STARTED.md](GETTING_STARTED.md) when release verification depends on a specific runtime contract.
 
@@ -37,10 +37,13 @@ Use [../../scripts/select-checks.sh](../../scripts/select-checks.sh) or the repo
 
 ## Release Readiness
 
+- [ ] `make release-check`
 - [ ] Target environment env files reviewed
 - [ ] Required migrations verified
 - [ ] Deployment/runbook docs reviewed
 - [ ] Smoke-test plan prepared for post-deploy verification
+
+Use `make release-staging` or `make release-production` when you want the local release gate followed by the existing deploy wrapper. Those targets stay dry-run unless `DEPLOY_EXECUTE=1` is set.
 
 ## Post-Deploy
 

@@ -1,10 +1,10 @@
 # Testing Guide
 
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-04-29
 
 This file is the active test command map for nonprofit-manager. Use [../../CONTRIBUTING.md](../../CONTRIBUTING.md) for contributor workflow and [../development/GETTING_STARTED.md](../development/GETTING_STARTED.md) for runtime setup and ports; use this file when you need to choose the right validation command.
 
-GitHub Actions now mirrors selected CI/security checks for protected-branch gating, but the local commands documented here remain the canonical interface. When a GitHub workflow fails, reproduce it with the matching `make` target first unless the failure is clearly GitHub-runner-specific.
+CI/CD is local-only. GitHub remains the repository host, but tracked GitHub Actions workflows do not run CI, security, build, or deploy gates. Use the local `make` targets below for validation and release proof.
 
 ## Guide Map
 
@@ -32,19 +32,15 @@ GitHub Actions now mirrors selected CI/security checks for protected-branch gati
 | Docs validation | `make check-links` | Use for any docs change; add `make lint-doc-api-versioning` when API wording/examples or versioned API docs changed |
 | Tooling regression coverage | `make test-tooling` | Targeted contract suite for route-audit, selector, helper-script, and wrapper changes |
 
-## GitHub CI/Security Mirrors
+## Local Release Gates
 
-| GitHub check | Local source of truth | Notes |
+| Need | Command | Notes |
 |---|---|---|
-| `CI / full-ci` | `make ci-full` | Full CI mirror for pull requests and `main`; installs Playwright browsers on the runner before invoking the local target |
-| `Security Scan / security-scan` | `make security-scan` | Installs pinned `gitleaks` `v8.30.1` before invoking the local target so CI does not rely on the Docker `latest` fallback |
-| `CodeQL / codeql-js-ts` | GitHub CodeQL advanced setup | JavaScript/TypeScript analysis with `security-extended` and `security-and-quality` query suites |
-| `Dependency Review / dependency-review` | `.github/dependency-review-config.yml` | Pull-request dependency diff gate matching the repo's `moderate` audit threshold |
-| `Build Artifacts / docker-validate-sbom` | `make docker-validate` and `npm run sbom` | Build/package validation only; uploads a CycloneDX SBOM artifact and does not deploy to staging or production |
+| Release proof without deploy | `make release-check` | Runs `make ci-full`, `make security-scan`, `make docker-validate`, generates a local CycloneDX SBOM, and validates the SBOM JSON under ignored `tmp/local-release/<timestamp>/` |
+| Staging release handoff | `make release-staging` | Runs the same local gate before delegating to `scripts/deploy.sh staging`; deployment remains a dry run unless `DEPLOY_EXECUTE=1` is set |
+| Production release handoff | `make release-production` | Runs the same local gate before delegating to `scripts/deploy.sh production`; deployment remains a dry run unless `DEPLOY_EXECUTE=1` is set |
 
-Npm-using workflows pin npm `11.0.0` after setting up Node `25.x` so GitHub mirrors the local CLI baseline instead of drifting with runner image updates.
-
-Keep GitHub as a mirror, not a parallel command system. Add new CI/security/build checks to this table only when the matching local target, workflow ownership, and alert triage owner are explicit.
+Use `make release-check` for release-facing proof and before cutting a deploy candidate. Keep GitHub-native repository security settings such as npm Dependabot, vulnerability alerts, and secret scanning enabled when available, but do not treat them as CI/CD gates.
 
 ## Runtime Matrix
 
@@ -78,6 +74,9 @@ make test-coverage
 make test-coverage-full
 make ci-full
 make ci-unit
+make release-check
+make release-staging
+make release-production
 make test-e2e-docker-smoke
 make test-tooling
 ```

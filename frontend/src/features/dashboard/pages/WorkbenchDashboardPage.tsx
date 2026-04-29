@@ -1,19 +1,22 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import NeoBrutalistLayout from '../../../components/neo-brutalist/NeoBrutalistLayout';
 import { PageHeader, SectionCard } from '../../../components/ui';
 import { useDashboardSettings } from '../../../hooks/useDashboardSettings';
 import { getRouteMeta } from '../../../routes/routeMeta';
+import { isDemoPath } from '../../../services/loop/demo';
 import DashboardViewSettingsPanel from '../components/DashboardViewSettingsPanel';
 import { WorkbenchPanels } from '../components/workbench';
 import { DashboardDataProvider, WORKBENCH_DASHBOARD_LANES } from '../context/DashboardDataContext';
 
 function WorkbenchDashboardContent() {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const dashboardMeta = getRouteMeta('/dashboard');
   const primaryAction = dashboardMeta.primaryAction;
   const { settings, setSettings, resetSettings } = useDashboardSettings();
 
   const settingsOpen = searchParams.get('panel') === 'settings';
+  const isDemoRoute = isDemoPath(location.pathname);
 
   const toggleSettingsPanel = () => {
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -50,6 +53,7 @@ function WorkbenchDashboardContent() {
 
         <WorkbenchPanels
           settings={settings}
+          loadSavedQueues={!isDemoRoute}
           setupPanel={
             <SectionCard
               title="Workbench setup"

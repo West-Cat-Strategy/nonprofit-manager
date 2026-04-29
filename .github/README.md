@@ -1,6 +1,6 @@
 # GitHub Contributor Guidance
 
-These files route GitHub-side contributor tools and the approved CI/security pilot. They do not replace the repo's canonical docs, local `make` control plane, or workboard.
+These files route GitHub-side contributor tools and repository metadata. They do not replace the repo's canonical docs, local `make` control plane, local release gate, or workboard.
 
 Start every GitHub-assisted task with:
 
@@ -16,11 +16,11 @@ Start every GitHub-assisted task with:
 - [copilot-instructions.md](copilot-instructions.md) is the short bridge from GitHub Copilot into the canonical repo docs.
 - [agents/](agents/) contains thin lane profiles for GitHub Copilot custom agents if that feature is enabled for the repository.
 - [instructions/](instructions/) contains path-specific hints that route backend, frontend, docs, scripts, OpenAPI, and E2E work back to the canonical docs.
-- [workflows/](workflows/) contains the approved GitHub mirrors for full CI, security scanning, CodeQL, dependency review, and build-only artifact validation.
-- [dependabot.yml](dependabot.yml), [dependency-review-config.yml](dependency-review-config.yml), and [CODEOWNERS](CODEOWNERS) contain the first supply-chain and workflow ownership configuration.
+- [dependabot.yml](dependabot.yml) keeps npm dependency update PRs enabled without using GitHub Actions.
+- [CODEOWNERS](CODEOWNERS) contains workflow ownership metadata for review routing.
 
 ## Guardrails
 
-The approved GitHub pilot may run `make ci-full`, `make security-scan`, CodeQL, dependency review, Dependabot updates, and build-only package validation through `make docker-validate` plus `npm run sbom`. Weekly CodeQL, security-scan, and build-artifact schedules are approved for this tracked rollout. Local `make` commands remain the canonical command surface and must stay documented in [docs/testing/TESTING.md](../docs/testing/TESTING.md).
+Tracked GitHub Actions workflows are intentionally absent. CI, security scanning, Docker validation, SBOM generation, and deployment gating happen locally through `make release-check`, `make release-staging`, and `make release-production`. Local `make` commands remain the canonical command surface and must stay documented in [docs/testing/TESTING.md](../docs/testing/TESTING.md).
 
-Do not add deploy automation, GitHub MCP config, hooks, third-party SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, Knip expansion, or extra workflows without a separate tracked approval.
+Do not add GitHub Actions, GitHub-hosted deploy automation, GitHub MCP config, third-party SaaS review bots, Semgrep, Trivy, Harden-Runner, Redocly, Knip expansion, or other hosted CI/CD tooling without a separate tracked approval.

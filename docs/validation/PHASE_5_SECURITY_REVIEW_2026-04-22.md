@@ -1,6 +1,6 @@
 # Phase 5 Security Review
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-29
 
 ## Scope
 
@@ -18,13 +18,13 @@
   - Targeted security coverage already exists for active surfaces, including `backend/src/__tests__/modules/mailchimp.routes.security.test.ts`, `backend/src/__tests__/modules/payments.routes.security.test.ts`, `backend/src/__tests__/modules/reconciliation.routes.security.test.ts`, `backend/src/__tests__/services/paymentProviderService.ssrf.test.ts`, and `backend/src/__tests__/services/webhookService.secretExposure.test.ts`.
 - Planning gap: Phase 5 did not yet treat the security baseline, auth-alias operational visibility, and supply-chain follow-through as live tracked work even though they now affect the active validation lane.
 - Process drift: resolved under `P5-T8`; the helper security-contract reference now points at the current `scripts/security-scan.sh` / `make security-scan` baseline instead of the removed daily-report helper.
-- CI caveat: no checked-in `.github/workflows/*` or `dependabot.yml` files were present in the repo root during this review. If CI lives elsewhere, mirror the same controls there instead of treating GitHub-only tooling as a hard requirement.
+- CI/CD update: `P5-T20` makes CI/CD local-only. Keep `make security-scan` and `make release-check` as the current supply-chain baseline, with GitHub retained for hosting, npm Dependabot, vulnerability alerts, and secret scanning rather than hosted CI gates.
 
 ## External Guidance Applied
 
 - [OWASP ASVS 5.0](https://owasp.org/www-project-application-security-verification-standard/) is the clearest acceptance baseline for auth, session, access control, logging, admin actions, and SSRF-adjacent integrations in this codebase.
 - [OWASP API Security Top 10 2023](https://owasp.org/API-Security/editions/2023/en/0x11-t10/) keeps broken object and function authorization, unrestricted resource consumption, SSRF, and unsafe API consumption front and center for portal, payments, webhooks, Mailchimp, and publishing flows.
-- [GitHub CodeQL](https://docs.github.com/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning-with-codeql), [dependency review](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/enforcing-dependency-review-across-an-organization), [Dependabot alerts](https://docs.github.com/code-security/supply-chain-security/managing-vulnerabilities-in-your-projects-dependencies/about-alerts-for-vulnerable-dependencies?azure-portal=true), and [artifact attestations](https://docs.github.com/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds) are the lowest-churn supply-chain upgrades if the repo uses GitHub-backed CI.
+- GitHub-native [Dependabot alerts](https://docs.github.com/code-security/supply-chain-security/managing-vulnerabilities-in-your-projects-dependencies/about-alerts-for-vulnerable-dependencies?azure-portal=true), secret scanning, and push protection remain useful repository-host controls. GitHub CodeQL, dependency-review gates, and artifact attestations are no longer current CI/CD recommendations unless a future tracked row reopens hosted CI.
 - [`npm sbom`](https://docs.npmjs.com/cli/v10/commands/npm-sbom) is the lightest current path to release-time SBOM generation; CycloneDX becomes more attractive later if multi-workspace BOM depth or richer consumers require it.
 - [OpenTelemetry JS](https://opentelemetry.io/docs/languages/js/) is mature enough for backend traces and metrics, but JS logs are still in development and browser instrumentation remains experimental.
 - [Semgrep](https://semgrep.dev/docs/) and [Trivy](https://trivy.dev/docs/latest/guide/target/repository/) are useful next scanners, but only after assigning triage ownership so the repo does not accumulate ignored noise.
@@ -40,10 +40,8 @@
    - email and preview work keeps route-security and sanitization coverage current;
    - portal follow-through keeps object-level authorization plus PII and audit expectations current;
    - outbound integration changes keep SSRF-sensitive and secret-exposure proof current.
-5. Decide where continuous scanning lives:
-   - If GitHub-backed CI is available, start with CodeQL, dependency review, Dependabot alerts or security updates, and secret scanning push protection.
-   - If not, mirror the same checks in the existing CI system and keep `make security-scan` as the local baseline.
-6. Add SBOM generation to build or release flows with `npm sbom` now, or reserve CycloneDX for the point where multi-workspace output or richer BOM consumers make it worth the extra tooling.
+5. Keep continuous scanning local-first: rerun `make security-scan` whenever dependencies or security-sensitive code moves, and use GitHub-native Dependabot, vulnerability alerts, secret scanning, and push protection as repository-host signals rather than CI/CD gates.
+6. Keep SBOM generation in the release flow through `make release-check`, which writes a validated CycloneDX SBOM under ignored `tmp/local-release/<timestamp>/`.
 
 ### Later
 

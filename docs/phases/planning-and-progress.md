@@ -10,10 +10,10 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 3 |
+| Active rows | 4 |
 | In Progress | 0 |
 | Blocked | 0 |
-| Review | 3 |
+| Review | 4 |
 | Ready | 0 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
@@ -39,7 +39,7 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| _None_ | _None_ | _None_ | No row is currently in progress. |
+| _None_ | _None_ | _None_ | No row is currently signed out as in progress. |
 
 ### Review Queue
 
@@ -48,6 +48,7 @@ Maintenance rules:
 | Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) as the published capability-brief packet alongside [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md). Child planning briefs `P5-T6A`, `P5-T6B`, and `P5-T6C` are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md); keep the narrow `PAT-01`/`PAT-02`/`PAT-03` fundraising pickups signed off with `P5-T3`, `PAT-04`/`PAT-05`/`PAT-06` portal pickups signed off with `P5-T5`, and typed appeals, restrictions, donation batches, memberships, finance breadth, and generic workflow tooling behind separate scoped rows. |
 | Review | P5-T18 | Case-form revision-capable review loop | Review the case-form-local revision request loop: staff can request changes with required notes, assignments move to `revision_requested`, portal/public clients see the notes and can resubmit, and the linked review follow-up stays open. Proof: `cd backend && npx jest --forceExit --runInBand src/modules/cases/usecases/__tests__/caseForms.usecase.test.ts src/modules/cases/repositories/__tests__/caseFormsRepository.assignments.test.ts`, `cd frontend && npm test -- --run src/features/cases/components/__tests__/CaseFormsPanel.test.tsx`, `cd backend && npm run type-check`, `cd frontend && npm run type-check`, targeted backend/frontend ESLint, `node scripts/check-migration-manifest-policy.ts`, and `make db-verify`. |
 | Review | P5-T19 | Workbench saved-queue dashboard entry points | Review the focused dashboard pickup: `FocusQueuePanel` now lists up to two owner-scoped `workbench` queue views from the existing `/v2/dashboard/queue-views` client route while fixed summary cards remain as fallback. Proof: `cd frontend && npm test -- --run src/features/dashboard/pages/__tests__/WorkbenchDashboardPage.test.tsx`, `cd backend && npm test -- --runInBand src/modules/dashboard/__tests__/dashboard.queueViews.routes.test.ts`, `cd frontend && npm run type-check`, `cd backend && npm run type-check`, `cd frontend && npm run lint`, `cd backend && npm run lint`. |
+| Review | P5-T20 | Local-only CI/CD refactor | Review the local-only CI/CD refactor: GitHub Actions workflow gates and related configs are removed, local hooks and `make release-check` / release deploy targets are the release path, GitHub metadata/security features remain advisory or host-native only, and `main` branch protection no longer has required status-check contexts while force-push and deletion protection remain disabled. Proof: `./scripts/install-git-hooks.sh --dry-run`, `./scripts/install-git-hooks.sh --force`, `make ci-fast`, `make release-check` with SBOM at `tmp/local-release/20260429T084134Z/nonprofit-manager.cdx.json`, `make security-scan`, `make check-links`, `git diff --check -- .github Makefile scripts docs CONTRIBUTING.md`, `find .github/workflows -maxdepth 1 -type f -print`, and `gh api repos/West-Cat-Strategy/nonprofit-manager/branches/main/protection --jq '{required_status_checks, allow_force_pushes, allow_deletions}'`. |
 
 ### Ready Queue
 
@@ -62,6 +63,7 @@ Maintenance rules:
 - `P5-T12`, `P5-T13`, `P5-T14`, `P5-T15`, and `P5-T17` are archived in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md). Their proof lives in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md), [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), [../validation/P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md](../validation/P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md), and [../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md](../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md).
 - `P5-T18` is in Review with the case-form-local revision loop complete: required staff notes set `revision_requested`, clients see the requested changes in portal/public form surfaces, resubmission returns the assignment to `submitted`, and focused backend/frontend/database proof is green.
 - `P5-T19` is in Review with the narrow `PAT-05` saved-queue/workbench bridge complete: it reuses the existing `workbench` queue-view backend and frontend client contract, surfaces only dashboard entry points, keeps auth and route behavior unchanged, and is covered by focused backend/frontend tests plus package lint/type-check.
+- `P5-T20` is in Review with the local-only CI/CD refactor complete: local hooks plus `make release-check` / release deploy targets are the release gate, GitHub Actions workflow gates are removed, GitHub remains only for hosting, PRs, npm Dependabot, vulnerability alerts, secret scanning, templates, and CODEOWNERS, and `main` has no required status-check contexts.
 
 ## Current Phase Shape
 
@@ -509,3 +511,4 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 | ID | Task | Status | Owner | Next Step / Blocker | Evidence |
 |---|---|---|---|---|---|
 | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Review | Codex | The capability-based `P5-T6` brief packet is published in [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), and child planning briefs `P5-T6A`, `P5-T6B`, and `P5-T6C` are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md). | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md) |
+| P5-T20 | Local-only CI/CD refactor | Review | Codex | Review the local-only CI/CD lane: `make release-check` now runs the full local gate, staging/production release targets delegate to the deploy wrapper after the same gate, repo-managed hooks run local lint/fast CI, tracked GitHub Actions workflow gates are removed, and GitHub-side guidance is advisory metadata only. | `./scripts/install-git-hooks.sh --dry-run`, `./scripts/install-git-hooks.sh --force`, `make ci-fast`, `make release-check` with SBOM at `tmp/local-release/20260429T084134Z/nonprofit-manager.cdx.json`, `make security-scan`, `make check-links`, `git diff --check -- .github Makefile scripts docs CONTRIBUTING.md`, no files from `find .github/workflows -maxdepth 1 -type f -print`, and GitHub branch-protection readback showed `required_status_checks: null`, `allow_force_pushes.enabled: false`, and `allow_deletions.enabled: false`. |

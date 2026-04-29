@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import { within } from '@testing-library/react';
 import type * as ReactRouterDomModule from 'react-router-dom';
 import { vi } from 'vitest';
+import { SAVED_QUEUE_LOAD_DELAY_MS } from '../../components/workbench/FocusQueuePanel';
 import WorkbenchDashboardPage from '../WorkbenchDashboardPage';
 import { renderWithProviders } from '../../../../test/testUtils';
 
@@ -25,6 +26,19 @@ const analyticsSummary = {
     low: 25,
     inactive: 20,
   },
+};
+
+const authenticatedAuthState = {
+  user: {
+    id: 'user-1',
+    email: 'user@example.com',
+    firstName: 'Test',
+    lastName: 'User',
+    role: 'admin',
+  },
+  isAuthenticated: true,
+  authLoading: false,
+  loading: false,
 };
 
 vi.mock('react-router-dom', async () => {
@@ -212,11 +226,13 @@ describe('WorkbenchDashboardPage', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     listQueueViewsMock.mockReset();
   });
 
   it('renders navigation-only primary actions as links and formats metrics with the runtime locale', async () => {
+    vi.useFakeTimers();
     const originalNumberFormat = Intl.NumberFormat;
     const originalDateTimeFormat = Intl.DateTimeFormat;
     const numberFormatSpy = vi
@@ -242,7 +258,17 @@ describe('WorkbenchDashboardPage', () => {
         } as unknown) as typeof Intl.DateTimeFormat
       );
 
-    renderWithProviders(<WorkbenchDashboardPage />, { route: '/dashboard' });
+    renderWithProviders(<WorkbenchDashboardPage />, {
+      route: '/dashboard',
+      preloadedState: {
+        auth: authenticatedAuthState,
+      },
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SAVED_QUEUE_LOAD_DELAY_MS);
+    });
+    vi.useRealTimers();
 
     const urgentQueueLink = await screen.findByRole('link', { name: /urgent intake queue/i });
     expect(listQueueViewsMock).toHaveBeenCalledWith('workbench');
@@ -288,5 +314,28 @@ describe('WorkbenchDashboardPage', () => {
         dateStyle: 'medium',
       })
     );
+  });
+
+  it('keeps the public demo dashboard from loading authenticated saved queues', async () => {
+    vi.useFakeTimers();
+
+    renderWithProviders(<WorkbenchDashboardPage />, {
+      route: '/demo/dashboard',
+      preloadedState: {
+        auth: {
+          user: null,
+          isAuthenticated: false,
+          authLoading: false,
+          loading: false,
+        },
+      },
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(SAVED_QUEUE_LOAD_DELAY_MS);
+    });
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Workbench' })).toBeInTheDocument();
+    expect(listQueueViewsMock).not.toHaveBeenCalled();
   });
 });
