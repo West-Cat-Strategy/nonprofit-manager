@@ -1,6 +1,6 @@
 # Phase Documentation Archive
 
-**Last Updated:** 2026-04-25
+**Last Updated:** 2026-04-28
 
 Use this directory for historical phase notes, closeout artifacts, and earlier workboard material.
 
@@ -23,6 +23,7 @@ Do not use the files in this archive as the source of truth for current status.
 - [P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md)
 - [P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md](P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md)
 - [P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md)
+- [P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md)
 
 ### Phase 4 Transition And Closeout
 

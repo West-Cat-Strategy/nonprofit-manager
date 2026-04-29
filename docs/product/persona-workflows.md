@@ -1,6 +1,6 @@
 # Persona Workflow Summary
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-28
 
 Use this document as the summary and navigation surface for persona workflows. The canonical detailed workflow set now lives in tracked persona-analysis references so status labels, workflow IDs, and role-specific patterns stay aligned with the skill suite and validation lanes.
 
@@ -25,7 +25,7 @@ Use this document as the summary and navigation surface for persona workflows. T
 | Fundraiser | Prospect-to-pipeline, stewardship cadence, campaign and gift-entry review | Full donor-preference governance and richer grant or campaign deadline tooling remain partial | Contacts, accounts, donations, opportunities, reports |
 | Nonprofit Administrator | User onboarding or offboarding access lifecycle is strongest; reporting and audit-risk review are partial | Compliance-documentation vault and retention workflow is still missing | Admin settings, users, reports, scheduled reports |
 | Board Member | Governance meeting and packet review is partial but real | Delegation matrix, committee charter traceability, and recusal workflows remain missing | Saved reports, scheduled reports, dashboard |
-| Case Manager | Intake, progress notes, handoffs, and closure continuity are partially supported | Person-centered reassessment rigor and standardized handoff packets remain incomplete | Cases, follow-ups, notes, portal-sharing surfaces |
+| Case Manager | Intake, progress notes, reassessment cadence, and printable handoff packets are partially supported | Closure continuity, referral or authorization handoff state, and person-centered plan depth remain incomplete | Cases, follow-ups, notes, portal-sharing surfaces |
 | Rehab Worker | Assessment, follow-up cadence, referral transitions, and outcome tracking are partial | Individualized employment plan workflow remains missing | Cases, services, appointments, forms, portal workflows |
 
 ## Validation Crosswalk
@@ -36,7 +36,7 @@ Use this document as the summary and navigation surface for persona workflows. T
 | Fundraiser | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | donor outreach and stewardship cadence | use when checking contacts, donations, and opportunity flow claims |
 | Nonprofit Administrator | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | audit vault, retention, and corrective actions | use when checking admin settings, users, or scheduled-report claims |
 | Board Member | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | committee governance and packet assembly | use when checking read-only report and dashboard claims |
-| Case Manager | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | reassessment rigor and handoff packets | use when checking case, follow-up, or portal-sharing claims |
+| Case Manager | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | closure continuity and referral or authorization handoff depth | use when checking case, follow-up, or portal-sharing claims |
 | Rehab Worker | `frontend/src/test/ux/personaWorkflowMatrix.ts` -> `frontend/src/test/ux/PersonaRouteUxSmoke.test.tsx` -> `e2e/tests/persona-workflows.spec.ts` | individualized plan and placement tooling | use when checking service, appointment, or referral claims |
 
 ## Validation Context

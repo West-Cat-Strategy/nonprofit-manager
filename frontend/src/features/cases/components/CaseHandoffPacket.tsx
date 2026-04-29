@@ -8,7 +8,7 @@ interface CaseHandoffPacketProps {
 }
 
 export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) => {
-  const { case_details, risks, next_actions, artifacts_summary, generated_at } = data;
+  const { case_details, risks, next_actions, visibility, artifacts_summary, generated_at } = data;
 
   return (
     <div className="p-4 space-y-8 max-w-4xl mx-auto print:p-0 print:space-y-4 print:max-w-none">
@@ -114,6 +114,21 @@ export const CaseHandoffPacket: React.FC<CaseHandoffPacketProps> = ({ data }) =>
               <p className="text-sm italic font-bold text-app-text-muted uppercase">No pending follow-ups</p>
             )}
           </div>
+        </div>
+      </BrutalCard>
+
+      {/* Visibility */}
+      <BrutalCard className="bg-app-surface">
+        <h2 className="text-xl font-black uppercase mb-4 border-b-2 border-app-border pb-2">Visibility Boundaries</h2>
+        <div className="flex flex-wrap gap-3 items-center">
+          <BrutalBadge color={visibility.client_viewable ? 'green' : 'blue'}>
+            {visibility.portal_visibility_status}
+          </BrutalBadge>
+          <p className="font-bold uppercase text-sm text-app-text-muted">
+            {visibility.client_viewable
+              ? 'Selected case details may be visible in the client portal.'
+              : 'Keep this packet internal until client visibility is enabled.'}
+          </p>
         </div>
       </BrutalCard>
 

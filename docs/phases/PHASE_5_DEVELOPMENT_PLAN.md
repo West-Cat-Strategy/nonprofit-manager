@@ -1,6 +1,6 @@
 # Phase 5 Development Plan
 
-**Last Updated:** 2026-04-26
+**Last Updated:** 2026-04-28
 
 Use this document for the Phase 5 roadmap and sequencing. Use [planning-and-progress.md](planning-and-progress.md) for row-level tracked status.
 
@@ -14,7 +14,7 @@ Phase 5 shifts the project from Phase 4 modularization and hardening closeout in
 
 Phase 5 still starts from docs, benchmark, and validation groundwork so later product work lands on a cleaner planning surface and a stronger testing contract.
 
-Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, the shared testing/remediation/persona/website/helper-skill review rows are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), the narrowed email hardening follow-through is signed off in [archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md](archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md), the portal/reassessment/dispatch/modularization runtime review rows are signed off in [archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md), the cleanup review/planning rows are signed off in [archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md](archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md), and the modularity-simplicity-reuse integration (`P5-T11`) is complete and merged into `main`. `P5-T6` stays in `Review` as the parent capability/backlog packet, `P5-T12` is in `Review` after the full host-plus-Docker clean-green validation lane, and `P5-T13` is the current in-progress GitHub CI/security pilot.
+Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, the shared testing/remediation/persona/website/helper-skill review rows are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), the narrowed email hardening follow-through is signed off in [archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md](archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md), the portal/reassessment/dispatch/modularization runtime review rows are signed off in [archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md), the cleanup review/planning rows are signed off in [archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md](archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md), the cleanup implementation rows are signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md), and the late proof batch for `P5-T12`, `P5-T13`, `P5-T14`, `P5-T15`, and `P5-T17` is signed off in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md). `P5-T6` stays in `Review` as the parent capability/backlog packet.
 
 ## Phase 5 Goals
 
@@ -85,10 +85,10 @@ Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, the shared testi
 - Keep any future modularization behavior-preserving: it may move internal ownership boundaries and trim compatibility shims, but it must preserve current `/api/v2`, route-catalog, root-store, auth/workspace-module, and browser URL contracts.
 - Keep shared seams lead-owned: route registrars, route catalogs, root store wiring, worker startup, auth/permission policy, shared frontend API clients, workboard/docs, and final validation.
 
-### 9. Review Cleanup And Validation Queue (Review)
+### 9. Review Cleanup And Validation Queue (Mostly Signed Off)
 
 - `P5-T8`, `P5-T9`, `P5-T10`, and `P5-T11` are complete, and the cleanup implementation rows they identified are signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md).
-- `P5-T12` is in `Review` with host proof recorded before the fresh-stack Docker CI and Docker audit follow-ons.
+- `P5-T12`, `P5-T13`, `P5-T14`, `P5-T15`, and `P5-T17` are complete in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md).
 
 ## Workstreams
 
@@ -118,7 +118,11 @@ Phase 5 is no longer at its kickoff shape. `P5-T1` is complete, the shared testi
 | `P5-T9C` | Knip configuration hardening | Refined Knip app entries and policy-tooling coverage | `P5-T9`, `P5-T11` | Signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md); future dead-code findings should be more precise |
 | `P5-T10A` | Docs navigation and archive indexing cleanup | Added navigation links for under-linked active and retained historical docs | `P5-T10`, `P5-T11` | Signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md) with validation evidence preserved |
 | `P5-T11A` | Implementation-size policy cleanup | Split or extracted helpers from the files stopping `make lint` | `P5-T11` and final validation outcome | Signed off in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md) with route shapes, service behavior, frontend flows, public types, and type-checks preserved |
-| `P5-T12` | Full E2E/Playwright review and clean all-green validation | Full host and Docker browser/runtime review plus clean all-green proof with documented skips only | Current testing guide, validation proof order, and row-local proof notes | Row is in `Review`; host `make ci-full`, fresh-stack Docker CI, and fresh-stack Docker audit proof are green in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
+| `P5-T12` | Full E2E/Playwright review and clean all-green validation | Full host and Docker browser/runtime review plus clean all-green proof with documented skips only | Current testing guide, validation proof order, and row-local proof notes | Signed off in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md) with proof in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) |
+| `P5-T13` | GitHub CI/security pilot | GitHub-hosted CI/security mirrors, security settings, and protected-branch baseline | GitHub workflow proof and current-main evidence | Signed off in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md) with proof in [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md) |
+| `P5-T14` | Local runtime preflights and changed-files selector | `make doctor`, `make check-changed`, `npm run sbom`, and script docs | Contributor tooling docs and local runtime checks | Signed off in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md) |
+| `P5-T15` | Case handoff packets | Case handoff packet API, printable staff UI, and visibility-boundary display | `P5-T6C` service-delivery brief and existing case detail surface | Signed off in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md) with proof in [../validation/P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md](../validation/P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md) |
+| `P5-T17` | GitHub build artifact validation | Build-only Docker validation and CycloneDX SBOM upload with required GitHub check context | `P5-T13` GitHub baseline and build-artifact pilot branch | Signed off in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md) with proof in [../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md](../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md) |
 
 ## Completed Phase Inputs
 
@@ -150,14 +154,14 @@ The archived executive-director remediation tracker surfaced a governance/compli
 ### Phase 5 Follow-Through Candidates
 
 - OWASP ASVS 5.0 plus OWASP API Security Top 10 2023 crosswalk: turn auth, access-control, logging, SSRF, and admin-flow security into explicit acceptance criteria for active Phase 5 lanes instead of archived audit context.
-- GitHub CI/security pilot (`P5-T13`): mirror `make ci-full`, `make security-scan`, CodeQL, and dependency review in GitHub Actions; enable Dependabot alerts/security updates plus secret scanning/push protection; then protect `main` once required check contexts exist.
-- `npm sbom` now, with CycloneDX later if multi-workspace BOM depth or downstream consumers justify it: add release-time supply-chain visibility before adding heavier signing or attestation expectations.
+- GitHub CI/security pilot (`P5-T13`): signed off with GitHub-hosted `make ci-full`, `make security-scan`, CodeQL, dependency review, repository security settings, strict branch protection, and current-main evidence in place.
+- `npm sbom` now, with CycloneDX later if multi-workspace BOM depth or downstream consumers justify it: the build-only `P5-T17` pilot is signed off with SBOM upload proof, while heavier signing or attestation expectations remain later decisions.
 - Semgrep in non-blocking mode first: use custom rules for repo-specific guardrails such as no unsafe outbound fetch without SSRF controls, no sensitive logging regressions, and no missing auth or rate-limit protections on critical routes.
 - Trivy repo and image scanning if Docker build and deploy paths remain central to Phase 5 release confidence: fill the current gap around image, IaC, and broader misconfiguration scanning.
 - `Redocly CLI` or `Spectral`: lint `docs/api/openapi.yaml` so the machine-readable spec becomes trustworthy enough for code generation and contract-drift checks.
 - `@hey-api/openapi-ts`: pilot generated clients and validators on one active domain once the OpenAPI trust gate exists, instead of attempting repo-wide generation immediately.
 - Playwright harness cleanup patterns plus a repo-local `make test-e2e-docker-fresh` helper: keep the host-vs-Docker contract explicit, follow native `webServer`/`reuseExistingServer` and stored-auth-state patterns where they reduce drift, and give the Docker-only MFA proof a dedicated fresh-volume path.
-- `make doctor` and `make check-changed --run`: preflight local runtime prerequisites and turn the changed-files selector into an executable shared entrypoint for contributors and hooks.
+- `make doctor` and `make check-changed --run`: this preflight/check-selector row is signed off through `P5-T14`; future changes should preserve these as contributor entrypoints.
 
 ### Later Backlog Candidates
 
