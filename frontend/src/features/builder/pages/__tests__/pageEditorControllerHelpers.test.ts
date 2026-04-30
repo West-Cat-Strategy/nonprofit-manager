@@ -7,6 +7,10 @@ import {
   createSectionDraft,
   deleteComponentFromSections,
   deleteSectionFromSections,
+  duplicateComponentInSections,
+  duplicateSectionInSections,
+  moveComponentWithinSection,
+  moveSectionInSections,
   updateComponentInSections,
   updateSectionInSections,
 } from '../pageEditorControllerHelpers';
@@ -167,6 +171,29 @@ describe('pageEditorControllerHelpers', () => {
       ]);
     });
 
+    it('reorders components after the hovered component when placement is after', () => {
+      const sections = [
+        createSection('section-a', [
+          createTextComponent('component-a'),
+          createTextComponent('component-b'),
+          createTextComponent('component-c'),
+        ]),
+      ];
+
+      const updatedSections = applyDragEndToSections({
+        sections,
+        activeId: 'component-a',
+        overId: 'component-b',
+        placement: 'after',
+      });
+
+      expect(updatedSections[0].components.map((component) => component.id)).toEqual([
+        'component-b',
+        'component-a',
+        'component-c',
+      ]);
+    });
+
     it('drops palette components into the section that owns the hovered component wrapper', () => {
       const sections = [
         createSection('section-a', [createTextComponent('component-a')]),
@@ -182,6 +209,7 @@ describe('pageEditorControllerHelpers', () => {
           content: 'New heading',
           level: 2,
         }),
+        placement: 'after',
       });
 
       expect(updatedSections[0].components.map((component) => component.id)).toEqual([
@@ -193,7 +221,130 @@ describe('pageEditorControllerHelpers', () => {
       ]);
     });
 
-    it('leaves sections unchanged when dragging across different sections', () => {
+    it('inserts palette components before a hovered raw component target', () => {
+      const sections = [
+        createSection('section-a', [
+          createTextComponent('component-a'),
+          createTextComponent('component-b'),
+        ]),
+      ];
+
+      const updatedSections = applyDragEndToSections({
+        sections,
+        activeId: 'palette-text',
+        overId: 'component-b',
+        placement: 'before',
+        paletteComponent: createTextComponent('component-new'),
+      });
+
+      expect(updatedSections[0].components.map((component) => component.id)).toEqual([
+        'component-a',
+        'component-new',
+        'component-b',
+      ]);
+    });
+
+    it('moves components before hovered components across sections', () => {
+      const sections = [
+        createSection('section-a', [createTextComponent('component-a')]),
+        createSection('section-b', [
+          createTextComponent('component-b'),
+          createTextComponent('component-c'),
+        ]),
+      ];
+
+      const updatedSections = applyDragEndToSections({
+        sections,
+        activeId: 'component-a',
+        overId: 'component-b',
+        placement: 'before',
+      });
+
+      expect(updatedSections[0].components).toEqual([]);
+      expect(updatedSections[1].components.map((component) => component.id)).toEqual([
+        'component-a',
+        'component-b',
+        'component-c',
+      ]);
+    });
+
+    it('moves components after hovered components across sections', () => {
+      const sections = [
+        createSection('section-a', [createTextComponent('component-a')]),
+        createSection('section-b', [
+          createTextComponent('component-b'),
+          createTextComponent('component-c'),
+        ]),
+      ];
+
+      const updatedSections = applyDragEndToSections({
+        sections,
+        activeId: 'component-a',
+        overId: 'component-b',
+        placement: 'after',
+      });
+
+      expect(updatedSections[0].components).toEqual([]);
+      expect(updatedSections[1].components.map((component) => component.id)).toEqual([
+        'component-b',
+        'component-a',
+        'component-c',
+      ]);
+    });
+
+    it('drops palette components into empty sections', () => {
+      const sections = [
+        createSection('section-a', [createTextComponent('component-a')]),
+        createSection('section-b', []),
+      ];
+
+      const updatedSections = applyDragEndToSections({
+        sections,
+        activeId: 'palette-heading',
+        overId: 'section-b',
+        paletteComponent: createTextComponent('component-new', {
+          type: 'heading',
+        }),
+      });
+
+      expect(updatedSections[0].components.map((component) => component.id)).toEqual([
+        'component-a',
+      ]);
+      expect(updatedSections[1].components.map((component) => component.id)).toEqual([
+        'component-new',
+      ]);
+    });
+
+    it('leaves sections unchanged for unknown drag targets and active components', () => {
+      const sections = [
+        createSection('section-a', [createTextComponent('component-a')]),
+        createSection('section-b', [createTextComponent('component-b')]),
+      ];
+
+      expect(
+        applyDragEndToSections({
+          sections,
+          activeId: 'component-a',
+          overId: 'component-missing',
+        })
+      ).toEqual(sections);
+      expect(
+        applyDragEndToSections({
+          sections,
+          activeId: 'component-missing',
+          overId: 'component-b',
+        })
+      ).toEqual(sections);
+      expect(
+        applyDragEndToSections({
+          sections,
+          activeId: 'palette-heading',
+          overId: 'component-b',
+        })
+      ).toEqual(sections);
+    });
+
+    it('leaves sections unchanged when dropping a component over itself', () => {
       const sections = [
         createSection('section-a', [createTextComponent('component-a')]),
         createSection('section-b', [createTextComponent('component-b')]),
@@ -202,7 +353,7 @@ describe('pageEditorControllerHelpers', () => {
       const updatedSections = applyDragEndToSections({
         sections,
         activeId: 'component-a',
-        overId: 'component-b',
+        overId: 'component-a',
       });
 
       expect(updatedSections).toEqual(sections);
@@ -249,6 +400,182 @@ describe('pageEditorControllerHelpers', () => {
         backgroundColor: '#000000',
       });
       expect(updatedSections[1]).toEqual(sections[1]);
+    });
+
+    it('duplicates a component after itself and rewrites nested ids', () => {
+      const sections = [
+        createSection('section-a', [
+          createTextComponent('component-a'),
+          {
+            id: 'component-form',
+            type: 'form',
+            submitText: 'Submit',
+            submitAction: '',
+            successMessage: 'Done',
+            errorMessage: 'Try again',
+            fields: [
+              {
+                id: 'field-email',
+                name: 'email',
+                label: 'Email',
+                type: 'email',
+              },
+            ],
+          } as PageComponent,
+        ]),
+      ];
+
+      const result = duplicateComponentInSections(sections, 'component-form');
+
+      expect(result?.componentId).toBe('component-form-copy');
+      expect(result?.sections[0].components.map((component) => component.id)).toEqual([
+        'component-a',
+        'component-form',
+        'component-form-copy',
+      ]);
+      expect(result?.sections[0].components[2]).toMatchObject({
+        id: 'component-form-copy',
+        fields: [
+          {
+            id: 'field-email-copy',
+            name: 'email',
+          },
+        ],
+      });
+      expect(sections[0].components[1]).toMatchObject({
+        id: 'component-form',
+        fields: [{ id: 'field-email' }],
+      });
+    });
+
+    it('keeps non-builder nested domain ids when duplicating a component', () => {
+      const sections = [
+        createSection('section-a', [
+          {
+            id: 'component-event',
+            type: 'event-registration',
+            event: {
+              id: 'event-123',
+              title: 'Community clinic',
+            },
+            fields: [{ id: 'field-email', name: 'email' }],
+          } as unknown as PageComponent,
+        ]),
+      ];
+
+      const result = duplicateComponentInSections(sections, 'component-event');
+
+      expect(result?.sections[0].components[1]).toMatchObject({
+        id: 'component-event-copy',
+        event: {
+          id: 'event-123',
+        },
+        fields: [{ id: 'field-email-copy' }],
+      });
+    });
+
+    it('duplicates a section after itself and rewrites every nested id', () => {
+      const sections = [
+        createSection('section-a', [
+          {
+            id: 'component-columns',
+            type: 'columns',
+            columns: [
+              {
+                id: 'column-left',
+                width: '1/2',
+                components: [createTextComponent('nested-text')],
+              },
+            ],
+          } as PageComponent,
+        ]),
+        createSection('section-b', []),
+      ];
+
+      const result = duplicateSectionInSections(sections, 'section-a');
+
+      expect(result?.sectionId).toBe('section-a-copy');
+      expect(result?.sections.map((section) => section.id)).toEqual([
+        'section-a',
+        'section-a-copy',
+        'section-b',
+      ]);
+      expect(result?.sections[1]).toMatchObject({
+        id: 'section-a-copy',
+        name: 'Section section-a Copy',
+        components: [
+          {
+            id: 'component-columns-copy',
+            columns: [
+              {
+                id: 'column-left-copy',
+                components: [{ id: 'nested-text-copy' }],
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('increments duplicate ids when copy ids already exist', () => {
+      const sections = [
+        createSection('section-a', [
+          createTextComponent('component-a'),
+          createTextComponent('component-a-copy'),
+        ]),
+      ];
+
+      const result = duplicateComponentInSections(sections, 'component-a');
+
+      expect(result?.componentId).toBe('component-a-copy-2');
+      expect(result?.sections[0].components.map((component) => component.id)).toEqual([
+        'component-a',
+        'component-a-copy-2',
+        'component-a-copy',
+      ]);
+    });
+
+    it('moves components up and down only within their current section', () => {
+      const sections = [
+        createSection('section-a', [
+          createTextComponent('component-a'),
+          createTextComponent('component-b'),
+          createTextComponent('component-c'),
+        ]),
+        createSection('section-b', [createTextComponent('component-d')]),
+      ];
+
+      expect(
+        moveComponentWithinSection(sections, 'component-b', 'up')[0].components.map(
+          (component) => component.id
+        )
+      ).toEqual(['component-b', 'component-a', 'component-c']);
+      expect(
+        moveComponentWithinSection(sections, 'component-b', 'down')[0].components.map(
+          (component) => component.id
+        )
+      ).toEqual(['component-a', 'component-c', 'component-b']);
+      expect(moveComponentWithinSection(sections, 'component-a', 'up')).toBe(sections);
+      expect(moveComponentWithinSection(sections, 'component-d', 'down')).toBe(sections);
+    });
+
+    it('moves sections up and down while preserving boundary no-ops', () => {
+      const sections = [
+        createSection('section-a', []),
+        createSection('section-b', []),
+        createSection('section-c', []),
+      ];
+
+      expect(moveSectionInSections(sections, 'section-b', 'up').map((section) => section.id)).toEqual([
+        'section-b',
+        'section-a',
+        'section-c',
+      ]);
+      expect(
+        moveSectionInSections(sections, 'section-b', 'down').map((section) => section.id)
+      ).toEqual(['section-a', 'section-c', 'section-b']);
+      expect(moveSectionInSections(sections, 'section-a', 'up')).toBe(sections);
+      expect(moveSectionInSections(sections, 'section-c', 'down')).toBe(sections);
     });
 
     it('removes the matching component from every section', () => {

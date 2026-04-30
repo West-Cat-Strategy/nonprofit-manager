@@ -1,5 +1,5 @@
 import { DndContext } from '@dnd-kit/core';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import EditorCanvas from '../EditorCanvas';
 import type { PageSection, TemplateTheme } from '../../../../../types/websiteBuilder';
@@ -66,20 +66,28 @@ const sections: PageSection[] = [
   },
 ];
 
+const editorCanvasDefaults = {
+  theme,
+  selectedComponentId: null,
+  selectedSectionId: null,
+  onSelectComponent: vi.fn(),
+  onSelectSection: vi.fn(),
+  onAddSection: vi.fn(),
+  onDeleteSection: vi.fn(),
+  onDeleteComponent: vi.fn(),
+  onDuplicateSection: vi.fn(),
+  onDuplicateComponent: vi.fn(),
+  onMoveSection: vi.fn(),
+  onMoveComponent: vi.fn(),
+};
+
 describe('EditorCanvas', () => {
   it('uses a readable foreground color for light builder primary buttons', () => {
     render(
       <DndContext>
         <EditorCanvas
           sections={sections}
-          theme={theme}
-          selectedComponentId={null}
-          selectedSectionId={null}
-          onSelectComponent={vi.fn()}
-          onSelectSection={vi.fn()}
-          onAddSection={vi.fn()}
-          onDeleteSection={vi.fn()}
-          onDeleteComponent={vi.fn()}
+          {...editorCanvasDefaults}
         />
       </DndContext>
     );
@@ -91,5 +99,87 @@ describe('EditorCanvas', () => {
     expect(donateButton).toBeTruthy();
     expect(donateButton?.style.backgroundColor).toBe('rgb(248, 227, 107)');
     expect(donateButton?.style.color).toBe('rgb(16, 32, 48)');
+  });
+
+  it('calls selected component duplicate and move controls with boundary states', () => {
+    const onDuplicateComponent = vi.fn();
+    const onMoveComponent = vi.fn();
+    const componentSections: PageSection[] = [
+      {
+        id: 'section-1',
+        name: 'Hero',
+        components: [
+          {
+            id: 'button-1',
+            type: 'button',
+            text: 'Donate now',
+          },
+          {
+            id: 'text-1',
+            type: 'text',
+            content: 'Welcome',
+          },
+        ],
+      },
+    ];
+
+    render(
+      <DndContext>
+        <EditorCanvas
+          sections={componentSections}
+          {...editorCanvasDefaults}
+          selectedComponentId="text-1"
+          onDuplicateComponent={onDuplicateComponent}
+          onMoveComponent={onMoveComponent}
+        />
+      </DndContext>
+    );
+
+    expect(screen.getAllByLabelText('Duplicate component')).toHaveLength(1);
+
+    fireEvent.click(screen.getByLabelText('Duplicate component'));
+    fireEvent.click(screen.getByLabelText('Move component up'));
+
+    expect(onDuplicateComponent).toHaveBeenCalledWith('text-1');
+    expect(onMoveComponent).toHaveBeenCalledWith('text-1', 'up');
+    expect(screen.getByLabelText('Move component down')).toBeDisabled();
+  });
+
+  it('calls selected section duplicate and move controls with boundary states', () => {
+    const onDuplicateSection = vi.fn();
+    const onMoveSection = vi.fn();
+    const sectionSections: PageSection[] = [
+      {
+        id: 'section-1',
+        name: 'Hero',
+        components: [],
+      },
+      {
+        id: 'section-2',
+        name: 'Details',
+        components: [],
+      },
+    ];
+
+    render(
+      <DndContext>
+        <EditorCanvas
+          sections={sectionSections}
+          {...editorCanvasDefaults}
+          selectedSectionId="section-1"
+          onDuplicateSection={onDuplicateSection}
+          onMoveSection={onMoveSection}
+        />
+      </DndContext>
+    );
+
+    expect(screen.getAllByLabelText('Duplicate section')).toHaveLength(1);
+
+    fireEvent.click(screen.getByLabelText('Duplicate section'));
+    fireEvent.click(screen.getByLabelText('Move section down'));
+
+    expect(onDuplicateSection).toHaveBeenCalledWith('section-1');
+    expect(onMoveSection).toHaveBeenCalledWith('section-1', 'down');
+    expect(screen.getByLabelText('Move section up')).toBeDisabled();
   });
 });

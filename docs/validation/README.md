@@ -1,6 +1,6 @@
 # Validation & Audit Index
 
-**Last Updated:** 2026-04-29
+**Last Updated:** 2026-04-30
 
 Use this index for active validation references first, and the validation archive second. For live task ownership, blockers, and next steps, use [../phases/planning-and-progress.md](../phases/planning-and-progress.md) instead of treating these files as a workboard. Detailed persona-validation methodology now lives in tracked skill references.
 
@@ -22,6 +22,7 @@ For Phase 5 validation work, treat the proof sequence as host first and Docker s
 | [P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md) | Superseded row-local proof note | Historical GitHub CI/security pilot closeout proof; superseded by the `P5-T20` local-only CI/CD refactor and the `make release-check` gate |
 | [P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md](P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md) | Row-local proof note | Case handoff packet API/UI closeout proof, visibility-boundary UI coverage, and local isolated-DB blocker note |
 | [P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md](P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md) | Superseded row-local proof note | Historical GitHub build-artifact proof; SBOM generation and Docker validation now run locally through `make release-check` |
+| [WEBSITE_BUILDER_FUNCTIONS_AUDIT_2026-04-30.md](WEBSITE_BUILDER_FUNCTIONS_AUDIT_2026-04-30.md) | Active audit note | Website-builder editor, website console, shared contract, public runtime, managed-form, and E2E proof findings; `P5-T21` fix-now follow-through and `P5-T22` drag/drop hardening are implemented while broader authoring/runtime refactors remain queued |
 | [PHASE_5_SECURITY_REVIEW_2026-04-22.md](PHASE_5_SECURITY_REVIEW_2026-04-22.md) | Active review note | Current security-focused Phase 5 review covering fresh scan results, supply-chain and tooling recommendations, and the `P5-T2B` security-hardening sub-lane |
 | [PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md) | Active review note | Live Phase 5 validation note for the green `P5-T12` host `make ci-full`, fresh-stack Docker CI, fresh-stack Docker audit proof, and retained `P5-T2B` validation history |
 | [P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md](P5-T4_MANAGED_FORM_PUBLISH_LOOP_REVIEW_2026-04-20.md) | Active review note | Row-local closeout and validation proof for the one-form managed website publish loop across backend, website-console, builder, docs/E2E follow-through, and now-green shared validation gate |

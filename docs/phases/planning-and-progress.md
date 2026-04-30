@@ -1,6 +1,6 @@
 # Planning & Progress
 
-**Last Updated:** 2026-04-29
+**Last Updated:** 2026-04-30
 
 ## At a Glance
 
@@ -10,10 +10,10 @@
 
 | Snapshot | Value |
 |---|---|
-| Active rows | 4 |
+| Active rows | 1 |
 | In Progress | 0 |
 | Blocked | 0 |
-| Review | 4 |
+| Review | 1 |
 | Ready | 0 |
 | Phase 4 carry-over rows | 0 |
 | Recent thread follow-through rows | 0 |
@@ -45,10 +45,7 @@ Maintenance rules:
 
 | Status | ID | Task | Immediate Next Move |
 |---|---|---|---|
-| Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) as the published capability-brief packet alongside [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md). Child planning briefs `P5-T6A`, `P5-T6B`, and `P5-T6C` are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md); keep the narrow `PAT-01`/`PAT-02`/`PAT-03` fundraising pickups signed off with `P5-T3`, `PAT-04`/`PAT-05`/`PAT-06` portal pickups signed off with `P5-T5`, and typed appeals, restrictions, donation batches, memberships, finance breadth, and generic workflow tooling behind separate scoped rows. |
-| Review | P5-T18 | Case-form revision-capable review loop | Review the case-form-local revision request loop: staff can request changes with required notes, assignments move to `revision_requested`, portal/public clients see the notes and can resubmit, and the linked review follow-up stays open. Proof: `cd backend && npx jest --forceExit --runInBand src/modules/cases/usecases/__tests__/caseForms.usecase.test.ts src/modules/cases/repositories/__tests__/caseFormsRepository.assignments.test.ts`, `cd frontend && npm test -- --run src/features/cases/components/__tests__/CaseFormsPanel.test.tsx`, `cd backend && npm run type-check`, `cd frontend && npm run type-check`, targeted backend/frontend ESLint, `node scripts/check-migration-manifest-policy.ts`, and `make db-verify`. |
-| Review | P5-T19 | Workbench saved-queue dashboard entry points | Review the focused dashboard pickup: `FocusQueuePanel` now lists up to two owner-scoped `workbench` queue views from the existing `/v2/dashboard/queue-views` client route while fixed summary cards remain as fallback. Proof: `cd frontend && npm test -- --run src/features/dashboard/pages/__tests__/WorkbenchDashboardPage.test.tsx`, `cd backend && npm test -- --runInBand src/modules/dashboard/__tests__/dashboard.queueViews.routes.test.ts`, `cd frontend && npm run type-check`, `cd backend && npm run type-check`, `cd frontend && npm run lint`, `cd backend && npm run lint`. |
-| Review | P5-T20 | Local-only CI/CD refactor | Review the local-only CI/CD refactor: GitHub Actions workflow gates and related configs are removed, local hooks and `make release-check` / release deploy targets are the release path, GitHub metadata/security features remain advisory or host-native only, and `main` branch protection no longer has required status-check contexts while force-push and deletion protection remain disabled. Proof: `./scripts/install-git-hooks.sh --dry-run`, `./scripts/install-git-hooks.sh --force`, `make ci-fast`, `make release-check` with SBOM at `tmp/local-release/20260429T084134Z/nonprofit-manager.cdx.json`, `make security-scan`, `make check-links`, `git diff --check -- .github Makefile scripts docs CONTRIBUTING.md`, `find .github/workflows -maxdepth 1 -type f -print`, and `gh api repos/West-Cat-Strategy/nonprofit-manager/branches/main/protection --jq '{required_status_checks, allow_force_pushes, allow_deletions}'`. |
+| Review | P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Keep this row live as the Phase 5 backlog scope-control gate. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) and [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md) to reject unscoped implementation; future typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out rows before runtime work starts. |
 
 ### Ready Queue
 
@@ -59,11 +56,9 @@ Maintenance rules:
 ### Ready Next
 
 - Proof-complete and already archived rows have been removed from the live board: `P5-T2A`, `P5-T2B`, `P5-T2C`, `P5-T2D`, `P5-T3`, `P5-T4`, `P5-T5`, `P5-T6A`, `P5-T6B`, `P5-T6C`, `P5-T6C1`, `P5-T6D`, `P5-T7`, `P5-T8`, `P5-T9`, `P5-T10`, and `P5-T11`.
-- `P5-T6` remains live as the parent capability/backlog packet. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; broader runtime rows still need their own signout.
+- `P5-T6` remains live as a scope-control gate for later Phase 5 backlog work. Use [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md) to keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit; typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling require separate signed-out runtime rows.
 - `P5-T12`, `P5-T13`, `P5-T14`, `P5-T15`, and `P5-T17` are archived in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md). Their proof lives in [../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md](../validation/PHASE_5_TESTING_STRATEGY_REVIEW_2026-04-20.md), [../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md](../validation/P5-T13_GITHUB_CI_SECURITY_PILOT_2026-04-26.md), [../validation/P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md](../validation/P5-T15_CASE_HANDOFF_PACKET_PROOF_2026-04-28.md), and [../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md](../validation/P5-T17_GITHUB_BUILD_ARTIFACTS_PROOF_2026-04-27.md).
-- `P5-T18` is in Review with the case-form-local revision loop complete: required staff notes set `revision_requested`, clients see the requested changes in portal/public form surfaces, resubmission returns the assignment to `submitted`, and focused backend/frontend/database proof is green.
-- `P5-T19` is in Review with the narrow `PAT-05` saved-queue/workbench bridge complete: it reuses the existing `workbench` queue-view backend and frontend client contract, surfaces only dashboard entry points, keeps auth and route behavior unchanged, and is covered by focused backend/frontend tests plus package lint/type-check.
-- `P5-T20` is in Review with the local-only CI/CD refactor complete: local hooks plus `make release-check` / release deploy targets are the release gate, GitHub Actions workflow gates are removed, GitHub remains only for hosting, PRs, npm Dependabot, vulnerability alerts, secret scanning, templates, and CODEOWNERS, and `main` has no required status-check contexts.
+- `P5-T18`, `P5-T19`, `P5-T20`, `P5-T21`, `P5-T22`, `P5-T23`, `P5-T24`, and `P5-T25` are signed off and archived in [archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md](archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md).
 
 ## Current Phase Shape
 
@@ -72,15 +67,46 @@ Maintenance rules:
 - `P5-T5`, `P5-T6C1`, `P5-T6D`, and `P5-T7` are signed off and archived in [archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md). Durable proof notes now live under [../validation/README.md](../validation/README.md), and the API-key/webhooks boundary seam passed targeted backend tests, module-boundary policy, canonical-import policy, and backend type-check.
 - `P5-T3` is signed off and archived in [archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md](archive/P5-T3_EMAIL_HARDENING_CLOSEOUT_2026-04-25.md). The narrowed Mailchimp route validation, optional webhook secret, and PII-safe webhook logging proof lives in [../validation/P5-T3_EMAIL_HARDENING_PROOF_2026-04-25.md](../validation/P5-T3_EMAIL_HARDENING_PROOF_2026-04-25.md).
 - `P5-T9`, `P5-T10`, and `P5-T11` are signed off and archived in [archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md](archive/P5_REVIEW_CLEANUP_PLANNING_CLOSEOUT_2026-04-25.md); their cleanup implementation rows are signed off separately.
-- `P5-T6` remains in `Review` as the parent capability/backlog packet. Keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit while broader typed appeals, restrictions, donation batches, memberships, finance breadth, and generic workflow tooling wait for separately scoped rows.
+- `P5-T6` remains in `Review` as the Phase 5 backlog scope-control gate. Keep `borrow now`, `queue for P5-T6`, and `reject` decisions explicit while typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, and generic workflow tooling wait for separately scoped rows.
 - `P5-T9A`, `P5-T9B`, `P5-T9C`, `P5-T10A`, and `P5-T11A` are signed off and archived in [archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md](archive/P5_CLEANUP_WAVE_CLOSEOUT_2026-04-25.md), with proof in [../validation/P5_CLEANUP_WAVE_PROOF_2026-04-25.md](../validation/P5_CLEANUP_WAVE_PROOF_2026-04-25.md).
 - `P5-T12`, `P5-T13`, `P5-T14`, `P5-T15`, and `P5-T17` are signed off and archived in [archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md](archive/P5_CLOSEOUT_PROOF_BATCH_2026-04-28.md).
+- `P5-T18`, `P5-T19`, `P5-T20`, `P5-T21`, `P5-T22`, `P5-T23`, `P5-T24`, and `P5-T25` are signed off and archived in [archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md](archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md). `P5-T6` remains the only live row.
 - The current hardening and reassessment migrations `103` through `109` cover saved audiences/campaign runs, public-intake resolution audit, queue view definitions, portal escalations, donor profiles, case reassessment cycles, and case-form revision requests; keep `make db-verify` in the validation path whenever those contracts or manifest/initdb parity change.
 
 ## Coordination
 
 - Update this file before editing tracked work.
 - Keep one active task per agent by default unless a coordinated exception is documented here.
+- Coordinated exception, 2026-04-30: `P5-T23` is split across read-only discovery lanes plus lead-owned implementation while shared workboard and validation seams stay lead-owned.
+  Lead: Codex
+  Backend lanes: `backend-unused-file-prune`
+  Frontend lanes: `frontend-unused-type-prune`
+  Other lanes: `repo-health-validation`
+  Integration owner: Codex
+- Lane: `backend-unused-file-prune`
+  Goal: remove only current `knip`-reported unused backend files after import tracing confirms no live references.
+  Owned paths: `backend/src/modules/cases/queries/closureQueries.ts`, `backend/src/modules/cases/routes/caseRouteSchemas.ts`, `backend/src/modules/mailchimp/services/mailchimpCampaignAudienceHelpers.ts`
+  Forbidden shared paths: `backend/src/routes/v2/index.ts`, auth/permission helpers, migrations, staged publishing/runtime files, `docs/phases/planning-and-progress.md`
+  Expected tests: targeted import grep, `npm run knip`, backend type-check, module-boundary policy, canonical-import policy
+  Handoff notes: summarize deleted files, preserved route/service behavior, and any retained broader backend candidates
+  Docs ownership: lead
+  Disposition: Archived in [archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md](archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md)
+- Lane: `frontend-unused-type-prune`
+  Goal: remove only current `knip`-reported unused frontend type files after confirming the canonical exports remain in use.
+  Owned paths: `frontend/src/types/casePortalTypes.ts`
+  Forbidden shared paths: `frontend/src/routes/**`, `frontend/src/store/**`, shared API clients, staged builder/websites files, `docs/phases/planning-and-progress.md`
+  Expected tests: targeted import grep, `npm run knip`, frontend type-check, frontend feature-boundary policy
+  Handoff notes: summarize deleted type surface and canonical replacement path
+  Docs ownership: lead
+  Disposition: Archived in [archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md](archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md)
+- Lane: `repo-health-validation`
+  Goal: rerun the repo-health proof that selected the cleanup and report any unrelated staged-work caveats without widening the code scope.
+  Owned paths: none; report findings to the lead instead of editing directly
+  Forbidden shared paths: runtime code and docs
+  Expected tests: `node scripts/check-implementation-size-policy.ts`, deleted-path guards as needed, `make check-links`, `git diff --check`, and the smallest package type-checks for touched surfaces
+  Handoff notes: report pass/fail commands and any caveats such as unrelated UI-audit baseline drift
+  Docs ownership: lead
+  Disposition: Archived in [archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md](archive/P5_REVIEW_QUEUE_CLOSEOUT_2026-04-30.md)
 - Coordinated exception, 2026-04-26: `P5-T11` is split across implementation and evidence lanes while shared route/store/catalog/workboard/runtime seams stay lead-owned.
   Lead: Codex
   Backend lanes: `backend-shim-prune`, `cases-route-decomposition`
@@ -510,5 +536,4 @@ No live Phase 4 carry-over rows remain. Proof for the retired rows now lives in 
 
 | ID | Task | Status | Owner | Next Step / Blocker | Evidence |
 |---|---|---|---|---|---|
-| P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Review | Codex | The capability-based `P5-T6` brief packet is published in [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), and child planning briefs `P5-T6A`, `P5-T6B`, and `P5-T6C` are signed off in [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md). | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md) |
-| P5-T20 | Local-only CI/CD refactor | Review | Codex | Review the local-only CI/CD lane: `make release-check` now runs the full local gate, staging/production release targets delegate to the deploy wrapper after the same gate, repo-managed hooks run local lint/fast CI, tracked GitHub Actions workflow gates are removed, and GitHub-side guidance is advisory metadata only. | `./scripts/install-git-hooks.sh --dry-run`, `./scripts/install-git-hooks.sh --force`, `make ci-fast`, `make release-check` with SBOM at `tmp/local-release/20260429T084134Z/nonprofit-manager.cdx.json`, `make security-scan`, `make check-links`, `git diff --check -- .github Makefile scripts docs CONTRIBUTING.md`, no files from `find .github/workflows -maxdepth 1 -type f -print`, and GitHub branch-protection readback showed `required_status_checks: null`, `allow_force_pushes.enabled: false`, and `allow_deletions.enabled: false`. |
+| P5-T6 | Follow-on backlog: workflow/customization, memberships/appeals, finance/program ops | Review | Codex | Keep live as the Phase 5 backlog scope-control gate: use the capability packet and backlog synthesis to reject unscoped implementation, and require separate signed-out rows for typed appeals, restrictions, donation batches, memberships, finance breadth, service-site routing, closure continuity, or generic workflow tooling. | [P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md](P5-T6_BACKLOG_SYNTHESIS_2026-04-22.md), [P5-T6_CAPABILITY_BRIEFS_2026-04-23.md](P5-T6_CAPABILITY_BRIEFS_2026-04-23.md), [archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_REVIEW_SIGNOFF_CLOSEOUT_BATCH_2026-04-25.md), [archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md](archive/P5_RUNTIME_REVIEW_CLOSEOUT_BATCH_2026-04-25.md) |

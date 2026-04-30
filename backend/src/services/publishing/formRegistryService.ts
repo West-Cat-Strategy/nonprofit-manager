@@ -5,7 +5,10 @@ import type {
   WebsiteSiteSettings,
 } from '@app-types/publishing';
 import type { PageComponent, TemplatePage } from '@app-types/websiteBuilder';
-import { buildPublicWebsiteFormSubmissionPath } from './publicWebsiteFormServiceHelpers';
+import {
+  buildPublicEventRegistrationSubmissionPath,
+  buildPublicWebsiteFormSubmissionPath,
+} from './publicWebsiteFormServiceHelpers';
 import { mergeWebsiteFormOperationalConfig } from './siteSettingsService';
 
 const MANAGED_FORM_TYPES = new Set<WebsiteManagedFormType>([
@@ -138,6 +141,15 @@ const pickDescription = (
     ? ((component as unknown as Record<string, unknown>).description as string).trim()
     : undefined;
 
+const buildManagedFormSubmissionPath = (
+  formType: WebsiteManagedFormType,
+  siteKey: string,
+  formKey: string
+): string =>
+  formType === 'event-registration'
+    ? buildPublicEventRegistrationSubmissionPath(siteKey)
+    : buildPublicWebsiteFormSubmissionPath(siteKey, formKey);
+
 export class FormRegistryService {
   extract(
     pages: TemplatePage[],
@@ -190,7 +202,11 @@ export class FormRegistryService {
               publicPath: routePath,
               publicUrl,
               previewUrl: buildPageUrl(previewBaseUrl, routePath),
-              submissionPath: buildPublicWebsiteFormSubmissionPath(siteKey, component.id),
+              submissionPath: buildManagedFormSubmissionPath(
+                component.type,
+                siteKey,
+                component.id
+              ),
             },
           });
         });

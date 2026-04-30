@@ -262,6 +262,8 @@ export async function markAssignmentAfterSubmission(
          last_draft_saved_at = NOW(),
          status = 'submitted',
          submitted_at = NOW(),
+         revision_requested_at = NULL,
+         revision_notes = NULL,
          updated_at = NOW(),
          updated_by = $3
      WHERE id = $1`,

@@ -16,7 +16,11 @@ import type { Template, TemplatePage } from '@app-types/websiteBuilder';
 import { newsletterProviderService } from '@services/domains/integration';
 import mailchimpService from '@services/mailchimpService';
 import mauticService from '@services/mauticService';
-import { mapRowToTemplate } from '@services/template/helpers';
+import {
+  ensureEventsPage,
+  ensureNewslettersPage,
+  mapRowToTemplate,
+} from '@services/template/helpers';
 import { paymentProviderService } from '@services/paymentProviderService';
 import { socialMediaService } from '@modules/socialMedia';
 import { FormRegistryService, formRegistryService } from './formRegistryService';
@@ -144,11 +148,15 @@ export class SiteOperationsService {
   private async loadFormsForSite(site: PublishedSite): Promise<WebsiteFormDefinition[]> {
     const settings = await this.siteSettings.getSettingsForSite(site);
     const { pages } = await this.loadTemplateSource(site);
+    const pagesWithFallbacks = ensureNewslettersPage(
+      ensureEventsPage(pages, site.templateId),
+      site.templateId
+    );
     const primaryUrl = this.siteManagement.getSiteUrl(site);
     const latestPreviewVersion = await this.loadLatestPreviewVersion(site.id);
 
     return this.formRegistry.extract(
-      pages,
+      pagesWithFallbacks,
       settings,
       site.publishedContent?.pages || [],
       site.migrationStatus === 'needs_assignment',

@@ -47,8 +47,12 @@ const PageEditor: React.FC = () => {
     handleAddSection,
     handleDeleteComponent,
     handleDeleteSection,
+    handleDuplicateComponent,
+    handleDuplicateSection,
     handleDragEnd,
     handleDragStart,
+    handleMoveComponent,
+    handleMoveSection,
     handleOpenTemplateSettings,
     handlePageChange,
     handlePublishPage,
@@ -207,6 +211,10 @@ const PageEditor: React.FC = () => {
                     onAddSection={handleAddSection}
                     onDeleteSection={handleDeleteSection}
                     onDeleteComponent={handleDeleteComponent}
+                    onDuplicateComponent={handleDuplicateComponent}
+                    onDuplicateSection={handleDuplicateSection}
+                    onMoveComponent={handleMoveComponent}
+                    onMoveSection={handleMoveSection}
                   />
                 </SortableContext>
               </div>

@@ -1,6 +1,7 @@
 import pool from '@config/database';
 import {
   listAssignmentsForPortal,
+  markAssignmentAfterSubmission,
   markAssignmentReviewDecision,
   markAssignmentSent,
   updateAssignment,
@@ -119,6 +120,27 @@ describe('caseFormsRepository.assignments', () => {
       'revision_requested',
       'reviewer-1',
       'Add the signed consent form.',
+    ]);
+  });
+
+  it('clears stale revision request metadata when an assignment is resubmitted', async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+
+    await markAssignmentAfterSubmission(
+      pool,
+      'assignment-1',
+      { signed_release: true },
+      'portal-user-1'
+    );
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toContain("status = 'submitted'");
+    expect(sql).toContain('revision_requested_at = NULL');
+    expect(sql).toContain('revision_notes = NULL');
+    expect(params).toEqual([
+      'assignment-1',
+      JSON.stringify({ signed_release: true }),
+      'portal-user-1',
     ]);
   });
 

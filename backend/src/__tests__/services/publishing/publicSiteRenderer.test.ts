@@ -156,4 +156,78 @@ describe('PublicSiteRenderer', () => {
     expect((html.match(/action="\/api\/v2\/public\/forms\/site-1\//g) || []).length).toBe(2);
     expect(html).not.toContain('Unknown component type: referral-form');
   });
+
+  it('renders event registration forms against the public events registration endpoint', async () => {
+    const page: PublishedPage = {
+      id: 'page-event-detail',
+      slug: 'events',
+      name: 'Event Detail',
+      isHomepage: false,
+      pageType: 'collectionDetail',
+      collection: 'events',
+      routePattern: '/events/:slug',
+      seo: {
+        title: 'Event Detail',
+        description: 'Register for an event.',
+      },
+      sections: [
+        {
+          id: 'event-registration',
+          name: 'Registration',
+          components: [
+            {
+              id: 'event-registration-block',
+              type: 'event-registration',
+              submitText: 'Reserve a seat',
+            },
+          ],
+        },
+      ],
+    } as PublishedPage;
+    const site = buildSite(page);
+    const renderer = new PublicSiteRenderer(
+      { listPublicEventsByOwner: jest.fn() } as never,
+      { listPublicNewsletters: jest.fn() } as never,
+      new PublicSiteRouteResolver()
+    );
+
+    const html = await renderer.renderPage(site, page, {
+      kind: 'eventDetail',
+      detailPathPattern: '/events/:slug',
+      event: {
+        event_id: 'event-42',
+        event_name: 'Community fair',
+        description: null,
+        event_type: 'workshop',
+        status: 'published',
+        start_date: new Date('2026-05-01T12:00:00.000Z'),
+        end_date: new Date('2026-05-01T13:00:00.000Z'),
+        location_name: null,
+        city: null,
+        state_province: null,
+        country: null,
+        capacity: null,
+        registered_count: 0,
+        waitlist_enabled: false,
+        occurrence_count: 0,
+        next_occurrence_id: null,
+        next_occurrence_start_date: null,
+        next_occurrence_end_date: null,
+        next_occurrence_status: null,
+        address_line1: null,
+        address_line2: null,
+        postal_code: null,
+        default_occurrence_id: null,
+        occurrences: [],
+        is_registration_open: true,
+      } as never,
+    });
+
+    expect(html).toContain(
+      'action="/api/v2/public/events/event-42/registrations?site=site-1"'
+    );
+    expect(html).toContain('<h1>Community fair</h1>');
+    expect(html).toContain('Reserve a seat');
+    expect(html).not.toContain('/api/v2/public/forms/site-1/event-registration-block/submit');
+  });
 });

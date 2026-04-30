@@ -423,6 +423,8 @@ export const publicEventRegistrationSchema = z
     registration_status: registrationStatusSchema.optional(),
     enrollment_scope: eventEnrollmentScopeSchema.optional(),
     send_confirmation_email: optionalStrictBooleanSchema,
+    visitorId: z.string().trim().optional(),
+    sessionId: z.string().trim().optional(),
   })
   .strict();
 

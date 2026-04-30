@@ -9,9 +9,15 @@ import type {
 import { createNewComponent } from './pageEditorUtils';
 import {
   applyDragEndToSections,
+  type BuilderMoveDirection,
+  type ComponentDropPlacement,
   createSectionDraft,
   deleteComponentFromSections,
   deleteSectionFromSections,
+  duplicateComponentInSections,
+  duplicateSectionInSections,
+  moveComponentWithinSection,
+  moveSectionInSections,
   updateComponentInSections,
   updateSectionInSections,
 } from './pageEditorControllerHelpers';
@@ -20,6 +26,23 @@ type UsePageSectionEditingParams = {
   currentPage: TemplatePage | null | undefined;
   historySections: PageSection[];
   setHistorySections: (sections: PageSection[]) => void;
+};
+
+const getDropPlacementFromEvent = (
+  event: DragEndEvent
+): ComponentDropPlacement | undefined => {
+  const activeRect =
+    event.active.rect?.current.translated || event.active.rect?.current.initial;
+  const overRect = event.over?.rect;
+
+  if (!activeRect || !overRect) {
+    return undefined;
+  }
+
+  const activeCenterY = activeRect.top + activeRect.height / 2;
+  const overMiddleY = overRect.top + overRect.height / 2;
+
+  return activeCenterY <= overMiddleY ? 'before' : 'after';
 };
 
 export function usePageSectionEditing({
@@ -67,6 +90,7 @@ export function usePageSectionEditing({
         activeId,
         overId: over.id as string,
         paletteComponent,
+        placement: getDropPlacementFromEvent(event),
       });
 
       setHistorySections(updatedSections);
@@ -102,6 +126,29 @@ export function usePageSectionEditing({
     [currentPage, historySections, setHistorySections]
   );
 
+  const handleDuplicateComponent = useCallback(
+    (componentId: string) => {
+      if (!currentPage) return;
+      const result = duplicateComponentInSections(historySections, componentId);
+      if (!result) return;
+
+      setHistorySections(result.sections);
+      setSelectedSectionId(null);
+      setSelectedComponentId(result.componentId);
+    },
+    [currentPage, historySections, setHistorySections]
+  );
+
+  const handleMoveComponent = useCallback(
+    (componentId: string, direction: BuilderMoveDirection) => {
+      if (!currentPage) return;
+      setHistorySections(moveComponentWithinSection(historySections, componentId, direction));
+      setSelectedSectionId(null);
+      setSelectedComponentId(componentId);
+    },
+    [currentPage, historySections, setHistorySections]
+  );
+
   const handleAddSection = useCallback(() => {
     if (!currentPage) return;
 
@@ -119,13 +166,40 @@ export function usePageSectionEditing({
     [currentPage, historySections, setHistorySections]
   );
 
+  const handleDuplicateSection = useCallback(
+    (sectionId: string) => {
+      if (!currentPage) return;
+      const result = duplicateSectionInSections(historySections, sectionId);
+      if (!result) return;
+
+      setHistorySections(result.sections);
+      setSelectedComponentId(null);
+      setSelectedSectionId(result.sectionId);
+    },
+    [currentPage, historySections, setHistorySections]
+  );
+
+  const handleMoveSection = useCallback(
+    (sectionId: string, direction: BuilderMoveDirection) => {
+      if (!currentPage) return;
+      setHistorySections(moveSectionInSections(historySections, sectionId, direction));
+      setSelectedComponentId(null);
+      setSelectedSectionId(sectionId);
+    },
+    [currentPage, historySections, setHistorySections]
+  );
+
   return {
     activeId,
     handleAddSection,
     handleDeleteComponent,
     handleDeleteSection,
+    handleDuplicateComponent,
+    handleDuplicateSection,
     handleDragEnd,
     handleDragStart,
+    handleMoveComponent,
+    handleMoveSection,
     handleUpdateComponent,
     handleUpdateSection,
     selectedComponent,

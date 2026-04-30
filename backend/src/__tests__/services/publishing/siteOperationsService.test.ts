@@ -200,6 +200,23 @@ describe('SiteOperationsService', () => {
 
     await service.getForms('site-1', 'user-1', 'org-1');
 
+    const extractedPages = mockFormRegistry.extract.mock.calls[0]?.[0] as Array<{
+      collection?: string;
+      pageType?: string;
+      routePattern?: string;
+      sections?: Array<{ components?: Array<{ type?: string }> }>;
+    }>;
+    const eventDetailPage = extractedPages.find(
+      (page) => page.collection === 'events' && page.pageType === 'collectionDetail'
+    );
+    expect(eventDetailPage).toMatchObject({
+      routePattern: '/events/:slug',
+    });
+    expect(
+      eventDetailPage?.sections?.flatMap((section) =>
+        (section.components || []).map((component) => component.type)
+      )
+    ).toEqual(expect.arrayContaining(['event-detail', 'event-registration']));
     expect(mockFormRegistry.extract).toHaveBeenCalledWith(
       expect.any(Array),
       expect.any(Object),

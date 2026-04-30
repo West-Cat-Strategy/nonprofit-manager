@@ -24,7 +24,10 @@ import {
 import { escapeHtml } from '@services/site-generator/escapeHtml';
 import { generateComponentHtml } from '@services/site-generator/componentRenderer';
 import { sanitizeNewsletterHtml } from '@services/publishing/newsletterHtmlSanitizer';
-import { buildPublicWebsiteFormSubmissionPath } from '@services/publishing/publicWebsiteFormServiceHelpers';
+import {
+  buildPublicEventRegistrationSubmissionPath,
+  buildPublicWebsiteFormSubmissionPath,
+} from '@services/publishing/publicWebsiteFormServiceHelpers';
 import { sanitizeRenderableUrl } from '@services/site-generator/urlSanitizer';
 import { PublicSiteRouteResolver } from './routeResolver';
 import {
@@ -445,7 +448,7 @@ export class PublicSiteRenderer {
         return `
           <form
             data-public-site-form="true"
-            action="/api/v2/public/events/${encodeURIComponent(context.event.event_id)}/registrations?site=${encodeURIComponent(site.id)}"
+            action="${escapeHtml(buildPublicEventRegistrationSubmissionPath(site.id, context.event.event_id))}"
             method="post"
             style="display: grid; gap: 0.75rem; padding: 1.25rem; border: 1px solid var(--npm-border); border-radius: 16px; background: var(--npm-surface);"
           >

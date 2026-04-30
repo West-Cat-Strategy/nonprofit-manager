@@ -167,14 +167,19 @@ test.describe('Publishing Workflows', () => {
           };
           publicRuntime?: {
             publicPath?: string | null;
+            submissionPath?: string | null;
           };
         }>
       >(formsBody);
       const contactForm = forms.find((form) => form.formType === 'contact-form');
+      const eventRegistrationForm = forms.find((form) => form.formType === 'event-registration');
       expect(contactForm).toBeTruthy();
       if (!contactForm) {
         throw new Error(`Expected contact form in website forms payload: ${JSON.stringify(formsBody)}`);
       }
+      expect(eventRegistrationForm?.publicRuntime?.submissionPath).toBe(
+        `/api/v2/public/events/:event_id/registrations?site=${siteId}`
+      );
 
       const submitTextOverride = `Send support request ${Date.now()}`;
       const successMessageOverride = `Thanks from ${siteName}. We'll be in touch soon.`;

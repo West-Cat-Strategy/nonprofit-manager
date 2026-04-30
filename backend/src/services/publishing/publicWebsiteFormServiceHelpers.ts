@@ -27,6 +27,14 @@ export const buildPublicWebsiteFormSubmissionPath = (
 ): string =>
   `/api/v2/public/forms/${encodeURIComponent(siteKey)}/${encodeURIComponent(formKey)}/submit`;
 
+export const buildPublicEventRegistrationSubmissionPath = (
+  siteKey: string,
+  eventId: string = ':event_id'
+): string => {
+  const eventSegment = eventId.startsWith(':') ? eventId : encodeURIComponent(eventId);
+  return `/api/v2/public/events/${eventSegment}/registrations?site=${encodeURIComponent(siteKey)}`;
+};
+
 export const normalizePhone = (value: string | undefined): string | null => {
   if (!value) return null;
   const digits = value.replace(/\D/g, '');

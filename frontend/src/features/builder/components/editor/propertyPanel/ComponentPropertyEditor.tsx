@@ -30,6 +30,7 @@ const ComponentPropertyEditor: React.FC<ComponentPropertyEditorProps> = ({
       case 'donation-form':
       case 'newsletter-archive':
       case 'volunteer-interest-form':
+      case 'referral-form':
         return (
           <FormComponentPropertyEditor
             selectedComponent={selectedComponent}

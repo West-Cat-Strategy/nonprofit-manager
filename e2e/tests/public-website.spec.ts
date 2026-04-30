@@ -1,7 +1,7 @@
 import { test, expect } from '../fixtures/auth.fixture';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { getAuthHeaders } from '../helpers/database';
+import { createTestEvent, getAuthHeaders } from '../helpers/database';
 import {
   createTemplate,
   createWebsiteEntry,
@@ -71,6 +71,21 @@ type ReferralSubmissionRecord = {
   is_urgent: boolean;
 };
 
+type EventRegistrationRecord = {
+  registration_id: string;
+  contact_id: string;
+  event_id: string;
+  notes: string | null;
+};
+
+const slugifyPublicEventName = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+
 async function waitForReferralSubmissionRecord(input: {
   email: string;
   title: string;
@@ -112,6 +127,137 @@ async function waitForReferralSubmissionRecord(input: {
 
   throw new Error(
     `Timed out waiting for referral submission record for ${input.email} (${input.title})`
+  );
+}
+
+async function waitForEventRegistrationRecord(input: {
+  email: string;
+  eventId: string;
+  timeoutMs?: number;
+}): Promise<EventRegistrationRecord> {
+  const client = new PgClient(getDatabaseConfig());
+  const timeoutMs = input.timeoutMs ?? 15_000;
+  const deadline = Date.now() + timeoutMs;
+
+  try {
+    await client.connect();
+
+    while (Date.now() < deadline) {
+      const result = await client.query<EventRegistrationRecord>(
+        `SELECT er.id AS registration_id,
+                er.contact_id,
+                er.event_id,
+                er.notes
+           FROM event_registrations er
+           JOIN contacts ON contacts.id = er.contact_id
+          WHERE LOWER(contacts.email) = LOWER($1)
+            AND er.event_id = $2
+          ORDER BY er.created_at DESC
+          LIMIT 1`,
+        [input.email, input.eventId]
+      );
+
+      if (result.rows[0]) {
+        return result.rows[0];
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+
+  throw new Error(
+    `Timed out waiting for event registration record for ${input.email} (${input.eventId})`
+  );
+}
+
+async function waitForEventRegistrationTelemetry(input: {
+  siteId: string;
+  eventId: string;
+  registrationId: string;
+  timeoutMs?: number;
+}): Promise<void> {
+  const client = new PgClient(getDatabaseConfig());
+  const timeoutMs = input.timeoutMs ?? 15_000;
+  const deadline = Date.now() + timeoutMs;
+  let lastCounts = {
+    analytics: 0,
+    conversionSubmit: 0,
+    conversionConfirm: 0,
+  };
+
+  try {
+    await client.connect();
+
+    while (Date.now() < deadline) {
+      const result = await client.query<{
+        analytics_count: string;
+        conversion_submit_count: string;
+        conversion_confirm_count: string;
+      }>(
+        `SELECT
+           (
+             SELECT COUNT(*)::text
+                FROM site_analytics
+              WHERE site_id = $1
+                AND event_type = 'event_register'
+                AND event_data->>'eventId' = $2
+                AND event_data->>'registrationId' = $3
+                AND visitor_id IS NOT NULL
+                AND session_id IS NOT NULL
+           ) AS analytics_count,
+           (
+             SELECT COUNT(*)::text
+               FROM conversion_events
+              WHERE site_id = $1
+                AND conversion_type = 'event_register'
+                AND conversion_step = 'submit'
+                AND source_entity_type = 'event'
+                AND source_entity_id = $2::uuid
+                AND event_data->>'registrationId' = $3
+                AND visitor_id IS NOT NULL
+                AND session_id IS NOT NULL
+           ) AS conversion_submit_count,
+           (
+             SELECT COUNT(*)::text
+               FROM conversion_events
+              WHERE site_id = $1
+                AND conversion_type = 'event_register'
+                AND conversion_step = 'confirm'
+                AND source_entity_type = 'event'
+                AND source_entity_id = $2::uuid
+                AND event_data->>'registrationId' = $3
+                AND visitor_id IS NOT NULL
+                AND session_id IS NOT NULL
+           ) AS conversion_confirm_count`,
+        [input.siteId, input.eventId, input.registrationId]
+      );
+      const row = result.rows[0];
+      lastCounts = {
+        analytics: Number(row?.analytics_count ?? 0),
+        conversionSubmit: Number(row?.conversion_submit_count ?? 0),
+        conversionConfirm: Number(row?.conversion_confirm_count ?? 0),
+      };
+
+      if (
+        lastCounts.analytics > 0 &&
+        lastCounts.conversionSubmit > 0 &&
+        lastCounts.conversionConfirm > 0
+      ) {
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+
+  throw new Error(
+    `Timed out waiting for event registration telemetry for ${input.registrationId}: ${JSON.stringify(
+      lastCounts
+    )}`
   );
 }
 
@@ -179,19 +325,29 @@ async function configureDonationHomepage(
 async function deletePublicSubmissionArtifacts(input: {
   caseIds?: string[];
   donationIds?: string[];
+  eventIds?: string[];
   contactIds?: string[];
 }): Promise<void> {
   const caseIds = input.caseIds || [];
   const donationIds = input.donationIds || [];
+  const eventIds = input.eventIds || [];
   const contactIds = input.contactIds || [];
 
-  if (caseIds.length === 0 && donationIds.length === 0 && contactIds.length === 0) {
+  if (
+    caseIds.length === 0 &&
+    donationIds.length === 0 &&
+    eventIds.length === 0 &&
+    contactIds.length === 0
+  ) {
     return;
   }
 
   const client = new PgClient(getDatabaseConfig());
   try {
     await client.connect();
+    if (eventIds.length > 0) {
+      await client.query('DELETE FROM events WHERE id = ANY($1::uuid[])', [eventIds]);
+    }
     if (donationIds.length > 0) {
       await client.query('DELETE FROM donations WHERE id = ANY($1::uuid[])', [donationIds]);
     }
@@ -215,6 +371,7 @@ test.describe('Public website starter', () => {
     const uniqueDomain = `community-hub-${Date.now().toString(36)}.localhost`;
     const siteName = `Community Hub ${Date.now()}`;
     const createdCaseIds: string[] = [];
+    const createdEventIds: string[] = [];
     const createdContactIds: string[] = [];
     let newsletterEntryId = '';
     const siteId = await createWebsiteSite(authenticatedPage, authToken, templateId, {
@@ -223,6 +380,8 @@ test.describe('Public website starter', () => {
     });
     const newsletterTitle = `Community Update ${Date.now()}`;
     const newsletterExcerpt = 'A community update about programs, events, and support.';
+    const publicEventName = `Registration Proof ${Date.now()}`;
+    const publicEventSlug = slugifyPublicEventName(publicEventName);
 
     try {
       newsletterEntryId = await createWebsiteEntry(authenticatedPage, authToken, siteId, {
@@ -232,6 +391,18 @@ test.describe('Public website starter', () => {
         status: 'published',
         slug: `community-update-${Date.now().toString(36)}`,
       });
+      const eventStart = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const eventEnd = new Date(eventStart.getTime() + 2 * 60 * 60 * 1000);
+      const { id: publicEventId } = await createTestEvent(authenticatedPage, authToken, {
+        name: publicEventName,
+        eventType: 'community',
+        startDate: eventStart.toISOString(),
+        endDate: eventEnd.toISOString(),
+        location: 'Community Hall',
+        capacity: 25,
+        isPublic: true,
+      });
+      createdEventIds.push(publicEventId);
 
       await publishWebsiteSite(authenticatedPage, authToken, {
         siteId,
@@ -263,6 +434,61 @@ test.describe('Public website starter', () => {
       await expect(authenticatedPage.getByText(/subscribe once and stay connected/i)).toBeVisible();
       await expect(authenticatedPage.getByRole('heading', { name: newsletterTitle })).toBeVisible();
       await expect(authenticatedPage.getByText(newsletterExcerpt)).toBeVisible();
+
+      await authenticatedPage.goto(`${publicBase}/events`, { waitUntil: 'domcontentloaded' });
+      await expect(authenticatedPage.getByRole('heading', { name: /upcoming events/i })).toBeVisible();
+      const eventLink = authenticatedPage
+        .getByRole('main')
+        .getByRole('link', { name: publicEventName });
+      await expect(eventLink).toHaveAttribute('href', `/events/${publicEventSlug}`);
+      await eventLink.click();
+      await expect(authenticatedPage).toHaveURL(new RegExp(`/events/${publicEventSlug}$`));
+      await expect(authenticatedPage.getByRole('heading', { name: publicEventName })).toBeVisible();
+
+      const eventRegistrationForm = authenticatedPage
+        .locator('form[data-public-site-form="true"]')
+        .filter({ has: authenticatedPage.getByRole('button', { name: /^register$/i }) });
+      await expect(eventRegistrationForm).toHaveCount(1);
+      const eventRegistrantEmail = `event-registrant-${Date.now()}@example.com`;
+      await eventRegistrationForm.locator('input[name="first_name"]').fill('Ada');
+      await eventRegistrationForm.locator('input[name="last_name"]').fill('Lovelace');
+      await eventRegistrationForm.locator('input[name="email"]').fill(eventRegistrantEmail);
+      await eventRegistrationForm.locator('input[name="phone"]').fill('(604) 555-0100');
+      await eventRegistrationForm.locator('textarea[name="notes"]').fill('Please hold one seat.');
+
+      const eventSubmitResponsePromise = authenticatedPage.waitForResponse((response) => {
+        return (
+          response.request().method() === 'POST' &&
+          response.url().includes(`/api/v2/public/events/${publicEventId}/registrations`) &&
+          response.url().includes(`site=${siteId}`)
+        );
+      });
+      await eventRegistrationForm.getByRole('button', { name: /^register$/i }).click();
+
+      const eventSubmitResponse = await eventSubmitResponsePromise;
+      const eventSubmitBodyText = await eventSubmitResponse.text();
+      expect(
+        eventSubmitResponse.ok(),
+        `Public event registration failed (${eventSubmitResponse.status()}): ${eventSubmitBodyText}`
+      ).toBeTruthy();
+      await expect(eventRegistrationForm.locator('[data-form-status]')).toHaveText(
+        'Submitted successfully.'
+      );
+
+      const eventRegistration = await waitForEventRegistrationRecord({
+        email: eventRegistrantEmail,
+        eventId: publicEventId,
+      });
+      createdContactIds.push(eventRegistration.contact_id);
+      expect(eventRegistration).toMatchObject({
+        event_id: publicEventId,
+        notes: 'Please hold one seat.',
+      });
+      await waitForEventRegistrationTelemetry({
+        siteId,
+        eventId: publicEventId,
+        registrationId: eventRegistration.registration_id,
+      });
 
       await authenticatedPage.goto(`${publicBase}/contact`, { waitUntil: 'domcontentloaded' });
       await expect(authenticatedPage.getByRole('heading', { name: /contact and referral/i })).toBeVisible();
@@ -315,6 +541,7 @@ test.describe('Public website starter', () => {
     } finally {
       await deletePublicSubmissionArtifacts({
         caseIds: createdCaseIds,
+        eventIds: createdEventIds,
         contactIds: createdContactIds,
       });
       if (newsletterEntryId) {

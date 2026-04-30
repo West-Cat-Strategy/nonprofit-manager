@@ -82,6 +82,8 @@ const PUBLIC_SUBMISSION_FORM_TYPES = new Set<WebsiteManagedFormType>([
   'referral-form',
 ]);
 
+const PATH_PARAMETER_PATTERN = /(^|\/):[^/]+/;
+
 type FormMetadataRecord = Record<string, unknown>;
 
 export interface WebsiteManagedFormVerificationSummary {
@@ -185,6 +187,10 @@ const buildPublicSurfaceUrl = (
   path: string | null | undefined
 ): string | null => {
   if (!baseUrl) return null;
+
+  if (path && !path.startsWith('?') && PATH_PARAMETER_PATTERN.test(path)) {
+    return null;
+  }
 
   try {
     const url = new URL(baseUrl);
@@ -543,6 +549,7 @@ export const deriveWebsiteManagedFormVerification = (
   const dependency = getFormDependencyState(form, overview.integrations || EMPTY_INTEGRATIONS);
   const previewBaseUrl = overview.deployment?.previewUrl || overview.site.previewUrl;
   const liveBaseUrl = overview.deployment?.primaryUrl || overview.site.primaryUrl;
+  const isEventRegistration = form.formType === 'event-registration';
 
   const previewPageUrl = resolveRuntimeUrl(
     pickStringCandidate(metadataRecords, [
@@ -572,6 +579,7 @@ export const deriveWebsiteManagedFormVerification = (
   const submissionEndpoint =
     pickStringCandidate(metadataRecords, [
       'submissionEndpoint',
+      'submissionPath',
       'submitEndpoint',
       'submissionUrl',
       'submitUrl',
@@ -589,13 +597,14 @@ export const deriveWebsiteManagedFormVerification = (
 
   const hasPreview = Boolean(previewPageUrl);
   const hasLive = Boolean(livePageUrl);
+  const hasLiveSurface = hasLive || (isEventRegistration && form.live);
   const hasSubmission = Boolean(submissionEndpoint);
-  const launchReady = dependency.ready && hasSubmission && (hasPreview || hasLive);
+  const launchReady = dependency.ready && hasSubmission && (hasPreview || hasLiveSurface);
 
   let publishState: WebsiteManagedFormVerificationSummary['publishState'] = 'draft';
-  if (hasLive && hasPreview) {
+  if (hasLiveSurface && hasPreview) {
     publishState = 'live-preview';
-  } else if (hasLive) {
+  } else if (hasLiveSurface) {
     publishState = 'live';
   } else if (hasPreview) {
     publishState = 'preview';
@@ -610,8 +619,15 @@ export const deriveWebsiteManagedFormVerification = (
           ? 'Preview only'
           : 'Draft only';
 
-  const publishStateDetail =
-    publishState === 'live-preview'
+  const publishStateDetail = isEventRegistration
+    ? publishState === 'live-preview'
+      ? 'This event-registration CTA is available on live event detail pages and can still be checked through preview.'
+      : publishState === 'live'
+        ? 'This event-registration CTA is available on live event detail pages.'
+        : publishState === 'preview'
+          ? 'This event-registration CTA is available in preview before the next live publish.'
+          : 'Publish a preview or live version to expose this event-registration CTA.'
+    : publishState === 'live-preview'
       ? 'This managed CTA is available on the live site and can still be verified through preview.'
       : publishState === 'live'
         ? 'This managed CTA is currently exposed on the live public site.'
@@ -620,24 +636,26 @@ export const deriveWebsiteManagedFormVerification = (
           : 'Publish a preview or live version to expose this CTA on the public surface.';
 
   const launchStateLabel = launchReady
-    ? hasLive
+    ? hasLiveSurface
       ? 'Ready to verify'
       : 'Preview ready'
     : !dependency.ready
       ? `${dependency.label} needed`
-      : !hasPreview && !hasLive
+      : !hasPreview && !hasLiveSurface
         ? 'Publish needed'
         : !hasSubmission
           ? 'Submission route unavailable'
           : 'Needs attention';
 
   const launchStateDetail = launchReady
-    ? hasLive
-      ? 'Open the live page or preview page, submit the form, and confirm the public workflow end to end.'
+    ? hasLiveSurface
+      ? isEventRegistration
+        ? 'Open a live event detail page, submit the registration CTA, and confirm the public event registration workflow end to end.'
+        : 'Open the live page or preview page, submit the form, and confirm the public workflow end to end.'
       : 'Use the preview page to test the managed form before the next live publish.'
     : !dependency.ready
       ? dependency.detail
-      : !hasPreview && !hasLive
+      : !hasPreview && !hasLiveSurface
         ? 'Publish a preview or live version so the focus CTA can be opened from the public surface.'
         : !hasSubmission
           ? 'The managed public submission endpoint is not available yet for this CTA.'
@@ -650,7 +668,7 @@ export const deriveWebsiteManagedFormVerification = (
     readiness: {
       launchReady,
       preview: hasPreview,
-      live: hasLive,
+      live: hasLiveSurface,
       submission: hasSubmission,
       dependency: dependency.ready,
     },

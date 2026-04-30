@@ -1,6 +1,18 @@
 import { FormRegistryService } from '@services/publishing/formRegistryService';
-import type { TemplatePage } from '@app-types/websiteBuilder';
-import type { WebsiteSiteSettings } from '@app-types/publishing';
+import type { ComponentType, TemplatePage } from '@app-types/websiteBuilder';
+import type { WebsiteManagedFormType, WebsiteSiteSettings } from '@app-types/publishing';
+
+const managedFormContractSmoke: Record<
+  WebsiteManagedFormType,
+  Extract<ComponentType, WebsiteManagedFormType>
+> = {
+  'contact-form': 'contact-form',
+  'newsletter-signup': 'newsletter-signup',
+  'donation-form': 'donation-form',
+  'volunteer-interest-form': 'volunteer-interest-form',
+  'referral-form': 'referral-form',
+  'event-registration': 'event-registration',
+};
 
 describe('FormRegistryService', () => {
   const service = new FormRegistryService();
@@ -204,7 +216,7 @@ describe('FormRegistryService', () => {
         publicPath: '/events/:slug',
         publicUrl: null,
         previewUrl: null,
-        submissionPath: '/api/v2/public/forms/site-1/registration-1/submit',
+        submissionPath: '/api/v2/public/events/:event_id/registrations?site=site-1',
       },
     });
     expect(definitions[3]).toMatchObject({
@@ -220,5 +232,16 @@ describe('FormRegistryService', () => {
         submissionPath: '/api/v2/public/forms/site-1/volunteer-1/submit',
       },
     });
+  });
+
+  it('keeps managed-form publishing types aligned with the website-builder component contract', () => {
+    expect(Object.keys(managedFormContractSmoke)).toEqual([
+      'contact-form',
+      'newsletter-signup',
+      'donation-form',
+      'volunteer-interest-form',
+      'referral-form',
+      'event-registration',
+    ]);
   });
 });

@@ -372,6 +372,99 @@ const FormComponentPropertyEditor: React.FC<FormComponentPropertyEditorProps> = 
         </>
       );
 
+    case 'referral-form':
+      return (
+        <>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">Heading</label>
+            <input
+              type="text"
+              value={selectedComponent.heading || ''}
+              onChange={(e) => update({ heading: e.target.value || undefined })}
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">
+              Description
+            </label>
+            <textarea
+              value={selectedComponent.description || ''}
+              onChange={(e) => update({ description: e.target.value || undefined })}
+              rows={3}
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">
+              Submit Text
+            </label>
+            <input
+              type="text"
+              value={selectedComponent.submitText || 'Submit Referral'}
+              onChange={(e) => update({ submitText: e.target.value })}
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={selectedComponent.includePhone !== false}
+              onChange={(e) => update({ includePhone: e.target.checked })}
+              className="rounded border-app-input-border"
+            />
+            Include phone field
+          </label>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">
+              Success Message
+            </label>
+            <input
+              type="text"
+              value={selectedComponent.successMessage || ''}
+              onChange={(e) => update({ successMessage: e.target.value || undefined })}
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">
+              Default Tags
+            </label>
+            <input
+              type="text"
+              value={(selectedComponent.defaultTags || []).join(', ')}
+              onChange={(e) =>
+                update({
+                  defaultTags: e.target.value
+                    .split(',')
+                    .map((value) => value.trim())
+                    .filter(Boolean),
+                })
+              }
+              placeholder="intake, referral"
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-app-text-muted">
+              Account ID
+            </label>
+            <input
+              type="text"
+              value={selectedComponent.accountId || ''}
+              onChange={(e) => update({ accountId: e.target.value.trim() || undefined })}
+              className="w-full rounded-md border border-app-input-border px-3 py-2 text-sm"
+            />
+          </div>
+        </>
+      );
+
     default:
       return null;
   }

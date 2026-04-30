@@ -7,9 +7,17 @@ import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  DocumentDuplicateIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
 import type { PageSection, PageComponent, TemplateTheme } from '../../../../types/websiteBuilder';
 import { sanitizeBuilderUrl } from '../../../../utils/validation';
 import ComponentRenderer from './EditorCanvasRenderer';
+
+type MoveDirection = 'up' | 'down';
 
 interface EditorCanvasProps {
   sections: PageSection[];
@@ -21,22 +29,65 @@ interface EditorCanvasProps {
   onAddSection: () => void;
   onDeleteSection: (id: string) => void;
   onDeleteComponent: (id: string) => void;
+  onDuplicateSection: (id: string) => void;
+  onDuplicateComponent: (id: string) => void;
+  onMoveSection: (id: string, direction: MoveDirection) => void;
+  onMoveComponent: (id: string, direction: MoveDirection) => void;
 }
 
 interface SortableComponentProps {
   component: PageComponent;
   theme: TemplateTheme;
   isSelected: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
+  onMove: (direction: MoveDirection) => void;
 }
+
+interface BuilderIconButtonProps {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}
+
+const BuilderIconButton: React.FC<BuilderIconButtonProps> = ({
+  label,
+  disabled = false,
+  onClick,
+  children,
+}) => (
+  <button
+    type="button"
+    aria-label={label}
+    title={label}
+    disabled={disabled}
+    onPointerDown={(event) => event.stopPropagation()}
+    onClick={(event) => {
+      event.stopPropagation();
+      if (!disabled) {
+        onClick();
+      }
+    }}
+    className="rounded p-1 text-xs text-[var(--app-accent-foreground)] transition-colors hover:bg-app-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+  >
+    {children}
+  </button>
+);
 
 const SortableComponent: React.FC<SortableComponentProps> = ({
   component,
   theme,
   isSelected,
+  canMoveUp,
+  canMoveDown,
   onSelect,
   onDelete,
+  onDuplicate,
+  onMove,
 }) => {
   const {
     attributes,
@@ -74,19 +125,32 @@ const SortableComponent: React.FC<SortableComponentProps> = ({
           isSelected ? 'bg-opacity-10' : ''
         }`}
       >
-        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="p-1 bg-app-accent text-[var(--app-accent-foreground)] rounded text-xs hover:bg-app-accent"
+        {isSelected && (
+          <div
+            className="absolute top-1 right-1 flex gap-1 rounded bg-app-accent p-0.5 transition-opacity"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+            <BuilderIconButton label="Duplicate component" onClick={onDuplicate}>
+              <DocumentDuplicateIcon className="h-4 w-4" />
+            </BuilderIconButton>
+            <BuilderIconButton
+              label="Move component up"
+              disabled={!canMoveUp}
+              onClick={() => onMove('up')}
+            >
+              <ArrowUpIcon className="h-4 w-4" />
+            </BuilderIconButton>
+            <BuilderIconButton
+              label="Move component down"
+              disabled={!canMoveDown}
+              onClick={() => onMove('down')}
+            >
+              <ArrowDownIcon className="h-4 w-4" />
+            </BuilderIconButton>
+            <BuilderIconButton label="Delete component" onClick={onDelete}>
+              <TrashIcon className="h-4 w-4" />
+            </BuilderIconButton>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -101,7 +165,13 @@ interface SectionDropZoneProps {
   onSelectComponent: (id: string | null) => void;
   onDeleteSection: () => void;
   onDeleteComponent: (id: string) => void;
+  onDuplicateSection: () => void;
+  onDuplicateComponent: (id: string) => void;
+  onMoveSection: (direction: MoveDirection) => void;
+  onMoveComponent: (id: string, direction: MoveDirection) => void;
   canDelete: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
 }
 
 const SectionDropZone: React.FC<SectionDropZoneProps> = ({
@@ -113,7 +183,13 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
   onSelectComponent,
   onDeleteSection,
   onDeleteComponent,
+  onDuplicateSection,
+  onDuplicateComponent,
+  onMoveSection,
+  onMoveComponent,
   canDelete,
+  canMoveUp,
+  canMoveDown,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: section.id,
@@ -147,26 +223,37 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
         isSelected ? 'ring-2 ring-app-accent' : ''
       } ${isOver ? 'ring-2 ring-app-accent bg-app-accent-soft' : ''}`}
     >
-      <div className="absolute top-0 left-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        <div className="app-accent-surface flex items-center justify-between text-xs px-2 py-1">
-          <span>{section.name}</span>
-          <div className="flex gap-1">
-            {canDelete && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteSection();
-                }}
-                className="p-0.5 hover:bg-app-accent-hover rounded"
+      {isSelected && (
+        <div className="absolute top-0 left-0 right-0 z-10 transition-opacity">
+          <div className="app-accent-surface flex items-center justify-between text-xs px-2 py-1">
+            <span>{section.name}</span>
+            <div className="flex gap-1">
+              <BuilderIconButton label="Duplicate section" onClick={onDuplicateSection}>
+                <DocumentDuplicateIcon className="h-4 w-4" />
+              </BuilderIconButton>
+              <BuilderIconButton
+                label="Move section up"
+                disabled={!canMoveUp}
+                onClick={() => onMoveSection('up')}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            )}
+                <ArrowUpIcon className="h-4 w-4" />
+              </BuilderIconButton>
+              <BuilderIconButton
+                label="Move section down"
+                disabled={!canMoveDown}
+                onClick={() => onMoveSection('down')}
+              >
+                <ArrowDownIcon className="h-4 w-4" />
+              </BuilderIconButton>
+              {canDelete && (
+                <BuilderIconButton label="Delete section" onClick={onDeleteSection}>
+                  <TrashIcon className="h-4 w-4" />
+                </BuilderIconButton>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="max-w-6xl mx-auto" style={{ maxWidth: section.maxWidth || '1200px' }}>
         {section.components.length === 0 ? (
@@ -181,8 +268,12 @@ const SectionDropZone: React.FC<SectionDropZoneProps> = ({
                 component={component}
                 theme={theme}
                 isSelected={selectedComponentId === component.id}
+                canMoveUp={section.components.indexOf(component) > 0}
+                canMoveDown={section.components.indexOf(component) < section.components.length - 1}
                 onSelect={() => onSelectComponent(component.id)}
                 onDelete={() => onDeleteComponent(component.id)}
+                onDuplicate={() => onDuplicateComponent(component.id)}
+                onMove={(direction) => onMoveComponent(component.id, direction)}
               />
             ))}
           </div>
@@ -202,6 +293,10 @@ const EditorCanvas: React.FC<EditorCanvasProps> = ({
   onAddSection,
   onDeleteSection,
   onDeleteComponent,
+  onDuplicateSection,
+  onDuplicateComponent,
+  onMoveSection,
+  onMoveComponent,
 }) => {
   return (
     <div
@@ -211,7 +306,7 @@ const EditorCanvas: React.FC<EditorCanvasProps> = ({
         onSelectSection(null);
       }}
     >
-      {sections.map((section) => (
+      {sections.map((section, sectionIndex) => (
         <SectionDropZone
           key={section.id}
           section={section}
@@ -222,7 +317,13 @@ const EditorCanvas: React.FC<EditorCanvasProps> = ({
           onSelectComponent={onSelectComponent}
           onDeleteSection={() => onDeleteSection(section.id)}
           onDeleteComponent={onDeleteComponent}
+          onDuplicateSection={() => onDuplicateSection(section.id)}
+          onDuplicateComponent={onDuplicateComponent}
+          onMoveSection={(direction) => onMoveSection(section.id, direction)}
+          onMoveComponent={onMoveComponent}
           canDelete={sections.length > 1}
+          canMoveUp={sectionIndex > 0}
+          canMoveDown={sectionIndex < sections.length - 1}
         />
       ))}
 

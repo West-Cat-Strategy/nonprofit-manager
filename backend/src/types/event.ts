@@ -463,6 +463,8 @@ export interface PublicEventRegistrationDTO {
   registration_status?: RegistrationStatus;
   enrollment_scope?: EventEnrollmentScope;
   send_confirmation_email?: boolean;
+  visitorId?: string;
+  sessionId?: string;
 }
 
 export interface PublicEventRegistrationResult {

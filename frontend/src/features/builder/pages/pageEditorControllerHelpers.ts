@@ -11,70 +11,229 @@ import {
   normalizeRoutePattern,
 } from './pageEditorUtils';
 
-const moveItem = <T>(items: T[], fromIndex: number, toIndex: number): T[] => {
-  const nextItems = [...items];
-  const [item] = nextItems.splice(fromIndex, 1);
+export type ComponentDropPlacement = 'before' | 'after';
 
-  nextItems.splice(toIndex, 0, item);
-  return nextItems;
+type ComponentLocation = {
+  sectionIndex: number;
+  componentIndex: number;
+  componentId: string;
 };
 
-const resolvePaletteDropTargetSectionId = (sections: PageSection[], overId: string): string => {
-  let targetSectionId = overId;
+type DropTarget =
+  | { kind: 'section'; sectionIndex: number }
+  | ({ kind: 'component' } & ComponentLocation);
 
-  if (overId.startsWith('component-')) {
-    for (const section of sections) {
-      if (section.components.some((component) => component.id === overId.replace('component-', ''))) {
-        targetSectionId = section.id;
-        break;
-      }
-    }
+const COMPONENT_WRAPPER_PREFIX = 'component-';
+const BUILDER_ID_COLLECTION_KEYS = new Set(['components', 'columns', 'fields', 'sections']);
+
+export type BuilderMoveDirection = 'up' | 'down';
+
+type DuplicateComponentResult = {
+  sections: PageSection[];
+  componentId: string;
+};
+
+type DuplicateSectionResult = {
+  sections: PageSection[];
+  sectionId: string;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const collectIds = (value: unknown, ids: Set<string>): void => {
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectIds(entry, ids));
+    return;
   }
 
-  return targetSectionId;
-};
+  if (!isRecord(value)) {
+    return;
+  }
 
-const insertPaletteComponentIntoSections = (
-  sections: PageSection[],
-  overId: string,
-  component: PageComponent
-): PageSection[] => {
-  const targetSectionId = resolvePaletteDropTargetSectionId(sections, overId);
-
-  return sections.map((section) => {
-    if (section.id === targetSectionId || section.id === overId) {
-      return {
-        ...section,
-        components: [...section.components, component],
-      };
+  Object.entries(value).forEach(([key, entry]) => {
+    if (key === 'id' && typeof entry === 'string') {
+      ids.add(entry);
+      return;
     }
 
-    return section;
+    collectIds(entry, ids);
   });
 };
 
-const reorderComponentsInSections = (
+const createUniqueCopyId = (sourceId: string, usedIds: Set<string>): string => {
+  const baseId = `${sourceId}-copy`;
+  let candidate = baseId;
+  let suffix = 2;
+
+  while (usedIds.has(candidate)) {
+    candidate = `${baseId}-${suffix}`;
+    suffix += 1;
+  }
+
+  usedIds.add(candidate);
+  return candidate;
+};
+
+const cloneWithUniqueIds = <T>(value: T, usedIds: Set<string>, rewriteRecordId = true): T => {
+  if (Array.isArray(value)) {
+    return value.map((entry) => cloneWithUniqueIds(entry, usedIds, rewriteRecordId)) as T;
+  }
+
+  if (!isRecord(value)) {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      rewriteRecordId && key === 'id' && typeof entry === 'string'
+        ? createUniqueCopyId(entry, usedIds)
+        : cloneWithUniqueIds(entry, usedIds, BUILDER_ID_COLLECTION_KEYS.has(key)),
+    ])
+  ) as T;
+};
+
+const collectSectionIds = (sections: PageSection[]): Set<string> => {
+  const ids = new Set<string>();
+  collectIds(sections, ids);
+  return ids;
+};
+
+const findComponentLocation = (
   sections: PageSection[],
-  activeComponentId: string,
-  overComponentId: string
+  componentId: string
+): ComponentLocation | null => {
+  for (const [sectionIndex, section] of sections.entries()) {
+    const componentIndex = section.components.findIndex((component) => component.id === componentId);
+    if (componentIndex !== -1) {
+      return {
+        sectionIndex,
+        componentIndex,
+        componentId,
+      };
+    }
+  }
+
+  return null;
+};
+
+const resolveComponentTarget = (sections: PageSection[], overId: string): ComponentLocation | null => {
+  const exactMatch = findComponentLocation(sections, overId);
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  if (!overId.startsWith(COMPONENT_WRAPPER_PREFIX)) {
+    return null;
+  }
+
+  return findComponentLocation(sections, overId.slice(COMPONENT_WRAPPER_PREFIX.length));
+};
+
+const resolveDropTarget = (sections: PageSection[], overId: string): DropTarget | null => {
+  const sectionIndex = sections.findIndex((section) => section.id === overId);
+  if (sectionIndex !== -1) {
+    return {
+      kind: 'section',
+      sectionIndex,
+    };
+  }
+
+  const componentTarget = resolveComponentTarget(sections, overId);
+  if (!componentTarget) {
+    return null;
+  }
+
+  return {
+    kind: 'component',
+    ...componentTarget,
+  };
+};
+
+const insertComponentIntoSections = (
+  sections: PageSection[],
+  overId: string,
+  component: PageComponent,
+  placement: ComponentDropPlacement
 ): PageSection[] => {
-  if (activeComponentId === overComponentId) {
+  const target = resolveDropTarget(sections, overId);
+  if (!target) {
     return sections;
   }
 
-  return sections.map((section) => {
-    const oldIndex = section.components.findIndex((component) => component.id === activeComponentId);
-    const newIndex = section.components.findIndex((component) => component.id === overComponentId);
-
-    if (oldIndex !== -1 && newIndex !== -1) {
-      return {
-        ...section,
-        components: moveItem(section.components, oldIndex, newIndex),
-      };
+  return sections.map((section, sectionIndex) => {
+    if (target.kind === 'section') {
+      return sectionIndex === target.sectionIndex
+        ? {
+            ...section,
+            components: [...section.components, component],
+          }
+        : section;
     }
 
-    return section;
+    if (sectionIndex !== target.sectionIndex) {
+      return section;
+    }
+
+    const insertIndex = placement === 'after' ? target.componentIndex + 1 : target.componentIndex;
+    const components = [...section.components];
+    components.splice(insertIndex, 0, component);
+
+    return {
+      ...section,
+      components,
+    };
   });
+};
+
+const moveComponentInSections = (
+  sections: PageSection[],
+  activeComponentId: string,
+  overId: string,
+  placement: ComponentDropPlacement
+): PageSection[] => {
+  const activeLocation = findComponentLocation(sections, activeComponentId);
+  const target = resolveDropTarget(sections, overId);
+
+  if (!activeLocation || !target) {
+    return sections;
+  }
+
+  if (target.kind === 'component' && target.componentId === activeComponentId) {
+    return sections;
+  }
+
+  const nextSections = sections.map((section) => ({
+    ...section,
+    components: [...section.components],
+  }));
+  const [movedComponent] = nextSections[activeLocation.sectionIndex].components.splice(
+    activeLocation.componentIndex,
+    1
+  );
+
+  if (!movedComponent) {
+    return sections;
+  }
+
+  if (target.kind === 'section') {
+    nextSections[target.sectionIndex].components.push(movedComponent);
+    return nextSections;
+  }
+
+  const targetAfterRemoval = findComponentLocation(nextSections, target.componentId);
+  if (!targetAfterRemoval) {
+    return sections;
+  }
+
+  const insertIndex =
+    placement === 'after'
+      ? targetAfterRemoval.componentIndex + 1
+      : targetAfterRemoval.componentIndex;
+  nextSections[targetAfterRemoval.sectionIndex].components.splice(insertIndex, 0, movedComponent);
+
+  return nextSections;
 };
 
 export const buildPageUpdatePayload = (
@@ -164,25 +323,29 @@ export const applyDragEndToSections = ({
   activeId,
   overId,
   paletteComponent,
+  placement,
 }: {
   sections: PageSection[];
   activeId: string;
   overId: string | null | undefined;
   paletteComponent?: PageComponent;
+  placement?: ComponentDropPlacement;
 }): PageSection[] => {
   if (!overId) {
     return sections;
   }
+
+  const resolvedPlacement = placement || (activeId.startsWith('palette-') ? 'after' : 'before');
 
   if (activeId.startsWith('palette-')) {
     if (!paletteComponent) {
       return sections;
     }
 
-    return insertPaletteComponentIntoSections(sections, overId, paletteComponent);
+    return insertComponentIntoSections(sections, overId, paletteComponent, resolvedPlacement);
   }
 
-  return reorderComponentsInSections(sections, activeId, overId);
+  return moveComponentInSections(sections, activeId, overId, resolvedPlacement);
 };
 
 export const updateComponentInSections = (
@@ -203,6 +366,115 @@ export const updateSectionInSections = (
   updates: Partial<PageSection>
 ): PageSection[] =>
   sections.map((section) => (section.id === sectionId ? { ...section, ...updates } : section));
+
+export const duplicateComponentInSections = (
+  sections: PageSection[],
+  componentId: string
+): DuplicateComponentResult | null => {
+  const location = findComponentLocation(sections, componentId);
+  if (!location) {
+    return null;
+  }
+
+  const usedIds = collectSectionIds(sections);
+  const duplicate = cloneWithUniqueIds(
+    sections[location.sectionIndex].components[location.componentIndex],
+    usedIds
+  );
+  const updatedSections = sections.map((section, sectionIndex) => {
+    if (sectionIndex !== location.sectionIndex) {
+      return section;
+    }
+
+    const components = [...section.components];
+    components.splice(location.componentIndex + 1, 0, duplicate);
+    return {
+      ...section,
+      components,
+    };
+  });
+
+  return {
+    sections: updatedSections,
+    componentId: duplicate.id,
+  };
+};
+
+export const duplicateSectionInSections = (
+  sections: PageSection[],
+  sectionId: string
+): DuplicateSectionResult | null => {
+  const sectionIndex = sections.findIndex((section) => section.id === sectionId);
+  if (sectionIndex === -1) {
+    return null;
+  }
+
+  const usedIds = collectSectionIds(sections);
+  const duplicate = cloneWithUniqueIds(sections[sectionIndex], usedIds);
+  duplicate.name = `${sections[sectionIndex].name} Copy`;
+
+  const updatedSections = [...sections];
+  updatedSections.splice(sectionIndex + 1, 0, duplicate);
+
+  return {
+    sections: updatedSections,
+    sectionId: duplicate.id,
+  };
+};
+
+export const moveComponentWithinSection = (
+  sections: PageSection[],
+  componentId: string,
+  direction: BuilderMoveDirection
+): PageSection[] => {
+  const location = findComponentLocation(sections, componentId);
+  if (!location) {
+    return sections;
+  }
+
+  const nextIndex =
+    direction === 'up' ? location.componentIndex - 1 : location.componentIndex + 1;
+  const currentSection = sections[location.sectionIndex];
+  if (nextIndex < 0 || nextIndex >= currentSection.components.length) {
+    return sections;
+  }
+
+  return sections.map((section, sectionIndex) => {
+    if (sectionIndex !== location.sectionIndex) {
+      return section;
+    }
+
+    const components = [...section.components];
+    const [component] = components.splice(location.componentIndex, 1);
+    components.splice(nextIndex, 0, component);
+
+    return {
+      ...section,
+      components,
+    };
+  });
+};
+
+export const moveSectionInSections = (
+  sections: PageSection[],
+  sectionId: string,
+  direction: BuilderMoveDirection
+): PageSection[] => {
+  const sectionIndex = sections.findIndex((section) => section.id === sectionId);
+  if (sectionIndex === -1) {
+    return sections;
+  }
+
+  const nextIndex = direction === 'up' ? sectionIndex - 1 : sectionIndex + 1;
+  if (nextIndex < 0 || nextIndex >= sections.length) {
+    return sections;
+  }
+
+  const updatedSections = [...sections];
+  const [section] = updatedSections.splice(sectionIndex, 1);
+  updatedSections.splice(nextIndex, 0, section);
+  return updatedSections;
+};
 
 export const deleteComponentFromSections = (
   sections: PageSection[],

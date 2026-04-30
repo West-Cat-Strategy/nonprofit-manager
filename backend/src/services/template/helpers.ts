@@ -187,56 +187,110 @@ export function convertToPublishedPage(page: TemplatePage): PublishedPage {
 }
 
 export function ensureEventsPage(pages: TemplatePage[], templateId: string): TemplatePage[] {
-  const hasEventsPage = pages.some((page) => page.slug.toLowerCase() === 'events');
-  if (hasEventsPage) {
+  const hasEventsIndex = pages.some(
+    (page) =>
+      (page.pageType === 'collectionIndex' && page.collection === 'events') ||
+      page.routePattern === '/events' ||
+      page.slug === 'events'
+  );
+  const hasEventsDetail = pages.some(
+    (page) =>
+      (page.pageType === 'collectionDetail' && page.collection === 'events') ||
+      page.routePattern === '/events/:slug'
+  );
+
+  if (hasEventsIndex && hasEventsDetail) {
     return pages;
   }
 
   const now = new Date().toISOString();
-  const fallbackPage: TemplatePage = {
-    id: `events-fallback-${templateId}`,
-    name: 'Events',
-    slug: 'events',
-    isHomepage: false,
-    pageType: 'collectionIndex',
-    collection: 'events',
-    routePattern: '/events',
-    seo: {
-      title: 'Events',
-      description: 'Browse upcoming public events.',
-      keywords: ['events', 'community'],
-    },
-    sections: [
-      {
-        id: `events-section-${templateId}`,
-        name: 'Events',
-        paddingTop: '3rem',
-        paddingBottom: '3rem',
-        maxWidth: '1200px',
-        components: [
-          {
-            id: `events-heading-${templateId}`,
-            type: 'heading',
-            content: 'Upcoming Events',
-            level: 2,
-            align: 'center',
-          },
-          {
-            id: `events-list-${templateId}`,
-            type: 'event-list',
-            maxEvents: 12,
-            showPastEvents: false,
-            layout: 'grid',
-            emptyMessage: 'No public events are available right now.',
-          },
-        ],
-      } as PageSection,
-    ],
-    createdAt: now,
-    updatedAt: now,
-  };
+  const fallbackPages: TemplatePage[] = [];
 
-  return [...pages, fallbackPage];
+  if (!hasEventsIndex) {
+    fallbackPages.push({
+      id: `events-fallback-${templateId}`,
+      name: 'Events',
+      slug: 'events',
+      isHomepage: false,
+      pageType: 'collectionIndex',
+      collection: 'events',
+      routePattern: '/events',
+      seo: {
+        title: 'Events',
+        description: 'Browse upcoming public events.',
+        keywords: ['events', 'community'],
+      },
+      sections: [
+        {
+          id: `events-section-${templateId}`,
+          name: 'Events',
+          paddingTop: '3rem',
+          paddingBottom: '3rem',
+          maxWidth: '1200px',
+          components: [
+            {
+              id: `events-heading-${templateId}`,
+              type: 'heading',
+              content: 'Upcoming Events',
+              level: 2,
+              align: 'center',
+            },
+            {
+              id: `events-list-${templateId}`,
+              type: 'event-list',
+              maxEvents: 12,
+              showPastEvents: false,
+              layout: 'grid',
+              emptyMessage: 'No public events are available right now.',
+            },
+          ],
+        } as PageSection,
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  if (!hasEventsDetail) {
+    fallbackPages.push({
+      id: `events-detail-fallback-${templateId}`,
+      name: 'Event Detail',
+      slug: 'event-detail',
+      isHomepage: false,
+      pageType: 'collectionDetail',
+      collection: 'events',
+      routePattern: '/events/:slug',
+      seo: {
+        title: 'Event Detail',
+        description: 'Review event details and register.',
+        keywords: ['events', 'registration'],
+      },
+      sections: [
+        {
+          id: `events-detail-section-${templateId}`,
+          name: 'Event Detail',
+          paddingTop: '3rem',
+          paddingBottom: '3rem',
+          maxWidth: '960px',
+          components: [
+            {
+              id: `events-detail-${templateId}`,
+              type: 'event-detail',
+            },
+            {
+              id: `event-registration-${templateId}`,
+              type: 'event-registration',
+              submitText: 'Register',
+            },
+          ],
+        } as PageSection,
+      ],
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  return [...pages, ...fallbackPages];
 }
 
 export function ensureNewslettersPage(pages: TemplatePage[], templateId: string): TemplatePage[] {
